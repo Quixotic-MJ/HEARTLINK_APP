@@ -1,5 +1,15 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Dashboard from "../features/dashboard/home";
+import Broadcasts from "../features/pages/system & support/system_broadcast";
+import Feedbacks from "../features/pages/system & support/feedback_reports";
+import Users from "../features/pages/system & support/user_management";
+import Alerts from "../features/pages/clinical portal/alert_monitoring";
+import Calibrations from "../features/pages/clinical portal/calibration_history";
+import Cases from "../features/pages/clinical portal/case_review";
+import Exercises from "../features/pages/management/exercise";
+import Recipes from "../features/pages/management/recipe";
+import Specialists from "../features/pages/management/specialist_directory";
+import Analytics from "../features/pages/overview/analytics";
+import Dashboard from "../features/pages/overview/dashboard";
 import Login from "../features/auth/login";
 
 export default function App() {
@@ -8,6 +18,16 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Login />} />
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/analytics" element={<Analytics />} />
+        <Route path="/specialists" element={<Specialists />} />
+        <Route path="/recipes" element={<Recipes />} />
+        <Route path="/exercises" element={<Exercises />} />
+        <Route path="/cases" element={<Cases />} />
+        <Route path="/calibration" element={<Calibrations />} />
+        <Route path="/alerts" element={<Alerts />} />
+        <Route path="/users" element={<Users />} />
+        <Route path="/feedbacks" element={<Feedbacks />} />
+        <Route path="/broadcasts" element={<Broadcasts />} />
       </Routes>
     </BrowserRouter>
   );
