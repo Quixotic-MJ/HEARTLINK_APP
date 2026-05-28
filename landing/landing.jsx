@@ -51,11 +51,6 @@ const HeartLinkLanding = () => {
           </div>
 
           <div className="flex items-center gap-4">
-            <Link to="/login">
-              <button className="hidden md:block text-sm font-semibold text-gray-600 hover:text-gray-900 transition-colors">
-                Log In
-              </button>
-            </Link>
             <button className="bg-[#1e4ed8] hover:bg-[#1643c3] text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition-all shadow-sm shadow-blue-900/20 flex items-center gap-2">
               Get the App
             </button>

@@ -12,7 +12,7 @@ import {
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
-import { MaterialCommunityIcons, Feather } from "@expo/vector-icons";
+import { MaterialCommunityIcons, MaterialIcons, Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import "../global.css";
 
@@ -147,8 +147,8 @@ export default function OnboardingScreen() {
 
             <View className="bg-white rounded-[24px] p-5 flex-row items-center border border-slate-100 shadow-sm shadow-slate-200/50">
               <View className="bg-rose-50 w-14 h-14 rounded-2xl items-center justify-center mr-4 border border-rose-100">
-                <MaterialCommunityIcons
-                  name="shield-heart"
+                <MaterialIcons
+                  name="insights"
                   size={26}
                   color="#E11D48"
                 />
@@ -175,7 +175,7 @@ export default function OnboardingScreen() {
         <TouchableOpacity
           activeOpacity={0.8}
           className="bg-[#1D4ED8] h-14 rounded-full flex-row justify-center items-center shadow-lg shadow-blue-500/30"
-          onPress={() => router.push("/(auth)/register")}
+          // onPress={() => router.push("/(auth)/register")}
         >
           <Text className="text-white font-bold text-lg mr-2">Get Started</Text>
           <Feather name="arrow-right" size={20} color="white" />
