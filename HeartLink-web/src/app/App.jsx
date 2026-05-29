@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import Settings from "../features/pages/system & support/settings";
 import Broadcasts from "../features/pages/system & support/system_broadcast";
 import Feedbacks from "../features/pages/system & support/feedback_reports";
 import Users from "../features/pages/system & support/user_management";
@@ -28,6 +29,7 @@ export default function App() {
         <Route path="/users" element={<Users />} />
         <Route path="/feedbacks" element={<Feedbacks />} />
         <Route path="/broadcasts" element={<Broadcasts />} />
+        <Route path="/settings" element={<Settings />} />
       </Routes>
     </BrowserRouter>
   );
