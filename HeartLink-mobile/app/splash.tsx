@@ -3,19 +3,14 @@ import { View, Text, Animated, Easing } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
 import "../global.css"; // Ensure NativeWind/Tailwind is configured
 
 export default function SplashScreen() {
-  const router = useRouter();
-
-  // Subtle entrance animation values for high-end premium feel
+  // Subtle entrance animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.95)).current;
 
   useEffect(() => {
-    let timer: NodeJS.Timeout;
-
     // Premium fade and slight scale-up effect on load
     Animated.parallel([
       Animated.timing(fadeAnim, {
@@ -30,16 +25,7 @@ export default function SplashScreen() {
         easing: Easing.out(Easing.back(1.5)),
         useNativeDriver: true,
       }),
-    ]).start(() => {
-      // Transition to onboarding after short delay to let user admire splash screen
-      timer = setTimeout(() => {
-        router.replace("/onboarding");
-      }, 1500);
-    });
-
-    return () => {
-      if (timer) clearTimeout(timer);
-    };
+    ]).start();
   }, []);
 
   return (
