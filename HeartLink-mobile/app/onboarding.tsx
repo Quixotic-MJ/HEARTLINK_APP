@@ -75,7 +75,7 @@ export default function OnboardingScreen() {
 
         {/* Temporary ONLY */}
         {__DEV__ && (
-          <Button title="Go to progress screen" onPress={() => router.push("/dietary_profile")} />
+          <Button title="Go to progress screen (development purposes only)" onPress={() => router.push("/dietary_profile")} />
         )}
 
         {/* 4. Feature Cards */}
