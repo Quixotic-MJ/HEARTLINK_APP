@@ -45,7 +45,7 @@ export default function BiometricsStep2Screen() {
       {/* Top Header Bar */}
       <View className="flex-row items-center px-6 pt-2 pb-2 z-10">
         <TouchableOpacity 
-          // onPress={() => router.back()} 
+          onPress={() => router.back()} 
           className="p-2 -ml-2"
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
@@ -88,13 +88,17 @@ export default function BiometricsStep2Screen() {
                 <TouchableOpacity
                   activeOpacity={0.7}
                   onPress={() => setSmokingStatus("never")}
-                  className={`flex-1 py-3.5 rounded-[14px] items-center border transition-all ${
-                    smokingStatus === "never" 
-                      ? "bg-blue-50 border-[#1e4ed8]" 
-                      : "bg-white border-slate-200"
-                  }`}
+                  className="flex-1 py-3.5 rounded-[14px] items-center border"
+                  style={
+                    smokingStatus === "never"
+                      ? { backgroundColor: "#eff6ff", borderColor: "#1e4ed8" }
+                      : { backgroundColor: "#ffffff", borderColor: "#e2e8f0" }
+                  }
                 >
-                  <Text className={`font-bold text-[13px] ${smokingStatus === "never" ? "text-[#1e4ed8]" : "text-slate-500"}`}>
+                  <Text
+                    className="font-bold text-[13px]"
+                    style={{ color: smokingStatus === "never" ? "#1e4ed8" : "#64748b" }}
+                  >
                     Never
                   </Text>
                 </TouchableOpacity>
@@ -102,13 +106,17 @@ export default function BiometricsStep2Screen() {
                 <TouchableOpacity
                   activeOpacity={0.7}
                   onPress={() => setSmokingStatus("former")}
-                  className={`flex-1 py-3.5 rounded-[14px] items-center border transition-all ${
-                    smokingStatus === "former" 
-                      ? "bg-amber-50 border-amber-500" 
-                      : "bg-white border-slate-200"
-                  }`}
+                  className="flex-1 py-3.5 rounded-[14px] items-center border"
+                  style={
+                    smokingStatus === "former"
+                      ? { backgroundColor: "#fffbeb", borderColor: "#f59e0b" }
+                      : { backgroundColor: "#ffffff", borderColor: "#e2e8f0" }
+                  }
                 >
-                  <Text className={`font-bold text-[13px] ${smokingStatus === "former" ? "text-amber-600" : "text-slate-500"}`}>
+                  <Text
+                    className="font-bold text-[13px]"
+                    style={{ color: smokingStatus === "former" ? "#d97706" : "#64748b" }}
+                  >
                     Former
                   </Text>
                 </TouchableOpacity>
@@ -116,13 +124,17 @@ export default function BiometricsStep2Screen() {
                 <TouchableOpacity
                   activeOpacity={0.7}
                   onPress={() => setSmokingStatus("current")}
-                  className={`flex-1 py-3.5 rounded-[14px] items-center border transition-all ${
-                    smokingStatus === "current" 
-                      ? "bg-rose-50 border-rose-500" 
-                      : "bg-white border-slate-200"
-                  }`}
+                  className="flex-1 py-3.5 rounded-[14px] items-center border"
+                  style={
+                    smokingStatus === "current"
+                      ? { backgroundColor: "#fff1f2", borderColor: "#f43f5e" }
+                      : { backgroundColor: "#ffffff", borderColor: "#e2e8f0" }
+                  }
                 >
-                  <Text className={`font-bold text-[13px] ${smokingStatus === "current" ? "text-rose-600" : "text-slate-500"}`}>
+                  <Text
+                    className="font-bold text-[13px]"
+                    style={{ color: smokingStatus === "current" ? "#e11d48" : "#64748b" }}
+                  >
                     Current
                   </Text>
                 </TouchableOpacity>
@@ -140,7 +152,8 @@ export default function BiometricsStep2Screen() {
                   activeOpacity={0.7}
                   onPress={decrementSleep}
                   disabled={sleepHours <= 3}
-                  className={`w-14 h-14 rounded-[16px] items-center justify-center bg-white shadow-sm shadow-slate-200 ${sleepHours <= 3 ? 'opacity-50' : ''}`}
+                  className="w-14 h-14 rounded-[16px] items-center justify-center bg-white shadow-sm shadow-slate-200"
+                  style={{ opacity: sleepHours <= 3 ? 0.5 : 1 }}
                 >
                   <Feather name="minus" size={24} color="#475569" />
                 </TouchableOpacity>
@@ -160,7 +173,8 @@ export default function BiometricsStep2Screen() {
                   activeOpacity={0.7}
                   onPress={incrementSleep}
                   disabled={sleepHours >= 12}
-                  className={`w-14 h-14 rounded-[16px] items-center justify-center bg-white shadow-sm shadow-slate-200 ${sleepHours >= 12 ? 'opacity-50' : ''}`}
+                  className="w-14 h-14 rounded-[16px] items-center justify-center bg-white shadow-sm shadow-slate-200"
+                  style={{ opacity: sleepHours >= 12 ? 0.5 : 1 }}
                 >
                   <Feather name="plus" size={24} color="#475569" />
                 </TouchableOpacity>
@@ -199,7 +213,10 @@ export default function BiometricsStep2Screen() {
               activeOpacity={0.8}
               onPress={handleNextStep}
               disabled={!smokingStatus}
-              className={`w-full h-[52px] rounded-full flex-row justify-center items-center shadow-sm transition-colors ${smokingStatus ? 'bg-[#1e4ed8] shadow-blue-900/20' : 'bg-slate-300'}`}
+              className="w-full h-[52px] rounded-full flex-row justify-center items-center shadow-sm"
+              style={{
+                backgroundColor: smokingStatus ? "#1e4ed8" : "#cbd5e1",
+              }}
             >
               <Text className="text-white font-bold text-[15px] mr-2">
                 Next Step

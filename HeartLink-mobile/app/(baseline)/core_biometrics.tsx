@@ -101,7 +101,7 @@ export default function BiometricsStep1Screen() {
               <Text className="text-[13px] font-bold text-slate-900 mb-2 ml-1">
                 Biological Age
               </Text>
-              <View className="w-1/2 h-[52px] bg-white border border-slate-200 rounded-[16px] flex-row items-center px-4 transition-colors focus-within:border-[#1e4ed8]">
+              <View className="w-1/2 h-[52px] bg-white border border-slate-200 rounded-[16px] flex-row items-center px-4">
                 <TextInput
                   value={age}
                   onChangeText={setAge}
@@ -125,11 +125,12 @@ export default function BiometricsStep1Screen() {
                 <TouchableOpacity
                   activeOpacity={0.7}
                   onPress={() => setSex("male")}
-                  className={`flex-1 h-[52px] rounded-[16px] flex-row items-center justify-center border transition-all ${
+                  className="flex-1 h-[52px] rounded-[16px] flex-row items-center justify-center border"
+                  style={
                     sex === "male"
-                      ? "bg-blue-50 border-[#1e4ed8]"
-                      : "bg-white border-slate-200"
-                  }`}
+                      ? { backgroundColor: "#eff6ff", borderColor: "#1e4ed8" }
+                      : { backgroundColor: "#ffffff", borderColor: "#e2e8f0" }
+                  }
                 >
                   <MaterialCommunityIcons
                     name="gender-male"
@@ -137,7 +138,8 @@ export default function BiometricsStep1Screen() {
                     color={sex === "male" ? "#1e4ed8" : "#94a3b8"}
                   />
                   <Text
-                    className={`ml-2 font-bold text-[14px] ${sex === "male" ? "text-[#1e4ed8]" : "text-slate-500"}`}
+                    className="ml-2 font-bold text-[14px]"
+                    style={{ color: sex === "male" ? "#1e4ed8" : "#64748b" }}
                   >
                     Male
                   </Text>
@@ -146,11 +148,12 @@ export default function BiometricsStep1Screen() {
                 <TouchableOpacity
                   activeOpacity={0.7}
                   onPress={() => setSex("female")}
-                  className={`flex-1 h-[52px] rounded-[16px] flex-row items-center justify-center border transition-all ${
+                  className="flex-1 h-[52px] rounded-[16px] flex-row items-center justify-center border"
+                  style={
                     sex === "female"
-                      ? "bg-rose-50 border-rose-500"
-                      : "bg-white border-slate-200"
-                  }`}
+                      ? { backgroundColor: "#fff1f2", borderColor: "#f43f5e" }
+                      : { backgroundColor: "#ffffff", borderColor: "#e2e8f0" }
+                  }
                 >
                   <MaterialCommunityIcons
                     name="gender-female"
@@ -158,7 +161,8 @@ export default function BiometricsStep1Screen() {
                     color={sex === "female" ? "#f43f5e" : "#94a3b8"}
                   />
                   <Text
-                    className={`ml-2 font-bold text-[14px] ${sex === "female" ? "text-rose-500" : "text-slate-500"}`}
+                    className="ml-2 font-bold text-[14px]"
+                    style={{ color: sex === "female" ? "#f43f5e" : "#64748b" }}
                   >
                     Female
                   </Text>
@@ -172,20 +176,32 @@ export default function BiometricsStep1Screen() {
               <View className="flex-row bg-slate-200/60 p-1 rounded-[14px] mb-6">
                 <TouchableOpacity
                   onPress={() => setUnitSystem("metric")}
-                  className={`flex-1 py-2 rounded-[10px] items-center ${unitSystem === "metric" ? "bg-white shadow-sm shadow-slate-300" : ""}`}
+                  className="flex-1 py-2 rounded-[10px] items-center"
+                  style={
+                    unitSystem === "metric"
+                      ? { backgroundColor: "#ffffff", shadowColor: "#cbd5e1", shadowOpacity: 0.3, shadowRadius: 2, shadowOffset: { width: 0, height: 1 }, elevation: 2 }
+                      : {}
+                  }
                 >
                   <Text
-                    className={`text-[12px] font-bold ${unitSystem === "metric" ? "text-slate-900" : "text-slate-500"}`}
+                    className="text-[12px] font-bold"
+                    style={{ color: unitSystem === "metric" ? "#0f172a" : "#64748b" }}
                   >
                     Metric (cm/kg)
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() => setUnitSystem("imperial")}
-                  className={`flex-1 py-2 rounded-[10px] items-center ${unitSystem === "imperial" ? "bg-white shadow-sm shadow-slate-300" : ""}`}
+                  className="flex-1 py-2 rounded-[10px] items-center"
+                  style={
+                    unitSystem === "imperial"
+                      ? { backgroundColor: "#ffffff", shadowColor: "#cbd5e1", shadowOpacity: 0.3, shadowRadius: 2, shadowOffset: { width: 0, height: 1 }, elevation: 2 }
+                      : {}
+                  }
                 >
                   <Text
-                    className={`text-[12px] font-bold ${unitSystem === "imperial" ? "text-slate-900" : "text-slate-500"}`}
+                    className="text-[12px] font-bold"
+                    style={{ color: unitSystem === "imperial" ? "#0f172a" : "#64748b" }}
                   >
                     Imperial (ft/lbs)
                   </Text>
@@ -278,7 +294,10 @@ export default function BiometricsStep1Screen() {
               activeOpacity={0.8}
               onPress={handleNextStep}
               disabled={!age || !sex}
-              className={`w-full h-[52px] rounded-full flex-row justify-center items-center shadow-sm ${age && sex ? "bg-[#1e4ed8] shadow-blue-900/20" : "bg-slate-300"}`}
+              className="w-full h-[52px] rounded-full flex-row justify-center items-center shadow-sm"
+              style={{
+                backgroundColor: age && sex ? "#1e4ed8" : "#cbd5e1",
+              }}
             >
               <Text className="text-white font-bold text-[15px] mr-2">
                 Next Step

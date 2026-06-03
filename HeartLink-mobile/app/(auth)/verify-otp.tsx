@@ -151,8 +151,9 @@ export default function OTPVerificationScreen() {
                   keyboardType="number-pad"
                   maxLength={1}
                   selectTextOnFocus
-                  className={`w-[14%] aspect-square bg-white border ${digit !== "" ? "border-[#1e4ed8]" : "border-slate-200"} rounded-[14px] text-center text-[22px] font-black text-slate-900 transition-colors focus:border-[#1e4ed8] focus:bg-blue-50/30 shadow-sm shadow-slate-100 p-0`}
+                  className="w-[14%] aspect-square bg-white border rounded-[14px] text-center text-[22px] font-black text-slate-900 shadow-sm shadow-slate-100 p-0"
                   style={{
+                    borderColor: digit !== "" ? "#1e4ed8" : "#e2e8f0",
                     padding: 0,
                     textAlignVertical: "center",
                     ...Platform.select({
@@ -172,7 +173,10 @@ export default function OTPVerificationScreen() {
                 activeOpacity={0.8}
                 onPress={handleVerify}
                 disabled={isVerifying || otp.join("").length !== 6}
-                className={`w-full h-[52px] rounded-full flex-row justify-center items-center mb-6 shadow-sm shadow-blue-900/20 ${otp.join("").length === 6 ? "bg-[#1e4ed8]" : "bg-[#94a3b8]"}`}
+                className="w-full h-[52px] rounded-full flex-row justify-center items-center mb-6 shadow-sm shadow-blue-900/20"
+                style={{
+                  backgroundColor: otp.join("").length === 6 ? "#1e4ed8" : "#94a3b8",
+                }}
               >
                 {isVerifying ? (
                   <ActivityIndicator color="white" />

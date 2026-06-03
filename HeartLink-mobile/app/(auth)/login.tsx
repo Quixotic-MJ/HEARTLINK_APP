@@ -104,7 +104,7 @@ export default function AuthScreen() {
           <View className="flex-col">
             
             {/* Email Input */}
-            <View className="w-full h-16 bg-[#f8fafc] border border-slate-100 rounded-[20px] flex-row items-center px-5 transition-colors focus-within:border-[#1e4ed8] focus-within:bg-white mb-4">
+            <View className="w-full h-16 bg-[#f8fafc] border border-slate-100 rounded-[20px] flex-row items-center px-5 mb-4">
               <Feather name="mail" size={20} color="#94a3b8" />
               <TextInput
                 value={email}
@@ -119,7 +119,7 @@ export default function AuthScreen() {
 
             {/* Password Input */}
             <View className="mb-4">
-              <View className="w-full h-16 bg-[#f8fafc] border border-slate-100 rounded-[20px] flex-row items-center px-5 transition-colors focus-within:border-[#1e4ed8] focus-within:bg-white">
+              <View className="w-full h-16 bg-[#f8fafc] border border-slate-100 rounded-[20px] flex-row items-center px-5">
                 <Feather name="lock" size={20} color="#94a3b8" />
                 <TextInput
                   value={password}
@@ -153,7 +153,7 @@ export default function AuthScreen() {
 
             {/* Confirm Password Input (Register Mode Only) */}
             {!isLoginMode && (
-              <View className="w-full h-16 bg-[#f8fafc] border border-slate-100 rounded-[20px] flex-row items-center px-5 transition-colors focus-within:border-[#1e4ed8] focus-within:bg-white mb-4">
+              <View className="w-full h-16 bg-[#f8fafc] border border-slate-100 rounded-[20px] flex-row items-center px-5 mb-4">
                 <Feather name="shield" size={20} color="#94a3b8" />
                 <TextInput
                   value={confirmPassword}
@@ -181,7 +181,8 @@ export default function AuthScreen() {
           <TouchableOpacity
             activeOpacity={0.8}
             onPress={handleSubmit}
-            className={`w-full h-16 bg-[#1e4ed8] rounded-[20px] justify-center items-center shadow-lg shadow-blue-900/20 ${isLoginMode ? 'mt-8' : 'mt-10'}`}
+            className="w-full h-16 bg-[#1e4ed8] rounded-[20px] justify-center items-center shadow-lg shadow-blue-900/20"
+            style={{ marginTop: isLoginMode ? 32 : 40 }}
           >
             <Text className="text-white font-bold text-[16px] tracking-wide">
               {isLoginMode ? "Log In" : "Create Account"}

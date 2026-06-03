@@ -120,7 +120,12 @@ export default function RegisterScreen() {
               
               {/* Email Input */}
               <View className="mb-4">
-                <View className={`w-full h-[52px] bg-white border ${errors.email ? 'border-red-400' : 'border-slate-200'} rounded-[16px] flex-row items-center px-4 transition-colors focus-within:border-[#1e4ed8]`}>
+                <View
+                  className="w-full h-[52px] bg-white border rounded-[16px] flex-row items-center px-4"
+                  style={{
+                    borderColor: errors.email ? "#f87171" : "#e2e8f0",
+                  }}
+                >
                   <Feather name="mail" size={18} color={errors.email ? "#f87171" : "#64748b"} />
                   <TextInput
                     value={email}
@@ -137,7 +142,12 @@ export default function RegisterScreen() {
 
               {/* Phone Number Input */}
               <View className="mb-4">
-                <View className={`w-full h-[52px] bg-white border ${errors.phone ? 'border-red-400' : 'border-slate-200'} rounded-[16px] flex-row items-center px-4 transition-colors focus-within:border-[#1e4ed8]`}>
+                <View
+                  className="w-full h-[52px] bg-white border rounded-[16px] flex-row items-center px-4"
+                  style={{
+                    borderColor: errors.phone ? "#f87171" : "#e2e8f0",
+                  }}
+                >
                   <Feather name="phone" size={18} color={errors.phone ? "#f87171" : "#64748b"} />
                   <View className="flex-row items-center ml-3 border-r border-slate-200 pr-3 mr-3 h-3/5">
                     <Text className="text-[14px] font-bold text-slate-700">+63</Text>
@@ -161,7 +171,12 @@ export default function RegisterScreen() {
 
               {/* Password Input */}
               <View className="mb-4">
-                <View className={`w-full h-[52px] bg-white border ${errors.password ? 'border-red-400' : 'border-slate-200'} rounded-[16px] flex-row items-center px-4 transition-colors focus-within:border-[#1e4ed8]`}>
+                <View
+                  className="w-full h-[52px] bg-white border rounded-[16px] flex-row items-center px-4"
+                  style={{
+                    borderColor: errors.password ? "#f87171" : "#e2e8f0",
+                  }}
+                >
                   <Feather name="lock" size={18} color={errors.password ? "#f87171" : "#64748b"} />
                   <TextInput
                     value={password}
@@ -187,7 +202,12 @@ export default function RegisterScreen() {
 
               {/* Confirm Password Input */}
               <View className="mb-2">
-                <View className={`w-full h-[52px] bg-white border ${errors.confirmPassword ? 'border-red-400' : 'border-slate-200'} rounded-[16px] flex-row items-center px-4 transition-colors focus-within:border-[#1e4ed8]`}>
+                <View
+                  className="w-full h-[52px] bg-white border rounded-[16px] flex-row items-center px-4"
+                  style={{
+                    borderColor: errors.confirmPassword ? "#f87171" : "#e2e8f0",
+                  }}
+                >
                   <Feather name="shield" size={18} color={errors.confirmPassword ? "#f87171" : "#64748b"} />
                   <TextInput
                     value={confirmPassword}
