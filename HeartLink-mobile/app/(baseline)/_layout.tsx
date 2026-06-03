@@ -9,10 +9,10 @@ export default function AuthLayout() {
         animation: "slide_from_right", // Premium native slide-in animation
       }}
     >
-      <Stack.Screen name="login" />
-      <Stack.Screen name="register" />
-      <Stack.Screen name="verify-otp" />
-      <Stack.Screen name="verification-success" />
+      <Stack.Screen name="core_biometrics" />
+      <Stack.Screen name="lifestyle_habits" />
+      <Stack.Screen name="dietary_profile" />
+      <Stack.Screen name="clinical_biometrics" />
     </Stack>
   );
 }

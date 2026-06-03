@@ -4,7 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import "../global.css"; // Ensure NativeWind/Tailwind is configured
+import "../global.css"; 
 
 export default function SplashScreen() {
   const router = useRouter();

@@ -64,7 +64,7 @@ export default function RegisterScreen() {
         phone: `+63${phone}`,
         password,
       });
-      // router.push("/(auth)/verify-otp");
+      router.push("/verify-otp");
     }
   };
 

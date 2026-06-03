@@ -24,6 +24,7 @@ export default function RootLayout() {
         but you can explicitly define it here if you want to tweak its behavior.
       */}
       <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+      <Stack.Screen name="(baseline)" options={{ headerShown: false }} />
     </Stack>
   );
 }

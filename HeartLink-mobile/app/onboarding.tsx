@@ -1,16 +1,15 @@
 import React from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  ScrollView,
-} from "react-native";
+import { View, Text, TouchableOpacity, ScrollView, Button } from "react-native";
 import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
-import { MaterialCommunityIcons, Feather, MaterialIcons } from "@expo/vector-icons";
+import {
+  MaterialCommunityIcons,
+  Feather,
+  MaterialIcons,
+} from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import "../global.css"; // Ensure this matches your NativeWind setup
 
@@ -43,7 +42,7 @@ export default function OnboardingScreen() {
 
         {/* 2. Center Hero Icon */}
         <View className="items-center mb-8">
-          <View 
+          <View
             className="w-32 h-32 bg-[#1e4ed8] rounded-[32px] items-center justify-center"
             style={{
               shadowColor: "#1e4ed8",
@@ -69,13 +68,18 @@ export default function OnboardingScreen() {
             Well-being.
           </Text>
           <Text className="text-[13px] text-slate-500 text-center font-medium leading-relaxed px-2">
-            Track your dietary intake and daily symptoms to manage your Cardiovascular Stability Score (CSS).
+            Track your dietary intake and daily symptoms to manage your
+            Cardiovascular Stability Score (CSS).
           </Text>
         </View>
 
+        {/* Temporary ONLY */}
+        {__DEV__ && (
+          <Button title="Go to progress screen" onPress={() => router.push("/dietary_profile")} />
+        )}
+
         {/* 4. Feature Cards */}
         <View className="px-6 flex-col">
-          
           {/* Card 1 */}
           <View className="bg-white rounded-3xl p-4 flex-row items-center border border-slate-100 shadow-[0_4px_12px_rgba(0,0,0,0.03)] mb-4">
             <View className="bg-[#e0e7ff] w-12 h-12 rounded-2xl items-center justify-center mr-4">
@@ -105,7 +109,6 @@ export default function OnboardingScreen() {
               </Text>
             </View>
           </View>
-
         </View>
 
         {/* 5. Bottom Actions (Pushed to bottom of available space) */}
@@ -121,7 +124,7 @@ export default function OnboardingScreen() {
               shadowRadius: 12,
               elevation: 8,
             }}
-            onPress={() => router.push("/(auth)/register")}
+            onPress={() => router.push("/register")}
           >
             <Text className="text-white font-bold text-[15px] tracking-wide mr-2">
               Get Started
@@ -130,17 +133,15 @@ export default function OnboardingScreen() {
           </TouchableOpacity>
 
           {/* Secondary Login Link */}
-          <TouchableOpacity 
+          <TouchableOpacity
             activeOpacity={0.6}
             className="py-6 flex-row justify-center items-center"
-            onPress={() => router.push("/(auth)/login")}
+            onPress={() => router.push("/login")}
           >
             <Text className="text-[12px] font-medium text-slate-600">
               Already have an account?{" "}
             </Text>
-            <Text className="text-[12px] font-bold text-slate-800">
-              Log In
-            </Text>
+            <Text className="text-[12px] font-bold text-slate-800">Log In</Text>
           </TouchableOpacity>
 
           {/* Footer Branding */}
@@ -148,7 +149,6 @@ export default function OnboardingScreen() {
             CTU - MAIN CAMPUS • CAPSTONE 2026
           </Text>
         </View>
-
       </ScrollView>
     </SafeAreaView>
   );
