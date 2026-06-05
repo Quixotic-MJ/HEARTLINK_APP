@@ -253,7 +253,7 @@ function RecipeCard({ recipe, onPress }: { recipe: Recipe; onPress: () => void }
     <TouchableOpacity
       activeOpacity={0.85}
       onPress={onPress}
-      className="bg-white rounded-2xl border border-slate-200/70 overflow-hidden mb-3"
+      className="bg-white rounded-2xl border border-slate-200/70 overflow-hidden mb-10"
     >
       {/* Image */}
       <View className="h-[148px] bg-slate-100 relative">

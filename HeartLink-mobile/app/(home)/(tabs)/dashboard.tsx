@@ -465,7 +465,7 @@ export default function DashboardScreen() {
         </View>
 
         {/* Recommendations */}
-        <View className="mt-6">
+        <View className="mt-6 mb-10">
           <View className="px-5 flex-row items-center justify-between mb-3">
             <Text className="text-[14px] font-medium text-slate-900">
               Recommended today

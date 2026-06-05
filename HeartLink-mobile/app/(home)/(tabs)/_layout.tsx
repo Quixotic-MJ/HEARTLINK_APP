@@ -9,13 +9,46 @@ import {
   Pressable,
   Dimensions,
 } from "react-native";
-import { Tabs } from "expo-router";
+import { Tabs, useRouter } from "expo-router";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
-// ─── Bottom Sheet Component ─────────────────────────────────────────────────
+// ─── Record Options ───────────────────────────────────────────────────────────
+
+const RECORD_OPTIONS = [
+  {
+    icon: "camera" as const,
+    iconType: "feather" as const,
+    label: "Scan food barcode",
+    subtitle: "Use your camera to scan product barcodes",
+    iconColor: "#185fa5",
+    iconBg: "#e6f1fb",
+    route: "/(home)/barcode-scan",
+  },
+  {
+    icon: "silverware-fork-knife" as const,
+    iconType: "material" as const,
+    label: "Log meal manually",
+    subtitle: "Search and log what you ate today",
+    iconColor: "#3b6d11",
+    iconBg: "#eaf3de",
+    route: "/(home)/manual-meal-log",
+  },
+  {
+    icon: "clipboard" as const,
+    iconType: "feather" as const,
+    label: "Log daily symptoms",
+    subtitle: "Record how you're feeling right now",
+    iconColor: "#854f0b",
+    iconBg: "#faeeda",
+    route: "/(home)/log-symptoms",
+  },
+];
+
+// ─── Bottom Sheet ─────────────────────────────────────────────────────────────
+
 function RecordBottomSheet({
   visible,
   onClose,
@@ -23,6 +56,7 @@ function RecordBottomSheet({
   visible: boolean;
   onClose: () => void;
 }) {
+  const router = useRouter();
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const backdropAnim = useRef(new Animated.Value(0)).current;
 
@@ -30,13 +64,13 @@ function RecordBottomSheet({
     Animated.parallel([
       Animated.timing(backdropAnim, {
         toValue: 1,
-        duration: 280,
+        duration: 260,
         useNativeDriver: true,
       }),
       Animated.spring(slideAnim, {
         toValue: 0,
-        damping: 22,
-        stiffness: 260,
+        damping: 24,
+        stiffness: 280,
         mass: 0.8,
         useNativeDriver: true,
       }),
@@ -58,36 +92,6 @@ function RecordBottomSheet({
     ]).start(() => onClose());
   }, [slideAnim, backdropAnim, onClose]);
 
-  const options = [
-    {
-      icon: "camera" as const,
-      iconType: "feather",
-      label: "Scan Food Barcode",
-      subtitle: "Use your camera to scan product barcodes",
-      color: "#1e4ed8",
-      bgColor: "#eff6ff",
-      borderColor: "#dbeafe",
-    },
-    {
-      icon: "silverware-fork-knife" as const,
-      iconType: "material",
-      label: "Log Meal Manually",
-      subtitle: "Search and log what you ate today",
-      color: "#059669",
-      bgColor: "#ecfdf5",
-      borderColor: "#d1fae5",
-    },
-    {
-      icon: "clipboard" as const,
-      iconType: "feather",
-      label: "Log Daily Symptoms",
-      subtitle: "Record how you're feeling right now",
-      color: "#d97706",
-      bgColor: "#fffbeb",
-      borderColor: "#fef3c7",
-    },
-  ];
-
   return (
     <Modal
       visible={visible}
@@ -99,11 +103,7 @@ function RecordBottomSheet({
     >
       {/* Backdrop */}
       <Animated.View
-        style={{
-          flex: 1,
-          backgroundColor: "rgba(15, 23, 42, 0.5)",
-          opacity: backdropAnim,
-        }}
+        style={{ flex: 1, backgroundColor: "rgba(15,23,42,0.45)", opacity: backdropAnim }}
       >
         <Pressable style={{ flex: 1 }} onPress={animateOut} />
       </Animated.View>
@@ -115,32 +115,29 @@ function RecordBottomSheet({
           bottom: 0,
           left: 0,
           right: 0,
-          backgroundColor: "#ffffff",
-          borderTopLeftRadius: 28,
-          borderTopRightRadius: 28,
+          backgroundColor: "#fff",
+          borderTopLeftRadius: 24,
+          borderTopRightRadius: 24,
           paddingTop: 12,
           paddingBottom: Platform.OS === "ios" ? 40 : 28,
-          paddingHorizontal: 24,
+          paddingHorizontal: 20,
           transform: [{ translateY: slideAnim }],
-          // Shadow
           ...Platform.select({
             ios: {
               shadowColor: "#0f172a",
-              shadowOffset: { width: 0, height: -6 },
-              shadowOpacity: 0.15,
-              shadowRadius: 20,
+              shadowOffset: { width: 0, height: -4 },
+              shadowOpacity: 0.1,
+              shadowRadius: 16,
             },
-            android: {
-              elevation: 24,
-            },
+            android: { elevation: 20 },
           }),
         }}
       >
-        {/* Drag Handle */}
+        {/* Drag handle */}
         <View
           style={{
             alignSelf: "center",
-            width: 40,
+            width: 36,
             height: 4,
             backgroundColor: "#e2e8f0",
             borderRadius: 2,
@@ -149,113 +146,69 @@ function RecordBottomSheet({
         />
 
         {/* Title */}
-        <Text
-          style={{
-            fontSize: 20,
-            fontWeight: "900",
-            color: "#0f172a",
-            letterSpacing: -0.5,
-            marginBottom: 6,
-          }}
-        >
-          Quick Record
+        <Text style={{ fontSize: 17, fontWeight: "500", color: "#0f172a", marginBottom: 4 }}>
+          Quick record
         </Text>
-        <Text
-          style={{
-            fontSize: 13.5,
-            fontWeight: "500",
-            color: "#94a3b8",
-            marginBottom: 24,
-          }}
-        >
+        <Text style={{ fontSize: 13, color: "#94a3b8", marginBottom: 20 }}>
           What would you like to log?
         </Text>
 
         {/* Options */}
-        {options.map((option, index) => (
+        {RECORD_OPTIONS.map((option, index) => (
           <TouchableOpacity
             key={option.label}
             activeOpacity={0.7}
             onPress={() => {
-              // TODO: Navigate to the respective screen
+              if (option.label === "Scan food barcode") {
+                router.push("/(home)/barcode-scan");
+              } else if (option.label === "Log meal manually") {
+                router.push("/(home)/manual-meal-log");
+              } else if (option.label === "Log daily symptoms") {
+                router.push("/(home)/log-symptoms");
+              }
               animateOut();
             }}
             style={{
               flexDirection: "row",
               alignItems: "center",
-              backgroundColor: option.bgColor,
-              borderRadius: 20,
-              padding: 18,
-              marginBottom: index < options.length - 1 ? 12 : 0,
-              borderWidth: 1,
-              borderColor: option.borderColor,
+              backgroundColor: "#fff",
+              borderRadius: 16,
+              padding: 14,
+              marginBottom: index < RECORD_OPTIONS.length - 1 ? 10 : 0,
+              borderWidth: 0.5,
+              borderColor: "#e2e8f0",
             }}
           >
             {/* Icon */}
             <View
               style={{
-                width: 48,
-                height: 48,
-                borderRadius: 16,
-                backgroundColor: "#ffffff",
+                width: 42,
+                height: 42,
+                borderRadius: 12,
+                backgroundColor: option.iconBg,
                 alignItems: "center",
                 justifyContent: "center",
-                marginRight: 16,
-                ...Platform.select({
-                  ios: {
-                    shadowColor: option.color,
-                    shadowOffset: { width: 0, height: 2 },
-                    shadowOpacity: 0.12,
-                    shadowRadius: 6,
-                  },
-                  android: {
-                    elevation: 3,
-                  },
-                }),
+                marginRight: 14,
               }}
             >
               {option.iconType === "feather" ? (
-                <Feather
-                  name={option.icon as any}
-                  size={22}
-                  color={option.color}
-                />
+                <Feather name={option.icon as any} size={18} color={option.iconColor} />
               ) : (
-                <MaterialCommunityIcons
-                  name={option.icon as any}
-                  size={22}
-                  color={option.color}
-                />
+                <MaterialCommunityIcons name={option.icon as any} size={18} color={option.iconColor} />
               )}
             </View>
 
-            {/* Label & Subtitle */}
+            {/* Text */}
             <View style={{ flex: 1 }}>
-              <Text
-                style={{
-                  fontSize: 15,
-                  fontWeight: "800",
-                  color: "#0f172a",
-                  letterSpacing: -0.3,
-                  marginBottom: 3,
-                }}
-              >
+              <Text style={{ fontSize: 14, fontWeight: "500", color: "#0f172a", marginBottom: 2 }}>
                 {option.label}
               </Text>
-              <Text
-                style={{
-                  fontSize: 12,
-                  fontWeight: "500",
-                  color: "#64748b",
-                  lineHeight: 16,
-                }}
-              >
+              <Text style={{ fontSize: 12, color: "#94a3b8", lineHeight: 16 }}>
                 {option.subtitle}
               </Text>
             </View>
 
-            {/* Arrow */}
-            <Feather name="chevron-right" size={20} color="#cbd5e1" />
+            <Feather name="chevron-right" size={16} color="#cbd5e1" />
           </TouchableOpacity>
         ))}
 
@@ -264,23 +217,16 @@ function RecordBottomSheet({
           activeOpacity={0.7}
           onPress={animateOut}
           style={{
-            marginTop: 16,
+            marginTop: 14,
             alignItems: "center",
-            justifyContent: "center",
-            paddingVertical: 14,
+            paddingVertical: 13,
             backgroundColor: "#f8fafc",
-            borderRadius: 16,
-            borderWidth: 1,
-            borderColor: "#f1f5f9",
+            borderRadius: 14,
+            borderWidth: 0.5,
+            borderColor: "#e2e8f0",
           }}
         >
-          <Text
-            style={{
-              fontSize: 14,
-              fontWeight: "700",
-              color: "#94a3b8",
-            }}
-          >
+          <Text style={{ fontSize: 13, fontWeight: "500", color: "#94a3b8" }}>
             Cancel
           </Text>
         </TouchableOpacity>
@@ -289,60 +235,52 @@ function RecordBottomSheet({
   );
 }
 
-// ─── Custom Tab Bar ─────────────────────────────────────────────────────────
-function CustomTabBar({
-  state,
-  descriptors,
-  navigation,
-  onFabPress,
-}: any) {
-  const insets = useSafeAreaInsets();
+// ─── Tab Config ───────────────────────────────────────────────────────────────
 
-  const tabs = [
-    { name: "dashboard", label: "Home", icon: "home", type: "feather" },
-    { name: "recipes", label: "Recipes", icon: "silverware-fork-knife", type: "material" },
-    {
-      name: "record",
-      label: "Record",
-      icon: "plus",
-      type: "feather",
-      isFab: true,
-    },
-    { name: "exercises", label: "Exercises", icon: "activity", type: "feather" },
-    { name: "wrap-up", label: "Wrap-Up", icon: "calendar", type: "feather" },
-  ];
+const TABS = [
+  { name: "dashboard", label: "Home",      icon: "home",                  type: "feather"   },
+  { name: "recipes",   label: "Recipes",   icon: "silverware-fork-knife", type: "material"  },
+  { name: "record",    label: "Record",    icon: "plus",                  type: "feather", isFab: true },
+  { name: "exercises", label: "Exercises", icon: "activity",              type: "feather"   },
+  { name: "wrap-up",   label: "Wrap-Up",   icon: "calendar",              type: "feather"   },
+] as const;
+
+const ACTIVE_COLOR   = "#0f172a";
+const INACTIVE_COLOR = "#cbd5e1";
+
+// ─── Custom Tab Bar ───────────────────────────────────────────────────────────
+
+function CustomTabBar({ state, navigation, onFabPress }: any) {
+  const insets = useSafeAreaInsets();
 
   return (
     <View
       style={{
         position: "absolute",
         bottom: Math.max(insets.bottom, 0),
-        left: 0,
-        right: 0,
-        height: 76,
-        backgroundColor: "white",
-        borderRadius: 0,
+        left: 8,
+        right: 8,
+        height: 72,
+        borderRadius: 20,
+        backgroundColor: "#fff",
         flexDirection: "row",
-        justifyContent: "space-between",
         alignItems: "center",
-        paddingHorizontal: 2,
+        paddingHorizontal: 4,
+        borderTopWidth: 0.5,
+        borderTopColor: "#e2e8f0",
         ...Platform.select({
           ios: {
             shadowColor: "#0f172a",
-            shadowOffset: { width: 0, height: -4 },
-            shadowOpacity: 0.08,
-            shadowRadius: 16,
+            shadowOffset: { width: 0, height: -2 },
+            shadowOpacity: 0.06,
+            shadowRadius: 12,
           },
-          android: {
-            elevation: 12,
-          },
+          android: { elevation: 10 },
         }),
       }}
     >
-      {tabs.map((tab) => {
-        const routeIndex = state.routes.findIndex(
-          (r: any) => r.name === tab.name
-        );
+      {TABS.map((tab) => {
+        const routeIndex = state.routes.findIndex((r: any) => r.name === tab.name);
         const isFocused = state.index === routeIndex;
 
         const onPress = () => {
@@ -350,67 +288,55 @@ function CustomTabBar({
             onFabPress();
             return;
           }
-
           const route = state.routes[routeIndex];
           if (!route) return;
-
           const event = navigation.emit({
             type: "tabPress",
             target: route.key,
             canPreventDefault: true,
           });
-
           if (!isFocused && !event.defaultPrevented) {
             navigation.navigate(route.name);
           }
         };
 
-        // Center FAB button
+        // FAB
         if (tab.isFab) {
           return (
-            <View
-              key={tab.name}
-              style={{
-                flex: 1,
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
+            <View key={tab.name} style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
               <TouchableOpacity
                 onPress={onPress}
                 activeOpacity={0.8}
                 style={{
                   position: "absolute",
-                  top: -34,
-                  width: 64,
-                  height: 64,
-                  backgroundColor: "#1e4ed8",
-                  borderRadius: 32,
+                  top: -28,
+                  width: 56,
+                  height: 56,
+                  backgroundColor: "#0f172a",
+                  borderRadius: 28,
                   alignItems: "center",
                   justifyContent: "center",
-                  borderWidth: 6,
-                  borderColor: "white",
+                  borderWidth: 5,
+                  borderColor: "#fff",
                   ...Platform.select({
                     ios: {
-                      shadowColor: "#1e3a8a",
-                      shadowOffset: { width: 0, height: 2 },
+                      shadowColor: "#0f172a",
+                      shadowOffset: { width: 0, height: 4 },
                       shadowOpacity: 0.2,
-                      shadowRadius: 4,
+                      shadowRadius: 8,
                     },
-                    android: {
-                      elevation: 6,
-                    },
+                    android: { elevation: 8 },
                   }),
                 }}
               >
-                <Feather name="plus" size={26} color="white" />
+                <Feather name="plus" size={22} color="#fff" />
               </TouchableOpacity>
             </View>
           );
         }
 
-        // Regular tab button
-        const color = isFocused ? "#1e4ed8" : "#94a3b8";
+        // Regular tab
+        const color = isFocused ? ACTIVE_COLOR : INACTIVE_COLOR;
 
         return (
           <TouchableOpacity
@@ -421,23 +347,21 @@ function CustomTabBar({
               alignItems: "center",
               justifyContent: "center",
               height: "100%",
+              gap: 4,
             }}
           >
             {tab.type === "feather" ? (
-              <Feather name={tab.icon as any} size={24} color={color} />
+              <Feather name={tab.icon as any} size={21} color={color} />
             ) : (
-              <MaterialCommunityIcons
-                name={tab.icon as any}
-                size={24}
-                color={color}
-              />
+              <MaterialCommunityIcons name={tab.icon as any} size={21} color={color} />
             )}
             <Text
               style={{
                 fontSize: 9,
-                marginTop: 4,
-                color: isFocused ? "#1e4ed8" : "#94a3b8",
-                fontWeight: isFocused ? "700" : "500",
+                color,
+                // Dynamic fontWeight via style — no dynamic className
+                fontWeight: isFocused ? "600" : "400",
+                letterSpacing: 0.2,
               }}
             >
               {tab.label}
@@ -449,7 +373,8 @@ function CustomTabBar({
   );
 }
 
-// ─── Tabs Layout ────────────────────────────────────────────────────────────
+// ─── Layout ───────────────────────────────────────────────────────────────────
+
 export default function TabsLayout() {
   const [sheetVisible, setSheetVisible] = useState(false);
 
@@ -457,14 +382,9 @@ export default function TabsLayout() {
     <>
       <Tabs
         tabBar={(props) => (
-          <CustomTabBar
-            {...props}
-            onFabPress={() => setSheetVisible(true)}
-          />
+          <CustomTabBar {...props} onFabPress={() => setSheetVisible(true)} />
         )}
-        screenOptions={{
-          headerShown: false,
-        }}
+        screenOptions={{ headerShown: false }}
       >
         <Tabs.Screen name="dashboard" />
         <Tabs.Screen name="recipes" />

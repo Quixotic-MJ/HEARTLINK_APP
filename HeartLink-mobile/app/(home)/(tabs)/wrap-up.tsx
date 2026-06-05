@@ -66,11 +66,11 @@ function DayBarChart({ days, color }: { days: DayBar[]; color: string }) {
         <Text className="text-[11px] text-slate-300">Mon – Sun</Text>
       </View>
       <View className="flex-row items-end h-[68px] gap-1">
-        {days.map((d) => {
+        {days.map((d, index) => {
           const heightFraction = d.value / max;
           const barHeight = Math.round(heightFraction * 52);
           return (
-            <View key={d.day} className="flex-1 items-center gap-1">
+            <View key={`${d.day}-${index}`} className="flex-1 items-center gap-1">
               <View className="flex-1 w-full justify-end">
                 {/* Bar height & color are dynamic — kept as inline style */}
                 <View
@@ -364,7 +364,7 @@ export default function WrapUpScreen() {
             Export report for physician
           </Text>
         </TouchableOpacity>
-        <Text className="text-xs text-slate-400 text-center mt-2.5 px-4 leading-[18px]">
+        <Text className="text-xs text-slate-400 text-center mt-2.5 mb-10 px-4 leading-[18px]">
           Creates a secure PDF with your weekly aggregates, baseline data, and symptom tally.
         </Text>
       </ScrollView>

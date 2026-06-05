@@ -123,7 +123,7 @@ function RoutineCard({
   const iconBg = getTypeIconBg(routine.type);
 
   return (
-    <View className="bg-white rounded-2xl border border-slate-200/70 p-4 mb-3">
+    <View className="bg-white rounded-2xl border border-slate-200/70 p-4 mb-10">
       {/* Title row */}
       <View className="flex-row items-start justify-between mb-3">
         <View className="flex-1 pr-3">
