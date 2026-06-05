@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
   TouchableOpacity,
   ScrollView,
   Animated,
-  Image
+  Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -13,72 +13,67 @@ import { useRouter } from "expo-router";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import Svg, { Circle } from "react-native-svg";
 
-// ─── Animated SVG Circle ────────────────────────────────────────────────────
+// ─── Animated SVG Circle ─────────────────────────────────────────────────────
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
-// ─── Score Theme Helper ─────────────────────────────────────────────────────
-function getScoreTheme(score: number) {
-  if (score >= 80) {
+// ─── Score theme (all colors as plain values — no dynamic className) ──────────
+type ScoreTheme = {
+  label: string;
+  ringColor: string;
+  trackColor: string;
+  barColor: string;
+  badgeBg: string;
+  badgeText: string;
+  dotColor: string;
+};
+
+function getScoreTheme(score: number): ScoreTheme {
+  if (score >= 80)
     return {
       label: "Stable",
-      color: "#059669",
-      bgColor: "#ecfdf5",
-      borderColor: "#d1fae5",
-      ringColor: "#059669",
-      ringTrackColor: "#d1fae5",
-      dotColor: "#10b981",
-      badgeClass: "bg-emerald-50 border-emerald-100",
-      dotClass: "bg-emerald-500",
-      labelClass: "text-emerald-700",
+      ringColor: "#639922",
+      trackColor: "#c0dd97",
+      barColor: "#639922",
+      badgeBg: "#eaf3de",
+      badgeText: "#3b6d11",
+      dotColor: "#639922",
     };
-  }
-  if (score >= 60) {
+  if (score >= 60)
     return {
       label: "Moderate",
-      color: "#d97706",
-      bgColor: "#fffbeb",
-      borderColor: "#fef3c7",
-      ringColor: "#d97706",
-      ringTrackColor: "#fef3c7",
-      dotColor: "#f59e0b",
-      badgeClass: "bg-amber-50 border-amber-100",
-      dotClass: "bg-amber-500",
-      labelClass: "text-amber-700",
+      ringColor: "#ba7517",
+      trackColor: "#fac775",
+      barColor: "#ba7517",
+      badgeBg: "#faeeda",
+      badgeText: "#854f0b",
+      dotColor: "#ba7517",
     };
-  }
-  if (score >= 40) {
+  if (score >= 40)
     return {
       label: "Caution",
-      color: "#ea580c",
-      bgColor: "#fff7ed",
-      borderColor: "#ffedd5",
-      ringColor: "#ea580c",
-      ringTrackColor: "#ffedd5",
-      dotColor: "#f97316",
-      badgeClass: "bg-orange-50 border-orange-200",
-      dotClass: "bg-orange-500",
-      labelClass: "text-orange-700",
+      ringColor: "#ba7517",
+      trackColor: "#fac775",
+      barColor: "#ba7517",
+      badgeBg: "#faeeda",
+      badgeText: "#854f0b",
+      dotColor: "#ba7517",
     };
-  }
   return {
-    label: "At Risk",
-    color: "#dc2626",
-    bgColor: "#fef2f2",
-    borderColor: "#fecaca",
-    ringColor: "#dc2626",
-    ringTrackColor: "#fecaca",
-    dotColor: "#ef4444",
-    badgeClass: "bg-red-50 border-red-200",
-    dotClass: "bg-red-500",
-    labelClass: "text-red-700",
+    label: "At risk",
+    ringColor: "#e24b4a",
+    trackColor: "#f7c1c1",
+    barColor: "#e24b4a",
+    badgeBg: "#fcebeb",
+    badgeText: "#a32d2d",
+    dotColor: "#e24b4a",
   };
 }
 
-// ─── Circular Progress (SVG — requires inline style for computed values) ────
+// ─── Circular Progress ────────────────────────────────────────────────────────
 function CircularProgress({
   score,
-  size = 200,
-  strokeWidth = 12,
+  size = 180,
+  strokeWidth = 10,
 }: {
   score: number;
   size?: number;
@@ -104,25 +99,16 @@ function CircularProgress({
   });
 
   return (
-    <View
-      className="items-center justify-center"
-      style={{ width: size, height: size }}
-    >
-      <Svg
-        width={size}
-        height={size}
-        style={{ transform: [{ rotate: "-90deg" }] }}
-      >
-        {/* Track */}
+    <View style={{ width: size, height: size, alignItems: "center", justifyContent: "center" }}>
+      <Svg width={size} height={size} style={{ transform: [{ rotate: "-90deg" }] }}>
         <Circle
           cx={size / 2}
           cy={size / 2}
           r={radius}
-          stroke={theme.ringTrackColor}
+          stroke={theme.trackColor}
           strokeWidth={strokeWidth}
           fill="transparent"
         />
-        {/* Progress arc */}
         <AnimatedCircle
           cx={size / 2}
           cy={size / 2}
@@ -135,13 +121,12 @@ function CircularProgress({
           strokeLinecap="round"
         />
       </Svg>
-
-      {/* Center text */}
-      <View className="absolute items-center">
-        <Text className="text-[52px] font-black text-slate-900 tracking-tighter leading-[58px]">
+      {/* Center label — absolute, so kept as style */}
+      <View style={{ position: "absolute", alignItems: "center" }}>
+        <Text className="text-[48px] font-medium text-slate-900 leading-tight tracking-tight">
           {score}
         </Text>
-        <Text className="text-[12px] font-semibold text-slate-400 mt-0.5 uppercase tracking-widest">
+        <Text className="text-[11px] text-slate-400 uppercase tracking-wide">
           out of 100
         </Text>
       </View>
@@ -149,172 +134,247 @@ function CircularProgress({
   );
 }
 
-// ─── Mini Stat Pill ─────────────────────────────────────────────────────────
+// ─── Stat Pill ────────────────────────────────────────────────────────────────
 function StatPill({
   icon,
   label,
   value,
   iconColor,
+  iconBg,
 }: {
   icon: string;
   label: string;
   value: string;
   iconColor: string;
+  iconBg: string;
 }) {
   return (
-    <View className="flex-1 bg-slate-50 rounded-2xl py-3.5 px-3 items-center border border-slate-100">
-      <Feather name={icon as any} size={18} color={iconColor} />
-      <Text className="text-[12px] font-extrabold text-slate-900 mt-1.5 tracking-tight">
-        {value}
-      </Text>
-      <Text className="text-[10px] font-semibold text-slate-400 mt-0.5 uppercase tracking-wide">
+    <View className="flex-1 bg-slate-50 rounded-2xl py-3 px-2 items-center border border-slate-200/70">
+      {/* Icon bg is dynamic — inline style */}
+      <View
+        className="w-7 h-7 rounded-lg items-center justify-center mb-2"
+        style={{ backgroundColor: iconBg }}
+      >
+        <Feather name={icon as any} size={14} color={iconColor} />
+      </View>
+      <Text className="text-[13px] font-medium text-slate-900">{value}</Text>
+      <Text className="text-[10px] text-slate-400 mt-0.5 uppercase tracking-wide">
         {label}
       </Text>
     </View>
   );
 }
 
-// ─── Quick Action Button ────────────────────────────────────────────────────
+// ─── Quick Action ─────────────────────────────────────────────────────────────
+// All color/bg via inline style — no dynamic className
 function QuickAction({
   icon,
   iconType,
   label,
-  bgClass,
-  borderClass,
-  color,
-  textClass,
+  bg,
+  border,
+  iconColor,
+  iconBg,
+  textColor,
 }: {
   icon: string;
   iconType: "feather" | "material";
   label: string;
-  bgClass: string;
-  borderClass: string;
-  color: string;
-  textClass: string;
+  bg: string;
+  border: string;
+  iconColor: string;
+  iconBg: string;
+  textColor: string;
 }) {
   return (
     <TouchableOpacity
-      activeOpacity={0.7}
-      className={`w-[100px] h-[120px] rounded-[22px] items-center justify-center border ${bgClass} ${borderClass}`}
+      activeOpacity={0.75}
+      className="w-[96px] h-[112px] rounded-2xl items-center justify-center border"
+      style={{ backgroundColor: bg, borderColor: border }}
     >
-      <View className="w-12 h-12 rounded-2xl bg-white items-center justify-center mb-2.5 shadow-sm">
+      <View
+        className="w-11 h-11 rounded-xl items-center justify-center mb-2"
+        style={{ backgroundColor: iconBg }}
+      >
         {iconType === "material" ? (
-          <MaterialCommunityIcons name={icon as any} size={22} color={color} />
+          <MaterialCommunityIcons name={icon as any} size={20} color={iconColor} />
         ) : (
-          <Feather name={icon as any} size={20} color={color} />
+          <Feather name={icon as any} size={18} color={iconColor} />
         )}
       </View>
-      <Text className={`text-[10px] font-extrabold ${textClass}`}>{label}</Text>
+      <Text className="text-[11px] font-medium text-center" style={{ color: textColor }}>
+        {label}
+      </Text>
     </TouchableOpacity>
   );
 }
 
-// ─── Dashboard Screen ───────────────────────────────────────────────────────
+// ─── Recommendation Card ──────────────────────────────────────────────────────
+function RecoCard({
+  tag,
+  title,
+  subtitle,
+  icon,
+  bg,
+  tagBg,
+  tagText,
+  subColor,
+}: {
+  tag: string;
+  title: string;
+  subtitle: string;
+  icon: string;
+  bg: string;
+  tagBg: string;
+  tagText: string;
+  subColor: string;
+}) {
+  return (
+    <TouchableOpacity
+      activeOpacity={0.85}
+      className="w-[260px] h-[176px] rounded-2xl overflow-hidden"
+      style={{ backgroundColor: bg }}
+    >
+      {/* Ghost icon */}
+      <View style={{ position: "absolute", bottom: -12, right: -12, opacity: 0.07 }}>
+        <MaterialCommunityIcons name={icon as any} size={140} color="#fff" />
+      </View>
+
+      <View className="p-5 flex-1 justify-between">
+        {/* Tag */}
+        <View
+          className="self-start px-2.5 py-1 rounded-lg"
+          style={{ backgroundColor: tagBg }}
+        >
+          <Text className="text-[10px] font-medium uppercase tracking-wide" style={{ color: tagText }}>
+            {tag}
+          </Text>
+        </View>
+
+        {/* Text */}
+        <View>
+          <Text className="text-[17px] font-medium text-white leading-snug mb-1">
+            {title}
+          </Text>
+          <Text className="text-[12px]" style={{ color: subColor }}>
+            {subtitle}
+          </Text>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+// ─── Dashboard Screen ─────────────────────────────────────────────────────────
 export default function DashboardScreen() {
-  const [isAlertActive, setIsAlertActive] = useState(false);
+  const [isAlertActive] = useState(false);
   const router = useRouter();
   const cssScore = 75;
   const theme = getScoreTheme(cssScore);
 
   return (
-    <SafeAreaView className="flex-1 bg-[#F8FAFC]" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-slate-50" edges={["top"]}>
       <StatusBar style="dark" />
 
-      {/* Emergency Escalation Banner */}
+      {/* Emergency banner — static className, no ternary */}
       {isAlertActive && (
-        <TouchableOpacity
-          activeOpacity={0.9}
-          className="bg-red-500 px-6 py-4 flex-row items-center shadow-md z-20"
-        >
-          <Feather name="alert-triangle" size={20} color="white" />
-          <Text className="text-white font-bold text-[13px] ml-3 flex-1 leading-snug tracking-wide">
-            Elevated Risk Detected. Tap to view nearby cardiovascular
-            specialists in Cebu City.
+        <View className="bg-red-500 px-5 py-3.5 flex-row items-center gap-3">
+          <Feather name="alert-triangle" size={18} color="white" />
+          <Text className="text-white text-[13px] font-medium flex-1 leading-snug">
+            Elevated risk detected. Tap to view nearby cardiovascular specialists.
           </Text>
-          <Feather name="chevron-right" size={20} color="white" />
-        </TouchableOpacity>
+          <Feather name="chevron-right" size={18} color="white" />
+        </View>
       )}
 
-      {/* Top App Bar */}
-      <View className="flex-row justify-between items-center px-6 pt-4 pb-2 bg-[#F8FAFC] z-10">
-        {/* App Logo */}
-        <View className="flex-row items-center">
+      {/* Top bar */}
+      <View className="flex-row justify-between items-center px-5 pt-4 pb-2">
+        {/* Logo */}
+        <View className="flex-row items-center gap-2.5">
           <View className="w-9 h-9 bg-[#1e4ed8] rounded-xl items-center justify-center shadow-sm shadow-blue-900/20">
-            <MaterialCommunityIcons name="heart-pulse" size={20} color="white" />
+            <MaterialCommunityIcons name="heart-pulse" size={18} color="white" />
           </View>
-          <Text className="ml-3 font-bold text-[16px] text-slate-900 tracking-tight">
+          <Text className="text-[16px] font-medium text-slate-900 tracking-tight">
             HeartLink
           </Text>
         </View>
 
-        {/* Action Icons */}
+        {/* Actions */}
         <View className="flex-row items-center gap-2">
           <TouchableOpacity
             onPress={() => router.push("/(home)/notifications")}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            className="w-10 h-10 rounded-[14px] bg-slate-100 items-center justify-center relative"
+            className="w-9 h-9 rounded-xl bg-slate-100 border border-slate-200/70 items-center justify-center"
           >
-            <Feather name="bell" size={19} color="#475569" />
-            <View className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-[2px] border-slate-100" />
+            <Feather name="bell" size={17} color="#64748b" />
+            {/* Notification dot — inline style for position */}
+            <View
+              style={{ position: "absolute", top: 8, right: 8 }}
+              className="w-1.5 h-1.5 bg-red-500 rounded-full"
+            />
           </TouchableOpacity>
 
           <TouchableOpacity
             onPress={() => router.push("/(home)/settings")}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            className="w-10 h-10 rounded-[14px] bg-slate-100 items-center justify-center"
+            className="w-9 h-9 rounded-xl bg-slate-100 border border-slate-200/70 items-center justify-center"
           >
-            <Feather name="settings" size={19} color="#475569" />
+            <Feather name="settings" size={17} color="#64748b" />
           </TouchableOpacity>
 
-          {/* Profile Avatar */}
+          {/* Avatar */}
           <TouchableOpacity
             onPress={() => router.push("/(home)/profile")}
             activeOpacity={0.8}
-            className="relative ml-1"
+            className="ml-1"
           >
-            <View className="w-10 h-10 rounded-full bg-slate-200 overflow-hidden">
+            <View className="w-9 h-9 rounded-full bg-slate-200 overflow-hidden">
               <Image
                 source={{ uri: "https://scontent.fcgy2-2.fna.fbcdn.net/v/t39.30808-6/470238702_122163229004273349_6885730481985014209_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=a5f93a&_nc_eui2=AeFspkU-pAnduqXzsg0nCMQSc3h1gs4ySEZzeHWCzjJIRiS7qjQy166_bn5hNqi44fxFQkp5tRFulwgVSN60yG1o&_nc_ohc=JjKG5iySuBYQ7kNvwF3zmCi&_nc_oc=AdqJL2LZkjt9IqiM_KPQtb2ZUT6mEm5UdI2cgi-6Mu6INC3QVBLGz8-OKHIG4Fuyfuk&_nc_zt=23&_nc_ht=scontent.fcgy2-2.fna&_nc_gid=zjeomdkvajMCPjEc3tC8YQ&_nc_ss=7b2a8&oh=00_Af_FFO3skv0KzZZjqU44lc3j6qTtYj5r07rF5GLagi9HDg&oe=6A275350" }}
-                className="w-full h-full rounded-full"
+                className="w-full h-full"
                 resizeMode="cover"
               />
             </View>
-            <View className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border-[2px] border-[#F8FAFC]" />
+            {/* Online dot */}
+            <View
+              style={{ position: "absolute", bottom: -1, right: -1 }}
+              className="w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-slate-50"
+            />
           </TouchableOpacity>
         </View>
       </View>
 
       <ScrollView
-        contentContainerStyle={{ flexGrow: 1, paddingBottom: 110 }}
+        contentContainerClassName="pb-28"
         showsVerticalScrollIndicator={false}
-        bounces={true}
       >
         {/* Greeting */}
-        <View className="px-6 pt-5 pb-4">
-          <Text className="text-[26px] font-black text-slate-900 tracking-tight leading-[32px]">
+        <View className="px-5 pt-4 pb-2">
+          <Text className="text-[22px] font-medium text-slate-900 tracking-tight leading-tight">
             Welcome back,{"\n"}John Mark
           </Text>
-          <Text className="text-[14px] font-medium text-slate-400 mt-2">
-            Thursday, 4th June
+          <Text className="text-[13px] text-slate-400 mt-1.5">
+            Thursday, 4 June
           </Text>
         </View>
 
-        {/* Hero: Stability Score Card */}
-        <View className="mx-5 mt-1 bg-white rounded-[28px] p-6 border border-slate-100 shadow-sm shadow-slate-900/5">
-          {/* Header Row */}
-          <View className="flex-row justify-between items-center mb-6">
-            <Text className="text-[18px] font-black text-slate-900 tracking-tight">
-              Stability Score
+        {/* Hero: CSS Score Card */}
+        <View className="mx-5 mt-3 bg-white rounded-2xl border border-slate-200/70 p-5">
+          {/* Header row */}
+          <View className="flex-row justify-between items-center mb-5">
+            <Text className="text-[14px] font-medium text-slate-900">
+              Stability score
             </Text>
-            {/* Dynamic badge — uses inline style for theme-driven colors */}
+            {/* Badge — all dynamic colors via inline style */}
             <View
-              className={`px-3 py-1.5 rounded-full border flex-row items-center ${theme.badgeClass}`}
+              className="flex-row items-center px-2.5 py-1 rounded-lg gap-1.5"
+              style={{ backgroundColor: theme.badgeBg }}
             >
               <View
-                className={`w-1.5 h-1.5 rounded-full mr-1.5 ${theme.dotClass}`}
+                className="w-1.5 h-1.5 rounded-full"
+                style={{ backgroundColor: theme.dotColor }}
               />
               <Text
-                className={`text-[10px] font-extrabold uppercase tracking-widest ${theme.labelClass}`}
+                className="text-[11px] font-medium"
+                style={{ color: theme.badgeText }}
               >
                 {theme.label}
               </Text>
@@ -323,177 +383,133 @@ export default function DashboardScreen() {
 
           {/* Ring */}
           <View className="items-center py-2">
-            <CircularProgress score={cssScore} size={200} strokeWidth={12} />
+            <CircularProgress score={cssScore} size={180} strokeWidth={10} />
           </View>
 
-          {/* Mini Stats Row */}
-          <View className="flex-row gap-2.5 mt-6">
-            <StatPill icon="heart" label="BPM" value="72" iconColor="#ef4444" />
-            <StatPill
-              icon="droplet"
-              label="BP"
-              value="120/80"
-              iconColor="#3b82f6"
-            />
-            <StatPill
-              icon="trending-up"
-              label="Trend"
-              value="+5"
-              iconColor="#059669"
+          {/* Score bar */}
+          <View className="h-1.5 bg-slate-100 rounded-full mt-5 overflow-hidden">
+            <View
+              className="h-full rounded-full"
+              style={{ width: `${cssScore}%`, backgroundColor: theme.barColor }}
             />
           </View>
 
-          {/* Updated timestamp */}
-          <View className="flex-row items-center justify-center mt-5">
+          {/* Stat pills */}
+          <View className="flex-row gap-2.5 mt-4">
+            <StatPill icon="heart" label="BPM" value="72" iconColor="#a32d2d" iconBg="#fcebeb" />
+            <StatPill icon="droplet" label="BP" value="120/80" iconColor="#185fa5" iconBg="#e6f1fb" />
+            <StatPill icon="trending-up" label="Trend" value="+5" iconColor="#3b6d11" iconBg="#eaf3de" />
+          </View>
+
+          {/* Timestamp */}
+          <View className="flex-row items-center justify-center mt-4 gap-1.5">
             <Feather name="clock" size={11} color="#cbd5e1" />
-            <Text className="text-[11px] font-medium text-slate-300 ml-1.5">
-              Updated 7 mins ago
-            </Text>
+            <Text className="text-[11px] text-slate-300">Updated 7 mins ago</Text>
           </View>
         </View>
 
-        {/* Smart Insights */}
-        <View className="mx-5 mt-5 bg-white rounded-[22px] border border-slate-100 p-[18px] flex-row items-start shadow-sm shadow-slate-900/5">
-          <View className="w-[42px] h-[42px] rounded-[14px] bg-blue-50 items-center justify-center mr-3.5 border border-blue-100/50">
-            <Feather name="zap" size={20} color="#1e4ed8" />
+        {/* Smart insight */}
+        <View className="mx-5 mt-3 bg-white rounded-2xl border border-slate-200/70 p-4 flex-row items-start gap-3">
+          <View className="w-9 h-9 rounded-xl bg-slate-50 border border-slate-200/70 items-center justify-center flex-shrink-0">
+            <Feather name="zap" size={16} color="#185fa5" />
           </View>
-          <Text className="flex-1 text-[13.5px] font-medium text-slate-500 leading-relaxed">
-            <Text className="font-extrabold text-slate-900">
+          <Text className="flex-1 text-[13px] text-slate-500 leading-relaxed">
+            <Text className="font-medium text-slate-900">
               Your stability score improved by 5 points this week.
-            </Text>{" "}
-            Consistent medication tracking and low-sodium meals logged.
+            </Text>
+            {" "}Consistent medication tracking and low-sodium meals logged.
           </Text>
         </View>
 
-        {/* Quick Record Row */}
-        <View className="mt-7">
+        {/* Quick actions */}
+        <View className="mt-6">
+          <View className="px-5 flex-row items-center justify-between mb-3">
+            <Text className="text-[14px] font-medium text-slate-900">Quick record</Text>
+          </View>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}
+            contentContainerClassName="px-5 gap-3"
           >
             <QuickAction
               icon="barcode-scan"
               iconType="material"
-              label="Scan Meal"
-              bgClass="bg-emerald-50"
-              borderClass="border-emerald-100/50"
-              color="#059669"
-              textClass="text-emerald-800"
+              label="Scan meal"
+              bg="#eaf3de"
+              border="#c0dd97"
+              iconColor="#3b6d11"
+              iconBg="#fff"
+              textColor="#27500a"
             />
             <QuickAction
               icon="heart-pulse"
               iconType="material"
-              label="Log Vitals"
-              bgClass="bg-rose-50"
-              borderClass="border-rose-100/50"
-              color="#e11d48"
-              textClass="text-rose-800"
+              label="Log vitals"
+              bg="#fcebeb"
+              border="#f7c1c1"
+              iconColor="#a32d2d"
+              iconBg="#fff"
+              textColor="#791f1f"
             />
             <QuickAction
               icon="clipboard"
               iconType="feather"
               label="Symptoms"
-              bgClass="bg-amber-50"
-              borderClass="border-amber-100/50"
-              color="#d97706"
-              textClass="text-amber-800"
+              bg="#faeeda"
+              border="#fac775"
+              iconColor="#854f0b"
+              iconBg="#fff"
+              textColor="#633806"
             />
           </ScrollView>
         </View>
 
         {/* Recommendations */}
-        <View className="mt-8 mb-3">
-          <View className="px-6 flex-row items-center justify-between mb-5">
-            <Text className="text-[18px] font-extrabold text-slate-900 tracking-tight">
-              Recommendations
+        <View className="mt-6">
+          <View className="px-5 flex-row items-center justify-between mb-3">
+            <Text className="text-[14px] font-medium text-slate-900">
+              Recommended today
             </Text>
             <TouchableOpacity>
-              <Text className="text-[13px] font-semibold text-[#1e4ed8]">
-                See all
-              </Text>
+              <Text className="text-[13px] text-slate-400">See all</Text>
             </TouchableOpacity>
           </View>
 
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingHorizontal: 20, gap: 14 }}
+            contentContainerClassName="px-5 gap-3"
           >
-            {/* Exercise Card */}
-            <TouchableOpacity
-              activeOpacity={0.9}
-              className="w-[280px] h-[200px] bg-slate-900 rounded-[26px] overflow-hidden relative shadow-lg shadow-slate-900/20"
-            >
-              <View className="absolute -bottom-5 -right-5 opacity-[0.06]">
-                <MaterialCommunityIcons name="yoga" size={180} color="white" />
-              </View>
-
-              <View className="p-[22px] flex-1 justify-between">
-                <View className="flex-row items-center justify-between">
-                  <View className="bg-white/10 px-3 py-1.5 rounded-full">
-                    <Text className="text-[10px] font-black text-white uppercase tracking-widest">
-                      Exercise
-                    </Text>
-                  </View>
-                  <View className="w-10 h-10 bg-white rounded-[14px] items-center justify-center">
-                    <Feather name="play" size={16} color="#0f172a" />
-                  </View>
-                </View>
-
-                <View>
-                  <Text className="text-[20px] font-black text-white tracking-tight mb-1">
-                    15-Minute Chair Yoga
-                  </Text>
-                  <Text className="text-[13px] font-medium text-slate-400">
-                    Safe mobility to elevate heart rate.
-                  </Text>
-                </View>
-              </View>
-            </TouchableOpacity>
-
-            {/* Meal Card */}
-            <TouchableOpacity
-              activeOpacity={0.9}
-              className="w-[280px] h-[200px] bg-emerald-950 rounded-[26px] overflow-hidden relative shadow-lg shadow-emerald-900/20"
-            >
-              <View className="absolute -bottom-5 -right-5 opacity-[0.08]">
-                <MaterialCommunityIcons
-                  name="bowl-mix-outline"
-                  size={180}
-                  color="white"
-                />
-              </View>
-
-              <View className="p-[22px] flex-1 justify-between">
-                <View className="flex-row items-center justify-between">
-                  <View className="bg-white/10 px-3 py-1.5 rounded-full">
-                    <Text className="text-[10px] font-black text-white uppercase tracking-widest">
-                      Heart-Healthy
-                    </Text>
-                  </View>
-                  <View className="bg-white/10 px-2.5 py-1 rounded-lg">
-                    <Text className="text-[11px] font-bold text-emerald-200">
-                      Low Sodium
-                    </Text>
-                  </View>
-                </View>
-
-                <View>
-                  <Text className="text-[20px] font-black text-white tracking-tight mb-1.5">
-                    Oatmeal with Berries
-                  </Text>
-                  <View className="flex-row items-center gap-3.5">
-                    <Text className="text-[12px] font-bold text-emerald-300">
-                      Sodium: <Text className="text-white">15mg</Text>
-                    </Text>
-                    <Text className="text-[12px] font-bold text-emerald-300">
-                      Fiber: <Text className="text-white">8g</Text>
-                    </Text>
-                  </View>
-                </View>
-              </View>
-            </TouchableOpacity>
+            <RecoCard
+              tag="Exercise"
+              title="15-min chair yoga"
+              subtitle="Safe mobility, stable heart rate."
+              icon="yoga"
+              bg="#1e293b"
+              tagBg="rgba(255,255,255,0.12)"
+              tagText="rgba(255,255,255,0.8)"
+              subColor="#94a3b8"
+            />
+            <RecoCard
+              tag="Heart-healthy"
+              title="Oatmeal with berries"
+              subtitle="Sodium: 15mg · Fiber: 8g"
+              icon="bowl-mix-outline"
+              bg="#14532d"
+              tagBg="rgba(255,255,255,0.12)"
+              tagText="rgba(255,255,255,0.8)"
+              subColor="#86efac"
+            />
+            <RecoCard
+              tag="Breathing"
+              title="4-7-8 technique"
+              subtitle="Calms nervous system in 5 mins."
+              icon="meditation"
+              bg="#1e3a5f"
+              tagBg="rgba(255,255,255,0.12)"
+              tagText="rgba(255,255,255,0.8)"
+              subColor="#93c5fd"
+            />
           </ScrollView>
         </View>
       </ScrollView>
