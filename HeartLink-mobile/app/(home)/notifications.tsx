@@ -3,9 +3,10 @@ import { View, Text, TouchableOpacity, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
-import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Feather } from "@expo/vector-icons";
 
-// ─── Types ──────────────────────────────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────
+
 type NotificationType = "alert" | "insight" | "reminder" | "achievement" | "system";
 
 interface Notification {
@@ -17,59 +18,61 @@ interface Notification {
   read: boolean;
 }
 
-// ─── Theme by type ──────────────────────────────────────────────────────────
-function getNotifTheme(type: NotificationType) {
-  switch (type) {
-    case "alert":
-      return {
-        icon: "alert-triangle",
-        iconType: "feather" as const,
-        color: "#dc2626",
-        bg: "bg-red-50",
-        border: "border-red-100",
-      };
-    case "insight":
-      return {
-        icon: "zap",
-        iconType: "feather" as const,
-        color: "#1e4ed8",
-        bg: "bg-blue-50",
-        border: "border-blue-100",
-      };
-    case "reminder":
-      return {
-        icon: "clock",
-        iconType: "feather" as const,
-        color: "#d97706",
-        bg: "bg-amber-50",
-        border: "border-amber-100",
-      };
-    case "achievement":
-      return {
-        icon: "award",
-        iconType: "feather" as const,
-        color: "#059669",
-        bg: "bg-emerald-50",
-        border: "border-emerald-100",
-      };
-    case "system":
-    default:
-      return {
-        icon: "info",
-        iconType: "feather" as const,
-        color: "#64748b",
-        bg: "bg-slate-50",
-        border: "border-slate-100",
-      };
-  }
-}
+// ─── Theme config (plain values — no dynamic className) ───────────────────────
 
-// ─── Sample notifications ───────────────────────────────────────────────────
+type NotifTheme = {
+  icon: string;
+  color: string;
+  iconBg: string;
+  iconBorder: string;
+  dotColor: string;
+};
+
+const NOTIF_THEME: Record<NotificationType, NotifTheme> = {
+  alert: {
+    icon: "alert-triangle",
+    color: "#a32d2d",
+    iconBg: "#fcebeb",
+    iconBorder: "#f7c1c1",
+    dotColor: "#e24b4a",
+  },
+  insight: {
+    icon: "zap",
+    color: "#185fa5",
+    iconBg: "#e6f1fb",
+    iconBorder: "#b8d8f5",
+    dotColor: "#185fa5",
+  },
+  reminder: {
+    icon: "clock",
+    color: "#854f0b",
+    iconBg: "#faeeda",
+    iconBorder: "#fac775",
+    dotColor: "#ba7517",
+  },
+  achievement: {
+    icon: "award",
+    color: "#3b6d11",
+    iconBg: "#eaf3de",
+    iconBorder: "#c0dd97",
+    dotColor: "#639922",
+  },
+  system: {
+    icon: "info",
+    color: "#64748b",
+    iconBg: "#f8fafc",
+    iconBorder: "#e2e8f0",
+    dotColor: "#94a3b8",
+  },
+};
+
+// ─── Sample Data ──────────────────────────────────────────────────────────────
+
 const SAMPLE_NOTIFICATIONS: Notification[] = [
   {
     id: "1",
     type: "alert",
-    title: "Elevated Blood Pressure",
+    title: "Elevated blood pressure",
     message:
       "Your systolic BP reading of 145 mmHg exceeds your safe threshold. Consider resting and retaking in 15 minutes.",
     time: "5 min ago",
@@ -78,7 +81,7 @@ const SAMPLE_NOTIFICATIONS: Notification[] = [
   {
     id: "2",
     type: "insight",
-    title: "Weekly Score Improved",
+    title: "Weekly score improved",
     message:
       "Your stability score rose by 5 points this week. Keep up the consistent medication and diet tracking!",
     time: "1 hour ago",
@@ -87,7 +90,7 @@ const SAMPLE_NOTIFICATIONS: Notification[] = [
   {
     id: "3",
     type: "reminder",
-    title: "Medication Reminder",
+    title: "Medication reminder",
     message: "Time to take your Amlodipine 5mg. Don't forget to log it after.",
     time: "2 hours ago",
     read: false,
@@ -95,7 +98,7 @@ const SAMPLE_NOTIFICATIONS: Notification[] = [
   {
     id: "4",
     type: "achievement",
-    title: "7-Day Streak! 🎉",
+    title: "7-day streak",
     message:
       "You've logged your vitals for 7 consecutive days. Consistency is key to better health outcomes.",
     time: "5 hours ago",
@@ -104,7 +107,7 @@ const SAMPLE_NOTIFICATIONS: Notification[] = [
   {
     id: "5",
     type: "reminder",
-    title: "Daily Symptom Check-In",
+    title: "Daily symptom check-in",
     message:
       "How are you feeling today? Tap to log your symptoms before your evening review.",
     time: "8 hours ago",
@@ -113,25 +116,25 @@ const SAMPLE_NOTIFICATIONS: Notification[] = [
   {
     id: "6",
     type: "insight",
-    title: "Sodium Intake Update",
+    title: "Sodium intake update",
     message:
-      "You've consumed an estimated 1,200mg of sodium today — well within your 2,000mg daily limit.",
+      "You've consumed an estimated 1,200 mg of sodium today — well within your 2,000 mg daily limit.",
     time: "Yesterday",
     read: true,
   },
   {
     id: "7",
     type: "system",
-    title: "App Update Available",
+    title: "App update available",
     message:
-      "HeartLink v1.1 is ready with improved meal scanning and new exercise routines. Update now.",
+      "HeartLink v1.1 is ready with improved meal scanning and new exercise routines.",
     time: "2 days ago",
     read: true,
   },
   {
     id: "8",
     type: "achievement",
-    title: "First Meal Scanned",
+    title: "First meal scanned",
     message:
       "You scanned your first food barcode! HeartLink will now track its nutritional impact on your heart health.",
     time: "3 days ago",
@@ -139,7 +142,56 @@ const SAMPLE_NOTIFICATIONS: Notification[] = [
   },
 ];
 
-// ─── Notification Card ──────────────────────────────────────────────────────
+// ─── Filter Chip ──────────────────────────────────────────────────────────────
+// Dynamic bg/border/text via inline style — avoids css-interop crash
+
+function FilterChip({
+  label,
+  active,
+  badge,
+  onPress,
+}: {
+  label: string;
+  active: boolean;
+  badge?: number;
+  onPress: () => void;
+}) {
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={0.75}
+      className="flex-row items-center px-4 py-2 rounded-full border gap-1.5"
+      style={{
+        backgroundColor: active ? "#0f172a" : "#fff",
+        borderColor: active ? "#0f172a" : "#e2e8f0",
+      }}
+    >
+      <Text
+        className="text-[12px] font-medium"
+        style={{ color: active ? "#fff" : "#64748b" }}
+      >
+        {label}
+      </Text>
+      {badge !== undefined && badge > 0 && (
+        <View
+          className="w-4 h-4 rounded-full items-center justify-center"
+          style={{ backgroundColor: active ? "rgba(255,255,255,0.2)" : "#e24b4a" }}
+        >
+          <Text
+            className="text-[9px] font-medium"
+            style={{ color: active ? "#fff" : "#fff" }}
+          >
+            {badge}
+          </Text>
+        </View>
+      )}
+    </TouchableOpacity>
+  );
+}
+
+// ─── Notification Card ────────────────────────────────────────────────────────
+// All conditional bg/border/text via inline style
+
 function NotificationCard({
   notification,
   onPress,
@@ -147,55 +199,54 @@ function NotificationCard({
   notification: Notification;
   onPress: () => void;
 }) {
-  const theme = getNotifTheme(notification.type);
+  const theme = NOTIF_THEME[notification.type];
+  const { read } = notification;
 
   return (
     <TouchableOpacity
       activeOpacity={0.7}
       onPress={onPress}
-      className={`flex-row items-start p-4 rounded-[20px] mb-3 border ${
-        notification.read
-          ? "bg-white border-slate-100"
-          : "bg-white border-blue-100"
-      }`}
+      className="flex-row items-start rounded-2xl mb-2.5 p-4 border"
+      style={{
+        backgroundColor: read ? "#fff" : "#fafcff",
+        borderColor: read ? "#e2e8f0" : "#dbeafe",
+      }}
     >
-      {/* Unread dot */}
-      {!notification.read && (
-        <View className="absolute top-4 left-4 w-2 h-2 bg-[#1e4ed8] rounded-full z-10" />
+      {/* Unread indicator strip */}
+      {!read && (
+        <View
+          className="absolute left-0 top-4 bottom-4 w-0.5 rounded-full"
+          style={{ backgroundColor: theme.dotColor }}
+        />
       )}
 
       {/* Icon */}
       <View
-        className={`w-10 h-10 rounded-[14px] items-center justify-center mr-3.5 border ${theme.bg} ${theme.border} ${
-          !notification.read ? "ml-3" : ""
-        }`}
+        className="w-9 h-9 rounded-xl items-center justify-center mr-3 flex-shrink-0 border"
+        style={{ backgroundColor: theme.iconBg, borderColor: theme.iconBorder }}
       >
-        <Feather name={theme.icon as any} size={18} color={theme.color} />
+        <Feather name={theme.icon as any} size={15} color={theme.color} />
       </View>
 
       {/* Content */}
       <View className="flex-1">
-        <View className="flex-row items-center justify-between mb-1">
+        <View className="flex-row items-start justify-between gap-2 mb-1">
           <Text
-            className={`text-[14px] tracking-tight flex-1 mr-2 ${
-              notification.read
-                ? "font-bold text-slate-700"
-                : "font-extrabold text-slate-900"
-            }`}
+            className="flex-1 text-[13px] leading-snug"
+            style={{
+              color: read ? "#64748b" : "#0f172a",
+              fontWeight: read ? "400" : "500",
+            }}
             numberOfLines={1}
           >
             {notification.title}
           </Text>
-          <Text className="text-[11px] font-medium text-slate-400">
+          <Text className="text-[11px] text-slate-300 flex-shrink-0">
             {notification.time}
           </Text>
         </View>
         <Text
-          className={`text-[13px] leading-[18px] ${
-            notification.read
-              ? "font-normal text-slate-400"
-              : "font-medium text-slate-500"
-          }`}
+          className="text-[12px] leading-[18px] text-slate-400"
           numberOfLines={2}
         >
           {notification.message}
@@ -205,130 +256,134 @@ function NotificationCard({
   );
 }
 
-// ─── Notifications Screen ───────────────────────────────────────────────────
+// ─── Notifications Screen ─────────────────────────────────────────────────────
+
 export default function NotificationsScreen() {
   const router = useRouter();
   const [notifications, setNotifications] = useState(SAMPLE_NOTIFICATIONS);
   const [filter, setFilter] = useState<"all" | "unread">("all");
 
   const unreadCount = notifications.filter((n) => !n.read).length;
-  const filteredNotifications =
-    filter === "unread"
-      ? notifications.filter((n) => !n.read)
-      : notifications;
+  const filtered =
+    filter === "unread" ? notifications.filter((n) => !n.read) : notifications;
 
-  const markAsRead = (id: string) => {
+  const markAsRead = (id: string) =>
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, read: true } : n))
     );
-  };
 
-  const markAllAsRead = () => {
+  const markAllAsRead = () =>
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-  };
+
+  // Group into today vs. earlier
+  const todayLabels = ["5 min ago", "1 hour ago", "2 hours ago", "5 hours ago", "8 hours ago"];
+  const today = filtered.filter((n) => todayLabels.includes(n.time));
+  const earlier = filtered.filter((n) => !todayLabels.includes(n.time));
 
   return (
-    <SafeAreaView className="flex-1 bg-[#F8FAFC]" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-slate-50" edges={["top"]}>
       <StatusBar style="dark" />
 
       {/* Header */}
-      <View className="flex-row items-center justify-between px-6 pt-4 pb-3">
+      <View className="flex-row items-center px-5 pt-4 pb-3 border-b border-slate-200/50">
         <TouchableOpacity
           onPress={() => router.back()}
-          className="w-10 h-10 rounded-[14px] bg-slate-100 items-center justify-center"
+          className="w-9 h-9 rounded-xl bg-white border border-slate-200/70 items-center justify-center mr-3"
         >
-          <Feather name="arrow-left" size={20} color="#0f172a" />
+          <Feather name="arrow-left" size={18} color="#0f172a" />
         </TouchableOpacity>
-        <View className="flex-row items-center">
-          <Text className="text-[17px] font-extrabold text-slate-900 tracking-tight">
+
+        <View className="flex-1 flex-row items-center gap-2">
+          <Text className="text-[17px] font-medium text-slate-900">
             Notifications
           </Text>
           {unreadCount > 0 && (
-            <View className="ml-2 bg-[#1e4ed8] rounded-full w-6 h-6 items-center justify-center">
-              <Text className="text-white text-[11px] font-extrabold">
+            <View className="bg-slate-900 rounded-full w-5 h-5 items-center justify-center">
+              <Text className="text-white text-[10px] font-medium">
                 {unreadCount}
               </Text>
             </View>
           )}
         </View>
-        <TouchableOpacity
-          onPress={markAllAsRead}
-          className="w-10 h-10 rounded-[14px] bg-blue-50 items-center justify-center border border-blue-100"
-        >
-          <Feather name="check-circle" size={17} color="#1e4ed8" />
-        </TouchableOpacity>
+
+        {/* Mark all read */}
+        {unreadCount > 0 && (
+          <TouchableOpacity
+            onPress={markAllAsRead}
+            className="flex-row items-center gap-1.5 bg-white border border-slate-200/70 px-3 py-1.5 rounded-xl"
+          >
+            <Feather name="check" size={13} color="#64748b" />
+            <Text className="text-[9px] text-slate-500">Mark all read</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
-      {/* Filter Tabs */}
-      <View className="flex-row px-6 mt-2 mb-4 gap-2">
-        <TouchableOpacity
+      {/* Filter chips */}
+      <View className="flex-row gap-2 px-5 py-3">
+        <FilterChip
+          label="All"
+          active={filter === "all"}
           onPress={() => setFilter("all")}
-          className={`px-5 py-2.5 rounded-full ${
-            filter === "all"
-              ? "bg-[#1e4ed8]"
-              : "bg-white border border-slate-200"
-          }`}
-        >
-          <Text
-            className={`text-[13px] font-bold ${
-              filter === "all" ? "text-white" : "text-slate-500"
-            }`}
-          >
-            All
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
+        />
+        <FilterChip
+          label="Unread"
+          active={filter === "unread"}
+          badge={filter !== "unread" ? unreadCount : undefined}
           onPress={() => setFilter("unread")}
-          className={`px-5 py-2.5 rounded-full flex-row items-center ${
-            filter === "unread"
-              ? "bg-[#1e4ed8]"
-              : "bg-white border border-slate-200"
-          }`}
-        >
-          <Text
-            className={`text-[13px] font-bold ${
-              filter === "unread" ? "text-white" : "text-slate-500"
-            }`}
-          >
-            Unread
-          </Text>
-          {unreadCount > 0 && filter !== "unread" && (
-            <View className="ml-1.5 bg-red-500 rounded-full w-5 h-5 items-center justify-center">
-              <Text className="text-white text-[10px] font-bold">
-                {unreadCount}
-              </Text>
-            </View>
-          )}
-        </TouchableOpacity>
+        />
       </View>
 
       <ScrollView
-        contentContainerStyle={{ flexGrow: 1, paddingBottom: 40 }}
+        contentContainerClassName="px-5 pb-16"
         showsVerticalScrollIndicator={false}
       >
-        <View className="px-5">
-          {filteredNotifications.length === 0 ? (
-            <View className="items-center justify-center pt-20">
-              <View className="w-20 h-20 rounded-[24px] bg-slate-50 items-center justify-center mb-5 border border-slate-100">
-                <Feather name="bell-off" size={32} color="#cbd5e1" />
-              </View>
-              <Text className="text-[18px] font-extrabold text-slate-900 tracking-tight mb-2">
-                All caught up!
-              </Text>
-              <Text className="text-[14px] font-medium text-slate-400 text-center">
-                No unread notifications.{"\n"}Check back later.
-              </Text>
+        {filtered.length === 0 ? (
+          <View className="items-center pt-20">
+            <View className="w-14 h-14 rounded-2xl bg-slate-100 border border-slate-200/70 items-center justify-center mb-4">
+              <Feather name="bell-off" size={22} color="#cbd5e1" />
             </View>
-          ) : (
-            filteredNotifications.map((notification) => (
-              <NotificationCard
-                key={notification.id}
-                notification={notification}
-                onPress={() => markAsRead(notification.id)}
-              />
-            ))
-          )}
-        </View>
+            <Text className="text-[16px] font-medium text-slate-900 mb-1">
+              All caught up
+            </Text>
+            <Text className="text-[13px] text-slate-400 text-center">
+              No unread notifications.
+            </Text>
+          </View>
+        ) : (
+          <>
+            {/* Today */}
+            {today.length > 0 && (
+              <>
+                <Text className="text-[11px] text-slate-400 uppercase tracking-wide mb-2">
+                  Today
+                </Text>
+                {today.map((n) => (
+                  <NotificationCard
+                    key={n.id}
+                    notification={n}
+                    onPress={() => markAsRead(n.id)}
+                  />
+                ))}
+              </>
+            )}
+
+            {/* Earlier */}
+            {earlier.length > 0 && (
+              <>
+                <Text className="text-[11px] text-slate-400 uppercase tracking-wide mb-2 mt-4">
+                  Earlier
+                </Text>
+                {earlier.map((n) => (
+                  <NotificationCard
+                    key={n.id}
+                    notification={n}
+                    onPress={() => markAsRead(n.id)}
+                  />
+                ))}
+              </>
+            )}
+          </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );

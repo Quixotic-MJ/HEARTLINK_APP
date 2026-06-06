@@ -5,17 +5,9 @@ import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 
-// ─── Settings Row ───────────────────────────────────────────────────────────
-function SettingsRow({
-  icon,
-  iconType = "feather",
-  label,
-  subtitle,
-  iconBg = "bg-slate-50",
-  iconColor = "#64748b",
-  danger = false,
-  onPress,
-}: {
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+type SettingsRowProps = {
   icon: string;
   iconType?: "feather" | "material";
   label: string;
@@ -24,160 +16,216 @@ function SettingsRow({
   iconColor?: string;
   danger?: boolean;
   onPress?: () => void;
-}) {
+  isLast?: boolean;
+};
+
+// ─── Settings Row ─────────────────────────────────────────────────────────────
+// danger text color via inline style — avoids dynamic className
+
+function SettingsRow({
+  icon,
+  iconType = "feather",
+  label,
+  subtitle,
+  iconBg = "#f8fafc",
+  iconColor = "#94a3b8",
+  danger = false,
+  onPress,
+  isLast = false,
+}: SettingsRowProps) {
   return (
     <TouchableOpacity
-      activeOpacity={0.6}
+      activeOpacity={0.65}
       onPress={onPress}
-      className="flex-row items-center py-4 border-b border-slate-100"
+      className="flex-row items-center py-3.5"
+      style={!isLast ? { borderBottomWidth: 0.5, borderBottomColor: "#f1f5f9" } : undefined}
     >
+      {/* Icon bubble — dynamic bg via inline style */}
       <View
-        className={`w-10 h-10 rounded-[14px] items-center justify-center mr-4 border border-slate-100 ${iconBg}`}
+        className="w-9 h-9 rounded-xl items-center justify-center mr-3.5 border border-slate-200/70"
+        style={{ backgroundColor: iconBg }}
       >
         {iconType === "material" ? (
-          <MaterialCommunityIcons
-            name={icon as any}
-            size={20}
-            color={iconColor}
-          />
+          <MaterialCommunityIcons name={icon as any} size={18} color={iconColor} />
         ) : (
-          <Feather name={icon as any} size={18} color={iconColor} />
+          <Feather name={icon as any} size={16} color={iconColor} />
         )}
       </View>
+
+      {/* Label + subtitle */}
       <View className="flex-1">
         <Text
-          className={`text-[15px] font-bold tracking-tight ${
-            danger ? "text-red-600" : "text-slate-900"
-          }`}
+          className="text-[14px] font-medium"
+          style={{ color: danger ? "#a32d2d" : "#0f172a" }}
         >
           {label}
         </Text>
         {subtitle && (
-          <Text className="text-[12px] font-medium text-slate-400 mt-0.5">
-            {subtitle}
-          </Text>
+          <Text className="text-[12px] text-slate-400 mt-0.5">{subtitle}</Text>
         )}
       </View>
-      <Feather name="chevron-right" size={18} color="#cbd5e1" />
+
+      <Feather name="chevron-right" size={16} color="#e2e8f0" />
     </TouchableOpacity>
   );
 }
 
-// ─── Section Label ──────────────────────────────────────────────────────────
+// ─── Section Label ────────────────────────────────────────────────────────────
+
 function SectionLabel({ title }: { title: string }) {
   return (
-    <Text className="text-[11px] font-extrabold text-slate-400 uppercase tracking-widest mt-7 mb-2">
+    <Text className="text-[11px] text-slate-400 uppercase tracking-wide mb-2 mt-1">
       {title}
     </Text>
   );
 }
 
-// ─── Settings Screen ────────────────────────────────────────────────────────
+// ─── Settings Group ───────────────────────────────────────────────────────────
+
+function SettingsGroup({ children }: { children: React.ReactNode }) {
+  return (
+    <View className="bg-white rounded-2xl border border-slate-200/70 px-4 mb-3">
+      {children}
+    </View>
+  );
+}
+
+// ─── Settings Screen ──────────────────────────────────────────────────────────
+
 export default function SettingsScreen() {
   const router = useRouter();
 
   return (
-    <SafeAreaView className="flex-1 bg-[#F8FAFC]" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-slate-50" edges={["top"]}>
       <StatusBar style="dark" />
 
       {/* Header */}
-      <View className="flex-row items-center justify-between px-6 pt-4 pb-3">
+      <View className="flex-row items-center px-5 pt-4 pb-3 border-b border-slate-200/50">
         <TouchableOpacity
           onPress={() => router.back()}
-          className="w-10 h-10 rounded-[14px] bg-slate-100 items-center justify-center"
+          className="w-9 h-9 rounded-xl bg-white border border-slate-200/70 items-center justify-center mr-3"
         >
-          <Feather name="arrow-left" size={20} color="#0f172a" />
+          <Feather name="arrow-left" size={18} color="#0f172a" />
         </TouchableOpacity>
-        <Text className="text-[17px] font-extrabold text-slate-900 tracking-tight">
-          Settings
-        </Text>
-        <View className="w-10" />
+        <Text className="text-[17px] font-medium text-slate-900">Settings</Text>
       </View>
 
       <ScrollView
-        contentContainerStyle={{ flexGrow: 1, paddingBottom: 40 }}
+        contentContainerClassName="px-5 py-4 pb-16"
         showsVerticalScrollIndicator={false}
       >
-        <View className="mx-5 bg-white rounded-[24px] p-6 border border-slate-100 shadow-sm shadow-slate-900/5 mt-4">
-          <SectionLabel title="Account" />
+
+        {/* ── Account ── */}
+        <SectionLabel title="Account" />
+        <SettingsGroup>
           <SettingsRow
             icon="user"
-            label="Edit Profile"
+            label="Edit profile"
             subtitle="Update personal details and photo"
-            iconBg="bg-blue-50"
-            iconColor="#1e4ed8"
+            iconBg="#e6f1fb"
+            iconColor="#185fa5"
             onPress={() => router.push("/(home)/profile")}
           />
           <SettingsRow
             icon="lock"
-            label="Privacy & Security"
+            label="Privacy & security"
             subtitle="Password, 2FA, data permissions"
-            iconBg="bg-slate-50"
-            iconColor="#475569"
+            iconBg="#f8fafc"
+            iconColor="#64748b"
           />
           <SettingsRow
             icon="bell"
             label="Notifications"
             subtitle="Alerts, reminders, and push settings"
-            iconBg="bg-amber-50"
-            iconColor="#d97706"
+            iconBg="#faeeda"
+            iconColor="#854f0b"
+            isLast
           />
+        </SettingsGroup>
 
-          <SectionLabel title="Health" />
+        {/* ── Health ── */}
+        <SectionLabel title="Health" />
+        <SettingsGroup>
           <SettingsRow
             icon="heart-pulse"
             iconType="material"
-            label="Health Data Sources"
+            label="Health data sources"
             subtitle="Connected devices and wearables"
-            iconBg="bg-rose-50"
-            iconColor="#e11d48"
+            iconBg="#fcebeb"
+            iconColor="#a32d2d"
           />
           <SettingsRow
             icon="target"
-            label="Goals & Thresholds"
+            label="Goals & thresholds"
             subtitle="BP targets, sodium limits, activity goals"
-            iconBg="bg-emerald-50"
-            iconColor="#059669"
+            iconBg="#eaf3de"
+            iconColor="#3b6d11"
           />
           <SettingsRow
             icon="file-text"
-            label="Medical Records"
+            label="Medical records"
             subtitle="Upload and manage health documents"
-            iconBg="bg-indigo-50"
-            iconColor="#6366f1"
+            iconBg="#ede9fe"
+            iconColor="#6d28d9"
           />
+          <SettingsRow
+            icon="map-pin"
+            label="Cardiologist directory"
+            subtitle="Find a specialist near you"
+            iconBg="#e6f1fb"
+            iconColor="#185fa5"
+            onPress={() => router.push("/locator")}
+            isLast
+          />
+        </SettingsGroup>
 
-          <SectionLabel title="App" />
+        {/* ── App ── */}
+        <SectionLabel title="App" />
+        <SettingsGroup>
           <SettingsRow
             icon="moon"
             label="Appearance"
             subtitle="Light, dark, or system theme"
+            iconBg="#f8fafc"
+            iconColor="#64748b"
           />
           <SettingsRow
             icon="globe"
             label="Language"
             subtitle="English (US)"
+            iconBg="#f8fafc"
+            iconColor="#64748b"
           />
           <SettingsRow
             icon="help-circle"
-            label="Help & Support"
+            label="Help & support"
             subtitle="FAQ, feedback, contact us"
+            iconBg="#f8fafc"
+            iconColor="#64748b"
           />
           <SettingsRow
             icon="info"
             label="About HeartLink"
             subtitle="Version 1.0.0"
+            iconBg="#f8fafc"
+            iconColor="#64748b"
+            isLast
           />
+        </SettingsGroup>
 
-          <SectionLabel title="Danger Zone" />
+        {/* ── Danger Zone ── */}
+        <SectionLabel title="Account actions" />
+        <SettingsGroup>
           <SettingsRow
             icon="log-out"
-            label="Sign Out"
+            label="Sign out"
             danger
-            iconBg="bg-red-50"
-            iconColor="#dc2626"
+            iconBg="#fcebeb"
+            iconColor="#a32d2d"
+            isLast
           />
-        </View>
+        </SettingsGroup>
+
       </ScrollView>
     </SafeAreaView>
   );

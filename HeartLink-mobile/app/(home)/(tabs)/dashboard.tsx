@@ -278,13 +278,17 @@ export default function DashboardScreen() {
 
       {/* Emergency banner — static className, no ternary */}
       {isAlertActive && (
-        <View className="bg-red-500 px-5 py-3.5 flex-row items-center gap-3">
+        <TouchableOpacity 
+          activeOpacity={0.9}
+          onPress={() => router.push("/locator")}
+          className="bg-red-500 px-5 py-3.5 flex-row items-center gap-3"
+        >
           <Feather name="alert-triangle" size={18} color="white" />
           <Text className="text-white text-[13px] font-medium flex-1 leading-snug">
             Elevated risk detected. Tap to view nearby cardiovascular specialists.
           </Text>
           <Feather name="chevron-right" size={18} color="white" />
-        </View>
+        </TouchableOpacity>
       )}
 
       {/* Top bar */}
@@ -512,6 +516,25 @@ export default function DashboardScreen() {
             />
           </ScrollView>
         </View>
+
+        {/* Home Safety Net */}
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={() => router.push("/locator")}
+          className="mx-5 mb-8 bg-white rounded-[20px] p-5 border border-slate-200/70 shadow-sm shadow-slate-900/5 flex-row items-center justify-between"
+        >
+          <View className="flex-1 pr-4">
+            <Text className="text-[15px] font-bold text-slate-900 mb-1">
+              Need professional guidance?
+            </Text>
+            <Text className="text-[13px] text-slate-500 font-medium">
+              Find a specialist near you.
+            </Text>
+          </View>
+          <View className="w-10 h-10 bg-blue-50 rounded-xl items-center justify-center">
+            <Feather name="map-pin" size={18} color="#1e4ed8" />
+          </View>
+        </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );

@@ -43,7 +43,7 @@ export default function OnboardingScreen() {
         {/* 2. Center Hero Icon */}
         <View className="items-center mb-8">
           <View
-            className="w-32 h-32 bg-[#1e4ed8] rounded-[32px] items-center justify-center"
+            className="w-32 h-32 bg-[#1e4ed8] rounded-full items-center justify-center"
             style={{
               shadowColor: "#1e4ed8",
               shadowOffset: { width: 0, height: 12 },

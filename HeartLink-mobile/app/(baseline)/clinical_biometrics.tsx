@@ -46,7 +46,7 @@ export default function BiometricsStep4Screen() {
     };
 
     console.log("SUCCESS! Saving ML Clinical Baseline:", payload);
-    alert("Dashboard in progress. Please wait until JM is done");
+    router.push('/(home)/(tabs)/dashboard')
     // When ready to navigate, add your navigation logic here.
   };
 
