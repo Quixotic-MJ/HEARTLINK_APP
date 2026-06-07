@@ -258,10 +258,10 @@ function CustomTabBar({ state, navigation, onFabPress }: any) {
       style={{
         position: "absolute",
         bottom: Math.max(insets.bottom, 0),
-        left: 8,
-        right: 8,
+        left: 0,
+        right: 0,
         height: 72,
-        borderRadius: 20,
+        // borderRadius: 20,
         backgroundColor: "#fff",
         flexDirection: "row",
         alignItems: "center",
@@ -325,7 +325,7 @@ function CustomTabBar({ state, navigation, onFabPress }: any) {
                       shadowOpacity: 0.2,
                       shadowRadius: 8,
                     },
-                    android: { elevation: 8 },
+                    android: { elevation: 0 },
                   }),
                 }}
               >

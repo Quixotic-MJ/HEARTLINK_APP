@@ -1,11 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  Animated,
-  ScrollView,
-} from "react-native";
+import { View, Text, TouchableOpacity, Animated, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
@@ -15,16 +9,16 @@ import "../../global.css";
 export default function VerificationSuccessScreen() {
   const router = useRouter();
 
-  // Spring Animation for the success badge
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(16)).current;
 
   useEffect(() => {
     Animated.parallel([
       Animated.spring(scaleAnim, {
         toValue: 1,
-        tension: 50,
-        friction: 5,
+        tension: 60,
+        friction: 6,
         useNativeDriver: true,
       }),
       Animated.timing(opacityAnim, {
@@ -32,82 +26,105 @@ export default function VerificationSuccessScreen() {
         duration: 400,
         useNativeDriver: true,
       }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 500,
+        delay: 200,
+        useNativeDriver: true,
+      }),
     ]).start();
   }, []);
 
-  const handleContinue = () => {
-    // Route to the initial baseline data collection screen
-    router.replace("/core_biometrics");
-  };
-
   return (
-    <SafeAreaView className="flex-1 bg-[#f4f7fb]" edges={["top", "bottom"]}>
+    <SafeAreaView className="flex-1 bg-slate-50" edges={["top", "bottom"]}>
       <StatusBar style="dark" />
 
       <ScrollView
-        contentContainerClassName="flex-grow justify-center pb-10 pt-10"
+        contentContainerClassName="flex-grow justify-center px-5 pb-10 pt-6"
         showsVerticalScrollIndicator={false}
         bounces={false}
       >
-        {/* Main White Card Container */}
-        <View className="bg-white mx-5 rounded-[32px] px-6 py-12 shadow-sm shadow-blue-900/5 items-center">
-          {/* 1. Animated Success Icon */}
+        {/* ── Card ── */}
+        <View className="bg-white rounded-2xl border border-slate-200/70 px-6 py-10 items-center">
+
+          {/* Animated success icon */}
           <Animated.View
-            style={{
-              transform: [{ scale: scaleAnim }],
-              opacity: opacityAnim,
-            }}
-            className="mb-8"
+            style={{ transform: [{ scale: scaleAnim }], opacity: opacityAnim }}
+            className="mb-7"
           >
-            <View className="w-24 h-24 bg-emerald-50 rounded-full items-center justify-center border-[6px] border-white shadow-lg shadow-emerald-900/10">
-              <View className="w-16 h-16 bg-emerald-500 rounded-full items-center justify-center">
-                <Feather name="check" size={32} color="white" strokeWidth={3} />
+            {/* Outer ring */}
+            <View
+              className="w-24 h-24 rounded-full items-center justify-center"
+              style={{ backgroundColor: "#eaf3de" }}
+            >
+              {/* Inner circle */}
+              <View
+                className="w-16 h-16 rounded-full items-center justify-center"
+                style={{ backgroundColor: "#639922" }}
+              >
+                <Feather name="check" size={30} color="#fff" strokeWidth={2.5} />
               </View>
             </View>
           </Animated.View>
 
-          {/* 2. Success Text */}
-          <View className="mb-10 items-center">
-            <Text className="text-[28px] font-black text-slate-900 text-center tracking-tight mb-3">
-              Account Verified!
-            </Text>
-            <Text className="text-[14px] text-slate-500 text-center font-medium leading-relaxed px-2">
-              Your credentials have been authenticated. You are now ready to
-              establish your cardiovascular baseline.
-            </Text>
-          </View>
-
-          {/* 3. Security Badge (Optional but adds clinical trust) */}
-          <View className="flex-row items-center bg-slate-50 px-4 py-3 rounded-2xl border border-slate-100 mb-10">
-            <MaterialCommunityIcons
-              name="shield-check"
-              size={20}
-              color="#10b981"
-            />
-            <Text className="text-[12px] font-bold text-slate-600 ml-2">
-              End-to-End Encrypted Session
-            </Text>
-          </View>
-
-          {/* 4. Primary Action Button */}
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={handleContinue}
-            className="w-full h-[52px] bg-[#1e4ed8] rounded-full flex-row justify-center items-center shadow-sm shadow-blue-900/20"
+          {/* Text — slides up after icon */}
+          <Animated.View
+            style={{ opacity: opacityAnim, transform: [{ translateY: slideAnim }] }}
+            className="items-center mb-7"
           >
-            <Text className="text-white font-bold text-[15px] mr-2">
-              Set Up Clinical Profile
+            <Text className="text-[24px] font-medium text-slate-900 text-center tracking-tight mb-2">
+              Account verified
             </Text>
-            <Feather name="arrow-right" size={18} color="white" />
+            <Text className="text-[13px] text-slate-400 text-center leading-relaxed px-2">
+              Your credentials have been authenticated. You're now ready to establish your cardiovascular baseline.
+            </Text>
+          </Animated.View>
+
+          {/* Trust badges */}
+          <Animated.View
+            style={{ opacity: opacityAnim, transform: [{ translateY: slideAnim }] }}
+            className="w-full gap-2.5 mb-8"
+          >
+            <View className="flex-row items-center bg-slate-50 border border-slate-200/70 px-4 py-3 rounded-xl gap-3">
+              <View className="w-8 h-8 rounded-lg items-center justify-center" style={{ backgroundColor: "#eaf3de" }}>
+                <MaterialCommunityIcons name="shield-check" size={16} color="#3b6d11" />
+              </View>
+              <Text className="text-[13px] text-slate-600 font-medium flex-1">
+                End-to-end encrypted session
+              </Text>
+              <Feather name="check" size={14} color="#639922" />
+            </View>
+
+            <View className="flex-row items-center bg-slate-50 border border-slate-200/70 px-4 py-3 rounded-xl gap-3">
+              <View className="w-8 h-8 rounded-lg items-center justify-center" style={{ backgroundColor: "#e6f1fb" }}>
+                <MaterialCommunityIcons name="database-lock" size={16} color="#185fa5" />
+              </View>
+              <Text className="text-[13px] text-slate-600 font-medium flex-1">
+                Health data stored securely
+              </Text>
+              <Feather name="check" size={14} color="#185fa5" />
+            </View>
+          </Animated.View>
+
+          {/* CTA */}
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={() => router.replace("/core_biometrics")}
+            className="w-full bg-slate-900 rounded-2xl py-3.5 flex-row justify-center items-center gap-2"
+          >
+            <Text className="text-white text-[14px] font-medium">
+              Set up clinical profile
+            </Text>
+            <Feather name="arrow-right" size={15} color="#fff" />
           </TouchableOpacity>
+
         </View>
 
-        {/* Footer Branding */}
-        <View className="mt-8">
-          <Text className="text-center text-[10px] font-bold tracking-[0.1em] text-slate-400 uppercase">
-            CTU - MAIN CAMPUS • CAPSTONE 2026
-          </Text>
-        </View>
+        {/* Footer */}
+        <Text className="text-center text-[9px] tracking-widest text-slate-300 mt-6 uppercase">
+          CTU — Main Campus · Capstone 2026
+        </Text>
+
       </ScrollView>
     </SafeAreaView>
   );

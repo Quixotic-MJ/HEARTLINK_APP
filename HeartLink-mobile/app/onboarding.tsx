@@ -1,154 +1,185 @@
 import React from "react";
-import { View, Text, TouchableOpacity, ScrollView, Button } from "react-native";
-import {
-  SafeAreaView,
-  useSafeAreaInsets,
-} from "react-native-safe-area-context";
+import { View, Text, TouchableOpacity, ScrollView } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
-import {
-  MaterialCommunityIcons,
-  Feather,
-  MaterialIcons,
-} from "@expo/vector-icons";
+import { MaterialCommunityIcons, Feather, MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import "../global.css"; // Ensure this matches your NativeWind setup
+import "../global.css";
+
+// ─── Feature Card ─────────────────────────────────────────────────────────────
+
+function FeatureCard({
+  icon,
+  iconType,
+  iconBg,
+  iconColor,
+  title,
+  subtitle,
+}: {
+  icon: string;
+  iconType: "feather" | "material" | "mci";
+  iconBg: string;
+  iconColor: string;
+  title: string;
+  subtitle: string;
+}) {
+  return (
+    <View className="bg-white rounded-2xl p-4 flex-row items-center border border-slate-200/70 mb-3">
+      <View
+        className="w-11 h-11 rounded-xl items-center justify-center mr-3.5 flex-shrink-0"
+        style={{ backgroundColor: iconBg }}
+      >
+        {iconType === "feather" && (
+          <Feather name={icon as any} size={18} color={iconColor} />
+        )}
+        {iconType === "material" && (
+          <MaterialIcons name={icon as any} size={18} color={iconColor} />
+        )}
+        {iconType === "mci" && (
+          <MaterialCommunityIcons name={icon as any} size={18} color={iconColor} />
+        )}
+      </View>
+      <View className="flex-1">
+        <Text className="text-[13px] font-medium text-slate-900 mb-0.5">
+          {title}
+        </Text>
+        <Text className="text-[12px] text-slate-400 leading-relaxed">
+          {subtitle}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+// ─── Onboarding Screen ────────────────────────────────────────────────────────
 
 export default function OnboardingScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
 
   return (
-    <SafeAreaView className="flex-1 bg-[#f4f7fb]" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-slate-50" edges={["top"]}>
       <StatusBar style="dark" />
 
       <ScrollView
-        contentContainerClassName="flex-grow pb-8"
+        contentContainerClassName="flex-grow pb-10"
         showsVerticalScrollIndicator={false}
         bounces={false}
       >
-        {/* 1. Top Left Header */}
-        <View className="flex-row items-center px-6 pt-6 mb-8">
-          <View className="w-8 h-8 bg-[#1e4ed8] rounded-full items-center justify-center shadow-sm shadow-blue-900/20">
-            <MaterialCommunityIcons
-              name="heart-pulse"
-              size={18}
-              color="white"
-            />
+
+        {/* ── Logo bar ── */}
+        <View className="flex-row items-center px-5 pt-5 mb-10">
+          <View className="w-8 h-8 bg-[#1e4ed8] rounded-xl items-center justify-center">
+            <MaterialCommunityIcons name="heart-pulse" size={17} color="white" />
           </View>
-          <Text className="ml-3 font-bold text-[15px] text-slate-900 tracking-tight">
+          <Text className="ml-2.5 text-[15px] font-medium text-slate-900 tracking-tight">
             HeartLink
           </Text>
         </View>
 
-        {/* 2. Center Hero Icon */}
-        <View className="items-center mb-8">
+        {/* ── Hero ── */}
+        <View className="items-center px-5 mb-10">
+          {/* Concentric rings */}
           <View
-            className="w-32 h-32 bg-[#1e4ed8] rounded-full items-center justify-center"
-            style={{
-              shadowColor: "#1e4ed8",
-              shadowOffset: { width: 0, height: 12 },
-              shadowOpacity: 0.25,
-              shadowRadius: 16,
-              elevation: 10,
-            }}
+            className="w-36 h-36 rounded-full items-center justify-center"
+            style={{ backgroundColor: "#dbeafe" }}
           >
-            <MaterialCommunityIcons
-              name="heart-pulse"
-              size={64}
-              color="white"
-            />
+            <View
+              className="w-24 h-24 rounded-full items-center justify-center"
+              style={{ backgroundColor: "#93c5fd" }}
+            >
+              <View
+                className="w-16 h-16 rounded-full items-center justify-center"
+                style={{ backgroundColor: "#1e4ed8" }}
+              >
+                <MaterialCommunityIcons name="heart-pulse" size={32} color="#fff" />
+              </View>
+            </View>
           </View>
-        </View>
 
-        {/* 3. Headings */}
-        <View className="px-6 mb-10">
-          <Text className="text-[28px] leading-[36px] font-black text-slate-900 text-center tracking-tight mb-4">
-            Proactive{"\n"}
-            Cardiovascular{"\n"}
-            Well-being.
+          {/* Headline */}
+          <Text className="text-[30px] font-medium text-slate-900 text-center tracking-tight leading-tight mt-8 mb-3">
+            Proactive{"\n"}cardiovascular{"\n"}well-being.
           </Text>
-          <Text className="text-[13px] text-slate-500 text-center font-medium leading-relaxed px-2">
+          <Text className="text-[13px] text-slate-400 text-center leading-relaxed px-4">
             Track your dietary intake and daily symptoms to manage your
             Cardiovascular Stability Score (CSS).
           </Text>
         </View>
 
-        {/* Temporary ONLY */}
+        {/* ── Feature Cards ── */}
+        <View className="px-5 mb-4">
+          <FeatureCard
+            icon="bar-chart-2"
+            iconType="feather"
+            iconBg="#e6f1fb"
+            iconColor="#185fa5"
+            title="Adaptive risk tracking"
+            subtitle="Log daily health indicators for rule-based insights into your cardiovascular score."
+          />
+          <FeatureCard
+            icon="lightbulb-outline"
+            iconType="material"
+            iconBg="#faeeda"
+            iconColor="#854f0b"
+            title="Vital insights"
+            subtitle="Intelligent health journaling and dietary monitoring tailored to your conditions."
+          />
+          <FeatureCard
+            icon="silverware-fork-knife"
+            iconType="mci"
+            iconBg="#eaf3de"
+            iconColor="#3b6d11"
+            title="Heart-healthy recipes"
+            subtitle="Discover Filipino-focused meals optimised for low sodium and high potassium."
+          />
+        </View>
+
+        {/* ── Dev shortcut ── */}
         {__DEV__ && (
-          <Button title="Go to progress screen (development purposes only)" onPress={() => router.push("/dashboard")} />
+          <TouchableOpacity
+            onPress={() => router.push("/dashboard")}
+            className="mx-5 mb-4 bg-[#1e4ed8] border border-slate-200/70 rounded-xl py-2.5 items-center"
+          >
+            <Text className="text-[11px] text-white">
+              Dev → skip to dashboard
+            </Text>
+          </TouchableOpacity>
         )}
 
-        {/* 4. Feature Cards */}
-        <View className="px-6 flex-col">
-          {/* Card 1 */}
-          <View className="bg-white rounded-3xl p-4 flex-row items-center border border-slate-100 shadow-[0_4px_12px_rgba(0,0,0,0.03)] mb-4">
-            <View className="bg-[#e0e7ff] w-12 h-12 rounded-2xl items-center justify-center mr-4">
-              <Feather name="bar-chart-2" size={20} color="#1e4ed8" />
-            </View>
-            <View className="flex-1 pr-2">
-              <Text className="font-bold text-slate-900 text-[13px] mb-0.5">
-                Adaptive Risk Tracking
-              </Text>
-              <Text className="text-slate-500 text-[11px] leading-[16px]">
-                Log daily health indicators for rule-based insights.
-              </Text>
-            </View>
-          </View>
-
-          {/* Card 2 */}
-          <View className="bg-white rounded-3xl p-4 flex-row items-center border border-slate-100 shadow-[0_4px_12px_rgba(0,0,0,0.03)] mb-10">
-            <View className="bg-[#1e4ed8] w-12 h-12 rounded-2xl items-center justify-center mr-4 shadow-sm shadow-blue-900/20">
-              <MaterialIcons name="lightbulb-outline" size={22} color="white" />
-            </View>
-            <View className="flex-1 pr-2">
-              <Text className="font-bold text-slate-900 text-[13px] mb-0.5">
-                Vital Insights
-              </Text>
-              <Text className="text-slate-500 text-[11px] leading-[16px]">
-                Intelligent health journaling and dietary monitoring.
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        {/* 5. Bottom Actions (Pushed to bottom of available space) */}
-        <View className="px-6 mt-auto">
-          {/* Primary Button */}
+        {/* ── Actions ── */}
+        <View className="px-5 mt-auto">
+          {/* Primary CTA */}
           <TouchableOpacity
-            activeOpacity={0.8}
-            className="w-full h-14 bg-[#1e4ed8] rounded-full flex-row justify-center items-center"
-            style={{
-              shadowColor: "#1e4ed8",
-              shadowOffset: { width: 0, height: 8 },
-              shadowOpacity: 0.3,
-              shadowRadius: 12,
-              elevation: 8,
-            }}
+            activeOpacity={0.85}
+            className="w-full bg-slate-900 rounded-2xl py-4 flex-row justify-center items-center gap-2 mb-3"
             onPress={() => router.push("/register")}
           >
-            <Text className="text-white font-bold text-[15px] tracking-wide mr-2">
-              Get Started
+            <Text className="text-white text-[14px] font-medium">
+              Get started
             </Text>
-            <Feather name="arrow-right" size={18} color="white" />
+            <Feather name="arrow-right" size={16} color="#fff" />
           </TouchableOpacity>
 
-          {/* Secondary Login Link */}
+          {/* Secondary */}
           <TouchableOpacity
-            activeOpacity={0.6}
-            className="py-6 flex-row justify-center items-center"
+            activeOpacity={0.65}
+            className="py-3 flex-row justify-center items-center gap-1"
             onPress={() => router.push("/login")}
           >
-            <Text className="text-[12px] font-medium text-slate-600">
-              Already have an account?{" "}
+            <Text className="text-[13px] text-slate-400">
+              Already have an account?
             </Text>
-            <Text className="text-[12px] font-bold text-slate-800">Log In</Text>
+            <Text className="text-[13px] font-medium text-slate-700">
+              Log in
+            </Text>
           </TouchableOpacity>
 
-          {/* Footer Branding */}
-          <Text className="text-center text-[9px] font-bold tracking-[0.2em] text-slate-400 mt-2 uppercase">
-            CTU - MAIN CAMPUS • CAPSTONE 2026
+          {/* Footer */}
+          <Text className="text-center text-[9px] tracking-widest text-slate-300 mt-4 uppercase">
+            CTU — Main Campus · Capstone 2026
           </Text>
         </View>
+
       </ScrollView>
     </SafeAreaView>
   );

@@ -60,7 +60,7 @@ export default function BiometricsStep1Screen() {
       {/* Top Header Bar */}
       <View className="flex-row items-center px-6 pt-2 pb-2 z-10">
         <TouchableOpacity
-          // onPress={() => router.back()}
+          onPress={() => router.back()}
           className="p-2 -ml-2"
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
