@@ -109,7 +109,7 @@ export default function VerificationSuccessScreen() {
           {/* CTA */}
           <TouchableOpacity
             activeOpacity={0.85}
-            onPress={() => router.replace("/core_biometrics")}
+            onPress={() => router.replace("/health_goals")}
             className="w-full bg-slate-900 rounded-2xl py-3.5 flex-row justify-center items-center gap-2"
           >
             <Text className="text-white text-[14px] font-medium">

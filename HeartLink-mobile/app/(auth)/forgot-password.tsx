@@ -7,12 +7,12 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import "../../global.css";
 
 // ─── Input Field ──────────────────────────────────────────────────────────────
 
@@ -23,8 +23,6 @@ function InputField({
   onChangeText,
   keyboardType,
   autoCapitalize,
-  secureTextEntry,
-  rightElement,
 }: {
   icon: string;
   placeholder: string;
@@ -32,8 +30,6 @@ function InputField({
   onChangeText: (t: string) => void;
   keyboardType?: any;
   autoCapitalize?: any;
-  secureTextEntry?: boolean;
-  rightElement?: React.ReactNode;
 }) {
   return (
     <View
@@ -48,25 +44,30 @@ function InputField({
         placeholderTextColor="#cbd5e1"
         keyboardType={keyboardType}
         autoCapitalize={autoCapitalize ?? "none"}
-        secureTextEntry={secureTextEntry}
         className="flex-1 ml-3 text-[14px] text-slate-900 h-full"
       />
-      {rightElement}
     </View>
   );
 }
 
-// ─── Auth Screen ──────────────────────────────────────────────────────────────
+// ─── Forgot Password Screen ───────────────────────────────────────────────────
 
-export default function AuthScreen() {
+export default function ForgotPasswordScreen() {
   const router = useRouter();
 
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
 
-  const handleSubmit = () => {
-    console.log("Logging in:", email, password);
+  const handleReset = () => {
+    if (!email) {
+      Alert.alert("Error", "Please enter your email address.");
+      return;
+    }
+    // Simulate sending OTP or reset link
+    Alert.alert(
+      "Link Sent",
+      "If this email is registered, you will receive reset instructions shortly.",
+      [{ text: "OK", onPress: () => router.back() }]
+    );
   };
 
   return (
@@ -100,20 +101,18 @@ export default function AuthScreen() {
           showsVerticalScrollIndicator={false}
           bounces={false}
         >
-
           {/* ── Heading ── */}
           <View className="mb-7 mt-2">
             <Text className="text-[28px] font-medium text-slate-900 tracking-tight leading-tight mb-2">
-              Welcome{"\n"}back.
+              Forgot{"\n"}password?
             </Text>
             <Text className="text-[13px] text-slate-400 leading-relaxed">
-              Log in to access your cardiovascular dashboard.
+              Enter your email address to receive password reset instructions.
             </Text>
           </View>
 
           {/* ── Card ── */}
           <View className="bg-white rounded-2xl border border-slate-200/70 px-5 py-6 gap-3">
-
             {/* Email */}
             <InputField
               icon="mail"
@@ -123,65 +122,26 @@ export default function AuthScreen() {
               keyboardType="email-address"
             />
 
-            {/* Password */}
-            <View className="gap-1.5">
-              <InputField
-                icon="lock"
-                placeholder="Password"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry={!showPassword}
-                rightElement={
-                  <TouchableOpacity onPress={() => setShowPassword((p) => !p)} className="p-1 ml-1">
-                    <Feather name={showPassword ? "eye" : "eye-off"} size={16} color="#94a3b8" />
-                  </TouchableOpacity>
-                }
-              />
-              <TouchableOpacity className="self-end" onPress={() => router.push("/(auth)/forgot-password")}>
-                <Text className="text-[12px] font-medium text-slate-500">
-                  Forgot password?
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-
-
             {/* Divider */}
-            <View className="h-px bg-slate-100 my-1" />
+            <View className="h-px bg-slate-100 my-1 mt-2" />
 
             {/* Submit */}
             <TouchableOpacity
               activeOpacity={0.85}
-              onPress={handleSubmit}
+              onPress={handleReset}
               className="w-full bg-slate-900 rounded-2xl py-3.5 flex-row justify-center items-center gap-2"
             >
               <Text className="text-white text-[14px] font-medium">
-                Log in
+                Reset Password
               </Text>
               <Feather name="arrow-right" size={15} color="#fff" />
             </TouchableOpacity>
-
           </View>
 
-          {/* ── Mode toggle ── */}
-          <TouchableOpacity
-            activeOpacity={0.65}
-            onPress={() => router.push('/(auth)/register')}
-            className="flex-row justify-center items-center py-5 gap-1 mt-auto"
-          >
-            <Text className="text-[13px] text-slate-400">
-              Don't have an account?
-            </Text>
-            <Text className="text-[13px] font-medium text-slate-700">
-              Sign up
-            </Text>
-          </TouchableOpacity>
-
           {/* Footer */}
-          <Text className="text-center text-[9px] tracking-widest text-slate-300 uppercase">
+          <Text className="text-center text-[9px] tracking-widest text-slate-300 uppercase mt-auto">
             CTU — Main Campus · Capstone 2026
           </Text>
-
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

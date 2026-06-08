@@ -169,6 +169,7 @@ function ClinicCard({ clinic, onDirections, onCall }: {
 export default function LocatorScreen() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedClinic, setSelectedClinic] = useState<Clinic | null>(null);
 
   const filtered = searchQuery.trim()
     ? CLINICS.filter(
@@ -254,8 +255,7 @@ export default function LocatorScreen() {
             <Marker
               key={clinic.id}
               coordinate={{ latitude: clinic.latitude, longitude: clinic.longitude }}
-              title={clinic.name}
-              description={clinic.doctor}
+              onPress={() => setSelectedClinic(clinic)}
             >
               <View className="items-center">
                 <View
@@ -290,10 +290,26 @@ export default function LocatorScreen() {
           ))}
         </MapView>
 
+        {/* Selected Clinic Modal (Bottom Sheet over Map) */}
+        {selectedClinic && (
+          <View className="absolute bottom-4 left-4 right-4 bg-white rounded-2xl shadow-lg shadow-black/20 p-1">
+             <View className="flex-row justify-end mb-1">
+                <TouchableOpacity onPress={() => setSelectedClinic(null)} className="p-2">
+                   <Feather name="x" size={16} color="#94a3b8" />
+                </TouchableOpacity>
+             </View>
+             <ClinicCard
+                clinic={selectedClinic}
+                onDirections={() => handleGetDirections(selectedClinic.latitude, selectedClinic.longitude, selectedClinic.name)}
+                onCall={() => handleCallClinic(selectedClinic.phone)}
+             />
+          </View>
+        )}
+
         {/* Map overlay — open count pill */}
         <View
           className="absolute top-3 right-3 flex-row items-center gap-1.5 px-3 py-1.5 rounded-xl border"
-          style={{ backgroundColor: "rgba(255,255,255,0.92)", borderColor: "#e2e8f0" }}
+          style={{ backgroundColor: "rgba(255,255,255,0.92)", borderColor: "#e2e8f0", display: selectedClinic ? 'none' : 'flex' }}
         >
           <View className="w-1.5 h-1.5 rounded-full bg-green-500" />
           <Text className="text-[11px] font-medium text-slate-700">

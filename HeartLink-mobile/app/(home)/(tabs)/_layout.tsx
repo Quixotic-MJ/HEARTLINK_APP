@@ -257,10 +257,10 @@ function CustomTabBar({ state, navigation, onFabPress }: any) {
     <View
       style={{
         position: "absolute",
-        bottom: Math.max(insets.bottom, 0),
+        bottom: 0,
         left: 0,
         right: 0,
-        height: 72,
+        height: 120,
         // borderRadius: 20,
         backgroundColor: "#fff",
         flexDirection: "row",
@@ -275,7 +275,7 @@ function CustomTabBar({ state, navigation, onFabPress }: any) {
             shadowOpacity: 0.06,
             shadowRadius: 12,
           },
-          android: { elevation: 10 },
+          android: { elevation: 0 },
         }),
       }}
     >
@@ -309,7 +309,7 @@ function CustomTabBar({ state, navigation, onFabPress }: any) {
                 activeOpacity={0.8}
                 style={{
                   position: "absolute",
-                  top: -28,
+                  top: -48,
                   width: 56,
                   height: 56,
                   backgroundColor: "#0f172a",
@@ -325,7 +325,7 @@ function CustomTabBar({ state, navigation, onFabPress }: any) {
                       shadowOpacity: 0.2,
                       shadowRadius: 8,
                     },
-                    android: { elevation: 0 },
+                    android: { elevation: 5 },
                   }),
                 }}
               >
@@ -344,6 +344,7 @@ function CustomTabBar({ state, navigation, onFabPress }: any) {
             onPress={onPress}
             style={{
               flex: 1,
+              top: -20,
               alignItems: "center",
               justifyContent: "center",
               height: "100%",

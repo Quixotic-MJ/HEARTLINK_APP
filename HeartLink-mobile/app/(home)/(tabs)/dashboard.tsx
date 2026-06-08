@@ -123,7 +123,7 @@ function RecoCard({ tag, title, subtitle, icon, bg, tagBg, tagText, subColor }: 
 export default function DashboardScreen() {
   const [isAlertActive] = useState(false);
   const router = useRouter();
-  const cssScore = 75;
+  const cssScore = 30;
   const theme = getScoreTheme(cssScore);
 
   return (
@@ -258,7 +258,7 @@ export default function DashboardScreen() {
         <TouchableOpacity
           activeOpacity={0.8}
           onPress={() => router.push("/locator")}
-          className="mx-5 mt-4 bg-white rounded-2xl p-4 border border-slate-200/70 flex-row items-center justify-between"
+          className="mx-5 mt-4 mb-10 bg-white rounded-2xl p-4 border border-slate-200/70 flex-row items-center justify-between"
         >
           <View className="flex-1 pr-4">
             <Text className="text-[15px] font-medium text-slate-900 mb-0.5">Need professional guidance?</Text>
