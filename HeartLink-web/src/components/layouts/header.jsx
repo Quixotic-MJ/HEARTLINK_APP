@@ -79,11 +79,7 @@ const Header = ({ setSidebarOpen }) => {
         {/* Breadcrumb Navigation (Hidden on Mobile) */}
         <div className="hidden lg:flex items-center text-xs font-medium text-gray-500 select-none shrink-0 pr-2">
           <span className="hover:text-gray-900 cursor-pointer transition-colors">Dashboard</span>
-          <ChevronRight size={12} className="mx-1.5 text-gray-300" />
-          <span className="hover:text-gray-900 cursor-pointer transition-colors">Analytics</span>
-          <ChevronRight size={12} className="mx-1.5 text-gray-300" />
-          <span className="text-[#1e4ed8] font-bold">System Performance</span>
-        </div>
+          </div>
 
         {/* Search Bar */}
         <div className="flex items-center bg-[#f8fafc] rounded-lg px-3 py-2 w-full max-w-xs border border-gray-100 focus-within:ring-2 focus-within:ring-[#1e4ed8]/20 focus-within:border-[#1e4ed8] transition-all shadow-sm">

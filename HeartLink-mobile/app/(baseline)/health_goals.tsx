@@ -1,10 +1,5 @@
 import React, { useState } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  ScrollView,
-} from "react-native";
+import { View, Text, TouchableOpacity, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
@@ -87,7 +82,7 @@ function StepProgress({ current, total }: { current: number; total: number }) {
 
 export default function HealthGoalsScreen() {
   const router = useRouter();
-  const [selectedGoal, setSelectedGoal] = useState<string | null>(null);
+  const [selectedGoals, setSelectedGoals] = useState<string[]>([]);
 
   const goals = [
     {
@@ -110,12 +105,27 @@ export default function HealthGoalsScreen() {
       title: "Post-Surgery / Cardiac Recovery",
       description: "Guided rehabilitation and mild physical activity routines.",
     },
+    {
+      id: "prevention",
+      icon: "shield-check-outline",
+      title: "Preventive Heart Health",
+      description:
+        "Proactive monitoring of diet and lifestyle to maintain cardiovascular wellness.",
+    },
   ] as const;
 
-  const isReady = selectedGoal !== null;
+  const isReady = selectedGoals.length > 0;
+
+  const toggleGoal = (id: string) => {
+    if (selectedGoals.includes(id)) {
+      setSelectedGoals(selectedGoals.filter((g) => g !== id));
+    } else {
+      setSelectedGoals([...selectedGoals, id]);
+    }
+  };
 
   const handleNext = () => {
-    console.log("Selected Goal:", selectedGoal);
+    console.log("Selected Goals:", selectedGoals);
     // Proceed to core biometrics
     router.push("/core_biometrics");
   };
@@ -154,8 +164,8 @@ export default function HealthGoalsScreen() {
             What is your main focus?
           </Text>
           <Text className="text-[14px] text-slate-500 leading-relaxed">
-            We will tailor your dashboard based on your goals. Select the option
-            that applies to your heart health journey.
+            We will tailor your dashboard based on your goals. Select the options
+            that apply to your heart health journey.
           </Text>
         </View>
 
@@ -167,8 +177,8 @@ export default function HealthGoalsScreen() {
               icon={goal.icon}
               title={goal.title}
               description={goal.description}
-              isSelected={selectedGoal === goal.id}
-              onPress={() => setSelectedGoal(goal.id)}
+              isSelected={selectedGoals.includes(goal.id)}
+              onPress={() => toggleGoal(goal.id)}
             />
           ))}
         </View>

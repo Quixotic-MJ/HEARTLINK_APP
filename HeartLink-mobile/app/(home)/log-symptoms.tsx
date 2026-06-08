@@ -2,10 +2,14 @@ import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
+  TextInput,
   TouchableOpacity,
   ScrollView,
   Alert,
   Linking,
+  Platform,
+  Switch,
+  KeyboardAvoidingView
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -58,7 +62,7 @@ const CONTEXT_ICONS: Record<ContextType, string> = {
   "After eating": "food-outline",
 };
 
-// ─── Severity colors (plain values — no dynamic className) ────────────────────
+// ─── Severity colors ──────────────────────────────────────────────────────────
 
 function getSeverityColor(num: number) {
   if (num <= 3) return { bg: "#eaf3de", border: "#c0dd97", text: "#3b6d11" };
@@ -72,28 +76,23 @@ function getSeverityLabel(num: number) {
   return "Severe";
 }
 
-// ─── Section Header ───────────────────────────────────────────────────────────
-
-function SectionHeader({ title, icon }: { title: string; icon: string }) {
-  return (
-    <View className="flex-row items-center gap-2 mb-3 mt-5">
-      <MaterialCommunityIcons name={icon as any} size={16} color="#94a3b8" />
-      <Text className="text-[13px] font-medium text-slate-500 uppercase tracking-wide">
-        {title}
-      </Text>
-    </View>
-  );
-}
-
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
 export default function LogSymptomsScreen() {
   const router = useRouter();
 
+  const [step, setStep] = useState<1 | 2>(1);
   const [timestamp, setTimestamp] = useState("");
-  const [selectedSymptoms, setSelectedSymptoms] = useState<SymptomType[]>([
-    "None (Feeling fine)",
-  ]);
+
+  // Step 1 State (Vitals)
+  const [systolic, setSystolic] = useState("");
+  const [diastolic, setDiastolic] = useState("");
+  const [heartRate, setHeartRate] = useState("");
+  const [weight, setWeight] = useState("");
+  const [medicationTaken, setMedicationTaken] = useState<boolean | null>(null);
+
+  // Step 2 State (Symptoms)
+  const [selectedSymptoms, setSelectedSymptoms] = useState<SymptomType[]>(["None (Feeling fine)"]);
   const [severity, setSeverity] = useState<number>(1);
   const [context, setContext] = useState<ContextType>("While resting");
 
@@ -105,7 +104,7 @@ export default function LogSymptomsScreen() {
         day: "numeric",
         hour: "2-digit",
         minute: "2-digit",
-      }),
+      })
     );
   }, []);
 
@@ -136,7 +135,7 @@ export default function LogSymptomsScreen() {
 
   const handleLocateCardiologist = () => {
     Linking.openURL(
-      "https://www.google.com/maps/search/Cardiologist+in+Cebu+City",
+      "https://www.google.com/maps/search/Cardiologist+in+Cebu+City"
     ).catch(() => Alert.alert("Error", "Could not open map application."));
   };
 
@@ -145,13 +144,13 @@ export default function LogSymptomsScreen() {
       Alert.alert(
         "Critical log submitted",
         "Your clinical indicators reflect an elevated risk. Please seek medical attention immediately.",
-        [{ text: "OK", onPress: () => router.back() }],
+        [{ text: "OK", onPress: () => router.back() }]
       );
     } else {
       Alert.alert(
         "Health log submitted",
-        "Your symptom log has been saved to your weekly wrap-up.",
-        [{ text: "OK", onPress: () => router.back() }],
+        "Your symptom and vitals log has been saved to your weekly wrap-up.",
+        [{ text: "OK", onPress: () => router.back() }]
       );
     }
   };
@@ -163,346 +162,494 @@ export default function LogSymptomsScreen() {
       <StatusBar style="dark" />
 
       {/* Header */}
-      <View className="flex-row items-center px-5 pt-4 pb-3 border-b border-slate-200/50">
+      <View className="flex-row items-center px-5 pt-4 pb-3 z-10 border-b border-slate-200/50">
         <TouchableOpacity
-          onPress={() => router.back()}
-          className="w-9 h-9 rounded-xl bg-white border border-slate-200/70 items-center justify-center mr-3"
+          onPress={() => step === 2 ? setStep(1) : router.back()}
+          className="p-2 -ml-2 mr-3"
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Feather name="arrow-left" size={18} color="#0f172a" />
+          <Feather name="arrow-left" size={20} color="#0f172a" />
         </TouchableOpacity>
         <View className="flex-1">
-          <Text className="text-[17px] font-medium text-slate-900">
-            Log symptoms
+          <Text className="text-[22px] font-medium text-slate-900 tracking-tight">
+            Daily Log
           </Text>
-          <Text className="text-[12px] text-slate-400 mt-0.5">{timestamp}</Text>
+          <Text className="text-[13px] text-slate-400 mt-0.5">
+            Step {step} of 2 • {timestamp}
+          </Text>
         </View>
       </View>
 
-      <ScrollView
-        contentContainerClassName="px-5 pb-28 pt-3"
-        showsVerticalScrollIndicator={false}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        {/* ── Emergency Banner ── */}
-        {isEmergency && (
-          <View
-            className="rounded-2xl p-4 mt-2 mb-1 border"
-            style={{ backgroundColor: "#fcebeb", borderColor: "#f7c1c1" }}
-          >
-            <View className="flex-row items-center gap-2 mb-2">
-              <Feather name="alert-triangle" size={16} color="#a32d2d" />
-              <Text
-                className="text-[13px] font-medium uppercase tracking-wide"
-                style={{ color: "#a32d2d" }}
-              >
-                Elevated risk detected
+        <ScrollView
+          contentContainerClassName="px-5 pb-32 pt-4"
+          showsVerticalScrollIndicator={false}
+          bounces={true}
+        >
+          {/* ============================================================== */}
+          {/* STEP 1: VITALS */}
+          {/* ============================================================== */}
+          {step === 1 && (
+            <>
+              <Text className="text-[13px] text-slate-500 font-medium leading-relaxed mb-5">
+                Let's start with the numbers. Please record your basic vitals and medication status.
               </Text>
-            </View>
-            <Text
-              className="text-[13px] leading-relaxed mb-3"
-              style={{ color: "#791f1f" }}
-            >
-              Your symptoms suggest an acute cardiovascular event. Please seek
-              immediate medical evaluation.
-            </Text>
-            <TouchableOpacity
-              onPress={handleLocateCardiologist}
-              activeOpacity={0.8}
-              className="bg-white rounded-xl py-2.5 flex-row items-center justify-center gap-2 border border-red-100"
-            >
-              <MaterialCommunityIcons
-                name="map-marker-radius"
-                size={16}
-                color="#a32d2d"
-              />
-              <Text
-                className="text-[13px] font-medium"
-                style={{ color: "#a32d2d" }}
-              >
-                Find cardiologist in Cebu City
-              </Text>
-            </TouchableOpacity>
-          </View>
-        )}
 
-        {/* ── Status overview card ── */}
-        <View className="bg-white rounded-2xl border border-slate-200/70 p-4 mt-2">
-          <Text className="text-[11px] text-slate-400 uppercase tracking-wide mb-3">
-            Current log status
-          </Text>
-          <View className="flex-row gap-3">
-            {/* Symptom count */}
-            <View className="flex-1 bg-slate-50 rounded-xl p-3 border border-slate-200/70 items-center">
-              <Text className="text-[22px] font-medium text-slate-900">
-                {hasRealSymptoms ? selectedSymptoms.length : 0}
-              </Text>
-              <Text className="text-[10px] text-slate-400 mt-0.5 uppercase tracking-wide">
-                Symptoms
-              </Text>
-            </View>
-            {/* Severity */}
-            <View
-              className="flex-1 rounded-xl p-3 border items-center"
-              style={{
-                backgroundColor: hasRealSymptoms ? sevColor.bg : "#f8fafc",
-                borderColor: hasRealSymptoms ? sevColor.border : "#e2e8f0",
-              }}
-            >
-              <Text
-                className="text-[22px] font-medium"
-                style={{ color: hasRealSymptoms ? sevColor.text : "#cbd5e1" }}
-              >
-                {hasRealSymptoms ? severity : "—"}
-              </Text>
-              <Text
-                className="text-[10px] mt-0.5 uppercase tracking-wide"
-                style={{ color: hasRealSymptoms ? sevColor.text : "#cbd5e1" }}
-              >
-                {hasRealSymptoms ? getSeverityLabel(severity) : "Severity"}
-              </Text>
-            </View>
-            {/* Context */}
-            <View className="flex-1 bg-slate-50 rounded-xl p-3 border border-slate-200/70 items-center">
-              <MaterialCommunityIcons
-                name={CONTEXT_ICONS[context] as any}
-                size={22}
-                color="#64748b"
-              />
-              <Text
-                className="text-[10px] text-slate-400 mt-0.5 uppercase tracking-wide text-center"
-                numberOfLines={2}
-              >
-                {context.replace("During ", "")}
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        {/* ── Symptoms ── */}
-        <SectionHeader
-          title="What are you feeling?"
-          icon="clipboard-list-outline"
-        />
-        <View className="gap-2">
-          {SYMPTOMS.map((symp) => {
-            const isSelected = selectedSymptoms.includes(symp);
-            const isNone = symp === "None (Feeling fine)";
-
-            // All dynamic colors via inline style — no dynamic className on TouchableOpacity
-            const bg = isSelected ? (isNone ? "#eaf3de" : "#0f172a") : "#fff";
-            const border = isSelected
-              ? isNone
-                ? "#c0dd97"
-                : "#0f172a"
-              : "#e2e8f0";
-            const textColor = isSelected
-              ? isNone
-                ? "#3b6d11"
-                : "#fff"
-              : "#475569";
-            const iconColor = isSelected
-              ? isNone
-                ? "#3b6d11"
-                : "#fff"
-              : "#94a3b8";
-
-            return (
-              <TouchableOpacity
-                key={symp}
-                activeOpacity={0.75}
-                onPress={() => toggleSymptom(symp)}
-                className="flex-row items-center px-4 py-3 rounded-xl border"
-                style={{ backgroundColor: bg, borderColor: border }}
-              >
-                <View
-                  className="w-8 h-8 rounded-lg items-center justify-center mr-3"
-                  style={{
-                    backgroundColor: isSelected
-                      ? "rgba(255,255,255,0.12)"
-                      : "#f8fafc",
-                  }}
-                >
-                  <MaterialCommunityIcons
-                    name={SYMPTOM_ICONS[symp] as any}
-                    size={17}
-                    color={iconColor}
-                  />
-                </View>
-                <Text
-                  className="flex-1 text-[14px] font-medium"
-                  style={{ color: textColor }}
-                >
-                  {symp}
+              {/* 1. Core Vitals */}
+              <View className="bg-white rounded-2xl border border-slate-200/70 p-4 mb-5">
+                <Text className="text-[15px] font-medium text-slate-900 mb-4 leading-snug">
+                  Basic Vitals
                 </Text>
-                {isSelected && (
+
+                <View className="flex-row gap-3 mb-4">
+                  <View className="flex-1">
+                    <Text className="text-[12px] font-medium text-slate-500 mb-2">
+                      Blood Pressure (SYS)
+                    </Text>
+                    <View className="h-[44px] bg-slate-50 border border-slate-200/70 rounded-xl flex-row items-center px-3">
+                      <TextInput
+                        value={systolic}
+                        onChangeText={setSystolic}
+                        placeholder="120"
+                        placeholderTextColor="#94a3b8"
+                        keyboardType="numeric"
+                        maxLength={3}
+                        className="flex-1 text-[14px] text-slate-900 h-full"
+                      />
+                      <Text className="text-[11px] text-slate-400">mmHg</Text>
+                    </View>
+                  </View>
+
+                  <View className="flex-1">
+                    <Text className="text-[12px] font-medium text-slate-500 mb-2">
+                      Blood Pressure (DIA)
+                    </Text>
+                    <View className="h-[44px] bg-slate-50 border border-slate-200/70 rounded-xl flex-row items-center px-3">
+                      <TextInput
+                        value={diastolic}
+                        onChangeText={setDiastolic}
+                        placeholder="80"
+                        placeholderTextColor="#94a3b8"
+                        keyboardType="numeric"
+                        maxLength={3}
+                        className="flex-1 text-[14px] text-slate-900 h-full"
+                      />
+                      <Text className="text-[11px] text-slate-400">mmHg</Text>
+                    </View>
+                  </View>
+                </View>
+
+                <View className="flex-row gap-3">
+                  <View className="flex-1">
+                    <Text className="text-[12px] font-medium text-slate-500 mb-2">
+                      Heart Rate
+                    </Text>
+                    <View className="h-[44px] bg-slate-50 border border-slate-200/70 rounded-xl flex-row items-center px-3">
+                      <TextInput
+                        value={heartRate}
+                        onChangeText={setHeartRate}
+                        placeholder="72"
+                        placeholderTextColor="#94a3b8"
+                        keyboardType="numeric"
+                        maxLength={3}
+                        className="flex-1 text-[14px] text-slate-900 h-full"
+                      />
+                      <Text className="text-[11px] text-slate-400">bpm</Text>
+                    </View>
+                  </View>
+
+                  <View className="flex-1">
+                    <Text className="text-[12px] font-medium text-slate-500 mb-2">
+                      Weight
+                    </Text>
+                    <View className="h-[44px] bg-slate-50 border border-slate-200/70 rounded-xl flex-row items-center px-3">
+                      <TextInput
+                        value={weight}
+                        onChangeText={setWeight}
+                        placeholder="70"
+                        placeholderTextColor="#94a3b8"
+                        keyboardType="numeric"
+                        maxLength={3}
+                        className="flex-1 text-[14px] text-slate-900 h-full"
+                      />
+                      <Text className="text-[11px] text-slate-400">kg</Text>
+                    </View>
+                  </View>
+                </View>
+              </View>
+
+              {/* 2. Medication Status */}
+              <View className="bg-white rounded-2xl border border-slate-200/70 p-4 mb-5">
+                <Text className="text-[15px] font-medium text-slate-900 mb-3 leading-snug">
+                  Medication Check
+                </Text>
+                <Text className="text-[13px] text-slate-400 mb-4">
+                  Did you take your prescribed maintenance medication today?
+                </Text>
+
+                <View className="flex-row gap-2">
+                  <TouchableOpacity
+                    activeOpacity={0.7}
+                    onPress={() => setMedicationTaken(false)}
+                    className="flex-1 py-2.5 rounded-xl flex-row items-center justify-center border"
+                    style={
+                      medicationTaken === false
+                        ? { backgroundColor: "#fcebeb", borderColor: "#f7c1c1" }
+                        : { backgroundColor: "#f8fafc", borderColor: "#e2e8f0" }
+                    }
+                  >
+                    <Text
+                      className="font-medium text-[13px]"
+                      style={{ color: medicationTaken === false ? "#a32d2d" : "#64748b" }}
+                    >
+                      No
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    activeOpacity={0.7}
+                    onPress={() => setMedicationTaken(true)}
+                    className="flex-1 py-2.5 rounded-xl flex-row items-center justify-center border"
+                    style={
+                      medicationTaken === true
+                        ? { backgroundColor: "#eaf3de", borderColor: "#c0dd97" }
+                        : { backgroundColor: "#f8fafc", borderColor: "#e2e8f0" }
+                    }
+                  >
+                    <Text
+                      className="font-medium text-[13px]"
+                      style={{ color: medicationTaken === true ? "#3b6d11" : "#64748b" }}
+                    >
+                      Yes
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </>
+          )}
+
+          {/* ============================================================== */}
+          {/* STEP 2: SYMPTOMS */}
+          {/* ============================================================== */}
+          {step === 2 && (
+            <>
+              {/* ── Emergency Banner ── */}
+              {isEmergency && (
+                <View
+                  className="rounded-2xl p-4 mb-5 border"
+                  style={{ backgroundColor: "#fcebeb", borderColor: "#f7c1c1" }}
+                >
+                  <View className="flex-row items-center gap-2 mb-2">
+                    <Feather name="alert-triangle" size={16} color="#a32d2d" />
+                    <Text
+                      className="text-[13px] font-medium uppercase tracking-wide"
+                      style={{ color: "#a32d2d" }}
+                    >
+                      Elevated risk detected
+                    </Text>
+                  </View>
+                  <Text
+                    className="text-[13px] leading-relaxed mb-3"
+                    style={{ color: "#791f1f" }}
+                  >
+                    Your symptoms suggest an acute cardiovascular event. Please seek
+                    immediate medical evaluation.
+                  </Text>
+                  <TouchableOpacity
+                    onPress={handleLocateCardiologist}
+                    activeOpacity={0.8}
+                    className="bg-white rounded-xl py-2.5 flex-row items-center justify-center gap-2 border border-red-100"
+                  >
+                    <MaterialCommunityIcons
+                      name="map-marker-radius"
+                      size={16}
+                      color="#a32d2d"
+                    />
+                    <Text
+                      className="text-[13px] font-medium"
+                      style={{ color: "#a32d2d" }}
+                    >
+                      Find cardiologist in Cebu City
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {/* ── Status overview card ── */}
+              <View className="bg-white rounded-2xl border border-slate-200/70 p-4 mb-5">
+                <Text className="text-[11px] text-slate-400 uppercase tracking-wide mb-3">
+                  Current log status
+                </Text>
+                <View className="flex-row gap-3">
+                  {/* Symptom count */}
+                  <View className="flex-1 bg-slate-50 rounded-xl p-3 border border-slate-200/70 items-center">
+                    <Text className="text-[22px] font-medium text-slate-900">
+                      {hasRealSymptoms ? selectedSymptoms.length : 0}
+                    </Text>
+                    <Text className="text-[10px] text-slate-400 mt-0.5 uppercase tracking-wide">
+                      Symptoms
+                    </Text>
+                  </View>
+                  {/* Severity */}
                   <View
-                    className="w-5 h-5 rounded-full items-center justify-center"
+                    className="flex-1 rounded-xl p-3 border items-center"
                     style={{
-                      backgroundColor: isNone
-                        ? "#c0dd97"
-                        : "rgba(255,255,255,0.2)",
+                      backgroundColor: hasRealSymptoms ? sevColor.bg : "#f8fafc",
+                      borderColor: hasRealSymptoms ? sevColor.border : "#e2e8f0",
                     }}
                   >
-                    <Feather
-                      name="check"
-                      size={11}
-                      color={isNone ? "#3b6d11" : "#fff"}
-                    />
+                    <Text
+                      className="text-[22px] font-medium"
+                      style={{ color: hasRealSymptoms ? sevColor.text : "#cbd5e1" }}
+                    >
+                      {hasRealSymptoms ? severity : "—"}
+                    </Text>
+                    <Text
+                      className="text-[10px] mt-0.5 uppercase tracking-wide"
+                      style={{ color: hasRealSymptoms ? sevColor.text : "#cbd5e1" }}
+                    >
+                      {hasRealSymptoms ? getSeverityLabel(severity) : "Severity"}
+                    </Text>
                   </View>
-                )}
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-
-        {/* ── Severity Scale (conditional) ── */}
-        {hasRealSymptoms && (
-          <>
-            <SectionHeader title="Severity scale" icon="speedometer" />
-            <View className="bg-white rounded-2xl border border-slate-200/70 p-4">
-              <View className="flex-row justify-between mb-3">
-                <Text className="text-[11px] text-slate-400 uppercase tracking-wide">
-                  1 — Mild
-                </Text>
-                <Text className="text-[11px] text-slate-400 uppercase tracking-wide">
-                  10 — Severe
-                </Text>
+                  {/* Context */}
+                  <View className="flex-1 bg-slate-50 rounded-xl p-3 border border-slate-200/70 items-center">
+                    <MaterialCommunityIcons
+                      name={CONTEXT_ICONS[context] as any}
+                      size={22}
+                      color="#64748b"
+                    />
+                    <Text
+                      className="text-[10px] text-slate-400 mt-0.5 uppercase tracking-wide text-center"
+                      numberOfLines={2}
+                    >
+                      {context.replace("During ", "")}
+                    </Text>
+                  </View>
+                </View>
               </View>
 
-              {/* Number buttons */}
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerClassName="gap-2"
-              >
-                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => {
-                  const isActive = severity === num;
-                  const c = getSeverityColor(num);
+              {/* ── Symptoms ── */}
+              <Text className="text-[15px] font-medium text-slate-900 mb-4 leading-snug">
+                What are you feeling?
+              </Text>
+
+              <View className="gap-3">
+                {SYMPTOMS.map((symp) => {
+                  const isSelected = selectedSymptoms.includes(symp);
+                  const isNone = symp === "None (Feeling fine)";
+
+                  const bg = isSelected ? (isNone ? "#eaf3de" : "#0f172a") : "#fff";
+                  const border = isSelected
+                    ? isNone
+                      ? "#c0dd97"
+                      : "#0f172a"
+                    : "#e2e8f0";
+                  const textColor = isSelected
+                    ? isNone
+                      ? "#3b6d11"
+                      : "#fff"
+                    : "#475569";
+                  const iconColor = isSelected
+                    ? isNone
+                      ? "#3b6d11"
+                      : "#fff"
+                    : "#94a3b8";
+
                   return (
-                    <TouchableOpacity
-                      key={num}
-                      onPress={() => setSeverity(num)}
-                      className="w-11 h-11 rounded-xl items-center justify-center border"
-                      style={{
-                        backgroundColor: isActive ? c.bg : "#f8fafc",
-                        borderColor: isActive ? c.border : "#e2e8f0",
-                      }}
-                    >
-                      <Text
-                        className="text-[16px] font-medium"
-                        style={{ color: isActive ? c.text : "#94a3b8" }}
+                    <View key={symp} className="mb-1">
+                      <TouchableOpacity
+                        activeOpacity={0.75}
+                        onPress={() => toggleSymptom(symp)}
+                        className="flex-row items-center px-4 py-3.5 rounded-xl border"
+                        style={{ backgroundColor: bg, borderColor: border }}
                       >
-                        {num}
-                      </Text>
-                    </TouchableOpacity>
+                        <View
+                          className="w-8 h-8 rounded-lg items-center justify-center mr-3"
+                          style={{
+                            backgroundColor: isSelected
+                              ? "rgba(255,255,255,0.12)"
+                              : "#f8fafc",
+                          }}
+                        >
+                          <MaterialCommunityIcons
+                            name={SYMPTOM_ICONS[symp] as any}
+                            size={17}
+                            color={iconColor}
+                          />
+                        </View>
+                        <Text
+                          className="flex-1 text-[14px] font-medium"
+                          style={{ color: textColor }}
+                        >
+                          {symp}
+                        </Text>
+                        {isSelected && (
+                          <View
+                            className="w-5 h-5 rounded-full items-center justify-center"
+                            style={{
+                              backgroundColor: isNone
+                                ? "#c0dd97"
+                                : "rgba(255,255,255,0.2)",
+                            }}
+                          >
+                            <Feather
+                              name="check"
+                              size={11}
+                              color={isNone ? "#3b6d11" : "#fff"}
+                            />
+                          </View>
+                        )}
+                      </TouchableOpacity>
+
+                      {/* Dropdown severity slider underneath active symptom */}
+                      {isSelected && !isNone && (
+                        <View className="bg-white rounded-xl border border-slate-200/70 p-4 mt-2 mb-1">
+                          <View className="flex-row justify-between mb-3">
+                            <Text className="text-[11px] text-slate-400 uppercase tracking-wide">
+                              1 — Mild
+                            </Text>
+                            <Text className="text-[11px] text-slate-400 uppercase tracking-wide">
+                              10 — Severe
+                            </Text>
+                          </View>
+
+                          <ScrollView
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            contentContainerClassName="gap-2"
+                          >
+                            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => {
+                              const isActive = severity === num;
+                              const c = getSeverityColor(num);
+                              return (
+                                <TouchableOpacity
+                                  key={num}
+                                  onPress={() => setSeverity(num)}
+                                  className="w-11 h-11 rounded-xl items-center justify-center border"
+                                  style={{
+                                    backgroundColor: isActive ? c.bg : "#f8fafc",
+                                    borderColor: isActive ? c.border : "#e2e8f0",
+                                  }}
+                                >
+                                  <Text
+                                    className="text-[16px] font-medium"
+                                    style={{ color: isActive ? c.text : "#94a3b8" }}
+                                  >
+                                    {num}
+                                  </Text>
+                                </TouchableOpacity>
+                              );
+                            })}
+                          </ScrollView>
+                        </View>
+                      )}
+                    </View>
                   );
                 })}
-              </ScrollView>
-
-              {/* Selected level pill */}
-              <View className="items-center mt-4">
-                <View
-                  className="flex-row items-center gap-2 px-4 py-2 rounded-xl border"
-                  style={{
-                    backgroundColor: sevColor.bg,
-                    borderColor: sevColor.border,
-                  }}
-                >
-                  <Text
-                    className="text-[13px] font-medium"
-                    style={{ color: sevColor.text }}
-                  >
-                    {getSeverityLabel(severity)} · {severity} / 10
-                  </Text>
-                </View>
               </View>
-            </View>
-          </>
-        )}
 
-        {/* ── Context ── */}
-        <SectionHeader
-          title="When did this happen?"
-          icon="clock-time-four-outline"
-        />
-        <View className="gap-2">
-          {CONTEXTS.map((ctx) => {
-            const isSelected = context === ctx;
-            return (
-              <TouchableOpacity
-                key={ctx}
-                activeOpacity={0.75}
-                onPress={() => setContext(ctx)}
-                className="flex-row items-center px-4 py-3.5 rounded-xl border"
-                style={{
-                  backgroundColor: isSelected ? "#0f172a" : "#fff",
-                  borderColor: isSelected ? "#0f172a" : "#e2e8f0",
-                }}
-              >
-                <View
-                  className="w-8 h-8 rounded-lg items-center justify-center mr-3"
-                  style={{
-                    backgroundColor: isSelected
-                      ? "rgba(255,255,255,0.1)"
-                      : "#f8fafc",
-                  }}
-                >
-                  <MaterialCommunityIcons
-                    name={CONTEXT_ICONS[ctx] as any}
-                    size={16}
-                    color={isSelected ? "#fff" : "#94a3b8"}
-                  />
-                </View>
-                <Text
-                  className="flex-1 text-[14px] font-medium"
-                  style={{ color: isSelected ? "#fff" : "#475569" }}
-                >
-                  {ctx}
-                </Text>
-                {/* Radio indicator */}
-                <View
-                  className="w-5 h-5 rounded-full border-2 items-center justify-center"
-                  style={{
-                    borderColor: isSelected
-                      ? "rgba(255,255,255,0.4)"
-                      : "#e2e8f0",
-                  }}
-                >
-                  {isSelected && (
-                    <View
-                      className="w-2.5 h-2.5 rounded-full"
-                      style={{ backgroundColor: "#fff" }}
-                    />
-                  )}
-                </View>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+              {/* ── Context ── */}
+              {hasRealSymptoms && (
+                <>
+                  <Text className="text-[15px] font-medium text-slate-900 mt-6 mb-4 leading-snug">
+                    When did this happen?
+                  </Text>
+                  <View className="gap-2 mb-8">
+                    {CONTEXTS.map((ctx) => {
+                      const isSelected = context === ctx;
+                      return (
+                        <TouchableOpacity
+                          key={ctx}
+                          activeOpacity={0.75}
+                          onPress={() => setContext(ctx)}
+                          className="flex-row items-center px-4 py-3.5 rounded-xl border"
+                          style={{
+                            backgroundColor: isSelected ? "#0f172a" : "#fff",
+                            borderColor: isSelected ? "#0f172a" : "#e2e8f0",
+                          }}
+                        >
+                          <View
+                            className="w-8 h-8 rounded-lg items-center justify-center mr-3"
+                            style={{
+                              backgroundColor: isSelected
+                                ? "rgba(255,255,255,0.1)"
+                                : "#f8fafc",
+                            }}
+                          >
+                            <MaterialCommunityIcons
+                              name={CONTEXT_ICONS[ctx] as any}
+                              size={16}
+                              color={isSelected ? "#fff" : "#94a3b8"}
+                            />
+                          </View>
+                          <Text
+                            className="flex-1 text-[14px] font-medium"
+                            style={{ color: isSelected ? "#fff" : "#475569" }}
+                          >
+                            {ctx}
+                          </Text>
+                          {/* Radio indicator */}
+                          <View
+                            className="w-5 h-5 rounded-full border-2 items-center justify-center"
+                            style={{
+                              borderColor: isSelected
+                                ? "rgba(255,255,255,0.4)"
+                                : "#e2e8f0",
+                            }}
+                          >
+                            {isSelected && (
+                              <View
+                                className="w-2.5 h-2.5 rounded-full"
+                                style={{ backgroundColor: "#fff" }}
+                              />
+                            )}
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </>
+              )}
+            </>
+          )}
 
-        {/* ── Submit ── */}
-        <TouchableOpacity
-          onPress={handleSubmit}
-          activeOpacity={0.85}
-          className="w-full rounded-2xl py-3.5 items-center justify-center flex-row gap-2 mt-7"
-          // Dynamic bg via style — no dynamic className
-          style={{ backgroundColor: isEmergency ? "#a32d2d" : "#0f172a" }}
-        >
-          <Feather
-            name={isEmergency ? "alert-triangle" : "check"}
-            size={16}
-            color="#fff"
-          />
-          <Text className="text-white text-[14px] font-medium">
-            {isEmergency ? "Submit critical log" : "Submit health log"}
-          </Text>
-        </TouchableOpacity>
+        </ScrollView>
+      </KeyboardAvoidingView>
 
-        {isEmergency && (
-          <Text className="text-[11px] text-slate-400 text-center mt-2 leading-relaxed">
-            Your physician will be notified of this high-priority log.
-          </Text>
-        )}
-      </ScrollView>
+      {/* Sticky Bottom Action Button */}
+      <View className="absolute bottom-0 left-0 right-0 bg-slate-50 border-t border-slate-200/70 px-5 pt-3 pb-8">
+         {step === 1 ? (
+           <TouchableOpacity
+             activeOpacity={0.8}
+             onPress={() => setStep(2)}
+             className="w-full py-3.5 rounded-xl flex-row justify-center items-center bg-slate-900"
+           >
+             <Text className="font-medium text-[14px] mr-2 text-white">
+               Next: Symptoms
+             </Text>
+             <Feather name="arrow-right" size={16} color="white" />
+           </TouchableOpacity>
+         ) : (
+           <TouchableOpacity
+             onPress={handleSubmit}
+             activeOpacity={0.85}
+             className="w-full rounded-xl py-3.5 flex-row items-center justify-center gap-2"
+             style={{ backgroundColor: isEmergency ? "#a32d2d" : "#0f172a" }}
+           >
+             <Feather
+               name={isEmergency ? "alert-triangle" : "check"}
+               size={16}
+               color="#fff"
+             />
+             <Text className="text-white text-[14px] font-medium">
+               {isEmergency ? "Submit critical log" : "Submit health log"}
+             </Text>
+           </TouchableOpacity>
+         )}
+      </View>
     </SafeAreaView>
   );
 }

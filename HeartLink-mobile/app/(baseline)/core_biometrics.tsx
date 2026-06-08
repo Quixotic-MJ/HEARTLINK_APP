@@ -12,6 +12,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import DateTimePicker from "@react-native-community/datetimepicker";
 
 // ─── Measure Input ────────────────────────────────────────────────────────────
 
@@ -80,7 +81,10 @@ function StepProgress({ current, total }: { current: number; total: number }) {
 export default function BiometricsStep1Screen() {
   const router = useRouter();
 
-  const [age, setAge] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [birthDate, setBirthDate] = useState<Date | null>(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [sex, setSex] = useState<"male" | "female" | null>(null);
   const [unitSystem, setUnitSystem] = useState<"metric" | "imperial">("metric");
   const [heightCm, setHeightCm] = useState("");
@@ -89,7 +93,14 @@ export default function BiometricsStep1Screen() {
   const [heightIn, setHeightIn] = useState("");
   const [weightLbs, setWeightLbs] = useState("");
 
-  const isReady = !!age && !!sex;
+  const isReady = !!firstName && !!lastName && !!birthDate && !!sex;
+
+  const onChangeDate = (event: any, selectedDate?: Date) => {
+    setShowDatePicker(false);
+    if (selectedDate) {
+      setBirthDate(selectedDate);
+    }
+  };
 
   const handleNext = () => {
     let finalHeightCm = heightCm;
@@ -99,7 +110,7 @@ export default function BiometricsStep1Screen() {
       finalHeightCm = (totalIn * 2.54).toFixed(2);
       finalWeightKg = (parseFloat(weightLbs || "0") * 0.453592).toFixed(2);
     }
-    console.log("Biometrics:", { age, sex, height_cm: finalHeightCm, weight_kg: finalWeightKg });
+    console.log("Biometrics:", { firstName, lastName, birthDate, sex, height_cm: finalHeightCm, weight_kg: finalWeightKg });
     router.push("/lifestyle_habits");
   };
 
@@ -141,29 +152,70 @@ export default function BiometricsStep1Screen() {
             </Text>
           </View>
 
-          {/* ── Age ── */}
+          {/* ── Name ── */}
           <View className="bg-white rounded-2xl border border-slate-200/70 p-4 mb-3">
-            <FieldLabel title="Biological age" />
-            <View className="flex-row items-center gap-3">
-              <View
-                className="bg-slate-50 rounded-xl flex-row items-center px-3.5"
-                style={{ borderWidth: 1, borderColor: "#e2e8f0", height: 50, width: 120 }}
-              >
-                <TextInput
-                  value={age}
-                  onChangeText={setAge}
-                  placeholder="0"
-                  placeholderTextColor="#cbd5e1"
-                  keyboardType="number-pad"
-                  maxLength={3}
-                  className="flex-1 text-[18px] font-medium text-slate-900 h-full"
-                />
-                <Text className="text-[13px] text-slate-400">yrs</Text>
+            <View className="flex-row gap-3">
+              <View className="flex-1">
+                <FieldLabel title="First Name" />
+                <View
+                  className="bg-slate-50 rounded-xl flex-row items-center px-3.5"
+                  style={{ borderWidth: 1, borderColor: "#e2e8f0", height: 50 }}
+                >
+                  <TextInput
+                    value={firstName}
+                    onChangeText={setFirstName}
+                    placeholder="John"
+                    placeholderTextColor="#cbd5e1"
+                    className="flex-1 text-[16px] font-medium text-slate-900 h-full"
+                  />
+                </View>
               </View>
+              <View className="flex-1">
+                <FieldLabel title="Last Name" />
+                <View
+                  className="bg-slate-50 rounded-xl flex-row items-center px-3.5"
+                  style={{ borderWidth: 1, borderColor: "#e2e8f0", height: 50 }}
+                >
+                  <TextInput
+                    value={lastName}
+                    onChangeText={setLastName}
+                    placeholder="Doe"
+                    placeholderTextColor="#cbd5e1"
+                    className="flex-1 text-[16px] font-medium text-slate-900 h-full"
+                  />
+                </View>
+              </View>
+            </View>
+          </View>
+
+          {/* ── Date of Birth ── */}
+          <View className="bg-white rounded-2xl border border-slate-200/70 p-4 mb-3">
+            <FieldLabel title="Date of Birth" />
+            <View className="flex-row items-center gap-3">
+              <TouchableOpacity
+                onPress={() => setShowDatePicker(true)}
+                activeOpacity={0.7}
+                className="bg-slate-50 rounded-xl flex-row items-center justify-between px-3.5"
+                style={{ borderWidth: 1, borderColor: "#e2e8f0", height: 50, width: 150 }}
+              >
+                <Text className="text-[15px] font-medium" style={{ color: birthDate ? "#0f172a" : "#cbd5e1" }}>
+                  {birthDate ? birthDate.toLocaleDateString() : "Select Date"}
+                </Text>
+                <Feather name="calendar" size={16} color="#94a3b8" />
+              </TouchableOpacity>
               <Text className="text-[12px] text-slate-400 flex-1 leading-relaxed">
                 Used to calibrate risk thresholds for your age group.
               </Text>
             </View>
+            {showDatePicker && (
+              <DateTimePicker
+                value={birthDate || new Date()}
+                mode="date"
+                display="default"
+                onChange={onChangeDate}
+                maximumDate={new Date()}
+              />
+            )}
           </View>
 
           {/* ── Sex ── */}

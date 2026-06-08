@@ -81,24 +81,6 @@ function StatCard({ icon, label, value, iconColor, iconBg }: { icon: string; lab
   );
 }
 
-// ─── Quick Action ─────────────────────────────────────────────────────────────
-function QuickAction({ icon, iconType, label, bg, border, iconColor, textColor, onPress }: { icon: string; iconType: "feather" | "material"; label: string; bg: string; border: string; iconColor: string; textColor: string; onPress?: () => void }) {
-  return (
-    <TouchableOpacity
-      activeOpacity={0.75}
-      onPress={onPress}
-      className="flex-1 rounded-2xl items-center justify-center border py-4 gap-2"
-      style={{ backgroundColor: bg, borderColor: border }}
-    >
-      {iconType === "material" ? (
-        <MaterialCommunityIcons name={icon as any} size={24} color={iconColor} />
-      ) : (
-        <Feather name={icon as any} size={22} color={iconColor} />
-      )}
-      <Text className="text-[12px] font-medium" style={{ color: textColor }}>{label}</Text>
-    </TouchableOpacity>
-  );
-}
 
 // ─── Reco Card ────────────────────────────────────────────────────────────────
 function RecoCard({ tag, title, subtitle, icon, bg, tagBg, tagText, subColor }: { tag: string; title: string; subtitle: string; icon: string; bg: string; tagBg: string; tagText: string; subColor: string }) {
@@ -124,8 +106,9 @@ function RecoCard({ tag, title, subtitle, icon, bg, tagBg, tagText, subColor }: 
 export default function DashboardScreen() {
   const [isAlertActive] = useState(false);
   const router = useRouter();
-  const cssScore = 30;
+  const cssScore = 80;
   const theme = getScoreTheme(cssScore);
+  const isCritical = cssScore < 40;
 
   return (
     <SafeAreaView className="flex-1 bg-slate-50" edges={["top"]}>
@@ -232,42 +215,56 @@ export default function DashboardScreen() {
           </Text>
         </View>
 
-        {/* ── Quick record ── */}
-        <View className="mt-6 px-5">
-          <Text className="text-[15px] font-medium text-slate-900 mb-3">Quick record</Text>
-          <View className="flex-row gap-3">
-            <QuickAction onPress={() => router.push("/(home)/barcode-scan")} icon="barcode-scan" iconType="material" label="Scan meal" bg="#eaf3de" border="#c0dd97" iconColor="#3b6d11" textColor="#27500a" />
-            <QuickAction onPress={() => router.push("/(home)/daily-biometrics")} icon="heart-pulse" iconType="material" label="Log vitals" bg="#fcebeb" border="#f7c1c1" iconColor="#a32d2d" textColor="#791f1f" />
-            <QuickAction onPress={() => router.push("/(home)/log-symptoms")} icon="clipboard" iconType="feather" label="Symptoms" bg="#faeeda" border="#fac775" iconColor="#854f0b" textColor="#633806" />
-          </View>
-        </View>
 
-        {/* ── Recommendations ── */}
-        <View className="mt-6">
-          <View className="px-5 flex-row items-center justify-between mb-3">
-            <Text className="text-[15px] font-medium text-slate-900">Recommended today</Text>
+        {isCritical ? (
+          <View className="mt-6 mb-10">
+            <View className="px-5 mb-3">
+              <Text className="text-[15px] font-bold text-red-600 uppercase tracking-wide">Prioritize Safety</Text>
+            </View>
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => router.push("/locator")}
+              className="mx-5 bg-red-50 rounded-2xl p-4 border border-red-200 flex-row items-center justify-between"
+            >
+              <View className="flex-1 pr-4">
+                <Text className="text-[15px] font-medium text-slate-900 mb-0.5">Need professional guidance?</Text>
+                <Text className="text-[13px] text-slate-600">Find a cardiologist near you to discuss your risk level.</Text>
+              </View>
+              <View className="w-10 h-10 bg-red-100 rounded-xl items-center justify-center">
+                <Feather name="map-pin" size={18} color="#e24b4a" />
+              </View>
+            </TouchableOpacity>
           </View>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="px-5 gap-3">
-            <RecoCard tag="Exercise" title="15-min chair yoga" subtitle="Safe mobility, stable heart rate." icon="yoga" bg="#1e293b" tagBg="rgba(255,255,255,0.12)" tagText="rgba(255,255,255,0.8)" subColor="#94a3b8" />
-            <RecoCard tag="Heart-healthy" title="Oatmeal with berries" subtitle="Sodium: 15mg · Fiber: 8g" icon="bowl-mix-outline" bg="#14532d" tagBg="rgba(255,255,255,0.12)" tagText="rgba(255,255,255,0.8)" subColor="#86efac" />
-            <RecoCard tag="Breathing" title="4-7-8 technique" subtitle="Calms nervous system in 5 mins." icon="meditation" bg="#1e3a5f" tagBg="rgba(255,255,255,0.12)" tagText="rgba(255,255,255,0.8)" subColor="#93c5fd" />
-          </ScrollView>
-        </View>
+        ) : (
+          <>
+            {/* ── Recommendations ── */}
+            <View className="mt-6">
+              <View className="px-5 flex-row items-center justify-between mb-3">
+                <Text className="text-[15px] font-medium text-slate-900">Recommended today</Text>
+              </View>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="px-5 gap-3">
+                <RecoCard tag="Exercise" title="15-min chair yoga" subtitle="Safe mobility, stable heart rate." icon="yoga" bg="#1e293b" tagBg="rgba(255,255,255,0.12)" tagText="rgba(255,255,255,0.8)" subColor="#94a3b8" />
+                <RecoCard tag="Heart-healthy" title="Oatmeal with berries" subtitle="Sodium: 15mg · Fiber: 8g" icon="bowl-mix-outline" bg="#14532d" tagBg="rgba(255,255,255,0.12)" tagText="rgba(255,255,255,0.8)" subColor="#86efac" />
+                <RecoCard tag="Breathing" title="4-7-8 technique" subtitle="Calms nervous system in 5 mins." icon="meditation" bg="#1e3a5f" tagBg="rgba(255,255,255,0.12)" tagText="rgba(255,255,255,0.8)" subColor="#93c5fd" />
+              </ScrollView>
+            </View>
 
-        {/* ── Locator CTA ── */}
-        <TouchableOpacity
-          activeOpacity={0.8}
-          onPress={() => router.push("/locator")}
-          className="mx-5 mt-4 mb-10 bg-white rounded-2xl p-4 border border-slate-200/70 flex-row items-center justify-between"
-        >
-          <View className="flex-1 pr-4">
-            <Text className="text-[15px] font-medium text-slate-900 mb-0.5">Need professional guidance?</Text>
-            <Text className="text-[13px] text-slate-400">Find a cardiologist near you.</Text>
-          </View>
-          <View className="w-10 h-10 bg-blue-50 rounded-xl items-center justify-center">
-            <Feather name="map-pin" size={18} color="#1e4ed8" />
-          </View>
-        </TouchableOpacity>
+            {/* ── Locator CTA ── */}
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => router.push("/locator")}
+              className="mx-5 mt-4 bg-white rounded-2xl p-4 border border-slate-200/70 flex-row items-center justify-between"
+            >
+              <View className="flex-1 pr-4">
+                <Text className="text-[15px] font-medium text-slate-900 mb-0.5">Need professional guidance?</Text>
+                <Text className="text-[13px] text-slate-400">Find a cardiologist near you.</Text>
+              </View>
+              <View className="w-10 h-10 bg-blue-50 rounded-xl items-center justify-center">
+                <Feather name="map-pin" size={18} color="#1e4ed8" />
+              </View>
+            </TouchableOpacity>
+          </>
+        )}
 
       </ScrollView>
     </SafeAreaView>

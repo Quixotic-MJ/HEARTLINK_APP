@@ -39,22 +39,25 @@ export default function BiometricsStep2Screen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-[#f4f7fb]" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-slate-50" edges={["top"]}>
       <StatusBar style="dark" />
 
       {/* Top Header Bar */}
-      <View className="flex-row items-center px-6 pt-2 pb-2 z-10">
+      <View className="flex-row items-center px-5 pt-4 pb-2 z-10">
         <TouchableOpacity 
           onPress={() => router.back()} 
-          className="p-2 -ml-2"
+          className="p-2 -ml-2 mr-3"
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Feather name="arrow-left" size={20} color="#475569" />
+          <Feather name="arrow-left" size={20} color="#0f172a" />
         </TouchableOpacity>
         
-        <View className="flex-1 items-center pr-8">
-          <Text className="text-[14px] font-bold text-slate-400 tracking-widest uppercase">
-            Step 2 of 4
+        <View className="flex-1">
+          <Text className="text-[22px] font-medium text-slate-900 tracking-tight">
+            Lifestyle & Habits
+          </Text>
+          <Text className="text-[13px] text-slate-400 mt-0.5">
+            Step 2 of 4 • Daily routines
           </Text>
         </View>
       </View>
@@ -64,169 +67,159 @@ export default function BiometricsStep2Screen() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <ScrollView
-          contentContainerClassName="flex-grow justify-start pb-10 pt-4"
+          contentContainerClassName="px-5 pb-32 pt-4"
           showsVerticalScrollIndicator={false}
           bounces={true}
         >
-          {/* Main White Card Container */}
-          <View className="bg-white mx-5 rounded-[32px] px-6 py-8 shadow-sm shadow-blue-900/5">
+          {/* Header Info */}
+          <Text className="text-[13px] text-slate-500 font-medium leading-relaxed mb-5">
+            These daily routines play a crucial role in predicting your cardiovascular adaptation and stability.
+          </Text>
+
+          {/* 1. Smoking / Vaping Status */}
+          <View className="bg-white rounded-2xl border border-slate-200/70 p-4 mb-5">
+            <Text className="text-[15px] font-medium text-slate-900 mb-4 leading-snug">
+              Smoking / Vaping Status
+            </Text>
+            <View className="flex-row gap-2">
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => setSmokingStatus("never")}
+                className="flex-1 py-2.5 rounded-xl items-center border"
+                style={
+                  smokingStatus === "never"
+                    ? { backgroundColor: "#eaf3de", borderColor: "#c0dd97" }
+                    : { backgroundColor: "#f8fafc", borderColor: "#e2e8f0" }
+                }
+              >
+                <Text
+                  className="font-medium text-[13px]"
+                  style={{ color: smokingStatus === "never" ? "#3b6d11" : "#64748b" }}
+                >
+                  Never
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => setSmokingStatus("former")}
+                className="flex-1 py-2.5 rounded-xl items-center border"
+                style={
+                  smokingStatus === "former"
+                    ? { backgroundColor: "#faeeda", borderColor: "#f3d39a" }
+                    : { backgroundColor: "#f8fafc", borderColor: "#e2e8f0" }
+                }
+              >
+                <Text
+                  className="font-medium text-[13px]"
+                  style={{ color: smokingStatus === "former" ? "#854f0b" : "#64748b" }}
+                >
+                  Former
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => setSmokingStatus("current")}
+                className="flex-1 py-2.5 rounded-xl items-center border"
+                style={
+                  smokingStatus === "current"
+                    ? { backgroundColor: "#fcebeb", borderColor: "#f7c1c1" }
+                    : { backgroundColor: "#f8fafc", borderColor: "#e2e8f0" }
+                }
+              >
+                <Text
+                  className="font-medium text-[13px]"
+                  style={{ color: smokingStatus === "current" ? "#a32d2d" : "#64748b" }}
+                >
+                  Currently
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* 2. Sleep Duration Stepper */}
+          <View className="bg-white rounded-2xl border border-slate-200/70 p-4 mb-5">
+            <Text className="text-[15px] font-medium text-slate-900 mb-4 leading-snug">
+              Average Sleep Duration
+            </Text>
             
-            {/* Header Text */}
-            <View className="mb-10">
-              <Text className="text-[26px] font-black text-slate-900 tracking-tight mb-2">
-                Lifestyle & Habits
-              </Text>
-              <Text className="text-[14px] text-slate-500 font-medium leading-relaxed pr-4">
-                These daily routines play a crucial role in predicting your cardiovascular adaptation and stability.
-              </Text>
-            </View>
+            <View className="flex-row items-center justify-between bg-slate-50 border border-slate-100 p-2 rounded-xl">
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={decrementSleep}
+                disabled={sleepHours <= 3}
+                className="w-12 h-12 rounded-lg items-center justify-center bg-white border border-slate-200/70"
+                style={{ opacity: sleepHours <= 3 ? 0.5 : 1 }}
+              >
+                <Feather name="minus" size={20} color="#0f172a" />
+              </TouchableOpacity>
 
-            {/* 1. Smoking / Vaping Status */}
-            <View className="mb-10">
-              <Text className="text-[13px] font-bold text-slate-900 mb-3 ml-1">Smoking / Vaping Status</Text>
-              <View className="flex-row gap-2">
-                <TouchableOpacity
-                  activeOpacity={0.7}
-                  onPress={() => setSmokingStatus("never")}
-                  className="flex-1 py-3.5 rounded-[14px] items-center border"
-                  style={
-                    smokingStatus === "never"
-                      ? { backgroundColor: "#eff6ff", borderColor: "#1e4ed8" }
-                      : { backgroundColor: "#ffffff", borderColor: "#e2e8f0" }
-                  }
-                >
-                  <Text
-                    className="font-bold text-[13px]"
-                    style={{ color: smokingStatus === "never" ? "#1e4ed8" : "#64748b" }}
-                  >
-                    Never
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  activeOpacity={0.7}
-                  onPress={() => setSmokingStatus("former")}
-                  className="flex-1 py-3.5 rounded-[14px] items-center border"
-                  style={
-                    smokingStatus === "former"
-                      ? { backgroundColor: "#fffbeb", borderColor: "#f59e0b" }
-                      : { backgroundColor: "#ffffff", borderColor: "#e2e8f0" }
-                  }
-                >
-                  <Text
-                    className="font-bold text-[13px]"
-                    style={{ color: smokingStatus === "former" ? "#d97706" : "#64748b" }}
-                  >
-                    Former
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  activeOpacity={0.7}
-                  onPress={() => setSmokingStatus("current")}
-                  className="flex-1 py-3.5 rounded-[14px] items-center border"
-                  style={
-                    smokingStatus === "current"
-                      ? { backgroundColor: "#fff1f2", borderColor: "#f43f5e" }
-                      : { backgroundColor: "#ffffff", borderColor: "#e2e8f0" }
-                  }
-                >
-                  <Text
-                    className="font-bold text-[13px]"
-                    style={{ color: smokingStatus === "current" ? "#e11d48" : "#64748b" }}
-                  >
-                    Current
-                  </Text>
-                </TouchableOpacity>
+              <View className="items-center justify-center">
+                <Text className="text-[24px] font-bold text-slate-900">
+                  {sleepHours}
+                </Text>
+                <Text className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">
+                  Hours / Night
+                </Text>
               </View>
-            </View>
 
-            {/* 2. Sleep Duration Stepper (Pure React Native) */}
-            <View className="mb-10">
-              <Text className="text-[13px] font-bold text-slate-900 mb-3 ml-1">Average Sleep Duration</Text>
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={incrementSleep}
+                disabled={sleepHours >= 12}
+                className="w-12 h-12 rounded-lg items-center justify-center bg-white border border-slate-200/70"
+                style={{ opacity: sleepHours >= 12 ? 0.5 : 1 }}
+              >
+                <Feather name="plus" size={20} color="#0f172a" />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* 3. Family History Toggle */}
+          <View className="bg-white rounded-2xl border border-slate-200/70 p-4 mb-5">
+            <View className="flex-row items-center justify-between bg-slate-50 border border-slate-100 p-4 rounded-xl">
+              <View className="flex-1 pr-4">
+                <View className="flex-row items-center mb-1">
+                  <MaterialCommunityIcons name="heart-multiple-outline" size={16} color="#0f172a" />
+                  <Text className="text-[14px] font-medium text-slate-900 ml-2">
+                    Family History
+                  </Text>
+                </View>
+                <Text className="text-[12px] text-slate-500 leading-relaxed">
+                  Has any immediate family member been diagnosed with heart disease?
+                </Text>
+              </View>
               
-              <View className="flex-row items-center justify-between bg-slate-50 border border-slate-100 p-2 rounded-[20px]">
-                
-                {/* Decrement Button */}
-                <TouchableOpacity
-                  activeOpacity={0.7}
-                  onPress={decrementSleep}
-                  disabled={sleepHours <= 3}
-                  className="w-14 h-14 rounded-[16px] items-center justify-center bg-white shadow-sm shadow-slate-200"
-                  style={{ opacity: sleepHours <= 3 ? 0.5 : 1 }}
-                >
-                  <Feather name="minus" size={24} color="#475569" />
-                </TouchableOpacity>
-
-                {/* Value Display */}
-                <View className="items-center justify-center">
-                  <Text className="text-[28px] font-black text-[#1e4ed8]">
-                    {sleepHours}
-                  </Text>
-                  <Text className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                    Hours / Night
-                  </Text>
-                </View>
-
-                {/* Increment Button */}
-                <TouchableOpacity
-                  activeOpacity={0.7}
-                  onPress={incrementSleep}
-                  disabled={sleepHours >= 12}
-                  className="w-14 h-14 rounded-[16px] items-center justify-center bg-white shadow-sm shadow-slate-200"
-                  style={{ opacity: sleepHours >= 12 ? 0.5 : 1 }}
-                >
-                  <Feather name="plus" size={24} color="#475569" />
-                </TouchableOpacity>
-
-              </View>
+              <Switch
+                trackColor={{ false: "#e2e8f0", true: "#0f172a" }}
+                thumbColor={Platform.OS === 'ios' ? "#ffffff" : (familyHistory ? "#ffffff" : "#ffffff")}
+                ios_backgroundColor="#e2e8f0"
+                onValueChange={setFamilyHistory}
+                value={familyHistory}
+              />
             </View>
-
-            {/* 3. Family History Toggle */}
-            <View className="mb-10">
-              <View className="flex-row items-center justify-between bg-slate-50 border border-slate-100 p-5 rounded-[24px]">
-                <View className="flex-1 pr-4">
-                  <View className="flex-row items-center mb-1">
-                    <MaterialCommunityIcons name="heart-multiple-outline" size={18} color="#e11d48" />
-                    <Text className="text-[13px] font-bold text-slate-900 ml-2">
-                      Family History
-                    </Text>
-                  </View>
-                  <Text className="text-[11px] text-slate-500 leading-relaxed">
-                    Has any immediate family member been diagnosed with heart disease?
-                  </Text>
-                </View>
-                
-                {/* Standard Native Switch */}
-                <Switch
-                  trackColor={{ false: "#cbd5e1", true: "#1e4ed8" }}
-                  thumbColor={Platform.OS === 'ios' ? "#ffffff" : (familyHistory ? "#ffffff" : "#f8fafc")}
-                  ios_backgroundColor="#cbd5e1"
-                  onValueChange={setFamilyHistory}
-                  value={familyHistory}
-                />
-              </View>
-            </View>
-
-            {/* Action Button */}
-            <TouchableOpacity
-              activeOpacity={0.8}
-              onPress={handleNextStep}
-              disabled={!smokingStatus}
-              className="w-full h-[52px] rounded-full flex-row justify-center items-center shadow-sm"
-              style={{
-                backgroundColor: smokingStatus ? "#1e4ed8" : "#cbd5e1",
-              }}
-            >
-              <Text className="text-white font-bold text-[15px] mr-2">
-                Next Step
-              </Text>
-              <Feather name="arrow-right" size={18} color="white" />
-            </TouchableOpacity>
-
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Sticky Bottom Action Button */}
+      <View className="absolute bottom-0 left-0 right-0 bg-slate-50 border-t border-slate-200/70 px-5 pt-3 pb-8">
+         <TouchableOpacity
+           activeOpacity={0.8}
+           onPress={handleNextStep}
+           disabled={!smokingStatus}
+           className="w-full py-3.5 rounded-xl flex-row justify-center items-center"
+           style={{
+             backgroundColor: smokingStatus ? "#0f172a" : "#e2e8f0",
+           }}
+         >
+           <Text className="font-medium text-[14px] mr-2" style={{ color: smokingStatus ? "#fff" : "#94a3b8" }}>
+             Next step
+           </Text>
+           <Feather name="arrow-right" size={16} color={smokingStatus ? "#fff" : "#94a3b8"} />
+         </TouchableOpacity>
+      </View>
     </SafeAreaView>
   );
 }

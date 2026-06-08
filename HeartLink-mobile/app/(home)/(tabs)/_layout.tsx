@@ -39,7 +39,7 @@ const RECORD_OPTIONS = [
   {
     icon: "clipboard" as const,
     iconType: "feather" as const,
-    label: "Log daily symptoms",
+    label: "Log daily vitals & symptoms",
     subtitle: "Record how you're feeling right now",
     iconColor: "#854f0b",
     iconBg: "#faeeda",
@@ -159,12 +159,8 @@ function RecordBottomSheet({
             key={option.label}
             activeOpacity={0.7}
             onPress={() => {
-              if (option.label === "Scan food barcode") {
-                router.push("/(home)/barcode-scan");
-              } else if (option.label === "Log meal manually") {
-                router.push("/(home)/manual-meal-log");
-              } else if (option.label === "Log daily symptoms") {
-                router.push("/(home)/log-symptoms");
+              if (option.route) {
+                router.push(option.route as any);
               }
               animateOut();
             }}
@@ -256,16 +252,11 @@ function CustomTabBar({ state, navigation, onFabPress }: any) {
   return (
     <View
       style={{
-        position: "absolute",
-        bottom: 0,
-        left: 0,
-        right: 0,
-        height: 120,
-        // borderRadius: 20,
         backgroundColor: "#fff",
         flexDirection: "row",
         alignItems: "center",
-        paddingHorizontal: 4,
+        height: Platform.OS === "ios" ? 85 : 65,
+        paddingBottom: Platform.OS === "ios" ? 20 : 0,
         borderTopWidth: 0.5,
         borderTopColor: "#e2e8f0",
         ...Platform.select({
@@ -275,7 +266,7 @@ function CustomTabBar({ state, navigation, onFabPress }: any) {
             shadowOpacity: 0.06,
             shadowRadius: 12,
           },
-          android: { elevation: 0 },
+          android: { elevation: 8 },
         }),
       }}
     >
@@ -303,20 +294,20 @@ function CustomTabBar({ state, navigation, onFabPress }: any) {
         // FAB
         if (tab.isFab) {
           return (
-            <View key={tab.name} style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+            <View key={tab.name} style={{ flex: 1, alignItems: "center" }}>
               <TouchableOpacity
                 onPress={onPress}
                 activeOpacity={0.8}
                 style={{
                   position: "absolute",
-                  top: -48,
+                  top: -24,
                   width: 56,
                   height: 56,
                   backgroundColor: "#0f172a",
                   borderRadius: 28,
                   alignItems: "center",
                   justifyContent: "center",
-                  borderWidth: 5,
+                  borderWidth: 4,
                   borderColor: "#fff",
                   ...Platform.select({
                     ios: {
@@ -325,7 +316,7 @@ function CustomTabBar({ state, navigation, onFabPress }: any) {
                       shadowOpacity: 0.2,
                       shadowRadius: 8,
                     },
-                    android: { elevation: 5 },
+                    android: { elevation: 0 },
                   }),
                 }}
               >
@@ -344,7 +335,6 @@ function CustomTabBar({ state, navigation, onFabPress }: any) {
             onPress={onPress}
             style={{
               flex: 1,
-              top: -20,
               alignItems: "center",
               justifyContent: "center",
               height: "100%",
@@ -385,7 +375,10 @@ export default function TabsLayout() {
         tabBar={(props) => (
           <CustomTabBar {...props} onFabPress={() => setSheetVisible(true)} />
         )}
-        screenOptions={{ headerShown: false }}
+        screenOptions={{ 
+          headerShown: false,
+          tabBarHideOnKeyboard: true,
+        }}
       >
         <Tabs.Screen name="dashboard" />
         <Tabs.Screen name="recipes" />

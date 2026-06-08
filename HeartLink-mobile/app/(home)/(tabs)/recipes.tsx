@@ -23,10 +23,11 @@ export interface Recipe {
   difficulty: "Easy" | "Medium" | "Hard";
   image: string;
   tags: string[];
+  heartBenefit: string;
   nutrition: {
     sodium: number;
     fiber: number;
-    potassium: number;
+    saturatedFat?: number;
     calories: number;
   };
   ingredients: { qty: string; item: string }[];
@@ -49,7 +50,8 @@ const RECIPES: Recipe[] = [
     difficulty: "Medium",
     image: "https://images.unsplash.com/photo-1580476262798-bddd9f4b7369?w=400&h=300&fit=crop",
     tags: ["Low Sodium", "High Protein", "Filipino"],
-    nutrition: { sodium: 95, fiber: 2, potassium: 420, calories: 280 },
+    heartBenefit: "Calamansi and garlic provide robust flavor without the need for excess salt, making it ideal for blood pressure management.",
+    nutrition: { sodium: 95, fiber: 2, saturatedFat: 2, calories: 280 },
     ingredients: [
       { qty: "1 whole", item: "Bangus (milkfish), butterflied" },
       { qty: "4 cloves", item: "Garlic, minced" },
@@ -76,7 +78,8 @@ const RECIPES: Recipe[] = [
     difficulty: "Easy",
     image: "https://images.unsplash.com/photo-1547592166-23ac45744acd?w=400&h=300&fit=crop",
     tags: ["Low Sodium", "High Fiber", "Filipino"],
-    nutrition: { sodium: 65, fiber: 6, potassium: 380, calories: 120 },
+    heartBenefit: "Malunggay is packed with antioxidants and essential nutrients that help reduce inflammation and lower blood pressure.",
+    nutrition: { sodium: 65, fiber: 6, saturatedFat: 1, calories: 120 },
     ingredients: [
       { qty: "2 cups", item: "Malunggay (moringa) leaves, stripped" },
       { qty: "2 ears", item: "Sweet corn, cut into rounds" },
@@ -102,7 +105,8 @@ const RECIPES: Recipe[] = [
     difficulty: "Easy",
     image: "https://images.unsplash.com/photo-1517673400267-0251440c45dc?w=400&h=300&fit=crop",
     tags: ["Low Sodium", "High Fiber", "Breakfast"],
-    nutrition: { sodium: 15, fiber: 8, potassium: 340, calories: 310 },
+    heartBenefit: "Oats are rich in soluble fiber which binds to cholesterol and helps clear it from your bloodstream.",
+    nutrition: { sodium: 15, fiber: 8, saturatedFat: 3, calories: 310 },
     ingredients: [
       { qty: "1/2 cup", item: "Rolled oats" },
       { qty: "1 cup", item: "Water or unsweetened almond milk" },
@@ -127,7 +131,8 @@ const RECIPES: Recipe[] = [
     difficulty: "Easy",
     image: "https://images.unsplash.com/photo-1604152135912-04a022e23696?w=400&h=300&fit=crop",
     tags: ["Low Sodium", "High Potassium", "Filipino"],
-    nutrition: { sodium: 110, fiber: 3, potassium: 510, calories: 220 },
+    heartBenefit: "Green papaya and ginger support digestion and provide anti-inflammatory benefits without relying on saturated fats.",
+    nutrition: { sodium: 110, fiber: 3, saturatedFat: 4, calories: 220 },
     ingredients: [
       { qty: "500g", item: "Chicken thigh, cut into pieces" },
       { qty: "1 thumb", item: "Ginger, sliced into strips" },
@@ -154,7 +159,8 @@ const RECIPES: Recipe[] = [
     difficulty: "Easy",
     image: "https://images.unsplash.com/photo-1615870216519-2f9fa575fa5c?w=400&h=300&fit=crop",
     tags: ["Low Sodium", "High Fiber", "Filipino"],
-    nutrition: { sodium: 45, fiber: 7, potassium: 290, calories: 90 },
+    heartBenefit: "Eggplants contain flavonoids like anthocyanins, which are proven to improve heart health and lower the risk of heart disease.",
+    nutrition: { sodium: 45, fiber: 7, saturatedFat: 0, calories: 90 },
     ingredients: [
       { qty: "2 large", item: "Eggplants" },
       { qty: "2 medium", item: "Tomatoes, diced" },
@@ -180,7 +186,8 @@ const RECIPES: Recipe[] = [
     difficulty: "Easy",
     image: "https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=400&h=300&fit=crop",
     tags: ["Low Sodium", "High Protein", "Omega-3"],
-    nutrition: { sodium: 75, fiber: 1, potassium: 530, calories: 350 },
+    heartBenefit: "Rich in Omega-3 fatty acids, salmon helps decrease triglycerides, lowers blood pressure, and reduces the risk of arrhythmias.",
+    nutrition: { sodium: 75, fiber: 1, saturatedFat: 2, calories: 350 },
     ingredients: [
       { qty: "2 fillets", item: "Salmon (about 150g each)" },
       { qty: "1 tbsp", item: "Olive oil" },
@@ -322,7 +329,7 @@ function RecipeCard({ recipe, onPress, isSaved, onSave }: { recipe: Recipe; onPr
         <View className="flex-row gap-2">
           <NutritionPill label="Sodium" value={recipe.nutrition.sodium} unit="mg" highlight={isSodiumSafe} />
           <NutritionPill label="Fiber" value={recipe.nutrition.fiber} unit="g" />
-          <NutritionPill label="Potassium" value={recipe.nutrition.potassium} unit="mg" />
+          <NutritionPill label="Sat. Fat" value={recipe.nutrition.saturatedFat || 0} unit="g" />
           <NutritionPill label="Calories" value={recipe.nutrition.calories} unit="cal" />
         </View>
       </View>

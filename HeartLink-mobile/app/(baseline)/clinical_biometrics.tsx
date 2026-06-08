@@ -16,6 +16,25 @@ import { useRouter } from "expo-router";
 export default function BiometricsStep4Screen() {
 
   const router = useRouter()
+  // Clinical History
+  const [diagnosedConditions, setDiagnosedConditions] = useState<string[]>([]);
+  const [takingMedication, setTakingMedication] = useState<boolean | null>(null);
+  const conditionOptions = ["Hypertension", "Arrhythmia", "Diabetes", "High Cholesterol", "None"];
+
+  const toggleCondition = (condition: string) => {
+    if (condition === "None") {
+      setDiagnosedConditions(["None"]);
+      return;
+    }
+    let newConditions = diagnosedConditions.includes("None") ? [] : [...diagnosedConditions];
+    if (newConditions.includes(condition)) {
+      newConditions = newConditions.filter(c => c !== condition);
+    } else {
+      newConditions.push(condition);
+    }
+    setDiagnosedConditions(newConditions);
+  };
+
   // Vitals State (Ideal if known, but ML can impute/handle)
   const [restingBP, setRestingBP] = useState("");
   const [maxHR, setMaxHR] = useState("");
@@ -33,6 +52,8 @@ export default function BiometricsStep4Screen() {
     // Format the payload matching the Cleveland dataset requirements
     // Nullifying empty optional fields so the backend DB handles them gracefully
     const payload = {
+      diagnosed_conditions: diagnosedConditions,
+      medication_status: takingMedication,
       trestbps: restingBP ? parseInt(restingBP) : null, // Resting Blood Pressure
       thalach: maxHR ? parseInt(maxHR) : null, // Maximum Heart Rate
       fbs: fastingBloodSugar
@@ -51,22 +72,24 @@ export default function BiometricsStep4Screen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-[#f4f7fb]" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-slate-50" edges={["top"]}>
       <StatusBar style="dark" />
 
       {/* Top Header Bar */}
-      <View className="flex-row items-center px-6 pt-2 pb-2 z-10">
+      <View className="flex-row items-center px-5 pt-4 pb-2 z-10">
         <TouchableOpacity
           onPress={() => router.back()}
-          className="p-2 -ml-2"
+          className="p-2 -ml-2 mr-3"
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Feather name="arrow-left" size={20} color="#475569" />
+          <Feather name="arrow-left" size={20} color="#0f172a" />
         </TouchableOpacity>
-
-        <View className="flex-1 items-center pr-8">
-          <Text className="text-[14px] font-bold text-slate-400 tracking-widest uppercase">
-            Step 4 of 4
+        <View className="flex-1">
+          <Text className="text-[22px] font-medium text-slate-900 tracking-tight">
+            Clinical Baseline
+          </Text>
+          <Text className="text-[13px] text-slate-400 mt-0.5">
+            Step 4 of 4 • Predictive metrics
           </Text>
         </View>
       </View>
@@ -76,305 +99,317 @@ export default function BiometricsStep4Screen() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <ScrollView
-          /* Fixed: Explicit paddingBottom ensures nothing gets cut off */
-          contentContainerStyle={{
-            flexGrow: 1,
-            paddingBottom: 120,
-            paddingTop: 16,
-          }}
+          contentContainerClassName="px-5 pb-32 pt-4"
           showsVerticalScrollIndicator={false}
           bounces={true}
         >
-          {/* Main White Card Container */}
-          <View className="bg-white mx-5 rounded-[32px] px-6 py-8 shadow-sm shadow-blue-900/5 mb-6">
-            {/* Header Text */}
-            <View className="mb-8">
-              <Text className="text-[26px] font-black text-slate-900 tracking-tight mb-2">
-                Clinical Baseline
-              </Text>
-              <Text className="text-[14px] text-slate-500 font-medium leading-relaxed pr-2">
-                These medical metrics power our predictive engine. Please answer
-                as accurately as possible.
-              </Text>
-            </View>
-
-            {/* Optional Data UX Callout */}
-            <View className="bg-amber-50 p-4 rounded-[20px] flex-row items-start mb-8 border border-amber-200/60 shadow-sm shadow-amber-900/5">
-              <Feather
-                name="info"
-                size={18}
-                color="#d97706"
-                style={{ marginTop: 2 }}
-              />
-              <Text className="text-[12.5px] text-amber-800 ml-3 flex-1 leading-relaxed font-medium">
+          {/* Optional Data UX Callout */}
+          <View className="bg-white rounded-2xl border border-slate-200/70 p-4 mb-5 flex-row items-start gap-3">
+             <Feather name="info" size={18} color="#d97706" style={{ marginTop: 2 }} />
+             <Text className="text-[13px] text-slate-500 flex-1 leading-relaxed">
                 Don't have recent lab results? That's okay! You can leave those
-                fields blank and update your profile after your next clinic
-                visit.
-              </Text>
-            </View>
-
-            {/* 1. Core Vitals */}
-            <View className="mb-8">
-              <Text className="text-[15px] font-black text-slate-900 mb-4">
-                Basic Vitals
-              </Text>
-
-              <View className="flex-row gap-4">
-                <View className="flex-1">
-                  <Text className="text-[12px] font-bold text-slate-700 mb-2 ml-1">
-                    Resting BP
-                  </Text>
-                  <View className="h-[52px] bg-[#f8fafc] border border-slate-200 rounded-[16px] flex-row items-center px-4">
-                    <TextInput
-                      value={restingBP}
-                      onChangeText={setRestingBP}
-                      placeholder="120"
-                      placeholderTextColor="#94a3b8"
-                      keyboardType="numeric"
-                      maxLength={3}
-                      className="flex-1 text-[16px] text-slate-900 font-bold h-full"
-                    />
-                    <Text className="text-[12px] font-medium text-slate-400">
-                      mm Hg
-                    </Text>
-                  </View>
-                </View>
-
-                <View className="flex-1">
-                  <Text className="text-[12px] font-bold text-slate-700 mb-2 ml-1">
-                    Max Heart Rate
-                  </Text>
-                  <View className="h-[52px] bg-[#f8fafc] border border-slate-200 rounded-[16px] flex-row items-center px-4">
-                    <TextInput
-                      value={maxHR}
-                      onChangeText={setMaxHR}
-                      placeholder="150"
-                      placeholderTextColor="#94a3b8"
-                      keyboardType="numeric"
-                      maxLength={3}
-                      className="flex-1 text-[16px] text-slate-900 font-bold h-full"
-                    />
-                    <Text className="text-[12px] font-medium text-slate-400">
-                      bpm
-                    </Text>
-                  </View>
-                </View>
-              </View>
-            </View>
-
-            {/* 2. Lab Results (Explicitly Optional) */}
-            <View className="mb-10">
-              <Text className="text-[15px] font-black text-slate-900 mb-4">
-                Lab Results{" "}
-                <Text className="text-slate-400 font-medium text-[12px]">
-                  (Optional)
-                </Text>
-              </Text>
-
-              <View className="flex-row gap-4">
-                <View className="flex-1">
-                  <Text className="text-[12px] font-bold text-slate-700 mb-2 ml-1">
-                    Fasting Blood Sugar
-                  </Text>
-                  <View className="h-[52px] bg-[#f8fafc] border border-slate-200 rounded-[16px] flex-row items-center px-4">
-                    <TextInput
-                      value={fastingBloodSugar}
-                      onChangeText={setFastingBloodSugar}
-                      placeholder="e.g. 95"
-                      placeholderTextColor="#94a3b8"
-                      keyboardType="numeric"
-                      maxLength={3}
-                      className="flex-1 text-[16px] text-slate-900 font-bold h-full"
-                    />
-                    <Text className="text-[12px] font-medium text-slate-400">
-                      mg/dl
-                    </Text>
-                  </View>
-                </View>
-
-                <View className="flex-1">
-                  <Text className="text-[12px] font-bold text-slate-700 mb-2 ml-1">
-                    Serum Cholesterol
-                  </Text>
-                  <View className="h-[52px] bg-[#f8fafc] border border-slate-200 rounded-[16px] flex-row items-center px-4">
-                    <TextInput
-                      value={cholesterol}
-                      onChangeText={setCholesterol}
-                      placeholder="e.g. 200"
-                      placeholderTextColor="#94a3b8"
-                      keyboardType="numeric"
-                      maxLength={3}
-                      className="flex-1 text-[16px] text-slate-900 font-bold h-full"
-                    />
-                    <Text className="text-[12px] font-medium text-slate-400">
-                      mg/dl
-                    </Text>
-                  </View>
-                </View>
-              </View>
-            </View>
-
-            {/* 3. Chest Pain Assessment (Translated from ML Jargon) */}
-            <View className="mb-10">
-              <Text className="text-[15px] font-black text-slate-900 mb-1">
-                Chest Pain Assessment
-              </Text>
-              <Text className="text-[12px] text-slate-500 mb-4 pr-2">
-                Select the description that best matches your typical
-                experience.
-              </Text>
-
-              <View className="space-y-3">
-                {[
-                  {
-                    id: 1,
-                    label: "Classic Angina",
-                    sub: "Pressure or squeezing during physical exertion or stress.",
-                  },
-                  {
-                    id: 2,
-                    label: "Atypical Pain",
-                    sub: "Chest pain that does not fit the classic exertion pattern.",
-                  },
-                  {
-                    id: 3,
-                    label: "Non-Heart Related",
-                    sub: "Sharp pain from breathing, muscles, or digestion.",
-                  },
-                  {
-                    id: 4,
-                    label: "No Chest Pain",
-                    sub: "I do not experience any chest discomfort.",
-                  },
-                ].map((item) => (
-                  <TouchableOpacity
-                    key={item.id}
-                    activeOpacity={0.7}
-                    onPress={() => setChestPainType(item.id)}
-                    className="p-4 rounded-[20px] border flex-row items-center"
-                    style={
-                      chestPainType === item.id
-                        ? { backgroundColor: "rgba(239,246,255,0.5)", borderColor: "#1e4ed8" }
-                        : { backgroundColor: "#ffffff", borderColor: "#e2e8f0" }
-                    }
-                  >
-                    <View
-                      className="w-5 h-5 rounded-full border-2 items-center justify-center mr-4"
-                      style={{
-                        borderColor: chestPainType === item.id ? "#1e4ed8" : "#cbd5e1",
-                      }}
-                    >
-                      {chestPainType === item.id && (
-                        <View className="w-2.5 h-2.5 rounded-full bg-[#1e4ed8]" />
-                      )}
-                    </View>
-                    <View className="flex-1">
-                      <Text
-                        className="font-bold text-[14px] mb-0.5"
-                        style={{
-                          color: chestPainType === item.id ? "#1e4ed8" : "#0f172a",
-                        }}
-                      >
-                        {item.label}
-                      </Text>
-                      <Text
-                        className="text-[12px] leading-relaxed"
-                        style={{
-                          color: chestPainType === item.id ? "rgba(29,78,216,0.7)" : "#64748b",
-                        }}
-                      >
-                        {item.sub}
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-
-            {/* 4. Exercise Induced Angina */}
-            <View className="mb-10">
-              <Text className="text-[15px] font-black text-slate-900 mb-1">
-                Exercise Assessment
-              </Text>
-              <Text className="text-[12px] text-slate-500 mb-4 pr-2">
-                Do you experience chest pain or severe discomfort specifically
-                when exercising?
-              </Text>
-
-              <View className="flex-row gap-3">
-                <TouchableOpacity
-                  activeOpacity={0.7}
-                  onPress={() => setExerciseAngina("no")}
-                  className="flex-1 h-[52px] rounded-[16px] flex-row items-center justify-center border"
-                  style={
-                    exerciseAngina === "no"
-                      ? { backgroundColor: "#ecfdf5", borderColor: "#10b981" }
-                      : { backgroundColor: "#f8fafc", borderColor: "#e2e8f0" }
-                  }
-                >
-                  <Text
-                    className="font-bold text-[14px]"
-                    style={{
-                      color: exerciseAngina === "no" ? "#047857" : "#64748b",
-                    }}
-                  >
-                    No, I do not
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  activeOpacity={0.7}
-                  onPress={() => setExerciseAngina("yes")}
-                  className="flex-1 h-[52px] rounded-[16px] flex-row items-center justify-center border"
-                  style={
-                    exerciseAngina === "yes"
-                      ? { backgroundColor: "#fff1f2", borderColor: "#f43f5e" }
-                      : { backgroundColor: "#f8fafc", borderColor: "#e2e8f0" }
-                  }
-                >
-                  <Text
-                    className="font-bold text-[14px]"
-                    style={{
-                      color: exerciseAngina === "yes" ? "#be123c" : "#64748b",
-                    }}
-                  >
-                    Yes, I do
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {/* Final Action Button */}
-            <TouchableOpacity
-              activeOpacity={0.8}
-              onPress={handleCompleteOnboarding}
-              // Require only the symptoms to be filled to proceed. Numerics can be null.
-              disabled={!chestPainType || !exerciseAngina}
-              className="w-full h-14 rounded-[20px] flex-row justify-center items-center shadow-sm"
-              style={{
-                backgroundColor: chestPainType && exerciseAngina ? "#1e4ed8" : "#cbd5e1",
-              }}
-            >
-              <MaterialCommunityIcons
-                name="heart-pulse"
-                size={20}
-                color="white"
-                style={{ marginRight: 8 }}
-              />
-              <Text className="text-white font-bold text-[16px] ml-2">
-                Complete Baseline
-              </Text>
-            </TouchableOpacity>
+                fields blank and update your profile later.
+             </Text>
           </View>
 
-          {/* Footer Branding */}
-          <View className="mt-2 mb-4">
-            <Text className="text-center text-[10px] font-bold tracking-[0.1em] text-slate-400 uppercase">
-              CTU - MAIN CAMPUS • CAPSTONE 2026
+          {/* 0. Clinical History */}
+          <View className="bg-white rounded-2xl border border-slate-200/70 p-4 mb-5">
+            <Text className="text-[15px] font-medium text-slate-900 mb-1 leading-snug">
+              Clinical History
             </Text>
+            <Text className="text-[13px] text-slate-400 mb-4">
+              Select any conditions you have been diagnosed with.
+            </Text>
+
+            <View className="flex-row flex-wrap gap-1.5 mb-5">
+              {conditionOptions.map((cond) => {
+                const isSelected = diagnosedConditions.includes(cond);
+                return (
+                  <TouchableOpacity
+                    key={cond}
+                    onPress={() => toggleCondition(cond)}
+                    activeOpacity={0.7}
+                    className="px-2 py-1 rounded-md border"
+                    style={{
+                      backgroundColor: isSelected ? "#eaf3de" : "#f8fafc",
+                      borderColor: isSelected ? "#c0dd97" : "#e2e8f0"
+                    }}
+                  >
+                    <Text
+                      className="text-[11px] uppercase tracking-wide font-medium"
+                      style={{ color: isSelected ? "#3b6d11" : "#94a3b8" }}
+                    >
+                      {cond}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <Text className="text-[14px] font-medium text-slate-900 mb-3">
+              Currently taking maintenance medication?
+            </Text>
+            <View className="flex-row gap-2">
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => setTakingMedication(false)}
+                className="flex-1 py-2.5 rounded-xl flex-row items-center justify-center border"
+                style={
+                  takingMedication === false
+                    ? { backgroundColor: "#0f172a", borderColor: "#0f172a" }
+                    : { backgroundColor: "#f8fafc", borderColor: "#e2e8f0" }
+                }
+              >
+                <Text
+                  className="font-medium text-[13px]"
+                  style={{ color: takingMedication === false ? "#fff" : "#64748b" }}
+                >
+                  No
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => setTakingMedication(true)}
+                className="flex-1 py-2.5 rounded-xl flex-row items-center justify-center border"
+                style={
+                  takingMedication === true
+                    ? { backgroundColor: "#0f172a", borderColor: "#0f172a" }
+                    : { backgroundColor: "#f8fafc", borderColor: "#e2e8f0" }
+                }
+              >
+                <Text
+                  className="font-medium text-[13px]"
+                  style={{ color: takingMedication === true ? "#fff" : "#64748b" }}
+                >
+                  Yes
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
+
+          {/* 1. Core Vitals */}
+          <View className="bg-white rounded-2xl border border-slate-200/70 p-4 mb-5">
+            <Text className="text-[15px] font-medium text-slate-900 mb-4 leading-snug">
+              Basic Vitals
+            </Text>
+
+            <View className="flex-row gap-3">
+              <View className="flex-1">
+                <Text className="text-[12px] font-medium text-slate-500 mb-2">
+                  Resting BP
+                </Text>
+                <View className="h-[44px] bg-slate-50 border border-slate-200/70 rounded-xl flex-row items-center px-3">
+                  <TextInput
+                    value={restingBP}
+                    onChangeText={setRestingBP}
+                    placeholder="120"
+                    placeholderTextColor="#94a3b8"
+                    keyboardType="numeric"
+                    maxLength={3}
+                    className="flex-1 text-[14px] text-slate-900 h-full"
+                  />
+                  <Text className="text-[11px] text-slate-400">
+                    mm Hg
+                  </Text>
+                </View>
+              </View>
+
+              <View className="flex-1">
+                <Text className="text-[12px] font-medium text-slate-500 mb-2">
+                  Max Heart Rate
+                </Text>
+                <View className="h-[44px] bg-slate-50 border border-slate-200/70 rounded-xl flex-row items-center px-3">
+                  <TextInput
+                    value={maxHR}
+                    onChangeText={setMaxHR}
+                    placeholder="150"
+                    placeholderTextColor="#94a3b8"
+                    keyboardType="numeric"
+                    maxLength={3}
+                    className="flex-1 text-[14px] text-slate-900 h-full"
+                  />
+                  <Text className="text-[11px] text-slate-400">
+                    bpm
+                  </Text>
+                </View>
+              </View>
+            </View>
+          </View>
+
+          {/* 2. Lab Results */}
+          <View className="bg-white rounded-2xl border border-slate-200/70 p-4 mb-5">
+            <View className="flex-row items-center justify-between mb-4">
+               <Text className="text-[15px] font-medium text-slate-900 leading-snug">
+                 Lab Results
+               </Text>
+               <View className="px-2 py-0.5 rounded-md bg-slate-100 border border-slate-200">
+                  <Text className="text-[9px] uppercase tracking-wide text-slate-400">Optional</Text>
+               </View>
+            </View>
+
+            <View className="flex-row gap-3">
+              <View className="flex-1">
+                <Text className="text-[12px] font-medium text-slate-500 mb-2">
+                  Fasting Blood Sugar
+                </Text>
+                <View className="h-[44px] bg-slate-50 border border-slate-200/70 rounded-xl flex-row items-center px-3">
+                  <TextInput
+                    value={fastingBloodSugar}
+                    onChangeText={setFastingBloodSugar}
+                    placeholder="95"
+                    placeholderTextColor="#94a3b8"
+                    keyboardType="numeric"
+                    maxLength={3}
+                    className="flex-1 text-[14px] text-slate-900 h-full"
+                  />
+                  <Text className="text-[11px] text-slate-400">
+                    mg/dl
+                  </Text>
+                </View>
+              </View>
+
+              <View className="flex-1">
+                <Text className="text-[12px] font-medium text-slate-500 mb-2">
+                  Serum Cholesterol
+                </Text>
+                <View className="h-[44px] bg-slate-50 border border-slate-200/70 rounded-xl flex-row items-center px-3">
+                  <TextInput
+                    value={cholesterol}
+                    onChangeText={setCholesterol}
+                    placeholder="200"
+                    placeholderTextColor="#94a3b8"
+                    keyboardType="numeric"
+                    maxLength={3}
+                    className="flex-1 text-[14px] text-slate-900 h-full"
+                  />
+                  <Text className="text-[11px] text-slate-400">
+                    mg/dl
+                  </Text>
+                </View>
+              </View>
+            </View>
+          </View>
+
+          {/* 3. Chest Pain Assessment */}
+          <View className="bg-white rounded-2xl border border-slate-200/70 p-4 mb-5">
+            <Text className="text-[15px] font-medium text-slate-900 mb-1 leading-snug">
+              Chest Pain Assessment
+            </Text>
+            <Text className="text-[13px] text-slate-400 mb-4">
+              Select the description that best matches your typical experience.
+            </Text>
+
+            <View className="space-y-2">
+              {[
+                { id: 1, label: "Classic Angina", sub: "Pressure or squeezing during exertion/stress." },
+                { id: 2, label: "Atypical Pain", sub: "Chest pain not fitting classic patterns." },
+                { id: 3, label: "Non-Heart Related", sub: "Sharp pain from breathing or muscles." },
+                { id: 4, label: "No Chest Pain", sub: "I do not experience chest discomfort." },
+              ].map((item) => (
+                <TouchableOpacity
+                  key={item.id}
+                  activeOpacity={0.7}
+                  onPress={() => setChestPainType(item.id)}
+                  className="p-3 rounded-xl border flex-row items-center mb-2"
+                  style={
+                    chestPainType === item.id
+                      ? { backgroundColor: "#f1f5f9", borderColor: "#cbd5e1" }
+                      : { backgroundColor: "#fff", borderColor: "#e2e8f0" }
+                  }
+                >
+                  <View
+                    className="w-4 h-4 rounded-full border items-center justify-center mr-3"
+                    style={{ borderColor: chestPainType === item.id ? "#0f172a" : "#cbd5e1" }}
+                  >
+                    {chestPainType === item.id && (
+                      <View className="w-2 h-2 rounded-full bg-slate-900" />
+                    )}
+                  </View>
+                  <View className="flex-1">
+                    <Text
+                      className="font-medium text-[13px] mb-0.5"
+                      style={{ color: chestPainType === item.id ? "#0f172a" : "#334155" }}
+                    >
+                      {item.label}
+                    </Text>
+                    <Text className="text-[11px] text-slate-400">
+                      {item.sub}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          {/* 4. Exercise Induced Angina */}
+          <View className="bg-white rounded-2xl border border-slate-200/70 p-4 mb-5">
+            <Text className="text-[15px] font-medium text-slate-900 mb-1 leading-snug">
+              Exercise Assessment
+            </Text>
+            <Text className="text-[13px] text-slate-400 mb-4">
+              Do you experience chest pain when exercising?
+            </Text>
+
+            <View className="flex-row gap-2">
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => setExerciseAngina("no")}
+                className="flex-1 py-2.5 rounded-xl flex-row items-center justify-center border"
+                style={
+                  exerciseAngina === "no"
+                    ? { backgroundColor: "#eaf3de", borderColor: "#c0dd97" }
+                    : { backgroundColor: "#f8fafc", borderColor: "#e2e8f0" }
+                }
+              >
+                <Text
+                  className="font-medium text-[13px]"
+                  style={{ color: exerciseAngina === "no" ? "#3b6d11" : "#64748b" }}
+                >
+                  No, I do not
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => setExerciseAngina("yes")}
+                className="flex-1 py-2.5 rounded-xl flex-row items-center justify-center border"
+                style={
+                  exerciseAngina === "yes"
+                    ? { backgroundColor: "#fcebeb", borderColor: "#f7c1c1" }
+                    : { backgroundColor: "#f8fafc", borderColor: "#e2e8f0" }
+                }
+              >
+                <Text
+                  className="font-medium text-[13px]"
+                  style={{ color: exerciseAngina === "yes" ? "#a32d2d" : "#64748b" }}
+                >
+                  Yes, I do
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Sticky Bottom Action Button */}
+      <View className="absolute bottom-0 left-0 right-0 bg-slate-50 border-t border-slate-200/70 px-5 pt-3 pb-8">
+         <TouchableOpacity
+           activeOpacity={0.8}
+           onPress={handleCompleteOnboarding}
+           disabled={!chestPainType || !exerciseAngina || takingMedication === null || diagnosedConditions.length === 0}
+           className="w-full py-3.5 rounded-xl flex-row justify-center items-center"
+           style={{
+             backgroundColor: chestPainType && exerciseAngina && takingMedication !== null && diagnosedConditions.length > 0 ? "#0f172a" : "#e2e8f0",
+           }}
+         >
+           <Feather name="check" size={16} color={chestPainType && exerciseAngina && takingMedication !== null && diagnosedConditions.length > 0 ? "#fff" : "#94a3b8"} className="mr-2" />
+           <Text className="font-medium text-[14px]" style={{ color: chestPainType && exerciseAngina && takingMedication !== null && diagnosedConditions.length > 0 ? "#fff" : "#94a3b8" }}>
+             Complete Baseline
+           </Text>
+         </TouchableOpacity>
+      </View>
     </SafeAreaView>
   );
 }
