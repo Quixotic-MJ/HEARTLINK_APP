@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   View,
   Text,
@@ -245,7 +245,7 @@ function NutritionPill({
 
 // ─── Recipe Card ──────────────────────────────────────────────────────────────
 
-function RecipeCard({ recipe, onPress }: { recipe: Recipe; onPress: () => void }) {
+function RecipeCard({ recipe, onPress, isSaved, onSave }: { recipe: Recipe; onPress: () => void; isSaved: boolean; onSave: () => void }) {
   const isSodiumSafe = recipe.nutrition.sodium < 140;
   const diffCfg = DIFFICULTY_CONFIG[recipe.difficulty];
 
@@ -262,15 +262,24 @@ function RecipeCard({ recipe, onPress }: { recipe: Recipe; onPress: () => void }
           className="w-full h-full"
           resizeMode="cover"
         />
+        {/* Save Button */}
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={(e) => { e.stopPropagation(); onSave(); }}
+          className="absolute top-3 right-3 w-8 h-8 bg-white/90 rounded-full items-center justify-center shadow-sm"
+        >
+          <Feather name="heart" size={15} color={isSaved ? "#ef4444" : "#64748b"} style={isSaved ? { fill: "#ef4444" } : {}} />
+        </TouchableOpacity>
+
         {/* Prep time */}
-        <View className="absolute top-3 left-3 flex-row items-center gap-1 px-2.5 py-1 rounded-lg"
+        <View className="absolute bottom-3 left-3 flex-row items-center gap-1 px-2.5 py-1 rounded-lg"
           style={{ backgroundColor: "rgba(0,0,0,0.55)" }}>
           <Feather name="clock" size={11} color="rgba(255,255,255,0.9)" />
           <Text className="text-white text-[11px]">{recipe.prepTime} min</Text>
         </View>
         {/* Difficulty — dynamic bg/text via inline style */}
         <View
-          className="absolute top-3 right-3 px-2.5 py-1 rounded-lg"
+          className="absolute bottom-3 right-3 px-2.5 py-1 rounded-lg"
           style={{ backgroundColor: diffCfg.bg }}
         >
           <Text className="text-[10px] font-medium uppercase tracking-wide" style={{ color: diffCfg.text }}>
@@ -359,13 +368,32 @@ export default function RecipesScreen() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState("All");
+  const [savedRecipes, setSavedRecipes] = useState<string[]>([]);
+  const [timeMessage, setTimeMessage] = useState<string | null>(null);
 
-  const filters = ["All", "Tailored For You", "Low Sodium", "High Fiber", "Filipino", "Breakfast"];
+  const filters = ["All", "Tailored For You", "Saved", "Low Sodium", "High Fiber", "Filipino", "Breakfast"];
+
+  useEffect(() => {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 10) {
+      setActiveFilter("Breakfast");
+      setTimeMessage("Good morning! Here are some heart-healthy breakfast ideas.");
+    } else if (hour >= 17 && hour <= 21) {
+      // Just showing a general evening message, keeping current filter or defaulting to all
+      setTimeMessage("Good evening! Time for a light, heart-healthy dinner.");
+    }
+  }, []);
+
+  const toggleSave = (id: string) => {
+    setSavedRecipes(prev => prev.includes(id) ? prev.filter(rId => rId !== id) : [...prev, id]);
+  };
 
   const filteredRecipes = useMemo(() => {
     let results = RECIPES;
 
-    if (activeFilter === "Tailored For You") {
+    if (activeFilter === "Saved") {
+      results = results.filter((r) => savedRecipes.includes(r.id));
+    } else if (activeFilter === "Tailored For You") {
       results = results.filter((r) => {
         if (USER_CONDITIONS.includes("Hypertension") && r.nutrition.sodium >= 140) return false;
         if (USER_CONDITIONS.includes("High Cholesterol") && r.nutrition.fiber < 5) return false;
@@ -386,7 +414,7 @@ export default function RecipesScreen() {
     }
 
     return results;
-  }, [activeFilter, searchQuery]);
+  }, [activeFilter, searchQuery, savedRecipes]);
 
   const tailoredCount = useMemo(() => {
     return RECIPES.filter((r) => {
@@ -475,6 +503,14 @@ export default function RecipesScreen() {
           </View>
         )}
 
+        {/* Time Message Banner */}
+        {timeMessage && activeFilter !== "Tailored For You" && activeFilter !== "Saved" && (
+          <View className="mx-5 mt-3 mb-1 bg-indigo-50 rounded-2xl border border-indigo-100 p-4 flex-row items-center gap-3">
+            <Feather name="sun" size={18} color="#4338ca" />
+            <Text className="flex-1 text-[13px] font-medium text-indigo-900">{timeMessage}</Text>
+          </View>
+        )}
+
         {/* Recipe list */}
         <View className="px-5 mt-3">
           {filteredRecipes.length === 0 ? (
@@ -494,9 +530,11 @@ export default function RecipesScreen() {
               <RecipeCard
                 key={recipe.id}
                 recipe={recipe}
+                isSaved={savedRecipes.includes(recipe.id)}
+                onSave={() => toggleSave(recipe.id)}
                 onPress={() =>
                   router.push({
-                    pathname: "/(home)/recipe-detail",
+                    pathname: "/(home)/recipe-details",
                     params: { id: recipe.id },
                   })
                 }

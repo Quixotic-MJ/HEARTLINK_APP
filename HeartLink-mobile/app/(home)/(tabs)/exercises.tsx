@@ -1,14 +1,16 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useRef } from "react";
 import {
   View,
   Text,
   TouchableOpacity,
   ScrollView,
-  Alert,
+  Modal,
+  Animated
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -24,7 +26,7 @@ export interface Routine {
 
 // ─── Routine Data ────────────────────────────────────────────────────────────
 
-const ROUTINES: Routine[] = [
+export const ROUTINES: Routine[] = [
   {
     id: "1",
     title: "20-Minute Neighborhood Walk",
@@ -83,7 +85,7 @@ const ROUTINES: Routine[] = [
     id: "7",
     title: "Guided Seated Relaxation",
     duration: 10,
-    goal: "Lowers blood pressure and induces resting state.",
+    goal: "Lower blood pressure and induces resting state.",
     type: "Breathing",
     intensity: "None",
     category: "Elevated Risk",
@@ -115,16 +117,23 @@ function getTypeIconBg(type: Routine["type"]): string {
 function RoutineCard({
   routine,
   onComplete,
+  onPressCard,
+  isCompleted
 }: {
   routine: Routine;
   onComplete: () => void;
+  onPressCard: () => void;
+  isCompleted: boolean;
 }) {
   const iconColor = getTypeColor(routine.type);
   const iconBg = getTypeIconBg(routine.type);
 
   return (
-    <View className="bg-white rounded-2xl border border-slate-200/70 p-4 mb-10">
-      {/* Title row */}
+    <TouchableOpacity 
+      activeOpacity={0.8}
+      onPress={onPressCard}
+      className="bg-white rounded-2xl border border-slate-200/70 p-4 mb-5"
+    >
       <View className="flex-row items-start justify-between mb-3">
         <View className="flex-1 pr-3">
           <Text className="text-[15px] font-medium text-slate-900 mb-1 leading-snug">
@@ -134,7 +143,6 @@ function RoutineCard({
             {routine.goal}
           </Text>
         </View>
-        {/* Icon — dynamic bg/color kept as inline style to avoid css-interop issues */}
         <View
           className="w-9 h-9 rounded-xl items-center justify-center"
           style={{ backgroundColor: iconBg }}
@@ -143,7 +151,6 @@ function RoutineCard({
         </View>
       </View>
 
-      {/* Chips */}
       <View className="flex-row gap-2 mb-4">
         <View className="flex-row items-center bg-slate-50 border border-slate-200/70 px-2.5 py-1 rounded-lg gap-1.5">
           <Feather name="clock" size={11} color="#94a3b8" />
@@ -159,22 +166,31 @@ function RoutineCard({
         </View>
       </View>
 
-      {/* CTA */}
       <TouchableOpacity
         activeOpacity={0.85}
-        onPress={onComplete}
-        className="bg-slate-900 py-3 rounded-xl items-center justify-center flex-row gap-2"
+        onPress={() => {
+          // Don't want onPressCard to fire
+          if (!isCompleted) {
+             onComplete();
+          }
+        }}
+        disabled={isCompleted}
+        className={`py-3 rounded-xl items-center justify-center flex-row gap-2 ${isCompleted ? 'bg-slate-100' : 'bg-slate-900'}`}
       >
-        <Feather name="check" size={15} color="#fff" />
-        <Text className="text-white text-[13px] font-medium">
-          Mark as completed
+        {isCompleted ? (
+           <MaterialCommunityIcons name="check-all" size={16} color="#94a3b8" />
+        ) : (
+           <Feather name="check" size={15} color="#fff" />
+        )}
+        <Text className={`text-[13px] font-medium ${isCompleted ? 'text-slate-400' : 'text-white'}`}>
+          {isCompleted ? "Completed Today" : "Mark as completed"}
         </Text>
       </TouchableOpacity>
-    </View>
+    </TouchableOpacity>
   );
 }
 
-// ─── Status config (no dynamic className — avoids css-interop crash) ──────────
+// ─── Status config ──────────────────────────
 
 const STATUS_CONFIG = {
   Stable: {
@@ -198,7 +214,6 @@ const STATUS_CONFIG = {
 } as const;
 
 // ─── Dev Toggle Button ────────────────────────────────────────────────────────
-// Uses inline style for bg to avoid dynamic className triggering css-interop
 
 function DevBtn({
   label,
@@ -214,7 +229,6 @@ function DevBtn({
       onPress={onPress}
       activeOpacity={0.8}
       className="flex-1 py-1.5 rounded-md items-center"
-      // Dynamic bg via style, not className — avoids css-interop crash
       style={active ? { backgroundColor: "#fff" } : undefined}
     >
       <Text
@@ -230,7 +244,23 @@ function DevBtn({
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
 export default function ExercisesScreen() {
+  const router = useRouter();
   const [cssScore, setCssScore] = useState<number>(78);
+  const [completedExercises, setCompletedExercises] = useState<string[]>([]);
+  const [showSafetyCheck, setShowSafetyCheck] = useState(false);
+  const [pendingRoutine, setPendingRoutine] = useState<Routine | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  
+  const slideAnim = useRef(new Animated.Value(-150)).current;
+
+  const showToast = (message: string) => {
+    setToastMessage(message);
+    Animated.sequence([
+      Animated.timing(slideAnim, { toValue: 50, duration: 400, useNativeDriver: true }),
+      Animated.delay(3500),
+      Animated.timing(slideAnim, { toValue: -150, duration: 300, useNativeDriver: true })
+    ]).start(() => setToastMessage(null));
+  };
 
   const cssStatus = useMemo<Routine["category"]>(() => {
     if (cssScore >= 85) return "Stable";
@@ -245,17 +275,46 @@ export default function ExercisesScreen() {
 
   const statusCfg = STATUS_CONFIG[cssStatus];
 
-  const handleComplete = (routine: Routine) => {
-    Alert.alert(
-      "Activity logged",
-      `Great job! You logged ${routine.duration} minutes for "${routine.title}".`,
-      [{ text: "OK" }]
-    );
+  const totalActiveMins = useMemo(() => {
+    return completedExercises.reduce((sum, id) => {
+      const routine = ROUTINES.find(r => r.id === id);
+      return sum + (routine ? routine.duration : 0);
+    }, 0);
+  }, [completedExercises]);
+
+  const progressPercent = Math.min((totalActiveMins / 30) * 100, 100);
+
+  const handleMarkCompleteClick = (routine: Routine) => {
+    setPendingRoutine(routine);
+    setShowSafetyCheck(true);
+  };
+
+  const handleSafetySafe = () => {
+    if (pendingRoutine && !completedExercises.includes(pendingRoutine.id)) {
+      setCompletedExercises([...completedExercises, pendingRoutine.id]);
+      setShowSafetyCheck(false);
+      showToast(`Awesome! ${pendingRoutine.duration} active minutes added to your daily tracker.`);
+      setPendingRoutine(null);
+    }
+  };
+
+  const handleSafetySymptoms = () => {
+    setShowSafetyCheck(false);
+    setPendingRoutine(null);
+    router.push("/(home)/log-symptoms");
   };
 
   return (
     <SafeAreaView className="flex-1 bg-slate-50" edges={["top"]}>
       <StatusBar style="dark" />
+
+      {/* Toast Notification */}
+      {toastMessage && (
+        <Animated.View style={{ transform: [{ translateY: slideAnim }] }} className="absolute left-5 right-5 z-50 bg-green-50 border border-green-200 p-4 rounded-2xl flex-row items-center shadow-sm">
+          <Feather name="check-circle" size={18} color="#16a34a" className="mr-3" />
+          <Text className="flex-1 text-[13px] font-medium text-green-900">{toastMessage}</Text>
+        </Animated.View>
+      )}
 
       {/* Header */}
       <View className="flex-row items-start justify-between px-5 pt-4 pb-1">
@@ -272,24 +331,12 @@ export default function ExercisesScreen() {
         </View>
       </View>
 
-      {/* Dev toggle — all dynamic styling via inline style, not className */}
+      {/* Dev toggle */}
       <View className="px-5 py-3">
         <View className="flex-row bg-slate-100 rounded-lg p-0.5 border border-slate-200/70">
-          <DevBtn
-            label="Stable (90)"
-            active={cssScore === 90}
-            onPress={() => setCssScore(90)}
-          />
-          <DevBtn
-            label="Monitor (78)"
-            active={cssScore === 78}
-            onPress={() => setCssScore(78)}
-          />
-          <DevBtn
-            label="Risk (60)"
-            active={cssScore === 60}
-            onPress={() => setCssScore(60)}
-          />
+          <DevBtn label="Stable (90)" active={cssScore === 90} onPress={() => setCssScore(90)} />
+          <DevBtn label="Monitor (78)" active={cssScore === 78} onPress={() => setCssScore(78)} />
+          <DevBtn label="Risk (60)" active={cssScore === 60} onPress={() => setCssScore(60)} />
         </View>
       </View>
 
@@ -298,20 +345,13 @@ export default function ExercisesScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* CSS Score Banner */}
-        <View className="bg-white rounded-2xl border border-slate-200/70 p-4 mb-4">
+        <View className="bg-white rounded-2xl border border-slate-200/70 p-4 mb-5">
           <View className="flex-row items-center justify-between mb-3">
             <Text className="text-[11px] text-slate-400 uppercase tracking-wide">
               Current CSS score
             </Text>
-            {/* Badge — dynamic colors via inline style only */}
-            <View
-              className="px-2.5 py-1 rounded-lg"
-              style={{ backgroundColor: statusCfg.badgeBg }}
-            >
-              <Text
-                className="text-[11px] font-medium"
-                style={{ color: statusCfg.badgeText }}
-              >
+            <View className="px-2.5 py-1 rounded-lg" style={{ backgroundColor: statusCfg.badgeBg }}>
+              <Text className="text-[11px] font-medium" style={{ color: statusCfg.badgeText }}>
                 {cssStatus}
               </Text>
             </View>
@@ -322,7 +362,6 @@ export default function ExercisesScreen() {
             <Text className="text-[16px] font-normal text-slate-400"> / 100</Text>
           </Text>
 
-          {/* Score bar */}
           <View className="h-1.5 bg-slate-100 rounded-full mt-3 overflow-hidden">
             <View
               className="h-full rounded-full"
@@ -333,7 +372,6 @@ export default function ExercisesScreen() {
             />
           </View>
 
-          {/* Elevated risk warning */}
           {cssStatus === "Elevated Risk" && (
             <View
               className="mt-3 p-3 rounded-xl border flex-row items-start gap-2"
@@ -350,8 +388,19 @@ export default function ExercisesScreen() {
           )}
         </View>
 
+        {/* Daily Progress Goal */}
+        <View className="mb-6 bg-white p-4 rounded-2xl border border-slate-200/70">
+           <View className="flex-row items-center justify-between mb-2">
+              <Text className="text-[14px] font-bold text-slate-900">Daily Active Target: 30 Mins</Text>
+              <Text className="text-[12px] text-slate-500 font-medium">{totalActiveMins} / 30 mins</Text>
+           </View>
+           <View className="h-3 bg-slate-100 rounded-full overflow-hidden">
+              <View className="h-full bg-[#1e4ed8] rounded-full" style={{ width: `${progressPercent}%` }} />
+           </View>
+        </View>
+
         {/* Routine list */}
-        <Text className="text-[14px] font-medium text-slate-900 mb-2.5">
+        <Text className="text-[14px] font-medium text-slate-900 mb-3">
           Recommended today
         </Text>
 
@@ -359,10 +408,42 @@ export default function ExercisesScreen() {
           <RoutineCard
             key={routine.id}
             routine={routine}
-            onComplete={() => handleComplete(routine)}
+            isCompleted={completedExercises.includes(routine.id)}
+            onPressCard={() => router.push({ pathname: "/(home)/exercise-details", params: { id: routine.id } })}
+            onComplete={() => handleMarkCompleteClick(routine)}
           />
         ))}
       </ScrollView>
+
+      {/* Safety Check Bottom Sheet Modal */}
+      <Modal visible={showSafetyCheck} transparent animationType="fade">
+        <View className="flex-1 bg-slate-900/40 justify-end">
+          <View className="bg-white rounded-t-3xl p-6 pb-12 shadow-xl border-t border-slate-200">
+            <View className="w-12 h-1.5 bg-slate-200 rounded-full self-center mb-6" />
+            <Text className="text-[20px] font-bold text-slate-900 mb-2 text-center">Great job! Quick safety check.</Text>
+            <Text className="text-[15px] text-slate-500 text-center mb-8 leading-relaxed px-2">Did you experience any chest discomfort or dizziness during this routine?</Text>
+
+            <TouchableOpacity 
+              activeOpacity={0.8}
+              onPress={handleSafetySafe}
+              className="bg-blue-50 border border-blue-100 py-4 rounded-xl items-center mb-3 flex-row justify-center"
+            >
+              <Text className="text-[20px] mr-2">👍</Text>
+              <Text className="text-[#1e4ed8] font-bold text-[16px]">No, I feel great</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              activeOpacity={0.8}
+              onPress={handleSafetySymptoms}
+              className="bg-red-50 border border-red-100 py-4 rounded-xl items-center flex-row justify-center"
+            >
+              <Text className="text-[20px] mr-2">⚠️</Text>
+              <Text className="text-red-700 font-bold text-[16px]">Yes, I felt symptoms</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
     </SafeAreaView>
   );
 }

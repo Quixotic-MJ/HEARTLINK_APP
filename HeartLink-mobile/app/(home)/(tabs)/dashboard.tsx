@@ -82,10 +82,11 @@ function StatCard({ icon, label, value, iconColor, iconBg }: { icon: string; lab
 }
 
 // ─── Quick Action ─────────────────────────────────────────────────────────────
-function QuickAction({ icon, iconType, label, bg, border, iconColor, textColor }: { icon: string; iconType: "feather" | "material"; label: string; bg: string; border: string; iconColor: string; textColor: string }) {
+function QuickAction({ icon, iconType, label, bg, border, iconColor, textColor, onPress }: { icon: string; iconType: "feather" | "material"; label: string; bg: string; border: string; iconColor: string; textColor: string; onPress?: () => void }) {
   return (
     <TouchableOpacity
       activeOpacity={0.75}
+      onPress={onPress}
       className="flex-1 rounded-2xl items-center justify-center border py-4 gap-2"
       style={{ backgroundColor: bg, borderColor: border }}
     >
@@ -235,9 +236,9 @@ export default function DashboardScreen() {
         <View className="mt-6 px-5">
           <Text className="text-[15px] font-medium text-slate-900 mb-3">Quick record</Text>
           <View className="flex-row gap-3">
-            <QuickAction icon="barcode-scan" iconType="material" label="Scan meal" bg="#eaf3de" border="#c0dd97" iconColor="#3b6d11" textColor="#27500a" />
-            <QuickAction icon="heart-pulse" iconType="material" label="Log vitals" bg="#fcebeb" border="#f7c1c1" iconColor="#a32d2d" textColor="#791f1f" />
-            <QuickAction icon="clipboard" iconType="feather" label="Symptoms" bg="#faeeda" border="#fac775" iconColor="#854f0b" textColor="#633806" />
+            <QuickAction onPress={() => router.push("/(home)/barcode-scan")} icon="barcode-scan" iconType="material" label="Scan meal" bg="#eaf3de" border="#c0dd97" iconColor="#3b6d11" textColor="#27500a" />
+            <QuickAction onPress={() => router.push("/(home)/daily-biometrics")} icon="heart-pulse" iconType="material" label="Log vitals" bg="#fcebeb" border="#f7c1c1" iconColor="#a32d2d" textColor="#791f1f" />
+            <QuickAction onPress={() => router.push("/(home)/log-symptoms")} icon="clipboard" iconType="feather" label="Symptoms" bg="#faeeda" border="#fac775" iconColor="#854f0b" textColor="#633806" />
           </View>
         </View>
 
@@ -245,7 +246,6 @@ export default function DashboardScreen() {
         <View className="mt-6">
           <View className="px-5 flex-row items-center justify-between mb-3">
             <Text className="text-[15px] font-medium text-slate-900">Recommended today</Text>
-            <TouchableOpacity><Text className="text-[13px] text-slate-400">See all</Text></TouchableOpacity>
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="px-5 gap-3">
             <RecoCard tag="Exercise" title="15-min chair yoga" subtitle="Safe mobility, stable heart rate." icon="yoga" bg="#1e293b" tagBg="rgba(255,255,255,0.12)" tagText="rgba(255,255,255,0.8)" subColor="#94a3b8" />
