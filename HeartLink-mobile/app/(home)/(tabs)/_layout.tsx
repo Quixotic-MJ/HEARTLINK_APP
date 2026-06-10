@@ -34,7 +34,7 @@ const RECORD_OPTIONS = [
     subtitle: "Search and log what you ate today",
     iconColor: "#3b6d11",
     iconBg: "#eaf3de",
-    route: "/(home)/manual-meal-log",
+    route: "/(home)/search-meal",
   },
   {
     icon: "clipboard" as const,
@@ -56,6 +56,7 @@ function RecordBottomSheet({
   visible: boolean;
   onClose: () => void;
 }) {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const backdropAnim = useRef(new Animated.Value(0)).current;
@@ -119,7 +120,7 @@ function RecordBottomSheet({
           borderTopLeftRadius: 24,
           borderTopRightRadius: 24,
           paddingTop: 12,
-          paddingBottom: Platform.OS === "ios" ? 40 : 28,
+          paddingBottom: Platform.OS === "ios" ? 40 : 28 + insets.bottom,
           paddingHorizontal: 20,
           transform: [{ translateY: slideAnim }],
           ...Platform.select({
@@ -255,8 +256,8 @@ function CustomTabBar({ state, navigation, onFabPress }: any) {
         backgroundColor: "#fff",
         flexDirection: "row",
         alignItems: "center",
-        height: Platform.OS === "ios" ? 85 : 65,
-        paddingBottom: Platform.OS === "ios" ? 20 : 0,
+        height: Platform.OS === "ios" ? 85 : 65 + insets.bottom,
+        paddingBottom: Platform.OS === "ios" ? 20 : insets.bottom,
         borderTopWidth: 0.5,
         borderTopColor: "#e2e8f0",
         ...Platform.select({

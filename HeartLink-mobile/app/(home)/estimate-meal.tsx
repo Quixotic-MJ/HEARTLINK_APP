@@ -3,11 +3,11 @@ import {
   View,
   Text,
   TouchableOpacity,
-  ScrollView,
   TextInput,
   Alert,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { StatusBar } from "expo-status-bar";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -19,6 +19,7 @@ type TimeOfMeal = "Breakfast" | "Lunch" | "Dinner" | "Snack";
 type CookingMethod = "Boiled/Steamed" | "Grilled/Baked" | "Fried/Deep-Fried";
 type PortionSize = "Small" | "Medium" | "Large";
 type SaltyLevel = "Low" | "Moderate" | "High/Salty";
+type FiberContent = "None" | "Side Portion" | "Main Ingredient";
 
 // ─── Choice Chip ──────────────────────────────────────────────────────────────
 // Dynamic bg/border via inline style — avoids css-interop crash
@@ -54,13 +55,18 @@ function ChoiceChip<T extends string>({
 
 // ─── Section Header ───────────────────────────────────────────────────────────
 
-function SectionHeader({ title, icon }: { title: string; icon: string }) {
+function SectionHeader({ title, icon, helperText }: { title: string; icon: string; helperText?: string }) {
   return (
-    <View className="flex-row items-center gap-2 mb-3 mt-5">
-      <MaterialCommunityIcons name={icon as any} size={16} color="#94a3b8" />
-      <Text className="text-[13px] font-medium text-slate-500 uppercase tracking-wide">
-        {title}
-      </Text>
+    <View className="mb-3 mt-5">
+      <View className="flex-row items-center gap-2">
+        <MaterialCommunityIcons name={icon as any} size={16} color="#94a3b8" />
+        <Text className="text-[13px] font-medium text-slate-500 uppercase tracking-wide flex-1">
+          {title}
+        </Text>
+      </View>
+      {helperText && (
+        <Text className="text-[11px] text-slate-400 font-medium mt-1 ml-6">{helperText}</Text>
+      )}
     </View>
   );
 }
@@ -152,10 +158,10 @@ function calcEstimateRisk(
   };
 }
 
-function calcSpecificRisk(sodium: string, calories: string, fat: string): RiskResult {
+function calcSpecificRisk(sodium: string, calories: string, satFat: string): RiskResult {
   const na = parseFloat(sodium) || 0;
   const cal = parseFloat(calories) || 0;
-  const fatG = parseFloat(fat) || 0;
+  const satFatG = parseFloat(satFat) || 0;
 
   // Simple weighted score
   let score = 0;
@@ -163,8 +169,8 @@ function calcSpecificRisk(sodium: string, calories: string, fat: string): RiskRe
   else if (na > 300) score += 25;
   if (cal > 600) score += 20;
   else if (cal > 300) score += 10;
-  if (fatG > 20) score += 20;
-  else if (fatG > 10) score += 10;
+  if (satFatG > 20) score += 20;
+  else if (satFatG > 10) score += 10;
 
   if (score < 25)
     return {
@@ -210,18 +216,22 @@ export default function ManualMealLogScreen() {
   const [cookingMethod, setCookingMethod] = useState<CookingMethod>("Boiled/Steamed");
   const [portionSize, setPortionSize] = useState<PortionSize>("Medium");
   const [saltyLevel, setSaltyLevel] = useState<SaltyLevel>("Low");
+  const [fiberContent, setFiberContent] = useState<FiberContent>("Side Portion");
 
   // Specific mode
+  const [servings, setServings] = useState(1);
   const [sodium, setSodium] = useState("");
   const [calories, setCalories] = useState("");
-  const [fat, setFat] = useState("");
+  const [satFat, setSatFat] = useState("");
   const [fiber, setFiber] = useState("");
-  const [protein, setProtein] = useState("");
+  const [cholesterol, setCholesterol] = useState("");
+
+  const insets = useSafeAreaInsets();
 
   const risk =
     inputMode === "estimate"
       ? calcEstimateRisk(cookingMethod, saltyLevel, portionSize)
-      : calcSpecificRisk(sodium, calories, fat);
+      : calcSpecificRisk(sodium, calories, satFat);
 
   const handleSave = () => {
     if (!foodDescription.trim()) {
@@ -252,14 +262,16 @@ export default function ManualMealLogScreen() {
             Log local food
           </Text>
           <Text className="text-[12px] text-slate-400">
-            Manual estimation
+            Manual food logging
           </Text>
         </View>
       </View>
 
-      <ScrollView
-        contentContainerClassName="px-5 pb-28 pt-4"
+      <KeyboardAwareScrollView
+        contentContainerClassName="px-5 pb-12 pt-4"
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        extraScrollHeight={20}
       >
 
         {/* ── Mode Selector ── */}
@@ -359,10 +371,17 @@ export default function ManualMealLogScreen() {
         {/* ══ ESTIMATE MODE ══ */}
         {inputMode === "estimate" && (
           <>
-            <SectionHeader title="Cooking method" icon="fire" />
+            <SectionHeader title="Cooking method" icon="fire" helperText="(Affects fat tracking)" />
             <View className="flex-row flex-wrap">
               {(["Boiled/Steamed", "Grilled/Baked", "Fried/Deep-Fried"] as CookingMethod[]).map((opt) => (
                 <ChoiceChip key={opt} label={opt} selected={cookingMethod === opt} onSelect={setCookingMethod} />
+              ))}
+            </View>
+
+            <SectionHeader title="Vegetable / Fiber Content" icon="leaf" helperText="(Boosts your stability score)" />
+            <View className="flex-row flex-wrap">
+              {(["None", "Side Portion", "Main Ingredient"] as FiberContent[]).map((opt) => (
+                <ChoiceChip key={opt} label={opt} selected={fiberContent === opt} onSelect={setFiberContent} />
               ))}
             </View>
 
@@ -373,7 +392,7 @@ export default function ManualMealLogScreen() {
               ))}
             </View>
 
-            <SectionHeader title="Salty / savory level" icon="shaker-outline" />
+            <SectionHeader title="Salty / savory level" icon="shaker-outline" helperText="(Affects sodium tracking)" />
             <View className="flex-row flex-wrap">
               {(["Low", "Moderate", "High/Salty"] as SaltyLevel[]).map((opt) => (
                 <ChoiceChip key={opt} label={opt} selected={saltyLevel === opt} onSelect={setSaltyLevel} />
@@ -387,7 +406,21 @@ export default function ManualMealLogScreen() {
           <>
             <SectionHeader title="Nutrition values" icon="nutrition" />
 
-            {/* Sodium + Calories */}
+            {/* NUMBER OF SERVINGS stepper */}
+            <View className="flex-row items-center justify-between mb-4 mt-2">
+              <Text className="text-[11px] text-slate-400 uppercase tracking-wide">Number of servings</Text>
+              <View className="flex-row items-center bg-white border border-slate-200/70 rounded-xl px-2 py-1.5 gap-4">
+                <TouchableOpacity onPress={() => setServings(s => Math.max(1, s - 1))} className="p-1">
+                  <Feather name="minus" size={16} color="#0f172a" />
+                </TouchableOpacity>
+                <Text className="text-[14px] font-medium text-slate-900 w-4 text-center">{servings}</Text>
+                <TouchableOpacity onPress={() => setServings(s => s + 1)} className="p-1">
+                  <Feather name="plus" size={16} color="#0f172a" />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Row 1: Sodium + Calories */}
             <View className="flex-row gap-3 mb-3">
               <NumericField
                 label="Sodium"
@@ -405,13 +438,13 @@ export default function ManualMealLogScreen() {
               />
             </View>
 
-            {/* Fat + Fiber + Protein */}
-            <View className="flex-row gap-3 mb-2">
+            {/* Row 2: Sat. Fat + Fiber */}
+            <View className="flex-row gap-3 mb-3">
               <NumericField
-                label="Total fat"
-                value={fat}
+                label="Sat. Fat"
+                value={satFat}
                 unit="g"
-                onChange={setFat}
+                onChange={setSatFat}
                 placeholder="0"
               />
               <NumericField
@@ -421,13 +454,18 @@ export default function ManualMealLogScreen() {
                 onChange={setFiber}
                 placeholder="0"
               />
+            </View>
+
+            {/* Row 3: Cholesterol */}
+            <View className="flex-row gap-3 mb-2">
               <NumericField
-                label="Protein"
-                value={protein}
-                unit="g"
-                onChange={setProtein}
+                label="Cholesterol"
+                value={cholesterol}
+                unit="mg"
+                onChange={setCholesterol}
                 placeholder="0"
               />
+              <View className="flex-1" />
             </View>
 
             {/* Helper note */}
@@ -440,10 +478,16 @@ export default function ManualMealLogScreen() {
           </>
         )}
 
-        {/* Save Button */}
+      </KeyboardAwareScrollView>
+
+      {/* Save Button Container */}
+      <View 
+        className="px-5 pt-3 bg-slate-50 border-t border-slate-200/50"
+        style={{ paddingBottom: Math.max(insets.bottom, 16) }}
+      >
         <TouchableOpacity
           onPress={handleSave}
-          className="bg-slate-900 w-full rounded-2xl py-3.5 items-center justify-center flex-row gap-2 mt-6"
+          className="bg-slate-900 w-full rounded-2xl py-3.5 items-center justify-center flex-row gap-2"
           activeOpacity={0.85}
         >
           <Feather name="check" size={16} color="#fff" />
@@ -451,8 +495,7 @@ export default function ManualMealLogScreen() {
             Save meal
           </Text>
         </TouchableOpacity>
-
-      </ScrollView>
+      </View>
     </SafeAreaView>
   );
 }
