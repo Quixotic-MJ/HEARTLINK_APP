@@ -128,15 +128,15 @@ export default function SettingsScreen() {
           />
           <SettingsRow
             icon="lock"
-            label="Privacy & security"
-            subtitle="Password, 2FA, data permissions"
+            label="Account security"
+            subtitle="Change your password"
             iconBg="#f8fafc"
             iconColor="#64748b"
           />
           <SettingsRow
             icon="bell"
-            label="Notifications"
-            subtitle="Alerts, reminders, and push settings"
+            label="Daily Reminders"
+            subtitle="Set local logging reminders"
             iconBg="#faeeda"
             iconColor="#854f0b"
             isLast
@@ -147,14 +147,6 @@ export default function SettingsScreen() {
         <SectionLabel title="Health" />
         <SettingsGroup>
           <SettingsRow
-            icon="heart-pulse"
-            iconType="material"
-            label="Health data sources"
-            subtitle="Connected devices and wearables"
-            iconBg="#fcebeb"
-            iconColor="#a32d2d"
-          />
-          <SettingsRow
             icon="target"
             label="Goals & thresholds"
             subtitle="BP targets, sodium limits, activity goals"
@@ -162,19 +154,12 @@ export default function SettingsScreen() {
             iconColor="#3b6d11"
           />
           <SettingsRow
-            icon="file-text"
-            label="Medical records"
-            subtitle="Upload and manage health documents"
-            iconBg="#ede9fe"
-            iconColor="#6d28d9"
-          />
-          <SettingsRow
             icon="map-pin"
-            label="Cardiologist directory"
-            subtitle="Find a specialist near you"
+            label="My Care Team"
+            subtitle="Manage doctor and emergency contacts"
             iconBg="#e6f1fb"
             iconColor="#185fa5"
-            onPress={() => router.push("/locator")}
+            onPress={() => router.push("/(home)/care-team")}
             isLast
           />
         </SettingsGroup>
@@ -186,13 +171,6 @@ export default function SettingsScreen() {
             icon="moon"
             label="Appearance"
             subtitle="Light, dark, or system theme"
-            iconBg="#f8fafc"
-            iconColor="#64748b"
-          />
-          <SettingsRow
-            icon="globe"
-            label="Language"
-            subtitle="English (US)"
             iconBg="#f8fafc"
             iconColor="#64748b"
           />
@@ -222,6 +200,14 @@ export default function SettingsScreen() {
             danger
             iconBg="#fcebeb"
             iconColor="#a32d2d"
+          />
+          <SettingsRow
+            icon="trash-2"
+            label="Delete account"
+            subtitle="Permanently remove your health data"
+            danger
+            iconBg="#fef2f2"
+            iconColor="#ef4444"
             isLast
           />
         </SettingsGroup>

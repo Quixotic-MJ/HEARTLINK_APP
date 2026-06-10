@@ -435,8 +435,32 @@ export default function RecipesScreen() {
     <SafeAreaView className="flex-1 bg-slate-50" edges={["top"]}>
       <StatusBar style="dark" />
 
-      {/* Header */}
-      <View className="flex-row items-start justify-between px-5 pt-4 pb-1">
+      {/* ── Top bar ── */}
+      <View className="flex-row justify-between items-center px-5 pt-4 pb-2">
+        <View className="flex-row items-center gap-2.5">
+          <View className="w-9 h-9 bg-[#1e4ed8] rounded-xl items-center justify-center">
+            <MaterialCommunityIcons name="heart-pulse" size={18} color="white" />
+          </View>
+          <Text className="text-[16px] font-medium text-slate-900 tracking-tight">HeartLink</Text>
+        </View>
+        <View className="flex-row items-center gap-2">
+          <TouchableOpacity onPress={() => router.push("/(home)/notifications")} className="w-9 h-9 rounded-xl bg-slate-100 border border-slate-200/70 items-center justify-center">
+            <Feather name="bell" size={17} color="#64748b" />
+            <View style={{ position: "absolute", top: 8, right: 8 }} className="w-1.5 h-1.5 bg-red-500 rounded-full" />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push("/(home)/settings")} className="w-9 h-9 rounded-xl bg-slate-100 border border-slate-200/70 items-center justify-center">
+            <Feather name="settings" size={17} color="#64748b" />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push("/(home)/profile")} activeOpacity={0.8} className="ml-1">
+            <View className="w-9 h-9 rounded-full bg-slate-200 overflow-hidden">
+              <Image source={{ uri: "https://scontent.fcgy2-2.fna.fbcdn.net/v/t39.30808-6/470238702_122163229004273349_6885730481985014209_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=a5f93a&_nc_eui2=AeFspkU-pAnduqXzsg0nCMQSc3h1gs4ySEZzeHWCzjJIRiS7qjQy166_bn5hNqi44fxFQkp5tRFulwgVSN60yG1o&_nc_ohc=JjKG5iySuBYQ7kNvwF3zmCi&_nc_oc=AdqJL2LZkjt9IqiM_KPQtb2ZUT6mEm5UdI2cgi-6Mu6INC3QVBLGz8-OKHIG4Fuyfuk&_nc_zt=23&_nc_ht=scontent.fcgy2-2.fna&_nc_gid=zjeomdkvajMCPjEc3tC8YQ&_nc_ss=7b2a8&oh=00_Af_FFO3skv0KzZZjqU44lc3j6qTtYj5r07rF5GLagi9HDg&oe=6A275350" }} className="w-full h-full" resizeMode="cover" />
+            </View>
+            <View style={{ position: "absolute", bottom: -1, right: -1 }} className="w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-slate-50" />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <View className="flex-row items-center justify-between px-5 pt-3">
         <View>
           <Text className="text-[22px] font-medium text-slate-900 tracking-tight">
             Recipes
@@ -445,7 +469,7 @@ export default function RecipesScreen() {
             Heart-healthy meals for you
           </Text>
         </View>
-        <View className="w-10 h-10 rounded-xl bg-green-50 border border-green-100 items-center justify-center">
+        <View className="w-10 h-10 rounded-xl bg-green-50 border border-green-100 items-center justify-center mt-2">
           <MaterialCommunityIcons name="silverware-fork-knife" size={18} color="#3b6d11" />
         </View>
       </View>

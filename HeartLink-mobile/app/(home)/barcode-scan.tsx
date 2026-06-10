@@ -8,45 +8,137 @@ import {
   TextInput,
   ScrollView,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { CameraView, useCameraPermissions } from "expo-camera";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 
-// Types
+// ─── Types ────────────────────────────────────────────────────────────────────
+
 type ProductData = {
   product_name: string;
   brands: string;
   serving_size: string;
-  sodium_mg: number; // calculated from API
+  sodium_mg: number;
   saturated_fat_g: number;
   energy_kcal: number;
+  fiber_g: number;
+  cholesterol_mg: number;
 };
+
+type MealTime = "Breakfast" | "Lunch" | "Dinner" | "Snack";
+
+// ─── Nutrition Tile ───────────────────────────────────────────────────────────
+
+function NutritionTile({
+  label,
+  value,
+  unit,
+  highlight,
+}: {
+  label: string;
+  value: string;
+  unit: string;
+  highlight?: boolean;
+}) {
+  return (
+    <View
+      className="rounded-2xl p-4 border"
+      style={{
+        width: "48%",
+        backgroundColor: highlight ? "#fcebeb" : "#f8fafc",
+        borderColor: highlight ? "#f7c1c1" : "#e2e8f0",
+      }}
+    >
+      <Text
+        className="text-[10px] uppercase tracking-wide mb-1.5"
+        style={{ color: highlight ? "#a32d2d" : "#94a3b8" }}
+      >
+        {label}
+      </Text>
+      <View className="flex-row items-end gap-1">
+        <Text
+          className="text-[22px] font-medium"
+          style={{ color: highlight ? "#a32d2d" : "#0f172a" }}
+        >
+          {value}
+        </Text>
+        <Text
+          className="text-[12px] mb-1"
+          style={{ color: highlight ? "#f7c1c1" : "#94a3b8" }}
+        >
+          {unit}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+// ─── Meal Time Chip ───────────────────────────────────────────────────────────
+// Dynamic bg/border via style — avoids css-interop crash
+
+function MealTimeChip({
+  label,
+  active,
+  onPress,
+}: {
+  label: string;
+  active: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={0.75}
+      className="px-4 py-2 rounded-full border mr-2"
+      style={{
+        backgroundColor: active ? "#0f172a" : "#fff",
+        borderColor: active ? "#0f172a" : "#e2e8f0",
+      }}
+    >
+      <Text
+        className="text-[12px] font-medium"
+        style={{ color: active ? "#fff" : "#64748b" }}
+      >
+        {label}
+      </Text>
+    </TouchableOpacity>
+  );
+}
+
+// ─── Main Screen ──────────────────────────────────────────────────────────────
 
 export default function BarcodeScanScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
   const [loading, setLoading] = useState(false);
   const [product, setProduct] = useState<ProductData | null>(null);
-  
-  // User input
+  const [torch, setTorch] = useState(false);
+  const [showManualInput, setShowManualInput] = useState(false);
+  const [manualBarcode, setManualBarcode] = useState("");
   const [servingsStr, setServingsStr] = useState("1");
+  const [mealTime, setMealTime] = useState<MealTime>("Lunch");
+
   const servings = parseFloat(servingsStr) || 1;
 
-  // Derived values based on servings
-  const calculatedSodium = product ? product.sodium_mg * servings : 0;
-  const calculatedFat = product ? product.saturated_fat_g * servings : 0;
-  const calculatedCalories = product ? product.energy_kcal * servings : 0;
+  const calc = {
+    sodium:      product ? product.sodium_mg * servings : 0,
+    fat:         product ? product.saturated_fat_g * servings : 0,
+    calories:    product ? product.energy_kcal * servings : 0,
+    fiber:       product ? product.fiber_g * servings : 0,
+    cholesterol: product ? product.cholesterol_mg * servings : 0,
+  };
 
-  const isHighSodium = calculatedSodium > 500;
+  const isHighSodium = calc.sodium > 500;
 
   useEffect(() => {
-    if (!permission) {
-      requestPermission();
-    }
+    if (!permission) requestPermission();
   }, [permission, requestPermission]);
 
   const handleBarcodeScanned = async ({ type, data }: { type: string; data: string }) => {
@@ -60,76 +152,68 @@ export default function BarcodeScanScreen() {
 
       if (result.status === 1 && result.product) {
         const prod = result.product;
-        const nutriments = prod.nutriments || {};
-
-        // Sodium parsing (API often returns in grams for serving/100g, let's use the raw values carefully)
-        // sodium_serving is usually in grams
-        const sodium_serving = nutriments.sodium_serving || 0;
-        const sodium_mg = sodium_serving * 1000;
-
-        const saturated_fat_g = nutriments["saturated-fat_serving"] || 0;
-        const energy_kcal = nutriments["energy-kcal_serving"] || 0;
-
+        const n = prod.nutriments || {};
         setProduct({
-          product_name: prod.product_name || "Unknown Product",
-          brands: prod.brands || "Unknown Brand",
+          product_name: prod.product_name || "Unknown product",
+          brands: prod.brands || "Unknown brand",
           serving_size: prod.serving_size || "1 serving",
-          sodium_mg,
-          saturated_fat_g,
-          energy_kcal,
+          sodium_mg: (n.sodium_serving || 0) * 1000,
+          saturated_fat_g: n["saturated-fat_serving"] || 0,
+          energy_kcal: n["energy-kcal_serving"] || 0,
+          fiber_g: n["fiber_serving"] || 0,
+          cholesterol_mg: (n["cholesterol_serving"] || 0) * 1000,
         });
       } else {
-        Alert.alert(
-          "Product Not Found",
-          "Could not find nutritional data for this barcode.",
-          [{ text: "Scan Again", onPress: () => setScanned(false) }]
-        );
+        Alert.alert("Product not found", "Could not find nutritional data for this barcode.", [
+          { text: "Scan again", onPress: () => setScanned(false) },
+        ]);
       }
-    } catch (error) {
-      console.error(error);
-      Alert.alert(
-        "Error",
-        "An error occurred while fetching product data.",
-        [{ text: "Scan Again", onPress: () => setScanned(false) }]
-      );
+    } catch {
+      Alert.alert("Error", "An error occurred while fetching product data.", [
+        { text: "Scan again", onPress: () => setScanned(false) },
+      ]);
     } finally {
       setLoading(false);
     }
   };
 
   const handleLogMeal = () => {
-    // Simulated log action
-    Alert.alert("Success", "Meal successfully logged to your Daily Diary!", [
-      { text: "OK", onPress: () => router.back() }
+    Alert.alert("Meal logged", "Successfully added to your daily diary.", [
+      { text: "OK", onPress: () => router.back() },
     ]);
   };
 
+  // ── Permission loading ──
   if (!permission) {
     return (
       <View className="flex-1 items-center justify-center bg-slate-50">
-        <ActivityIndicator size="large" color="#1e4ed8" />
+        <ActivityIndicator size="large" color="#0f172a" />
       </View>
     );
   }
 
+  // ── Permission denied ──
   if (!permission.granted) {
     return (
-      <SafeAreaView className="flex-1 bg-slate-50 justify-center items-center px-6">
-        <Feather name="camera-off" size={48} color="#94a3b8" />
-        <Text className="text-[16px] font-medium text-slate-900 mt-4 mb-6 text-center">
-          We need your permission to show the camera
+      <SafeAreaView className="flex-1 bg-slate-50 items-center justify-center px-6">
+        <View className="w-16 h-16 rounded-2xl bg-slate-100 border border-slate-200/70 items-center justify-center mb-4">
+          <Feather name="camera-off" size={26} color="#94a3b8" />
+        </View>
+        <Text className="text-[16px] font-medium text-slate-900 mb-2 text-center">
+          Camera permission required
+        </Text>
+        <Text className="text-[13px] text-slate-400 text-center mb-6 leading-relaxed">
+          HeartLink needs camera access to scan food barcodes.
         </Text>
         <TouchableOpacity
           onPress={requestPermission}
-          className="bg-[#1e4ed8] px-6 py-3 rounded-xl"
+          className="bg-slate-900 px-6 py-3 rounded-xl flex-row items-center gap-2"
         >
-          <Text className="text-white font-medium">Grant Permission</Text>
+          <Feather name="camera" size={15} color="#fff" />
+          <Text className="text-white font-medium text-[14px]">Grant permission</Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          className="mt-4 px-6 py-3"
-        >
-          <Text className="text-slate-500 font-medium">Go Back</Text>
+        <TouchableOpacity onPress={() => router.back()} className="mt-3 px-6 py-3">
+          <Text className="text-slate-400 text-[13px]">Go back</Text>
         </TouchableOpacity>
       </SafeAreaView>
     );
@@ -138,197 +222,257 @@ export default function BarcodeScanScreen() {
   return (
     <SafeAreaView className="flex-1 bg-slate-50" edges={["top"]}>
       <StatusBar style="dark" />
-      
-      {/* Header */}
-      <View className="flex-row items-center px-5 pt-4 pb-3">
+
+      {/* ── Header ── */}
+      <View className="flex-row items-center px-5 pt-4 pb-3 border-b border-slate-200/50">
         <TouchableOpacity
           onPress={() => router.back()}
-          className="w-10 h-10 rounded-full bg-white border border-slate-200/70 items-center justify-center mr-3 shadow-sm shadow-slate-200/50"
+          className="w-9 h-9 rounded-xl bg-white border border-slate-200/70 items-center justify-center mr-3"
         >
-          <Feather name="arrow-left" size={20} color="#0f172a" />
+          <Feather name="arrow-left" size={18} color="#0f172a" />
         </TouchableOpacity>
-        <View>
-          <Text className="text-[18px] font-bold text-slate-900 tracking-tight">
-            Scan Meal
-          </Text>
-          <Text className="text-[12px] text-slate-500 font-medium">
-            Record via barcode
-          </Text>
+        <View className="flex-1">
+          <Text className="text-[17px] font-medium text-slate-900">Scan meal</Text>
+          <Text className="text-[12px] text-slate-400">Record via barcode</Text>
         </View>
+        {/* Torch toggle (always visible) */}
+        {!product && (
+          <TouchableOpacity
+            onPress={() => setTorch(!torch)}
+            className="w-9 h-9 rounded-xl border border-slate-200/70 items-center justify-center"
+            style={{ backgroundColor: torch ? "#0f172a" : "#fff" }}
+          >
+            <Feather name={torch ? "zap" : "zap-off"} size={16} color={torch ? "#fff" : "#64748b"} />
+          </TouchableOpacity>
+        )}
       </View>
 
       {!product ? (
-        // Camera View Screen
-        <View className="flex-1 px-5 pb-5 pt-2">
-          <View className="flex-1 rounded-3xl overflow-hidden bg-slate-900 border border-slate-200/70">
+        /* ══ CAMERA VIEW ══ */
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          className="flex-1"
+        >
+          <View 
+            className="flex-1 px-5 pt-4" 
+            style={{ paddingBottom: Math.max(insets.bottom, 20) }}
+          >
+            {/* Camera */}
+            <View className="flex-1 rounded-2xl overflow-hidden bg-slate-900 relative">
             <CameraView
               style={StyleSheet.absoluteFillObject}
               onBarcodeScanned={scanned ? undefined : handleBarcodeScanned}
               barcodeScannerSettings={{
                 barcodeTypes: ["ean13", "ean8", "upc_a", "upc_e", "qr"],
               }}
+              enableTorch={torch}
             >
-              {/* Scan Overlay UI */}
-              <View className="flex-1 justify-center items-center">
-                <View className="w-64 h-64 border-2 border-white/50 rounded-2xl items-center justify-center relative">
-                  {/* Scan frame corners */}
-                  <View className="absolute top-[-2px] left-[-2px] w-8 h-8 border-t-4 border-l-4 border-white rounded-tl-2xl" />
-                  <View className="absolute top-[-2px] right-[-2px] w-8 h-8 border-t-4 border-r-4 border-white rounded-tr-2xl" />
-                  <View className="absolute bottom-[-2px] left-[-2px] w-8 h-8 border-b-4 border-l-4 border-white rounded-bl-2xl" />
-                  <View className="absolute bottom-[-2px] right-[-2px] w-8 h-8 border-b-4 border-r-4 border-white rounded-br-2xl" />
-                  
+              {/* Scan overlay */}
+              <View className="flex-1 items-center justify-center">
+                {/* Dark vignette corners */}
+                <View style={{ position: "absolute", inset: 0, backgroundColor: "rgba(0,0,0,0.35)" }} />
+
+                {/* Scan frame */}
+                <View style={{ width: 240, height: 240, position: "relative", alignItems: "center", justifyContent: "center" }}>
+                  {/* Clear centre */}
+                  <View style={{ position: "absolute", inset: 0, backgroundColor: "transparent" }} />
+
+                  {/* Corner marks */}
+                  {[
+                    { top: -1, left: -1, borderTopWidth: 3, borderLeftWidth: 3, borderTopLeftRadius: 12 },
+                    { top: -1, right: -1, borderTopWidth: 3, borderRightWidth: 3, borderTopRightRadius: 12 },
+                    { bottom: -1, left: -1, borderBottomWidth: 3, borderLeftWidth: 3, borderBottomLeftRadius: 12 },
+                    { bottom: -1, right: -1, borderBottomWidth: 3, borderRightWidth: 3, borderBottomRightRadius: 12 },
+                  ].map((s, i) => (
+                    <View key={i} style={{ position: "absolute", width: 28, height: 28, borderColor: "#fff", ...s }} />
+                  ))}
+
                   {loading && (
-                    <View className="bg-black/50 p-4 rounded-xl items-center">
-                      <ActivityIndicator size="large" color="#ffffff" />
-                      <Text className="text-white mt-2 font-medium">Looking up...</Text>
+                    <View style={{ backgroundColor: "rgba(0,0,0,0.6)", borderRadius: 14, padding: 16, alignItems: "center" }}>
+                      <ActivityIndicator size="large" color="#fff" />
+                      <Text style={{ color: "#fff", marginTop: 8, fontSize: 13 }}>Looking up…</Text>
                     </View>
                   )}
                 </View>
-                <Text className="text-white/80 mt-8 font-medium text-[15px] bg-black/40 px-4 py-2 rounded-full">
-                  Center barcode in frame
-                </Text>
+
+                {/* Label */}
+                <View style={{ marginTop: 24, backgroundColor: "rgba(0,0,0,0.5)", borderRadius: 99, paddingHorizontal: 16, paddingVertical: 8 }}>
+                  <Text style={{ color: "rgba(255,255,255,0.9)", fontSize: 13, fontWeight: "500" }}>
+                    Centre barcode in frame
+                  </Text>
+                </View>
               </View>
             </CameraView>
           </View>
-        </View>
-      ) : (
-        // Product Review Screen
-        <ScrollView contentContainerClassName="p-5" showsVerticalScrollIndicator={false}>
-          <View className="bg-white rounded-3xl p-5 border border-slate-200/70 shadow-sm shadow-slate-200/40">
-            
-            {/* Product Header */}
-            <View className="flex-row items-start justify-between mb-6 border-b border-slate-100 pb-5">
-              <View className="flex-1 pr-4">
-                <View className="bg-blue-50 self-start px-2.5 py-1 rounded-md mb-2">
-                  <Text className="text-[10px] font-bold uppercase tracking-wider text-[#1e4ed8]">
-                    {product.brands}
-                  </Text>
-                </View>
-                <Text className="text-[22px] font-bold text-slate-900 leading-tight">
-                  {product.product_name}
-                </Text>
-                <Text className="text-[13px] text-slate-500 mt-1 font-medium">
-                  Base Serving: {product.serving_size}
-                </Text>
-              </View>
-              <View className="w-12 h-12 bg-slate-50 rounded-2xl border border-slate-100 items-center justify-center">
-                <MaterialCommunityIcons name="food-apple" size={24} color="#64748b" />
-              </View>
-            </View>
 
-            {/* Warning Banner */}
-            {isHighSodium && (
-              <View className="bg-red-50 rounded-2xl p-4 mb-6 flex-row items-center border border-red-100">
-                <View className="w-8 h-8 bg-red-100 rounded-full items-center justify-center mr-3">
-                  <Feather name="alert-circle" size={16} color="#dc2626" />
+          {/* Manual entry */}
+          <View className="mt-4">
+            {showManualInput ? (
+              <View className="flex-row items-center gap-2">
+                <View className="flex-1 bg-white border border-slate-200/70 rounded-xl px-3.5 py-2.5">
+                  <TextInput
+                    value={manualBarcode}
+                    onChangeText={setManualBarcode}
+                    placeholder="Enter barcode number…"
+                    placeholderTextColor="#cbd5e1"
+                    keyboardType="numeric"
+                    className="text-[14px] text-slate-900"
+                    autoFocus
+                  />
                 </View>
-                <View className="flex-1">
-                  <Text className="text-red-900 font-bold text-[14px]">High Sodium Alert</Text>
-                  <Text className="text-red-700 text-[12px] mt-0.5 leading-snug">
-                    Consider reducing portion size to keep your cardiovascular score stable.
-                  </Text>
-                </View>
+                <TouchableOpacity
+                  onPress={() => {
+                    if (manualBarcode) {
+                      setShowManualInput(false);
+                      handleBarcodeScanned({ type: "manual", data: manualBarcode });
+                    }
+                  }}
+                  className="bg-slate-900 px-4 py-2.5 rounded-xl"
+                >
+                  <Text className="text-white text-[13px] font-medium">Look up</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => setShowManualInput(false)} className="p-2">
+                  <Feather name="x" size={18} color="#64748b" />
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View className="flex-row items-center justify-center gap-3">
+                <TouchableOpacity
+                  onPress={() => setShowManualInput(true)}
+                  className="flex-row items-center gap-1.5 bg-white border border-slate-200/70 px-4 py-2.5 rounded-xl"
+                >
+                  <Feather name="edit-2" size={13} color="#64748b" />
+                  <Text className="text-[12px] text-slate-600">Enter manually</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => router.push("/(home)/search-meal")}
+                  className="flex-row items-center gap-1.5 bg-white border border-slate-200/70 px-4 py-2.5 rounded-xl"
+                >
+                  <Feather name="search" size={13} color="#64748b" />
+                  <Text className="text-[12px] text-slate-600">Search food</Text>
+                </TouchableOpacity>
               </View>
             )}
+          </View>
+          </View>
+        </KeyboardAvoidingView>
+      ) : (
+        /* ══ PRODUCT REVIEW ══ */
+        <ScrollView contentContainerClassName="p-5 pb-10" showsVerticalScrollIndicator={false}>
 
-            {/* Servings Adjustment */}
-            <View className="mb-6 flex-row items-center justify-between bg-slate-50 p-4 rounded-2xl border border-slate-100">
-              <View>
-                <Text className="text-[14px] font-bold text-slate-900">Servings Consumed</Text>
-                <Text className="text-[12px] text-slate-500 mt-0.5">Adjust multiplier</Text>
+          {/* Product header card */}
+          <View className="bg-white rounded-2xl border border-slate-200/70 p-4 mb-3 flex-row items-start gap-3">
+            <View
+              className="w-11 h-11 rounded-xl items-center justify-center flex-shrink-0"
+              style={{ backgroundColor: "#eaf3de" }}
+            >
+              <MaterialCommunityIcons name="food-apple" size={20} color="#3b6d11" />
+            </View>
+            <View className="flex-1">
+              <Text className="text-[11px] text-slate-400 uppercase tracking-wide mb-0.5">
+                {product.brands}
+              </Text>
+              <Text className="text-[16px] font-medium text-slate-900 leading-snug">
+                {product.product_name}
+              </Text>
+              <Text className="text-[12px] text-slate-400 mt-0.5">
+                Base serving: {product.serving_size}
+              </Text>
+            </View>
+          </View>
+
+          {/* High sodium warning */}
+          {isHighSodium && (
+            <View className="rounded-2xl p-4 mb-3 border flex-row items-start gap-3"
+              style={{ backgroundColor: "#fcebeb", borderColor: "#f7c1c1" }}>
+              <Feather name="alert-triangle" size={15} color="#a32d2d" style={{ marginTop: 1 }} />
+              <View className="flex-1">
+                <Text className="text-[13px] font-medium mb-0.5" style={{ color: "#a32d2d" }}>
+                  High sodium
+                </Text>
+                <Text className="text-[12px] leading-relaxed" style={{ color: "#791f1f" }}>
+                  Consider reducing portion size to keep your cardiovascular score stable.
+                </Text>
               </View>
-              <View className="flex-row items-center bg-white rounded-xl border border-slate-200 shadow-sm shadow-slate-100/50">
-                <TouchableOpacity 
-                  onPress={() => setServingsStr(String(Math.max(0.5, servings - 0.5)))}
-                  className="w-10 h-10 items-center justify-center"
-                >
-                  <Feather name="minus" size={16} color="#64748b" />
-                </TouchableOpacity>
+            </View>
+          )}
+
+          {/* Servings + meal time */}
+          <View className="bg-white rounded-2xl border border-slate-200/70 p-4 mb-3">
+            {/* Servings stepper */}
+            <Text className="text-[11px] text-slate-400 uppercase tracking-wide mb-2">
+              Servings consumed
+            </Text>
+            <View className="flex-row items-center justify-between bg-slate-50 border border-slate-200/70 rounded-xl px-3 py-2 mb-4">
+              <TouchableOpacity
+                onPress={() => setServingsStr(String(Math.max(0.5, servings - 0.5)))}
+                className="w-9 h-9 rounded-lg bg-white border border-slate-200/70 items-center justify-center"
+              >
+                <Feather name="minus" size={15} color="#475569" />
+              </TouchableOpacity>
+              <View className="items-center">
                 <TextInput
                   value={servingsStr}
                   onChangeText={setServingsStr}
                   keyboardType="numeric"
-                  className="w-12 text-center text-[16px] font-bold text-slate-900"
+                  className="text-[20px] font-medium text-slate-900 text-center w-16"
                 />
-                <TouchableOpacity 
-                  onPress={() => setServingsStr(String(servings + 0.5))}
-                  className="w-10 h-10 items-center justify-center"
-                >
-                  <Feather name="plus" size={16} color="#64748b" />
-                </TouchableOpacity>
               </View>
+              <TouchableOpacity
+                onPress={() => setServingsStr(String(servings + 0.5))}
+                className="w-9 h-9 rounded-lg bg-white border border-slate-200/70 items-center justify-center"
+              >
+                <Feather name="plus" size={15} color="#475569" />
+              </TouchableOpacity>
             </View>
 
-            {/* Nutritional Grid */}
-            <Text className="text-[15px] font-bold text-slate-900 mb-3">Total Nutrition</Text>
-            <View className="flex-row flex-wrap justify-between gap-y-3 mb-8">
-              
-              <View className={`w-[48%] rounded-2xl p-4 border ${isHighSodium ? 'bg-red-50 border-red-100' : 'bg-blue-50 border-blue-100'}`}>
-                <Text className={`text-[12px] font-medium uppercase tracking-wider mb-1 ${isHighSodium ? 'text-red-600' : 'text-blue-600'}`}>
-                  Sodium
-                </Text>
-                <View className="flex-row items-end">
-                  <Text className={`text-[24px] font-bold ${isHighSodium ? 'text-red-900' : 'text-blue-900'}`}>
-                    {calculatedSodium.toFixed(0)}
-                  </Text>
-                  <Text className={`text-[13px] font-medium mb-1 ml-1 ${isHighSodium ? 'text-red-700' : 'text-blue-700'}`}>
-                    mg
-                  </Text>
-                </View>
-              </View>
-
-              <View className="w-[48%] bg-slate-50 rounded-2xl p-4 border border-slate-100">
-                <Text className="text-[12px] text-slate-500 font-medium uppercase tracking-wider mb-1">
-                  Calories
-                </Text>
-                <View className="flex-row items-end">
-                  <Text className="text-[24px] font-bold text-slate-900">
-                    {calculatedCalories.toFixed(0)}
-                  </Text>
-                  <Text className="text-[13px] font-medium text-slate-500 mb-1 ml-1">
-                    kcal
-                  </Text>
-                </View>
-              </View>
-
-              <View className="w-[48%] bg-slate-50 rounded-2xl p-4 border border-slate-100">
-                <Text className="text-[12px] text-slate-500 font-medium uppercase tracking-wider mb-1">
-                  Sat. Fat
-                </Text>
-                <View className="flex-row items-end">
-                  <Text className="text-[24px] font-bold text-slate-900">
-                    {calculatedFat.toFixed(1)}
-                  </Text>
-                  <Text className="text-[13px] font-medium text-slate-500 mb-1 ml-1">
-                    g
-                  </Text>
-                </View>
-              </View>
-            </View>
-
-            {/* Actions */}
-            <TouchableOpacity
-              onPress={handleLogMeal}
-              className="bg-[#1e4ed8] w-full rounded-2xl py-4 items-center shadow-md shadow-blue-600/20"
-            >
-              <Text className="text-white font-bold text-[16px]">
-                Log to Daily Diary
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={() => {
-                setProduct(null);
-                setScanned(false);
-                setServingsStr("1");
-              }}
-              className="w-full rounded-2xl py-4 items-center mt-2 border border-slate-200 bg-white"
-            >
-              <Text className="text-slate-600 font-bold text-[15px]">
-                Discard & Scan Again
-              </Text>
-            </TouchableOpacity>
+            {/* Meal time chips */}
+            <Text className="text-[11px] text-slate-400 uppercase tracking-wide mb-2">
+              Time of meal
+            </Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              {(["Breakfast", "Lunch", "Dinner", "Snack"] as MealTime[]).map((t) => (
+                <MealTimeChip key={t} label={t} active={mealTime === t} onPress={() => setMealTime(t)} />
+              ))}
+            </ScrollView>
           </View>
+
+          {/* Nutrition grid */}
+          <View className="bg-white rounded-2xl border border-slate-200/70 p-4 mb-4">
+            <Text className="text-[11px] text-slate-400 uppercase tracking-wide mb-3">
+              Total nutrition
+            </Text>
+            <View className="flex-row flex-wrap justify-between gap-y-3">
+              <NutritionTile label="Sodium" value={calc.sodium.toFixed(0)} unit="mg" highlight={isHighSodium} />
+              <NutritionTile label="Calories" value={calc.calories.toFixed(0)} unit="kcal" />
+              <NutritionTile label="Sat. fat" value={calc.fat.toFixed(1)} unit="g" />
+              <NutritionTile label="Fiber" value={calc.fiber.toFixed(1)} unit="g" />
+              <NutritionTile label="Cholesterol" value={calc.cholesterol.toFixed(0)} unit="mg" />
+            </View>
+          </View>
+
+          {/* Actions */}
+          <TouchableOpacity
+            onPress={handleLogMeal}
+            className="bg-slate-900 w-full rounded-2xl py-3.5 flex-row items-center justify-center gap-2 mb-2"
+            activeOpacity={0.85}
+          >
+            <Feather name="check" size={15} color="#fff" />
+            <Text className="text-white text-[14px] font-medium">Log to daily diary</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => {
+              setProduct(null);
+              setScanned(false);
+              setServingsStr("1");
+            }}
+            className="w-full rounded-2xl py-3.5 items-center border border-slate-200/70 bg-white"
+            activeOpacity={0.75}
+          >
+            <Text className="text-slate-500 text-[13px] font-medium">Discard & scan again</Text>
+          </TouchableOpacity>
+
         </ScrollView>
       )}
     </SafeAreaView>

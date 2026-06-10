@@ -214,30 +214,21 @@ export default function LocatorScreen() {
           </TouchableOpacity>
           <View className="flex-1">
             <Text className="text-[16px] font-medium text-slate-900" numberOfLines={1}>
-              Cardiovascular specialists
+              Emergency Locator
             </Text>
-            <Text className="text-[12px] text-slate-400">Cebu City area</Text>
+            <Text className="text-[12px] text-slate-400">Nearby Cardiovascular Centers</Text>
           </View>
           <View className="w-9 h-9 rounded-xl bg-red-50 border border-red-100 items-center justify-center">
             <MaterialCommunityIcons name="heart-pulse" size={18} color="#a32d2d" />
           </View>
         </View>
 
-        {/* Search */}
-        <View className="flex-row items-center bg-slate-50 border border-slate-200/70 rounded-xl px-3.5 py-2.5 gap-2.5">
-          <Feather name="search" size={15} color="#94a3b8" />
-          <TextInput
-            placeholder="Search by name, hospital, or specialty…"
-            placeholderTextColor="#cbd5e1"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            className="flex-1 text-[13px] text-slate-900"
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery("")}>
-              <Feather name="x" size={15} color="#94a3b8" />
-            </TouchableOpacity>
-          )}
+        {/* Alert Banner */}
+        <View className="flex-row items-center bg-red-50 border border-red-200 rounded-xl px-3.5 py-2.5 gap-2.5">
+          <Feather name="alert-triangle" size={16} color="#dc2626" />
+          <Text className="flex-1 text-[13px] font-medium text-red-700 leading-snug">
+            Critical CSS Score: Immediate medical consultation recommended.
+          </Text>
         </View>
       </View>
 
