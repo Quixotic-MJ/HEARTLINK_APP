@@ -60,12 +60,12 @@ export default function RoutinePlayerScreen() {
   ];
 
   return (
-    <View className="flex-1 bg-slate-50">
+    <View className="flex-1 bg-slate-50 dark:bg-slate-950">
       <StatusBar style="light" />
 
       {/* ── Video placeholder ── */}
       <View
-        className="w-full bg-slate-900 relative items-center justify-center"
+        className="w-full bg-slate-900 dark:bg-slate-100 relative items-center justify-center"
         style={{ aspectRatio: 16 / 9 }}
       >
         {/* Back button */}
@@ -111,8 +111,8 @@ export default function RoutinePlayerScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* ── Routine header ── */}
-        <View className="mb-5 pb-5 border-b border-slate-200/50">
-          <Text className="text-[22px] font-medium text-slate-900 leading-snug mb-3">
+        <View className="mb-5 pb-5 border-b border-slate-200 dark:border-slate-800/50">
+          <Text className="text-[22px] font-medium text-slate-900 dark:text-white dark:text-slate-900 leading-snug mb-3">
             {routine.title}
           </Text>
 
@@ -127,15 +127,15 @@ export default function RoutinePlayerScreen() {
                 {routine.duration} mins
               </Text>
             </View>
-            <View className="flex-row items-center gap-1.5 bg-slate-50 border border-slate-200/70 px-2.5 py-1 rounded-lg">
+            <View className="flex-row items-center gap-1.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/70 px-2.5 py-1 rounded-lg">
               <Feather name="zap" size={11} color="#94a3b8" />
-              <Text className="text-[11px] text-slate-500">
+              <Text className="text-[11px] text-slate-500 dark:text-slate-400">
                 {routine.intensity} intensity
               </Text>
             </View>
-            <View className="flex-row items-center gap-1.5 bg-slate-50 border border-slate-200/70 px-2.5 py-1 rounded-lg">
+            <View className="flex-row items-center gap-1.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/70 px-2.5 py-1 rounded-lg">
               <Feather name={cfg.icon} size={11} color="#94a3b8" />
-              <Text className="text-[11px] text-slate-500">{routine.type}</Text>
+              <Text className="text-[11px] text-slate-500 dark:text-slate-400">{routine.type}</Text>
             </View>
           </View>
 
@@ -143,12 +143,12 @@ export default function RoutinePlayerScreen() {
         </View>
 
         {/* ── Safety note ── */}
-        <View className="flex-row items-start gap-3 bg-white border border-slate-200/70 rounded-2xl p-4 mb-5">
+        <View className="flex-row items-start gap-3 bg-white dark:bg-slate-900 dark:bg-slate-100 border border-slate-200 dark:border-slate-800/70 rounded-2xl p-4 mb-5">
           <View className="w-8 h-8 rounded-xl bg-amber-50 border border-amber-100 items-center justify-center flex-shrink-0">
             <Feather name="shield" size={14} color="#854f0b" />
           </View>
           <View className="flex-1">
-            <Text className="text-[13px] font-medium text-slate-900 mb-0.5">Safety reminder</Text>
+            <Text className="text-[13px] font-medium text-slate-900 dark:text-white dark:text-slate-900 mb-0.5">Safety reminder</Text>
             <Text className="text-[12px] text-slate-400 leading-relaxed">
               Stop immediately if you feel chest pain, dizziness, or shortness of breath. Log any symptoms after the routine.
             </Text>
@@ -156,17 +156,17 @@ export default function RoutinePlayerScreen() {
         </View>
 
         {/* ── Step-by-step guide ── */}
-        <Text className="text-[14px] font-medium text-slate-900 mb-4">
+        <Text className="text-[14px] font-medium text-slate-900 dark:text-white dark:text-slate-900 mb-4">
           Step-by-step guide
         </Text>
-        <View className="bg-white rounded-2xl border border-slate-200/70 p-4">
+        <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4">
           {steps.map((step, i) => (
             <StepItem key={i} number={i + 1} text={step} isLast={i === steps.length - 1} />
           ))}
         </View>
 
         {/* ── Tips ── */}
-        <View className="mt-3 bg-white rounded-2xl border border-slate-200/70 p-4">
+        <View className="mt-3 bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4">
           <View className="flex-row items-center gap-2 mb-3">
             <Feather name="info" size={14} color="#94a3b8" />
             <Text className="text-[12px] text-slate-400 uppercase tracking-wide">Tips</Text>
@@ -179,7 +179,7 @@ export default function RoutinePlayerScreen() {
             ].map((tip, i) => (
               <View key={i} className="flex-row items-start gap-2">
                 <View className="w-1.5 h-1.5 rounded-full bg-slate-300 mt-2 flex-shrink-0" />
-                <Text className="flex-1 text-[13px] text-slate-500 leading-relaxed">{tip}</Text>
+                <Text className="flex-1 text-[13px] text-slate-500 dark:text-slate-400 leading-relaxed">{tip}</Text>
               </View>
             ))}
           </View>
@@ -188,7 +188,7 @@ export default function RoutinePlayerScreen() {
 
       {/* ── Sticky bottom CTA ── */}
       <View
-        className="absolute bottom-0 left-0 right-0 bg-white border-t border-slate-200/50 px-5 pt-4"
+        className="absolute bottom-0 left-0 right-0 bg-white dark:bg-slate-900 dark:bg-slate-100 border-t border-slate-200 dark:border-slate-800/50 px-5 pt-4"
         style={{ paddingBottom: Math.max(insets.bottom, 20) }}
       >
         <TouchableOpacity
@@ -199,10 +199,10 @@ export default function RoutinePlayerScreen() {
               params: { completedId: routine.id },
             })
           }
-          className="w-full bg-slate-900 py-3.5 rounded-2xl flex-row items-center justify-center gap-2"
+          className="w-full bg-slate-900 dark:bg-slate-100 py-3.5 rounded-2xl flex-row items-center justify-center gap-2"
         >
           <Feather name="check-circle" size={16} color="#fff" />
-          <Text className="text-white text-[14px] font-medium">
+          <Text className="text-white dark:text-slate-900 text-[14px] font-medium">
             Finish & log activity
           </Text>
         </TouchableOpacity>

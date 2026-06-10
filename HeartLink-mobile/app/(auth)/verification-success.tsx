@@ -36,7 +36,7 @@ export default function VerificationSuccessScreen() {
   }, []);
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50" edges={["top", "bottom"]}>
+    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950" edges={["top", "bottom"]}>
       <StatusBar style="dark" />
 
       <ScrollView
@@ -45,7 +45,7 @@ export default function VerificationSuccessScreen() {
         bounces={false}
       >
         {/* ── Card ── */}
-        <View className="bg-white rounded-2xl border border-slate-200/70 px-6 py-10 items-center">
+        <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 px-6 py-10 items-center">
 
           {/* Animated success icon */}
           <Animated.View
@@ -72,7 +72,7 @@ export default function VerificationSuccessScreen() {
             style={{ opacity: opacityAnim, transform: [{ translateY: slideAnim }] }}
             className="items-center mb-7"
           >
-            <Text className="text-[24px] font-medium text-slate-900 text-center tracking-tight mb-2">
+            <Text className="text-[24px] font-medium text-slate-900 dark:text-white dark:text-slate-900 text-center tracking-tight mb-2">
               Account verified
             </Text>
             <Text className="text-[13px] text-slate-400 text-center leading-relaxed px-2">
@@ -85,7 +85,7 @@ export default function VerificationSuccessScreen() {
             style={{ opacity: opacityAnim, transform: [{ translateY: slideAnim }] }}
             className="w-full gap-2.5 mb-8"
           >
-            <View className="flex-row items-center bg-slate-50 border border-slate-200/70 px-4 py-3 rounded-xl gap-3">
+            <View className="flex-row items-center bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/70 px-4 py-3 rounded-xl gap-3">
               <View className="w-8 h-8 rounded-lg items-center justify-center" style={{ backgroundColor: "#eaf3de" }}>
                 <MaterialCommunityIcons name="shield-check" size={16} color="#3b6d11" />
               </View>
@@ -95,7 +95,7 @@ export default function VerificationSuccessScreen() {
               <Feather name="check" size={14} color="#639922" />
             </View>
 
-            <View className="flex-row items-center bg-slate-50 border border-slate-200/70 px-4 py-3 rounded-xl gap-3">
+            <View className="flex-row items-center bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/70 px-4 py-3 rounded-xl gap-3">
               <View className="w-8 h-8 rounded-lg items-center justify-center" style={{ backgroundColor: "#e6f1fb" }}>
                 <MaterialCommunityIcons name="database-lock" size={16} color="#185fa5" />
               </View>
@@ -110,9 +110,9 @@ export default function VerificationSuccessScreen() {
           <TouchableOpacity
             activeOpacity={0.85}
             onPress={() => router.replace("/health_goals")}
-            className="w-full bg-slate-900 rounded-2xl py-3.5 flex-row justify-center items-center gap-2"
+            className="w-full bg-slate-900 dark:bg-slate-100 rounded-2xl py-3.5 flex-row justify-center items-center gap-2"
           >
-            <Text className="text-white text-[14px] font-medium">
+            <Text className="text-white dark:text-slate-900 text-[14px] font-medium">
               Set up clinical profile
             </Text>
             <Feather name="arrow-right" size={15} color="#fff" />

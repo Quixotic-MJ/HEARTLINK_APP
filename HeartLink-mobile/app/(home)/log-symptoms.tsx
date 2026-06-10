@@ -93,7 +93,7 @@ export default function LogSymptomsScreen() {
 
   // Step 2 State (Symptoms)
   const [selectedSymptoms, setSelectedSymptoms] = useState<SymptomType[]>(["None (Feeling fine)"]);
-  const [severity, setSeverity] = useState<number>(1);
+  const [severities, setSeverities] = useState<Record<string, number>>({});
   const [context, setContext] = useState<ContextType>("While resting");
 
   useEffect(() => {
@@ -129,7 +129,7 @@ export default function LogSymptomsScreen() {
   const isEmergency =
     hasRealSymptoms &&
     ((selectedSymptoms.includes("Chest Discomfort / Tightness") &&
-      severity >= 7) ||
+      (severities["Chest Discomfort / Tightness"] || 1) >= 7) ||
       (selectedSymptoms.includes("Shortness of Breath") &&
         context === "While resting"));
 
@@ -155,14 +155,15 @@ export default function LogSymptomsScreen() {
     }
   };
 
-  const sevColor = getSeverityColor(severity);
+  const maxSeverity = hasRealSymptoms ? Math.max(...selectedSymptoms.map(s => severities[s] || 1)) : 1;
+  const sevColor = getSeverityColor(maxSeverity);
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950" edges={["top"]}>
       <StatusBar style="dark" />
 
       {/* Header */}
-      <View className="flex-row items-center px-5 pt-4 pb-3 z-10 border-b border-slate-200/50">
+      <View className="flex-row items-center px-5 pt-4 pb-3 z-10 border-b border-slate-200 dark:border-slate-800/50">
         <TouchableOpacity
           onPress={() => step === 2 ? setStep(1) : router.back()}
           className="p-2 -ml-2 mr-3"
@@ -171,7 +172,7 @@ export default function LogSymptomsScreen() {
           <Feather name="arrow-left" size={20} color="#0f172a" />
         </TouchableOpacity>
         <View className="flex-1">
-          <Text className="text-[22px] font-medium text-slate-900 tracking-tight">
+          <Text className="text-[22px] font-medium text-slate-900 dark:text-white dark:text-slate-900 tracking-tight">
             Daily Log
           </Text>
           <Text className="text-[13px] text-slate-400 mt-0.5">
@@ -194,22 +195,22 @@ export default function LogSymptomsScreen() {
           {/* ============================================================== */}
           {step === 1 && (
             <>
-              <Text className="text-[13px] text-slate-500 font-medium leading-relaxed mb-5">
+              <Text className="text-[13px] text-slate-500 dark:text-slate-400 font-medium leading-relaxed mb-5">
                 Let's start with the numbers. Please record your basic vitals and medication status.
               </Text>
 
               {/* 1. Core Vitals */}
-              <View className="bg-white rounded-2xl border border-slate-200/70 p-4 mb-5">
-                <Text className="text-[15px] font-medium text-slate-900 mb-4 leading-snug">
+              <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4 mb-5">
+                <Text className="text-[15px] font-medium text-slate-900 dark:text-white dark:text-slate-900 mb-4 leading-snug">
                   Basic Vitals
                 </Text>
 
                 <View className="flex-row gap-3 mb-4">
                   <View className="flex-1">
-                    <Text className="text-[12px] font-medium text-slate-500 mb-2">
+                    <Text className="text-[12px] font-medium text-slate-500 dark:text-slate-400 mb-2">
                       Blood Pressure (SYS)
                     </Text>
-                    <View className="h-[44px] bg-slate-50 border border-slate-200/70 rounded-xl flex-row items-center px-3">
+                    <View className="h-[44px] bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/70 rounded-xl flex-row items-center px-3">
                       <TextInput
                         value={systolic}
                         onChangeText={setSystolic}
@@ -217,17 +218,17 @@ export default function LogSymptomsScreen() {
                         placeholderTextColor="#94a3b8"
                         keyboardType="numeric"
                         maxLength={3}
-                        className="flex-1 text-[14px] text-slate-900 h-full"
+                        className="flex-1 text-[14px] text-slate-900 dark:text-white dark:text-slate-900 h-full"
                       />
                       <Text className="text-[11px] text-slate-400">mmHg</Text>
                     </View>
                   </View>
 
                   <View className="flex-1">
-                    <Text className="text-[12px] font-medium text-slate-500 mb-2">
+                    <Text className="text-[12px] font-medium text-slate-500 dark:text-slate-400 mb-2">
                       Blood Pressure (DIA)
                     </Text>
-                    <View className="h-[44px] bg-slate-50 border border-slate-200/70 rounded-xl flex-row items-center px-3">
+                    <View className="h-[44px] bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/70 rounded-xl flex-row items-center px-3">
                       <TextInput
                         value={diastolic}
                         onChangeText={setDiastolic}
@@ -235,7 +236,7 @@ export default function LogSymptomsScreen() {
                         placeholderTextColor="#94a3b8"
                         keyboardType="numeric"
                         maxLength={3}
-                        className="flex-1 text-[14px] text-slate-900 h-full"
+                        className="flex-1 text-[14px] text-slate-900 dark:text-white dark:text-slate-900 h-full"
                       />
                       <Text className="text-[11px] text-slate-400">mmHg</Text>
                     </View>
@@ -244,10 +245,10 @@ export default function LogSymptomsScreen() {
 
                 <View className="flex-row gap-3">
                   <View className="flex-1">
-                    <Text className="text-[12px] font-medium text-slate-500 mb-2">
+                    <Text className="text-[12px] font-medium text-slate-500 dark:text-slate-400 mb-2">
                       Heart Rate
                     </Text>
-                    <View className="h-[44px] bg-slate-50 border border-slate-200/70 rounded-xl flex-row items-center px-3">
+                    <View className="h-[44px] bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/70 rounded-xl flex-row items-center px-3">
                       <TextInput
                         value={heartRate}
                         onChangeText={setHeartRate}
@@ -255,17 +256,17 @@ export default function LogSymptomsScreen() {
                         placeholderTextColor="#94a3b8"
                         keyboardType="numeric"
                         maxLength={3}
-                        className="flex-1 text-[14px] text-slate-900 h-full"
+                        className="flex-1 text-[14px] text-slate-900 dark:text-white dark:text-slate-900 h-full"
                       />
                       <Text className="text-[11px] text-slate-400">bpm</Text>
                     </View>
                   </View>
 
                   <View className="flex-1">
-                    <Text className="text-[12px] font-medium text-slate-500 mb-2">
+                    <Text className="text-[12px] font-medium text-slate-500 dark:text-slate-400 mb-2">
                       Weight
                     </Text>
-                    <View className="h-[44px] bg-slate-50 border border-slate-200/70 rounded-xl flex-row items-center px-3">
+                    <View className="h-[44px] bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/70 rounded-xl flex-row items-center px-3">
                       <TextInput
                         value={weight}
                         onChangeText={setWeight}
@@ -273,7 +274,7 @@ export default function LogSymptomsScreen() {
                         placeholderTextColor="#94a3b8"
                         keyboardType="numeric"
                         maxLength={3}
-                        className="flex-1 text-[14px] text-slate-900 h-full"
+                        className="flex-1 text-[14px] text-slate-900 dark:text-white dark:text-slate-900 h-full"
                       />
                       <Text className="text-[11px] text-slate-400">kg</Text>
                     </View>
@@ -282,8 +283,8 @@ export default function LogSymptomsScreen() {
               </View>
 
               {/* 2. Medication Status */}
-              <View className="bg-white rounded-2xl border border-slate-200/70 p-4 mb-5">
-                <Text className="text-[15px] font-medium text-slate-900 mb-3 leading-snug">
+              <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4 mb-5">
+                <Text className="text-[15px] font-medium text-slate-900 dark:text-white dark:text-slate-900 mb-3 leading-snug">
                   Medication Check
                 </Text>
                 <Text className="text-[13px] text-slate-400 mb-4">
@@ -361,7 +362,7 @@ export default function LogSymptomsScreen() {
                   <TouchableOpacity
                     onPress={handleLocateCardiologist}
                     activeOpacity={0.8}
-                    className="bg-white rounded-xl py-2.5 flex-row items-center justify-center gap-2 border border-red-100"
+                    className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-xl py-2.5 flex-row items-center justify-center gap-2 border border-red-100"
                   >
                     <MaterialCommunityIcons
                       name="map-marker-radius"
@@ -379,14 +380,14 @@ export default function LogSymptomsScreen() {
               )}
 
               {/* ── Status overview card ── */}
-              <View className="bg-white rounded-2xl border border-slate-200/70 p-4 mb-5">
+              <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4 mb-5">
                 <Text className="text-[11px] text-slate-400 uppercase tracking-wide mb-3">
                   Current log status
                 </Text>
                 <View className="flex-row gap-3">
                   {/* Symptom count */}
-                  <View className="flex-1 bg-slate-50 rounded-xl p-3 border border-slate-200/70 items-center">
-                    <Text className="text-[22px] font-medium text-slate-900">
+                  <View className="flex-1 bg-slate-50 dark:bg-slate-950 rounded-xl p-3 border border-slate-200 dark:border-slate-800/70 items-center">
+                    <Text className="text-[22px] font-medium text-slate-900 dark:text-white dark:text-slate-900">
                       {hasRealSymptoms ? selectedSymptoms.length : 0}
                     </Text>
                     <Text className="text-[10px] text-slate-400 mt-0.5 uppercase tracking-wide">
@@ -405,17 +406,17 @@ export default function LogSymptomsScreen() {
                       className="text-[22px] font-medium"
                       style={{ color: hasRealSymptoms ? sevColor.text : "#cbd5e1" }}
                     >
-                      {hasRealSymptoms ? severity : "—"}
+                      {hasRealSymptoms ? maxSeverity : "—"}
                     </Text>
                     <Text
                       className="text-[10px] mt-0.5 uppercase tracking-wide"
                       style={{ color: hasRealSymptoms ? sevColor.text : "#cbd5e1" }}
                     >
-                      {hasRealSymptoms ? getSeverityLabel(severity) : "Severity"}
+                      {hasRealSymptoms ? getSeverityLabel(maxSeverity) : "Severity"}
                     </Text>
                   </View>
                   {/* Context */}
-                  <View className="flex-1 bg-slate-50 rounded-xl p-3 border border-slate-200/70 items-center">
+                  <View className="flex-1 bg-slate-50 dark:bg-slate-950 rounded-xl p-3 border border-slate-200 dark:border-slate-800/70 items-center">
                     <MaterialCommunityIcons
                       name={CONTEXT_ICONS[context] as any}
                       size={22}
@@ -432,7 +433,7 @@ export default function LogSymptomsScreen() {
               </View>
 
               {/* ── Symptoms ── */}
-              <Text className="text-[15px] font-medium text-slate-900 mb-4 leading-snug">
+              <Text className="text-[15px] font-medium text-slate-900 dark:text-white dark:text-slate-900 mb-4 leading-snug">
                 What are you feeling?
               </Text>
 
@@ -506,7 +507,7 @@ export default function LogSymptomsScreen() {
 
                       {/* Dropdown severity slider underneath active symptom */}
                       {isSelected && !isNone && (
-                        <View className="bg-white rounded-xl border border-slate-200/70 p-4 mt-2 mb-1">
+                        <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-xl border border-slate-200 dark:border-slate-800/70 p-4 mt-2 mb-1">
                           <View className="flex-row justify-between mb-3">
                             <Text className="text-[11px] text-slate-400 uppercase tracking-wide">
                               1 — Mild
@@ -522,12 +523,13 @@ export default function LogSymptomsScreen() {
                             contentContainerClassName="gap-2"
                           >
                             {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => {
-                              const isActive = severity === num;
+                              const currentSeverity = severities[symp] || 1;
+                              const isActive = currentSeverity === num;
                               const c = getSeverityColor(num);
                               return (
                                 <TouchableOpacity
                                   key={num}
-                                  onPress={() => setSeverity(num)}
+                                  onPress={() => setSeverities(prev => ({ ...prev, [symp]: num }))}
                                   className="w-11 h-11 rounded-xl items-center justify-center border"
                                   style={{
                                     backgroundColor: isActive ? c.bg : "#f8fafc",
@@ -554,7 +556,7 @@ export default function LogSymptomsScreen() {
               {/* ── Context ── */}
               {hasRealSymptoms && (
                 <>
-                  <Text className="text-[15px] font-medium text-slate-900 mt-6 mb-4 leading-snug">
+                  <Text className="text-[15px] font-medium text-slate-900 dark:text-white dark:text-slate-900 mt-6 mb-4 leading-snug">
                     When did this happen?
                   </Text>
                   <View className="gap-2 mb-8">
@@ -620,14 +622,14 @@ export default function LogSymptomsScreen() {
       </KeyboardAvoidingView>
 
       {/* Sticky Bottom Action Button */}
-      <View className="absolute bottom-0 left-0 right-0 bg-slate-50 border-t border-slate-200/70 px-5 pt-3 pb-8">
+      <View className="absolute bottom-0 left-0 right-0 bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800/70 px-5 pt-3 pb-8">
          {step === 1 ? (
            <TouchableOpacity
              activeOpacity={0.8}
              onPress={() => setStep(2)}
-             className="w-full py-3.5 rounded-xl flex-row justify-center items-center bg-slate-900"
+             className="w-full py-3.5 rounded-xl flex-row justify-center items-center bg-slate-900 dark:bg-slate-100"
            >
-             <Text className="font-medium text-[14px] mr-2 text-white">
+             <Text className="font-medium text-[14px] mr-2 text-white dark:text-slate-900">
                Next: Symptoms
              </Text>
              <Feather name="arrow-right" size={16} color="white" />
@@ -644,7 +646,7 @@ export default function LogSymptomsScreen() {
                size={16}
                color="#fff"
              />
-             <Text className="text-white text-[14px] font-medium">
+             <Text className="text-white dark:text-slate-900 text-[14px] font-medium">
                {isEmergency ? "Submit critical log" : "Submit health log"}
              </Text>
            </TouchableOpacity>

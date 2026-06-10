@@ -87,28 +87,28 @@ export default function RecipeDetailsScreen() {
   };
 
   return (
-    <View className="flex-1 bg-white">
+    <View className="flex-1 bg-white dark:bg-slate-900 dark:bg-slate-100">
       <StatusBar style="dark" />
 
       {/* Header (Absolute position over scrollview) */}
       <View
         style={{ paddingTop: Math.max(insets.top, 20) }}
-        className="flex-row items-center px-5 pb-4 bg-white/95 border-b border-slate-100 z-10 absolute top-0 left-0 right-0"
+        className="flex-row items-center px-5 pb-4 bg-white dark:bg-slate-900 dark:bg-slate-100/95 border-b border-slate-100 dark:border-slate-800 z-10 absolute top-0 left-0 right-0"
       >
         <TouchableOpacity
           onPress={() => router.back()}
-          className="w-10 h-10 rounded-full bg-slate-50 border border-slate-200/70 items-center justify-center mr-4"
+          className="w-10 h-10 rounded-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/70 items-center justify-center mr-4"
         >
           <Feather name="arrow-left" size={18} color="#0f172a" />
         </TouchableOpacity>
         <View className="flex-1">
-          <Text className="text-[12px] text-slate-500 font-bold uppercase tracking-wider mb-0.5">
+          <Text className="text-[12px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider mb-0.5">
             Recipe
           </Text>
         </View>
         <TouchableOpacity
           onPress={() => setIsSaved(!isSaved)}
-          className="w-10 h-10 rounded-full bg-slate-50 items-center justify-center border border-slate-200/70"
+          className="w-10 h-10 rounded-full bg-slate-50 dark:bg-slate-950 items-center justify-center border border-slate-200 dark:border-slate-800/70"
         >
           <Feather
             name="heart"
@@ -127,7 +127,7 @@ export default function RecipeDetailsScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Hero Image */}
-        <View className="w-full h-64 bg-slate-100 relative">
+        <View className="w-full h-64 bg-slate-100 dark:bg-slate-800 relative">
           <Image
             source={{ uri: recipe.image }}
             className="w-full h-full"
@@ -138,7 +138,7 @@ export default function RecipeDetailsScreen() {
             style={{ backgroundColor: "rgba(0,0,0,0.55)" }}
           >
             <Feather name="clock" size={11} color="rgba(255,255,255,0.9)" />
-            <Text className="text-white text-[11px]">
+            <Text className="text-white dark:text-slate-900 text-[11px]">
               {recipe.prepTime} min
             </Text>
           </View>
@@ -157,10 +157,10 @@ export default function RecipeDetailsScreen() {
 
         {/* Title & Tags */}
         <View className="px-5 pt-6 pb-6">
-          <Text className="text-[28px] font-bold text-slate-900 leading-tight mb-2">
+          <Text className="text-[28px] font-bold text-slate-900 dark:text-white dark:text-slate-900 leading-tight mb-2">
             {recipe.title}
           </Text>
-          <Text className="text-[15px] text-slate-500 mb-4">
+          <Text className="text-[15px] text-slate-500 dark:text-slate-400 mb-4">
             {recipe.subtitle}
           </Text>
 
@@ -187,21 +187,21 @@ export default function RecipeDetailsScreen() {
           </View>
 
           {/* Servings Multiplier */}
-          <View className="flex-row items-center justify-between bg-slate-50 p-4 rounded-2xl border border-slate-100 mb-2">
+          <View className="flex-row items-center justify-between bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 mb-2">
             <View>
-              <Text className="text-[14px] font-bold text-slate-900 mb-1">
+              <Text className="text-[14px] font-bold text-slate-900 dark:text-white dark:text-slate-900 mb-1">
                 Servings
               </Text>
-              <Text className="text-[12px] text-slate-500">
+              <Text className="text-[12px] text-slate-500 dark:text-slate-400">
                 Adjust to see exact macros
               </Text>
             </View>
-            <View className="flex-row items-center gap-4 bg-white border border-slate-200 rounded-full px-2 py-1">
+            <View className="flex-row items-center gap-4 bg-white dark:bg-slate-900 dark:bg-slate-100 border border-slate-200 dark:border-slate-800 rounded-full px-2 py-1">
               <TouchableOpacity
                 onPress={() =>
                   setServingsMultiplier(Math.max(1, servingsMultiplier - 1))
                 }
-                className="w-8 h-8 items-center justify-center rounded-full bg-slate-50"
+                className="w-8 h-8 items-center justify-center rounded-full bg-slate-50 dark:bg-slate-950"
               >
                 <Feather name="minus" size={16} color="#0f172a" />
               </TouchableOpacity>
@@ -210,7 +210,7 @@ export default function RecipeDetailsScreen() {
               </Text>
               <TouchableOpacity
                 onPress={() => setServingsMultiplier(servingsMultiplier + 1)}
-                className="w-8 h-8 items-center justify-center rounded-full bg-slate-50"
+                className="w-8 h-8 items-center justify-center rounded-full bg-slate-50 dark:bg-slate-950"
               >
                 <Feather name="plus" size={16} color="#0f172a" />
               </TouchableOpacity>
@@ -240,7 +240,7 @@ export default function RecipeDetailsScreen() {
 
         {/* ── Macros ── */}
         <View className="px-5 mb-6">
-          <Text className="text-[18px] font-bold text-slate-900 mb-4">
+          <Text className="text-[18px] font-bold text-slate-900 dark:text-white dark:text-slate-900 mb-4">
             Nutrition Breakdown
           </Text>
           <View className="flex-row gap-2">
@@ -282,7 +282,7 @@ export default function RecipeDetailsScreen() {
 
         {/* ── Tabs ── */}
         <View className="px-5 mt-2">
-          <View className="flex-row bg-slate-100 p-1 rounded-xl mb-4">
+          <View className="flex-row bg-slate-100 dark:bg-slate-800 p-1 rounded-xl mb-4">
             <TouchableOpacity
               onPress={() => setActiveTab("Ingredients")}
               className="flex-1 py-2.5 items-center rounded-lg"
@@ -336,7 +336,7 @@ export default function RecipeDetailsScreen() {
           </View>
 
           {activeTab === "Ingredients" ? (
-            <View className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
+            <View className="bg-slate-50 dark:bg-slate-950 rounded-2xl p-4 border border-slate-100 dark:border-slate-800">
               {recipe.ingredients.map((ing, i) => (
                 <View
                   key={i}
@@ -349,10 +349,10 @@ export default function RecipeDetailsScreen() {
                 >
                   <View className="w-1.5 h-1.5 rounded-full bg-slate-300 mr-4" />
                   <View className="flex-1 flex-row">
-                    <Text className="text-[14px] text-slate-900 font-bold w-20">
+                    <Text className="text-[14px] text-slate-900 dark:text-white dark:text-slate-900 font-bold w-20">
                       {ing.qty}
                     </Text>
-                    <Text className="text-[14px] text-slate-700 flex-1">
+                    <Text className="text-[14px] text-slate-700 dark:text-slate-300 flex-1">
                       {ing.item}
                     </Text>
                   </View>
@@ -360,7 +360,7 @@ export default function RecipeDetailsScreen() {
               ))}
             </View>
           ) : (
-            <View className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
+            <View className="bg-slate-50 dark:bg-slate-950 rounded-2xl p-4 border border-slate-100 dark:border-slate-800">
               {recipe.steps.map((step, i) => (
                 <View
                   key={i}
@@ -376,7 +376,7 @@ export default function RecipeDetailsScreen() {
                       {i + 1}
                     </Text>
                   </View>
-                  <Text className="text-[14px] text-slate-700 flex-1 leading-relaxed">
+                  <Text className="text-[14px] text-slate-700 dark:text-slate-300 flex-1 leading-relaxed">
                     {step}
                   </Text>
                 </View>
@@ -387,7 +387,7 @@ export default function RecipeDetailsScreen() {
       </ScrollView>
 
       {/* ── Sticky Bottom Button ── */}
-      <View style={{ paddingBottom: Math.max(insets.bottom, 20) }} className="absolute bottom-0 left-0 right-0 bg-white border-t border-slate-100 px-5 pt-4 pb-6 shadow-[0_-10px_20px_rgba(0,0,0,0.05)]">
+      <View style={{ paddingBottom: Math.max(insets.bottom, 20) }} className="absolute bottom-0 left-0 right-0 bg-white dark:bg-slate-900 dark:bg-slate-100 border-t border-slate-100 dark:border-slate-800 px-5 pt-4 pb-6 shadow-[0_-10px_20px_rgba(0,0,0,0.05)]">
          <TouchableOpacity 
            activeOpacity={0.85}
            onPress={handleLogMeal}

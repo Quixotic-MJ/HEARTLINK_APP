@@ -65,19 +65,19 @@ export default function ExerciseDetailsScreen() {
   };
 
   return (
-    <View className="flex-1 bg-slate-50">
+    <View className="flex-1 bg-slate-50 dark:bg-slate-950">
       <StatusBar style="dark" />
 
       {/* Header */}
-      <View style={{ paddingTop: Math.max(insets.top, 20) }} className="flex-row items-center px-5 pb-4 bg-slate-50 z-10 absolute top-0 left-0 right-0">
+      <View style={{ paddingTop: Math.max(insets.top, 20) }} className="flex-row items-center px-5 pb-4 bg-slate-50 dark:bg-slate-950 z-10 absolute top-0 left-0 right-0">
         <TouchableOpacity
           onPress={() => router.back()}
-          className="w-10 h-10 rounded-full bg-white border border-slate-200/70 items-center justify-center mr-4 shadow-sm shadow-slate-200/50"
+          className="w-10 h-10 rounded-full bg-white dark:bg-slate-900 dark:bg-slate-100 border border-slate-200 dark:border-slate-800/70 items-center justify-center mr-4 shadow-sm shadow-slate-200/50"
         >
           <Feather name="arrow-left" size={18} color="#0f172a" />
         </TouchableOpacity>
         <View className="flex-1">
-          <Text className="text-[12px] text-slate-500 font-bold uppercase tracking-wider mb-0.5">
+          <Text className="text-[12px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider mb-0.5">
             Guided Routine
           </Text>
         </View>
@@ -94,17 +94,17 @@ export default function ExerciseDetailsScreen() {
 
         {/* Title area */}
         <View className="mb-8 px-5 items-center">
-           <Text className="text-[28px] font-bold text-slate-900 tracking-tight text-center leading-tight mb-2">
+           <Text className="text-[28px] font-bold text-slate-900 dark:text-white dark:text-slate-900 tracking-tight text-center leading-tight mb-2">
              {routine.title}
            </Text>
-           <Text className="text-[14px] text-slate-500 font-medium text-center px-4 leading-relaxed">
+           <Text className="text-[14px] text-slate-500 dark:text-slate-400 font-medium text-center px-4 leading-relaxed">
              {routine.goal}
            </Text>
         </View>
 
         {/* Timer Display */}
         <View className="items-center mb-10">
-           <Text className="text-[72px] font-medium text-slate-900 tracking-tighter" style={{ fontVariant: ['tabular-nums'] }}>
+           <Text className="text-[72px] font-medium text-slate-900 dark:text-white dark:text-slate-900 tracking-tighter" style={{ fontVariant: ['tabular-nums'] }}>
               {formatTime(timeLeft)}
            </Text>
            <Text className="text-[14px] font-bold text-slate-400 uppercase tracking-widest mt-2">Time Remaining</Text>
@@ -113,7 +113,7 @@ export default function ExerciseDetailsScreen() {
       </ScrollView>
 
       {/* Bottom Sticky Button */}
-      <View style={{ paddingBottom: Math.max(insets.bottom, 20) }} className="absolute bottom-0 left-0 right-0 bg-white border-t border-slate-100 px-5 pt-5 pb-6 shadow-[0_-10px_20px_rgba(0,0,0,0.05)]">
+      <View style={{ paddingBottom: Math.max(insets.bottom, 20) }} className="absolute bottom-0 left-0 right-0 bg-white dark:bg-slate-900 dark:bg-slate-100 border-t border-slate-100 dark:border-slate-800 px-5 pt-5 pb-6 shadow-[0_-10px_20px_rgba(0,0,0,0.05)]">
          <TouchableOpacity 
            activeOpacity={0.8}
            onPress={toggleTimer}
@@ -127,7 +127,7 @@ export default function ExerciseDetailsScreen() {
            ) : (
              <>
                 <Feather name="play" size={20} color={timeLeft < routine.duration * 60 ? "#1e4ed8" : "white"} className="mr-2" />
-                <Text className={`${timeLeft < routine.duration * 60 ? 'text-[#1e4ed8]' : 'text-white'} text-[18px] font-bold`}>
+                <Text className={`${timeLeft < routine.duration * 60 ? 'text-[#1e4ed8]' : 'text-white dark:text-slate-900'} text-[18px] font-bold`}>
                   {timeLeft < routine.duration * 60 ? "Resume Routine" : "Start Routine"}
                 </Text>
              </>
@@ -137,11 +137,11 @@ export default function ExerciseDetailsScreen() {
 
       {/* Safety Check Bottom Sheet Modal */}
       <Modal visible={showSafetyCheck} transparent animationType="fade">
-        <View className="flex-1 bg-slate-900/40 justify-end">
-          <View className="bg-white rounded-t-3xl p-6 pb-12 shadow-xl border-t border-slate-200">
+        <View className="flex-1 bg-slate-900 dark:bg-slate-100/40 justify-end">
+          <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-t-3xl p-6 pb-12 shadow-xl border-t border-slate-200 dark:border-slate-800">
             <View className="w-12 h-1.5 bg-slate-200 rounded-full self-center mb-6" />
-            <Text className="text-[20px] font-bold text-slate-900 mb-2 text-center">Great job! Quick safety check.</Text>
-            <Text className="text-[15px] text-slate-500 text-center mb-8 leading-relaxed px-2">Did you experience any chest discomfort or dizziness during this routine?</Text>
+            <Text className="text-[20px] font-bold text-slate-900 dark:text-white dark:text-slate-900 mb-2 text-center">Great job! Quick safety check.</Text>
+            <Text className="text-[15px] text-slate-500 dark:text-slate-400 text-center mb-8 leading-relaxed px-2">Did you experience any chest discomfort or dizziness during this routine?</Text>
 
             <TouchableOpacity 
               activeOpacity={0.8}

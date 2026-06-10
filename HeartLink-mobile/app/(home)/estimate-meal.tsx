@@ -60,7 +60,7 @@ function SectionHeader({ title, icon, helperText }: { title: string; icon: strin
     <View className="mb-3 mt-5">
       <View className="flex-row items-center gap-2">
         <MaterialCommunityIcons name={icon as any} size={16} color="#94a3b8" />
-        <Text className="text-[13px] font-medium text-slate-500 uppercase tracking-wide flex-1">
+        <Text className="text-[13px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide flex-1">
           {title}
         </Text>
       </View>
@@ -91,14 +91,14 @@ function NumericField({
       <Text className="text-[11px] text-slate-400 uppercase tracking-wide mb-1.5">
         {label}
       </Text>
-      <View className="bg-white rounded-xl border border-slate-200/70 flex-row items-center px-3 py-2.5">
+      <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-xl border border-slate-200 dark:border-slate-800/70 flex-row items-center px-3 py-2.5">
         <TextInput
           value={value}
           onChangeText={onChange}
           placeholder={placeholder}
           placeholderTextColor="#cbd5e1"
           keyboardType="decimal-pad"
-          className="flex-1 text-[14px] text-slate-900"
+          className="flex-1 text-[14px] text-slate-900 dark:text-white dark:text-slate-900"
         />
         <Text className="text-[12px] text-slate-400 ml-1">{unit}</Text>
       </View>
@@ -246,19 +246,19 @@ export default function ManualMealLogScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950" edges={["top"]}>
       <StatusBar style="dark" />
 
       {/* Header */}
-      <View className="flex-row items-center px-5 pt-4 pb-3 border-b border-slate-200/50">
+      <View className="flex-row items-center px-5 pt-4 pb-3 border-b border-slate-200 dark:border-slate-800/50">
         <TouchableOpacity
           onPress={() => router.back()}
-          className="w-9 h-9 rounded-xl bg-white border border-slate-200/70 items-center justify-center mr-3"
+          className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 dark:bg-slate-100 border border-slate-200 dark:border-slate-800/70 items-center justify-center mr-3"
         >
           <Feather name="arrow-left" size={18} color="#0f172a" />
         </TouchableOpacity>
         <View>
-          <Text className="text-[17px] font-medium text-slate-900">
+          <Text className="text-[17px] font-medium text-slate-900 dark:text-white dark:text-slate-900">
             Log local food
           </Text>
           <Text className="text-[12px] text-slate-400">
@@ -275,7 +275,7 @@ export default function ManualMealLogScreen() {
       >
 
         {/* ── Mode Selector ── */}
-        <View className="bg-white rounded-2xl border border-slate-200/70 p-1 flex-row mb-4">
+        <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-1 flex-row mb-4">
           {/* Estimate — dynamic bg via style */}
           <TouchableOpacity
             activeOpacity={0.8}
@@ -318,7 +318,7 @@ export default function ManualMealLogScreen() {
         </View>
 
         {/* Mode description pill */}
-        <View className="bg-white rounded-xl border border-slate-200/70 px-3.5 py-2.5 mb-2 flex-row items-start gap-2.5">
+        <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-xl border border-slate-200 dark:border-slate-800/70 px-3.5 py-2.5 mb-2 flex-row items-start gap-2.5">
           <Feather
             name={inputMode === "estimate" ? "info" : "database"}
             size={14}
@@ -358,13 +358,13 @@ export default function ManualMealLogScreen() {
 
         {/* ── Shared: Food Description ── */}
         <SectionHeader title="Food description" icon="food-apple-outline" />
-        <View className="bg-white rounded-xl border border-slate-200/70 px-3.5 py-2.5">
+        <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-xl border border-slate-200 dark:border-slate-800/70 px-3.5 py-2.5">
           <TextInput
             value={foodDescription}
             onChangeText={setFoodDescription}
             placeholder="e.g. Pork sinigang, lechon, mango"
             placeholderTextColor="#cbd5e1"
-            className="text-[14px] text-slate-900"
+            className="text-[14px] text-slate-900 dark:text-white dark:text-slate-900"
           />
         </View>
 
@@ -409,11 +409,11 @@ export default function ManualMealLogScreen() {
             {/* NUMBER OF SERVINGS stepper */}
             <View className="flex-row items-center justify-between mb-4 mt-2">
               <Text className="text-[11px] text-slate-400 uppercase tracking-wide">Number of servings</Text>
-              <View className="flex-row items-center bg-white border border-slate-200/70 rounded-xl px-2 py-1.5 gap-4">
+              <View className="flex-row items-center bg-white dark:bg-slate-900 dark:bg-slate-100 border border-slate-200 dark:border-slate-800/70 rounded-xl px-2 py-1.5 gap-4">
                 <TouchableOpacity onPress={() => setServings(s => Math.max(1, s - 1))} className="p-1">
                   <Feather name="minus" size={16} color="#0f172a" />
                 </TouchableOpacity>
-                <Text className="text-[14px] font-medium text-slate-900 w-4 text-center">{servings}</Text>
+                <Text className="text-[14px] font-medium text-slate-900 dark:text-white dark:text-slate-900 w-4 text-center">{servings}</Text>
                 <TouchableOpacity onPress={() => setServings(s => s + 1)} className="p-1">
                   <Feather name="plus" size={16} color="#0f172a" />
                 </TouchableOpacity>
@@ -482,16 +482,16 @@ export default function ManualMealLogScreen() {
 
       {/* Save Button Container */}
       <View 
-        className="px-5 pt-3 bg-slate-50 border-t border-slate-200/50"
+        className="px-5 pt-3 bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800/50"
         style={{ paddingBottom: Math.max(insets.bottom, 16) }}
       >
         <TouchableOpacity
           onPress={handleSave}
-          className="bg-slate-900 w-full rounded-2xl py-3.5 items-center justify-center flex-row gap-2"
+          className="bg-slate-900 dark:bg-slate-100 w-full rounded-2xl py-3.5 items-center justify-center flex-row gap-2"
           activeOpacity={0.85}
         >
           <Feather name="check" size={16} color="#fff" />
-          <Text className="text-white text-[14px] font-medium">
+          <Text className="text-white dark:text-slate-900 text-[14px] font-medium">
             Save meal
           </Text>
         </TouchableOpacity>

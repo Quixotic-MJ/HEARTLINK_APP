@@ -71,11 +71,11 @@ function CircularProgress({ score, size = 200, strokeWidth = 13 }: { score: numb
 // ─── Stat Card ────────────────────────────────────────────────────────────────
 function StatCard({ icon, label, value, iconColor, iconBg }: { icon: string; label: string; value: string; iconColor: string; iconBg: string }) {
   return (
-    <View className="flex-1 bg-white rounded-2xl border border-slate-200/70 py-3.5 px-3 items-center">
+    <View className="flex-1 bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 py-3.5 px-3 items-center">
       <View className="w-8 h-8 rounded-xl items-center justify-center mb-2" style={{ backgroundColor: iconBg }}>
         <Feather name={icon as any} size={15} color={iconColor} />
       </View>
-      <Text className="text-[15px] font-medium text-slate-900">{value}</Text>
+      <Text className="text-[15px] font-medium text-slate-900 dark:text-white dark:text-slate-900">{value}</Text>
       <Text className="text-[10px] text-slate-400 mt-0.5 uppercase tracking-wide">{label}</Text>
     </View>
   );
@@ -94,7 +94,7 @@ function RecoCard({ tag, title, subtitle, icon, bg, tagBg, tagText, subColor }: 
           <Text className="text-[10px] font-medium uppercase tracking-wide" style={{ color: tagText }}>{tag}</Text>
         </View>
         <View>
-          <Text className="text-[16px] font-medium text-white leading-snug mb-1">{title}</Text>
+          <Text className="text-[16px] font-medium text-white dark:text-slate-900 leading-snug mb-1">{title}</Text>
           <Text className="text-[12px]" style={{ color: subColor }}>{subtitle}</Text>
         </View>
       </View>
@@ -111,13 +111,13 @@ export default function DashboardScreen() {
   const isCritical = cssScore < 40;
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950" edges={["top"]}>
       <StatusBar style="dark" />
 
       {isAlertActive && (
         <TouchableOpacity activeOpacity={0.9} onPress={() => router.push("/locator")} className="bg-red-500 px-5 py-3.5 flex-row items-center gap-3">
           <Feather name="alert-triangle" size={18} color="white" />
-          <Text className="text-white text-[13px] font-medium flex-1 leading-snug">Elevated risk detected. Tap to view nearby specialists.</Text>
+          <Text className="text-white dark:text-slate-900 text-[13px] font-medium flex-1 leading-snug">Elevated risk detected. Tap to view nearby specialists.</Text>
           <Feather name="chevron-right" size={18} color="white" />
         </TouchableOpacity>
       )}
@@ -125,17 +125,17 @@ export default function DashboardScreen() {
       {/* ── Top bar ── */}
       <View className="flex-row justify-between items-center px-5 pt-4 pb-2">
         <View className="flex-row items-center gap-2.5">
-          <View className="w-9 h-9 bg-[#1e4ed8] rounded-xl items-center justify-center">
-            <MaterialCommunityIcons name="heart-pulse" size={18} color="white" />
+          <View className="w-7 h-7 rounded-full items-center justify-center border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 dark:bg-slate-100">
+            <Feather name="heart" size={13} color="#0f172a" />
           </View>
-          <Text className="text-[16px] font-medium text-slate-900 tracking-tight">HeartLink</Text>
+          <Text className="text-[16px] text-slate-900 dark:text-white dark:text-slate-900 tracking-tight" style={{ fontWeight: "300" }}>Heart<Text style={{ fontWeight: "600" }}>Link.</Text></Text>
         </View>
         <View className="flex-row items-center gap-2">
-          <TouchableOpacity onPress={() => router.push("/(home)/notifications")} className="w-9 h-9 rounded-xl bg-slate-100 border border-slate-200/70 items-center justify-center">
+          <TouchableOpacity onPress={() => router.push("/(home)/notifications")} className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-800/70 items-center justify-center">
             <Feather name="bell" size={17} color="#64748b" />
             <View style={{ position: "absolute", top: 8, right: 8 }} className="w-1.5 h-1.5 bg-red-500 rounded-full" />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => router.push("/(home)/settings")} className="w-9 h-9 rounded-xl bg-slate-100 border border-slate-200/70 items-center justify-center">
+          <TouchableOpacity onPress={() => router.push("/(home)/settings")} className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-800/70 items-center justify-center">
             <Feather name="settings" size={17} color="#64748b" />
           </TouchableOpacity>
           <TouchableOpacity onPress={() => router.push("/(home)/profile")} activeOpacity={0.8} className="ml-1">
@@ -151,20 +151,20 @@ export default function DashboardScreen() {
 
         {/* ── Greeting ── */}
         <View className="px-5 pt-5 pb-2">
-          <Text className="text-[26px] font-medium text-slate-900 tracking-tight leading-tight">
+          <Text className="text-[26px] font-medium text-slate-900 dark:text-white dark:text-slate-900 tracking-tight leading-tight">
             Welcome back,{"\n"}John Mark
           </Text>
           <Text className="text-[14px] text-slate-400 mt-2">Thursday, 4 June</Text>
         </View>
 
         {/* ── CSS Score hero card ── */}
-        <View className="mx-5 mt-3 bg-white rounded-2xl border border-slate-200/70 pt-6 pb-5 px-5 items-center">
+        <View className="mx-5 mt-3 bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 pt-6 pb-5 px-5 items-center">
 
           {/* Ring */}
           <CircularProgress score={cssScore} size={200} strokeWidth={13} />
 
           {/* Label below ring */}
-          <Text className="text-[17px] font-medium text-slate-900 mt-4 mb-2">
+          <Text className="text-[17px] font-medium text-slate-900 dark:text-white dark:text-slate-900 mt-4 mb-2">
             Cardiovascular stability
           </Text>
 
@@ -181,7 +181,7 @@ export default function DashboardScreen() {
 
           {/* Progress bar */}
           <View className="w-full mt-5">
-            <View className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+            <View className="h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
               <View className="h-full rounded-full" style={{ width: `${cssScore}%`, backgroundColor: theme.barColor }} />
             </View>
             <View className="flex-row justify-between mt-1">
@@ -197,20 +197,45 @@ export default function DashboardScreen() {
           </View>
         </View>
 
+        {/* ── Quick Actions ── */}
+        <View className="flex-row gap-3 mx-5 mt-4">
+          <TouchableOpacity 
+            activeOpacity={0.8} 
+            onPress={() => router.push("/locator")}
+            className="flex-1 bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-xl border border-slate-200 dark:border-slate-800/70 py-3 items-center"
+          >
+            <View className="w-9 h-9 rounded-full bg-blue-50 items-center justify-center mb-1.5">
+              <Feather name="map-pin" size={16} color="#1e4ed8" />
+            </View>
+            <Text className="text-[12px] font-medium text-slate-700 dark:text-slate-300">Find Clinics</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            activeOpacity={0.8} 
+            onPress={() => router.push("/(home)/log-symptoms")}
+            className="flex-1 bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-xl border border-slate-200 dark:border-slate-800/70 py-3 items-center"
+          >
+            <View className="w-9 h-9 rounded-full bg-rose-50 items-center justify-center mb-1.5">
+              <Feather name="activity" size={16} color="#e11d48" />
+            </View>
+            <Text className="text-[12px] font-medium text-slate-700 dark:text-slate-300">Log Vitals</Text>
+          </TouchableOpacity>
+        </View>
+
         {/* ── Stat cards row ── */}
-        <View className="flex-row gap-3 mx-5 mt-3">
+        <View className="flex-row gap-3 mx-5 mt-4">
           <StatCard icon="heart" label="BPM" value="72" iconColor="#a32d2d" iconBg="#fcebeb" />
           <StatCard icon="droplet" label="BP" value="120/80" iconColor="#185fa5" iconBg="#e6f1fb" />
           <StatCard icon="trending-up" label="Trend" value="+5" iconColor="#3b6d11" iconBg="#eaf3de" />
         </View>
 
         {/* ── Smart insight ── */}
-        <View className="mx-5 mt-3 bg-white rounded-2xl border border-slate-200/70 p-4 flex-row items-start gap-3">
-          <View className="w-9 h-9 rounded-xl bg-slate-50 border border-slate-200/70 items-center justify-center flex-shrink-0">
+        <View className="mx-5 mt-3 bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4 flex-row items-start gap-3">
+          <View className="w-9 h-9 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/70 items-center justify-center flex-shrink-0">
             <Feather name="zap" size={16} color="#185fa5" />
           </View>
-          <Text className="flex-1 text-[13px] text-slate-500 leading-relaxed">
-            <Text className="font-medium text-slate-900">Your stability score improved by 5 points this week. </Text>
+          <Text className="flex-1 text-[13px] text-slate-500 dark:text-slate-400 leading-relaxed">
+            <Text className="font-medium text-slate-900 dark:text-white dark:text-slate-900">Your stability score improved by 5 points this week. </Text>
             Consistent medication tracking and low-sodium meals logged.
           </Text>
         </View>
@@ -227,7 +252,7 @@ export default function DashboardScreen() {
               className="mx-5 bg-red-50 rounded-2xl p-4 border border-red-200 flex-row items-center justify-between"
             >
               <View className="flex-1 pr-4">
-                <Text className="text-[15px] font-medium text-slate-900 mb-0.5">Need professional guidance?</Text>
+                <Text className="text-[15px] font-medium text-slate-900 dark:text-white dark:text-slate-900 mb-0.5">Need professional guidance?</Text>
                 <Text className="text-[13px] text-slate-600">Find a cardiologist near you to discuss your risk level.</Text>
               </View>
               <View className="w-10 h-10 bg-red-100 rounded-xl items-center justify-center">
@@ -240,7 +265,7 @@ export default function DashboardScreen() {
             {/* ── Recommendations ── */}
             <View className="mt-6">
               <View className="px-5 flex-row items-center justify-between mb-3">
-                <Text className="text-[15px] font-medium text-slate-900">Recommended today</Text>
+                <Text className="text-[15px] font-medium text-slate-900 dark:text-white dark:text-slate-900">Recommended today</Text>
               </View>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="px-5 gap-3">
                 <RecoCard tag="Exercise" title="15-min chair yoga" subtitle="Safe mobility, stable heart rate." icon="yoga" bg="#1e293b" tagBg="rgba(255,255,255,0.12)" tagText="rgba(255,255,255,0.8)" subColor="#94a3b8" />
@@ -253,10 +278,10 @@ export default function DashboardScreen() {
             <TouchableOpacity
               activeOpacity={0.8}
               onPress={() => router.push("/locator")}
-              className="mx-5 mt-4 bg-white rounded-2xl p-4 border border-slate-200/70 flex-row items-center justify-between"
+              className="mx-5 mt-4 bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl p-4 border border-slate-200 dark:border-slate-800/70 flex-row items-center justify-between"
             >
               <View className="flex-1 pr-4">
-                <Text className="text-[15px] font-medium text-slate-900 mb-0.5">Need professional guidance?</Text>
+                <Text className="text-[15px] font-medium text-slate-900 dark:text-white dark:text-slate-900 mb-0.5">Need professional guidance?</Text>
                 <Text className="text-[13px] text-slate-400">Find a cardiologist near you.</Text>
               </View>
               <View className="w-10 h-10 bg-blue-50 rounded-xl items-center justify-center">

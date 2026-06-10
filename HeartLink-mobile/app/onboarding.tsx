@@ -2,7 +2,11 @@ import React from "react";
 import { View, Text, TouchableOpacity, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
-import { MaterialCommunityIcons, Feather, MaterialIcons } from "@expo/vector-icons";
+import {
+  MaterialCommunityIcons,
+  Feather,
+  MaterialIcons,
+} from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import "../global.css";
 
@@ -24,7 +28,7 @@ function FeatureCard({
   subtitle: string;
 }) {
   return (
-    <View className="bg-white rounded-2xl p-4 flex-row items-center border border-slate-200/70 mb-3">
+    <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl p-4 flex-row items-center border border-slate-200 dark:border-slate-800/70 mb-3">
       <View
         className="w-11 h-11 rounded-xl items-center justify-center mr-3.5 flex-shrink-0"
         style={{ backgroundColor: iconBg }}
@@ -36,11 +40,15 @@ function FeatureCard({
           <MaterialIcons name={icon as any} size={18} color={iconColor} />
         )}
         {iconType === "mci" && (
-          <MaterialCommunityIcons name={icon as any} size={18} color={iconColor} />
+          <MaterialCommunityIcons
+            name={icon as any}
+            size={18}
+            color={iconColor}
+          />
         )}
       </View>
       <View className="flex-1">
-        <Text className="text-[13px] font-medium text-slate-900 mb-0.5">
+        <Text className="text-[13px] font-medium text-slate-900 dark:text-white dark:text-slate-900 mb-0.5">
           {title}
         </Text>
         <Text className="text-[12px] text-slate-400 leading-relaxed">
@@ -57,7 +65,7 @@ export default function OnboardingScreen() {
   const router = useRouter();
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950" edges={["top"]}>
       <StatusBar style="dark" />
 
       <ScrollView
@@ -65,39 +73,27 @@ export default function OnboardingScreen() {
         showsVerticalScrollIndicator={false}
         bounces={false}
       >
-
         {/* ── Logo bar ── */}
         <View className="flex-row items-center px-5 pt-5 mb-10">
-          <View className="w-8 h-8 bg-[#1e4ed8] rounded-xl items-center justify-center">
-            <MaterialCommunityIcons name="heart-pulse" size={17} color="white" />
+          <View className="w-7 h-7 rounded-full items-center justify-center border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 dark:bg-slate-100">
+            <Feather name="heart" size={13} color="#0f172a" />
           </View>
-          <Text className="ml-2.5 text-[15px] font-medium text-slate-900 tracking-tight">
-            HeartLink
+          <Text
+            className="ml-2.5 text-[15px] text-slate-900 dark:text-white dark:text-slate-900 tracking-tight"
+            style={{ fontWeight: "300" }}
+          >
+            Heart<Text style={{ fontWeight: "600" }}>Link.</Text>
           </Text>
         </View>
 
-        {/* ── Hero ── */}
         <View className="items-center px-5 mb-10">
-          {/* Concentric rings */}
-          <View
-            className="w-36 h-36 rounded-full items-center justify-center"
-            style={{ backgroundColor: "#dbeafe" }}
-          >
-            <View
-              className="w-24 h-24 rounded-full items-center justify-center"
-              style={{ backgroundColor: "#93c5fd" }}
-            >
-              <View
-                className="w-16 h-16 rounded-full items-center justify-center"
-                style={{ backgroundColor: "#1e4ed8" }}
-              >
-                <MaterialCommunityIcons name="heart-pulse" size={32} color="#fff" />
-              </View>
-            </View>
+          {/* ── Minimalist Heart Icon ── */}
+          <View className="w-24 h-24 rounded-full items-center justify-center border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 dark:bg-slate-100">
+            <Feather name="heart" size={34} color="#0f172a" />
           </View>
 
           {/* Headline */}
-          <Text className="text-[30px] font-medium text-slate-900 text-center tracking-tight leading-tight mt-8 mb-3">
+          <Text className="text-[30px] font-medium text-slate-900 dark:text-white dark:text-slate-900 text-center tracking-tight leading-tight mt-8 mb-3">
             Proactive{"\n"}cardiovascular{"\n"}well-being.
           </Text>
           <Text className="text-[13px] text-slate-400 text-center leading-relaxed px-4">
@@ -137,10 +133,10 @@ export default function OnboardingScreen() {
         {/* ── Dev shortcut ── */}
         {__DEV__ && (
           <TouchableOpacity
-            onPress={() => router.push("/dashboard")}
-            className="mx-5 mb-4 bg-[#1e4ed8] border border-slate-200/70 rounded-xl py-2.5 items-center"
+            onPress={() => router.push("/health_goals")}
+            className="mx-5 mb-4 bg-[#1e4ed8] border border-slate-200 dark:border-slate-800/70 rounded-xl py-2.5 items-center"
           >
-            <Text className="text-[11px] text-white">
+            <Text className="text-[11px] text-white dark:text-slate-900">
               Dev → skip to dashboard
             </Text>
           </TouchableOpacity>
@@ -151,10 +147,10 @@ export default function OnboardingScreen() {
           {/* Primary CTA */}
           <TouchableOpacity
             activeOpacity={0.85}
-            className="w-full bg-slate-900 rounded-2xl py-4 flex-row justify-center items-center gap-2 mb-3"
+            className="w-full bg-slate-900 dark:bg-slate-100 rounded-2xl py-4 flex-row justify-center items-center gap-2 mb-3"
             onPress={() => router.push("/register")}
           >
-            <Text className="text-white text-[14px] font-medium">
+            <Text className="text-white dark:text-slate-900 text-[14px] font-medium">
               Get started
             </Text>
             <Feather name="arrow-right" size={16} color="#fff" />
@@ -169,7 +165,7 @@ export default function OnboardingScreen() {
             <Text className="text-[13px] text-slate-400">
               Already have an account?
             </Text>
-            <Text className="text-[13px] font-medium text-slate-700">
+            <Text className="text-[13px] font-medium text-slate-700 dark:text-slate-300">
               Log in
             </Text>
           </TouchableOpacity>
@@ -179,7 +175,6 @@ export default function OnboardingScreen() {
             CTU — Main Campus · Capstone 2026
           </Text>
         </View>
-
       </ScrollView>
     </SafeAreaView>
   );

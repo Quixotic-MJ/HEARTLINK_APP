@@ -186,7 +186,7 @@ export default function BarcodeScanScreen() {
   // ── Permission loading ──
   if (!permission) {
     return (
-      <View className="flex-1 items-center justify-center bg-slate-50">
+      <View className="flex-1 items-center justify-center bg-slate-50 dark:bg-slate-950">
         <ActivityIndicator size="large" color="#0f172a" />
       </View>
     );
@@ -195,11 +195,11 @@ export default function BarcodeScanScreen() {
   // ── Permission denied ──
   if (!permission.granted) {
     return (
-      <SafeAreaView className="flex-1 bg-slate-50 items-center justify-center px-6">
-        <View className="w-16 h-16 rounded-2xl bg-slate-100 border border-slate-200/70 items-center justify-center mb-4">
+      <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950 items-center justify-center px-6">
+        <View className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-800/70 items-center justify-center mb-4">
           <Feather name="camera-off" size={26} color="#94a3b8" />
         </View>
-        <Text className="text-[16px] font-medium text-slate-900 mb-2 text-center">
+        <Text className="text-[16px] font-medium text-slate-900 dark:text-white dark:text-slate-900 mb-2 text-center">
           Camera permission required
         </Text>
         <Text className="text-[13px] text-slate-400 text-center mb-6 leading-relaxed">
@@ -207,10 +207,10 @@ export default function BarcodeScanScreen() {
         </Text>
         <TouchableOpacity
           onPress={requestPermission}
-          className="bg-slate-900 px-6 py-3 rounded-xl flex-row items-center gap-2"
+          className="bg-slate-900 dark:bg-slate-100 px-6 py-3 rounded-xl flex-row items-center gap-2"
         >
           <Feather name="camera" size={15} color="#fff" />
-          <Text className="text-white font-medium text-[14px]">Grant permission</Text>
+          <Text className="text-white dark:text-slate-900 font-medium text-[14px]">Grant permission</Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={() => router.back()} className="mt-3 px-6 py-3">
           <Text className="text-slate-400 text-[13px]">Go back</Text>
@@ -220,26 +220,26 @@ export default function BarcodeScanScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950" edges={["top"]}>
       <StatusBar style="dark" />
 
       {/* ── Header ── */}
-      <View className="flex-row items-center px-5 pt-4 pb-3 border-b border-slate-200/50">
+      <View className="flex-row items-center px-5 pt-4 pb-3 border-b border-slate-200 dark:border-slate-800/50">
         <TouchableOpacity
           onPress={() => router.back()}
-          className="w-9 h-9 rounded-xl bg-white border border-slate-200/70 items-center justify-center mr-3"
+          className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 dark:bg-slate-100 border border-slate-200 dark:border-slate-800/70 items-center justify-center mr-3"
         >
           <Feather name="arrow-left" size={18} color="#0f172a" />
         </TouchableOpacity>
         <View className="flex-1">
-          <Text className="text-[17px] font-medium text-slate-900">Scan meal</Text>
+          <Text className="text-[17px] font-medium text-slate-900 dark:text-white dark:text-slate-900">Scan meal</Text>
           <Text className="text-[12px] text-slate-400">Record via barcode</Text>
         </View>
         {/* Torch toggle (always visible) */}
         {!product && (
           <TouchableOpacity
             onPress={() => setTorch(!torch)}
-            className="w-9 h-9 rounded-xl border border-slate-200/70 items-center justify-center"
+            className="w-9 h-9 rounded-xl border border-slate-200 dark:border-slate-800/70 items-center justify-center"
             style={{ backgroundColor: torch ? "#0f172a" : "#fff" }}
           >
             <Feather name={torch ? "zap" : "zap-off"} size={16} color={torch ? "#fff" : "#64748b"} />
@@ -258,7 +258,7 @@ export default function BarcodeScanScreen() {
             style={{ paddingBottom: Math.max(insets.bottom, 20) }}
           >
             {/* Camera */}
-            <View className="flex-1 rounded-2xl overflow-hidden bg-slate-900 relative">
+            <View className="flex-1 rounded-2xl overflow-hidden bg-slate-900 dark:bg-slate-100 relative">
             <CameraView
               style={StyleSheet.absoluteFillObject}
               onBarcodeScanned={scanned ? undefined : handleBarcodeScanned}
@@ -309,14 +309,14 @@ export default function BarcodeScanScreen() {
           <View className="mt-4">
             {showManualInput ? (
               <View className="flex-row items-center gap-2">
-                <View className="flex-1 bg-white border border-slate-200/70 rounded-xl px-3.5 py-2.5">
+                <View className="flex-1 bg-white dark:bg-slate-900 dark:bg-slate-100 border border-slate-200 dark:border-slate-800/70 rounded-xl px-3.5 py-2.5">
                   <TextInput
                     value={manualBarcode}
                     onChangeText={setManualBarcode}
                     placeholder="Enter barcode number…"
                     placeholderTextColor="#cbd5e1"
                     keyboardType="numeric"
-                    className="text-[14px] text-slate-900"
+                    className="text-[14px] text-slate-900 dark:text-white dark:text-slate-900"
                     autoFocus
                   />
                 </View>
@@ -327,9 +327,9 @@ export default function BarcodeScanScreen() {
                       handleBarcodeScanned({ type: "manual", data: manualBarcode });
                     }
                   }}
-                  className="bg-slate-900 px-4 py-2.5 rounded-xl"
+                  className="bg-slate-900 dark:bg-slate-100 px-4 py-2.5 rounded-xl"
                 >
-                  <Text className="text-white text-[13px] font-medium">Look up</Text>
+                  <Text className="text-white dark:text-slate-900 text-[13px] font-medium">Look up</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => setShowManualInput(false)} className="p-2">
                   <Feather name="x" size={18} color="#64748b" />
@@ -339,14 +339,14 @@ export default function BarcodeScanScreen() {
               <View className="flex-row items-center justify-center gap-3">
                 <TouchableOpacity
                   onPress={() => setShowManualInput(true)}
-                  className="flex-row items-center gap-1.5 bg-white border border-slate-200/70 px-4 py-2.5 rounded-xl"
+                  className="flex-row items-center gap-1.5 bg-white dark:bg-slate-900 dark:bg-slate-100 border border-slate-200 dark:border-slate-800/70 px-4 py-2.5 rounded-xl"
                 >
                   <Feather name="edit-2" size={13} color="#64748b" />
                   <Text className="text-[12px] text-slate-600">Enter manually</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() => router.push("/(home)/search-meal")}
-                  className="flex-row items-center gap-1.5 bg-white border border-slate-200/70 px-4 py-2.5 rounded-xl"
+                  className="flex-row items-center gap-1.5 bg-white dark:bg-slate-900 dark:bg-slate-100 border border-slate-200 dark:border-slate-800/70 px-4 py-2.5 rounded-xl"
                 >
                   <Feather name="search" size={13} color="#64748b" />
                   <Text className="text-[12px] text-slate-600">Search food</Text>
@@ -361,7 +361,7 @@ export default function BarcodeScanScreen() {
         <ScrollView contentContainerClassName="p-5 pb-10" showsVerticalScrollIndicator={false}>
 
           {/* Product header card */}
-          <View className="bg-white rounded-2xl border border-slate-200/70 p-4 mb-3 flex-row items-start gap-3">
+          <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4 mb-3 flex-row items-start gap-3">
             <View
               className="w-11 h-11 rounded-xl items-center justify-center flex-shrink-0"
               style={{ backgroundColor: "#eaf3de" }}
@@ -372,7 +372,7 @@ export default function BarcodeScanScreen() {
               <Text className="text-[11px] text-slate-400 uppercase tracking-wide mb-0.5">
                 {product.brands}
               </Text>
-              <Text className="text-[16px] font-medium text-slate-900 leading-snug">
+              <Text className="text-[16px] font-medium text-slate-900 dark:text-white dark:text-slate-900 leading-snug">
                 {product.product_name}
               </Text>
               <Text className="text-[12px] text-slate-400 mt-0.5">
@@ -398,15 +398,15 @@ export default function BarcodeScanScreen() {
           )}
 
           {/* Servings + meal time */}
-          <View className="bg-white rounded-2xl border border-slate-200/70 p-4 mb-3">
+          <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4 mb-3">
             {/* Servings stepper */}
             <Text className="text-[11px] text-slate-400 uppercase tracking-wide mb-2">
               Servings consumed
             </Text>
-            <View className="flex-row items-center justify-between bg-slate-50 border border-slate-200/70 rounded-xl px-3 py-2 mb-4">
+            <View className="flex-row items-center justify-between bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/70 rounded-xl px-3 py-2 mb-4">
               <TouchableOpacity
                 onPress={() => setServingsStr(String(Math.max(0.5, servings - 0.5)))}
-                className="w-9 h-9 rounded-lg bg-white border border-slate-200/70 items-center justify-center"
+                className="w-9 h-9 rounded-lg bg-white dark:bg-slate-900 dark:bg-slate-100 border border-slate-200 dark:border-slate-800/70 items-center justify-center"
               >
                 <Feather name="minus" size={15} color="#475569" />
               </TouchableOpacity>
@@ -415,12 +415,12 @@ export default function BarcodeScanScreen() {
                   value={servingsStr}
                   onChangeText={setServingsStr}
                   keyboardType="numeric"
-                  className="text-[20px] font-medium text-slate-900 text-center w-16"
+                  className="text-[20px] font-medium text-slate-900 dark:text-white dark:text-slate-900 text-center w-16"
                 />
               </View>
               <TouchableOpacity
                 onPress={() => setServingsStr(String(servings + 0.5))}
-                className="w-9 h-9 rounded-lg bg-white border border-slate-200/70 items-center justify-center"
+                className="w-9 h-9 rounded-lg bg-white dark:bg-slate-900 dark:bg-slate-100 border border-slate-200 dark:border-slate-800/70 items-center justify-center"
               >
                 <Feather name="plus" size={15} color="#475569" />
               </TouchableOpacity>
@@ -438,7 +438,7 @@ export default function BarcodeScanScreen() {
           </View>
 
           {/* Nutrition grid */}
-          <View className="bg-white rounded-2xl border border-slate-200/70 p-4 mb-4">
+          <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4 mb-4">
             <Text className="text-[11px] text-slate-400 uppercase tracking-wide mb-3">
               Total nutrition
             </Text>
@@ -454,11 +454,11 @@ export default function BarcodeScanScreen() {
           {/* Actions */}
           <TouchableOpacity
             onPress={handleLogMeal}
-            className="bg-slate-900 w-full rounded-2xl py-3.5 flex-row items-center justify-center gap-2 mb-2"
+            className="bg-slate-900 dark:bg-slate-100 w-full rounded-2xl py-3.5 flex-row items-center justify-center gap-2 mb-2"
             activeOpacity={0.85}
           >
             <Feather name="check" size={15} color="#fff" />
-            <Text className="text-white text-[14px] font-medium">Log to daily diary</Text>
+            <Text className="text-white dark:text-slate-900 text-[14px] font-medium">Log to daily diary</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -467,10 +467,10 @@ export default function BarcodeScanScreen() {
               setScanned(false);
               setServingsStr("1");
             }}
-            className="w-full rounded-2xl py-3.5 items-center border border-slate-200/70 bg-white"
+            className="w-full rounded-2xl py-3.5 items-center border border-slate-200 dark:border-slate-800/70 bg-white dark:bg-slate-900 dark:bg-slate-100"
             activeOpacity={0.75}
           >
-            <Text className="text-slate-500 text-[13px] font-medium">Discard & scan again</Text>
+            <Text className="text-slate-500 dark:text-slate-400 text-[13px] font-medium">Discard & scan again</Text>
           </TouchableOpacity>
 
         </ScrollView>

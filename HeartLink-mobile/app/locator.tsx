@@ -85,7 +85,7 @@ function ClinicCard({ clinic, onDirections, onCall }: {
   onCall: () => void;
 }) {
   return (
-    <View className="bg-white rounded-2xl border border-slate-200/70 p-4">
+    <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4">
       {/* Top row */}
       <View className="flex-row items-start mb-3">
         {/* Icon */}
@@ -94,7 +94,7 @@ function ClinicCard({ clinic, onDirections, onCall }: {
         </View>
 
         <View className="flex-1">
-          <Text className="text-[14px] font-medium text-slate-900 leading-snug mb-0.5">
+          <Text className="text-[14px] font-medium text-slate-900 dark:text-white dark:text-slate-900 leading-snug mb-0.5">
             {clinic.name}
           </Text>
           <Text className="text-[12px] text-slate-400">{clinic.doctor}</Text>
@@ -105,13 +105,13 @@ function ClinicCard({ clinic, onDirections, onCall }: {
       <View className="flex-row items-center justify-between mb-3 gap-2">
         {/* Left: distance + specialty chips */}
         <View className="flex-row items-center gap-2 flex-shrink flex-wrap">
-          <View className="flex-row items-center gap-1 bg-slate-50 border border-slate-200/70 px-2.5 py-1 rounded-lg">
+          <View className="flex-row items-center gap-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/70 px-2.5 py-1 rounded-lg">
             <MaterialCommunityIcons name="map-marker-outline" size={12} color="#94a3b8" />
-            <Text className="text-[11px] text-slate-500">{clinic.distance}</Text>
+            <Text className="text-[11px] text-slate-500 dark:text-slate-400">{clinic.distance}</Text>
           </View>
-          <View className="flex-row items-center gap-1 bg-slate-50 border border-slate-200/70 px-2.5 py-1 rounded-lg">
+          <View className="flex-row items-center gap-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/70 px-2.5 py-1 rounded-lg">
             <MaterialCommunityIcons name="stethoscope" size={12} color="#94a3b8" />
-            <Text className="text-[11px] text-slate-500" numberOfLines={1}>{clinic.specialty}</Text>
+            <Text className="text-[11px] text-slate-500 dark:text-slate-400" numberOfLines={1}>{clinic.specialty}</Text>
           </View>
         </View>
 
@@ -137,14 +137,14 @@ function ClinicCard({ clinic, onDirections, onCall }: {
       </View>
 
       {/* Divider */}
-      <View className="h-px bg-slate-100 mb-3" />
+      <View className="h-px bg-slate-100 dark:bg-slate-800 mb-3" />
 
       {/* Action buttons */}
       <View className="flex-row gap-2">
         <TouchableOpacity
           activeOpacity={0.8}
           onPress={onDirections}
-          className="flex-1 flex-row items-center justify-center py-2.5 rounded-xl border border-slate-200/70 bg-slate-50 gap-1.5"
+          className="flex-1 flex-row items-center justify-center py-2.5 rounded-xl border border-slate-200 dark:border-slate-800/70 bg-slate-50 dark:bg-slate-950 gap-1.5"
         >
           <Feather name="navigation" size={14} color="#475569" />
           <Text className="text-[13px] font-medium text-slate-600">Directions</Text>
@@ -157,7 +157,7 @@ function ClinicCard({ clinic, onDirections, onCall }: {
           style={{ backgroundColor: "#0f172a" }}
         >
           <Feather name="phone-call" size={14} color="#fff" />
-          <Text className="text-[13px] font-medium text-white">Call clinic</Text>
+          <Text className="text-[13px] font-medium text-white dark:text-slate-900">Call clinic</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -200,20 +200,20 @@ export default function LocatorScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950" edges={["top"]}>
       <StatusBar style="dark" />
 
       {/* ── Header ── */}
-      <View className="px-5 pt-4 pb-3 bg-white border-b border-slate-200/50">
+      <View className="px-5 pt-4 pb-3 bg-white dark:bg-slate-900 dark:bg-slate-100 border-b border-slate-200 dark:border-slate-800/50">
         <View className="flex-row items-center mb-3">
           <TouchableOpacity
             onPress={() => router.back()}
-            className="w-9 h-9 rounded-xl bg-slate-50 border border-slate-200/70 items-center justify-center mr-3"
+            className="w-9 h-9 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/70 items-center justify-center mr-3"
           >
             <Feather name="arrow-left" size={18} color="#0f172a" />
           </TouchableOpacity>
           <View className="flex-1">
-            <Text className="text-[16px] font-medium text-slate-900" numberOfLines={1}>
+            <Text className="text-[16px] font-medium text-slate-900 dark:text-white dark:text-slate-900" numberOfLines={1}>
               Emergency Locator
             </Text>
             <Text className="text-[12px] text-slate-400">Nearby Cardiovascular Centers</Text>
@@ -233,7 +233,7 @@ export default function LocatorScreen() {
       </View>
 
       {/* ── Map ── */}
-      <View style={{ height: "35%" }} className="bg-slate-100 relative">
+      <View style={{ height: "35%" }} className="bg-slate-100 dark:bg-slate-800 relative">
         <MapView
           provider={Platform.OS === "android" ? PROVIDER_GOOGLE : PROVIDER_DEFAULT}
           style={{ width: "100%", height: "100%" }}
@@ -283,7 +283,7 @@ export default function LocatorScreen() {
 
         {/* Selected Clinic Modal (Bottom Sheet over Map) */}
         {selectedClinic && (
-          <View className="absolute bottom-4 left-4 right-4 bg-white rounded-2xl shadow-lg shadow-black/20 p-1">
+          <View className="absolute bottom-4 left-4 right-4 bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl shadow-lg shadow-black/20 p-1">
              <View className="flex-row justify-end mb-1">
                 <TouchableOpacity onPress={() => setSelectedClinic(null)} className="p-2">
                    <Feather name="x" size={16} color="#94a3b8" />
@@ -303,7 +303,7 @@ export default function LocatorScreen() {
           style={{ backgroundColor: "rgba(255,255,255,0.92)", borderColor: "#e2e8f0", display: selectedClinic ? 'none' : 'flex' }}
         >
           <View className="w-1.5 h-1.5 rounded-full bg-green-500" />
-          <Text className="text-[11px] font-medium text-slate-700">
+          <Text className="text-[11px] font-medium text-slate-700 dark:text-slate-300">
             {CLINICS.filter((c) => c.isOpen).length} open nearby
           </Text>
         </View>
@@ -312,8 +312,8 @@ export default function LocatorScreen() {
       {/* ── Clinic list ── */}
       <View className="flex-1">
         {/* List header */}
-        <View className="px-5 py-3 flex-row items-center justify-between border-b border-slate-200/50 bg-white">
-          <Text className="text-[13px] font-medium text-slate-900">
+        <View className="px-5 py-3 flex-row items-center justify-between border-b border-slate-200 dark:border-slate-800/50 bg-white dark:bg-slate-900 dark:bg-slate-100">
+          <Text className="text-[13px] font-medium text-slate-900 dark:text-white dark:text-slate-900">
             Nearby specialists
           </Text>
           <Text className="text-[12px] text-slate-400">
@@ -327,10 +327,10 @@ export default function LocatorScreen() {
         >
           {filtered.length === 0 ? (
             <View className="items-center pt-12">
-              <View className="w-14 h-14 rounded-2xl bg-slate-100 border border-slate-200/70 items-center justify-center mb-3">
+              <View className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-800/70 items-center justify-center mb-3">
                 <Feather name="search" size={22} color="#cbd5e1" />
               </View>
-              <Text className="text-[15px] font-medium text-slate-900 mb-1">
+              <Text className="text-[15px] font-medium text-slate-900 dark:text-white dark:text-slate-900 mb-1">
                 No results found
               </Text>
               <Text className="text-[13px] text-slate-400 text-center">

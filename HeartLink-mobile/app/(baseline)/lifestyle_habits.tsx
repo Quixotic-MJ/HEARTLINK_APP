@@ -14,6 +14,22 @@ import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import '../../global.css'
 
+// ─── Step Progress ────────────────────────────────────────────────────────────
+
+function StepProgress({ current, total }: { current: number; total: number }) {
+  return (
+    <View className="flex-row gap-1.5">
+      {Array.from({ length: total }).map((_, i) => (
+        <View
+          key={i}
+          className="flex-1 h-1 rounded-full"
+          style={{ backgroundColor: i < current ? "#0f172a" : "#e2e8f0" }}
+        />
+      ))}
+    </View>
+  );
+}
+
 export default function BiometricsStep2Screen() {
   const router = useRouter();
 
@@ -39,27 +55,25 @@ export default function BiometricsStep2Screen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950" edges={["top"]}>
       <StatusBar style="dark" />
 
-      {/* Top Header Bar */}
-      <View className="flex-row items-center px-5 pt-4 pb-2 z-10">
-        <TouchableOpacity 
-          onPress={() => router.back()} 
-          className="p-2 -ml-2 mr-3"
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Feather name="arrow-left" size={20} color="#0f172a" />
-        </TouchableOpacity>
-        
-        <View className="flex-1">
-          <Text className="text-[22px] font-medium text-slate-900 tracking-tight">
-            Lifestyle & Habits
-          </Text>
-          <Text className="text-[13px] text-slate-400 mt-0.5">
-            Step 2 of 4 • Daily routines
-          </Text>
+      {/* Header */}
+      <View className="px-5 pt-4 pb-3 z-10">
+        <View className="flex-row items-center mb-4">
+          <TouchableOpacity
+            onPress={() => router.back()}
+            className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 items-center justify-center mr-3"
+          >
+            <Feather name="arrow-left" size={18} color="#0f172a" />
+          </TouchableOpacity>
+          <View className="flex-1">
+            <Text className="text-[11px] text-slate-400 uppercase tracking-wide">
+              Step 3 of 5
+            </Text>
+          </View>
         </View>
+        <StepProgress current={3} total={5} />
       </View>
 
       <KeyboardAvoidingView
@@ -67,18 +81,23 @@ export default function BiometricsStep2Screen() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <ScrollView
-          contentContainerClassName="px-5 pb-32 pt-4"
+          contentContainerClassName="px-5 pb-12 pt-4"
           showsVerticalScrollIndicator={false}
           bounces={true}
         >
-          {/* Header Info */}
-          <Text className="text-[13px] text-slate-500 font-medium leading-relaxed mb-5">
-            These daily routines play a crucial role in predicting your cardiovascular adaptation and stability.
-          </Text>
+          {/* Page title */}
+          <View className="mb-6">
+            <Text className="text-[24px] font-medium text-slate-900 dark:text-white tracking-tight mb-1.5">
+              Lifestyle & Habits
+            </Text>
+            <Text className="text-[13px] text-slate-400 leading-relaxed">
+              These daily routines play a crucial role in predicting your cardiovascular adaptation and stability.
+            </Text>
+          </View>
 
           {/* 1. Smoking / Vaping Status */}
-          <View className="bg-white rounded-2xl border border-slate-200/70 p-4 mb-5">
-            <Text className="text-[15px] font-medium text-slate-900 mb-4 leading-snug">
+          <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4 mb-5">
+            <Text className="text-[15px] font-medium text-slate-900 dark:text-white dark:text-slate-900 mb-4 leading-snug">
               Smoking / Vaping Status
             </Text>
             <View className="flex-row gap-2">
@@ -139,24 +158,24 @@ export default function BiometricsStep2Screen() {
           </View>
 
           {/* 2. Sleep Duration Stepper */}
-          <View className="bg-white rounded-2xl border border-slate-200/70 p-4 mb-5">
-            <Text className="text-[15px] font-medium text-slate-900 mb-4 leading-snug">
+          <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4 mb-5">
+            <Text className="text-[15px] font-medium text-slate-900 dark:text-white dark:text-slate-900 mb-4 leading-snug">
               Average Sleep Duration
             </Text>
             
-            <View className="flex-row items-center justify-between bg-slate-50 border border-slate-100 p-2 rounded-xl">
+            <View className="flex-row items-center justify-between bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 p-2 rounded-xl">
               <TouchableOpacity
                 activeOpacity={0.7}
                 onPress={decrementSleep}
                 disabled={sleepHours <= 3}
-                className="w-12 h-12 rounded-lg items-center justify-center bg-white border border-slate-200/70"
+                className="w-12 h-12 rounded-lg items-center justify-center bg-white dark:bg-slate-900 dark:bg-slate-100 border border-slate-200 dark:border-slate-800/70"
                 style={{ opacity: sleepHours <= 3 ? 0.5 : 1 }}
               >
                 <Feather name="minus" size={20} color="#0f172a" />
               </TouchableOpacity>
 
               <View className="items-center justify-center">
-                <Text className="text-[24px] font-bold text-slate-900">
+                <Text className="text-[24px] font-bold text-slate-900 dark:text-white dark:text-slate-900">
                   {sleepHours}
                 </Text>
                 <Text className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">
@@ -168,7 +187,7 @@ export default function BiometricsStep2Screen() {
                 activeOpacity={0.7}
                 onPress={incrementSleep}
                 disabled={sleepHours >= 12}
-                className="w-12 h-12 rounded-lg items-center justify-center bg-white border border-slate-200/70"
+                className="w-12 h-12 rounded-lg items-center justify-center bg-white dark:bg-slate-900 dark:bg-slate-100 border border-slate-200 dark:border-slate-800/70"
                 style={{ opacity: sleepHours >= 12 ? 0.5 : 1 }}
               >
                 <Feather name="plus" size={20} color="#0f172a" />
@@ -177,16 +196,16 @@ export default function BiometricsStep2Screen() {
           </View>
 
           {/* 3. Family History Toggle */}
-          <View className="bg-white rounded-2xl border border-slate-200/70 p-4 mb-5">
-            <View className="flex-row items-center justify-between bg-slate-50 border border-slate-100 p-4 rounded-xl">
+          <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4 mb-5">
+            <View className="flex-row items-center justify-between bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 p-4 rounded-xl">
               <View className="flex-1 pr-4">
                 <View className="flex-row items-center mb-1">
                   <MaterialCommunityIcons name="heart-multiple-outline" size={16} color="#0f172a" />
-                  <Text className="text-[14px] font-medium text-slate-900 ml-2">
+                  <Text className="text-[14px] font-medium text-slate-900 dark:text-white dark:text-slate-900 ml-2">
                     Family History
                   </Text>
                 </View>
-                <Text className="text-[12px] text-slate-500 leading-relaxed">
+                <Text className="text-[12px] text-slate-500 dark:text-slate-400 leading-relaxed">
                   Has any immediate family member been diagnosed with heart disease?
                 </Text>
               </View>
@@ -200,26 +219,24 @@ export default function BiometricsStep2Screen() {
               />
             </View>
           </View>
+          {/* Next button */}
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={handleNextStep}
+            disabled={!smokingStatus}
+            className="w-full rounded-2xl py-3.5 flex-row justify-center items-center gap-2 mt-4"
+            style={{ backgroundColor: smokingStatus ? "#0f172a" : "#e2e8f0" }}
+          >
+            <Text
+              className="text-[14px] font-medium"
+              style={{ color: smokingStatus ? "#fff" : "#94a3b8" }}
+            >
+              Next step
+            </Text>
+            <Feather name="arrow-right" size={15} color={smokingStatus ? "#fff" : "#94a3b8"} />
+          </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
-
-      {/* Sticky Bottom Action Button */}
-      <View className="absolute bottom-0 left-0 right-0 bg-slate-50 border-t border-slate-200/70 px-5 pt-3 pb-8">
-         <TouchableOpacity
-           activeOpacity={0.8}
-           onPress={handleNextStep}
-           disabled={!smokingStatus}
-           className="w-full py-3.5 rounded-xl flex-row justify-center items-center"
-           style={{
-             backgroundColor: smokingStatus ? "#0f172a" : "#e2e8f0",
-           }}
-         >
-           <Text className="font-medium text-[14px] mr-2" style={{ color: smokingStatus ? "#fff" : "#94a3b8" }}>
-             Next step
-           </Text>
-           <Feather name="arrow-right" size={16} color={smokingStatus ? "#fff" : "#94a3b8"} />
-         </TouchableOpacity>
-      </View>
     </SafeAreaView>
   );
 }

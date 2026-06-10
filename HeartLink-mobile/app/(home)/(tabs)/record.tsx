@@ -16,10 +16,10 @@ export default function RecordScreen() {
             color="#1e4ed8"
           />
         </View>
-        <Text className="text-[22px] font-black text-slate-900 tracking-tight mb-2">
+        <Text className="text-[22px] font-black text-slate-900 dark:text-white dark:text-slate-900 tracking-tight mb-2">
           Record
         </Text>
-        <Text className="text-[14px] text-slate-500 font-medium text-center leading-relaxed">
+        <Text className="text-[14px] text-slate-500 dark:text-slate-400 font-medium text-center leading-relaxed">
           Scan meals, log vitals, and{"\n"}track your daily health data.
         </Text>
       </View>

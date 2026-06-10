@@ -88,14 +88,6 @@ const SAMPLE_NOTIFICATIONS: Notification[] = [
     read: false,
   },
   {
-    id: "3",
-    type: "reminder",
-    title: "Medication reminder",
-    message: "Time to take your Amlodipine 5mg. Don't forget to log it after.",
-    time: "2 hours ago",
-    read: false,
-  },
-  {
     id: "4",
     type: "achievement",
     title: "7-day streak",
@@ -281,25 +273,25 @@ export default function NotificationsScreen() {
   const earlier = filtered.filter((n) => !todayLabels.includes(n.time));
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950" edges={["top"]}>
       <StatusBar style="dark" />
 
       {/* Header */}
-      <View className="flex-row items-center px-5 pt-4 pb-3 border-b border-slate-200/50">
+      <View className="flex-row items-center px-5 pt-4 pb-3 border-b border-slate-200 dark:border-slate-800/50">
         <TouchableOpacity
           onPress={() => router.back()}
-          className="w-9 h-9 rounded-xl bg-white border border-slate-200/70 items-center justify-center mr-3"
+          className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 dark:bg-slate-100 border border-slate-200 dark:border-slate-800/70 items-center justify-center mr-3"
         >
           <Feather name="arrow-left" size={18} color="#0f172a" />
         </TouchableOpacity>
 
         <View className="flex-1 flex-row items-center gap-2">
-          <Text className="text-[17px] font-medium text-slate-900">
+          <Text className="text-[17px] font-medium text-slate-900 dark:text-white dark:text-slate-900">
             Notifications
           </Text>
           {unreadCount > 0 && (
-            <View className="bg-slate-900 rounded-full w-5 h-5 items-center justify-center">
-              <Text className="text-white text-[10px] font-medium">
+            <View className="bg-slate-900 dark:bg-slate-100 rounded-full w-5 h-5 items-center justify-center">
+              <Text className="text-white dark:text-slate-900 text-[10px] font-medium">
                 {unreadCount}
               </Text>
             </View>
@@ -310,10 +302,10 @@ export default function NotificationsScreen() {
         {unreadCount > 0 && (
           <TouchableOpacity
             onPress={markAllAsRead}
-            className="flex-row items-center gap-1.5 bg-white border border-slate-200/70 px-3 py-1.5 rounded-xl"
+            className="flex-row items-center gap-1.5 bg-white dark:bg-slate-900 dark:bg-slate-100 border border-slate-200 dark:border-slate-800/70 px-3 py-1.5 rounded-xl"
           >
             <Feather name="check" size={13} color="#64748b" />
-            <Text className="text-[9px] text-slate-500">Mark all read</Text>
+            <Text className="text-[9px] text-slate-500 dark:text-slate-400">Mark all read</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -339,10 +331,10 @@ export default function NotificationsScreen() {
       >
         {filtered.length === 0 ? (
           <View className="items-center pt-20">
-            <View className="w-14 h-14 rounded-2xl bg-slate-100 border border-slate-200/70 items-center justify-center mb-4">
+            <View className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-800/70 items-center justify-center mb-4">
               <Feather name="bell-off" size={22} color="#cbd5e1" />
             </View>
-            <Text className="text-[16px] font-medium text-slate-900 mb-1">
+            <Text className="text-[16px] font-medium text-slate-900 dark:text-white dark:text-slate-900 mb-1">
               All caught up
             </Text>
             <Text className="text-[13px] text-slate-400 text-center">

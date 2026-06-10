@@ -13,6 +13,22 @@ import { StatusBar } from "expo-status-bar";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 
+// ─── Step Progress ────────────────────────────────────────────────────────────
+
+function StepProgress({ current, total }: { current: number; total: number }) {
+  return (
+    <View className="flex-row gap-1.5">
+      {Array.from({ length: total }).map((_, i) => (
+        <View
+          key={i}
+          className="flex-1 h-1 rounded-full"
+          style={{ backgroundColor: i < current ? "#0f172a" : "#e2e8f0" }}
+        />
+      ))}
+    </View>
+  );
+}
+
 export default function BiometricsStep4Screen() {
 
   const router = useRouter()
@@ -72,26 +88,25 @@ export default function BiometricsStep4Screen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950" edges={["top"]}>
       <StatusBar style="dark" />
 
-      {/* Top Header Bar */}
-      <View className="flex-row items-center px-5 pt-4 pb-2 z-10">
-        <TouchableOpacity
-          onPress={() => router.back()}
-          className="p-2 -ml-2 mr-3"
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Feather name="arrow-left" size={20} color="#0f172a" />
-        </TouchableOpacity>
-        <View className="flex-1">
-          <Text className="text-[22px] font-medium text-slate-900 tracking-tight">
-            Clinical Baseline
-          </Text>
-          <Text className="text-[13px] text-slate-400 mt-0.5">
-            Step 4 of 4 • Predictive metrics
-          </Text>
+      {/* Header */}
+      <View className="px-5 pt-4 pb-3 z-10">
+        <View className="flex-row items-center mb-4">
+          <TouchableOpacity
+            onPress={() => router.back()}
+            className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 items-center justify-center mr-3"
+          >
+            <Feather name="arrow-left" size={18} color="#0f172a" />
+          </TouchableOpacity>
+          <View className="flex-1">
+            <Text className="text-[11px] text-slate-400 uppercase tracking-wide">
+              Step 5 of 5
+            </Text>
+          </View>
         </View>
+        <StepProgress current={5} total={5} />
       </View>
 
       <KeyboardAvoidingView
@@ -99,22 +114,32 @@ export default function BiometricsStep4Screen() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <ScrollView
-          contentContainerClassName="px-5 pb-32 pt-4"
+          contentContainerClassName="px-5 pb-12 pt-4"
           showsVerticalScrollIndicator={false}
           bounces={true}
         >
+          {/* Page title */}
+          <View className="mb-6">
+            <Text className="text-[24px] font-medium text-slate-900 dark:text-white tracking-tight mb-1.5">
+              Clinical Baseline
+            </Text>
+            <Text className="text-[13px] text-slate-400 leading-relaxed">
+              These clinical markers directly power our predictive risk algorithms. Accurate values yield better foresight.
+            </Text>
+          </View>
+
           {/* Optional Data UX Callout */}
-          <View className="bg-white rounded-2xl border border-slate-200/70 p-4 mb-5 flex-row items-start gap-3">
+          <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4 mb-5 flex-row items-start gap-3">
              <Feather name="info" size={18} color="#d97706" style={{ marginTop: 2 }} />
-             <Text className="text-[13px] text-slate-500 flex-1 leading-relaxed">
+             <Text className="text-[13px] text-slate-500 dark:text-slate-400 flex-1 leading-relaxed">
                 Don't have recent lab results? That's okay! You can leave those
                 fields blank and update your profile later.
              </Text>
           </View>
 
           {/* 0. Clinical History */}
-          <View className="bg-white rounded-2xl border border-slate-200/70 p-4 mb-5">
-            <Text className="text-[15px] font-medium text-slate-900 mb-1 leading-snug">
+          <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4 mb-5">
+            <Text className="text-[15px] font-medium text-slate-900 dark:text-white dark:text-slate-900 mb-1 leading-snug">
               Clinical History
             </Text>
             <Text className="text-[13px] text-slate-400 mb-4">
@@ -146,7 +171,7 @@ export default function BiometricsStep4Screen() {
               })}
             </View>
 
-            <Text className="text-[14px] font-medium text-slate-900 mb-3">
+            <Text className="text-[14px] font-medium text-slate-900 dark:text-white dark:text-slate-900 mb-3">
               Currently taking maintenance medication?
             </Text>
             <View className="flex-row gap-2">
@@ -189,17 +214,17 @@ export default function BiometricsStep4Screen() {
           </View>
 
           {/* 1. Core Vitals */}
-          <View className="bg-white rounded-2xl border border-slate-200/70 p-4 mb-5">
-            <Text className="text-[15px] font-medium text-slate-900 mb-4 leading-snug">
+          <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4 mb-5">
+            <Text className="text-[15px] font-medium text-slate-900 dark:text-white dark:text-slate-900 mb-4 leading-snug">
               Basic Vitals
             </Text>
 
             <View className="flex-row gap-3">
               <View className="flex-1">
-                <Text className="text-[12px] font-medium text-slate-500 mb-2">
+                <Text className="text-[12px] font-medium text-slate-500 dark:text-slate-400 mb-2">
                   Resting BP
                 </Text>
-                <View className="h-[44px] bg-slate-50 border border-slate-200/70 rounded-xl flex-row items-center px-3">
+                <View className="h-[44px] bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/70 rounded-xl flex-row items-center px-3">
                   <TextInput
                     value={restingBP}
                     onChangeText={setRestingBP}
@@ -207,7 +232,7 @@ export default function BiometricsStep4Screen() {
                     placeholderTextColor="#94a3b8"
                     keyboardType="numeric"
                     maxLength={3}
-                    className="flex-1 text-[14px] text-slate-900 h-full"
+                    className="flex-1 text-[14px] text-slate-900 dark:text-white dark:text-slate-900 h-full"
                   />
                   <Text className="text-[11px] text-slate-400">
                     mm Hg
@@ -216,10 +241,10 @@ export default function BiometricsStep4Screen() {
               </View>
 
               <View className="flex-1">
-                <Text className="text-[12px] font-medium text-slate-500 mb-2">
+                <Text className="text-[12px] font-medium text-slate-500 dark:text-slate-400 mb-2">
                   Max Heart Rate
                 </Text>
-                <View className="h-[44px] bg-slate-50 border border-slate-200/70 rounded-xl flex-row items-center px-3">
+                <View className="h-[44px] bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/70 rounded-xl flex-row items-center px-3">
                   <TextInput
                     value={maxHR}
                     onChangeText={setMaxHR}
@@ -227,7 +252,7 @@ export default function BiometricsStep4Screen() {
                     placeholderTextColor="#94a3b8"
                     keyboardType="numeric"
                     maxLength={3}
-                    className="flex-1 text-[14px] text-slate-900 h-full"
+                    className="flex-1 text-[14px] text-slate-900 dark:text-white dark:text-slate-900 h-full"
                   />
                   <Text className="text-[11px] text-slate-400">
                     bpm
@@ -238,22 +263,22 @@ export default function BiometricsStep4Screen() {
           </View>
 
           {/* 2. Lab Results */}
-          <View className="bg-white rounded-2xl border border-slate-200/70 p-4 mb-5">
+          <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4 mb-5">
             <View className="flex-row items-center justify-between mb-4">
-               <Text className="text-[15px] font-medium text-slate-900 leading-snug">
+               <Text className="text-[15px] font-medium text-slate-900 dark:text-white dark:text-slate-900 leading-snug">
                  Lab Results
                </Text>
-               <View className="px-2 py-0.5 rounded-md bg-slate-100 border border-slate-200">
+               <View className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-800">
                   <Text className="text-[9px] uppercase tracking-wide text-slate-400">Optional</Text>
                </View>
             </View>
 
             <View className="flex-row gap-3">
               <View className="flex-1">
-                <Text className="text-[12px] font-medium text-slate-500 mb-2">
+                <Text className="text-[12px] font-medium text-slate-500 dark:text-slate-400 mb-2">
                   Fasting Blood Sugar
                 </Text>
-                <View className="h-[44px] bg-slate-50 border border-slate-200/70 rounded-xl flex-row items-center px-3">
+                <View className="h-[44px] bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/70 rounded-xl flex-row items-center px-3">
                   <TextInput
                     value={fastingBloodSugar}
                     onChangeText={setFastingBloodSugar}
@@ -261,7 +286,7 @@ export default function BiometricsStep4Screen() {
                     placeholderTextColor="#94a3b8"
                     keyboardType="numeric"
                     maxLength={3}
-                    className="flex-1 text-[14px] text-slate-900 h-full"
+                    className="flex-1 text-[14px] text-slate-900 dark:text-white dark:text-slate-900 h-full"
                   />
                   <Text className="text-[11px] text-slate-400">
                     mg/dl
@@ -270,10 +295,10 @@ export default function BiometricsStep4Screen() {
               </View>
 
               <View className="flex-1">
-                <Text className="text-[12px] font-medium text-slate-500 mb-2">
+                <Text className="text-[12px] font-medium text-slate-500 dark:text-slate-400 mb-2">
                   Serum Cholesterol
                 </Text>
-                <View className="h-[44px] bg-slate-50 border border-slate-200/70 rounded-xl flex-row items-center px-3">
+                <View className="h-[44px] bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/70 rounded-xl flex-row items-center px-3">
                   <TextInput
                     value={cholesterol}
                     onChangeText={setCholesterol}
@@ -281,7 +306,7 @@ export default function BiometricsStep4Screen() {
                     placeholderTextColor="#94a3b8"
                     keyboardType="numeric"
                     maxLength={3}
-                    className="flex-1 text-[14px] text-slate-900 h-full"
+                    className="flex-1 text-[14px] text-slate-900 dark:text-white dark:text-slate-900 h-full"
                   />
                   <Text className="text-[11px] text-slate-400">
                     mg/dl
@@ -292,8 +317,8 @@ export default function BiometricsStep4Screen() {
           </View>
 
           {/* 3. Chest Pain Assessment */}
-          <View className="bg-white rounded-2xl border border-slate-200/70 p-4 mb-5">
-            <Text className="text-[15px] font-medium text-slate-900 mb-1 leading-snug">
+          <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4 mb-5">
+            <Text className="text-[15px] font-medium text-slate-900 dark:text-white dark:text-slate-900 mb-1 leading-snug">
               Chest Pain Assessment
             </Text>
             <Text className="text-[13px] text-slate-400 mb-4">
@@ -323,7 +348,7 @@ export default function BiometricsStep4Screen() {
                     style={{ borderColor: chestPainType === item.id ? "#0f172a" : "#cbd5e1" }}
                   >
                     {chestPainType === item.id && (
-                      <View className="w-2 h-2 rounded-full bg-slate-900" />
+                      <View className="w-2 h-2 rounded-full bg-slate-900 dark:bg-slate-100" />
                     )}
                   </View>
                   <View className="flex-1">
@@ -343,8 +368,8 @@ export default function BiometricsStep4Screen() {
           </View>
 
           {/* 4. Exercise Induced Angina */}
-          <View className="bg-white rounded-2xl border border-slate-200/70 p-4 mb-5">
-            <Text className="text-[15px] font-medium text-slate-900 mb-1 leading-snug">
+          <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4 mb-5">
+            <Text className="text-[15px] font-medium text-slate-900 dark:text-white dark:text-slate-900 mb-1 leading-snug">
               Exercise Assessment
             </Text>
             <Text className="text-[13px] text-slate-400 mb-4">
@@ -388,28 +413,27 @@ export default function BiometricsStep4Screen() {
                 </Text>
               </TouchableOpacity>
             </View>
+
+            {/* Next button */}
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={handleCompleteOnboarding}
+              disabled={!chestPainType || !exerciseAngina || takingMedication === null || diagnosedConditions.length === 0}
+              className="w-full rounded-2xl py-3.5 flex-row justify-center items-center gap-2 mt-4"
+              style={{ backgroundColor: chestPainType && exerciseAngina && takingMedication !== null && diagnosedConditions.length > 0 ? "#0f172a" : "#e2e8f0" }}
+            >
+              <Text
+                className="text-[14px] font-medium"
+                style={{ color: chestPainType && exerciseAngina && takingMedication !== null && diagnosedConditions.length > 0 ? "#fff" : "#94a3b8" }}
+              >
+                Complete setup
+              </Text>
+              <Feather name="check" size={15} color={chestPainType && exerciseAngina && takingMedication !== null && diagnosedConditions.length > 0 ? "#fff" : "#94a3b8"} />
+            </TouchableOpacity>
           </View>
 
         </ScrollView>
       </KeyboardAvoidingView>
-
-      {/* Sticky Bottom Action Button */}
-      <View className="absolute bottom-0 left-0 right-0 bg-slate-50 border-t border-slate-200/70 px-5 pt-3 pb-8">
-         <TouchableOpacity
-           activeOpacity={0.8}
-           onPress={handleCompleteOnboarding}
-           disabled={!chestPainType || !exerciseAngina || takingMedication === null || diagnosedConditions.length === 0}
-           className="w-full py-3.5 rounded-xl flex-row justify-center items-center"
-           style={{
-             backgroundColor: chestPainType && exerciseAngina && takingMedication !== null && diagnosedConditions.length > 0 ? "#0f172a" : "#e2e8f0",
-           }}
-         >
-           <Feather name="check" size={16} color={chestPainType && exerciseAngina && takingMedication !== null && diagnosedConditions.length > 0 ? "#fff" : "#94a3b8"} className="mr-2" />
-           <Text className="font-medium text-[14px]" style={{ color: chestPainType && exerciseAngina && takingMedication !== null && diagnosedConditions.length > 0 ? "#fff" : "#94a3b8" }}>
-             Complete Baseline
-           </Text>
-         </TouchableOpacity>
-      </View>
     </SafeAreaView>
   );
 }

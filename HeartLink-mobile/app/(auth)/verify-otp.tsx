@@ -75,22 +75,22 @@ export default function OTPVerificationScreen() {
   const isComplete = otp.join("").length === 6;
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950" edges={["top"]}>
       <StatusBar style="dark" />
 
       {/* Header */}
       <View className="flex-row items-center px-5 pt-4 pb-2">
         <TouchableOpacity
           onPress={() => router.back()}
-          className="w-9 h-9 rounded-xl bg-white border border-slate-200/70 items-center justify-center mr-3"
+          className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 dark:bg-slate-100 border border-slate-200 dark:border-slate-800/70 items-center justify-center mr-3"
         >
           <Feather name="arrow-left" size={18} color="#0f172a" />
         </TouchableOpacity>
         <View className="flex-row items-center gap-2">
-          <View className="w-7 h-7 bg-[#1e4ed8] rounded-lg items-center justify-center">
-            <MaterialCommunityIcons name="heart-pulse" size={15} color="white" />
+          <View className="w-7 h-7 rounded-full items-center justify-center border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 dark:bg-slate-100">
+            <Feather name="heart" size={13} color="#0f172a" />
           </View>
-          <Text className="text-[16px] font-medium text-slate-900 tracking-tight">HeartLink</Text>
+          <Text className="text-[16px] text-slate-900 dark:text-white dark:text-slate-900 tracking-tight" style={{ fontWeight: "300" }}>Heart<Text style={{ fontWeight: "600" }}>Link.</Text></Text>
         </View>
       </View>
 
@@ -101,25 +101,25 @@ export default function OTPVerificationScreen() {
           bounces={false}
         >
           {/* ── Card ── */}
-          <View className="bg-white rounded-2xl border border-slate-200/70 px-6 py-7">
+          <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 px-6 py-7">
 
             {/* Icon + heading */}
             <View className="items-center mb-7">
               <View
-                className="w-16 h-16 rounded-2xl items-center justify-center mb-5 border border-slate-200/70"
+                className="w-16 h-16 rounded-2xl items-center justify-center mb-5 border border-slate-200 dark:border-slate-800/70"
                 style={{ backgroundColor: "#e6f1fb" }}
               >
                 <Feather name="smartphone" size={26} color="#185fa5" />
               </View>
-              <Text className="text-[24px] font-medium text-slate-900 tracking-tight mb-2 text-center">
+              <Text className="text-[24px] font-medium text-slate-900 dark:text-white dark:text-slate-900 tracking-tight mb-2 text-center">
                 Verify your account
               </Text>
               <Text className="text-[13px] text-slate-400 text-center leading-relaxed px-2">
                 We've sent a one-time password to your phone number.
               </Text>
-              <View className="flex-row items-center gap-1.5 mt-3 bg-slate-50 border border-slate-200/70 px-3 py-1.5 rounded-xl">
+              <View className="flex-row items-center gap-1.5 mt-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/70 px-3 py-1.5 rounded-xl">
                 <Feather name="phone" size={12} color="#64748b" />
-                <Text className="text-[13px] font-medium text-slate-700">
+                <Text className="text-[13px] font-medium text-slate-700 dark:text-slate-300">
                   +63 912 345 6789
                 </Text>
               </View>
@@ -195,7 +195,7 @@ export default function OTPVerificationScreen() {
               <Text className="text-[13px] text-slate-400">Didn't receive the code?</Text>
               {canResend ? (
                 <TouchableOpacity activeOpacity={0.65} onPress={handleResend}>
-                  <Text className="text-[13px] font-medium text-slate-700">Resend</Text>
+                  <Text className="text-[13px] font-medium text-slate-700 dark:text-slate-300">Resend</Text>
                 </TouchableOpacity>
               ) : (
                 <Text className="text-[13px] font-medium text-slate-400">

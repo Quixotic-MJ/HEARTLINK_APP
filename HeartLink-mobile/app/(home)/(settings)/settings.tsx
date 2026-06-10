@@ -42,7 +42,7 @@ function SettingsRow({
     >
       {/* Icon bubble — dynamic bg via inline style */}
       <View
-        className="w-9 h-9 rounded-xl items-center justify-center mr-3.5 border border-slate-200/70"
+        className="w-9 h-9 rounded-xl items-center justify-center mr-3.5 border border-slate-200 dark:border-slate-800/70"
         style={{ backgroundColor: iconBg }}
       >
         {iconType === "material" ? (
@@ -84,7 +84,7 @@ function SectionLabel({ title }: { title: string }) {
 
 function SettingsGroup({ children }: { children: React.ReactNode }) {
   return (
-    <View className="bg-white rounded-2xl border border-slate-200/70 px-4 mb-3">
+    <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 px-4 mb-3">
       {children}
     </View>
   );
@@ -96,18 +96,18 @@ export default function SettingsScreen() {
   const router = useRouter();
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950" edges={["top"]}>
       <StatusBar style="dark" />
 
       {/* Header */}
-      <View className="flex-row items-center px-5 pt-4 pb-3 border-b border-slate-200/50">
+      <View className="flex-row items-center px-5 pt-4 pb-3 border-b border-slate-200 dark:border-slate-800/50">
         <TouchableOpacity
           onPress={() => router.back()}
-          className="w-9 h-9 rounded-xl bg-white border border-slate-200/70 items-center justify-center mr-3"
+          className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 dark:bg-slate-100 border border-slate-200 dark:border-slate-800/70 items-center justify-center mr-3"
         >
           <Feather name="arrow-left" size={18} color="#0f172a" />
         </TouchableOpacity>
-        <Text className="text-[17px] font-medium text-slate-900">Settings</Text>
+        <Text className="text-[17px] font-medium text-slate-900 dark:text-white dark:text-slate-900">Settings</Text>
       </View>
 
       <ScrollView
@@ -132,6 +132,7 @@ export default function SettingsScreen() {
             subtitle="Change your password"
             iconBg="#f8fafc"
             iconColor="#64748b"
+            onPress={() => router.push("/(home)/(settings)/account-security")}
           />
           <SettingsRow
             icon="bell"
@@ -139,6 +140,7 @@ export default function SettingsScreen() {
             subtitle="Set local logging reminders"
             iconBg="#faeeda"
             iconColor="#854f0b"
+            onPress={() => router.push("/(home)/(settings)/daily-reminders")}
             isLast
           />
         </SettingsGroup>
@@ -152,6 +154,7 @@ export default function SettingsScreen() {
             subtitle="BP targets, sodium limits, activity goals"
             iconBg="#eaf3de"
             iconColor="#3b6d11"
+            onPress={() => router.push("/(home)/goals-thresholds")}
           />
           <SettingsRow
             icon="map-pin"
@@ -173,6 +176,7 @@ export default function SettingsScreen() {
             subtitle="Light, dark, or system theme"
             iconBg="#f8fafc"
             iconColor="#64748b"
+            onPress={() => router.push("/(home)/(settings)/appearance")}
           />
           <SettingsRow
             icon="help-circle"
@@ -180,6 +184,7 @@ export default function SettingsScreen() {
             subtitle="FAQ, feedback, contact us"
             iconBg="#f8fafc"
             iconColor="#64748b"
+            onPress={() => router.push("/(home)/(settings)/help-support")}
           />
           <SettingsRow
             icon="info"
@@ -187,6 +192,7 @@ export default function SettingsScreen() {
             subtitle="Version 1.0.0"
             iconBg="#f8fafc"
             iconColor="#64748b"
+            onPress={() => router.push("/(home)/(settings)/about")}
             isLast
           />
         </SettingsGroup>

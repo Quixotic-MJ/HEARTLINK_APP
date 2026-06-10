@@ -38,7 +38,7 @@ function MetricCard({
 }) {
   return (
     <View className="w-1/2 px-1.5 mb-2.5">
-      <View className="bg-white rounded-2xl border border-slate-200/70 p-3.5">
+      <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-3.5">
         {/* Icon bg color is dynamic — kept as inline style */}
         <View
           className="w-8 h-8 rounded-lg items-center justify-center mb-2.5"
@@ -46,7 +46,7 @@ function MetricCard({
         >
           <MaterialCommunityIcons name={icon as any} size={18} color={iconColor} />
         </View>
-        <Text className="text-[22px] font-medium text-slate-900 leading-tight">
+        <Text className="text-[22px] font-medium text-slate-900 dark:text-white dark:text-slate-900 leading-tight">
           {value}
           {unit && <Text className="text-[13px] font-normal text-slate-400"> {unit}</Text>}
         </Text>
@@ -63,9 +63,9 @@ function MetricCard({
 function DayBarChart({ days, color }: { days: DayBar[]; color: string }) {
   const max = Math.max(...days.map((d) => d.value));
   return (
-    <View className="bg-white rounded-2xl border border-slate-200/70 p-3.5 mb-4">
+    <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-3.5 mb-4">
       <View className="flex-row justify-between items-center mb-3">
-        <Text className="text-[14px] font-medium text-slate-900">CSS score · daily</Text>
+        <Text className="text-[14px] font-medium text-slate-900 dark:text-white dark:text-slate-900">CSS score · daily</Text>
         <Text className="text-[11px] text-slate-300">Mon – Sun</Text>
       </View>
       <View className="flex-row items-end h-[68px] gap-1">
@@ -101,7 +101,7 @@ function SymptomRow({ symptom, isLast }: { symptom: Symptom; isLast: boolean }) 
   return (
     <View
       className={`flex-row items-center justify-between px-3.5 py-3 ${
-        !isLast ? "border-b border-slate-100" : ""
+        !isLast ? "border-b border-slate-100 dark:border-slate-800" : ""
       }`}
     >
       <View className="flex-row items-center gap-2.5">
@@ -114,7 +114,7 @@ function SymptomRow({ symptom, isLast }: { symptom: Symptom; isLast: boolean }) 
       </View>
       <View
         className={`px-2.5 py-0.5 rounded-full ${
-          hasCount ? "bg-red-50" : "bg-slate-50"
+          hasCount ? "bg-red-50" : "bg-slate-50 dark:bg-slate-950"
         }`}
       >
         <Text
@@ -337,23 +337,23 @@ export default function WrapUpScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950" edges={["top"]}>
       <StatusBar style="dark" />
 
       {/* ── Top bar ── */}
       <View className="flex-row justify-between items-center px-5 pt-4 pb-2">
         <View className="flex-row items-center gap-2.5">
-          <View className="w-9 h-9 bg-[#1e4ed8] rounded-xl items-center justify-center">
-            <MaterialCommunityIcons name="heart-pulse" size={18} color="white" />
+          <View className="w-7 h-7 rounded-full items-center justify-center border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 dark:bg-slate-100">
+            <Feather name="heart" size={13} color="#0f172a" />
           </View>
-          <Text className="text-[16px] font-medium text-slate-900 tracking-tight">HeartLink</Text>
+          <Text className="text-[16px] text-slate-900 dark:text-white dark:text-slate-900 tracking-tight" style={{ fontWeight: "300" }}>Heart<Text style={{ fontWeight: "600" }}>Link.</Text></Text>
         </View>
         <View className="flex-row items-center gap-2">
-          <TouchableOpacity onPress={() => router.push("/(home)/notifications")} className="w-9 h-9 rounded-xl bg-slate-100 border border-slate-200/70 items-center justify-center">
+          <TouchableOpacity onPress={() => router.push("/(home)/notifications")} className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-800/70 items-center justify-center">
             <Feather name="bell" size={17} color="#64748b" />
             <View style={{ position: "absolute", top: 8, right: 8 }} className="w-1.5 h-1.5 bg-red-500 rounded-full" />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => router.push("/(home)/settings")} className="w-9 h-9 rounded-xl bg-slate-100 border border-slate-200/70 items-center justify-center">
+          <TouchableOpacity onPress={() => router.push("/(home)/settings")} className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-800/70 items-center justify-center">
             <Feather name="settings" size={17} color="#64748b" />
           </TouchableOpacity>
           <TouchableOpacity onPress={() => router.push("/(home)/profile")} activeOpacity={0.8} className="ml-1">
@@ -367,19 +367,19 @@ export default function WrapUpScreen() {
 
       <View className="flex-row items-center justify-between px-5 pt-3">
         <View>
-          <Text className="text-[22px] font-medium text-slate-900 tracking-tight">
+          <Text className="text-[22px] font-medium text-slate-900 dark:text-white dark:text-slate-900 tracking-tight">
             Weekly wrap-up
           </Text>
           <Text className="text-[13px] text-slate-400 mt-0.5">May 28 – June 3</Text>
         </View>
-        <View className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200/70 items-center justify-center mt-2">
+        <View className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-800/70 items-center justify-center mt-2">
           <Feather name="bar-chart-2" size={20} color="#888780" />
         </View>
       </View>
 
       {/* Dev toggle */}
       <View className="px-5 py-3">
-        <View className="flex-row bg-slate-100 rounded-lg p-0.5 border border-slate-200/70">
+        <View className="flex-row bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5 border border-slate-200 dark:border-slate-800/70">
           <TouchableOpacity
             className="flex-1 py-1.5 rounded-md items-center"
             style={
@@ -525,10 +525,10 @@ export default function WrapUpScreen() {
         <DayBarChart days={d.days} color={d.barColor} />
 
         {/* Symptom frequency */}
-        <Text className="text-[14px] font-medium text-slate-900 mb-2.5">
+        <Text className="text-[14px] font-medium text-slate-900 dark:text-white dark:text-slate-900 mb-2.5">
           Symptom frequency
         </Text>
-        <View className="bg-white rounded-2xl border border-slate-200/70 overflow-hidden mb-5">
+        <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 overflow-hidden mb-5">
           {d.symptoms.map((s, i) => (
             <SymptomRow
               key={s.name}
@@ -540,12 +540,12 @@ export default function WrapUpScreen() {
 
         {/* Export */}
         <TouchableOpacity
-          className="bg-slate-900 py-3.5 rounded-2xl flex-row items-center justify-center gap-2"
+          className="bg-slate-900 dark:bg-slate-100 py-3.5 rounded-2xl flex-row items-center justify-center gap-2"
           onPress={exportPDF}
           activeOpacity={0.85}
         >
           <Feather name="file-text" size={17} color="#fff" />
-          <Text className="text-white text-[14px] font-medium">
+          <Text className="text-white dark:text-slate-900 text-[14px] font-medium">
             Export report for physician
           </Text>
         </TouchableOpacity>

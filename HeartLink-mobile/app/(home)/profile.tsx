@@ -5,11 +5,19 @@ import {
   TouchableOpacity,
   ScrollView,
   Image,
+  Alert,
+  Modal,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
+import * as Print from "expo-print";
+import * as Sharing from "expo-sharing";
 
 // ─── Profile Field Row ────────────────────────────────────────────────────────
 
@@ -42,7 +50,7 @@ function ProfileField({
       style={!isLast ? { borderBottomWidth: 0.5, borderBottomColor: "#f1f5f9" } : undefined}
     >
       <View
-        className="w-9 h-9 rounded-xl items-center justify-center mr-3.5 border border-slate-200/70 flex-shrink-0"
+        className="w-9 h-9 rounded-xl items-center justify-center mr-3.5 border border-slate-200 dark:border-slate-800/70 flex-shrink-0"
         style={{ backgroundColor: iconBg }}
       >
         {iconType === "material" ? (
@@ -55,7 +63,7 @@ function ProfileField({
         <Text className="text-[11px] text-slate-400 uppercase tracking-wide mb-0.5">
           {label}
         </Text>
-        <Text className="text-[14px] font-medium text-slate-900">
+        <Text className="text-[14px] font-medium text-slate-900 dark:text-white dark:text-slate-900">
           {value}
           {unit && (
             <Text className="text-[13px] font-normal text-slate-400"> {unit}</Text>
@@ -81,7 +89,7 @@ function SectionLabel({ title }: { title: string }) {
 
 function FieldGroup({ children }: { children: React.ReactNode }) {
   return (
-    <View className="bg-white rounded-2xl border border-slate-200/70 px-4 mb-3">
+    <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 px-4 mb-3">
       {children}
     </View>
   );
@@ -95,17 +103,19 @@ function QuickStat({
   iconBg,
   iconColor,
   icon,
+  style,
 }: {
   value: string;
   label: string;
   iconBg: string;
   iconColor: string;
   icon: string;
+  style?: any;
 }) {
   return (
     <View
-      className="bg-white rounded-2xl p-3.5 border border-slate-200/70 flex-row items-center gap-3"
-      style={{ width: "48.5%" }}
+      className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl p-3.5 border border-slate-200 dark:border-slate-800/70 flex-row items-center gap-3"
+      style={style}
     >
       <View
         className="w-9 h-9 rounded-xl items-center justify-center flex-shrink-0"
@@ -114,7 +124,7 @@ function QuickStat({
         <Feather name={icon as any} size={15} color={iconColor} />
       </View>
       <View>
-        <Text className="text-[18px] font-medium text-slate-900 leading-tight">
+        <Text className="text-[18px] font-medium text-slate-900 dark:text-white dark:text-slate-900 leading-tight">
           {value}
         </Text>
         <Text className="text-[8px] text-slate-400 uppercase tracking-wide mt-0.5">
@@ -125,12 +135,118 @@ function QuickStat({
   );
 }
 
+// ─── Edit Profile Modal ───────────────────────────────────────────────────────
+
+function EditProfileModal({
+  visible,
+  onClose,
+  currentData,
+  onSave,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  currentData: any;
+  onSave: (data: any) => void;
+}) {
+  const [name, setName] = useState(currentData.name);
+  const [height, setHeight] = useState(currentData.height);
+  const [weight, setWeight] = useState(currentData.weight);
+
+  React.useEffect(() => {
+    if (visible) {
+      setName(currentData.name);
+      setHeight(currentData.height);
+      setWeight(currentData.weight);
+    }
+  }, [visible, currentData]);
+
+  const handleSave = () => {
+    const hMeters = parseFloat(height) / 100;
+    const wKg = parseFloat(weight);
+    const bmi = (wKg / (hMeters * hMeters)).toFixed(1);
+
+    onSave({
+      name,
+      height,
+      weight,
+      bmi: isNaN(Number(bmi)) ? currentData.bmi : bmi,
+    });
+  };
+
+  return (
+    <Modal visible={visible} transparent animationType="fade">
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} className="flex-1">
+        <Pressable
+          className="flex-1 justify-end"
+          style={{ backgroundColor: "rgba(15,23,42,0.5)" }}
+          onPress={onClose}
+        >
+          <Pressable className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-t-3xl px-5 pt-3 pb-8 border-t border-slate-200 dark:border-slate-800/50 max-h-[85%]">
+            <View className="w-10 h-1 bg-slate-200 rounded-full self-center mb-5" />
+
+            <View className="flex-row items-center justify-between mb-6">
+              <Text className="text-[20px] font-medium text-slate-900 dark:text-white dark:text-slate-900">
+                Edit profile
+              </Text>
+              <TouchableOpacity onPress={onClose} className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 items-center justify-center">
+                <Feather name="x" size={16} color="#64748b" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <Text className="text-[13px] font-medium text-slate-700 dark:text-slate-300 mb-2">Name</Text>
+              <View className="flex-row items-center bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/70 rounded-xl px-4 py-3 mb-4">
+                <TextInput
+                  className="flex-1 text-[15px] text-slate-900 dark:text-white dark:text-slate-900 font-medium"
+                  value={name}
+                  onChangeText={setName}
+                />
+              </View>
+
+              <Text className="text-[13px] font-medium text-slate-700 dark:text-slate-300 mb-2">Height (cm)</Text>
+              <View className="flex-row items-center bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/70 rounded-xl px-4 py-3 mb-4">
+                <TextInput
+                  className="flex-1 text-[15px] text-slate-900 dark:text-white dark:text-slate-900 font-medium"
+                  keyboardType="numeric"
+                  value={height}
+                  onChangeText={setHeight}
+                />
+              </View>
+
+              <Text className="text-[13px] font-medium text-slate-700 dark:text-slate-300 mb-2">Weight (kg)</Text>
+              <View className="flex-row items-center bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/70 rounded-xl px-4 py-3 mb-6">
+                <TextInput
+                  className="flex-1 text-[15px] text-slate-900 dark:text-white dark:text-slate-900 font-medium"
+                  keyboardType="numeric"
+                  value={weight}
+                  onChangeText={setWeight}
+                />
+              </View>
+
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={handleSave}
+                className="bg-[#0f172a] py-3.5 rounded-xl items-center justify-center flex-row gap-2 border border-[#0f172a]"
+              >
+                <Feather name="check" size={16} color="#fff" />
+                <Text className="text-white dark:text-slate-900 font-medium text-[14px]">Save Changes</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </Pressable>
+        </Pressable>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+}
+
 // ─── Profile Screen ───────────────────────────────────────────────────────────
 
 export default function ProfileScreen() {
   const router = useRouter();
 
-  const [userData] = useState({
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+
+  const [userData, setUserData] = useState({
     name: "John Mark Magdasal",
     email: "johnmark@heartlink.ph",
     phone: "+63 912 345 6789",
@@ -143,29 +259,93 @@ export default function ProfileScreen() {
     restingHR: "72",
     systolicBP: "120",
     diastolicBP: "80",
-    conditions: "Hypertension Stage 1",
+    conditions: ["Hypertension Stage 1", "High Cholesterol"],
     medications: "Amlodipine 5mg",
     allergies: "None reported",
     emergencyContact: "Maria Magdasal",
     emergencyPhone: "+63 917 654 3210",
   });
 
+  const handleUpdateData = (newData: any) => {
+    setUserData((prev) => ({ ...prev, ...newData }));
+    setShowUpdateModal(false);
+  };
+
+  const exportPDF = async () => {
+    try {
+      const html = `
+        <html>
+          <head>
+            <style>
+              body { font-family: 'Helvetica', sans-serif; padding: 40px; color: #0f172a; line-height: 1.5; }
+              h1 { font-size: 28px; font-weight: bold; margin-bottom: 8px; color: #0f172a; }
+              p { margin: 0 0 30px 0; color: #64748b; font-size: 16px; }
+              .details { margin-bottom: 30px; font-size: 16px; background-color: #f8fafc; padding: 20px; border-radius: 12px; }
+              table { width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 40px; }
+              th, td { text-align: left; padding: 14px 16px; border-bottom: 1px solid #e2e8f0; }
+              th { background-color: #f1f5f9; font-weight: bold; color: #475569; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; }
+              td { font-size: 15px; color: #334155; }
+              .highlight { font-weight: bold; color: #0f172a; }
+              h2 { font-size: 20px; color: #0f172a; margin-bottom: 8px; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; }
+            </style>
+          </head>
+          <body>
+            <h1>Patient Health Profile</h1>
+            <p>Generated by HeartLink</p>
+            
+            <div class="details">
+              <strong>Patient:</strong> ${userData.name}<br><br>
+              <strong>Date of Birth:</strong> ${userData.birthdate}
+            </div>
+            
+            <h2>Personal Information</h2>
+            <table>
+              <tr><th>Attribute</th><th>Value</th></tr>
+              <tr><td>Email</td><td class="highlight">${userData.email}</td></tr>
+              <tr><td>Phone</td><td class="highlight">${userData.phone}</td></tr>
+              <tr><td>Gender</td><td class="highlight">${userData.gender}</td></tr>
+            </table>
+
+            <h2>Biometrics</h2>
+            <table>
+              <tr><th>Attribute</th><th>Value</th></tr>
+              <tr><td>Height</td><td class="highlight">${userData.height} cm</td></tr>
+              <tr><td>Weight</td><td class="highlight">${userData.weight} kg</td></tr>
+              <tr><td>Resting Heart Rate</td><td class="highlight">${userData.restingHR} bpm</td></tr>
+              <tr><td>Blood Pressure</td><td class="highlight">${userData.systolicBP}/${userData.diastolicBP} mmHg</td></tr>
+            </table>
+          </body>
+        </html>
+      `;
+
+      const { uri } = await Print.printToFileAsync({ html });
+      if (!(await Sharing.isAvailableAsync())) {
+        Alert.alert("Error", "Sharing is not available on this device.");
+        return;
+      }
+      await Sharing.shareAsync(uri);
+    } catch (error) {
+      console.error(error);
+      Alert.alert("Error", "Failed to generate report.");
+    }
+  };
+
   return (
-    <SafeAreaView className="flex-1 bg-slate-50" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950" edges={["top"]}>
       <StatusBar style="dark" />
 
       {/* Header */}
-      <View className="flex-row items-center px-5 pt-4 pb-3 border-b border-slate-200/50">
+      <View className="flex-row items-center px-5 pt-4 pb-3 border-b border-slate-200 dark:border-slate-800/50">
         <TouchableOpacity
           onPress={() => router.back()}
-          className="w-9 h-9 rounded-xl bg-white border border-slate-200/70 items-center justify-center mr-3"
+          className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 dark:bg-slate-100 border border-slate-200 dark:border-slate-800/70 items-center justify-center mr-3"
         >
           <Feather name="arrow-left" size={18} color="#0f172a" />
         </TouchableOpacity>
-        <Text className="flex-1 text-[17px] font-medium text-slate-900">
+        <Text className="flex-1 text-[17px] font-medium text-slate-900 dark:text-white dark:text-slate-900">
           My profile
         </Text>
-        <TouchableOpacity className="w-9 h-9 rounded-xl bg-white border border-slate-200/70 items-center justify-center">
+        <TouchableOpacity onPress={() => setShowUpdateModal(true)} className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 dark:bg-slate-100 border border-slate-200 dark:border-slate-800/70 items-center justify-center">
           <Feather name="edit-2" size={15} color="#64748b" />
         </TouchableOpacity>
       </View>
@@ -189,29 +369,35 @@ export default function ProfileScreen() {
             {/* Camera button */}
             <TouchableOpacity
               activeOpacity={0.8}
-              className="absolute bottom-0 right-0 w-8 h-8 bg-slate-900 rounded-full items-center justify-center border-2 border-slate-50"
+              className="absolute bottom-0 right-0 w-8 h-8 bg-slate-900 dark:bg-slate-100 rounded-full items-center justify-center border-2 border-slate-50"
             >
               <Feather name="camera" size={13} color="#fff" />
             </TouchableOpacity>
           </View>
 
-          <Text className="text-[20px] font-medium text-slate-900 tracking-tight">
+          <Text className="text-[20px] font-medium text-slate-900 dark:text-white dark:text-slate-900 tracking-tight">
             {userData.name}
           </Text>
           <Text className="text-[13px] text-slate-400 mt-0.5">{userData.email}</Text>
 
-          {/* Condition badge */}
-          <View className="flex-row items-center gap-1.5 bg-white border border-slate-200/70 px-3 py-1.5 rounded-full mt-3">
-            <View className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-            <Text className="text-[12px] text-slate-600">{userData.conditions}</Text>
-          </View>
+          {/* Clinical History Tags */}
+          {userData.conditions && userData.conditions.length > 0 && (
+            <View className="flex-row flex-wrap justify-center gap-2 mt-3 w-full">
+              {userData.conditions.map((condition, index) => (
+                <View key={index} className="bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-800/70 px-3 py-1.5 rounded-full">
+                  <Text className="text-[12px] text-slate-600 font-medium">{condition}</Text>
+                </View>
+              ))}
+            </View>
+          )}
 
-          {/* Quick stats — 2×2 grid */}
-          <View className="flex-row flex-wrap gap-2.5 mt-5 w-full justify-between">
-            <QuickStat value={userData.bmi} label="BMI" icon="activity" iconBg="#e6f1fb" iconColor="#185fa5" />
-            <QuickStat value={userData.bloodType} label="Blood type" icon="droplet" iconBg="#fcebeb" iconColor="#a32d2d" />
-            <QuickStat value={userData.restingHR} label="Resting HR" icon="heart" iconBg="#faeeda" iconColor="#854f0b" />
-            <QuickStat value={`${userData.systolicBP}/${userData.diastolicBP}`} label="Blood pressure" icon="trending-up" iconBg="#eaf3de" iconColor="#3b6d11" />
+          {/* Quick stats */}
+          <View className="gap-2.5 mt-5 w-full">
+            <QuickStat value={`${userData.systolicBP}/${userData.diastolicBP}`} label="Blood pressure" icon="trending-up" iconBg="#eaf3de" iconColor="#3b6d11" style={{ width: "100%" }} />
+            <View className="flex-row justify-between w-full">
+              <QuickStat value={userData.bmi} label="BMI" icon="activity" iconBg="#e6f1fb" iconColor="#185fa5" style={{ width: "48.5%" }} />
+              <QuickStat value={userData.restingHR} label="Resting HR" icon="heart" iconBg="#faeeda" iconColor="#854f0b" style={{ width: "48.5%" }} />
+            </View>
           </View>
         </View>
 
@@ -232,6 +418,7 @@ export default function ProfileScreen() {
           <FieldGroup>
             <ProfileField label="Height" value={userData.height} unit="cm" icon="maximize-2" iconBg="#e6f1fb" iconColor="#185fa5" />
             <ProfileField label="Weight" value={userData.weight} unit="kg" icon="target" iconBg="#e6f1fb" iconColor="#185fa5" />
+            {/* These vitals should be fetched from the user's latest daily vitals log, not edited here */}
             <ProfileField
               label="Blood pressure"
               value={`${userData.systolicBP}/${userData.diastolicBP}`}
@@ -248,40 +435,16 @@ export default function ProfileScreen() {
               icon="heart"
               iconBg="#fcebeb"
               iconColor="#a32d2d"
+              isLast
             />
-            <ProfileField label="Blood type" value={userData.bloodType} icon="droplet" iconBg="#fcebeb" iconColor="#a32d2d" isLast />
-          </FieldGroup>
-
-          {/* ── Medical ── */}
-          <SectionLabel title="Medical history" />
-          <FieldGroup>
-            <ProfileField label="Conditions" value={userData.conditions} icon="clipboard" iconBg="#faeeda" iconColor="#854f0b" />
-            <ProfileField label="Medications" value={userData.medications} icon="pill" iconType="material" iconBg="#faeeda" iconColor="#854f0b" />
-            <ProfileField label="Allergies" value={userData.allergies} icon="alert-circle" iconBg="#faeeda" iconColor="#854f0b" isLast />
-          </FieldGroup>
-
-          {/* ── Emergency ── */}
-          <SectionLabel title="Emergency contact" />
-          <FieldGroup>
-            <ProfileField label="Contact name" value={userData.emergencyContact} icon="shield" iconBg="#fcebeb" iconColor="#a32d2d" />
-            <ProfileField label="Contact phone" value={userData.emergencyPhone} icon="phone-call" iconBg="#fcebeb" iconColor="#a32d2d" isLast />
           </FieldGroup>
 
           {/* ── Actions ── */}
           <View className="gap-2.5 mt-2">
             <TouchableOpacity
               activeOpacity={0.85}
-              className="bg-slate-900 rounded-2xl py-3.5 flex-row items-center justify-center gap-2"
-            >
-              <Feather name="edit-3" size={15} color="#fff" />
-              <Text className="text-white text-[14px] font-medium">
-                Update biometrics
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              activeOpacity={0.85}
-              className="bg-white rounded-2xl py-3.5 flex-row items-center justify-center gap-2 border border-slate-200/70"
+              onPress={exportPDF}
+              className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl py-3.5 flex-row items-center justify-center gap-2 border border-slate-200 dark:border-slate-800/70"
             >
               <Feather name="download" size={15} color="#64748b" />
               <Text className="text-[14px] font-medium text-slate-600">
@@ -292,6 +455,14 @@ export default function ProfileScreen() {
 
         </View>
       </ScrollView>
+
+      {/* Edit Profile Modal */}
+      <EditProfileModal
+        visible={showUpdateModal}
+        onClose={() => setShowUpdateModal(false)}
+        currentData={userData}
+        onSave={handleUpdateData}
+      />
     </SafeAreaView>
   );
 }

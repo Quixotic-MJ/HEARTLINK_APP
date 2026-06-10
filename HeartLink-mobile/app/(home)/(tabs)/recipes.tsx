@@ -260,10 +260,10 @@ function RecipeCard({ recipe, onPress, isSaved, onSave }: { recipe: Recipe; onPr
     <TouchableOpacity
       activeOpacity={0.85}
       onPress={onPress}
-      className="bg-white rounded-2xl border border-slate-200/70 overflow-hidden mb-10"
+      className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 overflow-hidden mb-10"
     >
       {/* Image */}
-      <View className="h-[148px] bg-slate-100 relative">
+      <View className="h-[148px] bg-slate-100 dark:bg-slate-800 relative">
         <Image
           source={{ uri: recipe.image }}
           className="w-full h-full"
@@ -273,7 +273,7 @@ function RecipeCard({ recipe, onPress, isSaved, onSave }: { recipe: Recipe; onPr
         <TouchableOpacity
           activeOpacity={0.8}
           onPress={(e) => { e.stopPropagation(); onSave(); }}
-          className="absolute top-3 right-3 w-8 h-8 bg-white/90 rounded-full items-center justify-center shadow-sm"
+          className="absolute top-3 right-3 w-8 h-8 bg-white dark:bg-slate-900 dark:bg-slate-100/90 rounded-full items-center justify-center shadow-sm"
         >
           <Feather name="heart" size={15} color={isSaved ? "#ef4444" : "#64748b"} style={isSaved ? { fill: "#ef4444" } : {}} />
         </TouchableOpacity>
@@ -282,7 +282,7 @@ function RecipeCard({ recipe, onPress, isSaved, onSave }: { recipe: Recipe; onPr
         <View className="absolute bottom-3 left-3 flex-row items-center gap-1 px-2.5 py-1 rounded-lg"
           style={{ backgroundColor: "rgba(0,0,0,0.55)" }}>
           <Feather name="clock" size={11} color="rgba(255,255,255,0.9)" />
-          <Text className="text-white text-[11px]">{recipe.prepTime} min</Text>
+          <Text className="text-white dark:text-slate-900 text-[11px]">{recipe.prepTime} min</Text>
         </View>
         {/* Difficulty — dynamic bg/text via inline style */}
         <View
@@ -318,7 +318,7 @@ function RecipeCard({ recipe, onPress, isSaved, onSave }: { recipe: Recipe; onPr
           ))}
         </View>
 
-        <Text className="text-[15px] font-medium text-slate-900 mb-0.5 leading-snug">
+        <Text className="text-[15px] font-medium text-slate-900 dark:text-white dark:text-slate-900 mb-0.5 leading-snug">
           {recipe.title}
         </Text>
         <Text className="text-[13px] text-slate-400 mb-3">
@@ -432,23 +432,23 @@ export default function RecipesScreen() {
   }, []);
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950" edges={["top"]}>
       <StatusBar style="dark" />
 
       {/* ── Top bar ── */}
       <View className="flex-row justify-between items-center px-5 pt-4 pb-2">
         <View className="flex-row items-center gap-2.5">
-          <View className="w-9 h-9 bg-[#1e4ed8] rounded-xl items-center justify-center">
-            <MaterialCommunityIcons name="heart-pulse" size={18} color="white" />
+          <View className="w-7 h-7 rounded-full items-center justify-center border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 dark:bg-slate-100">
+            <Feather name="heart" size={13} color="#0f172a" />
           </View>
-          <Text className="text-[16px] font-medium text-slate-900 tracking-tight">HeartLink</Text>
+          <Text className="text-[16px] text-slate-900 dark:text-white dark:text-slate-900 tracking-tight" style={{ fontWeight: "300" }}>Heart<Text style={{ fontWeight: "600" }}>Link.</Text></Text>
         </View>
         <View className="flex-row items-center gap-2">
-          <TouchableOpacity onPress={() => router.push("/(home)/notifications")} className="w-9 h-9 rounded-xl bg-slate-100 border border-slate-200/70 items-center justify-center">
+          <TouchableOpacity onPress={() => router.push("/(home)/notifications")} className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-800/70 items-center justify-center">
             <Feather name="bell" size={17} color="#64748b" />
             <View style={{ position: "absolute", top: 8, right: 8 }} className="w-1.5 h-1.5 bg-red-500 rounded-full" />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => router.push("/(home)/settings")} className="w-9 h-9 rounded-xl bg-slate-100 border border-slate-200/70 items-center justify-center">
+          <TouchableOpacity onPress={() => router.push("/(home)/settings")} className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-800/70 items-center justify-center">
             <Feather name="settings" size={17} color="#64748b" />
           </TouchableOpacity>
           <TouchableOpacity onPress={() => router.push("/(home)/profile")} activeOpacity={0.8} className="ml-1">
@@ -462,7 +462,7 @@ export default function RecipesScreen() {
 
       <View className="flex-row items-center justify-between px-5 pt-3">
         <View>
-          <Text className="text-[22px] font-medium text-slate-900 tracking-tight">
+          <Text className="text-[22px] font-medium text-slate-900 dark:text-white dark:text-slate-900 tracking-tight">
             Recipes
           </Text>
           <Text className="text-[13px] text-slate-400 mt-0.5">
@@ -476,14 +476,14 @@ export default function RecipesScreen() {
 
       {/* Search bar */}
       <View className="px-5 pt-3 pb-1">
-        <View className="flex-row items-center bg-white rounded-2xl px-3.5 py-2.5 border border-slate-200/70 gap-2.5">
+        <View className="flex-row items-center bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl px-3.5 py-2.5 border border-slate-200 dark:border-slate-800/70 gap-2.5">
           <Feather name="search" size={16} color="#94a3b8" />
           <TextInput
             placeholder="Search recipes, ingredients…"
             placeholderTextColor="#94a3b8"
             value={searchQuery}
             onChangeText={setSearchQuery}
-            className="flex-1 text-[14px] text-slate-900"
+            className="flex-1 text-[14px] text-slate-900 dark:text-white dark:text-slate-900"
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity onPress={() => setSearchQuery("")}>
@@ -517,12 +517,12 @@ export default function RecipesScreen() {
       >
         {/* Tailored banner */}
         {activeFilter === "Tailored For You" && (
-          <View className="mx-5 mt-3 mb-1 bg-white rounded-2xl border border-slate-200/70 p-4 flex-row items-start gap-3">
-            <View className="w-8 h-8 rounded-xl bg-slate-50 border border-slate-200/70 items-center justify-center flex-shrink-0">
+          <View className="mx-5 mt-3 mb-1 bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4 flex-row items-start gap-3">
+            <View className="w-8 h-8 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/70 items-center justify-center flex-shrink-0">
               <Feather name="shield" size={15} color="#185fa5" />
             </View>
             <View className="flex-1">
-              <Text className="text-[13px] font-medium text-slate-900 mb-0.5">
+              <Text className="text-[13px] font-medium text-slate-900 dark:text-white dark:text-slate-900 mb-0.5">
                 Filtered for your conditions
               </Text>
               <Text className="text-[12px] text-slate-400 leading-[17px]">
@@ -546,10 +546,10 @@ export default function RecipesScreen() {
         <View className="px-5 mt-3">
           {filteredRecipes.length === 0 ? (
             <View className="items-center pt-16">
-              <View className="w-16 h-16 rounded-2xl bg-slate-100 border border-slate-200/70 items-center justify-center mb-4">
+              <View className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-800/70 items-center justify-center mb-4">
                 <Feather name="search" size={26} color="#cbd5e1" />
               </View>
-              <Text className="text-[16px] font-medium text-slate-900 mb-1">
+              <Text className="text-[16px] font-medium text-slate-900 dark:text-white dark:text-slate-900 mb-1">
                 No recipes found
               </Text>
               <Text className="text-[13px] text-slate-400 text-center">

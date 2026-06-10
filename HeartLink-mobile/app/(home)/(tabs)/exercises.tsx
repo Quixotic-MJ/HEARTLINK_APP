@@ -174,10 +174,10 @@ function RoutineCard({
     <TouchableOpacity
       activeOpacity={0.8}
       onPress={onPressCard}
-      className="bg-white rounded-2xl border border-slate-200/70 mb-3 overflow-hidden"
+      className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 mb-3 overflow-hidden"
     >
       {/* Thumbnail */}
-      <View className="w-full h-36 bg-slate-100 border-b border-slate-200/50 items-center justify-center relative">
+      <View className="w-full h-36 bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800/50 items-center justify-center relative">
         <Feather name="image" size={28} color="#cbd5e1" />
         <Text className="text-[11px] text-slate-300 mt-1.5">
           Video thumbnail
@@ -207,7 +207,7 @@ function RoutineCard({
         {/* Completed checkmark overlay */}
         {isCompleted && (
           <View className="absolute inset-0 bg-black/20 items-center justify-center">
-            <View className="w-12 h-12 rounded-full bg-white/90 items-center justify-center">
+            <View className="w-12 h-12 rounded-full bg-white dark:bg-slate-900 dark:bg-slate-100/90 items-center justify-center">
               <Feather name="check" size={22} color="#3b6d11" />
             </View>
           </View>
@@ -218,7 +218,7 @@ function RoutineCard({
       <View className="p-4">
         <View className="flex-row items-start justify-between mb-2">
           <View className="flex-1 pr-3">
-            <Text className="text-[15px] font-medium text-slate-900 leading-snug mb-0.5">
+            <Text className="text-[15px] font-medium text-slate-900 dark:text-white dark:text-slate-900 leading-snug mb-0.5">
               {routine.title}
             </Text>
             <Text className="text-[12px] text-slate-400 leading-5">
@@ -234,9 +234,9 @@ function RoutineCard({
         </View>
 
         {/* Intensity chip */}
-        <View className="flex-row items-center gap-1.5 bg-slate-50 border border-slate-200/70 px-2.5 py-1 rounded-lg self-start mb-4">
+        <View className="flex-row items-center gap-1.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/70 px-2.5 py-1 rounded-lg self-start mb-4">
           <Feather name="zap" size={10} color="#94a3b8" />
-          <Text className="text-[10px] text-slate-500 uppercase tracking-wide">
+          <Text className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wide">
             {routine.intensity} intensity
           </Text>
         </View>
@@ -285,12 +285,12 @@ function SafetyCheckModal({
         className="flex-1 justify-end"
         style={{ backgroundColor: "rgba(15,23,42,0.5)" }}
       >
-        <View className="bg-white rounded-t-3xl px-5 pb-12 pt-3 border-t border-slate-200/50">
+        <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-t-3xl px-5 pb-12 pt-3 border-t border-slate-200 dark:border-slate-800/50">
           {/* Drag handle */}
           <View className="w-10 h-1 bg-slate-200 rounded-full self-center mb-5" />
 
           {/* Icon */}
-          <View className="w-14 h-14 rounded-2xl bg-slate-50 border border-slate-200/70 items-center justify-center self-center mb-4">
+          <View className="w-14 h-14 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/70 items-center justify-center self-center mb-4">
             <MaterialCommunityIcons
               name="heart-pulse"
               size={26}
@@ -298,7 +298,7 @@ function SafetyCheckModal({
             />
           </View>
 
-          <Text className="text-[20px] font-medium text-slate-900 text-center mb-2">
+          <Text className="text-[20px] font-medium text-slate-900 dark:text-white dark:text-slate-900 text-center mb-2">
             Quick safety check
           </Text>
           <Text className="text-[13px] text-slate-400 text-center leading-relaxed mb-7 px-4">
@@ -427,7 +427,7 @@ export default function ExercisesScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950" edges={["top"]}>
       <StatusBar style="dark" />
 
       {/* Toast */}
@@ -459,17 +459,17 @@ export default function ExercisesScreen() {
       {/* ── Top bar ── */}
       <View className="flex-row justify-between items-center px-5 pt-4 pb-2">
         <View className="flex-row items-center gap-2.5">
-          <View className="w-9 h-9 bg-[#1e4ed8] rounded-xl items-center justify-center">
-            <MaterialCommunityIcons name="heart-pulse" size={18} color="white" />
+          <View className="w-7 h-7 rounded-full items-center justify-center border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 dark:bg-slate-100">
+            <Feather name="heart" size={13} color="#0f172a" />
           </View>
-          <Text className="text-[16px] font-medium text-slate-900 tracking-tight">HeartLink</Text>
+          <Text className="text-[16px] text-slate-900 dark:text-white dark:text-slate-900 tracking-tight" style={{ fontWeight: "300" }}>Heart<Text style={{ fontWeight: "600" }}>Link.</Text></Text>
         </View>
         <View className="flex-row items-center gap-2">
-          <TouchableOpacity onPress={() => router.push("/(home)/notifications")} className="w-9 h-9 rounded-xl bg-slate-100 border border-slate-200/70 items-center justify-center">
+          <TouchableOpacity onPress={() => router.push("/(home)/notifications")} className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-800/70 items-center justify-center">
             <Feather name="bell" size={17} color="#64748b" />
             <View style={{ position: "absolute", top: 8, right: 8 }} className="w-1.5 h-1.5 bg-red-500 rounded-full" />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => router.push("/(home)/settings")} className="w-9 h-9 rounded-xl bg-slate-100 border border-slate-200/70 items-center justify-center">
+          <TouchableOpacity onPress={() => router.push("/(home)/settings")} className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-800/70 items-center justify-center">
             <Feather name="settings" size={17} color="#64748b" />
           </TouchableOpacity>
           <TouchableOpacity onPress={() => router.push("/(home)/profile")} activeOpacity={0.8} className="ml-1">
@@ -482,7 +482,7 @@ export default function ExercisesScreen() {
       </View>
 
       <View className="px-5 pt-3">
-        <Text className="text-[22px] font-medium text-slate-900 tracking-tight">
+        <Text className="text-[22px] font-medium text-slate-900 dark:text-white dark:text-slate-900 tracking-tight">
           Rehab routines
         </Text>
         <Text className="text-[13px] text-slate-400 mt-0.5">
@@ -492,7 +492,7 @@ export default function ExercisesScreen() {
 
       {/* Dev toggle */}
       <View className="px-5 py-3">
-        <View className="flex-row bg-slate-100 rounded-lg p-0.5 border border-slate-200/70">
+        <View className="flex-row bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5 border border-slate-200 dark:border-slate-800/70">
           <DevBtn
             label="Stable (90)"
             active={cssScore === 90}
@@ -516,7 +516,7 @@ export default function ExercisesScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* CSS score card */}
-        <View className="bg-white rounded-2xl border border-slate-200/70 p-4 mb-3">
+        <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4 mb-3">
           <View className="flex-row items-center justify-between mb-3">
             <Text className="text-[11px] text-slate-400 uppercase tracking-wide">
               Current CSS score
@@ -534,7 +534,7 @@ export default function ExercisesScreen() {
             </View>
           </View>
 
-          <Text className="text-[36px] font-medium text-slate-900 tracking-tight leading-none mb-1">
+          <Text className="text-[36px] font-medium text-slate-900 dark:text-white dark:text-slate-900 tracking-tight leading-none mb-1">
             {cssScore}
             <Text className="text-[16px] font-normal text-slate-400">
               {" "}
@@ -542,7 +542,7 @@ export default function ExercisesScreen() {
             </Text>
           </Text>
 
-          <View className="h-1.5 bg-slate-100 rounded-full mt-3 overflow-hidden">
+          <View className="h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full mt-3 overflow-hidden">
             <View
               className="h-full rounded-full"
               style={{
@@ -583,10 +583,10 @@ export default function ExercisesScreen() {
         </View>
 
         {/* Daily progress */}
-        <View className="bg-white rounded-2xl border border-slate-200/70 p-4 mb-4">
+        <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4 mb-4">
           <View className="flex-row items-center justify-between mb-2.5">
             <View>
-              <Text className="text-[13px] font-medium text-slate-900">
+              <Text className="text-[13px] font-medium text-slate-900 dark:text-white dark:text-slate-900">
                 Daily active target
               </Text>
               <Text className="text-[11px] text-slate-400 mt-0.5">
@@ -609,7 +609,7 @@ export default function ExercisesScreen() {
               </Text>
             </View>
           </View>
-          <View className="h-2 bg-slate-100 rounded-full overflow-hidden">
+          <View className="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
             <View
               className="h-full rounded-full"
               style={{
@@ -632,7 +632,7 @@ export default function ExercisesScreen() {
         </View>
 
         {/* Routine list */}
-        <Text className="text-[14px] font-medium text-slate-900 mb-3">
+        <Text className="text-[14px] font-medium text-slate-900 dark:text-white dark:text-slate-900 mb-3">
           Recommended today
         </Text>
         {activeRoutines.map((routine) => (

@@ -1,8 +1,21 @@
 import { Stack } from "expo-router";
+import { useEffect } from "react";
+import { useColorScheme } from "nativewind";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 // Import your global CSS here so it applies to the entire app
 import "../global.css";
 
 export default function RootLayout() {
+  const { setColorScheme } = useColorScheme();
+
+  useEffect(() => {
+    AsyncStorage.getItem("theme_preference").then((pref) => {
+      if (pref === "light" || pref === "dark" || pref === "system") {
+        setColorScheme(pref);
+      }
+    });
+  }, []);
+
   return (
     <Stack
       screenOptions={{

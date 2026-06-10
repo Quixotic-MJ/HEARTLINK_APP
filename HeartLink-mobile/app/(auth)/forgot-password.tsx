@@ -33,7 +33,7 @@ function InputField({
 }) {
   return (
     <View
-      className="w-full bg-slate-50 rounded-2xl flex-row items-center px-4"
+      className="w-full bg-slate-50 dark:bg-slate-950 rounded-2xl flex-row items-center px-4"
       style={{ borderWidth: 1, borderColor: "#e2e8f0", height: 52 }}
     >
       <Feather name={icon as any} size={17} color="#94a3b8" />
@@ -44,7 +44,7 @@ function InputField({
         placeholderTextColor="#cbd5e1"
         keyboardType={keyboardType}
         autoCapitalize={autoCapitalize ?? "none"}
-        className="flex-1 ml-3 text-[14px] text-slate-900 h-full"
+        className="flex-1 ml-3 text-[14px] text-slate-900 dark:text-white dark:text-slate-900 h-full"
       />
     </View>
   );
@@ -71,23 +71,23 @@ export default function ForgotPasswordScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950" edges={["top"]}>
       <StatusBar style="dark" />
 
       {/* Header */}
       <View className="flex-row items-center px-5 pt-4 pb-2">
         <TouchableOpacity
           onPress={() => router.back()}
-          className="w-9 h-9 rounded-xl bg-white border border-slate-200/70 items-center justify-center mr-3"
+          className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 dark:bg-slate-100 border border-slate-200 dark:border-slate-800/70 items-center justify-center mr-3"
         >
           <Feather name="arrow-left" size={18} color="#0f172a" />
         </TouchableOpacity>
         <View className="flex-row items-center gap-2">
-          <View className="w-7 h-7 bg-[#1e4ed8] rounded-lg items-center justify-center">
-            <MaterialCommunityIcons name="heart-pulse" size={15} color="white" />
+          <View className="w-7 h-7 rounded-full items-center justify-center border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 dark:bg-slate-100">
+            <Feather name="heart" size={13} color="#0f172a" />
           </View>
-          <Text className="text-[16px] font-medium text-slate-900 tracking-tight">
-            HeartLink
+          <Text className="text-[16px] text-slate-900 dark:text-white dark:text-slate-900 tracking-tight" style={{ fontWeight: "300" }}>
+            Heart<Text style={{ fontWeight: "600" }}>Link.</Text>
           </Text>
         </View>
       </View>
@@ -103,7 +103,7 @@ export default function ForgotPasswordScreen() {
         >
           {/* ── Heading ── */}
           <View className="mb-7 mt-2">
-            <Text className="text-[28px] font-medium text-slate-900 tracking-tight leading-tight mb-2">
+            <Text className="text-[28px] font-medium text-slate-900 dark:text-white dark:text-slate-900 tracking-tight leading-tight mb-2">
               Forgot{"\n"}password?
             </Text>
             <Text className="text-[13px] text-slate-400 leading-relaxed">
@@ -112,7 +112,7 @@ export default function ForgotPasswordScreen() {
           </View>
 
           {/* ── Card ── */}
-          <View className="bg-white rounded-2xl border border-slate-200/70 px-5 py-6 gap-3">
+          <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 px-5 py-6 gap-3">
             {/* Email */}
             <InputField
               icon="mail"
@@ -123,15 +123,15 @@ export default function ForgotPasswordScreen() {
             />
 
             {/* Divider */}
-            <View className="h-px bg-slate-100 my-1 mt-2" />
+            <View className="h-px bg-slate-100 dark:bg-slate-800 my-1 mt-2" />
 
             {/* Submit */}
             <TouchableOpacity
               activeOpacity={0.85}
               onPress={handleReset}
-              className="w-full bg-slate-900 rounded-2xl py-3.5 flex-row justify-center items-center gap-2"
+              className="w-full bg-slate-900 dark:bg-slate-100 rounded-2xl py-3.5 flex-row justify-center items-center gap-2"
             >
-              <Text className="text-white text-[14px] font-medium">
+              <Text className="text-white dark:text-slate-900 text-[14px] font-medium">
                 Reset Password
               </Text>
               <Feather name="arrow-right" size={15} color="#fff" />

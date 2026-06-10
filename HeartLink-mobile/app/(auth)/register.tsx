@@ -52,7 +52,7 @@ function InputField({
   return (
     <View className="mb-4">
       <View
-        className="w-full bg-slate-50 rounded-2xl flex-row items-center px-4"
+        className="w-full bg-slate-50 dark:bg-slate-950 rounded-2xl flex-row items-center px-4"
         style={{
           borderWidth: 1,
           borderColor: hasError ? "#f7c1c1" : "#e2e8f0",
@@ -69,7 +69,7 @@ function InputField({
           keyboardType={keyboardType}
           autoCapitalize={autoCapitalize ?? "none"}
           secureTextEntry={secureTextEntry}
-          className="flex-1 ml-3 text-[14px] text-slate-900 h-full"
+          className="flex-1 ml-3 text-[14px] text-slate-900 dark:text-white dark:text-slate-900 h-full"
         />
         {rightElement}
       </View>
@@ -122,22 +122,22 @@ export default function RegisterScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950" edges={["top"]}>
       <StatusBar style="dark" />
 
       {/* Header */}
       <View className="flex-row items-center px-5 pt-4 pb-2">
         <TouchableOpacity
           onPress={() => router.back()}
-          className="w-9 h-9 rounded-xl bg-white border border-slate-200/70 items-center justify-center mr-3"
+          className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 dark:bg-slate-100 border border-slate-200 dark:border-slate-800/70 items-center justify-center mr-3"
         >
           <Feather name="arrow-left" size={18} color="#0f172a" />
         </TouchableOpacity>
         <View className="flex-row items-center gap-2">
-          <View className="w-7 h-7 bg-[#1e4ed8] rounded-lg items-center justify-center">
-            <MaterialCommunityIcons name="heart-pulse" size={15} color="white" />
+          <View className="w-7 h-7 rounded-full items-center justify-center border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 dark:bg-slate-100">
+            <Feather name="heart" size={13} color="#0f172a" />
           </View>
-          <Text className="text-[16px] font-medium text-slate-900 tracking-tight">HeartLink</Text>
+          <Text className="text-[16px] text-slate-900 dark:text-white dark:text-slate-900 tracking-tight" style={{ fontWeight: "300" }}>Heart<Text style={{ fontWeight: "600" }}>Link.</Text></Text>
         </View>
       </View>
 
@@ -149,11 +149,11 @@ export default function RegisterScreen() {
         >
 
           {/* ── Card ── */}
-          <View className="bg-white rounded-2xl border border-slate-200/70 px-6 py-7">
+          <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 px-6 py-7">
 
             {/* Heading */}
             <View className="mb-6">
-              <Text className="text-[24px] font-medium text-slate-900 tracking-tight mb-1.5">
+              <Text className="text-[24px] font-medium text-slate-900 dark:text-white dark:text-slate-900 tracking-tight mb-1.5">
                 Create your account
               </Text>
               <Text className="text-[13px] text-slate-400 leading-relaxed">
@@ -182,7 +182,7 @@ export default function RegisterScreen() {
               error={errors.phone}
               keyboardType="phone-pad"
               leftElement={
-                <View className="flex-row items-center border-r border-slate-200 pr-3 ml-2 mr-0" style={{ height: 20 }}>
+                <View className="flex-row items-center border-r border-slate-200 dark:border-slate-800 pr-3 ml-2 mr-0" style={{ height: 20 }}>
                   <Text className="text-[13px] font-medium text-slate-600">+63</Text>
                 </View>
               }
@@ -228,10 +228,10 @@ export default function RegisterScreen() {
             <TouchableOpacity
               activeOpacity={0.85}
               onPress={handleSubmit}
-              className="w-full bg-slate-900 rounded-2xl py-3.5 items-center justify-center flex-row gap-2 mb-5"
+              className="w-full bg-slate-900 dark:bg-slate-100 rounded-2xl py-3.5 items-center justify-center flex-row gap-2 mb-5"
             >
               <Feather name="send" size={15} color="#fff" />
-              <Text className="text-white text-[14px] font-medium">
+              <Text className="text-white dark:text-slate-900 text-[14px] font-medium">
                 Send verification code
               </Text>
             </TouchableOpacity>
@@ -240,7 +240,7 @@ export default function RegisterScreen() {
             <View className="flex-row justify-center items-center gap-1">
               <Text className="text-[13px] text-slate-400">Already have an account?</Text>
               <TouchableOpacity activeOpacity={0.65} onPress={() => router.replace("/login")}>
-                <Text className="text-[13px] font-medium text-slate-700">Log in</Text>
+                <Text className="text-[13px] font-medium text-slate-700 dark:text-slate-300">Log in</Text>
               </TouchableOpacity>
             </View>
 
