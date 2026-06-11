@@ -133,7 +133,7 @@ export default function OnboardingScreen() {
         {/* ── Dev shortcut ── */}
         {__DEV__ && (
           <TouchableOpacity
-            onPress={() => router.push("/health_goals")}
+            onPress={() => router.push("/dashboard")}
             className="mx-5 mb-4 bg-[#1e4ed8] border border-slate-200 dark:border-slate-800/70 rounded-xl py-2.5 items-center"
           >
             <Text className="text-[11px] text-white dark:text-slate-900">

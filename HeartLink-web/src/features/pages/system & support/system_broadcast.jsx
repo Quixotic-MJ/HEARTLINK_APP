@@ -13,6 +13,8 @@ import {
   ChevronRight
 } from "lucide-react";
 import AdminLayout from "../../../components/layouts/adminLayout";
+import NewBroadcastModal from "../../../components/modals/NewBroadcastModal";
+import ViewBroadcastModal from "../../../components/modals/ViewBroadcastModal";
 
 // Mock Data
 const initialBroadcasts = [
@@ -33,136 +35,147 @@ const initialBroadcasts = [
 ];
 
 const Broadcasts = () => {
-  const [broadcasts] = useState(initialBroadcasts);
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [broadcasts, setBroadcasts] = useState(initialBroadcasts);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   
-  // Composer Form State
-  const [msg, setMsg] = useState("");
-  const [type, setType] = useState("Maintenance");
+  // View Details Modal State
+  const [viewModalOpen, setViewModalOpen] = useState(false);
+  const [activeBroadcast, setActiveBroadcast] = useState(null);
 
-  const openDrawer = () => setIsDrawerOpen(true);
-  const closeDrawer = () => { setIsDrawerOpen(false); setMsg(""); };
+  // Pending Broadcast State for Confirmation
+  const [pendingBroadcast, setPendingBroadcast] = useState(null);
 
-  const handlePublishClick = () => {
-    if (msg.length > 0) setIsConfirmModalOpen(true);
+  const openModal = () => setIsModalOpen(true);
+  const closeModal = () => { setIsModalOpen(false); setPendingBroadcast(null); };
+
+  const handlePublishClick = (type, msg, targetAudience) => {
+    setPendingBroadcast({ type, message: msg, targetAudience });
+    setIsConfirmModalOpen(true);
   };
+
+  const handleConfirmPublish = () => {
+    const newRecord = {
+      id: Date.now(),
+      date: new Date().toLocaleString('en-US', { month: 'short', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+      publisher: "SYS-01 (Admin)",
+      message: pendingBroadcast.message,
+      type: pendingBroadcast.type
+    };
+    setBroadcasts([newRecord, ...broadcasts]);
+    setIsConfirmModalOpen(false);
+    closeModal();
+  };
+
+  const filteredBroadcasts = broadcasts.filter(b => 
+    b.message.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    b.publisher.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <AdminLayout>
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:justify-between md:items-end mb-6 gap-4">
-        <div>
-          <p className="text-[9px] font-bold text-[#1e4ed8] tracking-[0.2em] uppercase mb-1.5">
-            Communication Portal
-          </p>
-          <h2 className="text-2xl lg:text-3xl font-bold text-gray-900 leading-[1.1] tracking-tight">
-            System <span className="text-[#1e4ed8]">Broadcasts.</span>
-          </h2>
-        </div>
-        <button 
-          onClick={openDrawer}
-          className="flex items-center gap-1.5 bg-[#1e4ed8] hover:bg-[#113296] text-white font-bold text-[11px] px-3 py-1.5 rounded-lg shadow-sm shadow-blue-900/20 transition-colors"
-        >
-          <Plus size={14} strokeWidth={2.5} /> New Broadcast
-        </button>
-      </div>
-
-      {/* Main View: History Log Table */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-        <div className="p-4 border-b border-gray-50 bg-[#f8fafc] flex gap-2">
-          <div className="relative flex-1">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input type="text" placeholder="Search past announcements..." className="w-full pl-8 pr-3 py-1.5 text-[11px] border border-gray-200 rounded-lg focus:outline-none focus:border-[#1e4ed8] focus:ring-1 focus:ring-[#1e4ed8]/20 transition-all shadow-sm" />
+      <div className="flex flex-col h-full bg-slate-50/50">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:justify-between md:items-end mb-6 gap-4">
+          <div>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-1.5">
+              Communication Portal
+            </p>
+            <h2 className="text-2xl lg:text-3xl font-bold text-slate-900 leading-[1.1] tracking-tight">
+              System <span className="text-[#0f172a]">Broadcasts.</span>
+            </h2>
           </div>
+          <button 
+            onClick={openModal}
+            className="flex items-center gap-2 px-5 py-2.5 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-xl transition-colors shadow-sm"
+          >
+            <Plus size={14} strokeWidth={2.5} /> New Broadcast
+          </button>
         </div>
 
-        <div className="w-full overflow-x-auto custom-scrollbar">
-          <table className="w-full text-left border-collapse min-w-[700px]">
-            <thead>
-              <tr>
-                <th className="py-2.5 px-4 text-[9px] font-bold text-gray-400 uppercase tracking-[0.2em] border-b border-gray-50">Date Published</th>
-                <th className="py-2.5 px-4 text-[9px] font-bold text-gray-400 uppercase tracking-[0.2em] border-b border-gray-50">Publisher</th>
-                <th className="py-2.5 px-4 text-[9px] font-bold text-gray-400 uppercase tracking-[0.2em] border-b border-gray-50 w-1/2">Message Preview</th>
-                <th className="py-2.5 px-4 text-[9px] font-bold text-gray-400 uppercase tracking-[0.2em] border-b border-gray-50 text-right">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {broadcasts.map((b) => (
-                <tr key={b.id} className="hover:bg-[#f8fafc] transition-colors">
-                  <td className="py-3 px-4 text-[11px] font-bold font-mono text-gray-900">{b.date}</td>
-                  <td className="py-3 px-4 text-[11px] font-medium text-gray-600">{b.publisher}</td>
-                  <td className="py-3 px-4 text-[11px] text-gray-600 truncate max-w-[300px]">{b.message}</td>
-                  <td className="py-3 px-4 text-right">
-                    <button className="text-[10px] font-bold px-3 py-1.5 rounded-lg border bg-white border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors shadow-sm inline-flex items-center gap-1">
-                      View Details <ChevronRight size={12} />
-                    </button>
-                  </td>
+        {/* Main View: History Log Table */}
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col overflow-hidden animate-in fade-in duration-300">
+          <div className="p-5 border-b border-slate-200 bg-slate-50/50 flex gap-3">
+            <div className="relative flex-1">
+              <Search size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              <input 
+                type="text" 
+                placeholder="Search past announcements..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 placeholder-slate-400 outline-none transition-all focus:bg-white focus:ring-2 focus:ring-slate-900/5 focus:border-slate-400 shadow-sm" 
+              />
+            </div>
+          </div>
+
+          <div className="w-full overflow-x-auto custom-scrollbar">
+            <table className="w-full text-left border-collapse min-w-[700px]">
+              <thead>
+                <tr>
+                  <th className="py-4 px-6 text-[10px] font-semibold text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100">Date Published</th>
+                  <th className="py-4 px-6 text-[10px] font-semibold text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100">Publisher</th>
+                  <th className="py-4 px-6 text-[10px] font-semibold text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100 w-1/2">Message Preview</th>
+                  <th className="py-4 px-6 text-[10px] font-semibold text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100 text-right">Action</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filteredBroadcasts.map((b) => (
+                  <tr key={b.id} className="hover:bg-slate-50 transition-colors group cursor-pointer">
+                    <td className="py-4 px-6 align-middle">
+                      <span className="text-slate-900 font-bold text-xs">{b.date}</span>
+                    </td>
+                    <td className="py-4 px-6 align-middle">
+                      <span className="text-slate-700 font-semibold text-xs">{b.publisher}</span>
+                    </td>
+                    <td className="py-4 px-6 align-middle">
+                      <span className="text-slate-600 text-xs font-medium truncate max-w-[350px] inline-block">{b.message}</span>
+                    </td>
+                    <td className="py-4 px-6 align-middle text-right">
+                      <button 
+                        onClick={() => { setActiveBroadcast(b); setViewModalOpen(true); }}
+                        className="text-[10px] font-bold px-4 py-2 rounded-xl border bg-white border-slate-200 text-slate-700 hover:bg-slate-100 transition-colors shadow-sm inline-flex items-center gap-1.5 whitespace-nowrap"
+                      >
+                        View Details <ChevronRight size={12} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
-      {/* Slide-out Drawer: Composer */}
-      {isDrawerOpen && (
-        <div className="fixed inset-0 z-50 flex justify-end">
-          <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm" onClick={closeDrawer}></div>
-          <div className="relative w-full max-w-sm bg-white h-full shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 bg-[#f8fafc]">
-              <div>
-                <h3 className="text-sm font-bold text-gray-900">New Broadcast</h3>
-                <p className="text-[10px] text-gray-500">Push to all registered users</p>
-              </div>
-              <button onClick={closeDrawer} className="text-gray-400 hover:text-gray-900 p-1"><X size={16} /></button>
-            </div>
+      {/* Extracted Composer Modal */}
+      <NewBroadcastModal 
+        isOpen={isModalOpen} 
+        onClose={closeModal} 
+        onPublish={handlePublishClick} 
+      />
 
-            <div className="p-5 flex-1 space-y-4">
-              <div>
-                <label className="block text-[10px] font-bold text-gray-700 mb-1.5">Category</label>
-                <select onChange={(e) => setType(e.target.value)} className="w-full px-3 py-1.5 text-xs bg-[#f8fafc] border border-gray-200 rounded-lg">
-                  <option>Maintenance</option>
-                  <option>App Update</option>
-                  <option>Safety Reminder</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-[10px] font-bold text-gray-700 mb-1.5">Broadcast Message</label>
-                <textarea 
-                  rows="5"
-                  maxLength={255}
-                  value={msg}
-                  onChange={(e) => setMsg(e.target.value)}
-                  className="w-full px-3 py-2 text-xs bg-[#f8fafc] border border-gray-200 rounded-lg focus:outline-none focus:border-[#1e4ed8] resize-none"
-                  placeholder="Draft your announcement (max 255 chars)..."
-                ></textarea>
-                <p className={`text-[9px] font-bold mt-1 ${msg.length >= 255 ? 'text-red-500' : 'text-gray-400'}`}>{msg.length} / 255 characters</p>
-              </div>
-            </div>
-
-            <div className="p-4 border-t border-gray-100 bg-[#f8fafc]">
-              <button onClick={handlePublishClick} disabled={!msg} className="w-full flex items-center justify-center gap-1.5 px-4 py-2 text-[11px] font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg shadow-sm shadow-red-900/20 transition-colors disabled:opacity-50">
-                <Send size={14} /> Publish Broadcast Now
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Extracted Read-Only View Modal */}
+      <ViewBroadcastModal 
+        isOpen={viewModalOpen} 
+        onClose={() => setViewModalOpen(false)} 
+        broadcast={activeBroadcast} 
+      />
 
       {/* Confirmation Modal */}
       {isConfirmModalOpen && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm" onClick={() => setIsConfirmModalOpen(false)}></div>
-          <div className="bg-white p-6 rounded-2xl shadow-xl max-w-xs w-full relative">
-            <AlertTriangle className="text-red-500 mb-4" size={32} />
-            <h3 className="text-sm font-bold text-gray-900 mb-2">Confirm Broadcast</h3>
-            <p className="text-[11px] text-gray-600 mb-6 leading-relaxed">
-              This message will be pushed to <strong>all</strong> users' smartphones immediately. This action cannot be undone.
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsConfirmModalOpen(false)}></div>
+          <div className="bg-white p-6 rounded-2xl shadow-xl max-w-sm w-full relative animate-in fade-in zoom-in-95 duration-200">
+            <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mb-4">
+              <AlertTriangle className="text-red-600" size={24} />
+            </div>
+            <h3 className="text-base font-bold text-slate-900 mb-2">Confirm Broadcast</h3>
+            <p className="text-xs text-slate-600 mb-6 leading-relaxed">
+              This message will be pushed to <strong>{pendingBroadcast?.targetAudience || "all users"}</strong> immediately. This action cannot be undone.
             </p>
-            <div className="flex gap-2">
-              <button onClick={() => setIsConfirmModalOpen(false)} className="flex-1 px-4 py-2 text-[11px] font-bold text-gray-600 hover:bg-gray-100 rounded-lg transition-colors border border-gray-200">Cancel</button>
-              <button onClick={() => { setIsConfirmModalOpen(false); closeDrawer(); }} className="flex-1 px-4 py-2 text-[11px] font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg shadow-sm transition-colors">Yes, Send</button>
+            <div className="flex gap-3">
+              <button onClick={() => setIsConfirmModalOpen(false)} className="flex-1 px-4 py-2.5 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-100 rounded-xl transition-colors border border-slate-200 shadow-sm">Cancel</button>
+              <button onClick={handleConfirmPublish} className="flex-1 px-4 py-2.5 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 rounded-xl shadow-sm transition-colors flex items-center justify-center gap-2"><Send size={14} /> Yes, Send</button>
             </div>
           </div>
         </div>

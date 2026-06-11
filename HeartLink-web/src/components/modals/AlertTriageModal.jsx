@@ -15,7 +15,7 @@ import {
   FileText,
 } from "lucide-react";
 
-const AlertTriageDrawer = ({ isOpen, onClose, activeAlert, userRole }) => {
+const AlertTriageModal = ({ isOpen, onClose, activeAlert, userRole }) => {
   if (!isOpen || !activeAlert) return null;
 
   const getSeverityStyles = (severity) => {
@@ -190,4 +190,4 @@ const AlertTriageDrawer = ({ isOpen, onClose, activeAlert, userRole }) => {
   );
 };
 
-export default AlertTriageDrawer;
+export default AlertTriageModal;

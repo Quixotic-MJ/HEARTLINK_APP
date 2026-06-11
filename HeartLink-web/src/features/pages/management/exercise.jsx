@@ -18,7 +18,7 @@ import {
   Edit2,
 } from "lucide-react";
 import AdminLayout from "../../../components/layouts/adminLayout";
-import ExerciseFormDrawer from "../../../components/modals/ExerciseFormDrawer";
+import ExerciseFormModal from "../../../components/modals/ExerciseFormModal";
 
 // Mock Data
 const initialExercises = [
@@ -89,21 +89,21 @@ const Exercises = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCss, setFilterCss] = useState("all");
 
-  // Drawer & Form State
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  // Modal & Form State
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingExercise, setEditingExercise] = useState(null);
 
   // Toggle this between "sysadmin" and "medical" to test the Validation Toggle
   const [userRole] = useState("medical");
 
-  // Open Drawer for Create or Edit
-  const openDrawer = (exercise = null) => {
+  // Open Modal for Create or Edit
+  const openModal = (exercise = null) => {
     setEditingExercise(exercise || null);
-    setIsDrawerOpen(true);
+    setIsModalOpen(true);
   };
 
-  const closeDrawer = () => {
-    setIsDrawerOpen(false);
+  const closeModal = () => {
+    setIsModalOpen(false);
     setEditingExercise(null);
   };
 
@@ -138,7 +138,7 @@ const Exercises = () => {
           </h2>
         </div>
         <button
-          onClick={() => openDrawer()}
+          onClick={() => openModal()}
           className="flex items-center gap-1.5 text-white font-medium text-[11px] px-3.5 py-2 rounded-xl transition-all hover:opacity-90 active:scale-[0.99]"
           style={{ backgroundColor: "#0f172a" }}
         >
@@ -214,7 +214,7 @@ const Exercises = () => {
                   <tr
                     key={exercise.id}
                     className={`hover:bg-slate-50/60 transition-colors group cursor-pointer ${exercise.status === "archived" ? "opacity-50" : ""}`}
-                    onClick={() => openDrawer(exercise)}
+                    onClick={() => openModal(exercise)}
                   >
                     <td className="py-4 px-5 align-middle">
                       <div className="flex items-center gap-3">
@@ -286,7 +286,7 @@ const Exercises = () => {
                           className="p-1.5 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
                           onClick={(e) => {
                             e.stopPropagation();
-                            openDrawer(exercise);
+                            openModal(exercise);
                           }}
                           title="Edit Exercise"
                         >
@@ -302,10 +302,10 @@ const Exercises = () => {
         </div>
       </div>
 
-      {/* Slide-over Drawer Component */}
-      <ExerciseFormDrawer
-        isOpen={isDrawerOpen}
-        onClose={closeDrawer}
+      {/* Slide-over Modal Component */}
+      <ExerciseFormModal
+        isOpen={isModalOpen}
+        onClose={closeModal}
         exercise={editingExercise}
         userRole={userRole}
         onSave={(data) => {

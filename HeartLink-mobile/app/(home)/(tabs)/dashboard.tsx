@@ -102,6 +102,20 @@ function RecoCard({ tag, title, subtitle, icon, bg, tagBg, tagText, subColor }: 
   );
 }
 
+// ─── Timestamp Helper ─────────────────────────────────────────────────────────
+function formatTimestamp(date: Date) {
+  const now = new Date();
+  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+  if (diffInSeconds < 60) return "Just now";
+  const diffInMinutes = Math.floor(diffInSeconds / 60);
+  if (diffInMinutes < 60) return `${diffInMinutes} mins ago`;
+  const diffInHours = Math.floor(diffInMinutes / 60);
+  if (diffInHours < 24) return `${diffInHours} hours ago`;
+  const diffInDays = Math.floor(diffInHours / 24);
+  return `${diffInDays} days ago`;
+}
+
 // ─── Dashboard Screen ─────────────────────────────────────────────────────────
 export default function DashboardScreen() {
   const [isAlertActive] = useState(false);
@@ -109,6 +123,36 @@ export default function DashboardScreen() {
   const cssScore = 80;
   const theme = getScoreTheme(cssScore);
   const isCritical = cssScore < 40;
+
+  const [lastSyncTime] = useState(new Date(Date.now() - 15 * 60000));
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  const glowOpacity = pulseAnim.interpolate({
+    inputRange: [1, 1.05],
+    outputRange: [0.2, 0.8]
+  });
+
+  useEffect(() => {
+    if (cssScore < 50) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, {
+            toValue: 1.05,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 800,
+            useNativeDriver: true,
+          })
+        ])
+      ).start();
+    } else {
+      pulseAnim.stopAnimation();
+      pulseAnim.setValue(1);
+    }
+  }, [cssScore, pulseAnim]);
 
   return (
     <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950" edges={["top"]}>
@@ -151,7 +195,7 @@ export default function DashboardScreen() {
 
         {/* ── Greeting ── */}
         <View className="px-5 pt-5 pb-2">
-          <Text className="text-[26px] font-medium text-slate-900 dark:text-white dark:text-slate-900 tracking-tight leading-tight">
+          <Text className="text-[30px] font-medium text-slate-900 dark:text-white dark:text-slate-900 tracking-tight leading-tight">
             Welcome back,{"\n"}John Mark
           </Text>
           <Text className="text-[14px] text-slate-400 mt-2">Thursday, 4 June</Text>
@@ -161,7 +205,24 @@ export default function DashboardScreen() {
         <View className="mx-5 mt-3 bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 pt-6 pb-5 px-5 items-center">
 
           {/* Ring */}
-          <CircularProgress score={cssScore} size={200} strokeWidth={13} />
+          <Animated.View style={{ alignItems: 'center', justifyContent: 'center', transform: [{ scale: pulseAnim }] }}>
+            {cssScore < 50 && (
+              <Animated.View style={{
+                position: 'absolute',
+                width: 220,
+                height: 220,
+                borderRadius: 110,
+                backgroundColor: 'rgba(226, 75, 74, 0.15)',
+                opacity: glowOpacity,
+              }} />
+            )}
+            <CircularProgress score={cssScore} size={200} strokeWidth={13} />
+          </Animated.View>
+
+          {/* Timestamp Integration */}
+          <Text className="text-[11px] text-slate-400 mt-4">
+            Last synced: {formatTimestamp(lastSyncTime)}
+          </Text>
 
           {/* Label below ring */}
           <Text className="text-[17px] font-medium text-slate-900 dark:text-white dark:text-slate-900 mt-4 mb-2">
@@ -190,11 +251,6 @@ export default function DashboardScreen() {
             </View>
           </View>
 
-          {/* Timestamp */}
-          <View className="flex-row items-center mt-3 gap-1.5">
-            <Feather name="clock" size={11} color="#cbd5e1" />
-            <Text className="text-[11px] text-slate-300">Updated 7 mins ago</Text>
-          </View>
         </View>
 
         {/* ── Quick Actions ── */}

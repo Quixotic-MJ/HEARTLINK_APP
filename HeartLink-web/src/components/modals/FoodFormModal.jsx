@@ -12,7 +12,7 @@ import {
   Save,
 } from "lucide-react";
 
-const FoodFormDrawer = ({ isOpen, onClose, recipe, userRole = "medical", onSave }) => {
+const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave }) => {
   const [formData, setFormData] = useState({
     name: "",
     category: "Breakfast",
@@ -433,4 +433,4 @@ const FoodFormDrawer = ({ isOpen, onClose, recipe, userRole = "medical", onSave 
   );
 };
 
-export default FoodFormDrawer;
+export default FoodFormModal;

@@ -13,7 +13,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 
-const ExpertEvaluationDrawer = ({ isOpen, onClose, activeCase, onSave }) => {
+const ExpertEvaluationModal = ({ isOpen, onClose, activeCase, onSave }) => {
   const [rating, setRating] = useState(0);
   const [notes, setNotes] = useState("");
 
@@ -293,4 +293,4 @@ const ExpertEvaluationDrawer = ({ isOpen, onClose, activeCase, onSave }) => {
   );
 };
 
-export default ExpertEvaluationDrawer;
+export default ExpertEvaluationModal;

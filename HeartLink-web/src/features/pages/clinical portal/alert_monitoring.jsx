@@ -9,7 +9,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import AdminLayout from "../../../components/layouts/adminLayout";
-import AlertTriageDrawer from "../../../components/modals/AlertTriageDrawer";
+import AlertTriageModal from "../../../components/modals/AlertTriageModal";
 
 // Mock Data for Live Alert Feed
 const initialAlerts = [
@@ -87,8 +87,8 @@ const Alerts = () => {
   // Simulated Polling State
   const [lastSynced, setLastSynced] = useState("Just Now");
 
-  // Drawer State
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  // Modal State
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeAlert, setActiveAlert] = useState(null);
 
   // Toggle this between "sysadmin" and "medical" to test the Triage Buttons
@@ -103,14 +103,14 @@ const Alerts = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Open Drawer for Triage
-  const openDrawer = (alert) => {
+  // Open Modal for Triage
+  const openModal = (alert) => {
     setActiveAlert(alert);
-    setIsDrawerOpen(true);
+    setIsModalOpen(true);
   };
 
-  const closeDrawer = () => {
-    setIsDrawerOpen(false);
+  const closeModal = () => {
+    setIsModalOpen(false);
     setActiveAlert(null);
   };
 
@@ -246,7 +246,7 @@ const Alerts = () => {
                 <tr
                   key={alert.id}
                   className={`hover:bg-slate-50/50 transition-colors group cursor-pointer ${alert.status === "Resolved" ? "opacity-60" : ""}`}
-                  onClick={() => openDrawer(alert)}
+                  onClick={() => openModal(alert)}
                 >
                   <td className="py-4 px-5 align-middle">
                     <p className="text-slate-900 font-semibold text-xs font-mono mb-0.5">
@@ -288,7 +288,7 @@ const Alerts = () => {
                       }`}
                       onClick={(e) => {
                         e.stopPropagation();
-                        openDrawer(alert);
+                        openModal(alert);
                       }}
                     >
                       {alert.status === "Unresolved"
@@ -304,9 +304,9 @@ const Alerts = () => {
         </div>
       </div>
 
-      <AlertTriageDrawer
-        isOpen={isDrawerOpen}
-        onClose={closeDrawer}
+      <AlertTriageModal
+        isOpen={isModalOpen}
+        onClose={closeModal}
         activeAlert={activeAlert}
         userRole={userRole}
       />

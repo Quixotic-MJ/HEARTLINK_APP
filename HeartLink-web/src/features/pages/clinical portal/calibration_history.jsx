@@ -14,7 +14,7 @@ import {
   UserCircle,
 } from "lucide-react";
 import AdminLayout from "../../../components/layouts/adminLayout";
-import CalibrationDrawer from "../../../components/modals/CalibrationDrawer";
+import CalibrationModal from "../../../components/modals/CalibrationModal";
 
 // Mock Data for Calibration Logs
 const initialCalibrationData = [
@@ -70,18 +70,18 @@ const Calibration = () => {
   const [filterRating, setFilterRating] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
 
-  // Drawer State
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  // Modal State
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeLog, setActiveLog] = useState(null);
 
-  // Open Drawer for Detail View
-  const openDrawer = (log) => {
+  // Open Modal for Detail View
+  const openModal = (log) => {
     setActiveLog(log);
-    setIsDrawerOpen(true);
+    setIsModalOpen(true);
   };
 
-  const closeDrawer = () => {
-    setIsDrawerOpen(false);
+  const closeModal = () => {
+    setIsModalOpen(false);
     setActiveLog(null);
   };
 
@@ -252,7 +252,7 @@ const Calibration = () => {
                 <tr
                   key={log.id}
                   className={`hover:bg-slate-50/60 transition-colors group cursor-pointer ${log.status === "Archived" ? "opacity-60" : ""}`}
-                  onClick={() => openDrawer(log)}
+                  onClick={() => openModal(log)}
                 >
                   <td className="py-4 px-5 align-middle">
                     <p className="text-slate-900 font-semibold text-[11px] font-mono mb-1">
@@ -288,7 +288,7 @@ const Calibration = () => {
                       className="text-[10px] font-medium px-4 py-2 rounded-xl border bg-white border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors shadow-sm"
                       onClick={(e) => {
                         e.stopPropagation();
-                        openDrawer(log);
+                        openModal(log);
                       }}
                     >
                       View Notes
@@ -301,9 +301,9 @@ const Calibration = () => {
         </div>
       </div>
 
-      <CalibrationDrawer
-        isOpen={isDrawerOpen}
-        onClose={closeDrawer}
+      <CalibrationModal
+        isOpen={isModalOpen}
+        onClose={closeModal}
         activeLog={activeLog}
       />
     </AdminLayout>

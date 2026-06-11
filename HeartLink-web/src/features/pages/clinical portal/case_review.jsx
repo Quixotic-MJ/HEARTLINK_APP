@@ -20,7 +20,7 @@ import {
   Stethoscope,
 } from "lucide-react";
 import AdminLayout from "../../../components/layouts/adminLayout"; // Adjust path
-import ExpertEvaluationDrawer from "../../../components/modals/ExpertEvaluationDrawer";
+import ExpertEvaluationModal from "../../../components/modals/ExpertEvaluationModal";
 
 // Mock Data
 const initialCases = [
@@ -154,18 +154,18 @@ const Cases = () => {
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterDateRange, setFilterDateRange] = useState("7days");
 
-  // Drawer & Evaluation State
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  // Modal & Evaluation State
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeCase, setActiveCase] = useState(null);
 
-  // Open Drawer for Evaluation
-  const openDrawer = (caseItem) => {
+  // Open Modal for Evaluation
+  const openModal = (caseItem) => {
     setActiveCase(caseItem);
-    setIsDrawerOpen(true);
+    setIsModalOpen(true);
   };
 
-  const closeDrawer = () => {
-    setIsDrawerOpen(false);
+  const closeModal = () => {
+    setIsModalOpen(false);
     setActiveCase(null);
   };
 
@@ -315,7 +315,7 @@ const Cases = () => {
                 <tr
                   key={c.id}
                   className="hover:bg-slate-50/60 transition-colors group cursor-pointer"
-                  onClick={() => openDrawer(c)}
+                  onClick={() => openModal(c)}
                 >
                   <td className="py-4 px-5 align-middle">
                     <div className="flex items-center gap-2">
@@ -370,7 +370,7 @@ const Cases = () => {
                       style={c.status !== "Evaluated" ? { backgroundColor: "#0f172a" } : {}}
                       onClick={(e) => {
                         e.stopPropagation();
-                        openDrawer(c);
+                        openModal(c);
                       }}
                     >
                       {c.status === "Evaluated"
@@ -385,9 +385,9 @@ const Cases = () => {
         </div>
       </div>
 
-      <ExpertEvaluationDrawer
-        isOpen={isDrawerOpen}
-        onClose={closeDrawer}
+      <ExpertEvaluationModal
+        isOpen={isModalOpen}
+        onClose={closeModal}
         activeCase={activeCase}
         onSave={(data) => {
           console.log("Saving expert evaluation:", data);

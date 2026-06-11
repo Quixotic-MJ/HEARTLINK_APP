@@ -13,7 +13,7 @@ import {
   Clock,
 } from "lucide-react";
 
-const ExerciseFormDrawer = ({ isOpen, onClose, exercise, userRole = "medical", onSave }) => {
+const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", onSave }) => {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -346,4 +346,4 @@ const ExerciseFormDrawer = ({ isOpen, onClose, exercise, userRole = "medical", o
   );
 };
 
-export default ExerciseFormDrawer;
+export default ExerciseFormModal;

@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import CaseSnapshotModal from "./CaseSnapshotModal";
 
-const CalibrationDrawer = ({ isOpen, onClose, activeLog }) => {
+const CalibrationModal = ({ isOpen, onClose, activeLog }) => {
   const [isSnapshotOpen, setIsSnapshotOpen] = useState(false);
 
   if (!isOpen || !activeLog) return null;
@@ -216,4 +216,4 @@ const CalibrationDrawer = ({ isOpen, onClose, activeLog }) => {
   );
 };
 
-export default CalibrationDrawer;
+export default CalibrationModal;
