@@ -11,6 +11,9 @@ import {
   BellRing,
   FileText,
   Stethoscope,
+  Download,
+  UserPlus,
+  Dumbbell,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -33,10 +36,27 @@ function ActionItem({ icon: Icon, label, onClick }) {
 
 // ─── Header ───────────────────────────────────────────────────────────────────
 
-const Header = ({ setSidebarOpen, title = "Dashboard" }) => {
+const Header = ({ 
+  setSidebarOpen, 
+  title = "Dashboard",
+  openBroadcastModal,
+  openStaffDrawer,
+  openRecipeDrawer,
+  openExerciseDrawer
+}) => {
   const [quickActionsOpen, setQuickActionsOpen] = useState(false);
   const [unreadAlerts] = useState(12);
   const [userRole] = useState("sysadmin");
+
+  const handleAnalyticsExport = () => {
+    alert("Export downloaded");
+    setQuickActionsOpen(false);
+  };
+
+  const handleLogExport = () => {
+    alert("Logs downloaded securely");
+    setQuickActionsOpen(false);
+  };
 
   return (
     <header
@@ -125,21 +145,29 @@ const Header = ({ setSidebarOpen, title = "Dashboard" }) => {
                   boxShadow: "0 8px 24px rgba(15,23,42,0.1)",
                 }}
               >
-                <p
-                  className="px-4 pt-1.5 pb-2.5 text-[9px] tracking-[0.18em] uppercase font-semibold"
-                  style={{ color: "rgba(15,23,42,0.35)", borderBottom: "1px solid rgba(15,23,42,0.06)" }}
-                >
-                  Contextual actions
-                </p>
                 {userRole === "sysadmin" ? (
                   <>
-                    <ActionItem icon={Utensils}  label="Add recipe"          />
-                    <ActionItem icon={BellRing}  label="Send broadcast alert" />
+                    <p
+                      className="px-4 pt-1.5 pb-2.5 text-[9px] tracking-[0.18em] uppercase font-semibold"
+                      style={{ color: "rgba(15,23,42,0.35)", borderBottom: "1px solid rgba(15,23,42,0.06)" }}
+                    >
+                      SYSTEM ACTIONS
+                    </p>
+                    <ActionItem icon={BellRing} label="Send broadcast alert" onClick={() => { openBroadcastModal?.(); setQuickActionsOpen(false); }} />
+                    <ActionItem icon={UserPlus} label="Provision staff account" onClick={() => { openStaffDrawer?.(); setQuickActionsOpen(false); }} />
+                    <ActionItem icon={Download} label="Export analytics CSV" onClick={handleAnalyticsExport} />
                   </>
                 ) : (
                   <>
-                    <ActionItem icon={FileText}    label="New analysis"   />
-                    <ActionItem icon={Stethoscope} label="Evaluate case"  />
+                    <p
+                      className="px-4 pt-1.5 pb-2.5 text-[9px] tracking-[0.18em] uppercase font-semibold"
+                      style={{ color: "rgba(15,23,42,0.35)", borderBottom: "1px solid rgba(15,23,42,0.06)" }}
+                    >
+                      CLINICAL & CONTENT
+                    </p>
+                    <ActionItem icon={Utensils} label="Add healthy recipe" onClick={() => { openRecipeDrawer?.(); setQuickActionsOpen(false); }} />
+                    <ActionItem icon={Dumbbell} label="Add physical activity" onClick={() => { openExerciseDrawer?.(); setQuickActionsOpen(false); }} />
+                    <ActionItem icon={FileText} label="Export clinical logs" onClick={handleLogExport} />
                   </>
                 )}
               </div>
