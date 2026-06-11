@@ -2,21 +2,14 @@ import React, { useState, useEffect } from "react";
 import {
   Search,
   Filter,
-  X,
-  AlertTriangle,
   HeartPulse,
   Utensils,
   WifiOff,
   User,
-  CheckCircle2,
-  Clock,
   ArrowRight,
-  ShieldAlert,
-  Stethoscope,
-  Activity,
-  FileText,
 } from "lucide-react";
-import AdminLayout from "../../../components/layouts/AdminLayout"; // Adjust path based on your structure
+import AdminLayout from "../../../components/layouts/adminLayout";
+import AlertTriageDrawer from "../../../components/modals/AlertTriageDrawer";
 
 // Mock Data for Live Alert Feed
 const initialAlerts = [
@@ -132,20 +125,18 @@ const Alerts = () => {
     return matchesSearch && matchesType && matchesSeverity;
   });
 
-  // UI Helpers
-  const getSeverityStyles = (severity) => {
-    if (severity === "Critical") return "bg-red-50 text-red-600 border-red-100";
-    if (severity === "Warning")
-      return "bg-yellow-50 text-yellow-700 border-yellow-200";
-    return "bg-blue-50 text-[#1e4ed8] border-blue-100";
-  };
-
   const getTypeIcon = (type) => {
     if (type === "Symptom Spike")
       return <HeartPulse size={12} className="text-red-500" />;
     if (type === "Dietary Threshold")
-      return <Utensils size={12} className="text-yellow-600" />;
-    return <WifiOff size={12} className="text-[#1e4ed8]" />;
+      return <Utensils size={12} className="text-amber-600" />;
+    return <WifiOff size={12} className="text-slate-600" />;
+  };
+
+  const getTypeBadgeStyles = (type) => {
+    if (type === "Symptom Spike") return "bg-red-50 text-red-700 border-red-200";
+    if (type === "Dietary Threshold") return "bg-amber-50 text-amber-700 border-amber-200";
+    return "bg-slate-50 text-slate-700 border-slate-200";
   };
 
   return (
@@ -153,54 +144,54 @@ const Alerts = () => {
       {/* Page Header */}
       <div className="flex flex-col md:flex-row md:justify-between md:items-end mb-6 gap-4">
         <div>
-          <p className="text-[9px] font-bold text-[#1e4ed8] tracking-[0.2em] uppercase mb-1.5">
-            Live Monitoring
+          <p className="text-[10px] font-medium tracking-[0.22em] uppercase text-slate-400 mb-2">
+            Clinical Portal
           </p>
-          <h2 className="text-2xl lg:text-3xl font-bold text-gray-900 leading-[1.1] tracking-tight">
-            Real-Time <span className="text-[#1e4ed8]">Alert Feed.</span>
+          <h2 className="text-2xl font-semibold text-slate-900 tracking-tight leading-[1.1]">
+            Real-Time Alert Feed
           </h2>
         </div>
 
         {/* Critical Feature: Auto-Refresh / Polling Indicator */}
-        <div className="flex items-center gap-2 bg-green-50 border border-green-200 px-3 py-1.5 rounded-lg shadow-sm">
+        <div className="flex items-center gap-2 bg-emerald-50/50 border border-emerald-100 px-3 py-1.5 rounded-lg shadow-sm">
           <div className="relative flex h-2.5 w-2.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
           </div>
-          <span className="text-[10px] font-bold text-green-700 uppercase tracking-wider">
+          <span className="text-[10px] font-medium text-emerald-700 uppercase tracking-widest">
             Live • Synced: {lastSynced}
           </span>
         </div>
       </div>
 
       {/* Main View: Live Alert Data Table */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm flex flex-col overflow-hidden">
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col overflow-hidden">
         {/* Search & Filter Bar */}
-        <div className="p-4 border-b border-gray-50 bg-[#f8fafc]">
-          <div className="flex flex-col sm:flex-row gap-2.5">
+        <div className="p-5 border-b border-slate-100 bg-slate-50/50">
+          <div className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
               <Search
-                size={14}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                size={15}
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none"
               />
               <input
                 type="text"
                 placeholder="Search by Alert ID or User ID..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-8 pr-3 py-1.5 text-[11px] border border-gray-200 rounded-lg focus:outline-none focus:border-[#1e4ed8] focus:ring-1 focus:ring-[#1e4ed8]/20 transition-all shadow-sm"
+                className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 placeholder-slate-300 outline-none transition-all focus:bg-white focus:ring-2 focus:ring-slate-900/5 focus:border-slate-400 shadow-sm"
               />
             </div>
-            <div className="flex gap-2.5">
+            <div className="flex gap-3">
               <div className="relative">
                 <Filter
-                  size={12}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                  size={14}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none"
                 />
                 <select
                   value={filterType}
                   onChange={(e) => setFilterType(e.target.value)}
-                  className="pl-8 pr-8 py-1.5 text-[11px] font-bold text-gray-700 bg-white border border-gray-200 rounded-lg focus:outline-none appearance-none cursor-pointer hover:border-gray-300 transition-colors shadow-sm"
+                  className="pl-10 pr-8 py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-xl focus:outline-none appearance-none cursor-pointer hover:border-slate-300 transition-colors shadow-sm focus:ring-2 focus:ring-slate-900/5"
                 >
                   <option value="all">All Types</option>
                   <option value="Symptom Spike">Symptom Spike</option>
@@ -210,13 +201,13 @@ const Alerts = () => {
               </div>
               <div className="relative">
                 <Filter
-                  size={12}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                  size={14}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none"
                 />
                 <select
                   value={filterSeverity}
                   onChange={(e) => setFilterSeverity(e.target.value)}
-                  className="pl-8 pr-8 py-1.5 text-[11px] font-bold text-gray-700 bg-white border border-gray-200 rounded-lg focus:outline-none appearance-none cursor-pointer hover:border-gray-300 transition-colors shadow-sm"
+                  className="pl-10 pr-8 py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-xl focus:outline-none appearance-none cursor-pointer hover:border-slate-300 transition-colors shadow-sm focus:ring-2 focus:ring-slate-900/5"
                 >
                   <option value="all">All Severities</option>
                   <option value="critical">Critical</option>
@@ -233,65 +224,67 @@ const Alerts = () => {
           <table className="w-full text-left border-collapse min-w-[800px]">
             <thead>
               <tr>
-                <th className="py-2.5 px-4 text-[9px] font-bold text-gray-400 uppercase tracking-[0.2em] border-b border-gray-50">
+                <th className="py-4 px-5 text-[10px] font-semibold text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100">
                   Trigger Timestamp
                 </th>
-                <th className="py-2.5 px-4 text-[9px] font-bold text-gray-400 uppercase tracking-[0.2em] border-b border-gray-50">
+                <th className="py-4 px-5 text-[10px] font-semibold text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100">
                   User ID
                 </th>
-                <th className="py-2.5 px-4 text-[9px] font-bold text-gray-400 uppercase tracking-[0.2em] border-b border-gray-50">
+                <th className="py-4 px-5 text-[10px] font-semibold text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100">
                   Alert Type
                 </th>
-                <th className="py-2.5 px-4 text-[9px] font-bold text-gray-400 uppercase tracking-[0.2em] border-b border-gray-50 w-1/3">
+                <th className="py-4 px-5 text-[10px] font-semibold text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100 w-1/3">
                   Alert Message
                 </th>
-                <th className="py-2.5 px-4 text-[9px] font-bold text-gray-400 uppercase tracking-[0.2em] border-b border-gray-50 text-right">
+                <th className="py-4 px-5 text-[10px] font-semibold text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100 text-right">
                   Action
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50">
+            <tbody className="divide-y divide-slate-50">
               {filteredAlerts.map((alert) => (
                 <tr
                   key={alert.id}
-                  className={`hover:bg-[#f8fafc] transition-colors group cursor-pointer ${alert.status === "Resolved" ? "opacity-60" : ""}`}
+                  className={`hover:bg-slate-50/50 transition-colors group cursor-pointer ${alert.status === "Resolved" ? "opacity-60" : ""}`}
                   onClick={() => openDrawer(alert)}
                 >
-                  <td className="py-3 px-4 align-middle">
-                    <p className="text-gray-900 font-bold text-[11px] font-mono mb-0.5">
+                  <td className="py-4 px-5 align-middle">
+                    <p className="text-slate-900 font-semibold text-xs font-mono mb-0.5">
                       {alert.alertId}
                     </p>
-                    <p className="text-gray-500 text-[9px] font-medium">
+                    <p className="text-slate-400 text-[10px] font-medium">
                       {alert.timestamp}
                     </p>
                   </td>
-                  <td className="py-3 px-4 align-middle">
-                    <div className="flex items-center gap-1.5">
-                      <User size={12} className="text-gray-400" />
-                      <span className="text-gray-700 text-[11px] font-mono font-bold hover:text-[#1e4ed8] transition-colors">
+                  <td className="py-4 px-5 align-middle">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 shrink-0">
+                        <User size={12} />
+                      </div>
+                      <span className="text-slate-700 text-xs font-mono font-semibold group-hover:text-slate-900 transition-colors">
                         {alert.userId}
                       </span>
                     </div>
                   </td>
-                  <td className="py-3 px-4 align-middle">
+                  <td className="py-4 px-5 align-middle">
                     <span
-                      className={`inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded border tracking-widest uppercase ${getSeverityStyles(alert.severity)}`}
+                      className={`inline-flex items-center gap-1.5 text-[9px] font-bold px-2.5 py-1 rounded-full border tracking-[0.15em] uppercase ${getTypeBadgeStyles(alert.type)}`}
                     >
                       {getTypeIcon(alert.type)} {alert.type}
                     </span>
                   </td>
-                  <td className="py-3 px-4 align-middle">
-                    <p className="text-gray-800 text-[11px] font-medium truncate max-w-[250px]">
+                  <td className="py-4 px-5 align-middle">
+                    <p className="text-slate-800 text-xs font-medium truncate max-w-[280px]">
                       {alert.message}
                     </p>
                   </td>
-                  <td className="py-3 px-4 align-middle text-right">
+                  <td className="py-4 px-5 align-middle text-right">
                     <button
-                      className={`text-[10px] font-bold px-3 py-1.5 rounded-lg border flex items-center gap-1 ml-auto transition-colors shadow-sm ${
+                      className={`text-[11px] font-medium px-4 py-2 rounded-xl border flex items-center gap-1.5 ml-auto transition-all shadow-sm ${
                         alert.status === "Unresolved" ||
                         alert.status === "Escalated"
-                          ? "bg-[#1e4ed8] border-blue-700 text-white hover:bg-[#113296]"
-                          : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
+                          ? "bg-[#0f172a] border-[#0f172a] text-white hover:opacity-90 active:scale-[0.99]"
+                          : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
                       }`}
                       onClick={(e) => {
                         e.stopPropagation();
@@ -301,7 +294,7 @@ const Alerts = () => {
                       {alert.status === "Unresolved"
                         ? "Investigate"
                         : "View Details"}{" "}
-                      <ArrowRight size={12} />
+                      <ArrowRight size={14} />
                     </button>
                   </td>
                 </tr>
@@ -311,162 +304,12 @@ const Alerts = () => {
         </div>
       </div>
 
-      {/* ========================================= */}
-      {/* SLIDE-OUT DRAWER: Alert Triage View       */}
-      {/* ========================================= */}
-      {isDrawerOpen && activeAlert && (
-        <div className="fixed inset-0 z-50 flex justify-end">
-          {/* Backdrop */}
-          <div
-            className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm transition-opacity"
-            onClick={closeDrawer}
-          ></div>
-
-          {/* Drawer Panel */}
-          <div className="relative w-full max-w-md bg-[#f8fafc] h-full shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
-            {/* Drawer Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 bg-white shadow-sm z-10">
-              <div className="flex items-center gap-3">
-                <div
-                  className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                    activeAlert.severity === "Critical"
-                      ? "bg-red-50 text-red-600"
-                      : activeAlert.severity === "Warning"
-                        ? "bg-yellow-50 text-yellow-600"
-                        : "bg-blue-50 text-[#1e4ed8]"
-                  }`}
-                >
-                  <AlertTriangle size={20} />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2 font-mono">
-                    {activeAlert.alertId}
-                    <span
-                      className={`text-[9px] px-1.5 py-0.5 rounded border tracking-widest uppercase ${getSeverityStyles(activeAlert.severity)}`}
-                    >
-                      {activeAlert.severity}
-                    </span>
-                  </h3>
-                  <p className="text-[10px] text-gray-500 mt-0.5 font-medium flex items-center gap-1">
-                    <Clock size={10} /> {activeAlert.timestamp}
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={closeDrawer}
-                className="text-gray-400 hover:text-gray-900 bg-gray-50 p-1.5 rounded-md border border-gray-200 shadow-sm transition-colors"
-              >
-                <X size={16} />
-              </button>
-            </div>
-
-            {/* Drawer Scrollable Content */}
-            <div className="flex-1 overflow-y-auto p-5 custom-scrollbar space-y-6">
-              {/* Status Banner */}
-              <div className="flex items-center justify-between bg-white p-3 rounded-xl border border-gray-100 shadow-sm">
-                <div>
-                  <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">
-                    Triage Status
-                  </p>
-                  <p
-                    className={`text-[11px] font-bold ${
-                      activeAlert.status === "Resolved"
-                        ? "text-green-600"
-                        : activeAlert.status === "Escalated"
-                          ? "text-red-600"
-                          : "text-[#1e4ed8]"
-                    }`}
-                  >
-                    {activeAlert.status}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">
-                    Affected Entity
-                  </p>
-                  <a
-                    href="#"
-                    className="text-[11px] font-bold text-gray-900 font-mono hover:text-[#1e4ed8] flex items-center gap-1 transition-colors"
-                  >
-                    {activeAlert.userId} <ArrowRight size={10} />
-                  </a>
-                </div>
-              </div>
-
-              {/* Alert Context Display: The Trigger Event */}
-              <div>
-                <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest border-b border-gray-200 pb-1.5 mb-3 flex items-center gap-1.5">
-                  <Activity size={12} /> The Trigger Event
-                </h4>
-                <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                  <div className="p-4 border-b border-gray-100">
-                    <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1">
-                      Alert Message
-                    </p>
-                    <p className="text-[11px] font-bold text-gray-900">
-                      {activeAlert.message}
-                    </p>
-                  </div>
-                  <div className="p-4 bg-gray-50/50">
-                    <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1 flex items-center gap-1">
-                      <FileText size={10} /> Source Log:{" "}
-                      <span className="font-mono text-gray-600">
-                        {activeAlert.triggerContext.logId}
-                      </span>
-                    </p>
-                    <p className="text-[11px] text-gray-800 leading-relaxed font-mono bg-white p-2.5 rounded-lg border border-gray-200 mt-2">
-                      {activeAlert.triggerContext.data}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* System Action Taken */}
-              <div>
-                <h4 className="text-[10px] font-bold text-[#1e4ed8] uppercase tracking-widest border-b border-blue-100 pb-1.5 mb-3 flex items-center gap-1.5">
-                  <Activity size={12} /> System Action Taken
-                </h4>
-                <div className="bg-blue-50/30 p-4 rounded-xl border border-blue-100 shadow-inner">
-                  <p className="text-[11px] font-medium text-gray-800 leading-relaxed">
-                    {activeAlert.systemAction}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Drawer Footer / Role-Dependent Actions */}
-            <div className="p-4 border-t border-gray-200 bg-white shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] shrink-0">
-              {userRole === "sysadmin" ? (
-                /* System Admin Controls */
-                <div className="flex flex-col gap-2.5">
-                  <button className="w-full flex items-center justify-center gap-1.5 px-4 py-2 text-[11px] font-bold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg transition-colors">
-                    <ShieldAlert size={14} /> Escalate to Medical Expert
-                  </button>
-                  <div className="flex gap-2">
-                    <button className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2 text-[11px] font-bold text-gray-700 bg-white hover:bg-gray-50 border border-gray-200 rounded-lg transition-colors shadow-sm">
-                      Acknowledge Alert
-                    </button>
-                    <button className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2 text-[11px] font-bold text-white bg-[#1e4ed8] hover:bg-[#113296] rounded-lg transition-colors shadow-sm shadow-blue-900/20">
-                      <CheckCircle2 size={14} /> Mark as Resolved
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                /* Medical Expert Controls */
-                <div className="flex flex-col gap-2.5">
-                  <button className="w-full flex items-center justify-center gap-1.5 px-4 py-2 text-[11px] font-bold text-white bg-red-600 hover:bg-red-700 border border-red-700 rounded-lg transition-colors shadow-sm shadow-red-900/20">
-                    <Stethoscope size={14} /> Trigger Emergency Check-up
-                    Suggestion
-                  </button>
-                  <button className="w-full flex items-center justify-center gap-1.5 px-4 py-2 text-[11px] font-bold text-gray-700 bg-white hover:bg-gray-50 border border-gray-200 rounded-lg transition-colors shadow-sm">
-                    <CheckCircle2 size={14} /> Mark as Clinically Resolved
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      <AlertTriageDrawer
+        isOpen={isDrawerOpen}
+        onClose={closeDrawer}
+        activeAlert={activeAlert}
+        userRole={userRole}
+      />
     </AdminLayout>
   );
 };

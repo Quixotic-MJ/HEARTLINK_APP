@@ -7,21 +7,21 @@ import Alerts from "../features/pages/clinical portal/alert_monitoring";
 import Calibrations from "../features/pages/clinical portal/calibration_history";
 import Cases from "../features/pages/clinical portal/case_review";
 import Exercises from "../features/pages/management/exercise";
-import Recipes from "../features/pages/management/recipe";
-import Specialists from "../features/pages/management/specialist_directory";
+import Foods from "../features/pages/management/food";
 import Analytics from "../features/pages/overview/analytics";
 import Dashboard from "../features/pages/overview/dashboard";
 import Login from "../features/auth/login";
+import TwoFactorAuth from "../features/auth/two-factor";
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Login />} />
+        <Route path="/two-factor" element={<TwoFactorAuth />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/analytics" element={<Analytics />} />
-        <Route path="/specialists" element={<Specialists />} />
-        <Route path="/recipes" element={<Recipes />} />
+        <Route path="/foods" element={<Foods />} />
         <Route path="/exercises" element={<Exercises />} />
         <Route path="/cases" element={<Cases />} />
         <Route path="/calibration" element={<Calibrations />} />

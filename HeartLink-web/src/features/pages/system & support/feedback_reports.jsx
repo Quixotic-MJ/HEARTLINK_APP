@@ -18,7 +18,7 @@ import {
   AlertCircle,
   Activity
 } from "lucide-react";
-import AdminLayout from "../../../components/layouts/AdminLayout"; // Adjust path based on your structure
+import AdminLayout from "../../../components/layouts/adminLayout"; // Adjust path based on your structure
 
 // Mock Data for Feedback Inbox
 const initialTickets = [

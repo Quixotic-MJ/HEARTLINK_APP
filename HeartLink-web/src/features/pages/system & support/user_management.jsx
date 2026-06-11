@@ -20,7 +20,7 @@ import {
   MoreVertical,
   ChevronRight,
 } from "lucide-react";
-import AdminLayout from "../../../components/layouts/AdminLayout"; // Adjust path
+import AdminLayout from "../../../components/layouts/adminLayout"; // Adjust path
 
 // Mock Data
 const initialAppUsers = [

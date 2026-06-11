@@ -15,7 +15,7 @@ import {
   Sidebar as SidebarIcon,
   CheckCircle2
 } from "lucide-react";
-import AdminLayout from "../../../components/layouts/AdminLayout"; // Adjust path based on your structure
+import AdminLayout from "../../../components/layouts/adminLayout"; // Adjust path based on your structure
 
 const Settings = () => {
   const [activeTab, setActiveTab] = useState("general");

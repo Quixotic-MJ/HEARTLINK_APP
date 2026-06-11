@@ -1,202 +1,262 @@
 import React, { useState } from "react";
-import {
-  HeartPulse,
-  Mail,
-  Lock,
-  Eye,
-  EyeOff,
-  ArrowRight,
-  ArrowLeft,
-} from "lucide-react";
-import { Link } from "react-router-dom";
+import { Mail, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 
-const HeartLinkLogin = () => {
+// ─── Heart Icon (matches brand logo — thin outline, no fill) ─────────────────
+function HeartOutlineIcon({ size = 22, color = "currentColor" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+    </svg>
+  );
+}
+
+// ─── Brand Logo lockup ────────────────────────────────────────────────────────
+function BrandLogo({ dark = false }) {
+  const text = dark ? "#0f172a" : "#ffffff";
+  const sub  = dark ? "rgba(15,23,42,0.4)" : "rgba(255,255,255,0.4)";
+  return (
+    <div className="flex flex-col items-center gap-5">
+      {/* Circle icon */}
+      <div
+        className="w-20 h-20 rounded-full flex items-center justify-center border-2"
+        style={{ borderColor: dark ? "rgba(15,23,42,0.15)" : "rgba(255,255,255,0.35)", backgroundColor: "transparent" }}
+      >
+        <HeartOutlineIcon size={34} color={dark ? "#0f172a" : "#ffffff"} />
+      </div>
+      {/* Wordmark */}
+      <div className="text-center">
+        <p className="leading-none" style={{ fontSize: 38, letterSpacing: -1, color: text }}>
+          <span style={{ fontWeight: 300 }}>Heart</span>
+          <span style={{ fontWeight: 700 }}>Link</span>
+          <span style={{ fontWeight: 700 }}>.</span>
+        </p>
+        <p className="mt-3 tracking-[0.22em] text-[10px] uppercase" style={{ color: sub, fontWeight: 400 }}>
+          Cardiovascular Well-Being
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ─── Input ────────────────────────────────────────────────────────────────────
+function Field({
+  id, label, type, placeholder, hint, hintHref,
+  left, right, value, onChange, error
+}) {
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between">
+        <label htmlFor={id} className={`text-[11px] font-medium uppercase tracking-widest ${error ? 'text-red-500' : 'text-slate-500'}`}>
+          {label}
+        </label>
+        {hint && (
+          <a href={hintHref || "#"} className="text-[11px] text-slate-400 hover:text-slate-700 transition-colors">
+            {hint}
+          </a>
+        )}
+      </div>
+      <div className="relative">
+        {left && (
+          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-300">
+            {left}
+          </div>
+        )}
+        <input
+          id={id}
+          type={type}
+          placeholder={placeholder}
+          value={value}
+          onChange={onChange}
+          className={`w-full bg-slate-50 border ${error ? 'border-red-400 focus:border-red-500' : 'border-slate-200 focus:border-slate-400'} rounded-xl text-sm text-slate-900 placeholder-slate-300 outline-none transition-all focus:bg-white focus:ring-2 ${error ? 'focus:ring-red-500/10' : 'focus:ring-slate-900/5'}`}
+          style={{ paddingTop: 11, paddingBottom: 11, paddingLeft: left ? 42 : 16, paddingRight: right ? 42 : 16 }}
+        />
+        {right && (
+          <div className="absolute inset-y-0 right-0 pr-4 flex items-center">
+            {right}
+          </div>
+        )}
+      </div>
+      {error && <p className="text-[11px] text-red-500 mt-1">{error}</p>}
+    </div>
+  );
+}
+
+// ─── Admin Login ──────────────────────────────────────────────────────────────
+export default function HeartLinkAdminLogin() {
   const [showPassword, setShowPassword] = useState(false);
+  const [remember, setRemember] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [errors, setErrors] = useState({});
+  const navigate = useNavigate();
+
+  const validate = () => {
+    const newErrors = {};
+    if (!email) {
+      newErrors.email = "Email is required";
+    } else if (!/\S+@\S+\.\S+/.test(email)) {
+      newErrors.email = "Please enter a valid email address";
+    }
+    
+    if (!password) {
+      newErrors.password = "Password is required";
+    } else if (password.length < 6) {
+      newErrors.password = "Password must be at least 6 characters";
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (validate()) {
+      navigate("/two-factor");
+    }
+  };
 
   return (
-    /* Outer Container */
-    <div className="flex min-h-screen w-full bg-white overflow-hidden font-sans text-gray-900">
-      
-      {/* Left Panel - Brand Showcase (Hidden on Mobile/Tablet) */}
-      <div className="hidden lg:flex w-1/2 bg-slate-50 relative items-center justify-center p-12 overflow-hidden border-r border-gray-100">
-        
-        {/* Decorative Background Elements (Lighter, subtle) */}
-        <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
-          <div className="absolute -top-24 -left-24 w-72 h-72 bg-blue-100 rounded-full blur-3xl opacity-50"></div>
-          <div className="absolute bottom-0 right-0 w-72 h-72 bg-indigo-100 rounded-full blur-3xl opacity-50"></div>
-        </div>
+    <div className="min-h-screen w-full flex overflow-hidden" style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}>
 
-        <div className="relative z-10 max-w-md w-full">
-          {/* Logo & Version Tag */}
-          <div className="flex items-center justify-between mb-12">
-            <div className="flex items-center gap-2.5">
-              <div className="bg-[#1e4ed8] text-white p-2 rounded-lg flex items-center justify-center shadow-md shadow-blue-900/20">
-                <HeartPulse size={20} strokeWidth={2.5} />
-              </div>
-              <div className="flex flex-col cursor-pointer">
-                <span className="text-gray-900 text-xl font-bold tracking-tight leading-none">
-                  Heart<span className="text-[#1e4ed8]">Link</span>
-                </span>
-              </div>
-            </div>
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-50 border border-blue-100 text-[#1e4ed8] text-[9px] font-bold tracking-widest uppercase">
-              v1.0.0
-            </div>
-          </div>
+      {/* ── Left panel — brand showcase ── */}
+      <div
+        className="hidden lg:flex w-1/2 flex-col items-center justify-center p-16 relative"
+        style={{ backgroundColor: "#0d1424" }}
+      >
+        {/* Subtle radial glow */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background: "radial-gradient(ellipse 60% 50% at 50% 45%, rgba(30,78,216,0.12) 0%, transparent 70%)",
+          }}
+        />
 
-          <h2 className="text-3xl xl:text-4xl font-bold text-gray-900 mb-5 leading-[1.15] tracking-tight">
-            Precision Portal for{" "}
-            <span className="text-[#1e4ed8]">Clinical Excellence.</span>
-          </h2>
+        <div className="relative z-10 flex flex-col items-center max-w-xs text-center">
+          <BrandLogo dark={false} />
 
-          <p className="text-gray-600 text-sm xl:text-base leading-relaxed max-w-[90%]">
-            Access the centralized administration suite for real-time cardiac
-            monitoring, predictive alerts, and patient data orchestration.
+          {/* Divider */}
+          <div className="w-10 h-px my-10" style={{ backgroundColor: "rgba(255,255,255,0.12)" }} />
+
+          <p className="text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.35)" }}>
+            Centralised administration suite for real-time cardiac monitoring, predictive alerts, and patient data orchestration.
           </p>
+
+          {/* Version pill */}
+          <div
+            className="mt-8 inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-[10px] tracking-widest uppercase"
+            style={{ borderColor: "rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.3)" }}
+          >
+            v 1.0.0
+          </div>
         </div>
       </div>
 
-      {/* Right Panel - Login Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-10 relative overflow-hidden">
-        
-        {/* Subtle background blob for right side (Mobile Only) */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-50/50 rounded-full blur-3xl -z-10 lg:hidden pointer-events-none"></div>
+      {/* ── Right panel — login form ── */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 sm:p-14 bg-white">
+        <div className="w-full max-w-[360px]">
 
-        <div className="w-full max-w-[380px] relative z-10">
-
-          {/* Mobile Logo (Hidden on Desktop) */}
-          <div className="flex lg:hidden items-center gap-2.5 mb-10">
-            <div className="bg-[#1e4ed8] text-white p-2 rounded-lg flex items-center justify-center shadow-md shadow-blue-900/20">
-              <HeartPulse size={20} strokeWidth={2.5} />
-            </div>
-            <span className="text-gray-900 text-2xl font-bold tracking-tight leading-none">
-              Heart<span className="text-[#1e4ed8]">Link</span>
-            </span>
+          {/* Mobile logo */}
+          <div className="flex lg:hidden justify-center mb-12">
+            <BrandLogo dark={true} />
           </div>
 
-          <div className="text-left mb-8">
-            <p className="text-[9px] font-bold text-[#1e4ed8] tracking-[0.2em] uppercase mb-1.5">
-              Secure Gateway
+          {/* Heading */}
+          <div className="mb-9 relative">
+            <p className="text-[10px] font-medium tracking-[0.22em] uppercase text-slate-400 mb-2">
+              Secure gateway
             </p>
-            <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-2 tracking-tight">
-              Admin Login
+            <div className="absolute top-4 right-0 flex items-center gap-1 text-[9px] text-slate-400">
+              <Lock size={10} />
+              <span>End-to-end encrypted connection</span>
+            </div>
+            <h1 className="text-2xl font-semibold text-slate-900 tracking-tight mb-2">
+              Admin login
             </h1>
-            <p className="text-gray-500 text-xs sm:text-sm">
-              Please verify your credentials to continue to the Clinical Atelier
-              dashboard.
+            <p className="text-sm text-slate-400 leading-relaxed">
+              Verify your credentials to access the clinical dashboard.
             </p>
           </div>
 
-          {/* Login Form */}
-          <form className="space-y-4">
-            
-            <div>
-              <label
-                className="block text-[10px] font-bold text-gray-700 mb-1.5 uppercase tracking-wide"
-                htmlFor="email"
-              >
-                Admin Email
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
-                  <Mail size={16} />
-                </div>
-                <input
-                  type="email"
-                  id="email"
-                  className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#1e4ed8]/20 focus:border-[#1e4ed8] transition-all outline-none text-gray-900 placeholder-gray-400 text-sm shadow-sm"
-                  placeholder="name@clinicalatelier.co"
-                />
-              </div>
-            </div>
+          {/* Form */}
+          <form className="space-y-5" onSubmit={handleSubmit}>
 
-            <div>
-              <div className="flex justify-between items-center mb-1.5">
-                <label
-                  className="block text-[10px] font-bold text-gray-700 uppercase tracking-wide"
-                  htmlFor="password"
-                >
-                  Password
-                </label>
-                <a
-                  href="#"
-                  className="text-[10px] font-bold text-[#1e4ed8] hover:text-[#113296] hover:underline transition-colors"
-                >
-                  Forgot?
-                </a>
-              </div>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
-                  <Lock size={16} />
-                </div>
-                <input
-                  type={showPassword ? "text" : "password"}
-                  id="password"
-                  className="w-full pl-10 pr-10 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#1e4ed8]/20 focus:border-[#1e4ed8] transition-all outline-none text-gray-900 placeholder-gray-400 text-sm shadow-sm tracking-wider"
-                  placeholder="••••••••••••"
-                />
+            <Field
+              id="email"
+              label="Email"
+              type="email"
+              placeholder="name@heartlink.ph"
+              left={<Mail size={15} />}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              error={errors.email}
+            />
+
+            <Field
+              id="password"
+              label="Password"
+              type={showPassword ? "text" : "password"}
+              placeholder="••••••••••••"
+              hint="Forgot?"
+              left={<Lock size={15} />}
+              right={
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
+                  className="text-slate-300 hover:text-slate-500 transition-colors"
                 >
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
+              }
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              error={errors.password}
+            />
+
+            {/* Remember me */}
+            <label className="flex items-center gap-3 cursor-pointer select-none group">
+              <div className="relative w-4 h-4 flex-shrink-0">
+                <input
+                  type="checkbox"
+                  checked={remember}
+                  onChange={(e) => setRemember(e.target.checked)}
+                  className="peer appearance-none w-4 h-4 border border-slate-200 rounded bg-white checked:bg-slate-900 checked:border-slate-900 transition-all cursor-pointer outline-none focus:ring-2 focus:ring-slate-900/10"
+                />
+                <svg
+                  className="absolute inset-0 m-auto w-2.5 h-2.5 text-white opacity-0 peer-checked:opacity-100 pointer-events-none"
+                  viewBox="0 0 14 10" fill="none"
+                >
+                  <path d="M1 5L4.5 8.5L13 1" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
               </div>
-            </div>
+              <span className="text-xs text-slate-500 group-hover:text-slate-800 transition-colors">
+                Keep me signed in
+              </span>
+            </label>
 
-            <div className="pt-1">
-              <label className="flex items-center gap-2.5 cursor-pointer group w-fit">
-                <div className="relative flex items-center justify-center w-4 h-4">
-                  <input
-                    type="checkbox"
-                    className="peer appearance-none w-4 h-4 border border-gray-300 rounded bg-white text-[#1e4ed8] focus:ring-[#1e4ed8] focus:ring-2 focus:ring-offset-1 checked:bg-[#1e4ed8] checked:border-[#1e4ed8] transition-all cursor-pointer"
-                  />
-                  <svg
-                    className="absolute w-2.5 h-2.5 text-white opacity-0 peer-checked:opacity-100 pointer-events-none"
-                    viewBox="0 0 14 10"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      d="M1 5L4.5 8.5L13 1"
-                      stroke="currentColor"
-                      strokeWidth="2.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                </div>
-                <span className="text-xs font-medium text-gray-600 group-hover:text-gray-900 transition-colors select-none">
-                  Remember my credentials
-                </span>
-              </label>
-            </div>
-
-            {/* Styled Link instead of nested button */}
-            <div className="pt-4">
-              <Link
-                to="/dashboard"
-                className="w-full bg-[#1643c3] hover:bg-[#113296] text-white font-semibold py-3 px-4 rounded-xl transition-all shadow-md shadow-blue-900/20 flex items-center justify-center gap-2 text-sm"
+            {/* Submit */}
+            <div>
+              <button
+                type="submit"
+                className="w-full flex items-center justify-center gap-2.5 py-3 rounded-xl text-sm font-medium text-white transition-all hover:opacity-90 active:scale-[0.99]"
+                style={{ backgroundColor: "#0f172a" }}
               >
-                Log In to Dashboard
-                <ArrowRight size={16} strokeWidth={2.5} />
-              </Link>
+                Continue to 2FA Verification
+                <ArrowRight size={15} strokeWidth={2} />
+              </button>
             </div>
-            
+
           </form>
 
-          {/* Footer inside right panel */}
-          <div className="mt-8 pt-6 border-t border-gray-100 flex flex-col items-center gap-4">
-            <p className="text-[10px] text-gray-400 font-medium">
+          {/* Footer */}
+          <div className="mt-10 pt-8 border-t border-slate-100 text-center">
+            <p className="text-[10px] text-slate-300 tracking-wide">
               © 2026 HeartLink System. All rights reserved.
             </p>
           </div>
-          
+
         </div>
       </div>
     </div>
   );
-};
-
-export default HeartLinkLogin;
+}

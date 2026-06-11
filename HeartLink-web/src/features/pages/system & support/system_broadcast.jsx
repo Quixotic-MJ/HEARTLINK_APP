@@ -12,7 +12,7 @@ import {
   FileText,
   ChevronRight
 } from "lucide-react";
-import AdminLayout from "../../../components/layouts/AdminLayout";
+import AdminLayout from "../../../components/layouts/adminLayout";
 
 // Mock Data
 const initialBroadcasts = [

@@ -5,133 +5,141 @@ import {
   Activity,
   Bell,
   Zap,
+  ChevronDown,
+  LogOut,
   Utensils,
-  AlertTriangle,
+  BellRing,
   FileText,
   Stethoscope,
-  ChevronRight,
-  ChevronDown,
-  LogOut
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
-const Header = ({ setSidebarOpen }) => {
+// ─── Quick action item ────────────────────────────────────────────────────────
+
+function ActionItem({ icon: Icon, label, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left transition-colors"
+      style={{ fontSize: 12, color: "rgba(15,23,42,0.7)" }}
+      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "rgba(15,23,42,0.04)")}
+      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+    >
+      <Icon size={13} style={{ color: "#0f172a", flexShrink: 0 }} strokeWidth={1.8} />
+      {label}
+    </button>
+  );
+}
+
+// ─── Header ───────────────────────────────────────────────────────────────────
+
+const Header = ({ setSidebarOpen, title = "Dashboard" }) => {
   const [quickActionsOpen, setQuickActionsOpen] = useState(false);
-  
-  // Simulated state for dynamic UI elements
   const [unreadAlerts] = useState(12);
-  const [userRole] = useState("sysadmin"); // Toggle between "sysadmin" and "medical" to see different Quick Actions
-  
-  // Simulated system status (Clicking the status widget will cycle through these for demonstration)
-  const [statusState, setStatusState] = useState("healthy");
-
-  const toggleStatus = () => {
-    const states = ["healthy", "warning", "critical"];
-    const nextIndex = (states.indexOf(statusState) + 1) % states.length;
-    setStatusState(states[nextIndex]);
-  };
-
-  const statusConfig = {
-    healthy: {
-      bg: "bg-[#f8fafc]",
-      border: "border-gray-100",
-      iconColor: "text-[#1e4ed8]",
-      titleColor: "text-gray-900",
-      subText: "Live Monitoring",
-      subTextColor: "text-gray-500",
-      icon: Activity
-    },
-    warning: {
-      bg: "bg-yellow-50",
-      border: "border-yellow-200",
-      iconColor: "text-yellow-600",
-      titleColor: "text-yellow-900",
-      subText: "Sync Delayed",
-      subTextColor: "text-yellow-700",
-      icon: AlertTriangle
-    },
-    critical: {
-      bg: "bg-red-50",
-      border: "border-red-200",
-      iconColor: "text-red-600",
-      titleColor: "text-red-900",
-      subText: "Action Required",
-      subTextColor: "text-red-600",
-      icon: AlertTriangle
-    }
-  };
-
-  const currentStatus = statusConfig[statusState];
-  const StatusIcon = currentStatus.icon;
+  const [userRole] = useState("sysadmin");
 
   return (
-    <header className="bg-white/80 backdrop-blur-md border-b border-gray-100 px-6 py-3.5 flex items-center justify-between flex-shrink-0 z-20 sticky top-0">
-      
-      <div className="flex items-center gap-4 w-full lg:w-auto">
-        {/* Mobile Menu Button */}
+    <header
+      className="sticky top-0 z-10 flex items-center justify-between flex-shrink-0 px-5 sm:px-6 rounded-none"
+      style={{
+        height: 64,
+        backgroundColor: "#fff",
+        borderBottom: "1px solid rgba(15,23,42,0.06)",
+      }}
+    >
+      {/* ── Left ── */}
+      <div className="flex items-center gap-4">
+        {/* Mobile menu */}
         <button
-          className="lg:hidden text-gray-500 hover:text-gray-900 p-1.5 bg-gray-50 rounded-lg border border-gray-100"
+          className="lg:hidden p-2 rounded-xl transition-colors"
+          style={{ color: "rgba(15,23,42,0.5)", backgroundColor: "#f8fafc", border: "1px solid rgba(15,23,42,0.08)" }}
           onClick={() => setSidebarOpen(true)}
         >
-          <Menu size={18} />
+          <Menu size={17} />
         </button>
 
-        {/* Breadcrumb Navigation (Hidden on Mobile) */}
-        <div className="hidden lg:flex items-center text-xs font-medium text-gray-500 select-none shrink-0 pr-2">
-          <span className="hover:text-gray-900 cursor-pointer transition-colors">Dashboard</span>
-          </div>
+        {/* Page title */}
+        <h1
+          className="hidden lg:block text-[15px] font-medium tracking-tight"
+          style={{ color: "#0f172a" }}
+        >
+          {title}
+        </h1>
 
-        {/* Search Bar */}
-        <div className="flex items-center bg-[#f8fafc] rounded-lg px-3 py-2 w-full max-w-xs border border-gray-100 focus-within:ring-2 focus-within:ring-[#1e4ed8]/20 focus-within:border-[#1e4ed8] transition-all shadow-sm">
-          <Search size={14} className="text-gray-400 mr-2 shrink-0" />
+        {/* Search */}
+        <div
+          className="flex items-center gap-2.5 rounded-xl px-3.5 transition-all"
+          style={{
+            height: 36,
+            backgroundColor: "#f8fafc",
+            border: "1px solid rgba(15,23,42,0.08)",
+            width: 240,
+          }}
+        >
+          <Search size={13} style={{ color: "rgba(15,23,42,0.3)", flexShrink: 0 }} />
           <input
             type="text"
-            placeholder="Search patients, logs..."
-            className="bg-transparent border-none outline-none text-xs w-full text-gray-900 placeholder-gray-400"
+            placeholder="Search patients, logs…"
+            className="bg-transparent border-none outline-none w-full"
+            style={{ fontSize: 13, color: "#0f172a" }}
           />
         </div>
       </div>
 
-      {/* Right Header Actions */}
-      <div className="hidden sm:flex items-center gap-4">
-        
-        {/* Contextual Quick Actions Dropdown */}
-        <div className="relative">
-          <button 
+      {/* ── Right ── */}
+      <div className="flex items-center gap-2.5">
+
+        {/* Quick actions */}
+        <div className="relative hidden md:block">
+          <button
             onClick={() => setQuickActionsOpen(!quickActionsOpen)}
-            className="bg-[#1e4ed8] hover:bg-[#113296] text-white font-semibold py-2 px-3.5 rounded-lg transition-all shadow-sm shadow-blue-900/20 flex items-center justify-center gap-1.5 text-xs"
+            className="flex items-center gap-2 rounded-xl px-3.5 text-sm font-medium transition-all"
+            style={{
+              height: 36,
+              backgroundColor: "#0f172a",
+              color: "#fff",
+              fontSize: 12,
+            }}
           >
-            <Zap size={14} strokeWidth={2.5} />
-            <span className="hidden md:inline">Quick Actions</span>
-            <ChevronDown size={12} strokeWidth={2.5} className={`transition-transform duration-200 ml-0.5 ${quickActionsOpen ? "rotate-180" : ""}`} />
+            <Zap size={13} strokeWidth={2.5} />
+            <span>Quick actions</span>
+            <ChevronDown
+              size={12}
+              strokeWidth={2.5}
+              style={{
+                transition: "transform 0.2s",
+                transform: quickActionsOpen ? "rotate(180deg)" : "rotate(0deg)",
+              }}
+            />
           </button>
 
           {quickActionsOpen && (
             <>
-              <div className="fixed inset-0 z-40" onClick={() => setQuickActionsOpen(false)}></div>
-              <div className="absolute right-0 mt-3 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-1.5 z-50 transform opacity-100 scale-100 transition-all origin-top-right">
-                
-                <div className="px-3 py-1.5 mb-1 border-b border-gray-50">
-                  <p className="text-[9px] font-bold text-gray-400 tracking-[0.2em] uppercase">Contextual Actions</p>
-                </div>
-
+              <div className="fixed inset-0 z-40" onClick={() => setQuickActionsOpen(false)} />
+              <div
+                className="absolute right-0 mt-2 z-50 py-1.5 rounded-2xl overflow-hidden"
+                style={{
+                  width: 200,
+                  backgroundColor: "#fff",
+                  border: "1px solid rgba(15,23,42,0.08)",
+                  boxShadow: "0 8px 24px rgba(15,23,42,0.1)",
+                }}
+              >
+                <p
+                  className="px-4 pt-1.5 pb-2.5 text-[9px] tracking-[0.18em] uppercase font-semibold"
+                  style={{ color: "rgba(15,23,42,0.35)", borderBottom: "1px solid rgba(15,23,42,0.06)" }}
+                >
+                  Contextual actions
+                </p>
                 {userRole === "sysadmin" ? (
                   <>
-                    <button className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors text-left">
-                      <Utensils size={14} className="text-[#1e4ed8]" /> Add Recipe
-                    </button>
-                    <button className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors text-left">
-                      <Bell size={14} className="text-[#1e4ed8]" /> Send Broadcast Alert
-                    </button>
+                    <ActionItem icon={Utensils}  label="Add recipe"          />
+                    <ActionItem icon={BellRing}  label="Send broadcast alert" />
                   </>
                 ) : (
                   <>
-                    <button className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors text-left">
-                      <FileText size={14} className="text-[#1e4ed8]" /> New Analysis
-                    </button>
-                    <button className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors text-left">
-                      <Stethoscope size={14} className="text-[#1e4ed8]" /> Evaluate Case
-                    </button>
+                    <ActionItem icon={FileText}    label="New analysis"   />
+                    <ActionItem icon={Stethoscope} label="Evaluate case"  />
                   </>
                 )}
               </div>
@@ -139,48 +147,88 @@ const Header = ({ setSidebarOpen }) => {
           )}
         </div>
 
-        {/* Dynamic System Status */}
-        <div 
-          onClick={toggleStatus}
-          className={`hidden xl:flex items-center justify-between border ${currentStatus.border} ${currentStatus.bg} px-3 py-1.5 rounded-lg shadow-sm min-w-[130px] cursor-pointer transition-colors duration-300`}
+        {/* System status */}
+        <div
+          className="hidden lg:flex items-center gap-3 rounded-xl px-3"
+          style={{
+            height: 36,
+            backgroundColor: "#f8fafc",
+            border: "1px solid rgba(15,23,42,0.08)",
+          }}
         >
           <div>
-            <span className={`${currentStatus.titleColor} font-bold text-[11px] block leading-tight`}>
-              System Status
-            </span>
-            <span className={`${currentStatus.subTextColor} text-[8px] font-bold tracking-widest uppercase`}>
-              {currentStatus.subText}
-            </span>
+            <p className="text-[11px] font-medium leading-tight" style={{ color: "#0f172a" }}>
+              System status
+            </p>
+            <p className="text-[8px] tracking-widest uppercase leading-tight mt-0.5" style={{ color: "rgba(15,23,42,0.35)" }}>
+              Live monitoring
+            </p>
           </div>
-          <StatusIcon className={currentStatus.iconColor} size={14} strokeWidth={2.5} />
+          <div className="flex items-center gap-1.5">
+            <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
+            <Activity size={13} strokeWidth={2} style={{ color: "rgba(15,23,42,0.4)" }} />
+          </div>
         </div>
 
-        <div className="h-6 w-px bg-gray-100 hidden md:block"></div>
+        {/* Divider */}
+        <div className="hidden sm:block w-px h-5" style={{ backgroundColor: "rgba(15,23,42,0.08)" }} />
 
-        {/* Improved Notifications with Numeric Badge */}
-        <button className="text-gray-400 hover:text-[#1e4ed8] relative transition-colors bg-[#f8fafc] p-2 rounded-lg border border-gray-100 shadow-sm">
+        {/* Notifications */}
+        <button
+          className="relative flex items-center justify-center rounded-xl transition-colors"
+          style={{
+            width: 36, height: 36,
+            backgroundColor: "#f8fafc",
+            border: "1px solid rgba(15,23,42,0.08)",
+            color: "rgba(15,23,42,0.5)",
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.color = "#0f172a")}
+          onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(15,23,42,0.5)")}
+        >
           <Bell size={16} />
           {unreadAlerts > 0 && (
-            <div className="absolute -top-1.5 -right-1.5 min-w-[16px] h-[16px] bg-red-500 rounded-full border-2 border-white flex items-center justify-center px-1 shadow-sm">
-              <span className="text-[8px] font-bold text-white leading-none">
-                {unreadAlerts > 99 ? '99+' : unreadAlerts}
-              </span>
+            <div
+              className="absolute -top-1 -right-1 flex items-center justify-center rounded-full border-2 border-white"
+              style={{
+                minWidth: 16, height: 16,
+                backgroundColor: "#ef4444",
+                fontSize: 9,
+                fontWeight: 700,
+                color: "#fff",
+                paddingLeft: 3,
+                paddingRight: 3,
+              }}
+            >
+              {unreadAlerts > 99 ? "99+" : unreadAlerts}
             </div>
           )}
         </button>
 
-        <div className="h-6 w-px bg-gray-100 hidden md:block"></div>
-
-        {/* Standalone Logout Button */}
+        {/* Sign out */}
         <Link to="/">
-          <button 
-            className="text-gray-400 hover:text-red-600 transition-colors bg-[#f8fafc] p-2 rounded-lg border border-gray-100 shadow-sm group"
-            title="Sign Out"
+          <button
+            className="flex items-center justify-center rounded-xl transition-colors"
+            style={{
+              width: 36, height: 36,
+              backgroundColor: "#f8fafc",
+              border: "1px solid rgba(15,23,42,0.08)",
+              color: "rgba(15,23,42,0.4)",
+            }}
+            title="Sign out"
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = "#fef2f2";
+              e.currentTarget.style.borderColor = "rgba(239,68,68,0.2)";
+              e.currentTarget.style.color = "#ef4444";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = "#f8fafc";
+              e.currentTarget.style.borderColor = "rgba(15,23,42,0.08)";
+              e.currentTarget.style.color = "rgba(15,23,42,0.4)";
+            }}
           >
-            <LogOut size={16} strokeWidth={2.5} className="group-hover:-translate-x-0.5 transition-transform" />
+            <LogOut size={15} strokeWidth={2} />
           </button>
         </Link>
-
       </div>
     </header>
   );

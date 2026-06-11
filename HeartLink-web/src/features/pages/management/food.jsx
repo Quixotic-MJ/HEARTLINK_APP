@@ -4,115 +4,106 @@ import {
   Plus,
   Filter,
   X,
-  Dumbbell,
+  Utensils,
   CheckCircle2,
   ShieldCheck,
   ShieldAlert,
   Archive,
   Save,
   Activity,
-  PlaySquare,
+  Image as ImageIcon,
   PlusCircle,
   Trash2,
-  Clock,
   Edit2,
 } from "lucide-react";
 import AdminLayout from "../../../components/layouts/adminLayout";
-import ExerciseFormDrawer from "../../../components/modals/ExerciseFormDrawer";
+import FoodFormDrawer from "../../../components/modals/FoodFormDrawer";
 
 // Mock Data
-const initialExercises = [
+const initialRecipes = [
   {
     id: 1,
-    name: "15-Minute Chair Yoga",
-    description: "Low-impact seated stretching focusing on flexibility and deep breathing.",
-    duration: 15,
-    cssTarget: "Monitor Closely (50-79)",
-    videoUrl: "https://heartlink-assets.com/videos/chair-yoga-15m.mp4",
+    name: "Oatmeal with Fresh Berries",
+    category: "Breakfast",
+    cssTarget: "Stable (80-100)",
+    sodium: 15,
+    calories: 210,
+    satFat: 0.5,
+    cholesterol: 0,
+    fiber: 8,
     status: "published",
     expertValidated: true,
-    steps: [
-      "Sit upright in a sturdy chair with feet flat on the floor.",
-      "Inhale deeply while raising both arms towards the ceiling.",
-      "Exhale and slowly lower arms back to your sides.",
-    ],
   },
   {
     id: 2,
-    name: "Light Paced Walking",
-    description: "Gentle cardiovascular activation through steady, flat-surface walking.",
-    duration: 20,
-    cssTarget: "Stable (80-100)",
-    videoUrl: "https://heartlink-assets.com/videos/light-walking.mp4",
+    name: "Grilled Salmon & Quinoa",
+    category: "Dinner",
+    cssTarget: "Monitor Closely (50-79)",
+    sodium: 120,
+    calories: 450,
+    satFat: 2.5,
+    cholesterol: 55,
+    fiber: 5,
     status: "published",
     expertValidated: true,
-    steps: [
-      "Ensure you are wearing supportive athletic shoes.",
-      "Begin walking at a pace where you can comfortably hold a conversation.",
-      "Cool down for the last 3 minutes by slowing your pace.",
-    ],
   },
   {
     id: 3,
-    name: "Bed-Assisted Ankle Pumps",
-    description: "Extremely low-exertion movement to promote blood flow while resting.",
-    duration: 5,
+    name: "Low-Sodium Chicken Broth",
+    category: "Lunch",
     cssTarget: "Critical (<50)",
-    videoUrl: "https://heartlink-assets.com/videos/ankle-pumps.mp4",
+    sodium: 140,
+    calories: 120,
+    satFat: 1.0,
+    cholesterol: 15,
+    fiber: 1,
     status: "draft",
     expertValidated: false,
-    steps: [
-      "Lie flat on your back or sit slightly propped up in bed.",
-      "Point your toes downward away from your body, then pull them back up towards your shins.",
-      "Repeat 10 times per foot, breathing normally.",
-    ],
   },
   {
     id: 4,
-    name: "Brisk Jogging Intervals",
-    description: "Moderate intensity intervals for cardiovascular strengthening.",
-    duration: 30,
+    name: "Avocado Toast on Whole Wheat",
+    category: "Breakfast",
     cssTarget: "Stable (80-100)",
-    videoUrl: "https://heartlink-assets.com/videos/brisk-intervals.mp4",
+    sodium: 150,
+    calories: 280,
+    satFat: 2.0,
+    cholesterol: 0,
+    fiber: 11,
     status: "archived",
     expertValidated: false,
-    steps: [
-      "Warm up with a 5-minute brisk walk.",
-      "Jog at a moderate pace for 2 minutes, then walk for 1 minute.",
-      "Repeat interval 5 times.",
-    ],
   },
 ];
 
-const Exercises = () => {
-  const [exercises, setExercises] = useState(initialExercises);
+const Foods = () => {
+  const [recipes, setRecipes] = useState(initialRecipes);
   const [searchQuery, setSearchQuery] = useState("");
-  const [filterCss, setFilterCss] = useState("all");
+  const [filterStatus, setFilterStatus] = useState("all");
 
   // Drawer & Form State
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [editingExercise, setEditingExercise] = useState(null);
+  const [editingRecipe, setEditingRecipe] = useState(null);
 
   // Toggle this between "sysadmin" and "medical" to test the Validation Toggle
   const [userRole] = useState("medical");
 
   // Open Drawer for Create or Edit
-  const openDrawer = (exercise = null) => {
-    setEditingExercise(exercise || null);
+  const openDrawer = (recipe = null) => {
+    setEditingRecipe(recipe || null);
     setIsDrawerOpen(true);
   };
 
   const closeDrawer = () => {
     setIsDrawerOpen(false);
-    setEditingExercise(null);
+    setEditingRecipe(null);
   };
 
   // Filter Logic
-  const filteredExercises = exercises.filter((e) => {
-    const matchesSearch = e.name
+  const filteredRecipes = recipes.filter((r) => {
+    const matchesSearch = r.name
       .toLowerCase()
       .includes(searchQuery.toLowerCase());
-    const matchesFilter = filterCss === "all" || e.cssTarget === filterCss;
+    const matchesFilter = filterStatus === "all" || r.status === filterStatus;
     return matchesSearch && matchesFilter;
   });
 
@@ -134,7 +125,7 @@ const Exercises = () => {
             Content Library
           </p>
           <h2 className="text-2xl lg:text-3xl font-semibold text-slate-900 leading-[1.1] tracking-tight">
-            Exercise Management.
+            Food & Meal Library.
           </h2>
         </div>
         <button
@@ -142,7 +133,7 @@ const Exercises = () => {
           className="flex items-center gap-1.5 text-white font-medium text-[11px] px-3.5 py-2 rounded-xl transition-all hover:opacity-90 active:scale-[0.99]"
           style={{ backgroundColor: "#0f172a" }}
         >
-          <Plus size={14} strokeWidth={2} /> Create New Exercise
+          <Plus size={14} strokeWidth={2} /> Create New Entry
         </button>
       </div>
 
@@ -158,7 +149,7 @@ const Exercises = () => {
               />
               <input
                 type="text"
-                placeholder="Search routine names..."
+                placeholder="Search recipes, fast food, local dishes..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-9 pr-3 py-2 text-[11px] border border-slate-200 rounded-xl focus:outline-none focus:border-slate-400 transition-all bg-white"
@@ -170,37 +161,35 @@ const Exercises = () => {
                 className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
               />
               <select
-                value={filterCss}
-                onChange={(e) => setFilterCss(e.target.value)}
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
                 className="pl-9 pr-8 py-2 text-[11px] font-medium text-slate-700 bg-white border border-slate-200 rounded-xl focus:outline-none appearance-none cursor-pointer hover:border-slate-300 transition-colors"
               >
-                <option value="all">All Risk Levels</option>
-                <option value="Stable (80-100)">Stable (80-100)</option>
-                <option value="Monitor Closely (50-79)">
-                  Monitor Closely (50-79)
-                </option>
-                <option value="Critical (<50)">Critical (&lt;50)</option>
+                <option value="all">All Status</option>
+                <option value="published">Published</option>
+                <option value="draft">Draft</option>
+                <option value="archived">Archived</option>
               </select>
             </div>
           </div>
         </div>
 
-        {/* Exercise List Table */}
+        {/* Directory List Table */}
         <div className="w-full overflow-x-auto">
           <table className="w-full text-left border-collapse min-w-[750px]">
             <thead>
               <tr>
                 <th className="py-3 px-5 text-[9px] font-medium text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100 w-1/3">
-                  Routine Name
+                  Food / Meal Name
                 </th>
                 <th className="py-3 px-5 text-[9px] font-medium text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100">
-                  Target Stability Level
+                  CSS Suitability
                 </th>
                 <th className="py-3 px-5 text-[9px] font-medium text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100">
-                  Duration
+                  Nutrition Snapshot
                 </th>
                 <th className="py-3 px-5 text-[9px] font-medium text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100 text-center">
-                  Status / Validation
+                  Validation
                 </th>
                 <th className="py-3 px-5 text-[9px] font-medium text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100 text-right">
                   Actions
@@ -208,27 +197,28 @@ const Exercises = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {filteredExercises.map((exercise) => {
-                const badge = getCssBadgeColor(exercise.cssTarget);
+              {filteredRecipes.map((recipe) => {
+                const badge = getCssBadgeColor(recipe.cssTarget);
                 return (
                   <tr
-                    key={exercise.id}
-                    className={`hover:bg-slate-50/60 transition-colors group cursor-pointer ${exercise.status === "archived" ? "opacity-50" : ""}`}
-                    onClick={() => openDrawer(exercise)}
+                    key={recipe.id}
+                    className={`hover:bg-slate-50/60 transition-colors group cursor-pointer ${recipe.status === "archived" ? "opacity-50" : ""}`}
+                    onClick={() => openDrawer(recipe)}
                   >
                     <td className="py-4 px-5 align-middle">
                       <div className="flex items-center gap-3">
                         <div
-                          className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors bg-slate-100 border border-slate-200"
+                          className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition-colors"
+                          style={{ backgroundColor: "rgba(15,23,42,0.04)" }}
                         >
-                          <Dumbbell size={16} className="text-slate-500" />
+                          <Utensils size={14} style={{ color: "#0f172a" }} />
                         </div>
                         <div>
                           <p className="text-slate-900 font-semibold text-xs mb-0.5">
-                            {exercise.name}
+                            {recipe.name}
                           </p>
-                          <p className="text-slate-400 text-[10px] truncate max-w-[220px]">
-                            {exercise.description}
+                          <p className="text-slate-400 text-[10px]">
+                            {recipe.category} • {recipe.status}
                           </p>
                         </div>
                       </div>
@@ -241,44 +231,37 @@ const Exercises = () => {
                           color: badge.text,
                         }}
                       >
-                        {exercise.cssTarget}
+                        {recipe.cssTarget}
                       </span>
                     </td>
                     <td className="py-4 px-5 align-middle">
-                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-700">
-                        <Clock size={13} className="text-slate-400" />
-                        {exercise.duration}m
-                      </span>
+                      <p className="text-slate-900 text-xs font-semibold flex items-center gap-1.5">
+                        <Activity size={13} style={{ color: "#0f172a" }} />{" "}
+                        {recipe.sodium}mg{" "}
+                        <span className="text-[10px] text-slate-400 font-normal">
+                          Sodium
+                        </span>
+                      </p>
+                      <p className="text-slate-500 text-[10px] mt-1 ml-[18px]">
+                        {recipe.calories} kcal
+                      </p>
                     </td>
                     <td className="py-4 px-5 align-middle text-center">
-                      <div className="flex flex-col items-center gap-1.5">
-                        <span
-                          className={`text-[9px] font-semibold uppercase tracking-[0.15em] ${
-                            exercise.status === "published"
-                              ? "text-emerald-600"
-                              : exercise.status === "draft"
-                              ? "text-amber-500"
-                              : "text-slate-400"
-                          }`}
+                      {recipe.expertValidated ? (
+                        <div
+                          className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-emerald-50 text-emerald-600 mx-auto"
+                          title="Clinically Validated"
                         >
-                          {exercise.status}
-                        </span>
-                        {exercise.expertValidated ? (
-                          <div
-                            className="inline-flex items-center gap-1 text-[8px] font-medium tracking-[0.1em] text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded uppercase"
-                            title="Clinically Validated"
-                          >
-                            <ShieldCheck size={10} /> Validated
-                          </div>
-                        ) : (
-                          <div
-                            className="inline-flex items-center gap-1 text-[8px] font-medium tracking-[0.1em] text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded uppercase"
-                            title="Pending Validation"
-                          >
-                            <ShieldAlert size={10} /> Pending
-                          </div>
-                        )}
-                      </div>
+                          <ShieldCheck size={14} />
+                        </div>
+                      ) : (
+                        <div
+                          className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-amber-50 text-amber-500 mx-auto"
+                          title="Pending Validation"
+                        >
+                          <ShieldAlert size={14} />
+                        </div>
+                      )}
                     </td>
                     <td className="py-4 px-5 align-middle text-right">
                       <div className="flex items-center justify-end opacity-0 group-hover:opacity-100 transition-opacity">
@@ -286,9 +269,9 @@ const Exercises = () => {
                           className="p-1.5 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
                           onClick={(e) => {
                             e.stopPropagation();
-                            openDrawer(exercise);
+                            openDrawer(recipe);
                           }}
-                          title="Edit Exercise"
+                          title="Edit Entry"
                         >
                           <Edit2 size={14} />
                         </button>
@@ -303,18 +286,18 @@ const Exercises = () => {
       </div>
 
       {/* Slide-over Drawer Component */}
-      <ExerciseFormDrawer
+      <FoodFormDrawer
         isOpen={isDrawerOpen}
         onClose={closeDrawer}
-        exercise={editingExercise}
+        recipe={editingRecipe}
         userRole={userRole}
         onSave={(data) => {
-          console.log("Saving exercise to DB:", data);
-          // Dispatch action or API call here
+          console.log("Saving recipe to DB:", data);
+          // Here you would dispatch an action or make an API call
         }}
       />
     </AdminLayout>
   );
 };
 
-export default Exercises;
+export default Foods;
