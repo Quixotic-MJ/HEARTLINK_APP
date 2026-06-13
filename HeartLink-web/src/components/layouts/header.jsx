@@ -11,11 +11,11 @@ import {
   BellRing,
   FileText,
   Stethoscope,
-  Download,
   UserPlus,
   Dumbbell,
+  AlertTriangle,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 
 // ─── Quick action item ────────────────────────────────────────────────────────
 
@@ -38,14 +38,23 @@ function ActionItem({ icon: Icon, label, onClick }) {
 
 const Header = ({ 
   setSidebarOpen, 
-  title = "Dashboard",
+  title: propTitle,
   openBroadcastModal,
   openStaffDrawer,
   openRecipeDrawer,
   openExerciseDrawer
 }) => {
+  const location = useLocation();
+  const pathSegment = location.pathname.split("/").filter(Boolean).pop() || "dashboard";
+  const defaultTitle = pathSegment
+    .split(/[-_]/)
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+  const title = propTitle || defaultTitle;
+
   const [quickActionsOpen, setQuickActionsOpen] = useState(false);
-  const [unreadAlerts] = useState(12);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [unreadAlerts, setUnreadAlerts] = useState(12);
   const [userRole] = useState("sysadmin");
 
   const handleAnalyticsExport = () => {
@@ -202,35 +211,99 @@ const Header = ({
         <div className="hidden sm:block w-px h-5" style={{ backgroundColor: "rgba(15,23,42,0.08)" }} />
 
         {/* Notifications */}
-        <button
-          className="relative flex items-center justify-center rounded-xl transition-colors"
-          style={{
-            width: 36, height: 36,
-            backgroundColor: "#f8fafc",
-            border: "1px solid rgba(15,23,42,0.08)",
-            color: "rgba(15,23,42,0.5)",
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.color = "#0f172a")}
-          onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(15,23,42,0.5)")}
-        >
-          <Bell size={16} />
-          {unreadAlerts > 0 && (
-            <div
-              className="absolute -top-1 -right-1 flex items-center justify-center rounded-full border-2 border-white"
-              style={{
-                minWidth: 16, height: 16,
-                backgroundColor: "#ef4444",
-                fontSize: 9,
-                fontWeight: 700,
-                color: "#fff",
-                paddingLeft: 3,
-                paddingRight: 3,
-              }}
-            >
-              {unreadAlerts > 99 ? "99+" : unreadAlerts}
-            </div>
+        <div className="relative">
+          <button
+            onClick={() => setNotificationsOpen(!notificationsOpen)}
+            className="relative flex items-center justify-center rounded-xl transition-colors"
+            style={{
+              width: 36, height: 36,
+              backgroundColor: "#f8fafc",
+              border: "1px solid rgba(15,23,42,0.08)",
+              color: "rgba(15,23,42,0.5)",
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = "#0f172a")}
+            onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(15,23,42,0.5)")}
+          >
+            <Bell size={16} />
+            {unreadAlerts > 0 && (
+              <div
+                className="absolute -top-1 -right-1 flex items-center justify-center rounded-full border-2 border-white"
+                style={{
+                  minWidth: 16, height: 16,
+                  backgroundColor: "#ef4444",
+                  fontSize: 9,
+                  fontWeight: 700,
+                  color: "#fff",
+                  paddingLeft: 3,
+                  paddingRight: 3,
+                }}
+              >
+                {unreadAlerts > 99 ? "99+" : unreadAlerts}
+              </div>
+            )}
+          </button>
+
+          {notificationsOpen && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setNotificationsOpen(false)} />
+              <div
+                className="absolute right-0 mt-2 z-50 rounded-2xl overflow-hidden flex flex-col w-80"
+                style={{
+                  backgroundColor: "#fff",
+                  border: "1px solid rgba(15,23,42,0.08)",
+                  boxShadow: "0 8px 24px rgba(15,23,42,0.1)",
+                }}
+              >
+                {/* Header */}
+                <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: "rgba(15,23,42,0.06)" }}>
+                  <span className="text-sm font-semibold text-slate-900">Notifications</span>
+                  <button 
+                    onClick={() => setUnreadAlerts(0)}
+                    className="text-xs font-medium text-slate-500 hover:text-slate-700 transition-colors"
+                  >
+                    Mark all as read
+                  </button>
+                </div>
+
+                {/* List Items */}
+                <div className="flex flex-col py-1">
+                  {userRole === "sysadmin" ? (
+                    <div className="flex items-start gap-3 px-4 py-3 hover:bg-slate-50 transition-colors cursor-pointer border-b border-slate-50 last:border-0">
+                      <div className="mt-0.5 p-1.5 rounded-lg bg-amber-50 text-amber-500">
+                        <AlertTriangle size={14} />
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium text-slate-900">New support ticket FB-1043</p>
+                        <p className="text-[10px] text-slate-500 mt-0.5">2 minutes ago</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-start gap-3 px-4 py-3 hover:bg-slate-50 transition-colors cursor-pointer border-b border-slate-50 last:border-0">
+                      <div className="mt-0.5 p-1.5 rounded-lg bg-red-50 text-red-500">
+                        <Activity size={14} />
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium text-slate-900">CRITICAL: Patient USR-A492 CSS dropped to 45</p>
+                        <p className="text-[10px] text-slate-500 mt-0.5">Just now</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Footer */}
+                <div className="px-4 py-2.5 border-t text-center" style={{ borderColor: "rgba(15,23,42,0.06)", backgroundColor: "#f8fafc" }}>
+                  <Link 
+                    to="/activity-log" 
+                    onClick={() => setNotificationsOpen(false)}
+                    className="text-[11px] font-medium text-slate-500 hover:text-slate-700 transition-colors"
+                  >
+                    View all activity
+                  </Link>
+                </div>
+              </div>
+            </>
           )}
-        </button>
+        </div>
 
         {/* Sign out */}
         <Link to="/">

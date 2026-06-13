@@ -28,7 +28,7 @@ const initialExercises = [
     description: "Low-impact seated stretching focusing on flexibility and deep breathing.",
     duration: 15,
     cssTarget: "Monitor Closely (50-79)",
-    videoUrl: "https://heartlink-assets.com/videos/chair-yoga-15m.mp4",
+    mediaUrl: "https://www.w3schools.com/html/mov_bbb.mp4",
     status: "published",
     expertValidated: true,
     steps: [
@@ -43,7 +43,7 @@ const initialExercises = [
     description: "Gentle cardiovascular activation through steady, flat-surface walking.",
     duration: 20,
     cssTarget: "Stable (80-100)",
-    videoUrl: "https://heartlink-assets.com/videos/light-walking.mp4",
+    mediaUrl: "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?auto=format&fit=crop&q=80&w=150&h=150",
     status: "published",
     expertValidated: true,
     steps: [
@@ -58,7 +58,7 @@ const initialExercises = [
     description: "Extremely low-exertion movement to promote blood flow while resting.",
     duration: 5,
     cssTarget: "Critical (<50)",
-    videoUrl: "https://heartlink-assets.com/videos/ankle-pumps.mp4",
+    mediaUrl: "https://www.w3schools.com/html/mov_bbb.mp4",
     status: "draft",
     expertValidated: false,
     steps: [
@@ -73,7 +73,7 @@ const initialExercises = [
     description: "Moderate intensity intervals for cardiovascular strengthening.",
     duration: 30,
     cssTarget: "Stable (80-100)",
-    videoUrl: "https://heartlink-assets.com/videos/brisk-intervals.mp4",
+    mediaUrl: "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?auto=format&fit=crop&q=80&w=150&h=150",
     status: "archived",
     expertValidated: false,
     steps: [
@@ -88,6 +88,10 @@ const Exercises = () => {
   const [exercises, setExercises] = useState(initialExercises);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCss, setFilterCss] = useState("all");
+
+  React.useEffect(() => {
+    setExercises(initialExercises);
+  }, [initialExercises]);
 
   // Modal & Form State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -219,9 +223,17 @@ const Exercises = () => {
                     <td className="py-4 px-5 align-middle">
                       <div className="flex items-center gap-3">
                         <div
-                          className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors bg-slate-100 border border-slate-200"
+                          className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors overflow-hidden bg-slate-100 border border-slate-200"
                         >
-                          <Dumbbell size={16} className="text-slate-500" />
+                          {exercise.mediaUrl ? (
+                            exercise.mediaUrl.startsWith("data:video") || exercise.mediaUrl.endsWith(".mp4") ? (
+                              <video src={exercise.mediaUrl} className="w-full h-full object-cover" muted loop autoPlay playsInline />
+                            ) : (
+                              <img src={exercise.mediaUrl} alt={exercise.name} className="w-full h-full object-cover" />
+                            )
+                          ) : (
+                            <Dumbbell size={16} className="text-slate-500" />
+                          )}
                         </div>
                         <div>
                           <p className="text-slate-900 font-semibold text-xs mb-0.5">

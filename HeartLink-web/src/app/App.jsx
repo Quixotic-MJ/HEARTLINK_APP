@@ -12,6 +12,7 @@ import Analytics from "../features/pages/overview/analytics";
 import Dashboard from "../features/pages/overview/dashboard";
 import Login from "../features/auth/login";
 import TwoFactorAuth from "../features/auth/two-factor";
+import ActivityLog from "../features/pages/system & support/ActivityLog";
 
 export default function App() {
   return (
@@ -30,6 +31,7 @@ export default function App() {
         <Route path="/feedbacks" element={<Feedbacks />} />
         <Route path="/broadcasts" element={<Broadcasts />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/activity-log" element={<ActivityLog />} />
       </Routes>
     </BrowserRouter>
   );

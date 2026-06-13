@@ -21,7 +21,7 @@ import {
   ChevronRight,
   Stethoscope,
 } from "lucide-react";
-import AdminLayout from "../../../components/layouts/adminLayout"; 
+import AdminLayout from "../../../components/layouts/adminLayout";
 import PatientListView from "../../../components/lists/PatientListView";
 import PatientDetailsModal from "../../../components/modals/PatientDetailsModal";
 import StaffListView from "../../../components/lists/StaffListView";
@@ -88,7 +88,7 @@ const Users = () => {
   const [filterStatus, setFilterStatus] = useState("all");
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalMode, setModalMode] = useState(""); 
+  const [modalMode, setModalMode] = useState("");
   const [activeEntity, setActiveEntity] = useState(null);
 
   const [deactivationReason, setDeactivationReason] = useState("");
@@ -129,7 +129,9 @@ const Users = () => {
 
   const handleTabSwitch = (tab) => {
     if (tab === "system_staff" && currentUserRole !== "chief_admin") {
-      alert("Access Denied: Only a Chief Admin can view or modify System Staff records.");
+      alert(
+        "Access Denied: Only a Chief Admin can view or modify System Staff records.",
+      );
       return;
     }
     setActiveTab(tab);
@@ -249,7 +251,11 @@ const Users = () => {
         onClose={closeModal}
         patient={activeEntity}
         onDeactivate={handleOpenDeactivate}
-        onEnable={() => alert(`Mock: Successfully re-enabled account for ${activeEntity?.name}`)}
+        onEnable={() =>
+          alert(
+            `Mock: Successfully re-enabled account for ${activeEntity?.name}`,
+          )
+        }
       />
 
       {/* Modular Staff Details Modal */}
@@ -259,12 +265,17 @@ const Users = () => {
         staff={activeEntity}
         onEdit={() => setModalMode("edit_staff")}
         onRevoke={() => setModalMode("deactivate_user")}
-        onRestore={() => alert(`Mock: Successfully restored access for ${activeEntity?.name}`)}
+        onRestore={() =>
+          alert(`Mock: Successfully restored access for ${activeEntity?.name}`)
+        }
       />
 
       {/* Modular Staff Form Modal (Create/Edit) */}
       <StaffFormModal
-        isOpen={isModalOpen && (modalMode === "create_staff" || modalMode === "edit_staff")}
+        isOpen={
+          isModalOpen &&
+          (modalMode === "create_staff" || modalMode === "edit_staff")
+        }
         onClose={closeModal}
         isEditMode={modalMode === "edit_staff"}
         staff={activeEntity}

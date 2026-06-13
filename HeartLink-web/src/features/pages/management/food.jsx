@@ -33,6 +33,7 @@ const initialRecipes = [
     fiber: 8,
     status: "published",
     expertValidated: true,
+    mediaUrl: "https://images.unsplash.com/photo-1517673132405-a56a62b18caf?auto=format&fit=crop&q=80&w=150&h=150",
   },
   {
     id: 2,
@@ -46,6 +47,7 @@ const initialRecipes = [
     fiber: 5,
     status: "published",
     expertValidated: true,
+    mediaUrl: "https://images.unsplash.com/photo-1467003909585-2f8a72700288?auto=format&fit=crop&q=80&w=150&h=150",
   },
   {
     id: 3,
@@ -59,6 +61,7 @@ const initialRecipes = [
     fiber: 1,
     status: "draft",
     expertValidated: false,
+    mediaUrl: "https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&q=80&w=150&h=150",
   },
   {
     id: 4,
@@ -72,6 +75,7 @@ const initialRecipes = [
     fiber: 11,
     status: "archived",
     expertValidated: false,
+    mediaUrl: "https://images.unsplash.com/photo-1588137378633-dea1336ce1e2?auto=format&fit=crop&q=80&w=150&h=150",
   },
 ];
 
@@ -79,6 +83,10 @@ const Foods = () => {
   const [recipes, setRecipes] = useState(initialRecipes);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
+
+  React.useEffect(() => {
+    setRecipes(initialRecipes);
+  }, [initialRecipes]);
 
   // Modal & Form State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -208,10 +216,14 @@ const Foods = () => {
                     <td className="py-4 px-5 align-middle">
                       <div className="flex items-center gap-3">
                         <div
-                          className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition-colors"
+                          className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition-colors overflow-hidden bg-slate-100"
                           style={{ backgroundColor: "rgba(15,23,42,0.04)" }}
                         >
-                          <Utensils size={14} style={{ color: "#0f172a" }} />
+                          {recipe.mediaUrl ? (
+                            <img src={recipe.mediaUrl} alt={recipe.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <Utensils size={14} style={{ color: "#0f172a" }} />
+                          )}
                         </div>
                         <div>
                           <p className="text-slate-900 font-semibold text-xs mb-0.5">

@@ -233,21 +233,28 @@ const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave }
 
               <div>
                 <label className="block text-[11px] font-medium text-slate-700 mb-1.5">
-                  Media URL
+                  Media Image
                 </label>
+                {formData.mediaUrl && (
+                  <div className="mb-3 w-full h-32 rounded-xl overflow-hidden bg-slate-100 border border-slate-200">
+                    <img src={formData.mediaUrl} alt="Preview" className="w-full h-full object-cover" />
+                  </div>
+                )}
                 <div className="relative">
-                  <ImageIcon
-                    size={14}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-                  />
                   <input
-                    type="text"
-                    value={formData.mediaUrl}
-                    onChange={(e) =>
-                      setFormData({ ...formData, mediaUrl: e.target.value })
-                    }
-                    className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-slate-400 focus:bg-white transition-colors"
-                    placeholder="https://..."
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                          setFormData({ ...formData, mediaUrl: reader.result });
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-slate-400 focus:bg-white transition-colors file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-[10px] file:font-medium file:bg-slate-200 file:text-slate-700 hover:file:bg-slate-300 cursor-pointer"
                   />
                 </div>
               </div>
