@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { View, Text, TouchableOpacity, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -9,6 +9,8 @@ import {
 } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import "../global.css";
+
+const base_url = process.env.EXPO_PUBLIC_API_URL;
 
 // ─── Feature Card ─────────────────────────────────────────────────────────────
 
@@ -63,9 +65,25 @@ function FeatureCard({
 
 export default function OnboardingScreen() {
   const router = useRouter();
+  const pingServer = async () => {
+    try {
+      const response = await fetch(`${base_url}/health`);
+      const data = await response.json();
+      console.log(data.status);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  useEffect(() => {
+    pingServer();
+  }, []);
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950" edges={["top"]}>
+    <SafeAreaView
+      className="flex-1 bg-slate-50 dark:bg-slate-950"
+      edges={["top"]}
+    >
       <StatusBar style="dark" />
 
       <ScrollView

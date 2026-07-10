@@ -13,7 +13,7 @@ import { StatusBar } from "expo-status-bar";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import "../../global.css";
-
+const base_url = process.env.EXPO_PUBLIC_API_URL;
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type FormErrors = {
@@ -59,7 +59,11 @@ function InputField({
           height: 52,
         }}
       >
-        <Feather name={icon as any} size={17} color={hasError ? "#a32d2d" : "#94a3b8"} />
+        <Feather
+          name={icon as any}
+          size={17}
+          color={hasError ? "#a32d2d" : "#94a3b8"}
+        />
         {leftElement}
         <TextInput
           value={value}
@@ -76,7 +80,9 @@ function InputField({
       {hasError && (
         <View className="flex-row items-center gap-1 mt-1.5 ml-1">
           <Feather name="alert-circle" size={11} color="#a32d2d" />
-          <Text className="text-[11px]" style={{ color: "#a32d2d" }}>{error}</Text>
+          <Text className="text-[11px]" style={{ color: "#a32d2d" }}>
+            {error}
+          </Text>
         </View>
       )}
     </View>
@@ -104,25 +110,57 @@ export default function RegisterScreen() {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
     if (!email) newErrors.email = "Email address is required.";
-    else if (!emailRegex.test(email)) newErrors.email = "Please enter a valid email address.";
+    else if (!emailRegex.test(email))
+      newErrors.email = "Please enter a valid email address.";
 
-    if (!phone || phone.length < 10) newErrors.phone = "Please enter a valid 10-digit phone number.";
+    if (!phone || phone.length < 10)
+      newErrors.phone = "Please enter a valid 10-digit phone number.";
 
     if (!password) newErrors.password = "Password is required.";
-    else if (password.length < 8) newErrors.password = "Password must be at least 8 characters.";
+    else if (password.length < 8)
+      newErrors.password = "Password must be at least 8 characters.";
 
-    if (password !== confirmPassword) newErrors.confirmPassword = "Passwords do not match.";
+    if (password !== confirmPassword)
+      newErrors.confirmPassword = "Passwords do not match.";
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = () => {
-    if (validateForm()) router.push("/verify-otp");
+  // ─── Backend Endpoints ──────────────────────────────────────────────────────────
+
+  const handleSubmit = async () => {
+    if (!validateForm()) {
+      return;
+    }
+
+    const response = await fetch(`${base_url}/api/auth/request-code`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email: email,
+        phone: phone,
+        password: password,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      console.log(data.message);
+      router.push("/verify-otp");
+    } else {
+      console.log("something went wrong");
+    }
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950" edges={["top"]}>
+    <SafeAreaView
+      className="flex-1 bg-slate-50 dark:bg-slate-950"
+      edges={["top"]}
+    >
       <StatusBar style="dark" />
 
       {/* Header */}
@@ -137,20 +175,26 @@ export default function RegisterScreen() {
           <View className="w-7 h-7 rounded-full items-center justify-center border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 dark:bg-slate-100">
             <Feather name="heart" size={13} color="#0f172a" />
           </View>
-          <Text className="text-[16px] text-slate-900 dark:text-white dark:text-slate-900 tracking-tight" style={{ fontWeight: "300" }}>Heart<Text style={{ fontWeight: "600" }}>Link.</Text></Text>
+          <Text
+            className="text-[16px] text-slate-900 dark:text-white dark:text-slate-900 tracking-tight"
+            style={{ fontWeight: "300" }}
+          >
+            Heart<Text style={{ fontWeight: "600" }}>Link.</Text>
+          </Text>
         </View>
       </View>
 
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
         <ScrollView
           contentContainerClassName="flex-grow justify-center px-5 pb-10 pt-4"
           showsVerticalScrollIndicator={false}
           bounces={false}
         >
-
           {/* ── Card ── */}
           <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 px-6 py-7">
-
             {/* Heading */}
             <View className="mb-6">
               <Text className="text-[24px] font-medium text-slate-900 dark:text-white dark:text-slate-900 tracking-tight mb-1.5">
@@ -168,7 +212,10 @@ export default function RegisterScreen() {
               icon="mail"
               placeholder="Email address"
               value={email}
-              onChangeText={(t) => { setEmail(t); clearError("email"); }}
+              onChangeText={(t) => {
+                setEmail(t);
+                clearError("email");
+              }}
               error={errors.email}
               keyboardType="email-address"
             />
@@ -178,12 +225,20 @@ export default function RegisterScreen() {
               icon="phone"
               placeholder="912 345 6789"
               value={phone}
-              onChangeText={(t) => { setPhone(t.replace(/[^0-9]/g, "")); clearError("phone"); }}
+              onChangeText={(t) => {
+                setPhone(t.replace(/[^0-9]/g, ""));
+                clearError("phone");
+              }}
               error={errors.phone}
               keyboardType="phone-pad"
               leftElement={
-                <View className="flex-row items-center border-r border-slate-200 dark:border-slate-800 pr-3 ml-2 mr-0" style={{ height: 20 }}>
-                  <Text className="text-[13px] font-medium text-slate-600">+63</Text>
+                <View
+                  className="flex-row items-center border-r border-slate-200 dark:border-slate-800 pr-3 ml-2 mr-0"
+                  style={{ height: 20 }}
+                >
+                  <Text className="text-[13px] font-medium text-slate-600">
+                    +63
+                  </Text>
                 </View>
               }
             />
@@ -193,12 +248,22 @@ export default function RegisterScreen() {
               icon="lock"
               placeholder="Password"
               value={password}
-              onChangeText={(t) => { setPassword(t); clearError("password"); }}
+              onChangeText={(t) => {
+                setPassword(t);
+                clearError("password");
+              }}
               error={errors.password}
               secureTextEntry={!showPassword}
               rightElement={
-                <TouchableOpacity onPress={() => setShowPassword(!showPassword)} className="p-1 ml-1">
-                  <Feather name={showPassword ? "eye" : "eye-off"} size={16} color="#94a3b8" />
+                <TouchableOpacity
+                  onPress={() => setShowPassword(!showPassword)}
+                  className="p-1 ml-1"
+                >
+                  <Feather
+                    name={showPassword ? "eye" : "eye-off"}
+                    size={16}
+                    color="#94a3b8"
+                  />
                 </TouchableOpacity>
               }
             />
@@ -208,12 +273,22 @@ export default function RegisterScreen() {
               icon="shield"
               placeholder="Confirm password"
               value={confirmPassword}
-              onChangeText={(t) => { setConfirmPassword(t); clearError("confirmPassword"); }}
+              onChangeText={(t) => {
+                setConfirmPassword(t);
+                clearError("confirmPassword");
+              }}
               error={errors.confirmPassword}
               secureTextEntry={!showConfirmPassword}
               rightElement={
-                <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)} className="p-1 ml-1">
-                  <Feather name={showConfirmPassword ? "eye" : "eye-off"} size={16} color="#94a3b8" />
+                <TouchableOpacity
+                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="p-1 ml-1"
+                >
+                  <Feather
+                    name={showConfirmPassword ? "eye" : "eye-off"}
+                    size={16}
+                    color="#94a3b8"
+                  />
                 </TouchableOpacity>
               }
             />
@@ -221,7 +296,9 @@ export default function RegisterScreen() {
             {/* Password hint */}
             <View className="flex-row items-center gap-1.5 mb-6 -mt-2 ml-1">
               <Feather name="info" size={11} color="#cbd5e1" />
-              <Text className="text-[11px] text-slate-300">Minimum 8 characters required.</Text>
+              <Text className="text-[11px] text-slate-300">
+                Minimum 8 characters required.
+              </Text>
             </View>
 
             {/* Submit */}
@@ -238,19 +315,24 @@ export default function RegisterScreen() {
 
             {/* Login link */}
             <View className="flex-row justify-center items-center gap-1">
-              <Text className="text-[13px] text-slate-400">Already have an account?</Text>
-              <TouchableOpacity activeOpacity={0.65} onPress={() => router.replace("/login")}>
-                <Text className="text-[13px] font-medium text-slate-700 dark:text-slate-300">Log in</Text>
+              <Text className="text-[13px] text-slate-400">
+                Already have an account?
+              </Text>
+              <TouchableOpacity
+                activeOpacity={0.65}
+                onPress={() => router.replace("/login")}
+              >
+                <Text className="text-[13px] font-medium text-slate-700 dark:text-slate-300">
+                  Log in
+                </Text>
               </TouchableOpacity>
             </View>
-
           </View>
 
           {/* Footer */}
           <Text className="text-center text-[9px] tracking-widest text-slate-300 mt-6 uppercase">
             CTU — Main Campus · Capstone 2026
           </Text>
-
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
