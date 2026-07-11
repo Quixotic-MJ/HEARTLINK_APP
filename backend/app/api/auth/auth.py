@@ -1,71 +1,60 @@
 from fastapi import APIRouter, status, HTTPException
-from app.schemas.auth import RegisterRequest, UserResponsePayload, AuthResponse
+from app.schemas.auth import RegisterRequest, CodeResponse
+import app.mock_db as mock_db
+
+temp_profile = {}
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
-# Simulated 'profiles' table from the ERD for comprehensive offline testing
-OFFLINE_PROFILES_DB = [
-    {
-        "id": "usr-1",
-        "phone": "+639123456789",
-        "password": "password123",
-        "email": "john.mark@example.com",
-        "role": "patient",
-        "first_name": "John Mark",
-        "last_name": "Magdasal",
-        "date_of_birth": "2005-12-01",
-        "sex": "male",
-        "height_cm": 172.5,
-        "weight_kg": 68.0,
-        "onboarding_status": "complete",
-        "account_status": "active",
-    },
-    {
-        "id": "usr-2",
-        "phone": "+639987654321",
-        "password": "securepass456",
-        "email": "clinical.expert@heartlink.com",
-        "role": "medical_expert",
-        "first_name": "Dr. Maria",
-        "last_name": "Santos",
-        "date_of_birth": "1980-05-14",
-        "sex": "female",
-        "height_cm": 160.0,
-        "weight_kg": 54.5,
-        "onboarding_status": "complete",
-        "account_status": "active",
-    },
-    {
-        "id": "usr-3",
-        "phone": "+639151112222",
-        "password": "riskpassword789",
-        "email": "elevated.risk@example.com",
-        "role": "patient",
-        "first_name": "Pedro",
-        "last_name": "Penduko",
-        "date_of_birth": "1965-11-23",
-        "sex": "male",
-        "height_cm": 168.0,
-        "weight_kg": 85.2,
-        "onboarding_status": "complete",
-        "account_status": "active",
-    },
-]
 
-
-@router.post(
-    "/request-code", status_code=status.HTTP_200_OK
-)
+@router.post("/request-code", status_code=status.HTTP_200_OK)
 async def request_code(payload: RegisterRequest):
-    for profile in OFFLINE_PROFILES_DB:
-        if profile["phone"] == payload.phone:
+    global temp_profile
+    for profile in mock_db.profiles:
+        if profile.get("phone") == payload.phone:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, detail="duplicate phone number"
             )
 
+    temp_profile[payload.phone] = {
+        "phone": payload.phone,
+        "email": payload.email,
+        "password": payload.password,
+    }
+
     print(f"sending verification code to: {payload.phone}")
     print("code sent: 123456")
-    return {"success": True, "message": "code has been sent (123465)"}
+    return {"success": True, "message": "Code sent successfully"}
+
+
+@router.post("/verify-code", status_code=status.HTTP_201_CREATED)
+async def verifyCode(code: CodeResponse):
+    global temp_profile
+    user_data = temp_profile.get(code.phone)
+    if code.code == "123456":
+        new_user_id = f"usr-patient-{len(mock_db.profiles) + 101 }"
+        new_profile = {
+            "id": new_user_id,
+            "phone": user_data.get("phone"),
+            "email": user_data.get("email"),
+            "password": user_data.get("password"),
+            "role": "patient",
+        }
+
+        mock_db.profiles.append(new_profile)
+        temp_profile.pop(code.phone, None)
+        return {"success": True, "message": "Verified successfully"}
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid Verification Code"
+        )
+
+
+@router.get("/test/{phone}")
+async def test(phone: str):
+    for profile in mock_db.profiles:
+        if profile.get("phone") == phone:
+            return {"message": f"phone number: {phone}, email: {profile.get('email')}"}
 
 
 # @router.post(

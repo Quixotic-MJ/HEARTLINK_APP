@@ -134,7 +134,7 @@ export default function RegisterScreen() {
       return;
     }
 
-    const response = await fetch(`${base_url}/api/auth/request-code`, {
+    const response = await fetch(`${base_url}/auth/request-code`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -150,7 +150,7 @@ export default function RegisterScreen() {
 
     if (response.ok) {
       console.log(data.message);
-      router.push("/verify-otp");
+      router.push({ pathname: "/verify-otp", params: { phone } });
     } else {
       console.log("something went wrong");
     }

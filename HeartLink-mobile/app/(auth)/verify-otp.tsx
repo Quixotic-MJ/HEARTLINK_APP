@@ -12,11 +12,14 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import "../../global.css";
+
+const base_url = process.env.EXPO_PUBLIC_API_URL;
 
 export default function OTPVerificationScreen() {
   const router = useRouter();
+  const { phone } = useLocalSearchParams();
 
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const inputRefs = useRef<(TextInput | null)[]>([]);
@@ -49,14 +52,42 @@ export default function OTPVerificationScreen() {
     }
   };
 
-  const handleVerify = () => {
+  const handleVerify = async () => {
     const code = otp.join("");
-    if (code.length === 6) {
-      setIsVerifying(true);
-      setTimeout(() => {
-        setIsVerifying(false);
-        router.replace("/verification-success");
-      }, 2000);
+    console.log(code);
+
+    try {
+      if (code.length === 6) {
+        setIsVerifying(true);
+
+        const response = await fetch(`${base_url}/auth/verify-code`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            code: code,
+            phone: phone,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          setTimeout(() => {
+            setIsVerifying(false);
+            router.replace({
+              pathname: "/verification-success",
+              params: { phone },
+            });
+            console.log(data.message);
+          }, 2000);
+        } else {
+          return;
+        }
+      }
+    } catch (error) {
+      console.log(error);
     }
   };
 
@@ -70,12 +101,17 @@ export default function OTPVerificationScreen() {
   };
 
   const formatTime = (s: number) =>
-    `${Math.floor(s / 60).toString().padStart(2, "0")}:${(s % 60).toString().padStart(2, "0")}`;
+    `${Math.floor(s / 60)
+      .toString()
+      .padStart(2, "0")}:${(s % 60).toString().padStart(2, "0")}`;
 
   const isComplete = otp.join("").length === 6;
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950" edges={["top"]}>
+    <SafeAreaView
+      className="flex-1 bg-slate-50 dark:bg-slate-950"
+      edges={["top"]}
+    >
       <StatusBar style="dark" />
 
       {/* Header */}
@@ -90,11 +126,19 @@ export default function OTPVerificationScreen() {
           <View className="w-7 h-7 rounded-full items-center justify-center border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 dark:bg-slate-100">
             <Feather name="heart" size={13} color="#0f172a" />
           </View>
-          <Text className="text-[16px] text-slate-900 dark:text-white dark:text-slate-900 tracking-tight" style={{ fontWeight: "300" }}>Heart<Text style={{ fontWeight: "600" }}>Link.</Text></Text>
+          <Text
+            className="text-[16px] text-slate-900 dark:text-white dark:text-slate-900 tracking-tight"
+            style={{ fontWeight: "300" }}
+          >
+            Heart<Text style={{ fontWeight: "600" }}>Link.</Text>
+          </Text>
         </View>
       </View>
 
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
         <ScrollView
           contentContainerClassName="flex-grow justify-center px-5 pb-10 pt-4"
           showsVerticalScrollIndicator={false}
@@ -102,7 +146,6 @@ export default function OTPVerificationScreen() {
         >
           {/* ── Card ── */}
           <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 px-6 py-7">
-
             {/* Icon + heading */}
             <View className="items-center mb-7">
               <View
@@ -150,7 +193,9 @@ export default function OTPVerificationScreen() {
                     color: "#0f172a",
                     padding: 0,
                     textAlignVertical: "center",
-                    ...(Platform.OS === "android" ? { includeFontPadding: false } : {}),
+                    ...(Platform.OS === "android"
+                      ? { includeFontPadding: false }
+                      : {}),
                   }}
                 />
               ))}
@@ -162,7 +207,9 @@ export default function OTPVerificationScreen() {
                 <View
                   key={i}
                   className="flex-1 h-1 rounded-full"
-                  style={{ backgroundColor: digit !== "" ? "#185fa5" : "#e2e8f0" }}
+                  style={{
+                    backgroundColor: digit !== "" ? "#185fa5" : "#e2e8f0",
+                  }}
                 />
               ))}
             </View>
@@ -179,7 +226,11 @@ export default function OTPVerificationScreen() {
                 <ActivityIndicator color="white" size="small" />
               ) : (
                 <>
-                  <Feather name="check-circle" size={15} color={isComplete ? "#fff" : "#94a3b8"} />
+                  <Feather
+                    name="check-circle"
+                    size={15}
+                    color={isComplete ? "#fff" : "#94a3b8"}
+                  />
                   <Text
                     className="text-[14px] font-medium"
                     style={{ color: isComplete ? "#fff" : "#94a3b8" }}
@@ -192,10 +243,14 @@ export default function OTPVerificationScreen() {
 
             {/* Resend */}
             <View className="flex-row justify-center items-center gap-1">
-              <Text className="text-[13px] text-slate-400">Didn't receive the code?</Text>
+              <Text className="text-[13px] text-slate-400">
+                Didn't receive the code?
+              </Text>
               {canResend ? (
                 <TouchableOpacity activeOpacity={0.65} onPress={handleResend}>
-                  <Text className="text-[13px] font-medium text-slate-700 dark:text-slate-300">Resend</Text>
+                  <Text className="text-[13px] font-medium text-slate-700 dark:text-slate-300">
+                    Resend
+                  </Text>
                 </TouchableOpacity>
               ) : (
                 <Text className="text-[13px] font-medium text-slate-400">
@@ -203,14 +258,12 @@ export default function OTPVerificationScreen() {
                 </Text>
               )}
             </View>
-
           </View>
 
           {/* Footer */}
           <Text className="text-center text-[9px] tracking-widest text-slate-300 mt-6 uppercase">
             CTU — Main Campus · Capstone 2026
           </Text>
-
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

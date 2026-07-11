@@ -14,3 +14,7 @@ class UserResponsePayload(BaseModel):
 class AuthResponse(BaseModel):
     message:str
     user: Optional[UserResponsePayload] = None
+    
+class CodeResponse(BaseModel):
+    code: str
+    phone: str
