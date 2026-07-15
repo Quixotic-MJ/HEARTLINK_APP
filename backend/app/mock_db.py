@@ -6,7 +6,7 @@ profiles = [
     {
         "id": "usr-patient-101",
         "phone": "+639123456789",
-        "email": "john.mark@example.com",
+        "email": "test@gmail.com",
         "password": "password123",
         "role": "patient",
         "first_name": "John Mark",

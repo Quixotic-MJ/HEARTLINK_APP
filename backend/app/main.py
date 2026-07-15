@@ -14,10 +14,8 @@ app.add_middleware(
 
 app.include_router(auth_router, prefix="/api")
 
-@app.get("/health", tags=["System"])
+
+@app.get("/api/health", tags=["System"])
 def health_check():
-    """
-    System health check endpoint to verify backend availability.
-    """
     print("Healthy and connected")
     return {"status": "healthy", "database_layer": "decoupled_offline_mode"}

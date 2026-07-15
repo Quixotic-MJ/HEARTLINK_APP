@@ -14,6 +14,8 @@ import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import "../../global.css";
 
+const base_url = process.env.EXPO_PUBLIC_API_URL;
+
 // ─── Input Field ──────────────────────────────────────────────────────────────
 
 function InputField({
@@ -65,12 +67,35 @@ export default function AuthScreen() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     console.log("Logging in:", email, password);
+    try {
+      const response = await fetch(`${base_url}/auth/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: email,
+          password: password,
+        }),
+      });
+      const data = await response.json();
+
+      if (response.ok) {
+        router.replace("/(home)/(tabs)/dashboard");
+        console.log(data.message);
+      }
+    } catch (error) {
+      console.log(error);
+    }
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950" edges={["top"]}>
+    <SafeAreaView
+      className="flex-1 bg-slate-50 dark:bg-slate-950"
+      edges={["top"]}
+    >
       <StatusBar style="dark" />
 
       {/* Header */}
@@ -85,7 +110,10 @@ export default function AuthScreen() {
           <View className="w-7 h-7 rounded-full items-center justify-center border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 dark:bg-slate-100">
             <Feather name="heart" size={13} color="#0f172a" />
           </View>
-          <Text className="text-[16px] text-slate-900 dark:text-white dark:text-slate-900 tracking-tight" style={{ fontWeight: "300" }}>
+          <Text
+            className="text-[16px] text-slate-900 dark:text-white dark:text-slate-900 tracking-tight"
+            style={{ fontWeight: "300" }}
+          >
             Heart<Text style={{ fontWeight: "600" }}>Link.</Text>
           </Text>
         </View>
@@ -100,7 +128,6 @@ export default function AuthScreen() {
           showsVerticalScrollIndicator={false}
           bounces={false}
         >
-
           {/* ── Heading ── */}
           <View className="mb-7 mt-2">
             <Text className="text-[28px] font-medium text-slate-900 dark:text-white dark:text-slate-900 tracking-tight leading-tight mb-2">
@@ -113,7 +140,6 @@ export default function AuthScreen() {
 
           {/* ── Card ── */}
           <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 px-5 py-6 gap-3">
-
             {/* Email */}
             <InputField
               icon="mail"
@@ -132,19 +158,27 @@ export default function AuthScreen() {
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
                 rightElement={
-                  <TouchableOpacity onPress={() => setShowPassword((p) => !p)} className="p-1 ml-1">
-                    <Feather name={showPassword ? "eye" : "eye-off"} size={16} color="#94a3b8" />
+                  <TouchableOpacity
+                    onPress={() => setShowPassword((p) => !p)}
+                    className="p-1 ml-1"
+                  >
+                    <Feather
+                      name={showPassword ? "eye" : "eye-off"}
+                      size={16}
+                      color="#94a3b8"
+                    />
                   </TouchableOpacity>
                 }
               />
-              <TouchableOpacity className="self-end" onPress={() => router.push("/(auth)/forgot-password")}>
+              <TouchableOpacity
+                className="self-end"
+                onPress={() => router.push("/(auth)/forgot-password")}
+              >
                 <Text className="text-[12px] font-medium text-slate-500 dark:text-slate-400">
                   Forgot password?
                 </Text>
               </TouchableOpacity>
             </View>
-
-
 
             {/* Divider */}
             <View className="h-px bg-slate-100 dark:bg-slate-800 my-1" />
@@ -160,13 +194,12 @@ export default function AuthScreen() {
               </Text>
               <Feather name="arrow-right" size={15} color="#fff" />
             </TouchableOpacity>
-
           </View>
 
           {/* ── Mode toggle ── */}
           <TouchableOpacity
             activeOpacity={0.65}
-            onPress={() => router.push('/(auth)/register')}
+            onPress={() => router.push("/(auth)/register")}
             className="flex-row justify-center items-center py-5 gap-1 mt-auto"
           >
             <Text className="text-[13px] text-slate-400">
@@ -181,7 +214,6 @@ export default function AuthScreen() {
           <Text className="text-center text-[9px] tracking-widest text-slate-300 uppercase">
             CTU — Main Campus · Capstone 2026
           </Text>
-
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

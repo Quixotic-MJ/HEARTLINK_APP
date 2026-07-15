@@ -1,5 +1,5 @@
 from fastapi import APIRouter, status, HTTPException
-from app.schemas.auth import RegisterRequest, CodeResponse
+from app.schemas.auth import RegisterRequest, CodeResponse, Login
 import app.mock_db as mock_db
 
 temp_profile = {}
@@ -50,11 +50,20 @@ async def verifyCode(code: CodeResponse):
         )
 
 
-@router.get("/test/{phone}")
-async def test(phone: str):
+@router.post("/login")
+async def login(payload: Login):
     for profile in mock_db.profiles:
-        if profile.get("phone") == phone:
-            return {"message": f"phone number: {phone}, email: {profile.get('email')}"}
+        if profile.get("email") == payload.email:
+            if profile.get("password") == payload.password:
+                return {"success": True, "message": "Login Successfully"}
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND, detail="Invalid Credentials"
+                )
+
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND, detail="Invalid Credentials"
+    )
 
 
 # @router.post(

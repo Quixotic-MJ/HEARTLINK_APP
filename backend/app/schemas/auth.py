@@ -18,3 +18,7 @@ class AuthResponse(BaseModel):
 class CodeResponse(BaseModel):
     code: str
     phone: str
+    
+class Login(BaseModel):
+    email: str
+    password: str
