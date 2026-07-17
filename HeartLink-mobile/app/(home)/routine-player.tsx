@@ -1,10 +1,12 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { View, Text, ScrollView, TouchableOpacity } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { ROUTINES } from "./(tabs)/exercises";
+import { useUser } from "../../contexts/UserContext";
+
+const base_url = process.env.EXPO_PUBLIC_API_URL;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -47,11 +49,50 @@ export default function RoutinePlayerScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { userId } = useUser();
 
-  const routine = ROUTINES.find((r) => r.id === id) || ROUTINES[0];
+  const [routine, setRoutine] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    async function fetchRoutine() {
+      try {
+        const response = await fetch(`${base_url}/api/exercises/${id}`);
+        if (!response.ok) throw new Error("Failed to fetch routine");
+        const data = await response.json();
+        
+        setRoutine({
+          id: data.id,
+          title: data.name || "",
+          duration: data.duration_minutes || 0,
+          goal: data.goal || "",
+          type: data.type || "Light Cardio",
+          intensity: data.intensity || "Low",
+          category: data.css_tier || "Stable",
+          steps: data.steps || [],
+          mediaUrl: data.media_url,
+        });
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchRoutine();
+  }, [id]);
+
+  if (isLoading || !routine) {
+    return (
+      <View className="flex-1 bg-slate-50 dark:bg-slate-950 justify-center items-center">
+        <Text>Loading...</Text>
+      </View>
+    );
+  }
+
   const cfg = getTypeConfig(routine.type);
 
-  const steps = [
+  const steps = routine.steps && routine.steps.length > 0 ? routine.steps : [
     "Sit straight on the edge of a sturdy chair with your feet flat on the floor.",
     "Inhale deeply and slowly raise your arms above your head.",
     "Exhale gently while lowering your arms back down to your sides.",
@@ -193,17 +234,36 @@ export default function RoutinePlayerScreen() {
       >
         <TouchableOpacity
           activeOpacity={0.85}
-          onPress={() =>
-            router.push({
-              pathname: "/(home)/(tabs)/exercises",
-              params: { completedId: routine.id },
-            })
-          }
+          disabled={isSubmitting}
+          onPress={async () => {
+            setIsSubmitting(true);
+            try {
+              const payload = {
+                routine_id: routine.id,
+                routine_name: routine.title,
+                duration_minutes: routine.duration,
+                status: "completed"
+              };
+              await fetch(`${base_url}/api/exercises/logs/${userId}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+              });
+            } catch (err) {
+              console.error(err);
+            } finally {
+              setIsSubmitting(false);
+              router.push({
+                pathname: "/(home)/(tabs)/exercises",
+                params: { completedId: routine.id },
+              });
+            }
+          }}
           className="w-full bg-slate-900 dark:bg-slate-100 py-3.5 rounded-2xl flex-row items-center justify-center gap-2"
         >
           <Feather name="check-circle" size={16} color="#fff" />
           <Text className="text-white dark:text-slate-900 text-[14px] font-medium">
-            Finish & log activity
+            {isSubmitting ? "Logging..." : "Finish & log activity"}
           </Text>
         </TouchableOpacity>
       </View>

@@ -4,17 +4,53 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import { StatusBar } from "expo-status-bar";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { ROUTINES } from "./(tabs)/exercises";
+import { useUser } from "../../contexts/UserContext";
+
+const base_url = process.env.EXPO_PUBLIC_API_URL;
 
 export default function ExerciseDetailsScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
-  
-  // Find routine or fallback to first one if undefined
-  const routine = ROUTINES.find(r => r.id === id) || ROUTINES[0];
   const insets = useSafeAreaInsets();
+  const { userId } = useUser();
 
-  const [timeLeft, setTimeLeft] = useState(routine.duration * 60);
+  const [routine, setRoutine] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    async function fetchRoutine() {
+      try {
+        const response = await fetch(`${base_url}/api/exercises/${id}`);
+        if (!response.ok) throw new Error("Failed to fetch routine");
+        const data = await response.json();
+        
+        setRoutine({
+          id: data.id,
+          title: data.name || "",
+          duration: data.duration_minutes || 0,
+          goal: data.goal || "",
+          type: data.type || "Light Cardio",
+          intensity: data.intensity || "Low",
+          category: data.css_tier || "Stable",
+          steps: data.steps || [],
+        });
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchRoutine();
+  }, [id]);
+
+  const [timeLeft, setTimeLeft] = useState(0);
+
+  useEffect(() => {
+    if (routine && timeLeft === 0) {
+      setTimeLeft(routine.duration * 60);
+    }
+  }, [routine]);
   const [isActive, setIsActive] = useState(false);
   const [showSafetyCheck, setShowSafetyCheck] = useState(false);
   
@@ -46,10 +82,30 @@ export default function ExerciseDetailsScreen() {
     return `${m}:${s}`;
   };
 
-  const handleSafetySafe = () => {
-    setShowSafetyCheck(false);
-    // Return to exercises tab
-    router.push("/(home)/(tabs)/exercises");
+  const handleSafetySafe = async () => {
+    setIsSubmitting(true);
+    try {
+      const payload = {
+        routine_id: routine.id,
+        routine_name: routine.title,
+        duration_minutes: routine.duration,
+        status: "completed"
+      };
+      await fetch(`${base_url}/api/exercises/logs/${userId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSubmitting(false);
+      setShowSafetyCheck(false);
+      router.push({
+        pathname: "/(home)/(tabs)/exercises",
+        params: { completedId: routine.id },
+      });
+    }
   };
 
   const handleSafetySymptoms = () => {
@@ -63,6 +119,14 @@ export default function ExerciseDetailsScreen() {
     if (routine.type === "Stationary") return "yoga";
     return "run-fast";
   };
+
+  if (isLoading || !routine) {
+    return (
+      <View className="flex-1 bg-slate-50 dark:bg-slate-950 justify-center items-center">
+        <Text>Loading...</Text>
+      </View>
+    );
+  }
 
   return (
     <View className="flex-1 bg-slate-50 dark:bg-slate-950">
@@ -145,11 +209,14 @@ export default function ExerciseDetailsScreen() {
 
             <TouchableOpacity 
               activeOpacity={0.8}
+              disabled={isSubmitting}
               onPress={handleSafetySafe}
               className="bg-blue-50 border border-blue-100 py-4 rounded-xl items-center mb-3 flex-row justify-center"
             >
               <Text className="text-[20px] mr-2">👍</Text>
-              <Text className="text-[#1e4ed8] font-bold text-[16px]">No, I feel great</Text>
+              <Text className="text-[#1e4ed8] font-bold text-[16px]">
+                {isSubmitting ? "Logging..." : "No, I feel great"}
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity 

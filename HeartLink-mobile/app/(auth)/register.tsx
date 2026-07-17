@@ -21,6 +21,7 @@ type FormErrors = {
   phone?: string;
   password?: string;
   confirmPassword?: string;
+  general?: string;
 };
 
 // ─── Input Field ──────────────────────────────────────────────────────────────
@@ -36,6 +37,8 @@ function InputField({
   secureTextEntry,
   rightElement,
   leftElement,
+  autoComplete,
+  textContentType,
 }: {
   icon: string;
   placeholder: string;
@@ -47,6 +50,8 @@ function InputField({
   secureTextEntry?: boolean;
   rightElement?: React.ReactNode;
   leftElement?: React.ReactNode;
+  autoComplete?: any;
+  textContentType?: any;
 }) {
   const hasError = !!error;
   return (
@@ -73,6 +78,8 @@ function InputField({
           keyboardType={keyboardType}
           autoCapitalize={autoCapitalize ?? "none"}
           secureTextEntry={secureTextEntry}
+          autoComplete={autoComplete}
+          textContentType={textContentType}
           className="flex-1 ml-3 text-[14px] text-slate-900 dark:text-white dark:text-slate-900 h-full"
         />
         {rightElement}
@@ -119,6 +126,12 @@ export default function RegisterScreen() {
     if (!password) newErrors.password = "Password is required.";
     else if (password.length < 8)
       newErrors.password = "Password must be at least 8 characters.";
+    else if (!/(?=.*[a-z])/.test(password))
+      newErrors.password = "Password must contain a lowercase letter.";
+    else if (!/(?=.*[A-Z])/.test(password))
+      newErrors.password = "Password must contain an uppercase letter.";
+    else if (!/(?=.*\d)/.test(password))
+      newErrors.password = "Password must contain a number.";
 
     if (password !== confirmPassword)
       newErrors.confirmPassword = "Passwords do not match.";
@@ -134,14 +147,21 @@ export default function RegisterScreen() {
       return;
     }
 
-    const response = await fetch(`${base_url}/auth/request-code`, {
+    // Normalize phone to start with +63
+    let normalizedPhone = phone;
+    if (normalizedPhone.startsWith("0")) {
+      normalizedPhone = normalizedPhone.substring(1);
+    }
+    normalizedPhone = `+63${normalizedPhone}`;
+
+    const response = await fetch(`${base_url}/api/auth/request-code`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
         email: email,
-        phone: phone,
+        phone: normalizedPhone,
         password: password,
       }),
     });
@@ -150,9 +170,17 @@ export default function RegisterScreen() {
 
     if (response.ok) {
       console.log(data.message);
-      router.push({ pathname: "/verify-otp", params: { phone } });
+      router.push({ pathname: "/verify-otp", params: { phone: normalizedPhone } });
     } else {
-      console.log("something went wrong");
+      if (data.detail === "duplicate phone number") {
+        setErrors({ phone: "This phone number is already registered." });
+      } else if (data.detail === "duplicate email") {
+        setErrors({ email: "This email address is already registered." });
+      } else if (data.detail && typeof data.detail === "string") {
+        setErrors({ general: data.detail });
+      } else {
+        setErrors({ general: "An error occurred. Please try again." });
+      }
     }
   };
 
@@ -205,6 +233,16 @@ export default function RegisterScreen() {
               </Text>
             </View>
 
+            {/* General Error */}
+            {errors.general && (
+              <View className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-3 mb-4 flex-row items-center gap-2">
+                <Feather name="alert-triangle" size={16} color="#ef4444" />
+                <Text className="text-red-600 dark:text-red-400 text-[13px] flex-1">
+                  {errors.general}
+                </Text>
+              </View>
+            )}
+
             {/* ── Fields ── */}
 
             {/* Email */}
@@ -218,6 +256,8 @@ export default function RegisterScreen() {
               }}
               error={errors.email}
               keyboardType="email-address"
+              autoComplete="email"
+              textContentType="emailAddress"
             />
 
             {/* Phone */}
@@ -231,6 +271,8 @@ export default function RegisterScreen() {
               }}
               error={errors.phone}
               keyboardType="phone-pad"
+              autoComplete="tel"
+              textContentType="telephoneNumber"
               leftElement={
                 <View
                   className="flex-row items-center border-r border-slate-200 dark:border-slate-800 pr-3 ml-2 mr-0"

@@ -12,7 +12,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 
 // ─── Step Progress ────────────────────────────────────────────────────────────
 
@@ -32,6 +32,8 @@ function StepProgress({ current, total }: { current: number; total: number }) {
 
 export default function BiometricsStep3Screen() {
   const router = useRouter();
+  const { user_id } = useLocalSearchParams();
+  const base_url = process.env.EXPO_PUBLIC_API_URL;
   
   // Form State
   const [sodiumFrequency, setSodiumFrequency] = useState(null);
@@ -79,7 +81,7 @@ export default function BiometricsStep3Screen() {
     }
   };
 
-  const handleNextStep = () => {
+  const handleNextStep = async () => {
     // Validate required fields
     if (!sodiumFrequency) {
       Alert.alert("Missing Information", "Please select your high-sodium or fried food intake frequency.");
@@ -92,23 +94,31 @@ export default function BiometricsStep3Screen() {
     }
 
     const payload = {
-      high_sodium_fried_frequency: sodiumFrequency,
+      sodium_frequency: sodiumFrequency,
       allergies: finalAllergies,
       dietary_practice: dietaryPractice,
     };
 
-    console.log("Saving Dietary Baseline:", payload);
-    
-    // Safe navigation
     try {
-      router.push("/(baseline)/clinical_biometrics");
+      const response = await fetch(`${base_url}/api/users/${user_id}/baseline/dietary`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        console.log("Dietary saved:", data.message);
+        router.push({
+          pathname: "/(baseline)/clinical_biometrics",
+          params: { user_id: user_id as string },
+        });
+      } else {
+        Alert.alert("Error", data.detail || "Failed to save dietary data");
+      }
     } catch (error) {
-      console.log("Navigation error:", error);
-      Alert.alert(
-        "Navigation Error",
-        "Unable to proceed to the next step. Please try again.",
-        [{ text: "OK" }]
-      );
+      console.log("Dietary save error:", error);
+      Alert.alert("Error", "Could not connect to server");
     }
   };
 

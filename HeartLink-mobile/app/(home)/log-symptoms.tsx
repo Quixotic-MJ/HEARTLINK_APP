@@ -15,6 +15,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { useUser } from "../../contexts/UserContext";
+
+const base_url = process.env.EXPO_PUBLIC_API_URL;
 
 // ─── Types & Constants ────────────────────────────────────────────────────────
 
@@ -80,6 +83,8 @@ function getSeverityLabel(num: number) {
 
 export default function LogSymptomsScreen() {
   const router = useRouter();
+  const { userId } = useUser();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [step, setStep] = useState<1 | 2>(1);
   const [timestamp, setTimestamp] = useState("");
@@ -139,19 +144,47 @@ export default function LogSymptomsScreen() {
     ).catch(() => Alert.alert("Error", "Could not open map application."));
   };
 
-  const handleSubmit = () => {
-    if (isEmergency) {
-      Alert.alert(
-        "Critical log submitted",
-        "Your clinical indicators reflect an elevated risk. Please seek medical attention immediately.",
-        [{ text: "OK", onPress: () => router.back() }]
-      );
-    } else {
-      Alert.alert(
-        "Health log submitted",
-        "Your symptom and vitals log has been saved to your weekly wrap-up.",
-        [{ text: "OK", onPress: () => router.back() }]
-      );
+  const handleSubmit = async () => {
+    setIsSubmitting(true);
+    try {
+      const payload = {
+        systolic_bp: parseInt(systolic) || 0,
+        diastolic_bp: parseInt(diastolic) || 0,
+        heart_rate_bpm: parseInt(heartRate) || 0,
+        weight_kg: parseFloat(weight) || 0,
+        medication_taken: medicationTaken || false,
+        symptoms: selectedSymptoms,
+        severity_map: severities,
+        context: context,
+        notes: "", // add notes field if needed
+      };
+
+      const res = await fetch(`${base_url}/api/health-logs/${userId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) throw new Error("Failed to save log");
+
+      if (isEmergency) {
+        Alert.alert(
+          "Critical log submitted",
+          "Your clinical indicators reflect an elevated risk. Please seek medical attention immediately.",
+          [{ text: "OK", onPress: () => router.back() }]
+        );
+      } else {
+        Alert.alert(
+          "Health log submitted",
+          "Your symptom and vitals log has been saved to your weekly wrap-up.",
+          [{ text: "OK", onPress: () => router.back() }]
+        );
+      }
+    } catch (err) {
+      console.error(err);
+      Alert.alert("Error", "Failed to submit log. Please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -381,8 +414,8 @@ export default function LogSymptomsScreen() {
 
               {/* ── Status overview card ── */}
               <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4 mb-5">
-                <Text className="text-[11px] text-slate-400 uppercase tracking-wide mb-3">
-                  Current log status
+                <Text className="text-white dark:text-slate-900 font-medium text-[16px]">
+                  {isSubmitting ? "Submitting..." : "Submit Daily Log"}
                 </Text>
                 <View className="flex-row gap-3">
                   {/* Symptom count */}
@@ -638,6 +671,7 @@ export default function LogSymptomsScreen() {
            <TouchableOpacity
              onPress={handleSubmit}
              activeOpacity={0.85}
+             disabled={isSubmitting}
              className="w-full rounded-xl py-3.5 flex-row items-center justify-center gap-2"
              style={{ backgroundColor: isEmergency ? "#a32d2d" : "#0f172a" }}
            >
@@ -647,7 +681,7 @@ export default function LogSymptomsScreen() {
                color="#fff"
              />
              <Text className="text-white dark:text-slate-900 text-[14px] font-medium">
-               {isEmergency ? "Submit critical log" : "Submit health log"}
+               {isSubmitting ? "Submitting..." : isEmergency ? "Submit critical log" : "Submit health log"}
              </Text>
            </TouchableOpacity>
          )}

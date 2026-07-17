@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, TouchableOpacity, ScrollView } from "react-native";
+import { View, Text, TouchableOpacity, ScrollView, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
@@ -58,19 +58,19 @@ export default function HelpSupportScreen() {
             icon="book" 
             title="Knowledge Base" 
             subtitle="Guides & FAQs" 
-            onPress={() => {}} 
+            onPress={() => Alert.alert("FAQ", "Frequently Asked Questions will be available here soon.")} 
           />
           <SupportLink 
             icon="message-circle" 
             title="Contact Support" 
             subtitle="Send us a message" 
-            onPress={() => {}} 
+            onPress={() => Alert.alert("Contact Us", "Support contact details will be available here soon.")} 
           />
           <SupportLink 
             icon="alert-triangle" 
             title="Report a Bug" 
             subtitle="Help us improve" 
-            onPress={() => {}} 
+            onPress={() => Alert.alert("Report an Issue", "Issue reporting will be available here soon.")} 
             isLast 
           />
         </View>

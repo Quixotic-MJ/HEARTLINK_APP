@@ -4,6 +4,7 @@ import { useColorScheme } from "nativewind";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 // Import your global CSS here so it applies to the entire app
 import "../global.css";
+import { UserProvider } from "../contexts/UserContext";
 
 export default function RootLayout() {
   const { setColorScheme } = useColorScheme();
@@ -17,8 +18,9 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <Stack
-      screenOptions={{
+    <UserProvider>
+      <Stack
+        screenOptions={{
         // Hides the default header for all screens so your custom UI shines
         headerShown: false,
         // Optional: Gives a nice native cross-fade/slide animation between screens
@@ -39,5 +41,6 @@ export default function RootLayout() {
       <Stack.Screen name="(auth)" options={{ headerShown: false }} />
       <Stack.Screen name="(baseline)" options={{ headerShown: false }} />
     </Stack>
+    </UserProvider>
   );
 }

@@ -1,17 +1,12 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { View, Text, TouchableOpacity, ScrollView, Image, Alert } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Feather } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { MOCK_ITEMS } from "./search-meal";
+import { useUser } from "../../contexts/UserContext";
 
-// Basic specific mock nutrition values based on item
-const MOCK_NUTRITION: Record<string, any> = {
-  "1": { satFat: 12, fiber: 0, cholesterol: 85 }, // Jollibee
-  "2": { satFat: 8, fiber: 2, cholesterol: 45 }, // Sinigang
-  "3": { satFat: 1.5, fiber: 0, cholesterol: 186 }, // Egg
-};
+const base_url = process.env.EXPO_PUBLIC_API_URL;
 
 type TimeOfMeal = "Breakfast" | "Lunch" | "Dinner" | "Snack";
 
@@ -49,19 +44,77 @@ export default function MealDetailScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { userId } = useUser();
   
-  const item = MOCK_ITEMS.find((i) => i.id === id) || MOCK_ITEMS[0];
-  const nutrition = MOCK_NUTRITION[item.id] || MOCK_NUTRITION["1"];
+  const [item, setItem] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    async function fetchRecipe() {
+      try {
+        const response = await fetch(`${base_url}/api/recipes/${id}`);
+        if (!response.ok) throw new Error("Failed to fetch recipe");
+        const data = await response.json();
+        setItem(data);
+      } catch (error) {
+        console.error(error);
+        Alert.alert("Error", "Could not load recipe details.");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchRecipe();
+  }, [id]);
 
   const [servings, setServings] = useState(1);
   const [timeOfMeal, setTimeOfMeal] = useState<TimeOfMeal>("Lunch");
 
+  if (isLoading || !item) {
+    return (
+      <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950 justify-center items-center">
+        <Text>Loading...</Text>
+      </SafeAreaView>
+    );
+  }
+
   // Calculate scaled values
-  const scaledCalories = item.calories * servings;
-  const scaledSodium = item.sodium * servings;
-  const scaledSatFat = nutrition.satFat * servings;
-  const scaledFiber = nutrition.fiber * servings;
-  const scaledCholesterol = nutrition.cholesterol * servings;
+  const scaledCalories = (item.calories || 0) * servings;
+  const scaledSodium = (item.sodium_mg || 0) * servings;
+  const scaledSatFat = (item.saturated_fat_g || 0) * servings;
+  const scaledFiber = (item.fiber_g || 0) * servings;
+  const scaledCholesterol = (item.cholesterol_mg || 0) * servings;
+
+  const handleLogMeal = async () => {
+    setIsSubmitting(true);
+    try {
+      const payload = {
+        recipe_id: item.id,
+        meal_name: item.name,
+        portion: servings,
+        calories: scaledCalories,
+        sodium_mg: scaledSodium,
+        saturated_fat_g: scaledSatFat,
+        fiber_g: scaledFiber,
+        image_url: item.image_url,
+      };
+      
+      const response = await fetch(`${base_url}/api/meals/${userId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) throw new Error("Failed to log meal");
+      Alert.alert("Meal Logged", "Your meal has been recorded.");
+      router.navigate("/(home)/(tabs)/dashboard");
+    } catch (error) {
+      console.error(error);
+      Alert.alert("Error", "Could not log meal. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950" edges={["top"]}>
@@ -80,7 +133,7 @@ export default function MealDetailScreen() {
             {item.name}
           </Text>
           <Text className="text-[12px] text-slate-400">
-            Base serving: {item.portion}
+            Base serving: {item.servings ? `${item.servings} servings` : "1 serving"}
           </Text>
         </View>
       </View>
@@ -89,34 +142,32 @@ export default function MealDetailScreen() {
         {/* Image and basic info */}
         <View className="items-center mb-6">
           <Image 
-            source={{ uri: item.imageUrl }} 
+            source={{ uri: item.image_url || "https://images.unsplash.com/photo-1587486913049-53fc88980cfc?w=200&q=80" }} 
             className="w-32 h-32 rounded-3xl mb-4 bg-slate-100 dark:bg-slate-800" 
           />
           <Text className="text-[22px] font-bold text-slate-900 dark:text-white dark:text-slate-900">{item.name}</Text>
-          <Text className="text-[14px] text-slate-500 dark:text-slate-400 mt-1">{item.portion}</Text>
+          <Text className="text-[14px] text-slate-500 dark:text-slate-400 mt-1">{item.servings ? `${item.servings} servings` : "1 serving"}</Text>
         </View>
 
         {/* Impact Alert Card */}
         <View
           className="rounded-2xl p-4 border mb-6"
-          style={{ backgroundColor: item.tagBg, borderColor: item.tagColor + '40' }}
+          style={{ backgroundColor: item.css_tier === "Stable" ? "#eaf3de" : "#fcebeb", borderColor: (item.css_tier === "Stable" ? "#3b6d11" : "#a32d2d") + '40' }}
         >
           <View className="flex-row items-center gap-2 mb-1.5">
             <Feather 
-              name={item.tag === "Low Risk" ? "check-circle" : "alert-triangle"} 
+              name={item.css_tier === "Stable" ? "check-circle" : "alert-triangle"} 
               size={16} 
-              color={item.tagColor} 
+              color={item.css_tier === "Stable" ? "#3b6d11" : "#a32d2d"} 
             />
-            <Text className="text-[13px] font-bold uppercase tracking-wide" style={{ color: item.tagColor }}>
-              {item.tag}
+            <Text className="text-[13px] font-bold uppercase tracking-wide" style={{ color: item.css_tier === "Stable" ? "#3b6d11" : "#a32d2d" }}>
+              {item.css_tier || "Unknown"}
             </Text>
           </View>
-          <Text className="text-[13px] leading-relaxed" style={{ color: item.tagColor, opacity: 0.9 }}>
-            {item.tag === "Low Risk" 
+          <Text className="text-[13px] leading-relaxed" style={{ color: item.css_tier === "Stable" ? "#3b6d11" : "#a32d2d", opacity: 0.9 }}>
+            {item.css_tier === "Stable" 
               ? "Great choice! This item is low in sodium and fits perfectly into a heart-healthy diet." 
-              : item.tag === "Moderate"
-                ? "This item has a moderate amount of sodium. Balance your other meals today."
-                : "This item consumes a large portion of your daily limit. Proceed with caution."}
+              : "This item consumes a large portion of your daily limit. Proceed with caution."}
           </Text>
         </View>
 
@@ -190,16 +241,14 @@ export default function MealDetailScreen() {
         style={{ paddingBottom: Math.max(insets.bottom, 16) }}
       >
         <TouchableOpacity
-          onPress={() => {
-            Alert.alert("Meal Logged", "Your meal has been recorded.");
-            router.navigate("/(home)/(tabs)/dashboard");
-          }}
+          onPress={handleLogMeal}
+          disabled={isSubmitting}
           className="bg-slate-900 dark:bg-slate-100 w-full rounded-2xl py-4 items-center justify-center flex-row gap-2"
           activeOpacity={0.85}
         >
           <Feather name="check-circle" size={18} color="#fff" />
-          <Text className="text-white dark:text-slate-900 text-[15px] font-medium">
-            Log This Meal
+          <Text className="text-white dark:text-slate-900 text-[15px] font-bold">
+            {isSubmitting ? "Logging..." : "Log this meal"}
           </Text>
         </TouchableOpacity>
       </View>

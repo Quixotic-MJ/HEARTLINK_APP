@@ -14,6 +14,8 @@ import { StatusBar } from "expo-status-bar";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 
+const base_url = process.env.EXPO_PUBLIC_API_URL;
+
 // ─── Input Field ──────────────────────────────────────────────────────────────
 
 function InputField({
@@ -55,19 +57,51 @@ function InputField({
 export default function ForgotPasswordScreen() {
   const router = useRouter();
 
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
-  const handleReset = () => {
-    if (!email) {
-      Alert.alert("Error", "Please enter your email address.");
+  const handleReset = async () => {
+    setError(null);
+    if (!identifier) {
+      setError("Please enter your email or phone number.");
       return;
     }
-    // Simulate sending OTP or reset link
-    Alert.alert(
-      "Link Sent",
-      "If this email is registered, you will receive reset instructions shortly.",
-      [{ text: "OK", onPress: () => router.back() }]
-    );
+
+    let finalIdentifier = identifier.trim();
+    if (/^\d+$/.test(finalIdentifier)) {
+      if (finalIdentifier.startsWith("0")) {
+        finalIdentifier = finalIdentifier.substring(1);
+      }
+      if (!finalIdentifier.startsWith("+63")) {
+        finalIdentifier = `+63${finalIdentifier}`;
+      }
+    }
+
+    try {
+      const response = await fetch(`${base_url}/api/auth/forgot-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ identifier: finalIdentifier }),
+      });
+      const data = await response.json();
+
+      if (response.ok) {
+        console.log("=====================================");
+        console.log("TEMP PASS RECEIVED:", data.temp_password);
+        console.log("=====================================");
+        
+        Alert.alert(
+          "Link Sent",
+          "If this account is registered, you will receive reset instructions shortly.",
+          [{ text: "OK", onPress: () => router.back() }]
+        );
+      } else {
+        setError(data.detail || "Account not found.");
+      }
+    } catch (err) {
+      console.log(err);
+      setError("An error occurred. Please check your connection.");
+    }
   };
 
   return (
@@ -107,20 +141,35 @@ export default function ForgotPasswordScreen() {
               Forgot{"\n"}password?
             </Text>
             <Text className="text-[13px] text-slate-400 leading-relaxed">
-              Enter your email address to receive password reset instructions.
+              Enter your email or phone number to receive a temporary password.
             </Text>
           </View>
 
           {/* ── Card ── */}
           <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 px-5 py-6 gap-3">
-            {/* Email */}
-            <InputField
-              icon="mail"
-              placeholder="Email address"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-            />
+            {error && (
+              <View className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-3 flex-row items-center gap-2 mb-1">
+                <Feather name="alert-triangle" size={16} color="#ef4444" />
+                <Text className="text-red-600 dark:text-red-400 text-[13px] flex-1">
+                  {error}
+                </Text>
+              </View>
+            )}
+
+            {/* Identifier Section */}
+            <View>
+              <Text className="text-[14px] font-semibold text-slate-900 dark:text-white mb-2 ml-1">Email or Phone number</Text>
+              <InputField
+                icon="user"
+                placeholder="Email or Phone"
+                value={identifier}
+                onChangeText={(t) => {
+                  setIdentifier(t);
+                  setError(null);
+                }}
+                keyboardType="default"
+              />
+            </View>
 
             {/* Divider */}
             <View className="h-px bg-slate-100 dark:bg-slate-800 my-1 mt-2" />

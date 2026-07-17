@@ -1,9 +1,10 @@
 import React from "react";
-import { View, Text, TouchableOpacity, ScrollView } from "react-native";
+import { View, Text, TouchableOpacity, ScrollView, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
+import { useUser } from "../../../contexts/UserContext";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -94,6 +95,31 @@ function SettingsGroup({ children }: { children: React.ReactNode }) {
 
 export default function SettingsScreen() {
   const router = useRouter();
+  const { setUserId } = useUser();
+
+  const handleSignOut = () => {
+    setUserId("");
+    router.replace("/onboarding");
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      "Delete Account",
+      "Are you sure you want to permanently delete your account? This action cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Delete", 
+          style: "destructive", 
+          onPress: () => {
+            // Mock delete
+            setUserId("");
+            router.replace("/(auth)/register");
+          }
+        }
+      ]
+    );
+  };
 
   return (
     <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950" edges={["top"]}>
@@ -206,6 +232,7 @@ export default function SettingsScreen() {
             danger
             iconBg="#fcebeb"
             iconColor="#a32d2d"
+            onPress={handleSignOut}
           />
           <SettingsRow
             icon="trash-2"
@@ -214,6 +241,7 @@ export default function SettingsScreen() {
             danger
             iconBg="#fef2f2"
             iconColor="#ef4444"
+            onPress={handleDeleteAccount}
             isLast
           />
         </SettingsGroup>

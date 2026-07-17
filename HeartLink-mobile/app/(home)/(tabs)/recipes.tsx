@@ -12,6 +12,8 @@ import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 
+const base_url = process.env.EXPO_PUBLIC_API_URL;
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface Recipe {
@@ -377,6 +379,46 @@ export default function RecipesScreen() {
   const [activeFilter, setActiveFilter] = useState("All");
   const [savedRecipes, setSavedRecipes] = useState<string[]>([]);
   const [timeMessage, setTimeMessage] = useState<string | null>(null);
+  
+  const [recipesList, setRecipesList] = useState<Recipe[]>(RECIPES);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    async function fetchRecipes() {
+      setIsLoading(true);
+      try {
+        const response = await fetch(`${base_url}/api/recipes/`);
+        if (response.ok) {
+          const data = await response.json();
+          const mapped = data.map((r: any) => ({
+            id: r.id,
+            title: r.name,
+            subtitle: r.subtitle || "",
+            prepTime: r.prep_time_minutes || 0,
+            servings: r.servings || 1,
+            difficulty: r.difficulty || "Easy",
+            image: r.image_url || "https://images.unsplash.com/photo-1587486913049-53fc88980cfc?w=200&q=80",
+            tags: r.tags || [],
+            heartBenefit: r.heart_benefit || "",
+            nutrition: {
+              sodium: r.sodium_mg || 0,
+              fiber: r.fiber_g || 0,
+              saturatedFat: r.saturated_fat_g || 0,
+              calories: r.calories || 0,
+            },
+            ingredients: r.ingredients ? Object.keys(r.ingredients).map(k => ({ qty: r.ingredients[k], item: k })) : [],
+            steps: r.steps || [],
+          }));
+          setRecipesList(mapped);
+        }
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchRecipes();
+  }, []);
 
   const filters = ["All", "Tailored For You", "Saved", "Low Sodium", "High Fiber", "Filipino", "Breakfast"];
 
@@ -396,7 +438,7 @@ export default function RecipesScreen() {
   };
 
   const filteredRecipes = useMemo(() => {
-    let results = RECIPES;
+    let results = recipesList;
 
     if (activeFilter === "Saved") {
       results = results.filter((r) => savedRecipes.includes(r.id));
@@ -421,15 +463,15 @@ export default function RecipesScreen() {
     }
 
     return results;
-  }, [activeFilter, searchQuery, savedRecipes]);
+  }, [activeFilter, searchQuery, savedRecipes, recipesList]);
 
   const tailoredCount = useMemo(() => {
-    return RECIPES.filter((r) => {
+    return recipesList.filter((r) => {
       if (USER_CONDITIONS.includes("Hypertension") && r.nutrition.sodium >= 140) return false;
       if (USER_CONDITIONS.includes("High Cholesterol") && r.nutrition.fiber < 5) return false;
       return true;
     }).length;
-  }, []);
+  }, [recipesList]);
 
   return (
     <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950" edges={["top"]}>

@@ -14,12 +14,14 @@ import { StatusBar } from "expo-status-bar";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import "../../global.css";
+import { useUser } from "../../contexts/UserContext";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
 export default function OTPVerificationScreen() {
   const router = useRouter();
   const { phone } = useLocalSearchParams();
+  const { setUserId } = useUser();
 
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const inputRefs = useRef<(TextInput | null)[]>([]);
@@ -60,7 +62,7 @@ export default function OTPVerificationScreen() {
       if (code.length === 6) {
         setIsVerifying(true);
 
-        const response = await fetch(`${base_url}/auth/verify-code`, {
+        const response = await fetch(`${base_url}/api/auth/verify-code`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -76,9 +78,10 @@ export default function OTPVerificationScreen() {
         if (response.ok) {
           setTimeout(() => {
             setIsVerifying(false);
+            setUserId(data.user_id);
             router.replace({
               pathname: "/verification-success",
-              params: { phone },
+              params: { phone, user_id: data.user_id },
             });
             console.log(data.message);
           }, 2000);
@@ -91,12 +94,29 @@ export default function OTPVerificationScreen() {
     }
   };
 
-  const handleResend = () => {
+  const handleResend = async () => {
     if (canResend) {
-      setTimer(30);
-      setCanResend(false);
-      setOtp(["", "", "", "", "", ""]);
-      inputRefs.current[0]?.focus();
+      try {
+        const response = await fetch(`${base_url}/api/auth/resend-code`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phone }),
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          setTimer(30);
+          setCanResend(false);
+          setOtp(["", "", "", "", "", ""]);
+          inputRefs.current[0]?.focus();
+          console.log(data.message);
+        } else {
+          console.log("Failed to resend code:", data.detail);
+        }
+      } catch (error) {
+        console.log(error);
+      }
     }
   };
 

@@ -6,13 +6,16 @@ import {
   ScrollView,
   Animated,
   Image,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import Svg, { Circle } from "react-native-svg";
+import { useUser } from "../../../contexts/UserContext";
 
+const base_url = process.env.EXPO_PUBLIC_API_URL;
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 // ─── Score theme ──────────────────────────────────────────────────────────────
@@ -118,14 +121,33 @@ function formatTimestamp(date: Date) {
 
 // ─── Dashboard Screen ─────────────────────────────────────────────────────────
 export default function DashboardScreen() {
-  const [isAlertActive] = useState(false);
+  const { userId } = useUser();
   const router = useRouter();
-  const cssScore = 80;
+
+  const [isLoading, setIsLoading] = useState(true);
+  const [data, setData] = useState<any>(null);
+
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const response = await fetch(`${base_url}/api/dashboard/${userId}`);
+        const json = await response.json();
+        setData(json);
+      } catch (error) {
+        console.error("Dashboard fetch error:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchData();
+  }, [userId]);
+
+  const cssScore = data?.css_score || 0;
   const theme = getScoreTheme(cssScore);
   const isCritical = cssScore < 40;
-
-  const [lastSyncTime] = useState(new Date(Date.now() - 15 * 60000));
-  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const lastSyncTime = data?.last_sync ? new Date(data.last_sync) : new Date();
 
   const glowOpacity = pulseAnim.interpolate({
     inputRange: [1, 1.05],
@@ -133,7 +155,7 @@ export default function DashboardScreen() {
   });
 
   useEffect(() => {
-    if (cssScore < 50) {
+    if (cssScore < 50 && !isLoading) {
       Animated.loop(
         Animated.sequence([
           Animated.timing(pulseAnim, {
@@ -152,7 +174,17 @@ export default function DashboardScreen() {
       pulseAnim.stopAnimation();
       pulseAnim.setValue(1);
     }
-  }, [cssScore, pulseAnim]);
+  }, [cssScore, pulseAnim, isLoading]);
+
+  if (isLoading) {
+    return (
+      <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950 justify-center items-center">
+        <ActivityIndicator size="large" color="#0f172a" />
+      </SafeAreaView>
+    );
+  }
+
+  const isAlertActive = !!data?.latest_alert;
 
   return (
     <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950" edges={["top"]}>
@@ -161,7 +193,7 @@ export default function DashboardScreen() {
       {isAlertActive && (
         <TouchableOpacity activeOpacity={0.9} onPress={() => router.push("/locator")} className="bg-red-500 px-5 py-3.5 flex-row items-center gap-3">
           <Feather name="alert-triangle" size={18} color="white" />
-          <Text className="text-white dark:text-slate-900 text-[13px] font-medium flex-1 leading-snug">Elevated risk detected. Tap to view nearby specialists.</Text>
+          <Text className="text-white dark:text-slate-900 text-[13px] font-medium flex-1 leading-snug">{data.latest_alert.message || "Elevated risk detected. Tap to view nearby specialists."}</Text>
           <Feather name="chevron-right" size={18} color="white" />
         </TouchableOpacity>
       )}
@@ -184,7 +216,7 @@ export default function DashboardScreen() {
           </TouchableOpacity>
           <TouchableOpacity onPress={() => router.push("/(home)/profile")} activeOpacity={0.8} className="ml-1">
             <View className="w-9 h-9 rounded-full bg-slate-200 overflow-hidden">
-              <Image source={{ uri: "https://scontent.fcgy2-2.fna.fbcdn.net/v/t39.30808-6/470238702_122163229004273349_6885730481985014209_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=a5f93a&_nc_eui2=AeFspkU-pAnduqXzsg0nCMQSc3h1gs4ySEZzeHWCzjJIRiS7qjQy166_bn5hNqi44fxFQkp5tRFulwgVSN60yG1o&_nc_ohc=JjKG5iySuBYQ7kNvwF3zmCi&_nc_oc=AdqJL2LZkjt9IqiM_KPQtb2ZUT6mEm5UdI2cgi-6Mu6INC3QVBLGz8-OKHIG4Fuyfuk&_nc_zt=23&_nc_ht=scontent.fcgy2-2.fna&_nc_gid=zjeomdkvajMCPjEc3tC8YQ&_nc_ss=7b2a8&oh=00_Af_FFO3skv0KzZZjqU44lc3j6qTtYj5r07rF5GLagi9HDg&oe=6A275350" }} className="w-full h-full" resizeMode="cover" />
+              <Image source={{ uri: data?.user?.avatar_url || "https://scontent.fcgy2-2.fna.fbcdn.net/v/t39.30808-6/470238702_122163229004273349_6885730481985014209_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=a5f93a&_nc_eui2=AeFspkU-pAnduqXzsg0nCMQSc3h1gs4ySEZzeHWCzjJIRiS7qjQy166_bn5hNqi44fxFQkp5tRFulwgVSN60yG1o&_nc_ohc=JjKG5iySuBYQ7kNvwF3zmCi&_nc_oc=AdqJL2LZkjt9IqiM_KPQtb2ZUT6mEm5UdI2cgi-6Mu6INC3QVBLGz8-OKHIG4Fuyfuk&_nc_zt=23&_nc_ht=scontent.fcgy2-2.fna&_nc_gid=zjeomdkvajMCPjEc3tC8YQ&_nc_ss=7b2a8&oh=00_Af_FFO3skv0KzZZjqU44lc3j6qTtYj5r07rF5GLagi9HDg&oe=6A275350" }} className="w-full h-full" resizeMode="cover" />
             </View>
             <View style={{ position: "absolute", bottom: -1, right: -1 }} className="w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-slate-50" />
           </TouchableOpacity>
@@ -196,9 +228,9 @@ export default function DashboardScreen() {
         {/* ── Greeting ── */}
         <View className="px-5 pt-5 pb-2">
           <Text className="text-[30px] font-medium text-slate-900 dark:text-white dark:text-slate-900 tracking-tight leading-tight">
-            Welcome back,{"\n"}John Mark
+            Welcome back,{"\n"}{data?.user?.first_name || "Guest"}
           </Text>
-          <Text className="text-[14px] text-slate-400 mt-2">Thursday, 4 June</Text>
+          <Text className="text-[14px] text-slate-400 mt-2">{new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })}</Text>
         </View>
 
         {/* ── CSS Score hero card ── */}
@@ -280,9 +312,9 @@ export default function DashboardScreen() {
 
         {/* ── Stat cards row ── */}
         <View className="flex-row gap-3 mx-5 mt-4">
-          <StatCard icon="heart" label="BPM" value="72" iconColor="#a32d2d" iconBg="#fcebeb" />
-          <StatCard icon="droplet" label="BP" value="120/80" iconColor="#185fa5" iconBg="#e6f1fb" />
-          <StatCard icon="trending-up" label="Trend" value="+5" iconColor="#3b6d11" iconBg="#eaf3de" />
+          <StatCard icon="heart" label="BPM" value={String(data?.latest_vitals?.bpm || "--")} iconColor="#a32d2d" iconBg="#fcebeb" />
+          <StatCard icon="droplet" label="BP" value={String(data?.latest_vitals?.bp || "--/--")} iconColor="#185fa5" iconBg="#e6f1fb" />
+          <StatCard icon="trending-up" label="Trend" value={String(data?.latest_vitals?.trend || "+0")} iconColor="#3b6d11" iconBg="#eaf3de" />
         </View>
 
         {/* ── Smart insight ── */}
@@ -324,9 +356,19 @@ export default function DashboardScreen() {
                 <Text className="text-[15px] font-medium text-slate-900 dark:text-white dark:text-slate-900">Recommended today</Text>
               </View>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="px-5 gap-3">
-                <RecoCard tag="Exercise" title="15-min chair yoga" subtitle="Safe mobility, stable heart rate." icon="yoga" bg="#1e293b" tagBg="rgba(255,255,255,0.12)" tagText="rgba(255,255,255,0.8)" subColor="#94a3b8" />
-                <RecoCard tag="Heart-healthy" title="Oatmeal with berries" subtitle="Sodium: 15mg · Fiber: 8g" icon="bowl-mix-outline" bg="#14532d" tagBg="rgba(255,255,255,0.12)" tagText="rgba(255,255,255,0.8)" subColor="#86efac" />
-                <RecoCard tag="Breathing" title="4-7-8 technique" subtitle="Calms nervous system in 5 mins." icon="meditation" bg="#1e3a5f" tagBg="rgba(255,255,255,0.12)" tagText="rgba(255,255,255,0.8)" subColor="#93c5fd" />
+                {data?.recommendations?.map((r: any, idx: number) => (
+                  <RecoCard 
+                    key={idx} 
+                    tag={r.tag} 
+                    title={r.title} 
+                    subtitle={r.subtitle} 
+                    icon={r.icon} 
+                    bg={r.bg} 
+                    tagBg={r.tagBg} 
+                    tagText={r.tagText} 
+                    subColor={r.subColor} 
+                  />
+                ))}
               </ScrollView>
             </View>
 

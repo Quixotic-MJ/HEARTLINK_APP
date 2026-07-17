@@ -20,5 +20,11 @@ class CodeResponse(BaseModel):
     phone: str
     
 class Login(BaseModel):
-    email: str
+    identifier: str
     password: str
+
+class ForgotPasswordRequest(BaseModel):
+    identifier: str
+
+class ResendCodeRequest(BaseModel):
+    phone: str

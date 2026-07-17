@@ -13,6 +13,7 @@ import { StatusBar } from "expo-status-bar";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import "../../global.css";
+import { useUser } from "../../contexts/UserContext";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -27,6 +28,8 @@ function InputField({
   autoCapitalize,
   secureTextEntry,
   rightElement,
+  autoComplete,
+  textContentType,
 }: {
   icon: string;
   placeholder: string;
@@ -36,6 +39,8 @@ function InputField({
   autoCapitalize?: any;
   secureTextEntry?: boolean;
   rightElement?: React.ReactNode;
+  autoComplete?: any;
+  textContentType?: any;
 }) {
   return (
     <View
@@ -51,6 +56,8 @@ function InputField({
         keyboardType={keyboardType}
         autoCapitalize={autoCapitalize ?? "none"}
         secureTextEntry={secureTextEntry}
+        autoComplete={autoComplete}
+        textContentType={textContentType}
         className="flex-1 ml-3 text-[14px] text-slate-900 dark:text-white dark:text-slate-900 h-full"
       />
       {rightElement}
@@ -62,32 +69,55 @@ function InputField({
 
 export default function AuthScreen() {
   const router = useRouter();
+  const { setUserId } = useUser();
 
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async () => {
-    console.log("Logging in:", email, password);
+    setError(null);
+    if (!identifier || !password) {
+      setError("Please enter your email/phone and password.");
+      return;
+    }
+
+    let finalIdentifier = identifier.trim();
+    if (/^\d+$/.test(finalIdentifier)) {
+      if (finalIdentifier.startsWith("0")) {
+        finalIdentifier = finalIdentifier.substring(1);
+      }
+      finalIdentifier = `+63${finalIdentifier}`;
+    }
+
+    console.log("Logging in:", finalIdentifier, password);
     try {
-      const response = await fetch(`${base_url}/auth/login`, {
+      const response = await fetch(`${base_url}/api/auth/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          email: email,
+          identifier: finalIdentifier,
           password: password,
         }),
       });
       const data = await response.json();
 
       if (response.ok) {
-        router.replace("/(home)/(tabs)/dashboard");
+        setUserId(data.user_id);
+        router.replace({
+          pathname: "/(home)/(tabs)/dashboard",
+          params: { user_id: data.user_id },
+        });
         console.log(data.message);
+      } else {
+        setError(data.detail || "Invalid email or password.");
       }
     } catch (error) {
       console.log(error);
+      setError("An error occurred. Please check your connection.");
     }
   };
 
@@ -139,46 +169,71 @@ export default function AuthScreen() {
           </View>
 
           {/* ── Card ── */}
-          <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 px-5 py-6 gap-3">
-            {/* Email */}
-            <InputField
-              icon="mail"
-              placeholder="Email address"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-            />
-
-            {/* Password */}
-            <View className="gap-1.5">
+          <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 px-5 py-6 gap-4">
+            
+            {/* Identifier Section */}
+            <View>
+              <Text className="text-[14px] font-semibold text-slate-900 dark:text-white mb-2 ml-1">Email or Phone number</Text>
               <InputField
-                icon="lock"
-                placeholder="Password"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry={!showPassword}
-                rightElement={
-                  <TouchableOpacity
-                    onPress={() => setShowPassword((p) => !p)}
-                    className="p-1 ml-1"
-                  >
-                    <Feather
-                      name={showPassword ? "eye" : "eye-off"}
-                      size={16}
-                      color="#94a3b8"
-                    />
-                  </TouchableOpacity>
-                }
+                icon="user"
+                placeholder="Email or Phone"
+                value={identifier}
+                onChangeText={(t) => {
+                  setIdentifier(t);
+                  setError(null);
+                }}
+                keyboardType="default"
+                autoComplete="username"
+                textContentType="username"
               />
-              <TouchableOpacity
-                className="self-end"
-                onPress={() => router.push("/(auth)/forgot-password")}
-              >
-                <Text className="text-[12px] font-medium text-slate-500 dark:text-slate-400">
-                  Forgot password?
-                </Text>
-              </TouchableOpacity>
             </View>
+
+            {/* Password Section */}
+            <View>
+              <Text className="text-[14px] font-semibold text-slate-900 dark:text-white mb-2 ml-1">Password</Text>
+              <View className="gap-1.5">
+                <InputField
+                  icon="lock"
+                  placeholder="Password"
+                  value={password}
+                  onChangeText={(t) => {
+                    setPassword(t);
+                    setError(null);
+                  }}
+                  secureTextEntry={!showPassword}
+                  rightElement={
+                    <TouchableOpacity
+                      onPress={() => setShowPassword((p) => !p)}
+                      className="p-1 ml-1"
+                    >
+                      <Feather
+                        name={showPassword ? "eye" : "eye-off"}
+                        size={16}
+                        color="#94a3b8"
+                      />
+                    </TouchableOpacity>
+                  }
+                />
+                <TouchableOpacity
+                  className="self-end"
+                  onPress={() => router.push("/(auth)/forgot-password")}
+                >
+                  <Text className="text-[12px] font-medium text-slate-500 dark:text-slate-400">
+                    Forgot your password?
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Error Message */}
+            {error && (
+              <View className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-3 flex-row items-center gap-2 mt-1">
+                <Feather name="alert-triangle" size={16} color="#ef4444" />
+                <Text className="text-red-600 dark:text-red-400 text-[13px] flex-1">
+                  {error}
+                </Text>
+              </View>
+            )}
 
             {/* Divider */}
             <View className="h-px bg-slate-100 dark:bg-slate-800 my-1" />

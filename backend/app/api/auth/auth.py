@@ -15,6 +15,10 @@ async def request_code(payload: RegisterRequest):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, detail="duplicate phone number"
             )
+        if profile.get("email") == payload.email:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="duplicate email"
+            )
 
     temp_profile[payload.phone] = {
         "phone": payload.phone,
@@ -25,6 +29,15 @@ async def request_code(payload: RegisterRequest):
     print(f"sending verification code to: {payload.phone}")
     print("code sent: 123456")
     return {"success": True, "message": "Code sent successfully"}
+
+from app.schemas.auth import ResendCodeRequest
+@router.post("/resend-code", status_code=status.HTTP_200_OK)
+async def resend_code(payload: ResendCodeRequest):
+    if payload.phone in temp_profile:
+        print(f"resending verification code to: {payload.phone}")
+        print("code sent: 123456")
+        return {"success": True, "message": "Code resent successfully"}
+    raise HTTPException(status_code=404, detail="No pending registration found for this phone number")
 
 
 @router.post("/verify-code", status_code=status.HTTP_201_CREATED)
@@ -39,11 +52,23 @@ async def verifyCode(code: CodeResponse):
             "email": user_data.get("email"),
             "password": user_data.get("password"),
             "role": "patient",
+            "first_name": None,
+            "last_name": None,
+            "date_of_birth": None,
+            "sex": None,
+            "height_cm": None,
+            "weight_kg": None,
+            "avatar_url": None,
+            "health_goals": [],
+            "onboarding_status": "pending",
+            "account_status": "active",
+            "created_at": None,
+            "updated_at": None,
         }
 
         mock_db.profiles.append(new_profile)
         temp_profile.pop(code.phone, None)
-        return {"success": True, "message": "Verified successfully"}
+        return {"success": True, "message": "Verified successfully", "user_id": new_user_id}
     else:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid Verification Code"
@@ -53,9 +78,9 @@ async def verifyCode(code: CodeResponse):
 @router.post("/login")
 async def login(payload: Login):
     for profile in mock_db.profiles:
-        if profile.get("email") == payload.email:
+        if profile.get("email") == payload.identifier or profile.get("phone") == payload.identifier:
             if profile.get("password") == payload.password:
-                return {"success": True, "message": "Login Successfully"}
+                return {"success": True, "message": "Login Successfully", "user_id": profile["id"]}
             else:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND, detail="Invalid Credentials"
@@ -63,6 +88,25 @@ async def login(payload: Login):
 
     raise HTTPException(
         status_code=status.HTTP_404_NOT_FOUND, detail="Invalid Credentials"
+    )
+
+import random
+import string
+from app.schemas.auth import ForgotPasswordRequest
+
+@router.post("/forgot-password")
+async def forgot_password(payload: ForgotPasswordRequest):
+    for profile in mock_db.profiles:
+        if profile.get("email") == payload.identifier or profile.get("phone") == payload.identifier:
+            temp_pass = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
+            profile["password"] = temp_pass
+            print(f"\n{'='*40}")
+            print(f"TEMP PASS FOR {payload.identifier}: {temp_pass}")
+            print(f"{'='*40}\n")
+            return {"success": True, "message": "Temporary password sent", "temp_password": temp_pass}
+
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND, detail="This phone or email is not registered."
     )
 
 

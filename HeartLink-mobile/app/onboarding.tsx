@@ -67,7 +67,7 @@ export default function OnboardingScreen() {
   const router = useRouter();
   const pingServer = async () => {
     try {
-      const response = await fetch(`${base_url}/health`);
+      const response = await fetch(`${base_url}/api/health`);
       const data = await response.json();
       console.log(data.status);
     } catch (error) {
@@ -151,7 +151,7 @@ export default function OnboardingScreen() {
         {/* ── Dev shortcut ── */}
         {__DEV__ && (
           <TouchableOpacity
-            onPress={() => router.push("/dashboard")}
+            onPress={() => router.push("/health_goals")}
             className="mx-5 mb-4 bg-[#1e4ed8] border border-slate-200 dark:border-slate-800/70 rounded-xl py-2.5 items-center"
           >
             <Text className="text-[11px] text-white dark:text-slate-900">

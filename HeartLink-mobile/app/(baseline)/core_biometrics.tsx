@@ -7,11 +7,12 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import DateTimePicker from "@react-native-community/datetimepicker";
 
 // ─── Measure Input ────────────────────────────────────────────────────────────
@@ -80,6 +81,8 @@ function StepProgress({ current, total }: { current: number; total: number }) {
 
 export default function BiometricsStep1Screen() {
   const router = useRouter();
+  const { user_id, health_goals } = useLocalSearchParams();
+  const base_url = process.env.EXPO_PUBLIC_API_URL;
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -102,7 +105,7 @@ export default function BiometricsStep1Screen() {
     }
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     let finalHeightCm = heightCm;
     let finalWeightKg = weightKg;
     if (unitSystem === "imperial") {
@@ -110,8 +113,36 @@ export default function BiometricsStep1Screen() {
       finalHeightCm = (totalIn * 2.54).toFixed(2);
       finalWeightKg = (parseFloat(weightLbs || "0") * 0.453592).toFixed(2);
     }
-    console.log("Biometrics:", { firstName, lastName, birthDate, sex, height_cm: finalHeightCm, weight_kg: finalWeightKg });
-    router.push("/lifestyle_habits");
+
+    try {
+      const response = await fetch(`${base_url}/api/users/${user_id}/profile`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          first_name: firstName,
+          last_name: lastName,
+          date_of_birth: birthDate?.toISOString().split("T")[0],
+          sex: sex,
+          height_cm: parseFloat(finalHeightCm) || 0,
+          weight_kg: parseFloat(finalWeightKg) || 0,
+          health_goals: health_goals ? JSON.parse(health_goals as string) : [],
+        }),
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        console.log("Profile saved:", data.message);
+        router.push({
+          pathname: "/lifestyle_habits",
+          params: { user_id: user_id as string },
+        });
+      } else {
+        Alert.alert("Error", data.detail || "Failed to save profile");
+      }
+    } catch (error) {
+      console.log("Profile save error:", error);
+      Alert.alert("Error", "Could not connect to server");
+    }
   };
 
   return (

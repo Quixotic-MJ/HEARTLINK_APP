@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -14,7 +14,9 @@ import {
 import { StatusBar } from "expo-status-bar";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { RECIPES } from "./(tabs)/recipes";
+import { useUser } from "../../contexts/UserContext";
+
+const base_url = process.env.EXPO_PUBLIC_API_URL;
 
 const DIFFICULTY_CONFIG = {
   Easy: { bg: "#eaf3de", text: "#3b6d11" },
@@ -59,8 +61,48 @@ export default function RecipeDetailsScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
+  const { userId } = useUser();
 
-  const recipe = RECIPES.find((r) => r.id === id) || RECIPES[0]; // fallback
+  const [recipe, setRecipe] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchRecipe() {
+      try {
+        const response = await fetch(`${base_url}/api/recipes/${id}`);
+        if (!response.ok) throw new Error("Failed to fetch recipe");
+        const data = await response.json();
+        
+        // map backend structure to match existing frontend format expectations
+        const mapped = {
+          id: data.id,
+          title: data.name,
+          subtitle: data.subtitle || "",
+          prepTime: data.prep_time_minutes || 0,
+          servings: data.servings || 1,
+          difficulty: data.difficulty || "Easy",
+          image: data.image_url || "https://images.unsplash.com/photo-1587486913049-53fc88980cfc?w=200&q=80",
+          tags: data.tags || [],
+          heartBenefit: data.heart_benefit || "",
+          nutrition: {
+            sodium: data.sodium_mg || 0,
+            fiber: data.fiber_g || 0,
+            saturatedFat: data.saturated_fat_g || 0,
+            calories: data.calories || 0,
+          },
+          ingredients: data.ingredients ? Object.keys(data.ingredients).map(k => ({ qty: data.ingredients[k], item: k })) : [],
+          steps: data.steps || [],
+        };
+        setRecipe(mapped);
+      } catch (error) {
+        console.error(error);
+        Alert.alert("Error", "Could not load recipe details.");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchRecipe();
+  }, [id]);
 
   const [servingsMultiplier, setServingsMultiplier] = useState(1);
   const [activeTab, setActiveTab] = useState<"Ingredients" | "Instructions">(
@@ -68,6 +110,15 @@ export default function RecipeDetailsScreen() {
   );
   const [isSaved, setIsSaved] = useState(false); // Local toggle for the detail screen
   const [isLogged, setIsLogged] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  if (isLoading || !recipe) {
+    return (
+      <View className="flex-1 bg-white dark:bg-slate-900 justify-center items-center">
+        <Text>Loading...</Text>
+      </View>
+    );
+  }
 
   const currentSodium = recipe.nutrition.sodium * servingsMultiplier;
   const currentCalories = recipe.nutrition.calories * servingsMultiplier;
@@ -77,13 +128,40 @@ export default function RecipeDetailsScreen() {
 
   const isHighSodium = currentSodium >= 140;
 
-  const handleLogMeal = () => {
-    setIsLogged(true);
-    Alert.alert(
-      "Meal logged!",
-      "Sodium intake updated. Your Cardiovascular Stability Score has been recalculated.",
-      [{ text: "OK", onPress: () => router.push("/(home)/(tabs)/dashboard") }],
-    );
+  const handleLogMeal = async () => {
+    setIsSubmitting(true);
+    try {
+      const payload = {
+        recipe_id: recipe.id,
+        meal_name: recipe.title,
+        portion: servingsMultiplier,
+        calories: currentCalories,
+        sodium_mg: currentSodium,
+        saturated_fat_g: currentSatFat,
+        fiber_g: currentFiber,
+        image_url: recipe.image,
+      };
+      
+      const response = await fetch(`${base_url}/api/meals/${userId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) throw new Error("Failed to log meal");
+      
+      setIsLogged(true);
+      Alert.alert(
+        "Meal logged!",
+        "Sodium intake updated. Your Cardiovascular Stability Score has been recalculated.",
+        [{ text: "OK", onPress: () => router.push("/(home)/(tabs)/dashboard") }],
+      );
+    } catch (error) {
+      console.error(error);
+      Alert.alert("Error", "Could not log meal. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -391,7 +469,7 @@ export default function RecipeDetailsScreen() {
          <TouchableOpacity 
            activeOpacity={0.85}
            onPress={handleLogMeal}
-           disabled={isLogged}
+           disabled={isLogged || isSubmitting}
            className="w-full py-3 rounded-xl items-center justify-center flex-row gap-2"
            style={{ backgroundColor: isLogged ? "#f1f5f9" : "#0f172a" }}
          >
@@ -404,7 +482,7 @@ export default function RecipeDetailsScreen() {
              className="text-[13px] font-medium"
              style={{ color: isLogged ? "#94a3b8" : "#fff" }}
            >
-             {isLogged ? "Logged Today" : "Log This Meal"}
+             {isLogged ? "Logged Today" : isSubmitting ? "Logging..." : "Log This Meal"}
            </Text>
          </TouchableOpacity>
       </View>

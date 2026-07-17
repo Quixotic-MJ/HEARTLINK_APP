@@ -1,9 +1,12 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { View, Text, TouchableOpacity, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
 import { Feather } from "@expo/vector-icons";
+import { useUser } from "../../contexts/UserContext";
+
+const base_url = process.env.EXPO_PUBLIC_API_URL;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -252,17 +255,53 @@ function NotificationCard({
 
 export default function NotificationsScreen() {
   const router = useRouter();
-  const [notifications, setNotifications] = useState(SAMPLE_NOTIFICATIONS);
+  const { userId } = useUser();
+
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchNotifications() {
+      try {
+        const response = await fetch(`${base_url}/api/notifications/${userId}`);
+        if (!response.ok) throw new Error("Failed to fetch notifications");
+        const data = await response.json();
+        
+        const mapped = data.map((n: any) => ({
+          id: n.id,
+          type: n.type || "system",
+          title: n.title || "",
+          message: n.message || "",
+          time: new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), // simplistic formatting
+          read: n.read || false,
+        }));
+        setNotifications(mapped);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    if (userId) fetchNotifications();
+  }, [userId]);
+
   const [filter, setFilter] = useState<"all" | "unread">("all");
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  const markAsRead = async (id: string) => {
+    try {
+      await fetch(`${base_url}/api/notifications/${id}/read`, { method: "PUT" });
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, read: true } : n))
+      );
+    } catch (e) {
+      console.error(e);
+    }
+  };
+  
   const filtered =
     filter === "unread" ? notifications.filter((n) => !n.read) : notifications;
 
-  const markAsRead = (id: string) =>
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
-    );
+  const unreadCount = notifications.filter((n) => !n.read).length;
 
   const markAllAsRead = () =>
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -16,6 +16,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
+import { useUser } from "../../contexts/UserContext";
+
+const base_url = process.env.EXPO_PUBLIC_API_URL;
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
 
@@ -243,31 +246,88 @@ function EditProfileModal({
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const { userId } = useUser();
 
   const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   const [userData, setUserData] = useState({
-    name: "John Mark Magdasal",
-    email: "johnmark@heartlink.ph",
-    phone: "+63 912 345 6789",
-    birthdate: "March 15, 1998",
-    gender: "Male",
-    height: "175",
-    weight: "72",
-    bmi: "23.5",
-    bloodType: "O+",
-    restingHR: "72",
-    systolicBP: "120",
-    diastolicBP: "80",
-    conditions: ["Hypertension Stage 1", "High Cholesterol"],
-    medications: "Amlodipine 5mg",
-    allergies: "None reported",
-    emergencyContact: "Maria Magdasal",
-    emergencyPhone: "+63 917 654 3210",
+    name: "",
+    email: "",
+    phone: "",
+    birthdate: "",
+    gender: "",
+    height: "",
+    weight: "",
+    bmi: "",
+    bloodType: "O+", // Default mock
+    restingHR: "72", // Default mock
+    systolicBP: "120", // Default mock
+    diastolicBP: "80", // Default mock
+    conditions: ["Hypertension Stage 1", "High Cholesterol"], // Default mock
+    medications: "Amlodipine 5mg", // Default mock
+    allergies: "None reported", // Default mock
+    emergencyContact: "Maria Magdasal", // Default mock
+    emergencyPhone: "+63 917 654 3210", // Default mock
   });
 
-  const handleUpdateData = (newData: any) => {
-    setUserData((prev) => ({ ...prev, ...newData }));
+  useEffect(() => {
+    async function fetchProfile() {
+      try {
+        const response = await fetch(`${base_url}/api/users/${userId}/profile`);
+        if (!response.ok) throw new Error("Failed to fetch profile");
+        const data = await response.json();
+        
+        const profile = data.profile;
+        if (profile) {
+          setUserData(prev => ({
+            ...prev,
+            name: `${profile.first_name || ""} ${profile.last_name || ""}`.trim(),
+            email: profile.email || "",
+            phone: profile.phone || "",
+            birthdate: profile.date_of_birth || "",
+            gender: profile.sex || "",
+            height: profile.height_cm ? profile.height_cm.toString() : "",
+            weight: profile.weight_kg ? profile.weight_kg.toString() : "",
+            bmi: (profile.weight_kg && profile.height_cm) 
+              ? (profile.weight_kg / Math.pow(profile.height_cm / 100, 2)).toFixed(1) 
+              : "0",
+          }));
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    if (userId) fetchProfile();
+  }, [userId]);
+
+  const handleUpdateData = async (newData: any) => {
+    try {
+      const names = (newData.name || "").split(" ");
+      const firstName = names[0] || "";
+      const lastName = names.slice(1).join(" ");
+      
+      const payload = {
+        first_name: firstName,
+        last_name: lastName,
+        date_of_birth: newData.birthdate || userData.birthdate,
+        sex: newData.gender || userData.gender,
+        height_cm: parseFloat(newData.height),
+        weight_kg: parseFloat(newData.weight),
+        health_goals: [] // default
+      };
+      
+      await fetch(`${base_url}/api/users/${userId}/profile`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      setUserData((prev) => ({ ...prev, ...newData }));
+    } catch (err) {
+      console.error(err);
+    }
     setShowUpdateModal(false);
   };
 

@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, TouchableOpacity, ScrollView, Linking } from "react-native";
+import { View, Text, TouchableOpacity, ScrollView, Linking, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
@@ -24,7 +24,7 @@ function ContactCard({
         <Text className="text-[13px] font-medium text-slate-400 uppercase tracking-wide">
           {title}
         </Text>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={() => Alert.alert("Edit", "Edit feature coming soon.")}>
           <Text className="text-[13px] font-medium text-blue-600">Edit</Text>
         </TouchableOpacity>
       </View>
@@ -52,6 +52,7 @@ function ContactCard({
         
         <TouchableOpacity
           activeOpacity={0.8}
+          onPress={() => Alert.alert("Message", "Messaging feature coming soon.")}
           className="flex-1 flex-row items-center justify-center py-2.5 rounded-xl border border-slate-200 dark:border-slate-800/70 bg-slate-50 dark:bg-slate-950 gap-1.5"
         >
           <Feather name="message-circle" size={14} color="#475569" />

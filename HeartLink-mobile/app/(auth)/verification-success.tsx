@@ -15,7 +15,7 @@ import "../../global.css";
 export default function VerificationSuccessScreen() {
   const router = useRouter();
   const base_url = process.env.EXPO_PUBLIC_API_URL;
-  const { phone } = useLocalSearchParams();
+  const { phone, user_id } = useLocalSearchParams();
 
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
@@ -43,13 +43,11 @@ export default function VerificationSuccessScreen() {
     ]).start();
   }, []);
 
-  const test = async () => {
-    const response = await fetch(`${base_url}/auth/test/${phone}`);
-    const data = await response.json();
-
-    if (response.ok) {
-      console.log(data.message);
-    }
+  const handleStartBaseline = () => {
+    router.replace({
+      pathname: "/(baseline)/health_goals",
+      params: { user_id: user_id as string },
+    });
   };
 
   return (
@@ -154,8 +152,7 @@ export default function VerificationSuccessScreen() {
           {/* CTA */}
           <TouchableOpacity
             activeOpacity={0.85}
-            // onPress={() => router.replace("/health_goals")}
-            onPress={test}
+            onPress={handleStartBaseline}
             className="w-full bg-slate-900 dark:bg-slate-100 rounded-2xl py-3.5 flex-row justify-center items-center gap-2"
           >
             <Text className="text-white dark:text-slate-900 text-[14px] font-medium">

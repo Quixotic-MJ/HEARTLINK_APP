@@ -13,6 +13,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
+import { useUser } from "../../../contexts/UserContext";
+
+const base_url = process.env.EXPO_PUBLIC_API_URL;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -348,6 +351,37 @@ function SafetyCheckModal({
 export default function ExercisesScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ completedId?: string }>();
+  const { userId } = useUser();
+
+  const [routinesList, setRoutinesList] = useState<Routine[]>(ROUTINES);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    async function fetchRoutines() {
+      setIsLoading(true);
+      try {
+        const response = await fetch(`${base_url}/api/exercises/`);
+        if (response.ok) {
+          const data = await response.json();
+          const mapped = data.map((r: any) => ({
+            id: r.id,
+            title: r.name || "",
+            duration: r.duration_minutes || 0,
+            goal: r.goal || "",
+            type: r.type || "Light Cardio",
+            intensity: r.intensity || "Low",
+            category: r.css_tier || "Stable",
+          }));
+          setRoutinesList(mapped);
+        }
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchRoutines();
+  }, []);
 
   const [cssScore, setCssScore] = useState<number>(78);
   const [completedExercises, setCompletedExercises] = useState<string[]>([]);
@@ -358,15 +392,34 @@ export default function ExercisesScreen() {
   const slideAnim = useRef(new Animated.Value(-100)).current;
 
   useEffect(() => {
+    async function fetchLogs() {
+      try {
+        const response = await fetch(`${base_url}/api/exercises/logs/${userId}`);
+        if (response.ok) {
+          const data = await response.json();
+          const today = new Date().toDateString();
+          const todayIds = data
+            .filter((log: any) => new Date(log.logged_at).toDateString() === today)
+            .map((log: any) => log.routine_id);
+          setCompletedExercises(todayIds);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    if (userId) fetchLogs();
+  }, [userId, params.completedId]);
+
+  useEffect(() => {
     if (params.completedId) {
-      const routine = ROUTINES.find((r) => r.id === params.completedId);
+      const routine = routinesList.find((r) => r.id === params.completedId);
       if (routine) {
         setPendingRoutine(routine);
         setShowSafetyCheck(true);
         router.setParams({ completedId: "" });
       }
     }
-  }, [params.completedId]);
+  }, [params.completedId, routinesList]);
 
   const showToast = (message: string) => {
     setToastMessage(message);
@@ -392,18 +445,18 @@ export default function ExercisesScreen() {
   }, [cssScore]);
 
   const activeRoutines = useMemo(
-    () => ROUTINES.filter((r) => r.category === cssStatus),
-    [cssStatus],
+    () => routinesList.filter((r) => r.category === cssStatus),
+    [cssStatus, routinesList],
   );
   const statusCfg = STATUS_CONFIG[cssStatus];
 
   const totalActiveMins = useMemo(
     () =>
       completedExercises.reduce(
-        (sum, id) => sum + (ROUTINES.find((r) => r.id === id)?.duration ?? 0),
+        (sum, id) => sum + (routinesList.find((r) => r.id === id)?.duration ?? 0),
         0,
       ),
-    [completedExercises],
+    [completedExercises, routinesList],
   );
 
   const progressPercent = Math.min((totalActiveMins / 30) * 100, 100);
@@ -411,7 +464,6 @@ export default function ExercisesScreen() {
 
   const handleSafetySafe = () => {
     if (pendingRoutine && !completedExercises.includes(pendingRoutine.id)) {
-      setCompletedExercises((prev) => [...prev, pendingRoutine.id]);
       showToast(
         `${pendingRoutine.duration} active minutes added to today's tracker.`,
       );

@@ -7,11 +7,12 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 
 // ─── Step Progress ────────────────────────────────────────────────────────────
 
@@ -32,6 +33,8 @@ function StepProgress({ current, total }: { current: number; total: number }) {
 export default function BiometricsStep4Screen() {
 
   const router = useRouter()
+  const { user_id } = useLocalSearchParams();
+  const base_url = process.env.EXPO_PUBLIC_API_URL;
   // Clinical History
   const [diagnosedConditions, setDiagnosedConditions] = useState<string[]>([]);
   const [takingMedication, setTakingMedication] = useState<boolean | null>(null);
@@ -63,28 +66,39 @@ export default function BiometricsStep4Screen() {
   const [chestPainType, setChestPainType] = useState(null);
   const [exerciseAngina, setExerciseAngina] = useState(null); // 'yes' or 'no'
 
-  // Form submission handler
-  const handleCompleteOnboarding = () => {
-    // Format the payload matching the Cleveland dataset requirements
-    // Nullifying empty optional fields so the backend DB handles them gracefully
+  const handleCompleteOnboarding = async () => {
     const payload = {
       diagnosed_conditions: diagnosedConditions,
-      medication_status: takingMedication,
-      trestbps: restingBP ? parseInt(restingBP) : null, // Resting Blood Pressure
-      thalach: maxHR ? parseInt(maxHR) : null, // Maximum Heart Rate
-      fbs: fastingBloodSugar
-        ? parseInt(fastingBloodSugar) > 120
-          ? 1
-          : 0
-        : null, // Fasting Blood Sugar > 120 mg/dl
-      chol: cholesterol ? parseInt(cholesterol) : null, // Serum Cholesterol
-      cp: chestPainType, // Chest Pain Type (1-4)
-      exang: exerciseAngina === "yes" ? 1 : 0, // Exercise Induced Angina
+      on_medication: takingMedication,
+      resting_bp_mmhg: restingBP ? parseInt(restingBP) : null,
+      max_heart_rate_bpm: maxHR ? parseInt(maxHR) : null,
+      fasting_blood_sugar: fastingBloodSugar
+        ? parseInt(fastingBloodSugar) > 120 ? 1 : 0
+        : null,
+      serum_cholesterol: cholesterol ? parseInt(cholesterol) : null,
+      chest_pain_type: chestPainType,
+      exercise_angina: exerciseAngina === "yes" ? 1 : 0,
     };
 
-    console.log("SUCCESS! Saving ML Clinical Baseline:", payload);
-    router.push('/(home)/(tabs)/dashboard')
-    // When ready to navigate, add your navigation logic here.
+    try {
+      const response = await fetch(`${base_url}/api/users/${user_id}/baseline/clinical`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+      
+      if (response.ok) {
+        console.log("Clinical saved — onboarding complete:", data.message);
+        router.replace("/(baseline)/calculating");
+      } else {
+        Alert.alert("Error", data.detail || "Failed to save clinical data");
+      }
+    } catch (error) {
+      console.log("Clinical save error:", error);
+      Alert.alert("Error", "Could not connect to server");
+    }
   };
 
   return (

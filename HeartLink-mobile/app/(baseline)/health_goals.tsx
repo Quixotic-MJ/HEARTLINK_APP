@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 
 // ─── Goal Card ────────────────────────────────────────────────────────────────
 
@@ -82,6 +82,7 @@ function StepProgress({ current, total }: { current: number; total: number }) {
 
 export default function HealthGoalsScreen() {
   const router = useRouter();
+  const { user_id } = useLocalSearchParams();
   const [selectedGoals, setSelectedGoals] = useState<string[]>([]);
 
   const goals = [
@@ -126,8 +127,10 @@ export default function HealthGoalsScreen() {
 
   const handleNext = () => {
     console.log("Selected Goals:", selectedGoals);
-    // Proceed to core biometrics
-    router.push("/core_biometrics");
+    router.push({
+      pathname: "/core_biometrics",
+      params: { user_id: user_id as string, health_goals: JSON.stringify(selectedGoals) },
+    });
   };
 
   return (

@@ -1,12 +1,47 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { View, Text, TouchableOpacity, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { useUser } from "../../contexts/UserContext";
+
+const base_url = process.env.EXPO_PUBLIC_API_URL;
 
 export default function HealthAnalyticsScreen() {
   const router = useRouter();
+  const { userId } = useUser();
+
+  const [analytics, setAnalytics] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchAnalytics() {
+      try {
+        const response = await fetch(`${base_url}/api/analytics/${userId}`);
+        if (!response.ok) throw new Error("Failed to fetch analytics");
+        const data = await response.json();
+        setAnalytics(data);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    if (userId) fetchAnalytics();
+  }, [userId]);
+
+  if (isLoading || !analytics) {
+    return (
+      <View className="flex-1 bg-white dark:bg-slate-900 justify-center items-center">
+        <Text>Loading analytics...</Text>
+      </View>
+    );
+  }
+
+  // Get the latest CSS score from history
+  const history = analytics.history || [];
+  const latestCSS = history.length > 0 ? history[history.length - 1].score : 84;
 
   return (
     <SafeAreaView className="flex-1 bg-white dark:bg-slate-900 dark:bg-slate-100" edges={["top"]}>
@@ -65,7 +100,7 @@ export default function HealthAnalyticsScreen() {
                className="bg-white dark:bg-slate-900 dark:bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 flex-row items-center"
             >
               <View className="w-2 h-2 rounded-full bg-blue-500 mr-2" />
-              <Text className="text-[18px] font-bold text-[#1e4ed8]">84</Text>
+              <Text className="text-[18px] font-bold text-[#1e4ed8]">{latestCSS}</Text>
             </TouchableOpacity>
           </View>
 

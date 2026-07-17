@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -13,18 +13,68 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
+import { useUser } from "../../contexts/UserContext";
+
+const base_url = process.env.EXPO_PUBLIC_API_URL;
 
 export default function GoalsThresholdsScreen() {
   const router = useRouter();
   
+  const { userId } = useUser();
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [sodium, setSodium] = useState("1500");
   const [activeMins, setActiveMins] = useState("30");
   const [systolic, setSystolic] = useState("120");
   const [diastolic, setDiastolic] = useState("80");
 
-  const handleSave = () => {
-    Alert.alert("Success", "Your goals and thresholds have been updated.");
-    router.back();
+  useEffect(() => {
+    const fetchThresholds = async () => {
+      try {
+        const response = await fetch(`${base_url}/api/analytics/${userId}`);
+        const result = await response.json();
+        if (result.success && result.data.thresholds) {
+          const t = result.data.thresholds;
+          setSodium(t.sodium_limit_mg.toString());
+          setActiveMins(t.active_minutes_goal.toString());
+          setSystolic(t.systolic_threshold.toString());
+          setDiastolic(t.diastolic_threshold.toString());
+        }
+      } catch (e) {
+        console.error("Failed to load thresholds:", e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchThresholds();
+  }, [userId]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const response = await fetch(`${base_url}/api/analytics/${userId}/thresholds`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sodium_limit_mg: parseInt(sodium) || 1500,
+          active_minutes_goal: parseInt(activeMins) || 30,
+          systolic_threshold: parseInt(systolic) || 120,
+          diastolic_threshold: parseInt(diastolic) || 80,
+        })
+      });
+      const result = await response.json();
+      if (result.success) {
+        Alert.alert("Success", "Your goals and thresholds have been updated.");
+        router.back();
+      } else {
+        Alert.alert("Error", "Could not save thresholds.");
+      }
+    } catch (e) {
+      console.error(e);
+      Alert.alert("Error", "Network error while saving.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (

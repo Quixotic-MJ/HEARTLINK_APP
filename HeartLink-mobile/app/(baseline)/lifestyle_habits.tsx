@@ -7,11 +7,12 @@ import {
   Platform,
   ScrollView,
   Switch,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import '../../global.css'
 
 // ─── Step Progress ────────────────────────────────────────────────────────────
@@ -32,6 +33,8 @@ function StepProgress({ current, total }: { current: number; total: number }) {
 
 export default function BiometricsStep2Screen() {
   const router = useRouter();
+  const { user_id } = useLocalSearchParams();
+  const base_url = process.env.EXPO_PUBLIC_API_URL;
 
   // Lifestyle State
   const [smokingStatus, setSmokingStatus] = useState(null); // 'never', 'former', 'current'
@@ -42,16 +45,34 @@ export default function BiometricsStep2Screen() {
   const incrementSleep = () => setSleepHours((prev) => Math.min(prev + 1, 12));
   const decrementSleep = () => setSleepHours((prev) => Math.max(prev - 1, 3));
 
-  const handleNextStep = () => {
-    // Formatting the payload for your rule-based engine
+  const handleNextStep = async () => {
     const payload = {
       smoking_status: smokingStatus,
-      average_sleep_hours: sleepHours,
-      family_history_heart_disease: familyHistory,
+      avg_sleep_hours: sleepHours,
+      family_history: familyHistory,
     };
 
-    console.log("Saving Lifestyle Data:", payload);
-    router.push("/dietary_profile");
+    try {
+      const response = await fetch(`${base_url}/api/users/${user_id}/baseline/lifestyle`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        console.log("Lifestyle saved:", data.message);
+        router.push({
+          pathname: "/dietary_profile",
+          params: { user_id: user_id as string },
+        });
+      } else {
+        Alert.alert("Error", data.detail || "Failed to save lifestyle data");
+      }
+    } catch (error) {
+      console.log("Lifestyle save error:", error);
+      Alert.alert("Error", "Could not connect to server");
+    }
   };
 
   return (
