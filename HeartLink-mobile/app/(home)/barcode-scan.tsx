@@ -258,24 +258,33 @@ export default function BarcodeScanScreen() {
             style={{ paddingBottom: Math.max(insets.bottom, 20) }}
           >
             {/* Camera */}
-            <View className="flex-1 rounded-2xl overflow-hidden bg-slate-900 dark:bg-slate-100 relative">
-            <CameraView
-              style={StyleSheet.absoluteFillObject}
-              onBarcodeScanned={scanned ? undefined : handleBarcodeScanned}
-              barcodeScannerSettings={{
-                barcodeTypes: ["ean13", "ean8", "upc_a", "upc_e", "qr"],
-              }}
-              enableTorch={torch}
-            >
+            <View collapsable={false} className="flex-1 rounded-2xl overflow-hidden relative" style={{ backgroundColor: "#000" }}>
+              <CameraView
+                style={{ width: "100%", height: "100%" }}
+                facing="back"
+                onBarcodeScanned={scanned ? undefined : handleBarcodeScanned}
+                barcodeScannerSettings={{
+                  barcodeTypes: ["ean13", "ean8", "upc_a", "upc_e", "qr"],
+                }}
+                enableTorch={torch}
+              />
+              
               {/* Scan overlay */}
-              <View className="flex-1 items-center justify-center">
+              <View 
+                style={[StyleSheet.absoluteFillObject, { zIndex: 10, elevation: 10 }]} 
+                pointerEvents="box-none"
+                className="items-center justify-center"
+              >
                 {/* Dark vignette corners */}
-                <View style={{ position: "absolute", inset: 0, backgroundColor: "rgba(0,0,0,0.35)" }} />
+                <View 
+                  style={[StyleSheet.absoluteFillObject, { backgroundColor: "rgba(0,0,0,0.35)" }]} 
+                  pointerEvents="none"
+                />
 
                 {/* Scan frame */}
                 <View style={{ width: 240, height: 240, position: "relative", alignItems: "center", justifyContent: "center" }}>
                   {/* Clear centre */}
-                  <View style={{ position: "absolute", inset: 0, backgroundColor: "transparent" }} />
+                  <View style={[StyleSheet.absoluteFillObject, { backgroundColor: "transparent" }]} />
 
                   {/* Corner marks */}
                   {[
@@ -302,8 +311,7 @@ export default function BarcodeScanScreen() {
                   </Text>
                 </View>
               </View>
-            </CameraView>
-          </View>
+            </View>
 
           {/* Manual entry */}
           <View className="mt-4">
