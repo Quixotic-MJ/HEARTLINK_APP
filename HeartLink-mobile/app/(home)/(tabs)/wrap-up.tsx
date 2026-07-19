@@ -1,11 +1,14 @@
-import React, { useState } from "react";
-import { View, Text, ScrollView, TouchableOpacity, Alert, Image } from "react-native";
+import React, { useState, useCallback, useEffect, useRef } from "react";
+import { View, Text, ScrollView, TouchableOpacity, Alert, Image, RefreshControl, Animated } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
+import { useUser } from "../../../contexts/UserContext";
+
+const base_url = process.env.EXPO_PUBLIC_API_URL;
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -188,8 +191,46 @@ const NEGATIVE_DATA = {
 
 export default function WrapUpScreen() {
   const router = useRouter();
-  const [isPositive, setIsPositive] = useState(true);
+  const { userId } = useUser();
+  const [isLoading, setIsLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [cssScore, setCssScore] = useState<number>(0);
+
+  const fetchData = useCallback(async (silent = false) => {
+    if (!userId) return;
+    if (!silent) setIsLoading(true);
+    
+    try {
+      const response = await fetch(`${base_url}/api/dashboard/${userId}`);
+      if (response.ok) {
+        const dash = await response.json();
+        if (dash.css_score !== undefined) {
+          setCssScore(dash.css_score);
+        }
+      }
+    } catch (error) {
+      console.error("Wrap-up fetch error:", error);
+    } finally {
+      setIsLoading(false);
+      setRefreshing(false);
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchData(true);
+  }, [fetchData]);
+
+  // Determine positive/negative week based on fetched CSS score
+  const isPositive = cssScore >= 60 || cssScore === 0; // fallback to positive if 0
   const d = isPositive ? POSITIVE_DATA : NEGATIVE_DATA;
+
+  // Use the fetched score in the display if available, else fallback
+  const displayCss = cssScore > 0 ? cssScore : d.css;
 
   const exportPDF = async () => {
     try {
@@ -234,7 +275,7 @@ export default function WrapUpScreen() {
               </tr>
               <tr>
                 <td>Average CSS Score</td>
-                <td class="highlight">${d.css} / 100</td>
+                <td class="highlight">${displayCss} / 100</td>
                 <td style="color: #639922;">+5 pts from last week</td>
               </tr>
               <tr>
@@ -377,67 +418,12 @@ export default function WrapUpScreen() {
         </View>
       </View>
 
-      {/* Dev toggle */}
-      <View className="px-5 py-3">
-        <View className="flex-row bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5 border border-slate-200 dark:border-slate-800/70">
-          <TouchableOpacity
-            className="flex-1 py-1.5 rounded-md items-center"
-            style={
-              isPositive
-                ? {
-                    backgroundColor: "#ffffff",
-                    borderWidth: 1,
-                    borderColor: "rgba(226, 232, 240, 0.7)",
-                    shadowColor: "#0f172a",
-                    shadowOffset: { width: 0, height: 1 },
-                    shadowOpacity: 0.05,
-                    shadowRadius: 2,
-                    elevation: 1,
-                  }
-                : undefined
-            }
-            onPress={() => setIsPositive(true)}
-            activeOpacity={0.8}
-          >
-            <Text
-              className="text-xs font-medium"
-              style={{ color: isPositive ? "#0f172a" : "#94a3b8" }}
-            >
-              Positive week
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            className="flex-1 py-1.5 rounded-md items-center"
-            style={
-              !isPositive
-                ? {
-                    backgroundColor: "#ffffff",
-                    borderWidth: 1,
-                    borderColor: "rgba(226, 232, 240, 0.7)",
-                    shadowColor: "#0f172a",
-                    shadowOffset: { width: 0, height: 1 },
-                    shadowOpacity: 0.05,
-                    shadowRadius: 2,
-                    elevation: 1,
-                  }
-                : undefined
-            }
-            onPress={() => setIsPositive(false)}
-            activeOpacity={0.8}
-          >
-            <Text
-              className="text-xs font-medium"
-              style={{ color: !isPositive ? "#0f172a" : "#94a3b8" }}
-            >
-              Negative week
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
       <ScrollView
-        contentContainerClassName="px-5 pb-28"
+        contentContainerClassName="px-5 pb-28 pt-2"
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#64748b" />
+        }
       >
         {/* Banner */}
         <View
@@ -474,7 +460,7 @@ export default function WrapUpScreen() {
         <View className="flex-row flex-wrap -mx-1.5 mb-2">
           <MetricCard
             title="Avg CSS score"
-            value={d.css}
+            value={displayCss}
             unit="/100"
             icon="heart-pulse"
             iconColor="#3b6d11"

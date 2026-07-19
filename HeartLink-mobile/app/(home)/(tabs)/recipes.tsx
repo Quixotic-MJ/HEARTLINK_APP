@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -6,11 +6,14 @@ import {
   ScrollView,
   Image,
   TextInput,
+  RefreshControl,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
+import { useUser } from "../../../contexts/UserContext";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -230,7 +233,6 @@ function NutritionPill({
   highlight?: boolean;
 }) {
   return (
-    // All conditional color via inline style — no dynamic className
     <View
       className="flex-1 rounded-xl px-2.5 py-2 border"
       style={{
@@ -245,7 +247,7 @@ function NutritionPill({
         {value}
         <Text className="text-[11px] font-normal text-slate-400"> {unit}</Text>
       </Text>
-      <Text className="text-[7px] text-slate-400 uppercase tracking-wide mt-0.5">
+      <Text className="text-[9px] text-slate-400 uppercase tracking-wide mt-0.5">
         {label}
       </Text>
     </View>
@@ -262,10 +264,10 @@ function RecipeCard({ recipe, onPress, isSaved, onSave }: { recipe: Recipe; onPr
     <TouchableOpacity
       activeOpacity={0.85}
       onPress={onPress}
-      className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 overflow-hidden mb-10"
+      className="bg-white rounded-2xl border border-slate-200 overflow-hidden mb-5"
     >
       {/* Image */}
-      <View className="h-[148px] bg-slate-100 dark:bg-slate-800 relative">
+      <View className="h-[160px] bg-slate-100 relative">
         <Image
           source={{ uri: recipe.image }}
           className="w-full h-full"
@@ -275,23 +277,23 @@ function RecipeCard({ recipe, onPress, isSaved, onSave }: { recipe: Recipe; onPr
         <TouchableOpacity
           activeOpacity={0.8}
           onPress={(e) => { e.stopPropagation(); onSave(); }}
-          className="absolute top-3 right-3 w-8 h-8 bg-white dark:bg-slate-900 dark:bg-slate-100/90 rounded-full items-center justify-center shadow-sm"
+          className="absolute top-3 right-3 w-8 h-8 bg-white/90 rounded-full items-center justify-center shadow-sm"
         >
           <Feather name="heart" size={15} color={isSaved ? "#ef4444" : "#64748b"} style={isSaved ? { fill: "#ef4444" } : {}} />
         </TouchableOpacity>
 
         {/* Prep time */}
-        <View className="absolute bottom-3 left-3 flex-row items-center gap-1 px-2.5 py-1 rounded-lg"
-          style={{ backgroundColor: "rgba(0,0,0,0.55)" }}>
-          <Feather name="clock" size={11} color="rgba(255,255,255,0.9)" />
-          <Text className="text-white dark:text-slate-900 text-[11px]">{recipe.prepTime} min</Text>
+        <View className="absolute bottom-3 left-3 flex-row items-center gap-1.5 px-2.5 py-1.5 rounded-lg"
+          style={{ backgroundColor: "rgba(0,0,0,0.65)" }}>
+          <Feather name="clock" size={12} color="rgba(255,255,255,0.9)" />
+          <Text className="text-white text-[11px] font-medium">{recipe.prepTime} min</Text>
         </View>
-        {/* Difficulty — dynamic bg/text via inline style */}
+        {/* Difficulty */}
         <View
-          className="absolute bottom-3 right-3 px-2.5 py-1 rounded-lg"
+          className="absolute bottom-3 right-3 px-2.5 py-1.5 rounded-lg"
           style={{ backgroundColor: diffCfg.bg }}
         >
-          <Text className="text-[10px] font-medium uppercase tracking-wide" style={{ color: diffCfg.text }}>
+          <Text className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: diffCfg.text }}>
             {recipe.difficulty}
           </Text>
         </View>
@@ -311,7 +313,7 @@ function RecipeCard({ recipe, onPress, isSaved, onSave }: { recipe: Recipe; onPr
               }}
             >
               <Text
-                className="text-[9px] uppercase tracking-wide"
+                className="text-[10px] font-medium uppercase tracking-wide"
                 style={{ color: tag === "Low Sodium" ? "#3b6d11" : "#94a3b8" }}
               >
                 {tag}
@@ -320,10 +322,10 @@ function RecipeCard({ recipe, onPress, isSaved, onSave }: { recipe: Recipe; onPr
           ))}
         </View>
 
-        <Text className="text-[15px] font-medium text-slate-900 dark:text-white dark:text-slate-900 mb-0.5 leading-snug">
+        <Text className="text-[16px] font-medium text-slate-900 mb-0.5 leading-snug">
           {recipe.title}
         </Text>
-        <Text className="text-[13px] text-slate-400 mb-3">
+        <Text className="text-[13px] text-slate-500 mb-4">
           {recipe.subtitle}
         </Text>
 
@@ -340,7 +342,6 @@ function RecipeCard({ recipe, onPress, isSaved, onSave }: { recipe: Recipe; onPr
 }
 
 // ─── Filter Chip ──────────────────────────────────────────────────────────────
-// Dynamic bg/border/text via inline style — avoids css-interop crash
 
 function FilterChip({
   label,
@@ -362,7 +363,7 @@ function FilterChip({
       }}
     >
       <Text
-        className="text-[12px] font-medium"
+        className="text-[13px] font-medium"
         style={{ color: active ? "#fff" : "#64748b" }}
       >
         {label}
@@ -375,6 +376,7 @@ function FilterChip({
 
 export default function RecipesScreen() {
   const router = useRouter();
+  const { user } = useUser();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState("All");
   const [savedRecipes, setSavedRecipes] = useState<string[]>([]);
@@ -382,43 +384,51 @@ export default function RecipesScreen() {
   
   const [recipesList, setRecipesList] = useState<Recipe[]>(RECIPES);
   const [isLoading, setIsLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchRecipes = useCallback(async (silent = false) => {
+    if (!silent) setIsLoading(true);
+    try {
+      const response = await fetch(`${base_url}/api/recipes/`);
+      if (response.ok) {
+        const data = await response.json();
+        const mapped = data.map((r: any) => ({
+          id: r.id,
+          title: r.name,
+          subtitle: r.subtitle || "",
+          prepTime: r.prep_time_minutes || 0,
+          servings: r.servings || 1,
+          difficulty: r.difficulty || "Easy",
+          image: r.image_url || "https://images.unsplash.com/photo-1587486913049-53fc88980cfc?w=200&q=80",
+          tags: r.tags || [],
+          heartBenefit: r.heart_benefit || "",
+          nutrition: {
+            sodium: r.sodium_mg || 0,
+            fiber: r.fiber_g || 0,
+            saturatedFat: r.saturated_fat_g || 0,
+            calories: r.calories || 0,
+          },
+          ingredients: r.ingredients ? Object.keys(r.ingredients).map(k => ({ qty: r.ingredients[k], item: k })) : [],
+          steps: r.steps || [],
+        }));
+        setRecipesList(mapped);
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
 
   useEffect(() => {
-    async function fetchRecipes() {
-      setIsLoading(true);
-      try {
-        const response = await fetch(`${base_url}/api/recipes/`);
-        if (response.ok) {
-          const data = await response.json();
-          const mapped = data.map((r: any) => ({
-            id: r.id,
-            title: r.name,
-            subtitle: r.subtitle || "",
-            prepTime: r.prep_time_minutes || 0,
-            servings: r.servings || 1,
-            difficulty: r.difficulty || "Easy",
-            image: r.image_url || "https://images.unsplash.com/photo-1587486913049-53fc88980cfc?w=200&q=80",
-            tags: r.tags || [],
-            heartBenefit: r.heart_benefit || "",
-            nutrition: {
-              sodium: r.sodium_mg || 0,
-              fiber: r.fiber_g || 0,
-              saturatedFat: r.saturated_fat_g || 0,
-              calories: r.calories || 0,
-            },
-            ingredients: r.ingredients ? Object.keys(r.ingredients).map(k => ({ qty: r.ingredients[k], item: k })) : [],
-            steps: r.steps || [],
-          }));
-          setRecipesList(mapped);
-        }
-      } catch (error) {
-        console.error(error);
-      } finally {
-        setIsLoading(false);
-      }
-    }
     fetchRecipes();
-  }, []);
+  }, [fetchRecipes]);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchRecipes(true);
+  }, [fetchRecipes]);
 
   const filters = ["All", "Tailored For You", "Saved", "Low Sodium", "High Fiber", "Filipino", "Breakfast"];
 
@@ -428,7 +438,6 @@ export default function RecipesScreen() {
       setActiveFilter("Breakfast");
       setTimeMessage("Good morning! Here are some heart-healthy breakfast ideas.");
     } else if (hour >= 17 && hour <= 21) {
-      // Just showing a general evening message, keeping current filter or defaulting to all
       setTimeMessage("Good evening! Time for a light, heart-healthy dinner.");
     }
   }, []);
@@ -474,73 +483,73 @@ export default function RecipesScreen() {
   }, [recipesList]);
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-slate-50" edges={["top"]}>
       <StatusBar style="dark" />
 
       {/* ── Top bar ── */}
-      <View className="flex-row justify-between items-center px-5 pt-4 pb-2">
+      <View className="flex-row justify-between items-center px-5 pt-3 pb-2">
         <View className="flex-row items-center gap-2.5">
-          <View className="w-7 h-7 rounded-full items-center justify-center border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 dark:bg-slate-100">
+          <View className="w-7 h-7 rounded-full items-center justify-center border border-slate-200 bg-white">
             <Feather name="heart" size={13} color="#0f172a" />
           </View>
-          <Text className="text-[16px] text-slate-900 dark:text-white dark:text-slate-900 tracking-tight" style={{ fontWeight: "300" }}>Heart<Text style={{ fontWeight: "600" }}>Link.</Text></Text>
+          <Text className="text-[16px] text-slate-900 tracking-tight" style={{ fontWeight: "300" }}>Heart<Text style={{ fontWeight: "600" }}>Link.</Text></Text>
         </View>
         <View className="flex-row items-center gap-2">
-          <TouchableOpacity onPress={() => router.push("/(home)/notifications")} className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-800/70 items-center justify-center">
+          <TouchableOpacity onPress={() => router.push("/(home)/notifications")} className="w-9 h-9 rounded-xl bg-slate-100 border border-slate-200 items-center justify-center">
             <Feather name="bell" size={17} color="#64748b" />
             <View style={{ position: "absolute", top: 8, right: 8 }} className="w-1.5 h-1.5 bg-red-500 rounded-full" />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => router.push("/(home)/settings")} className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-800/70 items-center justify-center">
+          <TouchableOpacity onPress={() => router.push("/(home)/settings")} className="w-9 h-9 rounded-xl bg-slate-100 border border-slate-200 items-center justify-center">
             <Feather name="settings" size={17} color="#64748b" />
           </TouchableOpacity>
           <TouchableOpacity onPress={() => router.push("/(home)/profile")} activeOpacity={0.8} className="ml-1">
             <View className="w-9 h-9 rounded-full bg-slate-200 overflow-hidden">
-              <Image source={{ uri: "https://scontent.fcgy2-2.fna.fbcdn.net/v/t39.30808-6/470238702_122163229004273349_6885730481985014209_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=a5f93a&_nc_eui2=AeFspkU-pAnduqXzsg0nCMQSc3h1gs4ySEZzeHWCzjJIRiS7qjQy166_bn5hNqi44fxFQkp5tRFulwgVSN60yG1o&_nc_ohc=JjKG5iySuBYQ7kNvwF3zmCi&_nc_oc=AdqJL2LZkjt9IqiM_KPQtb2ZUT6mEm5UdI2cgi-6Mu6INC3QVBLGz8-OKHIG4Fuyfuk&_nc_zt=23&_nc_ht=scontent.fcgy2-2.fna&_nc_gid=zjeomdkvajMCPjEc3tC8YQ&_nc_ss=7b2a8&oh=00_Af_FFO3skv0KzZZjqU44lc3j6qTtYj5r07rF5GLagi9HDg&oe=6A275350" }} className="w-full h-full" resizeMode="cover" />
+              <Image source={{ uri: user?.avatar_url || "https://ui-avatars.com/api/?name=" + (user?.first_name || "U") + "&background=e2e8f0&color=475569&bold=true" }} className="w-full h-full" resizeMode="cover" />
             </View>
             <View style={{ position: "absolute", bottom: -1, right: -1 }} className="w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-slate-50" />
           </TouchableOpacity>
         </View>
       </View>
 
-      <View className="flex-row items-center justify-between px-5 pt-3">
+      <View className="flex-row items-center justify-between px-5 pt-4">
         <View>
-          <Text className="text-[22px] font-medium text-slate-900 dark:text-white dark:text-slate-900 tracking-tight">
+          <Text className="text-[26px] font-medium text-slate-900 tracking-tight">
             Recipes
           </Text>
-          <Text className="text-[13px] text-slate-400 mt-0.5">
+          <Text className="text-[14px] text-slate-500 mt-0.5">
             Heart-healthy meals for you
           </Text>
         </View>
-        <View className="w-10 h-10 rounded-xl bg-green-50 border border-green-100 items-center justify-center mt-2">
-          <MaterialCommunityIcons name="silverware-fork-knife" size={18} color="#3b6d11" />
+        <View className="w-12 h-12 rounded-2xl bg-green-50 border border-green-100 items-center justify-center mt-2">
+          <MaterialCommunityIcons name="silverware-fork-knife" size={20} color="#3b6d11" />
         </View>
       </View>
 
       {/* Search bar */}
-      <View className="px-5 pt-3 pb-1">
-        <View className="flex-row items-center bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl px-3.5 py-2.5 border border-slate-200 dark:border-slate-800/70 gap-2.5">
-          <Feather name="search" size={16} color="#94a3b8" />
+      <View className="px-5 pt-4 pb-2">
+        <View className="flex-row items-center bg-white rounded-2xl px-4 py-3 border border-slate-200 gap-2.5">
+          <Feather name="search" size={18} color="#94a3b8" />
           <TextInput
             placeholder="Search recipes, ingredients…"
             placeholderTextColor="#94a3b8"
             value={searchQuery}
             onChangeText={setSearchQuery}
-            className="flex-1 text-[14px] text-slate-900 dark:text-white dark:text-slate-900"
+            className="flex-1 text-[15px] text-slate-900"
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity onPress={() => setSearchQuery("")}>
-              <Feather name="x" size={16} color="#94a3b8" />
+              <Feather name="x-circle" size={18} color="#94a3b8" />
             </TouchableOpacity>
           )}
         </View>
       </View>
 
       {/* Filter chips */}
-      <View className="mt-2 mb-1">
+      <View className="mt-2 mb-2">
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerClassName="px-5 gap-2 py-1"
+          contentContainerClassName="px-5 gap-2.5 py-1"
         >
           {filters.map((f) => (
             <FilterChip
@@ -556,18 +565,21 @@ export default function RecipesScreen() {
       <ScrollView
         contentContainerClassName="pb-28"
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#0f172a" />
+        }
       >
         {/* Tailored banner */}
         {activeFilter === "Tailored For You" && (
-          <View className="mx-5 mt-3 mb-1 bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4 flex-row items-start gap-3">
-            <View className="w-8 h-8 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/70 items-center justify-center flex-shrink-0">
-              <Feather name="shield" size={15} color="#185fa5" />
+          <View className="mx-5 mt-4 mb-2 bg-white rounded-2xl border border-slate-200 p-4 flex-row items-start gap-3">
+            <View className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 items-center justify-center flex-shrink-0">
+              <Feather name="shield" size={18} color="#185fa5" />
             </View>
             <View className="flex-1">
-              <Text className="text-[13px] font-medium text-slate-900 dark:text-white dark:text-slate-900 mb-0.5">
+              <Text className="text-[14px] font-medium text-slate-900 mb-0.5">
                 Filtered for your conditions
               </Text>
-              <Text className="text-[12px] text-slate-400 leading-[17px]">
+              <Text className="text-[13px] text-slate-500 leading-relaxed">
                 {USER_CONDITIONS.includes("Hypertension") && "Showing recipes with < 140 mg sodium. "}
                 {USER_CONDITIONS.includes("High Cholesterol") && "Prioritising high-fiber recipes (≥ 5 g). "}
                 Based on your health baseline.
@@ -578,20 +590,24 @@ export default function RecipesScreen() {
 
         {/* Time Message Banner */}
         {timeMessage && activeFilter !== "Tailored For You" && activeFilter !== "Saved" && (
-          <View className="mx-5 mt-3 mb-1 bg-indigo-50 rounded-2xl border border-indigo-100 p-4 flex-row items-center gap-3">
-            <Feather name="sun" size={18} color="#4338ca" />
-            <Text className="flex-1 text-[13px] font-medium text-indigo-900">{timeMessage}</Text>
+          <View className="mx-5 mt-4 mb-2 bg-indigo-50 rounded-2xl border border-indigo-100 p-4 flex-row items-center gap-3">
+            <View className="w-10 h-10 rounded-xl bg-white/60 items-center justify-center">
+              <Feather name="sun" size={18} color="#4338ca" />
+            </View>
+            <Text className="flex-1 text-[14px] font-medium text-indigo-900 leading-snug">{timeMessage}</Text>
           </View>
         )}
 
         {/* Recipe list */}
-        <View className="px-5 mt-3">
-          {filteredRecipes.length === 0 ? (
+        <View className="px-5 mt-4">
+          {isLoading && !refreshing ? (
+            <ActivityIndicator size="large" color="#0f172a" style={{ marginTop: 40 }} />
+          ) : filteredRecipes.length === 0 ? (
             <View className="items-center pt-16">
-              <View className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-800/70 items-center justify-center mb-4">
+              <View className="w-16 h-16 rounded-2xl bg-slate-100 border border-slate-200 items-center justify-center mb-4">
                 <Feather name="search" size={26} color="#cbd5e1" />
               </View>
-              <Text className="text-[16px] font-medium text-slate-900 dark:text-white dark:text-slate-900 mb-1">
+              <Text className="text-[16px] font-medium text-slate-900 mb-1">
                 No recipes found
               </Text>
               <Text className="text-[13px] text-slate-400 text-center">
@@ -620,4 +636,4 @@ export default function RecipesScreen() {
   );
 }
 
-export { RECIPES };
+export { RECIPES };

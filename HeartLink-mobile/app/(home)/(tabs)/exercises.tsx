@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useEffect } from "react";
+import React, { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -8,6 +8,8 @@ import {
   Animated,
   Pressable,
   Image,
+  ActivityIndicator,
+  RefreshControl,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -130,34 +132,6 @@ const STATUS_CONFIG = {
   },
 } as const;
 
-// ─── Dev Toggle ───────────────────────────────────────────────────────────────
-
-function DevBtn({
-  label,
-  active,
-  onPress,
-}: {
-  label: string;
-  active: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <TouchableOpacity
-      onPress={onPress}
-      activeOpacity={0.8}
-      className="flex-1 py-1.5 rounded-md items-center"
-      style={active ? { backgroundColor: "#fff" } : undefined}
-    >
-      <Text
-        className="text-[12px] font-medium"
-        style={{ color: active ? "#0f172a" : "#94a3b8" }}
-      >
-        {label}
-      </Text>
-    </TouchableOpacity>
-  );
-}
-
 // ─── Routine Card ─────────────────────────────────────────────────────────────
 
 function RoutineCard({
@@ -177,7 +151,7 @@ function RoutineCard({
     <TouchableOpacity
       activeOpacity={0.8}
       onPress={onPressCard}
-      className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 mb-3 overflow-hidden"
+      className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/70 mb-4 overflow-hidden"
     >
       {/* Thumbnail */}
       <View className="w-full h-36 bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800/50 items-center justify-center relative">
@@ -210,7 +184,7 @@ function RoutineCard({
         {/* Completed checkmark overlay */}
         {isCompleted && (
           <View className="absolute inset-0 bg-black/20 items-center justify-center">
-            <View className="w-12 h-12 rounded-full bg-white dark:bg-slate-900 dark:bg-slate-100/90 items-center justify-center">
+            <View className="w-12 h-12 rounded-full bg-white dark:bg-slate-900 items-center justify-center">
               <Feather name="check" size={22} color="#3b6d11" />
             </View>
           </View>
@@ -221,25 +195,25 @@ function RoutineCard({
       <View className="p-4">
         <View className="flex-row items-start justify-between mb-2">
           <View className="flex-1 pr-3">
-            <Text className="text-[15px] font-medium text-slate-900 dark:text-white dark:text-slate-900 leading-snug mb-0.5">
+            <Text className="text-[16px] font-medium text-slate-900 dark:text-white leading-snug mb-1">
               {routine.title}
             </Text>
-            <Text className="text-[12px] text-slate-400 leading-5">
+            <Text className="text-[13px] text-slate-400 leading-5">
               {routine.goal}
             </Text>
           </View>
           <View
-            className="w-9 h-9 rounded-xl items-center justify-center"
+            className="w-10 h-10 rounded-xl items-center justify-center"
             style={{ backgroundColor: cfg.bg }}
           >
-            <Feather name={cfg.icon} size={16} color={cfg.color} />
+            <Feather name={cfg.icon} size={18} color={cfg.color} />
           </View>
         </View>
 
         {/* Intensity chip */}
-        <View className="flex-row items-center gap-1.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/70 px-2.5 py-1 rounded-lg self-start mb-4">
-          <Feather name="zap" size={10} color="#94a3b8" />
-          <Text className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+        <View className="flex-row items-center gap-1.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/70 px-2.5 py-1.5 rounded-lg self-start mb-4">
+          <Feather name="zap" size={12} color="#94a3b8" />
+          <Text className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
             {routine.intensity} intensity
           </Text>
         </View>
@@ -248,7 +222,7 @@ function RoutineCard({
         <TouchableOpacity
           activeOpacity={0.85}
           onPress={onStart}
-          className="py-3 rounded-xl items-center justify-center flex-row gap-2 border"
+          className="py-3.5 rounded-xl items-center justify-center flex-row gap-2 border"
           style={{
             backgroundColor: isCompleted ? "#f0fdf4" : "#0f172a",
             borderColor: isCompleted ? "#bbf7d0" : "#0f172a",
@@ -256,11 +230,11 @@ function RoutineCard({
         >
           <Feather
             name={isCompleted ? "repeat" : "play"}
-            size={14}
+            size={16}
             color={isCompleted ? "#3b6d11" : "#fff"}
           />
           <Text
-            className="text-[13px] font-medium"
+            className="text-[14px] font-medium"
             style={{ color: isCompleted ? "#3b6d11" : "#fff" }}
           >
             {isCompleted ? "Do it again" : "Start routine"}
@@ -288,23 +262,23 @@ function SafetyCheckModal({
         className="flex-1 justify-end"
         style={{ backgroundColor: "rgba(15,23,42,0.5)" }}
       >
-        <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-t-3xl px-5 pb-12 pt-3 border-t border-slate-200 dark:border-slate-800/50">
+        <View className="bg-white dark:bg-slate-900 rounded-t-[32px] px-6 pb-12 pt-4 border-t border-slate-200 dark:border-slate-800/50 shadow-lg">
           {/* Drag handle */}
-          <View className="w-10 h-1 bg-slate-200 rounded-full self-center mb-5" />
+          <View className="w-12 h-1.5 bg-slate-200 rounded-full self-center mb-6" />
 
           {/* Icon */}
-          <View className="w-14 h-14 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/70 items-center justify-center self-center mb-4">
+          <View className="w-16 h-16 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/70 items-center justify-center self-center mb-5">
             <MaterialCommunityIcons
               name="heart-pulse"
-              size={26}
+              size={32}
               color="#a32d2d"
             />
           </View>
 
-          <Text className="text-[20px] font-medium text-slate-900 dark:text-white dark:text-slate-900 text-center mb-2">
+          <Text className="text-[22px] font-medium text-slate-900 dark:text-white text-center mb-2">
             Quick safety check
           </Text>
-          <Text className="text-[13px] text-slate-400 text-center leading-relaxed mb-7 px-4">
+          <Text className="text-[14px] text-slate-400 text-center leading-relaxed mb-8 px-2">
             Did you experience any chest discomfort, shortness of breath, or
             dizziness during this routine?
           </Text>
@@ -313,12 +287,12 @@ function SafetyCheckModal({
           <TouchableOpacity
             activeOpacity={0.85}
             onPress={onSafe}
-            className="rounded-2xl py-4 items-center mb-2.5 flex-row justify-center gap-2.5 border"
+            className="rounded-2xl py-4 items-center mb-3 flex-row justify-center gap-2.5 border"
             style={{ backgroundColor: "#eaf3de", borderColor: "#c0dd97" }}
           >
-            <Feather name="check-circle" size={18} color="#3b6d11" />
+            <Feather name="check-circle" size={20} color="#3b6d11" />
             <Text
-              className="text-[15px] font-medium"
+              className="text-[16px] font-medium"
               style={{ color: "#3b6d11" }}
             >
               No, I feel great
@@ -332,9 +306,9 @@ function SafetyCheckModal({
             className="rounded-2xl py-4 items-center flex-row justify-center gap-2.5 border"
             style={{ backgroundColor: "#fcebeb", borderColor: "#f7c1c1" }}
           >
-            <Feather name="alert-triangle" size={16} color="#a32d2d" />
+            <Feather name="alert-triangle" size={18} color="#a32d2d" />
             <Text
-              className="text-[15px] font-medium"
+              className="text-[16px] font-medium"
               style={{ color: "#a32d2d" }}
             >
               Yes, I felt symptoms
@@ -355,35 +329,9 @@ export default function ExercisesScreen() {
 
   const [routinesList, setRoutinesList] = useState<Routine[]>(ROUTINES);
   const [isLoading, setIsLoading] = useState(false);
-
-  useEffect(() => {
-    async function fetchRoutines() {
-      setIsLoading(true);
-      try {
-        const response = await fetch(`${base_url}/api/exercises/`);
-        if (response.ok) {
-          const data = await response.json();
-          const mapped = data.map((r: any) => ({
-            id: r.id,
-            title: r.name || "",
-            duration: r.duration_minutes || 0,
-            goal: r.goal || "",
-            type: r.type || "Light Cardio",
-            intensity: r.intensity || "Low",
-            category: r.css_tier || "Stable",
-          }));
-          setRoutinesList(mapped);
-        }
-      } catch (error) {
-        console.error(error);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    fetchRoutines();
-  }, []);
-
-  const [cssScore, setCssScore] = useState<number>(78);
+  const [refreshing, setRefreshing] = useState(false);
+  
+  const [cssScore, setCssScore] = useState<number>(0);
   const [completedExercises, setCompletedExercises] = useState<string[]>([]);
   const [showSafetyCheck, setShowSafetyCheck] = useState(false);
   const [pendingRoutine, setPendingRoutine] = useState<Routine | null>(null);
@@ -391,24 +339,63 @@ export default function ExercisesScreen() {
 
   const slideAnim = useRef(new Animated.Value(-100)).current;
 
-  useEffect(() => {
-    async function fetchLogs() {
-      try {
-        const response = await fetch(`${base_url}/api/exercises/logs/${userId}`);
-        if (response.ok) {
-          const data = await response.json();
-          const today = new Date().toDateString();
-          const todayIds = data
-            .filter((log: any) => new Date(log.logged_at).toDateString() === today)
-            .map((log: any) => log.routine_id);
-          setCompletedExercises(todayIds);
-        }
-      } catch (e) {
-        console.error(e);
+  const fetchData = useCallback(async () => {
+    if (!userId) return;
+    try {
+      const [routinesRes, dashboardRes, logsRes] = await Promise.all([
+        fetch(`${base_url}/api/exercises/`),
+        fetch(`${base_url}/api/dashboard/${userId}`),
+        fetch(`${base_url}/api/exercises/logs/${userId}`)
+      ]);
+
+      if (routinesRes.ok) {
+        const data = await routinesRes.json();
+        const mapped = data.map((r: any) => ({
+          id: r.id,
+          title: r.name || "",
+          duration: r.duration_minutes || 0,
+          goal: r.goal || "",
+          type: r.type || "Light Cardio",
+          intensity: r.intensity || "Low",
+          category: r.css_tier || "Stable",
+        }));
+        setRoutinesList(mapped.length > 0 ? mapped : ROUTINES);
       }
+      
+      if (dashboardRes.ok) {
+        const dash = await dashboardRes.json();
+        if (dash.css_score !== undefined) {
+          setCssScore(dash.css_score);
+        }
+      }
+      
+      if (logsRes.ok) {
+        const data = await logsRes.json();
+        const today = new Date().toDateString();
+        const todayIds = data
+          .filter((log: any) => new Date(log.logged_at).toDateString() === today)
+          .map((log: any) => log.routine_id);
+        setCompletedExercises(todayIds);
+      }
+    } catch (error) {
+      console.error(error);
     }
-    if (userId) fetchLogs();
-  }, [userId, params.completedId]);
+  }, [userId]);
+
+  useEffect(() => {
+    async function initialLoad() {
+      setIsLoading(true);
+      await fetchData();
+      setIsLoading(false);
+    }
+    initialLoad();
+  }, [fetchData]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetchData();
+    setRefreshing(false);
+  }, [fetchData]);
 
   useEffect(() => {
     if (params.completedId) {
@@ -511,10 +498,10 @@ export default function ExercisesScreen() {
       {/* ── Top bar ── */}
       <View className="flex-row justify-between items-center px-5 pt-4 pb-2">
         <View className="flex-row items-center gap-2.5">
-          <View className="w-7 h-7 rounded-full items-center justify-center border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 dark:bg-slate-100">
+          <View className="w-7 h-7 rounded-full items-center justify-center border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
             <Feather name="heart" size={13} color="#0f172a" />
           </View>
-          <Text className="text-[16px] text-slate-900 dark:text-white dark:text-slate-900 tracking-tight" style={{ fontWeight: "300" }}>Heart<Text style={{ fontWeight: "600" }}>Link.</Text></Text>
+          <Text className="text-[16px] text-slate-900 dark:text-white tracking-tight" style={{ fontWeight: "300" }}>Heart<Text style={{ fontWeight: "600" }}>Link.</Text></Text>
         </View>
         <View className="flex-row items-center gap-2">
           <TouchableOpacity onPress={() => router.push("/(home)/notifications")} className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-800/70 items-center justify-center">
@@ -533,180 +520,168 @@ export default function ExercisesScreen() {
         </View>
       </View>
 
-      <View className="px-5 pt-3">
-        <Text className="text-[22px] font-medium text-slate-900 dark:text-white dark:text-slate-900 tracking-tight">
+      <View className="px-5 pt-3 mb-4">
+        <Text className="text-[24px] font-medium text-slate-900 dark:text-white tracking-tight">
           Rehab routines
         </Text>
-        <Text className="text-[13px] text-slate-400 mt-0.5">
+        <Text className="text-[14px] text-slate-400 mt-0.5">
           Adapted to your daily heart stability
         </Text>
       </View>
 
-      {/* Dev toggle */}
-      <View className="px-5 py-3">
-        <View className="flex-row bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5 border border-slate-200 dark:border-slate-800/70">
-          <DevBtn
-            label="Stable (90)"
-            active={cssScore === 90}
-            onPress={() => setCssScore(90)}
-          />
-          <DevBtn
-            label="Monitor (78)"
-            active={cssScore === 78}
-            onPress={() => setCssScore(78)}
-          />
-          <DevBtn
-            label="Risk (60)"
-            active={cssScore === 60}
-            onPress={() => setCssScore(60)}
-          />
+      {isLoading && !refreshing ? (
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator size="large" color="#0f172a" />
         </View>
-      </View>
-
-      <ScrollView
-        contentContainerClassName="px-5 pb-28"
-        showsVerticalScrollIndicator={false}
-      >
-        {/* CSS score card */}
-        <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4 mb-3">
-          <View className="flex-row items-center justify-between mb-3">
-            <Text className="text-[11px] text-slate-400 uppercase tracking-wide">
-              Current CSS score
-            </Text>
-            <View
-              className="px-2.5 py-1 rounded-lg"
-              style={{ backgroundColor: statusCfg.badgeBg }}
-            >
-              <Text
-                className="text-[11px] font-medium"
-                style={{ color: statusCfg.badgeText }}
-              >
-                {cssStatus}
+      ) : (
+        <ScrollView
+          contentContainerClassName="px-5 pb-28"
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#0f172a" />
+          }
+        >
+          {/* CSS score card */}
+          <View className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-5 mb-4 shadow-sm shadow-slate-100">
+            <View className="flex-row items-center justify-between mb-4">
+              <Text className="text-[12px] font-medium text-slate-400 uppercase tracking-wide">
+                Current CSS score
               </Text>
+              <View
+                className="px-3 py-1.5 rounded-lg border"
+                style={{ backgroundColor: statusCfg.badgeBg, borderColor: statusCfg.badgeBg !== "#fff" ? statusCfg.badgeBg : "#e2e8f0" }}
+              >
+                <Text
+                  className="text-[12px] font-bold tracking-wide uppercase"
+                  style={{ color: statusCfg.badgeText }}
+                >
+                  {cssStatus}
+                </Text>
+              </View>
             </View>
-          </View>
 
-          <Text className="text-[36px] font-medium text-slate-900 dark:text-white dark:text-slate-900 tracking-tight leading-none mb-1">
-            {cssScore}
-            <Text className="text-[16px] font-normal text-slate-400">
-              {" "}
-              / 100
+            <Text className="text-[40px] font-medium text-slate-900 dark:text-white tracking-tight leading-none mb-1">
+              {cssScore}
+              <Text className="text-[18px] font-normal text-slate-400">
+                {" "}
+                / 100
+              </Text>
             </Text>
-          </Text>
 
-          <View className="h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full mt-3 overflow-hidden">
-            <View
-              className="h-full rounded-full"
-              style={{
-                width: `${cssScore}%`,
-                backgroundColor:
-                  cssScore >= 85
-                    ? "#639922"
-                    : cssScore >= 70
-                      ? "#ba7517"
-                      : "#e24b4a",
-              }}
-            />
-          </View>
-
-          {cssStatus === "Elevated Risk" && (
-            <View
-              className="mt-3 p-3 rounded-xl border flex-row items-start gap-2"
-              style={{
-                backgroundColor: statusCfg.bannerBg,
-                borderColor: statusCfg.bannerBorder,
-              }}
-            >
-              <Feather
-                name="alert-triangle"
-                size={13}
-                color="#e24b4a"
-                style={{ marginTop: 1 }}
+            <View className="h-2 bg-slate-100 dark:bg-slate-800 rounded-full mt-4 overflow-hidden">
+              <View
+                className="h-full rounded-full"
+                style={{
+                  width: `${cssScore}%`,
+                  backgroundColor:
+                    cssScore >= 85
+                      ? "#639922"
+                      : cssScore >= 70
+                        ? "#ba7517"
+                        : "#e24b4a",
+                }}
               />
-              <Text
-                className="flex-1 text-[12px] leading-[18px]"
-                style={{ color: "#791f1f" }}
-              >
-                Please consult your physician before engaging in physical
-                activity. Only breathing exercises are shown.
-              </Text>
             </View>
-          )}
-        </View>
 
-        {/* Daily progress */}
-        <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4 mb-4">
-          <View className="flex-row items-center justify-between mb-2.5">
-            <View>
-              <Text className="text-[13px] font-medium text-slate-900 dark:text-white dark:text-slate-900">
-                Daily active target
-              </Text>
-              <Text className="text-[11px] text-slate-400 mt-0.5">
-                30 minutes recommended
-              </Text>
-            </View>
-            <View
-              className="px-2.5 py-1 rounded-lg"
-              style={{
-                backgroundColor: progressPercent >= 100 ? "#eaf3de" : "#f8fafc",
-                borderWidth: 0.5,
-                borderColor: progressPercent >= 100 ? "#c0dd97" : "#e2e8f0",
-              }}
-            >
-              <Text
-                className="text-[12px] font-medium"
-                style={{ color: progressColor }}
+            {cssStatus === "Elevated Risk" && (
+              <View
+                className="mt-4 p-3.5 rounded-xl border flex-row items-start gap-2.5"
+                style={{
+                  backgroundColor: statusCfg.bannerBg,
+                  borderColor: statusCfg.bannerBorder,
+                }}
               >
-                {totalActiveMins} / 30 min
-              </Text>
-            </View>
+                <Feather
+                  name="alert-triangle"
+                  size={15}
+                  color="#e24b4a"
+                  style={{ marginTop: 1 }}
+                />
+                <Text
+                  className="flex-1 text-[13px] leading-5"
+                  style={{ color: "#791f1f" }}
+                >
+                  Please consult your physician before engaging in physical
+                  activity. Only breathing exercises are shown.
+                </Text>
+              </View>
+            )}
           </View>
-          <View className="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-            <View
-              className="h-full rounded-full"
-              style={{
-                width: `${progressPercent}%`,
-                backgroundColor: progressColor,
-              }}
+
+          {/* Daily progress */}
+          <View className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-5 mb-5 shadow-sm shadow-slate-100">
+            <View className="flex-row items-center justify-between mb-3">
+              <View>
+                <Text className="text-[14px] font-medium text-slate-900 dark:text-white mb-0.5">
+                  Daily active target
+                </Text>
+                <Text className="text-[12px] text-slate-400">
+                  30 minutes recommended
+                </Text>
+              </View>
+              <View
+                className="px-3 py-1.5 rounded-lg"
+                style={{
+                  backgroundColor: progressPercent >= 100 ? "#eaf3de" : "#f8fafc",
+                  borderWidth: 1,
+                  borderColor: progressPercent >= 100 ? "#c0dd97" : "#e2e8f0",
+                }}
+              >
+                <Text
+                  className="text-[13px] font-bold"
+                  style={{ color: progressColor }}
+                >
+                  {totalActiveMins} / 30 min
+                </Text>
+              </View>
+            </View>
+            <View className="h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden mt-1">
+              <View
+                className="h-full rounded-full"
+                style={{
+                  width: `${progressPercent}%`,
+                  backgroundColor: progressColor,
+                }}
+              />
+            </View>
+            {progressPercent >= 100 && (
+              <View className="flex-row items-center gap-2 mt-3.5 bg-[#f0fdf4] self-start px-2.5 py-1 rounded-md border border-[#bbf7d0]">
+                <Feather name="check-circle" size={13} color="#639922" />
+                <Text
+                  className="text-[12px] font-medium"
+                  style={{ color: "#3b6d11" }}
+                >
+                  Daily target reached!
+                </Text>
+              </View>
+            )}
+          </View>
+
+          {/* Routine list */}
+          <Text className="text-[16px] font-medium text-slate-900 dark:text-white mb-4">
+            Recommended today
+          </Text>
+          {activeRoutines.map((routine) => (
+            <RoutineCard
+              key={routine.id}
+              routine={routine}
+              isCompleted={completedExercises.includes(routine.id)}
+              onPressCard={() =>
+                router.push({
+                  pathname: "/(home)/routine-player",
+                  params: { id: routine.id },
+                })
+              }
+              onStart={() =>
+                router.push({
+                  pathname: "/(home)/routine-player",
+                  params: { id: routine.id },
+                })
+              }
             />
-          </View>
-          {progressPercent >= 100 && (
-            <View className="flex-row items-center gap-1.5 mt-2.5">
-              <Feather name="check-circle" size={12} color="#639922" />
-              <Text
-                className="text-[11px] font-medium"
-                style={{ color: "#3b6d11" }}
-              >
-                Daily target reached!
-              </Text>
-            </View>
-          )}
-        </View>
-
-        {/* Routine list */}
-        <Text className="text-[14px] font-medium text-slate-900 dark:text-white dark:text-slate-900 mb-3">
-          Recommended today
-        </Text>
-        {activeRoutines.map((routine) => (
-          <RoutineCard
-            key={routine.id}
-            routine={routine}
-            isCompleted={completedExercises.includes(routine.id)}
-            onPressCard={() =>
-              router.push({
-                pathname: "/(home)/routine-player",
-                params: { id: routine.id },
-              })
-            }
-            onStart={() =>
-              router.push({
-                pathname: "/(home)/routine-player",
-                params: { id: routine.id },
-              })
-            }
-          />
-        ))}
-      </ScrollView>
+          ))}
+        </ScrollView>
+      )}
 
       {/* Safety Check Modal */}
       <SafetyCheckModal
