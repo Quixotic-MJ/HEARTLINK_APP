@@ -8,6 +8,7 @@ import {
   Platform,
   ScrollView,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -65,6 +66,7 @@ export default function BiometricsStep4Screen() {
   // Symptom State (Required for baseline)
   const [chestPainType, setChestPainType] = useState(null);
   const [exerciseAngina, setExerciseAngina] = useState(null); // 'yes' or 'no'
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleCompleteOnboarding = async () => {
     const payload = {
@@ -81,6 +83,7 @@ export default function BiometricsStep4Screen() {
     };
 
     try {
+      setIsSubmitting(true);
       const response = await fetch(`${base_url}/api/users/${user_id}/baseline/clinical`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -98,6 +101,8 @@ export default function BiometricsStep4Screen() {
     } catch (error) {
       console.log("Clinical save error:", error);
       Alert.alert("Error", "Could not connect to server");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -432,17 +437,23 @@ export default function BiometricsStep4Screen() {
             <TouchableOpacity
               activeOpacity={0.85}
               onPress={handleCompleteOnboarding}
-              disabled={!chestPainType || !exerciseAngina || takingMedication === null || diagnosedConditions.length === 0}
+              disabled={!chestPainType || !exerciseAngina || takingMedication === null || diagnosedConditions.length === 0 || isSubmitting}
               className="w-full rounded-2xl py-3.5 flex-row justify-center items-center gap-2 mt-4"
-              style={{ backgroundColor: chestPainType && exerciseAngina && takingMedication !== null && diagnosedConditions.length > 0 ? "#0f172a" : "#e2e8f0" }}
+              style={{ backgroundColor: chestPainType && exerciseAngina && takingMedication !== null && diagnosedConditions.length > 0 ? "#0f172a" : "#e2e8f0", opacity: isSubmitting ? 0.8 : 1 }}
             >
-              <Text
-                className="text-[14px] font-medium"
-                style={{ color: chestPainType && exerciseAngina && takingMedication !== null && diagnosedConditions.length > 0 ? "#fff" : "#94a3b8" }}
-              >
-                Complete setup
-              </Text>
-              <Feather name="check" size={15} color={chestPainType && exerciseAngina && takingMedication !== null && diagnosedConditions.length > 0 ? "#fff" : "#94a3b8"} />
+              {isSubmitting ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <>
+                  <Text
+                    className="text-[14px] font-medium"
+                    style={{ color: chestPainType && exerciseAngina && takingMedication !== null && diagnosedConditions.length > 0 ? "#fff" : "#94a3b8" }}
+                  >
+                    Complete setup
+                  </Text>
+                  <Feather name="check" size={15} color={chestPainType && exerciseAngina && takingMedication !== null && diagnosedConditions.length > 0 ? "#fff" : "#94a3b8"} />
+                </>
+              )}
             </TouchableOpacity>
           </View>
 

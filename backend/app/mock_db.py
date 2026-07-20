@@ -611,7 +611,7 @@ exercise_routines = [
             "Exhale forcefully through mouth for 8 seconds.",
             "Repeat cycle 4 times."
         ],
-        "media_url": None,
+        "media_url": "https://youtu.be/Mn4kUw5uXQU?si=y76GOoEw1jHPtyL1",
         "status": "published",
         "expert_validated": True,
         "created_by": "usr-admin-002",

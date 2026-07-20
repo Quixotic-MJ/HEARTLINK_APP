@@ -10,6 +10,8 @@ import {
   RefreshControl,
   Modal,
   Dimensions,
+  BackHandler,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -182,8 +184,8 @@ function formatTimestamp(date: Date) {
 
 // ─── Dashboard Screen ─────────────────────────────────────────────────────────
 export default function DashboardScreen() {
-  const { userId } = useUser();
   const router = useRouter();
+  const { userId, user, setUserId } = useUser();
 
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -192,6 +194,34 @@ export default function DashboardScreen() {
   const [alertModalVisible, setAlertModalVisible] = useState(false);
 
   const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  // Intercept hardware back button
+  useEffect(() => {
+    const backAction = () => {
+      Alert.alert("Sign Out", "Are you sure you want to sign out?", [
+        {
+          text: "Cancel",
+          onPress: () => null,
+          style: "cancel",
+        },
+        {
+          text: "Yes",
+          onPress: () => {
+            setUserId("");
+            router.replace("/(auth)/login");
+          },
+        },
+      ]);
+      return true;
+    };
+
+    const backHandler = BackHandler.addEventListener(
+      "hardwareBackPress",
+      backAction
+    );
+
+    return () => backHandler.remove();
+  }, [router, setUserId]);
 
   const fetchData = useCallback(async (silent = false) => {
     if (!silent) setIsLoading(true);
@@ -320,26 +350,7 @@ export default function DashboardScreen() {
         />
       )}
 
-      {/* ── Alert banner (compact, non-overflowing) ── */}
-      {isAlertActive && (
-        <TouchableOpacity
-          activeOpacity={0.9}
-          onPress={() => setAlertModalVisible(true)}
-          className="mx-4 mt-1 mb-1 rounded-xl overflow-hidden"
-          style={{ backgroundColor: "#dc2626" }}
-        >
-          <View className="flex-row items-center px-4 py-3 gap-3">
-            <View className="w-8 h-8 rounded-lg items-center justify-center" style={{ backgroundColor: "rgba(255,255,255,0.2)" }}>
-              <Feather name="alert-triangle" size={16} color="white" />
-            </View>
-            <View className="flex-1">
-              <Text className="text-white text-[13px] font-semibold" numberOfLines={1}>Health Alert Active</Text>
-              <Text className="text-white/70 text-[11px]" numberOfLines={1}>Tap to view details</Text>
-            </View>
-            <Feather name="chevron-right" size={16} color="rgba(255,255,255,0.6)" />
-          </View>
-        </TouchableOpacity>
-      )}
+
 
       {/* ── Top bar ── */}
       <View className="flex-row justify-between items-center px-5 pt-3 pb-2">
@@ -359,7 +370,7 @@ export default function DashboardScreen() {
           </TouchableOpacity>
           <TouchableOpacity onPress={() => router.push("/(home)/profile")} activeOpacity={0.8} className="ml-1">
             <View className="w-9 h-9 rounded-full bg-slate-200 overflow-hidden">
-              <Image source={{ uri: data?.user?.avatar_url || "https://ui-avatars.com/api/?name=" + (data?.user?.first_name || "U") + "&background=e2e8f0&color=475569&bold=true" }} className="w-full h-full" resizeMode="cover" />
+              <Image source={{ uri: user?.avatar_url || "https://ui-avatars.com/api/?name=" + (user?.first_name || "U") + "&background=e2e8f0&color=475569&bold=true" }} className="w-full h-full" resizeMode="cover" />
             </View>
             <View style={{ position: "absolute", bottom: -1, right: -1 }} className="w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-slate-50" />
           </TouchableOpacity>

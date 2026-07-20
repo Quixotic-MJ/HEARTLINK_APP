@@ -8,6 +8,7 @@ import {
   ScrollView,
   Switch,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -40,6 +41,7 @@ export default function BiometricsStep2Screen() {
   const [smokingStatus, setSmokingStatus] = useState(null); // 'never', 'former', 'current'
   const [sleepHours, setSleepHours] = useState(7); // Default to 7 hours
   const [familyHistory, setFamilyHistory] = useState(false); // Yes/No Toggle
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Custom Stepper Logic
   const incrementSleep = () => setSleepHours((prev) => Math.min(prev + 1, 12));
@@ -53,6 +55,7 @@ export default function BiometricsStep2Screen() {
     };
 
     try {
+      setIsSubmitting(true);
       const response = await fetch(`${base_url}/api/users/${user_id}/baseline/lifestyle`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -72,6 +75,8 @@ export default function BiometricsStep2Screen() {
     } catch (error) {
       console.log("Lifestyle save error:", error);
       Alert.alert("Error", "Could not connect to server");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -244,17 +249,23 @@ export default function BiometricsStep2Screen() {
           <TouchableOpacity
             activeOpacity={0.85}
             onPress={handleNextStep}
-            disabled={!smokingStatus}
+            disabled={!smokingStatus || isSubmitting}
             className="w-full rounded-2xl py-3.5 flex-row justify-center items-center gap-2 mt-4"
-            style={{ backgroundColor: smokingStatus ? "#0f172a" : "#e2e8f0" }}
+            style={{ backgroundColor: smokingStatus ? "#0f172a" : "#e2e8f0", opacity: isSubmitting ? 0.8 : 1 }}
           >
-            <Text
-              className="text-[14px] font-medium"
-              style={{ color: smokingStatus ? "#fff" : "#94a3b8" }}
-            >
-              Next step
-            </Text>
-            <Feather name="arrow-right" size={15} color={smokingStatus ? "#fff" : "#94a3b8"} />
+            {isSubmitting ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <>
+                <Text
+                  className="text-[14px] font-medium"
+                  style={{ color: smokingStatus ? "#fff" : "#94a3b8" }}
+                >
+                  Next step
+                </Text>
+                <Feather name="arrow-right" size={15} color={smokingStatus ? "#fff" : "#94a3b8"} />
+              </>
+            )}
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>

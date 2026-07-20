@@ -10,11 +10,18 @@ export default function RootLayout() {
   const { setColorScheme } = useColorScheme();
 
   useEffect(() => {
+    let mounted = true;
     AsyncStorage.getItem("theme_preference").then((pref) => {
+      if (!mounted) return;
       if (pref === "light" || pref === "dark" || pref === "system") {
-        setColorScheme(pref);
+        setTimeout(() => {
+          setColorScheme(pref);
+        }, 0);
       }
     });
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   return (

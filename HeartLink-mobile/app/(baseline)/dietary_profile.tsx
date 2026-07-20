@@ -8,6 +8,7 @@ import {
   Platform,
   ScrollView,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -41,6 +42,7 @@ export default function BiometricsStep3Screen() {
   const [showOtherAllergy, setShowOtherAllergy] = useState(false);
   const [otherAllergy, setOtherAllergy] = useState("");
   const [dietaryPractice, setDietaryPractice] = useState("None");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Data Constants
   const commonAllergies = [
@@ -100,6 +102,7 @@ export default function BiometricsStep3Screen() {
     };
 
     try {
+      setIsSubmitting(true);
       const response = await fetch(`${base_url}/api/users/${user_id}/baseline/dietary`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -119,6 +122,8 @@ export default function BiometricsStep3Screen() {
     } catch (error) {
       console.log("Dietary save error:", error);
       Alert.alert("Error", "Could not connect to server");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -351,17 +356,23 @@ export default function BiometricsStep3Screen() {
           <TouchableOpacity
             activeOpacity={0.85}
             onPress={handleNextStep}
-            disabled={!sodiumFrequency}
+            disabled={!sodiumFrequency || isSubmitting}
             className="w-full rounded-2xl py-3.5 flex-row justify-center items-center gap-2 mt-4"
-            style={{ backgroundColor: sodiumFrequency ? "#0f172a" : "#e2e8f0" }}
+            style={{ backgroundColor: sodiumFrequency ? "#0f172a" : "#e2e8f0", opacity: isSubmitting ? 0.8 : 1 }}
           >
-            <Text
-              className="text-[14px] font-medium"
-              style={{ color: sodiumFrequency ? "#fff" : "#94a3b8" }}
-            >
-              Next step
-            </Text>
-            <Feather name="arrow-right" size={15} color={sodiumFrequency ? "#fff" : "#94a3b8"} />
+            {isSubmitting ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <>
+                <Text
+                  className="text-[14px] font-medium"
+                  style={{ color: sodiumFrequency ? "#fff" : "#94a3b8" }}
+                >
+                  Next step
+                </Text>
+                <Feather name="arrow-right" size={15} color={sodiumFrequency ? "#fff" : "#94a3b8"} />
+              </>
+            )}
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>

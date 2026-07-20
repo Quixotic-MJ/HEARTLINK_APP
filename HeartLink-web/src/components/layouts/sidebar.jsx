@@ -222,7 +222,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed }) => {
               A
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium text-slate-900 truncate">Admin</p>
+              <p className="text-xs font-medium text-slate-900 truncate">System Admin</p>
               <p className="text-[10px] text-slate-400 truncate">admin@heartlink.ph</p>
             </div>
           </div>

@@ -8,6 +8,7 @@ import {
   Platform,
   ScrollView,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -95,6 +96,7 @@ export default function BiometricsStep1Screen() {
   const [heightFt, setHeightFt] = useState("");
   const [heightIn, setHeightIn] = useState("");
   const [weightLbs, setWeightLbs] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isReady = !!firstName && !!lastName && !!birthDate && !!sex;
 
@@ -115,6 +117,7 @@ export default function BiometricsStep1Screen() {
     }
 
     try {
+      setIsSubmitting(true);
       const response = await fetch(`${base_url}/api/users/${user_id}/profile`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -142,6 +145,8 @@ export default function BiometricsStep1Screen() {
     } catch (error) {
       console.log("Profile save error:", error);
       Alert.alert("Error", "Could not connect to server");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -366,17 +371,23 @@ export default function BiometricsStep1Screen() {
           <TouchableOpacity
             activeOpacity={0.85}
             onPress={handleNext}
-            disabled={!isReady}
+            disabled={!isReady || isSubmitting}
             className="w-full rounded-2xl py-3.5 flex-row justify-center items-center gap-2"
-            style={{ backgroundColor: isReady ? "#0f172a" : "#e2e8f0" }}
+            style={{ backgroundColor: isReady ? "#0f172a" : "#e2e8f0", opacity: isSubmitting ? 0.8 : 1 }}
           >
-            <Text
-              className="text-[14px] font-medium"
-              style={{ color: isReady ? "#fff" : "#94a3b8" }}
-            >
-              Next step
-            </Text>
-            <Feather name="arrow-right" size={15} color={isReady ? "#fff" : "#94a3b8"} />
+            {isSubmitting ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <>
+                <Text
+                  className="text-[14px] font-medium"
+                  style={{ color: isReady ? "#fff" : "#94a3b8" }}
+                >
+                  Next step
+                </Text>
+                <Feather name="arrow-right" size={15} color={isReady ? "#fff" : "#94a3b8"} />
+              </>
+            )}
           </TouchableOpacity>
 
         </ScrollView>

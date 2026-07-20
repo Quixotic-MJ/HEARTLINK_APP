@@ -34,4 +34,4 @@ app.include_router(analytics_api.router)
 @app.get("/api/health", tags=["System"])
 def health_check():
     print("Healthy and connected")
-    return {"status": "healthy", "database_layer": "decoupled_offline_mode"}
+    return {"status": "Backend Connected", "database_layer": "decoupled_offline_mode"}

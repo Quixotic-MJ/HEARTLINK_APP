@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { Mail, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-
+import { useAuth } from "../../contexts/AuthContext";
+import { apiFetch } from "../../api";
 // ─── Heart Icon (matches brand logo — thin outline, no fill) ─────────────────
 function HeartOutlineIcon({ size = 22, color = "currentColor" }) {
   return (
@@ -89,7 +90,9 @@ export default function HeartLinkAdminLogin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const validate = () => {
     const newErrors = {};
@@ -109,10 +112,29 @@ export default function HeartLinkAdminLogin() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (validate()) {
-      navigate("/two-factor");
+      setLoading(true);
+      try {
+        const response = await apiFetch("/api/auth/login", {
+          method: "POST",
+          body: JSON.stringify({
+            identifier: email,
+            password: password,
+          }),
+        });
+        
+        if (response.success) {
+          login(response.user_id);
+          // Skipping 2FA for now
+          navigate("/dashboard");
+        }
+      } catch (error) {
+        setErrors({ ...errors, form: error.data?.detail || "Login failed. Please try again." });
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -234,17 +256,56 @@ export default function HeartLinkAdminLogin() {
               </span>
             </label>
 
+            {errors.form && (
+              <div className="p-3 rounded-xl bg-red-50 border border-red-100 flex items-start gap-2.5">
+                <p className="text-xs text-red-600 leading-relaxed font-medium">{errors.form}</p>
+              </div>
+            )}
+
             {/* Submit */}
             <div>
               <button
                 type="submit"
-                className="w-full flex items-center justify-center gap-2.5 py-3 rounded-xl text-sm font-medium text-white transition-all hover:opacity-90 active:scale-[0.99]"
+                disabled={loading}
+                className="w-full flex items-center justify-center gap-2.5 py-3 rounded-xl text-sm font-medium text-white transition-all hover:opacity-90 active:scale-[0.99] disabled:opacity-70"
                 style={{ backgroundColor: "#0f172a" }}
               >
-                Continue to 2FA Verification
-                <ArrowRight size={15} strokeWidth={2} />
+                {loading ? "Authenticating..." : "Continue to Dashboard"}
+                {!loading && <ArrowRight size={15} strokeWidth={2} />}
               </button>
             </div>
+
+            {/* Dev shortcut */}
+            {import.meta.env.DEV && (
+              <div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    login("usr-chief-admin-001", {
+                      first_name: "System",
+                      last_name: "Admin",
+                      email: "admin@heartlink.ph"
+                    });
+                    navigate("/dashboard");
+                  }}
+                  className="w-full flex items-center justify-center gap-2.5 py-3 rounded-xl text-[13px] font-medium transition-all active:scale-[0.99]"
+                  style={{
+                    backgroundColor: "rgba(15,23,42,0.05)",
+                    color: "rgba(15,23,42,0.7)"
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = "rgba(15,23,42,0.08)";
+                    e.currentTarget.style.color = "#0f172a";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = "rgba(15,23,42,0.05)";
+                    e.currentTarget.style.color = "rgba(15,23,42,0.7)";
+                  }}
+                >
+                  Dev → skip to dashboard
+                </button>
+              </div>
+            )}
 
           </form>
 

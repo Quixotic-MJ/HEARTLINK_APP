@@ -9,7 +9,8 @@ import {
   Linking,
   Platform,
   Switch,
-  KeyboardAvoidingView
+  KeyboardAvoidingView,
+  ActivityIndicator
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -673,16 +674,22 @@ export default function LogSymptomsScreen() {
              activeOpacity={0.85}
              disabled={isSubmitting}
              className="w-full rounded-xl py-3.5 flex-row items-center justify-center gap-2"
-             style={{ backgroundColor: isEmergency ? "#a32d2d" : "#0f172a" }}
+             style={{ backgroundColor: isEmergency ? "#a32d2d" : "#0f172a", opacity: isSubmitting ? 0.8 : 1 }}
            >
-             <Feather
-               name={isEmergency ? "alert-triangle" : "check"}
-               size={16}
-               color="#fff"
-             />
-             <Text className="text-white dark:text-slate-900 text-[14px] font-medium">
-               {isSubmitting ? "Submitting..." : isEmergency ? "Submit critical log" : "Submit health log"}
-             </Text>
+             {isSubmitting ? (
+               <ActivityIndicator size="small" color="#fff" />
+             ) : (
+               <>
+                 <Feather
+                   name={isEmergency ? "alert-triangle" : "check"}
+                   size={16}
+                   color="#fff"
+                 />
+                 <Text className="text-white dark:text-slate-900 text-[14px] font-medium">
+                   {isEmergency ? "Submit critical log" : "Submit health log"}
+                 </Text>
+               </>
+             )}
            </TouchableOpacity>
          )}
       </View>

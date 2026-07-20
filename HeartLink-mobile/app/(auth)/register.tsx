@@ -7,6 +7,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -108,6 +109,7 @@ export default function RegisterScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const clearError = (field: keyof FormErrors) =>
     setErrors((prev) => ({ ...prev, [field]: undefined }));
@@ -147,6 +149,8 @@ export default function RegisterScreen() {
       return;
     }
 
+    setIsSubmitting(true);
+
     // Normalize phone to start with +63
     let normalizedPhone = phone;
     if (normalizedPhone.startsWith("0")) {
@@ -154,33 +158,40 @@ export default function RegisterScreen() {
     }
     normalizedPhone = `+63${normalizedPhone}`;
 
-    const response = await fetch(`${base_url}/api/auth/request-code`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        email: email,
-        phone: normalizedPhone,
-        password: password,
-      }),
-    });
+    try {
+      const response = await fetch(`${base_url}/api/auth/request-code`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: email,
+          phone: normalizedPhone,
+          password: password,
+        }),
+      });
 
-    const data = await response.json();
+      const data = await response.json();
 
-    if (response.ok) {
-      console.log(data.message);
-      router.push({ pathname: "/verify-otp", params: { phone: normalizedPhone } });
-    } else {
-      if (data.detail === "duplicate phone number") {
-        setErrors({ phone: "This phone number is already registered." });
-      } else if (data.detail === "duplicate email") {
-        setErrors({ email: "This email address is already registered." });
-      } else if (data.detail && typeof data.detail === "string") {
-        setErrors({ general: data.detail });
+      if (response.ok) {
+        console.log(data.message);
+        router.push({ pathname: "/verify-otp", params: { phone: normalizedPhone } });
       } else {
-        setErrors({ general: "An error occurred. Please try again." });
+        if (data.detail === "duplicate phone number") {
+          setErrors({ phone: "This phone number is already registered." });
+        } else if (data.detail === "duplicate email") {
+          setErrors({ email: "This email address is already registered." });
+        } else if (data.detail && typeof data.detail === "string") {
+          setErrors({ general: data.detail });
+        } else {
+          setErrors({ general: "An error occurred. Please try again." });
+        }
       }
+    } catch (error) {
+      console.log(error);
+      setErrors({ general: "An error occurred. Please check your connection." });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -347,12 +358,19 @@ export default function RegisterScreen() {
             <TouchableOpacity
               activeOpacity={0.85}
               onPress={handleSubmit}
-              className="w-full bg-slate-900 dark:bg-slate-100 rounded-2xl py-3.5 items-center justify-center flex-row gap-2 mb-5"
+              disabled={isSubmitting}
+              className={`w-full bg-slate-900 dark:bg-slate-100 rounded-2xl py-3.5 items-center justify-center flex-row gap-2 mb-5 ${isSubmitting ? 'opacity-80' : ''}`}
             >
-              <Feather name="send" size={15} color="#fff" />
-              <Text className="text-white dark:text-slate-900 text-[14px] font-medium">
-                Send verification code
-              </Text>
+              {isSubmitting ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <>
+                  <Feather name="send" size={15} color="#fff" />
+                  <Text className="text-white dark:text-slate-900 text-[14px] font-medium">
+                    Send verification code
+                  </Text>
+                </>
+              )}
             </TouchableOpacity>
 
             {/* Login link */}

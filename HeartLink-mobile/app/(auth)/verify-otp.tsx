@@ -28,6 +28,7 @@ export default function OTPVerificationScreen() {
   const [isVerifying, setIsVerifying] = useState(false);
   const [timer, setTimer] = useState(30);
   const [canResend, setCanResend] = useState(false);
+  const [isResending, setIsResending] = useState(false);
 
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
@@ -96,6 +97,7 @@ export default function OTPVerificationScreen() {
 
   const handleResend = async () => {
     if (canResend) {
+      setIsResending(true);
       try {
         const response = await fetch(`${base_url}/api/auth/resend-code`, {
           method: "POST",
@@ -116,6 +118,8 @@ export default function OTPVerificationScreen() {
         }
       } catch (error) {
         console.log(error);
+      } finally {
+        setIsResending(false);
       }
     }
   };
@@ -267,10 +271,14 @@ export default function OTPVerificationScreen() {
                 Didn't receive the code?
               </Text>
               {canResend ? (
-                <TouchableOpacity activeOpacity={0.65} onPress={handleResend}>
-                  <Text className="text-[13px] font-medium text-slate-700 dark:text-slate-300">
-                    Resend
-                  </Text>
+                <TouchableOpacity activeOpacity={0.65} onPress={handleResend} disabled={isResending}>
+                  {isResending ? (
+                    <ActivityIndicator size="small" color="#0f172a" />
+                  ) : (
+                    <Text className="text-[13px] font-medium text-slate-700 dark:text-slate-300">
+                      Resend
+                    </Text>
+                  )}
                 </TouchableOpacity>
               ) : (
                 <Text className="text-[13px] font-medium text-slate-400">

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, ScrollView, Modal } from "react-native";
+import { View, Text, TouchableOpacity, ScrollView, Modal, Image, Dimensions } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
@@ -7,6 +7,7 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import { useUser } from "../../contexts/UserContext";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
+const { width } = Dimensions.get("window");
 
 export default function ExerciseDetailsScreen() {
   const router = useRouter();
@@ -34,6 +35,7 @@ export default function ExerciseDetailsScreen() {
           intensity: data.intensity || "Low",
           category: data.css_tier || "Stable",
           steps: data.steps || [],
+          image: data.image_url || "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=400&h=300&fit=crop",
         });
       } catch (error) {
         console.error(error);
@@ -51,6 +53,7 @@ export default function ExerciseDetailsScreen() {
       setTimeLeft(routine.duration * 60);
     }
   }, [routine]);
+  
   const [isActive, setIsActive] = useState(false);
   const [showSafetyCheck, setShowSafetyCheck] = useState(false);
   
@@ -113,13 +116,6 @@ export default function ExerciseDetailsScreen() {
     router.push("/(home)/log-symptoms");
   };
 
-  // Helper for placeholder icon based on type
-  const getIllustrationIcon = () => {
-    if (routine.type === "Breathing") return "wind";
-    if (routine.type === "Stationary") return "yoga";
-    return "run-fast";
-  };
-
   if (isLoading || !routine) {
     return (
       <View className="flex-1 bg-slate-50 dark:bg-slate-950 justify-center items-center">
@@ -130,54 +126,70 @@ export default function ExerciseDetailsScreen() {
 
   return (
     <View className="flex-1 bg-slate-50 dark:bg-slate-950">
-      <StatusBar style="dark" />
+      <StatusBar style="light" />
 
-      {/* Header */}
-      <View style={{ paddingTop: Math.max(insets.top, 20) }} className="flex-row items-center px-5 pb-4 bg-slate-50 dark:bg-slate-950 z-10 absolute top-0 left-0 right-0">
-        <TouchableOpacity
-          onPress={() => router.back()}
-          className="w-10 h-10 rounded-full bg-white dark:bg-slate-900 dark:bg-slate-100 border border-slate-200 dark:border-slate-800/70 items-center justify-center mr-4 shadow-sm shadow-slate-200/50"
-        >
-          <Feather name="arrow-left" size={18} color="#0f172a" />
-        </TouchableOpacity>
-        <View className="flex-1">
-          <Text className="text-[12px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider mb-0.5">
-            Guided Routine
+      <ScrollView contentContainerStyle={{ paddingBottom: 120 }} showsVerticalScrollIndicator={false} bounces={false}>
+        {/* Header Image Area */}
+        <View style={{ height: 340, width: "100%", position: "relative" }}>
+          <Image source={{ uri: routine.image }} className="w-full h-full" resizeMode="cover" />
+          <View className="absolute inset-0 bg-black/40" />
+          
+          <View style={{ paddingTop: Math.max(insets.top, 20) }} className="absolute top-0 left-0 right-0 px-5 flex-row items-center justify-between">
+             <TouchableOpacity onPress={() => router.back()} className="w-11 h-11 rounded-full bg-black/30 backdrop-blur-md items-center justify-center border border-white/20">
+                <Feather name="arrow-left" size={20} color="#fff" />
+             </TouchableOpacity>
+          </View>
+
+          <View className="absolute bottom-6 left-5 right-5">
+            <View className="flex-row items-center gap-2 mb-3">
+              <View className="bg-[#1e4ed8] px-3 py-1.5 rounded-lg shadow-sm">
+                <Text className="text-[11px] font-bold text-white uppercase tracking-wider">{routine.type}</Text>
+              </View>
+              <View className="bg-white/20 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/10">
+                <Text className="text-[11px] font-bold text-white uppercase tracking-wider">{routine.duration} min</Text>
+              </View>
+            </View>
+            <Text className="text-[34px] font-bold text-white leading-tight tracking-tight shadow-sm">
+              {routine.title}
+            </Text>
+          </View>
+        </View>
+
+        <View className="px-5 pt-8">
+          <Text className="text-[16px] text-slate-600 dark:text-slate-300 leading-relaxed mb-8">
+            {routine.goal}
           </Text>
-        </View>
-      </View>
 
-      <ScrollView contentContainerStyle={{ paddingTop: Math.max(insets.top, 20) + 60, paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
-        
-        {/* Placeholder Illustration */}
-        <View className="items-center mt-6 mb-8">
-           <View className="w-56 h-56 bg-blue-50 rounded-full items-center justify-center border-4 border-white shadow-sm shadow-slate-200">
-              <MaterialCommunityIcons name={getIllustrationIcon()} size={120} color="#1e4ed8" />
-           </View>
-        </View>
+          {/* Info Cards */}
+          <View className="flex-row items-center gap-3 mb-10">
+            <View className="flex-1 bg-white dark:bg-slate-900 dark:bg-slate-100 p-5 rounded-3xl border border-slate-200 dark:border-slate-800/70 items-center justify-center shadow-sm shadow-slate-100">
+              <View className="w-12 h-12 rounded-full bg-blue-50 dark:bg-blue-900/20 items-center justify-center mb-3">
+                <Feather name="activity" size={22} color="#1e4ed8" />
+              </View>
+              <Text className="text-[11px] text-slate-400 uppercase font-bold tracking-widest mb-1">Intensity</Text>
+              <Text className="text-[15px] font-bold text-slate-900 dark:text-white dark:text-slate-900">{routine.intensity}</Text>
+            </View>
+            <View className="flex-1 bg-white dark:bg-slate-900 dark:bg-slate-100 p-5 rounded-3xl border border-slate-200 dark:border-slate-800/70 items-center justify-center shadow-sm shadow-slate-100">
+              <View className="w-12 h-12 rounded-full bg-purple-50 dark:bg-purple-900/20 items-center justify-center mb-3">
+                <Feather name="shield" size={22} color="#7e22ce" />
+              </View>
+              <Text className="text-[11px] text-slate-400 uppercase font-bold tracking-widest mb-1">Risk Tier</Text>
+              <Text className="text-[15px] font-bold text-slate-900 dark:text-white dark:text-slate-900">{routine.category}</Text>
+            </View>
+          </View>
 
-        {/* Title area */}
-        <View className="mb-8 px-5 items-center">
-           <Text className="text-[28px] font-bold text-slate-900 dark:text-white dark:text-slate-900 tracking-tight text-center leading-tight mb-2">
-             {routine.title}
-           </Text>
-           <Text className="text-[14px] text-slate-500 dark:text-slate-400 font-medium text-center px-4 leading-relaxed">
-             {routine.goal}
-           </Text>
-        </View>
-
-        {/* Timer Display */}
-        <View className="items-center mb-10">
-           <Text className="text-[72px] font-medium text-slate-900 dark:text-white dark:text-slate-900 tracking-tighter" style={{ fontVariant: ['tabular-nums'] }}>
+          {/* Timer Section */}
+          <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 p-8 rounded-[32px] items-center justify-center mb-6 border border-slate-200 dark:border-slate-800/70 shadow-sm shadow-slate-200/50">
+            <Text className="text-[13px] font-bold text-slate-400 uppercase tracking-widest mb-3">Time Remaining</Text>
+            <Text className="text-[84px] font-bold text-slate-900 dark:text-white dark:text-slate-900 tracking-tighter leading-none" style={{ fontVariant: ['tabular-nums'] }}>
               {formatTime(timeLeft)}
-           </Text>
-           <Text className="text-[14px] font-bold text-slate-400 uppercase tracking-widest mt-2">Time Remaining</Text>
+            </Text>
+          </View>
         </View>
-        
       </ScrollView>
 
       {/* Bottom Sticky Button */}
-      <View style={{ paddingBottom: Math.max(insets.bottom, 20) }} className="absolute bottom-0 left-0 right-0 bg-white dark:bg-slate-900 dark:bg-slate-100 border-t border-slate-100 dark:border-slate-800 px-5 pt-5 pb-6 shadow-[0_-10px_20px_rgba(0,0,0,0.05)]">
+      <View style={{ paddingBottom: Math.max(insets.bottom, 20) }} className="absolute bottom-0 left-0 right-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-t border-slate-200/50 dark:border-slate-800/50 px-5 pt-4 pb-6">
          <TouchableOpacity 
            activeOpacity={0.8}
            onPress={toggleTimer}
@@ -185,12 +197,12 @@ export default function ExerciseDetailsScreen() {
          >
            {isActive ? (
              <>
-                <Feather name="pause" size={20} color="#b91c1c" className="mr-2" />
+                <Feather name="pause" size={22} color="#b91c1c" className="mr-2" />
                 <Text className="text-red-700 text-[18px] font-bold">Pause Routine</Text>
              </>
            ) : (
              <>
-                <Feather name="play" size={20} color={timeLeft < routine.duration * 60 ? "#1e4ed8" : "white"} className="mr-2" />
+                <Feather name="play" size={22} color={timeLeft < routine.duration * 60 ? "#1e4ed8" : "white"} className="mr-2" />
                 <Text className={`${timeLeft < routine.duration * 60 ? 'text-[#1e4ed8]' : 'text-white dark:text-slate-900'} text-[18px] font-bold`}>
                   {timeLeft < routine.duration * 60 ? "Resume Routine" : "Start Routine"}
                 </Text>
@@ -201,20 +213,20 @@ export default function ExerciseDetailsScreen() {
 
       {/* Safety Check Bottom Sheet Modal */}
       <Modal visible={showSafetyCheck} transparent animationType="fade">
-        <View className="flex-1 bg-slate-900 dark:bg-slate-100/40 justify-end">
+        <View className="flex-1 bg-slate-900/40 dark:bg-slate-100/40 justify-end">
           <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-t-3xl p-6 pb-12 shadow-xl border-t border-slate-200 dark:border-slate-800">
             <View className="w-12 h-1.5 bg-slate-200 rounded-full self-center mb-6" />
-            <Text className="text-[20px] font-bold text-slate-900 dark:text-white dark:text-slate-900 mb-2 text-center">Great job! Quick safety check.</Text>
-            <Text className="text-[15px] text-slate-500 dark:text-slate-400 text-center mb-8 leading-relaxed px-2">Did you experience any chest discomfort or dizziness during this routine?</Text>
+            <Text className="text-[22px] font-bold text-slate-900 dark:text-white dark:text-slate-900 mb-2 text-center">Great job!</Text>
+            <Text className="text-[16px] text-slate-500 dark:text-slate-400 text-center mb-8 leading-relaxed px-4">Did you experience any chest discomfort or dizziness during this routine?</Text>
 
             <TouchableOpacity 
               activeOpacity={0.8}
               disabled={isSubmitting}
               onPress={handleSafetySafe}
-              className="bg-blue-50 border border-blue-100 py-4 rounded-xl items-center mb-3 flex-row justify-center"
+              className="bg-blue-50 border border-blue-100 py-4 rounded-2xl items-center mb-3 flex-row justify-center"
             >
               <Text className="text-[20px] mr-2">👍</Text>
-              <Text className="text-[#1e4ed8] font-bold text-[16px]">
+              <Text className="text-[#1e4ed8] font-bold text-[17px]">
                 {isSubmitting ? "Logging..." : "No, I feel great"}
               </Text>
             </TouchableOpacity>
@@ -222,10 +234,10 @@ export default function ExerciseDetailsScreen() {
             <TouchableOpacity 
               activeOpacity={0.8}
               onPress={handleSafetySymptoms}
-              className="bg-red-50 border border-red-100 py-4 rounded-xl items-center flex-row justify-center"
+              className="bg-red-50 border border-red-100 py-4 rounded-2xl items-center flex-row justify-center"
             >
               <Text className="text-[20px] mr-2">⚠️</Text>
-              <Text className="text-red-700 font-bold text-[16px]">Yes, I felt symptoms</Text>
+              <Text className="text-red-700 font-bold text-[17px]">Yes, I felt symptoms</Text>
             </TouchableOpacity>
           </View>
         </View>

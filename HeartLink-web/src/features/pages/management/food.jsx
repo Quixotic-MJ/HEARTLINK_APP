@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import AdminLayout from "../../../components/layouts/adminLayout";
 import FoodFormModal from "../../../components/modals/FoodFormModal";
+import { apiFetch } from "../../../api";
 
 // Mock Data
 const initialRecipes = [
@@ -80,13 +81,45 @@ const initialRecipes = [
 ];
 
 const Foods = () => {
-  const [recipes, setRecipes] = useState(initialRecipes);
+  const [recipes, setRecipes] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [loading, setLoading] = useState(true);
 
   React.useEffect(() => {
-    setRecipes(initialRecipes);
-  }, [initialRecipes]);
+    const fetchFoods = async () => {
+      try {
+        const data = await apiFetch("/api/meals/search?q=");
+        const mapped = data.map((r) => {
+          let cssLabel = "Stable (80-100)";
+          if (r.css_tier === "Monitor Closely") cssLabel = "Monitor Closely (50-79)";
+          if (r.css_tier === "Elevated Risk" || r.css_tier === "Critical") cssLabel = "Critical (<50)";
+          
+          return {
+            id: r.id,
+            name: r.name || "",
+            category: r.category || "Meal",
+            cssTarget: cssLabel,
+            sodium: r.sodium_mg || 0,
+            calories: r.calories || 0,
+            satFat: 0,
+            cholesterol: 0,
+            fiber: 0,
+            status: "published",
+            expertValidated: true,
+            mediaUrl: r.image_url || "",
+          };
+        });
+        setRecipes(mapped.length > 0 ? mapped : initialRecipes);
+      } catch (err) {
+        console.error("Failed to fetch foods", err);
+        setRecipes(initialRecipes);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchFoods();
+  }, []);
 
   // Modal & Form State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -294,6 +327,12 @@ const Foods = () => {
               })}
             </tbody>
           </table>
+          {loading && (
+            <div className="p-8 text-center text-slate-400 text-xs">Loading foods & meals...</div>
+          )}
+          {!loading && filteredRecipes.length === 0 && (
+            <div className="p-8 text-center text-slate-400 text-xs">No foods or meals found.</div>
+          )}
         </div>
       </div>
 

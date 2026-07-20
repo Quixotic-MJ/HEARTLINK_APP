@@ -18,6 +18,10 @@ from app.services.ml_service import ml_service
 router = APIRouter(prefix="/users", tags=["Users"])
 
 
+@router.get("/", status_code=status.HTTP_200_OK)
+async def read_all_users():
+    return mock_db.profiles
+
 @router.get("/{user_id}/profile", status_code=status.HTTP_200_OK)
 async def read_user_profile(user_id: str):
     data = get_full_profile(user_id)

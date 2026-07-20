@@ -8,6 +8,7 @@ import {
   Platform,
   ScrollView,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -59,6 +60,7 @@ export default function ForgotPasswordScreen() {
 
   const [identifier, setIdentifier] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleReset = async () => {
     setError(null);
@@ -66,6 +68,8 @@ export default function ForgotPasswordScreen() {
       setError("Please enter your email or phone number.");
       return;
     }
+
+    setIsSubmitting(true);
 
     let finalIdentifier = identifier.trim();
     if (/^\d+$/.test(finalIdentifier)) {
@@ -101,6 +105,8 @@ export default function ForgotPasswordScreen() {
     } catch (err) {
       console.log(err);
       setError("An error occurred. Please check your connection.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -178,12 +184,19 @@ export default function ForgotPasswordScreen() {
             <TouchableOpacity
               activeOpacity={0.85}
               onPress={handleReset}
-              className="w-full bg-slate-900 dark:bg-slate-100 rounded-2xl py-3.5 flex-row justify-center items-center gap-2"
+              disabled={isSubmitting}
+              className={`w-full bg-slate-900 dark:bg-slate-100 rounded-2xl py-3.5 flex-row justify-center items-center gap-2 ${isSubmitting ? 'opacity-80' : ''}`}
             >
-              <Text className="text-white dark:text-slate-900 text-[14px] font-medium">
-                Reset Password
-              </Text>
-              <Feather name="arrow-right" size={15} color="#fff" />
+              {isSubmitting ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <>
+                  <Text className="text-white dark:text-slate-900 text-[14px] font-medium">
+                    Reset Password
+                  </Text>
+                  <Feather name="arrow-right" size={15} color="#fff" />
+                </>
+              )}
             </TouchableOpacity>
           </View>
 

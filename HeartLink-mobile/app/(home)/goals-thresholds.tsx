@@ -8,6 +8,7 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -225,11 +226,18 @@ export default function GoalsThresholdsScreen() {
         <TouchableOpacity 
           activeOpacity={0.85}
           onPress={handleSave}
+          disabled={saving}
           className="py-3.5 rounded-xl items-center justify-center flex-row gap-2 border"
-          style={{ backgroundColor: "#0f172a", borderColor: "#0f172a" }}
+          style={{ backgroundColor: "#0f172a", borderColor: "#0f172a", opacity: saving ? 0.8 : 1 }}
         >
-          <Feather name="check" size={16} color="#fff" />
-          <Text className="text-white dark:text-slate-900 font-medium text-[14px]">Save Changes</Text>
+          {saving ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <>
+              <Feather name="check" size={16} color="#fff" />
+              <Text className="text-white dark:text-slate-900 font-medium text-[14px]">Save Changes</Text>
+            </>
+          )}
         </TouchableOpacity>
       </View>
 

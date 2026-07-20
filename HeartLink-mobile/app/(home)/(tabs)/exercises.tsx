@@ -29,6 +29,7 @@ export interface Routine {
   type: "Light Cardio" | "Stationary" | "Breathing";
   intensity: "Low" | "Medium" | "None";
   category: "Stable" | "Monitor Closely" | "Elevated Risk";
+  image?: string;
 }
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
@@ -42,6 +43,7 @@ export const ROUTINES: Routine[] = [
     type: "Light Cardio",
     intensity: "Medium",
     category: "Stable",
+    image: "https://images.unsplash.com/photo-1522898467493-49726bf28798?w=400&h=300&fit=crop",
   },
   {
     id: "2",
@@ -51,6 +53,7 @@ export const ROUTINES: Routine[] = [
     type: "Light Cardio",
     intensity: "Low",
     category: "Stable",
+    image: "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=400&h=300&fit=crop",
   },
   {
     id: "3",
@@ -60,6 +63,7 @@ export const ROUTINES: Routine[] = [
     type: "Stationary",
     intensity: "Low",
     category: "Monitor Closely",
+    image: "https://images.unsplash.com/photo-1599447421416-3414500d18a5?w=400&h=300&fit=crop",
   },
   {
     id: "4",
@@ -69,6 +73,7 @@ export const ROUTINES: Routine[] = [
     type: "Stationary",
     intensity: "Low",
     category: "Monitor Closely",
+    image: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=400&h=300&fit=crop",
   },
   {
     id: "5",
@@ -78,6 +83,7 @@ export const ROUTINES: Routine[] = [
     type: "Stationary",
     intensity: "Low",
     category: "Monitor Closely",
+    image: "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=400&h=300&fit=crop",
   },
   {
     id: "6",
@@ -87,6 +93,7 @@ export const ROUTINES: Routine[] = [
     type: "Breathing",
     intensity: "None",
     category: "Elevated Risk",
+    image: "https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=400&h=300&fit=crop",
   },
   {
     id: "7",
@@ -96,6 +103,7 @@ export const ROUTINES: Routine[] = [
     type: "Breathing",
     intensity: "None",
     category: "Elevated Risk",
+    image: "https://images.unsplash.com/photo-1520333789090-1afc82db536a?w=400&h=300&fit=crop",
   },
 ];
 
@@ -154,11 +162,17 @@ function RoutineCard({
       className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/70 mb-4 overflow-hidden"
     >
       {/* Thumbnail */}
-      <View className="w-full h-36 bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800/50 items-center justify-center relative">
-        <Feather name="image" size={28} color="#cbd5e1" />
-        <Text className="text-[11px] text-slate-300 mt-1.5">
-          Video thumbnail
-        </Text>
+      <View className="w-full h-36 bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800/50 items-center justify-center relative overflow-hidden">
+        {routine.image ? (
+          <Image source={{ uri: routine.image }} className="absolute inset-0 w-full h-full" resizeMode="cover" />
+        ) : (
+          <>
+            <Feather name="image" size={28} color="#cbd5e1" />
+            <Text className="text-[11px] text-slate-300 mt-1.5">
+              Video thumbnail
+            </Text>
+          </>
+        )}
 
         {/* Duration pill — top left */}
         <View className="absolute top-3 left-3 flex-row items-center gap-1 bg-black/40 px-2.5 py-1 rounded-full">
@@ -325,7 +339,7 @@ function SafetyCheckModal({
 export default function ExercisesScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ completedId?: string }>();
-  const { userId } = useUser();
+  const { userId, user } = useUser();
 
   const [routinesList, setRoutinesList] = useState<Routine[]>(ROUTINES);
   const [isLoading, setIsLoading] = useState(false);
@@ -358,6 +372,7 @@ export default function ExercisesScreen() {
           type: r.type || "Light Cardio",
           intensity: r.intensity || "Low",
           category: r.css_tier || "Stable",
+          image: r.image_url || "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=400&h=300&fit=crop",
         }));
         setRoutinesList(mapped.length > 0 ? mapped : ROUTINES);
       }
@@ -513,7 +528,7 @@ export default function ExercisesScreen() {
           </TouchableOpacity>
           <TouchableOpacity onPress={() => router.push("/(home)/profile")} activeOpacity={0.8} className="ml-1">
             <View className="w-9 h-9 rounded-full bg-slate-200 overflow-hidden">
-              <Image source={{ uri: "https://scontent.fcgy2-2.fna.fbcdn.net/v/t39.30808-6/470238702_122163229004273349_6885730481985014209_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=a5f93a&_nc_eui2=AeFspkU-pAnduqXzsg0nCMQSc3h1gs4ySEZzeHWCzjJIRiS7qjQy166_bn5hNqi44fxFQkp5tRFulwgVSN60yG1o&_nc_ohc=JjKG5iySuBYQ7kNvwF3zmCi&_nc_oc=AdqJL2LZkjt9IqiM_KPQtb2ZUT6mEm5UdI2cgi-6Mu6INC3QVBLGz8-OKHIG4Fuyfuk&_nc_zt=23&_nc_ht=scontent.fcgy2-2.fna&_nc_gid=zjeomdkvajMCPjEc3tC8YQ&_nc_ss=7b2a8&oh=00_Af_FFO3skv0KzZZjqU44lc3j6qTtYj5r07rF5GLagi9HDg&oe=6A275350" }} className="w-full h-full" resizeMode="cover" />
+              <Image source={{ uri: user?.avatar_url || "https://ui-avatars.com/api/?name=" + (user?.first_name || "U") + "&background=e2e8f0&color=475569&bold=true" }} className="w-full h-full" resizeMode="cover" />
             </View>
             <View style={{ position: "absolute", bottom: -1, right: -1 }} className="w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-slate-50" />
           </TouchableOpacity>

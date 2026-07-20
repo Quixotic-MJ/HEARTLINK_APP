@@ -11,6 +11,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -149,31 +150,35 @@ function EditProfileModal({
   visible: boolean;
   onClose: () => void;
   currentData: any;
-  onSave: (data: any) => void;
+  onSave: (data: any) => Promise<void> | void;
 }) {
   const [name, setName] = useState(currentData.name);
   const [height, setHeight] = useState(currentData.height);
   const [weight, setWeight] = useState(currentData.weight);
+  const [isSaving, setIsSaving] = useState(false);
 
   React.useEffect(() => {
     if (visible) {
       setName(currentData.name);
       setHeight(currentData.height);
       setWeight(currentData.weight);
+      setIsSaving(false);
     }
   }, [visible, currentData]);
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    setIsSaving(true);
     const hMeters = parseFloat(height) / 100;
     const wKg = parseFloat(weight);
     const bmi = (wKg / (hMeters * hMeters)).toFixed(1);
 
-    onSave({
+    await onSave({
       name,
       height,
       weight,
       bmi: isNaN(Number(bmi)) ? currentData.bmi : bmi,
     });
+    setIsSaving(false);
   };
 
   return (
@@ -229,10 +234,18 @@ function EditProfileModal({
               <TouchableOpacity
                 activeOpacity={0.85}
                 onPress={handleSave}
+                disabled={isSaving}
                 className="bg-[#0f172a] py-3.5 rounded-xl items-center justify-center flex-row gap-2 border border-[#0f172a]"
+                style={{ opacity: isSaving ? 0.8 : 1 }}
               >
-                <Feather name="check" size={16} color="#fff" />
-                <Text className="text-white dark:text-slate-900 font-medium text-[14px]">Save Changes</Text>
+                {isSaving ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <>
+                    <Feather name="check" size={16} color="#fff" />
+                    <Text className="text-white dark:text-slate-900 font-medium text-[14px]">Save Changes</Text>
+                  </>
+                )}
               </TouchableOpacity>
             </ScrollView>
           </Pressable>
@@ -246,7 +259,7 @@ function EditProfileModal({
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const { userId } = useUser();
+  const { userId, user } = useUser();
 
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -421,7 +434,7 @@ export default function ProfileScreen() {
               style={{ shadowColor: "#0f172a", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 12, elevation: 6 }}
             >
               <Image
-                source={{ uri: "https://scontent.fcgy2-2.fna.fbcdn.net/v/t39.30808-6/470238702_122163229004273349_6885730481985014209_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=a5f93a&_nc_eui2=AeFspkU-pAnduqXzsg0nCMQSc3h1gs4ySEZzeHWCzjJIRiS7qjQy166_bn5hNqi44fxFQkp5tRFulwgVSN60yG1o&_nc_ohc=JjKG5iySuBYQ7kNvwF3zmCi&_nc_oc=AdqJL2LZkjt9IqiM_KPQtb2ZUT6mEm5UdI2cgi-6Mu6INC3QVBLGz8-OKHIG4Fuyfuk&_nc_zt=23&_nc_ht=scontent.fcgy2-2.fna&_nc_gid=zjeomdkvajMCPjEc3tC8YQ&_nc_ss=7b2a8&oh=00_Af_FFO3skv0KzZZjqU44lc3j6qTtYj5r07rF5GLagi9HDg&oe=6A275350" }}
+                source={{ uri: user?.avatar_url || "https://ui-avatars.com/api/?name=" + (user?.first_name || "U") + "&background=e2e8f0&color=475569&bold=true" }}
                 className="w-full h-full"
                 resizeMode="cover"
               />

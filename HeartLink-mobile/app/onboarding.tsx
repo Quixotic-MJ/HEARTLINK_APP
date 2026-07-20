@@ -9,6 +9,7 @@ import {
 } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import "../global.css";
+import { useUser } from "../contexts/UserContext";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -65,6 +66,7 @@ function FeatureCard({
 
 export default function OnboardingScreen() {
   const router = useRouter();
+  const { setUserId } = useUser();
   const pingServer = async () => {
     try {
       const response = await fetch(`${base_url}/api/health`);
@@ -151,7 +153,10 @@ export default function OnboardingScreen() {
         {/* ── Dev shortcut ── */}
         {__DEV__ && (
           <TouchableOpacity
-            onPress={() => router.push("/health_goals")}
+            onPress={() => {
+              setUserId("usr-patient-101");
+              router.replace("/(home)/(tabs)/dashboard");
+            }}
             className="mx-5 mb-4 bg-[#1e4ed8] border border-slate-200 dark:border-slate-800/70 rounded-xl py-2.5 items-center"
           >
             <Text className="text-[11px] text-white dark:text-slate-900">

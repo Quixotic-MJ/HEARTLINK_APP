@@ -15,7 +15,8 @@ import {
   Dumbbell,
   AlertTriangle,
 } from "lucide-react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "../../contexts/AuthContext";
 
 // ─── Quick action item ────────────────────────────────────────────────────────
 
@@ -51,6 +52,9 @@ const Header = ({
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
   const title = propTitle || defaultTitle;
+  
+  const navigate = useNavigate();
+  const { logout } = useAuth();
 
   const [quickActionsOpen, setQuickActionsOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -306,30 +310,32 @@ const Header = ({
         </div>
 
         {/* Sign out */}
-        <Link to="/">
-          <button
-            className="flex items-center justify-center rounded-xl transition-colors"
-            style={{
-              width: 36, height: 36,
-              backgroundColor: "#f8fafc",
-              border: "1px solid rgba(15,23,42,0.08)",
-              color: "rgba(15,23,42,0.4)",
-            }}
-            title="Sign out"
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = "#fef2f2";
-              e.currentTarget.style.borderColor = "rgba(239,68,68,0.2)";
-              e.currentTarget.style.color = "#ef4444";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = "#f8fafc";
-              e.currentTarget.style.borderColor = "rgba(15,23,42,0.08)";
-              e.currentTarget.style.color = "rgba(15,23,42,0.4)";
-            }}
-          >
-            <LogOut size={15} strokeWidth={2} />
-          </button>
-        </Link>
+        <button
+          onClick={() => {
+            logout();
+            navigate("/");
+          }}
+          className="flex items-center justify-center rounded-xl transition-colors"
+          style={{
+            width: 36, height: 36,
+            backgroundColor: "#f8fafc",
+            border: "1px solid rgba(15,23,42,0.08)",
+            color: "rgba(15,23,42,0.4)",
+          }}
+          title="Sign out"
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = "#fef2f2";
+            e.currentTarget.style.borderColor = "rgba(239,68,68,0.2)";
+            e.currentTarget.style.color = "#ef4444";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = "#f8fafc";
+            e.currentTarget.style.borderColor = "rgba(15,23,42,0.08)";
+            e.currentTarget.style.color = "rgba(15,23,42,0.4)";
+          }}
+        >
+          <LogOut size={15} strokeWidth={2} />
+        </button>
       </div>
     </header>
   );

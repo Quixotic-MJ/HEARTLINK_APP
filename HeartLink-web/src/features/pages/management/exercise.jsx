@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import AdminLayout from "../../../components/layouts/adminLayout";
 import ExerciseFormModal from "../../../components/modals/ExerciseFormModal";
+import { apiFetch } from "../../../api";
 
 // Mock Data
 const initialExercises = [
@@ -85,13 +86,42 @@ const initialExercises = [
 ];
 
 const Exercises = () => {
-  const [exercises, setExercises] = useState(initialExercises);
+  const [exercises, setExercises] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCss, setFilterCss] = useState("all");
+  const [loading, setLoading] = useState(true);
 
   React.useEffect(() => {
-    setExercises(initialExercises);
-  }, [initialExercises]);
+    const fetchExercises = async () => {
+      try {
+        const data = await apiFetch("/api/exercises/");
+        const mapped = data.map((r) => {
+          let cssLabel = "Stable (80-100)";
+          if (r.css_tier === "Monitor Closely") cssLabel = "Monitor Closely (50-79)";
+          if (r.css_tier === "Elevated Risk" || r.css_tier === "Critical") cssLabel = "Critical (<50)";
+          
+          return {
+            id: r.id,
+            name: r.name || "",
+            description: r.goal || "",
+            duration: r.duration_minutes || 0,
+            cssTarget: cssLabel,
+            mediaUrl: r.image_url || "",
+            status: "published",
+            expertValidated: true,
+            steps: [],
+          };
+        });
+        setExercises(mapped.length > 0 ? mapped : initialExercises);
+      } catch (err) {
+        console.error("Failed to fetch exercises", err);
+        setExercises(initialExercises);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchExercises();
+  }, []);
 
   // Modal & Form State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -311,6 +341,12 @@ const Exercises = () => {
               })}
             </tbody>
           </table>
+          {loading && (
+            <div className="p-8 text-center text-slate-400 text-xs">Loading exercises...</div>
+          )}
+          {!loading && filteredExercises.length === 0 && (
+            <div className="p-8 text-center text-slate-400 text-xs">No exercises found.</div>
+          )}
         </div>
       </div>
 

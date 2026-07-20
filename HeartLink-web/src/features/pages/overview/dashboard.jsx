@@ -8,8 +8,26 @@ import {
   HeartPulse,
 } from "lucide-react";
 import AdminLayout from "../../../components/layouts/adminLayout";
+import { apiFetch } from "../../../api";
 
 const Dashboard = () => {
+  const [exercises, setExercises] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const exercisesData = await apiFetch("/api/exercises/");
+        setExercises(exercisesData);
+      } catch (err) {
+        console.error("Failed to fetch dashboard data", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
   return (
     <AdminLayout>
       {/* Page Title & Meta */}
@@ -101,9 +119,9 @@ const Dashboard = () => {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="p-3 rounded-xl border min-w-0" style={{ backgroundColor: "rgba(15,23,42,0.03)", borderColor: "rgba(15,23,42,0.06)" }}>
-                <p className="text-lg font-semibold mb-1 truncate" style={{ color: "#0f172a" }}>8</p>
+                <p className="text-lg font-semibold mb-1 truncate" style={{ color: "#0f172a" }}>{loading ? "..." : exercises.length}</p>
                 <p className="text-[9px] font-medium tracking-[0.18em] uppercase truncate" style={{ color: "#0f172a", opacity: 0.5 }}>
-                  Pending Flags
+                  Active Exercises
                 </p>
               </div>
               <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 min-w-0">

@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import AdminLayout from "../../../components/layouts/adminLayout";
 import PatientListView from "../../../components/lists/PatientListView";
+import { apiFetch } from "../../../api";
 import PatientDetailsModal from "../../../components/modals/PatientDetailsModal";
 import StaffListView from "../../../components/lists/StaffListView";
 import StaffDetailsModal from "../../../components/modals/StaffDetailsModal";
@@ -81,7 +82,7 @@ const Users = () => {
   const [currentUserRole, setCurrentUserRole] = useState("chief_admin");
   const [activeTab, setActiveTab] = useState("app_users");
 
-  const [appUsers, setAppUsers] = useState(initialAppUsers);
+  const [appUsers, setAppUsers] = useState([]);
   const [systemStaff, setSystemStaff] = useState(initialSystemStaff);
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -90,8 +91,34 @@ const Users = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState("");
   const [activeEntity, setActiveEntity] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   const [deactivationReason, setDeactivationReason] = useState("");
+
+  React.useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const data = await apiFetch("/api/users/");
+        const mapped = data.filter(u => u.role === "patient").map((r) => {
+          return {
+            id: r.id,
+            name: `${r.first_name} ${r.last_name}`,
+            phone: r.phone || "",
+            regDate: new Date(r.created_at).toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" }),
+            status: r.account_status === "active" ? "Active" : "Disabled",
+            metrics: { loginsThisWeek: 0, avgSession: "0m", alertsTriggered: 0 },
+          };
+        });
+        setAppUsers(mapped.length > 0 ? mapped : initialAppUsers);
+      } catch (err) {
+        console.error("Failed to fetch users", err);
+        setAppUsers(initialAppUsers);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchUsers();
+  }, []);
 
   const handleOpenUser = (user) => {
     setActiveEntity(user);

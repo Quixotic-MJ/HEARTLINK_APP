@@ -19,6 +19,7 @@ interface Notification {
   message: string;
   time: string;
   read: boolean;
+  route?: string;
 }
 
 // ─── Theme config (plain values — no dynamic className) ───────────────────────
@@ -107,6 +108,7 @@ const SAMPLE_NOTIFICATIONS: Notification[] = [
       "How are you feeling today? Tap to log your symptoms before your evening review.",
     time: "8 hours ago",
     read: true,
+    route: "/(home)/log-symptoms",
   },
   {
     id: "6",
@@ -194,13 +196,26 @@ function NotificationCard({
   notification: Notification;
   onPress: () => void;
 }) {
+  const router = useRouter();
   const theme = NOTIF_THEME[notification.type];
   const { read } = notification;
+  const [expanded, setExpanded] = React.useState(false);
+
+  const actionRoute = notification.route || 
+    (notification.message.toLowerCase().includes("tap to log") ? "/(home)/log-symptoms" : null);
 
   return (
     <TouchableOpacity
       activeOpacity={0.7}
-      onPress={onPress}
+      onPress={() => {
+        if (!read) onPress();
+        
+        if (actionRoute) {
+          router.push(actionRoute as any);
+        } else {
+          setExpanded(!expanded);
+        }
+      }}
       className="flex-row items-start rounded-2xl mb-2.5 p-4 border"
       style={{
         backgroundColor: read ? "#fff" : "#fafcff",
@@ -241,8 +256,8 @@ function NotificationCard({
           </Text>
         </View>
         <Text
-          className="text-[12px] leading-[18px] text-slate-400"
-          numberOfLines={2}
+          className="text-[12px] leading-[18px] text-slate-400 mt-1"
+          numberOfLines={expanded ? undefined : 2}
         >
           {notification.message}
         </Text>
@@ -274,6 +289,7 @@ export default function NotificationsScreen() {
           message: n.message || "",
           time: new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), // simplistic formatting
           read: n.read || false,
+          route: n.route,
         }));
         setNotifications(mapped);
       } catch (error) {

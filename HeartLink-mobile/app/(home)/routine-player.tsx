@@ -1,12 +1,21 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, ScrollView, TouchableOpacity } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, Image } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useUser } from "../../contexts/UserContext";
+import * as WebBrowser from "expo-web-browser";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
+
+// ─── Video URLs mapped by exercise type ───────────────────────────────────────
+
+const VIDEO_BY_TYPE: Record<string, string> = {
+  "Light Cardio": "https://www.youtube.com/watch?v=njeZ29umqVE",   // Heart-safe walking routine
+  "Stationary":   "https://www.youtube.com/watch?v=5WEBMhRc_9M",   // Chair yoga / seated stretches
+  "Breathing":    "https://www.youtube.com/watch?v=DbDoBzGY3vo",   // 4-7-8 breathing technique
+};
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -54,6 +63,7 @@ export default function RoutinePlayerScreen() {
   const [routine, setRoutine] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hasWatched, setHasWatched] = useState(false);
 
   useEffect(() => {
     async function fetchRoutine() {
@@ -71,7 +81,8 @@ export default function RoutinePlayerScreen() {
           intensity: data.intensity || "Low",
           category: data.css_tier || "Stable",
           steps: data.steps || [],
-          mediaUrl: data.media_url,
+          videoUrl: data.video_url || VIDEO_BY_TYPE[data.type] || VIDEO_BY_TYPE["Light Cardio"],
+          image: data.image_url || "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=400&h=300&fit=crop",
         });
       } catch (error) {
         console.error(error);
@@ -81,6 +92,14 @@ export default function RoutinePlayerScreen() {
     }
     fetchRoutine();
   }, [id]);
+
+  const openVideo = async () => {
+    if (routine?.videoUrl) {
+      await WebBrowser.openBrowserAsync(routine.videoUrl);
+      // User is back from the in-app browser
+      setHasWatched(true);
+    }
+  };
 
   if (isLoading || !routine) {
     return (
@@ -104,16 +123,25 @@ export default function RoutinePlayerScreen() {
     <View className="flex-1 bg-slate-50 dark:bg-slate-950">
       <StatusBar style="light" />
 
-      {/* ── Video placeholder ── */}
-      <View
-        className="w-full bg-slate-900 dark:bg-slate-100 relative items-center justify-center"
+      {/* ── Video Thumbnail ── */}
+      <TouchableOpacity
+        activeOpacity={0.85}
+        onPress={openVideo}
+        className="w-full bg-slate-900 relative items-center justify-center overflow-hidden"
         style={{ aspectRatio: 16 / 9 }}
       >
+        <Image
+          source={{ uri: routine.image }}
+          className="absolute inset-0 w-full h-full"
+          resizeMode="cover"
+        />
+        <View className="absolute inset-0 bg-black/40" />
+
         {/* Back button */}
         <TouchableOpacity
           onPress={() => router.back()}
           className="absolute z-10 w-9 h-9 rounded-xl bg-black/40 border border-white/15 items-center justify-center"
-          style={{ top: insets.top + 12, left: 20 }}
+          style={{ top: Math.max(insets.top, 20), left: 20 }}
         >
           <Feather name="arrow-left" size={17} color="#fff" />
         </TouchableOpacity>
@@ -122,12 +150,12 @@ export default function RoutinePlayerScreen() {
         <View className="items-center">
           <View
             className="w-16 h-16 rounded-full items-center justify-center mb-2"
-            style={{ backgroundColor: "rgba(255,255,255,0.15)" }}
+            style={{ backgroundColor: hasWatched ? "rgba(59,109,17,0.85)" : "rgba(255,0,0,0.85)" }}
           >
-            <Feather name="play" size={26} color="#fff" style={{ marginLeft: 3 }} />
+            <Feather name={hasWatched ? "check" : "play"} size={28} color="#fff" style={hasWatched ? {} : { marginLeft: 4 }} />
           </View>
-          <Text style={{ color: "rgba(255,255,255,0.5)", fontSize: 12 }}>
-            Video preview
+          <Text style={{ color: "#fff", fontSize: 13, fontWeight: "600", textShadowColor: 'rgba(0,0,0,0.6)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3 }}>
+            {hasWatched ? "Tap to Rewatch" : "Watch Tutorial Video"}
           </Text>
         </View>
 
@@ -144,15 +172,25 @@ export default function RoutinePlayerScreen() {
             <Text style={{ color: cfg.color, fontSize: 11 }}>{routine.type}</Text>
           </View>
         </View>
-      </View>
+      </TouchableOpacity>
 
       <ScrollView
         className="flex-1"
-        contentContainerClassName="px-5 pt-5 pb-36"
+        contentContainerClassName="px-5 pt-0 pb-36"
         showsVerticalScrollIndicator={false}
       >
+        {/* ── Watched banner ── */}
+        {hasWatched && (
+          <View className="mx-0 mt-4 mb-2 p-3.5 rounded-2xl border flex-row items-center gap-2.5" style={{ backgroundColor: "#eaf3de", borderColor: "#c0dd97" }}>
+            <Feather name="check-circle" size={16} color="#3b6d11" />
+            <Text className="flex-1 text-[13px] font-medium" style={{ color: "#27500a" }}>
+              Video watched! Follow the steps below, then tap "Finish & log" when done.
+            </Text>
+          </View>
+        )}
+
         {/* ── Routine header ── */}
-        <View className="mb-5 pb-5 border-b border-slate-200 dark:border-slate-800/50">
+        <View className="mb-5 pb-5 pt-4 border-b border-slate-200 dark:border-slate-800/50">
           <Text className="text-[22px] font-medium text-slate-900 dark:text-white dark:text-slate-900 leading-snug mb-3">
             {routine.title}
           </Text>
@@ -180,7 +218,18 @@ export default function RoutinePlayerScreen() {
             </View>
           </View>
 
-          <Text className="text-[13px] text-slate-400 leading-relaxed">{routine.goal}</Text>
+          <Text className="text-[13px] text-slate-400 leading-relaxed mb-4">{routine.goal}</Text>
+
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={() => router.push({ pathname: "/(home)/exercise-details", params: { id: routine.id } })}
+            className="w-full bg-blue-50 dark:bg-blue-900/20 py-3.5 rounded-xl border border-blue-100 dark:border-blue-800 flex-row items-center justify-center gap-2"
+          >
+            <Feather name="clock" size={16} color="#1e4ed8" />
+            <Text className="text-[#1e4ed8] text-[14px] font-bold">
+              Start Guided Timer
+            </Text>
+          </TouchableOpacity>
         </View>
 
         {/* ── Safety note ── */}
