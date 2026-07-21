@@ -63,7 +63,7 @@ export default function VerificationSuccessScreen() {
         bounces={false}
       >
         {/* ── Card ── */}
-        <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 px-6 py-10 items-center">
+        <View className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/70 px-6 py-10 items-center">
           {/* Animated success icon */}
           <Animated.View
             style={{ transform: [{ scale: scaleAnim }], opacity: opacityAnim }}
@@ -97,7 +97,7 @@ export default function VerificationSuccessScreen() {
             }}
             className="items-center mb-7"
           >
-            <Text className="text-[24px] font-medium text-slate-900 dark:text-white dark:text-slate-900 text-center tracking-tight mb-2">
+            <Text className="text-[24px] font-medium text-slate-900 dark:text-white text-center tracking-tight mb-2">
               Account verified
             </Text>
             <Text className="text-[13px] text-slate-400 text-center leading-relaxed px-2">
@@ -153,9 +153,9 @@ export default function VerificationSuccessScreen() {
           <TouchableOpacity
             activeOpacity={0.85}
             onPress={handleStartBaseline}
-            className="w-full bg-slate-900 dark:bg-slate-100 rounded-2xl py-3.5 flex-row justify-center items-center gap-2"
+            className="w-full bg-slate-900 rounded-2xl py-3.5 flex-row justify-center items-center gap-2"
           >
-            <Text className="text-white dark:text-slate-900 text-[14px] font-medium">
+            <Text className="text-white text-[14px] font-medium">
               Set up clinical profile
             </Text>
             <Feather name="arrow-right" size={15} color="#fff" />

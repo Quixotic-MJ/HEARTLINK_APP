@@ -1,5 +1,6 @@
 import React from "react";
 import { View, Text, TouchableOpacity, ScrollView, Alert } from "react-native";
+import { useColorScheme } from "nativewind";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
@@ -15,7 +16,7 @@ function SupportLink({ icon, title, subtitle, onPress, isLast = false }: any) {
         <Feather name={icon} size={18} color="#0f172a" />
       </View>
       <View className="flex-1">
-        <Text className="text-[15px] font-medium text-slate-900 dark:text-white dark:text-slate-900">{title}</Text>
+        <Text className="text-[15px] font-medium text-slate-900 dark:text-white">{title}</Text>
         {subtitle && <Text className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5">{subtitle}</Text>}
       </View>
       <Feather name="chevron-right" size={16} color="#cbd5e1" />
@@ -24,6 +25,8 @@ function SupportLink({ icon, title, subtitle, onPress, isLast = false }: any) {
 }
 
 export default function HelpSupportScreen() {
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === "dark";
   const router = useRouter();
 
   return (
@@ -31,14 +34,14 @@ export default function HelpSupportScreen() {
       <StatusBar style="dark" />
 
       {/* Header */}
-      <View className="flex-row items-center px-5 pt-4 pb-3 border-b border-slate-200 dark:border-slate-800/50 bg-white dark:bg-slate-900 dark:bg-slate-100">
+      <View className="flex-row items-center px-5 pt-4 pb-3 border-b border-slate-200 dark:border-slate-800/50 bg-white dark:bg-slate-900">
         <TouchableOpacity
           onPress={() => router.back()}
-          className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 dark:bg-slate-100 border border-slate-200 dark:border-slate-800/70 items-center justify-center mr-3"
+          className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 items-center justify-center mr-3"
         >
-          <Feather name="arrow-left" size={18} color="#0f172a" />
+          <Feather name="arrow-left" size={18} color={isDark ? "#f8fafc" : "#0f172a"} />
         </TouchableOpacity>
-        <Text className="text-[17px] font-medium text-slate-900 dark:text-white dark:text-slate-900">Help & Support</Text>
+        <Text className="text-[17px] font-medium text-slate-900 dark:text-white">Help & Support</Text>
       </View>
 
       <ScrollView contentContainerClassName="px-5 py-6 pb-16" showsVerticalScrollIndicator={false}>
@@ -47,13 +50,13 @@ export default function HelpSupportScreen() {
           <View className="w-20 h-20 bg-blue-50 rounded-full items-center justify-center mb-4">
             <Feather name="life-buoy" size={32} color="#3b82f6" />
           </View>
-          <Text className="text-[20px] font-medium text-slate-900 dark:text-white dark:text-slate-900">How can we help?</Text>
+          <Text className="text-[20px] font-medium text-slate-900 dark:text-white">How can we help?</Text>
           <Text className="text-[14px] text-slate-500 dark:text-slate-400 text-center mt-2 px-6">
             Find answers to common questions or reach out to our support team directly.
           </Text>
         </View>
 
-        <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 px-4 mb-6">
+        <View className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/70 px-4 mb-6">
           <SupportLink 
             icon="book" 
             title="Knowledge Base" 

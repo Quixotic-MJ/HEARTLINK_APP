@@ -1,3 +1,4 @@
+import { useColorScheme } from "nativewind";
 import React, { useState, useEffect } from "react";
 import {
   View,
@@ -67,7 +68,7 @@ function ProfileField({
         <Text className="text-[11px] text-slate-400 uppercase tracking-wide mb-0.5">
           {label}
         </Text>
-        <Text className="text-[14px] font-medium text-slate-900 dark:text-white dark:text-slate-900">
+        <Text className="text-[14px] font-medium text-slate-900 dark:text-white">
           {value}
           {unit && (
             <Text className="text-[13px] font-normal text-slate-400"> {unit}</Text>
@@ -93,7 +94,7 @@ function SectionLabel({ title }: { title: string }) {
 
 function FieldGroup({ children }: { children: React.ReactNode }) {
   return (
-    <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 px-4 mb-3">
+    <View className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/70 px-4 mb-3">
       {children}
     </View>
   );
@@ -118,7 +119,7 @@ function QuickStat({
 }) {
   return (
     <View
-      className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl p-3.5 border border-slate-200 dark:border-slate-800/70 flex-row items-center gap-3"
+      className="bg-white dark:bg-slate-900 rounded-2xl p-3.5 border border-slate-200 dark:border-slate-800/70 flex-row items-center gap-3"
       style={style}
     >
       <View
@@ -128,7 +129,7 @@ function QuickStat({
         <Feather name={icon as any} size={15} color={iconColor} />
       </View>
       <View>
-        <Text className="text-[18px] font-medium text-slate-900 dark:text-white dark:text-slate-900 leading-tight">
+        <Text className="text-[18px] font-medium text-slate-900 dark:text-white leading-tight">
           {value}
         </Text>
         <Text className="text-[8px] text-slate-400 uppercase tracking-wide mt-0.5">
@@ -189,11 +190,11 @@ function EditProfileModal({
           style={{ backgroundColor: "rgba(15,23,42,0.5)" }}
           onPress={onClose}
         >
-          <Pressable className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-t-3xl px-5 pt-3 pb-8 border-t border-slate-200 dark:border-slate-800/50 max-h-[85%]">
+          <Pressable className="bg-white dark:bg-slate-900 rounded-t-3xl px-5 pt-3 pb-8 border-t border-slate-200 dark:border-slate-800/50 max-h-[85%]">
             <View className="w-10 h-1 bg-slate-200 rounded-full self-center mb-5" />
 
             <View className="flex-row items-center justify-between mb-6">
-              <Text className="text-[20px] font-medium text-slate-900 dark:text-white dark:text-slate-900">
+              <Text className="text-[20px] font-medium text-slate-900 dark:text-white">
                 Edit profile
               </Text>
               <TouchableOpacity onPress={onClose} className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 items-center justify-center">
@@ -201,11 +202,11 @@ function EditProfileModal({
               </TouchableOpacity>
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}>
               <Text className="text-[13px] font-medium text-slate-700 dark:text-slate-300 mb-2">Name</Text>
               <View className="flex-row items-center bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/70 rounded-xl px-4 py-3 mb-4">
                 <TextInput
-                  className="flex-1 text-[15px] text-slate-900 dark:text-white dark:text-slate-900 font-medium"
+                  className="flex-1 text-[15px] text-slate-900 dark:text-white font-medium"
                   value={name}
                   onChangeText={setName}
                 />
@@ -214,7 +215,7 @@ function EditProfileModal({
               <Text className="text-[13px] font-medium text-slate-700 dark:text-slate-300 mb-2">Height (cm)</Text>
               <View className="flex-row items-center bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/70 rounded-xl px-4 py-3 mb-4">
                 <TextInput
-                  className="flex-1 text-[15px] text-slate-900 dark:text-white dark:text-slate-900 font-medium"
+                  className="flex-1 text-[15px] text-slate-900 dark:text-white font-medium"
                   keyboardType="numeric"
                   value={height}
                   onChangeText={setHeight}
@@ -224,7 +225,7 @@ function EditProfileModal({
               <Text className="text-[13px] font-medium text-slate-700 dark:text-slate-300 mb-2">Weight (kg)</Text>
               <View className="flex-row items-center bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/70 rounded-xl px-4 py-3 mb-6">
                 <TextInput
-                  className="flex-1 text-[15px] text-slate-900 dark:text-white dark:text-slate-900 font-medium"
+                  className="flex-1 text-[15px] text-slate-900 dark:text-white font-medium"
                   keyboardType="numeric"
                   value={weight}
                   onChangeText={setWeight}
@@ -243,7 +244,7 @@ function EditProfileModal({
                 ) : (
                   <>
                     <Feather name="check" size={16} color="#fff" />
-                    <Text className="text-white dark:text-slate-900 font-medium text-[14px]">Save Changes</Text>
+                    <Text className="text-white font-medium text-[14px]">Save Changes</Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -258,6 +259,8 @@ function EditProfileModal({
 // ─── Profile Screen ───────────────────────────────────────────────────────────
 
 export default function ProfileScreen() {
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === "dark";
   const router = useRouter();
   const { userId, user } = useUser();
 
@@ -411,19 +414,19 @@ export default function ProfileScreen() {
       <View className="flex-row items-center px-5 pt-4 pb-3 border-b border-slate-200 dark:border-slate-800/50">
         <TouchableOpacity
           onPress={() => router.back()}
-          className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 dark:bg-slate-100 border border-slate-200 dark:border-slate-800/70 items-center justify-center mr-3"
+          className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 items-center justify-center mr-3"
         >
-          <Feather name="arrow-left" size={18} color="#0f172a" />
+          <Feather name="arrow-left" size={18} color={isDark ? "#f8fafc" : "#0f172a"} />
         </TouchableOpacity>
-        <Text className="flex-1 text-[17px] font-medium text-slate-900 dark:text-white dark:text-slate-900">
+        <Text className="flex-1 text-[17px] font-medium text-slate-900 dark:text-white">
           My profile
         </Text>
-        <TouchableOpacity onPress={() => setShowUpdateModal(true)} className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 dark:bg-slate-100 border border-slate-200 dark:border-slate-800/70 items-center justify-center">
+        <TouchableOpacity onPress={() => setShowUpdateModal(true)} className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 items-center justify-center">
           <Feather name="edit-2" size={15} color="#64748b" />
         </TouchableOpacity>
       </View>
 
-      <ScrollView
+      <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag"
         contentContainerClassName="pb-16"
         showsVerticalScrollIndicator={false}
       >
@@ -442,13 +445,13 @@ export default function ProfileScreen() {
             {/* Camera button */}
             <TouchableOpacity
               activeOpacity={0.8}
-              className="absolute bottom-0 right-0 w-8 h-8 bg-slate-900 dark:bg-slate-100 rounded-full items-center justify-center border-2 border-slate-50"
+              className="absolute bottom-0 right-0 w-8 h-8 bg-slate-900 rounded-full items-center justify-center border-2 border-slate-50"
             >
               <Feather name="camera" size={13} color="#fff" />
             </TouchableOpacity>
           </View>
 
-          <Text className="text-[20px] font-medium text-slate-900 dark:text-white dark:text-slate-900 tracking-tight">
+          <Text className="text-[20px] font-medium text-slate-900 dark:text-white tracking-tight">
             {userData.name}
           </Text>
           <Text className="text-[13px] text-slate-400 mt-0.5">{userData.email}</Text>
@@ -517,7 +520,7 @@ export default function ProfileScreen() {
             <TouchableOpacity
               activeOpacity={0.85}
               onPress={exportPDF}
-              className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl py-3.5 flex-row items-center justify-center gap-2 border border-slate-200 dark:border-slate-800/70"
+              className="bg-white dark:bg-slate-900 rounded-2xl py-3.5 flex-row items-center justify-center gap-2 border border-slate-200 dark:border-slate-800/70"
             >
               <Feather name="download" size={15} color="#64748b" />
               <Text className="text-[14px] font-medium text-slate-600">

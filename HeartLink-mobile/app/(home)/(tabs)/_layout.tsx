@@ -12,6 +12,7 @@ import {
 import { Tabs, useRouter } from "expo-router";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useColorScheme } from "nativewind";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
@@ -60,6 +61,8 @@ function RecordBottomSheet({
   const router = useRouter();
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const backdropAnim = useRef(new Animated.Value(0)).current;
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === "dark";
 
   const animateIn = useCallback(() => {
     Animated.parallel([
@@ -116,7 +119,7 @@ function RecordBottomSheet({
           bottom: 0,
           left: 0,
           right: 0,
-          backgroundColor: "#fff",
+          backgroundColor: isDark ? "#0f172a" : "#fff",
           borderTopLeftRadius: 24,
           borderTopRightRadius: 24,
           paddingTop: 12,
@@ -125,7 +128,7 @@ function RecordBottomSheet({
           transform: [{ translateY: slideAnim }],
           ...Platform.select({
             ios: {
-              shadowColor: "#0f172a",
+              shadowColor: "#000",
               shadowOffset: { width: 0, height: -4 },
               shadowOpacity: 0.1,
               shadowRadius: 16,
@@ -140,17 +143,17 @@ function RecordBottomSheet({
             alignSelf: "center",
             width: 36,
             height: 4,
-            backgroundColor: "#e2e8f0",
+            backgroundColor: isDark ? "#334155" : "#e2e8f0",
             borderRadius: 2,
             marginBottom: 20,
           }}
         />
 
         {/* Title */}
-        <Text style={{ fontSize: 17, fontWeight: "500", color: "#0f172a", marginBottom: 4 }}>
+        <Text style={{ fontSize: 17, fontWeight: "500", color: isDark ? "#f8fafc" : "#0f172a", marginBottom: 4 }}>
           Quick record
         </Text>
-        <Text style={{ fontSize: 13, color: "#94a3b8", marginBottom: 20 }}>
+        <Text style={{ fontSize: 13, color: isDark ? "#cbd5e1" : "#94a3b8", marginBottom: 20 }}>
           What would you like to log?
         </Text>
 
@@ -168,12 +171,12 @@ function RecordBottomSheet({
             style={{
               flexDirection: "row",
               alignItems: "center",
-              backgroundColor: "#fff",
+              backgroundColor: isDark ? "#1e293b" : "#fff",
               borderRadius: 16,
               padding: 14,
               marginBottom: index < RECORD_OPTIONS.length - 1 ? 10 : 0,
               borderWidth: 0.5,
-              borderColor: "#e2e8f0",
+              borderColor: isDark ? "#334155" : "#e2e8f0",
             }}
           >
             {/* Icon */}
@@ -197,15 +200,15 @@ function RecordBottomSheet({
 
             {/* Text */}
             <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 14, fontWeight: "500", color: "#0f172a", marginBottom: 2 }}>
+              <Text style={{ fontSize: 14, fontWeight: "500", color: isDark ? "#f8fafc" : "#0f172a", marginBottom: 2 }}>
                 {option.label}
               </Text>
-              <Text style={{ fontSize: 12, color: "#94a3b8", lineHeight: 16 }}>
+              <Text style={{ fontSize: 12, color: isDark ? "#cbd5e1" : "#94a3b8", lineHeight: 16 }}>
                 {option.subtitle}
               </Text>
             </View>
 
-            <Feather name="chevron-right" size={16} color="#cbd5e1" />
+            <Feather name="chevron-right" size={16} color={isDark ? "#64748b" : "#cbd5e1"} />
           </TouchableOpacity>
         ))}
 
@@ -217,10 +220,10 @@ function RecordBottomSheet({
             marginTop: 14,
             alignItems: "center",
             paddingVertical: 13,
-            backgroundColor: "#f8fafc",
+            backgroundColor: isDark ? "#1e293b" : "#f8fafc",
             borderRadius: 14,
             borderWidth: 0.5,
-            borderColor: "#e2e8f0",
+            borderColor: isDark ? "#334155" : "#e2e8f0",
           }}
         >
           <Text style={{ fontSize: 13, fontWeight: "500", color: "#94a3b8" }}>
@@ -249,17 +252,22 @@ const INACTIVE_COLOR = "#cbd5e1";
 
 function CustomTabBar({ state, navigation, onFabPress }: any) {
   const insets = useSafeAreaInsets();
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === "dark";
+  
+  const ACTIVE_COLOR = isDark ? "#fff" : "#0f172a";
+  const INACTIVE_COLOR = isDark ? "#64748b" : "#cbd5e1";
 
   return (
     <View
       style={{
-        backgroundColor: "#fff",
+        backgroundColor: isDark ? "#0f172a" : "#fff",
         flexDirection: "row",
         alignItems: "center",
         height: Platform.OS === "ios" ? 85 : 65 + insets.bottom,
         paddingBottom: Platform.OS === "ios" ? 20 : insets.bottom,
         borderTopWidth: 0.5,
-        borderTopColor: "#e2e8f0",
+        borderTopColor: isDark ? "#1e293b" : "#e2e8f0",
         ...Platform.select({
           ios: {
             shadowColor: "#0f172a",
@@ -304,12 +312,12 @@ function CustomTabBar({ state, navigation, onFabPress }: any) {
                   top: -24,
                   width: 56,
                   height: 56,
-                  backgroundColor: "#0f172a",
+                  backgroundColor: isDark ? "#3b82f6" : "#0f172a",
                   borderRadius: 28,
                   alignItems: "center",
                   justifyContent: "center",
                   borderWidth: 4,
-                  borderColor: "#fff",
+                  borderColor: isDark ? "#0f172a" : "#fff",
                   ...Platform.select({
                     ios: {
                       shadowColor: "#0f172a",

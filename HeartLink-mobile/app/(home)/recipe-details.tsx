@@ -1,3 +1,4 @@
+import { useColorScheme } from "nativewind";
 import React, { useState, useEffect } from "react";
 import {
   View,
@@ -58,6 +59,8 @@ function NutritionPill({
 }
 
 export default function RecipeDetailsScreen() {
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === "dark";
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
@@ -165,19 +168,19 @@ export default function RecipeDetailsScreen() {
   };
 
   return (
-    <View className="flex-1 bg-white dark:bg-slate-900 dark:bg-slate-100">
+    <View className="flex-1 bg-white dark:bg-slate-900">
       <StatusBar style="dark" />
 
       {/* Header (Absolute position over scrollview) */}
       <View
         style={{ paddingTop: Math.max(insets.top, 20) }}
-        className="flex-row items-center px-5 pb-4 bg-white dark:bg-slate-900 dark:bg-slate-100/95 border-b border-slate-100 dark:border-slate-800 z-10 absolute top-0 left-0 right-0"
+        className="flex-row items-center px-5 pb-4 bg-white dark:bg-slate-900/95 border-b border-slate-100 dark:border-slate-800 z-10 absolute top-0 left-0 right-0"
       >
         <TouchableOpacity
           onPress={() => router.back()}
           className="w-10 h-10 rounded-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/70 items-center justify-center mr-4"
         >
-          <Feather name="arrow-left" size={18} color="#0f172a" />
+          <Feather name="arrow-left" size={18} color={isDark ? "#f8fafc" : "#0f172a"} />
         </TouchableOpacity>
         <View className="flex-1">
           <Text className="text-[12px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider mb-0.5">
@@ -216,7 +219,7 @@ export default function RecipeDetailsScreen() {
             style={{ backgroundColor: "rgba(0,0,0,0.55)" }}
           >
             <Feather name="clock" size={11} color="rgba(255,255,255,0.9)" />
-            <Text className="text-white dark:text-slate-900 text-[11px]">
+            <Text className="text-white text-[11px]">
               {recipe.prepTime} min
             </Text>
           </View>
@@ -235,7 +238,7 @@ export default function RecipeDetailsScreen() {
 
         {/* Title & Tags */}
         <View className="px-5 pt-6 pb-6">
-          <Text className="text-[28px] font-bold text-slate-900 dark:text-white dark:text-slate-900 leading-tight mb-2">
+          <Text className="text-[28px] font-bold text-slate-900 dark:text-white leading-tight mb-2">
             {recipe.title}
           </Text>
           <Text className="text-[15px] text-slate-500 dark:text-slate-400 mb-4">
@@ -267,14 +270,14 @@ export default function RecipeDetailsScreen() {
           {/* Servings Multiplier */}
           <View className="flex-row items-center justify-between bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 mb-2">
             <View>
-              <Text className="text-[14px] font-bold text-slate-900 dark:text-white dark:text-slate-900 mb-1">
+              <Text className="text-[14px] font-bold text-slate-900 dark:text-white mb-1">
                 Servings
               </Text>
               <Text className="text-[12px] text-slate-500 dark:text-slate-400">
                 Adjust to see exact macros
               </Text>
             </View>
-            <View className="flex-row items-center gap-4 bg-white dark:bg-slate-900 dark:bg-slate-100 border border-slate-200 dark:border-slate-800 rounded-full px-2 py-1">
+            <View className="flex-row items-center gap-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full px-2 py-1">
               <TouchableOpacity
                 onPress={() =>
                   setServingsMultiplier(Math.max(1, servingsMultiplier - 1))
@@ -318,7 +321,7 @@ export default function RecipeDetailsScreen() {
 
         {/* ── Macros ── */}
         <View className="px-5 mb-6">
-          <Text className="text-[18px] font-bold text-slate-900 dark:text-white dark:text-slate-900 mb-4">
+          <Text className="text-[18px] font-bold text-slate-900 dark:text-white mb-4">
             Nutrition Breakdown
           </Text>
           <View className="flex-row gap-2">
@@ -427,7 +430,7 @@ export default function RecipeDetailsScreen() {
                 >
                   <View className="w-1.5 h-1.5 rounded-full bg-slate-300 mr-4" />
                   <View className="flex-1 flex-row">
-                    <Text className="text-[14px] text-slate-900 dark:text-white dark:text-slate-900 font-bold w-20">
+                    <Text className="text-[14px] text-slate-900 dark:text-white font-bold w-20">
                       {ing.qty}
                     </Text>
                     <Text className="text-[14px] text-slate-700 dark:text-slate-300 flex-1">
@@ -465,7 +468,7 @@ export default function RecipeDetailsScreen() {
       </ScrollView>
 
       {/* ── Sticky Bottom Button ── */}
-      <View style={{ paddingBottom: Math.max(insets.bottom, 20) }} className="absolute bottom-0 left-0 right-0 bg-white dark:bg-slate-900 dark:bg-slate-100 border-t border-slate-100 dark:border-slate-800 px-5 pt-4 pb-6 shadow-[0_-10px_20px_rgba(0,0,0,0.05)]">
+      <View style={{ paddingBottom: Math.max(insets.bottom, 20) }} className="absolute bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 px-5 pt-4 pb-6 shadow-[0_-10px_20px_rgba(0,0,0,0.05)]">
          <TouchableOpacity 
            activeOpacity={0.85}
            onPress={handleLogMeal}

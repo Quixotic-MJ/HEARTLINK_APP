@@ -1,5 +1,6 @@
 import React from "react";
 import { View, Text, TouchableOpacity, ScrollView, Alert } from "react-native";
+import { useColorScheme } from "nativewind";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
@@ -56,8 +57,7 @@ function SettingsRow({
       {/* Label + subtitle */}
       <View className="flex-1">
         <Text
-          className="text-[14px] font-medium"
-          style={{ color: danger ? "#a32d2d" : "#0f172a" }}
+          className={`text-[14px] font-medium ${danger ? 'text-red-700 dark:text-red-500' : 'text-slate-900 dark:text-white'}`}
         >
           {label}
         </Text>
@@ -85,7 +85,7 @@ function SectionLabel({ title }: { title: string }) {
 
 function SettingsGroup({ children }: { children: React.ReactNode }) {
   return (
-    <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 px-4 mb-3">
+    <View className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/70 px-4 mb-3">
       {children}
     </View>
   );
@@ -94,6 +94,8 @@ function SettingsGroup({ children }: { children: React.ReactNode }) {
 // ─── Settings Screen ──────────────────────────────────────────────────────────
 
 export default function SettingsScreen() {
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === "dark";
   const router = useRouter();
   const { setUserId } = useUser();
 
@@ -129,11 +131,11 @@ export default function SettingsScreen() {
       <View className="flex-row items-center px-5 pt-4 pb-3 border-b border-slate-200 dark:border-slate-800/50">
         <TouchableOpacity
           onPress={() => router.back()}
-          className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 dark:bg-slate-100 border border-slate-200 dark:border-slate-800/70 items-center justify-center mr-3"
+          className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 items-center justify-center mr-3"
         >
-          <Feather name="arrow-left" size={18} color="#0f172a" />
+          <Feather name="arrow-left" size={18} color={isDark ? "#f8fafc" : "#0f172a"} />
         </TouchableOpacity>
-        <Text className="text-[17px] font-medium text-slate-900 dark:text-white dark:text-slate-900">Settings</Text>
+        <Text className="text-[17px] font-medium text-slate-900 dark:text-white">Settings</Text>
       </View>
 
       <ScrollView

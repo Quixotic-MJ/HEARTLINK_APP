@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, TouchableOpacity, ScrollView, TextInput, Image } from "react-native";
+import { useColorScheme } from "nativewind";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
@@ -8,6 +9,8 @@ import { useRouter } from "expo-router";
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
 export default function SearchMealScreen() {
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === "dark";
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [searchQuery, setSearchQuery] = useState("");
@@ -39,12 +42,12 @@ export default function SearchMealScreen() {
       <View className="flex-row items-center px-5 pt-4 pb-3 border-b border-slate-200 dark:border-slate-800/50">
         <TouchableOpacity
           onPress={() => router.back()}
-          className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 dark:bg-slate-100 border border-slate-200 dark:border-slate-800/70 items-center justify-center mr-3"
+          className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 items-center justify-center mr-3"
         >
-          <Feather name="arrow-left" size={18} color="#0f172a" />
+          <Feather name="arrow-left" size={18} color={isDark ? "#f8fafc" : "#0f172a"} />
         </TouchableOpacity>
         <View>
-          <Text className="text-[17px] font-medium text-slate-900 dark:text-white dark:text-slate-900">
+          <Text className="text-[17px] font-medium text-slate-900 dark:text-white">
             Search & Log Meal
           </Text>
           <Text className="text-[12px] text-slate-400">
@@ -59,14 +62,14 @@ export default function SearchMealScreen() {
         keyboardShouldPersistTaps="handled"
       >
         {/* Search Bar */}
-        <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 flex-row items-center px-4 py-3 mb-4">
+        <View className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/70 flex-row items-center px-4 py-3 mb-4">
           <Feather name="search" size={18} color="#94a3b8" />
           <TextInput
             value={searchQuery}
             onChangeText={setSearchQuery}
             placeholder="Search food, recipes, or brands..."
             placeholderTextColor="#cbd5e1"
-            className="flex-1 ml-3 text-[15px] text-slate-900 dark:text-white dark:text-slate-900"
+            className="flex-1 ml-3 text-[15px] text-slate-900 dark:text-white"
             autoCapitalize="none"
           />
         </View>
@@ -84,7 +87,7 @@ export default function SearchMealScreen() {
         </TouchableOpacity>
 
         {/* List Header */}
-        <Text className="text-[14px] font-semibold text-slate-900 dark:text-white dark:text-slate-900 mb-3 ml-1">
+        <Text className="text-[14px] font-semibold text-slate-900 dark:text-white mb-3 ml-1">
           Recent & Popular
         </Text>
 
@@ -99,14 +102,14 @@ export default function SearchMealScreen() {
               key={item.id}
               activeOpacity={0.7}
               onPress={() => router.push({ pathname: "/(home)/meal-detail", params: { id: item.id } })}
-              className="bg-white dark:bg-slate-900 dark:bg-slate-100 p-3 rounded-2xl border border-slate-200 dark:border-slate-800/70 flex-row items-center justify-between"
+              className="bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-200 dark:border-slate-800/70 flex-row items-center justify-between"
             >
               <Image 
                 source={{ uri: item.image_url || "https://images.unsplash.com/photo-1587486913049-53fc88980cfc?w=200&q=80" }} 
                 className="w-16 h-16 rounded-xl mr-3 bg-slate-100 dark:bg-slate-800" 
               />
               <View className="flex-1 mr-3">
-                <Text className="text-[15px] font-medium text-slate-900 dark:text-white dark:text-slate-900 mb-0.5">
+                <Text className="text-[15px] font-medium text-slate-900 dark:text-white mb-0.5">
                   {item.name}
                 </Text>
                 <Text className="text-[13px] text-slate-500 dark:text-slate-400 mb-2">
@@ -133,11 +136,11 @@ export default function SearchMealScreen() {
       >
         <TouchableOpacity
           onPress={() => router.push("/(home)/estimate-meal")}
-          className="bg-slate-900 dark:bg-slate-100 w-full rounded-2xl py-3.5 items-center justify-center flex-row gap-2"
+          className="bg-slate-900 w-full rounded-2xl py-3.5 items-center justify-center flex-row gap-2"
           activeOpacity={0.85}
         >
           <Feather name="edit-3" size={16} color="#fff" />
-          <Text className="text-white dark:text-slate-900 text-[14px] font-medium">
+          <Text className="text-white text-[14px] font-medium">
             Can't find it? Estimate local food
           </Text>
         </TouchableOpacity>

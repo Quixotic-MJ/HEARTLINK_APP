@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, TouchableOpacity, ScrollView, Image, Alert } from "react-native";
+import { useColorScheme } from "nativewind";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Feather } from "@expo/vector-icons";
@@ -41,6 +42,8 @@ function ChoiceChip({
 }
 
 export default function MealDetailScreen() {
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === "dark";
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -121,15 +124,15 @@ export default function MealDetailScreen() {
       <StatusBar style="dark" />
 
       {/* Header */}
-      <View className="flex-row items-center px-5 pt-4 pb-3 border-b border-slate-200 dark:border-slate-800/50 bg-white dark:bg-slate-900 dark:bg-slate-100">
+      <View className="flex-row items-center px-5 pt-4 pb-3 border-b border-slate-200 dark:border-slate-800/50 bg-white dark:bg-slate-900">
         <TouchableOpacity
           onPress={() => router.back()}
-          className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 dark:bg-slate-100 border border-slate-200 dark:border-slate-800/70 items-center justify-center mr-3"
+          className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 items-center justify-center mr-3"
         >
-          <Feather name="arrow-left" size={18} color="#0f172a" />
+          <Feather name="arrow-left" size={18} color={isDark ? "#f8fafc" : "#0f172a"} />
         </TouchableOpacity>
         <View className="flex-1">
-          <Text className="text-[17px] font-medium text-slate-900 dark:text-white dark:text-slate-900" numberOfLines={1}>
+          <Text className="text-[17px] font-medium text-slate-900 dark:text-white" numberOfLines={1}>
             {item.name}
           </Text>
           <Text className="text-[12px] text-slate-400">
@@ -145,7 +148,7 @@ export default function MealDetailScreen() {
             source={{ uri: item.image_url || "https://images.unsplash.com/photo-1587486913049-53fc88980cfc?w=200&q=80" }} 
             className="w-32 h-32 rounded-3xl mb-4 bg-slate-100 dark:bg-slate-800" 
           />
-          <Text className="text-[22px] font-bold text-slate-900 dark:text-white dark:text-slate-900">{item.name}</Text>
+          <Text className="text-[22px] font-bold text-slate-900 dark:text-white">{item.name}</Text>
           <Text className="text-[14px] text-slate-500 dark:text-slate-400 mt-1">{item.servings ? `${item.servings} servings` : "1 serving"}</Text>
         </View>
 
@@ -172,16 +175,16 @@ export default function MealDetailScreen() {
         </View>
 
         {/* Servings Adjuster */}
-        <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 p-4 rounded-2xl border border-slate-200 dark:border-slate-800/70 mb-5 flex-row items-center justify-between">
+        <View className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800/70 mb-5 flex-row items-center justify-between">
           <View>
-            <Text className="text-[14px] font-medium text-slate-900 dark:text-white dark:text-slate-900 mb-0.5">Number of Servings</Text>
+            <Text className="text-[14px] font-medium text-slate-900 dark:text-white mb-0.5">Number of Servings</Text>
             <Text className="text-[12px] text-slate-400">Scale the nutrition values</Text>
           </View>
           <View className="flex-row items-center bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/70 rounded-xl px-2 py-1.5 gap-4">
             <TouchableOpacity onPress={() => setServings(s => Math.max(1, s - 1))} className="p-2">
               <Feather name="minus" size={16} color="#0f172a" />
             </TouchableOpacity>
-            <Text className="text-[15px] font-bold text-slate-900 dark:text-white dark:text-slate-900 w-5 text-center">{servings}</Text>
+            <Text className="text-[15px] font-bold text-slate-900 dark:text-white w-5 text-center">{servings}</Text>
             <TouchableOpacity onPress={() => setServings(s => s + 1)} className="p-2">
               <Feather name="plus" size={16} color="#0f172a" />
             </TouchableOpacity>
@@ -202,30 +205,30 @@ export default function MealDetailScreen() {
         <Text className="text-[13px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-3 ml-1 mt-1">
           Nutrition Breakdown
         </Text>
-        <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4">
+        <View className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4">
           <View className="flex-row border-b border-slate-100 dark:border-slate-800 pb-3 mb-3">
             <View className="flex-1 items-center border-r border-slate-100 dark:border-slate-800">
               <Text className="text-[11px] text-slate-400 font-medium mb-1 uppercase">Sodium</Text>
-              <Text className="text-[17px] font-bold text-slate-900 dark:text-white dark:text-slate-900">{scaledSodium} <Text className="text-[12px] font-medium text-slate-400">mg</Text></Text>
+              <Text className="text-[17px] font-bold text-slate-900 dark:text-white">{scaledSodium} <Text className="text-[12px] font-medium text-slate-400">mg</Text></Text>
             </View>
             <View className="flex-1 items-center border-r border-slate-100 dark:border-slate-800">
               <Text className="text-[11px] text-slate-400 font-medium mb-1 uppercase">Calories</Text>
-              <Text className="text-[17px] font-bold text-slate-900 dark:text-white dark:text-slate-900">{scaledCalories} <Text className="text-[12px] font-medium text-slate-400">kcal</Text></Text>
+              <Text className="text-[17px] font-bold text-slate-900 dark:text-white">{scaledCalories} <Text className="text-[12px] font-medium text-slate-400">kcal</Text></Text>
             </View>
             <View className="flex-1 items-center">
               <Text className="text-[11px] text-slate-400 font-medium mb-1 uppercase">Sat. Fat</Text>
-              <Text className="text-[17px] font-bold text-slate-900 dark:text-white dark:text-slate-900">{scaledSatFat} <Text className="text-[12px] font-medium text-slate-400">g</Text></Text>
+              <Text className="text-[17px] font-bold text-slate-900 dark:text-white">{scaledSatFat} <Text className="text-[12px] font-medium text-slate-400">g</Text></Text>
             </View>
           </View>
           
           <View className="flex-row pt-1">
             <View className="flex-1 items-center border-r border-slate-100 dark:border-slate-800">
               <Text className="text-[11px] text-slate-400 font-medium mb-1 uppercase">Cholesterol</Text>
-              <Text className="text-[17px] font-bold text-slate-900 dark:text-white dark:text-slate-900">{scaledCholesterol} <Text className="text-[12px] font-medium text-slate-400">mg</Text></Text>
+              <Text className="text-[17px] font-bold text-slate-900 dark:text-white">{scaledCholesterol} <Text className="text-[12px] font-medium text-slate-400">mg</Text></Text>
             </View>
             <View className="flex-1 items-center border-r border-slate-100 dark:border-slate-800">
               <Text className="text-[11px] text-slate-400 font-medium mb-1 uppercase">Fiber</Text>
-              <Text className="text-[17px] font-bold text-slate-900 dark:text-white dark:text-slate-900">{scaledFiber} <Text className="text-[12px] font-medium text-slate-400">g</Text></Text>
+              <Text className="text-[17px] font-bold text-slate-900 dark:text-white">{scaledFiber} <Text className="text-[12px] font-medium text-slate-400">g</Text></Text>
             </View>
             <View className="flex-1 items-center">
               {/* Empty placeholder for clean grid */}
@@ -237,17 +240,17 @@ export default function MealDetailScreen() {
 
       {/* Sticky Action Button */}
       <View 
-        className="px-5 pt-3 bg-white dark:bg-slate-900 dark:bg-slate-100 border-t border-slate-200 dark:border-slate-800/50"
+        className="px-5 pt-3 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800/50"
         style={{ paddingBottom: Math.max(insets.bottom, 16) }}
       >
         <TouchableOpacity
           onPress={handleLogMeal}
           disabled={isSubmitting}
-          className="bg-slate-900 dark:bg-slate-100 w-full rounded-2xl py-4 items-center justify-center flex-row gap-2"
+          className="bg-slate-900 w-full rounded-2xl py-4 items-center justify-center flex-row gap-2"
           activeOpacity={0.85}
         >
           <Feather name="check-circle" size={18} color="#fff" />
-          <Text className="text-white dark:text-slate-900 text-[15px] font-bold">
+          <Text className="text-white text-[15px] font-bold">
             {isSubmitting ? "Logging..." : "Log this meal"}
           </Text>
         </TouchableOpacity>

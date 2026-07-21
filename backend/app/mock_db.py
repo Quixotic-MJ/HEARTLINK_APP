@@ -240,7 +240,7 @@ css_history = [
     {
         "id": "css-706",
         "user_id": "usr-patient-101",
-        "score": 52,  # Drops after high BP/symptom log input
+        "score": 72,  # Drops after high BP/symptom log input
         "tier": "Elevated Risk",
         "contributing_factors": {"bp_spike": "high", "symptom_count": 2},
         "computed_at": datetime(2026, 7, 10, 13, 20, 0),
@@ -709,3 +709,35 @@ care_team_contacts = [
 ]
 
 activity_logs = []
+
+
+# 9. Clinics
+clinics = [
+    {
+        "id": "1",
+        "name": "Chong Hua Hospital Heart Institute",
+        "doctor": "Dr. Maria Santos, MD, FACC",
+        "latitude": 10.3129,
+        "longitude": 123.8925,
+        "phone": "1234567890",
+        "specialty": "General Cardiology",
+    },
+    {
+        "id": "2",
+        "name": "Cebu Doctors' University Hospital",
+        "doctor": "Dr. Juan Dela Cruz, MD",
+        "latitude": 10.3152,
+        "longitude": 123.8897,
+        "phone": "0987654321",
+        "specialty": "General Cardiology",
+    },
+    {
+        "id": "3",
+        "name": "Perpetual Succour Hospital",
+        "doctor": "Dr. Anna Reyes, MD",
+        "latitude": 10.3188,
+        "longitude": 123.8966,
+        "phone": "1122334455",
+        "specialty": "Cardiac Rehabilitation",
+    },
+]

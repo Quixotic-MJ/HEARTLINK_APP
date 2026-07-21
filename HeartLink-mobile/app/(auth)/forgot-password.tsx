@@ -1,3 +1,4 @@
+import { useColorScheme } from "nativewind";
 import React, { useState } from "react";
 import {
   View,
@@ -47,7 +48,7 @@ function InputField({
         placeholderTextColor="#cbd5e1"
         keyboardType={keyboardType}
         autoCapitalize={autoCapitalize ?? "none"}
-        className="flex-1 ml-3 text-[14px] text-slate-900 dark:text-white dark:text-slate-900 h-full"
+        className="flex-1 ml-3 text-[14px] text-slate-900 dark:text-white h-full"
       />
     </View>
   );
@@ -56,6 +57,8 @@ function InputField({
 // ─── Forgot Password Screen ───────────────────────────────────────────────────
 
 export default function ForgotPasswordScreen() {
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === "dark";
   const router = useRouter();
 
   const [identifier, setIdentifier] = useState("");
@@ -118,15 +121,15 @@ export default function ForgotPasswordScreen() {
       <View className="flex-row items-center px-5 pt-4 pb-2">
         <TouchableOpacity
           onPress={() => router.back()}
-          className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 dark:bg-slate-100 border border-slate-200 dark:border-slate-800/70 items-center justify-center mr-3"
+          className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 items-center justify-center mr-3"
         >
-          <Feather name="arrow-left" size={18} color="#0f172a" />
+          <Feather name="arrow-left" size={18} color={isDark ? "#f8fafc" : "#0f172a"} />
         </TouchableOpacity>
         <View className="flex-row items-center gap-2">
-          <View className="w-7 h-7 rounded-full items-center justify-center border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 dark:bg-slate-100">
+          <View className="w-7 h-7 rounded-full items-center justify-center border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
             <Feather name="heart" size={13} color="#0f172a" />
           </View>
-          <Text className="text-[16px] text-slate-900 dark:text-white dark:text-slate-900 tracking-tight" style={{ fontWeight: "300" }}>
+          <Text className="text-[16px] text-slate-900 dark:text-white tracking-tight" style={{ fontWeight: "300" }}>
             Heart<Text style={{ fontWeight: "600" }}>Link.</Text>
           </Text>
         </View>
@@ -136,14 +139,14 @@ export default function ForgotPasswordScreen() {
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        <ScrollView
+        <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag"
           contentContainerClassName="flex-grow px-5 pt-4 pb-12"
           showsVerticalScrollIndicator={false}
           bounces={false}
         >
           {/* ── Heading ── */}
           <View className="mb-7 mt-2">
-            <Text className="text-[28px] font-medium text-slate-900 dark:text-white dark:text-slate-900 tracking-tight leading-tight mb-2">
+            <Text className="text-[28px] font-medium text-slate-900 dark:text-white tracking-tight leading-tight mb-2">
               Forgot{"\n"}password?
             </Text>
             <Text className="text-[13px] text-slate-400 leading-relaxed">
@@ -152,7 +155,7 @@ export default function ForgotPasswordScreen() {
           </View>
 
           {/* ── Card ── */}
-          <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 px-5 py-6 gap-3">
+          <View className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/70 px-5 py-6 gap-3">
             {error && (
               <View className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-3 flex-row items-center gap-2 mb-1">
                 <Feather name="alert-triangle" size={16} color="#ef4444" />
@@ -185,13 +188,13 @@ export default function ForgotPasswordScreen() {
               activeOpacity={0.85}
               onPress={handleReset}
               disabled={isSubmitting}
-              className={`w-full bg-slate-900 dark:bg-slate-100 rounded-2xl py-3.5 flex-row justify-center items-center gap-2 ${isSubmitting ? 'opacity-80' : ''}`}
+              className={`w-full bg-slate-900 rounded-2xl py-3.5 flex-row justify-center items-center gap-2 ${isSubmitting ? 'opacity-80' : ''}`}
             >
               {isSubmitting ? (
                 <ActivityIndicator size="small" color="#fff" />
               ) : (
                 <>
-                  <Text className="text-white dark:text-slate-900 text-[14px] font-medium">
+                  <Text className="text-white text-[14px] font-medium">
                     Reset Password
                   </Text>
                   <Feather name="arrow-right" size={15} color="#fff" />

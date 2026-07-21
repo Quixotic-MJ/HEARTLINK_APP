@@ -16,6 +16,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
+import { useColorScheme } from "nativewind";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import Svg, { Circle } from "react-native-svg";
 import { useUser } from "../../../contexts/UserContext";
@@ -34,20 +35,22 @@ type ScoreTheme = {
   dotColor: string;
 };
 
-function getScoreTheme(score: number): ScoreTheme {
+function getScoreTheme(score: number, isDark: boolean): ScoreTheme {
   if (score >= 80)
-    return { label: "Stable", ringColor: "#639922", trackColor: "#c0dd97", barColor: "#639922", badgeBg: "#eaf3de", badgeText: "#3b6d11", dotColor: "#639922" };
+    return { label: "Stable", ringColor: "#0D9488", trackColor: isDark ? "#115E59" : "#CCFBF1", barColor: "#0D9488", badgeBg: isDark ? "rgba(13, 148, 136, 0.15)" : "#CCFBF1", badgeText: isDark ? "#2DD4BF" : "#0F766E", dotColor: "#0D9488" };
   if (score >= 60)
-    return { label: "Moderate", ringColor: "#ba7517", trackColor: "#fac775", barColor: "#ba7517", badgeBg: "#faeeda", badgeText: "#854f0b", dotColor: "#ba7517" };
+    return { label: "Moderate", ringColor: "#D97706", trackColor: isDark ? "#78350F" : "#FEF3C7", barColor: "#D97706", badgeBg: isDark ? "rgba(217, 119, 6, 0.15)" : "#FEF3C7", badgeText: isDark ? "#FBBF24" : "#B45309", dotColor: "#D97706" };
   if (score >= 40)
-    return { label: "Caution", ringColor: "#ba7517", trackColor: "#fac775", barColor: "#ba7517", badgeBg: "#faeeda", badgeText: "#854f0b", dotColor: "#ba7517" };
-  return { label: "At risk", ringColor: "#e24b4a", trackColor: "#f7c1c1", barColor: "#e24b4a", badgeBg: "#fcebeb", badgeText: "#a32d2d", dotColor: "#e24b4a" };
+    return { label: "Caution", ringColor: "#EA580C", trackColor: isDark ? "#7C2D12" : "#FFEDD5", barColor: "#EA580C", badgeBg: isDark ? "rgba(234, 88, 12, 0.15)" : "#FFEDD5", badgeText: isDark ? "#FB923C" : "#C2410C", dotColor: "#EA580C" };
+  return { label: "At risk", ringColor: "#E11D48", trackColor: isDark ? "#881337" : "#FFE4E6", barColor: "#E11D48", badgeBg: isDark ? "rgba(225, 29, 72, 0.15)" : "#FFE4E6", badgeText: isDark ? "#FB7185" : "#BE123C", dotColor: "#E11D48" };
 }
 
 // ─── Circular Progress ────────────────────────────────────────────────────────
 function CircularProgress({ score, size = 180, strokeWidth = 12 }: { score: number; size?: number; strokeWidth?: number }) {
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === "dark";
   const animatedValue = useRef(new Animated.Value(0)).current;
-  const theme = getScoreTheme(score);
+  const theme = getScoreTheme(score, isDark);
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
 
@@ -69,21 +72,21 @@ function CircularProgress({ score, size = 180, strokeWidth = 12 }: { score: numb
       </Svg>
       {/* Score number inside ring */}
       <View style={{ position: "absolute", alignItems: "center" }}>
-        <Text style={{ fontSize: 52, fontWeight: "300", color: "#0f172a", lineHeight: 56 }}>{score}</Text>
-        <Text style={{ fontSize: 11, color: "#94a3b8", letterSpacing: 1 }}>/100</Text>
+        <Text style={{ fontSize: 52, fontWeight: "300", color: isDark ? "#fff" : "#0f172a", lineHeight: 56 }}>{score}</Text>
+        <Text style={{ fontSize: 11, color: isDark ? "#cbd5e1" : "#94a3b8", letterSpacing: 1 }}>/100</Text>
       </View>
     </View>
   );
 }
 
 // ─── Stat Card ────────────────────────────────────────────────────────────────
-function StatCard({ icon, label, value, iconColor, iconBg }: { icon: string; label: string; value: string; iconColor: string; iconBg: string }) {
+function StatCard({ icon, label, value, iconColor, iconBg, isDark }: { icon: string; label: string; value: string; iconColor: string; iconBg: string; isDark?: boolean }) {
   return (
-    <View className="flex-1 bg-white rounded-2xl border border-slate-200 py-3 px-3 items-center">
+    <View className="flex-1 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 py-3 px-3 items-center">
       <View className="w-8 h-8 rounded-xl items-center justify-center mb-1.5" style={{ backgroundColor: iconBg }}>
         <Feather name={icon as any} size={14} color={iconColor} />
       </View>
-      <Text className="text-[15px] font-medium text-slate-900">{value}</Text>
+      <Text className="text-[15px] font-medium text-slate-900 dark:text-white">{value}</Text>
       <Text className="text-[10px] text-slate-400 mt-0.5 uppercase tracking-wide">{label}</Text>
     </View>
   );
@@ -132,13 +135,13 @@ function CustomAlertModal({
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "center", alignItems: "center", paddingHorizontal: 28 }}>
-        <View className="bg-white rounded-3xl w-full overflow-hidden" style={{ maxWidth: 360 }}>
+        <View className="bg-white dark:bg-slate-900 rounded-3xl w-full overflow-hidden" style={{ maxWidth: 360 }}>
           <View className="items-center pt-7 pb-4 px-6">
             <View className="w-14 h-14 rounded-2xl items-center justify-center mb-4" style={{ backgroundColor: iconBg }}>
               <Feather name={icon as any} size={26} color={iconColor} />
             </View>
-            <Text className="text-[18px] font-semibold text-slate-900 text-center mb-2">{title}</Text>
-            <Text className="text-[13px] text-slate-500 text-center leading-relaxed">{message}</Text>
+            <Text className="text-[18px] font-semibold text-slate-900 dark:text-white text-center mb-2">{title}</Text>
+            <Text className="text-[13px] text-slate-500 dark:text-slate-400 text-center leading-relaxed">{message}</Text>
           </View>
           <View className="px-5 pb-5 gap-2">
             {actions.map((action, i) => (
@@ -184,6 +187,8 @@ function formatTimestamp(date: Date) {
 
 // ─── Dashboard Screen ─────────────────────────────────────────────────────────
 export default function DashboardScreen() {
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === "dark";
   const router = useRouter();
   const { userId, user, setUserId } = useUser();
 
@@ -249,7 +254,7 @@ export default function DashboardScreen() {
   }, [fetchData]);
 
   const cssScore = data?.css_score || 0;
-  const theme = getScoreTheme(cssScore);
+  const theme = getScoreTheme(cssScore, isDark);
   const isCritical = cssScore < 40;
   const lastSyncTime = data?.last_sync ? new Date(data.last_sync) : new Date();
 
@@ -289,19 +294,19 @@ export default function DashboardScreen() {
 
   if (isLoading) {
     return (
-      <SafeAreaView className="flex-1 bg-slate-50 justify-center items-center">
-        <ActivityIndicator size="large" color="#0f172a" />
+      <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950 justify-center items-center">
+        <ActivityIndicator size="large" color={isDark ? "#fff" : "#0f172a"} />
       </SafeAreaView>
     );
   }
 
   if (error && !data) {
     return (
-      <SafeAreaView className="flex-1 bg-slate-50 justify-center items-center px-8">
+      <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950 justify-center items-center px-8">
         <View className="w-16 h-16 rounded-2xl bg-red-50 items-center justify-center mb-4">
           <Feather name="wifi-off" size={28} color="#e24b4a" />
         </View>
-        <Text className="text-[17px] font-medium text-slate-900 mb-1 text-center">Unable to load dashboard</Text>
+        <Text className="text-[17px] font-medium text-slate-900 dark:text-white mb-1 text-center">Unable to load dashboard</Text>
         <Text className="text-[13px] text-slate-400 text-center mb-6 leading-relaxed">
           Please check your internet connection and try again.
         </Text>
@@ -320,7 +325,7 @@ export default function DashboardScreen() {
   const isAlertActive = !!data?.latest_alert;
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950" edges={["top"]}>
       <StatusBar style="dark" />
 
       {/* Custom Alert Modal */}
@@ -355,18 +360,18 @@ export default function DashboardScreen() {
       {/* ── Top bar ── */}
       <View className="flex-row justify-between items-center px-5 pt-3 pb-2">
         <View className="flex-row items-center gap-2.5">
-          <View className="w-7 h-7 rounded-full items-center justify-center border border-slate-200 bg-white">
-            <Feather name="heart" size={13} color="#0f172a" />
+          <View className="w-7 h-7 rounded-full items-center justify-center border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+            <Feather name="heart" size={13} color={isDark ? "#fff" : "#0f172a"} />
           </View>
-          <Text className="text-[16px] text-slate-900 tracking-tight" style={{ fontWeight: "300" }}>Heart<Text style={{ fontWeight: "600" }}>Link.</Text></Text>
+          <Text className="text-[16px] text-slate-900 dark:text-white tracking-tight" style={{ fontWeight: "300" }}>Heart<Text style={{ fontWeight: "600" }}>Link.</Text></Text>
         </View>
         <View className="flex-row items-center gap-2">
-          <TouchableOpacity onPress={() => router.push("/(home)/notifications")} className="w-9 h-9 rounded-xl bg-slate-100 border border-slate-200 items-center justify-center">
-            <Feather name="bell" size={17} color="#64748b" />
+          <TouchableOpacity onPress={() => router.push("/(home)/notifications")} className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-800 items-center justify-center">
+            <Feather name="bell" size={17} color={isDark ? "#94a3b8" : "#64748b"} />
             <View style={{ position: "absolute", top: 8, right: 8 }} className="w-1.5 h-1.5 bg-red-500 rounded-full" />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => router.push("/(home)/settings")} className="w-9 h-9 rounded-xl bg-slate-100 border border-slate-200 items-center justify-center">
-            <Feather name="settings" size={17} color="#64748b" />
+          <TouchableOpacity onPress={() => router.push("/(home)/settings")} className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-800 items-center justify-center">
+            <Feather name="settings" size={17} color={isDark ? "#94a3b8" : "#64748b"} />
           </TouchableOpacity>
           <TouchableOpacity onPress={() => router.push("/(home)/profile")} activeOpacity={0.8} className="ml-1">
             <View className="w-9 h-9 rounded-full bg-slate-200 overflow-hidden">
@@ -387,14 +392,14 @@ export default function DashboardScreen() {
 
         {/* ── Greeting ── */}
         <View className="px-5 pt-4 pb-1">
-          <Text className="text-[28px] font-medium text-slate-900 tracking-tight leading-tight">
+          <Text className="text-[28px] font-medium text-slate-900 dark:text-white tracking-tight leading-tight">
             Welcome back,{"\n"}{data?.user?.first_name || "Guest"}
           </Text>
           <Text className="text-[13px] text-slate-400 mt-1.5">{new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })}</Text>
         </View>
 
         {/* ── CSS Score hero card ── */}
-        <View className="mx-5 mt-4 bg-white rounded-2xl border border-slate-200 pt-6 pb-5 px-5 items-center">
+        <View className="mx-5 mt-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 pt-6 pb-5 px-5 items-center">
 
           {/* Ring */}
           <Animated.View style={{ alignItems: 'center', justifyContent: 'center', transform: [{ scale: pulseAnim }] }}>
@@ -417,7 +422,7 @@ export default function DashboardScreen() {
           </Text>
 
           {/* Label */}
-          <Text className="text-[16px] font-medium text-slate-900 mt-3 mb-2">
+          <Text className="text-[16px] font-medium text-slate-900 dark:text-white mt-3 mb-2">
             Cardiovascular stability
           </Text>
 
@@ -434,7 +439,7 @@ export default function DashboardScreen() {
 
           {/* Progress bar */}
           <View className="w-full mt-4">
-            <View className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+            <View className="h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
               <View className="h-full rounded-full" style={{ width: `${cssScore}%`, backgroundColor: theme.barColor }} />
             </View>
             <View className="flex-row justify-between mt-1">
@@ -447,9 +452,9 @@ export default function DashboardScreen() {
 
         {/* ── Stat cards row ── */}
         <View className="flex-row gap-2.5 mx-5 mt-4">
-          <StatCard icon="heart" label="BPM" value={String(data?.latest_vitals?.bpm || "--")} iconColor="#a32d2d" iconBg="#fcebeb" />
-          <StatCard icon="droplet" label="BP" value={String(data?.latest_vitals?.bp || "--/--")} iconColor="#185fa5" iconBg="#e6f1fb" />
-          <StatCard icon="trending-up" label="Trend" value={String(data?.latest_vitals?.trend || "+0")} iconColor="#3b6d11" iconBg="#eaf3de" />
+          <StatCard icon="heart" label="BPM" value={String(data?.latest_vitals?.bpm || "--")} iconColor={isDark ? "#FB7185" : "#E11D48"} iconBg={isDark ? "rgba(225, 29, 72, 0.15)" : "#FFE4E6"} />
+          <StatCard icon="droplet" label="BP" value={String(data?.latest_vitals?.bp || "--/--")} iconColor={isDark ? "#60A5FA" : "#2563EB"} iconBg={isDark ? "rgba(37, 99, 235, 0.15)" : "#DBEAFE"} />
+          <StatCard icon="trending-up" label="Trend" value={String(data?.latest_vitals?.trend || "+0")} iconColor={isDark ? "#2DD4BF" : "#0D9488"} iconBg={isDark ? "rgba(13, 148, 136, 0.15)" : "#CCFBF1"} />
         </View>
 
         {/* ── Quick Actions ── */}
@@ -457,7 +462,7 @@ export default function DashboardScreen() {
           <TouchableOpacity 
             activeOpacity={0.8} 
             onPress={() => router.push("/locator")}
-            className="flex-1 bg-white rounded-xl border border-slate-200 py-3 items-center"
+            className="flex-1 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 py-3 items-center"
           >
             <View className="w-9 h-9 rounded-full bg-blue-50 items-center justify-center mb-1.5">
               <Feather name="map-pin" size={16} color="#1e4ed8" />
@@ -468,7 +473,7 @@ export default function DashboardScreen() {
           <TouchableOpacity 
             activeOpacity={0.8} 
             onPress={() => router.push("/(home)/log-symptoms")}
-            className="flex-1 bg-white rounded-xl border border-slate-200 py-3 items-center"
+            className="flex-1 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 py-3 items-center"
           >
             <View className="w-9 h-9 rounded-full bg-rose-50 items-center justify-center mb-1.5">
               <Feather name="activity" size={16} color="#e11d48" />
@@ -479,7 +484,7 @@ export default function DashboardScreen() {
 
         {/* ── Smart insight (dynamic) ── */}
         {data?.insight && (
-          <View className="mx-5 mt-4 bg-white rounded-2xl border border-slate-200 p-4 flex-row items-start gap-3">
+          <View className="mx-5 mt-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 flex-row items-start gap-3">
             <View className="w-9 h-9 rounded-xl items-center justify-center flex-shrink-0"
               style={{
                 backgroundColor: data.insight.icon === "trending-down" ? "#fcebeb" : data.insight.icon === "trending-up" ? "#eaf3de" : "#f1f5f9",
@@ -491,8 +496,8 @@ export default function DashboardScreen() {
                 color={data.insight.icon === "trending-down" ? "#e24b4a" : data.insight.icon === "trending-up" ? "#3b6d11" : "#185fa5"}
               />
             </View>
-            <Text className="flex-1 text-[13px] text-slate-500 leading-relaxed">
-              <Text className="font-medium text-slate-900">{data.insight.title} </Text>
+            <Text className="flex-1 text-[13px] text-slate-500 dark:text-slate-400 leading-relaxed">
+              <Text className="font-medium text-slate-900 dark:text-white">{data.insight.title} </Text>
               {data.insight.body}
             </Text>
           </View>
@@ -500,11 +505,11 @@ export default function DashboardScreen() {
 
         {/* ── Today's Activity ── */}
         {data?.today_activity && (
-          <View className="mx-5 mt-4 bg-white rounded-2xl border border-slate-200 p-4">
+          <View className="mx-5 mt-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4">
             <Text className="text-[11px] text-slate-400 uppercase tracking-wide mb-3">Today's activity</Text>
             <View className="gap-2.5">
               {/* Vitals */}
-              <View className="flex-row items-center gap-3 bg-slate-50 rounded-xl px-4 py-3">
+              <View className="flex-row items-center gap-3 bg-slate-50 dark:bg-slate-950 rounded-xl px-4 py-3">
                 <View className="w-9 h-9 rounded-xl items-center justify-center" style={{ backgroundColor: data.today_activity.vitals_logged ? "#eaf3de" : "#fcebeb" }}>
                   <Feather name={data.today_activity.vitals_logged ? "check-circle" : "circle"} size={18} color={data.today_activity.vitals_logged ? "#3b6d11" : "#a32d2d"} />
                 </View>
@@ -525,7 +530,7 @@ export default function DashboardScreen() {
 
               {/* Meals & Exercise row */}
               <View className="flex-row gap-2.5">
-                <View className="flex-1 bg-slate-50 rounded-xl px-4 py-3">
+                <View className="flex-1 bg-slate-50 dark:bg-slate-950 rounded-xl px-4 py-3">
                   <View className="flex-row items-center gap-2 mb-1">
                     <View className="w-7 h-7 rounded-lg items-center justify-center" style={{ backgroundColor: "#faeeda" }}>
                       <MaterialCommunityIcons name="silverware-fork-knife" size={13} color="#854f0b" />
@@ -534,7 +539,7 @@ export default function DashboardScreen() {
                   </View>
                   <Text className="text-[11px] text-slate-400 ml-9">{data.today_activity.total_calories} kcal today</Text>
                 </View>
-                <View className="flex-1 bg-slate-50 rounded-xl px-4 py-3">
+                <View className="flex-1 bg-slate-50 dark:bg-slate-950 rounded-xl px-4 py-3">
                   <View className="flex-row items-center gap-2 mb-1">
                     <View className="w-7 h-7 rounded-lg items-center justify-center" style={{ backgroundColor: "#e6f1fb" }}>
                       <Feather name="activity" size={13} color="#185fa5" />
@@ -550,7 +555,7 @@ export default function DashboardScreen() {
 
         {/* ── Sodium Budget ── */}
         {data?.sodium_budget && (
-          <View className="mx-5 mt-4 bg-white rounded-2xl border border-slate-200 p-4">
+          <View className="mx-5 mt-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4">
             <View className="flex-row items-center justify-between mb-3">
               <View className="flex-row items-center gap-2">
                 <View className="w-7 h-7 rounded-lg items-center justify-center" style={{ backgroundColor: data.sodium_budget.consumed_mg > data.sodium_budget.limit_mg ? "#fcebeb" : "#eaf3de" }}>
@@ -562,7 +567,7 @@ export default function DashboardScreen() {
                 {data.sodium_budget.consumed_mg} / {data.sodium_budget.limit_mg}mg
               </Text>
             </View>
-            <View className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
+            <View className="h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
               <View
                 className="h-full rounded-full"
                 style={{
@@ -591,7 +596,7 @@ export default function DashboardScreen() {
               className="mx-5 bg-red-50 rounded-2xl p-4 border border-red-200 flex-row items-center justify-between"
             >
               <View className="flex-1 pr-4">
-                <Text className="text-[15px] font-medium text-slate-900 mb-0.5">Need professional guidance?</Text>
+                <Text className="text-[15px] font-medium text-slate-900 dark:text-white mb-0.5">Need professional guidance?</Text>
                 <Text className="text-[13px] text-slate-600">Find a cardiologist near you to discuss your risk level.</Text>
               </View>
               <View className="w-10 h-10 bg-red-100 rounded-xl items-center justify-center">
@@ -604,7 +609,7 @@ export default function DashboardScreen() {
             {/* ── Recommendations ── */}
             <View className="mt-6">
               <View className="px-5 flex-row items-center justify-between mb-3">
-                <Text className="text-[15px] font-medium text-slate-900">Recommended today</Text>
+                <Text className="text-[15px] font-medium text-slate-900 dark:text-white">Recommended today</Text>
               </View>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="px-5 gap-3">
                 {data?.recommendations?.map((r: any, idx: number) => (
@@ -634,10 +639,10 @@ export default function DashboardScreen() {
             <TouchableOpacity
               activeOpacity={0.8}
               onPress={() => router.push("/locator")}
-              className="mx-5 mt-4 bg-white rounded-2xl p-4 border border-slate-200 flex-row items-center justify-between"
+              className="mx-5 mt-4 bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200 dark:border-slate-800 flex-row items-center justify-between"
             >
               <View className="flex-1 pr-4">
-                <Text className="text-[15px] font-medium text-slate-900 mb-0.5">Need professional guidance?</Text>
+                <Text className="text-[15px] font-medium text-slate-900 dark:text-white mb-0.5">Need professional guidance?</Text>
                 <Text className="text-[13px] text-slate-400">Find a cardiologist near you.</Text>
               </View>
               <View className="w-10 h-10 bg-blue-50 rounded-xl items-center justify-center">

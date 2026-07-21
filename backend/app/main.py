@@ -35,3 +35,9 @@ app.include_router(analytics_api.router)
 def health_check():
     print("Healthy and connected")
     return {"status": "Backend Connected", "database_layer": "decoupled_offline_mode"}
+
+from app.mock_db import clinics
+
+@app.get("/api/clinics", tags=["Clinics"])
+def get_clinics():
+    return clinics

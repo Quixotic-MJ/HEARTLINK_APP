@@ -62,7 +62,7 @@ export default function AppearanceScreen() {
                 onPress={() => handleThemeChange(t.id as any)}
                 className={`flex-row items-center p-3 rounded-xl ${isSelected ? 'bg-slate-50 dark:bg-slate-950' : ''}`}
               >
-                <View className={`w-10 h-10 rounded-full items-center justify-center mr-3 ${isSelected ? 'bg-slate-900 dark:bg-slate-100' : 'bg-slate-100 dark:bg-slate-800'}`}>
+                <View className={`w-10 h-10 rounded-full items-center justify-center mr-3 ${isSelected ? 'bg-slate-900' : 'bg-slate-100 dark:bg-slate-800'}`}>
                   <Feather 
                     name={t.icon as any} 
                     size={18} 
@@ -78,7 +78,7 @@ export default function AppearanceScreen() {
                   <Text className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5">{t.description}</Text>
                 </View>
                 {isSelected && (
-                  <View className="w-6 h-6 rounded-full bg-slate-900 dark:bg-slate-100 items-center justify-center">
+                  <View className="w-6 h-6 rounded-full bg-slate-900 items-center justify-center">
                     <Feather name="check" size={14} color={colorScheme === "dark" ? "#0f172a" : "#ffffff"} />
                   </View>
                 )}

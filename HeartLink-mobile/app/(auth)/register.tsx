@@ -1,3 +1,4 @@
+import { useColorScheme } from "nativewind";
 import React, { useState } from "react";
 import {
   View,
@@ -81,7 +82,7 @@ function InputField({
           secureTextEntry={secureTextEntry}
           autoComplete={autoComplete}
           textContentType={textContentType}
-          className="flex-1 ml-3 text-[14px] text-slate-900 dark:text-white dark:text-slate-900 h-full"
+          className="flex-1 ml-3 text-[14px] text-slate-900 dark:text-white h-full"
         />
         {rightElement}
       </View>
@@ -100,6 +101,8 @@ function InputField({
 // ─── Register Screen ──────────────────────────────────────────────────────────
 
 export default function RegisterScreen() {
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === "dark";
   const router = useRouter();
 
   const [email, setEmail] = useState("");
@@ -206,16 +209,16 @@ export default function RegisterScreen() {
       <View className="flex-row items-center px-5 pt-4 pb-2">
         <TouchableOpacity
           onPress={() => router.back()}
-          className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 dark:bg-slate-100 border border-slate-200 dark:border-slate-800/70 items-center justify-center mr-3"
+          className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 items-center justify-center mr-3"
         >
-          <Feather name="arrow-left" size={18} color="#0f172a" />
+          <Feather name="arrow-left" size={18} color={isDark ? "#f8fafc" : "#0f172a"} />
         </TouchableOpacity>
         <View className="flex-row items-center gap-2">
-          <View className="w-7 h-7 rounded-full items-center justify-center border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 dark:bg-slate-100">
+          <View className="w-7 h-7 rounded-full items-center justify-center border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
             <Feather name="heart" size={13} color="#0f172a" />
           </View>
           <Text
-            className="text-[16px] text-slate-900 dark:text-white dark:text-slate-900 tracking-tight"
+            className="text-[16px] text-slate-900 dark:text-white tracking-tight"
             style={{ fontWeight: "300" }}
           >
             Heart<Text style={{ fontWeight: "600" }}>Link.</Text>
@@ -227,16 +230,16 @@ export default function RegisterScreen() {
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        <ScrollView
+        <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag"
           contentContainerClassName="flex-grow justify-center px-5 pb-10 pt-4"
           showsVerticalScrollIndicator={false}
           bounces={false}
         >
           {/* ── Card ── */}
-          <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 px-6 py-7">
+          <View className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/70 px-6 py-7">
             {/* Heading */}
             <View className="mb-6">
-              <Text className="text-[24px] font-medium text-slate-900 dark:text-white dark:text-slate-900 tracking-tight mb-1.5">
+              <Text className="text-[24px] font-medium text-slate-900 dark:text-white tracking-tight mb-1.5">
                 Create your account
               </Text>
               <Text className="text-[13px] text-slate-400 leading-relaxed">
@@ -359,14 +362,14 @@ export default function RegisterScreen() {
               activeOpacity={0.85}
               onPress={handleSubmit}
               disabled={isSubmitting}
-              className={`w-full bg-slate-900 dark:bg-slate-100 rounded-2xl py-3.5 items-center justify-center flex-row gap-2 mb-5 ${isSubmitting ? 'opacity-80' : ''}`}
+              className={`w-full bg-slate-900 rounded-2xl py-3.5 items-center justify-center flex-row gap-2 mb-5 ${isSubmitting ? 'opacity-80' : ''}`}
             >
               {isSubmitting ? (
                 <ActivityIndicator size="small" color="#fff" />
               ) : (
                 <>
                   <Feather name="send" size={15} color="#fff" />
-                  <Text className="text-white dark:text-slate-900 text-[14px] font-medium">
+                  <Text className="text-white text-[14px] font-medium">
                     Send verification code
                   </Text>
                 </>

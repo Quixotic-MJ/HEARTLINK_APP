@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, TouchableOpacity, ScrollView } from "react-native";
+import { useColorScheme } from "nativewind";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
@@ -9,6 +10,8 @@ import { useUser } from "../../contexts/UserContext";
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
 export default function HealthAnalyticsScreen() {
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === "dark";
   const router = useRouter();
   const { userId } = useUser();
 
@@ -44,7 +47,7 @@ export default function HealthAnalyticsScreen() {
   const latestCSS = history.length > 0 ? history[history.length - 1].score : 84;
 
   return (
-    <SafeAreaView className="flex-1 bg-white dark:bg-slate-900 dark:bg-slate-100" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-white dark:bg-slate-900" edges={["top"]}>
       <StatusBar style="dark" />
 
       {/* Header */}
@@ -53,13 +56,13 @@ export default function HealthAnalyticsScreen() {
           onPress={() => router.back()}
           className="w-10 h-10 rounded-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/70 items-center justify-center mr-4"
         >
-          <Feather name="arrow-left" size={18} color="#0f172a" />
+          <Feather name="arrow-left" size={18} color={isDark ? "#f8fafc" : "#0f172a"} />
         </TouchableOpacity>
         <View className="flex-1">
           <Text className="text-[12px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider mb-0.5">
             Analytics Suite
           </Text>
-          <Text className="text-[20px] font-bold text-slate-900 dark:text-white dark:text-slate-900 tracking-tight">
+          <Text className="text-[20px] font-bold text-slate-900 dark:text-white tracking-tight">
             Health Analytics
           </Text>
         </View>
@@ -69,7 +72,7 @@ export default function HealthAnalyticsScreen() {
         
         {/* Time Filters */}
         <View className="flex-row items-center bg-slate-50 dark:bg-slate-950 p-1.5 rounded-xl border border-slate-200 dark:border-slate-800 mb-6">
-          <TouchableOpacity className="flex-1 bg-white dark:bg-slate-900 dark:bg-slate-100 py-2 rounded-lg shadow-sm shadow-slate-200 items-center">
+          <TouchableOpacity className="flex-1 bg-white dark:bg-slate-900 py-2 rounded-lg shadow-sm shadow-slate-200 items-center">
             <Text className="text-[13px] font-bold text-[#1e4ed8]">7-Day</Text>
           </TouchableOpacity>
           <TouchableOpacity className="flex-1 py-2 rounded-lg items-center">
@@ -80,7 +83,7 @@ export default function HealthAnalyticsScreen() {
         {/* Tab Filters */}
         <View className="flex-row mb-6 border-b border-slate-100 dark:border-slate-800">
           <TouchableOpacity className="pb-3 border-b-2 border-[#1e4ed8] mr-6">
-            <Text className="text-[14px] font-bold text-slate-900 dark:text-white dark:text-slate-900">Overview & CSS</Text>
+            <Text className="text-[14px] font-bold text-slate-900 dark:text-white">Overview & CSS</Text>
           </TouchableOpacity>
           <TouchableOpacity className="pb-3" onPress={() => router.push("/(home)/health-history")}>
             <Text className="text-[14px] font-medium text-slate-400">Diet & Biometrics</Text>
@@ -91,13 +94,13 @@ export default function HealthAnalyticsScreen() {
         <View className="bg-slate-50 dark:bg-slate-950 rounded-3xl p-5 border border-slate-100 dark:border-slate-800 mb-6">
           <View className="flex-row items-start justify-between mb-8">
             <View>
-              <Text className="text-[16px] font-bold text-slate-900 dark:text-white dark:text-slate-900">Cardiac Stability</Text>
-              <Text className="text-[16px] font-bold text-slate-900 dark:text-white dark:text-slate-900">Score (CSS)</Text>
+              <Text className="text-[16px] font-bold text-slate-900 dark:text-white">Cardiac Stability</Text>
+              <Text className="text-[16px] font-bold text-slate-900 dark:text-white">Score (CSS)</Text>
               <Text className="text-[12px] text-slate-500 dark:text-slate-400 mt-1">Last 7 days trend analysis</Text>
             </View>
             <TouchableOpacity 
                onPress={() => router.push("/(home)/detailed-analytics")}
-               className="bg-white dark:bg-slate-900 dark:bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 flex-row items-center"
+               className="bg-white dark:bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 flex-row items-center"
             >
               <View className="w-2 h-2 rounded-full bg-blue-500 mr-2" />
               <Text className="text-[18px] font-bold text-[#1e4ed8]">{latestCSS}</Text>
@@ -149,10 +152,10 @@ export default function HealthAnalyticsScreen() {
         <View className="bg-[#1e4ed8] rounded-3xl p-5 shadow-sm shadow-blue-500/30">
           <View className="flex-row items-center mb-3">
             <MaterialCommunityIcons name="auto-fix" size={18} color="#93c5fd" />
-            <Text className="text-[14px] font-bold text-white dark:text-slate-900 ml-2">Smart Insights</Text>
+            <Text className="text-[14px] font-bold text-white ml-2">Smart Insights</Text>
           </View>
           <Text className="text-[14px] text-blue-50 leading-relaxed">
-            "Your stability score improved by <Text className="font-bold text-white dark:text-slate-900">5 points</Text> this week. Your consistent medication tracking and mild symptom reports contributed to this."
+            "Your stability score improved by <Text className="font-bold text-white">5 points</Text> this week. Your consistent medication tracking and mild symptom reports contributed to this."
           </Text>
         </View>
         

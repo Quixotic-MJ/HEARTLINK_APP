@@ -1,3 +1,4 @@
+import { useColorScheme } from "nativewind";
 import React, { useState, useEffect } from "react";
 import {
   View,
@@ -19,6 +20,8 @@ import { useUser } from "../../contexts/UserContext";
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
 export default function GoalsThresholdsScreen() {
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === "dark";
   const router = useRouter();
   
   const { userId } = useUser();
@@ -86,14 +89,14 @@ export default function GoalsThresholdsScreen() {
       <View className="flex-row items-center px-5 pt-4 pb-2">
         <TouchableOpacity
           onPress={() => router.back()}
-          className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 dark:bg-slate-100 border border-slate-200 dark:border-slate-800/70 items-center justify-center mr-3"
+          className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 items-center justify-center mr-3"
         >
-          <Feather name="arrow-left" size={18} color="#0f172a" />
+          <Feather name="arrow-left" size={18} color={isDark ? "#f8fafc" : "#0f172a"} />
         </TouchableOpacity>
       </View>
 
       <View className="px-5 pt-3 mb-2">
-        <Text className="text-[22px] font-medium text-slate-900 dark:text-white dark:text-slate-900 tracking-tight">
+        <Text className="text-[22px] font-medium text-slate-900 dark:text-white tracking-tight">
           Goals & Thresholds
         </Text>
         <Text className="text-[13px] text-slate-400 mt-0.5">
@@ -105,13 +108,13 @@ export default function GoalsThresholdsScreen() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         className="flex-1"
       >
-        <ScrollView contentContainerClassName="p-5 pb-24" showsVerticalScrollIndicator={false}>
+        <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerClassName="p-5 pb-24" showsVerticalScrollIndicator={false}>
           
           {/* ── Dietary Target ── */}
-          <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4 mb-3">
+          <View className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4 mb-3">
             <View className="flex-row items-start justify-between mb-4">
               <View className="flex-1 pr-3">
-                <Text className="text-[15px] font-medium text-slate-900 dark:text-white dark:text-slate-900 leading-snug mb-0.5">
+                <Text className="text-[15px] font-medium text-slate-900 dark:text-white leading-snug mb-0.5">
                   Dietary Target
                 </Text>
                 <Text className="text-[12px] text-slate-400 leading-5">
@@ -125,7 +128,7 @@ export default function GoalsThresholdsScreen() {
             
             <View className="flex-row items-center bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/70 rounded-xl px-4 py-3 mb-3">
               <TextInput
-                className="flex-1 text-[15px] text-slate-900 dark:text-white dark:text-slate-900 font-medium"
+                className="flex-1 text-[15px] text-slate-900 dark:text-white font-medium"
                 placeholder="1500"
                 placeholderTextColor="#94a3b8"
                 keyboardType="numeric"
@@ -144,10 +147,10 @@ export default function GoalsThresholdsScreen() {
           </View>
 
           {/* ── Activity Target ── */}
-          <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4 mb-3">
+          <View className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4 mb-3">
             <View className="flex-row items-start justify-between mb-4">
               <View className="flex-1 pr-3">
-                <Text className="text-[15px] font-medium text-slate-900 dark:text-white dark:text-slate-900 leading-snug mb-0.5">
+                <Text className="text-[15px] font-medium text-slate-900 dark:text-white leading-snug mb-0.5">
                   Activity Target
                 </Text>
                 <Text className="text-[12px] text-slate-400 leading-5">
@@ -161,7 +164,7 @@ export default function GoalsThresholdsScreen() {
             
             <View className="flex-row items-center bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/70 rounded-xl px-4 py-3">
               <TextInput
-                className="flex-1 text-[15px] text-slate-900 dark:text-white dark:text-slate-900 font-medium"
+                className="flex-1 text-[15px] text-slate-900 dark:text-white font-medium"
                 placeholder="30"
                 placeholderTextColor="#94a3b8"
                 keyboardType="numeric"
@@ -173,10 +176,10 @@ export default function GoalsThresholdsScreen() {
           </View>
 
           {/* ── Vitals Baseline ── */}
-          <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4 mb-3">
+          <View className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4 mb-3">
             <View className="flex-row items-start justify-between mb-4">
               <View className="flex-1 pr-3">
-                <Text className="text-[15px] font-medium text-slate-900 dark:text-white dark:text-slate-900 leading-snug mb-0.5">
+                <Text className="text-[15px] font-medium text-slate-900 dark:text-white leading-snug mb-0.5">
                   Vitals Baseline
                 </Text>
                 <Text className="text-[12px] text-slate-400 leading-5">
@@ -191,7 +194,7 @@ export default function GoalsThresholdsScreen() {
             <View className="flex-row items-center gap-3">
               <View className="flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/70 rounded-xl px-4 py-3 flex-row items-center">
                 <TextInput
-                  className="flex-1 text-[15px] text-slate-900 dark:text-white dark:text-slate-900 font-medium text-center"
+                  className="flex-1 text-[15px] text-slate-900 dark:text-white font-medium text-center"
                   placeholder="120"
                   placeholderTextColor="#94a3b8"
                   keyboardType="numeric"
@@ -202,7 +205,7 @@ export default function GoalsThresholdsScreen() {
               <Text className="text-[20px] text-slate-300 font-light">/</Text>
               <View className="flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/70 rounded-xl px-4 py-3 flex-row items-center">
                 <TextInput
-                  className="flex-1 text-[15px] text-slate-900 dark:text-white dark:text-slate-900 font-medium text-center"
+                  className="flex-1 text-[15px] text-slate-900 dark:text-white font-medium text-center"
                   placeholder="80"
                   placeholderTextColor="#94a3b8"
                   keyboardType="numeric"
@@ -235,7 +238,7 @@ export default function GoalsThresholdsScreen() {
           ) : (
             <>
               <Feather name="check" size={16} color="#fff" />
-              <Text className="text-white dark:text-slate-900 font-medium text-[14px]">Save Changes</Text>
+              <Text className="text-white font-medium text-[14px]">Save Changes</Text>
             </>
           )}
         </TouchableOpacity>

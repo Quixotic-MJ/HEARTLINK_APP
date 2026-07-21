@@ -1,3 +1,4 @@
+import { useColorScheme } from "nativewind";
 import React, { useState, useEffect, useRef } from "react";
 import {
   View,
@@ -19,6 +20,8 @@ import { useUser } from "../../contexts/UserContext";
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
 export default function OTPVerificationScreen() {
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === "dark";
   const router = useRouter();
   const { phone } = useLocalSearchParams();
   const { setUserId } = useUser();
@@ -142,16 +145,16 @@ export default function OTPVerificationScreen() {
       <View className="flex-row items-center px-5 pt-4 pb-2">
         <TouchableOpacity
           onPress={() => router.back()}
-          className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 dark:bg-slate-100 border border-slate-200 dark:border-slate-800/70 items-center justify-center mr-3"
+          className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 items-center justify-center mr-3"
         >
-          <Feather name="arrow-left" size={18} color="#0f172a" />
+          <Feather name="arrow-left" size={18} color={isDark ? "#f8fafc" : "#0f172a"} />
         </TouchableOpacity>
         <View className="flex-row items-center gap-2">
-          <View className="w-7 h-7 rounded-full items-center justify-center border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 dark:bg-slate-100">
+          <View className="w-7 h-7 rounded-full items-center justify-center border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
             <Feather name="heart" size={13} color="#0f172a" />
           </View>
           <Text
-            className="text-[16px] text-slate-900 dark:text-white dark:text-slate-900 tracking-tight"
+            className="text-[16px] text-slate-900 dark:text-white tracking-tight"
             style={{ fontWeight: "300" }}
           >
             Heart<Text style={{ fontWeight: "600" }}>Link.</Text>
@@ -163,13 +166,13 @@ export default function OTPVerificationScreen() {
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        <ScrollView
+        <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag"
           contentContainerClassName="flex-grow justify-center px-5 pb-10 pt-4"
           showsVerticalScrollIndicator={false}
           bounces={false}
         >
           {/* ── Card ── */}
-          <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 px-6 py-7">
+          <View className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/70 px-6 py-7">
             {/* Icon + heading */}
             <View className="items-center mb-7">
               <View
@@ -178,7 +181,7 @@ export default function OTPVerificationScreen() {
               >
                 <Feather name="smartphone" size={26} color="#185fa5" />
               </View>
-              <Text className="text-[24px] font-medium text-slate-900 dark:text-white dark:text-slate-900 tracking-tight mb-2 text-center">
+              <Text className="text-[24px] font-medium text-slate-900 dark:text-white tracking-tight mb-2 text-center">
                 Verify your account
               </Text>
               <Text className="text-[13px] text-slate-400 text-center leading-relaxed px-2">

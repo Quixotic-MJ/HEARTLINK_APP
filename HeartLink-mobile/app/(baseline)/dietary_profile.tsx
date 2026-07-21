@@ -1,3 +1,4 @@
+import { useColorScheme } from "nativewind";
 import React, { useState } from "react";
 import {
   View,
@@ -32,6 +33,8 @@ function StepProgress({ current, total }: { current: number; total: number }) {
 }
 
 export default function BiometricsStep3Screen() {
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === "dark";
   const router = useRouter();
   const { user_id } = useLocalSearchParams();
   const base_url = process.env.EXPO_PUBLIC_API_URL;
@@ -138,7 +141,7 @@ export default function BiometricsStep3Screen() {
             onPress={handleBack}
             className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 items-center justify-center mr-3"
           >
-            <Feather name="arrow-left" size={18} color="#0f172a" />
+            <Feather name="arrow-left" size={18} color={isDark ? "#f8fafc" : "#0f172a"} />
           </TouchableOpacity>
           <View className="flex-1">
             <Text className="text-[11px] text-slate-400 uppercase tracking-wide">
@@ -153,7 +156,7 @@ export default function BiometricsStep3Screen() {
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        <ScrollView
+        <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag"
           contentContainerClassName="px-5 pb-16 pt-4"
           showsVerticalScrollIndicator={false}
           bounces={true}
@@ -169,8 +172,8 @@ export default function BiometricsStep3Screen() {
           </View>
 
           {/* 1. Dietary Habits */}
-          <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4 mb-5">
-            <Text className="text-[15px] font-medium text-slate-900 dark:text-white dark:text-slate-900 mb-4 leading-snug">
+          <View className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4 mb-5">
+            <Text className="text-[15px] font-medium text-slate-900 dark:text-white mb-4 leading-snug">
               High-Sodium or Fried Food Intake
             </Text>
             
@@ -250,9 +253,9 @@ export default function BiometricsStep3Screen() {
           </View>
 
           {/* 2. Food Allergies */}
-          <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4 mb-5">
+          <View className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4 mb-5">
             <View className="flex-row items-center justify-between mb-4">
-              <Text className="text-[15px] font-medium text-slate-900 dark:text-white dark:text-slate-900 leading-snug">
+              <Text className="text-[15px] font-medium text-slate-900 dark:text-white leading-snug">
                 Food Allergies
               </Text>
               <View className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-800">
@@ -312,16 +315,16 @@ export default function BiometricsStep3Screen() {
                   onChangeText={setOtherAllergy}
                   placeholder="E.g., Soy, Sesame..."
                   placeholderTextColor="#94a3b8"
-                  className="flex-1 ml-2 text-[13px] text-slate-900 dark:text-white dark:text-slate-900 h-full font-medium"
+                  className="flex-1 ml-2 text-[13px] text-slate-900 dark:text-white h-full font-medium"
                 />
               </View>
             )}
           </View>
 
           {/* 3. Dietary Preferences */}
-          <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4 mb-5">
+          <View className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4 mb-5">
             <View className="flex-row items-center justify-between mb-4">
-              <Text className="text-[15px] font-medium text-slate-900 dark:text-white dark:text-slate-900 leading-snug">
+              <Text className="text-[15px] font-medium text-slate-900 dark:text-white leading-snug">
                 Dietary Preferences
               </Text>
               <View className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-800">

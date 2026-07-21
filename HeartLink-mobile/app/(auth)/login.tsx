@@ -1,3 +1,4 @@
+import { useColorScheme } from "nativewind";
 import React, { useState } from "react";
 import {
   View,
@@ -59,7 +60,7 @@ function InputField({
         secureTextEntry={secureTextEntry}
         autoComplete={autoComplete}
         textContentType={textContentType}
-        className="flex-1 ml-3 text-[14px] text-slate-900 dark:text-white dark:text-slate-900 h-full"
+        className="flex-1 ml-3 text-[14px] text-slate-900 dark:text-white h-full"
       />
       {rightElement}
     </View>
@@ -69,6 +70,8 @@ function InputField({
 // ─── Auth Screen ──────────────────────────────────────────────────────────────
 
 export default function AuthScreen() {
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === "dark";
   const router = useRouter();
   const { setUserId } = useUser();
 
@@ -138,16 +141,16 @@ export default function AuthScreen() {
       <View className="flex-row items-center px-5 pt-4 pb-2">
         <TouchableOpacity
           onPress={() => router.back()}
-          className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 dark:bg-slate-100 border border-slate-200 dark:border-slate-800/70 items-center justify-center mr-3"
+          className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 items-center justify-center mr-3"
         >
-          <Feather name="arrow-left" size={18} color="#0f172a" />
+          <Feather name="arrow-left" size={18} color={isDark ? "#f8fafc" : "#0f172a"} />
         </TouchableOpacity>
         <View className="flex-row items-center gap-2">
-          <View className="w-7 h-7 rounded-full items-center justify-center border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 dark:bg-slate-100">
+          <View className="w-7 h-7 rounded-full items-center justify-center border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
             <Feather name="heart" size={13} color="#0f172a" />
           </View>
           <Text
-            className="text-[16px] text-slate-900 dark:text-white dark:text-slate-900 tracking-tight"
+            className="text-[16px] text-slate-900 dark:text-white tracking-tight"
             style={{ fontWeight: "300" }}
           >
             Heart<Text style={{ fontWeight: "600" }}>Link.</Text>
@@ -159,14 +162,14 @@ export default function AuthScreen() {
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        <ScrollView
+        <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag"
           contentContainerClassName="flex-grow px-5 pt-4 pb-12"
           showsVerticalScrollIndicator={false}
           bounces={false}
         >
           {/* ── Heading ── */}
           <View className="mb-7 mt-2">
-            <Text className="text-[28px] font-medium text-slate-900 dark:text-white dark:text-slate-900 tracking-tight leading-tight mb-2">
+            <Text className="text-[28px] font-medium text-slate-900 dark:text-white tracking-tight leading-tight mb-2">
               Welcome{"\n"}back.
             </Text>
             <Text className="text-[13px] text-slate-400 leading-relaxed">
@@ -175,7 +178,7 @@ export default function AuthScreen() {
           </View>
 
           {/* ── Card ── */}
-          <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 px-5 py-6 gap-4">
+          <View className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/70 px-5 py-6 gap-4">
             
             {/* Identifier Section */}
             <View>
@@ -249,13 +252,13 @@ export default function AuthScreen() {
               activeOpacity={0.85}
               onPress={handleSubmit}
               disabled={isLoading}
-              className={`w-full bg-slate-900 dark:bg-slate-100 rounded-2xl py-3.5 flex-row justify-center items-center gap-2 ${isLoading ? 'opacity-80' : ''}`}
+              className={`w-full bg-slate-900 rounded-2xl py-3.5 flex-row justify-center items-center gap-2 ${isLoading ? 'opacity-80' : ''}`}
             >
               {isLoading ? (
                 <ActivityIndicator size="small" color="#fff" />
               ) : (
                 <>
-                  <Text className="text-white dark:text-slate-900 text-[14px] font-medium">
+                  <Text className="text-white text-[14px] font-medium">
                     Log in
                   </Text>
                   <Feather name="arrow-right" size={15} color="#fff" />

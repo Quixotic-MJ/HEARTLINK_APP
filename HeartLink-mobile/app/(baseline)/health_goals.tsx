@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { View, Text, TouchableOpacity, ScrollView } from "react-native";
+import { useColorScheme } from "nativewind";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
@@ -24,7 +25,7 @@ function GoalCard({
     <TouchableOpacity
       activeOpacity={0.7}
       onPress={onPress}
-      className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl p-4 mb-3 flex-row items-center border"
+      className="bg-white dark:bg-slate-900 rounded-2xl p-4 mb-3 flex-row items-center border"
       style={{
         borderColor: isSelected ? "#1e4ed8" : "#e2e8f0",
         backgroundColor: isSelected ? "#f0fdf4" : "#ffffff",
@@ -81,6 +82,8 @@ function StepProgress({ current, total }: { current: number; total: number }) {
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
 export default function HealthGoalsScreen() {
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === "dark";
   const router = useRouter();
   const { user_id } = useLocalSearchParams();
   const [selectedGoals, setSelectedGoals] = useState<string[]>([]);
@@ -142,9 +145,9 @@ export default function HealthGoalsScreen() {
         <View className="flex-row items-center mb-4">
           <TouchableOpacity
             onPress={() => router.back()}
-            className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 dark:bg-slate-100 border border-slate-200 dark:border-slate-800/70 items-center justify-center mr-3"
+            className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 items-center justify-center mr-3"
           >
-            <Feather name="arrow-left" size={18} color="#0f172a" />
+            <Feather name="arrow-left" size={18} color={isDark ? "#f8fafc" : "#0f172a"} />
           </TouchableOpacity>
           <View className="flex-1">
             <Text className="text-[11px] text-slate-400 uppercase tracking-wide">
@@ -163,7 +166,7 @@ export default function HealthGoalsScreen() {
       >
         {/* Page title */}
         <View className="mb-6 mt-2">
-          <Text className="text-[26px] font-bold text-slate-900 dark:text-white dark:text-slate-900 tracking-tight mb-2">
+          <Text className="text-[26px] font-bold text-slate-900 dark:text-white tracking-tight mb-2">
             What is your main focus?
           </Text>
           <Text className="text-[14px] text-slate-500 dark:text-slate-400 leading-relaxed">

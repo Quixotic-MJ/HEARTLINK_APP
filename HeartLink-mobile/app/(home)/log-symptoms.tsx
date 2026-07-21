@@ -1,3 +1,4 @@
+import { useColorScheme } from "nativewind";
 import React, { useState, useEffect } from "react";
 import {
   View,
@@ -55,7 +56,7 @@ const SYMPTOM_ICONS: Record<SymptomType, string> = {
   "None (Feeling fine)": "emoticon-happy-outline",
   "Chest Discomfort / Tightness": "heart-pulse",
   "Shortness of Breath": "lungs",
-  "Dizziness / Lightheadedness": "head-dizzy",
+  "Dizziness / Lightheadedness": "emoticon-confused-outline",
   Palpitations: "waveform",
   "Fatigue / Weakness": "battery-low",
 };
@@ -83,6 +84,8 @@ function getSeverityLabel(num: number) {
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
 export default function LogSymptomsScreen() {
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === "dark";
   const router = useRouter();
   const { userId } = useUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -203,10 +206,10 @@ export default function LogSymptomsScreen() {
           className="p-2 -ml-2 mr-3"
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Feather name="arrow-left" size={20} color="#0f172a" />
+          <Feather name="arrow-left" size={20} color={isDark ? "#f8fafc" : "#0f172a"} />
         </TouchableOpacity>
         <View className="flex-1">
-          <Text className="text-[22px] font-medium text-slate-900 dark:text-white dark:text-slate-900 tracking-tight">
+          <Text className="text-[22px] font-medium text-slate-900 dark:text-white tracking-tight">
             Daily Log
           </Text>
           <Text className="text-[13px] text-slate-400 mt-0.5">
@@ -219,7 +222,7 @@ export default function LogSymptomsScreen() {
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        <ScrollView
+        <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag"
           contentContainerClassName="px-5 pb-32 pt-4"
           showsVerticalScrollIndicator={false}
           bounces={true}
@@ -234,8 +237,8 @@ export default function LogSymptomsScreen() {
               </Text>
 
               {/* 1. Core Vitals */}
-              <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4 mb-5">
-                <Text className="text-[15px] font-medium text-slate-900 dark:text-white dark:text-slate-900 mb-4 leading-snug">
+              <View className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4 mb-5">
+                <Text className="text-[15px] font-medium text-slate-900 dark:text-white mb-4 leading-snug">
                   Basic Vitals
                 </Text>
 
@@ -252,7 +255,7 @@ export default function LogSymptomsScreen() {
                         placeholderTextColor="#94a3b8"
                         keyboardType="numeric"
                         maxLength={3}
-                        className="flex-1 text-[14px] text-slate-900 dark:text-white dark:text-slate-900 h-full"
+                        className="flex-1 text-[14px] text-slate-900 dark:text-white h-full"
                       />
                       <Text className="text-[11px] text-slate-400">mmHg</Text>
                     </View>
@@ -270,7 +273,7 @@ export default function LogSymptomsScreen() {
                         placeholderTextColor="#94a3b8"
                         keyboardType="numeric"
                         maxLength={3}
-                        className="flex-1 text-[14px] text-slate-900 dark:text-white dark:text-slate-900 h-full"
+                        className="flex-1 text-[14px] text-slate-900 dark:text-white h-full"
                       />
                       <Text className="text-[11px] text-slate-400">mmHg</Text>
                     </View>
@@ -290,7 +293,7 @@ export default function LogSymptomsScreen() {
                         placeholderTextColor="#94a3b8"
                         keyboardType="numeric"
                         maxLength={3}
-                        className="flex-1 text-[14px] text-slate-900 dark:text-white dark:text-slate-900 h-full"
+                        className="flex-1 text-[14px] text-slate-900 dark:text-white h-full"
                       />
                       <Text className="text-[11px] text-slate-400">bpm</Text>
                     </View>
@@ -308,7 +311,7 @@ export default function LogSymptomsScreen() {
                         placeholderTextColor="#94a3b8"
                         keyboardType="numeric"
                         maxLength={3}
-                        className="flex-1 text-[14px] text-slate-900 dark:text-white dark:text-slate-900 h-full"
+                        className="flex-1 text-[14px] text-slate-900 dark:text-white h-full"
                       />
                       <Text className="text-[11px] text-slate-400">kg</Text>
                     </View>
@@ -317,8 +320,8 @@ export default function LogSymptomsScreen() {
               </View>
 
               {/* 2. Medication Status */}
-              <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4 mb-5">
-                <Text className="text-[15px] font-medium text-slate-900 dark:text-white dark:text-slate-900 mb-3 leading-snug">
+              <View className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4 mb-5">
+                <Text className="text-[15px] font-medium text-slate-900 dark:text-white mb-3 leading-snug">
                   Medication Check
                 </Text>
                 <Text className="text-[13px] text-slate-400 mb-4">
@@ -396,7 +399,7 @@ export default function LogSymptomsScreen() {
                   <TouchableOpacity
                     onPress={handleLocateCardiologist}
                     activeOpacity={0.8}
-                    className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-xl py-2.5 flex-row items-center justify-center gap-2 border border-red-100"
+                    className="bg-white dark:bg-slate-900 rounded-xl py-2.5 flex-row items-center justify-center gap-2 border border-red-100"
                   >
                     <MaterialCommunityIcons
                       name="map-marker-radius"
@@ -414,14 +417,14 @@ export default function LogSymptomsScreen() {
               )}
 
               {/* ── Status overview card ── */}
-              <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4 mb-5">
-                <Text className="text-white dark:text-slate-900 font-medium text-[16px]">
+              <View className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4 mb-5">
+                <Text className="text-white font-medium text-[16px]">
                   {isSubmitting ? "Submitting..." : "Submit Daily Log"}
                 </Text>
                 <View className="flex-row gap-3">
                   {/* Symptom count */}
                   <View className="flex-1 bg-slate-50 dark:bg-slate-950 rounded-xl p-3 border border-slate-200 dark:border-slate-800/70 items-center">
-                    <Text className="text-[22px] font-medium text-slate-900 dark:text-white dark:text-slate-900">
+                    <Text className="text-[22px] font-medium text-slate-900 dark:text-white">
                       {hasRealSymptoms ? selectedSymptoms.length : 0}
                     </Text>
                     <Text className="text-[10px] text-slate-400 mt-0.5 uppercase tracking-wide">
@@ -467,7 +470,7 @@ export default function LogSymptomsScreen() {
               </View>
 
               {/* ── Symptoms ── */}
-              <Text className="text-[15px] font-medium text-slate-900 dark:text-white dark:text-slate-900 mb-4 leading-snug">
+              <Text className="text-[15px] font-medium text-slate-900 dark:text-white mb-4 leading-snug">
                 What are you feeling?
               </Text>
 
@@ -541,7 +544,7 @@ export default function LogSymptomsScreen() {
 
                       {/* Dropdown severity slider underneath active symptom */}
                       {isSelected && !isNone && (
-                        <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-xl border border-slate-200 dark:border-slate-800/70 p-4 mt-2 mb-1">
+                        <View className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800/70 p-4 mt-2 mb-1">
                           <View className="flex-row justify-between mb-3">
                             <Text className="text-[11px] text-slate-400 uppercase tracking-wide">
                               1 — Mild
@@ -551,7 +554,7 @@ export default function LogSymptomsScreen() {
                             </Text>
                           </View>
 
-                          <ScrollView
+                          <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag"
                             horizontal
                             showsHorizontalScrollIndicator={false}
                             contentContainerClassName="gap-2"
@@ -590,7 +593,7 @@ export default function LogSymptomsScreen() {
               {/* ── Context ── */}
               {hasRealSymptoms && (
                 <>
-                  <Text className="text-[15px] font-medium text-slate-900 dark:text-white dark:text-slate-900 mt-6 mb-4 leading-snug">
+                  <Text className="text-[15px] font-medium text-slate-900 dark:text-white mt-6 mb-4 leading-snug">
                     When did this happen?
                   </Text>
                   <View className="gap-2 mb-8">
@@ -661,9 +664,9 @@ export default function LogSymptomsScreen() {
            <TouchableOpacity
              activeOpacity={0.8}
              onPress={() => setStep(2)}
-             className="w-full py-3.5 rounded-xl flex-row justify-center items-center bg-slate-900 dark:bg-slate-100"
+             className="w-full py-3.5 rounded-xl flex-row justify-center items-center bg-slate-900"
            >
-             <Text className="font-medium text-[14px] mr-2 text-white dark:text-slate-900">
+             <Text className="font-medium text-[14px] mr-2 text-white">
                Next: Symptoms
              </Text>
              <Feather name="arrow-right" size={16} color="white" />
@@ -685,7 +688,7 @@ export default function LogSymptomsScreen() {
                    size={16}
                    color="#fff"
                  />
-                 <Text className="text-white dark:text-slate-900 text-[14px] font-medium">
+                 <Text className="text-white text-[14px] font-medium">
                    {isEmergency ? "Submit critical log" : "Submit health log"}
                  </Text>
                </>

@@ -2,6 +2,7 @@ import { Stack } from "expo-router";
 import { useEffect } from "react";
 import { useColorScheme } from "nativewind";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import OfflineBanner from "../components/OfflineBanner";
 // Import your global CSS here so it applies to the entire app
 import "../global.css";
 import { UserProvider } from "../contexts/UserContext";
@@ -11,6 +12,7 @@ export default function RootLayout() {
 
   useEffect(() => {
     let mounted = true;
+    
     AsyncStorage.getItem("theme_preference").then((pref) => {
       if (!mounted) return;
       if (pref === "light" || pref === "dark" || pref === "system") {
@@ -26,6 +28,7 @@ export default function RootLayout() {
 
   return (
     <UserProvider>
+      <OfflineBanner />
       <Stack
         screenOptions={{
         // Hides the default header for all screens so your custom UI shines

@@ -12,7 +12,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
-import MapView, { Marker, PROVIDER_GOOGLE, PROVIDER_DEFAULT } from "react-native-maps";
+import * as Location from 'expo-location';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -29,53 +29,19 @@ type Clinic = {
   specialty: string;
 };
 
-// ─── Mock Data ────────────────────────────────────────────────────────────────
 
-const CLINICS: Clinic[] = [
-  {
-    id: "1",
-    name: "Chong Hua Hospital Heart Institute",
-    doctor: "Dr. Maria Santos, MD, FACC",
-    distance: "2.4 km",
-    status: "Open now",
-    isOpen: true,
-    latitude: 10.3129,
-    longitude: 123.8925,
-    phone: "1234567890",
-    specialty: "General Cardiology",
-  },
-  {
-    id: "2",
-    name: "Cebu Doctors' University Hospital",
-    doctor: "Dr. Juan Dela Cruz, MD",
-    distance: "3.1 km",
-    status: "Open now",
-    isOpen: true,
-    latitude: 10.3152,
-    longitude: 123.8897,
-    phone: "0987654321",
-    specialty: "General Cardiology",
-  },
-  {
-    id: "3",
-    name: "Perpetual Succour Hospital",
-    doctor: "Dr. Anna Reyes, MD",
-    distance: "4.5 km",
-    status: "Closed",
-    isOpen: false,
-    latitude: 10.3188,
-    longitude: 123.8966,
-    phone: "1122334455",
-    specialty: "Cardiac Rehabilitation",
-  },
-];
-
-const INITIAL_REGION = {
-  latitude: 10.3157,
-  longitude: 123.8854,
-  latitudeDelta: 0.05,
-  longitudeDelta: 0.05,
-};
+// ─── Haversine Distance ───────────────────────────────────────────────────────
+function getDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
+  const R = 6371; // Radius of the earth in km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+    Math.sin(dLon/2) * Math.sin(dLon/2); 
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+  return R * c; // Distance in km
+}
 
 // ─── Clinic Card ──────────────────────────────────────────────────────────────
 
@@ -85,7 +51,7 @@ function ClinicCard({ clinic, onDirections, onCall }: {
   onCall: () => void;
 }) {
   return (
-    <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4">
+    <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4 mb-3">
       {/* Top row */}
       <View className="flex-row items-start mb-3">
         {/* Icon */}
@@ -101,9 +67,8 @@ function ClinicCard({ clinic, onDirections, onCall }: {
         </View>
       </View>
 
-      {/* Meta row — distance + specialty on left, status on right, wrapped */}
+      {/* Meta row */}
       <View className="flex-row items-center justify-between mb-3 gap-2">
-        {/* Left: distance + specialty chips */}
         <View className="flex-row items-center gap-2 flex-shrink flex-wrap">
           <View className="flex-row items-center gap-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/70 px-2.5 py-1 rounded-lg">
             <MaterialCommunityIcons name="map-marker-outline" size={12} color="#94a3b8" />
@@ -115,7 +80,6 @@ function ClinicCard({ clinic, onDirections, onCall }: {
           </View>
         </View>
 
-        {/* Right: status — flex-shrink-0 so it never wraps or clips */}
         <View
           className="flex-row items-center gap-1 px-2.5 py-1 rounded-lg border flex-shrink-0"
           style={{
@@ -147,7 +111,7 @@ function ClinicCard({ clinic, onDirections, onCall }: {
           className="flex-1 flex-row items-center justify-center py-2.5 rounded-xl border border-slate-200 dark:border-slate-800/70 bg-slate-50 dark:bg-slate-950 gap-1.5"
         >
           <Feather name="navigation" size={14} color="#475569" />
-          <Text className="text-[13px] font-medium text-slate-600">Directions</Text>
+          <Text className="text-[13px] font-medium text-slate-600 dark:text-slate-300">Directions</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -157,7 +121,7 @@ function ClinicCard({ clinic, onDirections, onCall }: {
           style={{ backgroundColor: "#0f172a" }}
         >
           <Feather name="phone-call" size={14} color="#fff" />
-          <Text className="text-[13px] font-medium text-white dark:text-slate-900">Call clinic</Text>
+          <Text className="text-[13px] font-medium text-white">Call clinic</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -169,16 +133,69 @@ function ClinicCard({ clinic, onDirections, onCall }: {
 export default function LocatorScreen() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedClinic, setSelectedClinic] = useState<Clinic | null>(null);
+  const [clinics, setClinics] = useState<Clinic[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [locationError, setLocationError] = useState<string | null>(null);
+
+  
+  React.useEffect(() => {
+    (async () => {
+      try {
+        let userLat = 10.3157;
+        let userLon = 123.8854;
+
+        let { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          setLocationError('Location permission denied. Showing default area.');
+        } else {
+          let location = await Location.getCurrentPositionAsync({});
+          userLat = location.coords.latitude;
+          userLon = location.coords.longitude;
+
+        }
+
+        // Fetch Clinics from Backend
+        const base_url = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000';
+        const response = await fetch(`${base_url}/api/clinics`);
+        const data = await response.json();
+        
+        const currentHour = new Date().getHours();
+        const isOpen = currentHour >= 8 && currentHour < 17; // Mock hours 8am-5pm
+
+        // Calculate distance and map data
+        const processedClinics = data.map((clinic: any) => {
+          const dist = getDistance(userLat, userLon, clinic.latitude, clinic.longitude);
+          return {
+            ...clinic,
+            distance: dist.toFixed(1) + " km",
+            isOpen: isOpen,
+            status: isOpen ? "Open now" : "Closed"
+          };
+        });
+
+        // Sort by closest distance
+        processedClinics.sort((a: any, b: any) => parseFloat(a.distance) - parseFloat(b.distance));
+        
+        setClinics(processedClinics);
+        setIsLoading(false);
+
+      } catch (error) {
+        console.log(error);
+        setLocationError('Could not fetch location or clinics.');
+        setIsLoading(false);
+      }
+    })();
+  }, []);
 
   const filtered = searchQuery.trim()
-    ? CLINICS.filter(
+    ? clinics.filter(
         (c) =>
           c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
           c.doctor.toLowerCase().includes(searchQuery.toLowerCase()) ||
           c.specialty.toLowerCase().includes(searchQuery.toLowerCase())
       )
-    : CLINICS;
+    : clinics;
+
 
   const handleGetDirections = (lat: number, lng: number, name: string) => {
     const latLng = `${lat},${lng}`;
@@ -230,85 +247,17 @@ export default function LocatorScreen() {
             Critical CSS Score: Immediate medical consultation recommended.
           </Text>
         </View>
-      </View>
-
-      {/* ── Map ── */}
-      <View style={{ height: "35%" }} className="bg-slate-100 dark:bg-slate-800 relative">
-        <MapView
-          provider={Platform.OS === "android" ? PROVIDER_GOOGLE : PROVIDER_DEFAULT}
-          style={{ width: "100%", height: "100%" }}
-          initialRegion={INITIAL_REGION}
-          showsUserLocation
-          showsMyLocationButton={false}
-          mapType="standard"
-        >
-          {CLINICS.map((clinic) => (
-            <Marker
-              key={clinic.id}
-              coordinate={{ latitude: clinic.latitude, longitude: clinic.longitude }}
-              onPress={() => setSelectedClinic(clinic)}
-            >
-              <View className="items-center">
-                <View
-                  className="w-9 h-9 rounded-full items-center justify-center border-2"
-                  style={{
-                    backgroundColor: "#fff",
-                    borderColor: clinic.isOpen ? "#c0dd97" : "#e2e8f0",
-                  }}
-                >
-                  <MaterialCommunityIcons
-                    name="heart-pulse"
-                    size={16}
-                    color={clinic.isOpen ? "#a32d2d" : "#94a3b8"}
-                  />
-                </View>
-                {/* Pointer tail */}
-                <View
-                  style={{
-                    width: 0,
-                    height: 0,
-                    borderLeftWidth: 5,
-                    borderRightWidth: 5,
-                    borderTopWidth: 6,
-                    borderLeftColor: "transparent",
-                    borderRightColor: "transparent",
-                    borderTopColor: "#fff",
-                    marginTop: -1,
-                  }}
-                />
-              </View>
-            </Marker>
-          ))}
-        </MapView>
-
-        {/* Selected Clinic Modal (Bottom Sheet over Map) */}
-        {selectedClinic && (
-          <View className="absolute bottom-4 left-4 right-4 bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl shadow-lg shadow-black/20 p-1">
-             <View className="flex-row justify-end mb-1">
-                <TouchableOpacity onPress={() => setSelectedClinic(null)} className="p-2">
-                   <Feather name="x" size={16} color="#94a3b8" />
-                </TouchableOpacity>
-             </View>
-             <ClinicCard
-                clinic={selectedClinic}
-                onDirections={() => handleGetDirections(selectedClinic.latitude, selectedClinic.longitude, selectedClinic.name)}
-                onCall={() => handleCallClinic(selectedClinic.phone)}
-             />
+        {locationError && (
+          <View className="flex-row items-center bg-orange-50 border border-orange-200 rounded-xl px-3.5 py-2.5 gap-2.5 mt-2">
+            <Feather name="info" size={16} color="#c2410c" />
+            <Text className="flex-1 text-[13px] font-medium text-orange-700 leading-snug">
+              {locationError}
+            </Text>
           </View>
         )}
-
-        {/* Map overlay — open count pill */}
-        <View
-          className="absolute top-3 right-3 flex-row items-center gap-1.5 px-3 py-1.5 rounded-xl border"
-          style={{ backgroundColor: "rgba(255,255,255,0.92)", borderColor: "#e2e8f0", display: selectedClinic ? 'none' : 'flex' }}
-        >
-          <View className="w-1.5 h-1.5 rounded-full bg-green-500" />
-          <Text className="text-[11px] font-medium text-slate-700 dark:text-slate-300">
-            {CLINICS.filter((c) => c.isOpen).length} open nearby
-          </Text>
-        </View>
       </View>
 
+      
       {/* ── Clinic list ── */}
       <View className="flex-1">
         {/* List header */}

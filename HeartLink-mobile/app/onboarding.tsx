@@ -8,6 +8,7 @@ import {
   MaterialIcons,
 } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { useColorScheme } from "nativewind";
 import "../global.css";
 import { useUser } from "../contexts/UserContext";
 
@@ -31,7 +32,7 @@ function FeatureCard({
   subtitle: string;
 }) {
   return (
-    <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl p-4 flex-row items-center border border-slate-200 dark:border-slate-800/70 mb-3">
+    <View className="bg-white dark:bg-slate-900 rounded-2xl p-4 flex-row items-center border border-slate-200 dark:border-slate-800/70 mb-3">
       <View
         className="w-11 h-11 rounded-xl items-center justify-center mr-3.5 flex-shrink-0"
         style={{ backgroundColor: iconBg }}
@@ -51,7 +52,7 @@ function FeatureCard({
         )}
       </View>
       <View className="flex-1">
-        <Text className="text-[13px] font-medium text-slate-900 dark:text-white dark:text-slate-900 mb-0.5">
+        <Text className="text-[13px] font-medium text-slate-900 dark:text-white mb-0.5">
           {title}
         </Text>
         <Text className="text-[12px] text-slate-400 leading-relaxed">
@@ -65,6 +66,8 @@ function FeatureCard({
 // ─── Onboarding Screen ────────────────────────────────────────────────────────
 
 export default function OnboardingScreen() {
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === "dark";
   const router = useRouter();
   const { setUserId } = useUser();
   const pingServer = async () => {
@@ -95,11 +98,11 @@ export default function OnboardingScreen() {
       >
         {/* ── Logo bar ── */}
         <View className="flex-row items-center px-5 pt-5 mb-10">
-          <View className="w-7 h-7 rounded-full items-center justify-center border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 dark:bg-slate-100">
-            <Feather name="heart" size={13} color="#0f172a" />
+          <View className="w-7 h-7 rounded-full items-center justify-center border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+            <Feather name="heart" size={13} color={isDark ? "#f8fafc" : "#0f172a"} />
           </View>
           <Text
-            className="ml-2.5 text-[15px] text-slate-900 dark:text-white dark:text-slate-900 tracking-tight"
+            className="ml-2.5 text-[15px] text-slate-900 dark:text-white tracking-tight"
             style={{ fontWeight: "300" }}
           >
             Heart<Text style={{ fontWeight: "600" }}>Link.</Text>
@@ -108,12 +111,12 @@ export default function OnboardingScreen() {
 
         <View className="items-center px-5 mb-10">
           {/* ── Minimalist Heart Icon ── */}
-          <View className="w-24 h-24 rounded-full items-center justify-center border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 dark:bg-slate-100">
-            <Feather name="heart" size={34} color="#0f172a" />
+          <View className="w-24 h-24 rounded-full items-center justify-center border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+            <Feather name="heart" size={34} color={isDark ? "#f8fafc" : "#0f172a"} />
           </View>
 
           {/* Headline */}
-          <Text className="text-[30px] font-medium text-slate-900 dark:text-white dark:text-slate-900 text-center tracking-tight leading-tight mt-8 mb-3">
+          <Text className="text-[30px] font-medium text-slate-900 dark:text-white text-center tracking-tight leading-tight mt-8 mb-3">
             Proactive{"\n"}cardiovascular{"\n"}well-being.
           </Text>
           <Text className="text-[13px] text-slate-400 text-center leading-relaxed px-4">
@@ -127,24 +130,24 @@ export default function OnboardingScreen() {
           <FeatureCard
             icon="bar-chart-2"
             iconType="feather"
-            iconBg="#e6f1fb"
-            iconColor="#185fa5"
+            iconBg={isDark ? "rgba(37, 99, 235, 0.15)" : "#e6f1fb"}
+            iconColor={isDark ? "#60A5FA" : "#185fa5"}
             title="Adaptive risk tracking"
             subtitle="Log daily health indicators for rule-based insights into your cardiovascular score."
           />
           <FeatureCard
             icon="lightbulb-outline"
             iconType="material"
-            iconBg="#faeeda"
-            iconColor="#854f0b"
+            iconBg={isDark ? "rgba(217, 119, 6, 0.15)" : "#faeeda"}
+            iconColor={isDark ? "#FBBF24" : "#854f0b"}
             title="Vital insights"
             subtitle="Intelligent health journaling and dietary monitoring tailored to your conditions."
           />
           <FeatureCard
             icon="silverware-fork-knife"
             iconType="mci"
-            iconBg="#eaf3de"
-            iconColor="#3b6d11"
+            iconBg={isDark ? "rgba(13, 148, 136, 0.15)" : "#eaf3de"}
+            iconColor={isDark ? "#2DD4BF" : "#3b6d11"}
             title="Heart-healthy recipes"
             subtitle="Discover Filipino-focused meals optimised for low sodium and high potassium."
           />
@@ -159,7 +162,7 @@ export default function OnboardingScreen() {
             }}
             className="mx-5 mb-4 bg-[#1e4ed8] border border-slate-200 dark:border-slate-800/70 rounded-xl py-2.5 items-center"
           >
-            <Text className="text-[11px] text-white dark:text-slate-900">
+            <Text className="text-[11px] text-white">
               Dev → skip to dashboard
             </Text>
           </TouchableOpacity>
@@ -170,10 +173,10 @@ export default function OnboardingScreen() {
           {/* Primary CTA */}
           <TouchableOpacity
             activeOpacity={0.85}
-            className="w-full bg-slate-900 dark:bg-slate-100 rounded-2xl py-4 flex-row justify-center items-center gap-2 mb-3"
+            className="w-full bg-blue-600 rounded-2xl py-4 flex-row justify-center items-center gap-2 mb-3"
             onPress={() => router.push("/register")}
           >
-            <Text className="text-white dark:text-slate-900 text-[14px] font-medium">
+            <Text className="text-white text-[14px] font-medium">
               Get started
             </Text>
             <Feather name="arrow-right" size={16} color="#fff" />

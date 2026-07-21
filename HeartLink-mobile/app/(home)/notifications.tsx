@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, TouchableOpacity, ScrollView } from "react-native";
+import { useColorScheme } from "nativewind";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
@@ -216,11 +217,7 @@ function NotificationCard({
           setExpanded(!expanded);
         }
       }}
-      className="flex-row items-start rounded-2xl mb-2.5 p-4 border"
-      style={{
-        backgroundColor: read ? "#fff" : "#fafcff",
-        borderColor: read ? "#e2e8f0" : "#dbeafe",
-      }}
+      className={`flex-row items-start rounded-2xl mb-2.5 p-4 border ${read ? 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800' : 'bg-blue-50 dark:bg-slate-800 border-blue-100 dark:border-slate-700'}`}
     >
       {/* Unread indicator strip */}
       {!read && (
@@ -242,11 +239,7 @@ function NotificationCard({
       <View className="flex-1">
         <View className="flex-row items-start justify-between gap-2 mb-1">
           <Text
-            className="flex-1 text-[13px] leading-snug"
-            style={{
-              color: read ? "#64748b" : "#0f172a",
-              fontWeight: read ? "400" : "500",
-            }}
+            className={`flex-1 text-[13px] leading-snug ${read ? 'text-slate-500 dark:text-slate-400 font-normal' : 'text-slate-900 dark:text-white font-medium'}`}
             numberOfLines={1}
           >
             {notification.title}
@@ -269,6 +262,8 @@ function NotificationCard({
 // ─── Notifications Screen ─────────────────────────────────────────────────────
 
 export default function NotificationsScreen() {
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === "dark";
   const router = useRouter();
   const { userId } = useUser();
 
@@ -335,18 +330,18 @@ export default function NotificationsScreen() {
       <View className="flex-row items-center px-5 pt-4 pb-3 border-b border-slate-200 dark:border-slate-800/50">
         <TouchableOpacity
           onPress={() => router.back()}
-          className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 dark:bg-slate-100 border border-slate-200 dark:border-slate-800/70 items-center justify-center mr-3"
+          className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 items-center justify-center mr-3"
         >
-          <Feather name="arrow-left" size={18} color="#0f172a" />
+          <Feather name="arrow-left" size={18} color={isDark ? "#f8fafc" : "#0f172a"} />
         </TouchableOpacity>
 
         <View className="flex-1 flex-row items-center gap-2">
-          <Text className="text-[17px] font-medium text-slate-900 dark:text-white dark:text-slate-900">
+          <Text className="text-[17px] font-medium text-slate-900 dark:text-white">
             Notifications
           </Text>
           {unreadCount > 0 && (
-            <View className="bg-slate-900 dark:bg-slate-100 rounded-full w-5 h-5 items-center justify-center">
-              <Text className="text-white dark:text-slate-900 text-[10px] font-medium">
+            <View className="bg-slate-900 rounded-full w-5 h-5 items-center justify-center">
+              <Text className="text-white text-[10px] font-medium">
                 {unreadCount}
               </Text>
             </View>
@@ -357,7 +352,7 @@ export default function NotificationsScreen() {
         {unreadCount > 0 && (
           <TouchableOpacity
             onPress={markAllAsRead}
-            className="flex-row items-center gap-1.5 bg-white dark:bg-slate-900 dark:bg-slate-100 border border-slate-200 dark:border-slate-800/70 px-3 py-1.5 rounded-xl"
+            className="flex-row items-center gap-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 px-3 py-1.5 rounded-xl"
           >
             <Feather name="check" size={13} color="#64748b" />
             <Text className="text-[9px] text-slate-500 dark:text-slate-400">Mark all read</Text>
@@ -389,7 +384,7 @@ export default function NotificationsScreen() {
             <View className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-800/70 items-center justify-center mb-4">
               <Feather name="bell-off" size={22} color="#cbd5e1" />
             </View>
-            <Text className="text-[16px] font-medium text-slate-900 dark:text-white dark:text-slate-900 mb-1">
+            <Text className="text-[16px] font-medium text-slate-900 dark:text-white mb-1">
               All caught up
             </Text>
             <Text className="text-[13px] text-slate-400 text-center">

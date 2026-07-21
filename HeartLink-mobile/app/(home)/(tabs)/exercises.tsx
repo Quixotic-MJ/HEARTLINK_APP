@@ -683,13 +683,13 @@ export default function ExercisesScreen() {
               isCompleted={completedExercises.includes(routine.id)}
               onPressCard={() =>
                 router.push({
-                  pathname: "/(home)/routine-player",
+                  pathname: "/(home)/exercise-details",
                   params: { id: routine.id },
                 })
               }
               onStart={() =>
                 router.push({
-                  pathname: "/(home)/routine-player",
+                  pathname: "/(home)/exercise-details",
                   params: { id: routine.id },
                 })
               }

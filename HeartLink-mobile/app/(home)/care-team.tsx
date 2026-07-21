@@ -1,5 +1,6 @@
 import React from "react";
 import { View, Text, TouchableOpacity, ScrollView, Linking, Alert } from "react-native";
+import { useColorScheme } from "nativewind";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
@@ -19,7 +20,7 @@ function ContactCard({
   icon: string 
 }) {
   return (
-    <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4 mb-4">
+    <View className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4 mb-4">
       <View className="flex-row justify-between items-center mb-4">
         <Text className="text-[13px] font-medium text-slate-400 uppercase tracking-wide">
           {title}
@@ -34,7 +35,7 @@ function ContactCard({
           <Feather name={icon as any} size={20} color="#64748b" />
         </View>
         <View className="flex-1">
-          <Text className="text-[16px] font-semibold text-slate-900 dark:text-white dark:text-slate-900 mb-0.5">{name}</Text>
+          <Text className="text-[16px] font-semibold text-slate-900 dark:text-white mb-0.5">{name}</Text>
           <Text className="text-[14px] text-slate-500 dark:text-slate-400">{role}</Text>
         </View>
       </View>
@@ -47,7 +48,7 @@ function ContactCard({
           style={{ backgroundColor: "#0f172a" }}
         >
           <Feather name="phone-call" size={14} color="#fff" />
-          <Text className="text-[13px] font-medium text-white dark:text-slate-900">Call</Text>
+          <Text className="text-[13px] font-medium text-white">Call</Text>
         </TouchableOpacity>
         
         <TouchableOpacity
@@ -64,6 +65,8 @@ function ContactCard({
 }
 
 export default function CareTeamScreen() {
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === "dark";
   const router = useRouter();
 
   return (
@@ -71,16 +74,16 @@ export default function CareTeamScreen() {
       <StatusBar style="dark" />
 
       {/* ── Header ── */}
-      <View className="px-5 pt-4 pb-3 bg-white dark:bg-slate-900 dark:bg-slate-100 border-b border-slate-200 dark:border-slate-800/50">
+      <View className="px-5 pt-4 pb-3 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800/50">
         <View className="flex-row items-center mb-1">
           <TouchableOpacity
             onPress={() => router.back()}
             className="w-9 h-9 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/70 items-center justify-center mr-3"
           >
-            <Feather name="arrow-left" size={18} color="#0f172a" />
+            <Feather name="arrow-left" size={18} color={isDark ? "#f8fafc" : "#0f172a"} />
           </TouchableOpacity>
           <View className="flex-1">
-            <Text className="text-[17px] font-medium text-slate-900 dark:text-white dark:text-slate-900" numberOfLines={1}>
+            <Text className="text-[17px] font-medium text-slate-900 dark:text-white" numberOfLines={1}>
               My Care Team
             </Text>
           </View>
@@ -96,7 +99,7 @@ export default function CareTeamScreen() {
           className="bg-red-500 rounded-2xl p-5 mb-6 flex-row items-center justify-center gap-3 shadow-sm shadow-red-500/30"
         >
           <MaterialCommunityIcons name="alert-circle" size={24} color="white" />
-          <Text className="text-white dark:text-slate-900 text-[18px] font-bold tracking-wide">
+          <Text className="text-white text-[18px] font-bold tracking-wide">
             EMERGENCY SOS
           </Text>
         </TouchableOpacity>
@@ -120,7 +123,7 @@ export default function CareTeamScreen() {
 
         <TouchableOpacity
           activeOpacity={0.8}
-          className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-dashed border-slate-300 p-4 items-center justify-center py-6 mt-2"
+          className="bg-white dark:bg-slate-900 rounded-2xl border border-dashed border-slate-300 p-4 items-center justify-center py-6 mt-2"
         >
           <View className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 items-center justify-center mb-2">
             <Feather name="plus" size={18} color="#64748b" />

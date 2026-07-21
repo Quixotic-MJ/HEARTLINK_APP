@@ -1,3 +1,4 @@
+import { useColorScheme } from "nativewind";
 import React, { useState } from "react";
 import {
   View,
@@ -35,7 +36,7 @@ function MeasureInput({
 }) {
   return (
     <View
-      className="flex-1 bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-xl flex-row items-center px-3.5"
+      className="flex-1 bg-white dark:bg-slate-900 rounded-xl flex-row items-center px-3.5"
       style={{ borderWidth: 1, borderColor: "#e2e8f0", height: 50 }}
     >
       <TextInput
@@ -45,7 +46,7 @@ function MeasureInput({
         placeholderTextColor="#cbd5e1"
         keyboardType={keyboardType}
         maxLength={maxLength}
-        className="flex-1 text-[16px] font-medium text-slate-900 dark:text-white dark:text-slate-900 h-full"
+        className="flex-1 text-[16px] font-medium text-slate-900 dark:text-white h-full"
       />
       <Text className="text-[13px] text-slate-400 ml-1">{unit}</Text>
     </View>
@@ -81,6 +82,8 @@ function StepProgress({ current, total }: { current: number; total: number }) {
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
 export default function BiometricsStep1Screen() {
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === "dark";
   const router = useRouter();
   const { user_id, health_goals } = useLocalSearchParams();
   const base_url = process.env.EXPO_PUBLIC_API_URL;
@@ -159,9 +162,9 @@ export default function BiometricsStep1Screen() {
         <View className="flex-row items-center mb-4">
           <TouchableOpacity
             onPress={() => router.back()}
-            className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 dark:bg-slate-100 border border-slate-200 dark:border-slate-800/70 items-center justify-center mr-3"
+            className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 items-center justify-center mr-3"
           >
-            <Feather name="arrow-left" size={18} color="#0f172a" />
+            <Feather name="arrow-left" size={18} color={isDark ? "#f8fafc" : "#0f172a"} />
           </TouchableOpacity>
           <View className="flex-1">
             <Text className="text-[11px] text-slate-400 uppercase tracking-wide">
@@ -173,14 +176,14 @@ export default function BiometricsStep1Screen() {
       </View>
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
-        <ScrollView
+        <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag"
           contentContainerClassName="px-5 pb-12 pt-2"
           showsVerticalScrollIndicator={false}
           bounces
         >
           {/* Page title */}
           <View className="mb-6">
-            <Text className="text-[24px] font-medium text-slate-900 dark:text-white dark:text-slate-900 tracking-tight mb-1.5">
+            <Text className="text-[24px] font-medium text-slate-900 dark:text-white tracking-tight mb-1.5">
               Core biometrics
             </Text>
             <Text className="text-[13px] text-slate-400 leading-relaxed">
@@ -189,7 +192,7 @@ export default function BiometricsStep1Screen() {
           </View>
 
           {/* ── Name ── */}
-          <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4 mb-3">
+          <View className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4 mb-3">
             <View className="flex-row gap-3">
               <View className="flex-1">
                 <FieldLabel title="First Name" />
@@ -202,7 +205,7 @@ export default function BiometricsStep1Screen() {
                     onChangeText={setFirstName}
                     placeholder="John"
                     placeholderTextColor="#cbd5e1"
-                    className="flex-1 text-[16px] font-medium text-slate-900 dark:text-white dark:text-slate-900 h-full"
+                    className="flex-1 text-[16px] font-medium text-slate-900 dark:text-white h-full"
                   />
                 </View>
               </View>
@@ -217,7 +220,7 @@ export default function BiometricsStep1Screen() {
                     onChangeText={setLastName}
                     placeholder="Doe"
                     placeholderTextColor="#cbd5e1"
-                    className="flex-1 text-[16px] font-medium text-slate-900 dark:text-white dark:text-slate-900 h-full"
+                    className="flex-1 text-[16px] font-medium text-slate-900 dark:text-white h-full"
                   />
                 </View>
               </View>
@@ -225,7 +228,7 @@ export default function BiometricsStep1Screen() {
           </View>
 
           {/* ── Date of Birth ── */}
-          <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4 mb-3">
+          <View className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4 mb-3">
             <FieldLabel title="Date of Birth" />
             <View className="flex-row items-center gap-3">
               <TouchableOpacity
@@ -255,7 +258,7 @@ export default function BiometricsStep1Screen() {
           </View>
 
           {/* ── Sex ── */}
-          <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4 mb-3">
+          <View className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4 mb-3">
             <FieldLabel title="Biological sex" />
             <View className="flex-row gap-3">
               {/* Male — dynamic bg/border via style */}
@@ -307,7 +310,7 @@ export default function BiometricsStep1Screen() {
           </View>
 
           {/* ── Height & Weight ── */}
-          <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4 mb-6">
+          <View className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4 mb-6">
             {/* Unit toggle */}
             <View className="flex-row bg-slate-100 dark:bg-slate-800 rounded-xl p-1 mb-5 border border-slate-200 dark:border-slate-800/70">
               {(["metric", "imperial"] as const).map((u) => (
