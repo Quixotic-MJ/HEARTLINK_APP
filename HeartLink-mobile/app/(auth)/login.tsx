@@ -1,23 +1,80 @@
-import { useColorScheme } from "nativewind";
 import React, { useState } from "react";
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
-  KeyboardAvoidingView,
   Platform,
-  ScrollView,
   ActivityIndicator,
+  Pressable,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
-import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import Animated, { useSharedValue, useAnimatedStyle, withTiming, Easing } from "react-native-reanimated";
 import "../../global.css";
 import { useUser } from "../../contexts/UserContext";
+import { Feather } from "../../lib/icons";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
+
+// ─── Animated Button ──────────────────────────────────────────────────────────
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+function PrimaryButton({
+  onPress,
+  isLoading,
+  label,
+  icon,
+}: {
+  onPress: () => void;
+  isLoading: boolean;
+  label: string;
+  icon: string;
+}) {
+  const scale = useSharedValue(1);
+
+  const animatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ scale: scale.value }],
+    };
+  });
+
+  const handlePressIn = () => {
+    scale.value = withTiming(0.97, { duration: 100, easing: Easing.out(Easing.ease) });
+  };
+
+  const handlePressOut = () => {
+    scale.value = withTiming(1, { duration: 150, easing: Easing.out(Easing.ease) });
+  };
+
+  return (
+    <AnimatedPressable
+      onPress={onPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      disabled={isLoading}
+      style={animatedStyle}
+      className={`w-full bg-primary rounded-2xl py-4 flex-row justify-center items-center gap-2 ${isLoading ? "opacity-80" : ""}`}
+      accessible={true}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+    >
+      {isLoading ? (
+        <ActivityIndicator size="small" color="#fff" />
+      ) : (
+        <>
+          <Text className="text-primary-foreground text-sm font-semibold">
+            {label}
+          </Text>
+          <Feather name={icon as any} size={16} className="text-primary-foreground" />
+        </>
+      )}
+    </AnimatedPressable>
+  );
+}
 
 // ─── Input Field ──────────────────────────────────────────────────────────────
 
@@ -45,22 +102,19 @@ function InputField({
   textContentType?: any;
 }) {
   return (
-    <View
-      className="w-full bg-slate-50 dark:bg-slate-950 rounded-2xl flex-row items-center px-4"
-      style={{ borderWidth: 1, borderColor: "#e2e8f0", height: 52 }}
-    >
-      <Feather name={icon as any} size={17} color="#94a3b8" />
+    <View className="w-full bg-background border border-border rounded-2xl flex-row items-center px-4 min-h-[52px]">
+      <Feather name={icon as any} size={18} className="text-muted-foreground" />
       <TextInput
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor="#cbd5e1"
+        placeholderTextColor="#94a3b8"
         keyboardType={keyboardType}
         autoCapitalize={autoCapitalize ?? "none"}
         secureTextEntry={secureTextEntry}
         autoComplete={autoComplete}
         textContentType={textContentType}
-        className="flex-1 ml-3 text-[14px] text-slate-900 dark:text-white h-full"
+        className="flex-1 ml-3 text-sm text-foreground py-3.5"
       />
       {rightElement}
     </View>
@@ -70,8 +124,6 @@ function InputField({
 // ─── Auth Screen ──────────────────────────────────────────────────────────────
 
 export default function AuthScreen() {
-  const { colorScheme } = useColorScheme();
-  const isDark = colorScheme === "dark";
   const router = useRouter();
   const { setUserId } = useUser();
 
@@ -98,7 +150,6 @@ export default function AuthScreen() {
       finalIdentifier = `+63${finalIdentifier}`;
     }
 
-    console.log("Logging in:", finalIdentifier, password);
     try {
       const response = await fetch(`${base_url}/api/auth/login`, {
         method: "POST",
@@ -118,7 +169,6 @@ export default function AuthScreen() {
           pathname: "/(home)/(tabs)/dashboard",
           params: { user_id: data.user_id },
         });
-        console.log(data.message);
       } else {
         setError(data.detail || "Invalid email or password.");
       }
@@ -132,25 +182,34 @@ export default function AuthScreen() {
 
   return (
     <SafeAreaView
-      className="flex-1 bg-slate-50 dark:bg-slate-950"
+      className="flex-1 bg-background"
       edges={["top"]}
     >
-      <StatusBar style="dark" />
+      <StatusBar style="auto" />
 
       {/* Header */}
-      <View className="flex-row items-center px-5 pt-4 pb-2">
+      <View className="flex-row items-center px-6 pt-4 pb-2">
         <TouchableOpacity
-          onPress={() => router.back()}
-          className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 items-center justify-center mr-3"
+          onPress={() => {
+            if (router.canGoBack()) {
+              router.back();
+            } else {
+              router.replace("/onboarding");
+            }
+          }}
+          className="w-10 h-10 rounded-xl bg-card border border-border items-center justify-center mr-3"
+          accessible={true}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
-          <Feather name="arrow-left" size={18} color={isDark ? "#f8fafc" : "#0f172a"} />
+          <Feather name="arrow-left" size={18} className="text-foreground" />
         </TouchableOpacity>
         <View className="flex-row items-center gap-2">
-          <View className="w-7 h-7 rounded-full items-center justify-center border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-            <Feather name="heart" size={13} color="#0f172a" />
+          <View className="w-8 h-8 rounded-full items-center justify-center border border-border bg-card" importantForAccessibility="no">
+            <Feather name="heart" size={14} className="text-foreground" />
           </View>
           <Text
-            className="text-[16px] text-slate-900 dark:text-white tracking-tight"
+            className="text-base text-foreground tracking-tight"
             style={{ fontWeight: "300" }}
           >
             Heart<Text style={{ fontWeight: "600" }}>Link.</Text>
@@ -158,135 +217,131 @@ export default function AuthScreen() {
         </View>
       </View>
 
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      <KeyboardAwareScrollView
+        contentContainerClassName="flex-grow px-6 pt-4 pb-12"
+        showsVerticalScrollIndicator={false}
+        enableOnAndroid={true}
+        extraScrollHeight={Platform.OS === "ios" ? 40 : 60}
+        keyboardShouldPersistTaps="handled"
+        bounces={false}
       >
-        <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag"
-          contentContainerClassName="flex-grow px-5 pt-4 pb-12"
-          showsVerticalScrollIndicator={false}
-          bounces={false}
-        >
-          {/* ── Heading ── */}
-          <View className="mb-7 mt-2">
-            <Text className="text-[28px] font-medium text-slate-900 dark:text-white tracking-tight leading-tight mb-2">
-              Welcome{"\n"}back.
-            </Text>
-            <Text className="text-[13px] text-slate-400 leading-relaxed">
-              Log in to access your cardiovascular dashboard.
-            </Text>
+        {/* ── Heading ── */}
+        <View className="mb-8 mt-2">
+          <Text className="text-3xl font-semibold text-foreground tracking-tight leading-tight mb-2" accessibilityRole="header">
+            Welcome{"\n"}back.
+          </Text>
+          <Text className="text-sm text-muted-foreground leading-relaxed">
+            Log in to access your cardiovascular dashboard.
+          </Text>
+        </View>
+
+        {/* ── Card ── */}
+        <View className="bg-card rounded-3xl border border-border px-5 py-7 gap-5">
+          
+          {/* Identifier Section */}
+          <View>
+            <Text className="text-sm font-semibold text-foreground mb-2 ml-1">Email or Phone number</Text>
+            <InputField
+              icon="user"
+              placeholder="Email or Phone"
+              value={identifier}
+              onChangeText={(t) => {
+                setIdentifier(t);
+                setError(null);
+              }}
+              keyboardType="default"
+              autoComplete="username"
+              textContentType="username"
+            />
           </View>
 
-          {/* ── Card ── */}
-          <View className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/70 px-5 py-6 gap-4">
-            
-            {/* Identifier Section */}
-            <View>
-              <Text className="text-[14px] font-semibold text-slate-900 dark:text-white mb-2 ml-1">Email or Phone number</Text>
+          {/* Password Section */}
+          <View>
+            <Text className="text-sm font-semibold text-foreground mb-2 ml-1">Password</Text>
+            <View className="gap-2">
               <InputField
-                icon="user"
-                placeholder="Email or Phone"
-                value={identifier}
+                icon="lock"
+                placeholder="Password"
+                value={password}
                 onChangeText={(t) => {
-                  setIdentifier(t);
+                  setPassword(t);
                   setError(null);
                 }}
-                keyboardType="default"
-                autoComplete="username"
-                textContentType="username"
+                secureTextEntry={!showPassword}
+                rightElement={
+                  <TouchableOpacity
+                    onPress={() => setShowPassword((p) => !p)}
+                    className="p-2 -mr-2"
+                    accessible={true}
+                    accessibilityRole="button"
+                    accessibilityLabel={showPassword ? "Hide password" : "Show password"}
+                  >
+                    <Feather
+                      name={showPassword ? "eye" : "eye-off"}
+                      size={18}
+                      className="text-muted-foreground"
+                    />
+                  </TouchableOpacity>
+                }
               />
-            </View>
-
-            {/* Password Section */}
-            <View>
-              <Text className="text-[14px] font-semibold text-slate-900 dark:text-white mb-2 ml-1">Password</Text>
-              <View className="gap-1.5">
-                <InputField
-                  icon="lock"
-                  placeholder="Password"
-                  value={password}
-                  onChangeText={(t) => {
-                    setPassword(t);
-                    setError(null);
-                  }}
-                  secureTextEntry={!showPassword}
-                  rightElement={
-                    <TouchableOpacity
-                      onPress={() => setShowPassword((p) => !p)}
-                      className="p-1 ml-1"
-                    >
-                      <Feather
-                        name={showPassword ? "eye" : "eye-off"}
-                        size={16}
-                        color="#94a3b8"
-                      />
-                    </TouchableOpacity>
-                  }
-                />
-                <TouchableOpacity
-                  className="self-end"
-                  onPress={() => router.push("/(auth)/forgot-password")}
-                >
-                  <Text className="text-[12px] font-medium text-slate-500 dark:text-slate-400">
-                    Forgot your password?
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {/* Error Message */}
-            {error && (
-              <View className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-3 flex-row items-center gap-2 mt-1">
-                <Feather name="alert-triangle" size={16} color="#ef4444" />
-                <Text className="text-red-600 dark:text-red-400 text-[13px] flex-1">
-                  {error}
+              <TouchableOpacity
+                className="self-end mt-1"
+                onPress={() => router.push("/(auth)/forgot-password")}
+                accessible={true}
+                accessibilityRole="link"
+                accessibilityLabel="Forgot your password?"
+              >
+                <Text className="text-xs font-semibold text-primary">
+                  Forgot your password?
                 </Text>
-              </View>
-            )}
-
-            {/* Divider */}
-            <View className="h-px bg-slate-100 dark:bg-slate-800 my-1" />
-
-            {/* Submit */}
-            <TouchableOpacity
-              activeOpacity={0.85}
-              onPress={handleSubmit}
-              disabled={isLoading}
-              className={`w-full bg-slate-900 rounded-2xl py-3.5 flex-row justify-center items-center gap-2 ${isLoading ? 'opacity-80' : ''}`}
-            >
-              {isLoading ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                <>
-                  <Text className="text-white text-[14px] font-medium">
-                    Log in
-                  </Text>
-                  <Feather name="arrow-right" size={15} color="#fff" />
-                </>
-              )}
-            </TouchableOpacity>
+              </TouchableOpacity>
+            </View>
           </View>
 
-          {/* ── Mode toggle ── */}
-          <TouchableOpacity
-            activeOpacity={0.65}
-            onPress={() => router.push("/(auth)/register")}
-            className="flex-row justify-center items-center py-5 gap-1 mt-auto"
-          >
-            <Text className="text-[13px] text-slate-400">
-              Don't have an account?
-            </Text>
-            <Text className="text-[13px] font-medium text-slate-700 dark:text-slate-300">
-              Sign up
-            </Text>
-          </TouchableOpacity>
+          {/* Error Message */}
+          {error && (
+            <View className="bg-destructive/10 border border-destructive/30 rounded-2xl p-3.5 flex-row items-center gap-2 mt-1" accessible={true} accessibilityRole="alert">
+              <Feather name="alert-triangle" size={16} className="text-destructive" />
+              <Text className="text-destructive text-xs flex-1 font-medium">
+                {error}
+              </Text>
+            </View>
+          )}
 
-          {/* Footer */}
-          <Text className="text-center text-[9px] tracking-widest text-slate-300 uppercase">
-            CTU — Main Campus · Capstone 2026
+          {/* Divider */}
+          <View className="h-px bg-border my-1" />
+
+          {/* Submit */}
+          <PrimaryButton
+            onPress={handleSubmit}
+            isLoading={isLoading}
+            label="Log in"
+            icon="arrow-right"
+          />
+        </View>
+
+        {/* ── Mode toggle ── */}
+        <TouchableOpacity
+          activeOpacity={0.65}
+          onPress={() => router.push("/(auth)/register")}
+          className="flex-row justify-center items-center py-6 gap-1.5 mt-auto"
+          accessible={true}
+          accessibilityRole="link"
+          accessibilityLabel="Don't have an account? Sign up"
+        >
+          <Text className="text-sm text-muted-foreground">
+            Don't have an account?
           </Text>
-        </ScrollView>
-      </KeyboardAvoidingView>
+          <Text className="text-sm font-semibold text-foreground">
+            Sign up
+          </Text>
+        </TouchableOpacity>
+
+        {/* Footer */}
+        <Text className="text-center text-[10px] tracking-widest text-muted-foreground opacity-60 uppercase" importantForAccessibility="no">
+          CTU — Main Campus · Capstone 2026
+        </Text>
+      </KeyboardAwareScrollView>
     </SafeAreaView>
   );
 }

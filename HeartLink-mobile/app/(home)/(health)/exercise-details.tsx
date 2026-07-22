@@ -4,7 +4,7 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import { StatusBar } from "expo-status-bar";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { useUser } from "../../contexts/UserContext";
+import { useUser } from "../../../contexts/UserContext";
 import YoutubePlayer from "react-native-youtube-iframe";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
@@ -145,7 +145,7 @@ export default function ExerciseDetailsScreen() {
 
   const handleSafetySymptoms = () => {
     setShowSafetyCheck(false);
-    router.push("/(home)/log-symptoms");
+    router.push("/(home)/(health)/log-symptoms");
   };
 
   if (isLoading || !routine) {

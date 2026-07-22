@@ -1,3 +1,73 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  :root {
+    --color-primary: 37 99 235; /* #2563EB - blue-600 */
+    --color-primary-foreground: 255 255 255;
+
+    --color-background: 248 250 252; /* #F8FAFC - slate-50 */
+    --color-foreground: 15 23 42; /* #0F172A - slate-900 */
+
+    --color-card: 255 255 255; /* #FFFFFF */
+    --color-card-foreground: 15 23 42; /* #0F172A */
+
+    --color-border: 226 232 240; /* #E2E8F0 - slate-200 */
+    --color-muted: 148 163 184; /* #94A3B8 - slate-400 */
+    --color-muted-foreground: 100 116 139; /* #64748B - slate-500 */
+
+    --color-destructive: 239 68 68; /* #EF4444 - red-500 */
+    --color-destructive-foreground: 255 255 255;
+
+    --color-success: 16 185 129; /* #10B981 - emerald-500 */
+    --color-success-foreground: 255 255 255;
+
+    /* Health Score Themes */
+    --color-health-stable: 13 148 136; /* #0D9488 - teal-600 */
+    --color-health-stable-track: 204 251 241; /* #CCFBF1 - teal-100 */
+    
+    --color-health-caution: 217 119 6; /* #D97706 - amber-600 */
+    --color-health-caution-track: 254 243 199; /* #FEF3C7 - amber-100 */
+
+    --color-health-warning: 234 88 12; /* #EA580C - orange-600 */
+    --color-health-warning-track: 255 237 213; /* #FFEDD5 - orange-100 */
+
+    --color-health-risk: 225 29 72; /* #E11D48 - rose-600 */
+    --color-health-risk-track: 255 228 230; /* #FFE4E6 - rose-100 */
+  }
+
+  .dark {
+    --color-primary: 59 130 246; /* #3B82F6 - blue-500 */
+    --color-primary-foreground: 255 255 255;
+
+    --color-background: 2 6 23; /* #020617 - slate-950 */
+    --color-foreground: 248 250 252; /* #F8FAFC - slate-50 */
+
+    --color-card: 15 23 42; /* #0F172A - slate-900 */
+    --color-card-foreground: 248 250 252;
+
+    --color-border: 30 41 59; /* #1E293B - slate-800 */
+    --color-muted: 71 85 105; /* #475569 - slate-600 */
+    --color-muted-foreground: 148 163 184; /* #94A3B8 - slate-400 */
+
+    --color-destructive: 248 113 113; /* #F87171 - red-400 */
+    --color-destructive-foreground: 255 255 255;
+
+    --color-success: 52 211 153; /* #34D399 - emerald-400 */
+    --color-success-foreground: 2 44 34;
+
+    /* Dark Mode Health Themes */
+    --color-health-stable: 45 212 191; /* #2DD4BF - teal-400 */
+    --color-health-stable-track: 17 94 89; /* #115E59 - teal-800 */
+
+    --color-health-caution: 251 191 36; /* #FBBF24 - amber-400 */
+    --color-health-caution-track: 120 53 15; /* #78350F - amber-900 */
+
+    --color-health-warning: 251 146 60; /* #FB923C - orange-400 */
+    --color-health-warning-track: 124 45 18; /* #7C2D12 - orange-900 */
+
+    --color-health-risk: 251 113 133; /* #FB7185 - rose-400 */
+    --color-health-risk-track: 136 19 55; /* #881337 - rose-900 */
+  }
+}

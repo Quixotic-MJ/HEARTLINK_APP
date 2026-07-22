@@ -76,7 +76,7 @@ export default function SearchMealScreen() {
 
         {/* Quick Action Button */}
         <TouchableOpacity
-          onPress={() => router.push("/(home)/barcode-scan")}
+          onPress={() => router.push("/(home)/(meals)/barcode-scan")}
           activeOpacity={0.8}
           className="bg-[#e6f1fb] rounded-2xl py-3.5 px-4 mb-6 flex-row items-center justify-center border border-[#cce3f7]"
         >
@@ -101,7 +101,7 @@ export default function SearchMealScreen() {
             <TouchableOpacity
               key={item.id}
               activeOpacity={0.7}
-              onPress={() => router.push({ pathname: "/(home)/meal-detail", params: { id: item.id } })}
+              onPress={() => router.push({ pathname: "/(home)/(meals)/meal-detail", params: { id: item.id } })}
               className="bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-200 dark:border-slate-800/70 flex-row items-center justify-between"
             >
               <Image 
@@ -135,7 +135,7 @@ export default function SearchMealScreen() {
         style={{ paddingBottom: Math.max(insets.bottom, 16) }}
       >
         <TouchableOpacity
-          onPress={() => router.push("/(home)/estimate-meal")}
+          onPress={() => router.push("/(home)/(meals)/estimate-meal")}
           className="bg-slate-900 w-full rounded-2xl py-3.5 items-center justify-center flex-row gap-2"
           activeOpacity={0.85}
         >

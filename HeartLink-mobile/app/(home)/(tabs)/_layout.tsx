@@ -26,7 +26,7 @@ const RECORD_OPTIONS = [
     subtitle: "Use your camera to scan product barcodes",
     iconColor: "#185fa5",
     iconBg: "#e6f1fb",
-    route: "/(home)/barcode-scan",
+    route: "/(home)/(meals)/barcode-scan",
   },
   {
     icon: "silverware-fork-knife" as const,
@@ -35,7 +35,7 @@ const RECORD_OPTIONS = [
     subtitle: "Search and log what you ate today",
     iconColor: "#3b6d11",
     iconBg: "#eaf3de",
-    route: "/(home)/search-meal",
+    route: "/(home)/(meals)/search-meal",
   },
   {
     icon: "clipboard" as const,
@@ -44,7 +44,7 @@ const RECORD_OPTIONS = [
     subtitle: "Record how you're feeling right now",
     iconColor: "#854f0b",
     iconBg: "#faeeda",
-    route: "/(home)/log-symptoms",
+    route: "/(home)/(health)/log-symptoms",
   },
 ];
 

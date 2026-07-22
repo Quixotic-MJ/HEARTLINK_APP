@@ -1,18 +1,72 @@
-import { Stack } from "expo-router";
+import { Stack, useRouter, useSegments } from "expo-router";
 import { useEffect } from "react";
 import { useColorScheme } from "nativewind";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import OfflineBanner from "../components/OfflineBanner";
-// Import your global CSS here so it applies to the entire app
 import "../global.css";
-import { UserProvider } from "../contexts/UserContext";
+import { UserProvider, useUser } from "../contexts/UserContext";
+
+function RootLayoutNav() {
+  const { userId, user, isLoading } = useUser();
+  const segments = useSegments();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (isLoading) return;
+
+    const inAuthGroup = segments[0] === "(auth)";
+    // segments.length === 0 means we are at the root index.tsx
+    const inOnboarding = segments.length === 0 || segments[0] === "onboarding" || segments[0] === "index";
+    const inBaseline = segments[0] === "(baseline)";
+
+    if (!userId && !inAuthGroup && !inOnboarding) {
+      // Redirect to login if user is not logged in and trying to access protected screen
+      router.replace("/(auth)/login");
+    } else if (userId) {
+      const isOnboardingPending = user?.onboarding_status === "pending";
+
+      if (isOnboardingPending) {
+        // If pending baseline, allow staying in auth (for success screen) or baseline
+        if (!inBaseline && !inAuthGroup) {
+          router.replace({
+            pathname: "/(baseline)/health_goals",
+            params: { user_id: userId },
+          });
+        }
+      } else {
+        // If onboarding is complete, redirect away from auth/onboarding/baseline to dashboard
+        if (inAuthGroup || inOnboarding || inBaseline) {
+          router.replace("/(home)/(tabs)/dashboard");
+        }
+      }
+    }
+  }, [userId, user, isLoading, segments]);
+
+  return (
+    <>
+      <OfflineBanner />
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          animation: "fade_from_bottom",
+        }}
+      >
+        <Stack.Screen name="index" />
+        <Stack.Screen name="onboarding" />
+        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+        <Stack.Screen name="(baseline)" options={{ headerShown: false }} />
+        <Stack.Screen name="(home)" options={{ headerShown: false }} />
+      </Stack>
+    </>
+  );
+}
 
 export default function RootLayout() {
   const { setColorScheme } = useColorScheme();
 
   useEffect(() => {
     let mounted = true;
-    
+
     AsyncStorage.getItem("theme_preference").then((pref) => {
       if (!mounted) return;
       if (pref === "light" || pref === "dark" || pref === "system") {
@@ -28,29 +82,7 @@ export default function RootLayout() {
 
   return (
     <UserProvider>
-      <OfflineBanner />
-      <Stack
-        screenOptions={{
-        // Hides the default header for all screens so your custom UI shines
-        headerShown: false,
-        // Optional: Gives a nice native cross-fade/slide animation between screens
-        animation: "fade_from_bottom",
-      }}
-    >
-      {/* This maps to your index.tsx file. 
-        Expo Router automatically finds it, but explicitly declaring it 
-        allows you to pass specific options if needed later.
-      */}
-      <Stack.Screen name="index" />
-      <Stack.Screen name="onboarding" />
-
-      {/* As you build out the app based on your commented code, 
-        your auth group will automatically be handled by Expo Router, 
-        but you can explicitly define it here if you want to tweak its behavior.
-      */}
-      <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-      <Stack.Screen name="(baseline)" options={{ headerShown: false }} />
-    </Stack>
+      <RootLayoutNav />
     </UserProvider>
   );
 }

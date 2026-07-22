@@ -15,6 +15,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
+import { useUser } from "../../contexts/UserContext";
 
 // ─── Step Progress ────────────────────────────────────────────────────────────
 
@@ -38,6 +39,7 @@ export default function BiometricsStep4Screen() {
 
   const router = useRouter()
   const { user_id } = useLocalSearchParams();
+  const { refreshUser } = useUser();
   const base_url = process.env.EXPO_PUBLIC_API_URL;
   // Clinical History
   const [diagnosedConditions, setDiagnosedConditions] = useState<string[]>([]);
@@ -97,6 +99,7 @@ export default function BiometricsStep4Screen() {
       
       if (response.ok) {
         console.log("Clinical saved — onboarding complete:", data.message);
+        await refreshUser();
         router.replace("/(baseline)/calculating");
       } else {
         Alert.alert("Error", data.detail || "Failed to save clinical data");

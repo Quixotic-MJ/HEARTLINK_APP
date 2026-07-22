@@ -67,6 +67,7 @@ async def verifyCode(code: CodeResponse):
         }
 
         mock_db.profiles.append(new_profile)
+        mock_db.save_profiles()
         temp_profile.pop(code.phone, None)
         return {"success": True, "message": "Verified successfully", "user_id": new_user_id}
     else:

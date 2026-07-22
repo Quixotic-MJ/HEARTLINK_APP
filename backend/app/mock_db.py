@@ -741,3 +741,59 @@ clinics = [
         "specialty": "Cardiac Rehabilitation",
     },
 ]
+
+# 10. Simple JSON Persistence for Dev Server Restarts
+import json
+import os
+
+DB_FILE = os.path.join(os.path.dirname(__file__), "mock_profiles.json")
+
+def _serialize_item(item):
+    serialized = {}
+    for k, v in item.items():
+        if isinstance(v, (datetime, date)):
+            serialized[k] = v.isoformat()
+        else:
+            serialized[k] = v
+    return serialized
+
+def _deserialize_item(item):
+    deserialized = {}
+    for k, v in item.items():
+        if k == "date_of_birth" and isinstance(v, str):
+            try:
+                deserialized[k] = date.fromisoformat(v)
+            except Exception:
+                deserialized[k] = v
+        elif k in ("created_at", "updated_at") and isinstance(v, str):
+            try:
+                deserialized[k] = datetime.fromisoformat(v)
+            except Exception:
+                deserialized[k] = v
+        else:
+            deserialized[k] = v
+    return deserialized
+
+def save_profiles():
+    try:
+        data = [_serialize_item(p) for p in profiles]
+        with open(DB_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2)
+    except Exception as e:
+        print(f"Error saving mock profiles: {e}")
+
+def load_profiles():
+    global profiles
+    if os.path.exists(DB_FILE):
+        try:
+            with open(DB_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                profiles.clear()
+                profiles.extend([_deserialize_item(p) for p in data])
+        except Exception as e:
+            print(f"Error loading mock profiles: {e}")
+    else:
+        save_profiles()
+
+load_profiles()
+

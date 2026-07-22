@@ -118,6 +118,7 @@ def upsert_baseline_clinical(user_id: str, data: dict) -> dict:
         if profile["id"] == user_id:
             profile["onboarding_status"] = "complete"
             profile["updated_at"] = datetime.utcnow()
+            mock_db.save_profiles()
             break
 
     return new_entry

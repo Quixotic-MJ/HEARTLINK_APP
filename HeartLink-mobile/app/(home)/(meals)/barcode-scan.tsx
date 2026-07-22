@@ -356,7 +356,7 @@ export default function BarcodeScanScreen() {
                   <Text className="text-[12px] text-slate-600">Enter manually</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  onPress={() => router.push("/(home)/search-meal")}
+                  onPress={() => router.push("/(home)/(meals)/search-meal")}
                   className="flex-row items-center gap-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 px-4 py-2.5 rounded-xl"
                 >
                   <Feather name="search" size={13} color="#64748b" />

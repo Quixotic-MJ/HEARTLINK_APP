@@ -1,21 +1,23 @@
-import { useColorScheme } from "nativewind";
 import React, { useState } from "react";
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
-  KeyboardAvoidingView,
   Platform,
-  ScrollView,
   ActivityIndicator,
+  Pressable,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
-import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import Animated, { useSharedValue, useAnimatedStyle, withTiming, Easing } from "react-native-reanimated";
 import "../../global.css";
+import { Feather } from "../../lib/icons";
+
 const base_url = process.env.EXPO_PUBLIC_API_URL;
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type FormErrors = {
@@ -25,6 +27,63 @@ type FormErrors = {
   confirmPassword?: string;
   general?: string;
 };
+
+// ─── Animated Button ──────────────────────────────────────────────────────────
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+function PrimaryButton({
+  onPress,
+  isLoading,
+  label,
+  icon,
+}: {
+  onPress: () => void;
+  isLoading: boolean;
+  label: string;
+  icon: string;
+}) {
+  const scale = useSharedValue(1);
+
+  const animatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ scale: scale.value }],
+    };
+  });
+
+  const handlePressIn = () => {
+    scale.value = withTiming(0.97, { duration: 100, easing: Easing.out(Easing.ease) });
+  };
+
+  const handlePressOut = () => {
+    scale.value = withTiming(1, { duration: 150, easing: Easing.out(Easing.ease) });
+  };
+
+  return (
+    <AnimatedPressable
+      onPress={onPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      disabled={isLoading}
+      style={animatedStyle}
+      className={`w-full bg-primary rounded-2xl py-4 flex-row justify-center items-center gap-2 ${isLoading ? "opacity-80" : ""}`}
+      accessible={true}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+    >
+      {isLoading ? (
+        <ActivityIndicator size="small" color="#fff" />
+      ) : (
+        <>
+          <Feather name={icon as any} size={16} className="text-primary-foreground" />
+          <Text className="text-primary-foreground text-sm font-semibold">
+            {label}
+          </Text>
+        </>
+      )}
+    </AnimatedPressable>
+  );
+}
 
 // ─── Input Field ──────────────────────────────────────────────────────────────
 
@@ -59,37 +118,36 @@ function InputField({
   return (
     <View className="mb-4">
       <View
-        className="w-full bg-slate-50 dark:bg-slate-950 rounded-2xl flex-row items-center px-4"
-        style={{
-          borderWidth: 1,
-          borderColor: hasError ? "#f7c1c1" : "#e2e8f0",
-          height: 52,
-        }}
+        className={`w-full rounded-2xl flex-row items-center px-4 min-h-[52px] border ${
+          hasError
+            ? "border-destructive/40 bg-destructive/10"
+            : "border-border bg-background"
+        }`}
       >
         <Feather
           name={icon as any}
-          size={17}
-          color={hasError ? "#a32d2d" : "#94a3b8"}
+          size={18}
+          className={hasError ? "text-destructive" : "text-muted-foreground"}
         />
         {leftElement}
         <TextInput
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
-          placeholderTextColor="#cbd5e1"
+          placeholderTextColor="#94a3b8"
           keyboardType={keyboardType}
           autoCapitalize={autoCapitalize ?? "none"}
           secureTextEntry={secureTextEntry}
           autoComplete={autoComplete}
           textContentType={textContentType}
-          className="flex-1 ml-3 text-[14px] text-slate-900 dark:text-white h-full"
+          className="flex-1 ml-3 text-sm text-foreground py-3.5"
         />
         {rightElement}
       </View>
       {hasError && (
-        <View className="flex-row items-center gap-1 mt-1.5 ml-1">
-          <Feather name="alert-circle" size={11} color="#a32d2d" />
-          <Text className="text-[11px]" style={{ color: "#a32d2d" }}>
+        <View className="flex-row items-center gap-1.5 mt-2 ml-1" accessible={true} accessibilityRole="alert">
+          <Feather name="alert-circle" size={12} className="text-destructive" />
+          <Text className="text-xs text-destructive font-medium">
             {error}
           </Text>
         </View>
@@ -101,8 +159,6 @@ function InputField({
 // ─── Register Screen ──────────────────────────────────────────────────────────
 
 export default function RegisterScreen() {
-  const { colorScheme } = useColorScheme();
-  const isDark = colorScheme === "dark";
   const router = useRouter();
 
   const [email, setEmail] = useState("");
@@ -145,8 +201,6 @@ export default function RegisterScreen() {
     return Object.keys(newErrors).length === 0;
   };
 
-  // ─── Backend Endpoints ──────────────────────────────────────────────────────────
-
   const handleSubmit = async () => {
     if (!validateForm()) {
       return;
@@ -154,7 +208,6 @@ export default function RegisterScreen() {
 
     setIsSubmitting(true);
 
-    // Normalize phone to start with +63
     let normalizedPhone = phone;
     if (normalizedPhone.startsWith("0")) {
       normalizedPhone = normalizedPhone.substring(1);
@@ -177,8 +230,7 @@ export default function RegisterScreen() {
       const data = await response.json();
 
       if (response.ok) {
-        console.log(data.message);
-        router.push({ pathname: "/verify-otp", params: { phone: normalizedPhone } });
+        router.push({ pathname: "/(auth)/verify-otp", params: { phone: normalizedPhone } });
       } else {
         if (data.detail === "duplicate phone number") {
           setErrors({ phone: "This phone number is already registered." });
@@ -200,25 +252,34 @@ export default function RegisterScreen() {
 
   return (
     <SafeAreaView
-      className="flex-1 bg-slate-50 dark:bg-slate-950"
+      className="flex-1 bg-background"
       edges={["top"]}
     >
-      <StatusBar style="dark" />
+      <StatusBar style="auto" />
 
       {/* Header */}
-      <View className="flex-row items-center px-5 pt-4 pb-2">
+      <View className="flex-row items-center px-6 pt-4 pb-2">
         <TouchableOpacity
-          onPress={() => router.back()}
-          className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 items-center justify-center mr-3"
+          onPress={() => {
+            if (router.canGoBack()) {
+              router.back();
+            } else {
+              router.replace("/onboarding");
+            }
+          }}
+          className="w-10 h-10 rounded-xl bg-card border border-border items-center justify-center mr-3"
+          accessible={true}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
-          <Feather name="arrow-left" size={18} color={isDark ? "#f8fafc" : "#0f172a"} />
+          <Feather name="arrow-left" size={18} className="text-foreground" />
         </TouchableOpacity>
         <View className="flex-row items-center gap-2">
-          <View className="w-7 h-7 rounded-full items-center justify-center border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-            <Feather name="heart" size={13} color="#0f172a" />
+          <View className="w-8 h-8 rounded-full items-center justify-center border border-border bg-card" importantForAccessibility="no">
+            <Feather name="heart" size={14} className="text-foreground" />
           </View>
           <Text
-            className="text-[16px] text-slate-900 dark:text-white tracking-tight"
+            className="text-base text-foreground tracking-tight"
             style={{ fontWeight: "300" }}
           >
             Heart<Text style={{ fontWeight: "600" }}>Link.</Text>
@@ -226,178 +287,170 @@ export default function RegisterScreen() {
         </View>
       </View>
 
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      <KeyboardAwareScrollView
+        contentContainerClassName="flex-grow px-6 pt-4 pb-12"
+        showsVerticalScrollIndicator={false}
+        enableOnAndroid={true}
+        extraScrollHeight={Platform.OS === "ios" ? 40 : 60}
+        keyboardShouldPersistTaps="handled"
+        bounces={false}
       >
-        <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag"
-          contentContainerClassName="flex-grow justify-center px-5 pb-10 pt-4"
-          showsVerticalScrollIndicator={false}
-          bounces={false}
-        >
-          {/* ── Card ── */}
-          <View className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/70 px-6 py-7">
-            {/* Heading */}
-            <View className="mb-6">
-              <Text className="text-[24px] font-medium text-slate-900 dark:text-white tracking-tight mb-1.5">
-                Create your account
-              </Text>
-              <Text className="text-[13px] text-slate-400 leading-relaxed">
-                Securely monitor your cardiovascular well-being.
-              </Text>
-            </View>
-
-            {/* General Error */}
-            {errors.general && (
-              <View className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-3 mb-4 flex-row items-center gap-2">
-                <Feather name="alert-triangle" size={16} color="#ef4444" />
-                <Text className="text-red-600 dark:text-red-400 text-[13px] flex-1">
-                  {errors.general}
-                </Text>
-              </View>
-            )}
-
-            {/* ── Fields ── */}
-
-            {/* Email */}
-            <InputField
-              icon="mail"
-              placeholder="Email address"
-              value={email}
-              onChangeText={(t) => {
-                setEmail(t);
-                clearError("email");
-              }}
-              error={errors.email}
-              keyboardType="email-address"
-              autoComplete="email"
-              textContentType="emailAddress"
-            />
-
-            {/* Phone */}
-            <InputField
-              icon="phone"
-              placeholder="912 345 6789"
-              value={phone}
-              onChangeText={(t) => {
-                setPhone(t.replace(/[^0-9]/g, ""));
-                clearError("phone");
-              }}
-              error={errors.phone}
-              keyboardType="phone-pad"
-              autoComplete="tel"
-              textContentType="telephoneNumber"
-              leftElement={
-                <View
-                  className="flex-row items-center border-r border-slate-200 dark:border-slate-800 pr-3 ml-2 mr-0"
-                  style={{ height: 20 }}
-                >
-                  <Text className="text-[13px] font-medium text-slate-600">
-                    +63
-                  </Text>
-                </View>
-              }
-            />
-
-            {/* Password */}
-            <InputField
-              icon="lock"
-              placeholder="Password"
-              value={password}
-              onChangeText={(t) => {
-                setPassword(t);
-                clearError("password");
-              }}
-              error={errors.password}
-              secureTextEntry={!showPassword}
-              rightElement={
-                <TouchableOpacity
-                  onPress={() => setShowPassword(!showPassword)}
-                  className="p-1 ml-1"
-                >
-                  <Feather
-                    name={showPassword ? "eye" : "eye-off"}
-                    size={16}
-                    color="#94a3b8"
-                  />
-                </TouchableOpacity>
-              }
-            />
-
-            {/* Confirm password */}
-            <InputField
-              icon="shield"
-              placeholder="Confirm password"
-              value={confirmPassword}
-              onChangeText={(t) => {
-                setConfirmPassword(t);
-                clearError("confirmPassword");
-              }}
-              error={errors.confirmPassword}
-              secureTextEntry={!showConfirmPassword}
-              rightElement={
-                <TouchableOpacity
-                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="p-1 ml-1"
-                >
-                  <Feather
-                    name={showConfirmPassword ? "eye" : "eye-off"}
-                    size={16}
-                    color="#94a3b8"
-                  />
-                </TouchableOpacity>
-              }
-            />
-
-            {/* Password hint */}
-            <View className="flex-row items-center gap-1.5 mb-6 -mt-2 ml-1">
-              <Feather name="info" size={11} color="#cbd5e1" />
-              <Text className="text-[11px] text-slate-300">
-                Minimum 8 characters required.
-              </Text>
-            </View>
-
-            {/* Submit */}
-            <TouchableOpacity
-              activeOpacity={0.85}
-              onPress={handleSubmit}
-              disabled={isSubmitting}
-              className={`w-full bg-slate-900 rounded-2xl py-3.5 items-center justify-center flex-row gap-2 mb-5 ${isSubmitting ? 'opacity-80' : ''}`}
-            >
-              {isSubmitting ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                <>
-                  <Feather name="send" size={15} color="#fff" />
-                  <Text className="text-white text-[14px] font-medium">
-                    Send verification code
-                  </Text>
-                </>
-              )}
-            </TouchableOpacity>
-
-            {/* Login link */}
-            <View className="flex-row justify-center items-center gap-1">
-              <Text className="text-[13px] text-slate-400">
-                Already have an account?
-              </Text>
-              <TouchableOpacity
-                activeOpacity={0.65}
-                onPress={() => router.replace("/login")}
-              >
-                <Text className="text-[13px] font-medium text-slate-700 dark:text-slate-300">
-                  Log in
-                </Text>
-              </TouchableOpacity>
-            </View>
+        {/* ── Card ── */}
+        <View className="bg-card rounded-3xl border border-border px-5 py-7">
+          {/* Heading */}
+          <View className="mb-7">
+            <Text className="text-3xl font-semibold text-foreground tracking-tight mb-2" accessibilityRole="header">
+              Create your account
+            </Text>
+            <Text className="text-sm text-muted-foreground leading-relaxed">
+              Securely monitor your cardiovascular well-being.
+            </Text>
           </View>
 
-          {/* Footer */}
-          <Text className="text-center text-[9px] tracking-widest text-slate-300 mt-6 uppercase">
-            CTU — Main Campus · Capstone 2026
-          </Text>
-        </ScrollView>
-      </KeyboardAvoidingView>
+          {/* General Error */}
+          {errors.general && (
+            <View className="bg-destructive/10 border border-destructive/30 rounded-2xl p-3.5 mb-5 flex-row items-center gap-2" accessible={true} accessibilityRole="alert">
+              <Feather name="alert-triangle" size={16} className="text-destructive" />
+              <Text className="text-destructive text-xs flex-1 font-medium">
+                {errors.general}
+              </Text>
+            </View>
+          )}
+
+          {/* ── Fields ── */}
+
+          {/* Email */}
+          <InputField
+            icon="mail"
+            placeholder="Email address"
+            value={email}
+            onChangeText={(t) => {
+              setEmail(t);
+              clearError("email");
+            }}
+            error={errors.email}
+            keyboardType="email-address"
+            autoComplete="email"
+            textContentType="emailAddress"
+          />
+
+          {/* Phone */}
+          <InputField
+            icon="phone"
+            placeholder="912 345 6789"
+            value={phone}
+            onChangeText={(t) => {
+              setPhone(t.replace(/[^0-9]/g, ""));
+              clearError("phone");
+            }}
+            error={errors.phone}
+            keyboardType="phone-pad"
+            autoComplete="tel"
+            textContentType="telephoneNumber"
+            leftElement={
+              <View className="flex-row items-center border-r border-border pr-3 ml-2 mr-0 self-stretch py-2 my-2">
+                <Text className="text-sm font-semibold text-foreground">
+                  +63
+                </Text>
+              </View>
+            }
+          />
+
+          {/* Password */}
+          <InputField
+            icon="lock"
+            placeholder="Password"
+            value={password}
+            onChangeText={(t) => {
+              setPassword(t);
+              clearError("password");
+            }}
+            error={errors.password}
+            secureTextEntry={!showPassword}
+            rightElement={
+              <TouchableOpacity
+                onPress={() => setShowPassword(!showPassword)}
+                className="p-2 -mr-2"
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel={showPassword ? "Hide password" : "Show password"}
+              >
+                <Feather
+                  name={showPassword ? "eye" : "eye-off"}
+                  size={18}
+                  className="text-muted-foreground"
+                />
+              </TouchableOpacity>
+            }
+          />
+
+          {/* Confirm password */}
+          <InputField
+            icon="shield"
+            placeholder="Confirm password"
+            value={confirmPassword}
+            onChangeText={(t) => {
+              setConfirmPassword(t);
+              clearError("confirmPassword");
+            }}
+            error={errors.confirmPassword}
+            secureTextEntry={!showConfirmPassword}
+            rightElement={
+              <TouchableOpacity
+                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="p-2 -mr-2"
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
+              >
+                <Feather
+                  name={showConfirmPassword ? "eye" : "eye-off"}
+                  size={18}
+                  className="text-muted-foreground"
+                />
+              </TouchableOpacity>
+            }
+          />
+
+          {/* Password hint */}
+          <View className="flex-row items-center gap-2 mb-7 -mt-2 ml-1" accessible={true} accessibilityRole="text" accessibilityLabel="Password requirement: Minimum 8 characters required.">
+            <Feather name="info" size={12} className="text-muted-foreground" />
+            <Text className="text-xs text-muted-foreground font-medium">
+              Minimum 8 characters required.
+            </Text>
+          </View>
+
+          {/* Submit */}
+          <PrimaryButton
+            onPress={handleSubmit}
+            isLoading={isSubmitting}
+            label="Send verification code"
+            icon="send"
+          />
+
+          {/* Login link */}
+          <TouchableOpacity
+            activeOpacity={0.65}
+            onPress={() => router.replace("/(auth)/login")}
+            className="flex-row justify-center items-center gap-1.5 mt-6 pt-2"
+            accessible={true}
+            accessibilityRole="link"
+            accessibilityLabel="Already have an account? Log in"
+          >
+            <Text className="text-sm text-muted-foreground">
+              Already have an account?
+            </Text>
+            <Text className="text-sm font-semibold text-foreground">
+              Log in
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Footer */}
+        <Text className="text-center text-[10px] tracking-widest text-muted-foreground opacity-60 mt-auto pt-8 uppercase" importantForAccessibility="no">
+          CTU — Main Campus · Capstone 2026
+        </Text>
+      </KeyboardAwareScrollView>
     </SafeAreaView>
   );
 }

@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
-import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Feather } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import "../../global.css";
 import { useUser } from "../../contexts/UserContext";
@@ -32,6 +32,7 @@ export default function OTPVerificationScreen() {
   const [timer, setTimer] = useState(30);
   const [canResend, setCanResend] = useState(false);
   const [isResending, setIsResending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
@@ -44,6 +45,7 @@ export default function OTPVerificationScreen() {
   }, [timer]);
 
   const handleOtpChange = (value: string, index: number) => {
+    setError(null);
     const newOtp = [...otp];
     newOtp[index] = value;
     setOtp(newOtp);
@@ -60,7 +62,7 @@ export default function OTPVerificationScreen() {
 
   const handleVerify = async () => {
     const code = otp.join("");
-    console.log(code);
+    setError(null);
 
     try {
       if (code.length === 6) {
@@ -80,47 +82,48 @@ export default function OTPVerificationScreen() {
         const data = await response.json();
 
         if (response.ok) {
-          setTimeout(() => {
-            setIsVerifying(false);
-            setUserId(data.user_id);
-            router.replace({
-              pathname: "/verification-success",
-              params: { phone, user_id: data.user_id },
-            });
-            console.log(data.message);
-          }, 2000);
+          await setUserId(data.user_id);
+          setIsVerifying(false);
+          router.replace({
+            pathname: "/(auth)/verification-success",
+            params: { phone, user_id: data.user_id },
+          });
         } else {
-          return;
+          setIsVerifying(false);
+          setError(data.detail || "Invalid Verification Code.");
         }
       }
-    } catch (error) {
-      console.log(error);
+    } catch (err) {
+      console.log(err);
+      setIsVerifying(false);
+      setError("An error occurred. Please check your connection.");
     }
   };
 
   const handleResend = async () => {
     if (canResend) {
       setIsResending(true);
+      setError(null);
       try {
         const response = await fetch(`${base_url}/api/auth/resend-code`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ phone }),
         });
-        
+
         const data = await response.json();
-        
+
         if (response.ok) {
           setTimer(30);
           setCanResend(false);
           setOtp(["", "", "", "", "", ""]);
           inputRefs.current[0]?.focus();
-          console.log(data.message);
         } else {
-          console.log("Failed to resend code:", data.detail);
+          setError(data.detail || "Failed to resend verification code.");
         }
-      } catch (error) {
-        console.log(error);
+      } catch (err) {
+        console.log(err);
+        setError("An error occurred. Please check your connection.");
       } finally {
         setIsResending(false);
       }
@@ -190,7 +193,7 @@ export default function OTPVerificationScreen() {
               <View className="flex-row items-center gap-1.5 mt-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/70 px-3 py-1.5 rounded-xl">
                 <Feather name="phone" size={12} color="#64748b" />
                 <Text className="text-[13px] font-medium text-slate-700 dark:text-slate-300">
-                  +63 912 345 6789
+                  {(phone as string) || "+63 912 345 6789"}
                 </Text>
               </View>
             </View>
@@ -229,7 +232,7 @@ export default function OTPVerificationScreen() {
             </View>
 
             {/* Progress indicator */}
-            <View className="flex-row gap-1 mb-6">
+            <View className="flex-row gap-1 mb-4">
               {otp.map((digit, i) => (
                 <View
                   key={i}
@@ -240,6 +243,16 @@ export default function OTPVerificationScreen() {
                 />
               ))}
             </View>
+
+            {/* Error Message */}
+            {error && (
+              <View className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-3 flex-row items-center gap-2 mb-4">
+                <Feather name="alert-triangle" size={16} color="#ef4444" />
+                <Text className="text-red-600 dark:text-red-400 text-[13px] flex-1">
+                  {error}
+                </Text>
+              </View>
+            )}
 
             {/* Submit */}
             <TouchableOpacity
@@ -268,33 +281,32 @@ export default function OTPVerificationScreen() {
               )}
             </TouchableOpacity>
 
-            {/* Resend */}
-            <View className="flex-row justify-center items-center gap-1">
-              <Text className="text-[13px] text-slate-400">
-                Didn't receive the code?
-              </Text>
-              {canResend ? (
-                <TouchableOpacity activeOpacity={0.65} onPress={handleResend} disabled={isResending}>
+            {/* Resend Code */}
+            <View className="items-center">
+              {timer > 0 ? (
+                <Text className="text-[13px] text-slate-400">
+                  Resend code in <Text className="font-semibold text-slate-700 dark:text-slate-300">{formatTime(timer)}</Text>
+                </Text>
+              ) : (
+                <TouchableOpacity
+                  onPress={handleResend}
+                  disabled={isResending}
+                  className="flex-row items-center gap-1.5"
+                >
                   {isResending ? (
-                    <ActivityIndicator size="small" color="#0f172a" />
+                    <ActivityIndicator size="small" color="#185fa5" />
                   ) : (
-                    <Text className="text-[13px] font-medium text-slate-700 dark:text-slate-300">
-                      Resend
-                    </Text>
+                    <>
+                      <Feather name="refresh-cw" size={13} color="#185fa5" />
+                      <Text className="text-[13px] font-medium text-sky-600 dark:text-sky-400">
+                        Resend code
+                      </Text>
+                    </>
                   )}
                 </TouchableOpacity>
-              ) : (
-                <Text className="text-[13px] font-medium text-slate-400">
-                  Resend in {formatTime(timer)}
-                </Text>
               )}
             </View>
           </View>
-
-          {/* Footer */}
-          <Text className="text-center text-[9px] tracking-widest text-slate-300 mt-6 uppercase">
-            CTU — Main Campus · Capstone 2026
-          </Text>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

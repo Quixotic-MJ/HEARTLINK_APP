@@ -15,8 +15,10 @@ export default function SplashScreen() {
   const iconFade  = useRef(new Animated.Value(0)).current;
   const iconScale = useRef(new Animated.Value(0.7)).current;
   const tagFade   = useRef(new Animated.Value(0)).current;
+  const isMounted = useRef(true);
 
   useEffect(() => {
+    isMounted.current = true;
     let navTimer: ReturnType<typeof setTimeout>;
 
     // Stage 1: Screen fades in
@@ -26,6 +28,7 @@ export default function SplashScreen() {
       easing: Easing.out(Easing.ease),
       useNativeDriver: true,
     }).start(() => {
+      if (!isMounted.current) return;
       // Stage 2: Icon and Wordmark pop in
       Animated.parallel([
         Animated.spring(iconScale, {
@@ -50,10 +53,17 @@ export default function SplashScreen() {
       ]).start();
 
       // Stage 3: Navigate after hold
-      navTimer = setTimeout(() => router.replace("/onboarding"), 3000);
+      navTimer = setTimeout(() => {
+        if (isMounted.current) {
+          router.replace("/onboarding");
+        }
+      }, 3000);
     });
 
-    return () => clearTimeout(navTimer);
+    return () => {
+      isMounted.current = false;
+      if (navTimer) clearTimeout(navTimer);
+    };
   }, []);
 
   return (

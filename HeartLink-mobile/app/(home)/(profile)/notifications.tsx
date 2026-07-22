@@ -5,7 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
 import { Feather } from "@expo/vector-icons";
-import { useUser } from "../../contexts/UserContext";
+import { useUser } from "../../../contexts/UserContext";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -109,7 +109,7 @@ const SAMPLE_NOTIFICATIONS: Notification[] = [
       "How are you feeling today? Tap to log your symptoms before your evening review.",
     time: "8 hours ago",
     read: true,
-    route: "/(home)/log-symptoms",
+    route: "/(home)/(health)/log-symptoms",
   },
   {
     id: "6",
@@ -203,7 +203,7 @@ function NotificationCard({
   const [expanded, setExpanded] = React.useState(false);
 
   const actionRoute = notification.route || 
-    (notification.message.toLowerCase().includes("tap to log") ? "/(home)/log-symptoms" : null);
+    (notification.message.toLowerCase().includes("tap to log") ? "/(home)/(health)/log-symptoms" : null);
 
   return (
     <TouchableOpacity

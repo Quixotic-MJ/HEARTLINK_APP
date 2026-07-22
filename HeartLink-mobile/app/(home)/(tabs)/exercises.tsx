@@ -477,7 +477,7 @@ export default function ExercisesScreen() {
   const handleSafetySymptoms = () => {
     setShowSafetyCheck(false);
     setPendingRoutine(null);
-    router.push("/(home)/log-symptoms");
+    router.push("/(home)/(health)/log-symptoms");
   };
 
   return (
@@ -519,14 +519,14 @@ export default function ExercisesScreen() {
           <Text className="text-[16px] text-slate-900 dark:text-white tracking-tight" style={{ fontWeight: "300" }}>Heart<Text style={{ fontWeight: "600" }}>Link.</Text></Text>
         </View>
         <View className="flex-row items-center gap-2">
-          <TouchableOpacity onPress={() => router.push("/(home)/notifications")} className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-800/70 items-center justify-center">
+          <TouchableOpacity onPress={() => router.push("/(home)/(profile)/notifications")} className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-800/70 items-center justify-center">
             <Feather name="bell" size={17} color="#64748b" />
             <View style={{ position: "absolute", top: 8, right: 8 }} className="w-1.5 h-1.5 bg-red-500 rounded-full" />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => router.push("/(home)/settings")} className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-800/70 items-center justify-center">
+          <TouchableOpacity onPress={() => router.push("/(home)/(settings)/settings")} className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-800/70 items-center justify-center">
             <Feather name="settings" size={17} color="#64748b" />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => router.push("/(home)/profile")} activeOpacity={0.8} className="ml-1">
+          <TouchableOpacity onPress={() => router.push("/(home)/(profile)/profile")} activeOpacity={0.8} className="ml-1">
             <View className="w-9 h-9 rounded-full bg-slate-200 overflow-hidden">
               <Image source={{ uri: user?.avatar_url || "https://ui-avatars.com/api/?name=" + (user?.first_name || "U") + "&background=e2e8f0&color=475569&bold=true" }} className="w-full h-full" resizeMode="cover" />
             </View>
@@ -683,13 +683,13 @@ export default function ExercisesScreen() {
               isCompleted={completedExercises.includes(routine.id)}
               onPressCard={() =>
                 router.push({
-                  pathname: "/(home)/exercise-details",
+                  pathname: "/(home)/(health)/exercise-details",
                   params: { id: routine.id },
                 })
               }
               onStart={() =>
                 router.push({
-                  pathname: "/(home)/exercise-details",
+                  pathname: "/(home)/(health)/exercise-details",
                   params: { id: routine.id },
                 })
               }

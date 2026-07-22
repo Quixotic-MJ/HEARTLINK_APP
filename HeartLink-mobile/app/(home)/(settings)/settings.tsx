@@ -152,7 +152,7 @@ export default function SettingsScreen() {
             subtitle="Update personal details and photo"
             iconBg="#e6f1fb"
             iconColor="#185fa5"
-            onPress={() => router.push("/(home)/profile")}
+            onPress={() => router.push("/(home)/(profile)/profile")}
           />
           <SettingsRow
             icon="lock"
@@ -182,7 +182,7 @@ export default function SettingsScreen() {
             subtitle="BP targets, sodium limits, activity goals"
             iconBg="#eaf3de"
             iconColor="#3b6d11"
-            onPress={() => router.push("/(home)/goals-thresholds")}
+            onPress={() => router.push("/(home)/(health)/goals-thresholds")}
           />
           <SettingsRow
             icon="map-pin"
@@ -190,7 +190,7 @@ export default function SettingsScreen() {
             subtitle="Manage doctor and emergency contacts"
             iconBg="#e6f1fb"
             iconColor="#185fa5"
-            onPress={() => router.push("/(home)/care-team")}
+            onPress={() => router.push("/(home)/(profile)/care-team")}
             isLast
           />
         </SettingsGroup>
