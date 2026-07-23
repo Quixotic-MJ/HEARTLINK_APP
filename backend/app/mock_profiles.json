@@ -81,5 +81,26 @@
     "account_status": "active",
     "created_at": null,
     "updated_at": "2026-07-22T00:48:23.881923"
+  },
+  {
+    "id": "usr-patient-107",
+    "phone": "+639123456785",
+    "email": "test4@gmail.com",
+    "password": "Password123",
+    "role": "patient",
+    "first_name": "Test4",
+    "last_name": "",
+    "date_of_birth": "2026-07-03",
+    "sex": "male",
+    "height_cm": 150.0,
+    "weight_kg": 68.0,
+    "avatar_url": null,
+    "health_goals": [
+      "bp"
+    ],
+    "onboarding_status": "complete",
+    "account_status": "active",
+    "created_at": "2026-07-23T04:19:21.931434",
+    "updated_at": "2026-07-23T04:22:14.251551"
   }
 ]

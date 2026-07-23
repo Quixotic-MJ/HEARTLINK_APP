@@ -97,10 +97,11 @@ export default function SettingsScreen() {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
   const router = useRouter();
-  const { setUserId } = useUser();
+  const { setUserId, userId, logout } = useUser();
+  const base_url = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
 
   const handleSignOut = () => {
-    setUserId("");
+    logout();
     router.replace("/onboarding");
   };
 
@@ -113,10 +114,20 @@ export default function SettingsScreen() {
         { 
           text: "Delete", 
           style: "destructive", 
-          onPress: () => {
-            // Mock delete
-            setUserId("");
-            router.replace("/(auth)/register");
+          onPress: async () => {
+            try {
+              const response = await fetch(`${base_url}/api/users/${userId}`, {
+                method: "DELETE",
+              });
+              if (response.ok) {
+                logout();
+                router.replace("/onboarding");
+              } else {
+                Alert.alert("Error", "Could not delete account. Please try again.");
+              }
+            } catch (error) {
+              Alert.alert("Error", "Network error. Please try again.");
+            }
           }
         }
       ]

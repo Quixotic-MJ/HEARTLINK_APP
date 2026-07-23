@@ -142,7 +142,7 @@ export default function AuthScreen() {
 
     setIsLoading(true);
 
-    let finalIdentifier = identifier.trim();
+    let finalIdentifier = identifier.trim().toLowerCase();
     if (/^\d+$/.test(finalIdentifier)) {
       if (finalIdentifier.startsWith("0")) {
         finalIdentifier = finalIdentifier.substring(1);
@@ -164,11 +164,26 @@ export default function AuthScreen() {
       const data = await response.json();
 
       if (response.ok) {
-        setUserId(data.user_id);
-        router.replace({
-          pathname: "/(home)/(tabs)/dashboard",
-          params: { user_id: data.user_id },
-        });
+        await setUserId(data.user_id);
+
+        // Fetch profile to check onboarding status for correct routing
+        try {
+          const profileRes = await fetch(`${base_url}/api/users/${data.user_id}/profile`);
+          const profileData = await profileRes.json();
+          const onboardingStatus = profileData?.profile?.onboarding_status;
+
+          if (onboardingStatus === "complete") {
+            router.replace("/(home)/(tabs)/dashboard");
+          } else {
+            router.replace({
+              pathname: "/(baseline)/health_goals",
+              params: { user_id: data.user_id },
+            });
+          }
+        } catch {
+          // If profile fetch fails, default to dashboard — auth guard will handle it
+          router.replace("/(home)/(tabs)/dashboard");
+        }
       } else {
         setError(data.detail || "Invalid email or password.");
       }
@@ -183,7 +198,7 @@ export default function AuthScreen() {
   return (
     <SafeAreaView
       className="flex-1 bg-background"
-      edges={["top"]}
+      edges={["top", "bottom"]}
     >
       <StatusBar style="auto" />
 
@@ -324,7 +339,7 @@ export default function AuthScreen() {
         <TouchableOpacity
           activeOpacity={0.65}
           onPress={() => router.push("/(auth)/register")}
-          className="flex-row justify-center items-center py-6 gap-1.5 mt-auto"
+          className="flex-row justify-center items-center py-4 mb-2 gap-1.5 mt-auto"
           accessible={true}
           accessibilityRole="link"
           accessibilityLabel="Don't have an account? Sign up"
@@ -336,11 +351,6 @@ export default function AuthScreen() {
             Sign up
           </Text>
         </TouchableOpacity>
-
-        {/* Footer */}
-        <Text className="text-center text-[10px] tracking-widest text-muted-foreground opacity-60 uppercase" importantForAccessibility="no">
-          CTU — Main Campus · Capstone 2026
-        </Text>
       </KeyboardAwareScrollView>
     </SafeAreaView>
   );

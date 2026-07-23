@@ -93,15 +93,35 @@ export default function BiometricsStep1Screen() {
   const [birthDate, setBirthDate] = useState<Date | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [sex, setSex] = useState<"male" | "female" | null>(null);
-  const [unitSystem, setUnitSystem] = useState<"metric" | "imperial">("metric");
   const [heightCm, setHeightCm] = useState("");
   const [weightKg, setWeightKg] = useState("");
-  const [heightFt, setHeightFt] = useState("");
-  const [heightIn, setHeightIn] = useState("");
-  const [weightLbs, setWeightLbs] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const isReady = !!firstName && !!lastName && !!birthDate && !!sex;
+  // Pre-fill from existing profile data
+  React.useEffect(() => {
+    async function loadExisting() {
+      try {
+        const res = await fetch(`${base_url}/api/users/${user_id}/profile`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const p = data?.profile;
+        if (!p) return;
+        if (p.first_name) setFirstName(p.first_name);
+        if (p.last_name) setLastName(p.last_name);
+        if (p.date_of_birth) {
+          try { setBirthDate(new Date(p.date_of_birth)); } catch {}
+        }
+        if (p.sex) setSex(p.sex);
+        if (p.height_cm) setHeightCm(String(p.height_cm));
+        if (p.weight_kg) setWeightKg(String(p.weight_kg));
+      } catch (e) {
+        // Silently fail — fields stay empty
+      }
+    }
+    if (user_id) loadExisting();
+  }, [user_id]);
+
+  const isReady = !!firstName && !!birthDate && !!sex;
 
   const onChangeDate = (event: any, selectedDate?: Date) => {
     setShowDatePicker(false);
@@ -111,14 +131,6 @@ export default function BiometricsStep1Screen() {
   };
 
   const handleNext = async () => {
-    let finalHeightCm = heightCm;
-    let finalWeightKg = weightKg;
-    if (unitSystem === "imperial") {
-      const totalIn = parseInt(heightFt || "0") * 12 + parseInt(heightIn || "0");
-      finalHeightCm = (totalIn * 2.54).toFixed(2);
-      finalWeightKg = (parseFloat(weightLbs || "0") * 0.453592).toFixed(2);
-    }
-
     try {
       setIsSubmitting(true);
       const response = await fetch(`${base_url}/api/users/${user_id}/profile`, {
@@ -129,8 +141,8 @@ export default function BiometricsStep1Screen() {
           last_name: lastName,
           date_of_birth: birthDate?.toISOString().split("T")[0],
           sex: sex,
-          height_cm: parseFloat(finalHeightCm) || 0,
-          weight_kg: parseFloat(finalWeightKg) || 0,
+          height_cm: parseFloat(heightCm) || 0,
+          weight_kg: parseFloat(weightKg) || 0,
           health_goals: health_goals ? JSON.parse(health_goals as string) : [],
         }),
       });
@@ -210,7 +222,7 @@ export default function BiometricsStep1Screen() {
                 </View>
               </View>
               <View className="flex-1">
-                <FieldLabel title="Last Name" />
+                <FieldLabel title="Last Name (Optional)" />
                 <View
                   className="bg-slate-50 dark:bg-slate-950 rounded-xl flex-row items-center px-3.5"
                   style={{ borderWidth: 1, borderColor: "#e2e8f0", height: 50 }}
@@ -311,51 +323,21 @@ export default function BiometricsStep1Screen() {
 
           {/* ── Height & Weight ── */}
           <View className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4 mb-6">
-            {/* Unit toggle */}
-            <View className="flex-row bg-slate-100 dark:bg-slate-800 rounded-xl p-1 mb-5 border border-slate-200 dark:border-slate-800/70">
-              {(["metric", "imperial"] as const).map((u) => (
-                <TouchableOpacity
-                  key={u}
-                  onPress={() => setUnitSystem(u)}
-                  className="flex-1 py-2 rounded-lg items-center"
-                  style={
-                    unitSystem === u
-                      ? { backgroundColor: "#fff", borderWidth: 0.5, borderColor: "#e2e8f0" }
-                      : undefined
-                  }
-                >
-                  <Text
-                    className="text-[12px] font-medium"
-                    style={{ color: unitSystem === u ? "#0f172a" : "#94a3b8" }}
-                  >
-                    {u === "metric" ? "Metric (cm / kg)" : "Imperial (ft / lbs)"}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
             <View className="flex-row gap-3">
               {/* Height */}
               <View className="flex-1">
                 <FieldLabel title="Height" />
-                {unitSystem === "metric" ? (
-                  <MeasureInput value={heightCm} onChangeText={setHeightCm} unit="cm" maxLength={5} />
-                ) : (
-                  <View className="flex-row gap-2">
-                    <MeasureInput value={heightFt} onChangeText={setHeightFt} unit="ft" maxLength={1} keyboardType="number-pad" />
-                    <MeasureInput value={heightIn} onChangeText={setHeightIn} unit="in" maxLength={2} keyboardType="number-pad" />
-                  </View>
-                )}
+                <MeasureInput value={heightCm} onChangeText={setHeightCm} placeholder="170" unit="cm" maxLength={5} />
               </View>
 
               {/* Weight */}
               <View className="flex-1">
                 <FieldLabel title="Weight" />
                 <MeasureInput
-                  value={unitSystem === "metric" ? weightKg : weightLbs}
-                  onChangeText={unitSystem === "metric" ? setWeightKg : setWeightLbs}
-                  placeholder="0.0"
-                  unit={unitSystem === "metric" ? "kg" : "lbs"}
+                  value={weightKg}
+                  onChangeText={setWeightKg}
+                  placeholder="65.0"
+                  unit="kg"
                   maxLength={5}
                 />
               </View>
@@ -365,7 +347,7 @@ export default function BiometricsStep1Screen() {
             <View className="flex-row items-start gap-1.5 mt-3">
               <Feather name="info" size={11} color="#cbd5e1" style={{ marginTop: 1 }} />
               <Text className="text-[11px] text-slate-300 flex-1 leading-relaxed">
-                Height and weight are used to compute your BMI baseline. Imperial values are auto-converted.
+                Height and weight are used to compute your BMI baseline.
               </Text>
             </View>
           </View>

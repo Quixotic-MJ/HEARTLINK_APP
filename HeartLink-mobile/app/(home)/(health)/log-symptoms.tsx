@@ -18,6 +18,7 @@ import { StatusBar } from "expo-status-bar";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useUser } from "../../../contexts/UserContext";
+import { OfflineSyncService } from "../../../utils/OfflineSyncService";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -150,20 +151,21 @@ export default function LogSymptomsScreen() {
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
-    try {
-      const payload = {
-        systolic_bp: parseInt(systolic) || 0,
-        diastolic_bp: parseInt(diastolic) || 0,
-        heart_rate_bpm: parseInt(heartRate) || 0,
-        weight_kg: parseFloat(weight) || 0,
-        medication_taken: medicationTaken || false,
-        symptoms: selectedSymptoms,
-        severity_map: severities,
-        context: context,
-        notes: "", // add notes field if needed
-      };
+    const targetUrl = `${base_url}/api/health-logs/${userId}`;
+    const payload = {
+      systolic_bp: parseInt(systolic) || 0,
+      diastolic_bp: parseInt(diastolic) || 0,
+      heart_rate_bpm: parseInt(heartRate) || 0,
+      weight_kg: parseFloat(weight) || 0,
+      medication_taken: medicationTaken || false,
+      symptoms: selectedSymptoms,
+      severity_map: severities,
+      context: context,
+      notes: "",
+    };
 
-      const res = await fetch(`${base_url}/api/health-logs/${userId}`, {
+    try {
+      const res = await fetch(targetUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -185,8 +187,14 @@ export default function LogSymptomsScreen() {
         );
       }
     } catch (err) {
-      console.error(err);
-      Alert.alert("Error", "Failed to submit log. Please try again.");
+      console.warn("Network error during submission. Queuing log for offline sync...", err);
+      await OfflineSyncService.queueRequest(targetUrl, "POST", payload);
+
+      Alert.alert(
+        "Saved Offline",
+        "No internet connection detected. Your log has been saved locally and will automatically sync when you reconnect.",
+        [{ text: "OK", onPress: () => router.back() }]
+      );
     } finally {
       setIsSubmitting(false);
     }

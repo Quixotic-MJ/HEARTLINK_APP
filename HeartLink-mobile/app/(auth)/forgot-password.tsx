@@ -202,11 +202,6 @@ export default function ForgotPasswordScreen() {
               )}
             </TouchableOpacity>
           </View>
-
-          {/* Footer */}
-          <Text className="text-center text-[9px] tracking-widest text-slate-300 uppercase mt-auto">
-            CTU — Main Campus · Capstone 2026
-          </Text>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, Animated } from 'react-native';
 import { useNetInfo } from '@react-native-community/netinfo';
 import { useColorScheme } from 'nativewind';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { OfflineSyncService } from '../utils/OfflineSyncService';
 
 export default function OfflineBanner() {
   const netInfo = useNetInfo();
@@ -12,6 +13,7 @@ export default function OfflineBanner() {
   const insets = useSafeAreaInsets();
   
   const [slideAnim] = useState(new Animated.Value(-100));
+  const prevOffline = useRef<boolean | null>(null);
 
   const isOffline = netInfo.type !== 'unknown' && netInfo.isInternetReachable === false;
 
@@ -22,6 +24,13 @@ export default function OfflineBanner() {
       friction: 8,
       tension: 40,
     }).start();
+
+    // Trigger queue sync when reconnecting
+    if (prevOffline.current === true && isOffline === false) {
+      console.log("[OfflineBanner] Reconnected to internet! Triggering queue process...");
+      OfflineSyncService.processQueue();
+    }
+    prevOffline.current = isOffline;
   }, [isOffline]);
 
   if (!isOffline && slideAnim.constructor.name === "AnimatedValue" /* simple check to unmount? No, let's keep it mounted and transform it out of view */) {

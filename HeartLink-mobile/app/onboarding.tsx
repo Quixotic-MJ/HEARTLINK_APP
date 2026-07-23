@@ -290,14 +290,6 @@ export default function OnboardingScreen() {
               Log in
             </Text>
           </TouchableOpacity>
-
-          {/* Footer */}
-          <Text 
-            className="text-center text-[10px] tracking-widest text-muted-foreground mt-2 uppercase opacity-60" 
-            importantForAccessibility="no"
-          >
-            CTU — Main Campus · Capstone 2026
-          </Text>
         </Animated.View>
       </ScrollView>
     </SafeAreaView>

@@ -221,7 +221,7 @@ export default function RegisterScreen() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          email: email,
+          email: email.trim().toLowerCase(),
           phone: normalizedPhone,
           password: password,
         }),
@@ -253,7 +253,7 @@ export default function RegisterScreen() {
   return (
     <SafeAreaView
       className="flex-1 bg-background"
-      edges={["top"]}
+      edges={["top", "bottom"]}
     >
       <StatusBar style="auto" />
 
@@ -340,7 +340,8 @@ export default function RegisterScreen() {
             placeholder="912 345 6789"
             value={phone}
             onChangeText={(t) => {
-              setPhone(t.replace(/[^0-9]/g, ""));
+              const digits = t.replace(/[^0-9]/g, "");
+              setPhone(digits.slice(0, 10));
               clearError("phone");
             }}
             error={errors.phone}
@@ -432,7 +433,7 @@ export default function RegisterScreen() {
           <TouchableOpacity
             activeOpacity={0.65}
             onPress={() => router.replace("/(auth)/login")}
-            className="flex-row justify-center items-center gap-1.5 mt-6 pt-2"
+            className="flex-row justify-center items-center gap-1.5 mt-6 pt-2 pb-4 mb-2"
             accessible={true}
             accessibilityRole="link"
             accessibilityLabel="Already have an account? Log in"
@@ -445,11 +446,6 @@ export default function RegisterScreen() {
             </Text>
           </TouchableOpacity>
         </View>
-
-        {/* Footer */}
-        <Text className="text-center text-[10px] tracking-widest text-muted-foreground opacity-60 mt-auto pt-8 uppercase" importantForAccessibility="no">
-          CTU — Main Campus · Capstone 2026
-        </Text>
       </KeyboardAwareScrollView>
     </SafeAreaView>
   );

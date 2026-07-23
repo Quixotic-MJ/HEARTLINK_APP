@@ -6,7 +6,7 @@ from datetime import date
 # Profile update (onboarding step 1)
 class ProfileUpdate(BaseModel):
     first_name: str
-    last_name: str
+    last_name: Optional[str] = ""
     date_of_birth: date
     sex: str
     height_cm: float

@@ -17,6 +17,7 @@ import { useRouter } from "expo-router";
 import { useColorScheme } from "nativewind";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useUser } from "../../../contexts/UserContext";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Import extracted UI components
 import { ScoreRing } from "../../../components/dashboard/ScoreRing";
@@ -98,45 +99,46 @@ export default function DashboardScreen() {
 
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
-  // Intercept hardware back button
-  useEffect(() => {
-    const backAction = () => {
-      Alert.alert("Sign Out", "Are you sure you want to sign out?", [
-        {
-          text: "Cancel",
-          onPress: () => null,
-          style: "cancel",
-        },
-        {
-          text: "Yes",
-          onPress: () => {
-            setUserId("");
-            router.replace("/(auth)/login");
-          },
-        },
-      ]);
-      return true;
-    };
 
-    const backHandler = BackHandler.addEventListener(
-      "hardwareBackPress",
-      backAction
-    );
 
-    return () => backHandler.remove();
-  }, [router, setUserId]);
+  const [isCachedData, setIsCachedData] = useState(false);
 
   const fetchData = useCallback(
     async (silent = false) => {
+      if (!userId) return;
+      
       if (!silent) setIsLoading(true);
       setError(false);
+      const cacheKey = `@dashboard_cache_${userId}`;
+
       try {
-        const response = await fetch(`${base_url}/api/dashboard/${userId}`);
-        const json = await response.json();
-        setData(json);
+        const response = await fetch(`${base_url}/api/dashboard/me`, {
+          headers: {
+            "Authorization": `Bearer ${userId}`
+          }
+        });
+        if (response.ok) {
+          const json = await response.json();
+          setData(json);
+          setIsCachedData(false);
+          await AsyncStorage.setItem(cacheKey, JSON.stringify(json));
+        } else {
+          throw new Error(`Dashboard API responded with ${response.status}`);
+        }
       } catch (err) {
-        console.error("Dashboard fetch error:", err);
-        setError(true);
+        console.error("Dashboard fetch error (checking offline cache):", err);
+        try {
+          const cachedStr = await AsyncStorage.getItem(cacheKey);
+          if (cachedStr) {
+            setData(JSON.parse(cachedStr));
+            setIsCachedData(true);
+            console.log("[Dashboard] Loaded data from local cache.");
+          } else {
+            setError(true);
+          }
+        } catch {
+          setError(true);
+        }
       } finally {
         setIsLoading(false);
         setRefreshing(false);
@@ -165,8 +167,9 @@ export default function DashboardScreen() {
   });
 
   useEffect(() => {
+    let animLoop: Animated.CompositeAnimation | null = null;
     if (cssScore < 50 && !isLoading) {
-      Animated.loop(
+      animLoop = Animated.loop(
         Animated.sequence([
           Animated.timing(pulseAnim, {
             toValue: 1.05,
@@ -179,11 +182,18 @@ export default function DashboardScreen() {
             useNativeDriver: true,
           }),
         ])
-      ).start();
+      );
+      animLoop.start();
     } else {
       pulseAnim.stopAnimation();
       pulseAnim.setValue(1);
     }
+
+    return () => {
+      if (animLoop) {
+        animLoop.stop();
+      }
+    };
   }, [cssScore, pulseAnim, isLoading]);
 
   // Auto-show alert modal when critical alert loads
@@ -283,6 +293,9 @@ export default function DashboardScreen() {
         </View>
         <View className="flex-row items-center gap-2">
           <TouchableOpacity
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel="Notifications"
             onPress={() => router.push("/(home)/(profile)/notifications")}
             className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-800 items-center justify-center"
           >
@@ -297,6 +310,9 @@ export default function DashboardScreen() {
             />
           </TouchableOpacity>
           <TouchableOpacity
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel="Settings"
             onPress={() => router.push("/(home)/(settings)/settings")}
             className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-800 items-center justify-center"
           >
@@ -307,6 +323,9 @@ export default function DashboardScreen() {
             />
           </TouchableOpacity>
           <TouchableOpacity
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel="Profile"
             onPress={() => router.push("/(home)/(profile)/profile")}
             activeOpacity={0.8}
             className="ml-1"
@@ -372,20 +391,20 @@ export default function DashboardScreen() {
               <Animated.View
                 style={{
                   position: "absolute",
-                  width: 200,
-                  height: 200,
-                  borderRadius: 100,
+                  width: 160,
+                  height: 160,
+                  borderRadius: 80,
                   backgroundColor: "rgba(226, 75, 74, 0.15)",
                   opacity: glowOpacity,
                 }}
               />
             )}
-            <ScoreRing score={cssScore} size={180} strokeWidth={12} />
+            <ScoreRing score={cssScore} size={140} strokeWidth={12} />
           </Animated.View>
 
           {/* Timestamp */}
           <Text className="text-[11px] text-slate-400 mt-3">
-            Last synced: {formatTimestamp(lastSyncTime)}
+            Last synced: {formatTimestamp(lastSyncTime)} {isCachedData ? "(Offline Cached)" : ""}
           </Text>
 
           {/* Label */}
@@ -574,13 +593,12 @@ export default function DashboardScreen() {
                 <View className="flex-1 bg-slate-50 dark:bg-slate-950 rounded-xl px-4 py-3">
                   <View className="flex-row items-center gap-2 mb-1">
                     <View
-                      className="w-7 h-7 rounded-lg items-center justify-center"
-                      style={{ backgroundColor: "#faeeda" }}
+                      className="w-7 h-7 rounded-lg items-center justify-center bg-orange-100 dark:bg-orange-900/30"
                     >
                       <MaterialCommunityIcons
                         name="silverware-fork-knife"
                         size={13}
-                        color="#854f0b"
+                        color={isDark ? "#fbbf24" : "#854f0b"}
                       />
                     </View>
                     <Text className="text-[13px] font-medium text-slate-800 dark:text-slate-100">
@@ -594,10 +612,9 @@ export default function DashboardScreen() {
                 <View className="flex-1 bg-slate-50 dark:bg-slate-950 rounded-xl px-4 py-3">
                   <View className="flex-row items-center gap-2 mb-1">
                     <View
-                      className="w-7 h-7 rounded-lg items-center justify-center"
-                      style={{ backgroundColor: "#e6f1fb" }}
+                      className="w-7 h-7 rounded-lg items-center justify-center bg-blue-100 dark:bg-blue-900/30"
                     >
-                      <Feather name="activity" size={13} color="#185fa5" />
+                      <Feather name="activity" size={13} color={isDark ? "#60a5fa" : "#185fa5"} />
                     </View>
                     <Text className="text-[13px] font-medium text-slate-800 dark:text-slate-100">
                       {data.today_activity.exercises_count} Exercise

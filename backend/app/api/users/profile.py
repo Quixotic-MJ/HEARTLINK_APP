@@ -11,6 +11,7 @@ from app.services.users import (
     upsert_baseline_dietary,
     upsert_baseline_clinical,
     get_full_profile,
+    delete_user,
 )
 import app.mock_db as mock_db
 from app.services.ml_service import ml_service
@@ -40,6 +41,15 @@ async def update_user_profile(user_id: str, payload: ProfileUpdate):
         )
     return {"success": True, "message": "Profile updated", "data": result}
 
+@router.delete("/{user_id}", status_code=status.HTTP_200_OK)
+async def delete_user_account(user_id: str):
+    result = delete_user(user_id)
+    if not result:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+        )
+    return {"success": True, "message": "Account permanently deleted"}
+
 
 @router.post("/{user_id}/baseline/lifestyle", status_code=status.HTTP_201_CREATED)
 async def save_baseline_lifestyle(user_id: str, payload: BaselineLifestyleRequest):
@@ -68,24 +78,42 @@ async def save_baseline_dietary(user_id: str, payload: BaselineDietaryRequest):
 
 @router.post("/{user_id}/baseline/clinical", status_code=status.HTTP_201_CREATED)
 async def save_baseline_clinical(user_id: str, payload: BaselineClinicalRequest):
-    user_exists = any(p["id"] == user_id for p in mock_db.profiles)
-    if not user_exists:
+    user_profile = next((p for p in mock_db.profiles if p["id"] == user_id), None)
+    if not user_profile:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
         )
 
+    # Validate that prior mandatory baseline steps are complete
+    if not user_profile.get("first_name") or not user_profile.get("date_of_birth"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Core biometrics (name and date of birth) must be completed before saving clinical baseline."
+        )
+
+    lifestyle = next((l for l in mock_db.baseline_lifestyle if l["user_id"] == user_id), None)
+    if not lifestyle:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Lifestyle baseline must be completed before saving clinical baseline."
+        )
+
+    dietary = next((d for d in mock_db.baseline_dietary if d["user_id"] == user_id), None)
+    if not dietary:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Dietary baseline must be completed before saving clinical baseline."
+        )
+
     result = upsert_baseline_clinical(user_id, payload.model_dump())
-    
+
     # ML Prediction for Initial CSS
-    lifestyle = next((l for l in mock_db.baseline_lifestyle if l["user_id"] == user_id), {})
-    dietary = next((d for d in mock_db.baseline_dietary if d["user_id"] == user_id), {})
     clinical = payload.model_dump()
-    
     css_entry = ml_service.predict_initial_css(user_id, lifestyle, dietary, clinical)
-    
+
     return {
-        "success": True, 
-        "message": "Clinical baseline saved — onboarding complete", 
-        "data": result, 
+        "success": True,
+        "message": "Clinical baseline saved — onboarding complete",
+        "data": result,
         "initial_css": css_entry
     }

@@ -46,6 +46,25 @@ export default function BiometricsStep2Screen() {
   const [familyHistory, setFamilyHistory] = useState(false); // Yes/No Toggle
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Pre-fill from existing lifestyle baseline data
+  React.useEffect(() => {
+    async function loadExisting() {
+      try {
+        const res = await fetch(`${base_url}/api/users/${user_id}/profile`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const lifestyle = data?.baselines?.lifestyle;
+        if (!lifestyle) return;
+        if (lifestyle.smoking_status) setSmokingStatus(lifestyle.smoking_status);
+        if (lifestyle.avg_sleep_hours) setSleepHours(lifestyle.avg_sleep_hours);
+        if (lifestyle.family_history !== undefined) setFamilyHistory(lifestyle.family_history);
+      } catch (e) {
+        // Silently fail — fields stay at defaults
+      }
+    }
+    if (user_id) loadExisting();
+  }, [user_id]);
+
   // Custom Stepper Logic
   const incrementSleep = () => setSleepHours((prev) => Math.min(prev + 1, 12));
   const decrementSleep = () => setSleepHours((prev) => Math.max(prev - 1, 3));

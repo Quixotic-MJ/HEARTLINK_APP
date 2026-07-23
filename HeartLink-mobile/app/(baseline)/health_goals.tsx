@@ -143,12 +143,6 @@ export default function HealthGoalsScreen() {
       {/* Header */}
       <View className="px-5 pt-4 pb-3">
         <View className="flex-row items-center mb-4">
-          <TouchableOpacity
-            onPress={() => router.back()}
-            className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 items-center justify-center mr-3"
-          >
-            <Feather name="arrow-left" size={18} color={isDark ? "#f8fafc" : "#0f172a"} />
-          </TouchableOpacity>
           <View className="flex-1">
             <Text className="text-[11px] text-slate-400 uppercase tracking-wide">
               Step 1 of 5

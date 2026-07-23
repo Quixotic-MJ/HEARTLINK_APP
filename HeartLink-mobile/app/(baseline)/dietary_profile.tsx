@@ -65,6 +65,33 @@ export default function BiometricsStep3Screen() {
     "Low-Carb / Keto",
   ];
 
+  // Pre-fill from existing dietary baseline data
+  React.useEffect(() => {
+    async function loadExisting() {
+      try {
+        const res = await fetch(`${base_url}/api/users/${user_id}/profile`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const dietary = data?.baselines?.dietary;
+        if (!dietary) return;
+        if (dietary.sodium_frequency) setSodiumFrequency(dietary.sodium_frequency);
+        if (dietary.allergies && Array.isArray(dietary.allergies)) {
+          const knownAllergies = dietary.allergies.filter((a: string) => commonAllergies.includes(a));
+          const customAllergies = dietary.allergies.filter((a: string) => !commonAllergies.includes(a));
+          setAllergies(knownAllergies);
+          if (customAllergies.length > 0) {
+            setShowOtherAllergy(true);
+            setOtherAllergy(customAllergies.join(", "));
+          }
+        }
+        if (dietary.dietary_practice) setDietaryPractice(dietary.dietary_practice);
+      } catch (e) {
+        // Silently fail — fields stay at defaults
+      }
+    }
+    if (user_id) loadExisting();
+  }, [user_id]);
+
   // Handlers
   const toggleAllergy = (allergy) => {
     if (allergies.includes(allergy)) {

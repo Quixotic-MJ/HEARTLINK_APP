@@ -73,6 +73,47 @@ export default function BiometricsStep4Screen() {
   const [exerciseAngina, setExerciseAngina] = useState(null); // 'yes' or 'no'
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Pre-fill from existing clinical baseline data
+  React.useEffect(() => {
+    async function loadExisting() {
+      try {
+        const res = await fetch(`${base_url}/api/users/${user_id}/profile`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const clinical = data?.baselines?.clinical;
+        if (!clinical) return;
+        
+        if (clinical.diagnosed_conditions && Array.isArray(clinical.diagnosed_conditions)) {
+            setDiagnosedConditions(clinical.diagnosed_conditions);
+        }
+        if (clinical.on_medication !== undefined && clinical.on_medication !== null) {
+            setTakingMedication(clinical.on_medication);
+        }
+        if (clinical.resting_bp_mmhg !== undefined && clinical.resting_bp_mmhg !== null) {
+            setRestingBP(String(clinical.resting_bp_mmhg));
+        }
+        if (clinical.max_heart_rate_bpm !== undefined && clinical.max_heart_rate_bpm !== null) {
+            setMaxHR(String(clinical.max_heart_rate_bpm));
+        }
+        if (clinical.fasting_blood_sugar !== undefined && clinical.fasting_blood_sugar !== null) {
+            setFastingBloodSugar(String(clinical.fasting_blood_sugar));
+        }
+        if (clinical.serum_cholesterol !== undefined && clinical.serum_cholesterol !== null) {
+            setCholesterol(String(clinical.serum_cholesterol));
+        }
+        if (clinical.chest_pain_type !== undefined && clinical.chest_pain_type !== null) {
+            setChestPainType(clinical.chest_pain_type);
+        }
+        if (clinical.exercise_angina !== undefined && clinical.exercise_angina !== null) {
+            setExerciseAngina(clinical.exercise_angina);
+        }
+      } catch (e) {
+        // Silently fail — fields stay at defaults
+      }
+    }
+    if (user_id) loadExisting();
+  }, [user_id]);
+
   const handleCompleteOnboarding = async () => {
     const payload = {
       diagnosed_conditions: diagnosedConditions,
@@ -99,7 +140,6 @@ export default function BiometricsStep4Screen() {
       
       if (response.ok) {
         console.log("Clinical saved — onboarding complete:", data.message);
-        await refreshUser();
         router.replace("/(baseline)/calculating");
       } else {
         Alert.alert("Error", data.detail || "Failed to save clinical data");

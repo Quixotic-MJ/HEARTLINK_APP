@@ -23,20 +23,23 @@ function RootLayoutNav() {
       // Redirect to login if user is not logged in and trying to access protected screen
       router.replace("/(auth)/login");
     } else if (userId) {
-      const isOnboardingPending = user?.onboarding_status === "pending";
+      // If user profile hasn't loaded yet (offline/error), don't redirect
+      if (!user) return;
 
-      if (isOnboardingPending) {
-        // If pending baseline, allow staying in auth (for success screen) or baseline
+      const isOnboardingComplete = user.onboarding_status === "complete";
+
+      if (isOnboardingComplete) {
+        // If onboarding is complete, redirect away from auth/onboarding/baseline to dashboard
+        if (inAuthGroup || inOnboarding || inBaseline) {
+          router.replace("/(home)/(tabs)/dashboard");
+        }
+      } else {
+        // If onboarding is not complete, redirect to baseline (allow staying in auth for success screen)
         if (!inBaseline && !inAuthGroup) {
           router.replace({
             pathname: "/(baseline)/health_goals",
             params: { user_id: userId },
           });
-        }
-      } else {
-        // If onboarding is complete, redirect away from auth/onboarding/baseline to dashboard
-        if (inAuthGroup || inOnboarding || inBaseline) {
-          router.replace("/(home)/(tabs)/dashboard");
         }
       }
     }

@@ -161,11 +161,6 @@ export default function VerificationSuccessScreen() {
             <Feather name="arrow-right" size={15} color="#fff" />
           </TouchableOpacity>
         </View>
-
-        {/* Footer */}
-        <Text className="text-center text-[9px] tracking-widest text-slate-300 mt-6 uppercase">
-          CTU — Main Campus · Capstone 2026
-        </Text>
       </ScrollView>
     </SafeAreaView>
   );

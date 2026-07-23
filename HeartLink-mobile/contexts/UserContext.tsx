@@ -6,6 +6,7 @@ type UserContextType = {
   setUserId: (id: string | null) => Promise<void>;
   user: any;
   isLoading: boolean;
+  profileError: boolean;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 };
@@ -15,6 +16,7 @@ const UserContext = createContext<UserContextType>({
   setUserId: async () => {},
   user: null,
   isLoading: true,
+  profileError: false,
   logout: async () => {},
   refreshUser: async () => {},
 });
@@ -23,20 +25,30 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const [userId, setUserIdState] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [profileError, setProfileError] = useState<boolean>(false);
 
   // Sync user profile and state loading on startup
   useEffect(() => {
     async function initUser() {
       try {
         setIsLoading(true);
+        setProfileError(false);
         const storedId = await AsyncStorage.getItem("user_id");
         if (storedId) {
           setUserIdState(storedId);
-          const baseUrl = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
-          const response = await fetch(`${baseUrl}/api/users/${storedId}/profile`);
-          if (response.ok) {
-            const data = await response.json();
-            setUser(data.profile);
+          try {
+            const baseUrl = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
+            const response = await fetch(`${baseUrl}/api/users/${storedId}/profile`);
+            if (response.ok) {
+              const data = await response.json();
+              setUser(data.profile);
+            } else {
+              setProfileError(true);
+            }
+          } catch (fetchErr) {
+            console.error("Failed to fetch user profile (offline?)", fetchErr);
+            setProfileError(true);
+            // userId is still set from AsyncStorage — user is not logged out
           }
         } else {
           setUserIdState(null);
@@ -53,14 +65,22 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
   const setUserId = async (id: string | null) => {
     try {
+      setProfileError(false);
       if (id) {
         await AsyncStorage.setItem("user_id", id);
         setUserIdState(id);
-        const baseUrl = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
-        const response = await fetch(`${baseUrl}/api/users/${id}/profile`);
-        if (response.ok) {
-          const data = await response.json();
-          setUser(data.profile);
+        try {
+          const baseUrl = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
+          const response = await fetch(`${baseUrl}/api/users/${id}/profile`);
+          if (response.ok) {
+            const data = await response.json();
+            setUser(data.profile);
+          } else {
+            setProfileError(true);
+          }
+        } catch (fetchErr) {
+          console.error("Failed to fetch profile after setUserId", fetchErr);
+          setProfileError(true);
         }
       } else {
         await AsyncStorage.removeItem("user_id");
@@ -75,14 +95,18 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const refreshUser = async () => {
     if (!userId) return;
     try {
+      setProfileError(false);
       const baseUrl = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
       const response = await fetch(`${baseUrl}/api/users/${userId}/profile`);
       if (response.ok) {
         const data = await response.json();
         setUser(data.profile);
+      } else {
+        setProfileError(true);
       }
     } catch (err) {
       console.error("Error refreshing user", err);
+      setProfileError(true);
     }
   };
 
@@ -91,7 +115,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <UserContext.Provider value={{ userId, setUserId, user, isLoading, logout, refreshUser }}>
+    <UserContext.Provider value={{ userId, setUserId, user, isLoading, profileError, logout, refreshUser }}>
       {children}
     </UserContext.Provider>
   );
@@ -100,3 +124,4 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 export function useUser() {
   return useContext(UserContext);
 }
+

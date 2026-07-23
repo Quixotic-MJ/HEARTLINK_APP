@@ -240,7 +240,7 @@ css_history = [
     {
         "id": "css-706",
         "user_id": "usr-patient-101",
-        "score": 72,  # Drops after high BP/symptom log input
+        "score": 52,  # Drops after high BP/symptom log input
         "tier": "Elevated Risk",
         "contributing_factors": {"bp_spike": "high", "symptom_count": 2},
         "computed_at": datetime(2026, 7, 10, 13, 20, 0),
@@ -746,7 +746,10 @@ clinics = [
 import json
 import os
 
+temp_profiles = []
+
 DB_FILE = os.path.join(os.path.dirname(__file__), "mock_profiles.json")
+TEMP_DB_FILE = os.path.join(os.path.dirname(__file__), "mock_temp_profiles.json")
 
 def _serialize_item(item):
     serialized = {}
@@ -765,7 +768,7 @@ def _deserialize_item(item):
                 deserialized[k] = date.fromisoformat(v)
             except Exception:
                 deserialized[k] = v
-        elif k in ("created_at", "updated_at") and isinstance(v, str):
+        elif k in ("created_at", "updated_at", "expires_at") and isinstance(v, str):
             try:
                 deserialized[k] = datetime.fromisoformat(v)
             except Exception:
@@ -782,6 +785,14 @@ def save_profiles():
     except Exception as e:
         print(f"Error saving mock profiles: {e}")
 
+def save_temp_profiles():
+    try:
+        data = [_serialize_item(p) for p in temp_profiles]
+        with open(TEMP_DB_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2)
+    except Exception as e:
+        print(f"Error saving temp profiles: {e}")
+
 def load_profiles():
     global profiles
     if os.path.exists(DB_FILE):
@@ -795,5 +806,18 @@ def load_profiles():
     else:
         save_profiles()
 
-load_profiles()
+def load_temp_profiles():
+    global temp_profiles
+    if os.path.exists(TEMP_DB_FILE):
+        try:
+            with open(TEMP_DB_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                temp_profiles.clear()
+                temp_profiles.extend([_deserialize_item(p) for p in data])
+        except Exception as e:
+            print(f"Error loading temp profiles: {e}")
+    else:
+        save_temp_profiles()
 
+load_profiles()
+load_temp_profiles()
