@@ -3,7 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, Alert, Image, RefreshControl,
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
 import { useUser } from "../../../contexts/UserContext";
@@ -195,17 +195,28 @@ export default function WrapUpScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [cssScore, setCssScore] = useState<number>(0);
+  const [dynamicInsight, setDynamicInsight] = useState<{ title: string; text: string } | null>(null);
 
   const fetchData = useCallback(async (silent = false) => {
     if (!userId) return;
     if (!silent) setIsLoading(true);
     
     try {
-      const response = await fetch(`${base_url}/api/dashboard/${userId}`);
+      const response = await fetch(`${base_url}/api/dashboard/me`, {
+        headers: {
+          "Authorization": `Bearer ${userId}`
+        }
+      });
       if (response.ok) {
         const dash = await response.json();
         if (dash.css_score !== undefined) {
           setCssScore(dash.css_score);
+        }
+        if (dash.insight) {
+          setDynamicInsight({
+            title: dash.insight.title || "Weekly Insight",
+            text: dash.insight.body || dash.insight.text,
+          });
         }
       }
     } catch (error) {
@@ -216,9 +227,11 @@ export default function WrapUpScreen() {
     }
   }, [userId]);
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  useFocusEffect(
+    useCallback(() => {
+      fetchData();
+    }, [fetchData])
+  );
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -227,7 +240,13 @@ export default function WrapUpScreen() {
 
   // Determine positive/negative week based on fetched CSS score
   const isPositive = cssScore >= 60 || cssScore === 0; // fallback to positive if 0
-  const d = isPositive ? POSITIVE_DATA : NEGATIVE_DATA;
+  const d = { ...(isPositive ? POSITIVE_DATA : NEGATIVE_DATA) };
+
+  // Override with dynamic API insight if available
+  if (dynamicInsight) {
+    d.bannerTitle = dynamicInsight.title;
+    d.bannerText = dynamicInsight.text;
+  }
 
   // Use the fetched score in the display if available, else fallback
   const displayCss = cssScore > 0 ? cssScore : d.css;
@@ -258,7 +277,7 @@ export default function WrapUpScreen() {
             
             <div class="details">
               <strong>Patient:</strong> Jane Doe<br><br>
-              <strong>Date Range:</strong> May 28 &ndash; June 3
+              <strong>Date Range:</strong> {dateRangeStr}
             </div>
             
             <div class="alert-box">
@@ -542,3 +561,63 @@ export default function WrapUpScreen() {
     </SafeAreaView>
   );
 }
+function ActivityLogAccordion({ activityLog }: { activityLog: any[] }) {
+  const [expandedDate, setExpandedDate] = useState<string | null>(null);
+
+  if (!activityLog || activityLog.length === 0) return null;
+
+  return (
+    <View className='mb-5'>
+      <Text className='text-[14px] font-medium text-slate-900 dark:text-white mb-2.5'>
+        Activity Log (Last 7 Days)
+      </Text>
+      <View className='bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/70 overflow-hidden'>
+        {activityLog.map((log, index) => {
+          const isExpanded = expandedDate === log.date;
+          return (
+            <View key={log.date} className={index !== activityLog.length - 1 ? 'border-b border-slate-100 dark:border-slate-800' : ''}>
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => setExpandedDate(isExpanded ? null : log.date)}
+                className='flex-row items-center justify-between px-4 py-3.5'
+              >
+                <Text className='text-[14px] font-medium text-slate-800 dark:text-slate-200'>
+                  {new Date(log.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+                </Text>
+                <View className='flex-row items-center gap-2'>
+                  <View className='flex-row gap-1'>
+                    {log.meals.length > 0 && <View className='w-1.5 h-1.5 rounded-full bg-blue-500' />}
+                    {log.exercises.length > 0 && <View className='w-1.5 h-1.5 rounded-full bg-green-500' />}
+                  </View>
+                  <Feather name={isExpanded ? 'chevron-up' : 'chevron-down'} size={18} color='#64748b' />
+                </View>
+              </TouchableOpacity>
+              
+              {isExpanded && (
+                <View className='px-4 pb-4 pt-1'>
+                  {log.meals.length > 0 && (
+                    <View className='mb-2'>
+                      <Text className='text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1'>Meals</Text>
+                      {log.meals.map((m: string, i: number) => (
+                        <Text key={'m'+i} className='text-[13px] text-slate-600 dark:text-slate-400 py-0.5'>� {m}</Text>
+                      ))}
+                    </View>
+                  )}
+                  {log.exercises.length > 0 && (
+                    <View>
+                      <Text className='text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1'>Exercises</Text>
+                      {log.exercises.map((e: string, i: number) => (
+                        <Text key={'e'+i} className='text-[13px] text-slate-600 dark:text-slate-400 py-0.5'>� {e}</Text>
+                      ))}
+                    </View>
+                  )}
+                </View>
+              )}
+            </View>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+

@@ -358,7 +358,11 @@ export default function ExercisesScreen() {
     try {
       const [routinesRes, dashboardRes, logsRes] = await Promise.all([
         fetch(`${base_url}/api/exercises/`),
-        fetch(`${base_url}/api/dashboard/${userId}`),
+        fetch(`${base_url}/api/dashboard/me`, {
+          headers: {
+            "Authorization": `Bearer ${userId}`
+          }
+        }),
         fetch(`${base_url}/api/exercises/logs/${userId}`)
       ]);
 

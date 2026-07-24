@@ -3,6 +3,7 @@ import { View, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useColorScheme } from "nativewind";
 
 export default function RecordScreen() {
   const { colorScheme } = useColorScheme();

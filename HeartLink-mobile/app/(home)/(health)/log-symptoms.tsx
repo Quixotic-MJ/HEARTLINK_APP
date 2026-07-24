@@ -19,6 +19,7 @@ import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useUser } from "../../../contexts/UserContext";
 import { OfflineSyncService } from "../../../utils/OfflineSyncService";
+import * as Haptics from "expo-haptics";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -123,6 +124,7 @@ export default function LogSymptomsScreen() {
     selectedSymptoms.length > 0;
 
   const toggleSymptom = (symp: SymptomType) => {
+    Haptics.selectionAsync();
     if (symp === "None (Feeling fine)") {
       setSelectedSymptoms(["None (Feeling fine)"]);
       return;
@@ -150,7 +152,7 @@ export default function LogSymptomsScreen() {
   };
 
   const handleSubmit = async () => {
-    setIsSubmitting(true);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     const targetUrl = `${base_url}/api/health-logs/${userId}`;
     const payload = {
       systolic_bp: parseInt(systolic) || 0,
@@ -164,40 +166,35 @@ export default function LogSymptomsScreen() {
       notes: "",
     };
 
-    try {
-      const res = await fetch(targetUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) throw new Error("Failed to save log");
-
-      if (isEmergency) {
-        Alert.alert(
-          "Critical log submitted",
-          "Your clinical indicators reflect an elevated risk. Please seek medical attention immediately.",
-          [{ text: "OK", onPress: () => router.back() }]
-        );
-      } else {
-        Alert.alert(
-          "Health log submitted",
-          "Your symptom and vitals log has been saved to your weekly wrap-up.",
-          [{ text: "OK", onPress: () => router.back() }]
-        );
-      }
-    } catch (err) {
-      console.warn("Network error during submission. Queuing log for offline sync...", err);
-      await OfflineSyncService.queueRequest(targetUrl, "POST", payload);
-
+    // Optimistic UI: Immediately give feedback and return to dashboard
+    if (isEmergency) {
       Alert.alert(
-        "Saved Offline",
-        "No internet connection detected. Your log has been saved locally and will automatically sync when you reconnect.",
+        "Critical log submitted",
+        "Your clinical indicators reflect an elevated risk. Please seek medical attention immediately.",
         [{ text: "OK", onPress: () => router.back() }]
       );
-    } finally {
-      setIsSubmitting(false);
+    } else {
+      Alert.alert(
+        "Health log submitted",
+        "Your symptom and vitals log has been saved to your weekly wrap-up.",
+        [{ text: "OK", onPress: () => router.back() }]
+      );
     }
+
+    // Run the API request silently in the background
+    (async () => {
+      try {
+        const res = await fetch(targetUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) throw new Error("Failed to save log");
+      } catch (err) {
+        console.warn("Network error during silent submission. Queuing log for offline sync...", err);
+        await OfflineSyncService.queueRequest(targetUrl, "POST", payload);
+      }
+    })();
   };
 
   const maxSeverity = hasRealSymptoms ? Math.max(...selectedSymptoms.map(s => severities[s] || 1)) : 1;
@@ -574,7 +571,10 @@ export default function LogSymptomsScreen() {
                               return (
                                 <TouchableOpacity
                                   key={num}
-                                  onPress={() => setSeverities(prev => ({ ...prev, [symp]: num }))}
+                                  onPress={() => {
+                                    Haptics.selectionAsync();
+                                    setSeverities(prev => ({ ...prev, [symp]: num }));
+                                  }}
                                   className="w-11 h-11 rounded-xl items-center justify-center border"
                                   style={{
                                     backgroundColor: isActive ? c.bg : "#f8fafc",
@@ -611,7 +611,10 @@ export default function LogSymptomsScreen() {
                         <TouchableOpacity
                           key={ctx}
                           activeOpacity={0.75}
-                          onPress={() => setContext(ctx)}
+                          onPress={() => {
+                            Haptics.selectionAsync();
+                            setContext(ctx);
+                          }}
                           className="flex-row items-center px-4 py-3.5 rounded-xl border"
                           style={{
                             backgroundColor: isSelected ? "#0f172a" : "#fff",

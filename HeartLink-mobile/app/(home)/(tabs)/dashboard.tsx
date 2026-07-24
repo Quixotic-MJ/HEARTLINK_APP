@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import { useColorScheme } from "nativewind";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useUser } from "../../../contexts/UserContext";
@@ -147,9 +147,11 @@ export default function DashboardScreen() {
     [userId]
   );
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  useFocusEffect(
+    useCallback(() => {
+      fetchData();
+    }, [fetchData])
+  );
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -211,9 +213,89 @@ export default function DashboardScreen() {
     );
   }
 
+  const renderTopBar = () => (
+    <View className="flex-row justify-between items-center px-5 pt-3 pb-2 z-10">
+      <View className="flex-row items-center gap-2.5">
+        <View className="w-7 h-7 rounded-full items-center justify-center border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+          <Feather
+            name="heart"
+            size={13}
+            color={isDark ? "#fff" : "#0f172a"}
+          />
+        </View>
+        <Text
+          className="text-[16px] text-slate-900 dark:text-white tracking-tight"
+          style={{ fontWeight: "300" }}
+        >
+          Heart<Text style={{ fontWeight: "600" }}>Link.</Text>
+        </Text>
+      </View>
+      <View className="flex-row items-center gap-2">
+        <TouchableOpacity
+          accessible={true}
+          accessibilityRole="button"
+          accessibilityLabel="Notifications"
+          onPress={() => router.push("/(home)/(profile)/notifications")}
+          className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-800 items-center justify-center"
+        >
+          <Feather
+            name="bell"
+            size={17}
+            color={isDark ? "#94a3b8" : "#64748b"}
+          />
+          <View
+            style={{ position: "absolute", top: 8, right: 8 }}
+            className="w-1.5 h-1.5 bg-red-500 rounded-full"
+          />
+        </TouchableOpacity>
+        <TouchableOpacity
+          accessible={true}
+          accessibilityRole="button"
+          accessibilityLabel="Settings"
+          onPress={() => router.push("/(home)/(settings)/settings")}
+          className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-800 items-center justify-center"
+        >
+          <Feather
+            name="settings"
+            size={17}
+            color={isDark ? "#94a3b8" : "#64748b"}
+          />
+        </TouchableOpacity>
+        <TouchableOpacity
+          accessible={true}
+          accessibilityRole="button"
+          accessibilityLabel="Profile"
+          onPress={() => router.push("/(home)/(profile)/profile")}
+          activeOpacity={0.8}
+          className="ml-1"
+        >
+          <View className="w-9 h-9 rounded-full bg-slate-200 overflow-hidden">
+            <Image
+              source={{
+                uri:
+                  user?.avatar_url ||
+                  "https://ui-avatars.com/api/?name=" +
+                    (user?.first_name || "U") +
+                    "&background=e2e8f0&color=475569&bold=true",
+              }}
+              className="w-full h-full"
+              resizeMode="cover"
+            />
+          </View>
+          <View
+            style={{ position: "absolute", bottom: -1, right: -1 }}
+            className="w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-slate-50"
+          />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
   if (error && !data) {
     return (
-      <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950 justify-center items-center px-8">
+      <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950" edges={["top"]}>
+        {renderTopBar()}
+        <View className="flex-1 justify-center items-center px-8">
         <View className="w-16 h-16 rounded-2xl bg-red-50 items-center justify-center mb-4">
           <Feather name="wifi-off" size={28} color="#e24b4a" />
         </View>
@@ -231,6 +313,7 @@ export default function DashboardScreen() {
           <Feather name="refresh-cw" size={14} color="#fff" />
           <Text className="text-white font-medium text-[14px]">Try again</Text>
         </TouchableOpacity>
+        </View>
       </SafeAreaView>
     );
   }
@@ -275,81 +358,7 @@ export default function DashboardScreen() {
       )}
 
       {/* ── Top bar ── */}
-      <View className="flex-row justify-between items-center px-5 pt-3 pb-2">
-        <View className="flex-row items-center gap-2.5">
-          <View className="w-7 h-7 rounded-full items-center justify-center border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-            <Feather
-              name="heart"
-              size={13}
-              color={isDark ? "#fff" : "#0f172a"}
-            />
-          </View>
-          <Text
-            className="text-[16px] text-slate-900 dark:text-white tracking-tight"
-            style={{ fontWeight: "300" }}
-          >
-            Heart<Text style={{ fontWeight: "600" }}>Link.</Text>
-          </Text>
-        </View>
-        <View className="flex-row items-center gap-2">
-          <TouchableOpacity
-            accessible={true}
-            accessibilityRole="button"
-            accessibilityLabel="Notifications"
-            onPress={() => router.push("/(home)/(profile)/notifications")}
-            className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-800 items-center justify-center"
-          >
-            <Feather
-              name="bell"
-              size={17}
-              color={isDark ? "#94a3b8" : "#64748b"}
-            />
-            <View
-              style={{ position: "absolute", top: 8, right: 8 }}
-              className="w-1.5 h-1.5 bg-red-500 rounded-full"
-            />
-          </TouchableOpacity>
-          <TouchableOpacity
-            accessible={true}
-            accessibilityRole="button"
-            accessibilityLabel="Settings"
-            onPress={() => router.push("/(home)/(settings)/settings")}
-            className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-800 items-center justify-center"
-          >
-            <Feather
-              name="settings"
-              size={17}
-              color={isDark ? "#94a3b8" : "#64748b"}
-            />
-          </TouchableOpacity>
-          <TouchableOpacity
-            accessible={true}
-            accessibilityRole="button"
-            accessibilityLabel="Profile"
-            onPress={() => router.push("/(home)/(profile)/profile")}
-            activeOpacity={0.8}
-            className="ml-1"
-          >
-            <View className="w-9 h-9 rounded-full bg-slate-200 overflow-hidden">
-              <Image
-                source={{
-                  uri:
-                    user?.avatar_url ||
-                    "https://ui-avatars.com/api/?name=" +
-                      (user?.first_name || "U") +
-                      "&background=e2e8f0&color=475569&bold=true",
-                }}
-                className="w-full h-full"
-                resizeMode="cover"
-              />
-            </View>
-            <View
-              style={{ position: "absolute", bottom: -1, right: -1 }}
-              className="w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-slate-50"
-            />
-          </TouchableOpacity>
-        </View>
-      </View>
+      {renderTopBar()}
 
       <ScrollView
         contentContainerClassName="pb-28"
@@ -362,6 +371,16 @@ export default function DashboardScreen() {
           />
         }
       >
+        {/* ── Offline Banner ── */}
+        {isCachedData && (
+          <View className="bg-amber-100 dark:bg-amber-900/40 px-5 py-2.5 flex-row items-center justify-center">
+            <Feather name="wifi-off" size={14} color="#b45309" className="mr-2" />
+            <Text className="text-[12px] font-medium text-amber-700 dark:text-amber-500">
+              Offline - Showing last updated score
+            </Text>
+          </View>
+        )}
+
         {/* ── Greeting ── */}
         <View className="px-5 pt-4 pb-1">
           <Text className="text-[28px] font-medium text-slate-900 dark:text-white tracking-tight leading-tight">

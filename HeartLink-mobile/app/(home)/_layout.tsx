@@ -11,21 +11,21 @@ export default function HomeLayout() {
     >
       <Stack.Screen name="(tabs)" />
       <Stack.Screen
-        name="profile"
+        name="(profile)/profile"
         options={{
           animation: "slide_from_right",
           presentation: "card",
         }}
       />
       <Stack.Screen
-        name="settings"
+        name="(profile)/notifications"
         options={{
           animation: "slide_from_right",
           presentation: "card",
         }}
       />
       <Stack.Screen
-        name="notifications"
+        name="(settings)/settings"
         options={{
           animation: "slide_from_right",
           presentation: "card",
