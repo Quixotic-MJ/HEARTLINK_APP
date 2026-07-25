@@ -539,13 +539,22 @@ export default function ExercisesScreen() {
         </View>
       </View>
 
-      <View className="px-5 pt-3 mb-4">
-        <Text className="text-[24px] font-medium text-slate-900 dark:text-white tracking-tight">
-          Rehab routines
-        </Text>
-        <Text className="text-[14px] text-slate-400 mt-0.5">
-          Adapted to your daily heart stability
-        </Text>
+      <View className="flex-row items-center justify-between px-5 pt-3 mb-4">
+        <View className="flex-1 pr-2">
+          <Text className="text-[24px] font-medium text-slate-900 dark:text-white tracking-tight">
+            Rehab routines
+          </Text>
+          <Text className="text-[14px] text-slate-400 mt-0.5">
+            Adapted to your daily heart stability
+          </Text>
+        </View>
+        <TouchableOpacity
+          onPress={() => router.push("/(home)/(health)/exercise-diary")}
+          className="flex-row items-center gap-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 px-3 py-2 rounded-xl"
+        >
+          <Feather name="list" size={14} color="#64748b" />
+          <Text className="text-[12px] font-medium text-slate-600 dark:text-slate-300">History</Text>
+        </TouchableOpacity>
       </View>
 
       {isLoading && !refreshing ? (

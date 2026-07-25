@@ -768,7 +768,7 @@ def _deserialize_item(item):
                 deserialized[k] = date.fromisoformat(v)
             except Exception:
                 deserialized[k] = v
-        elif k in ("created_at", "updated_at", "expires_at") and isinstance(v, str):
+        elif k in ("created_at", "updated_at", "expires_at", "logged_at", "computed_at") and isinstance(v, str):
             try:
                 deserialized[k] = datetime.fromisoformat(v)
             except Exception:
@@ -819,5 +819,44 @@ def load_temp_profiles():
     else:
         save_temp_profiles()
 
+LOGS_DB_FILE = os.path.join(os.path.dirname(__file__), "mock_logs.json")
+
+def save_logs():
+    try:
+        data = {
+            "meal_logs": [_serialize_item(m) for m in meal_logs],
+            "exercise_logs": [_serialize_item(e) for e in exercise_logs],
+            "daily_health_logs": [_serialize_item(l) for l in daily_health_logs],
+            "css_history": [_serialize_item(c) for c in css_history]
+        }
+        with open(LOGS_DB_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2)
+    except Exception as e:
+        print(f"Error saving mock logs: {e}")
+
+def load_logs():
+    global meal_logs, exercise_logs, daily_health_logs, css_history
+    if os.path.exists(LOGS_DB_FILE):
+        try:
+            with open(LOGS_DB_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                if "meal_logs" in data:
+                    meal_logs.clear()
+                    meal_logs.extend([_deserialize_item(m) for m in data["meal_logs"]])
+                if "exercise_logs" in data:
+                    exercise_logs.clear()
+                    exercise_logs.extend([_deserialize_item(e) for e in data["exercise_logs"]])
+                if "daily_health_logs" in data:
+                    daily_health_logs.clear()
+                    daily_health_logs.extend([_deserialize_item(l) for l in data["daily_health_logs"]])
+                if "css_history" in data:
+                    css_history.clear()
+                    css_history.extend([_deserialize_item(c) for c in data["css_history"]])
+        except Exception as e:
+            print(f"Error loading mock logs: {e}")
+    else:
+        save_logs()
+
 load_profiles()
 load_temp_profiles()
+load_logs()

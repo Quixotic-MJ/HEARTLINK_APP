@@ -198,12 +198,35 @@ export default function DashboardScreen() {
     };
   }, [cssScore, pulseAnim, isLoading]);
 
-  // Auto-show alert modal when critical alert loads
+  const [dismissedAlertIds, setDismissedAlertIds] = useState<string[]>([]);
+
   useEffect(() => {
-    if (data?.latest_alert && !isLoading) {
+    AsyncStorage.getItem("@dismissed_alert_ids").then((res) => {
+      if (res) {
+        try {
+          setDismissedAlertIds(JSON.parse(res));
+        } catch {}
+      }
+    });
+  }, []);
+
+  const handleDismissAlert = async (alertId: string) => {
+    setAlertModalVisible(false);
+    if (!alertId) return;
+    if (!dismissedAlertIds.includes(alertId)) {
+      const updated = [...dismissedAlertIds, alertId];
+      setDismissedAlertIds(updated);
+      await AsyncStorage.setItem("@dismissed_alert_ids", JSON.stringify(updated));
+    }
+  };
+
+  // Auto-show alert modal ONLY if it hasn't been dismissed by the user yet
+  useEffect(() => {
+    const alertId = data?.latest_alert?.id;
+    if (alertId && !isLoading && !dismissedAlertIds.includes(alertId)) {
       setAlertModalVisible(true);
     }
-  }, [data?.latest_alert, isLoading]);
+  }, [data?.latest_alert?.id, isLoading, dismissedAlertIds]);
 
   if (isLoading) {
     return (
@@ -331,7 +354,7 @@ export default function DashboardScreen() {
       {isAlertActive && (
         <CustomAlertModal
           visible={alertModalVisible}
-          onClose={() => setAlertModalVisible(false)}
+          onClose={() => handleDismissAlert(data.latest_alert.id)}
           title="Health Alert"
           message={
             data.latest_alert.message ||
@@ -344,14 +367,14 @@ export default function DashboardScreen() {
             {
               label: "Find Nearby Clinics",
               onPress: () => {
-                setAlertModalVisible(false);
+                handleDismissAlert(data.latest_alert.id);
                 router.push("/locator");
               },
               primary: true,
             },
             {
               label: "Dismiss",
-              onPress: () => setAlertModalVisible(false),
+              onPress: () => handleDismissAlert(data.latest_alert.id),
             },
           ]}
         />
@@ -379,6 +402,28 @@ export default function DashboardScreen() {
               Offline - Showing last updated score
             </Text>
           </View>
+        )}
+
+        {/* ── Critical Health Alert Banner (Tap to re-open modal) ── */}
+        {isAlertActive && (
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={() => setAlertModalVisible(true)}
+            className="mx-5 mt-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 rounded-2xl p-4 flex-row items-center gap-3"
+          >
+            <View className="w-10 h-10 rounded-xl bg-rose-100 dark:bg-rose-900/50 items-center justify-center flex-shrink-0">
+              <Feather name="alert-triangle" size={20} color="#e11d48" />
+            </View>
+            <View className="flex-1">
+              <Text className="text-[12px] font-bold text-rose-700 dark:text-rose-300 uppercase tracking-wide mb-0.5">
+                Active Health Alert
+              </Text>
+              <Text className="text-[13px] text-rose-900 dark:text-rose-200 font-medium" numberOfLines={1}>
+                {data.latest_alert.message || "Elevated risk detected. Tap to view action items."}
+              </Text>
+            </View>
+            <Feather name="chevron-right" size={18} color="#e11d48" />
+          </TouchableOpacity>
         )}
 
         {/* ── Greeting ── */}
@@ -609,7 +654,11 @@ export default function DashboardScreen() {
 
               {/* Meals & Exercise row */}
               <View className="flex-row gap-2.5">
-                <View className="flex-1 bg-slate-50 dark:bg-slate-950 rounded-xl px-4 py-3">
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={() => router.push("/(home)/(meals)/daily-diary")}
+                  className="flex-1 bg-slate-50 dark:bg-slate-950 rounded-xl px-4 py-3"
+                >
                   <View className="flex-row items-center gap-2 mb-1">
                     <View
                       className="w-7 h-7 rounded-lg items-center justify-center bg-orange-100 dark:bg-orange-900/30"
@@ -627,8 +676,12 @@ export default function DashboardScreen() {
                   <Text className="text-[11px] text-slate-400 ml-9">
                     {data.today_activity.total_calories} kcal today
                   </Text>
-                </View>
-                <View className="flex-1 bg-slate-50 dark:bg-slate-950 rounded-xl px-4 py-3">
+                </TouchableOpacity>
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={() => router.push("/(home)/(health)/exercise-diary")}
+                  className="flex-1 bg-slate-50 dark:bg-slate-950 rounded-xl px-4 py-3"
+                >
                   <View className="flex-row items-center gap-2 mb-1">
                     <View
                       className="w-7 h-7 rounded-lg items-center justify-center bg-blue-100 dark:bg-blue-900/30"
@@ -642,7 +695,7 @@ export default function DashboardScreen() {
                   <Text className="text-[11px] text-slate-400 ml-9">
                     {data.today_activity.total_exercise_minutes} min active
                   </Text>
-                </View>
+                </TouchableOpacity>
               </View>
             </View>
           </View>

@@ -514,17 +514,21 @@ export default function RecipesScreen() {
       </View>
 
       <View className="flex-row items-center justify-between px-5 pt-4">
-        <View>
+        <View className="flex-1 pr-2">
           <Text className="text-[26px] font-medium text-slate-900 dark:text-white tracking-tight">
             Recipes
           </Text>
-          <Text className="text-[14px] text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-0.5">
+          <Text className="text-[14px] text-slate-500 dark:text-slate-400 mt-0.5">
             Heart-healthy meals for you
           </Text>
         </View>
-        <View className="w-12 h-12 rounded-2xl bg-green-50 border border-green-100 items-center justify-center mt-2">
-          <MaterialCommunityIcons name="silverware-fork-knife" size={20} color="#3b6d11" />
-        </View>
+        <TouchableOpacity
+          onPress={() => router.push("/(home)/(meals)/daily-diary")}
+          className="flex-row items-center gap-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 px-3 py-2 rounded-xl mt-2"
+        >
+          <Feather name="list" size={14} color="#64748b" />
+          <Text className="text-[12px] font-medium text-slate-600 dark:text-slate-300">History</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Search bar */}

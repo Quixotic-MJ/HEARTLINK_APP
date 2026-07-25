@@ -117,22 +117,56 @@ export default function ExerciseDetailsScreen() {
     return `${m}:${s}`;
   };
 
-  const handleSafetySafe = async () => {
-    setIsSubmitting(true);
+  const generateExerciseId = () => `ex-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
+
+  const getElapsedDuration = () => {
+    if (!routine) return { seconds: 0, minutes: 0 };
+    const totalSeconds = routine.duration * 60;
+    const elapsedSeconds = Math.max(0, totalSeconds - timeLeft);
+    const elapsedMinutes = parseFloat((elapsedSeconds / 60).toFixed(2));
+    return { seconds: elapsedSeconds, minutes: elapsedMinutes };
+  };
+
+  const logExerciseAsync = async (status: string, exerciseId: string) => {
+    if (!routine) return;
+    const { seconds, minutes } = getElapsedDuration();
+    const payload = {
+      id: exerciseId,
+      routine_id: routine.id,
+      routine_name: routine.title,
+      duration_seconds: seconds,
+      duration_minutes: minutes,
+      status: status,
+    };
+
     try {
-      const payload = {
-        routine_id: routine.id,
-        routine_name: routine.title,
-        duration_minutes: routine.duration,
-        status: "completed"
-      };
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 4000);
+
       await fetch(`${base_url}/api/exercises/logs/${userId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
     } catch (err) {
-      console.error(err);
+      console.warn("Failed to log exercise directly, logging offline fallback:", err);
+    }
+  };
+
+  const handleEndEarly = () => {
+    // CLINICAL REQUIREMENT: Ending an exercise must have ZERO friction for cardiovascular patients.
+    // Do NOT add a confirmation dialog here so patients feeling fatigued can exit immediately to safety check.
+    setIsActive(false);
+    setShowSafetyCheck(true);
+  };
+
+  const handleSafetySafe = async () => {
+    setIsSubmitting(true);
+    const exerciseId = generateExerciseId();
+    try {
+      await logExerciseAsync("completed", exerciseId);
     } finally {
       setIsSubmitting(false);
       setShowSafetyCheck(false);
@@ -144,8 +178,12 @@ export default function ExerciseDetailsScreen() {
   };
 
   const handleSafetySymptoms = () => {
+    // CLINICAL REQUIREMENT: Never block navigation to the symptom logger on a network call.
+    // Fire exercise log asynchronously (best-effort) and navigate immediately.
     setShowSafetyCheck(false);
-    router.push("/(home)/(health)/log-symptoms");
+    const exerciseId = generateExerciseId();
+    logExerciseAsync("incomplete_due_to_symptoms", exerciseId);
+    router.push(`/(home)/(health)/log-symptoms?triggered_by_exercise_id=${exerciseId}`);
   };
 
   if (isLoading || !routine) {
@@ -171,11 +209,13 @@ export default function ExerciseDetailsScreen() {
     "Repeat this motion smoothly for 10–15 repetitions.",
   ];
 
+  const hasStarted = timeLeft < routine.duration * 60;
+
   return (
     <View className="flex-1 bg-slate-50 dark:bg-slate-950">
       <StatusBar style="light" />
 
-      <ScrollView contentContainerStyle={{ paddingBottom: 120 }} showsVerticalScrollIndicator={false} bounces={false}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 140 }} showsVerticalScrollIndicator={false} bounces={false}>
         {/* Header Area */}
         <View className="w-full bg-black relative" style={{ paddingTop: Math.max(insets.top, 10) }}>
           {/* Back button */}
@@ -257,12 +297,23 @@ export default function ExerciseDetailsScreen() {
         </View>
       </ScrollView>
 
-      {/* Bottom Sticky Button */}
-      <View style={{ paddingBottom: Math.max(insets.bottom, 20) }} className="absolute bottom-0 left-0 right-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-t border-slate-200/50 dark:border-slate-800/50 px-5 pt-4 pb-6">
+      {/* Bottom Sticky Action Buttons */}
+      <View style={{ paddingBottom: Math.max(insets.bottom, 20) }} className="absolute bottom-0 left-0 right-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-t border-slate-200/50 dark:border-slate-800/50 px-5 pt-4 pb-6 flex-row gap-3">
+         {hasStarted && (
+           <TouchableOpacity
+             activeOpacity={0.8}
+             onPress={handleEndEarly}
+             className="px-4 py-4 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 items-center justify-center flex-row"
+           >
+             <Feather name="square" size={18} color="#64748b" className="mr-1.5" />
+             <Text className="text-slate-700 dark:text-slate-300 font-bold text-[15px]">End Early</Text>
+           </TouchableOpacity>
+         )}
+
          <TouchableOpacity 
            activeOpacity={0.8}
            onPress={toggleTimer}
-           className={`w-full py-4 rounded-2xl items-center justify-center flex-row shadow-sm ${isActive ? 'bg-red-50 border border-red-100' : 'bg-[#1e4ed8] shadow-blue-500/30'}`}
+           className={`flex-1 py-4 rounded-2xl items-center justify-center flex-row shadow-sm ${isActive ? 'bg-red-50 border border-red-100' : 'bg-[#1e4ed8] shadow-blue-500/30'}`}
          >
            {isActive ? (
              <>
@@ -271,9 +322,9 @@ export default function ExerciseDetailsScreen() {
              </>
            ) : (
              <>
-                <Feather name="play" size={22} color={timeLeft < routine.duration * 60 ? "#1e4ed8" : "white"} className="mr-2" />
-                <Text className={`${timeLeft < routine.duration * 60 ? 'text-[#1e4ed8]' : 'text-white'} text-[18px] font-bold`}>
-                  {timeLeft < routine.duration * 60 ? "Resume Routine" : "Start Routine"}
+                <Feather name="play" size={22} color={hasStarted ? "#1e4ed8" : "white"} className="mr-2" />
+                <Text className={`${hasStarted ? 'text-[#1e4ed8]' : 'text-white'} text-[18px] font-bold`}>
+                  {hasStarted ? "Resume Routine" : "Start Routine"}
                 </Text>
              </>
            )}
@@ -282,10 +333,10 @@ export default function ExerciseDetailsScreen() {
 
       {/* Safety Check Bottom Sheet Modal */}
       <Modal visible={showSafetyCheck} transparent animationType="fade">
-        <View className="flex-1 bg-slate-900/40/40 justify-end">
+        <View className="flex-1 bg-slate-900/40 justify-end">
           <View className="bg-white dark:bg-slate-900 rounded-t-3xl p-6 pb-12 shadow-xl border-t border-slate-200 dark:border-slate-800">
             <View className="w-12 h-1.5 bg-slate-200 rounded-full self-center mb-6" />
-            <Text className="text-[22px] font-bold text-slate-900 dark:text-white mb-2 text-center">Great job!</Text>
+            <Text className="text-[22px] font-bold text-slate-900 dark:text-white mb-2 text-center">Safety Check</Text>
             <Text className="text-[16px] text-slate-500 dark:text-slate-400 text-center mb-8 leading-relaxed px-4">Did you experience any chest discomfort or dizziness during this routine?</Text>
 
             <TouchableOpacity 

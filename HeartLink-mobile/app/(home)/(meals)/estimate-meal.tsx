@@ -6,24 +6,22 @@ import {
   TouchableOpacity,
   TextInput,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { StatusBar } from "expo-status-bar";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { useUser } from "../../../contexts/UserContext";
+
+const base_url = process.env.EXPO_PUBLIC_API_URL;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type InputMode = "estimate" | "specific";
 type TimeOfMeal = "Breakfast" | "Lunch" | "Dinner" | "Snack";
-type CookingMethod = "Boiled/Steamed" | "Grilled/Baked" | "Fried/Deep-Fried";
-type PortionSize = "Small" | "Medium" | "Large";
-type SaltyLevel = "Low" | "Moderate" | "High/Salty";
-type FiberContent = "None" | "Side Portion" | "Main Ingredient";
 
 // ─── Choice Chip ──────────────────────────────────────────────────────────────
-// Dynamic bg/border via inline style — avoids css-interop crash
 
 function ChoiceChip<T extends string>({
   label,
@@ -118,60 +116,17 @@ type RiskResult = {
   icon: "check-circle" | "alert-triangle" | "alert-octagon";
 };
 
-function calcEstimateRisk(
-  cookingMethod: CookingMethod,
-  saltyLevel: SaltyLevel,
-  portionSize: PortionSize
-): RiskResult {
-  let base = 0;
-  if (cookingMethod === "Grilled/Baked") base += 15;
-  if (cookingMethod === "Fried/Deep-Fried") base += 40;
-  if (saltyLevel === "Moderate") base += 20;
-  if (saltyLevel === "High/Salty") base += 45;
-  const mult = portionSize === "Small" ? 0.8 : portionSize === "Large" ? 1.5 : 1.0;
-  const total = base * mult;
-
-  if (total < 30)
-    return {
-      level: "Low risk",
-      color: "#3b6d11",
-      bg: "#eaf3de",
-      border: "#c0dd97",
-      desc: "Great choice! This meal supports a stable cardiovascular score.",
-      icon: "check-circle",
-    };
-  if (total < 70)
-    return {
-      level: "Moderate risk",
-      color: "#854f0b",
-      bg: "#faeeda",
-      border: "#fac775",
-      desc: "Watch your other meals today to balance your sodium and fat intake.",
-      icon: "alert-triangle",
-    };
-  return {
-    level: "High risk",
-    color: "#a32d2d",
-    bg: "#fcebeb",
-    border: "#f7c1c1",
-    desc: "Negative weight applied to CSS. Try to stick to lighter meals for the rest of the day.",
-    icon: "alert-octagon",
-  };
-}
-
-function calcSpecificRisk(sodium: string, calories: string, satFat: string): RiskResult {
-  const na = parseFloat(sodium) || 0;
-  const cal = parseFloat(calories) || 0;
-  const satFatG = parseFloat(satFat) || 0;
-
-  // Simple weighted score
+function calcRiskFromValues(sodium: number, calories: number, satFat: number): RiskResult {
   let score = 0;
-  if (na > 600) score += 50;
-  else if (na > 300) score += 25;
-  if (cal > 600) score += 20;
-  else if (cal > 300) score += 10;
-  if (satFatG > 20) score += 20;
-  else if (satFatG > 10) score += 10;
+  if (sodium > 800) score += 50;
+  else if (sodium > 500) score += 25;
+  else if (sodium > 300) score += 10;
+
+  if (calories > 600) score += 20;
+  else if (calories > 400) score += 10;
+
+  if (satFat > 15) score += 20;
+  else if (satFat > 10) score += 10;
 
   if (score < 25)
     return {
@@ -207,21 +162,14 @@ export default function ManualMealLogScreen() {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
   const router = useRouter();
-
-  // Mode toggle
-  const [inputMode, setInputMode] = useState<InputMode>("estimate");
+  const { userId } = useUser();
 
   // Shared
   const [timeOfMeal, setTimeOfMeal] = useState<TimeOfMeal>("Breakfast");
   const [foodDescription, setFoodDescription] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Estimate mode
-  const [cookingMethod, setCookingMethod] = useState<CookingMethod>("Boiled/Steamed");
-  const [portionSize, setPortionSize] = useState<PortionSize>("Medium");
-  const [saltyLevel, setSaltyLevel] = useState<SaltyLevel>("Low");
-  const [fiberContent, setFiberContent] = useState<FiberContent>("Side Portion");
-
-  // Specific mode
+  // Manual Entry fields
   const [servings, setServings] = useState(1);
   const [sodium, setSodium] = useState("");
   const [calories, setCalories] = useState("");
@@ -231,21 +179,60 @@ export default function ManualMealLogScreen() {
 
   const insets = useSafeAreaInsets();
 
-  const risk =
-    inputMode === "estimate"
-      ? calcEstimateRisk(cookingMethod, saltyLevel, portionSize)
-      : calcSpecificRisk(sodium, calories, satFat);
+  // Risk calculated from actual entered values
+  const risk = calcRiskFromValues(
+    (parseFloat(sodium) || 0) * servings,
+    (parseFloat(calories) || 0) * servings,
+    (parseFloat(satFat) || 0) * servings
+  );
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!foodDescription.trim()) {
       Alert.alert("Missing information", "Please enter a brief food description.");
       return;
     }
-    Alert.alert(
-      "Meal saved",
-      "Your meal data has been added to your daily diary and weekly wrap-up.",
-      [{ text: "OK", onPress: () => router.back() }]
-    );
+
+    const totalSodium = Math.round((parseFloat(sodium) || 0) * servings);
+    const totalCalories = Math.round((parseFloat(calories) || 0) * servings);
+
+    if (totalSodium === 0 && totalCalories === 0) {
+      Alert.alert("Missing nutrition data", "Please enter at least sodium or calorie values.");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    const payload = {
+      meal_name: foodDescription.trim(),
+      portion: servings,
+      calories: totalCalories,
+      sodium_mg: totalSodium,
+      saturated_fat_g: parseFloat(((parseFloat(satFat) || 0) * servings).toFixed(1)),
+      fiber_g: parseFloat(((parseFloat(fiber) || 0) * servings).toFixed(1)),
+      source: "manual_entry",
+      image_url: null,
+    };
+
+    try {
+      const response = await fetch(`${base_url}/api/meals/${userId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) throw new Error("Failed to log meal");
+
+      Alert.alert(
+        "Meal saved",
+        "Your meal data has been added to your daily diary and weekly wrap-up.",
+        [{ text: "OK", onPress: () => router.back() }]
+      );
+    } catch (error) {
+      console.error("Error saving meal:", error);
+      Alert.alert("Error", "Could not save meal. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -265,7 +252,7 @@ export default function ManualMealLogScreen() {
             Log local food
           </Text>
           <Text className="text-[12px] text-slate-400">
-            Manual food logging
+            Manual nutrition entry
           </Text>
         </View>
       </View>
@@ -277,81 +264,38 @@ export default function ManualMealLogScreen() {
         extraScrollHeight={20}
       >
 
-        {/* ── Mode Selector ── */}
-        <View className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-1 flex-row mb-4">
-          {/* Estimate — dynamic bg via style */}
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={() => setInputMode("estimate")}
-            className="flex-1 flex-row items-center justify-center gap-2 py-2.5 rounded-xl"
-            style={{ backgroundColor: inputMode === "estimate" ? "#0f172a" : "transparent" }}
-          >
-            <MaterialCommunityIcons
-              name="chef-hat"
-              size={15}
-              color={inputMode === "estimate" ? "#fff" : "#94a3b8"}
-            />
-            <Text
-              className="text-[13px] font-medium"
-              style={{ color: inputMode === "estimate" ? "#fff" : "#94a3b8" }}
-            >
-              Estimate
-            </Text>
-          </TouchableOpacity>
-
-          {/* Specific — dynamic bg via style */}
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={() => setInputMode("specific")}
-            className="flex-1 flex-row items-center justify-center gap-2 py-2.5 rounded-xl"
-            style={{ backgroundColor: inputMode === "specific" ? "#0f172a" : "transparent" }}
-          >
-            <Feather
-              name="sliders"
-              size={14}
-              color={inputMode === "specific" ? "#fff" : "#94a3b8"}
-            />
-            <Text
-              className="text-[13px] font-medium"
-              style={{ color: inputMode === "specific" ? "#fff" : "#94a3b8" }}
-            >
-              Specific values
-            </Text>
-          </TouchableOpacity>
-        </View>
-
         {/* Mode description pill */}
         <View className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800/70 px-3.5 py-2.5 mb-2 flex-row items-start gap-2.5">
           <Feather
-            name={inputMode === "estimate" ? "info" : "database"}
+            name="database"
             size={14}
             color="#94a3b8"
             style={{ marginTop: 1 }}
           />
           <Text className="flex-1 text-[12px] text-slate-400 leading-relaxed">
-            {inputMode === "estimate"
-              ? "Describe your meal using cooking method, portion, and saltiness. Best for fresh, local, or street food where exact values are unknown."
-              : "Enter nutrition values from a food label or nutrition database. Used for packaged or restaurant meals with known macros."}
+            Enter nutrition values from a food label, nutrition database, or packaging. Used for packaged, restaurant, or local meals with known macros.
           </Text>
         </View>
 
         {/* ── Risk Banner ── */}
-        <View
-          className="rounded-2xl p-4 border mt-2"
-          style={{ backgroundColor: risk.bg, borderColor: risk.border }}
-        >
-          <View className="flex-row items-center gap-2 mb-1.5">
-            <Feather name={risk.icon} size={15} color={risk.color} />
-            <Text className="text-[12px] font-medium uppercase tracking-wide" style={{ color: risk.color }}>
-              Impact estimate · {risk.level}
+        {((parseFloat(sodium) || 0) > 0 || (parseFloat(calories) || 0) > 0) && (
+          <View
+            className="rounded-2xl p-4 border mt-2"
+            style={{ backgroundColor: risk.bg, borderColor: risk.border }}
+          >
+            <View className="flex-row items-center gap-2 mb-1.5">
+              <Feather name={risk.icon} size={15} color={risk.color} />
+              <Text className="text-[12px] font-medium uppercase tracking-wide" style={{ color: risk.color }}>
+                Impact estimate · {risk.level}
+              </Text>
+            </View>
+            <Text className="text-[13px] leading-relaxed" style={{ color: risk.color, opacity: 0.85 }}>
+              {risk.desc}
             </Text>
           </View>
-          <Text className="text-[13px] leading-relaxed" style={{ color: risk.color, opacity: 0.85 }}>
-            {risk.desc}
-          </Text>
-        </View>
+        )}
 
-        {/* ── Shared: Time of Meal ── */}
+        {/* ── Time of Meal ── */}
         <SectionHeader title="Time of meal" icon="clock-outline" />
         <View className="flex-row flex-wrap">
           {(["Breakfast", "Lunch", "Dinner", "Snack"] as TimeOfMeal[]).map((opt) => (
@@ -359,7 +303,7 @@ export default function ManualMealLogScreen() {
           ))}
         </View>
 
-        {/* ── Shared: Food Description ── */}
+        {/* ── Food Description ── */}
         <SectionHeader title="Food description" icon="food-apple-outline" />
         <View className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800/70 px-3.5 py-2.5">
           <TextInput
@@ -371,115 +315,78 @@ export default function ManualMealLogScreen() {
           />
         </View>
 
-        {/* ══ ESTIMATE MODE ══ */}
-        {inputMode === "estimate" && (
-          <>
-            <SectionHeader title="Cooking method" icon="fire" helperText="(Affects fat tracking)" />
-            <View className="flex-row flex-wrap">
-              {(["Boiled/Steamed", "Grilled/Baked", "Fried/Deep-Fried"] as CookingMethod[]).map((opt) => (
-                <ChoiceChip key={opt} label={opt} selected={cookingMethod === opt} onSelect={setCookingMethod} />
-              ))}
-            </View>
+        {/* ── Nutrition Values ── */}
+        <SectionHeader title="Nutrition values" icon="nutrition" />
 
-            <SectionHeader title="Vegetable / Fiber Content" icon="leaf" helperText="(Boosts your stability score)" />
-            <View className="flex-row flex-wrap">
-              {(["None", "Side Portion", "Main Ingredient"] as FiberContent[]).map((opt) => (
-                <ChoiceChip key={opt} label={opt} selected={fiberContent === opt} onSelect={setFiberContent} />
-              ))}
-            </View>
+        {/* NUMBER OF SERVINGS stepper */}
+        <View className="flex-row items-center justify-between mb-4 mt-2">
+          <Text className="text-[11px] text-slate-400 uppercase tracking-wide">Number of servings</Text>
+          <View className="flex-row items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 rounded-xl px-2 py-1.5 gap-4">
+            <TouchableOpacity onPress={() => setServings(s => Math.max(1, s - 1))} className="p-1">
+              <Feather name="minus" size={16} color="#0f172a" />
+            </TouchableOpacity>
+            <Text className="text-[14px] font-medium text-slate-900 dark:text-white w-4 text-center">{servings}</Text>
+            <TouchableOpacity onPress={() => setServings(s => s + 1)} className="p-1">
+              <Feather name="plus" size={16} color="#0f172a" />
+            </TouchableOpacity>
+          </View>
+        </View>
 
-            <SectionHeader title="Estimated portion size" icon="scale" />
-            <View className="flex-row flex-wrap">
-              {(["Small", "Medium", "Large"] as PortionSize[]).map((opt) => (
-                <ChoiceChip key={opt} label={opt} selected={portionSize === opt} onSelect={setPortionSize} />
-              ))}
-            </View>
+        {/* Row 1: Sodium + Calories */}
+        <View className="flex-row gap-3 mb-3">
+          <NumericField
+            label="Sodium"
+            value={sodium}
+            unit="mg"
+            onChange={setSodium}
+            placeholder="0"
+          />
+          <NumericField
+            label="Calories"
+            value={calories}
+            unit="kcal"
+            onChange={setCalories}
+            placeholder="0"
+          />
+        </View>
 
-            <SectionHeader title="Salty / savory level" icon="shaker-outline" helperText="(Affects sodium tracking)" />
-            <View className="flex-row flex-wrap">
-              {(["Low", "Moderate", "High/Salty"] as SaltyLevel[]).map((opt) => (
-                <ChoiceChip key={opt} label={opt} selected={saltyLevel === opt} onSelect={setSaltyLevel} />
-              ))}
-            </View>
-          </>
-        )}
+        {/* Row 2: Sat. Fat + Fiber */}
+        <View className="flex-row gap-3 mb-3">
+          <NumericField
+            label="Sat. Fat"
+            value={satFat}
+            unit="g"
+            onChange={setSatFat}
+            placeholder="0"
+          />
+          <NumericField
+            label="Fiber"
+            value={fiber}
+            unit="g"
+            onChange={setFiber}
+            placeholder="0"
+          />
+        </View>
 
-        {/* ══ SPECIFIC MODE ══ */}
-        {inputMode === "specific" && (
-          <>
-            <SectionHeader title="Nutrition values" icon="nutrition" />
+        {/* Row 3: Cholesterol */}
+        <View className="flex-row gap-3 mb-2">
+          <NumericField
+            label="Cholesterol"
+            value={cholesterol}
+            unit="mg"
+            onChange={setCholesterol}
+            placeholder="0"
+          />
+          <View className="flex-1" />
+        </View>
 
-            {/* NUMBER OF SERVINGS stepper */}
-            <View className="flex-row items-center justify-between mb-4 mt-2">
-              <Text className="text-[11px] text-slate-400 uppercase tracking-wide">Number of servings</Text>
-              <View className="flex-row items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 rounded-xl px-2 py-1.5 gap-4">
-                <TouchableOpacity onPress={() => setServings(s => Math.max(1, s - 1))} className="p-1">
-                  <Feather name="minus" size={16} color="#0f172a" />
-                </TouchableOpacity>
-                <Text className="text-[14px] font-medium text-slate-900 dark:text-white w-4 text-center">{servings}</Text>
-                <TouchableOpacity onPress={() => setServings(s => s + 1)} className="p-1">
-                  <Feather name="plus" size={16} color="#0f172a" />
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {/* Row 1: Sodium + Calories */}
-            <View className="flex-row gap-3 mb-3">
-              <NumericField
-                label="Sodium"
-                value={sodium}
-                unit="mg"
-                onChange={setSodium}
-                placeholder="0"
-              />
-              <NumericField
-                label="Calories"
-                value={calories}
-                unit="kcal"
-                onChange={setCalories}
-                placeholder="0"
-              />
-            </View>
-
-            {/* Row 2: Sat. Fat + Fiber */}
-            <View className="flex-row gap-3 mb-3">
-              <NumericField
-                label="Sat. Fat"
-                value={satFat}
-                unit="g"
-                onChange={setSatFat}
-                placeholder="0"
-              />
-              <NumericField
-                label="Fiber"
-                value={fiber}
-                unit="g"
-                onChange={setFiber}
-                placeholder="0"
-              />
-            </View>
-
-            {/* Row 3: Cholesterol */}
-            <View className="flex-row gap-3 mb-2">
-              <NumericField
-                label="Cholesterol"
-                value={cholesterol}
-                unit="mg"
-                onChange={setCholesterol}
-                placeholder="0"
-              />
-              <View className="flex-1" />
-            </View>
-
-            {/* Helper note */}
-            <View className="flex-row items-start gap-2 mt-1 mb-1">
-              <Feather name="info" size={12} color="#cbd5e1" style={{ marginTop: 1 }} />
-              <Text className="flex-1 text-[11px] text-slate-300 leading-relaxed">
-                Values are per serving. Check the food label or use a nutrition database for accurate figures.
-              </Text>
-            </View>
-          </>
-        )}
+        {/* Helper note */}
+        <View className="flex-row items-start gap-2 mt-1 mb-1">
+          <Feather name="info" size={12} color="#cbd5e1" style={{ marginTop: 1 }} />
+          <Text className="flex-1 text-[11px] text-slate-300 leading-relaxed">
+            Values are per serving. Check the food label or use a nutrition database for accurate figures.
+          </Text>
+        </View>
 
       </KeyboardAwareScrollView>
 
@@ -490,12 +397,18 @@ export default function ManualMealLogScreen() {
       >
         <TouchableOpacity
           onPress={handleSave}
+          disabled={isSubmitting}
           className="bg-slate-900 w-full rounded-2xl py-3.5 items-center justify-center flex-row gap-2"
           activeOpacity={0.85}
+          style={{ opacity: isSubmitting ? 0.7 : 1 }}
         >
-          <Feather name="check" size={16} color="#fff" />
+          {isSubmitting ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <Feather name="check" size={16} color="#fff" />
+          )}
           <Text className="text-white text-[14px] font-medium">
-            Save meal
+            {isSubmitting ? "Saving..." : "Save meal"}
           </Text>
         </TouchableOpacity>
       </View>

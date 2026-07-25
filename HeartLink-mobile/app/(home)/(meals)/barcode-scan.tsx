@@ -11,6 +11,7 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  Animated,
 } from "react-native";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
@@ -29,87 +30,10 @@ type ProductData = {
   energy_kcal: number;
   fiber_g: number;
   cholesterol_mg: number;
+  image_url?: string;
 };
 
 type MealTime = "Breakfast" | "Lunch" | "Dinner" | "Snack";
-
-// ─── Nutrition Tile ───────────────────────────────────────────────────────────
-
-function NutritionTile({
-  label,
-  value,
-  unit,
-  highlight,
-}: {
-  label: string;
-  value: string;
-  unit: string;
-  highlight?: boolean;
-}) {
-  return (
-    <View
-      className="rounded-2xl p-4 border"
-      style={{
-        width: "48%",
-        backgroundColor: highlight ? "#fcebeb" : "#f8fafc",
-        borderColor: highlight ? "#f7c1c1" : "#e2e8f0",
-      }}
-    >
-      <Text
-        className="text-[10px] uppercase tracking-wide mb-1.5"
-        style={{ color: highlight ? "#a32d2d" : "#94a3b8" }}
-      >
-        {label}
-      </Text>
-      <View className="flex-row items-end gap-1">
-        <Text
-          className="text-[22px] font-medium"
-          style={{ color: highlight ? "#a32d2d" : "#0f172a" }}
-        >
-          {value}
-        </Text>
-        <Text
-          className="text-[12px] mb-1"
-          style={{ color: highlight ? "#f7c1c1" : "#94a3b8" }}
-        >
-          {unit}
-        </Text>
-      </View>
-    </View>
-  );
-}
-
-// ─── Meal Time Chip ───────────────────────────────────────────────────────────
-// Dynamic bg/border via style — avoids css-interop crash
-
-function MealTimeChip({
-  label,
-  active,
-  onPress,
-}: {
-  label: string;
-  active: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <TouchableOpacity
-      onPress={onPress}
-      activeOpacity={0.75}
-      className="px-4 py-2 rounded-full border mr-2"
-      style={{
-        backgroundColor: active ? "#0f172a" : "#fff",
-        borderColor: active ? "#0f172a" : "#e2e8f0",
-      }}
-    >
-      <Text
-        className="text-[12px] font-medium"
-        style={{ color: active ? "#fff" : "#64748b" }}
-      >
-        {label}
-      </Text>
-    </TouchableOpacity>
-  );
-}
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
@@ -121,24 +45,30 @@ export default function BarcodeScanScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [product, setProduct] = useState<ProductData | null>(null);
   const [torch, setTorch] = useState(false);
   const [showManualInput, setShowManualInput] = useState(false);
   const [manualBarcode, setManualBarcode] = useState("");
-  const [servingsStr, setServingsStr] = useState("1");
-  const [mealTime, setMealTime] = useState<MealTime>("Lunch");
 
-  const servings = parseFloat(servingsStr) || 1;
+  const scanLineAnim = React.useRef(new Animated.Value(0)).current;
 
-  const calc = {
-    sodium:      product ? product.sodium_mg * servings : 0,
-    fat:         product ? product.saturated_fat_g * servings : 0,
-    calories:    product ? product.energy_kcal * servings : 0,
-    fiber:       product ? product.fiber_g * servings : 0,
-    cholesterol: product ? product.cholesterol_mg * servings : 0,
-  };
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(scanLineAnim, {
+          toValue: 236, // Height of the scan frame minus line thickness
+          duration: 1500,
+          useNativeDriver: true,
+        }),
+        Animated.timing(scanLineAnim, {
+          toValue: 0,
+          duration: 1500,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  }, [scanLineAnim]);
 
-  const isHighSodium = calc.sodium > 500;
+
 
   useEffect(() => {
     if (!permission) requestPermission();
@@ -156,16 +86,35 @@ export default function BarcodeScanScreen() {
       if (result.status === 1 && result.product) {
         const prod = result.product;
         const n = prod.nutriments || {};
-        setProduct({
+        
+        const extractNutrient = (baseKey: string) => {
+          return n[`${baseKey}_serving`] ?? 
+                 n[`${baseKey}_100g`] ?? 
+                 n[`${baseKey}_value`] ?? 
+                 n[`${baseKey}_prepared_serving`] ?? 
+                 n[`${baseKey}_prepared_100g`] ?? 
+                 n[baseKey] ?? 0;
+        };
+        
+        const parsedProduct: ProductData = {
           product_name: prod.product_name || "Unknown product",
           brands: prod.brands || "Unknown brand",
           serving_size: prod.serving_size || "1 serving",
-          sodium_mg: (n.sodium_serving || 0) * 1000,
-          saturated_fat_g: n["saturated-fat_serving"] || 0,
-          energy_kcal: n["energy-kcal_serving"] || 0,
-          fiber_g: n["fiber_serving"] || 0,
-          cholesterol_mg: (n["cholesterol_serving"] || 0) * 1000,
+          sodium_mg: extractNutrient("sodium") * 1000,
+          saturated_fat_g: extractNutrient("saturated-fat"),
+          energy_kcal: extractNutrient("energy-kcal") || extractNutrient("energy"), // sometimes it's just 'energy'
+          fiber_g: extractNutrient("fiber"),
+          cholesterol_mg: extractNutrient("cholesterol") * 1000,
+          image_url: prod.image_front_url || prod.image_url || undefined,
+        };
+        
+        router.push({
+          pathname: "/(home)/(meals)/scan-result",
+          params: { product: JSON.stringify(parsedProduct) }
         });
+        
+        // Reset scanner after a short delay so they can scan again if they go back
+        setTimeout(() => setScanned(false), 1000);
       } else {
         Alert.alert("Product not found", "Could not find nutritional data for this barcode.", [
           { text: "Scan again", onPress: () => setScanned(false) },
@@ -178,12 +127,6 @@ export default function BarcodeScanScreen() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleLogMeal = () => {
-    Alert.alert("Meal logged", "Successfully added to your daily diary.", [
-      { text: "OK", onPress: () => router.back() },
-    ]);
   };
 
   // ── Permission loading ──
@@ -239,44 +182,39 @@ export default function BarcodeScanScreen() {
           <Text className="text-[12px] text-slate-400">Record via barcode</Text>
         </View>
         {/* Torch toggle (always visible) */}
-        {!product && (
-          <TouchableOpacity
-            onPress={() => setTorch(!torch)}
-            className="w-9 h-9 rounded-xl border border-slate-200 dark:border-slate-800/70 items-center justify-center"
-            style={{ backgroundColor: torch ? "#0f172a" : "#fff" }}
-          >
-            <Feather name={torch ? "zap" : "zap-off"} size={16} color={torch ? "#fff" : "#64748b"} />
-          </TouchableOpacity>
-        )}
+        <TouchableOpacity
+          onPress={() => setTorch(!torch)}
+          className="w-9 h-9 rounded-xl border border-slate-200 dark:border-slate-800/70 items-center justify-center"
+          style={{ backgroundColor: torch ? "#0f172a" : "#fff" }}
+        >
+          <Feather name={torch ? "zap" : "zap-off"} size={16} color={torch ? "#fff" : "#64748b"} />
+        </TouchableOpacity>
       </View>
 
-      {!product ? (
-        /* ══ CAMERA VIEW ══ */
-        <KeyboardAvoidingView 
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          className="flex-1"
+      {/* ══ CAMERA VIEW ══ */}
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        className="flex-1"
+      >
+        <View 
+          className="flex-1 px-5 pt-4" 
+          style={{ paddingBottom: Math.max(insets.bottom, 20) }}
         >
-          <View 
-            className="flex-1 px-5 pt-4" 
-            style={{ paddingBottom: Math.max(insets.bottom, 20) }}
-          >
-            {/* Camera */}
-            <View collapsable={false} className="flex-1 rounded-2xl overflow-hidden relative" style={{ backgroundColor: "#000" }}>
-              <CameraView
-                style={{ width: "100%", height: "100%" }}
-                facing="back"
-                onBarcodeScanned={scanned ? undefined : handleBarcodeScanned}
-                barcodeScannerSettings={{
-                  barcodeTypes: ["ean13", "ean8", "upc_a", "upc_e", "qr"],
-                }}
-                enableTorch={torch}
-              />
-              
+          {/* Camera */}
+          <View collapsable={false} className="flex-1 rounded-2xl overflow-hidden relative" style={{ backgroundColor: "#000" }}>
+            <CameraView
+              style={StyleSheet.absoluteFillObject}
+              facing="back"
+              onBarcodeScanned={scanned ? undefined : handleBarcodeScanned}
+              barcodeScannerSettings={{
+                barcodeTypes: ["ean13", "ean8", "upc_a", "upc_e", "qr"],
+              }}
+              enableTorch={torch}
+            />
               {/* Scan overlay */}
               <View 
-                style={[StyleSheet.absoluteFillObject, { zIndex: 10, elevation: 10 }]} 
+                style={[StyleSheet.absoluteFillObject, { alignItems: 'center', justifyContent: 'center' }]} 
                 pointerEvents="box-none"
-                className="items-center justify-center"
               >
                 {/* Dark vignette corners */}
                 <View 
@@ -287,7 +225,20 @@ export default function BarcodeScanScreen() {
                 {/* Scan frame */}
                 <View style={{ width: 240, height: 240, position: "relative", alignItems: "center", justifyContent: "center" }}>
                   {/* Clear centre */}
-                  <View style={[StyleSheet.absoluteFillObject, { backgroundColor: "transparent" }]} />
+                  <View style={[StyleSheet.absoluteFillObject, { backgroundColor: "transparent", overflow: "hidden" }]}>
+                    {/* Animated Laser Line */}
+                    {!scanned && !loading && (
+                      <Animated.View
+                        style={{
+                          width: "100%",
+                          height: 3,
+                          backgroundColor: "#ef4444",
+                          opacity: 0.8,
+                          transform: [{ translateY: scanLineAnim }],
+                        }}
+                      />
+                    )}
+                  </View>
 
                   {/* Corner marks */}
                   {[
@@ -314,178 +265,59 @@ export default function BarcodeScanScreen() {
                   </Text>
                 </View>
               </View>
-            </View>
-
-          {/* Manual entry */}
-          <View className="mt-4">
-            {showManualInput ? (
-              <View className="flex-row items-center gap-2">
-                <View className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 rounded-xl px-3.5 py-2.5">
-                  <TextInput
-                    value={manualBarcode}
-                    onChangeText={setManualBarcode}
-                    placeholder="Enter barcode number…"
-                    placeholderTextColor="#cbd5e1"
-                    keyboardType="numeric"
-                    className="text-[14px] text-slate-900 dark:text-white"
-                    autoFocus
-                  />
-                </View>
-                <TouchableOpacity
-                  onPress={() => {
-                    if (manualBarcode) {
-                      setShowManualInput(false);
-                      handleBarcodeScanned({ type: "manual", data: manualBarcode });
-                    }
-                  }}
-                  className="bg-slate-900 px-4 py-2.5 rounded-xl"
-                >
-                  <Text className="text-white text-[13px] font-medium">Look up</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => setShowManualInput(false)} className="p-2">
-                  <Feather name="x" size={18} color="#64748b" />
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <View className="flex-row items-center justify-center gap-3">
-                <TouchableOpacity
-                  onPress={() => setShowManualInput(true)}
-                  className="flex-row items-center gap-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 px-4 py-2.5 rounded-xl"
-                >
-                  <Feather name="edit-2" size={13} color="#64748b" />
-                  <Text className="text-[12px] text-slate-600">Enter manually</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => router.push("/(home)/(meals)/search-meal")}
-                  className="flex-row items-center gap-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 px-4 py-2.5 rounded-xl"
-                >
-                  <Feather name="search" size={13} color="#64748b" />
-                  <Text className="text-[12px] text-slate-600">Search food</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-          </View>
-          </View>
-        </KeyboardAvoidingView>
-      ) : (
-        /* ══ PRODUCT REVIEW ══ */
-        <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerClassName="p-5 pb-10" showsVerticalScrollIndicator={false}>
-
-          {/* Product header card */}
-          <View className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4 mb-3 flex-row items-start gap-3">
-            <View
-              className="w-11 h-11 rounded-xl items-center justify-center flex-shrink-0"
-              style={{ backgroundColor: "#eaf3de" }}
-            >
-              <MaterialCommunityIcons name="food-apple" size={20} color="#3b6d11" />
-            </View>
-            <View className="flex-1">
-              <Text className="text-[11px] text-slate-400 uppercase tracking-wide mb-0.5">
-                {product.brands}
-              </Text>
-              <Text className="text-[16px] font-medium text-slate-900 dark:text-white leading-snug">
-                {product.product_name}
-              </Text>
-              <Text className="text-[12px] text-slate-400 mt-0.5">
-                Base serving: {product.serving_size}
-              </Text>
-            </View>
           </View>
 
-          {/* High sodium warning */}
-          {isHighSodium && (
-            <View className="rounded-2xl p-4 mb-3 border flex-row items-start gap-3"
-              style={{ backgroundColor: "#fcebeb", borderColor: "#f7c1c1" }}>
-              <Feather name="alert-triangle" size={15} color="#a32d2d" style={{ marginTop: 1 }} />
-              <View className="flex-1">
-                <Text className="text-[13px] font-medium mb-0.5" style={{ color: "#a32d2d" }}>
-                  High sodium
-                </Text>
-                <Text className="text-[12px] leading-relaxed" style={{ color: "#791f1f" }}>
-                  Consider reducing portion size to keep your cardiovascular score stable.
-                </Text>
-              </View>
-            </View>
-          )}
-
-          {/* Servings + meal time */}
-          <View className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4 mb-3">
-            {/* Servings stepper */}
-            <Text className="text-[11px] text-slate-400 uppercase tracking-wide mb-2">
-              Servings consumed
-            </Text>
-            <View className="flex-row items-center justify-between bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/70 rounded-xl px-3 py-2 mb-4">
-              <TouchableOpacity
-                onPress={() => setServingsStr(String(Math.max(0.5, servings - 0.5)))}
-                className="w-9 h-9 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 items-center justify-center"
-              >
-                <Feather name="minus" size={15} color="#475569" />
-              </TouchableOpacity>
-              <View className="items-center">
+        {/* Manual entry */}
+        <View className="mt-4">
+          {showManualInput ? (
+            <View className="flex-row items-center gap-2">
+              <View className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 rounded-xl px-3.5 py-2.5">
                 <TextInput
-                  value={servingsStr}
-                  onChangeText={setServingsStr}
+                  value={manualBarcode}
+                  onChangeText={setManualBarcode}
+                  placeholder="Enter barcode number…"
+                  placeholderTextColor="#cbd5e1"
                   keyboardType="numeric"
-                  className="text-[20px] font-medium text-slate-900 dark:text-white text-center w-16"
+                  className="text-[14px] text-slate-900 dark:text-white"
+                  autoFocus
                 />
               </View>
               <TouchableOpacity
-                onPress={() => setServingsStr(String(servings + 0.5))}
-                className="w-9 h-9 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 items-center justify-center"
+                onPress={() => {
+                  if (manualBarcode) {
+                    setShowManualInput(false);
+                    handleBarcodeScanned({ type: "manual", data: manualBarcode });
+                  }
+                }}
+                className="bg-slate-900 px-4 py-2.5 rounded-xl"
               >
-                <Feather name="plus" size={15} color="#475569" />
+                <Text className="text-white text-[13px] font-medium">Look up</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setShowManualInput(false)} className="p-2">
+                <Feather name="x" size={18} color="#64748b" />
               </TouchableOpacity>
             </View>
-
-            {/* Meal time chips */}
-            <Text className="text-[11px] text-slate-400 uppercase tracking-wide mb-2">
-              Time of meal
-            </Text>
-            <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" horizontal showsHorizontalScrollIndicator={false}>
-              {(["Breakfast", "Lunch", "Dinner", "Snack"] as MealTime[]).map((t) => (
-                <MealTimeChip key={t} label={t} active={mealTime === t} onPress={() => setMealTime(t)} />
-              ))}
-            </ScrollView>
-          </View>
-
-          {/* Nutrition grid */}
-          <View className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4 mb-4">
-            <Text className="text-[11px] text-slate-400 uppercase tracking-wide mb-3">
-              Total nutrition
-            </Text>
-            <View className="flex-row flex-wrap justify-between gap-y-3">
-              <NutritionTile label="Sodium" value={calc.sodium.toFixed(0)} unit="mg" highlight={isHighSodium} />
-              <NutritionTile label="Calories" value={calc.calories.toFixed(0)} unit="kcal" />
-              <NutritionTile label="Sat. fat" value={calc.fat.toFixed(1)} unit="g" />
-              <NutritionTile label="Fiber" value={calc.fiber.toFixed(1)} unit="g" />
-              <NutritionTile label="Cholesterol" value={calc.cholesterol.toFixed(0)} unit="mg" />
+          ) : (
+            <View className="flex-row items-center justify-center gap-3">
+              <TouchableOpacity
+                onPress={() => setShowManualInput(true)}
+                className="flex-row items-center gap-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 px-4 py-2.5 rounded-xl"
+              >
+                <Feather name="edit-2" size={13} color="#64748b" />
+                <Text className="text-[12px] text-slate-600">Enter manually</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => router.push("/(home)/(meals)/search-meal")}
+                className="flex-row items-center gap-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 px-4 py-2.5 rounded-xl"
+              >
+                <Feather name="search" size={13} color="#64748b" />
+                <Text className="text-[12px] text-slate-600">Search food</Text>
+              </TouchableOpacity>
             </View>
-          </View>
-
-          {/* Actions */}
-          <TouchableOpacity
-            onPress={handleLogMeal}
-            className="bg-slate-900 w-full rounded-2xl py-3.5 flex-row items-center justify-center gap-2 mb-2"
-            activeOpacity={0.85}
-          >
-            <Feather name="check" size={15} color="#fff" />
-            <Text className="text-white text-[14px] font-medium">Log to daily diary</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={() => {
-              setProduct(null);
-              setScanned(false);
-              setServingsStr("1");
-            }}
-            className="w-full rounded-2xl py-3.5 items-center border border-slate-200 dark:border-slate-800/70 bg-white dark:bg-slate-900"
-            activeOpacity={0.75}
-          >
-            <Text className="text-slate-500 dark:text-slate-400 text-[13px] font-medium">Discard & scan again</Text>
-          </TouchableOpacity>
-
-        </ScrollView>
-      )}
+          )}
+        </View>
+        </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

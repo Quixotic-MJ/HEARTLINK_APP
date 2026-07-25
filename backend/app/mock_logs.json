@@ -1,0 +1,159 @@
+{
+  "meal_logs": [],
+  "exercise_logs": [
+    {
+      "id": "ex-401",
+      "user_id": "usr-patient-101",
+      "routine_id": "rout-601",
+      "routine_name": "Basal Paced Breathing Exercise",
+      "duration_minutes": 10,
+      "status": "completed",
+      "logged_at": "2026-07-09T20:00:00",
+      "deleted_at": "2026-07-25T17:20:01.050239"
+    },
+    {
+      "id": "ex-1784968460198-8hiyoc",
+      "user_id": "usr-patient-101",
+      "routine_id": "rout-606",
+      "routine_name": "4-7-8 Deep Breathing Technique",
+      "duration_seconds": 10,
+      "duration_minutes": 0.17,
+      "status": "completed",
+      "logged_at": "2026-07-25T16:34:21.731315",
+      "deleted_at": "2026-07-25T17:20:02.889738"
+    }
+  ],
+  "daily_health_logs": [
+    {
+      "id": "log-901",
+      "user_id": "usr-patient-101",
+      "systolic_bp": 118,
+      "diastolic_bp": 76,
+      "heart_rate_bpm": 72,
+      "weight_kg": 68.0,
+      "medication_taken": false,
+      "symptoms": [],
+      "severity_map": {},
+      "context": "resting",
+      "notes": "Felt perfectly normal in the morning checking",
+      "logged_at": "2026-07-09T07:30:00"
+    },
+    {
+      "id": "log-902",
+      "user_id": "usr-patient-101",
+      "systolic_bp": 134,
+      "diastolic_bp": 86,
+      "heart_rate_bpm": 88,
+      "weight_kg": 68.5,
+      "medication_taken": false,
+      "symptoms": [
+        "chest_tightness",
+        "dizziness"
+      ],
+      "severity_map": {
+        "chest_tightness": 5,
+        "dizziness": 3
+      },
+      "context": "after_eating",
+      "notes": "Felt light dizziness after eating local dried fish lunch",
+      "logged_at": "2026-07-10T13:15:00"
+    },
+    {
+      "id": "log-752907e2",
+      "user_id": "usr-patient-101",
+      "systolic_bp": 120,
+      "diastolic_bp": 80,
+      "heart_rate_bpm": 72,
+      "weight_kg": 70,
+      "medication_taken": false,
+      "symptoms": [
+        "Shortness of Breath"
+      ],
+      "severity_map": {},
+      "context": "During physical activity",
+      "notes": "",
+      "logged_at": "2026-07-25T16:18:03.208190"
+    }
+  ],
+  "css_history": [
+    {
+      "id": "css-701",
+      "user_id": "usr-patient-101",
+      "score": 85,
+      "tier": "Stable",
+      "contributing_factors": {
+        "sleep_impact": "optimal",
+        "bp_variance": "low"
+      },
+      "computed_at": "2026-07-05T20:10:00"
+    },
+    {
+      "id": "css-702",
+      "user_id": "usr-patient-101",
+      "score": 82,
+      "tier": "Monitor Closely",
+      "contributing_factors": {
+        "sleep_impact": "optimal",
+        "bp_variance": "low"
+      },
+      "computed_at": "2026-07-06T20:10:00"
+    },
+    {
+      "id": "css-703",
+      "user_id": "usr-patient-101",
+      "score": 88,
+      "tier": "Stable",
+      "contributing_factors": {
+        "sleep_impact": "optimal",
+        "bp_variance": "low"
+      },
+      "computed_at": "2026-07-07T20:10:00"
+    },
+    {
+      "id": "css-704",
+      "user_id": "usr-patient-101",
+      "score": 90,
+      "tier": "Stable",
+      "contributing_factors": {
+        "sleep_impact": "optimal",
+        "bp_variance": "low"
+      },
+      "computed_at": "2026-07-08T20:10:00"
+    },
+    {
+      "id": "css-705",
+      "user_id": "usr-patient-101",
+      "score": 78,
+      "tier": "Monitor Closely",
+      "contributing_factors": {
+        "sleep_impact": "optimal",
+        "bp_variance": "low"
+      },
+      "computed_at": "2026-07-09T20:10:00"
+    },
+    {
+      "id": "css-706",
+      "user_id": "usr-patient-101",
+      "score": 52,
+      "tier": "Elevated Risk",
+      "contributing_factors": {
+        "bp_spike": "high",
+        "symptom_count": 2
+      },
+      "computed_at": "2026-07-10T13:20:00"
+    },
+    {
+      "id": "css-5d7b8244",
+      "user_id": "usr-patient-101",
+      "score": 67,
+      "tier": "Moderate",
+      "contributing_factors": {
+        "bp_penalty": 10,
+        "hr_penalty": 0,
+        "symptom_penalty": 5,
+        "multiplier_applied": true
+      },
+      "computed_at": "2026-07-25T16:18:03.209251"
+    }
+  ]
+}

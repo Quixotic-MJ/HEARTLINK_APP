@@ -4,6 +4,7 @@ import { useColorScheme } from "nativewind";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import OfflineBanner from "../components/OfflineBanner";
 import "../global.css";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { UserProvider, useUser } from "../contexts/UserContext";
 
 function RootLayoutNav() {
@@ -84,8 +85,10 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <UserProvider>
-      <RootLayoutNav />
-    </UserProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <UserProvider>
+        <RootLayoutNav />
+      </UserProvider>
+    </GestureHandlerRootView>
   );
 }

@@ -1,7 +1,7 @@
 from typing import List, Dict, Any
 from datetime import datetime
 import uuid
-from app.mock_db import meal_logs, recipes
+from app.mock_db import meal_logs, recipes, save_logs
 
 def get_meal_logs(user_id: str) -> List[Dict[str, Any]]:
     logs = [m for m in meal_logs if m["user_id"] == user_id]
@@ -23,8 +23,18 @@ def create_meal_log(user_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
         "logged_at": datetime.now(),
     }
     meal_logs.append(new_log)
+    save_logs()
     return new_log
 
 def search_meals(query: str) -> List[Dict[str, Any]]:
     query = query.lower()
     return [r for r in recipes if query in r["name"].lower() or any(query in tag.lower() for tag in r.get("tags", []))]
+
+def delete_meal_log(meal_id: str) -> bool:
+    global meal_logs
+    initial_count = len(meal_logs)
+    meal_logs[:] = [m for m in meal_logs if m["id"] != meal_id]
+    if len(meal_logs) < initial_count:
+        save_logs()
+        return True
+    return False

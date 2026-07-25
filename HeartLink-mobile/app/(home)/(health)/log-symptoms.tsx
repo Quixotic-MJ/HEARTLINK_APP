@@ -16,7 +16,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { useUser } from "../../../contexts/UserContext";
 import { OfflineSyncService } from "../../../utils/OfflineSyncService";
 import * as Haptics from "expo-haptics";
@@ -89,10 +89,11 @@ export default function LogSymptomsScreen() {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
   const router = useRouter();
+  const params = useLocalSearchParams<{ triggered_by_exercise_id?: string }>();
   const { userId } = useUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [step, setStep] = useState<1 | 2>(1);
+  const [step, setStep] = useState<1 | 2>(params.triggered_by_exercise_id ? 2 : 1);
   const [timestamp, setTimestamp] = useState("");
 
   // Step 1 State (Vitals)
@@ -105,7 +106,9 @@ export default function LogSymptomsScreen() {
   // Step 2 State (Symptoms)
   const [selectedSymptoms, setSelectedSymptoms] = useState<SymptomType[]>(["None (Feeling fine)"]);
   const [severities, setSeverities] = useState<Record<string, number>>({});
-  const [context, setContext] = useState<ContextType>("While resting");
+  const [context, setContext] = useState<ContextType>(
+    params.triggered_by_exercise_id ? "During physical activity" : "While resting"
+  );
 
   useEffect(() => {
     setTimestamp(
@@ -163,6 +166,7 @@ export default function LogSymptomsScreen() {
       symptoms: selectedSymptoms,
       severity_map: severities,
       context: context,
+      triggered_by_exercise_id: params.triggered_by_exercise_id || null,
       notes: "",
     };
 

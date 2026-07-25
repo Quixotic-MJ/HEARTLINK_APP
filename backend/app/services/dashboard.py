@@ -132,14 +132,14 @@ def _get_today_activity(user_id: str) -> dict:
     meals_today = [
         m
         for m in meal_logs
-        if m["user_id"] == user_id and m["logged_at"].date() == today
+        if m["user_id"] == user_id and m["logged_at"].date() == today and m.get("deleted_at") is None
     ]
 
     # Exercises logged today
     exercises_today = [
         e
         for e in exercise_logs
-        if e["user_id"] == user_id and e["logged_at"].date() == today
+        if e["user_id"] == user_id and e["logged_at"].date() == today and e.get("deleted_at") is None
     ]
 
     total_sodium = sum(m.get("sodium_mg", 0) for m in meals_today)
@@ -290,12 +290,12 @@ def get_7_day_wrap_up_data(user_id: str) -> Dict[str, Any]:
     user_meals = [
         m
         for m in meal_logs
-        if m["user_id"] == user_id and m["logged_at"] >= seven_days_ago
+        if m["user_id"] == user_id and m["logged_at"] >= seven_days_ago and m.get("deleted_at") is None
     ]
     user_exercises = [
         e
         for e in exercise_logs
-        if e["user_id"] == user_id and e["logged_at"] >= seven_days_ago
+        if e["user_id"] == user_id and e["logged_at"] >= seven_days_ago and e.get("deleted_at") is None
     ]
     user_health = [
         l
