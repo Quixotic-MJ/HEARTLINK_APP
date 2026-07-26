@@ -307,17 +307,23 @@ recipes = [
         "difficulty": "Easy",
         "heart_benefit": "Lowers cellular fluid retention via deliberate reduction of industrial sodium extracts.",
         "tags": ["Low Sodium", "Filipino", "Soup"],
-        "ingredients": {
-            "chicken_breast_g": 500,
-            "ginger_slices": 5,
-            "chayote_units": 2,
-            "water_ml": 1000,
-        },
+        "ingredients": [
+            {"name": "Chicken breast, cut into serving pieces", "amount": 500, "unit": "g"},
+            {"name": "Fresh ginger, julienned", "amount": 5, "unit": "slices"},
+            {"name": "Chayote (sayote), peeled and sliced", "amount": 2, "unit": "medium"},
+            {"name": "Moringa (malunggay) or chili leaves", "amount": 1, "unit": "cup"},
+            {"name": "Garlic, crushed", "amount": 3, "unit": "cloves"},
+            {"name": "Onion, chopped", "amount": 1, "unit": "medium"},
+            {"name": "Water or low-sodium chicken broth", "amount": 1000, "unit": "ml"},
+            {"name": "Fish sauce (low-sodium variant)", "amount": 1, "unit": "tbsp"}
+        ],
         "steps": [
-            "Sauté ginger and onion in light olive oil.",
-            "Add chicken until browned.",
-            "Pour in water, boil until tender.",
-            "Add chayote and chili leaves, simmer 5 minutes.",
+            "In a large pot, heat 1 tablespoon of olive oil over medium heat. Sauté the crushed garlic, chopped onion, and julienned ginger until they are fragrant and the onions become translucent.",
+            "Add the cut chicken pieces into the pot. Sauté for about 5 to 7 minutes until the chicken turns light brown on all sides.",
+            "Pour in the 1000ml of water or low-sodium broth. Bring the mixture to a gentle boil, then lower the heat and let it simmer for 25-30 minutes until the chicken is completely tender.",
+            "Add the sliced chayote to the boiling soup and cook for another 5 minutes until the vegetables are tender but still crisp.",
+            "Season with 1 tbsp of low-sodium fish sauce and a pinch of black pepper.",
+            "Turn off the heat, add the malunggay or chili leaves, and cover the pot for 2 minutes to let the residual heat cook the greens. Serve hot."
         ],
         "image_url": "https://storage.provider/tinola.jpg",
         "status": "published",
@@ -341,16 +347,23 @@ recipes = [
         "difficulty": "Medium",
         "heart_benefit": "High in Omega-3 to help reduce inflammation and lower blood pressure.",
         "tags": ["Omega-3", "Seafood", "Dinner"],
-        "ingredients": {
-            "salmon_fillet_g": 300,
-            "quinoa_cup": 1,
-            "broccoli_florets_cup": 2,
-        },
+        "ingredients": [
+            {"name": "Fresh salmon fillet", "amount": 300, "unit": "g"},
+            {"name": "Quinoa, rinsed", "amount": 1, "unit": "cup"},
+            {"name": "Broccoli florets", "amount": 2, "unit": "cups"},
+            {"name": "Cherry tomatoes, halved", "amount": 1, "unit": "cup"},
+            {"name": "Lemon juice, freshly squeezed", "amount": 2, "unit": "tbsp"},
+            {"name": "Extra virgin olive oil", "amount": 1, "unit": "tbsp"},
+            {"name": "Black pepper and herbs (dill or parsley)", "amount": "To taste", "unit": ""}
+        ],
         "steps": [
-            "Bake salmon at 400F for 12-15 minutes.",
-            "Cook quinoa according to package instructions.",
-            "Steam broccoli until tender-crisp.",
-            "Assemble bowl and drizzle with lemon dressing.",
+            "Preheat your oven to 400°F (200°C). Line a baking tray with parchment paper.",
+            "Place the salmon fillet on the tray. Lightly brush with olive oil and sprinkle with black pepper and your choice of herbs.",
+            "Bake the salmon for 12-15 minutes, or until the fish easily flakes with a fork. Avoid overcooking.",
+            "While the salmon bakes, combine 1 cup of rinsed quinoa with 2 cups of water in a saucepan. Bring to a boil, reduce to a low simmer, cover, and cook for 15 minutes until the water is absorbed.",
+            "Steam the broccoli florets for 5 minutes until they are tender-crisp and vibrant green.",
+            "Assemble the bowl by placing a generous scoop of cooked quinoa at the bottom. Arrange the baked salmon, steamed broccoli, and halved cherry tomatoes on top.",
+            "Drizzle the fresh lemon juice and remaining olive oil over the bowl right before serving."
         ],
         "image_url": "https://storage.provider/salmon.jpg",
         "status": "published",
@@ -374,14 +387,19 @@ recipes = [
         "difficulty": "Easy",
         "heart_benefit": "Soluble fiber in oats helps lower LDL cholesterol.",
         "tags": ["High Fiber", "Breakfast", "Vegan"],
-        "ingredients": {
-            "rolled_oats_cup": 0.5,
-            "mixed_berries_cup": 0.5,
-            "almond_milk_cup": 1,
-        },
+        "ingredients": [
+            {"name": "Rolled oats (not instant)", "amount": 0.5, "unit": "cup"},
+            {"name": "Mixed berries (blueberries, strawberries)", "amount": 0.5, "unit": "cup"},
+            {"name": "Unsweetened almond milk", "amount": 1, "unit": "cup"},
+            {"name": "Chia seeds", "amount": 1, "unit": "tbsp"},
+            {"name": "Cinnamon powder", "amount": 0.5, "unit": "tsp"}
+        ],
         "steps": [
-            "Simmer oats and milk for 5-7 minutes.",
-            "Top with fresh berries and a pinch of cinnamon.",
+            "In a small saucepan, combine the rolled oats and unsweetened almond milk. Bring the mixture to a gentle simmer over medium heat.",
+            "Reduce the heat to low and cook for 5-7 minutes, stirring occasionally, until the oats have absorbed most of the liquid and reached a creamy consistency.",
+            "Remove the saucepan from the heat and stir in the chia seeds and cinnamon powder.",
+            "Pour the oatmeal into a serving bowl and let it sit for a minute to thicken slightly.",
+            "Top generously with fresh mixed berries. You may add a light drizzle of honey if additional sweetness is desired."
         ],
         "image_url": "https://storage.provider/oatmeal.jpg",
         "status": "published",
@@ -405,17 +423,22 @@ recipes = [
         "difficulty": "Medium",
         "heart_benefit": "Calamansi and garlic provide robust flavor without the need for excess salt, making it ideal for blood pressure management.",
         "tags": ["Low Sodium", "High Protein", "Filipino"],
-        "ingredients": {
-            "bangus_whole": 1,
-            "garlic_cloves": 4,
-            "calamansi_juice_tbsp": 2,
-            "olive_oil_tbsp": 1
-        },
+        "ingredients": [
+            {"name": "Whole Bangus (milkfish), butterflied and deboned", "amount": 1, "unit": "large"},
+            {"name": "Garlic, finely minced", "amount": 4, "unit": "cloves"},
+            {"name": "Calamansi juice (or lemon)", "amount": 2, "unit": "tbsp"},
+            {"name": "Extra virgin olive oil", "amount": 1, "unit": "tbsp"},
+            {"name": "Ground black pepper", "amount": 1, "unit": "tsp"},
+            {"name": "Tomato and onion salsa (for serving)", "amount": 1, "unit": "cup"}
+        ],
         "steps": [
-            "Butterfly the bangus and remove the bones. Rinse and pat dry.",
-            "Combine garlic, calamansi juice, olive oil, salt, and pepper. Marinate for 15 mins.",
-            "Grill bangus skin-side down for 5 mins, then flip.",
-            "Serve with fresh salsa."
+            "Ensure the butterflied bangus is thoroughly deboned. Rinse it lightly under cold water and pat completely dry with paper towels.",
+            "In a small bowl, whisk together the minced garlic, calamansi juice, olive oil, and ground black pepper to create the marinade.",
+            "Brush the marinade generously over the meaty side of the bangus. Let it marinate for at least 15-20 minutes at room temperature to absorb the flavors.",
+            "Preheat your grill or a large grill pan over medium-high heat. Lightly oil the grates to prevent sticking.",
+            "Place the bangus skin-side down on the grill. Cook for about 5-7 minutes until the skin is crispy and slightly charred.",
+            "Carefully flip the fish using a wide spatula and grill the meat side for another 3-4 minutes until fully cooked and opaque.",
+            "Transfer to a serving platter and serve immediately with fresh tomato and onion salsa on the side."
         ],
         "image_url": "https://images.unsplash.com/photo-1580476262798-bddd9f4b7369?w=400&h=300&fit=crop",
         "status": "published",
@@ -439,17 +462,21 @@ recipes = [
         "difficulty": "Easy",
         "heart_benefit": "Malunggay is packed with antioxidants and essential nutrients that help reduce inflammation and lower blood pressure.",
         "tags": ["Low Sodium", "High Fiber", "Filipino"],
-        "ingredients": {
-            "malunggay_leaves_cup": 2,
-            "sweet_corn_ears": 2,
-            "chicken_broth_cup": 4,
-            "ginger_thumb": 1
-        },
+        "ingredients": [
+            {"name": "Fresh Malunggay (moringa) leaves", "amount": 2, "unit": "cups"},
+            {"name": "Sweet corn, kernels removed from cob", "amount": 2, "unit": "ears"},
+            {"name": "Low-sodium chicken or vegetable broth", "amount": 4, "unit": "cups"},
+            {"name": "Fresh ginger, sliced", "amount": 1, "unit": "thumb-sized"},
+            {"name": "Garlic, minced", "amount": 2, "unit": "cloves"},
+            {"name": "Onion, thinly sliced", "amount": 1, "unit": "small"}
+        ],
         "steps": [
-            "Bring low-sodium chicken broth to a boil. Add ginger and onion.",
-            "Add corn rounds and simmer for 8 minutes.",
-            "Season with low-sodium fish sauce.",
-            "Add malunggay leaves in the last 2 minutes of cooking."
+            "In a medium-sized soup pot, heat a tiny splash of oil and gently sauté the minced garlic, sliced onion, and ginger until aromatic.",
+            "Pour in the 4 cups of low-sodium broth and bring it to a rolling boil over high heat.",
+            "Add the freshly scraped sweet corn kernels into the boiling broth. Reduce the heat to medium and let it simmer for 8-10 minutes until the corn is tender.",
+            "Turn off the heat entirely. Immediately add the fresh malunggay leaves into the hot soup.",
+            "Stir gently and cover the pot with a lid. Let it steep for 2-3 minutes. The residual heat will perfectly cook the malunggay leaves without destroying their nutrients.",
+            "Serve hot as a comforting, heart-healthy starter or light dinner."
         ],
         "image_url": "https://images.unsplash.com/photo-1547592166-23ac45744acd?w=400&h=300&fit=crop",
         "status": "published",

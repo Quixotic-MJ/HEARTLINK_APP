@@ -14,6 +14,7 @@ import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
 import { useColorScheme } from "nativewind";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useUser } from "../../../contexts/UserContext";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
@@ -387,6 +388,7 @@ export default function RecipesScreen() {
   const [recipesList, setRecipesList] = useState<Recipe[]>(RECIPES);
   const [isLoading, setIsLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [isOffline, setIsOffline] = useState(false);
 
   const fetchRecipes = useCallback(async (silent = false) => {
     if (!silent) setIsLoading(true);
@@ -410,13 +412,30 @@ export default function RecipesScreen() {
             saturatedFat: r.saturated_fat_g || 0,
             calories: r.calories || 0,
           },
-          ingredients: r.ingredients ? Object.keys(r.ingredients).map(k => ({ qty: r.ingredients[k], item: k })) : [],
+          ingredients: Array.isArray(r.ingredients)
+            ? r.ingredients.map((ing: any) => ({ qty: `${ing.amount} ${ing.unit}`.trim(), item: ing.name }))
+            : r.ingredients 
+              ? Object.keys(r.ingredients).map(k => ({ qty: r.ingredients[k], item: k })) 
+              : [],
           steps: r.steps || [],
         }));
         setRecipesList(mapped);
+        setIsOffline(false);
+        await AsyncStorage.setItem("@recipes_cache", JSON.stringify(mapped));
+      } else {
+        throw new Error("Failed to fetch recipes from API");
       }
     } catch (error) {
-      console.error(error);
+      console.log("Network request failed, falling back to local AsyncStorage cache...", error);
+      setIsOffline(true);
+      try {
+        const cached = await AsyncStorage.getItem("@recipes_cache");
+        if (cached) {
+          setRecipesList(JSON.parse(cached));
+        }
+      } catch (cacheErr) {
+        console.error("Failed to read recipes cache:", cacheErr);
+      }
     } finally {
       setIsLoading(false);
       setRefreshing(false);
@@ -548,6 +567,16 @@ export default function RecipesScreen() {
             </TouchableOpacity>
           )}
         </View>
+
+        {/* Offline Banner */}
+        {isOffline && (
+          <View className="flex-row items-center gap-2 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/50 px-4 py-2 rounded-xl mt-3">
+            <Feather name="wifi-off" size={14} color="#d97706" />
+            <Text className="text-[12px] font-medium text-amber-800 dark:text-amber-300 flex-1">
+              Offline Mode — Showing saved recipes
+            </Text>
+          </View>
+        )}
       </View>
 
       {/* Filter chips */}

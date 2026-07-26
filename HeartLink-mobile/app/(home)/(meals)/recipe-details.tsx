@@ -15,7 +15,9 @@ import {
 import { StatusBar } from "expo-status-bar";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useUser } from "../../../contexts/UserContext";
+import { queueMealForSync } from "../../../services/SyncService";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -93,11 +95,30 @@ export default function RecipeDetailsScreen() {
             saturatedFat: data.saturated_fat_g || 0,
             calories: data.calories || 0,
           },
-          ingredients: data.ingredients ? Object.keys(data.ingredients).map(k => ({ qty: data.ingredients[k], item: k })) : [],
+          ingredients: Array.isArray(data.ingredients)
+            ? data.ingredients.map((ing: any) => ({ qty: `${ing.amount} ${ing.unit}`.trim(), item: ing.name }))
+            : data.ingredients 
+              ? Object.keys(data.ingredients).map(k => ({ qty: data.ingredients[k], item: k })) 
+              : [],
           steps: data.steps || [],
         };
         setRecipe(mapped);
       } catch (error) {
+        console.log("Network error in recipe details, attempting to load from cache...");
+        try {
+          const cached = await AsyncStorage.getItem("@recipes_cache");
+          if (cached) {
+            const recipesList = JSON.parse(cached);
+            const cachedRecipe = recipesList.find((r: any) => r.id === id || r.id === Number(id));
+            if (cachedRecipe) {
+              setRecipe(cachedRecipe);
+              return;
+            }
+          }
+        } catch (cacheErr) {
+          console.error("Cache read failed:", cacheErr);
+        }
+        
         console.error(error);
         Alert.alert("Error", "Could not load recipe details.");
       } finally {
@@ -160,8 +181,15 @@ export default function RecipeDetailsScreen() {
         [{ text: "OK", onPress: () => router.push("/(home)/(tabs)/dashboard") }],
       );
     } catch (error) {
-      console.error(error);
-      Alert.alert("Error", "Could not log meal. Please try again.");
+      console.log("Network error logging meal, queueing offline...", error);
+      await queueMealForSync(userId!, payload);
+      
+      setIsLogged(true);
+      Alert.alert(
+        "Saved offline",
+        "Your meal was saved locally and will automatically sync to your diary when you reconnect to the internet.",
+        [{ text: "OK", onPress: () => router.push("/(home)/(tabs)/dashboard") }]
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -173,27 +201,23 @@ export default function RecipeDetailsScreen() {
 
       {/* Header (Absolute position over scrollview) */}
       <View
-        style={{ paddingTop: Math.max(insets.top, 20) }}
-        className="flex-row items-center px-5 pb-4 bg-white dark:bg-slate-900/95 border-b border-slate-100 dark:border-slate-800 z-10 absolute top-0 left-0 right-0"
+        style={{ paddingTop: Math.max(insets.top, 16) }}
+        className="flex-row items-center px-5 pb-2 z-10 absolute top-0 left-0 right-0 justify-between"
       >
         <TouchableOpacity
           onPress={() => router.back()}
-          className="w-10 h-10 rounded-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/70 items-center justify-center mr-4"
+          className="w-10 h-10 rounded-full bg-white/90 dark:bg-slate-900/90 items-center justify-center shadow-sm"
         >
-          <Feather name="arrow-left" size={18} color={isDark ? "#f8fafc" : "#0f172a"} />
+          <Feather name="arrow-left" size={20} color={isDark ? "#f8fafc" : "#0f172a"} />
         </TouchableOpacity>
-        <View className="flex-1">
-          <Text className="text-[12px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider mb-0.5">
-            Recipe
-          </Text>
-        </View>
+        
         <TouchableOpacity
           onPress={() => setIsSaved(!isSaved)}
-          className="w-10 h-10 rounded-full bg-slate-50 dark:bg-slate-950 items-center justify-center border border-slate-200 dark:border-slate-800/70"
+          className="w-10 h-10 rounded-full bg-white/90 dark:bg-slate-900/90 items-center justify-center shadow-sm"
         >
           <Feather
             name="heart"
-            size={18}
+            size={20}
             color={isSaved ? "#ef4444" : "#0f172a"}
             style={isSaved ? { fill: "#ef4444" } : {}}
           />
@@ -202,18 +226,20 @@ export default function RecipeDetailsScreen() {
 
       <ScrollView
         contentContainerStyle={{
-          paddingTop: Math.max(insets.top, 20) + 60,
           paddingBottom: 120,
         }}
         showsVerticalScrollIndicator={false}
       >
         {/* Hero Image */}
-        <View className="w-full h-64 bg-slate-100 dark:bg-slate-800 relative">
+        <View className="w-full h-80 bg-slate-100 dark:bg-slate-800 relative">
           <Image
             source={{ uri: recipe.image }}
             className="w-full h-full"
             resizeMode="cover"
           />
+          {/* Subtle gradient overlay for top buttons */}
+          <View className="absolute top-0 left-0 right-0 h-32 bg-black/10" />
+          
           <View
             className="absolute bottom-4 left-5 flex-row items-center gap-1 px-2.5 py-1 rounded-lg"
             style={{ backgroundColor: "rgba(0,0,0,0.55)" }}
@@ -237,11 +263,11 @@ export default function RecipeDetailsScreen() {
         </View>
 
         {/* Title & Tags */}
-        <View className="px-5 pt-6 pb-6">
-          <Text className="text-[28px] font-bold text-slate-900 dark:text-white leading-tight mb-2">
+        <View className="px-5 pt-8 pb-6">
+          <Text className="text-[32px] font-bold text-slate-900 dark:text-white leading-tight mb-3">
             {recipe.title}
           </Text>
-          <Text className="text-[15px] text-slate-500 dark:text-slate-400 mb-4">
+          <Text className="text-[16px] text-slate-500 dark:text-slate-400 mb-6 leading-relaxed">
             {recipe.subtitle}
           </Text>
 
@@ -417,23 +443,23 @@ export default function RecipeDetailsScreen() {
           </View>
 
           {activeTab === "Ingredients" ? (
-            <View className="bg-slate-50 dark:bg-slate-950 rounded-2xl p-4 border border-slate-100 dark:border-slate-800">
+            <View className="bg-slate-50 dark:bg-slate-950 rounded-3xl p-5 border border-slate-100 dark:border-slate-800 mb-6">
               {recipe.ingredients.map((ing, i) => (
                 <View
                   key={i}
-                  className="flex-row items-center py-3"
+                  className="flex-row items-center py-4"
                   style={
                     i !== recipe.ingredients.length - 1
                       ? { borderBottomWidth: 1, borderBottomColor: "#e2e8f080" }
                       : undefined
                   }
                 >
-                  <View className="w-1.5 h-1.5 rounded-full bg-slate-300 mr-4" />
+                  <View className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600 mr-4" />
                   <View className="flex-1 flex-row">
-                    <Text className="text-[14px] text-slate-900 dark:text-white font-bold w-20">
+                    <Text className="text-[15px] text-slate-900 dark:text-white font-bold w-24">
                       {ing.qty}
                     </Text>
-                    <Text className="text-[14px] text-slate-700 dark:text-slate-300 flex-1">
+                    <Text className="text-[15px] text-slate-700 dark:text-slate-300 flex-1 leading-relaxed">
                       {ing.item}
                     </Text>
                   </View>
@@ -441,23 +467,23 @@ export default function RecipeDetailsScreen() {
               ))}
             </View>
           ) : (
-            <View className="bg-slate-50 dark:bg-slate-950 rounded-2xl p-4 border border-slate-100 dark:border-slate-800">
+            <View className="bg-slate-50 dark:bg-slate-950 rounded-3xl p-5 border border-slate-100 dark:border-slate-800 mb-6">
               {recipe.steps.map((step, i) => (
                 <View
                   key={i}
-                  className="flex-row py-3"
+                  className="flex-row py-4"
                   style={
                     i !== recipe.steps.length - 1
                       ? { borderBottomWidth: 1, borderBottomColor: "#e2e8f080" }
                       : undefined
                   }
                 >
-                  <View className="w-6 h-6 rounded-full bg-slate-200 items-center justify-center mr-3 mt-0.5">
-                    <Text className="text-[12px] font-bold text-slate-600">
+                  <View className="w-7 h-7 rounded-full bg-slate-200 dark:bg-slate-800 items-center justify-center mr-4 mt-0.5">
+                    <Text className="text-[13px] font-bold text-slate-700 dark:text-slate-300">
                       {i + 1}
                     </Text>
                   </View>
-                  <Text className="text-[14px] text-slate-700 dark:text-slate-300 flex-1 leading-relaxed">
+                  <Text className="text-[15px] text-slate-700 dark:text-slate-300 flex-1 leading-relaxed">
                     {step}
                   </Text>
                 </View>

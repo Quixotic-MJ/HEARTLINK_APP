@@ -1,5 +1,5 @@
 import { useColorScheme } from "nativewind";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -17,7 +17,7 @@ import { CameraView, useCameraPermissions } from "expo-camera";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -51,22 +51,31 @@ export default function BarcodeScanScreen() {
 
   const scanLineAnim = React.useRef(new Animated.Value(0)).current;
 
-  useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(scanLineAnim, {
-          toValue: 237, // Height of the scan frame (240) minus line thickness (3)
-          duration: 1500,
-          useNativeDriver: true,
-        }),
-        Animated.timing(scanLineAnim, {
-          toValue: 0,
-          duration: 1500,
-          useNativeDriver: true,
-        }),
-      ])
-    ).start();
-  }, [scanLineAnim]);
+  useFocusEffect(
+    useCallback(() => {
+      const animation = Animated.loop(
+        Animated.sequence([
+          Animated.timing(scanLineAnim, {
+            toValue: 237, // Height of the scan frame (240) minus line thickness (3)
+            duration: 1500,
+            useNativeDriver: true,
+          }),
+          Animated.timing(scanLineAnim, {
+            toValue: 0,
+            duration: 1500,
+            useNativeDriver: true,
+          }),
+        ])
+      );
+      
+      animation.start();
+
+      return () => {
+        animation.stop();
+        scanLineAnim.setValue(0);
+      };
+    }, [scanLineAnim])
+  );
 
 
 
@@ -193,7 +202,8 @@ export default function BarcodeScanScreen() {
 
       {/* ══ CAMERA VIEW ══ */}
       <KeyboardAvoidingView 
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        behavior="padding"
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 24}
         className="flex-1"
       >
         <View 

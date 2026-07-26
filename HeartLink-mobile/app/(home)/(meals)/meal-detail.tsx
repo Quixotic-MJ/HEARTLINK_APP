@@ -6,6 +6,7 @@ import { StatusBar } from "expo-status-bar";
 import { Feather } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useUser } from "../../../contexts/UserContext";
+import { queueMealForSync } from "../../../services/SyncService";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -112,8 +113,14 @@ export default function MealDetailScreen() {
       Alert.alert("Meal Logged", "Your meal has been recorded.");
       router.navigate("/(home)/(tabs)/dashboard");
     } catch (error) {
-      console.error(error);
-      Alert.alert("Error", "Could not log meal. Please try again.");
+      console.log("Network error logging meal, queueing offline...", error);
+      await queueMealForSync(userId!, payload);
+      
+      Alert.alert(
+        "Saved offline",
+        "Your meal was saved locally and will automatically sync to your diary when you reconnect to the internet."
+      );
+      router.navigate("/(home)/(tabs)/dashboard");
     } finally {
       setIsSubmitting(false);
     }

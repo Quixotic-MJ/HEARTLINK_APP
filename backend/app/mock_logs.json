@@ -13,6 +13,48 @@
       "fiber_g": 0,
       "image_url": "",
       "logged_at": "2026-07-26T14:43:43.260101"
+    },
+    {
+      "id": "meal-66782be2",
+      "user_id": "usr-patient-106",
+      "recipe_id": "rec-501",
+      "meal_name": "Low Sodium Chicken Tinola",
+      "barcode": null,
+      "portion": 1,
+      "calories": 320,
+      "sodium_mg": 380,
+      "saturated_fat_g": 1.5,
+      "fiber_g": 4,
+      "image_url": "https://storage.provider/tinola.jpg",
+      "logged_at": "2026-07-26T15:25:16.271889"
+    },
+    {
+      "id": "meal-ced93c71",
+      "user_id": "usr-patient-106",
+      "recipe_id": null,
+      "meal_name": "Lechon",
+      "barcode": null,
+      "portion": 1,
+      "calories": 0,
+      "sodium_mg": 200,
+      "saturated_fat_g": 0,
+      "fiber_g": 0,
+      "image_url": null,
+      "logged_at": "2026-07-26T15:26:25.066355"
+    },
+    {
+      "id": "meal-698c0a15",
+      "user_id": "usr-patient-106",
+      "recipe_id": null,
+      "meal_name": "Test",
+      "barcode": null,
+      "portion": 1,
+      "calories": 0,
+      "sodium_mg": 10,
+      "saturated_fat_g": 0,
+      "fiber_g": 0,
+      "image_url": null,
+      "logged_at": "2026-07-26T16:08:07.694926"
     }
   ],
   "exercise_logs": [

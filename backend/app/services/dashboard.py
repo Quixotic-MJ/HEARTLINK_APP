@@ -221,6 +221,11 @@ def get_dashboard_data(user_id: str) -> Dict[str, Any]:
                 "tagText": "rgba(255,255,255,0.8)",
                 "subColor": "#86efac",
                 "route": f"/(home)/recipe-details?id={r['id']}",
+                "name": r.get("name", ""),
+                "calories": r.get("calories", 0),
+                "sodium_mg": r.get("sodium_mg", 0),
+                "image_url": r.get("image_url", ""),
+                "css_tier": r.get("css_tier", "Stable"),
             }
         )
     for e in reco_exercises[:2]:

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { syncOfflineMeals } from "../services/SyncService";
 
 type UserContextType = {
   userId: string | null;
@@ -42,6 +43,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             if (response.ok) {
               const data = await response.json();
               setUser(data.profile);
+              // Trigger foreground auto-sync for any pending offline logs!
+              syncOfflineMeals(baseUrl).catch(e => console.log("Background sync error:", e));
             } else {
               setProfileError(true);
             }
