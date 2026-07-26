@@ -1,5 +1,20 @@
 {
-  "meal_logs": [],
+  "meal_logs": [
+    {
+      "id": "meal-7725c7e1",
+      "user_id": "usr-patient-106",
+      "recipe_id": null,
+      "meal_name": "Blanca Creamy Coffee Mix",
+      "barcode": null,
+      "portion": 1,
+      "calories": 145,
+      "sodium_mg": 125,
+      "saturated_fat_g": 5.5,
+      "fiber_g": 0,
+      "image_url": "",
+      "logged_at": "2026-07-26T14:43:43.260101"
+    }
+  ],
   "exercise_logs": [
     {
       "id": "ex-401",
@@ -154,6 +169,16 @@
         "multiplier_applied": true
       },
       "computed_at": "2026-07-25T16:18:03.209251"
+    },
+    {
+      "id": "css-1007",
+      "user_id": "usr-patient-106",
+      "score": 80,
+      "tier": "Stable",
+      "contributing_factors": {
+        "ml_predicted": "True"
+      },
+      "computed_at": "2026-07-26T06:32:42.418657"
     }
   ]
 }

@@ -55,7 +55,7 @@ export default function BarcodeScanScreen() {
     Animated.loop(
       Animated.sequence([
         Animated.timing(scanLineAnim, {
-          toValue: 236, // Height of the scan frame minus line thickness
+          toValue: 237, // Height of the scan frame (240) minus line thickness (3)
           duration: 1500,
           useNativeDriver: true,
         }),
@@ -203,7 +203,7 @@ export default function BarcodeScanScreen() {
           {/* Camera */}
           <View collapsable={false} className="flex-1 rounded-2xl overflow-hidden relative" style={{ backgroundColor: "#000" }}>
             <CameraView
-              style={StyleSheet.absoluteFillObject}
+              style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, width: "100%", height: "100%" }}
               facing="back"
               onBarcodeScanned={scanned ? undefined : handleBarcodeScanned}
               barcodeScannerSettings={{
@@ -212,24 +212,20 @@ export default function BarcodeScanScreen() {
               enableTorch={torch}
             />
               {/* Scan overlay */}
-              <View 
-                style={[StyleSheet.absoluteFillObject, { alignItems: 'center', justifyContent: 'center' }]} 
-                pointerEvents="box-none"
-              >
-                {/* Dark vignette corners */}
-                <View 
-                  style={[StyleSheet.absoluteFillObject, { backgroundColor: "rgba(0,0,0,0.35)" }]} 
-                  pointerEvents="none"
-                />
-
-                {/* Scan frame */}
-                <View style={{ width: 240, height: 240, position: "relative", alignItems: "center", justifyContent: "center" }}>
-                  {/* Clear centre */}
-                  <View style={[StyleSheet.absoluteFillObject, { backgroundColor: "transparent", overflow: "hidden" }]}>
+              <View style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", flexDirection: "column" }} pointerEvents="box-none">
+                <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)" }} pointerEvents="none" />
+                <View style={{ flexDirection: "row", height: 240, alignSelf: "center" }} pointerEvents="box-none">
+                  <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)" }} pointerEvents="none" />
+                  
+                  {/* Scan frame (The Hole) */}
+                  <View style={{ width: 240, height: 240, position: "relative", alignItems: "center", justifyContent: "center", overflow: "hidden" }} pointerEvents="box-none">
                     {/* Animated Laser Line */}
                     {!scanned && !loading && (
                       <Animated.View
                         style={{
+                          position: "absolute",
+                          top: 0,
+                          left: 0,
                           width: "100%",
                           height: 3,
                           backgroundColor: "#ef4444",
@@ -238,31 +234,35 @@ export default function BarcodeScanScreen() {
                         }}
                       />
                     )}
+                    
+                    {/* Corner marks */}
+                    {[
+                      { top: 0, left: 0, borderTopWidth: 3, borderLeftWidth: 3, borderTopLeftRadius: 12 },
+                      { top: 0, right: 0, borderTopWidth: 3, borderRightWidth: 3, borderTopRightRadius: 12 },
+                      { bottom: 0, left: 0, borderBottomWidth: 3, borderLeftWidth: 3, borderBottomLeftRadius: 12 },
+                      { bottom: 0, right: 0, borderBottomWidth: 3, borderRightWidth: 3, borderBottomRightRadius: 12 },
+                    ].map((s, i) => (
+                      <View key={i} style={{ position: "absolute", width: 28, height: 28, borderColor: "#fff", ...s }} />
+                    ))}
+
+                    {loading && (
+                      <View style={{ backgroundColor: "rgba(0,0,0,0.6)", borderRadius: 14, padding: 16, alignItems: "center" }}>
+                        <ActivityIndicator size="large" color="#fff" />
+                        <Text style={{ color: "#fff", marginTop: 8, fontSize: 13 }}>Looking up…</Text>
+                      </View>
+                    )}
                   </View>
 
-                  {/* Corner marks */}
-                  {[
-                    { top: -1, left: -1, borderTopWidth: 3, borderLeftWidth: 3, borderTopLeftRadius: 12 },
-                    { top: -1, right: -1, borderTopWidth: 3, borderRightWidth: 3, borderTopRightRadius: 12 },
-                    { bottom: -1, left: -1, borderBottomWidth: 3, borderLeftWidth: 3, borderBottomLeftRadius: 12 },
-                    { bottom: -1, right: -1, borderBottomWidth: 3, borderRightWidth: 3, borderBottomRightRadius: 12 },
-                  ].map((s, i) => (
-                    <View key={i} style={{ position: "absolute", width: 28, height: 28, borderColor: "#fff", ...s }} />
-                  ))}
-
-                  {loading && (
-                    <View style={{ backgroundColor: "rgba(0,0,0,0.6)", borderRadius: 14, padding: 16, alignItems: "center" }}>
-                      <ActivityIndicator size="large" color="#fff" />
-                      <Text style={{ color: "#fff", marginTop: 8, fontSize: 13 }}>Looking up…</Text>
-                    </View>
-                  )}
+                  <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)" }} pointerEvents="none" />
                 </View>
-
-                {/* Label */}
-                <View style={{ marginTop: 24, backgroundColor: "rgba(0,0,0,0.5)", borderRadius: 99, paddingHorizontal: 16, paddingVertical: 8 }}>
-                  <Text style={{ color: "rgba(255,255,255,0.9)", fontSize: 13, fontWeight: "500" }}>
-                    Centre barcode in frame
-                  </Text>
+                
+                <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", alignItems: "center" }} pointerEvents="none">
+                  {/* Label */}
+                  <View style={{ marginTop: 24, backgroundColor: "rgba(0,0,0,0.5)", borderRadius: 99, paddingHorizontal: 16, paddingVertical: 8 }}>
+                    <Text style={{ color: "rgba(255,255,255,0.9)", fontSize: 13, fontWeight: "500" }}>
+                      Centre barcode in frame
+                    </Text>
+                  </View>
                 </View>
               </View>
           </View>
