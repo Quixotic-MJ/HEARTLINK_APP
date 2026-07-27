@@ -28,6 +28,13 @@ def create_exercise_log(user_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
     }
     exercise_logs.append(new_log)
     save_logs()
+
+    try:
+        from app.services.css_engine import recalculate_css
+        recalculate_css(user_id)
+    except Exception as e:
+        print(f"Error recalculating CSS on exercise log: {e}")
+
     return new_log
 
 def delete_exercise_log(user_id: str, log_id: str) -> Tuple[bool, str, int]:
@@ -55,5 +62,13 @@ def delete_exercise_log(user_id: str, log_id: str) -> Tuple[bool, str, int]:
     # 4. Soft delete
     log["deleted_at"] = datetime.now().isoformat()
     save_logs()
+
+    try:
+        from app.services.css_engine import recalculate_css
+        recalculate_css(user_id)
+    except Exception as e:
+        print(f"Error recalculating CSS on exercise delete: {e}")
+
     return True, "Exercise log deleted successfully", 200
+
 

@@ -22,7 +22,7 @@ async def request_code(payload: RegisterRequest):
             )
 
     # 2. Check pending temp_profiles for unexpired requests
-    mock_db.temp_profiles = [
+    mock_db.temp_profiles[:] = [
         tp for tp in mock_db.temp_profiles
         if not (isinstance(tp.get("expires_at"), datetime) and now > tp["expires_at"])
     ]
@@ -40,10 +40,13 @@ async def request_code(payload: RegisterRequest):
             )
 
     # 3. Create new temp profile with 10 min expiration
+    import hashlib
+    hashed_pwd = hashlib.sha256(payload.password.encode()).hexdigest()
+    
     new_temp = {
         "phone": payload.phone,
         "email": payload.email,
-        "password": payload.password,
+        "password": hashed_pwd,
         "created_at": now,
         "expires_at": now + timedelta(minutes=10),
     }
@@ -96,8 +99,9 @@ async def verifyCode(code: CodeResponse):
             detail="Verification code expired. Please request a new code."
         )
 
+    import uuid
     if code.code == "123456":
-        new_user_id = f"usr-patient-{len(mock_db.profiles) + 101}"
+        new_user_id = f"usr-patient-{uuid.uuid4().hex[:8]}"
         new_profile = {
             "id": new_user_id,
             "phone": user_data.get("phone"),
@@ -135,9 +139,11 @@ async def verifyCode(code: CodeResponse):
 
 @router.post("/login")
 async def login(payload: Login):
+    import hashlib
+    hashed_input = hashlib.sha256(payload.password.encode()).hexdigest()
     for profile in mock_db.profiles:
         if profile.get("email") == payload.identifier or profile.get("phone") == payload.identifier:
-            if profile.get("password") == payload.password:
+            if profile.get("password") == hashed_input:
                 return {"success": True, "message": "Login Successfully", "user_id": profile["id"]}
             else:
                 raise HTTPException(
@@ -154,10 +160,12 @@ from app.schemas.auth import ForgotPasswordRequest
 
 @router.post("/forgot-password")
 async def forgot_password(payload: ForgotPasswordRequest):
+    import hashlib
     for profile in mock_db.profiles:
         if profile.get("email") == payload.identifier or profile.get("phone") == payload.identifier:
             temp_pass = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
-            profile["password"] = temp_pass
+            profile["password"] = hashlib.sha256(temp_pass.encode()).hexdigest()
+            mock_db.save_profiles()
             print(f"\n{'='*40}")
             print(f"TEMP PASS FOR {payload.identifier}: {temp_pass}")
             print(f"{'='*40}\n")

@@ -28,7 +28,7 @@ export interface Routine {
   goal: string;
   type: "Light Cardio" | "Stationary" | "Breathing";
   intensity: "Low" | "Medium" | "None";
-  category: "Stable" | "Monitor Closely" | "Elevated Risk";
+  category: "Stable" | "Moderate" | "Caution" | "Elevated Risk";
   image?: string;
 }
 
@@ -62,7 +62,7 @@ export const ROUTINES: Routine[] = [
     goal: "Maintains mobility while keeping heart rate stable.",
     type: "Stationary",
     intensity: "Low",
-    category: "Monitor Closely",
+    category: "Moderate",
     image: "https://images.unsplash.com/photo-1599447421416-3414500d18a5?w=400&h=300&fit=crop",
   },
   {
@@ -72,7 +72,7 @@ export const ROUTINES: Routine[] = [
     goal: "Promotes lower body circulation passively.",
     type: "Stationary",
     intensity: "Low",
-    category: "Monitor Closely",
+    category: "Moderate",
     image: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=400&h=300&fit=crop",
   },
   {
@@ -82,7 +82,7 @@ export const ROUTINES: Routine[] = [
     goal: "Reduces upper body tension safely.",
     type: "Stationary",
     intensity: "Low",
-    category: "Monitor Closely",
+    category: "Moderate",
     image: "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=400&h=300&fit=crop",
   },
   {
@@ -126,9 +126,15 @@ const STATUS_CONFIG = {
     bannerBg: undefined as string | undefined,
     bannerBorder: undefined as string | undefined,
   },
-  "Monitor Closely": {
-    badgeBg: "#faeeda",
-    badgeText: "#854f0b",
+  Moderate: {
+    badgeBg: "#fef3c7",
+    badgeText: "#d97706",
+    bannerBg: undefined as string | undefined,
+    bannerBorder: undefined as string | undefined,
+  },
+  Caution: {
+    badgeBg: "#ffedd5",
+    badgeText: "#ea580c",
     bannerBg: undefined as string | undefined,
     bannerBorder: undefined as string | undefined,
   },
@@ -351,6 +357,9 @@ export default function ExercisesScreen() {
   const [pendingRoutine, setPendingRoutine] = useState<Routine | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+  const [selectedType, setSelectedType] = useState<string>("All");
+  const exerciseTypes = ["All", "Breathing", "Stationary", "Light Cardio"];
+
   const slideAnim = useRef(new Animated.Value(-100)).current;
 
   const fetchData = useCallback(async () => {
@@ -445,14 +454,29 @@ export default function ExercisesScreen() {
   };
 
   const cssStatus = useMemo<Routine["category"]>(() => {
-    if (cssScore >= 85) return "Stable";
-    if (cssScore >= 70) return "Monitor Closely";
+    if (cssScore >= 80) return "Stable";
+    if (cssScore >= 60) return "Moderate";
+    if (cssScore >= 40) return "Caution";
     return "Elevated Risk";
   }, [cssScore]);
 
   const activeRoutines = useMemo(
-    () => routinesList.filter((r) => r.category === cssStatus),
-    [cssStatus, routinesList],
+    () => {
+      const TIER_HIERARCHY: Record<string, string[]> = {
+        "Stable": ["Stable", "Moderate", "Caution", "Elevated Risk"],
+        "Moderate": ["Moderate", "Caution", "Elevated Risk"],
+        "Caution": ["Caution", "Elevated Risk"],
+        "Elevated Risk": ["Elevated Risk"]
+      };
+      const allowedTiers = TIER_HIERARCHY[cssStatus] || [cssStatus];
+      
+      return routinesList.filter((r) => {
+        const matchesTier = allowedTiers.includes(r.category);
+        const matchesType = selectedType === "All" || r.type === selectedType;
+        return matchesTier && matchesType;
+      });
+    },
+    [cssStatus, routinesList, selectedType],
   );
   const statusCfg = STATUS_CONFIG[cssStatus];
 
@@ -686,9 +710,43 @@ export default function ExercisesScreen() {
           </View>
 
           {/* Routine list */}
-          <Text className="text-[16px] font-medium text-slate-900 dark:text-white mb-4">
+          <Text className="text-[16px] font-medium text-slate-900 dark:text-white mb-3">
             Recommended today
           </Text>
+
+          {/* Type Filter */}
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false} 
+            className="mb-4"
+          >
+            {exerciseTypes.map((type) => {
+              const isSelected = selectedType === type;
+              return (
+                <TouchableOpacity
+                  key={type}
+                  activeOpacity={0.8}
+                  onPress={() => setSelectedType(type)}
+                  className={`px-4 py-2 rounded-full mr-2 border ${
+                    isSelected 
+                      ? "bg-slate-900 border-slate-900 dark:bg-slate-100 dark:border-slate-100" 
+                      : "bg-slate-50 border-slate-200 dark:bg-slate-800 dark:border-slate-800"
+                  }`}
+                >
+                  <Text 
+                    className={`text-[13px] font-medium ${
+                      isSelected 
+                        ? "text-white dark:text-slate-900" 
+                        : "text-slate-600 dark:text-slate-300"
+                    }`}
+                  >
+                    {type}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+
           {activeRoutines.map((routine) => (
             <RoutineCard
               key={routine.id}

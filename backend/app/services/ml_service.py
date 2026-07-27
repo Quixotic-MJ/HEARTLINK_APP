@@ -44,7 +44,9 @@ class MLService:
             if predicted_css >= 80:
                 tier = "Stable"
             elif predicted_css >= 60:
-                tier = "Monitor Closely"
+                tier = "Moderate"
+            elif predicted_css >= 40:
+                tier = "Caution"
             else:
                 tier = "Elevated Risk"
                 

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from typing import List, Dict, Any
-from app.services.notifications import get_notifications, mark_notification_read
+from app.services.notifications import get_notifications, mark_notification_read, mark_all_read
 
 router = APIRouter(prefix="/api/notifications", tags=["Notifications"])
 
@@ -14,3 +14,8 @@ def mark_read(notification_id: str):
     if not success:
         raise HTTPException(status_code=404, detail="Notification not found")
     return {"success": True, "message": "Notification marked as read"}
+
+@router.put("/{user_id}/mark-all-read")
+def mark_all(user_id: str):
+    mark_all_read(user_id)
+    return {"success": True, "message": "All notifications marked as read"}

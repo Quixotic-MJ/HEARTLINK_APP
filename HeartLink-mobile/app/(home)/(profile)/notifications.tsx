@@ -314,8 +314,15 @@ export default function NotificationsScreen() {
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
-  const markAllAsRead = () =>
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+  const markAllAsRead = async () => {
+    try {
+      if (!userId) return;
+      await fetch(`${base_url}/api/notifications/${userId}/mark-all-read`, { method: "PUT" });
+      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   // Group into today vs. earlier
   const todayLabels = ["5 min ago", "1 hour ago", "2 hours ago", "5 hours ago", "8 hours ago"];

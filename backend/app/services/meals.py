@@ -4,7 +4,7 @@ import uuid
 from app.mock_db import meal_logs, recipes, save_logs
 
 def get_meal_logs(user_id: str) -> List[Dict[str, Any]]:
-    logs = [m for m in meal_logs if m["user_id"] == user_id]
+    logs = [m for m in meal_logs if m["user_id"] == user_id and m.get("deleted_at") is None]
     return sorted(logs, key=lambda x: x["logged_at"], reverse=True)
 
 def create_meal_log(user_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
@@ -24,17 +24,36 @@ def create_meal_log(user_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
     }
     meal_logs.append(new_log)
     save_logs()
+
+    try:
+        from app.services.css_engine import recalculate_css
+        recalculate_css(user_id)
+    except Exception as e:
+        print(f"Error recalculating CSS on meal log: {e}")
+
     return new_log
 
 def search_meals(query: str) -> List[Dict[str, Any]]:
     query = query.lower()
     return [r for r in recipes if query in r["name"].lower() or any(query in tag.lower() for tag in r.get("tags", []))]
 
-def delete_meal_log(meal_id: str) -> bool:
+def delete_meal_log(user_id: str, meal_id: str) -> bool:
     global meal_logs
-    initial_count = len(meal_logs)
-    meal_logs[:] = [m for m in meal_logs if m["id"] != meal_id]
-    if len(meal_logs) < initial_count:
-        save_logs()
-        return True
-    return False
+    meal = next((m for m in meal_logs if m["id"] == meal_id), None)
+    if not meal or meal.get("deleted_at") is not None:
+        return False
+    
+    if meal["user_id"] != user_id:
+        return False
+        
+    meal["deleted_at"] = datetime.now().isoformat()
+    save_logs()
+    
+    try:
+        from app.services.css_engine import recalculate_css
+        recalculate_css(user_id)
+    except Exception as e:
+        print(f"Error recalculating CSS on meal delete: {e}")
+        
+    return True
+

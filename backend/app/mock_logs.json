@@ -1,22 +1,22 @@
 {
   "meal_logs": [
     {
-      "id": "meal-7725c7e1",
-      "user_id": "usr-patient-106",
+      "id": "meal-ab1291a8",
+      "user_id": "usr-patient-994debf7",
       "recipe_id": null,
-      "meal_name": "Blanca Creamy Coffee Mix",
+      "meal_name": "Test",
       "barcode": null,
       "portion": 1,
-      "calories": 145,
-      "sodium_mg": 125,
-      "saturated_fat_g": 5.5,
+      "calories": 1000,
+      "sodium_mg": 1600,
+      "saturated_fat_g": 0,
       "fiber_g": 0,
-      "image_url": "",
-      "logged_at": "2026-07-26T14:43:43.260101"
+      "image_url": null,
+      "logged_at": "2026-07-27T10:26:08.935794"
     },
     {
-      "id": "meal-66782be2",
-      "user_id": "usr-patient-106",
+      "id": "meal-9dbc7230",
+      "user_id": "usr-patient-994debf7",
       "recipe_id": "rec-501",
       "meal_name": "Low Sodium Chicken Tinola",
       "barcode": null,
@@ -26,201 +26,249 @@
       "saturated_fat_g": 1.5,
       "fiber_g": 4,
       "image_url": "https://storage.provider/tinola.jpg",
-      "logged_at": "2026-07-26T15:25:16.271889"
-    },
-    {
-      "id": "meal-ced93c71",
-      "user_id": "usr-patient-106",
-      "recipe_id": null,
-      "meal_name": "Lechon",
-      "barcode": null,
-      "portion": 1,
-      "calories": 0,
-      "sodium_mg": 200,
-      "saturated_fat_g": 0,
-      "fiber_g": 0,
-      "image_url": null,
-      "logged_at": "2026-07-26T15:26:25.066355"
-    },
-    {
-      "id": "meal-698c0a15",
-      "user_id": "usr-patient-106",
-      "recipe_id": null,
-      "meal_name": "Test",
-      "barcode": null,
-      "portion": 1,
-      "calories": 0,
-      "sodium_mg": 10,
-      "saturated_fat_g": 0,
-      "fiber_g": 0,
-      "image_url": null,
-      "logged_at": "2026-07-26T16:08:07.694926"
+      "logged_at": "2026-07-27T10:27:06.817795"
     }
   ],
   "exercise_logs": [
     {
-      "id": "ex-401",
-      "user_id": "usr-patient-101",
-      "routine_id": "rout-601",
-      "routine_name": "Basal Paced Breathing Exercise",
+      "id": "ex-1785120223908-b1vcn5",
+      "user_id": "usr-patient-994debf7",
+      "routine_id": "rout-605",
+      "routine_name": "Seated Leg Lifts",
+      "duration_seconds": 600,
       "duration_minutes": 10,
       "status": "completed",
-      "logged_at": "2026-07-09T20:00:00",
-      "deleted_at": "2026-07-25T17:20:01.050239"
+      "logged_at": "2026-07-27T10:43:43.912310",
+      "deleted_at": "2026-07-27T10:56:32.922908"
     },
     {
-      "id": "ex-1784968460198-8hiyoc",
-      "user_id": "usr-patient-101",
-      "routine_id": "rout-606",
-      "routine_name": "4-7-8 Deep Breathing Technique",
-      "duration_seconds": 10,
-      "duration_minutes": 0.17,
+      "id": "ex-1785120854301-afkqfs",
+      "user_id": "usr-patient-994debf7",
+      "routine_id": "rout-605",
+      "routine_name": "Seated Leg Lifts",
+      "duration_seconds": 5,
+      "duration_minutes": 0.08,
       "status": "completed",
-      "logged_at": "2026-07-25T16:34:21.731315",
-      "deleted_at": "2026-07-25T17:20:02.889738"
+      "logged_at": "2026-07-27T10:54:14.314695",
+      "deleted_at": "2026-07-27T10:56:35.140459"
     }
   ],
   "daily_health_logs": [
     {
-      "id": "log-901",
-      "user_id": "usr-patient-101",
-      "systolic_bp": 118,
-      "diastolic_bp": 76,
-      "heart_rate_bpm": 72,
-      "weight_kg": 68.0,
-      "medication_taken": false,
-      "symptoms": [],
-      "severity_map": {},
-      "context": "resting",
-      "notes": "Felt perfectly normal in the morning checking",
-      "logged_at": "2026-07-09T07:30:00"
-    },
-    {
-      "id": "log-902",
-      "user_id": "usr-patient-101",
-      "systolic_bp": 134,
-      "diastolic_bp": 86,
-      "heart_rate_bpm": 88,
-      "weight_kg": 68.5,
-      "medication_taken": false,
-      "symptoms": [
-        "chest_tightness",
-        "dizziness"
-      ],
-      "severity_map": {
-        "chest_tightness": 5,
-        "dizziness": 3
-      },
-      "context": "after_eating",
-      "notes": "Felt light dizziness after eating local dried fish lunch",
-      "logged_at": "2026-07-10T13:15:00"
-    },
-    {
-      "id": "log-752907e2",
-      "user_id": "usr-patient-101",
-      "systolic_bp": 120,
-      "diastolic_bp": 80,
-      "heart_rate_bpm": 72,
-      "weight_kg": 70,
+      "id": "log-23f6eff2",
+      "user_id": "usr-patient-994debf7",
+      "systolic_bp": 0,
+      "diastolic_bp": 0,
+      "heart_rate_bpm": 0,
+      "weight_kg": 0,
       "medication_taken": false,
       "symptoms": [
         "Shortness of Breath"
       ],
-      "severity_map": {},
-      "context": "During physical activity",
+      "severity_map": {
+        "Shortness of Breath": 1
+      },
+      "context": "While resting",
+      "triggered_by_exercise_id": null,
       "notes": "",
-      "logged_at": "2026-07-25T16:18:03.208190"
+      "logged_at": "2026-07-27T10:26:34.691970"
     }
   ],
   "css_history": [
     {
-      "id": "css-701",
-      "user_id": "usr-patient-101",
-      "score": 85,
-      "tier": "Stable",
-      "contributing_factors": {
-        "sleep_impact": "optimal",
-        "bp_variance": "low"
-      },
-      "computed_at": "2026-07-05T20:10:00"
-    },
-    {
-      "id": "css-702",
-      "user_id": "usr-patient-101",
-      "score": 82,
-      "tier": "Monitor Closely",
-      "contributing_factors": {
-        "sleep_impact": "optimal",
-        "bp_variance": "low"
-      },
-      "computed_at": "2026-07-06T20:10:00"
-    },
-    {
-      "id": "css-703",
-      "user_id": "usr-patient-101",
-      "score": 88,
-      "tier": "Stable",
-      "contributing_factors": {
-        "sleep_impact": "optimal",
-        "bp_variance": "low"
-      },
-      "computed_at": "2026-07-07T20:10:00"
-    },
-    {
-      "id": "css-704",
-      "user_id": "usr-patient-101",
-      "score": 90,
-      "tier": "Stable",
-      "contributing_factors": {
-        "sleep_impact": "optimal",
-        "bp_variance": "low"
-      },
-      "computed_at": "2026-07-08T20:10:00"
-    },
-    {
-      "id": "css-705",
-      "user_id": "usr-patient-101",
-      "score": 78,
-      "tier": "Monitor Closely",
-      "contributing_factors": {
-        "sleep_impact": "optimal",
-        "bp_variance": "low"
-      },
-      "computed_at": "2026-07-09T20:10:00"
-    },
-    {
-      "id": "css-706",
-      "user_id": "usr-patient-101",
-      "score": 52,
-      "tier": "Elevated Risk",
-      "contributing_factors": {
-        "bp_spike": "high",
-        "symptom_count": 2
-      },
-      "computed_at": "2026-07-10T13:20:00"
-    },
-    {
-      "id": "css-5d7b8244",
-      "user_id": "usr-patient-101",
-      "score": 67,
-      "tier": "Moderate",
-      "contributing_factors": {
-        "bp_penalty": 10,
-        "hr_penalty": 0,
-        "symptom_penalty": 5,
-        "multiplier_applied": true
-      },
-      "computed_at": "2026-07-25T16:18:03.209251"
-    },
-    {
-      "id": "css-1007",
-      "user_id": "usr-patient-106",
-      "score": 80,
+      "id": "css-1000",
+      "user_id": "usr-patient-994debf7",
+      "score": 86,
       "tier": "Stable",
       "contributing_factors": {
         "ml_predicted": "True"
       },
-      "computed_at": "2026-07-26T06:32:42.418657"
+      "computed_at": "2026-07-27T02:25:32.133351"
+    },
+    {
+      "id": "css-695f474c",
+      "user_id": "usr-patient-994debf7",
+      "score": 81,
+      "tier": "Stable",
+      "contributing_factors": {
+        "bp_penalty": 0,
+        "hr_penalty": 0,
+        "symptom_penalty": 0,
+        "diet_penalty": 5,
+        "exercise_bonus": 0,
+        "multiplier_applied": false
+      },
+      "computed_at": "2026-07-27T10:26:08.937836"
+    },
+    {
+      "id": "css-bff0cb5a",
+      "user_id": "usr-patient-994debf7",
+      "score": 74,
+      "tier": "Moderate",
+      "contributing_factors": {
+        "bp_penalty": 0,
+        "hr_penalty": 0,
+        "symptom_penalty": 5,
+        "diet_penalty": 5,
+        "exercise_bonus": 0,
+        "multiplier_applied": true
+      },
+      "computed_at": "2026-07-27T10:26:34.691970"
+    },
+    {
+      "id": "css-20ded6b7",
+      "user_id": "usr-patient-994debf7",
+      "score": 74,
+      "tier": "Moderate",
+      "contributing_factors": {
+        "bp_penalty": 0,
+        "hr_penalty": 0,
+        "symptom_penalty": 5,
+        "diet_penalty": 5,
+        "exercise_bonus": 0,
+        "multiplier_applied": true
+      },
+      "computed_at": "2026-07-27T10:27:06.818806"
+    },
+    {
+      "id": "css-ed1f1cbd",
+      "user_id": "usr-patient-994debf7",
+      "score": 77,
+      "tier": "Moderate",
+      "contributing_factors": {
+        "bp_penalty": 0,
+        "hr_penalty": 0,
+        "symptom_penalty": 5,
+        "diet_penalty": 5,
+        "exercise_bonus": 3,
+        "multiplier_applied": true
+      },
+      "computed_at": "2026-07-27T10:43:43.913320"
+    },
+    {
+      "id": "css-657dab86",
+      "user_id": "usr-patient-994debf7",
+      "score": 77,
+      "tier": "Moderate",
+      "contributing_factors": {
+        "bp_penalty": 0,
+        "hr_penalty": 0,
+        "symptom_penalty": 5,
+        "diet_penalty": 5,
+        "exercise_bonus": 3,
+        "multiplier_applied": true
+      },
+      "computed_at": "2026-07-27T10:54:14.320080"
+    },
+    {
+      "id": "css-16c2d432",
+      "user_id": "usr-patient-994debf7",
+      "score": 77,
+      "tier": "Moderate",
+      "contributing_factors": {
+        "bp_penalty": 0,
+        "hr_penalty": 0,
+        "symptom_penalty": 5,
+        "diet_penalty": 5,
+        "exercise_bonus": 3,
+        "multiplier_applied": true
+      },
+      "computed_at": "2026-07-27T10:56:32.923907"
+    },
+    {
+      "id": "css-44e4584e",
+      "user_id": "usr-patient-994debf7",
+      "score": 74,
+      "tier": "Moderate",
+      "contributing_factors": {
+        "bp_penalty": 0,
+        "hr_penalty": 0,
+        "symptom_penalty": 5,
+        "diet_penalty": 5,
+        "exercise_bonus": 0,
+        "multiplier_applied": true
+      },
+      "computed_at": "2026-07-27T10:56:35.141913"
     }
-  ]
+  ],
+  "notifications": [
+    {
+      "id": "notif-001",
+      "user_id": "usr-patient-101",
+      "scope": "personal",
+      "type": "alert",
+      "broadcast_type": null,
+      "publisher_id": null,
+      "title": "Health Alert Warning",
+      "message": "A daily check-in health log exceeded parameters. Clinical monitors notified.",
+      "read": true,
+      "created_at": "2026-07-10T13:20:05"
+    },
+    {
+      "id": "notif-002",
+      "user_id": "usr-patient-101",
+      "scope": "personal",
+      "type": "insight",
+      "broadcast_type": null,
+      "publisher_id": null,
+      "title": "Weekly score improved",
+      "message": "Your stability score rose by 5 points this week. Keep up the consistent medication and diet tracking!",
+      "read": true,
+      "created_at": "2026-07-16T09:00:00"
+    },
+    {
+      "id": "notif-003",
+      "user_id": "usr-patient-101",
+      "scope": "personal",
+      "type": "achievement",
+      "broadcast_type": null,
+      "publisher_id": null,
+      "title": "7-day streak",
+      "message": "You've logged your vitals for 7 consecutive days. Consistency is key to better health outcomes.",
+      "read": true,
+      "created_at": "2026-07-15T08:30:00"
+    },
+    {
+      "id": "notif-004",
+      "user_id": "usr-patient-101",
+      "scope": "personal",
+      "type": "reminder",
+      "broadcast_type": null,
+      "publisher_id": null,
+      "title": "Daily symptom check-in",
+      "message": "How are you feeling today? Tap to log your symptoms before your evening review.",
+      "read": true,
+      "created_at": "2026-07-14T18:00:00"
+    }
+  ],
+  "alerts": [
+    {
+      "id": "alert-801",
+      "user_id": "usr-patient-101",
+      "severity": "Warning",
+      "alert_type": "BP Threshold",
+      "message": "Systolic and Diastolic bounds exceeded user threshold configurations",
+      "status": "Under Review",
+      "trigger_context": {
+        "systolic": 134,
+        "diastolic": 86
+      },
+      "system_action": "Escalated to expert validation review pipeline queue",
+      "flagged_css": 52,
+      "patient_snapshot": {
+        "age": 20,
+        "sex": "male",
+        "conditions": [
+          "prehypertension"
+        ],
+        "vitals": {
+          "systolic": 134,
+          "diastolic": 86
+        }
+      },
+      "created_at": "2026-07-10T13:20:00"
+    }
+  ],
+  "saved_recipes": [],
+  "saved_exercises": []
 }

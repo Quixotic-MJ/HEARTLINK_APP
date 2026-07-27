@@ -44,13 +44,19 @@ def delete_user(user_id: str) -> bool:
         return False
         
     # Hard delete from all mock_db collections
-    mock_db.profiles = [p for p in mock_db.profiles if p["id"] != user_id]
-    mock_db.baseline_lifestyle = [l for l in mock_db.baseline_lifestyle if l["user_id"] != user_id]
-    mock_db.baseline_dietary = [d for d in mock_db.baseline_dietary if d["user_id"] != user_id]
-    mock_db.baseline_clinical = [c for c in mock_db.baseline_clinical if c["user_id"] != user_id]
-    mock_db.care_team_contacts = [c for c in mock_db.care_team_contacts if c["user_id"] != user_id]
+    mock_db.profiles[:] = [p for p in mock_db.profiles if p["id"] != user_id]
+    mock_db.baseline_lifestyle[:] = [l for l in mock_db.baseline_lifestyle if l["user_id"] != user_id]
+    mock_db.baseline_dietary[:] = [d for d in mock_db.baseline_dietary if d["user_id"] != user_id]
+    mock_db.baseline_clinical[:] = [c for c in mock_db.baseline_clinical if c["user_id"] != user_id]
+    mock_db.care_team_contacts[:] = [c for c in mock_db.care_team_contacts if c["user_id"] != user_id]
+    
+    mock_db.meal_logs[:] = [m for m in mock_db.meal_logs if m["user_id"] != user_id]
+    mock_db.exercise_logs[:] = [e for e in mock_db.exercise_logs if e["user_id"] != user_id]
+    mock_db.daily_health_logs[:] = [l for l in mock_db.daily_health_logs if l["user_id"] != user_id]
+    mock_db.css_history[:] = [c for c in mock_db.css_history if c["user_id"] != user_id]
     
     mock_db.save_profiles()
+    mock_db.save_logs()
     
     return True
 
@@ -64,6 +70,7 @@ def upsert_baseline_lifestyle(user_id: str, data: dict) -> dict:
             entry["avg_sleep_hours"] = data["avg_sleep_hours"]
             entry["family_history"] = data["family_history"]
             entry["updated_at"] = datetime.utcnow()
+            mock_db.save_profiles()
             return entry
 
     # Create new
@@ -77,6 +84,7 @@ def upsert_baseline_lifestyle(user_id: str, data: dict) -> dict:
         "updated_at": datetime.utcnow(),
     }
     mock_db.baseline_lifestyle.append(new_entry)
+    mock_db.save_profiles()
     return new_entry
 
 
@@ -87,6 +95,7 @@ def upsert_baseline_dietary(user_id: str, data: dict) -> dict:
             entry["allergies"] = data["allergies"]
             entry["dietary_practice"] = data["dietary_practice"]
             entry["updated_at"] = datetime.utcnow()
+            mock_db.save_profiles()
             return entry
 
     new_entry = {
@@ -99,6 +108,7 @@ def upsert_baseline_dietary(user_id: str, data: dict) -> dict:
         "updated_at": datetime.utcnow(),
     }
     mock_db.baseline_dietary.append(new_entry)
+    mock_db.save_profiles()
     return new_entry
 
 
@@ -134,6 +144,20 @@ def upsert_baseline_clinical(user_id: str, data: dict) -> dict:
             "updated_at": datetime.utcnow(),
         }
         mock_db.baseline_clinical.append(updated_entry)
+
+    # Auto-create default thresholds if missing
+    if not any(t["user_id"] == user_id for t in mock_db.user_thresholds):
+        mock_db.user_thresholds.append({
+            "id": f"thresh-{len(mock_db.user_thresholds) + 200}",
+            "user_id": user_id,
+            "sodium_limit_mg": 1500,
+            "active_minutes_goal": 30,
+            "systolic_threshold": 120,
+            "diastolic_threshold": 80,
+            "updated_at": datetime.utcnow()
+        })
+        
+    mock_db.save_profiles()
 
     # Mark onboarding as complete (this is the final step)
     for profile in mock_db.profiles:

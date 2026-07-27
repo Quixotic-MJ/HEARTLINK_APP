@@ -13,6 +13,20 @@ from app.mock_db import (
     user_thresholds,
 )
 
+def _safe_date(val: Any) -> datetime.date:
+    if isinstance(val, datetime):
+        return val.date()
+    elif isinstance(val, str):
+        return datetime.fromisoformat(val).date()
+    return datetime.now().date()
+    
+def _safe_datetime(val: Any) -> datetime:
+    if isinstance(val, datetime):
+        return val
+    elif isinstance(val, str):
+        return datetime.fromisoformat(val)
+    return datetime.now()
+
 # ─── Dietary exclusion map ─────────────────────────────────────────────────────
 # Maps a dietary practice to ingredient keywords that should be excluded.
 DIETARY_EXCLUSIONS: Dict[str, List[str]] = {
@@ -72,12 +86,20 @@ def _recipe_matches_diet(recipe: dict, dietary_practice: str) -> bool:
     return True
 
 
+from datetime import datetime
+
+def _get_comparison_score(user_css: list) -> int:
+    """Finds the immediately previous score to provide real-time dynamic feedback."""
+    if len(user_css) < 2:
+        return 0
+    return user_css[1].get("score", 0)
+
 def _compute_trend(user_css: list) -> str:
-    """Compute score trend from the two most recent CSS entries."""
+    """Compute score trend comparing to yesterday (or baseline)."""
     if len(user_css) < 2:
         return "+0"
     latest = user_css[0].get("score", 0)
-    previous = user_css[1].get("score", 0)
+    previous = _get_comparison_score(user_css)
     diff = latest - previous
     if diff > 0:
         return f"+{diff}"
@@ -94,7 +116,7 @@ def _generate_insight(user_css: list, latest_log: dict | None) -> dict:
         }
 
     latest_score = user_css[0].get("score", 0)
-    previous_score = user_css[1].get("score", 0)
+    previous_score = _get_comparison_score(user_css)
     diff = latest_score - previous_score
 
     if diff > 0:
@@ -125,21 +147,21 @@ def _get_today_activity(user_id: str) -> dict:
     vitals_today = [
         l
         for l in daily_health_logs
-        if l["user_id"] == user_id and l["logged_at"].date() == today
+        if l["user_id"] == user_id and _safe_date(l["logged_at"]) == today
     ]
 
     # Meals logged today
     meals_today = [
         m
         for m in meal_logs
-        if m["user_id"] == user_id and m["logged_at"].date() == today and m.get("deleted_at") is None
+        if m["user_id"] == user_id and _safe_date(m["logged_at"]) == today and m.get("deleted_at") is None
     ]
 
     # Exercises logged today
     exercises_today = [
         e
         for e in exercise_logs
-        if e["user_id"] == user_id and e["logged_at"].date() == today and e.get("deleted_at") is None
+        if e["user_id"] == user_id and _safe_date(e["logged_at"]) == today and e.get("deleted_at") is None
     ]
 
     total_sodium = sum(m.get("sodium_mg", 0) for m in meals_today)
@@ -157,8 +179,11 @@ def _get_today_activity(user_id: str) -> dict:
 
 
 def get_dashboard_data(user_id: str) -> Dict[str, Any]:
+    print(f"DEBUG get_dashboard_data: looking for {user_id}")
+    print(f"DEBUG get_dashboard_data: profiles available = {[p['id'] for p in profiles]}")
     profile = next((p for p in profiles if p["id"] == user_id), None)
     if not profile:
+        print("DEBUG get_dashboard_data: profile not found!")
         return {}
 
     user_css = sorted(
@@ -258,6 +283,10 @@ def get_dashboard_data(user_id: str) -> Dict[str, Any]:
     threshold = next((t for t in user_thresholds if t["user_id"] == user_id), None)
     sodium_limit = threshold.get("sodium_limit_mg", 1500) if threshold else 1500
 
+    # ── Unread notifications ───────────────────────────────────────────────────
+    from app.mock_db import notifications
+    unread_count = sum(1 for n in notifications if n["user_id"] == user_id and not n.get("read", True))
+
     return {
         "user": {
             "first_name": profile.get("first_name"),
@@ -267,6 +296,7 @@ def get_dashboard_data(user_id: str) -> Dict[str, Any]:
         "css_score": latest_css.get("score", 0),
         "css_tier": latest_css.get("tier", "Unknown"),
         "last_sync": latest_css.get("computed_at"),
+        "unread_notifications_count": unread_count,
         "latest_vitals": {
             "bpm": latest_log.get("heart_rate_bpm") if latest_log else "--",
             "bp": (
@@ -295,17 +325,17 @@ def get_7_day_wrap_up_data(user_id: str) -> Dict[str, Any]:
     user_meals = [
         m
         for m in meal_logs
-        if m["user_id"] == user_id and m["logged_at"] >= seven_days_ago and m.get("deleted_at") is None
+        if m["user_id"] == user_id and _safe_datetime(m["logged_at"]) >= seven_days_ago and m.get("deleted_at") is None
     ]
     user_exercises = [
         e
         for e in exercise_logs
-        if e["user_id"] == user_id and e["logged_at"] >= seven_days_ago and e.get("deleted_at") is None
+        if e["user_id"] == user_id and _safe_datetime(e["logged_at"]) >= seven_days_ago and e.get("deleted_at") is None
     ]
     user_health = [
         l
         for l in daily_health_logs
-        if l["user_id"] == user_id and l["logged_at"] >= seven_days_ago
+        if l["user_id"] == user_id and _safe_datetime(l["logged_at"]) >= seven_days_ago
     ]
 
     # Totals
@@ -315,7 +345,7 @@ def get_7_day_wrap_up_data(user_id: str) -> Dict[str, Any]:
     total_active = sum(e.get("duration_minutes", 0) for e in user_exercises)
 
     # Missed days (health logs)
-    logged_dates = {l["logged_at"].date() for l in user_health}
+    logged_dates = {_safe_date(l["logged_at"]) for l in user_health}
     logs_missed = 7 - len(logged_dates)
     if logs_missed < 0:
         logs_missed = 0
@@ -340,7 +370,7 @@ def get_7_day_wrap_up_data(user_id: str) -> Dict[str, Any]:
     days_arr = []
     user_css = sorted(
         [c for c in css_history if c["user_id"] == user_id],
-        key=lambda x: x["computed_at"],
+        key=lambda x: _safe_datetime(x["computed_at"]),
     )
     avg_css = 0
     css_count = 0
@@ -351,7 +381,7 @@ def get_7_day_wrap_up_data(user_id: str) -> Dict[str, Any]:
 
         # Find CSS for this date
         day_css = [
-            c["score"] for c in user_css if c["computed_at"].date() <= target_date
+            c["score"] for c in user_css if _safe_date(c["computed_at"]) <= target_date
         ]
         score = day_css[-1] if day_css else 0
 
@@ -379,12 +409,12 @@ def get_7_day_wrap_up_data(user_id: str) -> Dict[str, Any]:
         activity_log[d_str] = {"meals": [], "exercises": []}
 
     for m in user_meals:
-        d_str = m["logged_at"].date().isoformat()
+        d_str = _safe_date(m["logged_at"]).isoformat()
         if d_str in activity_log:
             activity_log[d_str]["meals"].append(m.get("meal_name", "Meal"))
 
     for e in user_exercises:
-        d_str = e["logged_at"].date().isoformat()
+        d_str = _safe_date(e["logged_at"]).isoformat()
         if d_str in activity_log:
             activity_log[d_str]["exercises"].append(e.get("routine_name", "Exercise"))
 

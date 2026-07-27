@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, ScrollView, Modal, Image, Dimensions } from "react-native";
+import React, { useState, useEffect, useRef } from "react";
+import { View, Text, TouchableOpacity, ScrollView, Modal, Image, Dimensions, Animated } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useUser } from "../../../contexts/UserContext";
 import YoutubePlayer from "react-native-youtube-iframe";
+import * as Haptics from "expo-haptics";
+import * as Speech from "expo-speech";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 const { width } = Dimensions.get("window");
@@ -16,22 +18,23 @@ const VIDEO_BY_TYPE: Record<string, string> = {
   "Breathing":    "https://www.youtube.com/watch?v=DbDoBzGY3vo",
 };
 
-function StepItem({ number, text, isLast }: { number: number; text: string; isLast: boolean }) {
+function StepItem({ number, text, isLast, isCurrent, allActive }: { number: number; text: string; isLast: boolean; isCurrent: boolean; allActive: boolean }) {
+  const active = allActive || isCurrent;
   return (
-    <View className="flex-row items-start">
+    <View className="flex-row items-start" style={{ opacity: active ? 1 : 0.4 }}>
       <View className="items-center mr-4" style={{ width: 28 }}>
         <View
           className="w-7 h-7 rounded-full items-center justify-center"
-          style={{ backgroundColor: "#0f172a" }}
+          style={{ backgroundColor: active ? "#2563eb" : "#94a3b8" }}
         >
           <Text style={{ color: "#fff", fontSize: 12, fontWeight: "600" }}>{number}</Text>
         </View>
         {!isLast && (
-          <View className="w-px flex-1 bg-slate-200 mt-1.5" style={{ minHeight: 20 }} />
+          <View className="w-px flex-1 mt-1.5" style={{ minHeight: 20, backgroundColor: active ? "#bfdbfe" : "#e2e8f0" }} />
         )}
       </View>
       <Text
-        className="flex-1 text-[14px] text-slate-600 leading-relaxed pt-0.5"
+        className={`flex-1 text-[15px] leading-relaxed pt-0.5 ${active ? "font-medium text-slate-800 dark:text-slate-200" : "text-slate-400 dark:text-slate-500"}`}
         style={{ paddingBottom: isLast ? 0 : 20 }}
       >
         {text}
@@ -99,6 +102,7 @@ export default function ExerciseDetailsScreen() {
     } else if (timeLeft === 0 && isActive) {
       setIsActive(false);
       setShowSafetyCheck(true);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       if (interval) clearInterval(interval);
     }
     
@@ -106,6 +110,185 @@ export default function ExerciseDetailsScreen() {
       if (interval) clearInterval(interval);
     };
   }, [isActive, timeLeft]);
+
+  // Milestone haptics & state
+  const [hasTriggeredHalfway, setHasTriggeredHalfway] = useState(false);
+  const [hasTriggeredSeventyFive, setHasTriggeredSeventyFive] = useState(false);
+  const [hasTriggeredOneMin, setHasTriggeredOneMin] = useState(false);
+
+  useEffect(() => {
+    if (!routine || !isActive) return;
+    const totalSeconds = routine.duration * 60;
+    
+    // Halfway mark (50%)
+    const halfway = Math.floor(totalSeconds / 2);
+    if (timeLeft === halfway && totalSeconds > 60 && !hasTriggeredHalfway) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setHasTriggeredHalfway(true);
+    }
+    
+    // 75% mark (25% time left)
+    const seventyFive = Math.floor(totalSeconds * 0.25);
+    if (timeLeft === seventyFive && totalSeconds > 120 && !hasTriggeredSeventyFive) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setHasTriggeredSeventyFive(true);
+    }
+
+    // 1 minute left
+    if (timeLeft === 60 && totalSeconds > 120 && !hasTriggeredOneMin) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      setHasTriggeredOneMin(true);
+    }
+  }, [timeLeft, routine, isActive, hasTriggeredHalfway, hasTriggeredSeventyFive, hasTriggeredOneMin]);
+
+  // Breathing Visual Cue & Dynamics
+  const breatheAnim = useRef(new Animated.Value(1)).current;
+  const [breathingTimes, setBreathingTimes] = useState([4000, 2000, 6000]);
+
+  const parseSeconds = (text: string, defaultTime: number = 4) => {
+    const match = text.match(/(\d+)\s*second/i);
+    return match ? parseInt(match[1]) : defaultTime;
+  };
+
+  useEffect(() => {
+    if (routine?.type === "Breathing" && routine.steps) {
+      const coreSteps = routine.steps.filter((s: string) => !s.toLowerCase().includes("repeat"));
+      if (coreSteps.length >= 3) {
+        setBreathingTimes([
+          parseSeconds(coreSteps[0], 4) * 1000,
+          parseSeconds(coreSteps[1], 2) * 1000,
+          parseSeconds(coreSteps[2], 6) * 1000,
+        ]);
+      }
+    }
+  }, [routine]);
+
+  useEffect(() => {
+    let animLoop: Animated.CompositeAnimation | null = null;
+    if (routine?.type === "Breathing" && isActive) {
+      animLoop = Animated.loop(
+        Animated.sequence([
+          Animated.timing(breatheAnim, {
+            toValue: 1.5,
+            duration: breathingTimes[0],
+            useNativeDriver: true,
+          }),
+          Animated.timing(breatheAnim, {
+            toValue: 1.5,
+            duration: breathingTimes[1],
+            useNativeDriver: true,
+          }),
+          Animated.timing(breatheAnim, {
+            toValue: 1,
+            duration: breathingTimes[2],
+            useNativeDriver: true,
+          }),
+        ])
+      );
+      animLoop.start();
+    } else {
+      breatheAnim.stopAnimation();
+      breatheAnim.setValue(1);
+    }
+    return () => {
+      if (animLoop) animLoop.stop();
+    };
+  }, [routine, isActive, breatheAnim, breathingTimes]);
+
+  // Voice Coaching & Step Sync
+  const [currentStepIndex, setCurrentStepIndex] = useState(-1);
+  const [instructionsComplete, setInstructionsComplete] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    let timeoutId: NodeJS.Timeout;
+    
+    if (!routine || !routine.steps || routine.steps.length === 0) return;
+
+    if (isActive && !instructionsComplete) {
+      const isBreathing = routine.type === "Breathing";
+      
+      const runCoachingSequence = async () => {
+        // Read intro only if it's the very start of the routine
+        if (timeLeft === routine.duration * 60) {
+           Speech.speak("Starting routine. Let's go over the form.", { rate: 0.95 });
+           await new Promise(res => { timeoutId = setTimeout(res, 3500); });
+        }
+        if (!isMounted) return;
+
+        if (isBreathing) {
+          // Breathing Mode: Continuous Loop
+          while (isMounted) {
+            for (let i = 0; i < routine.steps.length; i++) {
+              if (!isMounted) return;
+              if (routine.steps[i].toLowerCase().includes("repeat")) continue; 
+              
+              setCurrentStepIndex(i);
+              Speech.speak(routine.steps[i], { rate: 0.95 });
+              
+              const waitTime = parseSeconds(routine.steps[i], 4) * 1000;
+              await new Promise(res => { timeoutId = setTimeout(res, waitTime); });
+            }
+          }
+        } else {
+          // Cardio / Stationary Mode: Read once with smart pacing
+          for (let i = 0; i < routine.steps.length; i++) {
+            if (!isMounted) return;
+            setCurrentStepIndex(i);
+            Speech.speak(routine.steps[i], { rate: 0.95 });
+            
+            const waitTime = parseSeconds(routine.steps[i], 4) * 1000;
+            // Add a buffer so it doesn't clip immediately after talking
+            await new Promise(res => { timeoutId = setTimeout(res, waitTime + 1500); });
+          }
+
+          if (isMounted) {
+            setCurrentStepIndex(-1);
+            setInstructionsComplete(true);
+            Speech.speak("Great. Now keep this up for the rest of the timer.", { rate: 0.95 });
+          }
+        }
+      };
+
+      runCoachingSequence();
+    } else if (!isActive) {
+      Speech.stop();
+    }
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timeoutId);
+      if (!isActive) Speech.stop();
+    };
+  }, [isActive, instructionsComplete, routine]);
+
+  // Percentage-based Encouragement
+  const [spokenHalfway, setSpokenHalfway] = useState(false);
+  const [spokenSeventyFive, setSpokenSeventyFive] = useState(false);
+  const [spokenOneMin, setSpokenOneMin] = useState(false);
+
+  useEffect(() => {
+    if (!routine || !isActive || !instructionsComplete) return;
+    const totalSeconds = routine.duration * 60;
+    
+    const halfway = Math.floor(totalSeconds / 2);
+    const seventyFive = Math.floor(totalSeconds * 0.25);
+
+    if (timeLeft === halfway && totalSeconds > 60 && !spokenHalfway) {
+      Speech.speak("You are halfway there. You're doing great, keep going.", { rate: 0.95 });
+      setSpokenHalfway(true);
+    }
+
+    if (timeLeft === seventyFive && totalSeconds > 120 && !spokenSeventyFive) {
+      Speech.speak("Almost done, keep a steady pace.", { rate: 0.95 });
+      setSpokenSeventyFive(true);
+    }
+
+    if (timeLeft === 60 && totalSeconds > 120 && !spokenOneMin) {
+      Speech.speak("Just one minute left! Finish strong.", { rate: 0.95 });
+      setSpokenOneMin(true);
+    }
+  }, [timeLeft, isActive, instructionsComplete, routine, spokenHalfway, spokenSeventyFive, spokenOneMin]);
 
   const toggleTimer = () => {
     setIsActive(!isActive);
@@ -227,7 +410,25 @@ export default function ExerciseDetailsScreen() {
             <Feather name="arrow-left" size={20} color="#fff" />
           </TouchableOpacity>
 
-          {videoId ? (
+          {routine?.type === "Breathing" ? (
+            <View className="w-full items-center justify-center overflow-hidden bg-slate-900" style={{ aspectRatio: 16 / 9 }}>
+              <Animated.View
+                style={{
+                  transform: [{ scale: breatheAnim }],
+                  width: 100,
+                  height: 100,
+                  borderRadius: 50,
+                  backgroundColor: "rgba(255, 255, 255, 0.1)",
+                  borderWidth: 2,
+                  borderColor: "rgba(255, 255, 255, 0.4)",
+                  position: "absolute"
+                }}
+              />
+              <Text className="text-white mt-32 font-medium tracking-widest text-[11px] uppercase z-10 text-center">
+                {isActive ? "Breathe smoothly with the circle" : "Press Start to begin"}
+              </Text>
+            </View>
+          ) : videoId ? (
             <YoutubePlayer
               height={width * (9 / 16)}
               width={width}
@@ -277,6 +478,16 @@ export default function ExerciseDetailsScreen() {
             </View>
           </View>
 
+          {/* Gamification Badge */}
+          <View className="flex-row justify-center mb-4">
+            <View className="bg-green-100 dark:bg-green-900/30 px-4 py-2 rounded-full flex-row items-center gap-2 border border-green-200 dark:border-green-800">
+              <Feather name="trending-up" size={16} color="#16a34a" />
+              <Text className="text-green-700 dark:text-green-400 font-bold text-[13px]">
+                Finish session to gain +5 Stability Points
+              </Text>
+            </View>
+          </View>
+
           {/* Timer Section */}
           <View className="bg-white dark:bg-slate-900 p-6 rounded-[32px] items-center justify-center mb-6 border border-slate-200 dark:border-slate-800/70 shadow-sm shadow-slate-200/50">
             <Text className="text-[13px] font-bold text-slate-400 uppercase tracking-widest mb-2">Time Remaining</Text>
@@ -287,11 +498,18 @@ export default function ExerciseDetailsScreen() {
 
           {/* ── Step-by-step guide ── */}
           <Text className="text-[16px] font-medium text-slate-900 dark:text-white mb-4 mt-2">
-            Step-by-step guide
+            Instruction Guide
           </Text>
           <View className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-5 mb-8 shadow-sm shadow-slate-100">
             {steps.map((step: string, i: number) => (
-              <StepItem key={i} number={i + 1} text={step} isLast={i === steps.length - 1} />
+              <StepItem 
+                key={i} 
+                number={i + 1} 
+                text={step} 
+                isLast={i === steps.length - 1} 
+                isCurrent={i === currentStepIndex} 
+                allActive={currentStepIndex === -1}
+              />
             ))}
           </View>
         </View>

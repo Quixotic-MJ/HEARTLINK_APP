@@ -44,7 +44,20 @@ export default function DailyDiaryScreen() {
       const response = await fetch(`${base_url}/api/meals/${userId}`);
       if (response.ok) {
         const data: MealLog[] = await response.json();
-        setMeals(data);
+        
+        // Filter meals to only include today's logs
+        const today = new Date();
+        const todaysMeals = data.filter((meal) => {
+          if (!meal.logged_at) return false;
+          const mealDate = new Date(meal.logged_at);
+          return (
+            mealDate.getFullYear() === today.getFullYear() &&
+            mealDate.getMonth() === today.getMonth() &&
+            mealDate.getDate() === today.getDate()
+          );
+        });
+        
+        setMeals(todaysMeals);
       }
     } catch (error) {
       console.error("Error fetching daily meals:", error);
@@ -76,7 +89,7 @@ export default function DailyDiaryScreen() {
           style: "destructive",
           onPress: async () => {
             try {
-              const res = await fetch(`${base_url}/api/meals/${mealId}`, {
+              const res = await fetch(`${base_url}/api/meals/${userId}/${mealId}`, {
                 method: "DELETE",
               });
               if (res.ok) {

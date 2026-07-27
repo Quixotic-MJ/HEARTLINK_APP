@@ -7,7 +7,7 @@ profiles = [
         "id": "usr-patient-101",
         "phone": "+639123456788",
         "email": "test@gmail.com",
-        "password": "Password123",
+        "password": "008c70392e3abfbd0fa47bbc2ed96aa99bd49e159727fcba0f2e6abeb3a9d601",
         "role": "patient",
         "first_name": "John Mark",
         "last_name": "Magdasal",
@@ -26,7 +26,7 @@ profiles = [
         "id": "usr-patient-102",
         "phone": "+639111111111",
         "email": "pedro@example.com",
-        "password": "Password456",
+        "password": "5aa6b60e659b85fbd29583c48529cb5f134bd91b5c68fbd6e60b81e8eb93cf52",
         "role": "patient",
         "first_name": "Pedro",
         "last_name": "Penduko",
@@ -45,7 +45,7 @@ profiles = [
         "id": "usr-expert-201",
         "phone": "+639987654321",
         "email": "clinical.expert@heartlink.com",
-        "password": "Securepass456",
+        "password": "0015091a134a413d72b22ec6f62b7ff95fc572f44706346bc3e2b243be1071da",
         "role": "medical_expert",
         "first_name": "Dr. Maria",
         "last_name": "Santos",
@@ -209,7 +209,7 @@ css_history = [
         "id": "css-702",
         "user_id": "usr-patient-101",
         "score": 82,
-        "tier": "Monitor Closely",
+        "tier": "Moderate",
         "contributing_factors": {"sleep_impact": "optimal", "bp_variance": "low"},
         "computed_at": datetime(2026, 7, 6, 20, 10, 0),
     },
@@ -233,7 +233,7 @@ css_history = [
         "id": "css-705",
         "user_id": "usr-patient-101",
         "score": 78,
-        "tier": "Monitor Closely",
+        "tier": "Moderate",
         "contributing_factors": {"sleep_impact": "optimal", "bp_variance": "low"},
         "computed_at": datetime(2026, 7, 9, 20, 10, 0),
     },
@@ -448,75 +448,72 @@ recipes = [
     },
     {
         "id": "rec-505",
-        "name": "Malunggay & Corn Soup",
-        "subtitle": "Nutrient-packed Filipino moringa soup",
+        "name": "Steamed White Fish with Ginger",
+        "subtitle": "Ultra-low sodium and light protein for sensitive digestion",
         "category": "Dinner",
-        "css_tier": "Stable",
-        "sodium_mg": 65,
-        "calories": 120,
-        "saturated_fat_g": 1.0,
-        "cholesterol_mg": 0,
-        "fiber_g": 6,
+        "css_tier": "Caution",
+        "sodium_mg": 150,
+        "calories": 210,
+        "saturated_fat_g": 0.5,
+        "cholesterol_mg": 45,
+        "fiber_g": 1,
         "prep_time_minutes": 20,
-        "servings": 4,
+        "servings": 2,
         "difficulty": "Easy",
-        "heart_benefit": "Malunggay is packed with antioxidants and essential nutrients that help reduce inflammation and lower blood pressure.",
-        "tags": ["Low Sodium", "High Fiber", "Filipino"],
+        "heart_benefit": "Provides high-quality protein without taxing the cardiovascular system with sodium.",
+        "tags": ["Low Sodium", "Seafood", "Dinner"],
         "ingredients": [
-            {"name": "Fresh Malunggay (moringa) leaves", "amount": 2, "unit": "cups"},
-            {"name": "Sweet corn, kernels removed from cob", "amount": 2, "unit": "ears"},
-            {"name": "Low-sodium chicken or vegetable broth", "amount": 4, "unit": "cups"},
-            {"name": "Fresh ginger, sliced", "amount": 1, "unit": "thumb-sized"},
-            {"name": "Garlic, minced", "amount": 2, "unit": "cloves"},
-            {"name": "Onion, thinly sliced", "amount": 1, "unit": "small"}
+            {"name": "White fish fillet (tilapia or cod)", "amount": 300, "unit": "g"},
+            {"name": "Fresh ginger, julienned", "amount": 1, "unit": "tbsp"},
+            {"name": "Scallions, thinly sliced", "amount": 2, "unit": "stalks"},
+            {"name": "Low-sodium soy sauce substitute", "amount": 1, "unit": "tsp"},
+            {"name": "Sesame oil", "amount": 1, "unit": "tsp"}
         ],
         "steps": [
-            "In a medium-sized soup pot, heat a tiny splash of oil and gently sauté the minced garlic, sliced onion, and ginger until aromatic.",
-            "Pour in the 4 cups of low-sodium broth and bring it to a rolling boil over high heat.",
-            "Add the freshly scraped sweet corn kernels into the boiling broth. Reduce the heat to medium and let it simmer for 8-10 minutes until the corn is tender.",
-            "Turn off the heat entirely. Immediately add the fresh malunggay leaves into the hot soup.",
-            "Stir gently and cover the pot with a lid. Let it steep for 2-3 minutes. The residual heat will perfectly cook the malunggay leaves without destroying their nutrients.",
-            "Serve hot as a comforting, heart-healthy starter or light dinner."
+            "Place the fish fillet on a heat-proof plate.",
+            "Top the fish evenly with the julienned ginger.",
+            "Steam over boiling water for 10-12 minutes until the fish is opaque and flakes easily.",
+            "Remove from steamer and drizzle with sesame oil and soy sauce substitute.",
+            "Garnish with scallions and serve immediately."
         ],
-        "image_url": "https://images.unsplash.com/photo-1547592166-23ac45744acd?w=400&h=300&fit=crop",
+        "image_url": "https://storage.provider/steamed_fish.jpg",
         "status": "published",
         "expert_validated": True,
         "created_by": "usr-admin-002",
-        "created_at": datetime(2026, 6, 15, 10, 0, 0),
+        "created_at": datetime(2026, 6, 10, 10, 0, 0),
     },
     {
         "id": "rec-506",
-        "name": "Ensaladang Talong",
-        "subtitle": "Smoky grilled eggplant with tomato vinaigrette",
+        "name": "Mashed Sweet Potatoes",
+        "subtitle": "Potassium-rich complex carbohydrates for stable energy",
         "category": "Lunch",
-        "css_tier": "Stable",
-        "sodium_mg": 45,
-        "calories": 90,
-        "saturated_fat_g": 0.0,
+        "css_tier": "Caution",
+        "sodium_mg": 85,
+        "calories": 180,
+        "saturated_fat_g": 0,
         "cholesterol_mg": 0,
-        "fiber_g": 7,
-        "prep_time_minutes": 15,
-        "servings": 2,
+        "fiber_g": 5,
+        "prep_time_minutes": 25,
+        "servings": 4,
         "difficulty": "Easy",
-        "heart_benefit": "Eggplants contain flavonoids like anthocyanins, which are proven to improve heart health and lower the risk of heart disease.",
-        "tags": ["Low Sodium", "High Fiber", "Filipino"],
-        "ingredients": {
-            "eggplants_large": 2,
-            "tomatoes_medium": 2,
-            "red_onion_small": 1,
-            "cane_vinegar_tbsp": 2
-        },
-        "steps": [
-            "Grill whole eggplants until charred and soft.",
-            "Peel off the skin and flatten with a fork.",
-            "Combine diced tomatoes, red onion, vinegar, and olive oil.",
-            "Spoon mixture over eggplant and serve."
+        "heart_benefit": "High potassium content helps counteract the effects of sodium on blood pressure.",
+        "tags": ["Vegetarian", "Lunch", "Side Dish"],
+        "ingredients": [
+            {"name": "Sweet potatoes, peeled and cubed", "amount": 500, "unit": "g"},
+            {"name": "Unsweetened almond milk", "amount": 60, "unit": "ml"},
+            {"name": "Cinnamon", "amount": 0.5, "unit": "tsp"}
         ],
-        "image_url": "https://images.unsplash.com/photo-1615870216519-2f9fa575fa5c?w=400&h=300&fit=crop",
+        "steps": [
+            "Boil the sweet potato cubes in unsalted water for 15 minutes until very tender.",
+            "Drain well and return to the pot.",
+            "Add the almond milk and cinnamon.",
+            "Mash with a potato masher until smooth."
+        ],
+        "image_url": "https://storage.provider/sweet_potatoes.jpg",
         "status": "published",
         "expert_validated": True,
         "created_by": "usr-admin-002",
-        "created_at": datetime(2026, 6, 18, 10, 0, 0),
+        "created_at": datetime(2026, 6, 12, 11, 0, 0),
     }
 ]
 
@@ -587,7 +584,7 @@ exercise_routines = [
         "name": "15-Minute Chair Yoga",
         "description": "Maintains mobility while keeping heart rate stable.",
         "duration_minutes": 15,
-        "css_tier": "Monitor Closely",
+        "css_tier": "Moderate",
         "type": "Stationary",
         "intensity": "Low",
         "goal": "Maintains mobility while keeping heart rate stable.",
@@ -607,7 +604,7 @@ exercise_routines = [
         "name": "Seated Leg Lifts",
         "description": "Promotes lower body circulation passively.",
         "duration_minutes": 10,
-        "css_tier": "Monitor Closely",
+        "css_tier": "Moderate",
         "type": "Stationary",
         "intensity": "Low",
         "goal": "Promotes lower body circulation passively.",
@@ -663,6 +660,48 @@ exercise_routines = [
         "expert_validated": True,
         "created_by": "usr-admin-002",
         "created_at": datetime(2026, 6, 15, 9, 0, 0),
+    },
+    {
+        "id": "rout-608",
+        "name": "Light Ankle Pumps",
+        "description": "Seated ankle movements to prevent blood pooling.",
+        "duration_minutes": 5,
+        "css_tier": "Caution",
+        "type": "Stationary",
+        "intensity": "Low",
+        "goal": "Maintains basic lower extremity circulation.",
+        "steps": [
+            "Sit comfortably with feet flat on the floor.",
+            "Lift your heels while keeping your toes on the floor, then lower.",
+            "Lift your toes while keeping your heels on the floor, then lower.",
+            "Repeat for 5 minutes continuously."
+        ],
+        "media_url": None,
+        "status": "published",
+        "expert_validated": True,
+        "created_by": "usr-admin-002",
+        "created_at": datetime(2026, 6, 20, 9, 0, 0),
+    },
+    {
+        "id": "rout-609",
+        "name": "Deep Diaphragmatic Breathing",
+        "description": "Reduces cardiac workload and stress.",
+        "duration_minutes": 10,
+        "css_tier": "Caution",
+        "type": "Breathing",
+        "intensity": "None",
+        "goal": "Activates the parasympathetic nervous system to lower heart rate.",
+        "steps": [
+            "Lie flat on your back with a pillow under your knees.",
+            "Place one hand on your upper chest and the other just below your rib cage.",
+            "Breathe in slowly through your nose so that your stomach moves out against your hand.",
+            "Tighten your stomach muscles, letting them fall inward as you exhale through pursed lips."
+        ],
+        "media_url": None,
+        "status": "published",
+        "expert_validated": True,
+        "created_by": "usr-admin-002",
+        "created_at": datetime(2026, 6, 21, 9, 0, 0),
     }
 ]
 
@@ -779,15 +818,21 @@ DB_FILE = os.path.join(os.path.dirname(__file__), "mock_profiles.json")
 TEMP_DB_FILE = os.path.join(os.path.dirname(__file__), "mock_temp_profiles.json")
 
 def _serialize_item(item):
+    if not isinstance(item, dict): return item
     serialized = {}
     for k, v in item.items():
         if isinstance(v, (datetime, date)):
             serialized[k] = v.isoformat()
+        elif isinstance(v, dict):
+            serialized[k] = _serialize_item(v)
+        elif isinstance(v, list):
+            serialized[k] = [_serialize_item(i) if isinstance(i, dict) else i for i in v]
         else:
             serialized[k] = v
     return serialized
 
 def _deserialize_item(item):
+    if not isinstance(item, dict): return item
     deserialized = {}
     for k, v in item.items():
         if k == "date_of_birth" and isinstance(v, str):
@@ -800,13 +845,23 @@ def _deserialize_item(item):
                 deserialized[k] = datetime.fromisoformat(v)
             except Exception:
                 deserialized[k] = v
+        elif isinstance(v, dict):
+            deserialized[k] = _deserialize_item(v)
+        elif isinstance(v, list):
+            deserialized[k] = [_deserialize_item(i) if isinstance(i, dict) else i for i in v]
         else:
             deserialized[k] = v
     return deserialized
 
 def save_profiles():
     try:
-        data = [_serialize_item(p) for p in profiles]
+        data = {
+            "profiles": [_serialize_item(p) for p in profiles],
+            "baseline_lifestyle": [_serialize_item(l) for l in baseline_lifestyle],
+            "baseline_dietary": [_serialize_item(d) for d in baseline_dietary],
+            "baseline_clinical": [_serialize_item(c) for c in baseline_clinical],
+            "user_thresholds": [_serialize_item(t) for t in user_thresholds]
+        }
         with open(DB_FILE, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
     except Exception as e:
@@ -821,13 +876,31 @@ def save_temp_profiles():
         print(f"Error saving temp profiles: {e}")
 
 def load_profiles():
-    global profiles
+    global profiles, baseline_lifestyle, baseline_dietary, baseline_clinical, user_thresholds
     if os.path.exists(DB_FILE):
         try:
             with open(DB_FILE, "r", encoding="utf-8") as f:
                 data = json.load(f)
-                profiles.clear()
-                profiles.extend([_deserialize_item(p) for p in data])
+                if isinstance(data, list):
+                    # Backwards compatibility for old format
+                    profiles.clear()
+                    profiles.extend([_deserialize_item(p) for p in data])
+                else:
+                    if "profiles" in data:
+                        profiles.clear()
+                        profiles.extend([_deserialize_item(p) for p in data["profiles"]])
+                    if "baseline_lifestyle" in data:
+                        baseline_lifestyle.clear()
+                        baseline_lifestyle.extend([_deserialize_item(l) for l in data["baseline_lifestyle"]])
+                    if "baseline_dietary" in data:
+                        baseline_dietary.clear()
+                        baseline_dietary.extend([_deserialize_item(d) for d in data["baseline_dietary"]])
+                    if "baseline_clinical" in data:
+                        baseline_clinical.clear()
+                        baseline_clinical.extend([_deserialize_item(c) for c in data["baseline_clinical"]])
+                    if "user_thresholds" in data:
+                        user_thresholds.clear()
+                        user_thresholds.extend([_deserialize_item(t) for t in data["user_thresholds"]])
         except Exception as e:
             print(f"Error loading mock profiles: {e}")
     else:
@@ -854,7 +927,11 @@ def save_logs():
             "meal_logs": [_serialize_item(m) for m in meal_logs],
             "exercise_logs": [_serialize_item(e) for e in exercise_logs],
             "daily_health_logs": [_serialize_item(l) for l in daily_health_logs],
-            "css_history": [_serialize_item(c) for c in css_history]
+            "css_history": [_serialize_item(c) for c in css_history],
+            "notifications": [_serialize_item(n) for n in notifications],
+            "alerts": [_serialize_item(a) for a in alerts],
+            "saved_recipes": [_serialize_item(r) for r in saved_recipes],
+            "saved_exercises": [_serialize_item(e) for e in saved_exercises]
         }
         with open(LOGS_DB_FILE, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
@@ -862,7 +939,7 @@ def save_logs():
         print(f"Error saving mock logs: {e}")
 
 def load_logs():
-    global meal_logs, exercise_logs, daily_health_logs, css_history
+    global meal_logs, exercise_logs, daily_health_logs, css_history, notifications, alerts, saved_recipes, saved_exercises
     if os.path.exists(LOGS_DB_FILE):
         try:
             with open(LOGS_DB_FILE, "r", encoding="utf-8") as f:
@@ -879,6 +956,18 @@ def load_logs():
                 if "css_history" in data:
                     css_history.clear()
                     css_history.extend([_deserialize_item(c) for c in data["css_history"]])
+                if "notifications" in data:
+                    notifications.clear()
+                    notifications.extend([_deserialize_item(n) for n in data["notifications"]])
+                if "alerts" in data:
+                    alerts.clear()
+                    alerts.extend([_deserialize_item(a) for a in data["alerts"]])
+                if "saved_recipes" in data:
+                    saved_recipes.clear()
+                    saved_recipes.extend([_deserialize_item(r) for r in data["saved_recipes"]])
+                if "saved_exercises" in data:
+                    saved_exercises.clear()
+                    saved_exercises.extend([_deserialize_item(e) for e in data["saved_exercises"]])
         except Exception as e:
             print(f"Error loading mock logs: {e}")
     else:

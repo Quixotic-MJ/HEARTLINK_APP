@@ -22,9 +22,9 @@ def add_meal_log(user_id: str, data: Dict[str, Any]):
     log = create_meal_log(user_id, data)
     return {"success": True, "message": "Meal log saved", "data": log}
 
-@router.delete("/{meal_id}", response_model=Dict[str, Any])
-def remove_meal_log(meal_id: str):
-    deleted = delete_meal_log(meal_id)
+@router.delete("/{user_id}/{meal_id}", response_model=Dict[str, Any])
+def remove_meal_log(user_id: str, meal_id: str):
+    deleted = delete_meal_log(user_id, meal_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Meal log not found")
     return {"success": True, "message": "Meal log deleted"}
