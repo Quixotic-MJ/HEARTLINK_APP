@@ -196,7 +196,8 @@
       "active_minutes_goal": 30,
       "systolic_threshold": 120,
       "diastolic_threshold": 80,
-      "updated_at": "2026-07-27T02:25:32.088069"
+      "updated_at": "2026-07-28T02:06:06.499736",
+      "fluid_limit_ml": 2000
     }
   ]
 }

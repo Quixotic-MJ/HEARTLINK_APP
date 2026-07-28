@@ -105,35 +105,6 @@ export default function SettingsScreen() {
     router.replace("/onboarding");
   };
 
-  const handleDeleteAccount = () => {
-    Alert.alert(
-      "Delete Account",
-      "Are you sure you want to permanently delete your account? This action cannot be undone.",
-      [
-        { text: "Cancel", style: "cancel" },
-        { 
-          text: "Delete", 
-          style: "destructive", 
-          onPress: async () => {
-            try {
-              const response = await fetch(`${base_url}/api/users/${userId}`, {
-                method: "DELETE",
-              });
-              if (response.ok) {
-                logout();
-                router.replace("/onboarding");
-              } else {
-                Alert.alert("Error", "Could not delete account. Please try again.");
-              }
-            } catch (error) {
-              Alert.alert("Error", "Network error. Please try again.");
-            }
-          }
-        }
-      ]
-    );
-  };
-
   return (
     <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950" edges={["top"]}>
       <StatusBar style="dark" />
@@ -246,15 +217,6 @@ export default function SettingsScreen() {
             iconBg="#fcebeb"
             iconColor="#a32d2d"
             onPress={handleSignOut}
-          />
-          <SettingsRow
-            icon="trash-2"
-            label="Delete account"
-            subtitle="Permanently remove your health data"
-            danger
-            iconBg="#fef2f2"
-            iconColor="#ef4444"
-            onPress={handleDeleteAccount}
             isLast
           />
         </SettingsGroup>

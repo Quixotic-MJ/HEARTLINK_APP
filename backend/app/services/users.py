@@ -168,3 +168,83 @@ def upsert_baseline_clinical(user_id: str, data: dict) -> dict:
             break
 
     return updated_entry
+
+
+def change_password(user_id: str, current_pwd: str, new_pwd: str) -> bool:
+    import hashlib
+    hashed_current = hashlib.sha256(current_pwd.encode()).hexdigest()
+    hashed_new = hashlib.sha256(new_pwd.encode()).hexdigest()
+
+    for profile in mock_db.profiles:
+        if profile["id"] == user_id:
+            if profile.get("password") == hashed_current:
+                profile["password"] = hashed_new
+                profile["updated_at"] = datetime.utcnow()
+                mock_db.save_profiles()
+                return True
+            else:
+                return False
+    return False
+
+def get_reminders(user_id: str) -> dict:
+    for r in mock_db.user_reminders:
+        if r["user_id"] == user_id:
+            return r
+    
+    default = {
+        "user_id": user_id,
+        "morning": {"enabled": True, "time": "08:00"},
+        "evening": {"enabled": False, "time": "20:00"},
+        "activity": {"enabled": False, "time": "17:00"}
+    }
+    mock_db.user_reminders.append(default)
+    return default
+
+def update_reminders(user_id: str, data: dict) -> dict:
+    for r in mock_db.user_reminders:
+        if r["user_id"] == user_id:
+            r["morning"] = data["morning"]
+            r["evening"] = data["evening"]
+            r["activity"] = data["activity"]
+            return r
+    
+    new_r = {
+        "user_id": user_id,
+        "morning": data["morning"],
+        "evening": data["evening"],
+        "activity": data["activity"]
+    }
+    mock_db.user_reminders.append(new_r)
+    return new_r
+
+def add_care_team_contact(user_id: str, data: dict) -> dict:
+    import uuid
+    new_contact = {
+        "id": f"team-contacts-{uuid.uuid4().hex[:8]}",
+        "user_id": user_id,
+        "contact_type": data.get("contact_type", "emergency"),
+        "name": data.get("name", ""),
+        "role_title": data.get("role_title", ""),
+        "phone": data.get("phone", ""),
+        "created_at": datetime.utcnow(),
+    }
+    mock_db.care_team_contacts.append(new_contact)
+    return new_contact
+
+def update_care_team_contact(user_id: str, contact_id: str, data: dict) -> dict:
+    for contact in mock_db.care_team_contacts:
+        if contact["id"] == contact_id and contact["user_id"] == user_id:
+            contact["name"] = data.get("name", contact["name"])
+            contact["role_title"] = data.get("role_title", contact["role_title"])
+            contact["contact_type"] = data.get("contact_type", contact["contact_type"])
+            contact["phone"] = data.get("phone", contact["phone"])
+            return contact
+    return None
+
+def delete_care_team_contact(user_id: str, contact_id: str) -> bool:
+    initial_length = len(mock_db.care_team_contacts)
+    mock_db.care_team_contacts[:] = [
+        c for c in mock_db.care_team_contacts 
+        if not (c["id"] == contact_id and c["user_id"] == user_id)
+    ]
+    return len(mock_db.care_team_contacts) < initial_length

@@ -154,6 +154,10 @@ function EditProfileModal({
   onSave: (data: any) => Promise<void> | void;
 }) {
   const [name, setName] = useState(currentData.name);
+  const [email, setEmail] = useState(currentData.email);
+  const [phone, setPhone] = useState(currentData.phone);
+  const [birthdate, setBirthdate] = useState(currentData.birthdate);
+  const [gender, setGender] = useState(currentData.gender);
   const [height, setHeight] = useState(currentData.height);
   const [weight, setWeight] = useState(currentData.weight);
   const [isSaving, setIsSaving] = useState(false);
@@ -161,6 +165,10 @@ function EditProfileModal({
   React.useEffect(() => {
     if (visible) {
       setName(currentData.name);
+      setEmail(currentData.email);
+      setPhone(currentData.phone);
+      setBirthdate(currentData.birthdate);
+      setGender(currentData.gender);
       setHeight(currentData.height);
       setWeight(currentData.weight);
       setIsSaving(false);
@@ -175,6 +183,10 @@ function EditProfileModal({
 
     await onSave({
       name,
+      email,
+      phone,
+      birthdate,
+      gender,
       height,
       weight,
       bmi: isNaN(Number(bmi)) ? currentData.bmi : bmi,
@@ -209,6 +221,46 @@ function EditProfileModal({
                   className="flex-1 text-[15px] text-slate-900 dark:text-white font-medium"
                   value={name}
                   onChangeText={setName}
+                />
+              </View>
+
+              <Text className="text-[13px] font-medium text-slate-700 dark:text-slate-300 mb-2">Email</Text>
+              <View className="flex-row items-center bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/70 rounded-xl px-4 py-3 mb-4">
+                <TextInput
+                  className="flex-1 text-[15px] text-slate-900 dark:text-white font-medium"
+                  keyboardType="email-address"
+                  value={email}
+                  onChangeText={setEmail}
+                />
+              </View>
+
+              <Text className="text-[13px] font-medium text-slate-700 dark:text-slate-300 mb-2">Phone</Text>
+              <View className="flex-row items-center bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/70 rounded-xl px-4 py-3 mb-4">
+                <TextInput
+                  className="flex-1 text-[15px] text-slate-900 dark:text-white font-medium"
+                  keyboardType="phone-pad"
+                  value={phone}
+                  onChangeText={setPhone}
+                />
+              </View>
+
+              <Text className="text-[13px] font-medium text-slate-700 dark:text-slate-300 mb-2">Date of Birth</Text>
+              <View className="flex-row items-center bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/70 rounded-xl px-4 py-3 mb-4">
+                <TextInput
+                  className="flex-1 text-[15px] text-slate-900 dark:text-white font-medium"
+                  placeholder="YYYY-MM-DD"
+                  placeholderTextColor="#94a3b8"
+                  value={birthdate}
+                  onChangeText={setBirthdate}
+                />
+              </View>
+
+              <Text className="text-[13px] font-medium text-slate-700 dark:text-slate-300 mb-2">Gender</Text>
+              <View className="flex-row items-center bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/70 rounded-xl px-4 py-3 mb-4">
+                <TextInput
+                  className="flex-1 text-[15px] text-slate-900 dark:text-white font-medium"
+                  value={gender}
+                  onChangeText={setGender}
                 />
               </View>
 
@@ -276,26 +328,53 @@ export default function ProfileScreen() {
     height: "",
     weight: "",
     bmi: "",
-    bloodType: "O+", // Default mock
-    restingHR: "72", // Default mock
-    systolicBP: "120", // Default mock
-    diastolicBP: "80", // Default mock
-    conditions: ["Hypertension Stage 1", "High Cholesterol"], // Default mock
-    medications: "Amlodipine 5mg", // Default mock
-    allergies: "None reported", // Default mock
-    emergencyContact: "Maria Magdasal", // Default mock
-    emergencyPhone: "+63 917 654 3210", // Default mock
+    bloodType: "O+",
+    restingHR: "--",
+    systolicBP: "--",
+    diastolicBP: "--",
+    conditions: [] as string[],
+    medications: "None reported",
+    allergies: "None reported",
+    careTeam: [] as any[],
   });
 
   useEffect(() => {
     async function fetchProfile() {
       try {
-        const response = await fetch(`${base_url}/api/users/${userId}/profile`);
-        if (!response.ok) throw new Error("Failed to fetch profile");
-        const data = await response.json();
+        const [profileRes, logsRes] = await Promise.all([
+          fetch(`${base_url}/api/users/${userId}/profile`),
+          fetch(`${base_url}/api/health-logs/${userId}`).catch(() => null)
+        ]);
+        
+        if (!profileRes.ok) throw new Error("Failed to fetch profile");
+        const data = await profileRes.json();
+        
+        let latestVitals = { restingHR: "--", systolicBP: "--", diastolicBP: "--" };
+        if (logsRes && logsRes.ok) {
+          const logsData = await logsRes.json();
+          if (logsData && logsData.length > 0) {
+            const latest = logsData[logsData.length - 1]; // Assuming the last is the latest, or sort by date
+            latestVitals.restingHR = latest.heart_rate_bpm ? latest.heart_rate_bpm.toString() : "--";
+            latestVitals.systolicBP = latest.systolic_bp ? latest.systolic_bp.toString() : "--";
+            latestVitals.diastolicBP = latest.diastolic_bp ? latest.diastolic_bp.toString() : "--";
+          }
+        }
         
         const profile = data.profile;
+        const baselines = data.baselines || {};
+        const careTeam = data.care_team || [];
+        
         if (profile) {
+          let meds = "None reported";
+          if (baselines.clinical?.on_medication) {
+            meds = "Yes";
+          }
+          
+          let allergies = "None reported";
+          if (baselines.dietary?.allergies && baselines.dietary.allergies.length > 0) {
+            allergies = baselines.dietary.allergies.join(", ");
+          }
+
           setUserData(prev => ({
             ...prev,
             name: `${profile.first_name || ""} ${profile.last_name || ""}`.trim(),
@@ -308,6 +387,13 @@ export default function ProfileScreen() {
             bmi: (profile.weight_kg && profile.height_cm) 
               ? (profile.weight_kg / Math.pow(profile.height_cm / 100, 2)).toFixed(1) 
               : "0",
+            conditions: baselines.clinical?.diagnosed_conditions || [],
+            medications: meds,
+            allergies: allergies,
+            careTeam: careTeam,
+            restingHR: latestVitals.restingHR,
+            systolicBP: latestVitals.systolicBP,
+            diastolicBP: latestVitals.diastolicBP,
           }));
         }
       } catch (err) {
@@ -328,6 +414,8 @@ export default function ProfileScreen() {
       const payload = {
         first_name: firstName,
         last_name: lastName,
+        email: newData.email || userData.email,
+        phone: newData.phone || userData.phone,
         date_of_birth: newData.birthdate || userData.birthdate,
         sex: newData.gender || userData.gender,
         height_cm: parseFloat(newData.height),
@@ -442,13 +530,6 @@ export default function ProfileScreen() {
                 resizeMode="cover"
               />
             </View>
-            {/* Camera button */}
-            <TouchableOpacity
-              activeOpacity={0.8}
-              className="absolute bottom-0 right-0 w-8 h-8 bg-slate-900 rounded-full items-center justify-center border-2 border-slate-50"
-            >
-              <Feather name="camera" size={13} color="#fff" />
-            </TouchableOpacity>
           </View>
 
           <Text className="text-[20px] font-medium text-slate-900 dark:text-white tracking-tight">
@@ -517,6 +598,17 @@ export default function ProfileScreen() {
 
           {/* ── Actions ── */}
           <View className="gap-2.5 mt-2">
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={() => router.push("/(home)/(profile)/care-team")}
+              className="bg-white dark:bg-slate-900 rounded-2xl py-3.5 flex-row items-center justify-center gap-2 border border-slate-200 dark:border-slate-800/70"
+            >
+              <Feather name="users" size={15} color="#0ea5e9" />
+              <Text className="text-[14px] font-medium text-slate-700 dark:text-slate-300">
+                My Care Team
+              </Text>
+            </TouchableOpacity>
+
             <TouchableOpacity
               activeOpacity={0.85}
               onPress={exportPDF}

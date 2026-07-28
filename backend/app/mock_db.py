@@ -127,10 +127,21 @@ user_thresholds = [
         "id": "thresh-101",
         "user_id": "usr-patient-101",
         "sodium_limit_mg": 1500,
+        "fluid_limit_ml": 2000,
         "active_minutes_goal": 30,
         "systolic_threshold": 120,  # Borderline metric constraint limit
         "diastolic_threshold": 80,
         "updated_at": datetime(2026, 6, 25, 8, 25, 0),
+    }
+]
+
+# 4.5 User Reminders Configuration
+user_reminders = [
+    {
+        "user_id": "usr-patient-101",
+        "morning": {"enabled": True, "time": "08:00"},
+        "evening": {"enabled": False, "time": "20:00"},
+        "activity": {"enabled": False, "time": "17:00"}
     }
 ]
 
