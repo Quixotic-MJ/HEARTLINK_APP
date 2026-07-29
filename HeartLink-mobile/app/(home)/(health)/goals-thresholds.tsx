@@ -16,6 +16,7 @@ import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useUser } from "../../../contexts/UserContext";
+import { useToast } from "../../../contexts/ToastContext";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -24,6 +25,7 @@ export default function GoalsThresholdsScreen() {
   const isDark = colorScheme === "dark";
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { showToast } = useToast();
   
   const { userId } = useUser();
   const [loading, setLoading] = useState(true);
@@ -67,11 +69,11 @@ export default function GoalsThresholdsScreen() {
     const fl = parseInt(fluidLimit) || 0;
 
     // Validation
-    if (sod < 500 || sod > 5000) return Alert.alert("Invalid Input", "Sodium limit must be between 500mg and 5000mg.");
-    if (act < 0 || act > 300) return Alert.alert("Invalid Input", "Active minutes must be between 0 and 300.");
-    if (sys < 80 || sys > 200) return Alert.alert("Invalid Input", "Systolic BP target must be between 80 and 200.");
-    if (dia < 40 || dia > 130) return Alert.alert("Invalid Input", "Diastolic BP target must be between 40 and 130.");
-    if (fl < 500 || fl > 5000) return Alert.alert("Invalid Input", "Fluid limit must be between 500ml and 5000ml.");
+    if (sod < 500 || sod > 5000) return showToast({ title: "Invalid Input", message: "Sodium limit must be between 500mg and 5000mg.", type: "error" });
+    if (act < 0 || act > 300) return showToast({ title: "Invalid Input", message: "Active minutes must be between 0 and 300.", type: "error" });
+    if (sys < 80 || sys > 200) return showToast({ title: "Invalid Input", message: "Systolic BP target must be between 80 and 200.", type: "error" });
+    if (dia < 40 || dia > 130) return showToast({ title: "Invalid Input", message: "Diastolic BP target must be between 40 and 130.", type: "error" });
+    if (fl < 500 || fl > 5000) return showToast({ title: "Invalid Input", message: "Fluid limit must be between 500ml and 5000ml.", type: "error" });
 
     setSaving(true);
     try {
@@ -91,14 +93,14 @@ export default function GoalsThresholdsScreen() {
       }
       const result = await response.json();
       if (result.success) {
-        Alert.alert("Success", "Your goals and thresholds have been updated.");
+        showToast({ title: "Success", message: "Your goals and thresholds have been updated.", type: "success" });
         router.back();
       } else {
-        Alert.alert("Error", "Could not save thresholds.");
+        showToast({ title: "Error", message: "Could not save thresholds.", type: "error" });
       }
     } catch (e) {
       console.error(e);
-      Alert.alert("Error", "Network error while saving.");
+      showToast({ title: "Error", message: "Network error while saving.", type: "error" });
     } finally {
       setSaving(false);
     }

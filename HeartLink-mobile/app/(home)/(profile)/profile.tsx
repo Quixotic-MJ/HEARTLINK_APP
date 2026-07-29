@@ -23,6 +23,7 @@ import { useUser } from "../../../contexts/UserContext";
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
+import { useToast } from "../../../contexts/ToastContext";
 
 // ─── Profile Field Row ────────────────────────────────────────────────────────
 
@@ -316,7 +317,8 @@ export default function ProfileScreen() {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
   const router = useRouter();
-  const { userId, user } = useUser();
+  const { userId, user, logout } = useUser();
+  const { showToast } = useToast();
 
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -486,13 +488,13 @@ export default function ProfileScreen() {
 
       const { uri } = await Print.printToFileAsync({ html });
       if (!(await Sharing.isAvailableAsync())) {
-        Alert.alert("Error", "Sharing is not available on this device.");
+        showToast({ title: "Error", message: "Sharing is not available on this device.", type: "error" });
         return;
       }
       await Sharing.shareAsync(uri);
     } catch (error) {
       console.error(error);
-      Alert.alert("Error", "Failed to generate report.");
+      showToast({ title: "Error", message: "Failed to generate report.", type: "error" });
     }
   };
 

@@ -7,6 +7,7 @@ import { useRouter } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useUser } from "../../../contexts/UserContext";
+import { useToast } from "../../../contexts/ToastContext";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -64,6 +65,7 @@ export default function DailyRemindersScreen() {
   const isDark = colorScheme === "dark";
   const router = useRouter();
   const { userId } = useUser();
+  const { showToast } = useToast();
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -167,12 +169,12 @@ export default function DailyRemindersScreen() {
           }
         }
 
-        Alert.alert("Success", "Reminder preferences saved successfully.");
+        showToast({ title: "Success", message: "Reminder preferences saved successfully.", type: "success" });
       } else {
-        Alert.alert("Error", "Failed to save preferences.");
+        showToast({ title: "Error", message: "Failed to save preferences.", type: "error" });
       }
     } catch (err) {
-      Alert.alert("Error", "Network error. Please try again.");
+      showToast({ title: "Error", message: "Network error. Please try again.", type: "error" });
     } finally {
       setIsSaving(false);
     }

@@ -13,6 +13,7 @@ import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Location from 'expo-location';
+import { EmptyState } from "../components/ui/EmptyState";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -275,17 +276,12 @@ export default function LocatorScreen() {
           showsVerticalScrollIndicator={false}
         >
           {filtered.length === 0 ? (
-            <View className="items-center pt-12">
-              <View className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-800/70 items-center justify-center mb-3">
-                <Feather name="search" size={22} color="#cbd5e1" />
-              </View>
-              <Text className="text-[15px] font-medium text-slate-900 dark:text-white dark:text-slate-900 mb-1">
-                No results found
-              </Text>
-              <Text className="text-[13px] text-slate-400 text-center">
-                Try a different name or specialty.
-              </Text>
-            </View>
+            <EmptyState
+              icon={<Feather name="search" size={26} color="#cbd5e1" />}
+              title="No results found"
+              subtitle="Try a different name or specialty."
+              className="pt-12"
+            />
           ) : (
             filtered.map((clinic) => (
               <ClinicCard

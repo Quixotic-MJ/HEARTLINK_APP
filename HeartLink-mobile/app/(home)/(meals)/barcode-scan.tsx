@@ -18,6 +18,7 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import { StatusBar } from "expo-status-bar";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter, useFocusEffect } from "expo-router";
+import { useToast } from "../../../contexts/ToastContext";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -41,6 +42,7 @@ export default function BarcodeScanScreen() {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
   const router = useRouter();
+  const { showToast } = useToast();
   const insets = useSafeAreaInsets();
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
@@ -125,14 +127,12 @@ export default function BarcodeScanScreen() {
         // Reset scanner after a short delay so they can scan again if they go back
         setTimeout(() => setScanned(false), 1000);
       } else {
-        Alert.alert("Product not found", "Could not find nutritional data for this barcode.", [
-          { text: "Scan again", onPress: () => setScanned(false) },
-        ]);
+        showToast({ title: "Product not found", message: "Could not find nutritional data for this barcode.", type: "error" });
+        setTimeout(() => setScanned(false), 2000);
       }
     } catch {
-      Alert.alert("Error", "An error occurred while fetching product data.", [
-        { text: "Scan again", onPress: () => setScanned(false) },
-      ]);
+      showToast({ title: "Error", message: "An error occurred while fetching product data.", type: "error" });
+      setTimeout(() => setScanned(false), 2000);
     } finally {
       setLoading(false);
     }

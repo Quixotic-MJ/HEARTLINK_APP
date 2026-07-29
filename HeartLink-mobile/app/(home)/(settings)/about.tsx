@@ -5,11 +5,13 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
 import { Feather } from "@expo/vector-icons";
+import { useToast } from "../../../contexts/ToastContext";
 
 export default function AboutScreen() {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
   const router = useRouter();
+  const { showToast } = useToast();
   const [isCheckingUpdates, setIsCheckingUpdates] = useState(false);
 
   // Pulse Animation
@@ -36,7 +38,7 @@ export default function AboutScreen() {
     setIsCheckingUpdates(true);
     setTimeout(() => {
       setIsCheckingUpdates(false);
-      Alert.alert("Up to Date", "You are running the latest version of HeartLink (1.0.0).");
+      showToast({ title: "Up to Date", message: "You are running the latest version of HeartLink (1.0.0).", type: "success" });
     }, 2000);
   };
 

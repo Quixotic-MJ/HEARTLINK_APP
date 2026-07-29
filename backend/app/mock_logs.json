@@ -40,7 +40,8 @@
       "saturated_fat_g": 2,
       "fiber_g": 2,
       "image_url": "https://images.unsplash.com/photo-1580476262798-bddd9f4b7369?w=400&h=300&fit=crop",
-      "logged_at": "2026-07-29T13:30:44.180840"
+      "logged_at": "2026-07-29T13:30:44.180840",
+      "deleted_at": "2026-07-29T15:51:16.574386"
     }
   ],
   "exercise_logs": [
@@ -75,7 +76,7 @@
       "duration_minutes": 0.17,
       "status": "completed",
       "logged_at": "2026-07-29T14:07:30.713779",
-      "deleted_at": null
+      "deleted_at": "2026-07-29T15:51:52.186741"
     }
   ],
   "daily_health_logs": [
@@ -244,6 +245,36 @@
         "multiplier_applied": false
       },
       "computed_at": "2026-07-29T14:07:30.723937"
+    },
+    {
+      "id": "css-86a8e37c",
+      "user_id": "usr-patient-994debf7",
+      "score": 86,
+      "tier": "Stable",
+      "contributing_factors": {
+        "bp_penalty": 0,
+        "hr_penalty": 0,
+        "symptom_penalty": 0,
+        "diet_penalty": 0,
+        "exercise_bonus": 3,
+        "multiplier_applied": false
+      },
+      "computed_at": "2026-07-29T15:51:16.584898"
+    },
+    {
+      "id": "css-435e2ff0",
+      "user_id": "usr-patient-994debf7",
+      "score": 86,
+      "tier": "Stable",
+      "contributing_factors": {
+        "bp_penalty": 0,
+        "hr_penalty": 0,
+        "symptom_penalty": 0,
+        "diet_penalty": 0,
+        "exercise_bonus": 0,
+        "multiplier_applied": false
+      },
+      "computed_at": "2026-07-29T15:51:52.188351"
     }
   ],
   "notifications": [

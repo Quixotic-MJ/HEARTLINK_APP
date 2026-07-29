@@ -15,6 +15,7 @@ import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useUser } from "../../../contexts/UserContext";
 import { queueMealForSync } from "../../../services/SyncService";
+import { useToast } from "../../../contexts/ToastContext";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -164,6 +165,7 @@ export default function ManualMealLogScreen() {
   const isDark = colorScheme === "dark";
   const router = useRouter();
   const { userId } = useUser();
+  const { showToast } = useToast();
 
   // Shared
   const [timeOfMeal, setTimeOfMeal] = useState<TimeOfMeal>("Breakfast");
@@ -189,7 +191,7 @@ export default function ManualMealLogScreen() {
 
   const handleSave = async () => {
     if (!foodDescription.trim()) {
-      Alert.alert("Missing information", "Please enter a brief food description.");
+      showToast({ title: "Missing information", message: "Please enter a brief food description.", type: "error" });
       return;
     }
 
@@ -197,7 +199,7 @@ export default function ManualMealLogScreen() {
     const totalCalories = Math.round((parseFloat(calories) || 0) * servings);
 
     if (totalSodium === 0 && totalCalories === 0) {
-      Alert.alert("Missing nutrition data", "Please enter at least sodium or calorie values.");
+      showToast({ title: "Missing nutrition data", message: "Please enter at least sodium or calorie values.", type: "error" });
       return;
     }
 
@@ -223,20 +225,19 @@ export default function ManualMealLogScreen() {
 
       if (!response.ok) throw new Error("Failed to log meal");
 
-      Alert.alert(
-        "Meal saved",
-        "Your meal data has been added to your daily diary and weekly wrap-up.",
-        [{ text: "OK", onPress: () => router.back() }]
-      );
+      showToast({ title: "Meal saved", message: "Your meal data has been added to your daily diary.", type: "success" });
+      router.back();
     } catch (error) {
       console.log("Network error logging meal, queueing offline...", error);
       await queueMealForSync(userId!, payload);
       
-      Alert.alert(
-        "Saved offline",
-        "Your meal was saved locally and will automatically sync to your diary when you reconnect to the internet.",
-        [{ text: "OK", onPress: () => router.back() }]
-      );
+      showToast({ 
+        title: "Saved offline", 
+        message: "Your meal was saved locally and will sync when you reconnect.", 
+        type: "info",
+        duration: 4000 
+      });
+      router.back();
     } finally {
       setIsSubmitting(false);
     }

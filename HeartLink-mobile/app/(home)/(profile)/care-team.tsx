@@ -18,6 +18,9 @@ import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useUser } from "../../../contexts/UserContext";
+import { Skeleton } from "../../../components/ui/Skeleton";
+import { EmptyState } from "../../../components/ui/EmptyState";
+import { useToast } from "../../../contexts/ToastContext";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -82,6 +85,7 @@ export default function CareTeamScreen() {
   const isDark = colorScheme === "dark";
   const router = useRouter();
   const { userId } = useUser();
+  const { showToast } = useToast();
   const insets = useSafeAreaInsets();
 
   const [careTeam, setCareTeam] = useState<any[]>([]);
@@ -130,7 +134,7 @@ export default function CareTeamScreen() {
 
   const saveContact = async () => {
     if (!form.name || !form.phone) {
-      Alert.alert("Missing Info", "Please enter a name and phone number.");
+      showToast({ title: "Missing Info", message: "Please enter a name and phone number.", type: "error" });
       return;
     }
 
@@ -150,11 +154,12 @@ export default function CareTeamScreen() {
       if (response.ok) {
         setModalVisible(false);
         fetchCareTeam();
+        showToast({ title: "Success", message: "Contact saved.", type: "success" });
       } else {
-        Alert.alert("Error", "Could not save contact.");
+        showToast({ title: "Error", message: "Could not save contact.", type: "error" });
       }
     } catch (e) {
-      Alert.alert("Error", "Network error.");
+      showToast({ title: "Error", message: "Network error.", type: "error" });
     } finally {
       setIsSaving(false);
     }
@@ -175,9 +180,10 @@ export default function CareTeamScreen() {
             if (response.ok) {
               setModalVisible(false);
               fetchCareTeam();
+              showToast({ title: "Success", message: "Contact removed.", type: "success" });
             }
           } catch (e) {
-            Alert.alert("Error", "Network error.");
+            showToast({ title: "Error", message: "Network error.", type: "error" });
           } finally {
             setIsSaving(false);
           }
@@ -223,7 +229,23 @@ export default function CareTeamScreen() {
 
         {/* Contacts */}
         {isLoading ? (
-          <ActivityIndicator size="large" color="#0ea5e9" style={{ marginTop: 20 }} />
+          <View className="gap-3">
+            {[1, 2].map((key) => (
+              <View key={key} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 p-4 rounded-2xl">
+                <View className="flex-row items-center mb-3">
+                  <Skeleton className="w-12 h-12 rounded-full mr-3" />
+                  <View className="flex-1">
+                    <Skeleton className="w-1/2 h-5 mb-1.5" />
+                    <Skeleton className="w-1/3 h-4" />
+                  </View>
+                </View>
+                <View className="flex-row gap-2">
+                  <Skeleton className="flex-1 h-10 rounded-xl" />
+                  <Skeleton className="flex-1 h-10 rounded-xl" />
+                </View>
+              </View>
+            ))}
+          </View>
         ) : careTeam.length > 0 ? (
           careTeam.map((member: any) => (
             <ContactCard
@@ -233,12 +255,11 @@ export default function CareTeamScreen() {
             />
           ))
         ) : (
-          <View className="items-center justify-center py-10">
-            <Feather name="users" size={40} color="#94a3b8" />
-            <Text className="text-[15px] font-medium text-slate-500 mt-3">
-              No care team members assigned.
-            </Text>
-          </View>
+          <EmptyState
+            icon={<Feather name="users" size={32} color="#94a3b8" />}
+            title="No care team members"
+            subtitle="Add your doctors, specialists, or emergency contacts here."
+          />
         )}
 
         <TouchableOpacity

@@ -6,6 +6,7 @@ import OfflineBanner from "../components/OfflineBanner";
 import "../global.css";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { UserProvider, useUser } from "../contexts/UserContext";
+import { ToastProvider } from "../contexts/ToastContext";
 
 function RootLayoutNav() {
   const { userId, user, isLoading } = useUser();
@@ -87,7 +88,9 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <UserProvider>
-        <RootLayoutNav />
+        <ToastProvider>
+          <RootLayoutNav />
+        </ToastProvider>
       </UserProvider>
     </GestureHandlerRootView>
   );

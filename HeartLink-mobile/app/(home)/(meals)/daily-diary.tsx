@@ -15,6 +15,8 @@ import { useRouter, useFocusEffect } from "expo-router";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { Swipeable } from "react-native-gesture-handler";
 import { useUser } from "../../../contexts/UserContext";
+import { EmptyState } from "../../../components/ui/EmptyState";
+import { useToast } from "../../../contexts/ToastContext";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -34,6 +36,7 @@ type MealLog = {
 export default function DailyDiaryScreen() {
   const router = useRouter();
   const { userId } = useUser();
+  const { showToast } = useToast();
   const [meals, setMeals] = useState<MealLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -94,12 +97,13 @@ export default function DailyDiaryScreen() {
               });
               if (res.ok) {
                 setMeals((prev) => prev.filter((item) => item.id !== mealId));
+                showToast({ title: "Deleted", message: "Meal removed from diary.", type: "success" });
               } else {
-                Alert.alert("Error", "Could not delete the meal log.");
+                showToast({ title: "Error", message: "Could not delete the meal log.", type: "error" });
               }
             } catch (err) {
               console.error("Failed to delete meal log:", err);
-              Alert.alert("Error", "Network error when deleting meal.");
+              showToast({ title: "Error", message: "Network error when deleting meal.", type: "error" });
             }
           },
         },
@@ -194,26 +198,14 @@ export default function DailyDiaryScreen() {
           <ActivityIndicator size="large" color="#0f172a" />
         </View>
       ) : meals.length === 0 ? (
-        <View className="flex-1 justify-center items-center px-8">
-          <View className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800 items-center justify-center mb-4">
-            <MaterialCommunityIcons name="food-fork-drink" size={32} color="#94a3b8" />
-          </View>
-          <Text className="text-[17px] font-medium text-slate-900 dark:text-white text-center mb-1">
-            No Meals Logged Today
-          </Text>
-          <Text className="text-[13px] text-slate-400 text-center mb-6 leading-relaxed">
-            Tap the + icon above or scan a barcode to add your first meal.
-          </Text>
-          <TouchableOpacity
-            onPress={() => router.push("/(home)/(meals)/barcode-scan")}
-            className="bg-primary px-5 py-3 rounded-xl flex-row items-center gap-2"
-          >
-            <Feather name="camera" size={15} className="text-primary-foreground" />
-            <Text className="text-primary-foreground font-semibold text-[13px]">
-              Scan Barcode Now
-            </Text>
-          </TouchableOpacity>
-        </View>
+        <EmptyState
+          icon={<MaterialCommunityIcons name="food-fork-drink" size={32} color="#94a3b8" />}
+          title="No Meals Logged Today"
+          subtitle="Tap the + icon above or scan a barcode to add your first meal."
+          actionLabel="Scan Barcode Now"
+          onAction={() => router.push("/(home)/(meals)/barcode-scan")}
+          actionIcon={<Feather name="camera" size={15} color="#fff" />}
+        />
       ) : (
         <FlatList
           data={meals}

@@ -6,6 +6,7 @@ import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 import { useUser } from "../../../contexts/UserContext";
+import { useToast } from "../../../contexts/ToastContext";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -14,6 +15,7 @@ export default function AccountSecurityScreen() {
   const isDark = colorScheme === "dark";
   const router = useRouter();
   const { userId, logout } = useUser();
+  const { showToast } = useToast();
 
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -22,11 +24,11 @@ export default function AccountSecurityScreen() {
 
   const handleUpdatePassword = async () => {
     if (!currentPassword || !newPassword || !confirmPassword) {
-      Alert.alert("Error", "Please fill in all fields.");
+      showToast({ title: "Error", message: "Please fill in all fields.", type: "error" });
       return;
     }
     if (newPassword !== confirmPassword) {
-      Alert.alert("Error", "New passwords do not match.");
+      showToast({ title: "Error", message: "New passwords do not match.", type: "error" });
       return;
     }
     setIsUpdating(true);
@@ -38,15 +40,15 @@ export default function AccountSecurityScreen() {
       });
       const data = await response.json();
       if (!response.ok) {
-        Alert.alert("Error", data.detail || "Failed to update password.");
+        showToast({ title: "Error", message: data.detail || "Failed to update password.", type: "error" });
       } else {
-        Alert.alert("Success", "Password updated successfully.");
+        showToast({ title: "Success", message: "Password updated successfully.", type: "success" });
         setCurrentPassword("");
         setNewPassword("");
         setConfirmPassword("");
       }
     } catch (err) {
-      Alert.alert("Error", "An unexpected error occurred.");
+      showToast({ title: "Error", message: "An unexpected error occurred.", type: "error" });
     } finally {
       setIsUpdating(false);
     }
@@ -68,10 +70,10 @@ export default function AccountSecurityScreen() {
                 logout();
                 router.replace("/(auth)/welcome");
               } else {
-                Alert.alert("Error", "Failed to delete account.");
+                showToast({ title: "Error", message: "Failed to delete account.", type: "error" });
               }
             } catch (err) {
-              Alert.alert("Error", "An unexpected error occurred.");
+              showToast({ title: "Error", message: "An unexpected error occurred.", type: "error" });
             }
           }
         }

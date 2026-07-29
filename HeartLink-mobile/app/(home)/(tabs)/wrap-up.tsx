@@ -8,6 +8,7 @@ import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
 import { Header } from "../../../components/Header";
 import { useUser } from "../../../contexts/UserContext";
+import { EmptyState } from "../../../components/ui/EmptyState";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -542,7 +543,21 @@ export default function WrapUpScreen() {
 function ActivityLogAccordion({ activityLog }: { activityLog: any[] }) {
   const [expandedDate, setExpandedDate] = useState<string | null>(null);
 
-  if (!activityLog || activityLog.length === 0) return null;
+  if (!activityLog || activityLog.length === 0) {
+    return (
+      <View className='mb-5'>
+        <Text className='text-[14px] font-medium text-slate-900 dark:text-white mb-2.5'>
+          Activity Log (Last 7 Days)
+        </Text>
+        <EmptyState
+          icon={<Feather name="calendar" size={26} color="#94a3b8" />}
+          title="No activity yet"
+          subtitle="Your meal and exercise logs will appear here."
+          className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/70 py-6"
+        />
+      </View>
+    );
+  }
 
   return (
     <View className='mb-5'>

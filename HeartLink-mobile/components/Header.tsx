@@ -1,12 +1,36 @@
 import React from "react";
 import { View, Text, TouchableOpacity, Image } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 import { useUser } from "../contexts/UserContext";
+import { useState, useCallback } from "react";
 
 export function Header() {
   const router = useRouter();
-  const { user } = useUser();
+  const { user, userId } = useUser();
+  const [hasUnread, setHasUnread] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      let isActive = true;
+      async function checkUnread() {
+        if (!userId) return;
+        try {
+          const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/notifications/${userId}`);
+          if (response.ok) {
+            const data = await response.json();
+            if (isActive) {
+              setHasUnread(data.some((n: any) => !n.read));
+            }
+          }
+        } catch (err) {
+          console.error("Failed to check notifications", err);
+        }
+      }
+      checkUnread();
+      return () => { isActive = false; };
+    }, [userId])
+  );
 
   return (
     <View className="flex-row justify-between items-center px-5 pt-4 pb-2">
@@ -24,7 +48,9 @@ export function Header() {
           className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-800/70 items-center justify-center"
         >
           <Feather name="bell" size={17} color="#64748b" />
-          <View style={{ position: "absolute", top: 8, right: 8 }} className="w-1.5 h-1.5 bg-red-500 rounded-full" />
+          {hasUnread && (
+            <View style={{ position: "absolute", top: 8, right: 8 }} className="w-1.5 h-1.5 bg-red-500 rounded-full" />
+          )}
         </TouchableOpacity>
         
         <TouchableOpacity 

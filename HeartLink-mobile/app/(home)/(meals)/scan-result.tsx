@@ -15,6 +15,7 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import { useUser } from "../../../contexts/UserContext";
 import { queueMealForSync } from "../../../services/SyncService";
 import { Image } from "expo-image";
+import { useToast } from "../../../contexts/ToastContext";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -112,6 +113,7 @@ export default function ScanResultScreen() {
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams();
   const { userId } = useUser();
+  const { showToast } = useToast();
 
   const [product, setProduct] = useState(() => 
     params.product ? JSON.parse(params.product as string) : null
@@ -164,18 +166,19 @@ export default function ScanResultScreen() {
       });
 
       if (!response.ok) throw new Error("Failed to log meal");
-      Alert.alert("Meal Logged", "Successfully added to your daily diary.", [
-        { text: "OK", onPress: () => router.navigate("/(home)/(tabs)/dashboard") },
-      ]);
+      showToast({ title: "Meal Logged", message: "Successfully added to your daily diary.", type: "success" });
+      router.navigate("/(home)/(tabs)/dashboard");
     } catch (error) {
       console.log("Network error logging scan result, queueing offline...", error);
       await queueMealForSync(userId!, payload);
       
-      Alert.alert(
-        "Saved offline",
-        "Your scanned food was saved locally and will automatically sync to your diary when you reconnect to the internet.",
-        [{ text: "OK", onPress: () => router.navigate("/(home)/(tabs)/dashboard") }]
-      );
+      showToast({ 
+        title: "Saved offline", 
+        message: "Your scanned food was saved locally and will sync when you reconnect.", 
+        type: "info",
+        duration: 4000 
+      });
+      router.navigate("/(home)/(tabs)/dashboard");
     } finally {
       setIsSubmitting(false);
     }

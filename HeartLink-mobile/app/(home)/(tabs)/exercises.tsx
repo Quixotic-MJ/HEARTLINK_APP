@@ -18,6 +18,7 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import { useUser } from "../../../contexts/UserContext";
 import * as Haptics from "expo-haptics";
 import { Header } from "../../../components/Header";
+import { Skeleton } from "../../../components/ui/Skeleton";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -557,8 +558,21 @@ export default function ExercisesScreen() {
       </View>
 
       {isLoading && !refreshing ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color="#0f172a" />
+        <View className="px-5 gap-4">
+          <Skeleton className="w-full h-32 mb-4" />
+          {[1, 2, 3].map((key) => (
+            <View key={key} className="bg-white dark:bg-slate-900 rounded-3xl p-4 border border-slate-200 dark:border-slate-800/70">
+              <View className="flex-row items-center mb-3">
+                <Skeleton className="w-12 h-12 rounded-xl mr-3" />
+                <View className="flex-1">
+                  <Skeleton className="w-2/3 h-5 mb-2" />
+                  <Skeleton className="w-1/3 h-4" />
+                </View>
+              </View>
+              <Skeleton className="w-full h-4 mb-2" />
+              <Skeleton className="w-4/5 h-4" />
+            </View>
+          ))}
         </View>
       ) : (
         <ScrollView

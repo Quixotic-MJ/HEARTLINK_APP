@@ -6,6 +6,8 @@ import { StatusBar } from "expo-status-bar";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useUser } from "../../../contexts/UserContext";
+import { Skeleton } from "../../../components/ui/Skeleton";
+import { EmptyState } from "../../../components/ui/EmptyState";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -207,9 +209,26 @@ export default function SearchMealScreen() {
         {/* Items List */}
         <View className="gap-3">
           {isLoading ? (
-            <Text className="text-center text-slate-400 my-4">Searching...</Text>
+            <>
+              {[1, 2, 3, 4, 5].map((key) => (
+                <View key={key} className="bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-200 dark:border-slate-800/70 flex-row items-center justify-between">
+                  <Skeleton className="w-16 h-16 rounded-xl mr-3" />
+                  <View className="flex-1 mr-3">
+                    <Skeleton className="w-2/3 h-5 mb-1.5" />
+                    <Skeleton className="w-1/2 h-3.5 mb-2.5" />
+                    <Skeleton className="w-16 h-4 rounded-md" />
+                  </View>
+                  <Skeleton className="w-5 h-5 rounded-full" />
+                </View>
+              ))}
+            </>
           ) : items.length === 0 ? (
-            <Text className="text-center text-slate-400 my-4">No results found.</Text>
+            <EmptyState
+              icon={<Feather name="search" size={32} color="#94a3b8" />}
+              title="No results found"
+              subtitle="Try a different search term or use the 'Estimate a Meal' feature."
+              className="py-6"
+            />
           ) : items.map((item) => (
             <TouchableOpacity
               key={item.id}

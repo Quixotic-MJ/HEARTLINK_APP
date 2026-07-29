@@ -25,6 +25,7 @@ import { StatCard } from "../../../components/dashboard/StatCard";
 import { RecommendationCard } from "../../../components/dashboard/RecommendationCard";
 import { CustomAlertModal } from "../../../components/dashboard/CustomAlertModal";
 import { Header } from "../../../components/Header";
+import { Skeleton } from "../../../components/ui/Skeleton";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -231,8 +232,25 @@ export default function DashboardScreen() {
 
   if (isLoading) {
     return (
-      <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950 justify-center items-center">
-        <ActivityIndicator size="large" color={isDark ? "#fff" : "#0f172a"} />
+      <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950" edges={["top"]}>
+        <Header />
+        <View className="px-5 pt-4">
+          <View className="flex-row justify-between items-end mb-4">
+            <View>
+              <Skeleton className="w-32 h-6 mb-2" />
+              <Skeleton className="w-48 h-4" />
+            </View>
+          </View>
+          <View className="flex-row flex-wrap justify-between">
+            <Skeleton className="w-[48%] h-28 mb-4" />
+            <Skeleton className="w-[48%] h-28 mb-4" />
+            <Skeleton className="w-[48%] h-28 mb-4" />
+            <Skeleton className="w-[48%] h-28 mb-4" />
+          </View>
+          <Skeleton className="w-full h-48 mt-2 mb-6" />
+          <Skeleton className="w-40 h-6 mb-4" />
+          <Skeleton className="w-full h-32 mb-3" />
+        </View>
       </SafeAreaView>
     );
   }

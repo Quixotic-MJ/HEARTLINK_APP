@@ -20,6 +20,7 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import { useUser } from "../../../contexts/UserContext";
 import { OfflineSyncService } from "../../../utils/OfflineSyncService";
 import * as Haptics from "expo-haptics";
+import { useToast } from "../../../contexts/ToastContext";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -91,6 +92,7 @@ export default function LogSymptomsScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ triggered_by_exercise_id?: string }>();
   const { userId } = useUser();
+  const { showToast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [step, setStep] = useState<1 | 2>(params.triggered_by_exercise_id ? 2 : 1);
@@ -151,7 +153,7 @@ export default function LogSymptomsScreen() {
   const handleLocateCardiologist = () => {
     Linking.openURL(
       "https://www.google.com/maps/search/Cardiologist+in+Cebu+City"
-    ).catch(() => Alert.alert("Error", "Could not open map application."));
+    ).catch(() => showToast({ title: "Error", message: "Could not open map application.", type: "error" }));
   };
 
   const handleSubmit = async () => {
@@ -172,17 +174,20 @@ export default function LogSymptomsScreen() {
 
     // Optimistic UI: Immediately give feedback and return to dashboard
     if (isEmergency) {
-      Alert.alert(
-        "Critical log submitted",
-        "Your clinical indicators reflect an elevated risk. Please seek medical attention immediately.",
-        [{ text: "OK", onPress: () => router.back() }]
-      );
+      showToast({ 
+        title: "Critical log submitted", 
+        message: "Your clinical indicators reflect an elevated risk. Please seek medical attention immediately.", 
+        type: "error",
+        duration: 5000 
+      });
+      router.back();
     } else {
-      Alert.alert(
-        "Health log submitted",
-        "Your symptom and vitals log has been saved to your weekly wrap-up.",
-        [{ text: "OK", onPress: () => router.back() }]
-      );
+      showToast({ 
+        title: "Health log submitted", 
+        message: "Your symptom and vitals log has been saved to your weekly wrap-up.", 
+        type: "success" 
+      });
+      router.back();
     }
 
     // Run the API request silently in the background

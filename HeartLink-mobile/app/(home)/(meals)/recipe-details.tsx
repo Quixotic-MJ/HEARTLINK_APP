@@ -18,6 +18,7 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useUser } from "../../../contexts/UserContext";
 import { queueMealForSync } from "../../../services/SyncService";
+import { useToast } from "../../../contexts/ToastContext";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -69,8 +70,9 @@ export default function RecipeDetailsScreen() {
   const isDark = colorScheme === "dark";
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const insets = useSafeAreaInsets();
   const { userId } = useUser();
+  const { showToast } = useToast();
+  const insets = useSafeAreaInsets();
 
   const [recipe, setRecipe] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -124,7 +126,7 @@ export default function RecipeDetailsScreen() {
         }
         
         console.error(error);
-        Alert.alert("Error", "Could not load recipe details.");
+        showToast({ title: "Error", message: "Could not load recipe details.", type: "error" });
       } finally {
         setIsLoading(false);
       }
@@ -179,21 +181,25 @@ export default function RecipeDetailsScreen() {
       if (!response.ok) throw new Error("Failed to log meal");
       
       setIsLogged(true);
-      Alert.alert(
-        "Meal logged!",
-        "Sodium intake updated. Your Cardiovascular Stability Score has been recalculated.",
-        [{ text: "OK", onPress: () => router.push("/(home)/(tabs)/dashboard") }],
-      );
+      showToast({ 
+        title: "Meal logged!", 
+        message: "Sodium intake updated. Your Cardiovascular Stability Score has been recalculated.", 
+        type: "success",
+        duration: 4000
+      });
+      router.push("/(home)/(tabs)/dashboard");
     } catch (error) {
       console.log("Network error logging meal, queueing offline...", error);
       await queueMealForSync(userId!, payload);
       
       setIsLogged(true);
-      Alert.alert(
-        "Saved offline",
-        "Your meal was saved locally and will automatically sync to your diary when you reconnect to the internet.",
-        [{ text: "OK", onPress: () => router.push("/(home)/(tabs)/dashboard") }]
-      );
+      showToast({ 
+        title: "Saved offline", 
+        message: "Your meal was saved locally and will sync when you reconnect.", 
+        type: "info",
+        duration: 4000
+      });
+      router.push("/(home)/(tabs)/dashboard");
     } finally {
       setIsSubmitting(false);
     }

@@ -14,6 +14,8 @@ import { useRouter, useFocusEffect } from "expo-router";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { Swipeable } from "react-native-gesture-handler";
 import { useUser } from "../../../contexts/UserContext";
+import { EmptyState } from "../../../components/ui/EmptyState";
+import { useToast } from "../../../contexts/ToastContext";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -32,6 +34,7 @@ export type ExerciseLog = {
 export default function ExerciseDiaryScreen() {
   const router = useRouter();
   const { userId } = useUser();
+  const { showToast } = useToast();
   const [logs, setLogs] = useState<ExerciseLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -80,12 +83,13 @@ export default function ExerciseDiaryScreen() {
               const json = await res.json();
               if (res.ok && json.success) {
                 setLogs((prev) => prev.filter((item) => item.id !== logId));
+                showToast({ title: "Deleted", message: "Exercise log removed.", type: "success" });
               } else {
-                Alert.alert("Cannot Delete Log", json.detail || "Could not delete this exercise log.");
+                showToast({ title: "Cannot Delete Log", message: json.detail || "Could not delete this exercise log.", type: "error" });
               }
             } catch (err) {
               console.error("Failed to delete exercise log:", err);
-              Alert.alert("Error", "Network error occurred when trying to delete exercise log.");
+              showToast({ title: "Error", message: "Network error occurred when trying to delete exercise log.", type: "error" });
             }
           },
         },
@@ -192,26 +196,14 @@ export default function ExerciseDiaryScreen() {
           <ActivityIndicator size="large" color="#0f172a" />
         </View>
       ) : logs.length === 0 ? (
-        <View className="flex-1 justify-center items-center px-8">
-          <View className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800 items-center justify-center mb-4">
-            <Feather name="activity" size={32} color="#94a3b8" />
-          </View>
-          <Text className="text-[17px] font-medium text-slate-900 dark:text-white text-center mb-1">
-            No Exercise Logs
-          </Text>
-          <Text className="text-[13px] text-slate-400 text-center mb-6 leading-relaxed">
-            Complete a rehab routine to track your activity duration and symptoms.
-          </Text>
-          <TouchableOpacity
-            onPress={() => router.push("/(home)/(tabs)/exercises")}
-            className="bg-primary px-5 py-3 rounded-xl flex-row items-center gap-2"
-          >
-            <Feather name="play" size={15} className="text-primary-foreground" />
-            <Text className="text-primary-foreground font-semibold text-[13px]">
-              Start Routine Now
-            </Text>
-          </TouchableOpacity>
-        </View>
+        <EmptyState
+          icon={<Feather name="activity" size={32} color="#94a3b8" />}
+          title="No Exercise Logs"
+          subtitle="Complete a rehab routine to track your activity duration and symptoms."
+          actionLabel="Start Routine Now"
+          onAction={() => router.push("/(home)/(tabs)/exercises")}
+          actionIcon={<Feather name="play" size={15} color="#fff" />}
+        />
       ) : (
         <FlatList
           data={logs}

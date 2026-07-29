@@ -7,6 +7,7 @@ import { Feather } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useUser } from "../../../contexts/UserContext";
 import { queueMealForSync } from "../../../services/SyncService";
+import { useToast } from "../../../contexts/ToastContext";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -49,6 +50,7 @@ export default function MealDetailScreen() {
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { userId } = useUser();
+  const { showToast } = useToast();
   
   const [item, setItem] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -63,7 +65,7 @@ export default function MealDetailScreen() {
         setItem(data);
       } catch (error) {
         console.error(error);
-        Alert.alert("Error", "Could not load recipe details.");
+        showToast({ title: "Error", message: "Could not load recipe details.", type: "error" });
       } finally {
         setIsLoading(false);
       }
@@ -110,16 +112,18 @@ export default function MealDetailScreen() {
       });
 
       if (!response.ok) throw new Error("Failed to log meal");
-      Alert.alert("Meal Logged", "Your meal has been recorded.");
+      showToast({ title: "Meal Logged", message: "Your meal has been recorded.", type: "success" });
       router.navigate("/(home)/(tabs)/dashboard");
     } catch (error) {
       console.log("Network error logging meal, queueing offline...", error);
       await queueMealForSync(userId!, payload);
       
-      Alert.alert(
-        "Saved offline",
-        "Your meal was saved locally and will automatically sync to your diary when you reconnect to the internet."
-      );
+      showToast({ 
+        title: "Saved offline", 
+        message: "Your meal was saved locally and will sync when you reconnect.", 
+        type: "info",
+        duration: 4000 
+      });
       router.navigate("/(home)/(tabs)/dashboard");
     } finally {
       setIsSubmitting(false);

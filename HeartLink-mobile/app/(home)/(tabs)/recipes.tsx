@@ -17,6 +17,8 @@ import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useUser } from "../../../contexts/UserContext";
 import { Header } from "../../../components/Header";
+import { Skeleton } from "../../../components/ui/Skeleton";
+import { EmptyState } from "../../../components/ui/EmptyState";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -618,19 +620,28 @@ export default function RecipesScreen() {
         {/* Recipe list */}
         <View className="px-5 mt-4">
           {isLoading && !refreshing ? (
-            <ActivityIndicator size="large" color={colorScheme === "dark" ? "#fff" : "#0f172a"} style={{ marginTop: 40 }} />
-          ) : filteredRecipes.length === 0 ? (
-            <View className="items-center pt-16">
-              <View className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-800 items-center justify-center mb-4">
-                <Feather name="search" size={26} color="#cbd5e1" />
-              </View>
-              <Text className="text-[16px] font-medium text-slate-900 dark:text-white mb-1">
-                No recipes found
-              </Text>
-              <Text className="text-[13px] text-slate-400 dark:text-slate-500 text-center">
-                Try a different search or filter.
-              </Text>
+            <View className="gap-4">
+              {[1, 2, 3].map((key) => (
+                <View key={key} className="bg-white dark:bg-slate-900 rounded-3xl p-4 border border-slate-200 dark:border-slate-800/70 flex-row">
+                  <Skeleton className="w-24 h-24 rounded-2xl mr-4" />
+                  <View className="flex-1 justify-center">
+                    <Skeleton className="w-3/4 h-5 mb-2.5" />
+                    <Skeleton className="w-full h-4 mb-3" />
+                    <View className="flex-row gap-2">
+                      <Skeleton className="w-16 h-5 rounded-md" />
+                      <Skeleton className="w-16 h-5 rounded-md" />
+                    </View>
+                  </View>
+                </View>
+              ))}
             </View>
+          ) : filteredRecipes.length === 0 ? (
+            <EmptyState
+              icon={<Feather name="search" size={26} color="#cbd5e1" />}
+              title="No recipes found"
+              subtitle="Try a different search or filter."
+              className="pt-16"
+            />
           ) : (
             filteredRecipes.map((recipe) => (
               <RecipeCard
