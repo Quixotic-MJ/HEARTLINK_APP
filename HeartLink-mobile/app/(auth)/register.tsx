@@ -88,10 +88,12 @@ function PrimaryButton({
 // ─── Input Field ──────────────────────────────────────────────────────────────
 
 function InputField({
+  label,
   icon,
   placeholder,
   value,
   onChangeText,
+  onBlur,
   error,
   keyboardType,
   autoCapitalize,
@@ -100,11 +102,14 @@ function InputField({
   leftElement,
   autoComplete,
   textContentType,
+  editable = true,
 }: {
+  label: string;
   icon: string;
   placeholder: string;
   value: string;
   onChangeText: (t: string) => void;
+  onBlur?: () => void;
   error?: string;
   keyboardType?: any;
   autoCapitalize?: any;
@@ -113,16 +118,18 @@ function InputField({
   leftElement?: React.ReactNode;
   autoComplete?: any;
   textContentType?: any;
+  editable?: boolean;
 }) {
   const hasError = !!error;
   return (
     <View className="mb-4">
+      <Text className="text-sm font-semibold text-foreground mb-1.5 ml-1">{label}</Text>
       <View
-        className={`w-full rounded-2xl flex-row items-center px-4 min-h-[52px] border ${
+        className={`w-full rounded-2xl flex-row items-center px-4 min-h-[52px] border bg-background ${
           hasError
-            ? "border-destructive/40 bg-destructive/10"
-            : "border-border bg-background"
-        }`}
+            ? "border-destructive"
+            : "border-border"
+        } ${!editable ? "opacity-60" : ""}`}
       >
         <Feather
           name={icon as any}
@@ -133,6 +140,7 @@ function InputField({
         <TextInput
           value={value}
           onChangeText={onChangeText}
+          onBlur={onBlur}
           placeholder={placeholder}
           placeholderTextColor="#94a3b8"
           keyboardType={keyboardType}
@@ -140,14 +148,15 @@ function InputField({
           secureTextEntry={secureTextEntry}
           autoComplete={autoComplete}
           textContentType={textContentType}
-          className="flex-1 ml-3 text-sm text-foreground py-3.5"
+          editable={editable}
+          className="flex-1 ml-3 text-base text-foreground py-3.5"
         />
         {rightElement}
       </View>
       {hasError && (
-        <View className="flex-row items-center gap-1.5 mt-2 ml-1" accessible={true} accessibilityRole="alert">
+        <View className="flex-row items-center gap-1.5 mt-2 mb-2 ml-1" accessible={true} accessibilityRole="alert">
           <Feather name="alert-circle" size={12} className="text-destructive" />
-          <Text className="text-xs text-destructive font-medium">
+          <Text className="text-sm text-destructive font-medium">
             {error}
           </Text>
         </View>
@@ -173,32 +182,42 @@ export default function RegisterScreen() {
   const clearError = (field: keyof FormErrors) =>
     setErrors((prev) => ({ ...prev, [field]: undefined }));
 
-  const validateForm = () => {
-    const newErrors: FormErrors = {};
+  const validateEmail = (val: string = email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!val) { setErrors(prev => ({ ...prev, email: "Email address is required." })); return false; }
+    if (!emailRegex.test(val)) { setErrors(prev => ({ ...prev, email: "Please enter a valid email address." })); return false; }
+    clearError("email");
+    return true;
+  };
 
-    if (!email) newErrors.email = "Email address is required.";
-    else if (!emailRegex.test(email))
-      newErrors.email = "Please enter a valid email address.";
+  const validatePhone = (val: string = phone) => {
+    if (!val || val.length < 10) { setErrors(prev => ({ ...prev, phone: "Please enter a valid 10-digit phone number." })); return false; }
+    clearError("phone");
+    return true;
+  };
 
-    if (!phone || phone.length < 10)
-      newErrors.phone = "Please enter a valid 10-digit phone number.";
+  const validatePassword = (val: string = password) => {
+    if (!val) { setErrors(prev => ({ ...prev, password: "Password is required." })); return false; }
+    if (val.length < 8) { setErrors(prev => ({ ...prev, password: "Password must be at least 8 characters." })); return false; }
+    if (!/(?=.*[a-z])/.test(val)) { setErrors(prev => ({ ...prev, password: "Password must contain a lowercase letter." })); return false; }
+    if (!/(?=.*[A-Z])/.test(val)) { setErrors(prev => ({ ...prev, password: "Password must contain an uppercase letter." })); return false; }
+    if (!/(?=.*\d)/.test(val)) { setErrors(prev => ({ ...prev, password: "Password must contain a number." })); return false; }
+    clearError("password");
+    return true;
+  };
 
-    if (!password) newErrors.password = "Password is required.";
-    else if (password.length < 8)
-      newErrors.password = "Password must be at least 8 characters.";
-    else if (!/(?=.*[a-z])/.test(password))
-      newErrors.password = "Password must contain a lowercase letter.";
-    else if (!/(?=.*[A-Z])/.test(password))
-      newErrors.password = "Password must contain an uppercase letter.";
-    else if (!/(?=.*\d)/.test(password))
-      newErrors.password = "Password must contain a number.";
+  const validateConfirmPassword = (val: string = confirmPassword) => {
+    if (val !== password) { setErrors(prev => ({ ...prev, confirmPassword: "Passwords do not match." })); return false; }
+    clearError("confirmPassword");
+    return true;
+  };
 
-    if (password !== confirmPassword)
-      newErrors.confirmPassword = "Passwords do not match.";
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+  const validateForm = () => {
+    const isEmailValid = validateEmail();
+    const isPhoneValid = validatePhone();
+    const isPasswordValid = validatePassword();
+    const isConfirmValid = validateConfirmPassword();
+    return isEmailValid && isPhoneValid && isPasswordValid && isConfirmValid;
   };
 
   const handleSubmit = async () => {
@@ -267,12 +286,12 @@ export default function RegisterScreen() {
               router.replace("/onboarding");
             }
           }}
-          className="w-10 h-10 rounded-xl bg-card border border-border items-center justify-center mr-3"
+          className="p-2 -ml-2 mr-4"
           accessible={true}
           accessibilityRole="button"
           accessibilityLabel="Go back"
         >
-          <Feather name="arrow-left" size={18} className="text-foreground" />
+          <Feather name="arrow-left" size={24} className="text-foreground" />
         </TouchableOpacity>
         <View className="flex-row items-center gap-2">
           <View className="w-8 h-8 rounded-full items-center justify-center border border-border bg-card" importantForAccessibility="no">
@@ -321,36 +340,42 @@ export default function RegisterScreen() {
 
           {/* Email */}
           <InputField
+            label="Email Address"
             icon="mail"
-            placeholder="Email address"
+            placeholder="e.g. john@example.com"
             value={email}
             onChangeText={(t) => {
               setEmail(t);
-              clearError("email");
+              if (errors.email) clearError("email");
             }}
+            onBlur={() => validateEmail()}
             error={errors.email}
             keyboardType="email-address"
             autoComplete="email"
             textContentType="emailAddress"
+            editable={!isSubmitting}
           />
 
           {/* Phone */}
           <InputField
+            label="Phone Number"
             icon="phone"
             placeholder="912 345 6789"
             value={phone}
             onChangeText={(t) => {
               const digits = t.replace(/[^0-9]/g, "");
               setPhone(digits.slice(0, 10));
-              clearError("phone");
+              if (errors.phone) clearError("phone");
             }}
+            onBlur={() => validatePhone()}
             error={errors.phone}
             keyboardType="phone-pad"
             autoComplete="tel"
             textContentType="telephoneNumber"
+            editable={!isSubmitting}
             leftElement={
               <View className="flex-row items-center border-r border-border pr-3 ml-2 mr-0 self-stretch py-2 my-2">
-                <Text className="text-sm font-semibold text-foreground">
+                <Text className="text-base font-semibold text-foreground">
                   +63
                 </Text>
               </View>
@@ -359,15 +384,18 @@ export default function RegisterScreen() {
 
           {/* Password */}
           <InputField
+            label="Password"
             icon="lock"
-            placeholder="Password"
+            placeholder="Create a strong password"
             value={password}
             onChangeText={(t) => {
               setPassword(t);
-              clearError("password");
+              if (errors.password) clearError("password");
             }}
+            onBlur={() => validatePassword()}
             error={errors.password}
             secureTextEntry={!showPassword}
+            editable={!isSubmitting}
             rightElement={
               <TouchableOpacity
                 onPress={() => setShowPassword(!showPassword)}
@@ -375,11 +403,12 @@ export default function RegisterScreen() {
                 accessible={true}
                 accessibilityRole="button"
                 accessibilityLabel={showPassword ? "Hide password" : "Show password"}
+                disabled={isSubmitting}
               >
                 <Feather
                   name={showPassword ? "eye" : "eye-off"}
                   size={18}
-                  className="text-muted-foreground"
+                  className={isSubmitting ? "text-muted-foreground/50" : "text-muted-foreground"}
                 />
               </TouchableOpacity>
             }
@@ -387,15 +416,18 @@ export default function RegisterScreen() {
 
           {/* Confirm password */}
           <InputField
+            label="Confirm Password"
             icon="shield"
             placeholder="Confirm password"
             value={confirmPassword}
             onChangeText={(t) => {
               setConfirmPassword(t);
-              clearError("confirmPassword");
+              if (errors.confirmPassword) clearError("confirmPassword");
             }}
+            onBlur={() => validateConfirmPassword()}
             error={errors.confirmPassword}
             secureTextEntry={!showConfirmPassword}
+            editable={!isSubmitting}
             rightElement={
               <TouchableOpacity
                 onPress={() => setShowConfirmPassword(!showConfirmPassword)}
@@ -403,22 +435,31 @@ export default function RegisterScreen() {
                 accessible={true}
                 accessibilityRole="button"
                 accessibilityLabel={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
+                disabled={isSubmitting}
               >
                 <Feather
                   name={showConfirmPassword ? "eye" : "eye-off"}
                   size={18}
-                  className="text-muted-foreground"
+                  className={isSubmitting ? "text-muted-foreground/50" : "text-muted-foreground"}
                 />
               </TouchableOpacity>
             }
           />
 
           {/* Password hint */}
-          <View className="flex-row items-center gap-2 mb-7 -mt-2 ml-1" accessible={true} accessibilityRole="text" accessibilityLabel="Password requirement: Minimum 8 characters required.">
-            <Feather name="info" size={12} className="text-muted-foreground" />
-            <Text className="text-xs text-muted-foreground font-medium">
-              Minimum 8 characters required.
-            </Text>
+          <View className="mb-7 -mt-1 ml-1" accessible={true} accessibilityRole="text">
+            <View className="flex-row items-center gap-2 mb-1.5">
+              <Feather name={password.length >= 8 ? "check-circle" : "circle"} size={14} className={password.length >= 8 ? "text-emerald-500" : "text-muted-foreground"} />
+              <Text className={`text-sm ${password.length >= 8 ? "text-foreground" : "text-muted-foreground"}`}>At least 8 characters</Text>
+            </View>
+            <View className="flex-row items-center gap-2 mb-1.5">
+              <Feather name={/(?=.*[A-Z])/.test(password) && /(?=.*[a-z])/.test(password) ? "check-circle" : "circle"} size={14} className={/(?=.*[A-Z])/.test(password) && /(?=.*[a-z])/.test(password) ? "text-emerald-500" : "text-muted-foreground"} />
+              <Text className={`text-sm ${/(?=.*[A-Z])/.test(password) && /(?=.*[a-z])/.test(password) ? "text-foreground" : "text-muted-foreground"}`}>Uppercase & lowercase letter</Text>
+            </View>
+            <View className="flex-row items-center gap-2">
+              <Feather name={/(?=.*\d)/.test(password) ? "check-circle" : "circle"} size={14} className={/(?=.*\d)/.test(password) ? "text-emerald-500" : "text-muted-foreground"} />
+              <Text className={`text-sm ${/(?=.*\d)/.test(password) ? "text-foreground" : "text-muted-foreground"}`}>At least one number</Text>
+            </View>
           </View>
 
           {/* Submit */}

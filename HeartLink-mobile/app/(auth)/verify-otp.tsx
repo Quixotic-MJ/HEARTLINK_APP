@@ -139,25 +139,28 @@ export default function OTPVerificationScreen() {
 
   return (
     <SafeAreaView
-      className="flex-1 bg-slate-50 dark:bg-slate-950"
-      edges={["top"]}
+      className="flex-1 bg-background"
+      edges={["top", "bottom"]}
     >
-      <StatusBar style="dark" />
+      <StatusBar style="auto" />
 
       {/* Header */}
-      <View className="flex-row items-center px-5 pt-4 pb-2">
+      <View className="flex-row items-center px-6 pt-4 pb-2">
         <TouchableOpacity
           onPress={() => router.back()}
-          className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 items-center justify-center mr-3"
+          className="p-2 -ml-2 mr-4"
+          accessible={true}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
-          <Feather name="arrow-left" size={18} color={isDark ? "#f8fafc" : "#0f172a"} />
+          <Feather name="arrow-left" size={24} className="text-foreground" />
         </TouchableOpacity>
         <View className="flex-row items-center gap-2">
-          <View className="w-7 h-7 rounded-full items-center justify-center border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-            <Feather name="heart" size={13} color="#0f172a" />
+          <View className="w-8 h-8 rounded-full items-center justify-center border border-border bg-card">
+            <Feather name="heart" size={14} className="text-foreground" />
           </View>
           <Text
-            className="text-[16px] text-slate-900 dark:text-white tracking-tight"
+            className="text-base text-foreground tracking-tight"
             style={{ fontWeight: "300" }}
           >
             Heart<Text style={{ fontWeight: "600" }}>Link.</Text>
@@ -175,31 +178,24 @@ export default function OTPVerificationScreen() {
           bounces={false}
         >
           {/* ── Card ── */}
-          <View className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/70 px-6 py-7">
+          <View className="bg-card rounded-3xl border border-border px-5 py-7 gap-5">
             {/* Icon + heading */}
-            <View className="items-center mb-7">
+            <View className="items-center mb-4">
               <View
-                className="w-16 h-16 rounded-2xl items-center justify-center mb-5 border border-slate-200 dark:border-slate-800/70"
-                style={{ backgroundColor: "#e6f1fb" }}
+                className="w-16 h-16 rounded-2xl items-center justify-center mb-5 bg-primary/10 border border-primary/20"
               >
-                <Feather name="smartphone" size={26} color="#185fa5" />
+                <Feather name="smartphone" size={26} className="text-primary" />
               </View>
-              <Text className="text-[24px] font-medium text-slate-900 dark:text-white tracking-tight mb-2 text-center">
+              <Text className="text-3xl font-semibold text-foreground tracking-tight mb-2 text-center" accessibilityRole="header">
                 Verify your account
               </Text>
-              <Text className="text-[13px] text-slate-400 text-center leading-relaxed px-2">
-                We've sent a one-time password to your phone number.
+              <Text className="text-sm text-muted-foreground text-center leading-relaxed px-2">
+                We've sent a 6-digit code to <Text className="font-semibold text-foreground">{(phone as string) || "+63 912 345 6789"}</Text>.
               </Text>
-              <View className="flex-row items-center gap-1.5 mt-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/70 px-3 py-1.5 rounded-xl">
-                <Feather name="phone" size={12} color="#64748b" />
-                <Text className="text-[13px] font-medium text-slate-700 dark:text-slate-300">
-                  {(phone as string) || "+63 912 345 6789"}
-                </Text>
-              </View>
             </View>
 
             {/* ── OTP boxes ── */}
-            <View className="flex-row justify-between gap-2 mb-7">
+            <View className="flex-row justify-between gap-2 mb-2">
               {otp.map((digit, index) => (
                 <TextInput
                   key={index}
@@ -210,45 +206,21 @@ export default function OTPVerificationScreen() {
                   keyboardType="number-pad"
                   maxLength={1}
                   selectTextOnFocus
-                  style={{
-                    flex: 1,
-                    aspectRatio: 1,
-                    backgroundColor: digit !== "" ? "#e6f1fb" : "#f8fafc",
-                    borderWidth: 1.5,
-                    borderColor: digit !== "" ? "#185fa5" : "#e2e8f0",
-                    borderRadius: 14,
-                    textAlign: "center",
-                    fontSize: 22,
-                    fontWeight: "500",
-                    color: "#0f172a",
-                    padding: 0,
-                    textAlignVertical: "center",
-                    ...(Platform.OS === "android"
-                      ? { includeFontPadding: false }
-                      : {}),
-                  }}
-                />
-              ))}
-            </View>
-
-            {/* Progress indicator */}
-            <View className="flex-row gap-1 mb-4">
-              {otp.map((digit, i) => (
-                <View
-                  key={i}
-                  className="flex-1 h-1 rounded-full"
-                  style={{
-                    backgroundColor: digit !== "" ? "#185fa5" : "#e2e8f0",
-                  }}
+                  className={`flex-1 aspect-square rounded-2xl border-2 text-center text-2xl font-semibold p-0 ${
+                    digit !== "" 
+                      ? "border-primary bg-primary/10 text-foreground" 
+                      : "border-border bg-background text-foreground"
+                  }`}
+                  style={Platform.OS === "android" ? { includeFontPadding: false, textAlignVertical: "center" } : { textAlignVertical: "center" }}
                 />
               ))}
             </View>
 
             {/* Error Message */}
             {error && (
-              <View className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-3 flex-row items-center gap-2 mb-4">
-                <Feather name="alert-triangle" size={16} color="#ef4444" />
-                <Text className="text-red-600 dark:text-red-400 text-[13px] flex-1">
+              <View className="bg-destructive/10 border border-destructive/30 rounded-2xl p-3.5 flex-row items-center gap-2 mt-1 mb-1" accessible={true} accessibilityRole="alert">
+                <Feather name="alert-triangle" size={16} className="text-destructive" />
+                <Text className="text-destructive text-sm flex-1 font-medium">
                   {error}
                 </Text>
               </View>
@@ -259,22 +231,14 @@ export default function OTPVerificationScreen() {
               activeOpacity={0.85}
               onPress={handleVerify}
               disabled={isVerifying || !isComplete}
-              className="w-full rounded-2xl py-3.5 flex-row justify-center items-center gap-2 mb-5"
-              style={{ backgroundColor: isComplete ? "#0f172a" : "#e2e8f0" }}
+              className={`w-full bg-primary rounded-2xl py-4 flex-row justify-center items-center gap-2 mb-2 ${(!isComplete || isVerifying) ? 'opacity-50' : ''}`}
             >
               {isVerifying ? (
                 <ActivityIndicator color="white" size="small" />
               ) : (
                 <>
-                  <Feather
-                    name="check-circle"
-                    size={15}
-                    color={isComplete ? "#fff" : "#94a3b8"}
-                  />
-                  <Text
-                    className="text-[14px] font-medium"
-                    style={{ color: isComplete ? "#fff" : "#94a3b8" }}
-                  >
+                  <Feather name="check-circle" size={16} className="text-primary-foreground" />
+                  <Text className="text-primary-foreground text-sm font-semibold">
                     Verify & proceed
                   </Text>
                 </>
@@ -282,23 +246,23 @@ export default function OTPVerificationScreen() {
             </TouchableOpacity>
 
             {/* Resend Code */}
-            <View className="items-center">
+            <View className="items-center mt-2">
               {timer > 0 ? (
-                <Text className="text-[13px] text-slate-400">
-                  Resend code in <Text className="font-semibold text-slate-700 dark:text-slate-300">{formatTime(timer)}</Text>
+                <Text className="text-sm text-muted-foreground">
+                  Resend code in <Text className="font-semibold text-foreground">{formatTime(timer)}</Text>
                 </Text>
               ) : (
                 <TouchableOpacity
                   onPress={handleResend}
                   disabled={isResending}
-                  className="flex-row items-center gap-1.5"
+                  className="flex-row items-center gap-1.5 py-2 px-4"
                 >
                   {isResending ? (
-                    <ActivityIndicator size="small" color="#185fa5" />
+                    <ActivityIndicator size="small" color="#3b82f6" />
                   ) : (
                     <>
-                      <Feather name="refresh-cw" size={13} color="#185fa5" />
-                      <Text className="text-[13px] font-medium text-sky-600 dark:text-sky-400">
+                      <Feather name="refresh-cw" size={14} className="text-primary" />
+                      <Text className="text-sm font-semibold text-primary">
                         Resend code
                       </Text>
                     </>

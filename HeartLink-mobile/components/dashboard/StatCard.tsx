@@ -19,18 +19,18 @@ export function StatCard({
     <View
       accessible={true}
       accessibilityLabel={`${label}: ${value}`}
-      className="flex-1 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 py-3 px-3 items-center"
+      className="flex-1 bg-card rounded-2xl border border-border py-4 px-2 items-center"
     >
       <View
-        className="w-8 h-8 rounded-xl items-center justify-center mb-1.5"
+        className="w-10 h-10 rounded-xl items-center justify-center mb-2"
         style={{ backgroundColor: iconBg }}
       >
-        <Feather name={icon as any} size={14} color={iconColor} />
+        <Feather name={icon as any} size={16} color={iconColor} />
       </View>
-      <Text className="text-[15px] font-medium text-slate-900 dark:text-white">
+      <Text className="text-[17px] font-bold text-foreground">
         {value}
       </Text>
-      <Text className="text-[10px] text-slate-400 mt-0.5 uppercase tracking-wide">
+      <Text className="text-[11px] text-muted-foreground mt-1 uppercase tracking-wide font-medium">
         {label}
       </Text>
     </View>

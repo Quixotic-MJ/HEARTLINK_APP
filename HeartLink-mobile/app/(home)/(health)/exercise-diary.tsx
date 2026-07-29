@@ -179,9 +179,9 @@ export default function ExerciseDiaryScreen() {
       </View>
 
       {/* ── Instructions Tip ── */}
-      <View className="px-5 mb-2 flex-row items-center">
-        <Feather name="info" size={12} color="#94a3b8" />
-        <Text className="text-[12px] text-slate-400 ml-1.5">
+      <View className="px-5 mb-2 flex-row items-start">
+        <Feather name="info" size={12} color="#94a3b8" className="mt-[3px]" />
+        <Text className="text-[12px] text-slate-400 ml-1.5 flex-1 leading-relaxed">
           Swipe left on any session to remove it from your history.
         </Text>
       </View>
@@ -194,7 +194,7 @@ export default function ExerciseDiaryScreen() {
       ) : logs.length === 0 ? (
         <View className="flex-1 justify-center items-center px-8">
           <View className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800 items-center justify-center mb-4">
-            <MaterialCommunityIcons name="run" size={32} color="#94a3b8" />
+            <Feather name="activity" size={32} color="#94a3b8" />
           </View>
           <Text className="text-[17px] font-medium text-slate-900 dark:text-white text-center mb-1">
             No Exercise Logs
@@ -204,10 +204,10 @@ export default function ExerciseDiaryScreen() {
           </Text>
           <TouchableOpacity
             onPress={() => router.push("/(home)/(tabs)/exercises")}
-            className="bg-slate-900 dark:bg-slate-100 px-5 py-3 rounded-xl flex-row items-center gap-2"
+            className="bg-primary px-5 py-3 rounded-xl flex-row items-center gap-2"
           >
-            <Feather name="play" size={15} color="#fff" />
-            <Text className="text-white dark:text-slate-900 font-medium text-[13px]">
+            <Feather name="play" size={15} className="text-primary-foreground" />
+            <Text className="text-primary-foreground font-semibold text-[13px]">
               Start Routine Now
             </Text>
           </TouchableOpacity>
@@ -226,16 +226,20 @@ export default function ExerciseDiaryScreen() {
               <Swipeable renderRightActions={() => renderRightActions(item)}>
                 <View className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 mb-3">
                   <View className="flex-row items-center justify-between">
-                    <View className="flex-row items-center flex-1 gap-3">
+                    <View className="flex-row items-center flex-1 gap-3 pr-2">
                       <View className="w-11 h-11 rounded-xl bg-slate-100 dark:bg-slate-800 items-center justify-center">
-                        <MaterialCommunityIcons
-                          name={hasSymptoms ? "heart-broken" : "run-fast"}
-                          size={22}
+                        <Feather
+                          name={hasSymptoms ? "alert-circle" : item.routine_name?.toLowerCase().includes("breath") ? "wind" : "activity"}
+                          size={20}
                           color={hasSymptoms ? "#e11d48" : "#3b6d11"}
                         />
                       </View>
-                      <View className="flex-1 pr-2">
-                        <Text className="text-[15px] font-semibold text-slate-900 dark:text-white leading-snug">
+                      <View className="flex-1">
+                        <Text 
+                          className="text-[15px] font-semibold text-slate-900 dark:text-white leading-snug"
+                          numberOfLines={2}
+                          adjustsFontSizeToFit
+                        >
                           {item.routine_name || "Rehab Routine"}
                         </Text>
                         <Text className="text-[12px] text-slate-400 mt-0.5">

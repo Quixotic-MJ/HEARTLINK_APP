@@ -24,10 +24,9 @@ function StepItem({ number, text, isLast, isCurrent, allActive }: { number: numb
     <View className="flex-row items-start" style={{ opacity: active ? 1 : 0.4 }}>
       <View className="items-center mr-4" style={{ width: 28 }}>
         <View
-          className="w-7 h-7 rounded-full items-center justify-center"
-          style={{ backgroundColor: active ? "#2563eb" : "#94a3b8" }}
+          className={`w-7 h-7 rounded-full items-center justify-center ${active ? "bg-primary" : "bg-slate-400 dark:bg-slate-600"}`}
         >
-          <Text style={{ color: "#fff", fontSize: 12, fontWeight: "600" }}>{number}</Text>
+          <Text className="text-primary-foreground text-[12px] font-bold">{number}</Text>
         </View>
         {!isLast && (
           <View className="w-px flex-1 mt-1.5" style={{ minHeight: 20, backgroundColor: active ? "#bfdbfe" : "#e2e8f0" }} />
@@ -404,7 +403,7 @@ export default function ExerciseDetailsScreen() {
           {/* Back button */}
           <TouchableOpacity
             onPress={() => router.back()}
-            className="absolute z-10 w-10 h-10 rounded-full bg-black/50 items-center justify-center"
+            className="absolute z-10 w-10 h-10 rounded-full bg-white/20 items-center justify-center"
             style={{ top: Math.max(insets.top, 10) + 10, left: 15 }}
           >
             <Feather name="arrow-left" size={20} color="#fff" />
@@ -466,23 +465,27 @@ export default function ExerciseDetailsScreen() {
               <View className="w-12 h-12 rounded-full bg-blue-50 dark:bg-blue-900/20 items-center justify-center mb-3">
                 <Feather name="activity" size={22} color="#1e4ed8" />
               </View>
-              <Text className="text-[11px] text-slate-400 uppercase font-bold tracking-widest mb-1">Intensity</Text>
-              <Text className="text-[15px] font-bold text-slate-900 dark:text-white">{routine.intensity}</Text>
+              <Text className="text-[11px] text-slate-500 dark:text-slate-400 uppercase font-bold tracking-widest mb-1">Intensity</Text>
+              <Text className="text-[16px] font-black text-slate-900 dark:text-white">{routine.intensity}</Text>
             </View>
             <View className="flex-1 bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-200 dark:border-slate-800/70 items-center justify-center shadow-sm shadow-slate-100">
               <View className="w-12 h-12 rounded-full bg-purple-50 dark:bg-purple-900/20 items-center justify-center mb-3">
                 <Feather name="shield" size={22} color="#7e22ce" />
               </View>
-              <Text className="text-[11px] text-slate-400 uppercase font-bold tracking-widest mb-1">Risk Tier</Text>
-              <Text className="text-[15px] font-bold text-slate-900 dark:text-white">{routine.category}</Text>
+              <Text className="text-[11px] text-slate-500 dark:text-slate-400 uppercase font-bold tracking-widest mb-1">Risk Tier</Text>
+              <Text className="text-[16px] font-black text-slate-900 dark:text-white">{routine.category}</Text>
             </View>
           </View>
 
           {/* Gamification Badge */}
-          <View className="flex-row justify-center mb-4">
-            <View className="bg-green-100 dark:bg-green-900/30 px-4 py-2 rounded-full flex-row items-center gap-2 border border-green-200 dark:border-green-800">
+          <View className="flex-row justify-center mb-4 px-2">
+            <View className="flex-1 bg-green-100 dark:bg-green-900/30 px-4 py-2.5 rounded-full flex-row items-center justify-center gap-2 border border-green-200 dark:border-green-800">
               <Feather name="trending-up" size={16} color="#16a34a" />
-              <Text className="text-green-700 dark:text-green-400 font-bold text-[13px]">
+              <Text 
+                className="text-green-700 dark:text-green-400 font-bold text-[13px] text-center"
+                numberOfLines={1}
+                adjustsFontSizeToFit
+              >
                 Finish session to gain +5 Stability Points
               </Text>
             </View>
@@ -491,7 +494,7 @@ export default function ExerciseDetailsScreen() {
           {/* Timer Section */}
           <View className="bg-white dark:bg-slate-900 p-6 rounded-[32px] items-center justify-center mb-6 border border-slate-200 dark:border-slate-800/70 shadow-sm shadow-slate-200/50">
             <Text className="text-[13px] font-bold text-slate-400 uppercase tracking-widest mb-2">Time Remaining</Text>
-            <Text className="text-[56px] font-bold text-slate-900 dark:text-white tracking-tighter leading-none" style={{ fontVariant: ['tabular-nums'] }}>
+            <Text className="text-[56px] font-bold text-slate-900 dark:text-white tracking-tighter leading-none">
               {formatTime(timeLeft)}
             </Text>
           </View>
@@ -531,7 +534,7 @@ export default function ExerciseDetailsScreen() {
          <TouchableOpacity 
            activeOpacity={0.8}
            onPress={toggleTimer}
-           className={`flex-1 py-4 rounded-2xl items-center justify-center flex-row shadow-sm ${isActive ? 'bg-red-50 border border-red-100' : 'bg-[#1e4ed8] shadow-blue-500/30'}`}
+           className={`flex-1 py-4 rounded-2xl items-center justify-center flex-row shadow-sm ${isActive ? 'bg-red-50 border border-red-100' : hasStarted ? 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700' : 'bg-primary'}`}
          >
            {isActive ? (
              <>
@@ -540,8 +543,8 @@ export default function ExerciseDetailsScreen() {
              </>
            ) : (
              <>
-                <Feather name="play" size={22} color={hasStarted ? "#1e4ed8" : "white"} className="mr-2" />
-                <Text className={`${hasStarted ? 'text-[#1e4ed8]' : 'text-white'} text-[18px] font-bold`}>
+                <Feather name="play" size={22} className={`mr-2 ${hasStarted ? 'text-primary' : 'text-primary-foreground'}`} />
+                <Text className={`${hasStarted ? 'text-primary' : 'text-primary-foreground'} text-[18px] font-bold`}>
                   {hasStarted ? "Resume Routine" : "Start Routine"}
                 </Text>
              </>

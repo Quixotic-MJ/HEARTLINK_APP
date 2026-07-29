@@ -157,18 +157,18 @@ export default function BarcodeScanScreen() {
         <Text className="text-[16px] font-medium text-slate-900 dark:text-white mb-2 text-center">
           Camera permission required
         </Text>
-        <Text className="text-[13px] text-slate-400 text-center mb-6 leading-relaxed">
+        <Text className="text-[13px] text-slate-500 text-center mb-6 leading-relaxed">
           HeartLink needs camera access to scan food barcodes.
         </Text>
         <TouchableOpacity
           onPress={requestPermission}
-          className="bg-slate-900 px-6 py-3 rounded-xl flex-row items-center gap-2"
+          className="bg-primary px-6 py-3 rounded-xl flex-row items-center gap-2"
         >
           <Feather name="camera" size={15} color="#fff" />
           <Text className="text-white font-medium text-[14px]">Grant permission</Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={() => router.back()} className="mt-3 px-6 py-3">
-          <Text className="text-slate-400 text-[13px]">Go back</Text>
+          <Text className="text-slate-500 font-medium text-[13px]">Go back</Text>
         </TouchableOpacity>
       </SafeAreaView>
     );
@@ -188,7 +188,7 @@ export default function BarcodeScanScreen() {
         </TouchableOpacity>
         <View className="flex-1">
           <Text className="text-[17px] font-medium text-slate-900 dark:text-white">Scan meal</Text>
-          <Text className="text-[12px] text-slate-400">Record via barcode</Text>
+          <Text className="text-[12px] text-slate-500">Record via barcode</Text>
         </View>
         {/* Torch toggle (always visible) */}
         <TouchableOpacity
@@ -286,7 +286,7 @@ export default function BarcodeScanScreen() {
                   value={manualBarcode}
                   onChangeText={setManualBarcode}
                   placeholder="Enter barcode number…"
-                  placeholderTextColor="#cbd5e1"
+                  placeholderTextColor="#94a3b8"
                   keyboardType="numeric"
                   className="text-[14px] text-slate-900 dark:text-white"
                   autoFocus
@@ -299,7 +299,7 @@ export default function BarcodeScanScreen() {
                     handleBarcodeScanned({ type: "manual", data: manualBarcode });
                   }
                 }}
-                className="bg-slate-900 px-4 py-2.5 rounded-xl"
+                className="bg-primary px-4 py-2.5 rounded-xl"
               >
                 <Text className="text-white text-[13px] font-medium">Look up</Text>
               </TouchableOpacity>
@@ -314,14 +314,14 @@ export default function BarcodeScanScreen() {
                 className="flex-row items-center gap-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 px-4 py-2.5 rounded-xl"
               >
                 <Feather name="edit-2" size={13} color="#64748b" />
-                <Text className="text-[12px] text-slate-600">Enter manually</Text>
+                <Text className="text-[12px] font-medium text-slate-700 dark:text-slate-300">Enter manually</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => router.push("/(home)/(meals)/search-meal")}
                 className="flex-row items-center gap-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 px-4 py-2.5 rounded-xl"
               >
                 <Feather name="search" size={13} color="#64748b" />
-                <Text className="text-[12px] text-slate-600">Search food</Text>
+                <Text className="text-[12px] font-medium text-slate-700 dark:text-slate-300">Search food</Text>
               </TouchableOpacity>
             </View>
           )}

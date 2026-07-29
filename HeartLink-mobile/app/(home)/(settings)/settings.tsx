@@ -55,18 +55,18 @@ function SettingsRow({
       </View>
 
       {/* Label + subtitle */}
-      <View className="flex-1">
+      <View className="flex-1 pr-4">
         <Text
           className={`text-[14px] font-medium ${danger ? 'text-red-700 dark:text-red-500' : 'text-slate-900 dark:text-white'}`}
         >
           {label}
         </Text>
         {subtitle && (
-          <Text className="text-[12px] text-slate-400 mt-0.5">{subtitle}</Text>
+          <Text className="text-[12px] text-slate-500 dark:text-slate-400 mt-0.5">{subtitle}</Text>
         )}
       </View>
 
-      <Feather name="chevron-right" size={16} color="#e2e8f0" />
+      <Feather name="chevron-right" size={16} color="#94a3b8" />
     </TouchableOpacity>
   );
 }
@@ -75,7 +75,7 @@ function SettingsRow({
 
 function SectionLabel({ title }: { title: string }) {
   return (
-    <Text className="text-[11px] text-slate-400 uppercase tracking-wide mb-2 mt-1">
+    <Text className="text-[11px] text-slate-500 dark:text-slate-400 uppercase font-bold tracking-wide mb-2 mt-1">
       {title}
     </Text>
   );

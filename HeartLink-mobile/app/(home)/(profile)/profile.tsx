@@ -47,8 +47,10 @@ function ProfileField({
   isLast?: boolean;
   onPress?: () => void;
 }) {
+  const Container = onPress ? TouchableOpacity : View;
+  
   return (
-    <TouchableOpacity
+    <Container
       activeOpacity={0.65}
       onPress={onPress}
       className="flex-row items-center py-3.5"
@@ -65,18 +67,18 @@ function ProfileField({
         )}
       </View>
       <View className="flex-1">
-        <Text className="text-[11px] text-slate-400 uppercase tracking-wide mb-0.5">
+        <Text className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-0.5">
           {label}
         </Text>
         <Text className="text-[14px] font-medium text-slate-900 dark:text-white">
           {value}
           {unit && (
-            <Text className="text-[13px] font-normal text-slate-400"> {unit}</Text>
+            <Text className="text-[13px] font-medium text-slate-500"> {unit}</Text>
           )}
         </Text>
       </View>
-      <Feather name="chevron-right" size={15} color="#e2e8f0" />
-    </TouchableOpacity>
+      {onPress && <Feather name="chevron-right" size={15} color="#94a3b8" />}
+    </Container>
   );
 }
 
@@ -84,7 +86,7 @@ function ProfileField({
 
 function SectionLabel({ title }: { title: string }) {
   return (
-    <Text className="text-[11px] text-slate-400 uppercase tracking-wide mb-2 mt-1">
+    <Text className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2 mt-1">
       {title}
     </Text>
   );
@@ -132,7 +134,7 @@ function QuickStat({
         <Text className="text-[18px] font-medium text-slate-900 dark:text-white leading-tight">
           {value}
         </Text>
-        <Text className="text-[8px] text-slate-400 uppercase tracking-wide mt-0.5">
+        <Text className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide mt-0.5">
           {label}
         </Text>
       </View>
@@ -535,7 +537,7 @@ export default function ProfileScreen() {
           <Text className="text-[20px] font-medium text-slate-900 dark:text-white tracking-tight">
             {userData.name}
           </Text>
-          <Text className="text-[13px] text-slate-400 mt-0.5">{userData.email}</Text>
+          <Text className="text-[14px] font-medium text-slate-500 dark:text-slate-400 mt-1">{userData.email}</Text>
 
           {/* Clinical History Tags */}
           {userData.conditions && userData.conditions.length > 0 && (
@@ -567,7 +569,7 @@ export default function ProfileScreen() {
             <ProfileField label="Email" value={userData.email} icon="mail" />
             <ProfileField label="Phone" value={userData.phone} icon="phone" />
             <ProfileField label="Date of birth" value={userData.birthdate} icon="calendar" />
-            <ProfileField label="Gender" value={userData.gender} icon="users" isLast />
+            <ProfileField label="Gender" value={userData.gender ? userData.gender.charAt(0).toUpperCase() + userData.gender.slice(1).toLowerCase() : ""} icon="users" isLast />
           </FieldGroup>
 
           {/* ── Biometrics ── */}
@@ -601,10 +603,10 @@ export default function ProfileScreen() {
             <TouchableOpacity
               activeOpacity={0.85}
               onPress={() => router.push("/(home)/(profile)/care-team")}
-              className="bg-white dark:bg-slate-900 rounded-2xl py-3.5 flex-row items-center justify-center gap-2 border border-slate-200 dark:border-slate-800/70"
+              className="bg-primary/5 dark:bg-primary/10 rounded-2xl py-3.5 flex-row items-center justify-center gap-2 border border-primary/20 dark:border-primary/30"
             >
-              <Feather name="users" size={15} color="#0ea5e9" />
-              <Text className="text-[14px] font-medium text-slate-700 dark:text-slate-300">
+              <Feather name="users" size={15} className="text-primary" />
+              <Text className="text-[15px] font-semibold text-primary">
                 My Care Team
               </Text>
             </TouchableOpacity>
@@ -612,10 +614,10 @@ export default function ProfileScreen() {
             <TouchableOpacity
               activeOpacity={0.85}
               onPress={exportPDF}
-              className="bg-white dark:bg-slate-900 rounded-2xl py-3.5 flex-row items-center justify-center gap-2 border border-slate-200 dark:border-slate-800/70"
+              className="bg-primary/5 dark:bg-primary/10 rounded-2xl py-3.5 flex-row items-center justify-center gap-2 border border-primary/20 dark:border-primary/30"
             >
-              <Feather name="download" size={15} color="#64748b" />
-              <Text className="text-[14px] font-medium text-slate-600">
+              <Feather name="download" size={15} className="text-primary" />
+              <Text className="text-[15px] font-semibold text-primary">
                 Download health report
               </Text>
             </TouchableOpacity>

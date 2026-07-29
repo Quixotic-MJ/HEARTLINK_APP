@@ -16,6 +16,7 @@ import { useColorScheme } from "nativewind";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useUser } from "../../../contexts/UserContext";
+import { Header } from "../../../components/Header";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -249,7 +250,11 @@ function NutritionPill({
         {value}
         <Text className="text-[11px] font-normal text-slate-400 dark:text-slate-500"> {unit}</Text>
       </Text>
-      <Text className="text-[9px] text-slate-400 dark:text-slate-500 uppercase tracking-wide mt-0.5">
+      <Text 
+        className="text-[9px] text-slate-400 dark:text-slate-500 uppercase tracking-wide mt-0.5"
+        numberOfLines={1}
+        adjustsFontSizeToFit
+      >
         {label}
       </Text>
     </View>
@@ -269,12 +274,16 @@ function RecipeCard({ recipe, onPress, isSaved, onSave }: { recipe: Recipe; onPr
       className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden mb-5"
     >
       {/* Image */}
-      <View className="h-[160px] bg-slate-100 dark:bg-slate-800 relative">
-        <Image
-          source={{ uri: recipe.image }}
-          className="w-full h-full"
-          resizeMode="cover"
-        />
+      <View className="h-[160px] bg-slate-100 dark:bg-slate-800 relative items-center justify-center">
+        {/* Fallback Icon */}
+        <MaterialCommunityIcons name="silverware-fork-knife" size={32} className="text-slate-300 dark:text-slate-700 absolute" />
+        {!!recipe.image && (
+          <Image
+            source={{ uri: recipe.image }}
+            className="w-full h-full absolute"
+            resizeMode="cover"
+          />
+        )}
         {/* Save Button */}
         <TouchableOpacity
           activeOpacity={0.8}
@@ -358,15 +367,10 @@ function FilterChip({
     <TouchableOpacity
       onPress={onPress}
       activeOpacity={0.75}
-      className="px-4 py-2 rounded-full border"
-      style={{
-        backgroundColor: active ? "#0f172a" : "#fff",
-        borderColor: active ? "#0f172a" : "#e2e8f0",
-      }}
+      className={`px-4 py-2 rounded-full border ${active ? "bg-primary border-primary" : "bg-card border-border"}`}
     >
       <Text
-        className="text-[13px] font-medium"
-        style={{ color: active ? "#fff" : "#64748b" }}
+        className={`text-[13px] font-medium ${active ? "text-primary-foreground" : "text-muted-foreground"}`}
       >
         {label}
       </Text>
@@ -508,36 +512,14 @@ export default function RecipesScreen() {
       <StatusBar style="dark" />
 
       {/* ── Top bar ── */}
-      <View className="flex-row justify-between items-center px-5 pt-3 pb-2">
-        <View className="flex-row items-center gap-2.5">
-          <View className="w-7 h-7 rounded-full items-center justify-center border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-            <Feather name="heart" size={13} color={colorScheme === "dark" ? "#fff" : "#0f172a"} />
-          </View>
-          <Text className="text-[16px] text-slate-900 dark:text-white tracking-tight" style={{ fontWeight: "300" }}>Heart<Text style={{ fontWeight: "600" }}>Link.</Text></Text>
-        </View>
-        <View className="flex-row items-center gap-2">
-          <TouchableOpacity onPress={() => router.push("/(home)/(profile)/notifications")} className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-800 items-center justify-center">
-            <Feather name="bell" size={17} color={colorScheme === "dark" ? "#94a3b8" : "#64748b"} />
-            <View style={{ position: "absolute", top: 8, right: 8 }} className="w-1.5 h-1.5 bg-red-500 rounded-full" />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => router.push("/(home)/(settings)/settings")} className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-800 items-center justify-center">
-            <Feather name="settings" size={17} color={colorScheme === "dark" ? "#94a3b8" : "#64748b"} />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => router.push("/(home)/(profile)/profile")} activeOpacity={0.8} className="ml-1">
-            <View className="w-9 h-9 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
-              <Image source={{ uri: user?.avatar_url || "https://ui-avatars.com/api/?name=" + (user?.first_name || "U") + "&background=e2e8f0&color=475569&bold=true" }} className="w-full h-full" resizeMode="cover" />
-            </View>
-            <View style={{ position: "absolute", bottom: -1, right: -1 }} className="w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-slate-50 dark:border-slate-800" />
-          </TouchableOpacity>
-        </View>
-      </View>
+      <Header />
 
       <View className="flex-row items-center justify-between px-5 pt-4">
         <View className="flex-1 pr-2">
           <Text className="text-[26px] font-medium text-slate-900 dark:text-white tracking-tight">
             Recipes
           </Text>
-          <Text className="text-[14px] text-slate-500 dark:text-slate-400 mt-0.5">
+          <Text className="text-[14px] text-slate-500 dark:text-slate-400 mt-0.5" numberOfLines={1} adjustsFontSizeToFit>
             Heart-healthy meals for you
           </Text>
         </View>

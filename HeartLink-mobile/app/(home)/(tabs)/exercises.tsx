@@ -16,6 +16,8 @@ import { StatusBar } from "expo-status-bar";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useUser } from "../../../contexts/UserContext";
+import * as Haptics from "expo-haptics";
+import { Header } from "../../../components/Header";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -218,7 +220,7 @@ function RoutineCard({
             <Text className="text-[16px] font-medium text-slate-900 dark:text-white leading-snug mb-1">
               {routine.title}
             </Text>
-            <Text className="text-[13px] text-slate-400 leading-5">
+            <Text className="text-[13px] text-slate-500 dark:text-slate-400 leading-5">
               {routine.goal}
             </Text>
           </View>
@@ -233,8 +235,8 @@ function RoutineCard({
         {/* Intensity chip */}
         <View className="flex-row items-center gap-1.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/70 px-2.5 py-1.5 rounded-lg self-start mb-4">
           <Feather name="zap" size={12} color="#94a3b8" />
-          <Text className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-            {routine.intensity} intensity
+          <Text className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+            INTENSITY: {routine.intensity}
           </Text>
         </View>
 
@@ -242,11 +244,7 @@ function RoutineCard({
         <TouchableOpacity
           activeOpacity={0.85}
           onPress={onStart}
-          className="py-3.5 rounded-xl items-center justify-center flex-row gap-2 border"
-          style={{
-            backgroundColor: isCompleted ? "#f0fdf4" : "#0f172a",
-            borderColor: isCompleted ? "#bbf7d0" : "#0f172a",
-          }}
+          className={`py-3.5 rounded-xl items-center justify-center flex-row gap-2 border ${isCompleted ? "bg-[#f0fdf4] border-[#bbf7d0]" : "bg-primary border-primary"}`}
         >
           <Feather
             name={isCompleted ? "repeat" : "play"}
@@ -254,8 +252,7 @@ function RoutineCard({
             color={isCompleted ? "#3b6d11" : "#fff"}
           />
           <Text
-            className="text-[14px] font-medium"
-            style={{ color: isCompleted ? "#3b6d11" : "#fff" }}
+            className={`text-[14px] font-semibold ${isCompleted ? "text-[#3b6d11]" : "text-primary-foreground"}`}
           >
             {isCompleted ? "Do it again" : "Start routine"}
           </Text>
@@ -385,7 +382,7 @@ export default function ExercisesScreen() {
           type: r.type || "Light Cardio",
           intensity: r.intensity || "Low",
           category: r.css_tier || "Stable",
-          image: r.image_url || "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=400&h=300&fit=crop",
+          image: r.image_url || "",
         }));
         setRoutinesList(mapped.length > 0 ? mapped : ROUTINES);
       }
@@ -539,36 +536,14 @@ export default function ExercisesScreen() {
       )}
 
       {/* ── Top bar ── */}
-      <View className="flex-row justify-between items-center px-5 pt-4 pb-2">
-        <View className="flex-row items-center gap-2.5">
-          <View className="w-7 h-7 rounded-full items-center justify-center border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-            <Feather name="heart" size={13} color="#0f172a" />
-          </View>
-          <Text className="text-[16px] text-slate-900 dark:text-white tracking-tight" style={{ fontWeight: "300" }}>Heart<Text style={{ fontWeight: "600" }}>Link.</Text></Text>
-        </View>
-        <View className="flex-row items-center gap-2">
-          <TouchableOpacity onPress={() => router.push("/(home)/(profile)/notifications")} className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-800/70 items-center justify-center">
-            <Feather name="bell" size={17} color="#64748b" />
-            <View style={{ position: "absolute", top: 8, right: 8 }} className="w-1.5 h-1.5 bg-red-500 rounded-full" />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => router.push("/(home)/(settings)/settings")} className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-800/70 items-center justify-center">
-            <Feather name="settings" size={17} color="#64748b" />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => router.push("/(home)/(profile)/profile")} activeOpacity={0.8} className="ml-1">
-            <View className="w-9 h-9 rounded-full bg-slate-200 overflow-hidden">
-              <Image source={{ uri: user?.avatar_url || "https://ui-avatars.com/api/?name=" + (user?.first_name || "U") + "&background=e2e8f0&color=475569&bold=true" }} className="w-full h-full" resizeMode="cover" />
-            </View>
-            <View style={{ position: "absolute", bottom: -1, right: -1 }} className="w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-slate-50" />
-          </TouchableOpacity>
-        </View>
-      </View>
+      <Header />
 
       <View className="flex-row items-center justify-between px-5 pt-3 mb-4">
         <View className="flex-1 pr-2">
-          <Text className="text-[24px] font-medium text-slate-900 dark:text-white tracking-tight">
-            Rehab routines
+          <Text className="text-[24px] font-medium text-slate-900 dark:text-white tracking-tight" numberOfLines={1} adjustsFontSizeToFit>
+            Rehab Routines
           </Text>
-          <Text className="text-[14px] text-slate-400 mt-0.5">
+          <Text className="text-[14px] text-slate-400 mt-0.5" numberOfLines={1} adjustsFontSizeToFit>
             Adapted to your daily heart stability
           </Text>
         </View>
@@ -729,14 +704,14 @@ export default function ExercisesScreen() {
                   onPress={() => setSelectedType(type)}
                   className={`px-4 py-2 rounded-full mr-2 border ${
                     isSelected 
-                      ? "bg-slate-900 border-slate-900 dark:bg-slate-100 dark:border-slate-100" 
+                      ? "bg-primary border-primary" 
                       : "bg-slate-50 border-slate-200 dark:bg-slate-800 dark:border-slate-800"
                   }`}
                 >
                   <Text 
                     className={`text-[13px] font-medium ${
                       isSelected 
-                        ? "text-white dark:text-slate-900" 
+                        ? "text-primary-foreground" 
                         : "text-slate-600 dark:text-slate-300"
                     }`}
                   >

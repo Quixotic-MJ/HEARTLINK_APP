@@ -162,7 +162,7 @@ export default function SearchMealScreen() {
           <Text className="text-[17px] font-medium text-slate-900 dark:text-white">
             Search & Log Meal
           </Text>
-          <Text className="text-[12px] text-slate-400">
+          <Text className="text-[12px] text-slate-500">
             Find food, recipes, and brands
           </Text>
         </View>
@@ -181,7 +181,7 @@ export default function SearchMealScreen() {
             value={searchQuery}
             onChangeText={setSearchQuery}
             placeholder="Search food, recipes, or brands..."
-            placeholderTextColor="#cbd5e1"
+            placeholderTextColor="#94a3b8"
             className="flex-1 ml-3 text-[15px] text-slate-900 dark:text-white"
             autoCapitalize="none"
           />
@@ -191,10 +191,10 @@ export default function SearchMealScreen() {
         <TouchableOpacity
           onPress={() => router.push("/(home)/(meals)/barcode-scan")}
           activeOpacity={0.8}
-          className="bg-[#e6f1fb] rounded-2xl py-3.5 px-4 mb-6 flex-row items-center justify-center border border-[#cce3f7]"
+          className="bg-primary/10 rounded-2xl py-3.5 px-4 mb-6 flex-row items-center justify-center border border-primary/20"
         >
-          <MaterialCommunityIcons name="barcode-scan" size={18} color="#185fa5" />
-          <Text className="text-[14px] font-medium text-[#185fa5] ml-2">
+          <MaterialCommunityIcons name="barcode-scan" size={18} color="#2563eb" />
+          <Text className="text-[14px] font-medium text-primary ml-2">
             Scan Barcode
           </Text>
         </TouchableOpacity>
@@ -267,7 +267,7 @@ export default function SearchMealScreen() {
       >
         <TouchableOpacity
           onPress={() => router.push("/(home)/(meals)/estimate-meal")}
-          className="bg-slate-900 w-full rounded-2xl py-3.5 items-center justify-center flex-row gap-2"
+          className="bg-primary w-full rounded-2xl py-3.5 items-center justify-center flex-row gap-2"
           activeOpacity={0.85}
         >
           <Feather name="edit-3" size={16} color="#fff" />

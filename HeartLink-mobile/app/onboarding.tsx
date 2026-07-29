@@ -56,10 +56,10 @@ function FeatureCard({
         )}
       </View>
       <View className="flex-1">
-        <Text className="text-sm font-semibold text-foreground mb-1">
+        <Text className="text-base font-semibold text-foreground mb-1">
           {title}
         </Text>
-        <Text className="text-xs text-muted-foreground leading-relaxed">
+        <Text className="text-sm text-muted-foreground leading-relaxed">
           {subtitle}
         </Text>
       </View>
@@ -151,26 +151,17 @@ export default function OnboardingScreen() {
         </Animated.View>
 
         <View className="items-center px-6 mb-10">
-          {/* ── Minimalist Heart Icon ── */}
-          <Animated.View 
-            entering={FadeInDown.delay(200).springify()} 
-            className="w-24 h-24 rounded-full items-center justify-center border border-border bg-card mb-6" 
-            importantForAccessibility="no"
-          >
-            <Feather name="heart" size={40} className="text-foreground" />
-          </Animated.View>
-
           {/* Headline */}
           <Animated.Text 
-            entering={FadeInDown.delay(300).springify()} 
+            entering={FadeInDown.delay(200).springify()} 
             className="text-3xl font-semibold text-foreground text-center tracking-tight leading-tight mb-4" 
             accessibilityRole="header"
           >
             Proactive{"\n"}cardiovascular{"\n"}well-being.
           </Animated.Text>
           <Animated.Text 
-            entering={FadeInDown.delay(400).springify()} 
-            className="text-sm text-muted-foreground text-center leading-relaxed px-2"
+            entering={FadeInDown.delay(300).springify()} 
+            className="text-base text-muted-foreground text-center leading-relaxed px-2"
           >
             Monitor and track your dietary and lifestyle habits to get personalized food recipes and exercise routines based on your Cardiovascular Stability Score.
           </Animated.Text>
@@ -185,7 +176,7 @@ export default function OnboardingScreen() {
             iconColorClass="text-primary"
             title="Cardiovascular Stability Score"
             subtitle="Track your daily habits and biometrics to receive real-time cardiovascular health scores."
-            delay={500}
+            delay={400}
           />
           <FeatureCard
             icon="silverware-fork-knife"
@@ -194,7 +185,7 @@ export default function OnboardingScreen() {
             iconColorClass="text-emerald-600 dark:text-emerald-400"
             title="Personalized Meal Recipes"
             subtitle="Discover heart-healthy food recipes tailored specifically to your cardiovascular needs."
-            delay={600}
+            delay={500}
           />
           <FeatureCard
             icon="fitness-center"
@@ -203,95 +194,109 @@ export default function OnboardingScreen() {
             iconColorClass="text-amber-600 dark:text-amber-400"
             title="Tailored Exercise Routines"
             subtitle="Follow personalized physical workout plans designed to improve your heart stability."
-            delay={700}
+            delay={600}
           />
         </View>
 
-        {/* ── Dev shortcut ── */}
+        {/* ── Dev Menu ── */}
         {__DEV__ && (
-          <TouchableOpacity
-            onPress={() => {
-              setUserId("usr-patient-101");
-              router.replace("/(home)/(tabs)/dashboard");
-            }}
-            className="mx-6 mb-4 bg-primary border border-border rounded-xl py-3 items-center"
-            accessible={true}
-            accessibilityRole="button"
-            accessibilityLabel="Developer skip to dashboard"
-          >
-            <Text className="text-xs text-primary-foreground font-medium">
-              Dev → skip to dashboard
-            </Text>
-          </TouchableOpacity>
+          <View className="mx-6 mb-4 p-4 border border-border rounded-xl bg-card">
+            <Text className="text-foreground font-bold mb-3">Dev Menu</Text>
+            <View className="flex-row flex-wrap gap-2 mb-4">
+              {[
+                { name: 'Login', path: '/(auth)/login' },
+                { name: 'Register', path: '/(auth)/register' },
+                { name: 'Forgot Pass', path: '/(auth)/forgot-password' },
+                { name: 'Verify OTP', path: '/(auth)/verify-otp' },
+                { name: 'Success', path: '/(auth)/verification-success' },
+                { name: 'Dashboard', path: '/(home)/(tabs)/dashboard' },
+                { name: 'Health Goals', path: '/(baseline)/health_goals' },
+                { name: 'Locator', path: '/locator' },
+              ].map((route) => (
+                <TouchableOpacity
+                  key={route.path}
+                  onPress={() => router.push(route.path as any)}
+                  className="bg-slate-200 dark:bg-slate-800 px-3 py-2 rounded-lg"
+                >
+                  <Text className="text-xs text-foreground font-medium">{route.name}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <TouchableOpacity
+              onPress={() => {
+                setUserId("usr-patient-101");
+                router.replace("/(home)/(tabs)/dashboard" as any);
+              }}
+              className="bg-primary rounded-lg py-3 items-center"
+            >
+              <Text className="text-xs text-primary-foreground font-medium">
+                Set mock user & go to Dashboard
+              </Text>
+            </TouchableOpacity>
+          </View>
         )}
 
-        {/* ── Actions ── */}
-        <Animated.View entering={FadeInDown.delay(800).springify()} className="px-6 mt-auto">
-          {/* Server Offline Error */}
-          {showError && (
-            <Animated.View 
-              entering={FadeIn} 
-              className="bg-destructive/10 border border-destructive/30 rounded-xl p-3 mb-4 flex-row items-center gap-2" 
-              accessible={true} 
-              accessibilityRole="alert"
-            >
-              <Feather name="wifi-off" size={16} className="text-destructive" />
-              <Text className="text-destructive text-xs flex-1">
-                Unable to connect to the server. Please check your internet connection and try again.
-              </Text>
-              <TouchableOpacity 
-                onPress={handleGetStarted} 
-                className="ml-2 bg-destructive/20 px-3 py-1.5 rounded-lg" 
-                accessibilityRole="button" 
-                accessibilityLabel="Retry connection"
-              >
-                <Text className="text-destructive text-xs font-medium">Retry</Text>
-              </TouchableOpacity>
-            </Animated.View>
-          )}
-
-          {/* Primary CTA */}
-          <TouchableOpacity
-            activeOpacity={0.85}
-            className={`w-full bg-primary rounded-2xl py-4 flex-row justify-center items-center gap-2 mb-3 ${isCheckingServer ? 'opacity-80' : ''}`}
-            onPress={handleGetStarted}
-            disabled={isCheckingServer}
-            accessible={true}
-            accessibilityRole="button"
-            accessibilityLabel="Get started with Heart Link"
-            accessibilityHint="Navigates to the registration screen"
-          >
-            {isCheckingServer ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <>
-                <Text className="text-primary-foreground text-sm font-semibold">
-                  Get started
-                </Text>
-                <Feather name="arrow-right" size={16} className="text-primary-foreground" />
-              </>
-            )}
-          </TouchableOpacity>
-
-          {/* Secondary CTA */}
-          <TouchableOpacity
-            activeOpacity={0.65}
-            className="py-4 flex-row justify-center items-center gap-1.5"
-            onPress={() => router.push("/login")}
-            accessible={true}
-            accessibilityRole="button"
-            accessibilityLabel="Log in to existing account"
-            accessibilityHint="Navigates to the login screen"
-          >
-            <Text className="text-sm text-muted-foreground">
-              Already have an account?
-            </Text>
-            <Text className="text-sm font-semibold text-foreground">
-              Log in
-            </Text>
-          </TouchableOpacity>
-        </Animated.View>
       </ScrollView>
+
+      {/* ── Actions (Fixed Footer) ── */}
+      <Animated.View entering={FadeInDown.delay(300).springify()} className="px-6 pt-2 pb-6 bg-background">
+        {/* Server Offline Error */}
+        {showError && (
+          <Animated.View 
+            entering={FadeIn} 
+            className="bg-destructive/10 border border-destructive/30 rounded-xl p-3 mb-4 flex-row items-center gap-2" 
+            accessible={true} 
+            accessibilityRole="alert"
+          >
+            <Feather name="wifi-off" size={16} className="text-destructive" />
+            <Text className="text-destructive text-sm flex-1">
+              Unable to connect to the server. Please check your internet connection and try again.
+            </Text>
+          </Animated.View>
+        )}
+
+        {/* Primary CTA */}
+        <TouchableOpacity
+          activeOpacity={0.85}
+          className={`w-full bg-primary rounded-2xl py-4 flex-row justify-center items-center gap-2 mb-3 ${isCheckingServer ? 'opacity-80' : ''}`}
+          onPress={handleGetStarted}
+          disabled={isCheckingServer}
+          accessible={true}
+          accessibilityRole="button"
+          accessibilityLabel="Get started with Heart Link"
+          accessibilityHint="Navigates to the registration screen"
+        >
+          {isCheckingServer ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <>
+              <Text className="text-primary-foreground text-sm font-semibold">
+                Get started
+              </Text>
+              <Feather name="arrow-right" size={16} className="text-primary-foreground" />
+            </>
+          )}
+        </TouchableOpacity>
+
+        {/* Secondary CTA */}
+        <TouchableOpacity
+          activeOpacity={0.65}
+          className="py-4 flex-row justify-center items-center gap-1.5"
+          onPress={() => router.push("/login")}
+          accessible={true}
+          accessibilityRole="button"
+          accessibilityLabel="Log in to existing account"
+          accessibilityHint="Navigates to the login screen"
+        >
+          <Text className="text-sm text-muted-foreground">
+            Already have an account?
+          </Text>
+          <Text className="text-sm font-semibold text-foreground">
+            Log in
+          </Text>
+        </TouchableOpacity>
+      </Animated.View>
     </SafeAreaView>
   );
 }

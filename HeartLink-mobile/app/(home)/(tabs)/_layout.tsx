@@ -153,7 +153,7 @@ function RecordBottomSheet({
         <Text style={{ fontSize: 17, fontWeight: "500", color: isDark ? "#f8fafc" : "#0f172a", marginBottom: 4 }}>
           Quick record
         </Text>
-        <Text style={{ fontSize: 13, color: isDark ? "#cbd5e1" : "#94a3b8", marginBottom: 20 }}>
+        <Text style={{ fontSize: 13, color: isDark ? "#cbd5e1" : "#64748b", marginBottom: 20 }}>
           What would you like to log?
         </Text>
 
@@ -203,7 +203,7 @@ function RecordBottomSheet({
               <Text style={{ fontSize: 14, fontWeight: "500", color: isDark ? "#f8fafc" : "#0f172a", marginBottom: 2 }}>
                 {option.label}
               </Text>
-              <Text style={{ fontSize: 12, color: isDark ? "#cbd5e1" : "#94a3b8", lineHeight: 16 }}>
+              <Text style={{ fontSize: 12, color: isDark ? "#cbd5e1" : "#64748b", lineHeight: 16 }}>
                 {option.subtitle}
               </Text>
             </View>
@@ -226,7 +226,7 @@ function RecordBottomSheet({
             borderColor: isDark ? "#334155" : "#e2e8f0",
           }}
         >
-          <Text style={{ fontSize: 13, fontWeight: "500", color: "#94a3b8" }}>
+          <Text style={{ fontSize: 13, fontWeight: "600", color: "#64748b" }}>
             Cancel
           </Text>
         </TouchableOpacity>
@@ -245,7 +245,7 @@ const TABS = [
   { name: "wrap-up",   label: "Wrap-Up",   icon: "calendar",              type: "feather"   },
 ] as const;
 
-const ACTIVE_COLOR   = "#0f172a";
+const ACTIVE_COLOR   = "#2563eb";
 const INACTIVE_COLOR = "#cbd5e1";
 
 // ─── Custom Tab Bar ───────────────────────────────────────────────────────────
@@ -255,7 +255,7 @@ function CustomTabBar({ state, navigation, onFabPress }: any) {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
   
-  const ACTIVE_COLOR = isDark ? "#fff" : "#0f172a";
+  const ACTIVE_COLOR = isDark ? "#fff" : "#2563eb";
   const INACTIVE_COLOR = isDark ? "#64748b" : "#cbd5e1";
 
   return (
@@ -307,12 +307,12 @@ function CustomTabBar({ state, navigation, onFabPress }: any) {
               <TouchableOpacity
                 onPress={onPress}
                 activeOpacity={0.8}
+                className="bg-primary"
                 style={{
                   position: "absolute",
                   top: -24,
                   width: 56,
                   height: 56,
-                  backgroundColor: isDark ? "#3b82f6" : "#0f172a",
                   borderRadius: 28,
                   alignItems: "center",
                   justifyContent: "center",

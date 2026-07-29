@@ -151,9 +151,9 @@ export default function DailyDiaryScreen() {
       </View>
 
       {/* ── Summary Banner ── */}
-      <View className="mx-5 mt-4 mb-3 p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 flex-row items-center justify-around">
-        <View className="items-center">
-          <Text className="text-[11px] text-slate-400 uppercase tracking-wide">
+      <View className="mx-5 mt-4 mb-3 p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 flex-row items-center justify-between">
+        <View className="items-center flex-1 px-1">
+          <Text className="text-[11px] text-slate-400 uppercase tracking-wide" numberOfLines={1} adjustsFontSizeToFit>
             Logged Items
           </Text>
           <Text className="text-[20px] font-bold text-slate-900 dark:text-white">
@@ -161,8 +161,8 @@ export default function DailyDiaryScreen() {
           </Text>
         </View>
         <View className="w-[1px] h-8 bg-slate-200 dark:bg-slate-800" />
-        <View className="items-center">
-          <Text className="text-[11px] text-slate-400 uppercase tracking-wide">
+        <View className="items-center flex-1 px-1">
+          <Text className="text-[11px] text-slate-400 uppercase tracking-wide" numberOfLines={1} adjustsFontSizeToFit>
             Total Calories
           </Text>
           <Text className="text-[20px] font-bold text-slate-900 dark:text-white">
@@ -170,8 +170,8 @@ export default function DailyDiaryScreen() {
           </Text>
         </View>
         <View className="w-[1px] h-8 bg-slate-200 dark:bg-slate-800" />
-        <View className="items-center">
-          <Text className="text-[11px] text-slate-400 uppercase tracking-wide">
+        <View className="items-center flex-1 px-1">
+          <Text className="text-[11px] text-slate-400 uppercase tracking-wide" numberOfLines={1} adjustsFontSizeToFit>
             Total Sodium
           </Text>
           <Text className="text-[20px] font-bold text-rose-600">
@@ -206,10 +206,10 @@ export default function DailyDiaryScreen() {
           </Text>
           <TouchableOpacity
             onPress={() => router.push("/(home)/(meals)/barcode-scan")}
-            className="bg-slate-900 dark:bg-slate-100 px-5 py-3 rounded-xl flex-row items-center gap-2"
+            className="bg-primary px-5 py-3 rounded-xl flex-row items-center gap-2"
           >
-            <Feather name="camera" size={15} color="#fff" />
-            <Text className="text-white dark:text-slate-900 font-medium text-[13px]">
+            <Feather name="camera" size={15} className="text-primary-foreground" />
+            <Text className="text-primary-foreground font-semibold text-[13px]">
               Scan Barcode Now
             </Text>
           </TouchableOpacity>
@@ -225,29 +225,26 @@ export default function DailyDiaryScreen() {
           renderItem={({ item }) => (
             <Swipeable renderRightActions={() => renderRightActions(item)}>
               <View className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 mb-3 flex-row items-center justify-between">
-                <View className="flex-row items-center flex-1 gap-3">
-                  {item.image_url ? (
-                    <Image
-                      source={{ uri: item.image_url }}
-                      className="w-12 h-12 rounded-xl"
-                      resizeMode="cover"
-                    />
-                  ) : (
-                    <View className="w-12 h-12 rounded-xl bg-orange-50 dark:bg-orange-950 items-center justify-center">
-                      <MaterialCommunityIcons
-                        name="silverware-fork-knife"
-                        size={20}
-                        color="#d97706"
+                <View className="flex-row items-center flex-1 gap-3 pr-2">
+                  <View className="w-14 h-14 rounded-xl bg-slate-100 dark:bg-slate-800 relative items-center justify-center overflow-hidden">
+                    <MaterialCommunityIcons name="silverware-fork-knife" size={24} className="text-slate-300 dark:text-slate-700 absolute" />
+                    {!!item.image_url && (
+                      <Image
+                        source={{ uri: item.image_url }}
+                        className="w-full h-full absolute"
+                        resizeMode="cover"
                       />
-                    </View>
-                  )}
+                    )}
+                  </View>
                   <View className="flex-1">
                     <Text className="text-[15px] font-semibold text-slate-900 dark:text-white leading-snug">
                       {item.meal_name}
                     </Text>
-                    <Text className="text-[12px] text-slate-400 mt-0.5">
-                      {item.portion || "1 serving"}
-                    </Text>
+                    <View className="self-start mt-1.5 px-2 py-0.5 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-200 dark:border-slate-700">
+                      <Text className="text-[9px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">
+                        {item.portion || 1} SERVING
+                      </Text>
+                    </View>
                   </View>
                 </View>
 

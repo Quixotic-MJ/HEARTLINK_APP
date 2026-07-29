@@ -36,19 +36,16 @@ function InputField({
   autoCapitalize?: any;
 }) {
   return (
-    <View
-      className="w-full bg-slate-50 dark:bg-slate-950 rounded-2xl flex-row items-center px-4"
-      style={{ borderWidth: 1, borderColor: "#e2e8f0", height: 52 }}
-    >
-      <Feather name={icon as any} size={17} color="#94a3b8" />
+    <View className="w-full bg-background border border-border rounded-2xl flex-row items-center px-4 min-h-[52px]">
+      <Feather name={icon as any} size={18} className="text-muted-foreground" />
       <TextInput
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor="#cbd5e1"
+        placeholderTextColor="#94a3b8"
         keyboardType={keyboardType}
         autoCapitalize={autoCapitalize ?? "none"}
-        className="flex-1 ml-3 text-[14px] text-slate-900 dark:text-white h-full"
+        className="flex-1 ml-3 text-base text-foreground py-3.5"
       />
     </View>
   );
@@ -114,22 +111,25 @@ export default function ForgotPasswordScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950" edges={["top"]}>
-      <StatusBar style="dark" />
+    <SafeAreaView className="flex-1 bg-background" edges={["top", "bottom"]}>
+      <StatusBar style="auto" />
 
       {/* Header */}
-      <View className="flex-row items-center px-5 pt-4 pb-2">
+      <View className="flex-row items-center px-6 pt-4 pb-2">
         <TouchableOpacity
           onPress={() => router.back()}
-          className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 items-center justify-center mr-3"
+          className="p-2 -ml-2 mr-4"
+          accessible={true}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
-          <Feather name="arrow-left" size={18} color={isDark ? "#f8fafc" : "#0f172a"} />
+          <Feather name="arrow-left" size={24} className="text-foreground" />
         </TouchableOpacity>
         <View className="flex-row items-center gap-2">
-          <View className="w-7 h-7 rounded-full items-center justify-center border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-            <Feather name="heart" size={13} color="#0f172a" />
+          <View className="w-8 h-8 rounded-full items-center justify-center border border-border bg-card">
+            <Feather name="heart" size={14} className="text-foreground" />
           </View>
-          <Text className="text-[16px] text-slate-900 dark:text-white tracking-tight" style={{ fontWeight: "300" }}>
+          <Text className="text-base text-foreground tracking-tight" style={{ fontWeight: "300" }}>
             Heart<Text style={{ fontWeight: "600" }}>Link.</Text>
           </Text>
         </View>
@@ -140,26 +140,26 @@ export default function ForgotPasswordScreen() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag"
-          contentContainerClassName="flex-grow px-5 pt-4 pb-12"
+          contentContainerClassName="flex-grow px-6 pt-4 pb-12"
           showsVerticalScrollIndicator={false}
           bounces={false}
         >
           {/* ── Heading ── */}
-          <View className="mb-7 mt-2">
-            <Text className="text-[28px] font-medium text-slate-900 dark:text-white tracking-tight leading-tight mb-2">
-              Forgot{"\n"}password?
+          <View className="mb-8 mt-2">
+            <Text className="text-3xl font-semibold text-foreground tracking-tight leading-tight mb-2" accessibilityRole="header">
+              Forgot password?
             </Text>
-            <Text className="text-[13px] text-slate-400 leading-relaxed">
+            <Text className="text-sm text-muted-foreground leading-relaxed">
               Enter your email or phone number to receive a temporary password.
             </Text>
           </View>
 
           {/* ── Card ── */}
-          <View className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/70 px-5 py-6 gap-3">
+          <View className="bg-card rounded-3xl border border-border px-5 py-7 gap-5">
             {error && (
-              <View className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-3 flex-row items-center gap-2 mb-1">
-                <Feather name="alert-triangle" size={16} color="#ef4444" />
-                <Text className="text-red-600 dark:text-red-400 text-[13px] flex-1">
+              <View className="bg-destructive/10 border border-destructive/30 rounded-2xl p-3.5 flex-row items-center gap-2 mt-1" accessible={true} accessibilityRole="alert">
+                <Feather name="alert-triangle" size={16} className="text-destructive" />
+                <Text className="text-destructive text-sm flex-1 font-medium">
                   {error}
                 </Text>
               </View>
@@ -167,10 +167,10 @@ export default function ForgotPasswordScreen() {
 
             {/* Identifier Section */}
             <View>
-              <Text className="text-[14px] font-semibold text-slate-900 dark:text-white mb-2 ml-1">Email or Phone number</Text>
+              <Text className="text-sm font-semibold text-foreground mb-2 ml-1">Email or Phone number</Text>
               <InputField
                 icon="user"
-                placeholder="Email or Phone"
+                placeholder="john@example.com or +63..."
                 value={identifier}
                 onChangeText={(t) => {
                   setIdentifier(t);
@@ -180,24 +180,21 @@ export default function ForgotPasswordScreen() {
               />
             </View>
 
-            {/* Divider */}
-            <View className="h-px bg-slate-100 dark:bg-slate-800 my-1 mt-2" />
-
             {/* Submit */}
             <TouchableOpacity
               activeOpacity={0.85}
               onPress={handleReset}
               disabled={isSubmitting}
-              className={`w-full bg-slate-900 rounded-2xl py-3.5 flex-row justify-center items-center gap-2 ${isSubmitting ? 'opacity-80' : ''}`}
+              className={`w-full bg-primary rounded-2xl py-4 flex-row justify-center items-center gap-2 ${isSubmitting ? 'opacity-80' : ''}`}
             >
               {isSubmitting ? (
                 <ActivityIndicator size="small" color="#fff" />
               ) : (
                 <>
-                  <Text className="text-white text-[14px] font-medium">
+                  <Feather name="unlock" size={16} className="text-primary-foreground" />
+                  <Text className="text-primary-foreground text-sm font-semibold">
                     Reset Password
                   </Text>
-                  <Feather name="arrow-right" size={15} color="#fff" />
                 </>
               )}
             </TouchableOpacity>

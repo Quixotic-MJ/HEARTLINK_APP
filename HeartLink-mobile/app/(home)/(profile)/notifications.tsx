@@ -158,15 +158,10 @@ function FilterChip({
     <TouchableOpacity
       onPress={onPress}
       activeOpacity={0.75}
-      className="flex-row items-center px-4 py-2 rounded-full border gap-1.5"
-      style={{
-        backgroundColor: active ? "#0f172a" : "#fff",
-        borderColor: active ? "#0f172a" : "#e2e8f0",
-      }}
+      className={`flex-row items-center px-4 py-2 rounded-full border gap-1.5 ${active ? 'bg-primary border-primary' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800'}`}
     >
       <Text
-        className="text-[12px] font-medium"
-        style={{ color: active ? "#fff" : "#64748b" }}
+        className={`text-[12px] font-medium ${active ? 'text-primary-foreground' : 'text-slate-500 dark:text-slate-400'}`}
       >
         {label}
       </Text>
@@ -176,8 +171,7 @@ function FilterChip({
           style={{ backgroundColor: active ? "rgba(255,255,255,0.2)" : "#e24b4a" }}
         >
           <Text
-            className="text-[9px] font-medium"
-            style={{ color: active ? "#fff" : "#fff" }}
+            className="text-[9px] font-medium text-white"
           >
             {badge}
           </Text>
@@ -244,7 +238,7 @@ function NotificationCard({
           >
             {notification.title}
           </Text>
-          <Text className="text-[11px] text-slate-300 flex-shrink-0">
+          <Text className="text-[11px] font-medium text-slate-500 flex-shrink-0">
             {notification.time}
           </Text>
         </View>
@@ -361,8 +355,8 @@ export default function NotificationsScreen() {
             onPress={markAllAsRead}
             className="flex-row items-center gap-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 px-3 py-1.5 rounded-xl"
           >
-            <Feather name="check" size={13} color="#64748b" />
-            <Text className="text-[9px] text-slate-500 dark:text-slate-400">Mark all read</Text>
+            <Feather name="check" size={14} color="#64748b" />
+            <Text className="text-[11px] font-bold text-slate-500 dark:text-slate-400">Mark all read</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -394,7 +388,7 @@ export default function NotificationsScreen() {
             <Text className="text-[16px] font-medium text-slate-900 dark:text-white mb-1">
               All caught up
             </Text>
-            <Text className="text-[13px] text-slate-400 text-center">
+            <Text className="text-[13px] font-medium text-slate-500 dark:text-slate-400 text-center">
               No unread notifications.
             </Text>
           </View>
@@ -403,7 +397,7 @@ export default function NotificationsScreen() {
             {/* Today */}
             {today.length > 0 && (
               <>
-                <Text className="text-[11px] text-slate-400 uppercase tracking-wide mb-2">
+                <Text className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">
                   Today
                 </Text>
                 {today.map((n) => (
@@ -419,7 +413,7 @@ export default function NotificationsScreen() {
             {/* Earlier */}
             {earlier.length > 0 && (
               <>
-                <Text className="text-[11px] text-slate-400 uppercase tracking-wide mb-2 mt-4">
+                <Text className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2 mt-4">
                   Earlier
                 </Text>
                 {earlier.map((n) => (

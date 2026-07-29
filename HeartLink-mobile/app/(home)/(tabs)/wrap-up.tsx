@@ -6,6 +6,7 @@ import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter, useFocusEffect } from "expo-router";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
+import { Header } from "../../../components/Header";
 import { useUser } from "../../../contexts/UserContext";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
@@ -51,9 +52,9 @@ function MetricCard({
         </View>
         <Text className="text-[22px] font-medium text-slate-900 dark:text-white leading-tight">
           {value}
-          {unit && <Text className="text-[13px] font-normal text-slate-400"> {unit}</Text>}
+          {unit && <Text className="text-[13px] font-medium text-slate-500"> {unit}</Text>}
         </Text>
-        <Text className="text-[11px] text-slate-400 mt-1 uppercase tracking-wide">
+        <Text className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 uppercase tracking-wide font-bold">
           {title}
         </Text>
       </View>
@@ -69,7 +70,7 @@ function DayBarChart({ days, color }: { days: DayBar[]; color: string }) {
     <View className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-3.5 mb-4">
       <View className="flex-row justify-between items-center mb-3">
         <Text className="text-[14px] font-medium text-slate-900 dark:text-white">CSS score · daily</Text>
-        <Text className="text-[11px] text-slate-300">Mon – Sun</Text>
+        <Text className="text-[11px] font-medium text-slate-400">Mon – Sun</Text>
       </View>
       <View className="flex-row items-end h-[68px] gap-1">
         {days.map((d, index) => {
@@ -80,7 +81,7 @@ function DayBarChart({ days, color }: { days: DayBar[]; color: string }) {
               <View className="flex-1 w-full justify-end">
                 {/* Bar height & color are dynamic — kept as inline style */}
                 <View
-                  className="w-full rounded-t-sm"
+                  className="w-full rounded-t-md"
                   style={{
                     height: barHeight,
                     backgroundColor: color,
@@ -88,7 +89,7 @@ function DayBarChart({ days, color }: { days: DayBar[]; color: string }) {
                   }}
                 />
               </View>
-              <Text className="text-[10px] text-slate-300">{d.day}</Text>
+              <Text className="text-[10px] font-bold text-slate-500">{d.day}</Text>
             </View>
           );
         })}
@@ -121,8 +122,7 @@ function SymptomRow({ symptom, isLast }: { symptom: Symptom; isLast: boolean }) 
         }`}
       >
         <Text
-          className="text-[11px] font-medium"
-          style={{ color: hasCount ? "#a32d2d" : "#888780" }}
+          className={`text-[11px] font-bold ${hasCount ? "text-red-700" : "text-slate-500 dark:text-slate-400"}`}
         >
           {symptom.count} {symptom.count === 1 ? "instance" : "instances"}
         </Text>
@@ -401,29 +401,7 @@ export default function WrapUpScreen() {
       <StatusBar style="dark" />
 
       {/* ── Top bar ── */}
-      <View className="flex-row justify-between items-center px-5 pt-4 pb-2">
-        <View className="flex-row items-center gap-2.5">
-          <View className="w-7 h-7 rounded-full items-center justify-center border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-            <Feather name="heart" size={13} color="#0f172a" />
-          </View>
-          <Text className="text-[16px] text-slate-900 dark:text-white tracking-tight" style={{ fontWeight: "300" }}>Heart<Text style={{ fontWeight: "600" }}>Link.</Text></Text>
-        </View>
-        <View className="flex-row items-center gap-2">
-          <TouchableOpacity onPress={() => router.push("/(home)/(profile)/notifications")} className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-800/70 items-center justify-center">
-            <Feather name="bell" size={17} color="#64748b" />
-            <View style={{ position: "absolute", top: 8, right: 8 }} className="w-1.5 h-1.5 bg-red-500 rounded-full" />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => router.push("/(home)/(settings)/settings")} className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-800/70 items-center justify-center">
-            <Feather name="settings" size={17} color="#64748b" />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => router.push("/(home)/(profile)/profile")} activeOpacity={0.8} className="ml-1">
-            <View className="w-9 h-9 rounded-full bg-slate-200 overflow-hidden">
-              <Image source={{ uri: user?.avatar_url || "https://ui-avatars.com/api/?name=" + (user?.first_name || "U") + "&background=e2e8f0&color=475569&bold=true" }} className="w-full h-full" resizeMode="cover" />
-            </View>
-            <View style={{ position: "absolute", bottom: -1, right: -1 }} className="w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-slate-50" />
-          </TouchableOpacity>
-        </View>
-      </View>
+      <Header />
 
       <View className="flex-row items-center justify-between px-5 pt-3">
         <View>
@@ -545,16 +523,16 @@ export default function WrapUpScreen() {
 
         {/* Export */}
         <TouchableOpacity
-          className="bg-slate-900 py-3.5 rounded-2xl flex-row items-center justify-center gap-2"
+          className="bg-primary py-3.5 rounded-2xl flex-row items-center justify-center gap-2"
           onPress={exportPDF}
           activeOpacity={0.85}
         >
-          <Feather name="file-text" size={17} color="#fff" />
-          <Text className="text-white text-[14px] font-medium">
+          <Feather name="file-text" size={17} className="text-primary-foreground" />
+          <Text className="text-primary-foreground text-[15px] font-semibold">
             Export report for physician
           </Text>
         </TouchableOpacity>
-        <Text className="text-xs text-slate-400 text-center mt-2.5 mb-10 px-4 leading-[18px]">
+        <Text className="text-[13px] text-slate-500 font-medium text-center mt-2.5 mb-10 px-4 leading-[18px]">
           Creates a secure PDF with your weekly aggregates, baseline data, and symptom tally.
         </Text>
       </ScrollView>

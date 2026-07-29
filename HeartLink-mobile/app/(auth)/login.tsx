@@ -66,10 +66,10 @@ function PrimaryButton({
         <ActivityIndicator size="small" color="#fff" />
       ) : (
         <>
+          <Feather name={icon as any} size={16} className="text-primary-foreground" />
           <Text className="text-primary-foreground text-sm font-semibold">
             {label}
           </Text>
-          <Feather name={icon as any} size={16} className="text-primary-foreground" />
         </>
       )}
     </AnimatedPressable>
@@ -114,7 +114,7 @@ function InputField({
         secureTextEntry={secureTextEntry}
         autoComplete={autoComplete}
         textContentType={textContentType}
-        className="flex-1 ml-3 text-sm text-foreground py-3.5"
+        className="flex-1 ml-3 text-base text-foreground py-3.5"
       />
       {rightElement}
     </View>
@@ -212,12 +212,12 @@ export default function AuthScreen() {
               router.replace("/onboarding");
             }
           }}
-          className="w-10 h-10 rounded-xl bg-card border border-border items-center justify-center mr-3"
+          className="p-2 -ml-2 mr-4"
           accessible={true}
           accessibilityRole="button"
           accessibilityLabel="Go back"
         >
-          <Feather name="arrow-left" size={18} className="text-foreground" />
+          <Feather name="arrow-left" size={24} className="text-foreground" />
         </TouchableOpacity>
         <View className="flex-row items-center gap-2">
           <View className="w-8 h-8 rounded-full items-center justify-center border border-border bg-card" importantForAccessibility="no">
@@ -258,7 +258,7 @@ export default function AuthScreen() {
             <Text className="text-sm font-semibold text-foreground mb-2 ml-1">Email or Phone number</Text>
             <InputField
               icon="user"
-              placeholder="Email or Phone"
+              placeholder="john@example.com or +63..."
               value={identifier}
               onChangeText={(t) => {
                 setIdentifier(t);
@@ -300,7 +300,7 @@ export default function AuthScreen() {
                 }
               />
               <TouchableOpacity
-                className="self-end mt-1"
+                className="self-end mt-2 py-2 pl-4"
                 onPress={() => router.push("/(auth)/forgot-password")}
                 accessible={true}
                 accessibilityRole="link"
@@ -323,15 +323,12 @@ export default function AuthScreen() {
             </View>
           )}
 
-          {/* Divider */}
-          <View className="h-px bg-border my-1" />
-
           {/* Submit */}
           <PrimaryButton
             onPress={handleSubmit}
             isLoading={isLoading}
             label="Log in"
-            icon="arrow-right"
+            icon="log-in"
           />
         </View>
 
@@ -339,7 +336,7 @@ export default function AuthScreen() {
         <TouchableOpacity
           activeOpacity={0.65}
           onPress={() => router.push("/(auth)/register")}
-          className="flex-row justify-center items-center py-4 mb-2 gap-1.5 mt-auto"
+          className="flex-row justify-center items-center py-4 mb-2 gap-1.5 mt-8"
           accessible={true}
           accessibilityRole="link"
           accessibilityLabel="Don't have an account? Sign up"

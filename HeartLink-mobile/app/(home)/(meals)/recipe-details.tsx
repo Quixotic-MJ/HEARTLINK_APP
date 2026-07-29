@@ -53,7 +53,11 @@ function NutritionPill({
         {value}
         <Text className="text-[11px] font-normal text-slate-400"> {unit}</Text>
       </Text>
-      <Text className="text-[7px] text-slate-400 uppercase tracking-wide mt-0.5">
+      <Text 
+        className="text-[9px] text-slate-400 dark:text-slate-500 uppercase tracking-wide mt-0.5"
+        numberOfLines={1}
+        adjustsFontSizeToFit
+      >
         {label}
       </Text>
     </View>
@@ -231,12 +235,15 @@ export default function RecipeDetailsScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Hero Image */}
-        <View className="w-full h-80 bg-slate-100 dark:bg-slate-800 relative">
-          <Image
-            source={{ uri: recipe.image }}
-            className="w-full h-full"
-            resizeMode="cover"
-          />
+        <View className="w-full h-80 bg-slate-100 dark:bg-slate-800 relative items-center justify-center">
+          <MaterialCommunityIcons name="silverware-fork-knife" size={48} className="text-slate-300 dark:text-slate-700 absolute" />
+          {!!recipe.image && (
+            <Image
+              source={{ uri: recipe.image }}
+              className="w-full h-full absolute"
+              resizeMode="cover"
+            />
+          )}
           {/* Subtle gradient overlay for top buttons */}
           <View className="absolute top-0 left-0 right-0 h-32 bg-black/10" />
           
@@ -454,8 +461,7 @@ export default function RecipeDetailsScreen() {
                       : undefined
                   }
                 >
-                  <View className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600 mr-4" />
-                  <View className="flex-1 flex-row">
+                  <View className="flex-1 flex-row ml-2">
                     <Text className="text-[15px] text-slate-900 dark:text-white font-bold w-24">
                       {ing.qty}
                     </Text>
@@ -499,17 +505,15 @@ export default function RecipeDetailsScreen() {
            activeOpacity={0.85}
            onPress={handleLogMeal}
            disabled={isLogged || isSubmitting}
-           className="w-full py-3 rounded-xl items-center justify-center flex-row gap-2"
-           style={{ backgroundColor: isLogged ? "#f1f5f9" : "#0f172a" }}
+           className={`w-full py-4 rounded-xl items-center justify-center flex-row gap-2 ${isLogged ? "bg-slate-100 dark:bg-slate-800" : "bg-primary"}`}
          >
            {isLogged ? (
-             <MaterialCommunityIcons name="check-all" size={16} color="#94a3b8" />
+             <MaterialCommunityIcons name="check-all" size={18} className="text-slate-400 dark:text-slate-500" />
            ) : (
-             <Feather name="check" size={15} color="#fff" />
+             <Feather name="check" size={18} className="text-primary-foreground" />
            )}
            <Text 
-             className="text-[13px] font-medium"
-             style={{ color: isLogged ? "#94a3b8" : "#fff" }}
+             className={`text-[14px] font-semibold ${isLogged ? "text-slate-400 dark:text-slate-500" : "text-primary-foreground"}`}
            >
              {isLogged ? "Logged Today" : isSubmitting ? "Logging..." : "Log This Meal"}
            </Text>
