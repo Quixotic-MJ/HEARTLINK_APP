@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useRef } from "react";
-import { View, Text, TouchableOpacity, ScrollView, Modal, Image, Dimensions, Animated } from "react-native";
+import { View, Text, TouchableOpacity, ScrollView, Image, Dimensions, Animated } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
+import { CircularProgress } from "../../../components/dashboard/ScoreRing";
+import { Skeleton } from "../../../components/ui/Skeleton";
+import { SafetyCheckSheet } from "../../../components/ui/SafetyCheckSheet";
 import { useUser } from "../../../contexts/UserContext";
 import YoutubePlayer from "react-native-youtube-iframe";
 import * as Haptics from "expo-haptics";
@@ -553,36 +556,12 @@ export default function ExerciseDetailsScreen() {
       </View>
 
       {/* Safety Check Bottom Sheet Modal */}
-      <Modal visible={showSafetyCheck} transparent animationType="fade">
-        <View className="flex-1 bg-slate-900/40 justify-end">
-          <View className="bg-white dark:bg-slate-900 rounded-t-3xl p-6 pb-12 shadow-xl border-t border-slate-200 dark:border-slate-800">
-            <View className="w-12 h-1.5 bg-slate-200 rounded-full self-center mb-6" />
-            <Text className="text-[22px] font-bold text-slate-900 dark:text-white mb-2 text-center">Safety Check</Text>
-            <Text className="text-[16px] text-slate-500 dark:text-slate-400 text-center mb-8 leading-relaxed px-4">Did you experience any chest discomfort or dizziness during this routine?</Text>
-
-            <TouchableOpacity 
-              activeOpacity={0.8}
-              disabled={isSubmitting}
-              onPress={handleSafetySafe}
-              className="bg-blue-50 border border-blue-100 py-4 rounded-2xl items-center mb-3 flex-row justify-center"
-            >
-              <Text className="text-[20px] mr-2">👍</Text>
-              <Text className="text-[#1e4ed8] font-bold text-[17px]">
-                {isSubmitting ? "Logging..." : "No, I feel great"}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              activeOpacity={0.8}
-              onPress={handleSafetySymptoms}
-              className="bg-red-50 border border-red-100 py-4 rounded-2xl items-center flex-row justify-center"
-            >
-              <Text className="text-[20px] mr-2">⚠️</Text>
-              <Text className="text-red-700 font-bold text-[17px]">Yes, I felt symptoms</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+      <SafetyCheckSheet
+        visible={showSafetyCheck}
+        onSafe={handleSafetySafe}
+        onSymptoms={handleSafetySymptoms}
+        isSubmitting={isSubmitting}
+      />
 
     </View>
   );

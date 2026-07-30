@@ -19,6 +19,8 @@ import { useUser } from "../../../contexts/UserContext";
 import * as Haptics from "expo-haptics";
 import { Header } from "../../../components/Header";
 import { Skeleton } from "../../../components/ui/Skeleton";
+import { SafetyCheckSheet } from "../../../components/ui/SafetyCheckSheet";
+
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -240,8 +242,7 @@ function RoutineCard({
             INTENSITY: {routine.intensity}
           </Text>
         </View>
-
-        {/* CTA — all dynamic via style */}
+{/* CTA — all dynamic via style */}
         <TouchableOpacity
           activeOpacity={0.85}
           onPress={onStart}
@@ -263,80 +264,6 @@ function RoutineCard({
   );
 }
 
-// ─── Safety Check Modal ───────────────────────────────────────────────────────
-
-function SafetyCheckModal({
-  visible,
-  onSafe,
-  onSymptoms,
-}: {
-  visible: boolean;
-  onSafe: () => void;
-  onSymptoms: () => void;
-}) {
-  return (
-    <Modal visible={visible} transparent animationType="fade">
-      <Pressable
-        className="flex-1 justify-end"
-        style={{ backgroundColor: "rgba(15,23,42,0.5)" }}
-      >
-        <View className="bg-white dark:bg-slate-900 rounded-t-[32px] px-6 pb-12 pt-4 border-t border-slate-200 dark:border-slate-800/50 shadow-lg">
-          {/* Drag handle */}
-          <View className="w-12 h-1.5 bg-slate-200 rounded-full self-center mb-6" />
-
-          {/* Icon */}
-          <View className="w-16 h-16 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/70 items-center justify-center self-center mb-5">
-            <MaterialCommunityIcons
-              name="heart-pulse"
-              size={32}
-              color="#a32d2d"
-            />
-          </View>
-
-          <Text className="text-[22px] font-medium text-slate-900 dark:text-white text-center mb-2">
-            Quick safety check
-          </Text>
-          <Text className="text-[14px] text-slate-400 text-center leading-relaxed mb-8 px-2">
-            Did you experience any chest discomfort, shortness of breath, or
-            dizziness during this routine?
-          </Text>
-
-          {/* No symptoms */}
-          <TouchableOpacity
-            activeOpacity={0.85}
-            onPress={onSafe}
-            className="rounded-2xl py-4 items-center mb-3 flex-row justify-center gap-2.5 border"
-            style={{ backgroundColor: "#eaf3de", borderColor: "#c0dd97" }}
-          >
-            <Feather name="check-circle" size={20} color="#3b6d11" />
-            <Text
-              className="text-[16px] font-medium"
-              style={{ color: "#3b6d11" }}
-            >
-              No, I feel great
-            </Text>
-          </TouchableOpacity>
-
-          {/* Has symptoms */}
-          <TouchableOpacity
-            activeOpacity={0.85}
-            onPress={onSymptoms}
-            className="rounded-2xl py-4 items-center flex-row justify-center gap-2.5 border"
-            style={{ backgroundColor: "#fcebeb", borderColor: "#f7c1c1" }}
-          >
-            <Feather name="alert-triangle" size={18} color="#a32d2d" />
-            <Text
-              className="text-[16px] font-medium"
-              style={{ color: "#a32d2d" }}
-            >
-              Yes, I felt symptoms
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </Pressable>
-    </Modal>
-  );
-}
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
@@ -759,7 +686,7 @@ export default function ExercisesScreen() {
       )}
 
       {/* Safety Check Modal */}
-      <SafetyCheckModal
+      <SafetyCheckSheet
         visible={showSafetyCheck}
         onSafe={handleSafetySafe}
         onSymptoms={handleSafetySymptoms}

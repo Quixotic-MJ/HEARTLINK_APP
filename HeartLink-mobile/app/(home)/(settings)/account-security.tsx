@@ -7,6 +7,7 @@ import { useRouter } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 import { useUser } from "../../../contexts/UserContext";
 import { useToast } from "../../../contexts/ToastContext";
+import { ConfirmDialog } from "../../../components/ui/ConfirmDialog";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -21,6 +22,7 @@ export default function AccountSecurityScreen() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const handleUpdatePassword = async () => {
     if (!currentPassword || !newPassword || !confirmPassword) {
@@ -54,31 +56,18 @@ export default function AccountSecurityScreen() {
     }
   };
 
-  const handleDeleteAccount = () => {
-    Alert.alert(
-      "Delete Account",
-      "Are you absolutely sure? This action cannot be undone and will permanently delete your health data.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              const res = await fetch(`${base_url}/api/users/${userId}`, { method: "DELETE" });
-              if (res.ok) {
-                logout();
-                router.replace("/(auth)/welcome");
-              } else {
-                showToast({ title: "Error", message: "Failed to delete account.", type: "error" });
-              }
-            } catch (err) {
-              showToast({ title: "Error", message: "An unexpected error occurred.", type: "error" });
-            }
-          }
-        }
-      ]
-    );
+  const handleDeleteAccount = async () => {
+    try {
+      const res = await fetch(`${base_url}/api/users/${userId}`, { method: "DELETE" });
+      if (res.ok) {
+        setShowDeleteConfirm(false);
+        await logout();
+      } else {
+        showToast({ title: "Error", message: "Failed to delete account.", type: "error" });
+      }
+    } catch (err) {
+      showToast({ title: "Error", message: "An unexpected error occurred.", type: "error" });
+    }
   };
 
   return (
@@ -173,7 +162,7 @@ export default function AccountSecurityScreen() {
             </Text>
             
             <TouchableOpacity 
-              onPress={handleDeleteAccount}
+              onPress={() => setShowDeleteConfirm(true)}
               activeOpacity={0.8}
               className="bg-red-100 dark:bg-red-900/50 h-12 rounded-xl items-center justify-center border border-red-200 dark:border-red-800"
             >
@@ -183,6 +172,19 @@ export default function AccountSecurityScreen() {
         </View>
 
       </ScrollView>
+
+      <ConfirmDialog
+        visible={showDeleteConfirm}
+        onCancel={() => setShowDeleteConfirm(false)}
+        onConfirm={handleDeleteAccount}
+        title="Delete Account"
+        message="Are you absolutely sure? This action cannot be undone and will permanently delete your health data."
+        confirmLabel="Delete my account"
+        variant="destructive"
+        mode="centered"
+        icon="alert-triangle"
+        typedConfirmation="DELETE"
+      />
     </SafeAreaView>
   );
 }

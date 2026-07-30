@@ -5,6 +5,11 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
+import Animated, {
+  useAnimatedStyle,
+  withSpring,
+  withTiming,
+} from "react-native-reanimated";
 
 // ─── Goal Card ────────────────────────────────────────────────────────────────
 
@@ -65,14 +70,33 @@ function GoalCard({
 
 // ─── Step Progress ────────────────────────────────────────────────────────────
 
+function AnimatedStep({ isActive, isCompleted }: { isActive: boolean; isCompleted: boolean }) {
+  const animatedStyle = useAnimatedStyle(() => {
+    return {
+      flex: withSpring(isActive ? 3 : 1, { damping: 15, stiffness: 150 }),
+      backgroundColor: withTiming(
+        isActive || isCompleted ? "#0f172a" : "#e2e8f0",
+        { duration: 300 }
+      ),
+    };
+  });
+
+  return (
+    <Animated.View
+      className="h-1.5 rounded-full mx-0.5"
+      style={animatedStyle}
+    />
+  );
+}
+
 function StepProgress({ current, total }: { current: number; total: number }) {
   return (
-    <View className="flex-row gap-1.5">
+    <View className="flex-row items-center w-full">
       {Array.from({ length: total }).map((_, i) => (
-        <View
+        <AnimatedStep
           key={i}
-          className="flex-1 h-1 rounded-full"
-          style={{ backgroundColor: i < current ? "#0f172a" : "#e2e8f0" }}
+          isActive={i + 1 === current}
+          isCompleted={i + 1 < current}
         />
       ))}
     </View>

@@ -8,12 +8,12 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Alert,
   ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
+import { useToast } from "../../contexts/ToastContext";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useUser } from "../../contexts/UserContext";
 
@@ -39,6 +39,7 @@ export default function BiometricsStep4Screen() {
 
   const router = useRouter()
   const { user_id } = useLocalSearchParams();
+  const { showToast } = useToast();
   const { refreshUser } = useUser();
   const base_url = process.env.EXPO_PUBLIC_API_URL;
   // Clinical History
@@ -142,11 +143,11 @@ export default function BiometricsStep4Screen() {
         console.log("Clinical saved — onboarding complete:", data.message);
         router.replace("/(baseline)/calculating");
       } else {
-        Alert.alert("Error", data.detail || "Failed to save clinical data");
+        showToast({ title: "Error", message: data.detail || "Failed to save clinical data", type: "error" });
       }
     } catch (error) {
       console.log("Clinical save error:", error);
-      Alert.alert("Error", "Could not connect to server");
+      showToast({ title: "Error", message: "Could not connect to server", type: "error" });
     } finally {
       setIsSubmitting(false);
     }

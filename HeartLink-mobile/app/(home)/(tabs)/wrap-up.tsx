@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from "react";
-import { View, Text, ScrollView, TouchableOpacity, Alert, Image, RefreshControl, Animated } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, Image, RefreshControl, Animated } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
@@ -9,6 +9,7 @@ import * as Sharing from "expo-sharing";
 import { Header } from "../../../components/Header";
 import { useUser } from "../../../contexts/UserContext";
 import { EmptyState } from "../../../components/ui/EmptyState";
+import { useToast } from "../../../contexts/ToastContext";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -193,6 +194,7 @@ const NEGATIVE_DATA = {
 export default function WrapUpScreen() {
   const router = useRouter();
   const { userId, user } = useUser();
+  const { showToast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [cssScore, setCssScore] = useState<number>(0);
@@ -387,13 +389,13 @@ export default function WrapUpScreen() {
 
       const { uri } = await Print.printToFileAsync({ html });
       if (!(await Sharing.isAvailableAsync())) {
-        Alert.alert("Error", "Sharing is not available on this device.");
+        showToast({ title: "Error", message: "Sharing is not available on this device.", type: "error" });
         return;
       }
       await Sharing.shareAsync(uri);
     } catch (error) {
       console.error(error);
-      Alert.alert("Error", "Failed to generate report.");
+      showToast({ title: "Error", message: "Failed to generate report.", type: "error" });
     }
   };
 

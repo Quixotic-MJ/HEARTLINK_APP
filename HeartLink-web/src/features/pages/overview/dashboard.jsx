@@ -8,6 +8,7 @@ import {
   HeartPulse,
 } from "lucide-react";
 import AdminLayout from "../../../components/layouts/adminLayout";
+import { Skeleton } from "../../../components/ui/Skeleton";
 import { apiFetch } from "../../../api";
 
 const Dashboard = () => {
@@ -27,6 +28,34 @@ const Dashboard = () => {
     };
     fetchData();
   }, []);
+
+  if (loading) {
+    return (
+      <AdminLayout>
+        {/* Page Title & Meta Skeleton */}
+        <div className="flex flex-col md:flex-row md:justify-between md:items-end mb-8 gap-3">
+          <div>
+            <Skeleton className="w-32 h-3 mb-3" />
+            <Skeleton className="w-72 h-8" />
+          </div>
+          <Skeleton className="w-40 h-8 rounded-full" />
+        </div>
+
+        {/* KPI Cards Skeleton */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
+          <Skeleton className="w-full h-[200px] rounded-xl" />
+          <Skeleton className="w-full h-[200px] rounded-xl" />
+          <Skeleton className="w-full h-[200px] rounded-xl" />
+        </div>
+
+        {/* CSS Population Distribution Skeleton */}
+        <Skeleton className="w-full h-[200px] rounded-xl mb-6" />
+
+        {/* Recent System Activity Skeleton */}
+        <Skeleton className="w-full h-[250px] rounded-xl" />
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout>
@@ -119,7 +148,7 @@ const Dashboard = () => {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="p-3 rounded-xl border min-w-0" style={{ backgroundColor: "rgba(15,23,42,0.03)", borderColor: "rgba(15,23,42,0.06)" }}>
-                <p className="text-lg font-semibold mb-1 truncate" style={{ color: "#0f172a" }}>{loading ? "..." : exercises.length}</p>
+                <p className="text-lg font-semibold mb-1 truncate" style={{ color: "#0f172a" }}>{exercises.length}</p>
                 <p className="text-[9px] font-medium tracking-[0.18em] uppercase truncate" style={{ color: "#0f172a", opacity: 0.5 }}>
                   Active Exercises
                 </p>

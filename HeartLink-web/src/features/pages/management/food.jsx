@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import AdminLayout from "../../../components/layouts/adminLayout";
 import FoodFormModal from "../../../components/modals/FoodFormModal";
+import { Skeleton } from "../../../components/ui/Skeleton";
 import { apiFetch } from "../../../api";
 
 // Mock Data
@@ -237,6 +238,38 @@ const Foods = () => {
                 </th>
               </tr>
             </thead>
+          {loading ? (
+            <tbody>
+              {[1, 2, 3, 4, 5].map((item) => (
+                <tr key={item} className="border-t border-slate-50">
+                  <td className="py-4 px-5">
+                    <div className="flex items-center gap-3">
+                      <Skeleton className="w-9 h-9 rounded-full shrink-0" />
+                      <div>
+                        <Skeleton className="w-32 h-4 mb-1" />
+                        <Skeleton className="w-20 h-3" />
+                      </div>
+                    </div>
+                  </td>
+                  <td className="py-4 px-5">
+                    <Skeleton className="w-24 h-5 rounded-full" />
+                  </td>
+                  <td className="py-4 px-5">
+                    <Skeleton className="w-20 h-4 mb-1" />
+                    <Skeleton className="w-16 h-3" />
+                  </td>
+                  <td className="py-4 px-5 flex justify-center">
+                    <Skeleton className="w-7 h-7 rounded-full" />
+                  </td>
+                  <td className="py-4 px-5">
+                    <div className="flex justify-end">
+                      <Skeleton className="w-6 h-6 rounded-md" />
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          ) : (
             <tbody className="divide-y divide-slate-50">
               {filteredRecipes.map((recipe) => {
                 const badge = getCssBadgeColor(recipe.cssTarget);
@@ -326,9 +359,6 @@ const Foods = () => {
                 );
               })}
             </tbody>
-          </table>
-          {loading && (
-            <div className="p-8 text-center text-slate-400 text-xs">Loading foods & meals...</div>
           )}
           {!loading && filteredRecipes.length === 0 && (
             <div className="p-8 text-center text-slate-400 text-xs">No foods or meals found.</div>

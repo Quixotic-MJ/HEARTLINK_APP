@@ -11,8 +11,6 @@ import {
   BackHandler,
   Alert,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { StatusBar } from "expo-status-bar";
 import { useRouter, useFocusEffect } from "expo-router";
 import { useColorScheme } from "nativewind";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
@@ -26,6 +24,7 @@ import { RecommendationCard } from "../../../components/dashboard/Recommendation
 import { CustomAlertModal } from "../../../components/dashboard/CustomAlertModal";
 import { Header } from "../../../components/Header";
 import { Skeleton } from "../../../components/ui/Skeleton";
+import { ScreenWrapper } from "../../../components/ui/ScreenWrapper";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -232,7 +231,7 @@ export default function DashboardScreen() {
 
   if (isLoading) {
     return (
-      <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950" edges={["top"]}>
+      <ScreenWrapper edges={["top"]} withScrollView={false} safeAreaClassName="flex-1 bg-slate-50 dark:bg-slate-950">
         <Header />
         <View className="px-5 pt-4">
           <View className="flex-row justify-between items-end mb-4">
@@ -251,13 +250,13 @@ export default function DashboardScreen() {
           <Skeleton className="w-40 h-6 mb-4" />
           <Skeleton className="w-full h-32 mb-3" />
         </View>
-      </SafeAreaView>
+      </ScreenWrapper>
     );
   }
 
   if (error && !data) {
     return (
-      <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950" edges={["top"]}>
+      <ScreenWrapper edges={["top"]} withScrollView={false} safeAreaClassName="flex-1 bg-slate-50 dark:bg-slate-950">
         <Header />
         <View className="flex-1 justify-center items-center px-5">
         <View className="w-16 h-16 rounded-2xl bg-red-50 items-center justify-center mb-4">
@@ -278,18 +277,18 @@ export default function DashboardScreen() {
           <Text className="text-white font-medium text-[14px]">Try again</Text>
         </TouchableOpacity>
         </View>
-      </SafeAreaView>
+      </ScreenWrapper>
     );
   }
 
   const isAlertActive = !!data?.latest_alert;
 
   return (
-    <SafeAreaView
-      className="flex-1 bg-slate-50 dark:bg-slate-950"
+    <ScreenWrapper
       edges={["top"]}
+      withScrollView={false}
+      safeAreaClassName="flex-1 bg-slate-50 dark:bg-slate-950"
     >
-      <StatusBar style="dark" />
 
       {/* Custom Alert Modal */}
       {isAlertActive && (
@@ -809,6 +808,6 @@ export default function DashboardScreen() {
           </>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </ScreenWrapper>
   );
 }

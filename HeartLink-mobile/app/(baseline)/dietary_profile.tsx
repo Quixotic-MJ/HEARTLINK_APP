@@ -8,12 +8,12 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Alert,
   ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
+import { useToast } from "../../contexts/ToastContext";
 import { useRouter, useLocalSearchParams } from "expo-router";
 
 // ─── Step Progress ────────────────────────────────────────────────────────────
@@ -32,11 +32,12 @@ function StepProgress({ current, total }: { current: number; total: number }) {
   );
 }
 
-export default function BiometricsStep3Screen() {
+export default function DietaryProfileScreen() {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
   const router = useRouter();
   const { user_id } = useLocalSearchParams();
+  const { showToast } = useToast();
   const base_url = process.env.EXPO_PUBLIC_API_URL;
   
   // Form State
@@ -116,7 +117,7 @@ export default function BiometricsStep3Screen() {
   const handleNextStep = async () => {
     // Validate required fields
     if (!sodiumFrequency) {
-      Alert.alert("Missing Information", "Please select your high-sodium or fried food intake frequency.");
+      showToast({ title: "Missing Information", message: "Please select your high-sodium or fried food intake frequency.", type: "error" });
       return;
     }
 
@@ -147,11 +148,11 @@ export default function BiometricsStep3Screen() {
           params: { user_id: user_id as string },
         });
       } else {
-        Alert.alert("Error", data.detail || "Failed to save dietary data");
+        showToast({ title: "Error", message: data.detail || "Failed to save dietary data", type: "error" });
       }
     } catch (error) {
       console.log("Dietary save error:", error);
-      Alert.alert("Error", "Could not connect to server");
+      showToast({ title: "Error", message: "Could not connect to server", type: "error" });
     } finally {
       setIsSubmitting(false);
     }

@@ -10,17 +10,19 @@ import {
   Modal,
   TextInput,
   KeyboardAvoidingView,
-  Platform
+  Platform,
+  Pressable
 } from "react-native";
 import { useColorScheme } from "nativewind";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
-import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
+import { MaterialCommunityIcons, Feather } from "@expo/vector-icons";
 import { useUser } from "../../../contexts/UserContext";
 import { Skeleton } from "../../../components/ui/Skeleton";
 import { EmptyState } from "../../../components/ui/EmptyState";
 import { useToast } from "../../../contexts/ToastContext";
+import { ConfirmDialog } from "../../../components/ui/ConfirmDialog";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -96,6 +98,7 @@ export default function CareTeamScreen() {
   const [editingContact, setEditingContact] = useState<any>(null);
   const [form, setForm] = useState({ name: "", role_title: "", contact_type: "doctor", phone: "" });
   const [isSaving, setIsSaving] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const fetchCareTeam = async () => {
     try {
@@ -166,30 +169,23 @@ export default function CareTeamScreen() {
   };
 
   const deleteContact = async () => {
-    Alert.alert("Remove Contact", "Are you sure you want to remove this contact?", [
-      { text: "Cancel", style: "cancel" },
-      { 
-        text: "Remove", 
-        style: "destructive",
-        onPress: async () => {
-          try {
-            setIsSaving(true);
-            const response = await fetch(`${base_url}/api/users/${userId}/care-team/${editingContact.id}`, {
-              method: "DELETE"
-            });
-            if (response.ok) {
-              setModalVisible(false);
-              fetchCareTeam();
-              showToast({ title: "Success", message: "Contact removed.", type: "success" });
-            }
-          } catch (e) {
-            showToast({ title: "Error", message: "Network error.", type: "error" });
-          } finally {
-            setIsSaving(false);
-          }
-        }
+    if (!editingContact) return;
+    try {
+      setIsSaving(true);
+      const response = await fetch(`${base_url}/api/users/${userId}/care-team/${editingContact.id}`, {
+        method: "DELETE"
+      });
+      if (response.ok) {
+        setModalVisible(false);
+        setShowDeleteConfirm(false);
+        fetchCareTeam();
+        showToast({ title: "Success", message: "Contact removed.", type: "success" });
       }
-    ]);
+    } catch (e) {
+      showToast({ title: "Error", message: "Network error.", type: "error" });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -282,11 +278,8 @@ export default function CareTeamScreen() {
         transparent={true}
         onRequestClose={() => setModalVisible(false)}
       >
-        <KeyboardAvoidingView 
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          className="flex-1 justify-end bg-black/50"
-        >
-          <View className="bg-white dark:bg-slate-900 rounded-t-3xl pt-6 px-6" style={{ paddingBottom: Math.max(insets.bottom, 20) }}>
+        <Pressable className="flex-1 justify-end bg-black/50" onPress={() => setModalVisible(false)}>
+          <Pressable className="bg-white dark:bg-slate-900 rounded-t-3xl pt-6 px-6" style={{ paddingBottom: Math.max(insets.bottom, 20) }}>
             
             <View className="flex-row justify-between items-center mb-6">
               <Text className="text-[20px] font-semibold text-slate-900 dark:text-white">
@@ -354,7 +347,7 @@ export default function CareTeamScreen() {
               {editingContact && (
                 <TouchableOpacity 
                   activeOpacity={0.8}
-                  onPress={deleteContact}
+                  onPress={() => setShowDeleteConfirm(true)}
                   disabled={isSaving}
                   className="bg-red-50 dark:bg-red-950/30 rounded-xl py-4 items-center mb-5 border border-red-100 dark:border-red-900/50"
                 >
@@ -362,9 +355,21 @@ export default function CareTeamScreen() {
                 </TouchableOpacity>
               )}
             </ScrollView>
-          </View>
-        </KeyboardAvoidingView>
+          </Pressable>
+        </Pressable>
       </Modal>
+
+      <ConfirmDialog
+        visible={showDeleteConfirm}
+        onCancel={() => setShowDeleteConfirm(false)}
+        onConfirm={deleteContact}
+        title="Remove Contact"
+        message="Are you sure you want to remove this contact from your care team?"
+        confirmLabel="Remove"
+        variant="destructive"
+        mode="bottom-sheet"
+        icon="trash-2"
+      />
 
     </SafeAreaView>
   );

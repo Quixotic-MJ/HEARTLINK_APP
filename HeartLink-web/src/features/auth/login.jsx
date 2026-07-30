@@ -7,6 +7,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { InputField } from "../../components/ui/InputField";
+import { Button } from "../../components/ui/Button";
 
 const loginSchema = z.object({
   email: z.string().min(1, "Email is required").email("Please enter a valid email address"),
@@ -55,18 +56,16 @@ function BrandLogo({ dark = false }) {
 export default function HeartLinkAdminLogin() {
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [globalError, setGlobalError] = useState(null);
   const navigate = useNavigate();
   const { login } = useAuth();
 
-  const { register, handleSubmit, formState: { errors } } = useForm({
+  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
     resolver: zodResolver(loginSchema),
     mode: "onTouched",
   });
 
   const onSubmit = async (data) => {
-    setLoading(true);
     setGlobalError(null);
       try {
         const response = await apiFetch("/api/auth/login", {
@@ -84,8 +83,6 @@ export default function HeartLinkAdminLogin() {
         }
       } catch (error) {
         setGlobalError(error.data?.detail || "Login failed. Please try again.");
-      } finally {
-        setLoading(false);
       }
   };
 
@@ -213,15 +210,15 @@ export default function HeartLinkAdminLogin() {
 
             {/* Submit */}
             <div>
-              <button
+              <Button
                 type="submit"
-                disabled={loading}
-                className="w-full flex items-center justify-center gap-2.5 py-3 rounded-xl text-sm font-medium text-white transition-all hover:opacity-90 active:scale-[0.99] disabled:opacity-70"
-                style={{ backgroundColor: "#0f172a" }}
+                isLoading={isSubmitting}
+                loadingText="Authenticating..."
+                className="w-full"
               >
-                {loading ? "Authenticating..." : "Continue to Dashboard"}
-                {!loading && <ArrowRight size={15} strokeWidth={2} />}
-              </button>
+                Continue to Dashboard
+                <ArrowRight size={15} strokeWidth={2} />
+              </Button>
             </div>
 
             {/* Dev shortcut */}

@@ -14,6 +14,8 @@ import { StatusBar } from "expo-status-bar";
 import { useRouter, useFocusEffect } from "expo-router";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { Swipeable } from "react-native-gesture-handler";
+import { format, parseISO } from "date-fns";
+import { ConfirmDialog } from "../../../components/ui/ConfirmDialog";
 import { useUser } from "../../../contexts/UserContext";
 import { EmptyState } from "../../../components/ui/EmptyState";
 import { useToast } from "../../../contexts/ToastContext";
@@ -40,6 +42,8 @@ export default function DailyDiaryScreen() {
   const [meals, setMeals] = useState<MealLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [mealToDelete, setMealToDelete] = useState<{ id: string; name: string } | null>(null);
 
   const fetchMeals = useCallback(async () => {
     if (!userId) return;
@@ -81,34 +85,28 @@ export default function DailyDiaryScreen() {
     fetchMeals();
   };
 
+  const confirmDeleteMeal = async () => {
+    if (!mealToDelete) return;
+    try {
+      const res = await fetch(`${base_url}/api/meals/${userId}/${mealToDelete.id}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        setMeals((prev) => prev.filter((item) => item.id !== mealToDelete.id));
+        showToast({ title: "Deleted", message: "Meal removed from diary.", type: "success" });
+      } else {
+        showToast({ title: "Error", message: "Could not delete the meal log.", type: "error" });
+      }
+    } catch (err) {
+      console.error("Failed to delete meal log:", err);
+      showToast({ title: "Error", message: "Network error when deleting meal.", type: "error" });
+    } finally {
+      setMealToDelete(null);
+    }
+  };
+
   const handleDeleteMeal = (mealId: string, mealName: string) => {
-    Alert.alert(
-      "Delete Meal?",
-      `Are you sure you want to remove "${mealName}" from your daily log?`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              const res = await fetch(`${base_url}/api/meals/${userId}/${mealId}`, {
-                method: "DELETE",
-              });
-              if (res.ok) {
-                setMeals((prev) => prev.filter((item) => item.id !== mealId));
-                showToast({ title: "Deleted", message: "Meal removed from diary.", type: "success" });
-              } else {
-                showToast({ title: "Error", message: "Could not delete the meal log.", type: "error" });
-              }
-            } catch (err) {
-              console.error("Failed to delete meal log:", err);
-              showToast({ title: "Error", message: "Network error when deleting meal.", type: "error" });
-            }
-          },
-        },
-      ]
-    );
+    setMealToDelete({ id: mealId, name: mealName });
   };
 
   // Right action for Swipeable row
@@ -253,6 +251,18 @@ export default function DailyDiaryScreen() {
           )}
         />
       )}
+
+      <ConfirmDialog
+        visible={!!mealToDelete}
+        onCancel={() => setMealToDelete(null)}
+        onConfirm={confirmDeleteMeal}
+        title="Delete Meal?"
+        message={`Are you sure you want to remove "${mealToDelete?.name}" from your daily log?`}
+        confirmLabel="Delete"
+        variant="destructive"
+        mode="bottom-sheet"
+        icon="trash-2"
+      />
     </SafeAreaView>
   );
 }

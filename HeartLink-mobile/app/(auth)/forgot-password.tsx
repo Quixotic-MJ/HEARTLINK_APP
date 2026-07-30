@@ -7,9 +7,9 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Alert,
   ActivityIndicator,
 } from "react-native";
+import { useToast } from "../../contexts/ToastContext";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
@@ -34,6 +34,7 @@ export default function ForgotPasswordScreen() {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
   const router = useRouter();
+  const { showToast } = useToast();
 
   const {
     control,
@@ -77,11 +78,8 @@ export default function ForgotPasswordScreen() {
         console.log("TEMP PASS RECEIVED:", resData.temp_password);
         console.log("=====================================");
         
-        Alert.alert(
-          "Link Sent",
-          "If this account is registered, you will receive reset instructions shortly.",
-          [{ text: "OK", onPress: () => router.back() }]
-        );
+        showToast({ title: "Link Sent", message: "If this account is registered, you will receive reset instructions shortly.", type: "success" });
+        setTimeout(() => router.back(), 1500);
       } else {
         setGeneralError(resData.detail || "Account not found.");
       }

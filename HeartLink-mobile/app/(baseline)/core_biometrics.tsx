@@ -6,14 +6,12 @@ import {
   TextInput,
   TouchableOpacity,
   KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  Alert,
   ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
+import { useToast } from "../../contexts/ToastContext";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import DateTimePicker from "@react-native-community/datetimepicker";
 
@@ -81,11 +79,14 @@ function StepProgress({ current, total }: { current: number; total: number }) {
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
-export default function BiometricsStep1Screen() {
+export default function CoreBiometricsScreen() {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
   const router = useRouter();
-  const { user_id, health_goals } = useLocalSearchParams();
+  const params = useLocalSearchParams();
+  const { showToast } = useToast();
+  const user_id = params.user_id;
+  const health_goals = params.health_goals;
   const base_url = process.env.EXPO_PUBLIC_API_URL;
 
   const [firstName, setFirstName] = useState("");
@@ -155,11 +156,11 @@ export default function BiometricsStep1Screen() {
           params: { user_id: user_id as string },
         });
       } else {
-        Alert.alert("Error", data.detail || "Failed to save profile");
+        showToast({ title: "Error", message: data.detail || "Failed to save profile", type: "error" });
       }
     } catch (error) {
       console.log("Profile save error:", error);
-      Alert.alert("Error", "Could not connect to server");
+      showToast({ title: "Error", message: "Could not connect to server", type: "error" });
     } finally {
       setIsSubmitting(false);
     }

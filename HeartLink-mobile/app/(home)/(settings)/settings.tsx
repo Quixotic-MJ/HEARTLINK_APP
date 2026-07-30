@@ -6,6 +6,8 @@ import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useUser } from "../../../contexts/UserContext";
+import { ConfirmDialog } from "../../../components/ui/ConfirmDialog";
+
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -100,9 +102,11 @@ export default function SettingsScreen() {
   const { setUserId, userId, logout } = useUser();
   const base_url = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
 
-  const handleSignOut = () => {
-    logout();
-    router.replace("/onboarding");
+  const [showSignOutConfirm, setShowSignOutConfirm] = React.useState(false);
+
+  const handleSignOut = async () => {
+    setShowSignOutConfirm(false);
+    await logout();
   };
 
   return (
@@ -216,12 +220,24 @@ export default function SettingsScreen() {
             danger
             iconBg="#fcebeb"
             iconColor="#a32d2d"
-            onPress={handleSignOut}
+            onPress={() => setShowSignOutConfirm(true)}
             isLast
           />
         </SettingsGroup>
 
       </ScrollView>
+
+      <ConfirmDialog
+        visible={showSignOutConfirm}
+        onCancel={() => setShowSignOutConfirm(false)}
+        onConfirm={handleSignOut}
+        title="Sign out?"
+        message="Are you sure you want to sign out of HeartLink?"
+        confirmLabel="Sign out"
+        variant="destructive"
+        mode="bottom-sheet"
+        icon="log-out"
+      />
     </SafeAreaView>
   );
 }

@@ -18,23 +18,24 @@ import * as z from "zod";
 import "../../global.css";
 import { Feather } from "../../lib/icons";
 import { InputField } from "../../components/ui/InputField";
+import { Button } from "../../components/ui/Button";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 const registerSchema = z.object({
-  email: z.string().min(1, "Email address is required.").email("Please enter a valid email address."),
-  phone: z.string().regex(/^\d{10}$/, "Please enter a valid 10-digit phone number."),
+  email: z.string().min(1, "Please fill out this field.").email("Enter a valid email address (e.g., name@example.com)."),
+  phone: z.string().regex(/^\d{10}$/, "Enter a valid 10-digit phone number (e.g., 9123456789)."),
   password: z
     .string()
     .min(8, "Password must be at least 8 characters.")
     .regex(/(?=.*[a-z])/, "Password must contain a lowercase letter.")
     .regex(/(?=.*[A-Z])/, "Password must contain an uppercase letter.")
-    .regex(/(?=.*\d)/, "Password must contain a number."),
-  confirmPassword: z.string(),
+    .regex(/(?=.*\d)/, "Password must include at least one number."),
+  confirmPassword: z.string().min(1, "Please confirm your password."),
 }).refine(data => data.password === data.confirmPassword, {
-  message: "Passwords do not match.",
+  message: "The passwords don't match yet. Please check again.",
   path: ["confirmPassword"],
 });
 
@@ -42,60 +43,7 @@ type RegisterFormValues = z.infer<typeof registerSchema>;
 
 // ─── Animated Button ──────────────────────────────────────────────────────────
 
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
-
-function PrimaryButton({
-  onPress,
-  isLoading,
-  label,
-  icon,
-}: {
-  onPress: () => void;
-  isLoading: boolean;
-  label: string;
-  icon: string;
-}) {
-  const scale = useSharedValue(1);
-
-  const animatedStyle = useAnimatedStyle(() => {
-    return {
-      transform: [{ scale: scale.value }],
-    };
-  });
-
-  const handlePressIn = () => {
-    scale.value = withTiming(0.97, { duration: 100, easing: Easing.out(Easing.ease) });
-  };
-
-  const handlePressOut = () => {
-    scale.value = withTiming(1, { duration: 150, easing: Easing.out(Easing.ease) });
-  };
-
-  return (
-    <AnimatedPressable
-      onPress={onPress}
-      onPressIn={handlePressIn}
-      onPressOut={handlePressOut}
-      disabled={isLoading}
-      style={animatedStyle}
-      className={`w-full bg-primary rounded-2xl py-4 flex-row justify-center items-center gap-2 ${isLoading ? "opacity-80" : ""}`}
-      accessible={true}
-      accessibilityRole="button"
-      accessibilityLabel={label}
-    >
-      {isLoading ? (
-        <ActivityIndicator size="small" color="#fff" />
-      ) : (
-        <>
-          <Feather name={icon as any} size={16} className="text-primary-foreground" />
-          <Text className="text-primary-foreground text-sm font-semibold">
-            {label}
-          </Text>
-        </>
-      )}
-    </AnimatedPressable>
-  );
-}
+// Removed local PrimaryButton in favor of centralized Button component
 
 // Removed local InputField component in favor of centralized InputField component.
 
@@ -107,7 +55,7 @@ export default function RegisterScreen() {
     control,
     handleSubmit,
     watch,
-    formState: { errors },
+    formState: { errors, isSubmitting },
     setError,
   } = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
@@ -123,12 +71,10 @@ export default function RegisterScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [generalError, setGeneralError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const passwordValue = watch("password") || "";
 
   const onSubmit = async (data: RegisterFormValues) => {
-    setIsSubmitting(true);
     setGeneralError(null);
 
     let normalizedPhone = data.phone;
@@ -168,8 +114,6 @@ export default function RegisterScreen() {
     } catch (error) {
       console.log(error);
       setGeneralError("An error occurred. Please check your connection.");
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -350,9 +294,10 @@ export default function RegisterScreen() {
           </View>
 
           {/* Submit */}
-          <PrimaryButton
+          <Button
             onPress={handleSubmit(onSubmit)}
             isLoading={isSubmitting}
+            loadingText="Sending..."
             label="Send verification code"
             icon="send"
           />

@@ -8,10 +8,7 @@ import {
   ActivityIndicator,
   Pressable,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
-import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, Easing } from "react-native-reanimated";
 import "../../global.css";
 import { useUser } from "../../contexts/UserContext";
@@ -20,6 +17,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { InputField } from "../../components/ui/InputField";
+import { Button } from "../../components/ui/Button";
+import { ScreenWrapper } from "../../components/ui/ScreenWrapper";
 
 const loginSchema = z.object({
   identifier: z.string().min(1, "Please enter your email or phone number."),
@@ -32,61 +31,7 @@ const base_url = process.env.EXPO_PUBLIC_API_URL;
 
 // ─── Animated Button ──────────────────────────────────────────────────────────
 
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
-
-function PrimaryButton({
-  onPress,
-  isLoading,
-  label,
-  icon,
-}: {
-  onPress: () => void;
-  isLoading: boolean;
-  label: string;
-  icon: string;
-}) {
-  const scale = useSharedValue(1);
-
-  const animatedStyle = useAnimatedStyle(() => {
-    return {
-      transform: [{ scale: scale.value }],
-    };
-  });
-
-  const handlePressIn = () => {
-    scale.value = withTiming(0.97, { duration: 100, easing: Easing.out(Easing.ease) });
-  };
-
-  const handlePressOut = () => {
-    scale.value = withTiming(1, { duration: 150, easing: Easing.out(Easing.ease) });
-  };
-
-  return (
-    <AnimatedPressable
-      onPress={onPress}
-      onPressIn={handlePressIn}
-      onPressOut={handlePressOut}
-      disabled={isLoading}
-      style={animatedStyle}
-      className={`w-full bg-primary rounded-2xl py-4 flex-row justify-center items-center gap-2 ${isLoading ? "opacity-80" : ""}`}
-      accessible={true}
-      accessibilityRole="button"
-      accessibilityLabel={label}
-    >
-      {isLoading ? (
-        <ActivityIndicator size="small" color="#fff" />
-      ) : (
-        <>
-          <Feather name={icon as any} size={16} className="text-primary-foreground" />
-          <Text className="text-primary-foreground text-sm font-semibold">
-            {label}
-          </Text>
-        </>
-      )}
-    </AnimatedPressable>
-  );
-}
-
+// Removed local PrimaryButton in favor of centralized Button component
 
 // ─── Auth Screen ──────────────────────────────────────────────────────────────
 
@@ -96,9 +41,8 @@ export default function AuthScreen() {
 
   const [showPassword, setShowPassword] = useState(false);
   const [globalError, setGlobalError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
 
-  const { control, handleSubmit } = useForm<LoginFormData>({
+  const { control, handleSubmit, formState: { isSubmitting } } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: { identifier: "", password: "" },
     mode: "onTouched",
@@ -106,7 +50,6 @@ export default function AuthScreen() {
 
   const onSubmit = async (data: LoginFormData) => {
     setGlobalError(null);
-    setIsLoading(true);
 
     let finalIdentifier = data.identifier.trim().toLowerCase();
     if (/^\d+$/.test(finalIdentifier)) {
@@ -156,18 +99,14 @@ export default function AuthScreen() {
     } catch (error) {
       console.log(error);
       setGlobalError("An error occurred. Please check your connection.");
-    } finally {
-      setIsLoading(false);
     }
   };
 
   return (
-    <SafeAreaView
-      className="flex-1 bg-background"
-      edges={["top", "bottom"]}
+    <ScreenWrapper 
+      withKeyboardAvoidance={true} 
+      contentContainerClassName="flex-grow px-6 pt-4 pb-12"
     >
-      <StatusBar style="auto" />
-
       {/* Header */}
       <View className="flex-row items-center px-6 pt-4 pb-2">
         <TouchableOpacity
@@ -197,15 +136,6 @@ export default function AuthScreen() {
           </Text>
         </View>
       </View>
-
-      <KeyboardAwareScrollView
-        contentContainerClassName="flex-grow px-6 pt-4 pb-12"
-        showsVerticalScrollIndicator={false}
-        enableOnAndroid={true}
-        extraScrollHeight={Platform.OS === "ios" ? 40 : 60}
-        keyboardShouldPersistTaps="handled"
-        bounces={false}
-      >
         {/* ── Heading ── */}
         <View className="mb-8 mt-2">
           <Text className="text-3xl font-semibold text-foreground tracking-tight leading-tight mb-2" accessibilityRole="header">
@@ -233,8 +163,7 @@ export default function AuthScreen() {
 
           {/* Password Section */}
           <View>
-            <View className="gap-2">
-              <InputField
+            <InputField
                 control={control}
                 name="password"
                 label="Password"
@@ -257,18 +186,17 @@ export default function AuthScreen() {
                   </TouchableOpacity>
                 }
               />
-              <TouchableOpacity
-                className="self-end -mt-1 py-2 pl-4"
-                onPress={() => router.push("/(auth)/forgot-password")}
-                accessible={true}
-                accessibilityRole="link"
-                accessibilityLabel="Forgot your password?"
-              >
-                <Text className="text-xs font-semibold text-primary">
-                  Forgot your password?
-                </Text>
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity
+              className="self-end py-2 pl-4 -mt-2"
+              onPress={() => router.push("/(auth)/forgot-password")}
+              accessible={true}
+              accessibilityRole="link"
+              accessibilityLabel="Forgot your password?"
+            >
+              <Text className="text-xs font-semibold text-primary">
+                Forgot your password?
+              </Text>
+            </TouchableOpacity>
           </View>
 
           {/* Error Message */}
@@ -282,9 +210,10 @@ export default function AuthScreen() {
           )}
 
           {/* Submit */}
-          <PrimaryButton
+          <Button
             onPress={handleSubmit(onSubmit)}
-            isLoading={isLoading}
+            isLoading={isSubmitting}
+            loadingText="Logging in..."
             label="Log in"
             icon="log-in"
           />
@@ -306,7 +235,6 @@ export default function AuthScreen() {
             Sign up
           </Text>
         </TouchableOpacity>
-      </KeyboardAwareScrollView>
-    </SafeAreaView>
+    </ScreenWrapper>
   );
 }

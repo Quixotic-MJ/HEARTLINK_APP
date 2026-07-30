@@ -12,6 +12,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useRouter, useFocusEffect } from "expo-router";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
+import { format, parseISO } from "date-fns";
+import { ConfirmDialog } from "../../../components/ui/ConfirmDialog";
 import { Swipeable } from "react-native-gesture-handler";
 import { useUser } from "../../../contexts/UserContext";
 import { EmptyState } from "../../../components/ui/EmptyState";
@@ -38,6 +40,7 @@ export default function ExerciseDiaryScreen() {
   const [logs, setLogs] = useState<ExerciseLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [logToDelete, setLogToDelete] = useState<{ id: string; name: string } | null>(null);
 
   const fetchLogs = useCallback(async () => {
     if (!userId) return;
@@ -66,35 +69,29 @@ export default function ExerciseDiaryScreen() {
     fetchLogs();
   };
 
+  const confirmDeleteLog = async () => {
+    if (!logToDelete) return;
+    try {
+      const res = await fetch(`${base_url}/api/exercises/logs/${userId}/${logToDelete.id}`, {
+        method: "DELETE",
+      });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        setLogs((prev) => prev.filter((item) => item.id !== logToDelete.id));
+        showToast({ title: "Deleted", message: "Exercise log removed.", type: "success" });
+      } else {
+        showToast({ title: "Cannot Delete Log", message: json.detail || "Could not delete this exercise log.", type: "error" });
+      }
+    } catch (err) {
+      console.error("Failed to delete exercise log:", err);
+      showToast({ title: "Error", message: "Network error occurred when trying to delete exercise log.", type: "error" });
+    } finally {
+      setLogToDelete(null);
+    }
+  };
+
   const handleDeleteLog = (logId: string, routineName: string) => {
-    Alert.alert(
-      "Delete Exercise Log?",
-      `Are you sure you want to remove "${routineName}" from your exercise history?`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              const res = await fetch(`${base_url}/api/exercises/logs/${userId}/${logId}`, {
-                method: "DELETE",
-              });
-              const json = await res.json();
-              if (res.ok && json.success) {
-                setLogs((prev) => prev.filter((item) => item.id !== logId));
-                showToast({ title: "Deleted", message: "Exercise log removed.", type: "success" });
-              } else {
-                showToast({ title: "Cannot Delete Log", message: json.detail || "Could not delete this exercise log.", type: "error" });
-              }
-            } catch (err) {
-              console.error("Failed to delete exercise log:", err);
-              showToast({ title: "Error", message: "Network error occurred when trying to delete exercise log.", type: "error" });
-            }
-          },
-        },
-      ]
-    );
+    setLogToDelete({ id: logId, name: routineName });
   };
 
   const renderRightActions = (item: ExerciseLog) => {
@@ -276,6 +273,18 @@ export default function ExerciseDiaryScreen() {
           }}
         />
       )}
+
+      <ConfirmDialog
+        visible={!!logToDelete}
+        onCancel={() => setLogToDelete(null)}
+        onConfirm={confirmDeleteLog}
+        title="Delete Exercise Log?"
+        message={`Are you sure you want to remove "${logToDelete?.name}" from your exercise history?`}
+        confirmLabel="Delete"
+        variant="destructive"
+        mode="bottom-sheet"
+        icon="trash-2"
+      />
     </SafeAreaView>
   );
 }

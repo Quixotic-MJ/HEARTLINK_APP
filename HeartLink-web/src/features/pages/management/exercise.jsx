@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import AdminLayout from "../../../components/layouts/adminLayout";
 import ExerciseFormModal from "../../../components/modals/ExerciseFormModal";
+import { Skeleton } from "../../../components/ui/Skeleton";
 import { apiFetch } from "../../../api";
 
 // Mock Data
@@ -241,6 +242,38 @@ const Exercises = () => {
                 </th>
               </tr>
             </thead>
+          {loading ? (
+            <tbody>
+              {[1, 2, 3, 4, 5].map((item) => (
+                <tr key={item} className="border-t border-slate-50">
+                  <td className="py-4 px-5">
+                    <div className="flex items-center gap-3">
+                      <Skeleton className="w-10 h-10 rounded-xl shrink-0" />
+                      <div>
+                        <Skeleton className="w-32 h-4 mb-1" />
+                        <Skeleton className="w-48 h-3" />
+                      </div>
+                    </div>
+                  </td>
+                  <td className="py-4 px-5">
+                    <Skeleton className="w-24 h-5 rounded-full" />
+                  </td>
+                  <td className="py-4 px-5">
+                    <Skeleton className="w-16 h-4" />
+                  </td>
+                  <td className="py-4 px-5 flex flex-col items-center justify-center gap-1.5">
+                    <Skeleton className="w-16 h-3" />
+                    <Skeleton className="w-14 h-4 rounded" />
+                  </td>
+                  <td className="py-4 px-5">
+                    <div className="flex justify-end">
+                      <Skeleton className="w-6 h-6 rounded-md" />
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          ) : (
             <tbody className="divide-y divide-slate-50">
               {filteredExercises.map((exercise) => {
                 const badge = getCssBadgeColor(exercise.cssTarget);
@@ -340,9 +373,6 @@ const Exercises = () => {
                 );
               })}
             </tbody>
-          </table>
-          {loading && (
-            <div className="p-8 text-center text-slate-400 text-xs">Loading exercises...</div>
           )}
           {!loading && filteredExercises.length === 0 && (
             <div className="p-8 text-center text-slate-400 text-xs">No exercises found.</div>

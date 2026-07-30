@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { InputField } from "../ui/InputField";
+import { Button } from "../ui/Button";
 
 const staffSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
@@ -21,7 +22,7 @@ const StaffFormModal = ({ isOpen, onClose, isEditMode, staff }) => {
     setValue,
     watch,
     reset,
-    formState: { errors },
+    formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(staffSchema),
     defaultValues: {
@@ -71,6 +72,13 @@ const StaffFormModal = ({ isOpen, onClose, isEditMode, staff }) => {
     "Manage App Users",
   ];
 
+  const onSubmit = async (data) => {
+    // Simulate async API call to demonstrate loading state
+    await new Promise(resolve => setTimeout(resolve, 800));
+    console.log(data);
+    onClose();
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
       {/* Backdrop */}
@@ -100,7 +108,7 @@ const StaffFormModal = ({ isOpen, onClose, isEditMode, staff }) => {
         </div>
 
         {/* Modal Scrollable Content Area */}
-        <form onSubmit={handleSubmit((data) => { console.log(data); onClose(); })} className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+        <form onSubmit={handleSubmit(onSubmit)} className="flex-1 overflow-y-auto p-6 custom-scrollbar">
           <div className="space-y-5">
             <div className="grid grid-cols-2 gap-4">
               <div className="col-span-2">
@@ -175,22 +183,22 @@ const StaffFormModal = ({ isOpen, onClose, isEditMode, staff }) => {
 
         {/* Modal Footer Actions */}
         <div className="px-6 py-4 border-t border-slate-200 bg-slate-50 flex justify-end gap-3 shrink-0">
-          <button
+          <Button
             type="button"
+            variant="outline"
             onClick={onClose}
-            className="px-5 py-2.5 text-xs font-semibold text-slate-600 bg-white hover:bg-slate-100 rounded-xl border border-slate-200 transition-colors shadow-sm"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             type="submit"
-            onClick={handleSubmit((data) => { console.log(data); onClose(); })}
-            className="flex items-center gap-2 px-6 py-2.5 text-xs font-medium text-white rounded-xl transition-all hover:opacity-90 active:scale-[0.99] shadow-sm"
-            style={{ backgroundColor: "#0f172a" }}
+            onClick={handleSubmit(onSubmit)}
+            isLoading={isSubmitting}
+            loadingText={isEditMode ? "Saving..." : "Provisioning..."}
           >
             {isEditMode ? <Save size={14} /> : <UserPlus size={14} />}
             {isEditMode ? "Save Changes" : "Provision Account"}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

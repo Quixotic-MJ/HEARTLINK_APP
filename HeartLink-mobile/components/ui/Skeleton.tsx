@@ -1,12 +1,13 @@
-import React, { useEffect } from "react";
-import { ViewProps } from "react-native";
+import React, { useEffect, useState } from "react";
+import { ViewProps, StyleSheet, LayoutChangeEvent } from "react-native";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withRepeat,
   withTiming,
-  withSequence,
+  Easing,
 } from "react-native-reanimated";
+import { LinearGradient } from "expo-linear-gradient";
 import { useColorScheme } from "nativewind";
 
 export interface SkeletonProps extends ViewProps {
@@ -14,37 +15,46 @@ export interface SkeletonProps extends ViewProps {
 }
 
 export function Skeleton({ className, style, ...props }: SkeletonProps) {
-  const opacity = useSharedValue(0.4);
+  const [width, setWidth] = useState(0);
+  const shimmerValue = useSharedValue(-1);
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
 
   useEffect(() => {
-    opacity.value = withRepeat(
-      withSequence(
-        withTiming(1, { duration: 800 }),
-        withTiming(0.4, { duration: 800 })
-      ),
+    shimmerValue.value = withRepeat(
+      withTiming(1, { duration: 1200, easing: Easing.linear }),
       -1,
-      true
+      false
     );
-  }, [opacity]);
+  }, [shimmerValue]);
 
   const animatedStyle = useAnimatedStyle(() => ({
-    opacity: opacity.value,
+    transform: [{ translateX: shimmerValue.value * width }],
   }));
 
-  // Match slate-200 in light mode and slate-800/slate-700 in dark mode
   const backgroundColor = isDark ? "#1e293b" : "#e2e8f0";
+  const highlightColor = isDark ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.6)";
 
   return (
     <Animated.View
-      className={`rounded-xl ${className}`}
+      className={`rounded-xl overflow-hidden ${className}`}
       style={[
         { backgroundColor },
-        animatedStyle,
         style,
       ]}
+      onLayout={(e: LayoutChangeEvent) => setWidth(e.nativeEvent.layout.width)}
       {...props}
-    />
+    >
+      {width > 0 && (
+        <Animated.View style={[StyleSheet.absoluteFillObject, animatedStyle, { width }]}>
+          <LinearGradient
+            colors={["transparent", highlightColor, "transparent"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={StyleSheet.absoluteFill}
+          />
+        </Animated.View>
+      )}
+    </Animated.View>
   );
 }
