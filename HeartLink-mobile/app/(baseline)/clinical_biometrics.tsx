@@ -116,6 +116,39 @@ export default function BiometricsStep4Screen() {
   }, [user_id]);
 
   const handleCompleteOnboarding = async () => {
+    // Validate inputs
+    if (restingBP) {
+      const bp = parseInt(restingBP);
+      if (isNaN(bp) || bp < 60 || bp > 250) {
+        showToast({ title: "Invalid Blood Pressure", message: "Resting BP must be between 60 and 250 mmHg.", type: "error" });
+        return;
+      }
+    }
+    
+    if (maxHR) {
+      const hr = parseInt(maxHR);
+      if (isNaN(hr) || hr < 40 || hr > 220) {
+        showToast({ title: "Invalid Heart Rate", message: "Max Heart Rate must be between 40 and 220 bpm.", type: "error" });
+        return;
+      }
+    }
+    
+    if (fastingBloodSugar) {
+      const fbs = parseInt(fastingBloodSugar);
+      if (isNaN(fbs) || fbs < 20 || fbs > 600) {
+        showToast({ title: "Invalid Blood Sugar", message: "Fasting Blood Sugar must be between 20 and 600 mg/dL.", type: "error" });
+        return;
+      }
+    }
+    
+    if (cholesterol) {
+      const chol = parseInt(cholesterol);
+      if (isNaN(chol) || chol < 50 || chol > 500) {
+        showToast({ title: "Invalid Cholesterol", message: "Cholesterol must be between 50 and 500 mg/dL.", type: "error" });
+        return;
+      }
+    }
+
     const payload = {
       diagnosed_conditions: diagnosedConditions,
       on_medication: takingMedication,

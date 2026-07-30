@@ -132,6 +132,19 @@ export default function CoreBiometricsScreen() {
   };
 
   const handleNext = async () => {
+    const h = parseFloat(heightCm);
+    const w = parseFloat(weightKg);
+
+    if (isNaN(h) || h < 50 || h > 300) {
+      showToast({ title: "Invalid Height", message: "Please enter a valid height between 50 and 300 cm.", type: "error" });
+      return;
+    }
+    
+    if (isNaN(w) || w < 20 || w > 400) {
+      showToast({ title: "Invalid Weight", message: "Please enter a valid weight between 20 and 400 kg.", type: "error" });
+      return;
+    }
+
     try {
       setIsSubmitting(true);
       const response = await fetch(`${base_url}/api/users/${user_id}/profile`, {
