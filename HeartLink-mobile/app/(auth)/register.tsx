@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   Platform,
   ActivityIndicator,
@@ -13,20 +12,33 @@ import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, Easing } from "react-native-reanimated";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import "../../global.css";
 import { Feather } from "../../lib/icons";
+import { InputField } from "../../components/ui/InputField";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type FormErrors = {
-  email?: string;
-  phone?: string;
-  password?: string;
-  confirmPassword?: string;
-  general?: string;
-};
+const registerSchema = z.object({
+  email: z.string().min(1, "Email address is required.").email("Please enter a valid email address."),
+  phone: z.string().regex(/^\d{10}$/, "Please enter a valid 10-digit phone number."),
+  password: z
+    .string()
+    .min(8, "Password must be at least 8 characters.")
+    .regex(/(?=.*[a-z])/, "Password must contain a lowercase letter.")
+    .regex(/(?=.*[A-Z])/, "Password must contain an uppercase letter.")
+    .regex(/(?=.*\d)/, "Password must contain a number."),
+  confirmPassword: z.string(),
+}).refine(data => data.password === data.confirmPassword, {
+  message: "Passwords do not match.",
+  path: ["confirmPassword"],
+});
+
+type RegisterFormValues = z.infer<typeof registerSchema>;
 
 // ─── Animated Button ──────────────────────────────────────────────────────────
 
@@ -85,149 +97,41 @@ function PrimaryButton({
   );
 }
 
-// ─── Input Field ──────────────────────────────────────────────────────────────
+// Removed local InputField component in favor of centralized InputField component.
 
-function InputField({
-  label,
-  icon,
-  placeholder,
-  value,
-  onChangeText,
-  onBlur,
-  error,
-  keyboardType,
-  autoCapitalize,
-  secureTextEntry,
-  rightElement,
-  leftElement,
-  autoComplete,
-  textContentType,
-  editable = true,
-}: {
-  label: string;
-  icon: string;
-  placeholder: string;
-  value: string;
-  onChangeText: (t: string) => void;
-  onBlur?: () => void;
-  error?: string;
-  keyboardType?: any;
-  autoCapitalize?: any;
-  secureTextEntry?: boolean;
-  rightElement?: React.ReactNode;
-  leftElement?: React.ReactNode;
-  autoComplete?: any;
-  textContentType?: any;
-  editable?: boolean;
-}) {
-  const hasError = !!error;
-  return (
-    <View className="mb-4">
-      <Text className="text-sm font-semibold text-foreground mb-1.5 ml-1">{label}</Text>
-      <View
-        className={`w-full rounded-2xl flex-row items-center px-4 min-h-[52px] border bg-background ${
-          hasError
-            ? "border-destructive"
-            : "border-border"
-        } ${!editable ? "opacity-60" : ""}`}
-      >
-        <Feather
-          name={icon as any}
-          size={18}
-          className={hasError ? "text-destructive" : "text-muted-foreground"}
-        />
-        {leftElement}
-        <TextInput
-          value={value}
-          onChangeText={onChangeText}
-          onBlur={onBlur}
-          placeholder={placeholder}
-          placeholderTextColor="#94a3b8"
-          keyboardType={keyboardType}
-          autoCapitalize={autoCapitalize ?? "none"}
-          secureTextEntry={secureTextEntry}
-          autoComplete={autoComplete}
-          textContentType={textContentType}
-          editable={editable}
-          className="flex-1 ml-3 text-base text-foreground py-3.5"
-        />
-        {rightElement}
-      </View>
-      {hasError && (
-        <View className="flex-row items-center gap-1.5 mt-2 mb-2 ml-1" accessible={true} accessibilityRole="alert">
-          <Feather name="alert-circle" size={12} className="text-destructive" />
-          <Text className="text-sm text-destructive font-medium">
-            {error}
-          </Text>
-        </View>
-      )}
-    </View>
-  );
-}
-
-// ─── Register Screen ──────────────────────────────────────────────────────────
 
 export default function RegisterScreen() {
   const router = useRouter();
 
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const {
+    control,
+    handleSubmit,
+    watch,
+    formState: { errors },
+    setError,
+  } = useForm<RegisterFormValues>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: {
+      email: "",
+      phone: "",
+      password: "",
+      confirmPassword: "",
+    },
+    mode: "onTouched",
+  });
+
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [errors, setErrors] = useState<FormErrors>({});
+  const [generalError, setGeneralError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const clearError = (field: keyof FormErrors) =>
-    setErrors((prev) => ({ ...prev, [field]: undefined }));
+  const passwordValue = watch("password") || "";
 
-  const validateEmail = (val: string = email) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!val) { setErrors(prev => ({ ...prev, email: "Email address is required." })); return false; }
-    if (!emailRegex.test(val)) { setErrors(prev => ({ ...prev, email: "Please enter a valid email address." })); return false; }
-    clearError("email");
-    return true;
-  };
-
-  const validatePhone = (val: string = phone) => {
-    if (!val || val.length < 10) { setErrors(prev => ({ ...prev, phone: "Please enter a valid 10-digit phone number." })); return false; }
-    clearError("phone");
-    return true;
-  };
-
-  const validatePassword = (val: string = password) => {
-    if (!val) { setErrors(prev => ({ ...prev, password: "Password is required." })); return false; }
-    if (val.length < 8) { setErrors(prev => ({ ...prev, password: "Password must be at least 8 characters." })); return false; }
-    if (!/(?=.*[a-z])/.test(val)) { setErrors(prev => ({ ...prev, password: "Password must contain a lowercase letter." })); return false; }
-    if (!/(?=.*[A-Z])/.test(val)) { setErrors(prev => ({ ...prev, password: "Password must contain an uppercase letter." })); return false; }
-    if (!/(?=.*\d)/.test(val)) { setErrors(prev => ({ ...prev, password: "Password must contain a number." })); return false; }
-    clearError("password");
-    return true;
-  };
-
-  const validateConfirmPassword = (val: string = confirmPassword) => {
-    if (val !== password) { setErrors(prev => ({ ...prev, confirmPassword: "Passwords do not match." })); return false; }
-    clearError("confirmPassword");
-    return true;
-  };
-
-  const validateForm = () => {
-    const isEmailValid = validateEmail();
-    const isPhoneValid = validatePhone();
-    const isPasswordValid = validatePassword();
-    const isConfirmValid = validateConfirmPassword();
-    return isEmailValid && isPhoneValid && isPasswordValid && isConfirmValid;
-  };
-
-  const handleSubmit = async () => {
-    if (!validateForm()) {
-      return;
-    }
-
+  const onSubmit = async (data: RegisterFormValues) => {
     setIsSubmitting(true);
+    setGeneralError(null);
 
-    let normalizedPhone = phone;
+    let normalizedPhone = data.phone;
     if (normalizedPhone.startsWith("0")) {
       normalizedPhone = normalizedPhone.substring(1);
     }
@@ -240,30 +144,30 @@ export default function RegisterScreen() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          email: email.trim().toLowerCase(),
+          email: data.email.trim().toLowerCase(),
           phone: normalizedPhone,
-          password: password,
+          password: data.password,
         }),
       });
 
-      const data = await response.json();
+      const resData = await response.json();
 
       if (response.ok) {
         router.push({ pathname: "/(auth)/verify-otp", params: { phone: normalizedPhone } });
       } else {
-        if (data.detail === "duplicate phone number") {
-          setErrors({ phone: "This phone number is already registered." });
-        } else if (data.detail === "duplicate email") {
-          setErrors({ email: "This email address is already registered." });
-        } else if (data.detail && typeof data.detail === "string") {
-          setErrors({ general: data.detail });
+        if (resData.detail === "duplicate phone number") {
+          setError("phone", { type: "server", message: "This phone number is already registered." });
+        } else if (resData.detail === "duplicate email") {
+          setError("email", { type: "server", message: "This email address is already registered." });
+        } else if (resData.detail && typeof resData.detail === "string") {
+          setGeneralError(resData.detail);
         } else {
-          setErrors({ general: "An error occurred. Please try again." });
+          setGeneralError("An error occurred. Please try again.");
         }
       }
     } catch (error) {
       console.log(error);
-      setErrors({ general: "An error occurred. Please check your connection." });
+      setGeneralError("An error occurred. Please check your connection.");
     } finally {
       setIsSubmitting(false);
     }
@@ -327,11 +231,11 @@ export default function RegisterScreen() {
           </View>
 
           {/* General Error */}
-          {errors.general && (
+          {generalError && (
             <View className="bg-destructive/10 border border-destructive/30 rounded-2xl p-3.5 mb-5 flex-row items-center gap-2" accessible={true} accessibilityRole="alert">
               <Feather name="alert-triangle" size={16} className="text-destructive" />
               <Text className="text-destructive text-xs flex-1 font-medium">
-                {errors.general}
+                {generalError}
               </Text>
             </View>
           )}
@@ -340,16 +244,12 @@ export default function RegisterScreen() {
 
           {/* Email */}
           <InputField
+            control={control}
+            name="email"
             label="Email Address"
             icon="mail"
             placeholder="e.g. john@example.com"
-            value={email}
-            onChangeText={(t) => {
-              setEmail(t);
-              if (errors.email) clearError("email");
-            }}
-            onBlur={() => validateEmail()}
-            error={errors.email}
+            error={errors.email?.message}
             keyboardType="email-address"
             autoComplete="email"
             textContentType="emailAddress"
@@ -358,17 +258,12 @@ export default function RegisterScreen() {
 
           {/* Phone */}
           <InputField
+            control={control}
+            name="phone"
             label="Phone Number"
             icon="phone"
             placeholder="912 345 6789"
-            value={phone}
-            onChangeText={(t) => {
-              const digits = t.replace(/[^0-9]/g, "");
-              setPhone(digits.slice(0, 10));
-              if (errors.phone) clearError("phone");
-            }}
-            onBlur={() => validatePhone()}
-            error={errors.phone}
+            error={errors.phone?.message}
             keyboardType="phone-pad"
             autoComplete="tel"
             textContentType="telephoneNumber"
@@ -384,16 +279,12 @@ export default function RegisterScreen() {
 
           {/* Password */}
           <InputField
+            control={control}
+            name="password"
             label="Password"
             icon="lock"
             placeholder="Create a strong password"
-            value={password}
-            onChangeText={(t) => {
-              setPassword(t);
-              if (errors.password) clearError("password");
-            }}
-            onBlur={() => validatePassword()}
-            error={errors.password}
+            error={errors.password?.message}
             secureTextEntry={!showPassword}
             editable={!isSubmitting}
             rightElement={
@@ -416,16 +307,12 @@ export default function RegisterScreen() {
 
           {/* Confirm password */}
           <InputField
+            control={control}
+            name="confirmPassword"
             label="Confirm Password"
             icon="shield"
             placeholder="Confirm password"
-            value={confirmPassword}
-            onChangeText={(t) => {
-              setConfirmPassword(t);
-              if (errors.confirmPassword) clearError("confirmPassword");
-            }}
-            onBlur={() => validateConfirmPassword()}
-            error={errors.confirmPassword}
+            error={errors.confirmPassword?.message}
             secureTextEntry={!showConfirmPassword}
             editable={!isSubmitting}
             rightElement={
@@ -449,22 +336,22 @@ export default function RegisterScreen() {
           {/* Password hint */}
           <View className="mb-7 -mt-1 ml-1" accessible={true} accessibilityRole="text">
             <View className="flex-row items-center gap-2 mb-1.5">
-              <Feather name={password.length >= 8 ? "check-circle" : "circle"} size={14} className={password.length >= 8 ? "text-emerald-500" : "text-muted-foreground"} />
-              <Text className={`text-sm ${password.length >= 8 ? "text-foreground" : "text-muted-foreground"}`}>At least 8 characters</Text>
+              <Feather name={passwordValue.length >= 8 ? "check-circle" : "circle"} size={14} className={passwordValue.length >= 8 ? "text-emerald-500" : "text-muted-foreground"} />
+              <Text className={`text-sm ${passwordValue.length >= 8 ? "text-foreground" : "text-muted-foreground"}`}>At least 8 characters</Text>
             </View>
             <View className="flex-row items-center gap-2 mb-1.5">
-              <Feather name={/(?=.*[A-Z])/.test(password) && /(?=.*[a-z])/.test(password) ? "check-circle" : "circle"} size={14} className={/(?=.*[A-Z])/.test(password) && /(?=.*[a-z])/.test(password) ? "text-emerald-500" : "text-muted-foreground"} />
-              <Text className={`text-sm ${/(?=.*[A-Z])/.test(password) && /(?=.*[a-z])/.test(password) ? "text-foreground" : "text-muted-foreground"}`}>Uppercase & lowercase letter</Text>
+              <Feather name={/(?=.*[A-Z])/.test(passwordValue) && /(?=.*[a-z])/.test(passwordValue) ? "check-circle" : "circle"} size={14} className={/(?=.*[A-Z])/.test(passwordValue) && /(?=.*[a-z])/.test(passwordValue) ? "text-emerald-500" : "text-muted-foreground"} />
+              <Text className={`text-sm ${/(?=.*[A-Z])/.test(passwordValue) && /(?=.*[a-z])/.test(passwordValue) ? "text-foreground" : "text-muted-foreground"}`}>Uppercase & lowercase letter</Text>
             </View>
             <View className="flex-row items-center gap-2">
-              <Feather name={/(?=.*\d)/.test(password) ? "check-circle" : "circle"} size={14} className={/(?=.*\d)/.test(password) ? "text-emerald-500" : "text-muted-foreground"} />
-              <Text className={`text-sm ${/(?=.*\d)/.test(password) ? "text-foreground" : "text-muted-foreground"}`}>At least one number</Text>
+              <Feather name={/(?=.*\d)/.test(passwordValue) ? "check-circle" : "circle"} size={14} className={/(?=.*\d)/.test(passwordValue) ? "text-emerald-500" : "text-muted-foreground"} />
+              <Text className={`text-sm ${/(?=.*\d)/.test(passwordValue) ? "text-foreground" : "text-muted-foreground"}`}>At least one number</Text>
             </View>
           </View>
 
           {/* Submit */}
           <PrimaryButton
-            onPress={handleSubmit}
+            onPress={handleSubmit(onSubmit)}
             isLoading={isSubmitting}
             label="Send verification code"
             icon="send"

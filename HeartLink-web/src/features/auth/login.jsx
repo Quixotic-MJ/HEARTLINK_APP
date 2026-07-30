@@ -3,6 +3,16 @@ import { Mail, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { apiFetch } from "../../api";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { InputField } from "../../components/ui/InputField";
+
+const loginSchema = z.object({
+  email: z.string().min(1, "Email is required").email("Please enter a valid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+});
+
 // ─── Heart Icon (matches brand logo — thin outline, no fill) ─────────────────
 function HeartOutlineIcon({ size = 22, color = "currentColor" }) {
   return (
@@ -40,88 +50,30 @@ function BrandLogo({ dark = false }) {
   );
 }
 
-// ─── Input ────────────────────────────────────────────────────────────────────
-function Field({
-  id, label, type, placeholder, hint, hintHref,
-  left, right, value, onChange, error
-}) {
-  return (
-    <div className="space-y-1.5">
-      <div className="flex items-center justify-between">
-        <label htmlFor={id} className={`text-[11px] font-medium uppercase tracking-widest ${error ? 'text-red-500' : 'text-slate-500'}`}>
-          {label}
-        </label>
-        {hint && (
-          <a href={hintHref || "#"} className="text-[11px] text-slate-400 hover:text-slate-700 transition-colors">
-            {hint}
-          </a>
-        )}
-      </div>
-      <div className="relative">
-        {left && (
-          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-300">
-            {left}
-          </div>
-        )}
-        <input
-          id={id}
-          type={type}
-          placeholder={placeholder}
-          value={value}
-          onChange={onChange}
-          className={`w-full bg-slate-50 border ${error ? 'border-red-400 focus:border-red-500' : 'border-slate-200 focus:border-slate-400'} rounded-xl text-sm text-slate-900 placeholder-slate-300 outline-none transition-all focus:bg-white focus:ring-2 ${error ? 'focus:ring-red-500/10' : 'focus:ring-slate-900/5'}`}
-          style={{ paddingTop: 11, paddingBottom: 11, paddingLeft: left ? 42 : 16, paddingRight: right ? 42 : 16 }}
-        />
-        {right && (
-          <div className="absolute inset-y-0 right-0 pr-4 flex items-center">
-            {right}
-          </div>
-        )}
-      </div>
-      {error && <p className="text-[11px] text-red-500 mt-1">{error}</p>}
-    </div>
-  );
-}
 
 // ─── Admin Login ──────────────────────────────────────────────────────────────
 export default function HeartLinkAdminLogin() {
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(false);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const [globalError, setGlobalError] = useState(null);
   const navigate = useNavigate();
   const { login } = useAuth();
 
-  const validate = () => {
-    const newErrors = {};
-    if (!email) {
-      newErrors.email = "Email is required";
-    } else if (!/\S+@\S+\.\S+/.test(email)) {
-      newErrors.email = "Please enter a valid email address";
-    }
-    
-    if (!password) {
-      newErrors.password = "Password is required";
-    } else if (password.length < 6) {
-      newErrors.password = "Password must be at least 6 characters";
-    }
-    
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+  const { register, handleSubmit, formState: { errors } } = useForm({
+    resolver: zodResolver(loginSchema),
+    mode: "onTouched",
+  });
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (validate()) {
-      setLoading(true);
+  const onSubmit = async (data) => {
+    setLoading(true);
+    setGlobalError(null);
       try {
         const response = await apiFetch("/api/auth/login", {
           method: "POST",
           body: JSON.stringify({
-            identifier: email,
-            password: password,
+            identifier: data.email,
+            password: data.password,
           }),
         });
         
@@ -131,11 +83,10 @@ export default function HeartLinkAdminLogin() {
           navigate("/dashboard");
         }
       } catch (error) {
-        setErrors({ ...errors, form: error.data?.detail || "Login failed. Please try again." });
+        setGlobalError(error.data?.detail || "Login failed. Please try again.");
       } finally {
         setLoading(false);
       }
-    }
   };
 
   return (
@@ -201,20 +152,19 @@ export default function HeartLinkAdminLogin() {
           </div>
 
           {/* Form */}
-          <form className="space-y-5" onSubmit={handleSubmit}>
+          <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
 
-            <Field
+            <InputField
               id="email"
               label="Email"
               type="email"
               placeholder="name@heartlink.ph"
               left={<Mail size={15} />}
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
               error={errors.email}
+              {...register("email")}
             />
 
-            <Field
+            <InputField
               id="password"
               label="Password"
               type={showPassword ? "text" : "password"}
@@ -230,9 +180,8 @@ export default function HeartLinkAdminLogin() {
                   {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
               }
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
               error={errors.password}
+              {...register("password")}
             />
 
             {/* Remember me */}
@@ -256,9 +205,9 @@ export default function HeartLinkAdminLogin() {
               </span>
             </label>
 
-            {errors.form && (
+            {globalError && (
               <div className="p-3 rounded-xl bg-red-50 border border-red-100 flex items-start gap-2.5">
-                <p className="text-xs text-red-600 leading-relaxed font-medium">{errors.form}</p>
+                <p className="text-xs text-red-600 leading-relaxed font-medium">{globalError}</p>
               </div>
             )}
 

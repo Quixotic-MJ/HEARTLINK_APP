@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import {
   X,
   ShieldCheck,
@@ -12,30 +12,69 @@ import {
   Save,
   Clock,
 } from "lucide-react";
+import { useForm, useFieldArray } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { InputField } from "../ui/InputField";
+
+const exerciseSchema = z.object({
+  name: z.string().min(1, "Name is required."),
+  description: z.string().min(1, "Description is required."),
+  duration: z.coerce.number().min(1, "Must be at least 1 minute."),
+  cssTarget: z.string().default("Stable (80-100)"),
+  mediaUrl: z.string().optional(),
+  status: z.string().default("draft"),
+  expertValidated: z.boolean().default(false),
+  steps: z.array(z.object({ value: z.string().min(1, "Step cannot be empty") })).optional(),
+});
 
 const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", onSave }) => {
-  const [formData, setFormData] = useState({
-    name: "",
-    description: "",
-    duration: 10,
-    cssTarget: "Stable (80-100)",
-    mediaUrl: "",
-    status: "draft",
-    expertValidated: false,
+  if (!isOpen) return null;
+
+  const {
+    register,
+    handleSubmit,
+    control,
+    reset,
+    watch,
+    setValue,
+    formState: { errors },
+  } = useForm({
+    resolver: zodResolver(exerciseSchema),
+    defaultValues: {
+      name: "",
+      description: "",
+      duration: 10,
+      cssTarget: "Stable (80-100)",
+      mediaUrl: "",
+      status: "draft",
+      expertValidated: false,
+      steps: [{ value: "" }],
+    },
+    mode: "onTouched",
   });
 
-  const [steps, setSteps] = useState([""]);
+  const { fields: stepsFields, append, remove } = useFieldArray({
+    control,
+    name: "steps",
+  });
+
+  const expertValidated = watch("expertValidated");
+  const mediaUrl = watch("mediaUrl");
+  const status = watch("status");
 
   useEffect(() => {
     if (exercise) {
-      setFormData({
+      reset({
         ...exercise,
         description: exercise.description || "",
         mediaUrl: exercise.mediaUrl || "",
+        steps: exercise.steps 
+          ? exercise.steps.map(step => ({ value: step }))
+          : [{ value: "" }],
       });
-      setSteps(exercise.steps || [""]);
     } else {
-      setFormData({
+      reset({
         name: "",
         description: "",
         duration: 10,
@@ -43,16 +82,15 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
         mediaUrl: "",
         status: "draft",
         expertValidated: false,
+        steps: [{ value: "" }],
       });
-      setSteps([""]);
     }
-  }, [exercise, isOpen]);
+  }, [exercise, isOpen, reset]);
 
-  if (!isOpen) return null;
-
-  const handleSave = () => {
+  const onSubmit = (data) => {
     if (onSave) {
-      onSave({ ...formData, steps });
+      const flatSteps = data.steps ? data.steps.map(s => s.value) : [];
+      onSave({ ...data, steps: flatSteps });
     }
     onClose();
   };
@@ -86,59 +124,53 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
         </div>
 
         {/* Modal Scrollable Form */}
-        <div className="flex-1 overflow-y-auto px-6 py-6 custom-scrollbar space-y-8">
+        <form onSubmit={handleSubmit(onSubmit)} className="flex-1 overflow-y-auto px-6 py-6 custom-scrollbar space-y-8">
           {/* Expert Validation Workflow */}
-          <div
-            className={`p-4 rounded-xl border ${
-              formData.expertValidated
-                ? "bg-emerald-50/50 border-emerald-100"
-                : "bg-slate-50 border-slate-200"
-            }`}
-          >
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h4
-                  className={`text-xs font-semibold ${
-                    formData.expertValidated ? "text-emerald-700" : "text-slate-900"
-                  } flex items-center gap-2 mb-1.5`}
-                >
-                  {formData.expertValidated ? (
-                    <ShieldCheck size={14} className="text-emerald-600" />
-                  ) : (
-                    <ShieldAlert size={14} className="text-slate-400" />
-                  )}
-                  Medical Expert Validation
-                </h4>
-                <p className="text-[10px] text-slate-500 leading-relaxed">
-                  Only Authorized Medical Experts can officially verify that
-                  this routine is safe for the assigned CSS target group.
-                </p>
+            <div
+              className={`p-4 rounded-xl border ${
+                expertValidated
+                  ? "bg-emerald-50/50 border-emerald-100"
+                  : "bg-slate-50 border-slate-200"
+              }`}
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h4
+                    className={`text-xs font-semibold ${
+                      expertValidated ? "text-emerald-700" : "text-slate-900"
+                    } flex items-center gap-2 mb-1.5`}
+                  >
+                    {expertValidated ? (
+                      <ShieldCheck size={14} className="text-emerald-600" />
+                    ) : (
+                      <ShieldAlert size={14} className="text-slate-400" />
+                    )}
+                    Medical Expert Validation
+                  </h4>
+                  <p className="text-[10px] text-slate-500 leading-relaxed">
+                    Only Authorized Medical Experts can officially verify that
+                    this routine is safe for the assigned CSS target group.
+                  </p>
+                </div>
+  
+                {/* Toggle Switch */}
+                <label className="relative inline-flex items-center cursor-pointer shrink-0 mt-1">
+                  <input
+                    type="checkbox"
+                    className="sr-only peer"
+                    disabled={userRole !== "medical"}
+                    {...register("expertValidated")}
+                  />
+                  <div
+                    className={`w-9 h-5 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all ${
+                      userRole !== "medical"
+                        ? "cursor-not-allowed opacity-50"
+                        : ""
+                    } peer-checked:bg-emerald-500`}
+                  ></div>
+                </label>
               </div>
-
-              {/* Toggle Switch */}
-              <label className="relative inline-flex items-center cursor-pointer shrink-0 mt-1">
-                <input
-                  type="checkbox"
-                  className="sr-only peer"
-                  checked={formData.expertValidated}
-                  disabled={userRole !== "medical"}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      expertValidated: e.target.checked,
-                    })
-                  }
-                />
-                <div
-                  className={`w-9 h-5 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all ${
-                    userRole !== "medical"
-                      ? "cursor-not-allowed opacity-50"
-                      : ""
-                  } peer-checked:bg-emerald-500`}
-                ></div>
-              </label>
             </div>
-          </div>
 
           {/* Section 1: Basic Information */}
           <div>
@@ -146,18 +178,13 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
               Basic Information
             </h4>
             <div className="space-y-4">
-              <div>
-                <label className="block text-[11px] font-medium text-slate-700 mb-1.5">
-                  Routine Name
-                </label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-slate-400 focus:bg-white transition-colors"
+              <div className="col-span-1">
+                <InputField
+                  id="name"
+                  label="Routine Name"
                   placeholder="e.g. 15-Minute Chair Yoga"
+                  error={errors.name}
+                  {...register("name")}
                 />
               </div>
 
@@ -167,40 +194,23 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
                 </label>
                 <textarea
                   rows="2"
-                  value={formData.description}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      description: e.target.value,
-                    })
-                  }
-                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-slate-400 focus:bg-white transition-colors resize-none"
+                  {...register("description")}
+                  className={`w-full px-3 py-2 text-xs bg-slate-50 border ${errors.description ? 'border-red-400' : 'border-slate-200'} rounded-xl focus:outline-none focus:border-slate-400 focus:bg-white transition-colors resize-none`}
                   placeholder="Short text summary of physical benefits..."
                 ></textarea>
+                {errors.description && <p className="text-[11px] text-red-500 mt-1">{errors.description.message}</p>}
               </div>
 
               <div className="w-1/2 pr-2">
-                <label className="block text-[11px] font-medium text-slate-700 mb-1.5">
-                  Duration (Minutes)
-                </label>
-                <div className="relative">
-                  <Clock
-                    size={13}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-                  />
-                  <input
-                    type="number"
-                    value={formData.duration}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        duration: parseInt(e.target.value) || 0,
-                      })
-                    }
-                    className="w-full pl-9 pr-3 py-2 text-xs font-mono font-medium bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-slate-400 focus:bg-white transition-colors"
-                    min="1"
-                  />
-                </div>
+                <InputField
+                  id="duration"
+                  type="number"
+                  label="Duration (Minutes)"
+                  left={<Clock size={13} />}
+                  error={errors.duration}
+                  {...register("duration")}
+                  min="1"
+                />
               </div>
             </div>
           </div>
@@ -219,11 +229,8 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
                 safe for. The engine uses this to filter content for users.
               </p>
               <select
-                value={formData.cssTarget}
-                onChange={(e) =>
-                  setFormData({ ...formData, cssTarget: e.target.value })
-                }
-                className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-slate-400 transition-colors cursor-pointer"
+                {...register("cssTarget")}
+                className={`w-full px-3 py-2 text-xs bg-white border ${errors.cssTarget ? 'border-red-400 focus:border-red-500' : 'border-slate-200 focus:border-slate-400'} rounded-xl focus:outline-none transition-colors cursor-pointer`}
               >
                 <option value="Stable (80-100)">Stable (80-100)</option>
                 <option value="Monitor Closely (50-79)">
@@ -244,12 +251,12 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
               <label className="block text-[11px] font-medium text-slate-700 mb-1.5">
                 Media Image / Video
               </label>
-              {formData.mediaUrl && (
+              {mediaUrl && (
                 <div className="mb-3 w-full h-32 rounded-xl overflow-hidden bg-slate-100 border border-slate-200">
-                  {formData.mediaUrl.startsWith("data:video") || formData.mediaUrl.endsWith(".mp4") ? (
-                    <video src={formData.mediaUrl} controls className="w-full h-full object-cover" />
+                  {mediaUrl.startsWith("data:video") || mediaUrl.endsWith(".mp4") ? (
+                    <video src={mediaUrl} controls className="w-full h-full object-cover" />
                   ) : (
-                    <img src={formData.mediaUrl} alt="Preview" className="w-full h-full object-cover" />
+                    <img src={mediaUrl} alt="Preview" className="w-full h-full object-cover" />
                   )}
                 </div>
               )}
@@ -262,7 +269,7 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
                     if (file) {
                       const reader = new FileReader();
                       reader.onloadend = () => {
-                        setFormData({ ...formData, mediaUrl: reader.result });
+                        setValue("mediaUrl", reader.result);
                       };
                       reader.readAsDataURL(file);
                     }
@@ -280,35 +287,37 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
                 Build the JSON array of instructions for safe execution.
               </p>
               <div className="space-y-2.5 mb-3">
-                {steps.map((step, i) => (
-                  <div key={i} className="flex items-start gap-3">
-                    <div className="mt-1 text-[10px] font-semibold text-slate-400 bg-slate-100 border border-slate-200 w-5 h-5 flex items-center justify-center rounded-full shrink-0">
-                      {i + 1}
+                {stepsFields.map((field, index) => (
+                  <div key={field.id} className="flex items-start flex-col gap-1">
+                    <div className="flex items-start gap-3 w-full">
+                      <div className="mt-1 text-[10px] font-semibold text-slate-400 bg-slate-100 border border-slate-200 w-5 h-5 flex items-center justify-center rounded-full shrink-0">
+                        {index + 1}
+                      </div>
+                      <textarea
+                        rows="2"
+                        {...register(`steps.${index}.value`)}
+                        className={`flex-1 px-3 py-2 text-xs bg-slate-50 border ${errors.steps?.[index]?.value ? 'border-red-400 focus:border-red-500' : 'border-slate-200 focus:border-slate-400'} rounded-xl focus:outline-none focus:bg-white transition-colors resize-none leading-relaxed`}
+                        placeholder="Describe this step..."
+                      />
+                      <button
+                        type="button"
+                        onClick={() => remove(index)}
+                        className="text-slate-400 hover:text-red-500 p-1.5 rounded-lg hover:bg-slate-100 transition-colors mt-1"
+                      >
+                        <Trash2 size={14} />
+                      </button>
                     </div>
-                    <textarea
-                      rows="2"
-                      value={step}
-                      onChange={(e) => {
-                        const newSteps = [...steps];
-                        newSteps[i] = e.target.value;
-                        setSteps(newSteps);
-                      }}
-                      className="flex-1 px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-slate-400 focus:bg-white transition-colors resize-none leading-relaxed"
-                      placeholder="Describe this step..."
-                    />
-                    <button
-                      onClick={() =>
-                        setSteps(steps.filter((_, idx) => idx !== i))
-                      }
-                      className="text-slate-400 hover:text-red-500 p-1.5 rounded-lg hover:bg-slate-100 transition-colors mt-1"
-                    >
-                      <Trash2 size={14} />
-                    </button>
+                    {errors.steps?.[index]?.value && (
+                      <span className="text-[10px] text-red-500 ml-8">
+                        {errors.steps[index].value.message}
+                      </span>
+                    )}
                   </div>
                 ))}
               </div>
               <button
-                onClick={() => setSteps([...steps, ""])}
+                type="button"
+                onClick={() => append({ value: "" })}
                 className="flex items-center gap-1.5 text-[10px] font-medium hover:opacity-75 transition-opacity"
                 style={{ color: "#0f172a" }}
               >
@@ -316,20 +325,22 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
               </button>
             </div>
           </div>
-        </div>
+        </form>
 
         {/* Modal Footer / Actions */}
         <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex justify-between items-center shrink-0">
-          {formData.status === "archived" ? (
+          {status === "archived" ? (
             <button
-              onClick={() => setFormData({ ...formData, status: "draft" })}
+              type="button"
+              onClick={() => setValue("status", "draft")}
               className="flex items-center gap-1.5 text-[11px] font-medium text-emerald-600 hover:text-emerald-700 transition-colors"
             >
               <CheckCircle2 size={14} /> Restore Exercise
             </button>
           ) : (
             <button
-              onClick={() => setFormData({ ...formData, status: "archived" })}
+              type="button"
+              onClick={() => setValue("status", "archived")}
               className="flex items-center gap-1.5 text-[11px] font-medium text-slate-400 hover:text-red-500 transition-colors"
             >
               <Archive size={14} /> Archive Exercise
@@ -338,13 +349,15 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
 
           <div className="flex gap-2">
             <button
+              type="button"
               onClick={onClose}
               className="px-4 py-2 text-[11px] font-medium text-slate-600 hover:bg-slate-200 bg-slate-100 rounded-xl transition-colors"
             >
               Cancel
             </button>
             <button
-              onClick={handleSave}
+              type="submit"
+              onClick={handleSubmit(onSubmit)}
               className="flex items-center gap-1.5 px-5 py-2 text-[11px] font-medium text-white rounded-xl transition-all hover:opacity-90 active:scale-[0.99]"
               style={{ backgroundColor: "#0f172a" }}
             >

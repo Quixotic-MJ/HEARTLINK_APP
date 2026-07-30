@@ -14,10 +14,19 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Feather } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import "../../global.css";
 import { useUser } from "../../contexts/UserContext";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
+
+const verifyOtpSchema = z.object({
+  code: z.string().length(6, "Please enter the 6-digit verification code."),
+});
+
+type VerifyOtpFormValues = z.infer<typeof verifyOtpSchema>;
 
 export default function OTPVerificationScreen() {
   const { colorScheme } = useColorScheme();
@@ -26,13 +35,25 @@ export default function OTPVerificationScreen() {
   const { phone } = useLocalSearchParams();
   const { setUserId } = useUser();
 
+  const {
+    handleSubmit,
+    setValue,
+    formState: { errors },
+  } = useForm<VerifyOtpFormValues>({
+    resolver: zodResolver(verifyOtpSchema),
+    defaultValues: {
+      code: "",
+    },
+    mode: "onSubmit",
+  });
+
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const inputRefs = useRef<(TextInput | null)[]>([]);
   const [isVerifying, setIsVerifying] = useState(false);
   const [timer, setTimer] = useState(30);
   const [canResend, setCanResend] = useState(false);
   const [isResending, setIsResending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [generalError, setGeneralError] = useState<string | null>(null);
 
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
@@ -45,10 +66,11 @@ export default function OTPVerificationScreen() {
   }, [timer]);
 
   const handleOtpChange = (value: string, index: number) => {
-    setError(null);
+    setGeneralError(null);
     const newOtp = [...otp];
     newOtp[index] = value;
     setOtp(newOtp);
+    setValue("code", newOtp.join(""));
     if (value !== "" && index < 5) {
       inputRefs.current[index + 1]?.focus();
     }
@@ -60,50 +82,46 @@ export default function OTPVerificationScreen() {
     }
   };
 
-  const handleVerify = async () => {
-    const code = otp.join("");
-    setError(null);
+  const onSubmit = async (data: VerifyOtpFormValues) => {
+    setGeneralError(null);
+    setIsVerifying(true);
 
     try {
-      if (code.length === 6) {
-        setIsVerifying(true);
+      const response = await fetch(`${base_url}/api/auth/verify-code`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          code: data.code,
+          phone: phone,
+        }),
+      });
 
-        const response = await fetch(`${base_url}/api/auth/verify-code`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            code: code,
-            phone: phone,
-          }),
+      const resData = await response.json();
+
+      if (response.ok) {
+        await setUserId(resData.user_id);
+        setIsVerifying(false);
+        router.replace({
+          pathname: "/(auth)/verification-success",
+          params: { phone, user_id: resData.user_id },
         });
-
-        const data = await response.json();
-
-        if (response.ok) {
-          await setUserId(data.user_id);
-          setIsVerifying(false);
-          router.replace({
-            pathname: "/(auth)/verification-success",
-            params: { phone, user_id: data.user_id },
-          });
-        } else {
-          setIsVerifying(false);
-          setError(data.detail || "Invalid Verification Code.");
-        }
+      } else {
+        setIsVerifying(false);
+        setGeneralError(resData.detail || "Invalid Verification Code.");
       }
     } catch (err) {
       console.log(err);
       setIsVerifying(false);
-      setError("An error occurred. Please check your connection.");
+      setGeneralError("An error occurred. Please check your connection.");
     }
   };
 
   const handleResend = async () => {
     if (canResend) {
       setIsResending(true);
-      setError(null);
+      setGeneralError(null);
       try {
         const response = await fetch(`${base_url}/api/auth/resend-code`, {
           method: "POST",
@@ -117,13 +135,14 @@ export default function OTPVerificationScreen() {
           setTimer(30);
           setCanResend(false);
           setOtp(["", "", "", "", "", ""]);
+          setValue("code", "");
           inputRefs.current[0]?.focus();
         } else {
-          setError(data.detail || "Failed to resend verification code.");
+          setGeneralError(data.detail || "Failed to resend verification code.");
         }
       } catch (err) {
         console.log(err);
-        setError("An error occurred. Please check your connection.");
+        setGeneralError("An error occurred. Please check your connection.");
       } finally {
         setIsResending(false);
       }
@@ -217,11 +236,11 @@ export default function OTPVerificationScreen() {
             </View>
 
             {/* Error Message */}
-            {error && (
+            {(generalError || errors.code) && (
               <View className="bg-destructive/10 border border-destructive/30 rounded-2xl p-3.5 flex-row items-center gap-2 mt-1 mb-1" accessible={true} accessibilityRole="alert">
                 <Feather name="alert-triangle" size={16} className="text-destructive" />
                 <Text className="text-destructive text-sm flex-1 font-medium">
-                  {error}
+                  {generalError || errors.code?.message}
                 </Text>
               </View>
             )}
@@ -229,7 +248,7 @@ export default function OTPVerificationScreen() {
             {/* Submit */}
             <TouchableOpacity
               activeOpacity={0.85}
-              onPress={handleVerify}
+              onPress={handleSubmit(onSubmit)}
               disabled={isVerifying || !isComplete}
               className={`w-full bg-primary rounded-2xl py-4 flex-row justify-center items-center gap-2 mb-2 ${(!isComplete || isVerifying) ? 'opacity-50' : ''}`}
             >

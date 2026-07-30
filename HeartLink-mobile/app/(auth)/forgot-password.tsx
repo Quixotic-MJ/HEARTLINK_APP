@@ -3,7 +3,6 @@ import React, { useState } from "react";
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
@@ -15,63 +14,47 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { InputField } from "../../components/ui/InputField";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
-// ─── Input Field ──────────────────────────────────────────────────────────────
+const forgotPasswordSchema = z.object({
+  identifier: z.string().min(1, "Please enter your email or phone number."),
+});
 
-function InputField({
-  icon,
-  placeholder,
-  value,
-  onChangeText,
-  keyboardType,
-  autoCapitalize,
-}: {
-  icon: string;
-  placeholder: string;
-  value: string;
-  onChangeText: (t: string) => void;
-  keyboardType?: any;
-  autoCapitalize?: any;
-}) {
-  return (
-    <View className="w-full bg-background border border-border rounded-2xl flex-row items-center px-4 min-h-[52px]">
-      <Feather name={icon as any} size={18} className="text-muted-foreground" />
-      <TextInput
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        placeholderTextColor="#94a3b8"
-        keyboardType={keyboardType}
-        autoCapitalize={autoCapitalize ?? "none"}
-        className="flex-1 ml-3 text-base text-foreground py-3.5"
-      />
-    </View>
-  );
-}
+type ForgotPasswordFormValues = z.infer<typeof forgotPasswordSchema>;
 
-// ─── Forgot Password Screen ───────────────────────────────────────────────────
+// Removed local InputField component in favor of centralized InputField component.
+
 
 export default function ForgotPasswordScreen() {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
   const router = useRouter();
 
-  const [identifier, setIdentifier] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<ForgotPasswordFormValues>({
+    resolver: zodResolver(forgotPasswordSchema),
+    defaultValues: {
+      identifier: "",
+    },
+    mode: "onTouched",
+  });
+
+  const [generalError, setGeneralError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleReset = async () => {
-    setError(null);
-    if (!identifier) {
-      setError("Please enter your email or phone number.");
-      return;
-    }
-
+  const onSubmit = async (data: ForgotPasswordFormValues) => {
+    setGeneralError(null);
     setIsSubmitting(true);
 
-    let finalIdentifier = identifier.trim();
+    let finalIdentifier = data.identifier.trim();
     if (/^\d+$/.test(finalIdentifier)) {
       if (finalIdentifier.startsWith("0")) {
         finalIdentifier = finalIdentifier.substring(1);
@@ -91,7 +74,7 @@ export default function ForgotPasswordScreen() {
 
       if (response.ok) {
         console.log("=====================================");
-        console.log("TEMP PASS RECEIVED:", data.temp_password);
+        console.log("TEMP PASS RECEIVED:", resData.temp_password);
         console.log("=====================================");
         
         Alert.alert(
@@ -100,11 +83,11 @@ export default function ForgotPasswordScreen() {
           [{ text: "OK", onPress: () => router.back() }]
         );
       } else {
-        setError(data.detail || "Account not found.");
+        setGeneralError(resData.detail || "Account not found.");
       }
     } catch (err) {
       console.log(err);
-      setError("An error occurred. Please check your connection.");
+      setGeneralError("An error occurred. Please check your connection.");
     } finally {
       setIsSubmitting(false);
     }
@@ -156,26 +139,24 @@ export default function ForgotPasswordScreen() {
 
           {/* ── Card ── */}
           <View className="bg-card rounded-3xl border border-border px-5 py-7 gap-5">
-            {error && (
+            {generalError && (
               <View className="bg-destructive/10 border border-destructive/30 rounded-2xl p-3.5 flex-row items-center gap-2 mt-1" accessible={true} accessibilityRole="alert">
                 <Feather name="alert-triangle" size={16} className="text-destructive" />
                 <Text className="text-destructive text-sm flex-1 font-medium">
-                  {error}
+                  {generalError}
                 </Text>
               </View>
             )}
 
             {/* Identifier Section */}
             <View>
-              <Text className="text-sm font-semibold text-foreground mb-2 ml-1">Email or Phone number</Text>
               <InputField
+                control={control}
+                name="identifier"
+                label="Email or Phone number"
                 icon="user"
                 placeholder="john@example.com or +63..."
-                value={identifier}
-                onChangeText={(t) => {
-                  setIdentifier(t);
-                  setError(null);
-                }}
+                error={errors.identifier?.message}
                 keyboardType="default"
               />
             </View>
@@ -183,7 +164,7 @@ export default function ForgotPasswordScreen() {
             {/* Submit */}
             <TouchableOpacity
               activeOpacity={0.85}
-              onPress={handleReset}
+              onPress={handleSubmit(onSubmit)}
               disabled={isSubmitting}
               className={`w-full bg-primary rounded-2xl py-4 flex-row justify-center items-center gap-2 ${isSubmitting ? 'opacity-80' : ''}`}
             >

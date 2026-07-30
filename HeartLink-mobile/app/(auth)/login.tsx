@@ -16,6 +16,17 @@ import Animated, { useSharedValue, useAnimatedStyle, withTiming, Easing } from "
 import "../../global.css";
 import { useUser } from "../../contexts/UserContext";
 import { Feather } from "../../lib/icons";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { InputField } from "../../components/ui/InputField";
+
+const loginSchema = z.object({
+  identifier: z.string().min(1, "Please enter your email or phone number."),
+  password: z.string().min(1, "Please enter your password."),
+});
+
+type LoginFormData = z.infer<typeof loginSchema>;
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -76,50 +87,6 @@ function PrimaryButton({
   );
 }
 
-// ─── Input Field ──────────────────────────────────────────────────────────────
-
-function InputField({
-  icon,
-  placeholder,
-  value,
-  onChangeText,
-  keyboardType,
-  autoCapitalize,
-  secureTextEntry,
-  rightElement,
-  autoComplete,
-  textContentType,
-}: {
-  icon: string;
-  placeholder: string;
-  value: string;
-  onChangeText: (t: string) => void;
-  keyboardType?: any;
-  autoCapitalize?: any;
-  secureTextEntry?: boolean;
-  rightElement?: React.ReactNode;
-  autoComplete?: any;
-  textContentType?: any;
-}) {
-  return (
-    <View className="w-full bg-background border border-border rounded-2xl flex-row items-center px-4 min-h-[52px]">
-      <Feather name={icon as any} size={18} className="text-muted-foreground" />
-      <TextInput
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        placeholderTextColor="#94a3b8"
-        keyboardType={keyboardType}
-        autoCapitalize={autoCapitalize ?? "none"}
-        secureTextEntry={secureTextEntry}
-        autoComplete={autoComplete}
-        textContentType={textContentType}
-        className="flex-1 ml-3 text-base text-foreground py-3.5"
-      />
-      {rightElement}
-    </View>
-  );
-}
 
 // ─── Auth Screen ──────────────────────────────────────────────────────────────
 
@@ -127,22 +94,21 @@ export default function AuthScreen() {
   const router = useRouter();
   const { setUserId } = useUser();
 
-  const [identifier, setIdentifier] = useState("");
-  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [globalError, setGlobalError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = async () => {
-    setError(null);
-    if (!identifier || !password) {
-      setError("Please enter your email/phone and password.");
-      return;
-    }
+  const { control, handleSubmit } = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { identifier: "", password: "" },
+    mode: "onTouched",
+  });
 
+  const onSubmit = async (data: LoginFormData) => {
+    setGlobalError(null);
     setIsLoading(true);
 
-    let finalIdentifier = identifier.trim().toLowerCase();
+    let finalIdentifier = data.identifier.trim().toLowerCase();
     if (/^\d+$/.test(finalIdentifier)) {
       if (finalIdentifier.startsWith("0")) {
         finalIdentifier = finalIdentifier.substring(1);
@@ -158,17 +124,17 @@ export default function AuthScreen() {
         },
         body: JSON.stringify({
           identifier: finalIdentifier,
-          password: password,
+          password: data.password,
         }),
       });
-      const data = await response.json();
+      const resData = await response.json();
 
       if (response.ok) {
-        await setUserId(data.user_id);
+        await setUserId(resData.user_id);
 
         // Fetch profile to check onboarding status for correct routing
         try {
-          const profileRes = await fetch(`${base_url}/api/users/${data.user_id}/profile`);
+          const profileRes = await fetch(`${base_url}/api/users/${resData.user_id}/profile`);
           const profileData = await profileRes.json();
           const onboardingStatus = profileData?.profile?.onboarding_status;
 
@@ -177,7 +143,7 @@ export default function AuthScreen() {
           } else {
             router.replace({
               pathname: "/(baseline)/health_goals",
-              params: { user_id: data.user_id },
+              params: { user_id: resData.user_id },
             });
           }
         } catch {
@@ -185,11 +151,11 @@ export default function AuthScreen() {
           router.replace("/(home)/(tabs)/dashboard");
         }
       } else {
-        setError(data.detail || "Invalid email or password.");
+        setGlobalError(resData.detail || "Invalid email or password.");
       }
     } catch (error) {
       console.log(error);
-      setError("An error occurred. Please check your connection.");
+      setGlobalError("An error occurred. Please check your connection.");
     } finally {
       setIsLoading(false);
     }
@@ -254,34 +220,26 @@ export default function AuthScreen() {
         <View className="bg-card rounded-3xl border border-border px-5 py-7 gap-5">
           
           {/* Identifier Section */}
-          <View>
-            <Text className="text-sm font-semibold text-foreground mb-2 ml-1">Email or Phone number</Text>
-            <InputField
-              icon="user"
-              placeholder="john@example.com or +63..."
-              value={identifier}
-              onChangeText={(t) => {
-                setIdentifier(t);
-                setError(null);
-              }}
-              keyboardType="default"
-              autoComplete="username"
-              textContentType="username"
-            />
-          </View>
+          <InputField
+            control={control}
+            name="identifier"
+            label="Email or Phone number"
+            icon="user"
+            placeholder="john@example.com or +63..."
+            keyboardType="default"
+            autoComplete="username"
+            textContentType="username"
+          />
 
           {/* Password Section */}
           <View>
-            <Text className="text-sm font-semibold text-foreground mb-2 ml-1">Password</Text>
             <View className="gap-2">
               <InputField
+                control={control}
+                name="password"
+                label="Password"
                 icon="lock"
                 placeholder="Password"
-                value={password}
-                onChangeText={(t) => {
-                  setPassword(t);
-                  setError(null);
-                }}
                 secureTextEntry={!showPassword}
                 rightElement={
                   <TouchableOpacity
@@ -300,7 +258,7 @@ export default function AuthScreen() {
                 }
               />
               <TouchableOpacity
-                className="self-end mt-2 py-2 pl-4"
+                className="self-end -mt-1 py-2 pl-4"
                 onPress={() => router.push("/(auth)/forgot-password")}
                 accessible={true}
                 accessibilityRole="link"
@@ -314,18 +272,18 @@ export default function AuthScreen() {
           </View>
 
           {/* Error Message */}
-          {error && (
-            <View className="bg-destructive/10 border border-destructive/30 rounded-2xl p-3.5 flex-row items-center gap-2 mt-1" accessible={true} accessibilityRole="alert">
+          {globalError && (
+            <View className="bg-destructive/10 border border-destructive/30 rounded-2xl p-3.5 flex-row items-center gap-2 mt-1 mb-2" accessible={true} accessibilityRole="alert">
               <Feather name="alert-triangle" size={16} className="text-destructive" />
               <Text className="text-destructive text-xs flex-1 font-medium">
-                {error}
+                {globalError}
               </Text>
             </View>
           )}
 
           {/* Submit */}
           <PrimaryButton
-            onPress={handleSubmit}
+            onPress={handleSubmit(onSubmit)}
             isLoading={isLoading}
             label="Log in"
             icon="log-in"

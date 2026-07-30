@@ -1,21 +1,44 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import { X, UserPlus, Save } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { InputField } from "../ui/InputField";
+
+const staffSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters."),
+  phone: z.string().regex(/^\+63 \d{3} \d{3} \d{4}$/, "Must follow +63 xxx xxx xxxx format."),
+  role: z.string().min(1, "Role is required."),
+  permissions: z.array(z.string()).min(1, "Select at least one permission."),
+});
 
 const StaffFormModal = ({ isOpen, onClose, isEditMode, staff }) => {
   if (!isOpen) return null;
 
-  // Local state to manage form fields
-  const [formData, setFormData] = useState({
-    name: "",
-    phone: "",
-    role: "Authorized Medical Expert",
-    permissions: ["Validate Recipes & Exercises", "Evaluate High-Risk Cases"],
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    reset,
+    formState: { errors },
+  } = useForm({
+    resolver: zodResolver(staffSchema),
+    defaultValues: {
+      name: "",
+      phone: "",
+      role: "Authorized Medical Expert",
+      permissions: ["Validate Recipes & Exercises", "Evaluate High-Risk Cases"],
+    },
+    mode: "onTouched",
   });
+
+  const selectedPermissions = watch("permissions");
 
   // Populate data when edit mode changes
   useEffect(() => {
     if (isEditMode && staff) {
-      setFormData({
+      reset({
         name: staff.name || "",
         phone: staff.phone || "",
         role: staff.role || "Authorized Medical Expert",
@@ -23,25 +46,23 @@ const StaffFormModal = ({ isOpen, onClose, isEditMode, staff }) => {
       });
     } else {
       // Reset for create
-      setFormData({
+      reset({
         name: "",
         phone: "",
         role: "Authorized Medical Expert",
         permissions: ["Validate Recipes & Exercises", "Evaluate High-Risk Cases"],
       });
     }
-  }, [isEditMode, staff]);
+  }, [isEditMode, staff, reset]);
 
   const handlePermissionChange = (perm) => {
-    setFormData((prev) => {
-      const perms = new Set(prev.permissions);
-      if (perms.has(perm)) {
-        perms.delete(perm);
-      } else {
-        perms.add(perm);
-      }
-      return { ...prev, permissions: Array.from(perms) };
-    });
+    const current = new Set(selectedPermissions);
+    if (current.has(perm)) {
+      current.delete(perm);
+    } else {
+      current.add(perm);
+    }
+    setValue("permissions", Array.from(current), { shouldValidate: true });
   };
 
   const availablePermissions = [
@@ -79,31 +100,26 @@ const StaffFormModal = ({ isOpen, onClose, isEditMode, staff }) => {
         </div>
 
         {/* Modal Scrollable Content Area */}
-        <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+        <form onSubmit={handleSubmit((data) => { console.log(data); onClose(); })} className="flex-1 overflow-y-auto p-6 custom-scrollbar">
           <div className="space-y-5">
             <div className="grid grid-cols-2 gap-4">
               <div className="col-span-2">
-                <label className="block text-[11px] font-semibold text-slate-700 mb-1.5">
-                  Full Name
-                </label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-4 py-2.5 text-sm bg-white border border-slate-200 rounded-xl focus:border-slate-400 focus:ring-2 focus:ring-slate-900/5 focus:outline-none shadow-sm"
+                <InputField
+                  id="name"
+                  label="Full Name"
                   placeholder="e.g. Dr. Jane Doe"
+                  error={errors.name}
+                  {...register("name")}
                 />
               </div>
               <div className="col-span-2">
-                <label className="block text-[11px] font-semibold text-slate-700 mb-1.5">
-                  Mobile Number
-                </label>
-                <input
+                <InputField
+                  id="phone"
                   type="tel"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="w-full px-4 py-2.5 text-sm bg-white border border-slate-200 rounded-xl focus:border-slate-400 focus:ring-2 focus:ring-slate-900/5 focus:outline-none shadow-sm"
+                  label="Mobile Number"
                   placeholder="+63 9xx xxx xxxx"
+                  error={errors.phone}
+                  {...register("phone")}
                 />
               </div>
 
@@ -126,13 +142,13 @@ const StaffFormModal = ({ isOpen, onClose, isEditMode, staff }) => {
                   Role Assignment
                 </label>
                 <select
-                  value={formData.role}
-                  onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                  className="w-full px-4 py-2.5 text-sm font-medium text-slate-800 bg-white border border-slate-200 rounded-xl focus:border-slate-400 focus:ring-2 focus:ring-slate-900/5 focus:outline-none shadow-sm cursor-pointer"
+                  {...register("role")}
+                  className={`w-full px-4 py-2.5 text-sm font-medium text-slate-800 bg-white border ${errors.role ? 'border-red-400 focus:ring-red-500/10' : 'border-slate-200 focus:border-slate-400 focus:ring-slate-900/5'} rounded-xl focus:ring-2 focus:outline-none shadow-sm cursor-pointer`}
                 >
                   <option value="Authorized Medical Expert">Authorized Medical Expert</option>
                   <option value="System Admin">System Admin</option>
                 </select>
+                {errors.role && <p className="text-[11px] text-red-500 mt-1.5">{errors.role.message}</p>}
               </div>
               <div className="col-span-2 mt-2">
                 <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100 pb-2 mb-3">
@@ -143,7 +159,7 @@ const StaffFormModal = ({ isOpen, onClose, isEditMode, staff }) => {
                     <label key={perm} className="flex items-center gap-3 text-xs font-medium text-slate-800 cursor-pointer">
                       <input
                         type="checkbox"
-                        checked={formData.permissions.includes(perm)}
+                        checked={selectedPermissions.includes(perm)}
                         onChange={() => handlePermissionChange(perm)}
                         className="w-4 h-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900"
                       />
@@ -151,20 +167,24 @@ const StaffFormModal = ({ isOpen, onClose, isEditMode, staff }) => {
                     </label>
                   ))}
                 </div>
+                {errors.permissions && <p className="text-[11px] text-red-500 mt-1.5">{errors.permissions.message}</p>}
               </div>
             </div>
           </div>
-        </div>
+        </form>
 
         {/* Modal Footer Actions */}
         <div className="px-6 py-4 border-t border-slate-200 bg-slate-50 flex justify-end gap-3 shrink-0">
           <button
+            type="button"
             onClick={onClose}
             className="px-5 py-2.5 text-xs font-semibold text-slate-600 bg-white hover:bg-slate-100 rounded-xl border border-slate-200 transition-colors shadow-sm"
           >
             Cancel
           </button>
           <button
+            type="submit"
+            onClick={handleSubmit((data) => { console.log(data); onClose(); })}
             className="flex items-center gap-2 px-6 py-2.5 text-xs font-medium text-white rounded-xl transition-all hover:opacity-90 active:scale-[0.99] shadow-sm"
             style={{ backgroundColor: "#0f172a" }}
           >

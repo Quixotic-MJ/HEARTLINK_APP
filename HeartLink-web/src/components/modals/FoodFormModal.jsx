@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import {
   X,
   ShieldCheck,
@@ -11,38 +11,88 @@ import {
   CheckCircle2,
   Save,
 } from "lucide-react";
+import { useForm, useFieldArray, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { InputField } from "../ui/InputField";
+
+const foodSchema = z.object({
+  name: z.string().min(1, "Name is required."),
+  foodSourceType: z.string().default("Home Recipe"),
+  category: z.string().default("Breakfast"),
+  cssTarget: z.string().default("Stable (80-100)"),
+  calories: z.coerce.number().min(0, "Cannot be negative"),
+  sodium: z.coerce.number().min(0, "Cannot be negative"),
+  satFat: z.coerce.number().min(0, "Cannot be negative"),
+  cholesterol: z.coerce.number().min(0, "Cannot be negative"),
+  fiber: z.coerce.number().min(0, "Cannot be negative"),
+  expertValidated: z.boolean().default(false),
+  status: z.string().default("draft"),
+  mediaUrl: z.string().optional(),
+  instructions: z.string().optional(),
+  ingredients: z.array(
+    z.object({ value: z.string() })
+  ).optional(),
+});
 
 const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave }) => {
-  const [formData, setFormData] = useState({
-    name: "",
-    category: "Breakfast",
-    cssTarget: "Stable (80-100)",
-    sodium: 0,
-    calories: 0,
-    satFat: 0,
-    cholesterol: 0,
-    fiber: 0,
-    status: "draft",
-    expertValidated: false,
-    mediaUrl: "",
-    instructions: "",
+  if (!isOpen) return null;
+
+  const {
+    register,
+    handleSubmit,
+    control,
+    reset,
+    watch,
+    setValue,
+    formState: { errors },
+  } = useForm({
+    resolver: zodResolver(foodSchema),
+    defaultValues: {
+      name: "",
+      category: "Breakfast",
+      cssTarget: "Stable (80-100)",
+      foodSourceType: "Home Recipe",
+      sodium: 0,
+      calories: 0,
+      satFat: 0,
+      cholesterol: 0,
+      fiber: 0,
+      status: "draft",
+      expertValidated: false,
+      mediaUrl: "",
+      instructions: "",
+      ingredients: [{ value: "" }],
+    },
+    mode: "onTouched",
   });
 
-  const [ingredients, setIngredients] = useState([""]);
+  const { fields: ingredientsFields, append, remove } = useFieldArray({
+    control,
+    name: "ingredients",
+  });
+
+  const expertValidated = watch("expertValidated");
+  const mediaUrl = watch("mediaUrl");
+  const status = watch("status");
 
   useEffect(() => {
     if (recipe) {
-      setFormData({
+      reset({
         ...recipe,
+        foodSourceType: recipe.foodSourceType || "Home Recipe",
         mediaUrl: recipe.mediaUrl || "",
         instructions: recipe.instructions || "",
+        ingredients: recipe.ingredients 
+          ? recipe.ingredients.map(ing => ({ value: ing }))
+          : [{ value: "Mock Ingredient 1" }, { value: "Mock Ingredient 2" }],
       });
-      setIngredients(recipe.ingredients || ["Mock Ingredient 1", "Mock Ingredient 2"]);
     } else {
-      setFormData({
+      reset({
         name: "",
         category: "Breakfast",
         cssTarget: "Stable (80-100)",
+        foodSourceType: "Home Recipe",
         sodium: 0,
         calories: 0,
         satFat: 0,
@@ -52,16 +102,16 @@ const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave }
         expertValidated: false,
         mediaUrl: "",
         instructions: "",
+        ingredients: [{ value: "" }],
       });
-      setIngredients([""]);
     }
-  }, [recipe, isOpen]);
+  }, [recipe, isOpen, reset]);
 
-  if (!isOpen) return null;
-
-  const handleSave = () => {
+  const onSubmit = (data) => {
     if (onSave) {
-      onSave({ ...formData, ingredients });
+      // Unpack ingredients array of objects back to array of strings
+      const flatIngredients = data.ingredients ? data.ingredients.map(i => i.value) : [];
+      onSave({ ...data, ingredients: flatIngredients });
     }
     onClose();
   };
@@ -95,59 +145,51 @@ const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave }
         </div>
 
         {/* Modal Scrollable Form */}
-        <div className="flex-1 overflow-y-auto px-6 py-6 custom-scrollbar space-y-8">
+        <form onSubmit={handleSubmit(onSubmit)} className="flex-1 overflow-y-auto px-6 py-6 custom-scrollbar space-y-8">
           {/* Expert Validation Workflow */}
-          <div
-            className={`p-4 rounded-xl border ${
-              formData.expertValidated
+            <div className={`p-4 rounded-xl border ${
+              expertValidated
                 ? "bg-emerald-50/50 border-emerald-100"
                 : "bg-slate-50 border-slate-200"
-            }`}
-          >
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h4
-                  className={`text-xs font-semibold ${
-                    formData.expertValidated ? "text-emerald-700" : "text-slate-900"
-                  } flex items-center gap-2 mb-1.5`}
-                >
-                  {formData.expertValidated ? (
-                    <ShieldCheck size={14} className="text-emerald-600" />
-                  ) : (
-                    <ShieldAlert size={14} className="text-slate-400" />
-                  )}
-                  Medical Expert Validation
-                </h4>
-                <p className="text-[10px] text-slate-500 leading-relaxed">
-                  Only Authorized Medical Experts can sign off on
-                  nutritional accuracy before pushing to users.
-                </p>
+            }`}>
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h4
+                    className={`text-xs font-semibold ${
+                      expertValidated ? "text-emerald-700" : "text-slate-900"
+                    } flex items-center gap-2 mb-1.5`}
+                  >
+                    {expertValidated ? (
+                      <ShieldCheck size={14} className="text-emerald-600" />
+                    ) : (
+                      <ShieldAlert size={14} className="text-slate-400" />
+                    )}
+                    Medical Expert Validation
+                  </h4>
+                  <p className="text-[10px] text-slate-500 leading-relaxed">
+                    Only Authorized Medical Experts can sign off on
+                    nutritional accuracy before pushing to users.
+                  </p>
+                </div>
+  
+                {/* Toggle Switch */}
+                <label className="relative inline-flex items-center cursor-pointer shrink-0 mt-1">
+                  <input
+                    type="checkbox"
+                    className="sr-only peer"
+                    disabled={userRole !== "medical"}
+                    {...register("expertValidated")}
+                  />
+                  <div
+                    className={`w-9 h-5 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all ${
+                      userRole !== "medical"
+                        ? "cursor-not-allowed opacity-50"
+                        : ""
+                    } peer-checked:bg-emerald-500`}
+                  ></div>
+                </label>
               </div>
-
-              {/* Toggle Switch */}
-              <label className="relative inline-flex items-center cursor-pointer shrink-0 mt-1">
-                <input
-                  type="checkbox"
-                  className="sr-only peer"
-                  checked={formData.expertValidated}
-                  disabled={userRole !== "medical"}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      expertValidated: e.target.checked,
-                    })
-                  }
-                />
-                <div
-                  className={`w-9 h-5 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all ${
-                    userRole !== "medical"
-                      ? "cursor-not-allowed opacity-50"
-                      : ""
-                  } peer-checked:bg-emerald-500`}
-                ></div>
-              </label>
             </div>
-          </div>
 
           {/* Section 1: Basic Information */}
           <div>
@@ -155,18 +197,13 @@ const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave }
               Basic Information
             </h4>
             <div className="space-y-4">
-              <div>
-                <label className="block text-[11px] font-medium text-slate-700 mb-1.5">
-                  Food / Meal Name
-                </label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-slate-400 focus:bg-white transition-colors"
+              <div className="col-span-1">
+                <InputField
+                  id="name"
+                  label="Food / Meal Name"
                   placeholder="e.g. Low-Sodium Chicken Broth"
+                  error={errors.name}
+                  {...register("name")}
                 />
               </div>
 
@@ -175,17 +212,15 @@ const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave }
                   Food Source Type
                 </label>
                 <select
-                  value={formData.foodSourceType || "Home Recipe"}
-                  onChange={(e) =>
-                    setFormData({ ...formData, foodSourceType: e.target.value })
-                  }
-                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-slate-400 focus:bg-white transition-colors"
+                  {...register("foodSourceType")}
+                  className={`w-full px-3 py-2 text-xs bg-slate-50 border ${errors.foodSourceType ? 'border-red-400 focus:border-red-500' : 'border-slate-200 focus:border-slate-400'} rounded-xl focus:outline-none focus:bg-white transition-colors`}
                 >
                   <option value="Home Recipe">Home Recipe</option>
                   <option value="Fast Food Chain">Fast Food Chain</option>
                   <option value="Local Carenderia">Local Carenderia</option>
                   <option value="Raw Ingredient">Raw Ingredient</option>
                 </select>
+                {errors.foodSourceType && <p className="text-[11px] text-red-500 mt-1">{errors.foodSourceType.message}</p>}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -194,11 +229,8 @@ const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave }
                     Meal Category
                   </label>
                   <select
-                    value={formData.category}
-                    onChange={(e) =>
-                      setFormData({ ...formData, category: e.target.value })
-                    }
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-slate-400 focus:bg-white transition-colors"
+                    {...register("category")}
+                    className={`w-full px-3 py-2 text-xs bg-slate-50 border ${errors.category ? 'border-red-400' : 'border-slate-200'} rounded-xl focus:outline-none focus:border-slate-400 focus:bg-white transition-colors`}
                   >
                     <option value="Breakfast">Breakfast</option>
                     <option value="Lunch">Lunch</option>
@@ -211,14 +243,8 @@ const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave }
                     CSS Target Level
                   </label>
                   <select
-                    value={formData.cssTarget}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        cssTarget: e.target.value,
-                      })
-                    }
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-slate-400 focus:bg-white transition-colors"
+                    {...register("cssTarget")}
+                    className={`w-full px-3 py-2 text-xs bg-slate-50 border ${errors.cssTarget ? 'border-red-400' : 'border-slate-200'} rounded-xl focus:outline-none focus:border-slate-400 focus:bg-white transition-colors`}
                   >
                     <option value="Stable (80-100)">Stable (80-100)</option>
                     <option value="Monitor Closely (50-79)">
@@ -235,9 +261,9 @@ const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave }
                 <label className="block text-[11px] font-medium text-slate-700 mb-1.5">
                   Media Image
                 </label>
-                {formData.mediaUrl && (
+                {mediaUrl && (
                   <div className="mb-3 w-full h-32 rounded-xl overflow-hidden bg-slate-100 border border-slate-200">
-                    <img src={formData.mediaUrl} alt="Preview" className="w-full h-full object-cover" />
+                    <img src={mediaUrl} alt="Preview" className="w-full h-full object-cover" />
                   </div>
                 )}
                 <div className="relative">
@@ -249,7 +275,7 @@ const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave }
                       if (file) {
                         const reader = new FileReader();
                         reader.onloadend = () => {
-                          setFormData({ ...formData, mediaUrl: reader.result });
+                          setValue("mediaUrl", reader.result);
                         };
                         reader.readAsDataURL(file);
                       }
@@ -267,74 +293,41 @@ const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave }
               <Activity size={12} /> Algorithmic Nutrition Data
             </h4>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-[10px] font-medium text-slate-500 mb-1.5">
-                  Calories (kcal)
-                </label>
-                <input
-                  type="number"
-                  value={formData.calories}
-                  onChange={(e) =>
-                    setFormData({ ...formData, calories: e.target.value })
-                  }
-                  className="w-full px-3 py-2 text-xs font-mono font-medium bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-slate-400 transition-colors"
-                />
-              </div>
-              <div>
-                <label className="block text-[10px] font-medium text-red-500 mb-1.5">
-                  Sodium (mg)
-                </label>
-                <input
-                  type="number"
-                  value={formData.sodium}
-                  onChange={(e) =>
-                    setFormData({ ...formData, sodium: e.target.value })
-                  }
-                  className="w-full px-3 py-2 text-xs font-mono font-medium bg-red-50/50 text-red-700 border border-red-100 rounded-xl focus:outline-none focus:border-red-300 transition-colors"
-                />
-              </div>
-              <div>
-                <label className="block text-[10px] font-medium text-amber-600 mb-1.5">
-                  Sat. Fat (g)
-                </label>
-                <input
-                  type="number"
-                  value={formData.satFat}
-                  onChange={(e) =>
-                    setFormData({ ...formData, satFat: e.target.value })
-                  }
-                  className="w-full px-3 py-2 text-xs font-mono font-medium bg-amber-50/50 text-amber-700 border border-amber-100 rounded-xl focus:outline-none focus:border-amber-300 transition-colors"
-                />
-              </div>
-              <div>
-                <label className="block text-[10px] font-medium text-slate-500 mb-1.5">
-                  Cholesterol (mg)
-                </label>
-                <input
-                  type="number"
-                  value={formData.cholesterol}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      cholesterol: e.target.value,
-                    })
-                  }
-                  className="w-full px-3 py-2 text-xs font-mono font-medium bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-slate-400 transition-colors"
-                />
-              </div>
-              <div>
-                <label className="block text-[10px] font-medium text-slate-500 mb-1.5">
-                  Fiber (g)
-                </label>
-                <input
-                  type="number"
-                  value={formData.fiber}
-                  onChange={(e) =>
-                    setFormData({ ...formData, fiber: e.target.value })
-                  }
-                  className="w-full px-3 py-2 text-xs font-mono font-medium bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-slate-400 transition-colors"
-                />
-              </div>
+              <InputField
+                id="calories"
+                type="number"
+                label="Calories (kcal)"
+                error={errors.calories}
+                {...register("calories")}
+              />
+              <InputField
+                id="sodium"
+                type="number"
+                label="Sodium (mg)"
+                error={errors.sodium}
+                {...register("sodium")}
+              />
+              <InputField
+                id="satFat"
+                type="number"
+                label="Sat. Fat (g)"
+                error={errors.satFat}
+                {...register("satFat")}
+              />
+              <InputField
+                id="cholesterol"
+                type="number"
+                label="Cholesterol (mg)"
+                error={errors.cholesterol}
+                {...register("cholesterol")}
+              />
+              <InputField
+                id="fiber"
+                type="number"
+                label="Fiber (g)"
+                error={errors.fiber}
+                {...register("fiber")}
+              />
             </div>
           </div>
 
@@ -349,34 +342,34 @@ const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave }
                 Ingredients List <span className="text-[9px] text-slate-400 font-normal ml-1.5">(Optional for restaurant items)</span>
               </label>
               <div className="space-y-2.5 mb-3">
-                {ingredients.map((ing, i) => (
-                  <div key={i} className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      value={ing}
-                      onChange={(e) => {
-                        const newIng = [...ingredients];
-                        newIng[i] = e.target.value;
-                        setIngredients(newIng);
-                      }}
-                      className="flex-1 px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-slate-400 focus:bg-white transition-colors"
-                      placeholder="e.g., 1 cup low-sodium chicken broth"
-                    />
-                    <button
-                      onClick={() =>
-                        setIngredients(
-                          ingredients.filter((_, idx) => idx !== i),
-                        )
-                      }
-                      className="text-slate-400 hover:text-red-500 p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
-                    >
-                      <Trash2 size={14} />
-                    </button>
+                {ingredientsFields.map((field, index) => (
+                  <div key={field.id} className="flex items-start flex-col gap-1">
+                    <div className="flex items-center gap-2 w-full">
+                      <input
+                        type="text"
+                        {...register(`ingredients.${index}.value`)}
+                        className={`flex-1 px-3 py-2 text-xs bg-slate-50 border ${errors.ingredients?.[index]?.value ? 'border-red-400 focus:border-red-500' : 'border-slate-200 focus:border-slate-400'} rounded-xl focus:outline-none focus:bg-white transition-colors`}
+                        placeholder="e.g., 1 cup low-sodium chicken broth"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => remove(index)}
+                        className="text-slate-400 hover:text-red-500 p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                    {errors.ingredients?.[index]?.value && (
+                      <span className="text-[10px] text-red-500 ml-1">
+                        {errors.ingredients[index].value.message}
+                      </span>
+                    )}
                   </div>
                 ))}
               </div>
               <button
-                onClick={() => setIngredients([...ingredients, ""])}
+                type="button"
+                onClick={() => append({ value: "" })}
                 className="flex items-center gap-1.5 text-[10px] font-medium hover:opacity-75 transition-opacity"
                 style={{ color: "#0f172a" }}
               >
@@ -390,29 +383,29 @@ const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave }
               </label>
               <textarea
                 rows="4"
-                value={formData.instructions}
-                onChange={(e) =>
-                  setFormData({ ...formData, instructions: e.target.value })
-                }
-                className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-slate-400 focus:bg-white transition-colors resize-none"
+                {...register("instructions")}
+                className={`w-full px-3 py-2 text-xs bg-slate-50 border ${errors.instructions ? 'border-red-400' : 'border-slate-200'} rounded-xl focus:outline-none focus:border-slate-400 focus:bg-white transition-colors resize-none`}
                 placeholder="Step-by-step instructions..."
               ></textarea>
+              {errors.instructions && <p className="text-[11px] text-red-500 mt-1">{errors.instructions.message}</p>}
             </div>
           </div>
-        </div>
+        </form>
 
         {/* Modal Footer / Actions */}
         <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex justify-between items-center shrink-0">
-          {formData.status === "archived" ? (
+          {status === "archived" ? (
             <button
-              onClick={() => setFormData({ ...formData, status: "draft" })}
+              type="button"
+              onClick={() => setValue("status", "draft")}
               className="flex items-center gap-1.5 text-[11px] font-medium text-emerald-600 hover:text-emerald-700 transition-colors"
             >
               <CheckCircle2 size={14} /> Restore Entry
             </button>
           ) : (
             <button
-              onClick={() => setFormData({ ...formData, status: "archived" })}
+              type="button"
+              onClick={() => setValue("status", "archived")}
               className="flex items-center gap-1.5 text-[11px] font-medium text-slate-400 hover:text-red-500 transition-colors"
             >
               <Archive size={14} /> Archive Entry
@@ -421,13 +414,15 @@ const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave }
 
           <div className="flex gap-2">
             <button
+              type="button"
               onClick={onClose}
               className="px-4 py-2 text-[11px] font-medium text-slate-600 hover:bg-slate-200 bg-slate-100 rounded-xl transition-colors"
             >
               Cancel
             </button>
             <button
-              onClick={handleSave}
+              type="submit"
+              onClick={handleSubmit(onSubmit)}
               className="flex items-center gap-1.5 px-5 py-2 text-[11px] font-medium text-white rounded-xl transition-all hover:opacity-90 active:scale-[0.99]"
               style={{ backgroundColor: "#0f172a" }}
             >
