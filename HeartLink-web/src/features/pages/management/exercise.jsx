@@ -374,6 +374,7 @@ const Exercises = () => {
               })}
             </tbody>
           )}
+          </table>
           {!loading && filteredExercises.length === 0 && (
             <div className="p-8 text-center text-slate-400 text-xs">No exercises found.</div>
           )}

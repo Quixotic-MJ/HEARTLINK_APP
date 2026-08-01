@@ -154,6 +154,131 @@ async def login(payload: Login):
         status_code=status.HTTP_404_NOT_FOUND, detail="Invalid Credentials"
     )
 
+from app.utils.security import create_access_token, token_blacklist
+import uuid
+
+# In-memory store for 2FA sessions during mock phase
+temp_2fa_sessions = {}
+
+# In-memory rate limiting
+login_attempts = {}
+
+def check_rate_limit(identifier: str):
+    now = datetime.utcnow()
+    attempts = login_attempts.get(identifier, {"count": 0, "locked_until": None})
+    if attempts["locked_until"] and now < attempts["locked_until"]:
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Too many attempts. Please try again in 15 minutes.")
+    return attempts
+
+def record_failed_attempt(identifier: str):
+    now = datetime.utcnow()
+    attempts = login_attempts.get(identifier, {"count": 0, "locked_until": None})
+    # Reset count if it was locked previously and time passed
+    if attempts["locked_until"] and now >= attempts["locked_until"]:
+         attempts["count"] = 0
+         attempts["locked_until"] = None
+         
+    attempts["count"] += 1
+    if attempts["count"] >= 5:
+        attempts["locked_until"] = now + timedelta(minutes=15)
+    login_attempts[identifier] = attempts
+
+def clear_attempts(identifier: str):
+    if identifier in login_attempts:
+        del login_attempts[identifier]
+
+@router.post("/web-login")
+async def web_login(payload: Login):
+    check_rate_limit(payload.identifier)
+    
+    import hashlib
+    hashed_input = hashlib.sha256(payload.password.encode()).hexdigest()
+    for profile in mock_db.profiles:
+        if profile.get("email") == payload.identifier or profile.get("phone") == payload.identifier:
+            if profile.get("password") == hashed_input:
+                # Enforce RBAC
+                if profile.get("role") not in ["admin", "medical_expert"]:
+                    raise HTTPException(
+                        status_code=status.HTTP_403_FORBIDDEN, 
+                        detail="Access Denied. This portal is strictly for Admins and Medical Experts."
+                    )
+                
+                # Create 2FA Session
+                token_2fa = f"2fa-{uuid.uuid4().hex}"
+                temp_2fa_sessions[token_2fa] = {
+                    "user_id": profile["id"],
+                    "role": profile["role"],
+                    "expires_at": datetime.utcnow() + timedelta(minutes=5)
+                }
+                
+                print(f"\n{'='*40}")
+                print(f"2FA CODE FOR {payload.identifier}: 123456")
+                print(f"{'='*40}\n")
+                
+                
+                clear_attempts(payload.identifier)
+                return {
+                    "success": True, 
+                    "requires_2fa": True,
+                    "token_2fa": token_2fa,
+                    "message": "Credentials verified. Please enter the 6-digit code sent to your device."
+                }
+            else:
+                record_failed_attempt(payload.identifier)
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND, detail="Invalid Credentials"
+                )
+
+    record_failed_attempt(payload.identifier)
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND, detail="Invalid Credentials"
+    )
+
+from app.schemas.auth import WebVerify2FA
+
+@router.post("/web-login/verify-2fa")
+async def web_login_verify_2fa(payload: WebVerify2FA):
+    session = temp_2fa_sessions.get(payload.token_2fa)
+    
+    if not session:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired 2FA session."
+        )
+        
+    if datetime.utcnow() > session["expires_at"]:
+        del temp_2fa_sessions[payload.token_2fa]
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="2FA session expired. Please log in again."
+        )
+        
+    if payload.code != "123456":
+        # Usually we would track rate limits on the 2FA token as well, 
+        # but for mock phase this is sufficient.
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid 2FA Code."
+        )
+        
+    # Generate Final JWT
+    access_token = create_access_token(data={"user_id": session["user_id"], "role": session["role"]})
+    
+    # Cleanup session
+    del temp_2fa_sessions[payload.token_2fa]
+    
+    return {
+        "success": True, 
+        "message": "Login Successfully", 
+        "user_id": session["user_id"],
+        "token": access_token
+    }
+
+from fastapi import Header
+@router.post("/logout")
+async def logout(authorization: str = Header(None)):
+    if authorization and authorization.startswith("Bearer "):
+        token = authorization.split(" ")[1]
+        token_blacklist.add(token)
+    return {"success": True, "message": "Logged out successfully"}
+
 import random
 import string
 from app.schemas.auth import ForgotPasswordRequest

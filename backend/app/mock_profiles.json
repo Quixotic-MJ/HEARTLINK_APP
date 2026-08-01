@@ -1,6 +1,28 @@
 {
   "profiles": [
     {
+      "id": "usr-patient-101",
+      "phone": "+639123456788",
+      "email": "test@gmail.com",
+      "password": "008c70392e3abfbd0fa47bbc2ed96aa99bd49e159727fcba0f2e6abeb3a9d601",
+      "role": "patient",
+      "first_name": "John Mark",
+      "last_name": "Magdasal",
+      "date_of_birth": "2005-12-01",
+      "sex": "male",
+      "height_cm": 172.5,
+      "weight_kg": 68.0,
+      "avatar_url": null,
+      "health_goals": [
+        "bp",
+        "recovery"
+      ],
+      "onboarding_status": "complete",
+      "account_status": "active",
+      "created_at": "2026-06-25T08:00:00",
+      "updated_at": "2026-06-25T08:30:00"
+    },
+    {
       "id": "usr-patient-102",
       "phone": "+639111111111",
       "email": "pedro@example.com",
@@ -43,177 +65,65 @@
       "updated_at": "2026-01-15T11:20:00"
     },
     {
-      "id": "usr-patient-15f0313f",
-      "phone": "+1234567891",
-      "email": "test91@gmail.com",
-      "password": "008c70392e3abfbd0fa47bbc2ed96aa99bd49e159727fcba0f2e6abeb3a9d601",
-      "role": "patient",
-      "first_name": null,
-      "last_name": null,
-      "date_of_birth": null,
-      "sex": null,
-      "height_cm": null,
-      "weight_kg": null,
-      "avatar_url": null,
-      "health_goals": [],
-      "onboarding_status": "pending",
-      "account_status": "active",
-      "created_at": "2026-07-27T02:07:32.749257",
-      "updated_at": "2026-07-27T02:07:32.749257"
-    },
-    {
-      "id": "usr-patient-7b9d69ec",
-      "phone": "+1234567888",
-      "email": "test88@gmail.com",
-      "password": "008c70392e3abfbd0fa47bbc2ed96aa99bd49e159727fcba0f2e6abeb3a9d601",
-      "role": "patient",
-      "first_name": null,
-      "last_name": null,
-      "date_of_birth": null,
-      "sex": null,
-      "height_cm": null,
-      "weight_kg": null,
-      "avatar_url": null,
-      "health_goals": [],
-      "onboarding_status": "pending",
-      "account_status": "active",
-      "created_at": "2026-07-27T02:09:06.235574",
-      "updated_at": "2026-07-27T02:09:06.235574"
-    },
-    {
-      "id": "usr-patient-7296ccf5",
-      "phone": "+1234567877",
-      "email": "test77@gmail.com",
-      "password": "008c70392e3abfbd0fa47bbc2ed96aa99bd49e159727fcba0f2e6abeb3a9d601",
-      "role": "patient",
-      "first_name": null,
-      "last_name": null,
-      "date_of_birth": null,
-      "sex": null,
-      "height_cm": null,
-      "weight_kg": null,
-      "avatar_url": null,
-      "health_goals": [],
-      "onboarding_status": "pending",
-      "account_status": "active",
-      "created_at": "2026-07-27T02:09:54.923446",
-      "updated_at": "2026-07-27T02:09:54.923446"
-    },
-    {
-      "id": "usr-patient-994debf7",
-      "phone": "+639123456789",
-      "email": "test@gmail.com",
-      "password": "008c70392e3abfbd0fa47bbc2ed96aa99bd49e159727fcba0f2e6abeb3a9d601",
-      "role": "patient",
-      "first_name": "Test",
-      "last_name": "",
-      "date_of_birth": "2026-07-01",
+      "id": "usr-chief-admin-001",
+      "phone": "+639999999999",
+      "email": "admin@heartlink.ph",
+      "password": "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f",
+      "role": "admin",
+      "first_name": "System",
+      "last_name": "Admin",
+      "date_of_birth": "1985-01-01",
       "sex": "male",
       "height_cm": 170.0,
-      "weight_kg": 65.0,
+      "weight_kg": 70.0,
       "avatar_url": null,
-      "health_goals": [
-        "prevention"
-      ],
+      "health_goals": [],
       "onboarding_status": "complete",
       "account_status": "active",
-      "created_at": "2026-07-27T02:24:53.602508",
-      "updated_at": "2026-07-27T02:25:32.089097"
-    },
-    {
-      "id": "usr-patient-c6955e55",
-      "phone": "+639123456788",
-      "email": "test1@gmail.com",
-      "password": "008c70392e3abfbd0fa47bbc2ed96aa99bd49e159727fcba0f2e6abeb3a9d601",
-      "role": "patient",
-      "first_name": "Test1",
-      "last_name": "",
-      "date_of_birth": "2026-07-01",
-      "sex": "male",
-      "height_cm": 0.0,
-      "weight_kg": 0.0,
-      "avatar_url": null,
-      "health_goals": [
-        "bp"
-      ],
-      "onboarding_status": "complete",
-      "account_status": "active",
-      "created_at": "2026-07-30T07:37:30.990581",
-      "updated_at": "2026-07-30T07:38:36.343145"
+      "created_at": "2025-01-01T08:00:00",
+      "updated_at": "2025-01-01T08:00:00"
     }
   ],
   "baseline_lifestyle": [
     {
-      "id": "life-200",
-      "user_id": "usr-patient-994debf7",
+      "id": "life-101",
+      "user_id": "usr-patient-101",
       "smoking_status": "never",
       "avg_sleep_hours": 7,
-      "family_history": false,
-      "created_at": "2026-07-27T02:25:16.416204",
-      "updated_at": "2026-07-27T02:25:16.416204"
-    },
-    {
-      "id": "life-201",
-      "user_id": "usr-patient-c6955e55",
-      "smoking_status": "never",
-      "avg_sleep_hours": 7,
-      "family_history": false,
-      "created_at": "2026-07-30T07:38:03.657863",
-      "updated_at": "2026-07-30T07:38:03.657863"
+      "family_history": true,
+      "created_at": "2026-06-25T08:10:00",
+      "updated_at": "2026-06-25T08:10:00"
     }
   ],
   "baseline_dietary": [
     {
-      "id": "diet-200",
-      "user_id": "usr-patient-994debf7",
+      "id": "diet-101",
+      "user_id": "usr-patient-101",
       "sodium_frequency": "occasionally",
-      "allergies": [],
-      "dietary_practice": "None",
-      "created_at": "2026-07-27T02:25:20.778946",
-      "updated_at": "2026-07-27T02:25:20.778946"
-    },
-    {
-      "id": "diet-201",
-      "user_id": "usr-patient-c6955e55",
-      "sodium_frequency": "rarely",
-      "allergies": [],
-      "dietary_practice": "None",
-      "created_at": "2026-07-30T07:38:09.028265",
-      "updated_at": "2026-07-30T07:38:09.028265"
+      "allergies": [
+        "peanuts"
+      ],
+      "dietary_practice": "Standard Filipino",
+      "created_at": "2026-06-25T08:15:00",
+      "updated_at": "2026-06-25T08:15:00"
     }
   ],
   "baseline_clinical": [
     {
-      "id": "clin-200",
-      "user_id": "usr-patient-994debf7",
+      "id": "clin-101",
+      "user_id": "usr-patient-101",
       "diagnosed_conditions": [
-        "None"
+        "prehypertension"
       ],
       "on_medication": false,
-      "resting_bp_mmhg": null,
-      "max_heart_rate_bpm": null,
-      "fasting_blood_sugar": null,
-      "serum_cholesterol": null,
-      "chest_pain_type": 4,
+      "resting_bp_mmhg": 122,
+      "max_heart_rate_bpm": 185,
+      "fasting_blood_sugar": 0,
+      "serum_cholesterol": 195,
+      "chest_pain_type": 1,
       "exercise_angina": 0,
-      "created_at": "2026-07-27T02:25:32.088069",
-      "updated_at": "2026-07-27T02:25:32.088069"
-    },
-    {
-      "id": "clin-201",
-      "user_id": "usr-patient-c6955e55",
-      "diagnosed_conditions": [
-        "None"
-      ],
-      "on_medication": false,
-      "resting_bp_mmhg": null,
-      "max_heart_rate_bpm": null,
-      "fasting_blood_sugar": null,
-      "serum_cholesterol": null,
-      "chest_pain_type": 2,
-      "exercise_angina": 0,
-      "created_at": "2026-07-30T07:38:36.339603",
-      "updated_at": "2026-07-30T07:38:36.339603"
+      "created_at": "2026-06-25T08:20:00",
+      "updated_at": "2026-06-25T08:20:00"
     }
   ],
   "user_thresholds": [
@@ -221,47 +131,11 @@
       "id": "thresh-101",
       "user_id": "usr-patient-101",
       "sodium_limit_mg": 1500,
+      "fluid_limit_ml": 2000,
       "active_minutes_goal": 30,
       "systolic_threshold": 120,
       "diastolic_threshold": 80,
       "updated_at": "2026-06-25T08:25:00"
-    },
-    {
-      "id": "thresh-201",
-      "user_id": "usr-patient-7a518d55",
-      "sodium_limit_mg": 1500,
-      "active_minutes_goal": 30,
-      "systolic_threshold": 120,
-      "diastolic_threshold": 80,
-      "updated_at": "2026-07-27T02:04:05.126374"
-    },
-    {
-      "id": "thresh-202",
-      "user_id": "usr-patient-b7b712c3",
-      "sodium_limit_mg": 1500,
-      "active_minutes_goal": 30,
-      "systolic_threshold": 120,
-      "diastolic_threshold": 80,
-      "updated_at": "2026-07-27T02:16:56.178399"
-    },
-    {
-      "id": "thresh-203",
-      "user_id": "usr-patient-994debf7",
-      "sodium_limit_mg": 1500,
-      "active_minutes_goal": 30,
-      "systolic_threshold": 120,
-      "diastolic_threshold": 80,
-      "updated_at": "2026-07-28T02:06:06.499736",
-      "fluid_limit_ml": 2000
-    },
-    {
-      "id": "thresh-204",
-      "user_id": "usr-patient-c6955e55",
-      "sodium_limit_mg": 1500,
-      "active_minutes_goal": 30,
-      "systolic_threshold": 120,
-      "diastolic_threshold": 80,
-      "updated_at": "2026-07-30T07:38:36.339603"
     }
   ]
 }

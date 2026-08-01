@@ -60,6 +60,25 @@ profiles = [
         "created_at": datetime(2025, 5, 10, 14, 0, 0),
         "updated_at": datetime(2026, 1, 15, 11, 20, 0),
     },
+    {
+        "id": "usr-chief-admin-001",
+        "phone": "+639999999999",
+        "email": "admin@heartlink.ph",
+        "password": "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f",
+        "role": "admin",
+        "first_name": "System",
+        "last_name": "Admin",
+        "date_of_birth": date(1985, 1, 1),
+        "sex": "male",
+        "height_cm": 170.0,
+        "weight_kg": 70.0,
+        "avatar_url": None,
+        "health_goals": [],
+        "onboarding_status": "complete",
+        "account_status": "active",
+        "created_at": datetime(2025, 1, 1, 8, 0, 0),
+        "updated_at": datetime(2025, 1, 1, 8, 0, 0),
+    },
 ]
 # 2. Staff Security System Layer
 staff_permissions = [

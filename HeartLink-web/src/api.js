@@ -8,11 +8,19 @@ export const apiFetch = async (endpoint, options = {}) => {
     ...options.headers,
   };
 
+  const token = sessionStorage.getItem('heartlink_admin_token');
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
   try {
     const response = await fetch(url, { ...options, headers });
     const data = await response.json().catch(() => ({}));
 
     if (!response.ok) {
+      if (response.status === 401) {
+        window.dispatchEvent(new Event('auth:unauthorized'));
+      }
       throw { status: response.status, data };
     }
 

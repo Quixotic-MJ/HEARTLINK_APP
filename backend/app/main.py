@@ -9,6 +9,7 @@ from app.api.exercises import exercises
 from app.api.recipes_api import recipes_api
 from app.api.notifications_api import notifications_api
 from app.api.analytics_api import analytics_api
+from app.api.admin_api import admin_api
 
 app = FastAPI(title="Heartlink", description="development phase", version="1.0.0")
 
@@ -29,6 +30,7 @@ app.include_router(exercises.router)
 app.include_router(recipes_api.router)
 app.include_router(notifications_api.router)
 app.include_router(analytics_api.router)
+app.include_router(admin_api.router)
 
 
 @app.get("/api/health", tags=["System"])

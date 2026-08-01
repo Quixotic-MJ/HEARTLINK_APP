@@ -360,6 +360,7 @@ const Foods = () => {
               })}
             </tbody>
           )}
+          </table>
           {!loading && filteredRecipes.length === 0 && (
             <div className="p-8 text-center text-slate-400 text-xs">No foods or meals found.</div>
           )}
