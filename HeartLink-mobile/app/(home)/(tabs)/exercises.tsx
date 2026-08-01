@@ -20,6 +20,7 @@ import * as Haptics from "expo-haptics";
 import { Header } from "../../../components/Header";
 import { Skeleton } from "../../../components/ui/Skeleton";
 import { SafetyCheckSheet } from "../../../components/ui/SafetyCheckSheet";
+import Reanimated, { FadeInDown } from "react-native-reanimated";
 
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
@@ -510,7 +511,7 @@ export default function ExercisesScreen() {
           }
         >
           {/* CSS score card */}
-          <View className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-5 mb-4 shadow-sm shadow-slate-100">
+          <Reanimated.View entering={FadeInDown.delay(100).springify()} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-5 mb-4 shadow-sm shadow-slate-100">
             <View className="flex-row items-center justify-between mb-4">
               <Text className="text-[12px] font-medium text-slate-400 uppercase tracking-wide">
                 Current CSS score
@@ -574,10 +575,10 @@ export default function ExercisesScreen() {
                 </Text>
               </View>
             )}
-          </View>
+          </Reanimated.View>
 
           {/* Daily progress */}
-          <View className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-5 mb-5 shadow-sm shadow-slate-100">
+          <Reanimated.View entering={FadeInDown.delay(200).springify()} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-5 mb-5 shadow-sm shadow-slate-100">
             <View className="flex-row items-center justify-between mb-3">
               <View>
                 <Text className="text-[14px] font-medium text-slate-900 dark:text-white mb-0.5">
@@ -623,7 +624,7 @@ export default function ExercisesScreen() {
                 </Text>
               </View>
             )}
-          </View>
+          </Reanimated.View>
 
           {/* Routine list */}
           <Text className="text-[16px] font-medium text-slate-900 dark:text-white mb-3">
@@ -663,24 +664,25 @@ export default function ExercisesScreen() {
             })}
           </ScrollView>
 
-          {activeRoutines.map((routine) => (
-            <RoutineCard
-              key={routine.id}
-              routine={routine}
-              isCompleted={completedExercises.includes(routine.id)}
-              onPressCard={() =>
-                router.push({
-                  pathname: "/(home)/(health)/exercise-details",
-                  params: { id: routine.id },
-                })
-              }
-              onStart={() =>
-                router.push({
-                  pathname: "/(home)/(health)/exercise-details",
-                  params: { id: routine.id },
-                })
-              }
-            />
+          {activeRoutines.map((routine, index) => (
+            <Reanimated.View key={routine.id} entering={FadeInDown.delay(300 + index * 100).springify()}>
+              <RoutineCard
+                routine={routine}
+                isCompleted={completedExercises.includes(routine.id)}
+                onPressCard={() =>
+                  router.push({
+                    pathname: "/(home)/(health)/exercise-details",
+                    params: { id: routine.id },
+                  })
+                }
+                onStart={() =>
+                  router.push({
+                    pathname: "/(home)/(health)/exercise-details",
+                    params: { id: routine.id },
+                  })
+                }
+              />
+            </Reanimated.View>
           ))}
         </ScrollView>
       )}

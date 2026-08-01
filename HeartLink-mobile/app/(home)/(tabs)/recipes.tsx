@@ -19,6 +19,7 @@ import { useUser } from "../../../contexts/UserContext";
 import { Header } from "../../../components/Header";
 import { Skeleton } from "../../../components/ui/Skeleton";
 import { EmptyState } from "../../../components/ui/EmptyState";
+import Reanimated, { FadeInDown } from "react-native-reanimated";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -590,7 +591,7 @@ export default function RecipesScreen() {
       >
         {/* Tailored banner */}
         {activeFilter === "Tailored For You" && (
-          <View className="mx-5 mt-4 mb-2 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 flex-row items-start gap-3">
+          <Reanimated.View entering={FadeInDown.delay(100).springify()} className="mx-5 mt-4 mb-2 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 flex-row items-start gap-3">
             <View className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 items-center justify-center flex-shrink-0">
               <Feather name="shield" size={18} color="#185fa5" />
             </View>
@@ -604,17 +605,17 @@ export default function RecipesScreen() {
                 Based on your health baseline.
               </Text>
             </View>
-          </View>
+          </Reanimated.View>
         )}
 
         {/* Time Message Banner */}
         {timeMessage && activeFilter !== "Tailored For You" && activeFilter !== "Saved" && (
-          <View className="mx-5 mt-4 mb-2 bg-indigo-50 rounded-2xl border border-indigo-100 p-4 flex-row items-center gap-3">
+          <Reanimated.View entering={FadeInDown.delay(100).springify()} className="mx-5 mt-4 mb-2 bg-indigo-50 rounded-2xl border border-indigo-100 p-4 flex-row items-center gap-3">
             <View className="w-10 h-10 rounded-xl bg-white dark:bg-slate-900/60 items-center justify-center">
               <Feather name="sun" size={18} color="#4338ca" />
             </View>
             <Text className="flex-1 text-[14px] font-medium text-indigo-900 leading-snug">{timeMessage}</Text>
-          </View>
+          </Reanimated.View>
         )}
 
         {/* Recipe list */}
@@ -643,10 +644,10 @@ export default function RecipesScreen() {
               className="pt-16"
             />
           ) : (
-            filteredRecipes.map((recipe) => (
-              <RecipeCard
-                key={recipe.id}
-                recipe={recipe}
+            filteredRecipes.map((recipe, index) => (
+              <Reanimated.View key={recipe.id} entering={FadeInDown.delay(200 + index * 100).springify()}>
+                <RecipeCard
+                  recipe={recipe}
                 isSaved={savedRecipes.includes(recipe.id)}
                 onSave={() => toggleSave(recipe.id)}
                 onPress={() =>
@@ -655,7 +656,8 @@ export default function RecipesScreen() {
                     params: { id: recipe.id },
                   })
                 }
-              />
+                />
+              </Reanimated.View>
             ))
           )}
         </View>

@@ -1,7 +1,8 @@
 import React from "react";
-import { Text, ActivityIndicator, Pressable, PressableProps } from "react-native";
+import { Text, ActivityIndicator, Pressable, PressableProps, Platform } from "react-native";
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, Easing } from "react-native-reanimated";
 import { Feather } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -31,6 +32,9 @@ export function Button({
 
   const handlePressIn = (e: any) => {
     scale.value = withTiming(0.97, { duration: 100, easing: Easing.out(Easing.ease) });
+    if (Platform.OS !== "web") {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
     if (props.onPressIn) props.onPressIn(e);
   };
 

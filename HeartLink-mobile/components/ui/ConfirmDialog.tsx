@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,13 +8,19 @@ import {
   TextInput,
   ActivityIndicator,
   Platform,
-  Animated,
   Dimensions,
   KeyboardAvoidingView,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Animated, { 
+  useSharedValue, 
+  useAnimatedStyle, 
+  withTiming, 
+  withSpring, 
+  runOnJS 
+} from "react-native-reanimated";
 
 const SCREEN_HEIGHT = Dimensions.get("window").height;
 
@@ -93,9 +99,9 @@ export function ConfirmDialog({
   const [typedValue, setTypedValue] = useState("");
 
   // Animation values
-  const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
-  const backdropAnim = useRef(new Animated.Value(0)).current;
-  const scaleAnim = useRef(new Animated.Value(0.9)).current;
+  const backdropOpacity = useSharedValue(0);
+  const slideY = useSharedValue(SCREEN_HEIGHT);
+  const scale = useSharedValue(0.9);
 
   // Reset state when dialog opens/closes
   useEffect(() => {
@@ -111,70 +117,38 @@ export function ConfirmDialog({
       Haptics.notificationAsync(config.haptic);
     }
 
+    backdropOpacity.value = withTiming(1, { duration: 250 });
+
     if (mode === "bottom-sheet") {
-      Animated.parallel([
-        Animated.timing(backdropAnim, {
-          toValue: 1,
-          duration: 250,
-          useNativeDriver: true,
-        }),
-        Animated.spring(slideAnim, {
-          toValue: 0,
-          damping: 22,
-          stiffness: 260,
-          mass: 0.8,
-          useNativeDriver: true,
-        }),
-      ]).start();
+      slideY.value = withSpring(0, {
+        damping: 22,
+        stiffness: 260,
+        mass: 0.8,
+      });
     } else {
-      Animated.parallel([
-        Animated.timing(backdropAnim, {
-          toValue: 1,
-          duration: 250,
-          useNativeDriver: true,
-        }),
-        Animated.spring(scaleAnim, {
-          toValue: 1,
-          damping: 18,
-          stiffness: 200,
-          mass: 0.7,
-          useNativeDriver: true,
-        }),
-      ]).start();
+      scale.value = withSpring(1, {
+        damping: 18,
+        stiffness: 200,
+        mass: 0.7,
+      });
     }
-  }, [mode, backdropAnim, slideAnim, scaleAnim, config.haptic]);
+  }, [mode, backdropOpacity, slideY, scale, config.haptic]);
 
   const animateOut = useCallback(
     (callback: () => void) => {
+      backdropOpacity.value = withTiming(0, { duration: 200 });
+      
       if (mode === "bottom-sheet") {
-        Animated.parallel([
-          Animated.timing(backdropAnim, {
-            toValue: 0,
-            duration: 200,
-            useNativeDriver: true,
-          }),
-          Animated.timing(slideAnim, {
-            toValue: SCREEN_HEIGHT,
-            duration: 220,
-            useNativeDriver: true,
-          }),
-        ]).start(() => callback());
+        slideY.value = withTiming(SCREEN_HEIGHT, { duration: 220 }, (finished) => {
+          if (finished) runOnJS(callback)();
+        });
       } else {
-        Animated.parallel([
-          Animated.timing(backdropAnim, {
-            toValue: 0,
-            duration: 200,
-            useNativeDriver: true,
-          }),
-          Animated.timing(scaleAnim, {
-            toValue: 0.9,
-            duration: 180,
-            useNativeDriver: true,
-          }),
-        ]).start(() => callback());
+        scale.value = withTiming(0.9, { duration: 180 }, (finished) => {
+          if (finished) runOnJS(callback)();
+        });
       }
     },
-    [mode, backdropAnim, slideAnim, scaleAnim]
+    [mode, backdropOpacity, slideY, scale]
   );
 
   const handleCancel = useCallback(() => {
@@ -199,6 +173,19 @@ export function ConfirmDialog({
 
   const isConfirmEnabled =
     !isLoading && (!typedConfirmation || typedValue === typedConfirmation);
+
+  const backdropStyle = useAnimatedStyle(() => ({
+    opacity: backdropOpacity.value,
+  }));
+  
+  const sheetStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: slideY.value }],
+  }));
+  
+  const cardStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+    opacity: backdropOpacity.value,
+  }));
 
   // ─── Shared Content ───────────────────────────────────────────────────────
 
@@ -308,27 +295,31 @@ export function ConfirmDialog({
         <View style={{ flex: 1 }} accessible accessibilityRole="alert" accessibilityLiveRegion="assertive">
           {/* Backdrop */}
           <Animated.View
-            style={{
-              flex: 1,
-              backgroundColor: "rgba(15,23,42,0.45)",
-              opacity: backdropAnim,
-            }}
+            style={[
+              {
+                flex: 1,
+                backgroundColor: "rgba(15,23,42,0.45)",
+              },
+              backdropStyle
+            ]}
           >
             <Pressable style={{ flex: 1 }} onPress={handleCancel} />
           </Animated.View>
 
           {/* Sheet */}
           <Animated.View
-            style={{
-              position: "absolute",
-              bottom: 0,
-              left: 0,
-              right: 0,
-              borderTopLeftRadius: 28,
-              borderTopRightRadius: 28,
-              paddingBottom: Platform.OS === "ios" ? 40 : 24 + insets.bottom,
-              transform: [{ translateY: slideAnim }],
-            }}
+            style={[
+              {
+                position: "absolute",
+                bottom: 0,
+                left: 0,
+                right: 0,
+                borderTopLeftRadius: 28,
+                borderTopRightRadius: 28,
+                paddingBottom: Platform.OS === "ios" ? 40 : 24 + insets.bottom,
+              },
+              sheetStyle
+            ]}
             className="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800/50"
           >
             {/* Drag Handle */}
@@ -364,11 +355,10 @@ export function ConfirmDialog({
         >
           {/* Backdrop — NOT dismissible for centered destructive modals */}
           <Animated.View
-            style={{
-              ...({ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 } as const),
-              backgroundColor: "rgba(15,23,42,0.5)",
-              opacity: backdropAnim,
-            }}
+            style={[
+              { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(15,23,42,0.5)" },
+              backdropStyle
+            ]}
           >
             {variant !== "destructive" && (
               <Pressable style={{ flex: 1 }} onPress={handleCancel} />
@@ -377,12 +367,13 @@ export function ConfirmDialog({
 
           {/* Card */}
           <Animated.View
-            style={{
-              width: "100%",
-              maxWidth: 360,
-              transform: [{ scale: scaleAnim }],
-              opacity: backdropAnim,
-            }}
+            style={[
+              {
+                width: "100%",
+                maxWidth: 360,
+              },
+              cardStyle
+            ]}
             className="bg-white dark:bg-slate-900 rounded-3xl overflow-hidden"
           >
             <View className="pt-7 pb-5 px-6">{dialogContent}</View>

@@ -155,7 +155,7 @@ export default function AuthScreen() {
             name="identifier"
             label="Email or Phone number"
             icon="user"
-            placeholder="john@example.com or +63..."
+            placeholder="email or phone"
             keyboardType="default"
             autoComplete="username"
             textContentType="username"

@@ -9,6 +9,8 @@ import Animated, {
 } from "react-native-reanimated";
 import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import * as Haptics from "expo-haptics";
+import { Platform } from "react-native";
 
 export type ToastType = "success" | "error" | "info";
 
@@ -43,10 +45,19 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 
     // Show toast
     translateY.value = withSpring(Math.max(insets.top, 20) + 10, {
-      damping: 15,
-      stiffness: 150,
+      damping: 12,
+      stiffness: 250,
+      mass: 0.8,
     });
-    opacity.value = withTiming(1, { duration: 200 });
+    opacity.value = withTiming(1, { duration: 150 });
+
+    if (Platform.OS !== "web") {
+      Haptics.notificationAsync(
+        nextToast.type === "error" 
+          ? Haptics.NotificationFeedbackType.Error 
+          : Haptics.NotificationFeedbackType.Success
+      );
+    }
 
     const duration = nextToast.duration || 3000;
 

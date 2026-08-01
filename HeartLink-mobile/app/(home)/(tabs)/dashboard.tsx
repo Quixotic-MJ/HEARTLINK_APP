@@ -11,6 +11,7 @@ import {
   BackHandler,
   Alert,
 } from "react-native";
+import Reanimated, { FadeInDown, FadeInRight } from "react-native-reanimated";
 import { useRouter, useFocusEffect } from "expo-router";
 import { useColorScheme } from "nativewind";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
@@ -451,7 +452,7 @@ export default function DashboardScreen() {
         </View>
 
         {/* ── Stat cards row ── */}
-        <View className="flex-row gap-2.5 mx-5 mt-4">
+        <Reanimated.View entering={FadeInDown.delay(100).springify()} className="flex-row gap-2.5 mx-5 mt-4">
           <StatCard
             icon="heart"
             label="BPM"
@@ -473,10 +474,10 @@ export default function DashboardScreen() {
             iconColor={isDark ? "#2DD4BF" : "#0D9488"}
             iconBg={isDark ? "rgba(13, 148, 136, 0.15)" : "#CCFBF1"}
           />
-        </View>
+        </Reanimated.View>
 
         {/* ── Quick Actions ── */}
-        <View className="flex-row gap-2.5 mx-5 mt-4">
+        <Reanimated.View entering={FadeInDown.delay(200).springify()} className="flex-row gap-2.5 mx-5 mt-4">
           <TouchableOpacity
             activeOpacity={0.8}
             onPress={() => router.push("/locator")}
@@ -502,11 +503,11 @@ export default function DashboardScreen() {
               Log Vitals
             </Text>
           </TouchableOpacity>
-        </View>
+        </Reanimated.View>
 
         {/* ── Smart insight (dynamic) ── */}
         {data?.insight && (
-          <View className="mx-5 mt-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 flex-row items-start gap-3">
+          <Reanimated.View entering={FadeInDown.delay(300).springify()} className="mx-5 mt-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 flex-row items-start gap-3">
             <View
               className="w-9 h-9 rounded-xl items-center justify-center flex-shrink-0"
               style={{
@@ -536,12 +537,12 @@ export default function DashboardScreen() {
               </Text>
               {data.insight.body}
             </Text>
-          </View>
+          </Reanimated.View>
         )}
 
         {/* ── Today's Activity ── */}
         {data?.today_activity && (
-          <View className="mx-5 mt-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4">
+          <Reanimated.View entering={FadeInDown.delay(400).springify()} className="mx-5 mt-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4">
             <Text className="text-[11px] text-slate-400 uppercase tracking-wide mb-3">
               Today's activity
             </Text>
@@ -637,12 +638,12 @@ export default function DashboardScreen() {
                 </TouchableOpacity>
               </View>
             </View>
-          </View>
+          </Reanimated.View>
         )}
 
         {/* ── Sodium Budget ── */}
         {data?.sodium_budget && (
-          <View className="mx-5 mt-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4">
+          <Reanimated.View entering={FadeInDown.delay(500).springify()} className="mx-5 mt-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4">
             <View className="flex-row items-center justify-between mb-3">
               <View className="flex-row items-center gap-2">
                 <View
@@ -716,7 +717,7 @@ export default function DashboardScreen() {
                 </Text>
               </View>
             )}
-          </View>
+          </Reanimated.View>
         )}
 
         {isCritical ? (
