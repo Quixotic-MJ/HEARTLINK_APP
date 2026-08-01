@@ -370,7 +370,7 @@ function FilterChip({
     <TouchableOpacity
       onPress={onPress}
       activeOpacity={0.75}
-      className={`px-4 py-2 rounded-full border ${active ? "bg-primary border-primary" : "bg-card border-border"}`}
+      className={`px-4 py-3 min-h-[44px] rounded-full border flex-row items-center justify-center ${active ? "bg-primary border-primary" : "bg-card border-border"}`}
     >
       <Text
         className={`text-[13px] font-medium ${active ? "text-primary-foreground" : "text-muted-foreground"}`}
@@ -528,7 +528,7 @@ export default function RecipesScreen() {
         </View>
         <TouchableOpacity
           onPress={() => router.push("/(home)/(meals)/daily-diary")}
-          className="flex-row items-center gap-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 px-3 py-2 rounded-xl mt-2"
+          className="flex-row items-center gap-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 px-3 py-3 min-h-[44px] rounded-xl mt-2"
         >
           <Feather name="list" size={14} color="#64748b" />
           <Text className="text-[12px] font-medium text-slate-600 dark:text-slate-300">History</Text>
@@ -583,7 +583,7 @@ export default function RecipesScreen() {
       </View>
 
       <ScrollView
-        contentContainerClassName="pb-28"
+        contentContainerClassName="pb-28 md:max-w-2xl lg:max-w-4xl mx-auto w-full"
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#0f172a" />
@@ -644,21 +644,23 @@ export default function RecipesScreen() {
               className="pt-16"
             />
           ) : (
-            filteredRecipes.map((recipe, index) => (
-              <Reanimated.View key={recipe.id} entering={FadeInDown.delay(200 + index * 100).springify()}>
-                <RecipeCard
-                  recipe={recipe}
-                isSaved={savedRecipes.includes(recipe.id)}
-                onSave={() => toggleSave(recipe.id)}
-                onPress={() =>
-                  router.push({
-                    pathname: "/(home)/(meals)/recipe-details",
-                    params: { id: recipe.id },
-                  })
-                }
-                />
-              </Reanimated.View>
-            ))
+            <View className="flex-row flex-wrap justify-between">
+              {filteredRecipes.map((recipe, index) => (
+                <Reanimated.View key={recipe.id} entering={FadeInDown.delay(200 + index * 100).springify()} className="w-full md:w-[48%] lg:w-[31%] mb-4">
+                  <RecipeCard
+                    recipe={recipe}
+                  isSaved={savedRecipes.includes(recipe.id)}
+                  onSave={() => toggleSave(recipe.id)}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/(home)/(meals)/recipe-details",
+                      params: { id: recipe.id },
+                    })
+                  }
+                  />
+                </Reanimated.View>
+              ))}
+            </View>
           )}
         </View>
       </ScrollView>

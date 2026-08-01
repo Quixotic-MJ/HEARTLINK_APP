@@ -478,7 +478,7 @@ export default function ExercisesScreen() {
         </View>
         <TouchableOpacity
           onPress={() => router.push("/(home)/(health)/exercise-diary")}
-          className="flex-row items-center gap-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 px-3 py-2 rounded-xl"
+          className="flex-row items-center gap-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 px-3 py-3 min-h-[44px] rounded-xl"
         >
           <Feather name="list" size={14} color="#64748b" />
           <Text className="text-[12px] font-medium text-slate-600 dark:text-slate-300">History</Text>
@@ -504,7 +504,7 @@ export default function ExercisesScreen() {
         </View>
       ) : (
         <ScrollView
-          contentContainerClassName="px-5 pb-28"
+          contentContainerClassName="px-5 pb-28 md:max-w-2xl lg:max-w-4xl mx-auto w-full"
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#0f172a" />
@@ -644,7 +644,7 @@ export default function ExercisesScreen() {
                   key={type}
                   activeOpacity={0.8}
                   onPress={() => setSelectedType(type)}
-                  className={`px-4 py-2 rounded-full mr-2 border ${
+                  className={`px-4 py-3 min-h-[44px] rounded-full mr-2 border flex-row items-center justify-center ${
                     isSelected 
                       ? "bg-primary border-primary" 
                       : "bg-slate-50 border-slate-200 dark:bg-slate-800 dark:border-slate-800"
@@ -664,26 +664,28 @@ export default function ExercisesScreen() {
             })}
           </ScrollView>
 
-          {activeRoutines.map((routine, index) => (
-            <Reanimated.View key={routine.id} entering={FadeInDown.delay(300 + index * 100).springify()}>
-              <RoutineCard
-                routine={routine}
-                isCompleted={completedExercises.includes(routine.id)}
-                onPressCard={() =>
-                  router.push({
-                    pathname: "/(home)/(health)/exercise-details",
-                    params: { id: routine.id },
-                  })
-                }
-                onStart={() =>
-                  router.push({
-                    pathname: "/(home)/(health)/exercise-details",
-                    params: { id: routine.id },
-                  })
-                }
-              />
-            </Reanimated.View>
-          ))}
+          <View className="flex-row flex-wrap justify-between">
+            {activeRoutines.map((routine, index) => (
+              <Reanimated.View key={routine.id} entering={FadeInDown.delay(300 + index * 100).springify()} className="w-full md:w-[48%] lg:w-[31%] mb-4">
+                <RoutineCard
+                  routine={routine}
+                  isCompleted={completedExercises.includes(routine.id)}
+                  onPressCard={() =>
+                    router.push({
+                      pathname: "/(home)/(health)/exercise-details",
+                      params: { id: routine.id },
+                    })
+                  }
+                  onStart={() =>
+                    router.push({
+                      pathname: "/(home)/(health)/exercise-details",
+                      params: { id: routine.id },
+                    })
+                  }
+                />
+              </Reanimated.View>
+            ))}
+          </View>
         </ScrollView>
       )}
 

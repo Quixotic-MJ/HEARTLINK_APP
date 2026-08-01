@@ -242,7 +242,7 @@ export function ConfirmDialog({
           activeOpacity={0.8}
           onPress={handleCancel}
           disabled={isLoading}
-          className="w-full py-3.5 rounded-xl items-center border border-slate-200 dark:border-slate-700"
+          className="w-full py-4 min-h-[48px] rounded-xl items-center border border-slate-200 dark:border-slate-700"
           accessibilityRole="button"
           accessibilityLabel={cancelLabel}
           accessibilityHint="Dismisses this dialog without taking action"
@@ -257,7 +257,7 @@ export function ConfirmDialog({
           activeOpacity={0.8}
           onPress={handleConfirm}
           disabled={!isConfirmEnabled}
-          className="w-full py-3.5 rounded-xl items-center flex-row justify-center gap-2"
+          className="w-full py-4 min-h-[48px] rounded-xl items-center flex-row justify-center gap-2"
           style={{
             backgroundColor: isConfirmEnabled
               ? config.confirmBg

@@ -419,7 +419,7 @@ export default function WrapUpScreen() {
       </View>
 
       <ScrollView
-        contentContainerClassName="px-5 pb-28 pt-2"
+        contentContainerClassName="px-5 pb-28 pt-2 md:max-w-2xl lg:max-w-4xl mx-auto w-full"
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#64748b" />

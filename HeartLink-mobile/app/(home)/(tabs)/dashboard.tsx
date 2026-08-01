@@ -325,7 +325,7 @@ export default function DashboardScreen() {
       <Header />
 
       <ScrollView
-        contentContainerClassName="pb-28"
+        contentContainerClassName="pb-28 md:max-w-2xl lg:max-w-4xl mx-auto w-full"
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -483,7 +483,7 @@ export default function DashboardScreen() {
             onPress={() => router.push("/locator")}
             className="flex-1 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 py-3 items-center"
           >
-            <View className="w-9 h-9 rounded-full bg-blue-50 items-center justify-center mb-1.5">
+            <View className="w-11 h-11 rounded-full bg-blue-50 items-center justify-center mb-1.5">
               <Feather name="map-pin" size={16} color="#1e4ed8" />
             </View>
             <Text className="text-[12px] font-medium text-slate-700 dark:text-slate-200">
@@ -496,7 +496,7 @@ export default function DashboardScreen() {
             onPress={() => router.push("/(home)/(health)/log-symptoms")}
             className="flex-1 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 py-3 items-center"
           >
-            <View className="w-9 h-9 rounded-full bg-rose-50 items-center justify-center mb-1.5">
+            <View className="w-11 h-11 rounded-full bg-rose-50 items-center justify-center mb-1.5">
               <Feather name="activity" size={16} color="#e11d48" />
             </View>
             <Text className="text-[12px] font-medium text-slate-700 dark:text-slate-200">
