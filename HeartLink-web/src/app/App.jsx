@@ -12,6 +12,7 @@ import Analytics from "../features/pages/overview/analytics";
 import Dashboard from "../features/pages/overview/dashboard";
 import Login from "../features/auth/login";
 import TwoFactorAuth from "../features/auth/two-factor";
+import UserWellnessProfile from "../features/pages/system & support/UserWellnessProfile";
 import ActivityLog from "../features/pages/system & support/ActivityLog";
 import { AuthProvider, useAuth } from "../contexts/AuthContext";
 import { Navigate } from "react-router-dom";
@@ -42,6 +43,7 @@ export default function App() {
           <Route path="/calibration" element={<ProtectedRoute><Calibrations /></ProtectedRoute>} />
           <Route path="/alerts" element={<ProtectedRoute><Alerts /></ProtectedRoute>} />
           <Route path="/users" element={<ProtectedRoute><Users /></ProtectedRoute>} />
+          <Route path="/users/:id" element={<ProtectedRoute><UserWellnessProfile /></ProtectedRoute>} />
           <Route path="/feedbacks" element={<ProtectedRoute><Feedbacks /></ProtectedRoute>} />
           <Route path="/broadcasts" element={<ProtectedRoute><Broadcasts /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />

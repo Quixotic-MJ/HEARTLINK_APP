@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Search,
   Filter,
@@ -22,9 +23,8 @@ import {
   Stethoscope,
 } from "lucide-react";
 import AdminLayout from "../../../components/layouts/adminLayout";
-import PatientListView from "../../../components/lists/PatientListView";
+import UserListView from "../../../components/lists/UserListView";
 import { apiFetch } from "../../../api";
-import PatientDetailsModal from "../../../components/modals/PatientDetailsModal";
 import StaffListView from "../../../components/lists/StaffListView";
 import StaffDetailsModal from "../../../components/modals/StaffDetailsModal";
 import StaffFormModal from "../../../components/modals/StaffFormModal";
@@ -81,6 +81,7 @@ const initialSystemStaff = [
 const Users = () => {
   const [currentUserRole, setCurrentUserRole] = useState("chief_admin");
   const [activeTab, setActiveTab] = useState("app_users");
+  const navigate = useNavigate();
 
   const [appUsers, setAppUsers] = useState([]);
   const [systemStaff, setSystemStaff] = useState(initialSystemStaff);
@@ -121,9 +122,7 @@ const Users = () => {
   }, []);
 
   const handleOpenUser = (user) => {
-    setActiveEntity(user);
-    setModalMode("view_user");
-    setIsModalOpen(true);
+    navigate(`/users/${user.id}`);
   };
 
   const handleOpenStaff = (staff) => {
@@ -225,7 +224,7 @@ const Users = () => {
               : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
           }`}
         >
-          <User size={14} /> High-Risk Individuals
+          <User size={14} /> At-Risk Users
         </button>
 
         <button
@@ -246,16 +245,16 @@ const Users = () => {
       </div>
 
       {/* ========================================= */}
-      {/* TAB 1: HIGH-RISK INDIVIDUALS (APP USERS)  */}
+      {/* TAB 1: AT-RISK USERS (APP USERS)  */}
       {/* ========================================= */}
       {activeTab === "app_users" && (
-        <PatientListView
-          patients={filteredUsers}
+        <UserListView
+          users={filteredUsers}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
           filterStatus={filterStatus}
           onFilterChange={setFilterStatus}
-          onOpenPatient={handleOpenUser}
+          onOpenUser={handleOpenUser}
         />
       )}
 
@@ -271,19 +270,6 @@ const Users = () => {
           onCreateStaff={handleCreateStaff}
         />
       )}
-
-      {/* Modular Patient Details Modal */}
-      <PatientDetailsModal
-        isOpen={isModalOpen && modalMode === "view_user"}
-        onClose={closeModal}
-        patient={activeEntity}
-        onDeactivate={handleOpenDeactivate}
-        onEnable={() =>
-          alert(
-            `Mock: Successfully re-enabled account for ${activeEntity?.name}`,
-          )
-        }
-      />
 
       {/* Modular Staff Details Modal */}
       <StaffDetailsModal

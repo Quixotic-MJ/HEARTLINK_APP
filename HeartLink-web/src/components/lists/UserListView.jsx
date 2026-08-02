@@ -1,7 +1,7 @@
 import React from "react";
 import { Search, Filter, Phone, Calendar, ChevronRight, Ban, CheckCircle2, Archive } from "lucide-react";
 
-const PatientListView = ({ patients, searchQuery, onSearchChange, filterStatus, onFilterChange, onOpenPatient }) => {
+const UserListView = ({ users, searchQuery, onSearchChange, filterStatus, onFilterChange, onOpenUser }) => {
   const getStatusBadge = (status) => {
     if (status === "Active")
       return (
@@ -69,11 +69,11 @@ const PatientListView = ({ patients, searchQuery, onSearchChange, filterStatus, 
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
-            {patients.map((user) => (
+            {users.map((user) => (
               <tr
                 key={user.id}
                 className="hover:bg-slate-50/50 transition-colors group cursor-pointer"
-                onClick={() => onOpenPatient(user)}
+                onClick={() => onOpenUser(user)}
               >
                 <td className="py-4 px-5 align-middle">
                   <div className="flex items-center gap-3">
@@ -112,4 +112,4 @@ const PatientListView = ({ patients, searchQuery, onSearchChange, filterStatus, 
   );
 };
 
-export default PatientListView;
+export default UserListView;

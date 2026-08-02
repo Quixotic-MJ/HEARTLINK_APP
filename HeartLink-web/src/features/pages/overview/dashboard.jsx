@@ -7,6 +7,8 @@ import {
   Stethoscope,
   HeartPulse,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import AdminLayout from "../../../components/layouts/adminLayout";
 import { Skeleton } from "../../../components/ui/Skeleton";
 import { apiFetch } from "../../../api";
@@ -14,6 +16,7 @@ import { apiFetch } from "../../../api";
 const Dashboard = () => {
   const [data, setData] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
+  const navigate = useNavigate();
 
   React.useEffect(() => {
     const fetchData = async () => {
@@ -57,7 +60,7 @@ const Dashboard = () => {
     );
   }
 
-  const { kpi, css_distribution, recent_activity } = data;
+  const { kpi, css_distribution, recent_activity, weekly_engagement } = data;
 
   return (
     <AdminLayout>
@@ -91,7 +94,7 @@ const Dashboard = () => {
                   User Engagement
                 </span>
                 <span className="text-slate-400 text-[10px] font-medium tracking-[0.22em] uppercase truncate block">
-                  Registered Patients
+                  Registered Users
                 </span>
               </div>
               <div
@@ -104,18 +107,18 @@ const Dashboard = () => {
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 min-w-0">
                 <p className="text-lg font-semibold mb-1 truncate" style={{ color: "#0f172a" }}>
-                  {kpi.total_patients}
+                  {kpi.total_users}
                 </p>
                 <p className="text-[9px] font-medium text-slate-400 tracking-[0.18em] uppercase truncate">
-                  Active Accounts
+                  Total Users
                 </p>
               </div>
               <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 min-w-0">
                 <p className="text-lg font-semibold text-emerald-600 mb-1 truncate">
-                  +12%
+                  {kpi.active_users}
                 </p>
                 <p className="text-[9px] font-medium text-slate-400 tracking-[0.18em] uppercase truncate">
-                  VS Last Week
+                  Active Users
                 </p>
               </div>
             </div>
@@ -127,7 +130,7 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Card 2: Case Calibration */}
+        {/* Card 2: Content Efficacy */}
         <div className="bg-white p-5 rounded-xl border border-slate-200 flex flex-col justify-between min-w-0 relative overflow-hidden">
           {/* Top accent */}
           <div className="absolute top-0 left-0 right-0 h-[3px]" style={{ backgroundColor: "#0f172a" }} />
@@ -135,32 +138,32 @@ const Dashboard = () => {
             <div className="flex items-center justify-between mb-4">
               <div className="min-w-0">
                 <span className="text-slate-900 font-semibold text-sm block mb-0.5 truncate">
-                  Case Calibration
+                  Content Library
                 </span>
                 <span className="text-slate-400 text-[10px] font-medium tracking-[0.22em] uppercase truncate block">
-                  Expert Review Queue
+                  Active Recommendations
                 </span>
               </div>
               <div
                 className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
                 style={{ backgroundColor: "rgba(15,23,42,0.04)" }}
               >
-                <Stethoscope size={14} style={{ color: "#0f172a" }} />
+                <HeartPulse size={14} style={{ color: "#0f172a" }} />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="p-3 rounded-xl border min-w-0" style={{ backgroundColor: "rgba(15,23,42,0.03)", borderColor: "rgba(15,23,42,0.06)" }}>
-                <p className="text-lg font-semibold mb-1 truncate" style={{ color: "#0f172a" }}>{kpi.active_exercises}</p>
+                <p className="text-lg font-semibold mb-1 truncate" style={{ color: "#0f172a" }}>{kpi.total_recipes}</p>
                 <p className="text-[9px] font-medium tracking-[0.18em] uppercase truncate" style={{ color: "#0f172a", opacity: 0.5 }}>
-                  Active Exercises
+                  Active Recipes
                 </p>
               </div>
               <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 min-w-0">
                 <p className="text-lg font-semibold text-slate-700 mb-1 truncate">
-                  {kpi.active_exercises}
+                  {kpi.total_exercises}
                 </p>
                 <p className="text-[9px] font-medium text-slate-400 tracking-[0.18em] uppercase truncate">
-                  Calibrations Done
+                  Active Exercises
                 </p>
               </div>
             </div>
@@ -175,10 +178,10 @@ const Dashboard = () => {
             <div className="flex items-center justify-between mb-4">
               <div className="min-w-0">
                 <span className="text-slate-900 font-semibold text-sm block mb-0.5 truncate">
-                  System Alerts
+                  Wellness Alerts
                 </span>
                 <span className="text-slate-400 text-[10px] font-medium tracking-[0.22em] uppercase truncate block">
-                  Threshold Breaches
+                  Health & Dietary Warnings
                 </span>
               </div>
               <div
@@ -206,7 +209,7 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* CSS Population Distribution */}
+      {/* Weekly User Engagement Chart */}
       <div className="bg-white rounded-xl border border-slate-200 p-5 mb-6">
         <div className="flex items-center gap-2.5 mb-5">
           <div
@@ -216,7 +219,51 @@ const Dashboard = () => {
             <HeartPulse size={13} style={{ color: "#0f172a" }} />
           </div>
           <h3 className="text-sm font-semibold text-slate-900 tracking-tight">
-            CSS Population Distribution
+            Weekly User Engagement
+          </h3>
+        </div>
+        <div className="h-64 w-full">
+          {weekly_engagement ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={weekly_engagement} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorActive" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#0f172a" stopOpacity={0.1}/>
+                    <stop offset="95%" stopColor="#0f172a" stopOpacity={0}/>
+                  </linearGradient>
+                  <linearGradient id="colorLogins" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.1}/>
+                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} dy={10} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} />
+                <Tooltip 
+                  contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                  labelStyle={{ fontWeight: 'bold', color: '#0f172a', marginBottom: '4px' }}
+                />
+                <Area type="monotone" dataKey="logins" name="Daily Logins" stroke="#3b82f6" strokeWidth={2} fillOpacity={1} fill="url(#colorLogins)" />
+                <Area type="monotone" dataKey="activeUsers" name="Active Users" stroke="#0f172a" strokeWidth={2} fillOpacity={1} fill="url(#colorActive)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-slate-400 text-sm">No engagement data available.</div>
+          )}
+        </div>
+      </div>
+
+      {/* CSS Population Distribution */}
+      <div className="bg-white rounded-xl border border-slate-200 p-5 mb-6">
+        <div className="flex items-center gap-2.5 mb-5">
+          <div
+            className="w-7 h-7 rounded-full flex items-center justify-center"
+            style={{ backgroundColor: "rgba(15,23,42,0.04)" }}
+          >
+            <User size={13} style={{ color: "#0f172a" }} />
+          </div>
+          <h3 className="text-sm font-semibold text-slate-900 tracking-tight">
+            User Base CSS Distribution
           </h3>
         </div>
 
@@ -259,11 +306,11 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Recent System Activity */}
+      {/* Recent User Milestones */}
       <div className="bg-white rounded-xl border border-slate-200 p-5">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-5 gap-3">
           <h3 className="text-sm font-semibold text-slate-900 tracking-tight">
-            Recent System Activity
+            Recent User Milestones & Alerts
           </h3>
           <button className="flex items-center gap-1.5 text-xs font-medium text-slate-400 hover:text-slate-900 transition-colors">
             View Full Audit Trail <ArrowRight size={13} />
@@ -281,7 +328,7 @@ const Dashboard = () => {
                   Event Type
                 </th>
                 <th className="py-3 px-2 text-[10px] font-medium text-slate-400 uppercase tracking-[0.18em] w-1/4">
-                  Involved Entity
+                  User ID
                 </th>
                 <th className="py-3 px-2 text-[10px] font-medium text-slate-400 uppercase tracking-[0.18em] w-1/4 text-right">
                   Actions
@@ -311,7 +358,11 @@ const Dashboard = () => {
                 }
 
                 return (
-                  <tr key={index} className="hover:bg-slate-50/60 transition-colors">
+                  <tr 
+                    key={index} 
+                    className="hover:bg-slate-50/60 transition-colors cursor-pointer group"
+                    onClick={() => navigate(`/users/${log.entity}`)}
+                  >
                     <td className="py-3 px-2">
                       <div className="flex items-center gap-2">
                         <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: dotColor }} />
