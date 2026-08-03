@@ -14,12 +14,11 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
-import { useRouter, useLocalSearchParams } from "expo-router";
+import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
 import { useUser } from "../../../contexts/UserContext";
 import * as Haptics from "expo-haptics";
 import { Header } from "../../../components/Header";
 import { Skeleton } from "../../../components/ui/Skeleton";
-import { SafetyCheckSheet } from "../../../components/ui/SafetyCheckSheet";
 import Reanimated, { FadeInDown } from "react-native-reanimated";
 
 
@@ -154,6 +153,12 @@ const STATUS_CONFIG = {
 
 // ─── Routine Card ─────────────────────────────────────────────────────────────
 
+const getYoutubeVideoId = (url: string) => {
+  if (!url) return null;
+  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?]+)/);
+  return match ? match[1] : null;
+};
+
 function RoutineCard({
   routine,
   onStart,
@@ -166,6 +171,8 @@ function RoutineCard({
   isCompleted: boolean;
 }) {
   const cfg = getTypeConfig(routine.type);
+  const ytId = getYoutubeVideoId(routine.image);
+  const displayImage = ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : routine.image;
 
   return (
     <TouchableOpacity
@@ -176,12 +183,21 @@ function RoutineCard({
       {/* Thumbnail */}
       <View className="w-full h-36 bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800/50 items-center justify-center relative overflow-hidden">
         {routine.image ? (
-          <Image source={{ uri: routine.image }} className="absolute inset-0 w-full h-full" resizeMode="cover" />
+          routine.image.startsWith("data:video") || routine.image.endsWith(".mp4") ? (
+            <>
+              <Feather name="video" size={28} color="#cbd5e1" />
+              <Text className="text-[11px] text-slate-300 mt-1.5">
+                Video attached
+              </Text>
+            </>
+          ) : (
+            <Image source={{ uri: displayImage }} className="absolute inset-0 w-full h-full" resizeMode="cover" />
+          )
         ) : (
           <>
             <Feather name="image" size={28} color="#cbd5e1" />
             <Text className="text-[11px] text-slate-300 mt-1.5">
-              Video thumbnail
+              No media attached
             </Text>
           </>
         )}
@@ -279,8 +295,6 @@ export default function ExercisesScreen() {
   
   const [cssScore, setCssScore] = useState<number>(0);
   const [completedExercises, setCompletedExercises] = useState<string[]>([]);
-  const [showSafetyCheck, setShowSafetyCheck] = useState(false);
-  const [pendingRoutine, setPendingRoutine] = useState<Routine | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const [selectedType, setSelectedType] = useState<string>("All");
@@ -307,11 +321,11 @@ export default function ExercisesScreen() {
           id: r.id,
           title: r.name || "",
           duration: r.duration_minutes || 0,
-          goal: r.goal || "",
+          goal: r.goal || r.description || "",
           type: r.type || "Light Cardio",
           intensity: r.intensity || "Low",
           category: r.css_tier || "Stable",
-          image: r.image_url || "",
+          image: r.media_url || r.image_url || "",
         }));
         setRoutinesList(mapped.length > 0 ? mapped : ROUTINES);
       }
@@ -336,14 +350,16 @@ export default function ExercisesScreen() {
     }
   }, [userId]);
 
-  useEffect(() => {
-    async function initialLoad() {
-      setIsLoading(true);
-      await fetchData();
-      setIsLoading(false);
-    }
-    initialLoad();
-  }, [fetchData]);
+  useFocusEffect(
+    useCallback(() => {
+      async function initialLoad() {
+        setIsLoading(true);
+        await fetchData();
+        setIsLoading(false);
+      }
+      initialLoad();
+    }, [fetchData])
+  );
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -355,12 +371,13 @@ export default function ExercisesScreen() {
     if (params.completedId) {
       const routine = routinesList.find((r) => r.id === params.completedId);
       if (routine) {
-        setPendingRoutine(routine);
-        setShowSafetyCheck(true);
+        if (!completedExercises.includes(routine.id)) {
+          showToast(`${routine.duration} active minutes added to today's tracker.`);
+        }
         router.setParams({ completedId: "" });
       }
     }
-  }, [params.completedId, routinesList]);
+  }, [params.completedId, routinesList, completedExercises]);
 
   const showToast = (message: string) => {
     setToastMessage(message);
@@ -417,22 +434,6 @@ export default function ExercisesScreen() {
 
   const progressPercent = Math.min((totalActiveMins / 30) * 100, 100);
   const progressColor = progressPercent >= 100 ? "#639922" : "#0f172a";
-
-  const handleSafetySafe = () => {
-    if (pendingRoutine && !completedExercises.includes(pendingRoutine.id)) {
-      showToast(
-        `${pendingRoutine.duration} active minutes added to today's tracker.`,
-      );
-    }
-    setShowSafetyCheck(false);
-    setPendingRoutine(null);
-  };
-
-  const handleSafetySymptoms = () => {
-    setShowSafetyCheck(false);
-    setPendingRoutine(null);
-    router.push("/(home)/(health)/log-symptoms");
-  };
 
   return (
     <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950" edges={["top"]}>
@@ -688,13 +689,6 @@ export default function ExercisesScreen() {
           </View>
         </ScrollView>
       )}
-
-      {/* Safety Check Modal */}
-      <SafetyCheckSheet
-        visible={showSafetyCheck}
-        onSafe={handleSafetySafe}
-        onSymptoms={handleSafetySymptoms}
-      />
     </SafeAreaView>
   );
 }

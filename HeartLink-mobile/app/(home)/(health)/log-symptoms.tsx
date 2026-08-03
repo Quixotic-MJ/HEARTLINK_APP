@@ -193,6 +193,20 @@ export default function LogSymptomsScreen() {
     // Run the API request silently in the background
     (async () => {
       try {
+        if (params.pending_exercise) {
+          try {
+            const exercisePayload = JSON.parse(decodeURIComponent(params.pending_exercise as string));
+            const exUrl = `${base_url}/api/exercises/logs/${userId}`;
+            await fetch(exUrl, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(exercisePayload),
+            });
+          } catch (e) {
+            console.warn("Failed to log pending exercise", e);
+          }
+        }
+
         const res = await fetch(targetUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },

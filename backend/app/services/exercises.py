@@ -71,4 +71,74 @@ def delete_exercise_log(user_id: str, log_id: str) -> Tuple[bool, str, int]:
 
     return True, "Exercise log deleted successfully", 200
 
+def map_css_tier(tier: str) -> str:
+    if not tier: return "Stable"
+    if "Monitor Closely" in tier:
+        return "Moderate"
+    if "Critical" in tier:
+        return "Elevated Risk"
+    # Preserve existing valid tiers as-is
+    valid_tiers = ["Stable", "Moderate", "Caution", "Elevated Risk"]
+    for valid in valid_tiers:
+        if valid in tier:
+            return valid
+    return "Stable"
 
+def create_routine(data: Dict[str, Any]) -> Dict[str, Any]:
+    raw_css = data.get("cssTarget", data.get("css_tier", "Stable"))
+    new_routine = {
+        "id": f"rout-{uuid.uuid4().hex[:8]}",
+        "name": data.get("name", "New Routine"),
+        "description": data.get("description", ""),
+        "duration_minutes": data.get("duration", data.get("duration_minutes", 0)),
+        "css_tier": map_css_tier(raw_css),
+        "type": data.get("type", "General"),
+        "intensity": data.get("intensity", "Low"),
+        "goal": data.get("goal", ""),
+        "steps": data.get("steps", []),
+        "media_url": data.get("mediaUrl", data.get("media_url", None)),
+        "status": data.get("status", "draft"),
+        "expert_validated": data.get("expertValidated", data.get("expert_validated", False)),
+        "created_by": "usr-admin-002",
+        "created_at": datetime.now(),
+    }
+    exercise_routines.insert(0, new_routine)
+    return new_routine
+
+def update_routine(routine_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
+    routine = next((r for r in exercise_routines if r["id"] == routine_id), None)
+    if not routine:
+        raise ValueError("Routine not found")
+    
+    if "name" in data:
+        routine["name"] = data["name"]
+    if "description" in data:
+        routine["description"] = data["description"]
+    if "duration" in data or "duration_minutes" in data:
+        routine["duration_minutes"] = data.get("duration", data.get("duration_minutes", 0))
+    if "cssTarget" in data or "css_tier" in data:
+        raw_css = data.get("cssTarget", data.get("css_tier", routine.get("css_tier", "Stable")))
+        routine["css_tier"] = map_css_tier(raw_css)
+    if "type" in data:
+        routine["type"] = data["type"]
+    if "intensity" in data:
+        routine["intensity"] = data["intensity"]
+    if "goal" in data:
+        routine["goal"] = data["goal"]
+    if "steps" in data:
+        routine["steps"] = data["steps"]
+    if "mediaUrl" in data or "media_url" in data:
+        routine["media_url"] = data.get("mediaUrl", data.get("media_url", routine.get("media_url")))
+    if "status" in data:
+        routine["status"] = data["status"]
+    if "expertValidated" in data or "expert_validated" in data:
+        routine["expert_validated"] = data.get("expertValidated", data.get("expert_validated", routine.get("expert_validated")))
+        
+    return routine
+
+def delete_routine(routine_id: str) -> bool:
+    routine = next((r for r in exercise_routines if r["id"] == routine_id), None)
+    if not routine:
+        return False
+    exercise_routines.remove(routine)
+    return True

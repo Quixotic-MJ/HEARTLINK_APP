@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Query
 from typing import List, Dict, Any
-from app.services.exercises import get_routines, get_exercise_logs, create_exercise_log, delete_exercise_log
+from app.services.exercises import get_routines, get_exercise_logs, create_exercise_log, delete_exercise_log, create_routine, update_routine, delete_routine
 
 router = APIRouter(prefix="/api/exercises", tags=["Exercises"])
 
@@ -15,6 +15,24 @@ def read_routine(routine_id: str):
     if not routine:
         raise HTTPException(status_code=404, detail="Routine not found")
     return routine
+
+@router.post("/", response_model=Dict[str, Any])
+def add_routine(data: Dict[str, Any]):
+    return create_routine(data)
+
+@router.put("/{routine_id}", response_model=Dict[str, Any])
+def edit_routine(routine_id: str, data: Dict[str, Any]):
+    try:
+        return update_routine(routine_id, data)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+@router.delete("/{routine_id}", response_model=Dict[str, Any])
+def remove_routine(routine_id: str):
+    success = delete_routine(routine_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Routine not found")
+    return {"success": True, "message": "Routine deleted"}
 
 @router.get("/logs/{user_id}", response_model=List[Dict[str, Any]])
 def read_exercise_logs(

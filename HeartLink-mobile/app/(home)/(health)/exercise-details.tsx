@@ -66,13 +66,13 @@ export default function ExerciseDetailsScreen() {
           id: data.id,
           title: data.name || "",
           duration: data.duration_minutes || 0,
-          goal: data.goal || "",
+          goal: data.goal || data.description || "",
           type: data.type || "Light Cardio",
           intensity: data.intensity || "Low",
           category: data.css_tier || "Stable",
           steps: data.steps || [],
           videoUrl: data.video_url || VIDEO_BY_TYPE[data.type] || VIDEO_BY_TYPE["Light Cardio"],
-          image: data.image_url || "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=400&h=300&fit=crop",
+          image: data.media_url || "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=400&h=300&fit=crop",
         });
       } catch (error) {
         console.error(error);
@@ -103,9 +103,9 @@ export default function ExerciseDetailsScreen() {
       }, 1000);
     } else if (timeLeft === 0 && isActive) {
       setIsActive(false);
-      setShowSafetyCheck(true);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       if (interval) clearInterval(interval);
+      handleAutoComplete();
     }
     
     return () => {
@@ -144,8 +144,11 @@ export default function ExerciseDetailsScreen() {
   }, [timeLeft, routine, isActive, hasTriggeredHalfway, hasTriggeredSeventyFive, hasTriggeredOneMin]);
 
   // Breathing Visual Cue & Dynamics
-  const breatheAnim = useRef(new Animated.Value(1)).current;
+  const breatheAnim = useRef(new Animated.Value(0)).current;
+  const ringAnim2 = useRef(new Animated.Value(0)).current;
+  const ringAnim3 = useRef(new Animated.Value(0)).current;
   const [breathingTimes, setBreathingTimes] = useState([4000, 2000, 6000]);
+  const [breathPhase, setBreathPhase] = useState<"ready" | "inhale" | "hold" | "exhale">("ready");
 
   const parseSeconds = (text: string, defaultTime: number = 4) => {
     const match = text.match(/(\d+)\s*second/i);
@@ -168,34 +171,72 @@ export default function ExerciseDetailsScreen() {
   useEffect(() => {
     let animLoop: Animated.CompositeAnimation | null = null;
     if (routine?.type === "Breathing" && isActive) {
-      animLoop = Animated.loop(
-        Animated.sequence([
-          Animated.timing(breatheAnim, {
-            toValue: 1.5,
-            duration: breathingTimes[0],
-            useNativeDriver: true,
-          }),
-          Animated.timing(breatheAnim, {
-            toValue: 1.5,
-            duration: breathingTimes[1],
-            useNativeDriver: true,
-          }),
-          Animated.timing(breatheAnim, {
-            toValue: 1,
-            duration: breathingTimes[2],
-            useNativeDriver: true,
-          }),
-        ])
-      );
-      animLoop.start();
+      const runCycle = () => {
+        setBreathPhase("inhale");
+        animLoop = Animated.loop(
+          Animated.sequence([
+            // Inhale — expand
+            Animated.parallel([
+              Animated.timing(breatheAnim, { toValue: 1, duration: breathingTimes[0], useNativeDriver: true }),
+              Animated.timing(ringAnim2, { toValue: 1, duration: breathingTimes[0] + 200, useNativeDriver: true }),
+              Animated.timing(ringAnim3, { toValue: 1, duration: breathingTimes[0] + 400, useNativeDriver: true }),
+            ]),
+            // Hold — stay expanded
+            Animated.delay(breathingTimes[1]),
+            // Exhale — contract
+            Animated.parallel([
+              Animated.timing(breatheAnim, { toValue: 0, duration: breathingTimes[2], useNativeDriver: true }),
+              Animated.timing(ringAnim2, { toValue: 0, duration: breathingTimes[2] + 200, useNativeDriver: true }),
+              Animated.timing(ringAnim3, { toValue: 0, duration: breathingTimes[2] + 400, useNativeDriver: true }),
+            ]),
+          ])
+        );
+        animLoop.start();
+      };
+      runCycle();
+
+      // Phase label timer
+      const totalCycle = breathingTimes[0] + breathingTimes[1] + breathingTimes[2];
+      const phaseInterval = setInterval(() => {
+        setBreathPhase(prev => {
+          if (prev === "inhale") return "hold";
+          if (prev === "hold") return "exhale";
+          return "inhale";
+        });
+      }, totalCycle / 3);
+
+      // More precise phase tracking
+      let phaseTimeout: NodeJS.Timeout;
+      const trackPhase = () => {
+        setBreathPhase("inhale");
+        phaseTimeout = setTimeout(() => {
+          setBreathPhase("hold");
+          phaseTimeout = setTimeout(() => {
+            setBreathPhase("exhale");
+            phaseTimeout = setTimeout(trackPhase, breathingTimes[2]);
+          }, breathingTimes[1]);
+        }, breathingTimes[0]);
+      };
+      clearInterval(phaseInterval);
+      trackPhase();
+
+      return () => {
+        if (animLoop) animLoop.stop();
+        clearTimeout(phaseTimeout);
+      };
     } else {
       breatheAnim.stopAnimation();
-      breatheAnim.setValue(1);
+      breatheAnim.setValue(0);
+      ringAnim2.stopAnimation();
+      ringAnim2.setValue(0);
+      ringAnim3.stopAnimation();
+      ringAnim3.setValue(0);
+      setBreathPhase("ready");
     }
     return () => {
       if (animLoop) animLoop.stop();
     };
-  }, [routine, isActive, breatheAnim, breathingTimes]);
+  }, [routine, isActive, breatheAnim, ringAnim2, ringAnim3, breathingTimes]);
 
   // Voice Coaching & Step Sync
   const [currentStepIndex, setCurrentStepIndex] = useState(-1);
@@ -340,6 +381,21 @@ export default function ExerciseDetailsScreen() {
     }
   };
 
+  const handleAutoComplete = async () => {
+    if (!routine) return;
+    setIsSubmitting(true);
+    const exerciseId = generateExerciseId();
+    try {
+      await logExerciseAsync("completed", exerciseId);
+    } finally {
+      setIsSubmitting(false);
+      router.push({
+        pathname: "/(home)/(tabs)/exercises",
+        params: { completedId: routine.id },
+      });
+    }
+  };
+
   const handleEndEarly = () => {
     // CLINICAL REQUIREMENT: Ending an exercise must have ZERO friction for cardiovascular patients.
     // Do NOT add a confirmation dialog here so patients feeling fatigued can exit immediately to safety check.
@@ -363,12 +419,20 @@ export default function ExerciseDetailsScreen() {
   };
 
   const handleSafetySymptoms = () => {
-    // CLINICAL REQUIREMENT: Never block navigation to the symptom logger on a network call.
-    // Fire exercise log asynchronously (best-effort) and navigate immediately.
     setShowSafetyCheck(false);
+    if (!routine) return;
     const exerciseId = generateExerciseId();
-    logExerciseAsync("incomplete_due_to_symptoms", exerciseId);
-    router.push(`/(home)/(health)/log-symptoms?triggered_by_exercise_id=${exerciseId}`);
+    const { seconds, minutes } = getElapsedDuration();
+    const payload = {
+      id: exerciseId,
+      routine_id: routine.id,
+      routine_name: routine.title,
+      duration_seconds: seconds,
+      duration_minutes: minutes,
+      status: "incomplete_due_to_symptoms",
+    };
+    const payloadStr = encodeURIComponent(JSON.stringify(payload));
+    router.push(`/(home)/(health)/log-symptoms?triggered_by_exercise_id=${exerciseId}&pending_exercise=${payloadStr}`);
   };
 
   if (isLoading || !routine) {
@@ -384,7 +448,7 @@ export default function ExerciseDetailsScreen() {
     const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?]+)/);
     return match ? match[1] : null;
   };
-  const videoId = routine ? getYoutubeVideoId(routine.videoUrl) : null;
+  const videoId = routine ? (getYoutubeVideoId(routine.image) || getYoutubeVideoId(routine.videoUrl)) : null;
 
   const steps = routine.steps && routine.steps.length > 0 ? routine.steps : [
     "Sit straight on the edge of a sturdy chair with your feet flat on the floor.",
@@ -413,21 +477,77 @@ export default function ExerciseDetailsScreen() {
           </TouchableOpacity>
 
           {routine?.type === "Breathing" ? (
-            <View className="w-full items-center justify-center overflow-hidden bg-slate-900" style={{ aspectRatio: 16 / 9 }}>
+            <View className="w-full items-center justify-center overflow-hidden" style={{ aspectRatio: 16 / 9, backgroundColor: "#0f172a" }}>
+              {/* Outer ring 3 */}
               <Animated.View
                 style={{
-                  transform: [{ scale: breatheAnim }],
+                  position: "absolute",
+                  width: 180,
+                  height: 180,
+                  borderRadius: 90,
+                  backgroundColor: "transparent",
+                  borderWidth: 1,
+                  borderColor: "rgba(94, 234, 212, 0.1)",
+                  transform: [{
+                    scale: ringAnim3.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.6, 1.6],
+                    })
+                  }],
+                  opacity: ringAnim3.interpolate({
+                    inputRange: [0, 0.5, 1],
+                    outputRange: [0.1, 0.3, 0.1],
+                  }),
+                }}
+              />
+              {/* Middle ring 2 */}
+              <Animated.View
+                style={{
+                  position: "absolute",
+                  width: 140,
+                  height: 140,
+                  borderRadius: 70,
+                  backgroundColor: "transparent",
+                  borderWidth: 1.5,
+                  borderColor: "rgba(94, 234, 212, 0.2)",
+                  transform: [{
+                    scale: ringAnim2.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.7, 1.4],
+                    })
+                  }],
+                  opacity: ringAnim2.interpolate({
+                    inputRange: [0, 0.5, 1],
+                    outputRange: [0.15, 0.4, 0.15],
+                  }),
+                }}
+              />
+              {/* Core breathing circle */}
+              <Animated.View
+                style={{
                   width: 100,
                   height: 100,
                   borderRadius: 50,
-                  backgroundColor: "rgba(255, 255, 255, 0.1)",
+                  backgroundColor: "rgba(94, 234, 212, 0.08)",
                   borderWidth: 2,
-                  borderColor: "rgba(255, 255, 255, 0.4)",
-                  position: "absolute"
+                  borderColor: "rgba(94, 234, 212, 0.5)",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  transform: [{
+                    scale: breatheAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.8, 1.3],
+                    })
+                  }],
                 }}
-              />
-              <Text className="text-white mt-32 font-medium tracking-widest text-[11px] uppercase z-10 text-center">
-                {isActive ? "Breathe smoothly with the circle" : "Press Start to begin"}
+              >
+                <Text style={{ color: "rgba(94, 234, 212, 0.9)", fontSize: 13, fontWeight: "700", letterSpacing: 2, textTransform: "uppercase" }}>
+                  {breathPhase === "ready" ? "" : breathPhase}
+                </Text>
+              </Animated.View>
+              {/* Bottom instruction text */}
+              <Text style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, fontWeight: "500", letterSpacing: 1.5, textTransform: "uppercase", position: "absolute", bottom: 20, textAlign: "center" }}>
+                {isActive ? "Follow the rhythm" : "Press Start to begin"}
               </Text>
             </View>
           ) : videoId ? (

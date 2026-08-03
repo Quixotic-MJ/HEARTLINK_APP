@@ -10,6 +10,9 @@ from app.api.recipes_api import recipes_api
 from app.api.notifications_api import notifications_api
 from app.api.analytics_api import analytics_api
 from app.api.admin_api import admin_api
+from app.api import uploads_api
+import os
+from fastapi.staticfiles import StaticFiles
 
 app = FastAPI(title="Heartlink", description="development phase", version="1.0.0")
 
@@ -31,6 +34,12 @@ app.include_router(recipes_api.router)
 app.include_router(notifications_api.router)
 app.include_router(analytics_api.router)
 app.include_router(admin_api.router)
+app.include_router(uploads_api.router)
+
+# Mount static files for uploads
+static_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static")
+os.makedirs(static_dir, exist_ok=True)
+app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 
 @app.get("/api/health", tags=["System"])

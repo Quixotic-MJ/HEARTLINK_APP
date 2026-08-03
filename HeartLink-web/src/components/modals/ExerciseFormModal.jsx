@@ -28,7 +28,7 @@ const exerciseSchema = z.object({
   steps: z.array(z.object({ value: z.string().min(1, "Step cannot be empty") })).optional(),
 });
 
-const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", onSave }) => {
+const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", onSave, onDelete }) => {
   if (!isOpen) return null;
 
   const {
@@ -62,6 +62,7 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
   const expertValidated = watch("expertValidated");
   const mediaUrl = watch("mediaUrl");
   const status = watch("status");
+  const [isUploading, setIsUploading] = React.useState(false);
 
   useEffect(() => {
     if (exercise) {
@@ -249,33 +250,76 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
 
             <div className="mb-5">
               <label className="block text-[11px] font-medium text-slate-700 mb-1.5">
-                Media Image / Video
+                Media Image / Video URL
               </label>
+              
+              <div className="mb-3">
+                <InputField
+                  id="mediaUrl"
+                  type="text"
+                  placeholder="Paste a YouTube link, image URL, or video URL..."
+                  error={errors.mediaUrl}
+                  {...register("mediaUrl")}
+                  left={<PlaySquare size={13} />}
+                />
+              </div>
+
               {mediaUrl && (
-                <div className="mb-3 w-full h-32 rounded-xl overflow-hidden bg-slate-100 border border-slate-200">
-                  {mediaUrl.startsWith("data:video") || mediaUrl.endsWith(".mp4") ? (
+                <div className="mb-3 w-full h-40 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 flex items-center justify-center">
+                  {mediaUrl.includes("youtube.com") || mediaUrl.includes("youtu.be") ? (
+                    <iframe
+                      width="100%"
+                      height="100%"
+                      src={mediaUrl.replace("watch?v=", "embed/").replace("youtu.be/", "youtube.com/embed/")}
+                      title="YouTube video player"
+                      frameBorder="0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    ></iframe>
+                  ) : mediaUrl.startsWith("data:video") || mediaUrl.endsWith(".mp4") ? (
                     <video src={mediaUrl} controls className="w-full h-full object-cover" />
                   ) : (
                     <img src={mediaUrl} alt="Preview" className="w-full h-full object-cover" />
                   )}
                 </div>
               )}
+
+              <div className="flex items-center gap-2 mb-3 mt-1">
+                <div className="h-px bg-slate-200 flex-1"></div>
+                <span className="text-[9px] text-slate-400 font-medium uppercase tracking-widest">OR UPLOAD FILE</span>
+                <div className="h-px bg-slate-200 flex-1"></div>
+              </div>
+
               <div className="relative">
                 <input
                   type="file"
                   accept="image/*,video/*"
-                  onChange={(e) => {
+                  disabled={isUploading}
+                  onChange={async (e) => {
                     const file = e.target.files[0];
                     if (file) {
-                      const reader = new FileReader();
-                      reader.onloadend = () => {
-                        setValue("mediaUrl", reader.result);
-                      };
-                      reader.readAsDataURL(file);
+                      setIsUploading(true);
+                      try {
+                        const formData = new FormData();
+                        formData.append("file", file);
+                        const response = await fetch("http://localhost:8000/api/upload", {
+                          method: "POST",
+                          body: formData,
+                        });
+                        if (!response.ok) throw new Error("Upload failed");
+                        const data = await response.json();
+                        setValue("mediaUrl", data.url, { shouldValidate: true, shouldDirty: true });
+                      } catch (err) {
+                        console.error("Upload error:", err);
+                        alert("Failed to upload file.");
+                      } finally {
+                        setIsUploading(false);
+                      }
                     }
                   }}
                   className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-slate-400 focus:bg-white transition-colors file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-[10px] file:font-medium file:bg-slate-200 file:text-slate-700 hover:file:bg-slate-300 cursor-pointer"
                 />
+                {isUploading && <p className="text-[10px] text-blue-500 mt-1">Uploading...</p>}
               </div>
             </div>
 
@@ -329,23 +373,40 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
 
         {/* Modal Footer / Actions */}
         <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex justify-between items-center shrink-0">
-          {status === "archived" ? (
-            <button
-              type="button"
-              onClick={() => setValue("status", "draft")}
-              className="flex items-center gap-1.5 text-[11px] font-medium text-emerald-600 hover:text-emerald-700 transition-colors"
-            >
-              <CheckCircle2 size={14} /> Restore Exercise
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setValue("status", "archived")}
-              className="flex items-center gap-1.5 text-[11px] font-medium text-slate-400 hover:text-red-500 transition-colors"
-            >
-              <Archive size={14} /> Archive Exercise
-            </button>
-          )}
+          <div className="flex items-center gap-4">
+            {status === "archived" ? (
+              <button
+                type="button"
+                onClick={() => setValue("status", "draft")}
+                className="flex items-center gap-1.5 text-[11px] font-medium text-emerald-600 hover:text-emerald-700 transition-colors"
+              >
+                <CheckCircle2 size={14} /> Restore Exercise
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setValue("status", "archived")}
+                className="flex items-center gap-1.5 text-[11px] font-medium text-slate-400 hover:text-orange-500 transition-colors"
+              >
+                <Archive size={14} /> Archive Exercise
+              </button>
+            )}
+
+            {exercise && onDelete && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.confirm("Are you sure you want to permanently delete this exercise routine?")) {
+                    onDelete(exercise.id);
+                    onClose();
+                  }
+                }}
+                className="flex items-center gap-1.5 text-[11px] font-medium text-slate-400 hover:text-red-500 transition-colors"
+              >
+                <Trash2 size={14} /> Delete Entry
+              </button>
+            )}
+          </div>
 
           <div className="flex gap-2">
             <button
