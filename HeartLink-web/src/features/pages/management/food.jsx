@@ -87,38 +87,40 @@ const Foods = () => {
   const [filterStatus, setFilterStatus] = useState("all");
   const [loading, setLoading] = useState(true);
 
+  const fetchFoods = async () => {
+    setLoading(true);
+    try {
+      const data = await apiFetch("/api/recipes");
+      const mapped = data.map((r) => {
+        let cssLabel = "Stable (80-100)";
+        if (r.css_tier === "Monitor Closely" || r.css_tier === "Caution") cssLabel = "Monitor Closely (50-79)";
+        if (r.css_tier === "Elevated Risk" || r.css_tier === "Critical") cssLabel = "Critical (<50)";
+        
+        return {
+          id: r.id,
+          name: r.name || "",
+          category: r.category || "Meal",
+          cssTarget: cssLabel,
+          sodium: r.sodium_mg || 0,
+          calories: r.calories || 0,
+          satFat: r.saturated_fat_g || 0,
+          cholesterol: r.cholesterol_mg || 0,
+          fiber: r.fiber_g || 0,
+          status: r.status || "draft",
+          expertValidated: r.expert_validated || false,
+          mediaUrl: r.image_url || "",
+        };
+      });
+      setRecipes(mapped.length > 0 ? mapped : initialRecipes);
+    } catch (err) {
+      console.error("Failed to fetch foods", err);
+      setRecipes(initialRecipes);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   React.useEffect(() => {
-    const fetchFoods = async () => {
-      try {
-        const data = await apiFetch("/api/meals/search?q=");
-        const mapped = data.map((r) => {
-          let cssLabel = "Stable (80-100)";
-          if (r.css_tier === "Monitor Closely") cssLabel = "Monitor Closely (50-79)";
-          if (r.css_tier === "Elevated Risk" || r.css_tier === "Critical") cssLabel = "Critical (<50)";
-          
-          return {
-            id: r.id,
-            name: r.name || "",
-            category: r.category || "Meal",
-            cssTarget: cssLabel,
-            sodium: r.sodium_mg || 0,
-            calories: r.calories || 0,
-            satFat: 0,
-            cholesterol: 0,
-            fiber: 0,
-            status: "published",
-            expertValidated: true,
-            mediaUrl: r.image_url || "",
-          };
-        });
-        setRecipes(mapped.length > 0 ? mapped : initialRecipes);
-      } catch (err) {
-        console.error("Failed to fetch foods", err);
-        setRecipes(initialRecipes);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchFoods();
   }, []);
 
@@ -360,6 +362,7 @@ const Foods = () => {
               })}
             </tbody>
           )}
+          </table>
           {!loading && filteredRecipes.length === 0 && (
             <div className="p-8 text-center text-slate-400 text-xs">No foods or meals found.</div>
           )}
@@ -372,9 +375,33 @@ const Foods = () => {
         onClose={closeModal}
         recipe={editingRecipe}
         userRole={userRole}
-        onSave={(data) => {
-          console.log("Saving recipe to DB:", data);
-          // Here you would dispatch an action or make an API call
+        onSave={async (data) => {
+          try {
+            if (editingRecipe?.id) {
+              await apiFetch(`/api/recipes/${editingRecipe.id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data),
+              });
+            } else {
+              await apiFetch("/api/recipes", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data),
+              });
+            }
+            fetchFoods();
+          } catch (err) {
+            console.error("Error saving recipe:", err);
+          }
+        }}
+        onDelete={async (id) => {
+          try {
+            await apiFetch(`/api/recipes/${id}`, { method: "DELETE" });
+            fetchFoods();
+          } catch (err) {
+            console.error("Error deleting recipe:", err);
+          }
         }}
       />
     </AdminLayout>

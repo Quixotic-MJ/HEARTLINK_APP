@@ -6,6 +6,7 @@ export const InputField = React.forwardRef(({
   label,
   hint,
   hintHref,
+  onHintClick,
   left,
   right,
   error,
@@ -29,7 +30,11 @@ export const InputField = React.forwardRef(({
             </label>
           )}
           {hint && (
-            <a href={hintHref || "#"} className="text-[11px] text-slate-400 hover:text-slate-700 transition-colors">
+            <a 
+              href={hintHref || "#"} 
+              onClick={onHintClick}
+              className="text-[11px] text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
+            >
               {hint}
             </a>
           )}

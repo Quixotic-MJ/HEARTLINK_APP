@@ -104,13 +104,13 @@ const Exercises = () => {
           return {
             id: r.id,
             name: r.name || "",
-            description: r.goal || "",
+            description: r.description || r.goal || "",
             duration: r.duration_minutes || 0,
             cssTarget: cssLabel,
-            mediaUrl: r.image_url || "",
-            status: "published",
-            expertValidated: true,
-            steps: [],
+            mediaUrl: r.media_url || r.image_url || "",
+            status: r.status || "draft",
+            expertValidated: r.expert_validated || false,
+            steps: r.steps || [],
           };
         });
         setExercises(mapped.length > 0 ? mapped : initialExercises);
@@ -288,15 +288,20 @@ const Exercises = () => {
                         <div
                           className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors overflow-hidden bg-slate-100 border border-slate-200"
                         >
-                          {exercise.mediaUrl ? (
-                            exercise.mediaUrl.startsWith("data:video") || exercise.mediaUrl.endsWith(".mp4") ? (
-                              <video src={exercise.mediaUrl} className="w-full h-full object-cover" muted loop autoPlay playsInline />
-                            ) : (
-                              <img src={exercise.mediaUrl} alt={exercise.name} className="w-full h-full object-cover" />
-                            )
-                          ) : (
-                            <Dumbbell size={16} className="text-slate-500" />
-                          )}
+                          {(() => {
+                            if (!exercise.mediaUrl) return <Dumbbell size={16} className="text-slate-500" />;
+                            
+                            const ytMatch = exercise.mediaUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?]+)/);
+                            if (ytMatch && ytMatch[1]) {
+                              return <img src={`https://img.youtube.com/vi/${ytMatch[1]}/hqdefault.jpg`} alt={exercise.name} className="w-full h-full object-cover" />;
+                            }
+                            
+                            if (exercise.mediaUrl.startsWith("data:video") || exercise.mediaUrl.endsWith(".mp4")) {
+                              return <video src={exercise.mediaUrl} className="w-full h-full object-cover" muted loop autoPlay playsInline />;
+                            }
+                            
+                            return <img src={exercise.mediaUrl} alt={exercise.name} className="w-full h-full object-cover" />;
+                          })()}
                         </div>
                         <div>
                           <p className="text-slate-900 font-semibold text-xs mb-0.5">
@@ -374,6 +379,7 @@ const Exercises = () => {
               })}
             </tbody>
           )}
+          </table>
           {!loading && filteredExercises.length === 0 && (
             <div className="p-8 text-center text-slate-400 text-xs">No exercises found.</div>
           )}
@@ -386,9 +392,35 @@ const Exercises = () => {
         onClose={closeModal}
         exercise={editingExercise}
         userRole={userRole}
-        onSave={(data) => {
-          console.log("Saving exercise to DB:", data);
-          // Dispatch action or API call here
+        onSave={async (data) => {
+          try {
+            if (editingExercise?.id) {
+              await apiFetch(`/api/exercises/${editingExercise.id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data),
+              });
+            } else {
+              await apiFetch("/api/exercises", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data),
+              });
+            }
+            // Temporarily use window.location.reload since fetchExercises is inside useEffect
+            // Alternatively, could move fetchExercises out of useEffect but reload is fine for this demo
+            window.location.reload();
+          } catch (err) {
+            console.error("Error saving exercise:", err);
+          }
+        }}
+        onDelete={async (id) => {
+          try {
+            await apiFetch(`/api/exercises/${id}`, { method: "DELETE" });
+            window.location.reload();
+          } catch (err) {
+            console.error("Error deleting exercise:", err);
+          }
         }}
       />
     </AdminLayout>

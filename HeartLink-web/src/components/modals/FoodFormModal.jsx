@@ -35,7 +35,7 @@ const foodSchema = z.object({
   ).optional(),
 });
 
-const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave }) => {
+const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave, onDelete }) => {
   if (!isOpen) return null;
 
   const {
@@ -394,6 +394,7 @@ const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave }
 
         {/* Modal Footer / Actions */}
         <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex justify-between items-center shrink-0">
+        <div className="flex items-center gap-4">
           {status === "archived" ? (
             <button
               type="button"
@@ -406,11 +407,27 @@ const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave }
             <button
               type="button"
               onClick={() => setValue("status", "archived")}
-              className="flex items-center gap-1.5 text-[11px] font-medium text-slate-400 hover:text-red-500 transition-colors"
+              className="flex items-center gap-1.5 text-[11px] font-medium text-slate-400 hover:text-orange-500 transition-colors"
             >
               <Archive size={14} /> Archive Entry
             </button>
           )}
+
+          {recipe && onDelete && (
+            <button
+              type="button"
+              onClick={() => {
+                if (window.confirm("Are you sure you want to permanently delete this entry?")) {
+                  onDelete(recipe.id);
+                  onClose();
+                }
+              }}
+              className="flex items-center gap-1.5 text-[11px] font-medium text-slate-400 hover:text-red-500 transition-colors"
+            >
+              <Trash2 size={14} /> Delete Entry
+            </button>
+          )}
+        </div>
 
           <div className="flex gap-2">
             <button

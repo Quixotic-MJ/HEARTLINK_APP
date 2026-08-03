@@ -1,310 +1,254 @@
 {
   "meal_logs": [
     {
-      "id": "meal-ab1291a8",
-      "user_id": "usr-patient-994debf7",
-      "recipe_id": null,
-      "meal_name": "Test",
-      "barcode": null,
-      "portion": 1,
-      "calories": 1000,
-      "sodium_mg": 1600,
-      "saturated_fat_g": 0,
-      "fiber_g": 0,
-      "image_url": null,
-      "logged_at": "2026-07-27T10:26:08.935794"
-    },
-    {
-      "id": "meal-9dbc7230",
-      "user_id": "usr-patient-994debf7",
+      "id": "meal-301",
+      "user_id": "usr-patient-101",
       "recipe_id": "rec-501",
       "meal_name": "Low Sodium Chicken Tinola",
       "barcode": null,
-      "portion": 1,
+      "portion": "1 serving",
       "calories": 320,
       "sodium_mg": 380,
       "saturated_fat_g": 1.5,
       "fiber_g": 4,
       "image_url": "https://storage.provider/tinola.jpg",
-      "logged_at": "2026-07-27T10:27:06.817795"
-    },
-    {
-      "id": "meal-27cb53ea",
-      "user_id": "usr-patient-994debf7",
-      "recipe_id": "rec-504",
-      "meal_name": "Grilled Bangus with Citrus & Garlic",
-      "barcode": null,
-      "portion": 1,
-      "calories": 280,
-      "sodium_mg": 95,
-      "saturated_fat_g": 2,
-      "fiber_g": 2,
-      "image_url": "https://images.unsplash.com/photo-1580476262798-bddd9f4b7369?w=400&h=300&fit=crop",
-      "logged_at": "2026-07-29T13:30:44.180840",
-      "deleted_at": "2026-07-29T15:51:16.574386"
-    },
-    {
-      "id": "meal-cb64606b",
-      "user_id": "usr-patient-c6955e55",
-      "recipe_id": "rec-501",
-      "meal_name": "Low Sodium Chicken Tinola",
-      "barcode": null,
-      "portion": 1,
-      "calories": 320,
-      "sodium_mg": 380,
-      "saturated_fat_g": 1.5,
-      "fiber_g": 4,
-      "image_url": "https://storage.provider/tinola.jpg",
-      "logged_at": "2026-07-30T16:21:48.767520",
-      "deleted_at": "2026-07-30T16:22:07.535405"
+      "logged_at": "2026-07-09T12:00:00"
     }
   ],
   "exercise_logs": [
     {
-      "id": "ex-1785120223908-b1vcn5",
-      "user_id": "usr-patient-994debf7",
-      "routine_id": "rout-605",
-      "routine_name": "Seated Leg Lifts",
-      "duration_seconds": 600,
-      "duration_minutes": 10,
-      "status": "completed",
-      "logged_at": "2026-07-27T10:43:43.912310",
-      "deleted_at": "2026-07-27T10:56:32.922908"
-    },
-    {
-      "id": "ex-1785120854301-afkqfs",
-      "user_id": "usr-patient-994debf7",
-      "routine_id": "rout-605",
-      "routine_name": "Seated Leg Lifts",
-      "duration_seconds": 5,
-      "duration_minutes": 0.08,
-      "status": "completed",
-      "logged_at": "2026-07-27T10:54:14.314695",
-      "deleted_at": "2026-07-27T10:56:35.140459"
-    },
-    {
-      "id": "ex-1785305248939-t7daoy",
-      "user_id": "usr-patient-994debf7",
+      "id": "ex-401",
+      "user_id": "usr-patient-101",
       "routine_id": "rout-601",
       "routine_name": "Basal Paced Breathing Exercise",
-      "duration_seconds": 10,
-      "duration_minutes": 0.17,
+      "duration_minutes": 10,
       "status": "completed",
-      "logged_at": "2026-07-29T14:07:30.713779",
-      "deleted_at": "2026-07-29T15:51:52.186741"
+      "logged_at": "2026-07-09T20:00:00",
+      "deleted_at": "2026-08-03T11:02:43.560155"
+    },
+    {
+      "id": "ex-1785725201433-td83tt",
+      "user_id": "usr-patient-101",
+      "routine_id": "rout-606",
+      "routine_name": "4-7-8 Deep Breathing Technique",
+      "duration_seconds": 40,
+      "duration_minutes": 0.67,
+      "status": "completed",
+      "logged_at": "2026-08-03T10:46:38.862104",
+      "deleted_at": "2026-08-03T11:02:46.193426"
+    },
+    {
+      "id": "ex-1785725936053-w0dtg9",
+      "user_id": "usr-patient-101",
+      "routine_id": "rout-602",
+      "routine_name": "20-Minute Neighborhood Walk",
+      "duration_seconds": 2,
+      "duration_minutes": 0.03,
+      "status": "completed",
+      "logged_at": "2026-08-03T10:58:53.338614",
+      "deleted_at": "2026-08-03T11:02:40.834156"
+    },
+    {
+      "id": "ex-1785726319958-lu296x",
+      "user_id": "usr-patient-101",
+      "routine_id": "rout-601",
+      "routine_name": "Basal Paced Breathing Exercise",
+      "duration_seconds": 13,
+      "duration_minutes": 0.22,
+      "status": "incomplete_due_to_symptoms",
+      "logged_at": "2026-08-03T11:05:17.796202",
+      "deleted_at": "2026-08-03T11:06:26.750863"
+    },
+    {
+      "id": "ex-1785726378514-3jodeh",
+      "user_id": "usr-patient-101",
+      "routine_id": "rout-601",
+      "routine_name": "Basal Paced Breathing Exercise",
+      "duration_seconds": 13,
+      "duration_minutes": 0.22,
+      "status": "completed",
+      "logged_at": "2026-08-03T11:06:15.925852",
+      "deleted_at": "2026-08-03T11:06:29.103036"
+    },
+    {
+      "id": "ex-1785727335103-7rv4zo",
+      "user_id": "usr-patient-101",
+      "routine_id": "rout-603",
+      "routine_name": "Basic Standing Stretches",
+      "duration_seconds": 2,
+      "duration_minutes": 0.03,
+      "status": "completed",
+      "logged_at": "2026-08-03T11:22:12.562873",
+      "deleted_at": "2026-08-03T11:22:29.489002"
     }
   ],
   "daily_health_logs": [
     {
-      "id": "log-23f6eff2",
-      "user_id": "usr-patient-994debf7",
-      "systolic_bp": 0,
-      "diastolic_bp": 0,
-      "heart_rate_bpm": 0,
-      "weight_kg": 0,
+      "id": "log-901",
+      "user_id": "usr-patient-101",
+      "systolic_bp": 118,
+      "diastolic_bp": 76,
+      "heart_rate_bpm": 72,
+      "weight_kg": 68.0,
+      "medication_taken": false,
+      "symptoms": [],
+      "severity_map": {},
+      "context": "resting",
+      "notes": "Felt perfectly normal in the morning checking",
+      "logged_at": "2026-07-09T07:30:00"
+    },
+    {
+      "id": "log-902",
+      "user_id": "usr-patient-101",
+      "systolic_bp": 134,
+      "diastolic_bp": 86,
+      "heart_rate_bpm": 88,
+      "weight_kg": 68.5,
       "medication_taken": false,
       "symptoms": [
-        "Shortness of Breath"
+        "chest_tightness",
+        "dizziness"
       ],
       "severity_map": {
-        "Shortness of Breath": 1
+        "chest_tightness": 5,
+        "dizziness": 3
       },
-      "context": "While resting",
-      "triggered_by_exercise_id": null,
-      "notes": "",
-      "logged_at": "2026-07-27T10:26:34.691970"
+      "context": "after_eating",
+      "notes": "Felt light dizziness after eating local dried fish lunch",
+      "logged_at": "2026-07-10T13:15:00"
     }
   ],
   "css_history": [
     {
-      "id": "css-1000",
-      "user_id": "usr-patient-994debf7",
-      "score": 86,
+      "id": "css-701",
+      "user_id": "usr-patient-101",
+      "score": 85,
       "tier": "Stable",
       "contributing_factors": {
-        "ml_predicted": "True"
+        "sleep_impact": "optimal",
+        "bp_variance": "low"
       },
-      "computed_at": "2026-07-27T02:25:32.133351"
+      "computed_at": "2026-07-05T20:10:00"
     },
     {
-      "id": "css-695f474c",
-      "user_id": "usr-patient-994debf7",
-      "score": 81,
-      "tier": "Stable",
-      "contributing_factors": {
-        "bp_penalty": 0,
-        "hr_penalty": 0,
-        "symptom_penalty": 0,
-        "diet_penalty": 5,
-        "exercise_bonus": 0,
-        "multiplier_applied": false
-      },
-      "computed_at": "2026-07-27T10:26:08.937836"
-    },
-    {
-      "id": "css-bff0cb5a",
-      "user_id": "usr-patient-994debf7",
-      "score": 74,
+      "id": "css-702",
+      "user_id": "usr-patient-101",
+      "score": 82,
       "tier": "Moderate",
       "contributing_factors": {
-        "bp_penalty": 0,
-        "hr_penalty": 0,
-        "symptom_penalty": 5,
-        "diet_penalty": 5,
-        "exercise_bonus": 0,
-        "multiplier_applied": true
+        "sleep_impact": "optimal",
+        "bp_variance": "low"
       },
-      "computed_at": "2026-07-27T10:26:34.691970"
+      "computed_at": "2026-07-06T20:10:00"
     },
     {
-      "id": "css-20ded6b7",
-      "user_id": "usr-patient-994debf7",
-      "score": 74,
-      "tier": "Moderate",
-      "contributing_factors": {
-        "bp_penalty": 0,
-        "hr_penalty": 0,
-        "symptom_penalty": 5,
-        "diet_penalty": 5,
-        "exercise_bonus": 0,
-        "multiplier_applied": true
-      },
-      "computed_at": "2026-07-27T10:27:06.818806"
-    },
-    {
-      "id": "css-ed1f1cbd",
-      "user_id": "usr-patient-994debf7",
-      "score": 77,
-      "tier": "Moderate",
-      "contributing_factors": {
-        "bp_penalty": 0,
-        "hr_penalty": 0,
-        "symptom_penalty": 5,
-        "diet_penalty": 5,
-        "exercise_bonus": 3,
-        "multiplier_applied": true
-      },
-      "computed_at": "2026-07-27T10:43:43.913320"
-    },
-    {
-      "id": "css-657dab86",
-      "user_id": "usr-patient-994debf7",
-      "score": 77,
-      "tier": "Moderate",
-      "contributing_factors": {
-        "bp_penalty": 0,
-        "hr_penalty": 0,
-        "symptom_penalty": 5,
-        "diet_penalty": 5,
-        "exercise_bonus": 3,
-        "multiplier_applied": true
-      },
-      "computed_at": "2026-07-27T10:54:14.320080"
-    },
-    {
-      "id": "css-16c2d432",
-      "user_id": "usr-patient-994debf7",
-      "score": 77,
-      "tier": "Moderate",
-      "contributing_factors": {
-        "bp_penalty": 0,
-        "hr_penalty": 0,
-        "symptom_penalty": 5,
-        "diet_penalty": 5,
-        "exercise_bonus": 3,
-        "multiplier_applied": true
-      },
-      "computed_at": "2026-07-27T10:56:32.923907"
-    },
-    {
-      "id": "css-44e4584e",
-      "user_id": "usr-patient-994debf7",
-      "score": 74,
-      "tier": "Moderate",
-      "contributing_factors": {
-        "bp_penalty": 0,
-        "hr_penalty": 0,
-        "symptom_penalty": 5,
-        "diet_penalty": 5,
-        "exercise_bonus": 0,
-        "multiplier_applied": true
-      },
-      "computed_at": "2026-07-27T10:56:35.141913"
-    },
-    {
-      "id": "css-4d292510",
-      "user_id": "usr-patient-994debf7",
-      "score": 86,
-      "tier": "Stable",
-      "contributing_factors": {
-        "bp_penalty": 0,
-        "hr_penalty": 0,
-        "symptom_penalty": 0,
-        "diet_penalty": 0,
-        "exercise_bonus": 0,
-        "multiplier_applied": false
-      },
-      "computed_at": "2026-07-29T13:30:44.249816"
-    },
-    {
-      "id": "css-57c94b56",
-      "user_id": "usr-patient-994debf7",
-      "score": 86,
-      "tier": "Stable",
-      "contributing_factors": {
-        "bp_penalty": 0,
-        "hr_penalty": 0,
-        "symptom_penalty": 0,
-        "diet_penalty": 0,
-        "exercise_bonus": 3,
-        "multiplier_applied": false
-      },
-      "computed_at": "2026-07-29T14:07:30.723937"
-    },
-    {
-      "id": "css-86a8e37c",
-      "user_id": "usr-patient-994debf7",
-      "score": 86,
-      "tier": "Stable",
-      "contributing_factors": {
-        "bp_penalty": 0,
-        "hr_penalty": 0,
-        "symptom_penalty": 0,
-        "diet_penalty": 0,
-        "exercise_bonus": 3,
-        "multiplier_applied": false
-      },
-      "computed_at": "2026-07-29T15:51:16.584898"
-    },
-    {
-      "id": "css-435e2ff0",
-      "user_id": "usr-patient-994debf7",
-      "score": 86,
-      "tier": "Stable",
-      "contributing_factors": {
-        "bp_penalty": 0,
-        "hr_penalty": 0,
-        "symptom_penalty": 0,
-        "diet_penalty": 0,
-        "exercise_bonus": 0,
-        "multiplier_applied": false
-      },
-      "computed_at": "2026-07-29T15:51:52.188351"
-    },
-    {
-      "id": "css-1012",
-      "user_id": "usr-patient-c6955e55",
+      "id": "css-703",
+      "user_id": "usr-patient-101",
       "score": 88,
       "tier": "Stable",
       "contributing_factors": {
-        "ml_predicted": "True"
+        "sleep_impact": "optimal",
+        "bp_variance": "low"
       },
-      "computed_at": "2026-07-30T07:38:36.670624"
+      "computed_at": "2026-07-07T20:10:00"
     },
     {
-      "id": "css-151522f3",
-      "user_id": "usr-patient-c6955e55",
-      "score": 88,
+      "id": "css-704",
+      "user_id": "usr-patient-101",
+      "score": 90,
+      "tier": "Stable",
+      "contributing_factors": {
+        "sleep_impact": "optimal",
+        "bp_variance": "low"
+      },
+      "computed_at": "2026-07-08T20:10:00"
+    },
+    {
+      "id": "css-705",
+      "user_id": "usr-patient-101",
+      "score": 78,
+      "tier": "Moderate",
+      "contributing_factors": {
+        "sleep_impact": "optimal",
+        "bp_variance": "low"
+      },
+      "computed_at": "2026-07-09T20:10:00"
+    },
+    {
+      "id": "css-706",
+      "user_id": "usr-patient-101",
+      "score": 52,
+      "tier": "Elevated Risk",
+      "contributing_factors": {
+        "bp_spike": "high",
+        "symptom_count": 2
+      },
+      "computed_at": "2026-07-10T13:20:00"
+    },
+    {
+      "id": "css-54ddcac0",
+      "user_id": "usr-patient-101",
+      "score": 85,
+      "tier": "Stable",
+      "contributing_factors": {
+        "bp_penalty": 0,
+        "hr_penalty": 0,
+        "symptom_penalty": 0,
+        "diet_penalty": 0,
+        "exercise_bonus": 3,
+        "multiplier_applied": false
+      },
+      "computed_at": "2026-08-03T10:46:38.869130"
+    },
+    {
+      "id": "css-7cab6607",
+      "user_id": "usr-patient-101",
+      "score": 85,
+      "tier": "Stable",
+      "contributing_factors": {
+        "bp_penalty": 0,
+        "hr_penalty": 0,
+        "symptom_penalty": 0,
+        "diet_penalty": 0,
+        "exercise_bonus": 3,
+        "multiplier_applied": false
+      },
+      "computed_at": "2026-08-03T10:58:53.340619"
+    },
+    {
+      "id": "css-8cf860ff",
+      "user_id": "usr-patient-101",
+      "score": 85,
+      "tier": "Stable",
+      "contributing_factors": {
+        "bp_penalty": 0,
+        "hr_penalty": 0,
+        "symptom_penalty": 0,
+        "diet_penalty": 0,
+        "exercise_bonus": 3,
+        "multiplier_applied": false
+      },
+      "computed_at": "2026-08-03T11:02:40.835562"
+    },
+    {
+      "id": "css-0b08e707",
+      "user_id": "usr-patient-101",
+      "score": 85,
+      "tier": "Stable",
+      "contributing_factors": {
+        "bp_penalty": 0,
+        "hr_penalty": 0,
+        "symptom_penalty": 0,
+        "diet_penalty": 0,
+        "exercise_bonus": 3,
+        "multiplier_applied": false
+      },
+      "computed_at": "2026-08-03T11:02:43.561155"
+    },
+    {
+      "id": "css-c5822a0d",
+      "user_id": "usr-patient-101",
+      "score": 85,
       "tier": "Stable",
       "contributing_factors": {
         "bp_penalty": 0,
@@ -314,12 +258,57 @@
         "exercise_bonus": 0,
         "multiplier_applied": false
       },
-      "computed_at": "2026-07-30T16:21:48.828771"
+      "computed_at": "2026-08-03T11:02:46.194942"
     },
     {
-      "id": "css-732c45a4",
-      "user_id": "usr-patient-c6955e55",
-      "score": 88,
+      "id": "css-0d619a35",
+      "user_id": "usr-patient-101",
+      "score": 85,
+      "tier": "Stable",
+      "contributing_factors": {
+        "bp_penalty": 0,
+        "hr_penalty": 0,
+        "symptom_penalty": 0,
+        "diet_penalty": 0,
+        "exercise_bonus": 3,
+        "multiplier_applied": false
+      },
+      "computed_at": "2026-08-03T11:05:17.798211"
+    },
+    {
+      "id": "css-9a70739a",
+      "user_id": "usr-patient-101",
+      "score": 85,
+      "tier": "Stable",
+      "contributing_factors": {
+        "bp_penalty": 0,
+        "hr_penalty": 0,
+        "symptom_penalty": 0,
+        "diet_penalty": 0,
+        "exercise_bonus": 3,
+        "multiplier_applied": false
+      },
+      "computed_at": "2026-08-03T11:06:15.927846"
+    },
+    {
+      "id": "css-36e215ab",
+      "user_id": "usr-patient-101",
+      "score": 85,
+      "tier": "Stable",
+      "contributing_factors": {
+        "bp_penalty": 0,
+        "hr_penalty": 0,
+        "symptom_penalty": 0,
+        "diet_penalty": 0,
+        "exercise_bonus": 3,
+        "multiplier_applied": false
+      },
+      "computed_at": "2026-08-03T11:06:26.751865"
+    },
+    {
+      "id": "css-11d79788",
+      "user_id": "usr-patient-101",
+      "score": 85,
       "tier": "Stable",
       "contributing_factors": {
         "bp_penalty": 0,
@@ -329,7 +318,37 @@
         "exercise_bonus": 0,
         "multiplier_applied": false
       },
-      "computed_at": "2026-07-30T16:22:07.536678"
+      "computed_at": "2026-08-03T11:06:29.105362"
+    },
+    {
+      "id": "css-a2c7717e",
+      "user_id": "usr-patient-101",
+      "score": 85,
+      "tier": "Stable",
+      "contributing_factors": {
+        "bp_penalty": 0,
+        "hr_penalty": 0,
+        "symptom_penalty": 0,
+        "diet_penalty": 0,
+        "exercise_bonus": 3,
+        "multiplier_applied": false
+      },
+      "computed_at": "2026-08-03T11:22:12.564377"
+    },
+    {
+      "id": "css-2f405918",
+      "user_id": "usr-patient-101",
+      "score": 85,
+      "tier": "Stable",
+      "contributing_factors": {
+        "bp_penalty": 0,
+        "hr_penalty": 0,
+        "symptom_penalty": 0,
+        "diet_penalty": 0,
+        "exercise_bonus": 0,
+        "multiplier_applied": false
+      },
+      "computed_at": "2026-08-03T11:22:29.491000"
     }
   ],
   "notifications": [

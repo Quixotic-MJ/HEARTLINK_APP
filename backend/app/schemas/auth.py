@@ -23,6 +23,10 @@ class Login(BaseModel):
     identifier: str
     password: str
 
+class WebVerify2FA(BaseModel):
+    token_2fa: str
+    code: str
+
 class ForgotPasswordRequest(BaseModel):
     identifier: str
 
