@@ -12,67 +12,73 @@ import {
   CheckCircle2,
   Clock,
   UserCircle,
+  Activity,
 } from "lucide-react";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
 import AdminLayout from "../../../components/layouts/adminLayout";
 import CalibrationModal from "../../../components/modals/CalibrationModal";
 
-// Mock Data for Calibration Logs
-const initialCalibrationData = [
-  {
-    id: 1,
-    feedbackId: "CAL-9021",
-    caseId: "CASE-8142",
-    reviewer: "Dr. Sarah Jenkins (MED-04)",
-    timestamp: "May 25, 2026 10:45 AM",
-    rating: 3,
-    status: "Logged",
-    notes:
-      "The warning was appropriate, but the CSS penalty for isolated dietary sodium without any physical symptoms might be too aggressive in this demographic. Recommend lowering the weight of isolated dietary flags by 5% unless accompanied by elevated heart rate logs.",
-  },
-  {
-    id: 2,
-    feedbackId: "CAL-9020",
-    caseId: "CASE-8150",
-    reviewer: "Dr. Mark Rivera (MED-02)",
-    timestamp: "May 25, 2026 09:12 AM",
-    rating: 5,
-    status: "Applied to Algorithm",
-    notes:
-      "Excellent algorithmic catch. The system correctly identified a high-risk progression by cross-referencing severe fatigue with a 3-day history of dietary sodium breaches. The Cardiologist Locator trigger was perfectly timed.",
-  },
-  {
-    id: 3,
-    feedbackId: "CAL-9018",
-    caseId: "CASE-8099",
-    reviewer: "Dr. Elena Santos (MED-07)",
-    timestamp: "May 22, 2026 16:30 PM",
-    rating: 2,
-    status: "Archived",
-    notes:
-      "False positive on 'Shortness of Breath'. The user had recently logged a 45-minute high-intensity cardio session. The system should cross-reference symptom logs with recent exercise duration before dropping the CSS into critical levels.",
-  },
-  {
-    id: 4,
-    feedbackId: "CAL-9015",
-    caseId: "CASE-8075",
-    reviewer: "Dr. Mark Rivera (MED-02)",
-    timestamp: "May 20, 2026 11:20 AM",
-    rating: 4,
-    status: "Applied to Algorithm",
-    notes:
-      "Good correlation between skipped meals and mild dizziness. The system accurately recommended a transition to 'Stable' low-intensity workouts. No threshold changes needed here.",
-  },
-];
+import { apiFetch } from "../../../api";
 
 const Calibration = () => {
-  const [logs, setLogs] = useState(initialCalibrationData);
+  const [logs, setLogs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [isRetraining, setIsRetraining] = useState(false);
+  const [retrainMetrics, setRetrainMetrics] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [filterRating, setFilterRating] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeLog, setActiveLog] = useState(null);
+
+  // Fetch evaluations
+  React.useEffect(() => {
+    fetchLogs();
+  }, []);
+
+  const fetchLogs = async () => {
+    try {
+      setLoading(true);
+      const data = await apiFetch("/api/admin/evaluations");
+      if (data) setLogs(data);
+    } catch (e) {
+      console.error("Failed to fetch evaluations", e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRetrain = async () => {
+    try {
+      setIsRetraining(true);
+      setRetrainMetrics(null);
+      const res = await apiFetch("/api/admin/retrain", { method: "POST" });
+      if (res && res.metrics) {
+        setRetrainMetrics(res.metrics);
+        fetchLogs(); // refresh statuses
+      }
+    } catch (e) {
+      console.error("Retrain failed", e);
+      alert("Model retraining failed. Check console for details.");
+    } finally {
+      setIsRetraining(false);
+    }
+  };
+
+  const handleArchive = async (logId) => {
+    try {
+      setLoading(true);
+      await apiFetch(`/api/admin/evaluations/${logId}/archive`, { method: "PUT" });
+      await fetchLogs();
+      closeModal();
+    } catch (e) {
+      console.error("Failed to archive log", e);
+      alert("Failed to archive log");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Open Modal for Detail View
   const openModal = (log) => {
@@ -88,37 +94,31 @@ const Calibration = () => {
   // Filter Logic
   const filteredLogs = logs.filter((log) => {
     const matchesSearch =
-      log.feedbackId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      log.caseId.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesRating =
-      filterRating === "all" || log.rating === parseInt(filterRating);
+      log.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      log.case_id.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus =
       filterStatus === "all" ||
-      log.status.toLowerCase() === filterStatus.toLowerCase();
-    return matchesSearch && matchesRating && matchesStatus;
+      log.status?.toLowerCase() === filterStatus.toLowerCase();
+    return matchesSearch && matchesStatus;
   });
 
-  // Star Rating Renderer
-  const renderStars = (rating) => {
-    return (
-      <div
-        className="flex items-center gap-0.5"
-        title={`${rating} out of 5 stars`}
-      >
-        {Array.from({ length: 5 }).map((_, i) => (
-          <Star
-            key={i}
-            size={12}
-            className={
-              i < rating
-                ? "fill-yellow-400 text-yellow-400"
-                : "fill-gray-100 text-gray-200"
-            }
-          />
-        ))}
-      </div>
-    );
-  };
+  // Calculate Chart Data
+  // We want to show the trend of Error Margin over time
+  const chartData = logs
+    .filter(log => log.ml_predicted_css != null && log.expert_css_score != null)
+    .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+    .map((log, index) => {
+      const errorMargin = Math.abs(log.expert_css_score - log.ml_predicted_css);
+      return {
+        name: `Eval ${index + 1}`,
+        error: errorMargin,
+        expert: log.expert_css_score,
+        ml: log.ml_predicted_css,
+        date: new Date(log.created_at).toLocaleDateString()
+      };
+    });
+
+
 
   // Status Badge Renderer
   const getStatusBadge = (status) => {
@@ -157,11 +157,68 @@ const Calibration = () => {
           </h2>
         </div>
 
-        {/* Critical Feature: Export Dataset Button */}
-        <button className="flex items-center gap-1.5 text-white font-medium text-[11px] px-5 py-2.5 rounded-xl shadow-sm transition-all hover:opacity-90 active:scale-[0.99]" style={{ backgroundColor: "#0f172a" }}>
-          <Download size={14} strokeWidth={2.5} /> Export Calibration Data (CSV)
-        </button>
+        {/* Critical Feature: Export Dataset & Retrain Button */}
+        <div className="flex flex-col sm:flex-row gap-3 items-end">
+           {retrainMetrics && (
+             <div className="text-[10px] text-emerald-700 bg-emerald-50 px-3 py-2 rounded-xl border border-emerald-100 flex items-center gap-2">
+                <CheckCircle2 size={14} /> 
+                <span>Model Retrained! MAE: <strong>{retrainMetrics.mae}</strong> | R²: <strong>{retrainMetrics.r2}</strong> | Samples: <strong>{retrainMetrics.sample_count}</strong></span>
+             </div>
+           )}
+           <button 
+             onClick={handleRetrain}
+             disabled={isRetraining}
+             className="flex items-center gap-1.5 text-white font-medium text-[11px] px-5 py-2.5 rounded-xl shadow-sm transition-all hover:opacity-90 active:scale-[0.99] disabled:opacity-50" 
+             style={{ backgroundColor: "#0f172a" }}>
+             <Activity size={14} strokeWidth={2.5} className={isRetraining ? "animate-spin" : ""} /> 
+             {isRetraining ? "Retraining Model..." : "Retrain Model from Feedback"}
+           </button>
+        </div>
       </div>
+
+      {/* Model Accuracy Dashboard */}
+      {chartData.length > 0 && (
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 mb-8 flex flex-col md:flex-row gap-6">
+          <div className="w-full md:w-1/3 space-y-4 border-b md:border-b-0 md:border-r border-slate-100 pb-4 md:pb-0 md:pr-6">
+            <div>
+              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-1">MODEL ACCURACY TREND</p>
+              <h3 className="text-lg font-bold text-slate-900">Absolute Error Margin</h3>
+              <p className="text-xs text-slate-500 mt-2 leading-relaxed">
+                Tracks the absolute difference between the ML-predicted CSS and the expert's ground-truth CSS over time.
+              </p>
+            </div>
+            <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-xl mt-4">
+               <p className="text-xs font-semibold text-emerald-800 flex items-center gap-1.5"><Activity size={14}/> Goal:</p>
+               <p className="text-[11px] text-emerald-700 mt-1">As more expert evaluations are applied to the algorithm, the error margin should trend towards zero.</p>
+            </div>
+          </div>
+          
+          <div className="w-full md:w-2/3 h-56 relative">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: "#94a3b8" }} dy={10} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: "#94a3b8" }} />
+                <Tooltip 
+                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)', fontSize: '12px' }}
+                  labelStyle={{ fontWeight: 'bold', color: '#0f172a', marginBottom: '4px' }}
+                />
+                <ReferenceLine y={0} stroke="#cbd5e1" />
+                <Line 
+                  type="monotone" 
+                  dataKey="error" 
+                  name="Error Margin"
+                  stroke="#0f172a" 
+                  strokeWidth={3}
+                  dot={{ r: 4, strokeWidth: 2, fill: "#fff" }} 
+                  activeDot={{ r: 6, fill: "#0f172a", stroke: "#fff", strokeWidth: 2 }}
+                  animationDuration={1500}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
 
       {/* Main View: Reference Log Data Table */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col overflow-hidden">
@@ -182,24 +239,6 @@ const Calibration = () => {
               />
             </div>
             <div className="flex gap-2.5">
-              <div className="relative">
-                <Filter
-                  size={12}
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
-                />
-                <select
-                  value={filterRating}
-                  onChange={(e) => setFilterRating(e.target.value)}
-                  className="pl-9 pr-8 py-2 text-[11px] font-medium text-slate-700 bg-white border border-slate-200 rounded-xl focus:outline-none appearance-none cursor-pointer hover:border-slate-300 transition-colors"
-                >
-                  <option value="all">All Ratings</option>
-                  <option value="5">5 Stars (Excellent)</option>
-                  <option value="4">4 Stars (Good)</option>
-                  <option value="3">3 Stars (Moderate)</option>
-                  <option value="2">2 Stars (Poor)</option>
-                  <option value="1">1 Star (Inaccurate)</option>
-                </select>
-              </div>
               <div className="relative">
                 <Filter
                   size={12}
@@ -234,10 +273,10 @@ const Calibration = () => {
                   CASE ID
                 </th>
                 <th className="py-3 px-5 text-[9px] font-medium text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100">
-                  REVIEWER
+                  EXPERT SCORE
                 </th>
                 <th className="py-3 px-5 text-[9px] font-medium text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100">
-                  APPROPRIATENESS
+                  REVIEWER
                 </th>
                 <th className="py-3 px-5 text-[9px] font-medium text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100">
                   CALIBRATION STATUS
@@ -248,7 +287,19 @@ const Calibration = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {filteredLogs.map((log) => (
+              {loading ? (
+                 <tr>
+                   <td colSpan="6" className="py-8 text-center text-slate-500 text-sm">
+                     Loading evaluations...
+                   </td>
+                 </tr>
+               ) : filteredLogs.length === 0 ? (
+                 <tr>
+                   <td colSpan="6" className="py-8 text-center text-slate-500 text-sm">
+                     No evaluations found.
+                   </td>
+                 </tr>
+               ) : filteredLogs.map((log) => (
                 <tr
                   key={log.id}
                   className={`hover:bg-slate-50/60 transition-colors group cursor-pointer ${log.status === "Archived" ? "opacity-60" : ""}`}
@@ -256,16 +307,21 @@ const Calibration = () => {
                 >
                   <td className="py-4 px-5 align-middle">
                     <p className="text-slate-900 font-semibold text-[11px] font-mono mb-1">
-                      {log.feedbackId}
+                      {log.id}
                     </p>
                     <p className="text-slate-500 text-[10px] font-medium">
-                      {log.timestamp}
+                      {new Date(log.created_at).toLocaleString()}
                     </p>
                   </td>
                   <td className="py-4 px-5 align-middle">
                     <span className="text-slate-600 font-semibold text-[10px] font-mono bg-slate-100 px-2 py-1 rounded-md">
-                      {log.caseId}
+                      {log.case_id}
                     </span>
+                  </td>
+                  <td className="py-4 px-5 align-middle">
+                    <div className="flex items-center gap-1 text-[11px] font-semibold text-slate-800">
+                      {log.expert_css_score} <span className="text-[10px] text-slate-400 font-normal ml-1">(vs {log.ml_predicted_css ?? "--"})</span>
+                    </div>
                   </td>
                   <td className="py-4 px-5 align-middle">
                     <div className="flex items-center gap-2">
@@ -273,12 +329,9 @@ const Calibration = () => {
                         <UserCircle size={14} />
                       </div>
                       <span className="text-slate-700 text-[11px] font-medium">
-                        {log.reviewer}
+                        {log.reviewer_name}
                       </span>
                     </div>
-                  </td>
-                  <td className="py-4 px-5 align-middle">
-                    {renderStars(log.rating)}
                   </td>
                   <td className="py-4 px-5 align-middle">
                     {getStatusBadge(log.status)}
@@ -305,6 +358,7 @@ const Calibration = () => {
         isOpen={isModalOpen}
         onClose={closeModal}
         activeLog={activeLog}
+        onArchive={handleArchive}
       />
     </AdminLayout>
   );

@@ -3,7 +3,6 @@ import Settings from "../features/pages/system & support/settings";
 import Broadcasts from "../features/pages/system & support/system_broadcast";
 import Feedbacks from "../features/pages/system & support/feedback_reports";
 import Users from "../features/pages/system & support/user_management";
-import Alerts from "../features/pages/clinical portal/alert_monitoring";
 import Calibrations from "../features/pages/clinical portal/calibration_history";
 import Cases from "../features/pages/clinical portal/case_review";
 import Exercises from "../features/pages/management/exercise";
@@ -41,7 +40,6 @@ export default function App() {
           <Route path="/exercises" element={<ProtectedRoute><Exercises /></ProtectedRoute>} />
           <Route path="/cases" element={<ProtectedRoute><Cases /></ProtectedRoute>} />
           <Route path="/calibration" element={<ProtectedRoute><Calibrations /></ProtectedRoute>} />
-          <Route path="/alerts" element={<ProtectedRoute><Alerts /></ProtectedRoute>} />
           <Route path="/users" element={<ProtectedRoute><Users /></ProtectedRoute>} />
           <Route path="/users/:id" element={<ProtectedRoute><UserWellnessProfile /></ProtectedRoute>} />
           <Route path="/feedbacks" element={<ProtectedRoute><Feedbacks /></ProtectedRoute>} />

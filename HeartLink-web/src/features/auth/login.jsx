@@ -85,6 +85,7 @@ export default function HeartLinkAdminLogin() {
         body: JSON.stringify({
           identifier: data.email,
           password: data.password,
+          remember: remember,
         }),
       });
       
@@ -93,7 +94,7 @@ export default function HeartLinkAdminLogin() {
         setStep("2fa");
       } else if (response.success) {
         // Fallback if backend hasn't been updated to 2FA yet
-        login(response.user_id, response.token);
+        login(response.user_id, response.token, null, remember);
         navigate("/dashboard");
       }
     } catch (error) {
@@ -113,7 +114,7 @@ export default function HeartLinkAdminLogin() {
       });
       
       if (response.success) {
-        login(response.user_id, response.token);
+        login(response.user_id, response.token, null, remember);
         navigate("/dashboard");
       }
     } catch (error) {

@@ -13,7 +13,7 @@ const staffSchema = z.object({
   permissions: z.array(z.string()).min(1, "Select at least one permission."),
 });
 
-const StaffFormModal = ({ isOpen, onClose, isEditMode, staff }) => {
+const StaffFormModal = ({ isOpen, onClose, isEditMode, staff, onSave }) => {
   if (!isOpen) return null;
 
   const {
@@ -73,9 +73,9 @@ const StaffFormModal = ({ isOpen, onClose, isEditMode, staff }) => {
   ];
 
   const onSubmit = async (data) => {
-    // Simulate async API call to demonstrate loading state
-    await new Promise(resolve => setTimeout(resolve, 800));
-    console.log(data);
+    if (onSave) {
+        await onSave(data);
+    }
     onClose();
   };
 

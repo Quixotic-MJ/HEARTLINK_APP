@@ -1,10 +1,30 @@
 import React, { useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import Sidebar from "../../components/layouts/sidebar"; // Adjust path based on your structure
 import Header from "../../components/layouts/header"; // Adjust path based on your structure
+import { useAuth } from "../../contexts/AuthContext";
 
 const AdminLayout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  
+  const { pathname } = useLocation();
+  const navigate = useNavigate();
+  const { user, userId, isAuthenticated } = useAuth();
+  
+  React.useEffect(() => {
+    // Wait until authenticated to avoid premature redirects
+    if (!isAuthenticated) return;
+    
+    const role = user?.role || (userId === "usr-chief-admin-001" ? "admin" : "medical_expert");
+    if (role !== "admin") {
+      const restrictedRoutes = ["/analytics", "/foods", "/exercises", "/users", "/feedbacks", "/broadcasts", "/settings"];
+      const isRestricted = restrictedRoutes.some(route => pathname.startsWith(route));
+      if (isRestricted) {
+        navigate("/dashboard", { replace: true });
+      }
+    }
+  }, [pathname, user, userId, isAuthenticated, navigate]);
 
   return (
     <div className="flex h-screen w-full bg-gray-50/50 font-sans text-gray-900 overflow-hidden fixed inset-0">

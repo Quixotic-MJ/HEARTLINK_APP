@@ -45,7 +45,7 @@ profiles = [
         "id": "usr-expert-201",
         "phone": "+639987654321",
         "email": "clinical.expert@heartlink.com",
-        "password": "0015091a134a413d72b22ec6f62b7ff95fc572f44706346bc3e2b243be1071da",
+        "password": "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f",
         "role": "medical_expert",
         "first_name": "Dr. Maria",
         "last_name": "Santos",
@@ -298,26 +298,9 @@ alerts = [
     }
 ]
 
-case_evaluations = [
-    {
-        "id": "eval-001",
-        "alert_id": "alert-801",
-        "reviewer_id": "usr-expert-201",
-        "algorithm_accuracy": 4,  # 1-5 validation parameter
-        "was_alert_appropriate": True,
-        "clinical_notes": "Patient experienced physiological symptoms concurrent with blood pressure elevation post-sodium intake.",
-        "suggested_adjustment": "Increase weighting metrics for acute threshold deviation changes by 5%",
-        "verdict": "Agree with System",
-        "anonymized_features": {
-            "age": 20,
-            "sex": "male",
-            "conditions": ["prehypertension"],
-        },
-        "reviewer_css_override": None,
-        "applied_to_model": False,
-        "reviewed_at": datetime(2026, 7, 10, 15, 45, 0),
-    }
-]
+
+
+expert_evaluations = []
 
 # 7. Global Content Library Data (Core Recommendations Asset)
 recipes = [
@@ -970,7 +953,8 @@ def save_logs():
             "notifications": [_serialize_item(n) for n in notifications],
             "alerts": [_serialize_item(a) for a in alerts],
             "saved_recipes": [_serialize_item(r) for r in saved_recipes],
-            "saved_exercises": [_serialize_item(e) for e in saved_exercises]
+            "saved_exercises": [_serialize_item(e) for e in saved_exercises],
+            "expert_evaluations": [_serialize_item(ee) for ee in expert_evaluations]
         }
         with open(LOGS_DB_FILE, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
@@ -978,7 +962,7 @@ def save_logs():
         print(f"Error saving mock logs: {e}")
 
 def load_logs():
-    global meal_logs, exercise_logs, daily_health_logs, css_history, notifications, alerts, saved_recipes, saved_exercises
+    global meal_logs, exercise_logs, daily_health_logs, css_history, notifications, alerts, saved_recipes, saved_exercises, expert_evaluations
     if os.path.exists(LOGS_DB_FILE):
         try:
             with open(LOGS_DB_FILE, "r", encoding="utf-8") as f:
@@ -1007,6 +991,9 @@ def load_logs():
                 if "saved_exercises" in data:
                     saved_exercises.clear()
                     saved_exercises.extend([_deserialize_item(e) for e in data["saved_exercises"]])
+                if "expert_evaluations" in data:
+                    expert_evaluations.clear()
+                    expert_evaluations.extend([_deserialize_item(ee) for ee in data["expert_evaluations"]])
         except Exception as e:
             print(f"Error loading mock logs: {e}")
     else:

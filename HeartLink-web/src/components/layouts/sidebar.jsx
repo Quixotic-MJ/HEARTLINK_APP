@@ -15,6 +15,7 @@ import {
   Settings,
   X,
 } from "lucide-react";
+import { useAuth } from "../../contexts/AuthContext";
 
 // ─── Brand logo ───────────────────────────────────────────────────────────────
 
@@ -115,6 +116,11 @@ function NavItem({ path, icon: Icon, label, collapsed }) {
 // ─── Sidebar ──────────────────────────────────────────────────────────────────
 
 const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed }) => {
+  const { user, userId } = useAuth();
+  const role = user?.role || (userId === "usr-chief-admin-001" ? "admin" : "medical_expert");
+  const userName = user?.first_name ? `${user.first_name} ${user.last_name}` : (userId === "usr-chief-admin-001" ? "System Admin" : "Medical Expert");
+  const userEmail = user?.email || (userId === "usr-chief-admin-001" ? "admin@heartlink.ph" : "expert@heartlink.ph");
+  const userInitials = userName.substring(0, 1).toUpperCase();
 
   return (
     <>
@@ -191,22 +197,32 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed }) => {
         <nav className="flex-1 overflow-y-auto overflow-x-hidden px-3 pb-6 space-y-0.5">
           <SectionLabel label="Overview" collapsed={collapsed} />
           <NavItem path="/dashboard" icon={LayoutDashboard} label="Dashboard"  collapsed={collapsed} />
-          <NavItem path="/analytics" icon={PieChart}        label="Analytics"  collapsed={collapsed} />
+          
+          {role === "admin" && (
+            <NavItem path="/analytics" icon={PieChart} label="Analytics" collapsed={collapsed} />
+          )}
 
-          <SectionLabel label="Management" collapsed={collapsed} />
-          <NavItem path="/foods"       icon={Utensils}    label="Food & Meal Library"   collapsed={collapsed} />
-          <NavItem path="/exercises"   icon={Dumbbell}    label="Exercise library" collapsed={collapsed} />
+          {role === "admin" && (
+            <>
+              <SectionLabel label="Management" collapsed={collapsed} />
+              <NavItem path="/foods" icon={Utensils} label="Food & Meal Library" collapsed={collapsed} />
+              <NavItem path="/exercises" icon={Dumbbell} label="Exercise library" collapsed={collapsed} />
+            </>
+          )}
 
           <SectionLabel label="Calibration" collapsed={collapsed} />
           <NavItem path="/cases"       icon={ClipboardList} label="Case review"          collapsed={collapsed} />
           <NavItem path="/calibration" icon={History}       label="Calibration history"  collapsed={collapsed} />
-          <NavItem path="/alerts"      icon={Activity}      label="Alert monitoring"     collapsed={collapsed} />
 
-          <SectionLabel label="System" collapsed={collapsed} />
-          <NavItem path="/users"      icon={UserCog}       label="User management" collapsed={collapsed} />
-          <NavItem path="/feedbacks"  icon={MessageSquare} label="Feedback"        collapsed={collapsed} />
-          <NavItem path="/broadcasts" icon={Megaphone}     label="Broadcasts"      collapsed={collapsed} />
-          <NavItem path="/settings"   icon={Settings}      label="Settings"        collapsed={collapsed} />
+          {role === "admin" && (
+            <>
+              <SectionLabel label="System" collapsed={collapsed} />
+              <NavItem path="/users"      icon={UserCog}       label="User management" collapsed={collapsed} />
+              <NavItem path="/feedbacks"  icon={MessageSquare} label="Feedback"        collapsed={collapsed} />
+              <NavItem path="/broadcasts" icon={Megaphone}     label="Broadcasts"      collapsed={collapsed} />
+              <NavItem path="/settings"   icon={Settings}      label="Settings"        collapsed={collapsed} />
+            </>
+          )}
         </nav>
 
         {/* Bottom user strip */}
@@ -219,11 +235,11 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed }) => {
               className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-white text-[11px] font-semibold"
               style={{ backgroundColor: "#0f172a" }}
             >
-              A
+              {userInitials}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium text-slate-900 truncate">System Admin</p>
-              <p className="text-[10px] text-slate-400 truncate">admin@heartlink.ph</p>
+              <p className="text-xs font-medium text-slate-900 truncate">{userName}</p>
+              <p className="text-[10px] text-slate-400 truncate">{userEmail}</p>
             </div>
           </div>
         )}

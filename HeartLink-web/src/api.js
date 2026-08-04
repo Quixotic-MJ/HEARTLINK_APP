@@ -8,7 +8,7 @@ export const apiFetch = async (endpoint, options = {}) => {
     ...options.headers,
   };
 
-  const token = sessionStorage.getItem('heartlink_admin_token');
+  const token = localStorage.getItem('heartlink_admin_token') || sessionStorage.getItem('heartlink_admin_token');
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
   }

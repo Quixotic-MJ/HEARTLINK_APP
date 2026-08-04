@@ -10,10 +10,10 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check session storage on load
-    const storedUserId = sessionStorage.getItem('heartlink_admin_user_id');
-    const storedUser = sessionStorage.getItem('heartlink_admin_user');
-    const storedToken = sessionStorage.getItem('heartlink_admin_token');
+    // Check storage on load
+    const storedUserId = localStorage.getItem('heartlink_admin_user_id') || sessionStorage.getItem('heartlink_admin_user_id');
+    const storedUser = localStorage.getItem('heartlink_admin_user') || sessionStorage.getItem('heartlink_admin_user');
+    const storedToken = localStorage.getItem('heartlink_admin_token') || sessionStorage.getItem('heartlink_admin_token');
     
     if (storedUserId && storedToken) {
       setUserId(storedUserId);
@@ -34,21 +34,24 @@ export const AuthProvider = ({ children }) => {
     return () => window.removeEventListener('auth:unauthorized', handleUnauthorized);
   }, []);
 
-  const login = (userId, tokenStr, userData = null) => {
+  const login = (userId, tokenStr, userData = null, remember = false) => {
     setUserId(userId);
     setToken(tokenStr);
     setIsAuthenticated(true);
-    sessionStorage.setItem('heartlink_admin_user_id', userId);
-    sessionStorage.setItem('heartlink_admin_token', tokenStr);
+    
+    const storage = remember ? localStorage : sessionStorage;
+    
+    storage.setItem('heartlink_admin_user_id', userId);
+    storage.setItem('heartlink_admin_token', tokenStr);
     
     if (userData) {
       setUser(userData);
-      sessionStorage.setItem('heartlink_admin_user', JSON.stringify(userData));
+      storage.setItem('heartlink_admin_user', JSON.stringify(userData));
     }
   };
 
   const logout = async () => {
-    const currentToken = sessionStorage.getItem('heartlink_admin_token');
+    const currentToken = localStorage.getItem('heartlink_admin_token') || sessionStorage.getItem('heartlink_admin_token');
     if (currentToken) {
       try {
         await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:8000"}/api/auth/logout`, {
@@ -67,6 +70,9 @@ export const AuthProvider = ({ children }) => {
     sessionStorage.removeItem('heartlink_admin_user_id');
     sessionStorage.removeItem('heartlink_admin_user');
     sessionStorage.removeItem('heartlink_admin_token');
+    localStorage.removeItem('heartlink_admin_user_id');
+    localStorage.removeItem('heartlink_admin_user');
+    localStorage.removeItem('heartlink_admin_token');
     window.location.href = '/';
   };
 

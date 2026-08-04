@@ -223,3 +223,49 @@ def get_admin_analytics(current_user: dict = Depends(get_current_admin_user)):
         "wellness_outcomes": wellness_outcomes,
         "content_efficacy": content_efficacy
     }
+
+@router.get("/staff")
+def get_system_staff(current_user: dict = Depends(get_current_admin_user)):
+    staff = [p for p in profiles if p.get("role") in ["medical_expert", "admin"]]
+    result = []
+    for s in staff:
+        role_label = "Authorized Medical Expert" if s.get("role") == "medical_expert" else "System Admin"
+        perms = ["Validate Recipes", "Verify Exercises", "Evaluate Cases"] if s.get("role") == "medical_expert" else ["Manage Content", "Broadcast Alerts", "View Analytics", "Manage Users"]
+        result.append({
+            "id": s.get("id"),
+            "name": f"{s.get('first_name', '')} {s.get('last_name', '')}".strip() or s.get("email"),
+            "phone": s.get("phone", "No Phone"),
+            "role": role_label,
+            "permissions": perms,
+            "status": s.get("account_status", "active").capitalize()
+        })
+    return result
+
+@router.post("/staff")
+def create_system_staff(payload: dict, current_user: dict = Depends(get_current_admin_user)):
+    # Generate staff ID
+    staff_id = f"STAFF-{random.randint(1000, 9999)}"
+    new_staff = {
+        "id": staff_id,
+        "first_name": payload.get("name", "New").split(" ")[0],
+        "last_name": " ".join(payload.get("name", "Staff").split(" ")[1:]),
+        "phone": payload.get("phone", ""),
+        "email": f"{staff_id.lower()}@heartlink.com",
+        "role": "medical_expert" if payload.get("role") == "Authorized Medical Expert" else "admin",
+        "account_status": "active",
+        "created_at": datetime.now()
+    }
+    profiles.append(new_staff)
+    return {"status": "success", "id": staff_id}
+
+@router.put("/users/{user_id}/status")
+def toggle_user_status(user_id: str, current_user: dict = Depends(get_current_admin_user)):
+    user = next((u for u in profiles if u["id"] == user_id), None)
+    if not user:
+        return {"status": "error", "message": "User not found"}
+        
+    current_status = user.get("account_status", "active")
+    new_status = "disabled" if current_status == "active" else "active"
+    user["account_status"] = new_status
+    
+    return {"status": "success", "new_status": new_status}

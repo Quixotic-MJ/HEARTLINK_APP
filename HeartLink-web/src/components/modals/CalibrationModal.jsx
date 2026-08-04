@@ -12,17 +12,16 @@ import {
   Clock,
 } from "lucide-react";
 import CaseSnapshotModal from "./CaseSnapshotModal";
-
-const CalibrationModal = ({ isOpen, onClose, activeLog }) => {
+const CalibrationModal = ({ isOpen, onClose, activeLog, onArchive }) => {
   const [isSnapshotOpen, setIsSnapshotOpen] = useState(false);
 
   if (!isOpen || !activeLog) return null;
 
   // Mock data for the snapshot modal
   const mockSnapshotData = activeLog ? {
-    caseId: activeLog.caseId,
-    flaggedDate: activeLog.timestamp,
-    computedCss: 65,
+    caseId: activeLog.case_id,
+    flaggedDate: new Date(activeLog.created_at).toLocaleString(),
+    computedCss: activeLog.ml_predicted_css,
     systemAction: "Triggered Precautionary Notification & suggested dietary recipe adjustment.",
     patientContext: {
       age: 45,
@@ -44,24 +43,6 @@ const CalibrationModal = ({ isOpen, onClose, activeLog }) => {
     },
   } : null;
 
-  // Star Rating Renderer
-  const renderStars = (rating) => {
-    return (
-      <div className="flex items-center gap-0.5" title={`${rating} out of 5 stars`}>
-        {Array.from({ length: 5 }).map((_, i) => (
-          <Star
-            key={i}
-            size={12}
-            className={
-              i < rating
-                ? "fill-yellow-400 text-yellow-400"
-                : "fill-slate-100 text-slate-200"
-            }
-          />
-        ))}
-      </div>
-    );
-  };
 
   // Status Badge Renderer
   const getStatusBadge = (status) => {
@@ -105,10 +86,10 @@ const CalibrationModal = ({ isOpen, onClose, activeLog }) => {
             </div>
             <div>
               <h3 className="text-sm font-semibold text-slate-900 font-mono tracking-tight">
-                {activeLog.feedbackId}
+                {activeLog.id}
               </h3>
               <p className="text-[10px] text-slate-500 mt-0.5">
-                {activeLog.timestamp}
+                {activeLog.created_at ? new Date(activeLog.created_at).toLocaleString() : ""}
               </p>
             </div>
           </div>
@@ -126,9 +107,13 @@ const CalibrationModal = ({ isOpen, onClose, activeLog }) => {
           <div className="flex items-center justify-between bg-slate-50 p-4 rounded-xl border border-slate-100">
             <div>
               <p className="text-[9px] font-medium text-slate-400 uppercase tracking-widest mb-1.5">
-                EXPERT RATING
+                EXPERT SCORE VS ML
               </p>
-              {renderStars(activeLog.rating)}
+              <div className="flex items-baseline gap-2">
+                <span className="text-xl font-bold text-slate-900">{activeLog.expert_css_score}</span>
+                <span className="text-xs font-semibold text-slate-400">vs</span>
+                <span className="text-sm font-semibold text-slate-600">{activeLog.ml_predicted_css ?? "--"}</span>
+              </div>
             </div>
             <div className="text-right">
               <p className="text-[9px] font-medium text-slate-400 uppercase tracking-widest mb-1.5">
@@ -148,7 +133,7 @@ const CalibrationModal = ({ isOpen, onClose, activeLog }) => {
                 <UserCircle size={18} />
               </div>
               <p className="text-[11px] font-semibold text-slate-900">
-                {activeLog.reviewer}
+                {activeLog.reviewer_name || "Unknown Reviewer"}
               </p>
             </div>
           </div>
@@ -166,7 +151,7 @@ const CalibrationModal = ({ isOpen, onClose, activeLog }) => {
                 <FileText size={16} className="text-blue-600" />
                 <div>
                   <p className="text-[11px] font-semibold text-blue-700 font-mono mb-0.5">
-                    {activeLog.caseId}
+                    {activeLog.case_id}
                   </p>
                   <p className="text-[10px] text-blue-600/70 font-medium">
                     View original anonymized health logs
@@ -181,22 +166,40 @@ const CalibrationModal = ({ isOpen, onClose, activeLog }) => {
           </div>
 
           {/* Expert Notes Display (Read-Only) */}
-          <div>
-            <h4 className="text-[10px] font-medium text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100 pb-2 mb-3">
-              Risk Interpretation Notes
-            </h4>
-            <div className="bg-slate-50 border border-slate-200 p-5 rounded-xl shadow-inner">
-              <p className="text-[11px] text-slate-800 leading-relaxed whitespace-pre-wrap italic font-medium">
-                "{activeLog.notes}"
-              </p>
+          <div className="space-y-4">
+            <div>
+              <h4 className="text-[10px] font-medium text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100 pb-2 mb-3">
+                Risk Interpretation Notes
+              </h4>
+              <div className="bg-slate-50 border border-slate-200 p-5 rounded-xl shadow-inner">
+                <p className="text-[11px] text-slate-800 leading-relaxed whitespace-pre-wrap italic font-medium">
+                  {activeLog.notes ? `"${activeLog.notes}"` : "No interpretation notes provided."}
+                </p>
+              </div>
             </div>
+
+            {activeLog.recommendation_feedback && (
+              <div>
+                <h4 className="text-[10px] font-medium text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100 pb-2 mb-3">
+                  Prescription Feedback
+                </h4>
+                <div className="bg-slate-50 border border-slate-200 p-5 rounded-xl shadow-inner">
+                  <p className="text-[11px] text-slate-800 leading-relaxed whitespace-pre-wrap italic font-medium">
+                    "{activeLog.recommendation_feedback}"
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
         {/* Modal Footer / Actions */}
         <div className="px-6 py-4 border-t border-slate-100 bg-white flex justify-between items-center shrink-0">
-          <button className="flex items-center gap-1.5 text-[11px] font-medium text-slate-500 hover:text-red-600 transition-colors px-2 py-2 rounded-lg hover:bg-red-50">
-            <Archive size={14} /> Archive Log
+          <button 
+            onClick={() => onArchive && onArchive(activeLog.id)}
+            disabled={activeLog.status === "Archived"}
+            className="flex items-center gap-1.5 text-[11px] font-medium text-slate-500 hover:text-red-600 transition-colors px-2 py-2 rounded-lg hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed">
+            <Archive size={14} /> {activeLog.status === "Archived" ? "Archived" : "Archive Log"}
           </button>
 
           <div className="flex gap-2">

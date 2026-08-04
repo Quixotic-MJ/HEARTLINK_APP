@@ -208,6 +208,7 @@ async def web_login(payload: Login):
                 temp_2fa_sessions[token_2fa] = {
                     "user_id": profile["id"],
                     "role": profile["role"],
+                    "remember": payload.remember,
                     "expires_at": datetime.utcnow() + timedelta(minutes=5)
                 }
                 
@@ -259,7 +260,8 @@ async def web_login_verify_2fa(payload: WebVerify2FA):
         )
         
     # Generate Final JWT
-    access_token = create_access_token(data={"user_id": session["user_id"], "role": session["role"]})
+    expires_delta = timedelta(days=30) if session.get("remember") else None
+    access_token = create_access_token(data={"user_id": session["user_id"], "role": session["role"]}, expires_delta=expires_delta)
     
     # Cleanup session
     del temp_2fa_sessions[payload.token_2fa]
@@ -272,6 +274,7 @@ async def web_login_verify_2fa(payload: WebVerify2FA):
     }
 
 from fastapi import Header
+from app.utils.security import token_blacklist
 @router.post("/logout")
 async def logout(authorization: str = Header(None)):
     if authorization and authorization.startswith("Bearer "):

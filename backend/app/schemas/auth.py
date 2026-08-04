@@ -22,10 +22,12 @@ class CodeResponse(BaseModel):
 class Login(BaseModel):
     identifier: str
     password: str
+    remember: Optional[bool] = False
 
 class WebVerify2FA(BaseModel):
     token_2fa: str
     code: str
+    remember: Optional[bool] = False
 
 class ForgotPasswordRequest(BaseModel):
     identifier: str

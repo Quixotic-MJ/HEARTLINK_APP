@@ -22,133 +22,12 @@ import {
 import AdminLayout from "../../../components/layouts/adminLayout"; // Adjust path
 import ExpertEvaluationModal from "../../../components/modals/ExpertEvaluationModal";
 
-// Mock Data
-const initialCases = [
-  {
-    id: 1,
-    caseId: "CASE-8204",
-    computedCss: 42,
-    riskCategory: "Critical",
-    flaggedDate: "May 28, 2026 14:21",
-    status: "Pending Review",
-    patientContext: {
-      age: 58,
-      sex: "Male",
-      conditions: ["Hypertension", "Type 2 Diabetes"],
-      telemetry: {
-        recommended: {
-          targetTier: "Monitor Closely",
-          suggestedMeal: "Low-Sodium Chicken Broth",
-          suggestedActivity: "15-Minute Chair Yoga",
-        },
-        actual: {
-          vitals: "BP 155/95, HR 98",
-          loggedMeal: "Pork Sinugba (High Sodium)",
-          loggedActivity: "Basketball - High Exertion",
-          conflict: true,
-        },
-      },
-    },
-    systemAction:
-      "Triggered Critical Alert & activated Cardiologist Locator mapping.",
-  },
-  {
-    id: 2,
-    caseId: "CASE-8199",
-    computedCss: 65,
-    riskCategory: "Warning",
-    flaggedDate: "May 27, 2026 09:15",
-    status: "Pending Review",
-    patientContext: {
-      age: 45,
-      sex: "Female",
-      conditions: ["Hyperlipidemia"],
-      telemetry: {
-        recommended: {
-          targetTier: "Stable",
-          suggestedMeal: "Grilled Salmon & Quinoa",
-          suggestedActivity: "Brisk Jogging (30m)",
-        },
-        actual: {
-          vitals: "BP 135/85, HR 82",
-          loggedMeal: "Fast Food Cheeseburger",
-          loggedActivity: "Attempted Brisk Jogging",
-          conflict: true,
-        },
-      },
-    },
-    systemAction:
-      "Triggered Precautionary Notification & suggested dietary recipe adjustment.",
-  },
-  {
-    id: 3,
-    caseId: "CASE-8150",
-    computedCss: 48,
-    riskCategory: "Critical",
-    flaggedDate: "May 25, 2026 18:45",
-    status: "Evaluated",
-    patientContext: {
-      age: 62,
-      sex: "Male",
-      conditions: ["Previous Myocardial Infarction"],
-      telemetry: {
-        recommended: {
-          targetTier: "Critical Care",
-          suggestedMeal: "Oatmeal with Fresh Berries",
-          suggestedActivity: "Rest / Light Stretching",
-        },
-        actual: {
-          vitals: "BP 160/100, HR 105",
-          loggedMeal: "Canned Soup (Very High Sodium)",
-          loggedActivity: "None logged in 7 days",
-          conflict: true,
-        },
-      },
-    },
-    systemAction:
-      "Triggered Critical Alert & activated Cardiologist Locator mapping.",
-    expertFeedback: {
-      rating: 5,
-      notes:
-        "Algorithm correctly identified high-risk progression based on fatigue coupled with dietary sodium breach.",
-    },
-  },
-  {
-    id: 4,
-    caseId: "CASE-8142",
-    computedCss: 55,
-    riskCategory: "Warning",
-    flaggedDate: "May 25, 2026 10:10",
-    status: "Evaluated",
-    patientContext: {
-      age: 50,
-      sex: "Female",
-      conditions: ["None"],
-      telemetry: {
-        recommended: {
-          targetTier: "Stable",
-          suggestedMeal: "Any Low-Sodium Meal",
-          suggestedActivity: "Yoga (30 mins)",
-        },
-        actual: {
-          vitals: "BP 120/80, HR 72",
-          loggedMeal: "Instant Noodles (High Sodium)",
-          loggedActivity: "Yoga (30 mins)",
-          conflict: true,
-        },
-      },
-    },
-    systemAction: "Triggered Dietary Warning.",
-    expertFeedback: {
-      rating: 3,
-      notes:
-        "Warning was appropriate, but CSS penalty for isolated dietary sodium without symptoms might be too aggressive. Consider threshold tweak.",
-    },
-  },
-];
+import { apiFetch } from "../../../api";
 
 const Cases = () => {
-  const [cases, setCases] = useState(initialCases);
+  const [cases, setCases] = useState([]);
+  const [loading, setLoading] = useState(true);
+
   const [searchQuery, setSearchQuery] = useState("");
   const [filterSeverity, setFilterSeverity] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
@@ -158,10 +37,32 @@ const Cases = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeCase, setActiveCase] = useState(null);
 
+  // Fetch cases
+  React.useEffect(() => {
+    fetchCases();
+  }, []);
+
+  const fetchCases = async () => {
+    try {
+      setLoading(true);
+      const data = await apiFetch("/api/admin/cases");
+      if (data) setCases(data);
+    } catch (err) {
+      console.error("Failed to fetch cases:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Open Modal for Evaluation
-  const openModal = (caseItem) => {
-    setActiveCase(caseItem);
-    setIsModalOpen(true);
+  const openModal = async (caseItem) => {
+    try {
+      const fullDetail = await apiFetch(`/api/admin/cases/${caseItem.user_id}`);
+      setActiveCase(fullDetail);
+      setIsModalOpen(true);
+    } catch (e) {
+      console.error("Failed to load case details", e);
+    }
   };
 
   const closeModal = () => {
@@ -171,28 +72,16 @@ const Cases = () => {
 
   // Filter Logic
   const filteredCases = cases.filter((c) => {
-    const matchesSearch = c.caseId
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase());
-    const matchesSeverity =
-      filterSeverity === "all" ||
-      c.riskCategory.toLowerCase() === filterSeverity;
-    const matchesStatus =
-      filterStatus === "all" || c.status.toLowerCase() === filterStatus;
+    const matchesSearch = c.case_id?.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    // Pseudo risk category based on ml_predicted_css for filtering/badges
+    const riskCategory = c.ml_predicted_css !== null && c.ml_predicted_css < 60 ? "critical" : "warning";
+    const matchesSeverity = filterSeverity === "all" || riskCategory === filterSeverity;
+    
+    const matchesStatus = filterStatus === "all" || c.status?.toLowerCase() === filterStatus;
       
-    let matchesDate = true;
-    if (filterDateRange !== "all") {
-      const flagged = new Date(c.flaggedDate);
-      // Mocking 'now' to June 11, 2026 so the mock data correctly falls into the 7 and 30 day buckets
-      const now = new Date("Jun 11, 2026 12:00");
-      const diffTime = now - flagged;
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      
-      if (filterDateRange === "7days") matchesDate = diffDays <= 7 && diffDays >= 0;
-      if (filterDateRange === "30days") matchesDate = diffDays <= 30 && diffDays >= 0;
-    }
-
-    return matchesSearch && matchesSeverity && matchesStatus && matchesDate;
+    // Removing date filter for now as we don't have flaggedDate in real cases easily without full alert tracking
+    return matchesSearch && matchesSeverity && matchesStatus;
   });
 
   // Badge Color Helper
@@ -216,20 +105,6 @@ const Cases = () => {
           </h2>
         </div>
 
-        {/* Global Date Filter */}
-        <div className="relative">
-          <Calendar size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 z-10 pointer-events-none" />
-          <select
-            value={filterDateRange}
-            onChange={(e) => setFilterDateRange(e.target.value)}
-            className="pl-10 pr-10 py-2 text-[11px] font-medium text-slate-700 bg-white border border-slate-200 rounded-xl focus:outline-none appearance-none cursor-pointer hover:border-slate-300 transition-colors shadow-sm relative z-0"
-          >
-            <option value="7days">Last 7 Days</option>
-            <option value="30days">Last 30 Days</option>
-            <option value="all">All Time</option>
-          </select>
-          <ChevronDown size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none z-10" />
-        </div>
       </div>
 
       {/* Main View: Triage Data Table Container */}
@@ -300,7 +175,7 @@ const Cases = () => {
                   RISK CATEGORY
                 </th>
                 <th className="py-3 px-5 text-[9px] font-medium text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100">
-                  FLAGGED DATE
+                  CONDITIONS
                 </th>
                 <th className="py-3 px-5 text-[9px] font-medium text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100">
                   REVIEW STATUS
@@ -311,9 +186,21 @@ const Cases = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {filteredCases.map((c) => (
+              {loading ? (
+                <tr>
+                  <td colSpan="6" className="py-8 text-center text-slate-500 text-sm">
+                    Loading cases...
+                  </td>
+                </tr>
+              ) : filteredCases.length === 0 ? (
+                <tr>
+                  <td colSpan="6" className="py-8 text-center text-slate-500 text-sm">
+                    No cases found.
+                  </td>
+                </tr>
+              ) : filteredCases.map((c, idx) => (
                 <tr
-                  key={c.id}
+                  key={c.case_id || idx}
                   className="hover:bg-slate-50/60 transition-colors group cursor-pointer"
                   onClick={() => openModal(c)}
                 >
@@ -321,29 +208,29 @@ const Cases = () => {
                     <div className="flex items-center gap-2">
                       <Lock size={13} className="text-slate-400" />
                       <span className="text-slate-900 font-semibold text-[11px] font-mono">
-                        {c.caseId}
+                        {c.case_id}
                       </span>
                     </div>
                   </td>
                   <td className="py-4 px-5 align-middle text-center">
                     <span className="text-xl font-bold text-slate-900">
-                      {c.computedCss}
+                      {c.ml_predicted_css ?? "--"}
                     </span>
                   </td>
                   <td className="py-4 px-5 align-middle">
                     <span
                       className={`inline-flex items-center text-[9px] font-medium px-2.5 py-1 rounded-full uppercase tracking-[0.15em] ${
-                        c.riskCategory === "Critical" 
+                        c.ml_predicted_css !== null && c.ml_predicted_css < 60
                         ? "bg-red-50 text-red-600" 
                         : "bg-amber-50 text-amber-600"
                       }`}
                     >
-                      {c.riskCategory.toUpperCase()}
+                      {c.ml_predicted_css !== null && c.ml_predicted_css < 60 ? "CRITICAL" : "WARNING"}
                     </span>
                   </td>
                   <td className="py-4 px-5 align-middle">
                     <span className="text-slate-500 text-[10px] font-medium">
-                      {c.flaggedDate}
+                      {c.conditions?.length ? c.conditions.join(", ") : "None"}
                     </span>
                   </td>
                   <td className="py-4 px-5 align-middle">
@@ -364,7 +251,7 @@ const Cases = () => {
                     <button
                       className={`text-[10px] font-medium px-4 py-2 rounded-xl transition-colors shadow-sm ${
                         c.status === "Evaluated"
-                          ? "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
+                          ? "bg-white border border-slate-200 text-blue-600 hover:bg-blue-50"
                           : "text-white transition-all hover:opacity-90 active:scale-[0.99] border border-transparent"
                       }`}
                       style={c.status !== "Evaluated" ? { backgroundColor: "#0f172a" } : {}}
@@ -374,7 +261,7 @@ const Cases = () => {
                       }}
                     >
                       {c.status === "Evaluated"
-                        ? "View Review"
+                        ? "Edit Evaluation"
                         : "Evaluate Case"}
                     </button>
                   </td>
@@ -389,8 +276,18 @@ const Cases = () => {
         isOpen={isModalOpen}
         onClose={closeModal}
         activeCase={activeCase}
-        onSave={(data) => {
-          console.log("Saving expert evaluation:", data);
+        onSave={async (data) => {
+          if (!activeCase?.user_id) return;
+          try {
+            await apiFetch(`/api/admin/cases/${activeCase.user_id}/evaluate`, {
+              method: "POST",
+              body: JSON.stringify(data)
+            });
+            closeModal();
+            fetchCases(); // Refresh list
+          } catch (e) {
+            console.error("Failed to submit evaluation", e);
+          }
         }}
       />
     </AdminLayout>

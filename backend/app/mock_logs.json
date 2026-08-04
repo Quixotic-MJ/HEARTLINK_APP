@@ -430,5 +430,58 @@
     }
   ],
   "saved_recipes": [],
-  "saved_exercises": []
+  "saved_exercises": [],
+  "expert_evaluations": [
+    {
+      "id": "CAL-1000",
+      "user_id": "usr-patient-102",
+      "case_id": "CASE-6007",
+      "expert_css_score": 50,
+      "rating": null,
+      "notes": "",
+      "reviewer_id": "usr-chief-admin-001",
+      "reviewer_name": "Expert",
+      "ml_predicted_css": null,
+      "status": "Archived",
+      "created_at": "2026-08-03T23:59:32.275251"
+    },
+    {
+      "id": "CAL-1001",
+      "user_id": "usr-patient-102",
+      "case_id": "CASE-5892",
+      "expert_css_score": 50,
+      "notes": "testing 2",
+      "reviewer_id": "usr-chief-admin-001",
+      "reviewer_name": "Expert",
+      "ml_predicted_css": null,
+      "status": "Archived",
+      "created_at": "2026-08-04T00:00:05.190874"
+    },
+    {
+      "id": "CAL-1002",
+      "user_id": "usr-patient-102",
+      "case_id": "CASE-5892",
+      "expert_css_score": 35,
+      "notes": "",
+      "reviewer_id": "usr-chief-admin-001",
+      "reviewer_name": "Expert",
+      "ml_predicted_css": null,
+      "status": "Archived",
+      "created_at": "2026-08-04T00:04:39.505165"
+    },
+    {
+      "id": "CAL-1003",
+      "user_id": "usr-patient-101",
+      "case_id": "CASE-6524",
+      "expert_css_score": 63,
+      "notes": "",
+      "recommendation_feedback": "",
+      "reviewer_id": "usr-chief-admin-001",
+      "reviewer_name": "Expert",
+      "ml_predicted_css": 85,
+      "status": "Applied to Algorithm",
+      "created_at": "2026-08-04T00:30:08.505980",
+      "reviewed_at": "2026-08-04T00:59:25.038842"
+    }
+  ]
 }

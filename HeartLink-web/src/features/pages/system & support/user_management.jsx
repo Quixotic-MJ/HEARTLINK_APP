@@ -22,6 +22,7 @@ import {
   ChevronRight,
   Stethoscope,
 } from "lucide-react";
+import { useAuth } from "../../../contexts/AuthContext";
 import AdminLayout from "../../../components/layouts/adminLayout";
 import UserListView from "../../../components/lists/UserListView";
 import { apiFetch } from "../../../api";
@@ -79,12 +80,13 @@ const initialSystemStaff = [
 ];
 
 const Users = () => {
-  const [currentUserRole, setCurrentUserRole] = useState("chief_admin");
+  const { user, userId } = useAuth();
+  const currentUserRole = user?.role || (userId === "usr-chief-admin-001" ? "admin" : "medical_expert");
   const [activeTab, setActiveTab] = useState("app_users");
   const navigate = useNavigate();
 
   const [appUsers, setAppUsers] = useState([]);
-  const [systemStaff, setSystemStaff] = useState(initialSystemStaff);
+  const [systemStaff, setSystemStaff] = useState([]);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
@@ -96,28 +98,36 @@ const Users = () => {
 
   const [deactivationReason, setDeactivationReason] = useState("");
 
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      const [patientsData, staffData] = await Promise.all([
+        apiFetch("/api/users/"),
+        apiFetch("/api/admin/staff")
+      ]);
+      
+      const mappedPatients = patientsData.filter(u => u.role === "patient").map((r) => {
+        return {
+          id: r.id,
+          name: `${r.first_name} ${r.last_name}`,
+          phone: r.phone || "",
+          regDate: new Date(r.created_at).toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" }),
+          status: r.account_status === "active" ? "Active" : "Disabled",
+          metrics: { loginsThisWeek: 0, avgSession: "0m", alertsTriggered: 0 },
+        };
+      });
+      setAppUsers(mappedPatients.length > 0 ? mappedPatients : initialAppUsers);
+      setSystemStaff(staffData.length > 0 ? staffData : initialSystemStaff);
+    } catch (err) {
+      console.error("Failed to fetch users", err);
+      setAppUsers(initialAppUsers);
+      setSystemStaff(initialSystemStaff);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   React.useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const data = await apiFetch("/api/users/");
-        const mapped = data.filter(u => u.role === "patient").map((r) => {
-          return {
-            id: r.id,
-            name: `${r.first_name} ${r.last_name}`,
-            phone: r.phone || "",
-            regDate: new Date(r.created_at).toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" }),
-            status: r.account_status === "active" ? "Active" : "Disabled",
-            metrics: { loginsThisWeek: 0, avgSession: "0m", alertsTriggered: 0 },
-          };
-        });
-        setAppUsers(mapped.length > 0 ? mapped : initialAppUsers);
-      } catch (err) {
-        console.error("Failed to fetch users", err);
-        setAppUsers(initialAppUsers);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchUsers();
   }, []);
 
@@ -147,6 +157,31 @@ const Users = () => {
     setIsModalOpen(true);
   };
 
+  const handleToggleStatus = async (entityId) => {
+    try {
+      await apiFetch(`/api/admin/users/${entityId}/status`, { method: "PUT" });
+      await fetchUsers(); // Refresh the list to reflect status changes
+      closeModal();
+    } catch (e) {
+      console.error("Failed to toggle status", e);
+      alert("Failed to change user status.");
+    }
+  };
+
+  const handleSaveStaff = async (staffData) => {
+    try {
+      await apiFetch(`/api/admin/staff`, {
+        method: "POST",
+        body: JSON.stringify(staffData)
+      });
+      await fetchUsers();
+      closeModal();
+    } catch (e) {
+      console.error("Failed to save staff", e);
+      alert("Failed to create staff member.");
+    }
+  };
+
   const closeModal = () => {
     setIsModalOpen(false);
     setActiveEntity(null);
@@ -154,9 +189,9 @@ const Users = () => {
   };
 
   const handleTabSwitch = (tab) => {
-    if (tab === "system_staff" && currentUserRole !== "chief_admin") {
+    if (tab === "system_staff" && currentUserRole !== "admin") {
       alert(
-        "Access Denied: Only a Chief Admin can view or modify System Staff records.",
+        "Access Denied: Only a System Admin can view or modify System Staff records.",
       );
       return;
     }
@@ -233,9 +268,9 @@ const Users = () => {
             activeTab === "system_staff"
               ? "bg-slate-900 text-white shadow-sm"
               : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
-          } ${currentUserRole !== "chief_admin" ? "opacity-60 cursor-not-allowed" : ""}`}
+          } ${currentUserRole !== "admin" ? "opacity-60 cursor-not-allowed" : ""}`}
         >
-          {currentUserRole !== "chief_admin" ? (
+          {currentUserRole !== "admin" ? (
             <Lock size={14} className="text-red-400" />
           ) : (
             <ShieldCheck size={14} />
@@ -261,7 +296,7 @@ const Users = () => {
       {/* ========================================= */}
       {/* TAB 2: SYSTEM STAFF (ADMINS & EXPERTS)    */}
       {/* ========================================= */}
-      {activeTab === "system_staff" && currentUserRole === "chief_admin" && (
+      {activeTab === "system_staff" && currentUserRole === "admin" && (
         <StaffListView
           staffList={filteredStaff}
           searchQuery={searchQuery}
@@ -277,10 +312,8 @@ const Users = () => {
         onClose={closeModal}
         staff={activeEntity}
         onEdit={() => setModalMode("edit_staff")}
-        onRevoke={() => setModalMode("deactivate_user")}
-        onRestore={() =>
-          alert(`Mock: Successfully restored access for ${activeEntity?.name}`)
-        }
+        onRevoke={() => handleToggleStatus(activeEntity?.id)}
+        onRestore={() => handleToggleStatus(activeEntity?.id)}
       />
 
       {/* Modular Staff Form Modal (Create/Edit) */}
@@ -292,6 +325,7 @@ const Users = () => {
         onClose={closeModal}
         isEditMode={modalMode === "edit_staff"}
         staff={activeEntity}
+        onSave={handleSaveStaff}
       />
     </AdminLayout>
   );
