@@ -31,13 +31,11 @@ export default function HelpSupportScreen() {
   const [searchQuery, setSearchQuery] = useState("");
 
   const handleContactSupport = () => {
-    Linking.openURL("mailto:support@heartlink.com?subject=HeartLink Support Request");
+    router.push({ pathname: "/(home)/(settings)/submit-ticket", params: { category: "Question" } });
   };
 
   const handleReportBug = () => {
-    Linking.openURL(
-      "mailto:support@heartlink.com?subject=Bug Report&body=Please describe the bug and your device info: \n\n"
-    );
+    router.push({ pathname: "/(home)/(settings)/submit-ticket", params: { category: "Bug Report" } });
   };
 
   return (

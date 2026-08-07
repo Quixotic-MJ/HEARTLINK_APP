@@ -731,6 +731,28 @@ exercise_routines = [
 saved_recipes = []
 saved_exercises = []
 
+# 8.5 System Broadcasts
+system_broadcasts = [
+    {
+        "id": "brd-1",
+        "date": "May 28, 2026 10:00 AM",
+        "publisher": "SYS-02 (Alex R.)",
+        "message": "System Maintenance: We are performing a quick server optimization. The app may be briefly unavailable.",
+        "type": "Maintenance",
+        "target_audience": "All Registered Accounts",
+        "created_at": datetime(2026, 5, 28, 10, 0, 0)
+    },
+    {
+        "id": "brd-2",
+        "date": "May 24, 2026 08:30 AM",
+        "publisher": "MED-01 (Dr. Jenkins)",
+        "message": "Safety Reminder: Ensure your CSS profile is updated if you have experienced any fatigue this week.",
+        "type": "Safety Reminder",
+        "target_audience": "All Patients",
+        "created_at": datetime(2026, 5, 24, 8, 30, 0)
+    }
+]
+
 # 9. Support & Communications Infrastructure Tables
 notifications = [
     {
@@ -783,7 +805,76 @@ notifications = [
     }
 ]
 
-feedback_tickets = []
+feedback_tickets = [
+    {
+        "id": 1,
+        "ticketId": "FB-1042",
+        "date": "May 28, 2026",
+        "user": "Robert Villanueva",
+        "userEmail": "robert.v@email.com",
+        "userId": "USR-A492",
+        "category": "Bug Report",
+        "preview": "The barcode scanner crashes when...",
+        "fullMessage": "The barcode scanner crashes when I try to scan a generic oat brand. The camera opens, but right after it recognizes the barcode, the app completely freezes and closes itself.",
+        "status": "Open",
+        "deviceMeta": {
+            "os": "Android 14",
+            "model": "Samsung Galaxy S23 Ultra",
+            "appVersion": "v1.2.4",
+        },
+        "adminNotes": "",
+    },
+    {
+        "id": 2,
+        "ticketId": "FB-1041",
+        "date": "May 27, 2026",
+        "user": "Elena Marasigan",
+        "userEmail": "elena.m@email.com",
+        "userId": "USR-B118",
+        "category": "UI/UX Suggestion",
+        "preview": "Could you make the recipe font bigger?",
+        "fullMessage": "I love the heart-healthy recipes, but when I am cooking in the kitchen, the font for the ingredients list is very hard to read from a distance. Could you add a text size toggle?",
+        "status": "In Progress",
+        "deviceMeta": {
+            "os": "iOS 17.4",
+            "model": "iPhone 13 Pro",
+            "appVersion": "v1.2.4",
+        },
+        "adminNotes": "Assigned to UI team. Planning to add an accessibility slider in the next minor patch.",
+    },
+    {
+        "id": 3,
+        "ticketId": "FB-1039",
+        "date": "May 25, 2026",
+        "user": "Miguel Santos",
+        "userEmail": "miguel88@email.com",
+        "userId": "USR-C882",
+        "category": "Account Issue",
+        "preview": "I cannot reset my password...",
+        "fullMessage": "I forgot my password, but when I click the reset link in my email, it says the token is invalid or expired. I've tried this three times now.",
+        "status": "Resolved",
+        "deviceMeta": {
+            "os": "Android 13",
+            "model": "Google Pixel 6a",
+            "appVersion": "v1.2.3",
+        },
+        "adminNotes": "Known Firebase auth token expiration bug. Sent manual reset link and patched backend token lifespan.",
+    },
+    {
+        "id": 4,
+        "ticketId": "FB-1035",
+        "date": "May 22, 2026",
+        "user": "Anonymous User",
+        "userEmail": "Not Provided",
+        "userId": "N/A",
+        "category": "Question",
+        "preview": "Does the CSS score update automatically?",
+        "fullMessage": "If I log my blood pressure today, does my Cardiovascular Stability Score update right away, or does it take 24 hours?",
+        "status": "Resolved",
+        "deviceMeta": { "os": "Unknown", "model": "Unknown", "appVersion": "Unknown" },
+        "adminNotes": "Replied via in-app notification confirming real-time updates.",
+    },
+]
 care_team_contacts = [
     {
         "id": "team-contacts-1",
@@ -954,7 +1045,8 @@ def save_logs():
             "alerts": [_serialize_item(a) for a in alerts],
             "saved_recipes": [_serialize_item(r) for r in saved_recipes],
             "saved_exercises": [_serialize_item(e) for e in saved_exercises],
-            "expert_evaluations": [_serialize_item(ee) for ee in expert_evaluations]
+            "expert_evaluations": [_serialize_item(ee) for ee in expert_evaluations],
+            "system_broadcasts": [_serialize_item(b) for b in system_broadcasts]
         }
         with open(LOGS_DB_FILE, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
@@ -962,7 +1054,7 @@ def save_logs():
         print(f"Error saving mock logs: {e}")
 
 def load_logs():
-    global meal_logs, exercise_logs, daily_health_logs, css_history, notifications, alerts, saved_recipes, saved_exercises, expert_evaluations
+    global meal_logs, exercise_logs, daily_health_logs, css_history, notifications, alerts, saved_recipes, saved_exercises, expert_evaluations, system_broadcasts
     if os.path.exists(LOGS_DB_FILE):
         try:
             with open(LOGS_DB_FILE, "r", encoding="utf-8") as f:
@@ -994,6 +1086,9 @@ def load_logs():
                 if "expert_evaluations" in data:
                     expert_evaluations.clear()
                     expert_evaluations.extend([_deserialize_item(ee) for ee in data["expert_evaluations"]])
+                if "system_broadcasts" in data:
+                    system_broadcasts.clear()
+                    system_broadcasts.extend([_deserialize_item(b) for b in data["system_broadcasts"]])
         except Exception as e:
             print(f"Error loading mock logs: {e}")
     else:

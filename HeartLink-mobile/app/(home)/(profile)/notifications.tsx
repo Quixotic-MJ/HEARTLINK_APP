@@ -1,29 +1,45 @@
-import React, { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, ScrollView } from "react-native";
+import React, { useState, useEffect, useCallback } from "react";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  FlatList,
+  RefreshControl,
+  ActivityIndicator,
+  Animated as RNAnimated,
+} from "react-native";
 import { useColorScheme } from "nativewind";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
-import { Feather } from "@expo/vector-icons";
+import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useUser } from "../../../contexts/UserContext";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type NotificationType = "alert" | "insight" | "reminder" | "achievement" | "system";
+type NotificationType =
+  | "alert"
+  | "insight"
+  | "reminder"
+  | "achievement"
+  | "system";
 
 interface Notification {
   id: string;
   type: NotificationType;
+  scope?: string;
+  broadcast_type?: string;
+  broadcast_id?: string;
   title: string;
   message: string;
-  time: string;
+  created_at: string;
   read: boolean;
   route?: string;
 }
 
-// ─── Theme config (plain values — no dynamic className) ───────────────────────
+// ─── Theme config ─────────────────────────────────────────────────────────────
 
 type NotifTheme = {
   icon: string;
@@ -31,148 +47,171 @@ type NotifTheme = {
   iconBg: string;
   iconBorder: string;
   dotColor: string;
+  darkIconBg: string;
+  darkIconBorder: string;
 };
 
 const NOTIF_THEME: Record<NotificationType, NotifTheme> = {
   alert: {
     icon: "alert-triangle",
-    color: "#a32d2d",
-    iconBg: "#fcebeb",
-    iconBorder: "#f7c1c1",
-    dotColor: "#e24b4a",
+    color: "#dc2626",
+    iconBg: "#fef2f2",
+    iconBorder: "#fecaca",
+    dotColor: "#dc2626",
+    darkIconBg: "#451a1a",
+    darkIconBorder: "#7f1d1d",
   },
   insight: {
     icon: "zap",
-    color: "#185fa5",
-    iconBg: "#e6f1fb",
-    iconBorder: "#b8d8f5",
-    dotColor: "#185fa5",
+    color: "#2563eb",
+    iconBg: "#eff6ff",
+    iconBorder: "#bfdbfe",
+    dotColor: "#2563eb",
+    darkIconBg: "#1e2a4a",
+    darkIconBorder: "#1e3a5f",
   },
   reminder: {
     icon: "clock",
-    color: "#854f0b",
-    iconBg: "#faeeda",
-    iconBorder: "#fac775",
-    dotColor: "#ba7517",
+    color: "#d97706",
+    iconBg: "#fffbeb",
+    iconBorder: "#fde68a",
+    dotColor: "#d97706",
+    darkIconBg: "#3b2a0a",
+    darkIconBorder: "#78350f",
   },
   achievement: {
     icon: "award",
-    color: "#3b6d11",
-    iconBg: "#eaf3de",
-    iconBorder: "#c0dd97",
-    dotColor: "#639922",
+    color: "#16a34a",
+    iconBg: "#f0fdf4",
+    iconBorder: "#bbf7d0",
+    dotColor: "#16a34a",
+    darkIconBg: "#14331f",
+    darkIconBorder: "#166534",
   },
   system: {
     icon: "info",
-    color: "#64748b",
-    iconBg: "#f8fafc",
-    iconBorder: "#e2e8f0",
-    dotColor: "#94a3b8",
+    color: "#6366f1",
+    iconBg: "#eef2ff",
+    iconBorder: "#c7d2fe",
+    dotColor: "#6366f1",
+    darkIconBg: "#1e1b4b",
+    darkIconBorder: "#312e81",
   },
 };
 
-// ─── Sample Data ──────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const SAMPLE_NOTIFICATIONS: Notification[] = [
-  {
-    id: "1",
-    type: "alert",
-    title: "Elevated blood pressure",
-    message:
-      "Your systolic BP reading of 145 mmHg exceeds your safe threshold. Consider resting and retaking in 15 minutes.",
-    time: "5 min ago",
-    read: false,
-  },
-  {
-    id: "2",
-    type: "insight",
-    title: "Weekly score improved",
-    message:
-      "Your stability score rose by 5 points this week. Keep up the consistent medication and diet tracking!",
-    time: "1 hour ago",
-    read: false,
-  },
-  {
-    id: "4",
-    type: "achievement",
-    title: "7-day streak",
-    message:
-      "You've logged your vitals for 7 consecutive days. Consistency is key to better health outcomes.",
-    time: "5 hours ago",
-    read: true,
-  },
-  {
-    id: "5",
-    type: "reminder",
-    title: "Daily symptom check-in",
-    message:
-      "How are you feeling today? Tap to log your symptoms before your evening review.",
-    time: "8 hours ago",
-    read: true,
-    route: "/(home)/(health)/log-symptoms",
-  },
-  {
-    id: "6",
-    type: "insight",
-    title: "Sodium intake update",
-    message:
-      "You've consumed an estimated 1,200 mg of sodium today — well within your 2,000 mg daily limit.",
-    time: "Yesterday",
-    read: true,
-  },
-  {
-    id: "7",
-    type: "system",
-    title: "App update available",
-    message:
-      "HeartLink v1.1 is ready with improved meal scanning and new exercise routines.",
-    time: "2 days ago",
-    read: true,
-  },
-  {
-    id: "8",
-    type: "achievement",
-    title: "First meal scanned",
-    message:
-      "You scanned your first food barcode! HeartLink will now track its nutritional impact on your heart health.",
-    time: "3 days ago",
-    read: true,
-  },
-];
+function getRelativeTime(dateStr: string): string {
+  try {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffSec = Math.floor(diffMs / 1000);
+    const diffMin = Math.floor(diffSec / 60);
+    const diffHr = Math.floor(diffMin / 60);
+    const diffDay = Math.floor(diffHr / 24);
+
+    if (diffSec < 60) return "Just now";
+    if (diffMin < 60) return `${diffMin}m ago`;
+    if (diffHr < 24) return `${diffHr}h ago`;
+    if (diffDay === 1) return "Yesterday";
+    if (diffDay < 7) return `${diffDay}d ago`;
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  } catch {
+    return "";
+  }
+}
+
+function getDateGroup(dateStr: string): string {
+  try {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const yesterday = new Date(today.getTime() - 86400000);
+    const weekAgo = new Date(today.getTime() - 7 * 86400000);
+
+    if (date >= today) return "Today";
+    if (date >= yesterday) return "Yesterday";
+    if (date >= weekAgo) return "This Week";
+    return "Earlier";
+  } catch {
+    return "Earlier";
+  }
+}
+
+type FilterType = "all" | "unread" | "broadcasts";
 
 // ─── Filter Chip ──────────────────────────────────────────────────────────────
-// Dynamic bg/border/text via inline style — avoids css-interop crash
 
 function FilterChip({
   label,
   active,
   badge,
   onPress,
+  isDark,
 }: {
   label: string;
   active: boolean;
   badge?: number;
   onPress: () => void;
+  isDark: boolean;
 }) {
   return (
     <TouchableOpacity
       onPress={onPress}
       activeOpacity={0.75}
-      className={`flex-row items-center px-4 py-2 rounded-full border gap-1.5 ${active ? 'bg-primary border-primary' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800'}`}
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        paddingHorizontal: 14,
+        paddingVertical: 8,
+        borderRadius: 100,
+        borderWidth: 1,
+        gap: 6,
+        backgroundColor: active
+          ? isDark
+            ? "#e2e8f0"
+            : "#0f172a"
+          : isDark
+          ? "#0f172a"
+          : "#ffffff",
+        borderColor: active
+          ? isDark
+            ? "#e2e8f0"
+            : "#0f172a"
+          : isDark
+          ? "#334155"
+          : "#e2e8f0",
+      }}
     >
       <Text
-        className={`text-[12px] font-medium ${active ? 'text-primary-foreground' : 'text-slate-500 dark:text-slate-400'}`}
+        style={{
+          fontSize: 12,
+          fontWeight: "600",
+          color: active
+            ? isDark
+              ? "#0f172a"
+              : "#ffffff"
+            : isDark
+            ? "#94a3b8"
+            : "#64748b",
+        }}
       >
         {label}
       </Text>
       {badge !== undefined && badge > 0 && (
         <View
-          className="w-4 h-4 rounded-full items-center justify-center"
-          style={{ backgroundColor: active ? "rgba(255,255,255,0.2)" : "#e24b4a" }}
+          style={{
+            minWidth: 18,
+            height: 18,
+            borderRadius: 9,
+            alignItems: "center",
+            justifyContent: "center",
+            paddingHorizontal: 4,
+            backgroundColor: active ? "rgba(255,255,255,0.25)" : "#dc2626",
+          }}
         >
-          <Text
-            className="text-[9px] font-medium text-white"
-          >
+          <Text style={{ fontSize: 10, fontWeight: "700", color: "#fff" }}>
             {badge}
           </Text>
         </View>
@@ -181,69 +220,260 @@ function FilterChip({
   );
 }
 
+// ─── Skeleton Loader ──────────────────────────────────────────────────────────
+
+function SkeletonCard({ isDark }: { isDark: boolean }) {
+  const opacity = React.useRef(new RNAnimated.Value(0.3)).current;
+
+  React.useEffect(() => {
+    const anim = RNAnimated.loop(
+      RNAnimated.sequence([
+        RNAnimated.timing(opacity, {
+          toValue: 1,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+        RNAnimated.timing(opacity, {
+          toValue: 0.3,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    anim.start();
+    return () => anim.stop();
+  }, []);
+
+  const bg = isDark ? "#1e293b" : "#f1f5f9";
+
+  return (
+    <RNAnimated.View
+      style={{
+        opacity,
+        flexDirection: "row",
+        padding: 16,
+        borderRadius: 16,
+        marginBottom: 10,
+        backgroundColor: isDark ? "#0f172a" : "#ffffff",
+        borderWidth: 1,
+        borderColor: isDark ? "#1e293b" : "#f1f5f9",
+      }}
+    >
+      <View
+        style={{
+          width: 40,
+          height: 40,
+          borderRadius: 12,
+          backgroundColor: bg,
+          marginRight: 12,
+        }}
+      />
+      <View style={{ flex: 1, gap: 8 }}>
+        <View
+          style={{
+            height: 12,
+            borderRadius: 6,
+            backgroundColor: bg,
+            width: "70%",
+          }}
+        />
+        <View
+          style={{
+            height: 10,
+            borderRadius: 5,
+            backgroundColor: bg,
+            width: "100%",
+          }}
+        />
+        <View
+          style={{
+            height: 10,
+            borderRadius: 5,
+            backgroundColor: bg,
+            width: "40%",
+          }}
+        />
+      </View>
+    </RNAnimated.View>
+  );
+}
+
 // ─── Notification Card ────────────────────────────────────────────────────────
-// All conditional bg/border/text via inline style
 
 function NotificationCard({
   notification,
   onPress,
+  isDark,
 }: {
   notification: Notification;
   onPress: () => void;
+  isDark: boolean;
 }) {
   const router = useRouter();
   const theme = NOTIF_THEME[notification.type];
-  const { read } = notification;
+  const { read, scope } = notification;
+  const isBroadcast = scope === "broadcast";
   const [expanded, setExpanded] = React.useState(false);
 
-  const actionRoute = notification.route || 
-    (notification.message.toLowerCase().includes("tap to log") ? "/(home)/(health)/log-symptoms" : null);
+  const actionRoute =
+    notification.route ||
+    (notification.message.toLowerCase().includes("tap to log")
+      ? "/(home)/(health)/log-symptoms"
+      : null);
 
   return (
     <TouchableOpacity
       activeOpacity={0.7}
       onPress={() => {
         if (!read) onPress();
-        
         if (actionRoute) {
           router.push(actionRoute as any);
         } else {
           setExpanded(!expanded);
         }
       }}
-      className={`flex-row items-start rounded-2xl mb-2.5 p-4 border ${read ? 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800' : 'bg-blue-50 dark:bg-slate-800 border-blue-100 dark:border-slate-700'}`}
+      style={{
+        flexDirection: "row",
+        alignItems: "flex-start",
+        borderRadius: 16,
+        marginBottom: 10,
+        padding: 14,
+        borderWidth: 1,
+        backgroundColor: read
+          ? isDark
+            ? "#0f172a"
+            : "#ffffff"
+          : isDark
+          ? "#111827"
+          : isBroadcast
+          ? "#eef2ff"
+          : "#eff6ff",
+        borderColor: read
+          ? isDark
+            ? "#1e293b"
+            : "#f1f5f9"
+          : isDark
+          ? "#1e293b"
+          : isBroadcast
+          ? "#c7d2fe"
+          : "#dbeafe",
+      }}
     >
-      {/* Unread indicator strip */}
+      {/* Unread accent strip */}
       {!read && (
         <View
-          className="absolute left-0 top-4 bottom-4 w-0.5 rounded-full"
-          style={{ backgroundColor: theme.dotColor }}
+          style={{
+            position: "absolute",
+            left: 0,
+            top: 14,
+            bottom: 14,
+            width: 3,
+            borderRadius: 2,
+            backgroundColor: isBroadcast ? "#6366f1" : theme.dotColor,
+          }}
         />
       )}
 
       {/* Icon */}
       <View
-        className="w-9 h-9 rounded-xl items-center justify-center mr-3 flex-shrink-0 border"
-        style={{ backgroundColor: theme.iconBg, borderColor: theme.iconBorder }}
+        style={{
+          width: 40,
+          height: 40,
+          borderRadius: 12,
+          alignItems: "center",
+          justifyContent: "center",
+          marginRight: 12,
+          borderWidth: 1,
+          backgroundColor: isDark ? theme.darkIconBg : isBroadcast ? "#eef2ff" : theme.iconBg,
+          borderColor: isDark ? theme.darkIconBorder : isBroadcast ? "#c7d2fe" : theme.iconBorder,
+        }}
       >
-        <Feather name={theme.icon as any} size={15} color={theme.color} />
+        {isBroadcast ? (
+          <MaterialCommunityIcons
+            name="bullhorn-outline"
+            size={18}
+            color="#6366f1"
+          />
+        ) : (
+          <Feather
+            name={theme.icon as any}
+            size={16}
+            color={theme.color}
+          />
+        )}
       </View>
 
       {/* Content */}
-      <View className="flex-1">
-        <View className="flex-row items-start justify-between gap-2 mb-1">
+      <View style={{ flex: 1 }}>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "flex-start",
+            justifyContent: "space-between",
+            gap: 8,
+            marginBottom: 4,
+          }}
+        >
+          <View style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 6 }}>
+            <Text
+              style={{
+                flex: 1,
+                fontSize: 13,
+                lineHeight: 18,
+                fontWeight: read ? "400" : "600",
+                color: read
+                  ? isDark
+                    ? "#94a3b8"
+                    : "#64748b"
+                  : isDark
+                  ? "#f8fafc"
+                  : "#0f172a",
+              }}
+              numberOfLines={1}
+            >
+              {notification.title}
+            </Text>
+            {isBroadcast && (
+              <View
+                style={{
+                  paddingHorizontal: 6,
+                  paddingVertical: 2,
+                  borderRadius: 6,
+                  backgroundColor: isDark ? "#312e81" : "#e0e7ff",
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 9,
+                    fontWeight: "700",
+                    color: "#6366f1",
+                    textTransform: "uppercase",
+                    letterSpacing: 0.5,
+                  }}
+                >
+                  Broadcast
+                </Text>
+              </View>
+            )}
+          </View>
           <Text
-            className={`flex-1 text-[13px] leading-snug ${read ? 'text-slate-500 dark:text-slate-400 font-normal' : 'text-slate-900 dark:text-white font-medium'}`}
-            numberOfLines={1}
+            style={{
+              fontSize: 11,
+              fontWeight: "500",
+              color: isDark ? "#475569" : "#94a3b8",
+              flexShrink: 0,
+            }}
           >
-            {notification.title}
-          </Text>
-          <Text className="text-[11px] font-medium text-slate-500 flex-shrink-0">
-            {notification.time}
+            {getRelativeTime(notification.created_at)}
           </Text>
         </View>
         <Text
-          className="text-[12px] leading-[18px] text-slate-400 mt-1"
+          style={{
+            fontSize: 12,
+            lineHeight: 18,
+            color: isDark ? "#64748b" : "#94a3b8",
+            marginTop: 2,
+          }}
           numberOfLines={expanded ? undefined : 2}
         >
           {notification.message}
@@ -253,7 +483,41 @@ function NotificationCard({
   );
 }
 
-// ─── Notifications Screen ─────────────────────────────────────────────────────
+// ─── Section Header ───────────────────────────────────────────────────────────
+
+function SectionHeader({
+  title,
+  isDark,
+}: {
+  title: string;
+  isDark: boolean;
+}) {
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 10, marginTop: 16 }}>
+      <Text
+        style={{
+          fontSize: 11,
+          fontWeight: "700",
+          color: isDark ? "#475569" : "#94a3b8",
+          textTransform: "uppercase",
+          letterSpacing: 1.2,
+        }}
+      >
+        {title}
+      </Text>
+      <View
+        style={{
+          flex: 1,
+          height: 1,
+          backgroundColor: isDark ? "#1e293b" : "#f1f5f9",
+          marginLeft: 10,
+        }}
+      />
+    </View>
+  );
+}
+
+// ─── Main Screen ──────────────────────────────────────────────────────────────
 
 export default function NotificationsScreen() {
   const { colorScheme } = useColorScheme();
@@ -263,38 +527,55 @@ export default function NotificationsScreen() {
 
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [filter, setFilter] = useState<FilterType>("all");
 
-  useEffect(() => {
-    async function fetchNotifications() {
-      try {
-        const response = await fetch(`${base_url}/api/notifications/${userId}`);
-        if (!response.ok) throw new Error("Failed to fetch notifications");
-        const data = await response.json();
-        
-        const mapped = data.map((n: any) => ({
-          id: n.id,
-          type: n.type || "system",
-          title: n.title || "",
-          message: n.message || "",
-          time: new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), // simplistic formatting
-          read: n.read || false,
-          route: n.route,
-        }));
-        setNotifications(mapped);
-      } catch (error) {
-        console.error(error);
-      } finally {
-        setIsLoading(false);
-      }
+  const fetchNotifications = useCallback(async () => {
+    if (!userId) return;
+    try {
+      const response = await fetch(
+        `${base_url}/api/notifications/${userId}`
+      );
+      if (!response.ok) throw new Error("Failed to fetch notifications");
+      const data = await response.json();
+      const mapped: Notification[] = data.map((n: any) => ({
+        id: n.id,
+        type: n.type || "system",
+        scope: n.scope || "personal",
+        broadcast_type: n.broadcast_type,
+        broadcast_id: n.broadcast_id,
+        title: n.title || "",
+        message: n.message || "",
+        created_at: n.created_at,
+        read: n.read || false,
+        route: n.route,
+      }));
+      setNotifications(mapped);
+    } catch (error) {
+      console.error(error);
     }
-    if (userId) fetchNotifications();
   }, [userId]);
 
-  const [filter, setFilter] = useState<"all" | "unread">("all");
+  useEffect(() => {
+    async function load() {
+      setIsLoading(true);
+      await fetchNotifications();
+      setIsLoading(false);
+    }
+    if (userId) load();
+  }, [userId, fetchNotifications]);
+
+  const onRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    await fetchNotifications();
+    setIsRefreshing(false);
+  }, [fetchNotifications]);
 
   const markAsRead = async (id: string) => {
     try {
-      await fetch(`${base_url}/api/notifications/${id}/read`, { method: "PUT" });
+      await fetch(`${base_url}/api/notifications/${id}/read`, {
+        method: "PUT",
+      });
       setNotifications((prev) =>
         prev.map((n) => (n.id === id ? { ...n, read: true } : n))
       );
@@ -302,47 +583,129 @@ export default function NotificationsScreen() {
       console.error(e);
     }
   };
-  
-  const filtered =
-    filter === "unread" ? notifications.filter((n) => !n.read) : notifications;
-
-  const unreadCount = notifications.filter((n) => !n.read).length;
 
   const markAllAsRead = async () => {
     try {
       if (!userId) return;
-      await fetch(`${base_url}/api/notifications/${userId}/mark-all-read`, { method: "PUT" });
+      await fetch(`${base_url}/api/notifications/${userId}/mark-all-read`, {
+        method: "PUT",
+      });
       setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
     } catch (e) {
       console.error(e);
     }
   };
 
-  // Group into today vs. earlier
-  const todayLabels = ["5 min ago", "1 hour ago", "2 hours ago", "5 hours ago", "8 hours ago"];
-  const today = filtered.filter((n) => todayLabels.includes(n.time));
-  const earlier = filtered.filter((n) => !todayLabels.includes(n.time));
+  // ─── Filtering ──────────────────────────────────────────────────────────
+
+  const filtered = notifications.filter((n) => {
+    if (filter === "unread") return !n.read;
+    if (filter === "broadcasts") return n.scope === "broadcast";
+    return true;
+  });
+
+  const unreadCount = notifications.filter((n) => !n.read).length;
+  const broadcastCount = notifications.filter(
+    (n) => n.scope === "broadcast"
+  ).length;
+
+  // ─── Group by date ──────────────────────────────────────────────────────
+
+  const grouped: { title: string; data: Notification[] }[] = [];
+  const groupOrder = ["Today", "Yesterday", "This Week", "Earlier"];
+  const groupMap = new Map<string, Notification[]>();
+
+  for (const n of filtered) {
+    const group = getDateGroup(n.created_at);
+    if (!groupMap.has(group)) groupMap.set(group, []);
+    groupMap.get(group)!.push(n);
+  }
+
+  for (const key of groupOrder) {
+    if (groupMap.has(key)) {
+      grouped.push({ title: key, data: groupMap.get(key)! });
+    }
+  }
+
+  // ─── Render ─────────────────────────────────────────────────────────────
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950" edges={["top"]}>
-      <StatusBar style="dark" />
+    <SafeAreaView
+      style={{ flex: 1, backgroundColor: isDark ? "#020617" : "#f8fafc" }}
+      edges={["top"]}
+    >
+      <StatusBar style={isDark ? "light" : "dark"} />
 
       {/* Header */}
-      <View className="flex-row items-center px-5 pt-4 pb-3 border-b border-slate-200 dark:border-slate-800/50">
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          paddingHorizontal: 20,
+          paddingTop: 16,
+          paddingBottom: 12,
+          borderBottomWidth: 1,
+          borderBottomColor: isDark ? "#1e293b50" : "#f1f5f9",
+        }}
+      >
         <TouchableOpacity
           onPress={() => router.back()}
-          className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 items-center justify-center mr-3"
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: 12,
+            backgroundColor: isDark ? "#0f172a" : "#ffffff",
+            borderWidth: 1,
+            borderColor: isDark ? "#1e293b" : "#e2e8f0",
+            alignItems: "center",
+            justifyContent: "center",
+            marginRight: 12,
+          }}
         >
-          <Feather name="arrow-left" size={18} color={isDark ? "#f8fafc" : "#0f172a"} />
+          <Feather
+            name="arrow-left"
+            size={18}
+            color={isDark ? "#f8fafc" : "#0f172a"}
+          />
         </TouchableOpacity>
 
-        <View className="flex-1 flex-row items-center gap-2">
-          <Text className="text-[17px] font-medium text-slate-900 dark:text-white">
+        <View
+          style={{
+            flex: 1,
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 8,
+          }}
+        >
+          <Text
+            style={{
+              fontSize: 18,
+              fontWeight: "600",
+              color: isDark ? "#f8fafc" : "#0f172a",
+              letterSpacing: -0.3,
+            }}
+          >
             Notifications
           </Text>
           {unreadCount > 0 && (
-            <View className="bg-slate-900 rounded-full w-5 h-5 items-center justify-center">
-              <Text className="text-white text-[10px] font-medium">
+            <View
+              style={{
+                backgroundColor: isDark ? "#e2e8f0" : "#0f172a",
+                borderRadius: 10,
+                minWidth: 20,
+                height: 20,
+                alignItems: "center",
+                justifyContent: "center",
+                paddingHorizontal: 6,
+              }}
+            >
+              <Text
+                style={{
+                  color: isDark ? "#0f172a" : "#ffffff",
+                  fontSize: 10,
+                  fontWeight: "700",
+                }}
+              >
                 {unreadCount}
               </Text>
             </View>
@@ -353,81 +716,149 @@ export default function NotificationsScreen() {
         {unreadCount > 0 && (
           <TouchableOpacity
             onPress={markAllAsRead}
-            className="flex-row items-center gap-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 px-3 py-1.5 rounded-xl"
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 5,
+              backgroundColor: isDark ? "#0f172a" : "#ffffff",
+              borderWidth: 1,
+              borderColor: isDark ? "#1e293b" : "#e2e8f0",
+              paddingHorizontal: 10,
+              paddingVertical: 6,
+              borderRadius: 10,
+            }}
           >
-            <Feather name="check" size={14} color="#64748b" />
-            <Text className="text-[11px] font-bold text-slate-500 dark:text-slate-400">Mark all read</Text>
+            <Feather name="check-circle" size={13} color={isDark ? "#94a3b8" : "#64748b"} />
+            <Text
+              style={{
+                fontSize: 11,
+                fontWeight: "600",
+                color: isDark ? "#94a3b8" : "#64748b",
+              }}
+            >
+              Read all
+            </Text>
           </TouchableOpacity>
         )}
       </View>
 
       {/* Filter chips */}
-      <View className="flex-row gap-2 px-5 py-3">
+      <View
+        style={{
+          flexDirection: "row",
+          gap: 8,
+          paddingHorizontal: 20,
+          paddingVertical: 12,
+        }}
+      >
         <FilterChip
           label="All"
           active={filter === "all"}
           onPress={() => setFilter("all")}
+          isDark={isDark}
         />
         <FilterChip
           label="Unread"
           active={filter === "unread"}
           badge={filter !== "unread" ? unreadCount : undefined}
           onPress={() => setFilter("unread")}
+          isDark={isDark}
+        />
+        <FilterChip
+          label="Broadcasts"
+          active={filter === "broadcasts"}
+          badge={filter !== "broadcasts" ? broadcastCount : undefined}
+          onPress={() => setFilter("broadcasts")}
+          isDark={isDark}
         />
       </View>
 
-      <ScrollView
-        contentContainerClassName="px-5 pb-16"
-        showsVerticalScrollIndicator={false}
-      >
-        {filtered.length === 0 ? (
-          <View className="items-center pt-20">
-            <View className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-800/70 items-center justify-center mb-4">
-              <Feather name="bell-off" size={22} color="#cbd5e1" />
-            </View>
-            <Text className="text-[16px] font-medium text-slate-900 dark:text-white mb-1">
-              All caught up
-            </Text>
-            <Text className="text-[13px] font-medium text-slate-500 dark:text-slate-400 text-center">
-              No unread notifications.
-            </Text>
+      {/* Content */}
+      {isLoading ? (
+        <View style={{ paddingHorizontal: 20, paddingTop: 12 }}>
+          {[1, 2, 3, 4, 5].map((i) => (
+            <SkeletonCard key={i} isDark={isDark} />
+          ))}
+        </View>
+      ) : filtered.length === 0 ? (
+        <View style={{ alignItems: "center", paddingTop: 80 }}>
+          <View
+            style={{
+              width: 64,
+              height: 64,
+              borderRadius: 20,
+              backgroundColor: isDark ? "#0f172a" : "#f1f5f9",
+              borderWidth: 1,
+              borderColor: isDark ? "#1e293b" : "#e2e8f0",
+              alignItems: "center",
+              justifyContent: "center",
+              marginBottom: 16,
+            }}
+          >
+            <Feather
+              name="bell-off"
+              size={26}
+              color={isDark ? "#334155" : "#cbd5e1"}
+            />
           </View>
-        ) : (
-          <>
-            {/* Today */}
-            {today.length > 0 && (
-              <>
-                <Text className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">
-                  Today
-                </Text>
-                {today.map((n) => (
-                  <NotificationCard
-                    key={n.id}
-                    notification={n}
-                    onPress={() => markAsRead(n.id)}
-                  />
-                ))}
-              </>
-            )}
-
-            {/* Earlier */}
-            {earlier.length > 0 && (
-              <>
-                <Text className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2 mt-4">
-                  Earlier
-                </Text>
-                {earlier.map((n) => (
-                  <NotificationCard
-                    key={n.id}
-                    notification={n}
-                    onPress={() => markAsRead(n.id)}
-                  />
-                ))}
-              </>
-            )}
-          </>
-        )}
-      </ScrollView>
+          <Text
+            style={{
+              fontSize: 17,
+              fontWeight: "600",
+              color: isDark ? "#f8fafc" : "#0f172a",
+              marginBottom: 6,
+            }}
+          >
+            {filter === "unread"
+              ? "All caught up!"
+              : filter === "broadcasts"
+              ? "No broadcasts yet"
+              : "No notifications"}
+          </Text>
+          <Text
+            style={{
+              fontSize: 13,
+              fontWeight: "500",
+              color: isDark ? "#64748b" : "#94a3b8",
+              textAlign: "center",
+              maxWidth: 240,
+            }}
+          >
+            {filter === "unread"
+              ? "You've read all your notifications."
+              : filter === "broadcasts"
+              ? "System broadcasts will appear here."
+              : "When something happens, we'll let you know."}
+          </Text>
+        </View>
+      ) : (
+        <FlatList
+          data={grouped}
+          keyExtractor={(item) => item.title}
+          contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={onRefresh}
+              tintColor={isDark ? "#94a3b8" : "#64748b"}
+            />
+          }
+          renderItem={({ item: section }) => (
+            <View>
+              <SectionHeader title={section.title} isDark={isDark} />
+              {section.data.map((n) => (
+                <NotificationCard
+                  key={n.id}
+                  notification={n}
+                  onPress={() => markAsRead(n.id)}
+                  isDark={isDark}
+                />
+              ))}
+            </View>
+          )}
+        />
+      )}
     </SafeAreaView>
   );
 }

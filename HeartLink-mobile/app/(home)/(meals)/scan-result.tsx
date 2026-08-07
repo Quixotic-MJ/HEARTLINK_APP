@@ -148,17 +148,17 @@ export default function ScanResultScreen() {
 
   const handleLogMeal = async () => {
     setIsSubmitting(true);
+    const payload = {
+      meal_name: product.product_name,
+      portion: servings,
+      calories: calc.calories,
+      sodium_mg: calc.sodium,
+      saturated_fat_g: calc.fat,
+      fiber_g: calc.fiber,
+      image_url: "",
+    };
+
     try {
-      const payload = {
-        meal_name: product.product_name,
-        portion: servings,
-        calories: calc.calories,
-        sodium_mg: calc.sodium,
-        saturated_fat_g: calc.fat,
-        fiber_g: calc.fiber,
-        image_url: "",
-      };
-      
       const response = await fetch(`${base_url}/api/meals/${userId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

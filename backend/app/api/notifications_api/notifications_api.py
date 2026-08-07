@@ -1,8 +1,15 @@
 from fastapi import APIRouter, HTTPException
 from typing import List, Dict, Any
 from app.services.notifications import get_notifications, mark_notification_read, mark_all_read
+from app.mock_db import system_broadcasts
+from datetime import datetime
 
 router = APIRouter(prefix="/api/notifications", tags=["Notifications"])
+
+@router.get("/broadcasts", response_model=List[Dict[str, Any]])
+def get_latest_broadcasts():
+    # Return the broadcasts sorted by created_at descending
+    return sorted(system_broadcasts, key=lambda x: x.get("created_at", datetime.min), reverse=True)
 
 @router.get("/{user_id}", response_model=List[Dict[str, Any]])
 def read_notifications(user_id: str):

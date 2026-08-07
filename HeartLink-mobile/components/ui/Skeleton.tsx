@@ -46,7 +46,7 @@ export function Skeleton({ className, style, ...props }: SkeletonProps) {
       {...props}
     >
       {width > 0 && (
-        <Animated.View style={[StyleSheet.absoluteFillObject, animatedStyle, { width }]}>
+        <Animated.View style={[StyleSheet.absoluteFill, animatedStyle, { width }]}>
           <LinearGradient
             colors={["transparent", highlightColor, "transparent"]}
             start={{ x: 0, y: 0 }}

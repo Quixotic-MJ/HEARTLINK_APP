@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from typing import Dict, Any
 from datetime import datetime, timedelta
-from app.mock_db import profiles, alerts, css_history, exercise_routines, meal_logs, exercise_logs, recipes
+from app.mock_db import profiles, alerts, css_history, exercise_routines, meal_logs, exercise_logs, recipes, system_broadcasts, notifications, save_logs
 from app.utils.security import get_current_admin_user
 import random
 
@@ -269,3 +269,82 @@ def toggle_user_status(user_id: str, current_user: dict = Depends(get_current_ad
     user["account_status"] = new_status
     
     return {"status": "success", "new_status": new_status}
+
+
+from fastapi import HTTPException
+
+@router.get("/broadcasts", response_model=list)
+def get_broadcasts(current_user: dict = Depends(get_current_admin_user)):
+    # Sort broadcasts by created_at descending
+    return sorted(system_broadcasts, key=lambda x: x.get("created_at", datetime.min), reverse=True)
+
+@router.post("/broadcasts")
+def create_broadcast(payload: dict, current_user: dict = Depends(get_current_admin_user)):
+    now = datetime.now()
+    broadcast_id = f"brd-{int(now.timestamp())}"
+    
+    # Resolve publisher name
+    publisher_name = "Admin"
+    admin_id = current_user.get('user_id', 'SYS')
+    for u in profiles:
+        if u.get('id') == admin_id:
+            publisher_name = f"{u.get('first_name', '')} {u.get('last_name', '')}".strip()
+            break
+    
+    new_broadcast = {
+        "id": broadcast_id,
+        "date": now.strftime("%b %d, %Y %I:%M %p"),
+        "publisher": f"{admin_id} ({publisher_name})",
+        "message": payload.get("message", ""),
+        "type": payload.get("type", "System Notification"),
+        "target_audience": payload.get("targetAudience", "All Registered Accounts"),
+        "created_at": now
+    }
+    
+    system_broadcasts.append(new_broadcast)
+    
+    # --- Create notification entries for all targeted users ---
+    target = payload.get("targetAudience", "All Registered Accounts")
+    target_patients = [p for p in profiles if p.get("role") == "patient" and p.get("account_status") == "active"]
+    
+    for patient in target_patients:
+        notif = {
+            "id": f"notif-brd-{broadcast_id}-{patient['id']}",
+            "user_id": patient["id"],
+            "scope": "broadcast",
+            "type": "system",
+            "broadcast_type": payload.get("type", "System Notification"),
+            "broadcast_id": broadcast_id,
+            "publisher_id": admin_id,
+            "title": payload.get("type", "System Broadcast"),
+            "message": payload.get("message", ""),
+            "read": False,
+            "created_at": now,
+        }
+        notifications.append(notif)
+    
+    save_logs()
+    
+    return {"status": "success", "data": new_broadcast}
+
+@router.delete("/broadcasts/{broadcast_id}")
+def delete_broadcast(broadcast_id: str, current_user: dict = Depends(get_current_admin_user)):
+    global system_broadcasts
+    
+    found = False
+    for i, b in enumerate(system_broadcasts):
+        if b.get("id") == broadcast_id:
+            del system_broadcasts[i]
+            found = True
+            break
+    
+    if not found:
+        raise HTTPException(status_code=404, detail="Broadcast not found")
+    
+    # Also remove all notification entries linked to this broadcast
+    to_remove = [n for n in notifications if n.get("broadcast_id") == broadcast_id]
+    for n in to_remove:
+        notifications.remove(n)
+    
+    save_logs()
+    return {"status": "success", "message": "Broadcast deleted"}

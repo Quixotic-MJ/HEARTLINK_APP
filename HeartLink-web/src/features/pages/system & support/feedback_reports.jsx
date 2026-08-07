@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Search,
   Filter,
@@ -16,94 +16,45 @@ import {
   ExternalLink,
   AlertCircle,
   Activity,
-  User
+  User,
+  ChevronLeft,
+  ChevronRight,
+  BarChart3,
+  TrendingUp,
+  Inbox
 } from "lucide-react";
 import AdminLayout from "../../../components/layouts/adminLayout";
 import TicketModal from "../../../components/modals/TicketModal";
 
-// Mock Data for Feedback Inbox
-const initialTickets = [
-  {
-    id: 1,
-    ticketId: "FB-1042",
-    date: "May 28, 2026",
-    user: "Robert Villanueva",
-    userEmail: "robert.v@email.com",
-    userId: "USR-A492",
-    category: "Bug Report",
-    preview: "The barcode scanner crashes when...",
-    fullMessage:
-      "The barcode scanner crashes when I try to scan a generic oat brand. The camera opens, but right after it recognizes the barcode, the app completely freezes and closes itself.",
-    status: "Open",
-    deviceMeta: {
-      os: "Android 14",
-      model: "Samsung Galaxy S23 Ultra",
-      appVersion: "v1.2.4",
-    },
-    adminNotes: "",
-  },
-  {
-    id: 2,
-    ticketId: "FB-1041",
-    date: "May 27, 2026",
-    user: "Elena Marasigan",
-    userEmail: "elena.m@email.com",
-    userId: "USR-B118",
-    category: "UI/UX Suggestion",
-    preview: "Could you make the recipe font bigger?",
-    fullMessage:
-      "I love the heart-healthy recipes, but when I am cooking in the kitchen, the font for the ingredients list is very hard to read from a distance. Could you add a text size toggle?",
-    status: "In Progress",
-    deviceMeta: {
-      os: "iOS 17.4",
-      model: "iPhone 13 Pro",
-      appVersion: "v1.2.4",
-    },
-    adminNotes:
-      "Assigned to UI team. Planning to add an accessibility slider in the next minor patch.",
-  },
-  {
-    id: 3,
-    ticketId: "FB-1039",
-    date: "May 25, 2026",
-    user: "Miguel Santos",
-    userEmail: "miguel88@email.com",
-    userId: "USR-C882",
-    category: "Account Issue",
-    preview: "I cannot reset my password...",
-    fullMessage:
-      "I forgot my password, but when I click the reset link in my email, it says the token is invalid or expired. I've tried this three times now.",
-    status: "Resolved",
-    deviceMeta: {
-      os: "Android 13",
-      model: "Google Pixel 6a",
-      appVersion: "v1.2.3",
-    },
-    adminNotes:
-      "Known Firebase auth token expiration bug. Sent manual reset link and patched backend token lifespan.",
-  },
-  {
-    id: 4,
-    ticketId: "FB-1035",
-    date: "May 22, 2026",
-    user: "Anonymous User",
-    userEmail: "Not Provided",
-    userId: "N/A",
-    category: "Question",
-    preview: "Does the CSS score update automatically?",
-    fullMessage:
-      "If I log my blood pressure today, does my Cardiovascular Stability Score update right away, or does it take 24 hours?",
-    status: "Resolved",
-    deviceMeta: { os: "Unknown", model: "Unknown", appVersion: "Unknown" },
-    adminNotes: "Replied via in-app notification confirming real-time updates.",
-  },
-];
-
 const Feedback = () => {
-  const [tickets, setTickets] = useState(initialTickets);
+  const [tickets, setTickets] = useState([]);
+  
+  useEffect(() => {
+    const fetchTickets = () => {
+      fetch("http://localhost:8000/api/feedback")
+        .then(res => {
+          if (!res.ok) throw new Error("Network response was not ok");
+          return res.json();
+        })
+        .then(data => {
+          if (Array.isArray(data)) {
+            setTickets(data);
+          }
+        })
+        .catch(err => console.error("Error fetching tickets:", err));
+    };
+
+    fetchTickets(); // Fetch immediately on mount
+    const intervalId = setInterval(fetchTickets, 3000); // Poll every 3 seconds
+
+    return () => clearInterval(intervalId); // Cleanup on unmount
+  }, []);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [sortOrder, setSortOrder] = useState("newest");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -126,36 +77,83 @@ const Feedback = () => {
     setActiveTicket(null);
   };
 
-  const handleUpdateTicket = (id, newStatus, newNotes) => {
-    setTickets(
-      tickets.map((t) =>
-        t.id === id ? { ...t, status: newStatus, adminNotes: newNotes } : t
-      )
-    );
+  const handleUpdateTicket = async (id, newStatus, newNotes) => {
+    try {
+      const res = await fetch(`http://localhost:8000/api/feedback/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus, adminNotes: newNotes }),
+      });
+      if (res.ok) {
+        const updatedTicket = await res.json();
+        setTickets(tickets.map((t) => (t.id === id ? updatedTicket : t)));
+      }
+    } catch (err) {
+      console.error("Error updating ticket:", err);
+    }
     closeModal();
   };
 
-  const handleArchiveTicket = (id) => {
-    setTickets(
-      tickets.map((t) =>
-        t.id === id ? { ...t, status: "Archived" } : t
-      )
-    );
+  const handleArchiveTicket = async (id) => {
+    try {
+      const res = await fetch(`http://localhost:8000/api/feedback/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "Archived", adminNotes: adminNotes }),
+      });
+      if (res.ok) {
+        const updatedTicket = await res.json();
+        setTickets(tickets.map((t) => (t.id === id ? updatedTicket : t)));
+      }
+    } catch (err) {
+      console.error("Error archiving ticket:", err);
+    }
     closeModal();
   };
 
   // Filter Logic
-  const filteredTickets = tickets.filter((t) => {
+  let filteredTickets = tickets.filter((t) => {
     const matchesSearch =
       t.ticketId.toLowerCase().includes(searchQuery.toLowerCase()) ||
       t.fullMessage.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory =
       filterCategory === "all" || t.category === filterCategory;
-    const matchesStatus =
-      filterStatus === "all" ||
-      t.status.toLowerCase() === filterStatus.toLowerCase();
+    let matchesStatus = false;
+    if (filterStatus === "all") {
+      matchesStatus = t.status !== "Archived";
+    } else {
+      matchesStatus = t.status.toLowerCase() === filterStatus.toLowerCase();
+    }
     return matchesSearch && matchesCategory && matchesStatus;
   });
+
+  // Sort Logic
+  filteredTickets.sort((a, b) => {
+    const dateA = new Date(a.date).getTime();
+    const dateB = new Date(b.date).getTime();
+    if (dateA === dateB) {
+      return sortOrder === "newest" ? b.id - a.id : a.id - b.id;
+    }
+    return sortOrder === "newest" ? dateB - dateA : dateA - dateB;
+  });
+
+  // Pagination Logic
+  const totalPages = Math.ceil(filteredTickets.length / itemsPerPage) || 1;
+  const paginatedTickets = filteredTickets.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  // Metrics Logic
+  const totalTickets = tickets.length;
+  const openTicketsCount = tickets.filter((t) => t.status === "Open" || t.status === "In Progress").length;
+  const resolvedTicketsCount = tickets.filter((t) => t.status === "Resolved").length;
+  const bugReportsCount = tickets.filter((t) => t.category === "Bug Report").length;
+
+  // Reset page on filter change
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, filterCategory, filterStatus, sortOrder]);
 
   // UI Helpers
   const getCategoryBadge = (category) => {
@@ -201,6 +199,12 @@ const Feedback = () => {
             <Activity size={12} className="animate-pulse" /> In Progress
           </span>
         );
+      case "Archived":
+        return (
+          <span className="inline-flex items-center gap-1.5 text-slate-500 text-[10px] font-bold uppercase tracking-wider whitespace-nowrap">
+            <Inbox size={12} /> Archived
+          </span>
+        );
       default:
         return (
           <span className="inline-flex items-center gap-1.5 text-red-500 text-[10px] font-bold uppercase tracking-wider whitespace-nowrap">
@@ -222,6 +226,46 @@ const Feedback = () => {
             <h2 className="text-2xl lg:text-3xl font-bold text-slate-900 leading-[1.1] tracking-tight">
               Feedback & <span className="text-[#0f172a]">Reports.</span>
             </h2>
+          </div>
+        </div>
+
+        {/* Metrics Summary */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold text-slate-500 mb-1">Total Tickets</p>
+              <p className="text-2xl font-bold text-slate-900">{totalTickets}</p>
+            </div>
+            <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center">
+              <Inbox size={18} className="text-slate-600" />
+            </div>
+          </div>
+          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold text-slate-500 mb-1">Open/In Progress</p>
+              <p className="text-2xl font-bold text-blue-600">{openTicketsCount}</p>
+            </div>
+            <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center">
+              <Activity size={18} className="text-blue-600" />
+            </div>
+          </div>
+          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold text-slate-500 mb-1">Resolved</p>
+              <p className="text-2xl font-bold text-emerald-600">{resolvedTicketsCount}</p>
+            </div>
+            <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center">
+              <CheckCircle2 size={18} className="text-emerald-600" />
+            </div>
+          </div>
+          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold text-slate-500 mb-1">Bug Reports</p>
+              <p className="text-2xl font-bold text-red-600">{bugReportsCount}</p>
+            </div>
+            <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center">
+              <Bug size={18} className="text-red-600" />
+            </div>
           </div>
         </div>
 
@@ -275,6 +319,17 @@ const Feedback = () => {
                     <option value="Open">Open</option>
                     <option value="In Progress">In Progress</option>
                     <option value="Resolved">Resolved</option>
+                    <option value="Archived">Archived</option>
+                  </select>
+                </div>
+                <div className="relative">
+                  <select
+                    value={sortOrder}
+                    onChange={(e) => setSortOrder(e.target.value)}
+                    className="pl-4 pr-10 py-2.5 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl focus:outline-none appearance-none cursor-pointer hover:border-slate-300 transition-colors shadow-sm"
+                  >
+                    <option value="newest">Newest First</option>
+                    <option value="oldest">Oldest First</option>
                   </select>
                 </div>
               </div>
@@ -282,7 +337,7 @@ const Feedback = () => {
           </div>
 
           {/* Inbox Table */}
-          <div className="w-full overflow-x-auto custom-scrollbar">
+          <div className="w-full overflow-x-auto custom-scrollbar flex-1">
             <table className="w-full text-left border-collapse min-w-[900px]">
               <thead>
                 <tr>
@@ -293,8 +348,9 @@ const Feedback = () => {
                     Category
                   </th>
                   <th className="py-4 px-6 text-[10px] font-semibold text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100">
-                    User Account
+                    Account ID
                   </th>
+
                   <th className="py-4 px-6 text-[10px] font-semibold text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100 w-1/3">
                     Preview
                   </th>
@@ -304,10 +360,11 @@ const Feedback = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredTickets.map((ticket) => (
-                  <tr
-                    key={ticket.id}
-                    className={`hover:bg-slate-50 transition-colors group cursor-pointer ${ticket.status === "Resolved" ? "opacity-70 grayscale-[0.3]" : ""}`}
+                {paginatedTickets.length > 0 ? (
+                  paginatedTickets.map((ticket) => (
+                    <tr
+                      key={ticket.id}
+                      className={`hover:bg-slate-50 transition-colors group cursor-pointer ${ticket.status === "Resolved" ? "opacity-70 grayscale-[0.3]" : ""}`}
                     onClick={() => openModal(ticket)}
                   >
                     <td className="py-4 px-6 align-middle">
@@ -322,15 +379,11 @@ const Feedback = () => {
                       {getCategoryBadge(ticket.category)}
                     </td>
                     <td className="py-4 px-6 align-middle">
-                      <div className="flex items-center gap-2">
-                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${ticket.user === "Anonymous User" ? "bg-slate-100 text-slate-500" : "bg-[#0f172a] text-white"}`}>
-                          {ticket.user === "Anonymous User" ? <User size={10} /> : ticket.user.charAt(0)}
-                        </div>
-                        <span className="text-xs font-semibold text-slate-700">
-                          {ticket.user}
-                        </span>
-                      </div>
+                      <p className="text-xs font-semibold text-slate-700 font-mono">
+                        {ticket.userId || "N/A"}
+                      </p>
                     </td>
+
                     <td className="py-4 px-6 align-middle">
                       <p className="text-slate-600 text-xs font-medium truncate max-w-[280px]">
                         {ticket.fullMessage.length > 50 ? `${ticket.fullMessage.substring(0, 50)}...` : ticket.fullMessage}
@@ -342,10 +395,45 @@ const Feedback = () => {
                       </div>
                     </td>
                   </tr>
-                ))}
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="5" className="py-12 text-center text-slate-500 text-sm font-medium">
+                      No tickets found matching your filters.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="p-4 border-t border-slate-200 bg-white flex items-center justify-between">
+              <span className="text-xs font-medium text-slate-500">
+                Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredTickets.length)} of {filteredTickets.length} entries
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                <span className="text-xs font-semibold text-slate-700 min-w-[32px] text-center">
+                  {currentPage} / {totalPages}
+                </span>
+                <button
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* ========================================= */}

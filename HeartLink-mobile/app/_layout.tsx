@@ -7,11 +7,21 @@ import "../global.css";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { UserProvider, useUser } from "../contexts/UserContext";
 import { ToastProvider } from "../contexts/ToastContext";
+import { configureReanimatedLogger, ReanimatedLogLevel } from 'react-native-reanimated';
+import { useBroadcastListener } from "../hooks/useBroadcastListener";
+
+configureReanimatedLogger({
+  level: ReanimatedLogLevel.warn,
+  strict: false,
+});
 
 function RootLayoutNav() {
   const { userId, user, isLoading } = useUser();
   const segments = useSegments();
   const router = useRouter();
+  
+  // Listen for system broadcasts
+  useBroadcastListener();
 
   useEffect(() => {
     if (isLoading) return;

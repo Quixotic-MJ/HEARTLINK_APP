@@ -426,6 +426,29 @@ def get_7_day_wrap_up_data(user_id: str) -> Dict[str, Any]:
                 {"date": d_str, "meals": data["meals"], "exercises": data["exercises"]}
             )
 
+    # Gamification: Streak calculation (Option A: logged vitals)
+    streak_calendar = []
+    streak_count = 0
+    for i in range(6, -1, -1):
+        target_date = (now - timedelta(days=i)).date()
+        logged_this_day = target_date in logged_dates
+        streak_calendar.append(logged_this_day)
+
+    for i in range(6, -1, -1):
+        if streak_calendar[i]:
+            streak_count += 1
+        elif i == 6:
+            continue # Haven't logged today yet, streak not broken
+        else:
+            break
+
+    # Gamification: Trends vs last week (mocked for simplicity)
+    trends = {
+        "css": 5 if is_positive else -3,
+        "sodium": -12 if total_sodium < 15000 else 8,
+        "active": 30 if total_active > 100 else -10,
+    }
+
     return {
         "css": display_css,
         "sodium": total_sodium,
@@ -440,4 +463,7 @@ def get_7_day_wrap_up_data(user_id: str) -> Dict[str, Any]:
         "barColor": "#639922" if is_positive else "#e24b4a",
         "isPositive": is_positive,
         "activity_log": activity_log_list,
+        "streak_count": streak_count,
+        "streak_calendar": streak_calendar,
+        "trends": trends
     }

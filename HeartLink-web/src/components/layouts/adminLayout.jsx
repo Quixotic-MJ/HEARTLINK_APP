@@ -17,11 +17,18 @@ const AdminLayout = ({ children }) => {
     if (!isAuthenticated) return;
     
     const role = user?.role || (userId === "usr-chief-admin-001" ? "admin" : "medical_expert");
-    if (role !== "admin") {
-      const restrictedRoutes = ["/analytics", "/foods", "/exercises", "/users", "/feedbacks", "/broadcasts", "/settings"];
-      const isRestricted = restrictedRoutes.some(route => pathname.startsWith(route));
+    
+    if (role === "medical_expert") {
+      const restrictedRoutes = ["/analytics", "/foods", "/exercises", "/feedbacks", "/broadcasts", "/settings"];
+      const isRestricted = restrictedRoutes.some(route => pathname.startsWith(route)) || pathname === "/users" || pathname === "/users/";
       if (isRestricted) {
         navigate("/dashboard", { replace: true });
+      }
+    } else if (role === "admin") {
+      // Admins should not access the individual user profile, they use the quick-action modal
+      const isUserProfile = pathname.startsWith("/users/") && pathname.length > "/users/".length;
+      if (isUserProfile) {
+        navigate("/users", { replace: true });
       }
     }
   }, [pathname, user, userId, isAuthenticated, navigate]);

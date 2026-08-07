@@ -98,34 +98,22 @@ const TicketModal = ({ isOpen, onClose, ticket, onUpdate, onArchive }) => {
 
         {/* Modal Scrollable Content */}
         <div className="flex-1 overflow-y-auto p-6 custom-scrollbar space-y-6">
-          {/* User Context */}
+          {/* Account ID Context */}
           <div className="flex items-center justify-between bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
             <div className="flex items-center gap-3">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${ticket.user === "Anonymous User" ? "bg-slate-100 text-slate-500" : "bg-[#0f172a] text-white"}`}>
-                {ticket.user === "Anonymous User" ? <User size={12} /> : ticket.user.charAt(0)}
+              <div className="w-8 h-8 rounded-full flex items-center justify-center bg-[#0f172a] text-white">
+                <User size={12} />
               </div>
               <div>
                 <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-0.5">
-                  Submitted By
+                  Account ID
                 </p>
-                <a
-                  href={`/admin-users`}
-                  className="text-[11px] font-semibold text-slate-900 hover:text-slate-600 flex items-center gap-1.5 transition-colors"
-                >
-                  {ticket.user} <ExternalLink size={10} />
-                </a>
+                <p className="text-[11px] font-bold text-slate-900 font-mono">
+                  {ticket.userId || "N/A"}
+                </p>
               </div>
             </div>
-            <div className="text-right">
-              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-0.5">
-                Account ID
-              </p>
-              <p className="text-[11px] font-bold text-slate-600 font-mono">
-                {ticket.userId}
-              </p>
-            </div>
           </div>
-
           {/* Full Issue Description */}
           <div>
             <h4 className="text-[10px] font-semibold text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100 pb-2 mb-3 flex items-center gap-1.5">

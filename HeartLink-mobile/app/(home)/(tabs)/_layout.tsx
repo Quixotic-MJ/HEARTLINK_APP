@@ -9,7 +9,8 @@ import {
   Pressable,
   Dimensions,
 } from "react-native";
-import { Tabs, useRouter } from "expo-router";
+import { withLayoutContext, useRouter } from "expo-router";
+import { createMaterialTopTabNavigator } from "expo-router/js-top-tabs";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColorScheme } from "nativewind";
@@ -373,6 +374,11 @@ function CustomTabBar({ state, navigation, onFabPress }: any) {
   );
 }
 
+// ─── Custom Swipeable Tabs ───────────────────────────────────────────────────
+
+const { Navigator } = createMaterialTopTabNavigator();
+const SwipeableTabs = withLayoutContext(Navigator);
+
 // ─── Layout ───────────────────────────────────────────────────────────────────
 
 export default function TabsLayout() {
@@ -380,21 +386,21 @@ export default function TabsLayout() {
 
   return (
     <>
-      <Tabs
-        tabBar={(props) => (
+      <SwipeableTabs
+        tabBarPosition="bottom"
+        tabBar={(props: any) => (
           <CustomTabBar {...props} onFabPress={() => setSheetVisible(true)} />
         )}
         screenOptions={{ 
           headerShown: false,
-          tabBarHideOnKeyboard: true,
+          swipeEnabled: true,
         }}
       >
-        <Tabs.Screen name="dashboard" />
-        <Tabs.Screen name="recipes" />
-        <Tabs.Screen name="record" />
-        <Tabs.Screen name="exercises" />
-        <Tabs.Screen name="wrap-up" />
-      </Tabs>
+        <SwipeableTabs.Screen name="dashboard" />
+        <SwipeableTabs.Screen name="recipes" />
+        <SwipeableTabs.Screen name="exercises" />
+        <SwipeableTabs.Screen name="wrap-up" />
+      </SwipeableTabs>
 
       <RecordBottomSheet
         visible={sheetVisible}

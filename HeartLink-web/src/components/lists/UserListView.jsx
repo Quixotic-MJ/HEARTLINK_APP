@@ -29,7 +29,7 @@ const UserListView = ({ users, searchQuery, onSearchChange, filterStatus, onFilt
           <Search size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" />
           <input
             type="text"
-            placeholder="Search by name or phone..."
+            placeholder="Search by ID, name or phone..."
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 placeholder-slate-300 outline-none transition-all focus:bg-white focus:ring-2 focus:ring-slate-900/5 focus:border-slate-400 shadow-sm"
@@ -55,7 +55,7 @@ const UserListView = ({ users, searchQuery, onSearchChange, filterStatus, onFilt
           <thead>
             <tr>
               <th className="py-4 px-5 text-[10px] font-semibold text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100 w-2/5">
-                Name & Phone Number
+                User Details
               </th>
               <th className="py-4 px-5 text-[10px] font-semibold text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100">
                 Registration Date
@@ -84,9 +84,15 @@ const UserListView = ({ users, searchQuery, onSearchChange, filterStatus, onFilt
                       <p className="text-slate-900 font-semibold text-xs mb-0.5 group-hover:text-slate-700 transition-colors">
                         {user.name}
                       </p>
-                      <p className="text-slate-500 text-[10px] font-medium flex items-center gap-1.5">
-                        <Phone size={12} /> {user.phone}
-                      </p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="font-mono text-[9px] font-medium bg-slate-100 px-1.5 py-0.5 rounded text-slate-500 border border-slate-200 uppercase tracking-widest">
+                          {user.id}
+                        </span>
+                        <span className="text-slate-300">•</span>
+                        <p className="text-slate-500 text-[10px] font-medium flex items-center gap-1">
+                          <Phone size={10} /> {user.phone}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </td>
@@ -100,7 +106,7 @@ const UserListView = ({ users, searchQuery, onSearchChange, filterStatus, onFilt
                 </td>
                 <td className="py-4 px-5 align-middle text-right">
                   <button className="text-[11px] font-medium px-4 py-2 rounded-xl border bg-white border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors shadow-sm inline-flex items-center gap-1.5">
-                    View Details <ChevronRight size={14} />
+                    Manage Account <ChevronRight size={14} />
                   </button>
                 </td>
               </tr>

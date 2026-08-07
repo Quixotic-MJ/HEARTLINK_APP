@@ -1,7 +1,7 @@
 import React from "react";
 import { X, CheckCircle2, Megaphone, Info, ShieldAlert, Wrench } from "lucide-react";
 
-const ViewBroadcastModal = ({ isOpen, onClose, broadcast }) => {
+const ViewBroadcastModal = ({ isOpen, onClose, broadcast, onDelete }) => {
   if (!isOpen || !broadcast) return null;
 
   const getCategoryBadge = (category) => {
@@ -94,7 +94,17 @@ const ViewBroadcastModal = ({ isOpen, onClose, broadcast }) => {
         </div>
 
         {/* Footer */}
-        <div className="p-5 border-t border-slate-200 bg-white flex justify-end shrink-0">
+        <div className="p-5 border-t border-slate-200 bg-white flex justify-between shrink-0 items-center">
+          <button 
+            onClick={() => {
+              if (window.confirm("Are you sure you want to delete this broadcast? This will remove it from the history and stop it from showing on mobile devices.")) {
+                onDelete(broadcast.id);
+              }
+            }}
+            className="px-4 py-2 text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 rounded-xl transition-colors border border-red-100 shadow-sm flex items-center gap-2"
+          >
+            <ShieldAlert size={14} /> Delete
+          </button>
           <button 
             onClick={onClose} 
             className="px-6 py-2.5 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-100 rounded-xl transition-colors border border-slate-200 shadow-sm"

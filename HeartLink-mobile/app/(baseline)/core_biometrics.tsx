@@ -7,6 +7,8 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   ActivityIndicator,
+  Platform,
+  ScrollView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";

@@ -604,6 +604,17 @@ export default function ProfileScreen() {
           <View className="gap-2.5 mt-2">
             <TouchableOpacity
               activeOpacity={0.85}
+              onPress={() => router.push("/(home)/(profile)/analytics" as any)}
+              className="bg-primary/5 dark:bg-primary/10 rounded-2xl py-3.5 flex-row items-center justify-center gap-2 border border-primary/20 dark:border-primary/30"
+            >
+              <Feather name="bar-chart-2" size={15} className="text-primary" />
+              <Text className="text-[15px] font-semibold text-primary">
+                Long-Term Analytics
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              activeOpacity={0.85}
               onPress={() => router.push("/(home)/(profile)/care-team")}
               className="bg-primary/5 dark:bg-primary/10 rounded-2xl py-3.5 flex-row items-center justify-center gap-2 border border-primary/20 dark:border-primary/30"
             >

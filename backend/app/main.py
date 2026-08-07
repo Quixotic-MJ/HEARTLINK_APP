@@ -11,6 +11,7 @@ from app.api.notifications_api import notifications_api
 from app.api.analytics_api import analytics_api
 from app.api.admin_api import admin_api, case_review_api
 from app.api import uploads_api
+from app.api import feedback_api
 import os
 from fastapi.staticfiles import StaticFiles
 
@@ -36,6 +37,7 @@ app.include_router(analytics_api.router)
 app.include_router(admin_api.router)
 app.include_router(case_review_api.router)
 app.include_router(uploads_api.router)
+app.include_router(feedback_api.router)
 
 # Mount static files for uploads
 static_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static")

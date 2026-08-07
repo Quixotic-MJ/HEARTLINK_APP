@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Search,
   Filter,
@@ -29,6 +29,7 @@ import { apiFetch } from "../../../api";
 import StaffListView from "../../../components/lists/StaffListView";
 import StaffDetailsModal from "../../../components/modals/StaffDetailsModal";
 import StaffFormModal from "../../../components/modals/StaffFormModal";
+import AccountActionModal from "../../../components/modals/AccountActionModal";
 
 // Mock Data
 const initialAppUsers = [
@@ -84,6 +85,7 @@ const Users = () => {
   const currentUserRole = user?.role || (userId === "usr-chief-admin-001" ? "admin" : "medical_expert");
   const [activeTab, setActiveTab] = useState("app_users");
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const [appUsers, setAppUsers] = useState([]);
   const [systemStaff, setSystemStaff] = useState([]);
@@ -131,8 +133,21 @@ const Users = () => {
     fetchUsers();
   }, []);
 
+  React.useEffect(() => {
+    const q = searchParams.get("search");
+    if (q !== null) {
+      setSearchQuery(q);
+    }
+  }, [searchParams]);
+
   const handleOpenUser = (user) => {
-    navigate(`/users/${user.id}`);
+    if (currentUserRole === "admin") {
+      setActiveEntity(user);
+      setModalMode("view_app_user");
+      setIsModalOpen(true);
+    } else {
+      navigate(`/users/${user.id}`);
+    }
   };
 
   const handleOpenStaff = (staff) => {
@@ -164,6 +179,20 @@ const Users = () => {
       closeModal();
     } catch (e) {
       console.error("Failed to toggle status", e);
+      alert("Failed to change user status.");
+    }
+  };
+
+  const handleToggleAppUserStatus = async (entityId, reason) => {
+    try {
+      // In a real app, reason could be sent as a body payload
+      await apiFetch(`/api/admin/users/${entityId}/status`, { method: "PUT" });
+      
+      // Update local state reason mapping if necessary, or let fetchUsers handle it
+      await fetchUsers();
+      closeModal();
+    } catch (e) {
+      console.error("Failed to toggle user status", e);
       alert("Failed to change user status.");
     }
   };
@@ -202,6 +231,7 @@ const Users = () => {
   const filteredUsers = appUsers.filter((u) => {
     const matchSearch =
       u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      u.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
       u.phone.toLowerCase().includes(searchQuery.toLowerCase());
     const matchStatus =
       filterStatus === "all" || u.status.toLowerCase() === filterStatus;
@@ -211,6 +241,7 @@ const Users = () => {
   const filteredStaff = systemStaff.filter((s) => {
     const matchSearch =
       s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      s.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
       s.phone.toLowerCase().includes(searchQuery.toLowerCase());
     return matchSearch;
   });
@@ -305,6 +336,14 @@ const Users = () => {
           onCreateStaff={handleCreateStaff}
         />
       )}
+
+      {/* Modular Staff Details Modal */}
+      <AccountActionModal
+        isOpen={isModalOpen && modalMode === "view_app_user"}
+        onClose={closeModal}
+        user={activeEntity}
+        onToggleStatus={handleToggleAppUserStatus}
+      />
 
       {/* Modular Staff Details Modal */}
       <StaffDetailsModal

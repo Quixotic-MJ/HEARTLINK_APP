@@ -34,6 +34,7 @@ function MetricCard({
   icon,
   iconColor,
   iconBg,
+  trend,
 }: {
   title: string;
   value: string | number;
@@ -41,16 +42,27 @@ function MetricCard({
   icon: string;
   iconColor: string;
   iconBg: string;
+  trend?: number;
 }) {
   return (
     <View className="w-1/2 px-1.5 mb-2.5">
       <View className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-3.5">
         {/* Icon bg color is dynamic — kept as inline style */}
-        <View
+        <View className="flex-row justify-between items-start">
+          <View
           className="w-8 h-8 rounded-lg items-center justify-center mb-2.5"
           style={{ backgroundColor: iconBg }}
         >
           <MaterialCommunityIcons name={icon as any} size={18} color={iconColor} />
+        </View>
+          {trend !== undefined && (
+            <View className="flex-row items-center bg-slate-50 dark:bg-slate-800 px-1.5 py-0.5 rounded-full border border-slate-100 dark:border-slate-700">
+              <Feather name={trend > 0 ? "trending-up" : trend < 0 ? "trending-down" : "minus"} size={10} color={trend > 0 ? "#639922" : trend < 0 ? "#e24b4a" : "#64748b"} />
+              <Text style={{ color: trend > 0 ? "#639922" : trend < 0 ? "#e24b4a" : "#64748b" }} className="text-[10px] font-bold ml-1">
+                {Math.abs(trend)}{trend !== 0 ? '%' : ''}
+              </Text>
+            </View>
+          )}
         </View>
         <Text className="text-[22px] font-medium text-slate-900 dark:text-white leading-tight">
           {value}
@@ -135,59 +147,103 @@ function SymptomRow({ symptom, isLast }: { symptom: Symptom; isLast: boolean }) 
 
 // ─── Mock Data ────────────────────────────────────────────────────────────────
 
-const POSITIVE_DATA = {
-  css: 88,
-  sodium: "9.9",
-  active: 120,
-  missed: 0,
-  satFat: "18.5",
-  fiber: "25",
-  bannerTitle: "Weekly success",
-  bannerText:
-    "Your stability score remained high this week. Averaging under 1,500 mg of sodium daily successfully prevented any precautionary alerts.",
-  symptoms: [
-    { name: "Chest discomfort", count: 0 },
-    { name: "Shortness of breath", count: 0 },
-    { name: "Dizziness", count: 0 },
-  ],
-  days: [
-    { day: "M", value: 92 },
-    { day: "T", value: 88 },
-    { day: "W", value: 94 },
-    { day: "T", value: 85 },
-    { day: "F", value: 90 },
-    { day: "S", value: 87 },
-    { day: "S", value: 80 },
-  ],
-  barColor: "#639922",
-};
 
-const NEGATIVE_DATA = {
-  css: 65,
-  sodium: "16.4",
-  active: 15,
-  missed: 3,
-  satFat: "24.2",
-  fiber: "14",
-  bannerTitle: "Action needed",
-  bannerText:
-    "Shortness of breath occurred twice on days where dietary logging was skipped. Try logging meals consistently next week to maintain accurate tracking.",
-  symptoms: [
-    { name: "Shortness of breath", count: 2 },
-    { name: "Chest discomfort", count: 1 },
-    { name: "Dizziness", count: 0 },
-  ],
-  days: [
-    { day: "M", value: 72 },
-    { day: "T", value: 58 },
-    { day: "W", value: 60 },
-    { day: "T", value: 70 },
-    { day: "F", value: 55 },
-    { day: "S", value: 68 },
-    { day: "S", value: 52 },
-  ],
-  barColor: "#e24b4a",
-};
+// ─── Streak Banner ────────────────────────────────────────────────────────────
+
+function StreakBanner({ streakCount, calendar }: { streakCount: number, calendar: boolean[] }) {
+  const router = useRouter();
+  const days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+  return (
+    <View className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4 mb-4 shadow-sm">
+      <View className="flex-row items-center gap-3 mb-4">
+        <View className="w-12 h-12 rounded-xl bg-orange-100 items-center justify-center border border-orange-200">
+          <Text className="text-2xl">🔥</Text>
+        </View>
+        <View className="flex-1">
+          <Text className="text-[20px] font-bold text-slate-900 dark:text-white tracking-tight">
+            {streakCount} Day Streak!
+          </Text>
+          <Text className="text-[12px] text-slate-500 mt-0.5 leading-snug">
+            {streakCount > 0 ? "You're crushing it! Keep logging daily." : "Log your vitals today to start a new streak!"}
+          </Text>
+        </View>
+        <TouchableOpacity 
+          onPress={() => router.push("/(home)/(profile)/analytics" as any)}
+          className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 items-center justify-center"
+        >
+          <Feather name="calendar" size={16} color="#64748b" />
+        </TouchableOpacity>
+      </View>
+      <View className="flex-row justify-between">
+        {days.map((day, idx) => {
+          const isDone = calendar?.[idx];
+          return (
+            <View key={idx} className="items-center gap-1.5">
+              <View className={`w-8 h-8 rounded-full items-center justify-center border ${isDone ? 'bg-orange-100 border-orange-200' : 'bg-slate-50 border-slate-200'}`}>
+                {isDone ? (
+                  <Feather name="check" size={14} color="#ea580c" />
+                ) : (
+                  <View className="w-1.5 h-1.5 rounded-full bg-slate-300" />
+                )}
+              </View>
+              <Text className={`text-[10px] font-bold ${isDone ? 'text-orange-600' : 'text-slate-400'}`}>{day}</Text>
+            </View>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
+// ─── AI Insights Focus ────────────────────────────────────────────────────────
+
+function WeeklyFocusCard() {
+  return (
+    <View className="bg-indigo-50 dark:bg-indigo-900/30 rounded-2xl border border-indigo-100 dark:border-indigo-800 p-4 mb-5 shadow-sm flex-row gap-3">
+      <View className="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-800 items-center justify-center">
+        <Feather name="target" size={20} color="#4f46e5" />
+      </View>
+      <View className="flex-1">
+        <Text className="text-[14px] font-bold text-indigo-900 dark:text-indigo-200 mb-1">Focus for Next Week</Text>
+        <Text className="text-[13px] text-indigo-800 dark:text-indigo-300 leading-snug">Aim to stay under 2,000mg of sodium per day and try to log your vitals before noon for better tracking accuracy.</Text>
+      </View>
+    </View>
+  );
+}
+
+// ─── Skeletons ────────────────────────────────────────────────────────────────
+
+function SkeletonPulse({ style, className }: any) {
+  const anim = useRef(new Animated.Value(0.3)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(anim, { toValue: 0.7, duration: 800, useNativeDriver: true }),
+        Animated.timing(anim, { toValue: 0.3, duration: 800, useNativeDriver: true })
+      ])
+    ).start();
+  }, []);
+
+  return <Animated.View style={[{ opacity: anim }, style]} className={`bg-slate-200 dark:bg-slate-800 ${className}`} />;
+}
+
+function WrapUpSkeleton() {
+  return (
+    <View className="px-5 pt-4 gap-4">
+      <SkeletonPulse className="w-full h-32 rounded-2xl" />
+      <SkeletonPulse className="w-full h-24 rounded-2xl" />
+      <View className="flex-row flex-wrap -mx-1.5">
+        {[1,2,3,4,5,6].map(i => (
+          <View key={i} className="w-1/2 px-1.5 mb-2.5">
+            <SkeletonPulse className="w-full h-24 rounded-2xl" />
+          </View>
+        ))}
+      </View>
+      <SkeletonPulse className="w-full h-32 rounded-2xl" />
+    </View>
+  );
+}
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
@@ -197,30 +253,21 @@ export default function WrapUpScreen() {
   const { showToast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [cssScore, setCssScore] = useState<number>(0);
-  const [dynamicInsight, setDynamicInsight] = useState<{ title: string; text: string } | null>(null);
+  const [wrapUpData, setWrapUpData] = useState<any>(null);
 
   const fetchData = useCallback(async (silent = false) => {
     if (!userId) return;
     if (!silent) setIsLoading(true);
     
     try {
-      const response = await fetch(`${base_url}/api/dashboard/me`, {
+      const response = await fetch(`${base_url}/api/dashboard/wrapup`, {
         headers: {
           "Authorization": `Bearer ${userId}`
         }
       });
       if (response.ok) {
-        const dash = await response.json();
-        if (dash.css_score !== undefined) {
-          setCssScore(dash.css_score);
-        }
-        if (dash.insight) {
-          setDynamicInsight({
-            title: dash.insight.title || "Weekly Insight",
-            text: dash.insight.body || dash.insight.text,
-          });
-        }
+        const data = await response.json();
+        setWrapUpData(data);
       }
     } catch (error) {
       console.error("Wrap-up fetch error:", error);
@@ -241,18 +288,13 @@ export default function WrapUpScreen() {
     fetchData(true);
   }, [fetchData]);
 
-  // Determine positive/negative week based on fetched CSS score
-  const isPositive = cssScore >= 60 || cssScore === 0; // fallback to positive if 0
-  const d = { ...(isPositive ? POSITIVE_DATA : NEGATIVE_DATA) };
-
-  // Override with dynamic API insight if available
-  if (dynamicInsight) {
-    d.bannerTitle = dynamicInsight.title;
-    d.bannerText = dynamicInsight.text;
-  }
-
-  // Use the fetched score in the display if available, else fallback
-  const displayCss = cssScore > 0 ? cssScore : d.css;
+  const d = wrapUpData || {
+    css: 0, sodium: 0, active: 0, missed: 0, satFat: 0, fiber: 0,
+    bannerTitle: "", bannerText: "", symptoms: [], days: [],
+    barColor: "#64748b", isPositive: true, streak_count: 0, streak_calendar: [], trends: {}
+  };
+  const displayCss = d.css;
+  const isPositive = d.isPositive;
 
   const exportPDF = async () => {
     try {
@@ -399,6 +441,15 @@ export default function WrapUpScreen() {
     }
   };
 
+  if (isLoading || !wrapUpData) {
+    return (
+      <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950" edges={["top"]}>
+        <Header />
+        <WrapUpSkeleton />
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950" edges={["top"]}>
       <StatusBar style="dark" />
@@ -425,6 +476,7 @@ export default function WrapUpScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#64748b" />
         }
       >
+        <StreakBanner streakCount={d.streak_count || 0} calendar={d.streak_calendar || [false,false,false,false,false,false,false]} />
         {/* Banner */}
         <View
           className={`rounded-2xl p-4 mb-4 border ${
@@ -447,6 +499,7 @@ export default function WrapUpScreen() {
               {d.bannerTitle}
             </Text>
           </View>
+        <WeeklyFocusCard />
           <Text
             className={`text-[13px] leading-5 ${
               isPositive ? "text-green-900" : "text-red-900"
@@ -465,14 +518,16 @@ export default function WrapUpScreen() {
             icon="heart-pulse"
             iconColor="#3b6d11"
             iconBg="#eaf3de"
+            trend={d.trends?.css}
           />
           <MetricCard
             title="Total sodium"
             value={d.sodium}
-            unit="g"
+            unit="mg"
             icon="shaker-outline"
             iconColor="#185fa5"
             iconBg="#e6f1fb"
+            trend={d.trends?.sodium}
           />
           <MetricCard
             title="Active minutes"
@@ -481,6 +536,7 @@ export default function WrapUpScreen() {
             icon="run"
             iconColor="#3b6d11"
             iconBg="#eaf3de"
+            trend={d.trends?.active}
           />
           <MetricCard
             title="Logs missed"
@@ -515,7 +571,7 @@ export default function WrapUpScreen() {
           Symptom frequency
         </Text>
         <View className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/70 overflow-hidden mb-5">
-          {d.symptoms.map((s, i) => (
+          {d.symptoms.map((s: any, i: number) => (
             <SymptomRow
               key={s.name}
               symptom={s}
@@ -524,6 +580,7 @@ export default function WrapUpScreen() {
           ))}
         </View>
 
+        <ActivityLogAccordion activityLog={d.activity_log || []} />
         {/* Export */}
         <TouchableOpacity
           className="bg-primary py-3.5 rounded-2xl flex-row items-center justify-center gap-2"

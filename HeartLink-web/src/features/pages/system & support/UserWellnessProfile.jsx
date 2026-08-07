@@ -60,8 +60,7 @@ const UserWellnessProfile = () => {
     { id: "overview", label: "Overview", icon: <User size={16} /> },
     { id: "biometrics", label: "Biometrics & Goals", icon: <Activity size={16} /> },
     { id: "lifestyle", label: "Lifestyle & Diet", icon: <Apple size={16} /> },
-    { id: "baselines", label: "Health Baselines", icon: <HeartPulse size={16} /> },
-    { id: "support", label: "Support Contacts", icon: <Users size={16} /> }
+    { id: "baselines", label: "Health Baselines", icon: <HeartPulse size={16} /> }
   ];
 
   return (
@@ -81,11 +80,11 @@ const UserWellnessProfile = () => {
         
         <div className="flex items-center gap-6 relative z-10">
           <div className="w-20 h-20 rounded-2xl bg-slate-900 text-white flex items-center justify-center text-3xl font-bold shadow-md">
-            {profile.first_name[0]}{profile.last_name[0]}
+            P
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">{profile.first_name} {profile.last_name}</h1>
-            <p className="text-slate-500 font-mono text-sm mt-1">{profile.id}</p>
+            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Patient {profile.id}</h1>
+            <p className="text-slate-500 font-mono text-sm mt-1">Anonymized for Privacy</p>
             <div className="flex items-center gap-3 mt-3">
               <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${profile.account_status === 'active' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-red-50 text-red-600 border border-red-100'}`}>
                 {profile.account_status}
@@ -132,13 +131,15 @@ const UserWellnessProfile = () => {
                 <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
                   <h3 className="text-xs uppercase tracking-widest text-slate-400 font-bold mb-4">Contact Info</h3>
                   <div className="space-y-3">
-                    <div>
-                      <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-0.5">Email</p>
-                      <p className="font-medium text-slate-900">{profile.email || "Not provided"}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-0.5">Phone</p>
-                      <p className="font-medium text-slate-900">{profile.phone || "Not provided"}</p>
+                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex items-start gap-3">
+                      <AlertTriangle size={16} className="text-amber-500 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-xs font-bold text-slate-700">Anonymized for Privacy</p>
+                        <p className="text-[10px] text-slate-500 leading-relaxed mt-1">
+                          Email, phone number, and emergency contacts are hidden to protect patient confidentiality. 
+                          You may only view clinical data necessary for case review.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -331,33 +332,7 @@ const UserWellnessProfile = () => {
             </div>
           )}
 
-          {/* SUPPORT CONTACTS */}
-          {activeTab === "support" && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-              <h2 className="text-xl font-bold text-slate-900 mb-6">Support Contacts</h2>
-              {care_team && care_team.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {care_team.map(contact => (
-                    <div key={contact.id} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-start gap-4">
-                      <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 flex-shrink-0">
-                        <User size={18} />
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-slate-900">{contact.name}</h4>
-                        <p className="text-xs text-slate-500 font-medium">{contact.role_title} • <span className="capitalize">{contact.contact_type}</span></p>
-                        <p className="text-sm font-medium text-slate-700 mt-2">{contact.phone}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 flex flex-col items-center text-center">
-                  <Users size={24} className="text-slate-300 mb-2" />
-                  <p className="text-slate-500 font-medium">No support contacts added.</p>
-                </div>
-              )}
-            </div>
-          )}
+
           
         </div>
       </div>

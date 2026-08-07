@@ -282,7 +282,7 @@ export default function DashboardScreen() {
     );
   }
 
-  const isAlertActive = !!data?.latest_alert;
+  const isAlertActive = !!data?.latest_alert && cssScore < 60;
 
   return (
     <ScreenWrapper

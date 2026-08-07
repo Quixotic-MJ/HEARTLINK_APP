@@ -10,35 +10,30 @@ import {
   UserCircle,
   AlertTriangle,
   FileText,
-  ChevronRight
+  ChevronRight,
+  Loader2,
+  CheckCircle2
 } from "lucide-react";
+import { apiFetch } from "../../../api";
 import AdminLayout from "../../../components/layouts/adminLayout";
 import NewBroadcastModal from "../../../components/modals/NewBroadcastModal";
 import ViewBroadcastModal from "../../../components/modals/ViewBroadcastModal";
 
-// Mock Data
-const initialBroadcasts = [
-  {
-    id: 1,
-    date: "May 28, 2026 10:00 AM",
-    publisher: "SYS-02 (Alex R.)",
-    message: "System Maintenance: We are performing a quick server optimization. The app may be briefly unavailable.",
-    type: "Maintenance"
-  },
-  {
-    id: 2,
-    date: "May 24, 2026 08:30 AM",
-    publisher: "MED-01 (Dr. Jenkins)",
-    message: "Safety Reminder: Ensure your CSS profile is updated if you have experienced any fatigue this week.",
-    type: "Safety Reminder"
-  }
-];
-
 const Broadcasts = () => {
-  const [broadcasts, setBroadcasts] = useState(initialBroadcasts);
+  const [broadcasts, setBroadcasts] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  
+  // Toast state
+  const [toast, setToast] = useState(null);
+
+  const showToast = (message, type = "success") => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
   
   // View Details Modal State
   const [viewModalOpen, setViewModalOpen] = useState(false);
@@ -46,6 +41,23 @@ const Broadcasts = () => {
 
   // Pending Broadcast State for Confirmation
   const [pendingBroadcast, setPendingBroadcast] = useState(null);
+
+  React.useEffect(() => {
+    fetchBroadcasts();
+  }, []);
+
+  const fetchBroadcasts = async () => {
+    setIsLoading(true);
+    try {
+      const data = await apiFetch("/api/admin/broadcasts");
+      setBroadcasts(data);
+    } catch (err) {
+      console.error(err);
+      showToast("Failed to load broadcasts", "error");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const openModal = () => setIsModalOpen(true);
   const closeModal = () => { setIsModalOpen(false); setPendingBroadcast(null); };
@@ -55,17 +67,41 @@ const Broadcasts = () => {
     setIsConfirmModalOpen(true);
   };
 
-  const handleConfirmPublish = () => {
-    const newRecord = {
-      id: Date.now(),
-      date: new Date().toLocaleString('en-US', { month: 'short', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
-      publisher: "SYS-01 (Admin)",
-      message: pendingBroadcast.message,
-      type: pendingBroadcast.type
-    };
-    setBroadcasts([newRecord, ...broadcasts]);
-    setIsConfirmModalOpen(false);
-    closeModal();
+  const handleConfirmPublish = async () => {
+    setIsSubmitting(true);
+    try {
+      const res = await apiFetch("/api/admin/broadcasts", {
+        method: "POST",
+        body: JSON.stringify({
+          type: pendingBroadcast.type,
+          message: pendingBroadcast.message,
+          targetAudience: pendingBroadcast.targetAudience
+        })
+      });
+      setBroadcasts([res.data, ...broadcasts]);
+      showToast("Broadcast published successfully");
+      setIsConfirmModalOpen(false);
+      closeModal();
+    } catch (err) {
+      console.error(err);
+      showToast("Failed to publish broadcast", "error");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteBroadcast = async (broadcastId) => {
+    try {
+      await apiFetch(`/api/admin/broadcasts/${broadcastId}`, {
+        method: "DELETE"
+      });
+      setBroadcasts(broadcasts.filter((b) => b.id !== broadcastId));
+      showToast("Broadcast deleted successfully");
+      setViewModalOpen(false);
+    } catch (err) {
+      console.error(err);
+      showToast("Failed to delete broadcast", "error");
+    }
   };
 
   const filteredBroadcasts = broadcasts.filter(b => 
@@ -120,27 +156,44 @@ const Broadcasts = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredBroadcasts.map((b) => (
-                  <tr key={b.id} className="hover:bg-slate-50 transition-colors group cursor-pointer">
-                    <td className="py-4 px-6 align-middle">
-                      <span className="text-slate-900 font-bold text-xs">{b.date}</span>
-                    </td>
-                    <td className="py-4 px-6 align-middle">
-                      <span className="text-slate-700 font-semibold text-xs">{b.publisher}</span>
-                    </td>
-                    <td className="py-4 px-6 align-middle">
-                      <span className="text-slate-600 text-xs font-medium truncate max-w-[350px] inline-block">{b.message}</span>
-                    </td>
-                    <td className="py-4 px-6 align-middle text-right">
-                      <button 
-                        onClick={() => { setActiveBroadcast(b); setViewModalOpen(true); }}
-                        className="text-[10px] font-bold px-4 py-2 rounded-xl border bg-white border-slate-200 text-slate-700 hover:bg-slate-100 transition-colors shadow-sm inline-flex items-center gap-1.5 whitespace-nowrap"
-                      >
-                        View Details <ChevronRight size={12} />
-                      </button>
+                {isLoading ? (
+                  <tr>
+                    <td colSpan="4" className="py-8 text-center">
+                      <div className="flex justify-center items-center gap-2 text-slate-400">
+                        <Loader2 size={16} className="animate-spin" />
+                        <span className="text-xs font-medium">Loading broadcasts...</span>
+                      </div>
                     </td>
                   </tr>
-                ))}
+                ) : filteredBroadcasts.length === 0 ? (
+                  <tr>
+                    <td colSpan="4" className="py-8 text-center text-slate-500 text-xs">
+                      No broadcasts found.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredBroadcasts.map((b) => (
+                    <tr key={b.id} className="hover:bg-slate-50 transition-colors group cursor-pointer">
+                      <td className="py-4 px-6 align-middle">
+                        <span className="text-slate-900 font-bold text-xs">{b.date}</span>
+                      </td>
+                      <td className="py-4 px-6 align-middle">
+                        <span className="text-slate-700 font-semibold text-xs">{b.publisher}</span>
+                      </td>
+                      <td className="py-4 px-6 align-middle">
+                        <span className="text-slate-600 text-xs font-medium truncate max-w-[350px] inline-block">{b.message}</span>
+                      </td>
+                      <td className="py-4 px-6 align-middle text-right">
+                        <button 
+                          onClick={() => { setActiveBroadcast(b); setViewModalOpen(true); }}
+                          className="text-[10px] font-bold px-4 py-2 rounded-xl border bg-white border-slate-200 text-slate-700 hover:bg-slate-100 transition-colors shadow-sm inline-flex items-center gap-1.5 whitespace-nowrap"
+                        >
+                          View Details <ChevronRight size={12} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -159,6 +212,7 @@ const Broadcasts = () => {
         isOpen={viewModalOpen} 
         onClose={() => setViewModalOpen(false)} 
         broadcast={activeBroadcast} 
+        onDelete={handleDeleteBroadcast}
       />
 
       {/* Confirmation Modal */}
@@ -174,10 +228,21 @@ const Broadcasts = () => {
               This message will be pushed to <strong>{pendingBroadcast?.targetAudience || "all users"}</strong> immediately. This action cannot be undone.
             </p>
             <div className="flex gap-3">
-              <button onClick={() => setIsConfirmModalOpen(false)} className="flex-1 px-4 py-2.5 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-100 rounded-xl transition-colors border border-slate-200 shadow-sm">Cancel</button>
-              <button onClick={handleConfirmPublish} className="flex-1 px-4 py-2.5 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 rounded-xl shadow-sm transition-colors flex items-center justify-center gap-2"><Send size={14} /> Yes, Send</button>
+              <button disabled={isSubmitting} onClick={() => setIsConfirmModalOpen(false)} className="flex-1 px-4 py-2.5 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-100 rounded-xl transition-colors border border-slate-200 shadow-sm disabled:opacity-50">Cancel</button>
+              <button disabled={isSubmitting} onClick={handleConfirmPublish} className="flex-1 px-4 py-2.5 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 rounded-xl shadow-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50">
+                {isSubmitting ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />} 
+                {isSubmitting ? "Sending..." : "Yes, Send"}
+              </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Toast Notification */}
+      {toast && (
+        <div className={`fixed bottom-6 right-6 z-[70] px-4 py-3 rounded-xl shadow-lg flex items-center gap-3 animate-in slide-in-from-bottom-5 duration-300 ${toast.type === 'error' ? 'bg-red-600 text-white' : 'bg-slate-900 text-white'}`}>
+          {toast.type === 'error' ? <AlertTriangle size={16} /> : <CheckCircle2 size={16} />}
+          <span className="text-xs font-medium">{toast.message}</span>
         </div>
       )}
     </AdminLayout>
