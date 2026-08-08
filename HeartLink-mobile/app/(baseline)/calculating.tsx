@@ -3,15 +3,22 @@ import { View, Text, Animated, Easing } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Feather } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { useColorScheme } from "nativewind";
 import { useUser } from "../../contexts/UserContext";
+import { useToast } from "../../contexts/ToastContext";
+import { useBaseline } from "../../contexts/BaselineContext";
 
 export default function CalculatingScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
+  const user_id = params.user_id as string;
+  
   const { refreshUser } = useUser();
+  const { showToast } = useToast();
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
+  const { data, resetData } = useBaseline();
 
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const textOpacity = useRef(new Animated.Value(1)).current;
@@ -21,39 +28,21 @@ export default function CalculatingScreen() {
   const [isComplete, setIsComplete] = useState(false);
 
   const steps = [
-    "Analyzing clinical biometrics...",
-    "Calibrating risk thresholds...",
-    "Generating personalized insights...",
+    "Analyzing biometrics & lifestyle...",
+    "Applying predictive model...",
+    "Generating Health Stability Score...",
   ];
 
-  // Animate text changes (fade out/slide up -> step change -> fade in/slide from below)
   const animateStepChange = (nextStep: number) => {
     Animated.parallel([
-      Animated.timing(textOpacity, {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-      Animated.timing(textTranslateY, {
-        toValue: -8,
-        duration: 200,
-        useNativeDriver: true,
-      }),
+      Animated.timing(textOpacity, { toValue: 0, duration: 200, useNativeDriver: true }),
+      Animated.timing(textTranslateY, { toValue: -8, duration: 200, useNativeDriver: true }),
     ]).start(() => {
       setStep(nextStep);
       textTranslateY.setValue(8);
       Animated.parallel([
-        Animated.timing(textOpacity, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        Animated.timing(textTranslateY, {
-          toValue: 0,
-          duration: 300,
-          easing: Easing.out(Easing.ease),
-          useNativeDriver: true,
-        }),
+        Animated.timing(textOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
+        Animated.timing(textTranslateY, { toValue: 0, duration: 300, easing: Easing.out(Easing.ease), useNativeDriver: true }),
       ]).start();
     });
   };
@@ -62,21 +51,13 @@ export default function CalculatingScreen() {
     // Pulse animation
     const pulseLoop = Animated.loop(
       Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1.15,
-          duration: 800,
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 800,
-          useNativeDriver: true,
-        }),
+        Animated.timing(pulseAnim, { toValue: 1.15, duration: 800, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
       ])
     );
     pulseLoop.start();
 
-    // Step text rotation with animations
+    // Rotate text every 1.2s
     let currentStep = 0;
     const interval = setInterval(() => {
       if (currentStep < steps.length - 1) {
@@ -85,77 +66,80 @@ export default function CalculatingScreen() {
       }
     }, 1200);
 
-    // Transition to completion checkmark state at ~3.6s
-    const completionTimeout = setTimeout(() => {
-      clearInterval(interval);
-      setIsComplete(true);
-    }, 3600);
-
-    // Final navigation after completion feedback (~4.4s total)
-    const navTimeout = setTimeout(async () => {
+    const submitData = async () => {
       try {
-        await refreshUser();
-      } catch (e) {
-        console.log("Failed to refresh user during calculating:", e);
+        const base_url = process.env.EXPO_PUBLIC_API_URL;
+        
+        // Ensure sleep_hours is a float
+        const payload = {
+          ...data,
+          sleep_hours: parseFloat(data.sleep_hours) || 8.0,
+        };
+
+        const res = await fetch(`${base_url}/api/users/${user_id}/baseline/complete`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        if (!res.ok) {
+          throw new Error("Failed to submit onboarding data");
+        }
+
+        // Wait a minimum time to ensure animations finish nicely (approx 3.5s)
+        setTimeout(async () => {
+          clearInterval(interval);
+          setIsComplete(true);
+          
+          await refreshUser();
+          resetData(); // Clean up context
+
+          setTimeout(() => {
+            router.replace("/(home)/(tabs)/dashboard");
+          }, 800);
+        }, 3500);
+
+      } catch (err) {
+        clearInterval(interval);
+        pulseLoop.stop();
+        showToast({ title: "Error", message: "Failed to generate HSS score. Please try again.", type: "error" });
+        router.back();
       }
-      router.replace("/(home)/(tabs)/dashboard");
-    }, 4400);
+    };
+
+    submitData();
 
     return () => {
       clearInterval(interval);
-      clearTimeout(completionTimeout);
-      clearTimeout(navTimeout);
       pulseLoop.stop();
     };
   }, []);
 
-  const currentAccessibilityText = isComplete
-    ? "Calculation complete. Score calibrated!"
-    : `Step ${step + 1} of ${steps.length}: ${steps[step]}`;
-
   return (
-    <SafeAreaView
-      className="flex-1 bg-slate-50 dark:bg-slate-950 justify-center items-center px-6"
-      accessibilityRole="progressbar"
-      accessibilityLiveRegion="polite"
-      accessibilityLabel={currentAccessibilityText}
-    >
+    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950 justify-center items-center px-6" >
       <StatusBar style={isDark ? "light" : "dark"} />
 
       {/* Pulse / Status Icon */}
       <Animated.View
         style={{ transform: [{ scale: pulseAnim }] }}
         className={`w-24 h-24 rounded-full items-center justify-center mb-8 border ${
-          isComplete
-            ? "bg-emerald-500/10 border-emerald-500/30"
-            : isDark
-            ? "bg-white/10 border-white/20"
-            : "bg-slate-900/10 border-slate-900/20"
+          isComplete ? "bg-emerald-500/10 border-emerald-500/30" : isDark ? "bg-white/10 border-white/20" : "bg-slate-900/10 border-slate-900/20"
         }`}
       >
         {isComplete ? (
           <Feather name="check" size={38} color="#10b981" />
         ) : (
-          <Feather
-            name="activity"
-            size={36}
-            color={isDark ? "#ffffff" : "#0f172a"}
-          />
+          <Feather name="activity" size={36} color={isDark ? "#ffffff" : "#0f172a"} />
         )}
       </Animated.View>
 
       {/* Title Header */}
       <Text className="text-[22px] font-semibold text-slate-900 dark:text-white mb-3 tracking-tight text-center">
-        {isComplete ? "Score Calibrated!" : "Computing Initial Score"}
+        {isComplete ? "HSS Calibrated!" : "Computing HSS"}
       </Text>
 
       {/* Dynamic Subtitle Step Text */}
-      <Animated.View
-        style={{
-          opacity: textOpacity,
-          transform: [{ translateY: textTranslateY }],
-        }}
-      >
+      <Animated.View style={{ opacity: textOpacity, transform: [{ translateY: textTranslateY }] }}>
         <Text className="text-[14px] text-slate-500 dark:text-slate-400 font-medium text-center">
           {isComplete ? "Redirecting to your dashboard..." : steps[step]}
         </Text>

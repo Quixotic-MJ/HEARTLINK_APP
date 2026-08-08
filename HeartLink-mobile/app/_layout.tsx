@@ -49,7 +49,7 @@ function RootLayoutNav() {
         // If onboarding is not complete, redirect to baseline (allow staying in auth for success screen)
         if (!inBaseline && !inAuthGroup) {
           router.replace({
-            pathname: "/(baseline)/health_goals",
+            pathname: "/(baseline)/step1_basic_info",
             params: { user_id: userId },
           });
         }

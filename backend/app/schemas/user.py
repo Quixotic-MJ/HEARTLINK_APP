@@ -16,30 +16,40 @@ class ProfileUpdate(BaseModel):
     health_goals: List[str] = []
 
 
-# Baseline lifestyle (onboarding step 2)
-class BaselineLifestyleRequest(BaseModel):
-    smoking_status: str
-    avg_sleep_hours: int
-    family_history: bool
-
-
-# Baseline dietary (onboarding step 3)
-class BaselineDietaryRequest(BaseModel):
-    sodium_frequency: str
+# Unified Onboarding Baseline
+class BaselineOnboardingRequest(BaseModel):
+    # Physical Activity
+    vigorous_activity: bool
+    vigorous_days: Optional[int] = None
+    vigorous_minutes: Optional[int] = None
+    moderate_activity: bool
+    moderate_days: Optional[int] = None
+    moderate_minutes: Optional[int] = None
+    walk_bike_transport: bool
+    walk_bike_days: Optional[int] = None
+    walk_bike_minutes: Optional[int] = None
+    sedentary_hours: str
+    
+    # Sleep & Smoking
+    sleep_hours: float
+    ever_smoked: bool
+    smoke_now: Optional[str] = None
+    
+    # Alcohol
+    ever_drank: bool
+    drink_frequency: Optional[str] = None
+    drinks_per_occasion: Optional[str] = None
+    binge_drinking_freq: Optional[str] = None
+    
+    # Diet Habits
+    diet_level: str
+    fried_food_freq: str
+    salty_food_freq: str
+    fruit_veg_servings: str
+    
+    # Health Background (Non-ML features)
     allergies: List[str] = []
-    dietary_practice: str
-
-
-# Baseline clinical (onboarding step 4 - final)
-class BaselineClinicalRequest(BaseModel):
-    diagnosed_conditions: List[str] = []
-    on_medication: bool
-    resting_bp_mmhg: Optional[int] = None
-    max_heart_rate_bpm: Optional[int] = None
-    fasting_blood_sugar: Optional[int] = None
-    serum_cholesterol: Optional[int] = None
-    chest_pain_type: Optional[int] = None
-    exercise_angina: Optional[int] = None
+    dietary_practice: str = "None"
 
 
 # Change Password

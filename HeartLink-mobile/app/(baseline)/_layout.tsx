@@ -1,18 +1,24 @@
 import { Stack } from "expo-router";
+import { BaselineProvider } from "../../contexts/BaselineContext";
 import "../../global.css";
 
-export default function AuthLayout() {
+export default function BaselineLayout() {
   return (
-    <Stack
-      screenOptions={{
-        headerShown: false,
-        animation: "slide_from_right", // Premium native slide-in animation
-      }}
-    >
-      <Stack.Screen name="core_biometrics" />
-      <Stack.Screen name="lifestyle_habits" />
-      <Stack.Screen name="dietary_profile" />
-      <Stack.Screen name="clinical_biometrics" />
-    </Stack>
+    <BaselineProvider>
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          animation: "slide_from_right", // Premium native slide-in animation
+        }}
+      >
+        <Stack.Screen name="step1_basic_info" />
+        <Stack.Screen name="step2_activity" />
+        <Stack.Screen name="step3_sleep_smoking" />
+        <Stack.Screen name="step4_alcohol" />
+        <Stack.Screen name="step5_diet" />
+        <Stack.Screen name="step6_health" />
+        <Stack.Screen name="calculating" options={{ animation: "fade" }} />
+      </Stack>
+    </BaselineProvider>
   );
 }

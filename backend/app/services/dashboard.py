@@ -2,7 +2,7 @@ from typing import Dict, Any, List
 from datetime import datetime, timedelta
 from app.mock_db import (
     profiles,
-    css_history,
+    hss_history,
     daily_health_logs,
     alerts,
     recipes,
@@ -88,35 +88,35 @@ def _recipe_matches_diet(recipe: dict, dietary_practice: str) -> bool:
 
 from datetime import datetime
 
-def _get_comparison_score(user_css: list) -> int:
+def _get_comparison_score(user_hss: list) -> int:
     """Finds the immediately previous score to provide real-time dynamic feedback."""
-    if len(user_css) < 2:
-        return 0
-    return user_css[1].get("score", 0)
+    if len(user_hss) < 2:
+        return user_hss[0].get("score", 0) if user_hss else 0
+    return user_hss[1].get("score", 0)
 
-def _compute_trend(user_css: list) -> str:
+def _get_trend_direction(user_hss: list) -> str:
     """Compute score trend comparing to yesterday (or baseline)."""
-    if len(user_css) < 2:
+    if len(user_hss) < 2:
         return "+0"
-    latest = user_css[0].get("score", 0)
-    previous = _get_comparison_score(user_css)
+    latest = user_hss[0].get("score", 0)
+    previous = _get_comparison_score(user_hss)
     diff = latest - previous
     if diff > 0:
         return f"+{diff}"
     return str(diff)  # Already includes minus sign for negatives
 
 
-def _generate_insight(user_css: list, latest_log: dict | None) -> dict:
+def _generate_insight(user_hss: list, latest_log: dict | None) -> dict:
     """Generate a dynamic smart insight based on actual data."""
-    if len(user_css) < 2:
+    if len(user_hss) < 2:
         return {
             "title": "Start tracking to unlock insights.",
             "body": "Log your vitals and meals daily so HeartLink can give you personalized insights.",
             "icon": "info",
         }
 
-    latest_score = user_css[0].get("score", 0)
-    previous_score = _get_comparison_score(user_css)
+    latest_score = user_hss[0].get("score", 0)
+    previous_score = _get_comparison_score(user_hss)
     diff = latest_score - previous_score
 
     if diff > 0:
@@ -186,14 +186,14 @@ def get_dashboard_data(user_id: str) -> Dict[str, Any]:
         print("DEBUG get_dashboard_data: profile not found!")
         return {}
 
-    user_css = sorted(
-        [c for c in css_history if c["user_id"] == user_id],
+    user_hss = sorted(
+        [c for c in hss_history if c["user_id"] == user_id],
         key=lambda x: x["computed_at"],
         reverse=True,
     )
-    latest_css = (
-        user_css[0]
-        if user_css
+    latest_hss = (
+        user_hss[0]
+        if user_hss
         else {"score": 0, "tier": "Unknown", "computed_at": None}
     )
 
@@ -217,8 +217,8 @@ def get_dashboard_data(user_id: str) -> Dict[str, Any]:
         dietary_entry.get("dietary_practice", "") if dietary_entry else ""
     )
 
-    # ── Recommendations: filter by CSS tier AND dietary preference ─────────────
-    tier = latest_css.get("tier", "Stable")
+    # ── Recommendations: filter by HSS tier AND dietary preference ─────────────
+    tier = latest_hss.get("tier", "Stable")
     reco_recipes = [
         r
         for r in recipes
@@ -271,10 +271,10 @@ def get_dashboard_data(user_id: str) -> Dict[str, Any]:
         )
 
     # ── Compute real trend ─────────────────────────────────────────────────────
-    trend = _compute_trend(user_css)
+    trend = _get_trend_direction(user_hss)
 
     # ── Generate dynamic smart insight ─────────────────────────────────────────
-    insight = _generate_insight(user_css, latest_log)
+    insight = _generate_insight(user_hss, latest_log)
 
     # ── Today's activity summary ───────────────────────────────────────────────
     today_activity = _get_today_activity(user_id)
@@ -293,9 +293,9 @@ def get_dashboard_data(user_id: str) -> Dict[str, Any]:
             "last_name": profile.get("last_name"),
             "avatar_url": profile.get("avatar_url"),
         },
-        "css_score": latest_css.get("score", 0),
-        "css_tier": latest_css.get("tier", "Unknown"),
-        "last_sync": latest_css.get("computed_at"),
+        "hss_score": latest_hss.get("score", 0),
+        "hss_tier": latest_hss.get("tier", "Unknown"),
+        "last_sync": latest_hss.get("computed_at"),
         "unread_notifications_count": unread_count,
         "latest_vitals": {
             "bpm": latest_log.get("heart_rate_bpm") if latest_log else "--",

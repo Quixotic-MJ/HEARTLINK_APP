@@ -62,90 +62,50 @@ def delete_user(user_id: str) -> bool:
 
 
 
-def upsert_baseline_lifestyle(user_id: str, data: dict) -> dict:
-    # Check if one already exists for this user
-    for entry in mock_db.baseline_lifestyle:
-        if entry["user_id"] == user_id:
-            entry["smoking_status"] = data["smoking_status"]
-            entry["avg_sleep_hours"] = data["avg_sleep_hours"]
-            entry["family_history"] = data["family_history"]
-            entry["updated_at"] = datetime.utcnow()
+def save_baseline_onboarding(user_id: str, data: dict, profile_data: dict) -> dict:
+    # 1. Update basic profile info first (name, DOB, sex)
+    for profile in mock_db.profiles:
+        if profile["id"] == user_id:
+            if "first_name" in profile_data:
+                profile["first_name"] = profile_data["first_name"]
+            if "last_name" in profile_data:
+                profile["last_name"] = profile_data["last_name"]
+            if "date_of_birth" in profile_data:
+                profile["date_of_birth"] = profile_data["date_of_birth"]
+            if "sex" in profile_data:
+                profile["sex"] = profile_data["sex"]
+            if "height_cm" in profile_data:
+                profile["height_cm"] = profile_data["height_cm"]
+            if "weight_kg" in profile_data:
+                profile["weight_kg"] = profile_data["weight_kg"]
+            if "health_goals" in profile_data:
+                profile["health_goals"] = profile_data["health_goals"]
+            profile["onboarding_status"] = "complete"
+            profile["updated_at"] = datetime.utcnow()
             mock_db.save_profiles()
-            return entry
+            break
 
-    # Create new
-    new_entry = {
-        "id": f"life-{len(mock_db.baseline_lifestyle) + 200}",
-        "user_id": user_id,
-        "smoking_status": data["smoking_status"],
-        "avg_sleep_hours": data["avg_sleep_hours"],
-        "family_history": data["family_history"],
-        "created_at": datetime.utcnow(),
-        "updated_at": datetime.utcnow(),
-    }
-    mock_db.baseline_lifestyle.append(new_entry)
-    mock_db.save_profiles()
-    return new_entry
-
-
-def upsert_baseline_dietary(user_id: str, data: dict) -> dict:
-    for entry in mock_db.baseline_dietary:
-        if entry["user_id"] == user_id:
-            entry["sodium_frequency"] = data["sodium_frequency"]
-            entry["allergies"] = data["allergies"]
-            entry["dietary_practice"] = data["dietary_practice"]
-            entry["updated_at"] = datetime.utcnow()
-            mock_db.save_profiles()
-            return entry
-
-    new_entry = {
-        "id": f"diet-{len(mock_db.baseline_dietary) + 200}",
-        "user_id": user_id,
-        "sodium_frequency": data["sodium_frequency"],
-        "allergies": data["allergies"],
-        "dietary_practice": data["dietary_practice"],
-        "created_at": datetime.utcnow(),
-        "updated_at": datetime.utcnow(),
-    }
-    mock_db.baseline_dietary.append(new_entry)
-    mock_db.save_profiles()
-    return new_entry
-
-
-def upsert_baseline_clinical(user_id: str, data: dict) -> dict:
+    # 2. Save detailed onboarding responses
     updated_entry = None
-    for entry in mock_db.baseline_clinical:
+    for entry in getattr(mock_db, 'baseline_onboarding', []):
         if entry["user_id"] == user_id:
-            entry["diagnosed_conditions"] = data["diagnosed_conditions"]
-            entry["on_medication"] = data["on_medication"]
-            entry["resting_bp_mmhg"] = data.get("resting_bp_mmhg")
-            entry["max_heart_rate_bpm"] = data.get("max_heart_rate_bpm")
-            entry["fasting_blood_sugar"] = data.get("fasting_blood_sugar")
-            entry["serum_cholesterol"] = data.get("serum_cholesterol")
-            entry["chest_pain_type"] = data.get("chest_pain_type")
-            entry["exercise_angina"] = data.get("exercise_angina")
+            entry.update(data)
             entry["updated_at"] = datetime.utcnow()
             updated_entry = entry
             break
 
     if not updated_entry:
         updated_entry = {
-            "id": f"clin-{len(mock_db.baseline_clinical) + 200}",
+            "id": f"onb-{len(getattr(mock_db, 'baseline_onboarding', [])) + 200}",
             "user_id": user_id,
-            "diagnosed_conditions": data["diagnosed_conditions"],
-            "on_medication": data["on_medication"],
-            "resting_bp_mmhg": data.get("resting_bp_mmhg"),
-            "max_heart_rate_bpm": data.get("max_heart_rate_bpm"),
-            "fasting_blood_sugar": data.get("fasting_blood_sugar"),
-            "serum_cholesterol": data.get("serum_cholesterol"),
-            "chest_pain_type": data.get("chest_pain_type"),
-            "exercise_angina": data.get("exercise_angina"),
+            **data,
             "created_at": datetime.utcnow(),
             "updated_at": datetime.utcnow(),
         }
-        mock_db.baseline_clinical.append(updated_entry)
+        if hasattr(mock_db, 'baseline_onboarding'):
+            mock_db.baseline_onboarding.append(updated_entry)
 
-    # Auto-create default thresholds if missing
+    # 3. Auto-create default thresholds if missing
     if not any(t["user_id"] == user_id for t in mock_db.user_thresholds):
         mock_db.user_thresholds.append({
             "id": f"thresh-{len(mock_db.user_thresholds) + 200}",
@@ -158,15 +118,6 @@ def upsert_baseline_clinical(user_id: str, data: dict) -> dict:
         })
         
     mock_db.save_profiles()
-
-    # Mark onboarding as complete (this is the final step)
-    for profile in mock_db.profiles:
-        if profile["id"] == user_id:
-            profile["onboarding_status"] = "complete"
-            profile["updated_at"] = datetime.utcnow()
-            mock_db.save_profiles()
-            break
-
     return updated_entry
 
 

@@ -99,6 +99,8 @@ staff_permissions = [
 ]
 
 # 3. Clinical & Onboarding Baseline Metrics Layer (1:1 Relationships)
+baseline_onboarding = []
+
 baseline_lifestyle = [
     {
         "id": "life-101",
@@ -226,6 +228,8 @@ exercise_logs = [
 ]
 
 # 6. Medical Evaluation & Predictive Logic Layers
+hss_history = []
+
 css_history = [
     {
         "id": "css-701",

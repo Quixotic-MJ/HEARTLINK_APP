@@ -160,9 +160,9 @@ export default function DashboardScreen() {
     fetchData(true);
   }, [fetchData]);
 
-  const cssScore = data?.css_score || 0;
-  const theme = getScoreTheme(cssScore, isDark);
-  const isCritical = cssScore < 40;
+  const hssScore = data?.hss_score || 0;
+  const theme = getScoreTheme(hssScore, isDark);
+  const isCritical = hssScore < 40;
   const lastSyncTime = data?.last_sync ? new Date(data.last_sync) : new Date();
 
   const glowOpacity = pulseAnim.interpolate({
@@ -172,7 +172,7 @@ export default function DashboardScreen() {
 
   useEffect(() => {
     let animLoop: Animated.CompositeAnimation | null = null;
-    if (cssScore < 50 && !isLoading) {
+    if (hssScore < 50 && !isLoading) {
       animLoop = Animated.loop(
         Animated.sequence([
           Animated.timing(pulseAnim, {
@@ -198,7 +198,7 @@ export default function DashboardScreen() {
         animLoop.stop();
       }
     };
-  }, [cssScore, pulseAnim, isLoading]);
+  }, [hssScore, pulseAnim, isLoading]);
 
   const [dismissedAlertIds, setDismissedAlertIds] = useState<string[]>([]);
 
@@ -282,7 +282,7 @@ export default function DashboardScreen() {
     );
   }
 
-  const isAlertActive = !!data?.latest_alert && cssScore < 60;
+  const isAlertActive = !!data?.latest_alert && hssScore < 60;
 
   return (
     <ScreenWrapper
@@ -381,7 +381,7 @@ export default function DashboardScreen() {
           </Text>
         </View>
 
-        {/* ── CSS Score hero card ── */}
+        {/* ── HSS Score hero card ── */}
         <View className="mx-5 mt-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 pt-6 pb-5 px-5 items-center">
           {/* Score Ring Component */}
           <Animated.View
@@ -391,7 +391,7 @@ export default function DashboardScreen() {
               transform: [{ scale: pulseAnim }],
             }}
           >
-            {cssScore < 50 && (
+            {hssScore < 50 && (
               <Animated.View
                 style={{
                   position: "absolute",
@@ -403,7 +403,7 @@ export default function DashboardScreen() {
                 }}
               />
             )}
-            <ScoreRing score={cssScore} size={140} strokeWidth={12} />
+            <ScoreRing score={hssScore} size={140} strokeWidth={12} />
           </Animated.View>
 
           {/* Timestamp */}
@@ -413,7 +413,7 @@ export default function DashboardScreen() {
 
           {/* Label */}
           <Text className="text-[16px] font-medium text-slate-900 dark:text-white mt-3 mb-2">
-            Cardiovascular stability
+            HSS Score stability
           </Text>
 
           {/* Status badge */}
@@ -439,7 +439,7 @@ export default function DashboardScreen() {
               <View
                 className="h-full rounded-full"
                 style={{
-                  width: `${cssScore}%`,
+                  width: `${hssScore}%`,
                   backgroundColor: theme.barColor,
                 }}
               />
@@ -533,7 +533,7 @@ export default function DashboardScreen() {
             </View>
             <Text className="flex-1 text-[13px] text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
               <Text className="font-bold text-foreground">
-                {data.insight.title}{" "}
+                {data.insight?.title || ""}{" "}
               </Text>
               {data.insight.body}
             </Text>

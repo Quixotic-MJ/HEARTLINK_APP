@@ -1,18 +1,12 @@
 from fastapi import APIRouter, status, HTTPException
 from app.schemas.user import (
     ProfileUpdate,
-    BaselineLifestyleRequest,
-    BaselineDietaryRequest,
-    BaselineClinicalRequest,
     ChangePasswordRequest,
     RemindersUpdateRequest,
     CareTeamContactRequest
 )
 from app.services.users import (
     update_profile,
-    upsert_baseline_lifestyle,
-    upsert_baseline_dietary,
-    upsert_baseline_clinical,
     get_full_profile,
     delete_user,
     change_password,
@@ -23,7 +17,7 @@ from app.services.users import (
     delete_care_team_contact
 )
 import app.mock_db as mock_db
-from app.services.ml_service import ml_service
+
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
@@ -78,71 +72,57 @@ async def update_user_reminders_route(user_id: str, payload: RemindersUpdateRequ
     return {"success": True, "message": "Reminders updated", "data": result}
 
 
-@router.post("/{user_id}/baseline/lifestyle", status_code=status.HTTP_201_CREATED)
-async def save_baseline_lifestyle(user_id: str, payload: BaselineLifestyleRequest):
-    # Check user exists
-    user_exists = any(p["id"] == user_id for p in mock_db.profiles)
-    if not user_exists:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
-        )
+from app.schemas.user import BaselineOnboardingRequest
+from app.services.hss_service import compute_initial_hss, HSSModelError
+from datetime import datetime
 
-    result = upsert_baseline_lifestyle(user_id, payload.model_dump())
-    return {"success": True, "message": "Lifestyle baseline saved", "data": result}
-
-
-@router.post("/{user_id}/baseline/dietary", status_code=status.HTTP_201_CREATED)
-async def save_baseline_dietary(user_id: str, payload: BaselineDietaryRequest):
-    user_exists = any(p["id"] == user_id for p in mock_db.profiles)
-    if not user_exists:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
-        )
-
-    result = upsert_baseline_dietary(user_id, payload.model_dump())
-    return {"success": True, "message": "Dietary baseline saved", "data": result}
-
-
-@router.post("/{user_id}/baseline/clinical", status_code=status.HTTP_201_CREATED)
-async def save_baseline_clinical(user_id: str, payload: BaselineClinicalRequest):
+@router.post("/{user_id}/baseline/complete", status_code=status.HTTP_201_CREATED)
+async def complete_baseline_onboarding(user_id: str, payload: BaselineOnboardingRequest):
     user_profile = next((p for p in mock_db.profiles if p["id"] == user_id), None)
     if not user_profile:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
         )
-
-    # Validate that prior mandatory baseline steps are complete
+        
     if not user_profile.get("first_name") or not user_profile.get("date_of_birth"):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Core biometrics (name and date of birth) must be completed before saving clinical baseline."
+            detail="Core biometrics (name and date of birth) must be completed before saving baseline."
         )
 
-    lifestyle = next((l for l in mock_db.baseline_lifestyle if l["user_id"] == user_id), None)
-    if not lifestyle:
+    onboarding_data = payload.model_dump()
+    
+    # 1. Compute HSS score using the ML model
+    try:
+        hss_score, hss_tier, risk_probability = compute_initial_hss(onboarding_data, user_profile)
+    except HSSModelError as e:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Lifestyle baseline must be completed before saving clinical baseline."
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Health Stability Score computation failed: {str(e)}"
         )
 
-    dietary = next((d for d in mock_db.baseline_dietary if d["user_id"] == user_id), None)
-    if not dietary:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Dietary baseline must be completed before saving clinical baseline."
-        )
-
-    result = upsert_baseline_clinical(user_id, payload.model_dump())
-
-    # ML Prediction for Initial CSS
-    clinical = payload.model_dump()
-    css_entry = ml_service.predict_initial_css(user_id, lifestyle, dietary, clinical)
+    # 2. Save the onboarding data (also marks onboarding_status as complete)
+    from app.services.users import save_baseline_onboarding
+    result = save_baseline_onboarding(user_id, onboarding_data, user_profile)
+    
+    # 3. Save the new HSS score
+    new_hss = {
+        "id": f"hss-baseline-{user_id}",
+        "user_id": user_id,
+        "score": hss_score,
+        "tier": hss_tier,
+        "risk_probability": risk_probability,
+        "source": "baseline",
+        "computed_at": datetime.utcnow(),
+    }
+    if hasattr(mock_db, 'hss_history'):
+        mock_db.hss_history.append(new_hss)
 
     return {
         "success": True,
-        "message": "Clinical baseline saved — onboarding complete",
+        "message": "Onboarding complete. HSS generated.",
         "data": result,
-        "initial_css": css_entry
+        "initial_hss": new_hss
     }
 
 @router.post("/{user_id}/care-team", status_code=status.HTTP_201_CREATED)
