@@ -15,10 +15,12 @@ import Animated, { useSharedValue, useAnimatedStyle, withTiming, Easing } from "
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { useColorScheme } from "nativewind";
 import "../../global.css";
-import { Feather } from "../../lib/icons";
+import { Feather } from "@expo/vector-icons";
 import { InputField } from "../../components/ui/InputField";
 import { Button } from "../../components/ui/Button";
+import AnimatedButton from "../../components/ui/AnimatedButton";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -49,6 +51,8 @@ type RegisterFormValues = z.infer<typeof registerSchema>;
 
 
 export default function RegisterScreen() {
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === "dark";
   const router = useRouter();
 
   const {
@@ -119,14 +123,14 @@ export default function RegisterScreen() {
 
   return (
     <SafeAreaView
-      className="flex-1 bg-background"
+      className="flex-1 bg-slate-50 dark:bg-slate-950"
       edges={["top", "bottom"]}
     >
-      <StatusBar style="auto" />
+      <StatusBar style={isDark ? "light" : "dark"} />
 
       {/* Header */}
-      <View className="flex-row items-center px-6 pt-4 pb-2">
-        <TouchableOpacity
+      <View className="flex-row items-center px-5 pt-4 pb-3 justify-between">
+        <AnimatedButton
           onPress={() => {
             if (router.canGoBack()) {
               router.back();
@@ -134,28 +138,22 @@ export default function RegisterScreen() {
               router.replace("/onboarding");
             }
           }}
-          className="p-2 -ml-2 mr-4"
-          accessible={true}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
+          className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 border-slate-800/70 items-center justify-center"
         >
-          <Feather name="arrow-left" size={24} className="text-foreground" />
-        </TouchableOpacity>
+          <Feather name="arrow-left" size={18} color={isDark ? "#f8fafc" : "#0f172a"} />
+        </AnimatedButton>
         <View className="flex-row items-center gap-2">
-          <View className="w-8 h-8 rounded-full items-center justify-center border border-border bg-card" importantForAccessibility="no">
-            <Feather name="heart" size={14} className="text-foreground" />
+          <View className="w-7 h-7 rounded-full items-center justify-center bg-rose-500/10">
+            <Feather name="heart" size={13} color="#f43f5e" />
           </View>
-          <Text
-            className="text-base text-foreground tracking-tight"
-            style={{ fontWeight: "300" }}
-          >
+          <Text className="text-[14px] text-slate-900 dark:text-white" style={{ fontWeight: "300" }}>
             Heart<Text style={{ fontWeight: "600" }}>Link.</Text>
           </Text>
         </View>
       </View>
 
       <KeyboardAwareScrollView
-        contentContainerClassName="flex-grow px-6 pt-4 pb-12"
+        contentContainerClassName="flex-grow px-5 pt-4 pb-12"
         showsVerticalScrollIndicator={false}
         enableOnAndroid={true}
         extraScrollHeight={Platform.OS === "ios" ? 40 : 60}
@@ -163,22 +161,22 @@ export default function RegisterScreen() {
         bounces={false}
       >
         {/* ── Card ── */}
-        <View className="bg-card rounded-3xl border border-border px-5 py-7">
+        <View className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 px-5 py-7" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 }}>
           {/* Heading */}
           <View className="mb-7">
-            <Text className="text-3xl font-semibold text-foreground tracking-tight mb-2" accessibilityRole="header">
+            <Text className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight mb-2">
               Create your account
             </Text>
-            <Text className="text-sm text-muted-foreground leading-relaxed">
+            <Text className="text-[14px] text-slate-500 dark:text-slate-400 leading-relaxed">
               Securely monitor your cardiovascular well-being.
             </Text>
           </View>
 
           {/* General Error */}
           {generalError && (
-            <View className="bg-destructive/10 border border-destructive/30 rounded-2xl p-3.5 mb-5 flex-row items-center gap-2" accessible={true} accessibilityRole="alert">
-              <Feather name="alert-triangle" size={16} className="text-destructive" />
-              <Text className="text-destructive text-xs flex-1 font-medium">
+            <View className="bg-rose-500/10 border border-rose-500/30 rounded-2xl p-3.5 mb-5 flex-row items-center gap-2">
+              <Feather name="alert-triangle" size={16} color="#f43f5e" />
+              <Text className="text-rose-600 dark:text-rose-400 text-xs flex-1 font-medium">
                 {generalError}
               </Text>
             </View>
@@ -200,6 +198,8 @@ export default function RegisterScreen() {
             editable={!isSubmitting}
           />
 
+          <View className="h-4" />
+
           {/* Phone */}
           <InputField
             control={control}
@@ -213,13 +213,15 @@ export default function RegisterScreen() {
             textContentType="telephoneNumber"
             editable={!isSubmitting}
             leftElement={
-              <View className="flex-row items-center border-r border-border pr-3 ml-2 mr-0 self-stretch py-2 my-2">
-                <Text className="text-base font-semibold text-foreground">
+              <View className="flex-row items-center border-r border-slate-200 dark:border-slate-700 pr-3 ml-2 mr-0 self-stretch py-2 my-2">
+                <Text className="text-base font-semibold text-slate-900 dark:text-white">
                   +63
                 </Text>
               </View>
             }
           />
+
+          <View className="h-4" />
 
           {/* Password */}
           <InputField
@@ -235,19 +237,18 @@ export default function RegisterScreen() {
               <TouchableOpacity
                 onPress={() => setShowPassword(!showPassword)}
                 className="p-2 -mr-2"
-                accessible={true}
-                accessibilityRole="button"
-                accessibilityLabel={showPassword ? "Hide password" : "Show password"}
                 disabled={isSubmitting}
               >
                 <Feather
                   name={showPassword ? "eye" : "eye-off"}
                   size={18}
-                  className={isSubmitting ? "text-muted-foreground/50" : "text-muted-foreground"}
+                  color={isDark ? (isSubmitting ? "#475569" : "#94a3b8") : (isSubmitting ? "#cbd5e1" : "#64748b")}
                 />
               </TouchableOpacity>
             }
           />
+
+          <View className="h-4" />
 
           {/* Confirm password */}
           <InputField
@@ -263,33 +264,32 @@ export default function RegisterScreen() {
               <TouchableOpacity
                 onPress={() => setShowConfirmPassword(!showConfirmPassword)}
                 className="p-2 -mr-2"
-                accessible={true}
-                accessibilityRole="button"
-                accessibilityLabel={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
                 disabled={isSubmitting}
               >
                 <Feather
                   name={showConfirmPassword ? "eye" : "eye-off"}
                   size={18}
-                  className={isSubmitting ? "text-muted-foreground/50" : "text-muted-foreground"}
+                  color={isDark ? (isSubmitting ? "#475569" : "#94a3b8") : (isSubmitting ? "#cbd5e1" : "#64748b")}
                 />
               </TouchableOpacity>
             }
           />
 
+          <View className="h-2" />
+
           {/* Password hint */}
-          <View className="mb-7 -mt-1 ml-1" accessible={true} accessibilityRole="text">
+          <View className="mb-7 ml-1">
             <View className="flex-row items-center gap-2 mb-1.5">
-              <Feather name={passwordValue.length >= 8 ? "check-circle" : "circle"} size={14} className={passwordValue.length >= 8 ? "text-emerald-500" : "text-muted-foreground"} />
-              <Text className={`text-sm ${passwordValue.length >= 8 ? "text-foreground" : "text-muted-foreground"}`}>At least 8 characters</Text>
+              <Feather name={passwordValue.length >= 8 ? "check-circle" : "circle"} size={14} color={passwordValue.length >= 8 ? "#10b981" : (isDark ? "#64748b" : "#94a3b8")} />
+              <Text className={`text-[13px] ${passwordValue.length >= 8 ? "text-slate-900 dark:text-white" : "text-slate-500 dark:text-slate-400"}`}>At least 8 characters</Text>
             </View>
             <View className="flex-row items-center gap-2 mb-1.5">
-              <Feather name={/(?=.*[A-Z])/.test(passwordValue) && /(?=.*[a-z])/.test(passwordValue) ? "check-circle" : "circle"} size={14} className={/(?=.*[A-Z])/.test(passwordValue) && /(?=.*[a-z])/.test(passwordValue) ? "text-emerald-500" : "text-muted-foreground"} />
-              <Text className={`text-sm ${/(?=.*[A-Z])/.test(passwordValue) && /(?=.*[a-z])/.test(passwordValue) ? "text-foreground" : "text-muted-foreground"}`}>Uppercase & lowercase letter</Text>
+              <Feather name={/(?=.*[A-Z])/.test(passwordValue) && /(?=.*[a-z])/.test(passwordValue) ? "check-circle" : "circle"} size={14} color={/(?=.*[A-Z])/.test(passwordValue) && /(?=.*[a-z])/.test(passwordValue) ? "#10b981" : (isDark ? "#64748b" : "#94a3b8")} />
+              <Text className={`text-[13px] ${/(?=.*[A-Z])/.test(passwordValue) && /(?=.*[a-z])/.test(passwordValue) ? "text-slate-900 dark:text-white" : "text-slate-500 dark:text-slate-400"}`}>Uppercase & lowercase letter</Text>
             </View>
             <View className="flex-row items-center gap-2">
-              <Feather name={/(?=.*\d)/.test(passwordValue) ? "check-circle" : "circle"} size={14} className={/(?=.*\d)/.test(passwordValue) ? "text-emerald-500" : "text-muted-foreground"} />
-              <Text className={`text-sm ${/(?=.*\d)/.test(passwordValue) ? "text-foreground" : "text-muted-foreground"}`}>At least one number</Text>
+              <Feather name={/(?=.*\d)/.test(passwordValue) ? "check-circle" : "circle"} size={14} color={/(?=.*\d)/.test(passwordValue) ? "#10b981" : (isDark ? "#64748b" : "#94a3b8")} />
+              <Text className={`text-[13px] ${/(?=.*\d)/.test(passwordValue) ? "text-slate-900 dark:text-white" : "text-slate-500 dark:text-slate-400"}`}>At least one number</Text>
             </View>
           </View>
 
@@ -307,14 +307,11 @@ export default function RegisterScreen() {
             activeOpacity={0.65}
             onPress={() => router.replace("/(auth)/login")}
             className="flex-row justify-center items-center gap-1.5 mt-6 pt-2 pb-4 mb-2"
-            accessible={true}
-            accessibilityRole="link"
-            accessibilityLabel="Already have an account? Log in"
           >
-            <Text className="text-sm text-muted-foreground">
+            <Text className="text-sm text-slate-500 dark:text-slate-400">
               Already have an account?
             </Text>
-            <Text className="text-sm font-semibold text-foreground">
+            <Text className="text-sm font-bold text-slate-900 dark:text-white">
               Log in
             </Text>
           </TouchableOpacity>

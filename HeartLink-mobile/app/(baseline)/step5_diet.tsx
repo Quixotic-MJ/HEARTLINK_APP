@@ -1,11 +1,13 @@
 import React from "react";
-import { View, Text, TouchableOpacity, ScrollView } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { View, Text, ScrollView } from "react-native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Feather } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useColorScheme } from "nativewind";
 import { useBaseline } from "../../contexts/BaselineContext";
+import { Colors } from "../../constants/theme";
+import AnimatedButton from "../../components/ui/AnimatedButton";
 
 function FieldLabel({ title, subtitle }: { title: string, subtitle?: string }) {
   return (
@@ -18,9 +20,9 @@ function FieldLabel({ title, subtitle }: { title: string, subtitle?: string }) {
 
 function StepProgress({ current, total }: { current: number; total: number }) {
   return (
-    <View className="flex-row gap-1.5 mb-2">
+    <View className="flex-row gap-1.5 mb-6">
       {Array.from({ length: total }).map((_, i) => (
-        <View key={i} className="flex-1 h-1 rounded-full" style={{ backgroundColor: i < current ? "#0f172a" : "#e2e8f0" }} />
+        <View key={i} className="flex-1 h-1 rounded-full" style={{ backgroundColor: i < current ? Colors.light.tint : "#e2e8f0" }} />
       ))}
     </View>
   );
@@ -32,24 +34,34 @@ export default function Step5Diet() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { data, updateData } = useBaseline();
+  
+  const insets = useSafeAreaInsets();
+  const activeBg = Colors[isDark ? "dark" : "light"].tint;
+  const activeText = isDark ? "#11181C" : "#ffffff";
 
   const isReady = data.diet_level && data.fried_food_freq && data.salty_food_freq && data.fruit_veg_servings;
 
   const handleNext = () => {
-    router.push({ pathname: "/step6_health", params });
+    router.push({ pathname: "/(baseline)/step6_health", params });
   };
 
   const OptionCards = ({ options, value, onChange }: { options: any[], value: string, onChange: (val: string) => void }) => (
     <View className="flex-col gap-2">
-      {options.map((opt) => (
-        <TouchableOpacity
+      {options.map((opt) => {
+        const isActive = value === opt.val;
+        return (
+        <AnimatedButton
           key={opt.val} onPress={() => onChange(opt.val)}
-          className={`px-4 py-4 rounded-xl border ${value === opt.val ? "bg-[#0f172a] border-[#0f172a]" : "bg-white border-slate-200 dark:bg-slate-900 dark:border-slate-800"}`}
+          className="px-4 py-4 rounded-xl border"
+          style={{
+            backgroundColor: isActive ? activeBg : (isDark ? "#0f172a" : "#ffffff"),
+            borderColor: isActive ? activeBg : (isDark ? "#1e293b" : "#e2e8f0")
+          }}
         >
-          <Text className={`font-medium ${value === opt.val ? "text-white" : "text-slate-700 dark:text-slate-300"}`}>{opt.label}</Text>
-          {opt.desc && <Text className={`text-[12px] mt-1 ${value === opt.val ? "text-slate-300" : "text-slate-500"}`}>{opt.desc}</Text>}
-        </TouchableOpacity>
-      ))}
+          <Text className="font-medium text-[15px]" style={{ color: isActive ? activeText : (isDark ? "#cbd5e1" : "#334155") }}>{opt.label}</Text>
+          {opt.desc && <Text className="text-[13px] mt-1" style={{ color: isActive ? activeText : "#64748b" }}>{opt.desc}</Text>}
+        </AnimatedButton>
+      )})}
     </View>
   );
 
@@ -59,9 +71,9 @@ export default function Step5Diet() {
       
       <View className="px-5 pt-4 pb-3">
         <View className="flex-row items-center mb-4">
-          <TouchableOpacity onPress={() => router.back()} className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 border-slate-800/70 items-center justify-center mr-3">
+          <AnimatedButton onPress={() => router.back()} className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 border-slate-800/70 items-center justify-center mr-3">
             <Feather name="arrow-left" size={18} color={isDark ? "#f8fafc" : "#0f172a"} />
-          </TouchableOpacity>
+          </AnimatedButton>
           <View className="flex-1">
             <Text className="text-[11px] text-slate-400 uppercase tracking-wide">Step 5 of 6</Text>
             <Text className="text-xl font-bold text-slate-900 dark:text-white mt-0.5">Diet Habits</Text>
@@ -109,27 +121,31 @@ export default function Step5Diet() {
         />
 
         <FieldLabel title="Fruits & Vegetables" subtitle="How many servings of fruits and vegetables do you eat daily?" />
-        <View className="flex-row gap-2 mt-2">
-          {["0-1", "2-3", "4-5", "6+"].map((opt) => (
-            <TouchableOpacity
-              key={opt} onPress={() => updateData({ fruit_veg_servings: opt })}
-              className={`flex-1 py-4 rounded-xl items-center border ${data.fruit_veg_servings === opt ? "bg-[#0f172a] border-[#0f172a]" : "bg-white border-slate-200 dark:bg-slate-900 dark:border-slate-800"}`}
-            >
-              <Text className={`font-medium ${data.fruit_veg_servings === opt ? "text-white" : "text-slate-700 dark:text-slate-300"}`}>{opt}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        <OptionCards
+          value={data.fruit_veg_servings}
+          onChange={(val) => updateData({ fruit_veg_servings: val })}
+          options={[
+            { val: "0-1", label: "0 to 1 servings", desc: "Very low intake" },
+            { val: "2-3", label: "2 to 3 servings", desc: "Below recommended daily intake" },
+            { val: "4-5", label: "4 to 5 servings", desc: "Recommended daily intake" },
+            { val: "6+", label: "6 or more servings", desc: "High intake" },
+          ]}
+        />
 
       </ScrollView>
 
-      <View className="px-5 pb-8 pt-4 bg-white dark:bg-slate-950 border-t border-slate-100 dark:border-slate-900">
-        <TouchableOpacity
+      <View 
+        className="px-5 pt-4 bg-white dark:bg-slate-950 border-t border-slate-100 dark:border-slate-900"
+        style={{ paddingBottom: Math.max(insets.bottom, 20) }}
+      >
+        <AnimatedButton
           onPress={handleNext} disabled={!isReady}
-          className={`h-[54px] rounded-2xl items-center justify-center flex-row ${isReady ? "bg-[#0f172a]" : "bg-slate-200 dark:bg-slate-800"}`}
+          className="h-[54px] rounded-2xl items-center justify-center flex-row"
+          style={{ backgroundColor: isReady ? activeBg : (isDark ? "#1e293b" : "#e2e8f0") }}
         >
-          <Text className={`text-[16px] font-bold ${isReady ? "text-white" : "text-slate-400"}`}>Next Step</Text>
-          <Feather name="arrow-right" size={18} color={isReady ? "white" : "#94a3b8"} style={{ marginLeft: 8 }} />
-        </TouchableOpacity>
+          <Text className="text-[16px] font-bold" style={{ color: isReady ? activeText : "#94a3b8" }}>Next Step</Text>
+          <Feather name="arrow-right" size={18} color={isReady ? activeText : "#94a3b8"} style={{ marginLeft: 8 }} />
+        </AnimatedButton>
       </View>
     </SafeAreaView>
   );

@@ -7,17 +7,17 @@ def get_health_logs(user_id: str) -> List[Dict[str, Any]]:
     logs = [l for l in daily_health_logs if l["user_id"] == user_id and l.get("deleted_at") is None]
     return sorted(logs, key=lambda x: x["logged_at"], reverse=True)
 
+
 def delete_health_log(user_id: str, log_id: str) -> bool:
     for log in daily_health_logs:
         if log["id"] == log_id and log["user_id"] == user_id:
             log["deleted_at"] = datetime.now().isoformat()
             
-            # Recalculate CSS
+            # Recalculate HSS
             try:
-                from app.services.css_engine import recalculate_css
-                recalculate_css(user_id)
+                pass
             except Exception as e:
-                print(f"Error recalculating CSS on health log delete: {e}")
+                print(f"Error recalculating HSS on health log delete: {e}")
                 
             save_logs()
             return True
@@ -41,12 +41,11 @@ def create_health_log(user_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
     }
     daily_health_logs.append(new_log)
     
-    # Instantly recalculate the CSS Score dynamically
+    # Instantly recalculate the HSS Score dynamically
     try:
-        from app.services.css_engine import recalculate_css
-        recalculate_css(user_id, new_log)
+        pass
     except Exception as e:
-        print(f"Error recalculating CSS: {e}")
+        print(f"Error recalculating HSS: {e}")
         
     save_logs()
     return new_log

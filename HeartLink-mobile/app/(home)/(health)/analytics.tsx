@@ -42,9 +42,9 @@ export default function HealthAnalyticsScreen() {
     );
   }
 
-  // Get the latest CSS score from history
+  // Get the latest HSS score from history
   const history = analytics.history || [];
-  const latestCSS = history.length > 0 ? history[history.length - 1].score : 84;
+  const latestHSS = history.length > 0 ? history[history.length - 1].score : 84;
 
   return (
     <SafeAreaView className="flex-1 bg-white dark:bg-slate-900" edges={["top"]}>
@@ -83,19 +83,19 @@ export default function HealthAnalyticsScreen() {
         {/* Tab Filters */}
         <View className="flex-row mb-6 border-b border-slate-100 dark:border-slate-800">
           <TouchableOpacity className="pb-3 border-b-2 border-[#1e4ed8] mr-6">
-            <Text className="text-[14px] font-bold text-slate-900 dark:text-white">Overview & CSS</Text>
+            <Text className="text-[14px] font-bold text-slate-900 dark:text-white">Overview & HSS</Text>
           </TouchableOpacity>
           <TouchableOpacity className="pb-3" onPress={() => router.push("/(home)/health-history")}>
             <Text className="text-[14px] font-medium text-slate-400">Diet & Biometrics</Text>
           </TouchableOpacity>
         </View>
 
-        {/* ── CSS Score Card ── */}
+        {/* ── HSS Score Card ── */}
         <View className="bg-slate-50 dark:bg-slate-950 rounded-3xl p-5 border border-slate-100 dark:border-slate-800 mb-6">
           <View className="flex-row items-start justify-between mb-8">
             <View>
               <Text className="text-[16px] font-bold text-slate-900 dark:text-white">Cardiac Stability</Text>
-              <Text className="text-[16px] font-bold text-slate-900 dark:text-white">Score (CSS)</Text>
+              <Text className="text-[16px] font-bold text-slate-900 dark:text-white">Score (HSS)</Text>
               <Text className="text-[12px] text-slate-500 dark:text-slate-400 mt-1">Last 7 days trend analysis</Text>
             </View>
             <TouchableOpacity 
@@ -103,7 +103,7 @@ export default function HealthAnalyticsScreen() {
                className="bg-white dark:bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 flex-row items-center"
             >
               <View className="w-2 h-2 rounded-full bg-blue-500 mr-2" />
-              <Text className="text-[18px] font-bold text-[#1e4ed8]">{latestCSS}</Text>
+              <Text className="text-[18px] font-bold text-[#1e4ed8]">{latestHSS}</Text>
             </TouchableOpacity>
           </View>
 

@@ -1,9 +1,9 @@
 from typing import List, Dict, Any
 from datetime import datetime
-from app.mock_db import css_history, user_thresholds, profiles
+from app.mock_db import hss_history, user_thresholds, profiles
 
 def get_analytics(user_id: str) -> Dict[str, Any]:
-    history = [c for c in css_history if c["user_id"] == user_id]
+    history = [c for c in hss_history if c["user_id"] == user_id]
     history = sorted(history, key=lambda x: x["computed_at"])
     
     # Normalize computed_at to string for frontend

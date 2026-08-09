@@ -42,7 +42,7 @@ export default function SearchMealScreen() {
                 saturated_fat_g: log.saturated_fat_g || 0,
                 fiber_g: log.fiber_g || 0,
                 image_url: log.image_url,
-                css_tier: log.sodium_mg < 400 ? 'Stable' : (log.sodium_mg > 800 ? 'At Risk' : 'Caution')
+                hss_tier: log.sodium_mg < 400 ? 'Stable' : (log.sodium_mg > 800 ? 'At Risk' : 'Caution')
               });
             }
           });
@@ -100,7 +100,7 @@ export default function SearchMealScreen() {
             const formatted = data.map((item: any) => ({
               ...item,
               type: 'food',
-              css_tier: item.sodium_mg < 400 ? "Stable" : (item.sodium_mg > 800 ? "At Risk" : "Caution")
+              hss_tier: item.sodium_mg < 400 ? "Stable" : (item.sodium_mg > 800 ? "At Risk" : "Caution")
             }));
             combined = [...combined, ...formatted];
           }
@@ -128,7 +128,7 @@ export default function SearchMealScreen() {
                   sodium_mg: Math.round(sodium),
                   saturated_fat_g: p.nutriments?.["saturated-fat"] || 0,
                   fiber_g: p.nutriments?.fiber || 0,
-                  css_tier: sodium < 400 ? "Stable" : (sodium > 800 ? "At Risk" : "Caution")
+                  hss_tier: sodium < 400 ? "Stable" : (sodium > 800 ? "At Risk" : "Caution")
                 };
               }); 
             combined = [...combined, ...offItems];
@@ -267,9 +267,9 @@ export default function SearchMealScreen() {
                 </Text>
                 
                 {/* Tag */}
-                <View className="self-start px-2 py-1 rounded-md" style={{ backgroundColor: item.css_tier === "Stable" ? "#eaf3de" : "#fcebeb" }}>
-                  <Text className="text-[10px] font-bold uppercase tracking-wider" style={{ color: item.css_tier === "Stable" ? "#3b6d11" : "#a32d2d" }}>
-                    {item.css_tier || "Unknown"}
+                <View className="self-start px-2 py-1 rounded-md" style={{ backgroundColor: item.hss_tier === "Stable" ? "#eaf3de" : "#fcebeb" }}>
+                  <Text className="text-[10px] font-bold uppercase tracking-wider" style={{ color: item.hss_tier === "Stable" ? "#3b6d11" : "#a32d2d" }}>
+                    {item.hss_tier || "Unknown"}
                   </Text>
                 </View>
               </View>

@@ -14,7 +14,7 @@ def create_recipe(data: Dict[str, Any]) -> Dict[str, Any]:
         "id": f"rec-{uuid.uuid4().hex[:8]}",
         "name": data.get("name", ""),
         "category": data.get("category", ""),
-        "css_tier": data.get("cssTarget", "Stable (80-100)"),
+        "hss_tier": data.get("hssTarget", "Stable (80-100)"),
         "sodium_mg": data.get("sodium", 0),
         "calories": data.get("calories", 0),
         "saturated_fat_g": data.get("satFat", 0),
@@ -38,7 +38,7 @@ def update_recipe(recipe_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
     
     recipe["name"] = data.get("name", recipe.get("name"))
     recipe["category"] = data.get("category", recipe.get("category"))
-    recipe["css_tier"] = data.get("cssTarget", recipe.get("css_tier"))
+    recipe["hss_tier"] = data.get("hssTarget", recipe.get("hss_tier"))
     recipe["sodium_mg"] = data.get("sodium", recipe.get("sodium_mg"))
     recipe["calories"] = data.get("calories", recipe.get("calories"))
     recipe["saturated_fat_g"] = data.get("satFat", recipe.get("saturated_fat_g"))

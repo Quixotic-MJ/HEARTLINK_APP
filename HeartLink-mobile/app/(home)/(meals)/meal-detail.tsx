@@ -166,20 +166,20 @@ export default function MealDetailScreen() {
         {/* Impact Alert Card */}
         <View
           className="rounded-2xl p-4 border mb-6"
-          style={{ backgroundColor: item.css_tier === "Stable" ? "#eaf3de" : "#fcebeb", borderColor: (item.css_tier === "Stable" ? "#3b6d11" : "#a32d2d") + '40' }}
+          style={{ backgroundColor: item.hss_tier === "Stable" ? "#eaf3de" : "#fcebeb", borderColor: (item.hss_tier === "Stable" ? "#3b6d11" : "#a32d2d") + '40' }}
         >
           <View className="flex-row items-center gap-2 mb-1.5">
             <Feather 
-              name={item.css_tier === "Stable" ? "check-circle" : "alert-triangle"} 
+              name={item.hss_tier === "Stable" ? "check-circle" : "alert-triangle"} 
               size={16} 
-              color={item.css_tier === "Stable" ? "#3b6d11" : "#a32d2d"} 
+              color={item.hss_tier === "Stable" ? "#3b6d11" : "#a32d2d"} 
             />
-            <Text className="text-[13px] font-bold uppercase tracking-wide" style={{ color: item.css_tier === "Stable" ? "#3b6d11" : "#a32d2d" }}>
-              {item.css_tier || "Unknown"}
+            <Text className="text-[13px] font-bold uppercase tracking-wide" style={{ color: item.hss_tier === "Stable" ? "#3b6d11" : "#a32d2d" }}>
+              {item.hss_tier || "Unknown"}
             </Text>
           </View>
-          <Text className="text-[13px] leading-relaxed" style={{ color: item.css_tier === "Stable" ? "#3b6d11" : "#a32d2d", opacity: 0.9 }}>
-            {item.css_tier === "Stable" 
+          <Text className="text-[13px] leading-relaxed" style={{ color: item.hss_tier === "Stable" ? "#3b6d11" : "#a32d2d", opacity: 0.9 }}>
+            {item.hss_tier === "Stable" 
               ? "Great choice! This item is low in sodium and fits perfectly into a heart-healthy diet." 
               : "This item consumes a large portion of your daily limit. Proceed with caution."}
           </Text>

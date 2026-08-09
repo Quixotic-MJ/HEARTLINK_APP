@@ -163,7 +163,7 @@ export default function OnboardingScreen() {
             entering={FadeInDown.delay(300).springify()} 
             className="text-base text-muted-foreground text-center leading-relaxed px-2"
           >
-            Monitor and track your dietary and lifestyle habits to get personalized food recipes and exercise routines based on your Cardiovascular Stability Score.
+            Monitor and track your dietary and lifestyle habits to get personalized food recipes and exercise routines based on your Health Stability Score.
           </Animated.Text>
         </View>
 
@@ -174,7 +174,7 @@ export default function OnboardingScreen() {
             iconType="feather"
             iconBgClass="bg-primary/15"
             iconColorClass="text-primary"
-            title="Cardiovascular Stability Score"
+            title="Health Stability Score"
             subtitle="Track your daily habits and biometrics to receive real-time cardiovascular health scores."
             delay={400}
           />
@@ -210,7 +210,7 @@ export default function OnboardingScreen() {
                 { name: 'Verify OTP', path: '/(auth)/verify-otp' },
                 { name: 'Success', path: '/(auth)/verification-success' },
                 { name: 'Dashboard', path: '/(home)/(tabs)/dashboard' },
-                { name: 'Health Goals', path: '/(baseline)/health_goals' },
+                { name: 'Baseline Setup', path: '/(baseline)/step1_basic_info' },
                 { name: 'Locator', path: '/locator' },
               ].map((route) => (
                 <TouchableOpacity

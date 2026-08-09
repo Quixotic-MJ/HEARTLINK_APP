@@ -4,7 +4,7 @@ const p = path.join(__dirname, 'app', '(home)', '(tabs)', 'wrap-up.tsx');
 
 let content = fs.readFileSync(p, 'utf8');
 
-const target1 = `  const [cssScore, setCssScore] = useState<number>(0);
+const target1 = `  const [hssScore, setCssScore] = useState<number>(0);
   const [dynamicInsight, setDynamicInsight] = useState<{ title: string; text: string } | null>(null);
 
   const fetchData = useCallback(async (silent = false) => {
@@ -48,8 +48,8 @@ const target1 = `  const [cssScore, setCssScore] = useState<number>(0);
     fetchData(true);
   }, [fetchData]);
 
-  // Determine positive/negative week based on fetched CSS score
-  const isPositive = cssScore >= 60 || cssScore === 0; // fallback to positive if 0
+  // Determine positive/negative week based on fetched HSS score
+  const isPositive = hssScore >= 60 || hssScore === 0; // fallback to positive if 0
   const d = { ...(isPositive ? POSITIVE_DATA : NEGATIVE_DATA) };
 
   // Override with dynamic API insight if available
@@ -59,9 +59,9 @@ const target1 = `  const [cssScore, setCssScore] = useState<number>(0);
   }
 
   // Use the fetched score in the display if available, else fallback
-  const displayCss = cssScore > 0 ? cssScore : d.css;`;
+  const displayCss = hssScore > 0 ? hssScore : d.css;`;
 
-const replacement1 = `  const [cssScore, setCssScore] = useState<number>(0);
+const replacement1 = `  const [hssScore, setCssScore] = useState<number>(0);
   const [dynamicInsight, setDynamicInsight] = useState<{ title: string; text: string } | null>(null);
   const [wrapUpData, setWrapUpData] = useState<any>(null);
 
@@ -116,8 +116,8 @@ const replacement1 = `  const [cssScore, setCssScore] = useState<number>(0);
     fetchData(true);
   }, [fetchData]);
 
-  // Determine positive/negative week based on fetched CSS score
-  const isPositive = wrapUpData ? wrapUpData.isPositive : (cssScore >= 60 || cssScore === 0);
+  // Determine positive/negative week based on fetched HSS score
+  const isPositive = wrapUpData ? wrapUpData.isPositive : (hssScore >= 60 || hssScore === 0);
   const d = wrapUpData ? { ...wrapUpData } : { ...(isPositive ? POSITIVE_DATA : NEGATIVE_DATA) };
 
   // Override with dynamic API insight if available
@@ -127,7 +127,7 @@ const replacement1 = `  const [cssScore, setCssScore] = useState<number>(0);
   }
 
   // Use the fetched score in the display if available, else fallback
-  const displayCss = cssScore > 0 ? cssScore : d.css;
+  const displayCss = hssScore > 0 ? hssScore : d.css;
 
   // Date range logic
   const todayDate = new Date();

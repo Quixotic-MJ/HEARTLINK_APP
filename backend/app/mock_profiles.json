@@ -188,224 +188,40 @@
       "updated_at": "2026-08-06T07:38:48.493312"
     }
   ],
-  "baseline_lifestyle": [
+  "baseline_onboarding": [
     {
-      "id": "life-101",
+      "id": "onb-101",
       "user_id": "usr-patient-101",
-      "smoking_status": "never",
-      "avg_sleep_hours": 7,
-      "family_history": true,
-      "created_at": "2026-06-25T08:10:00",
-      "updated_at": "2026-06-25T08:10:00"
-    },
-    {
-      "id": "life-201",
-      "user_id": "usr-patient-05a28cec",
-      "smoking_status": "never",
-      "avg_sleep_hours": 7,
-      "family_history": false,
-      "created_at": "2026-08-06T06:00:41.624107",
-      "updated_at": "2026-08-06T06:00:41.624107"
-    },
-    {
-      "id": "life-202",
-      "user_id": "usr-patient-9cbc8c2b",
-      "smoking_status": "never",
-      "avg_sleep_hours": 6,
-      "family_history": true,
-      "created_at": "2026-08-06T06:23:37.400159",
-      "updated_at": "2026-08-06T06:24:06.326438"
-    },
-    {
-      "id": "life-203",
-      "user_id": "usr-patient-761e4c2e",
-      "smoking_status": "never",
-      "avg_sleep_hours": 8,
-      "family_history": false,
-      "created_at": "2026-08-06T06:48:14.903876",
-      "updated_at": "2026-08-06T06:48:14.903876"
-    },
-    {
-      "id": "life-204",
-      "user_id": "usr-patient-7c6bd10e",
-      "smoking_status": "never",
-      "avg_sleep_hours": 6,
-      "family_history": true,
-      "created_at": "2026-08-06T06:53:02.844671",
-      "updated_at": "2026-08-06T06:53:02.844671"
-    },
-    {
-      "id": "life-205",
-      "user_id": "usr-patient-00942d29",
-      "smoking_status": "never",
-      "avg_sleep_hours": 7,
-      "family_history": true,
-      "created_at": "2026-08-06T07:38:10.964181",
-      "updated_at": "2026-08-06T07:38:10.964181"
-    }
-  ],
-  "baseline_dietary": [
-    {
-      "id": "diet-101",
-      "user_id": "usr-patient-101",
-      "sodium_frequency": "occasionally",
+      "vigorous_activity": true,
+      "vigorous_days": "3",
+      "vigorous_minutes": "45",
+      "moderate_activity": true,
+      "moderate_days": "2",
+      "moderate_minutes": "30",
+      "walk_bike_transport": true,
+      "walk_bike_days": "5",
+      "walk_bike_minutes": "20",
+      "sedentary_hours": "4-6h",
+      "sleep_hours": 7.0,
+      "ever_smoked": false,
+      "smoke_now": "Not at all",
+      "ever_drank": true,
+      "drink_frequency": "Monthly or less",
+      "drinks_per_occasion": "1-2",
+      "binge_drinking_freq": "Never",
+      "diet_level": "average",
+      "fried_food_freq": "sometimes",
+      "salty_food_freq": "sometimes",
+      "fruit_veg_servings": "2-3",
+      "health_goals": [
+        "bp"
+      ],
       "allergies": [
         "peanuts"
       ],
       "dietary_practice": "Standard Filipino",
-      "created_at": "2026-06-25T08:15:00",
-      "updated_at": "2026-06-25T08:15:00"
-    },
-    {
-      "id": "diet-201",
-      "user_id": "usr-patient-05a28cec",
-      "sodium_frequency": "rarely",
-      "allergies": [],
-      "dietary_practice": "None",
-      "created_at": "2026-08-06T06:00:45.272021",
-      "updated_at": "2026-08-06T06:00:45.272021"
-    },
-    {
-      "id": "diet-202",
-      "user_id": "usr-patient-9cbc8c2b",
-      "sodium_frequency": "occasionally",
-      "allergies": [
-        "Shellfish"
-      ],
-      "dietary_practice": "None",
-      "created_at": "2026-08-06T06:24:34.723434",
-      "updated_at": "2026-08-06T06:24:34.723434"
-    },
-    {
-      "id": "diet-203",
-      "user_id": "usr-patient-761e4c2e",
-      "sodium_frequency": "occasionally",
-      "allergies": [],
-      "dietary_practice": "None",
-      "created_at": "2026-08-06T06:48:58.202389",
-      "updated_at": "2026-08-06T06:48:58.202389"
-    },
-    {
-      "id": "diet-204",
-      "user_id": "usr-patient-7c6bd10e",
-      "sodium_frequency": "rarely",
-      "allergies": [
-        "Shellfish"
-      ],
-      "dietary_practice": "None",
-      "created_at": "2026-08-06T07:15:55.336070",
-      "updated_at": "2026-08-06T07:15:55.336070"
-    },
-    {
-      "id": "diet-205",
-      "user_id": "usr-patient-00942d29",
-      "sodium_frequency": "rarely",
-      "allergies": [
-        "Shellfish"
-      ],
-      "dietary_practice": "None",
-      "created_at": "2026-08-06T07:38:24.910006",
-      "updated_at": "2026-08-06T07:38:24.910006"
-    }
-  ],
-  "baseline_clinical": [
-    {
-      "id": "clin-101",
-      "user_id": "usr-patient-101",
-      "diagnosed_conditions": [
-        "prehypertension"
-      ],
-      "on_medication": false,
-      "resting_bp_mmhg": 122,
-      "max_heart_rate_bpm": 185,
-      "fasting_blood_sugar": 0,
-      "serum_cholesterol": 195,
-      "chest_pain_type": 1,
-      "exercise_angina": 0,
-      "created_at": "2026-06-25T08:20:00",
-      "updated_at": "2026-06-25T08:20:00"
-    },
-    {
-      "id": "clin-201",
-      "user_id": "usr-patient-05a28cec",
-      "diagnosed_conditions": [
-        "None"
-      ],
-      "on_medication": false,
-      "resting_bp_mmhg": null,
-      "max_heart_rate_bpm": null,
-      "fasting_blood_sugar": null,
-      "serum_cholesterol": null,
-      "chest_pain_type": 4,
-      "exercise_angina": 0,
-      "created_at": "2026-08-06T06:01:01.163316",
-      "updated_at": "2026-08-06T06:01:01.163316"
-    },
-    {
-      "id": "clin-202",
-      "user_id": "usr-patient-9cbc8c2b",
-      "diagnosed_conditions": [
-        "Hypertension",
-        "High Cholesterol"
-      ],
-      "on_medication": false,
-      "resting_bp_mmhg": 120,
-      "max_heart_rate_bpm": 60,
-      "fasting_blood_sugar": null,
-      "serum_cholesterol": null,
-      "chest_pain_type": 3,
-      "exercise_angina": 1,
-      "created_at": "2026-08-06T06:28:35.556128",
-      "updated_at": "2026-08-06T06:28:35.556128"
-    },
-    {
-      "id": "clin-203",
-      "user_id": "usr-patient-761e4c2e",
-      "diagnosed_conditions": [
-        "Hypertension",
-        "Diabetes"
-      ],
-      "on_medication": false,
-      "resting_bp_mmhg": null,
-      "max_heart_rate_bpm": null,
-      "fasting_blood_sugar": null,
-      "serum_cholesterol": null,
-      "chest_pain_type": 4,
-      "exercise_angina": 0,
-      "created_at": "2026-08-06T06:49:56.902020",
-      "updated_at": "2026-08-06T06:49:56.902020"
-    },
-    {
-      "id": "clin-204",
-      "user_id": "usr-patient-7c6bd10e",
-      "diagnosed_conditions": [
-        "Arrhythmia"
-      ],
-      "on_medication": false,
-      "resting_bp_mmhg": 120,
-      "max_heart_rate_bpm": 150,
-      "fasting_blood_sugar": 0,
-      "serum_cholesterol": 300,
-      "chest_pain_type": 4,
-      "exercise_angina": 1,
-      "created_at": "2026-08-06T07:24:54.962105",
-      "updated_at": "2026-08-06T07:24:54.962105"
-    },
-    {
-      "id": "clin-205",
-      "user_id": "usr-patient-00942d29",
-      "diagnosed_conditions": [
-        "Arrhythmia"
-      ],
-      "on_medication": false,
-      "resting_bp_mmhg": 120,
-      "max_heart_rate_bpm": 150,
-      "fasting_blood_sugar": 0,
-      "serum_cholesterol": 200,
-      "chest_pain_type": 4,
-      "exercise_angina": 0,
-      "created_at": "2026-08-06T07:38:48.490300",
-      "updated_at": "2026-08-06T07:38:48.490300"
+      "created_at": "2026-06-25T08:10:00",
+      "updated_at": "2026-06-25T08:10:00"
     }
   ],
   "user_thresholds": [
@@ -464,6 +280,15 @@
       "systolic_threshold": 120,
       "diastolic_threshold": 80,
       "updated_at": "2026-08-06T07:38:48.490300"
+    },
+    {
+      "id": "thresh-206",
+      "user_id": "usr-patient-1b71c1e8",
+      "sodium_limit_mg": 1500,
+      "active_minutes_goal": 30,
+      "systolic_threshold": 120,
+      "diastolic_threshold": 80,
+      "updated_at": "2026-08-09T01:53:43.725029"
     }
   ]
 }

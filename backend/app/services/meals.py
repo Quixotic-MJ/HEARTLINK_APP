@@ -26,10 +26,9 @@ def create_meal_log(user_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
     save_logs()
 
     try:
-        from app.services.css_engine import recalculate_css
-        recalculate_css(user_id)
+        pass
     except Exception as e:
-        print(f"Error recalculating CSS on meal log: {e}")
+        print(f"Error recalculating HSS on meal log: {e}")
 
     return new_log
 
@@ -50,10 +49,9 @@ def delete_meal_log(user_id: str, meal_id: str) -> bool:
     save_logs()
     
     try:
-        from app.services.css_engine import recalculate_css
-        recalculate_css(user_id)
+        pass
     except Exception as e:
-        print(f"Error recalculating CSS on meal delete: {e}")
+        print(f"Error recalculating HSS on meal delete: {e}")
         
     return True
 

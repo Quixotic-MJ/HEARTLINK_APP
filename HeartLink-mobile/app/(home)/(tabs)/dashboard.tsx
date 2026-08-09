@@ -39,6 +39,15 @@ type ScoreTheme = {
 };
 
 function getScoreTheme(score: number, isDark: boolean): ScoreTheme {
+  if (!score || score === 0) {
+    return {
+      label: "Score unavailable",
+      barColor: "#94a3b8",
+      badgeBg: isDark ? "rgba(148, 163, 184, 0.15)" : "#f1f5f9",
+      badgeText: isDark ? "#94a3b8" : "#64748b",
+      dotColor: "#94a3b8",
+    };
+  }
   if (score >= 80)
     return {
       label: "Stable",
@@ -57,14 +66,14 @@ function getScoreTheme(score: number, isDark: boolean): ScoreTheme {
     };
   if (score >= 40)
     return {
-      label: "Caution",
+      label: "At Risk",
       barColor: "#EA580C",
       badgeBg: isDark ? "rgba(234, 88, 12, 0.15)" : "#FFEDD5",
       badgeText: isDark ? "#FB923C" : "#C2410C",
       dotColor: "#EA580C",
     };
   return {
-    label: "At risk",
+    label: "Needs Attention",
     barColor: "#E11D48",
     badgeBg: isDark ? "rgba(225, 29, 72, 0.15)" : "#FFE4E6",
     badgeText: isDark ? "#FB7185" : "#BE123C",
@@ -299,14 +308,14 @@ export default function DashboardScreen() {
           title="Health Alert"
           message={
             data.latest_alert.message ||
-            "Elevated risk detected. We recommend consulting a nearby specialist."
+            "Your recent metrics suggest you should consider consulting a healthcare facility."
           }
           icon="alert-triangle"
           iconBg="#fcebeb"
           iconColor="#e24b4a"
           actions={[
             {
-              label: "Find Nearby Clinics",
+              label: "Find a healthcare facility",
               onPress: () => {
                 handleDismissAlert(data.latest_alert.id);
                 router.push("/locator");
@@ -360,7 +369,7 @@ export default function DashboardScreen() {
                 Active Health Alert
               </Text>
               <Text className="text-[13px] text-rose-900 dark:text-rose-200 font-medium" numberOfLines={1}>
-                {data.latest_alert.message || "Elevated risk detected. Tap to view action items."}
+                {data.latest_alert.message || "Attention required. Tap to view action items."}
               </Text>
             </View>
             <Feather name="chevron-right" size={18} color="#e11d48" />
@@ -412,8 +421,11 @@ export default function DashboardScreen() {
           </Text>
 
           {/* Label */}
-          <Text className="text-[16px] font-medium text-slate-900 dark:text-white mt-3 mb-2">
-            HSS Score stability
+          <Text className="text-[16px] font-bold text-slate-900 dark:text-white mt-3 mb-1">
+            Health Stability Score
+          </Text>
+          <Text className="text-[13px] text-slate-500 dark:text-slate-400 text-center px-4 mb-3">
+            Based on your current health profile and habits.
           </Text>
 
           {/* Status badge */}
@@ -445,278 +457,181 @@ export default function DashboardScreen() {
               />
             </View>
             <View className="flex-row justify-between mt-1">
-              <Text className="text-[10px] text-slate-300">0 Critical</Text>
+              <Text className="text-[10px] text-slate-300">Needs Attention</Text>
               <Text className="text-[10px] text-slate-300">Stable 100</Text>
             </View>
           </View>
         </View>
 
-        {/* ── Stat cards row ── */}
-        <Reanimated.View entering={FadeInDown.delay(100).springify()} className="flex-row gap-2.5 mx-5 mt-4">
-          <StatCard
-            icon="heart"
-            label="BPM"
-            value={String(data?.latest_vitals?.bpm || "--")}
-            iconColor={isDark ? "#FB7185" : "#E11D48"}
-            iconBg={isDark ? "rgba(225, 29, 72, 0.15)" : "#FFE4E6"}
-          />
-          <StatCard
-            icon="droplet"
-            label="BP"
-            value={String(data?.latest_vitals?.bp || "--/--")}
-            iconColor={isDark ? "#60A5FA" : "#2563EB"}
-            iconBg={isDark ? "rgba(37, 99, 235, 0.15)" : "#DBEAFE"}
-          />
-          <StatCard
-            icon="trending-up"
-            label="Trend"
-            value={String(data?.latest_vitals?.trend || "+0")}
-            iconColor={isDark ? "#2DD4BF" : "#0D9488"}
-            iconBg={isDark ? "rgba(13, 148, 136, 0.15)" : "#CCFBF1"}
-          />
-        </Reanimated.View>
-
-        {/* ── Quick Actions ── */}
-        <Reanimated.View entering={FadeInDown.delay(200).springify()} className="flex-row gap-2.5 mx-5 mt-4">
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={() => router.push("/locator")}
-            className="flex-1 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 py-3 items-center"
-          >
-            <View className="w-11 h-11 rounded-full bg-blue-50 items-center justify-center mb-1.5">
-              <Feather name="map-pin" size={16} color="#1e4ed8" />
-            </View>
-            <Text className="text-[12px] font-medium text-slate-700 dark:text-slate-200">
-              Find Clinics
+        {/* ── Compact Vitals Card ── */}
+        <Reanimated.View entering={FadeInDown.delay(100).springify()} className="mx-5 mt-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4">
+          <View className="flex-row items-center justify-between mb-3">
+            <Text className="text-[11px] text-slate-400 uppercase tracking-wide">
+              Latest Vitals
             </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={() => router.push("/(home)/(health)/log-symptoms")}
-            className="flex-1 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 py-3 items-center"
-          >
-            <View className="w-11 h-11 rounded-full bg-rose-50 items-center justify-center mb-1.5">
-              <Feather name="activity" size={16} color="#e11d48" />
-            </View>
-            <Text className="text-[12px] font-medium text-slate-700 dark:text-slate-200">
-              Log Vitals
+            <Text className="text-[11px] text-slate-400">
+              {data?.latest_vitals?.logged_at 
+                ? `Last recorded: ${new Date(data.latest_vitals.logged_at).toLocaleDateString()}` 
+                : "Not recorded"}
             </Text>
-          </TouchableOpacity>
-        </Reanimated.View>
-
-        {/* ── Smart insight (dynamic) ── */}
-        {data?.insight && (
-          <Reanimated.View entering={FadeInDown.delay(300).springify()} className="mx-5 mt-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 flex-row items-start gap-3">
-            <View
-              className="w-9 h-9 rounded-xl items-center justify-center flex-shrink-0"
-              style={{
-                backgroundColor:
-                  data.insight.icon === "trending-down"
-                    ? "#fcebeb"
-                    : data.insight.icon === "trending-up"
-                    ? "#eaf3de"
-                    : "#f1f5f9",
-              }}
-            >
-              <Feather
-                name={(data.insight.icon || "zap") as any}
-                size={16}
-                color={
-                  data.insight.icon === "trending-down"
-                    ? "#e24b4a"
-                    : data.insight.icon === "trending-up"
-                    ? "#3b6d11"
-                    : "#185fa5"
-                }
-              />
-            </View>
-            <Text className="flex-1 text-[13px] text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
-              <Text className="font-bold text-foreground">
-                {data.insight?.title || ""}{" "}
-              </Text>
-              {data.insight.body}
-            </Text>
-          </Reanimated.View>
-        )}
-
-        {/* ── Today's Activity ── */}
-        {data?.today_activity && (
-          <Reanimated.View entering={FadeInDown.delay(400).springify()} className="mx-5 mt-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4">
-            <Text className="text-[11px] text-slate-400 uppercase tracking-wide mb-3">
-              Today's activity
-            </Text>
-            <View className="gap-2.5">
-              {/* Vitals */}
-              <View className="flex-row items-center gap-3 bg-slate-50 dark:bg-slate-950 rounded-xl px-4 py-3">
-                <View
-                  className="w-9 h-9 rounded-xl items-center justify-center"
-                  style={{
-                    backgroundColor: data.today_activity.vitals_logged
-                      ? "#eaf3de"
-                      : "#fcebeb",
-                  }}
-                >
-                  <Feather
-                    name={
-                      data.today_activity.vitals_logged
-                        ? "check-circle"
-                        : "circle"
-                    }
-                    size={18}
-                    color={
-                      data.today_activity.vitals_logged ? "#3b6d11" : "#a32d2d"
-                    }
-                  />
-                </View>
-                <View className="flex-1">
-                  <Text className="text-[14px] font-medium text-slate-800 dark:text-slate-100">
-                    Vitals check-in
-                  </Text>
-                  <Text className="text-[11px] text-slate-400">
-                    {data.today_activity.vitals_logged
-                      ? "Completed today"
-                      : "Not logged yet"}
-                  </Text>
-                </View>
-                {!data.today_activity.vitals_logged && (
-                  <TouchableOpacity
-                    onPress={() => router.push("/(home)/(health)/log-symptoms")}
-                    className="px-4 py-2 rounded-lg bg-primary"
-                    activeOpacity={0.8}
-                  >
-                    <Text className="text-primary-foreground text-[12px] font-semibold">
-                      Log now
-                    </Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-
-              {/* Meals & Exercise row */}
-              <View className="flex-row gap-2.5">
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  onPress={() => router.push("/(home)/(meals)/daily-diary")}
-                  className="flex-1 bg-slate-50 dark:bg-slate-950 rounded-xl px-4 py-3"
-                >
-                  <View className="flex-row items-center gap-2 mb-1">
-                    <View
-                      className="w-7 h-7 rounded-lg items-center justify-center bg-orange-100 dark:bg-orange-900/30"
-                    >
-                      <MaterialCommunityIcons
-                        name="silverware-fork-knife"
-                        size={13}
-                        color={isDark ? "#fbbf24" : "#854f0b"}
-                      />
-                    </View>
-                    <Text className="text-[13px] font-medium text-slate-800 dark:text-slate-100">
-                      {data.today_activity.meals_count} Meals
-                    </Text>
-                  </View>
-                  <Text className="text-[11px] text-slate-400 ml-9">
-                    {data.today_activity.total_calories} kcal today
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  onPress={() => router.push("/(home)/(health)/exercise-diary")}
-                  className="flex-1 bg-slate-50 dark:bg-slate-950 rounded-xl px-4 py-3"
-                >
-                  <View className="flex-row items-center gap-2 mb-1">
-                    <View
-                      className="w-7 h-7 rounded-lg items-center justify-center bg-blue-100 dark:bg-blue-900/30"
-                    >
-                      <Feather name="activity" size={13} color={isDark ? "#60a5fa" : "#185fa5"} />
-                    </View>
-                    <Text className="text-[13px] font-medium text-slate-800 dark:text-slate-100">
-                      {data.today_activity.exercises_count} Exercise
-                    </Text>
-                  </View>
-                  <Text className="text-[11px] text-slate-400 ml-9">
-                    {data.today_activity.total_exercise_minutes} min active
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </Reanimated.View>
-        )}
-
-        {/* ── Sodium Budget ── */}
-        {data?.sodium_budget && (
-          <Reanimated.View entering={FadeInDown.delay(500).springify()} className="mx-5 mt-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4">
-            <View className="flex-row items-center justify-between mb-3">
-              <View className="flex-row items-center gap-2">
-                <View
-                  className="w-7 h-7 rounded-lg items-center justify-center"
-                  style={{
-                    backgroundColor:
-                      data.sodium_budget.consumed_mg >
-                      data.sodium_budget.limit_mg
-                        ? "#fcebeb"
-                        : "#eaf3de",
-                  }}
-                >
-                  <MaterialCommunityIcons
-                    name="shaker-outline"
-                    size={14}
-                    color={
-                      data.sodium_budget.consumed_mg >
-                      data.sodium_budget.limit_mg
-                        ? "#a32d2d"
-                        : "#3b6d11"
-                    }
-                  />
-                </View>
-                <Text className="text-[12px] text-slate-400 uppercase tracking-wide">
-                  Daily sodium
+          </View>
+          
+          <View className="flex-row justify-between">
+            <View>
+              <Text className="text-[13px] text-slate-500 mb-1">Heart Rate</Text>
+              <View className="flex-row items-end gap-1">
+                <Text className="text-[20px] font-bold text-slate-900 dark:text-white">
+                  {data?.latest_vitals?.bpm || "---"}
                 </Text>
+                <Text className="text-[12px] text-slate-400 mb-1">BPM</Text>
               </View>
-              <Text
-                className="text-[13px] font-semibold"
+            </View>
+            
+            <View>
+              <Text className="text-[13px] text-slate-500 mb-1">Blood Pressure</Text>
+              <View className="flex-row items-end gap-1">
+                <Text className="text-[20px] font-bold text-slate-900 dark:text-white">
+                  {data?.latest_vitals?.bp === "--/--" ? "--- / ---" : data?.latest_vitals?.bp || "--- / ---"}
+                </Text>
+                <Text className="text-[12px] text-slate-400 mb-1">mmHg</Text>
+              </View>
+            </View>
+          </View>
+
+          {(!data?.latest_vitals?.logged_at) && (
+            <TouchableOpacity 
+              onPress={() => router.push("/(home)/(health)/log-symptoms")}
+              className="mt-4 bg-primary/10 py-2.5 rounded-lg items-center"
+            >
+              <Text className="text-primary text-[13px] font-semibold">Log Vitals</Text>
+            </TouchableOpacity>
+          )}
+        </Reanimated.View>
+
+        {/* ── Today's Insight ── */}
+        {data?.insight && (
+          <Reanimated.View entering={FadeInDown.delay(300).springify()} className="mx-5 mt-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4">
+            <Text className="text-[11px] text-slate-400 uppercase tracking-wide mb-3">
+              Today's Insight
+            </Text>
+            <View className="flex-row items-start gap-3">
+              <View
+                className="w-9 h-9 rounded-xl items-center justify-center flex-shrink-0"
                 style={{
-                  color:
-                    data.sodium_budget.consumed_mg >
-                    data.sodium_budget.limit_mg
-                      ? "#a32d2d"
-                      : "#3b6d11",
+                  backgroundColor:
+                    data.insight.icon === "trending-down"
+                      ? "#fcebeb"
+                      : data.insight.icon === "trending-up"
+                      ? "#eaf3de"
+                      : "#f1f5f9",
                 }}
               >
-                {data.sodium_budget.consumed_mg} / {data.sodium_budget.limit_mg}
-                mg
+                <Feather
+                  name={(data.insight.icon || "zap") as any}
+                  size={16}
+                  color={
+                    data.insight.icon === "trending-down"
+                      ? "#e24b4a"
+                      : data.insight.icon === "trending-up"
+                      ? "#3b6d11"
+                      : "#185fa5"
+                  }
+                />
+              </View>
+              <Text className="flex-1 text-[13px] text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
+                <Text className="font-bold text-foreground">
+                  {data.insight?.title || ""}{" "}
+                </Text>
+                {data.insight.body}
               </Text>
             </View>
-            <View className="h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-              <View
-                className="h-full rounded-full"
-                style={{
-                  width: `${Math.min(
-                    (data.sodium_budget.consumed_mg /
-                      data.sodium_budget.limit_mg) *
-                      100,
-                    100
-                  )}%`,
-                  backgroundColor:
-                    data.sodium_budget.consumed_mg >
-                    data.sodium_budget.limit_mg
-                      ? "#e24b4a"
-                      : data.sodium_budget.consumed_mg >
-                        data.sodium_budget.limit_mg * 0.75
-                      ? "#ba7517"
-                      : "#639922",
-                }}
-              />
+          </Reanimated.View>
+        )}
+
+        {/* ── Today's Health ── */}
+        {data?.today_activity && (
+          <Reanimated.View entering={FadeInDown.delay(350).springify()} className="mx-5 mt-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4">
+            <Text className="text-[15px] font-medium text-slate-900 dark:text-white mb-3">
+              Today's Health
+            </Text>
+            <View className="flex-row flex-wrap justify-between">
+              {/* Meals */}
+              <TouchableOpacity activeOpacity={0.8} onPress={() => router.push("/(home)/(meals)/daily-diary")} className="w-[48%] bg-slate-50 dark:bg-slate-950 rounded-xl p-3 mb-3 border border-slate-100 dark:border-slate-800">
+                <View className="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-900/30 items-center justify-center mb-2">
+                  <MaterialCommunityIcons name="silverware-fork-knife" size={14} color={isDark ? "#fbbf24" : "#ea580c"} />
+                </View>
+                <Text className="text-[13px] font-medium text-slate-800 dark:text-slate-200">Meals</Text>
+                <Text className="text-[12px] text-slate-500">{data.today_activity.meals_count > 0 ? `${data.today_activity.meals_count} logged` : "0 logged"}</Text>
+              </TouchableOpacity>
+
+              {/* Exercise */}
+              <TouchableOpacity activeOpacity={0.8} onPress={() => router.push("/(home)/(health)/exercise-diary")} className="w-[48%] bg-slate-50 dark:bg-slate-950 rounded-xl p-3 mb-3 border border-slate-100 dark:border-slate-800">
+                <View className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 items-center justify-center mb-2">
+                  <Feather name="activity" size={14} color={isDark ? "#60a5fa" : "#2563eb"} />
+                </View>
+                <Text className="text-[13px] font-medium text-slate-800 dark:text-slate-200">Exercise</Text>
+                <Text className="text-[12px] text-slate-500">{data.today_activity.exercises_count > 0 ? `${data.today_activity.total_exercise_minutes} min` : "0 min"}</Text>
+              </TouchableOpacity>
+
+              {/* Sleep */}
+              <View className="w-[48%] bg-slate-50 dark:bg-slate-950 rounded-xl p-3 border border-slate-100 dark:border-slate-800">
+                <View className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 items-center justify-center mb-2">
+                  <Feather name="moon" size={14} color={isDark ? "#818cf8" : "#4f46e5"} />
+                </View>
+                <Text className="text-[13px] font-medium text-slate-800 dark:text-slate-200">Sleep</Text>
+                <Text className="text-[12px] text-slate-500">{data.today_activity.sleep_logged ? "Logged" : "Not logged"}</Text>
+              </View>
+
+              {/* Vitals */}
+              <TouchableOpacity activeOpacity={0.8} onPress={() => router.push("/(home)/(health)/log-symptoms")} className="w-[48%] bg-slate-50 dark:bg-slate-950 rounded-xl p-3 border border-slate-100 dark:border-slate-800">
+                <View className="w-8 h-8 rounded-full bg-rose-100 dark:bg-rose-900/30 items-center justify-center mb-2">
+                  <Feather name="heart" size={14} color={isDark ? "#fb7185" : "#e11d48"} />
+                </View>
+                <Text className="text-[13px] font-medium text-slate-800 dark:text-slate-200">Vitals</Text>
+                <Text className="text-[12px] text-slate-500">{data.today_activity.vitals_logged ? "Logged" : "Not logged"}</Text>
+              </TouchableOpacity>
             </View>
-            {data.sodium_budget.consumed_mg > data.sodium_budget.limit_mg && (
-              <View className="flex-row items-center gap-2 mt-2.5 bg-red-50 rounded-lg px-3 py-2">
-                <Feather name="alert-circle" size={13} color="#a32d2d" />
-                <Text
-                  className="text-[12px] flex-1"
-                  style={{ color: "#a32d2d" }}
-                >
-                  You've exceeded your daily sodium limit
+          </Reanimated.View>
+        )}
+
+        {/* ── Nutrition Today ── */}
+        {data?.nutrition_budget && (
+          <Reanimated.View entering={FadeInDown.delay(500).springify()} className="mx-5 mt-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4">
+            <Text className="text-[15px] font-medium text-slate-900 dark:text-white mb-3">
+              Nutrition Today
+            </Text>
+            
+            {/* Sodium */}
+            <View className="mb-4">
+              <View className="flex-row items-center justify-between mb-2">
+                <Text className="text-[13px] text-slate-600 dark:text-slate-400">Sodium</Text>
+                <Text className="text-[13px] font-medium" style={{ color: (data.nutrition_budget.sodium.limit_mg && data.nutrition_budget.sodium.consumed_mg > data.nutrition_budget.sodium.limit_mg) ? "#e11d48" : (isDark ? "#f8fafc" : "#0f172a") }}>
+                  {data.nutrition_budget.sodium.consumed_mg} / {data.nutrition_budget.sodium.limit_mg ? `${data.nutrition_budget.sodium.limit_mg} mg` : "Target not set"}
                 </Text>
               </View>
-            )}
+              <View className="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                <View className="h-full rounded-full" style={{
+                  width: data.nutrition_budget.sodium.limit_mg ? `${Math.min((data.nutrition_budget.sodium.consumed_mg / data.nutrition_budget.sodium.limit_mg) * 100, 100)}%` : "0%",
+                  backgroundColor: (data.nutrition_budget.sodium.limit_mg && data.nutrition_budget.sodium.consumed_mg > data.nutrition_budget.sodium.limit_mg) ? "#e11d48" : "#0d9488"
+                }} />
+              </View>
+            </View>
+
+            {/* Calories */}
+            <View>
+              <View className="flex-row items-center justify-between mb-2">
+                <Text className="text-[13px] text-slate-600 dark:text-slate-400">Calories</Text>
+                <Text className="text-[13px] font-medium" style={{ color: (data.nutrition_budget.calories.limit && data.nutrition_budget.calories.consumed > data.nutrition_budget.calories.limit) ? "#e11d48" : (isDark ? "#f8fafc" : "#0f172a") }}>
+                  {data.nutrition_budget.calories.consumed} / {data.nutrition_budget.calories.limit ? `${data.nutrition_budget.calories.limit} kcal` : "Target not set"}
+                </Text>
+              </View>
+              <View className="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                <View className="h-full rounded-full" style={{
+                  width: data.nutrition_budget.calories.limit ? `${Math.min((data.nutrition_budget.calories.consumed / data.nutrition_budget.calories.limit) * 100, 100)}%` : "0%",
+                  backgroundColor: (data.nutrition_budget.calories.limit && data.nutrition_budget.calories.consumed > data.nutrition_budget.calories.limit) ? "#e11d48" : "#f59e0b"
+                }} />
+              </View>
+            </View>
           </Reanimated.View>
         )}
 
@@ -751,7 +666,7 @@ export default function DashboardScreen() {
             <View className="mt-6">
               <View className="px-5 flex-row items-center justify-between mb-3">
                 <Text className="text-[15px] font-medium text-slate-900 dark:text-white">
-                  Recommended today
+                  Recommended for you
                 </Text>
               </View>
               <ScrollView
@@ -796,10 +711,10 @@ export default function DashboardScreen() {
             >
               <View className="flex-1 pr-4">
                 <Text className="text-[15px] font-medium text-slate-900 dark:text-white mb-0.5">
-                  Need professional guidance?
+                  Find a healthcare facility
                 </Text>
                 <Text className="text-[13px] text-slate-400">
-                  Find a cardiologist near you.
+                  Locate clinics or healthcare providers near you.
                 </Text>
               </View>
               <View className="w-10 h-10 bg-blue-50 rounded-xl items-center justify-center">

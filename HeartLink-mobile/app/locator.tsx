@@ -245,7 +245,7 @@ export default function LocatorScreen() {
         <View className="flex-row items-center bg-red-50 border border-red-200 rounded-xl px-3.5 py-2.5 gap-2.5">
           <Feather name="alert-triangle" size={16} color="#dc2626" />
           <Text className="flex-1 text-[13px] font-medium text-red-700 leading-snug">
-            Critical CSS Score: Immediate medical consultation recommended.
+            Critical HSS Score: Immediate medical consultation recommended.
           </Text>
         </View>
         {locationError && (

@@ -45,7 +45,7 @@ export default function VerificationSuccessScreen() {
 
   const handleStartBaseline = () => {
     router.replace({
-      pathname: "/(baseline)/health_goals",
+      pathname: "/(baseline)/step1_basic_info",
       params: { user_id: user_id as string },
     });
   };

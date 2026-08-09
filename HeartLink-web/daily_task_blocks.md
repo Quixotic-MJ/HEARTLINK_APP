@@ -17,7 +17,7 @@ This document is your day-by-day roadmap. **Your goal is simple: complete the ta
 
 ### Day 2: Dashboard & Profile Data Flow
 - [ ] Fetch mock user data and display it on the Mobile Profile screen.
-- [ ] Connect the Dashboard to show current metrics (e.g., latest health log, Cardiovascular Stability Score).
+- [ ] Connect the Dashboard to show current metrics (e.g., latest health log, Health Stability Score).
 - [ ] Ensure profile updates reflect immediately on the dashboard.
 
 ### Day 3: Health Logs & Tracking Logic
@@ -100,7 +100,7 @@ This document is your day-by-day roadmap. **Your goal is simple: complete the ta
 - [ ] **Bye Mock DB:** Completely remove or bypass `mock_db.py`. 
 
 ### Day 18: Machine Learning Integration
-- [ ] Backend: Ensure the `ml` module's Cardiovascular Stability Score and recommendations (Recipes/Exercises) are calculating correctly against real DB data.
+- [ ] Backend: Ensure the `ml` module's Health Stability Score and recommendations (Recipes/Exercises) are calculating correctly against real DB data.
 
 ### Day 19: Landing Page Polish
 - [ ] Update the `landing` page with final text and screenshots of your polished app.

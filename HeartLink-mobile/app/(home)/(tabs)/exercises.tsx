@@ -293,7 +293,7 @@ export default function ExercisesScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   
-  const [cssScore, setCssScore] = useState<number>(0);
+  const [hssScore, setHssScore] = useState<number>(0);
   const [completedExercises, setCompletedExercises] = useState<string[]>([]);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -324,7 +324,7 @@ export default function ExercisesScreen() {
           goal: r.goal || r.description || "",
           type: r.type || "Light Cardio",
           intensity: r.intensity || "Low",
-          category: r.css_tier || "Stable",
+          category: r.hss_tier || "Stable",
           image: r.media_url || r.image_url || "",
         }));
         setRoutinesList(mapped.length > 0 ? mapped : ROUTINES);
@@ -332,8 +332,8 @@ export default function ExercisesScreen() {
       
       if (dashboardRes.ok) {
         const dash = await dashboardRes.json();
-        if (dash.css_score !== undefined) {
-          setCssScore(dash.css_score);
+        if (dash.hss_score !== undefined) {
+          setHssScore(dash.hss_score);
         }
       }
       
@@ -396,12 +396,12 @@ export default function ExercisesScreen() {
     ]).start(() => setToastMessage(null));
   };
 
-  const cssStatus = useMemo<Routine["category"]>(() => {
-    if (cssScore >= 80) return "Stable";
-    if (cssScore >= 60) return "Moderate";
-    if (cssScore >= 40) return "Caution";
+  const hssStatus = useMemo<Routine["category"]>(() => {
+    if (hssScore >= 80) return "Stable";
+    if (hssScore >= 60) return "Moderate";
+    if (hssScore >= 40) return "Caution";
     return "Elevated Risk";
-  }, [cssScore]);
+  }, [hssScore]);
 
   const activeRoutines = useMemo(
     () => {
@@ -411,7 +411,7 @@ export default function ExercisesScreen() {
         "Caution": ["Caution", "Elevated Risk"],
         "Elevated Risk": ["Elevated Risk"]
       };
-      const allowedTiers = TIER_HIERARCHY[cssStatus] || [cssStatus];
+      const allowedTiers = TIER_HIERARCHY[hssStatus] || [hssStatus];
       
       return routinesList.filter((r) => {
         const matchesTier = allowedTiers.includes(r.category);
@@ -419,9 +419,9 @@ export default function ExercisesScreen() {
         return matchesTier && matchesType;
       });
     },
-    [cssStatus, routinesList, selectedType],
+    [hssStatus, routinesList, selectedType],
   );
-  const statusCfg = STATUS_CONFIG[cssStatus];
+  const statusCfg = STATUS_CONFIG[hssStatus];
 
   const totalActiveMins = useMemo(
     () =>
@@ -511,11 +511,11 @@ export default function ExercisesScreen() {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#0f172a" />
           }
         >
-          {/* CSS score card */}
+          {/* HSS score card */}
           <Reanimated.View entering={FadeInDown.delay(100).springify()} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-5 mb-4 shadow-sm shadow-slate-100">
             <View className="flex-row items-center justify-between mb-4">
               <Text className="text-[12px] font-medium text-slate-400 uppercase tracking-wide">
-                Current CSS score
+                Current HSS score
               </Text>
               <View
                 className="px-3 py-1.5 rounded-lg border"
@@ -525,13 +525,13 @@ export default function ExercisesScreen() {
                   className="text-[12px] font-bold tracking-wide uppercase"
                   style={{ color: statusCfg.badgeText }}
                 >
-                  {cssStatus}
+                  {hssStatus}
                 </Text>
               </View>
             </View>
 
             <Text className="text-[40px] font-medium text-slate-900 dark:text-white tracking-tight leading-none mb-1">
-              {cssScore}
+              {hssScore}
               <Text className="text-[18px] font-normal text-slate-400">
                 {" "}
                 / 100
@@ -542,18 +542,18 @@ export default function ExercisesScreen() {
               <View
                 className="h-full rounded-full"
                 style={{
-                  width: `${cssScore}%`,
+                  width: `${hssScore}%`,
                   backgroundColor:
-                    cssScore >= 85
+                    hssScore >= 85
                       ? "#639922"
-                      : cssScore >= 70
+                      : hssScore >= 70
                         ? "#ba7517"
                         : "#e24b4a",
                 }}
               />
             </View>
 
-            {cssStatus === "Elevated Risk" && (
+            {hssStatus === "Elevated Risk" && (
               <View
                 className="mt-4 p-3.5 rounded-xl border flex-row items-start gap-2.5"
                 style={{

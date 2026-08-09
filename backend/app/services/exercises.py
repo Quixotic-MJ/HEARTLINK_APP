@@ -30,10 +30,9 @@ def create_exercise_log(user_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
     save_logs()
 
     try:
-        from app.services.css_engine import recalculate_css
-        recalculate_css(user_id)
+        pass
     except Exception as e:
-        print(f"Error recalculating CSS on exercise log: {e}")
+        print(f"Error recalculating HSS on exercise log: {e}")
 
     return new_log
 
@@ -64,14 +63,13 @@ def delete_exercise_log(user_id: str, log_id: str) -> Tuple[bool, str, int]:
     save_logs()
 
     try:
-        from app.services.css_engine import recalculate_css
-        recalculate_css(user_id)
+        pass
     except Exception as e:
-        print(f"Error recalculating CSS on exercise delete: {e}")
+        print(f"Error recalculating HSS on exercise delete: {e}")
 
     return True, "Exercise log deleted successfully", 200
 
-def map_css_tier(tier: str) -> str:
+def map_hss_tier(tier: str) -> str:
     if not tier: return "Stable"
     if "Monitor Closely" in tier:
         return "Moderate"
@@ -85,13 +83,13 @@ def map_css_tier(tier: str) -> str:
     return "Stable"
 
 def create_routine(data: Dict[str, Any]) -> Dict[str, Any]:
-    raw_css = data.get("cssTarget", data.get("css_tier", "Stable"))
+    raw_css = data.get("hssTarget", data.get("hss_tier", "Stable"))
     new_routine = {
         "id": f"rout-{uuid.uuid4().hex[:8]}",
         "name": data.get("name", "New Routine"),
         "description": data.get("description", ""),
         "duration_minutes": data.get("duration", data.get("duration_minutes", 0)),
-        "css_tier": map_css_tier(raw_css),
+        "hss_tier": map_hss_tier(raw_css),
         "type": data.get("type", "General"),
         "intensity": data.get("intensity", "Low"),
         "goal": data.get("goal", ""),
@@ -116,9 +114,9 @@ def update_routine(routine_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
         routine["description"] = data["description"]
     if "duration" in data or "duration_minutes" in data:
         routine["duration_minutes"] = data.get("duration", data.get("duration_minutes", 0))
-    if "cssTarget" in data or "css_tier" in data:
-        raw_css = data.get("cssTarget", data.get("css_tier", routine.get("css_tier", "Stable")))
-        routine["css_tier"] = map_css_tier(raw_css)
+    if "hssTarget" in data or "hss_tier" in data:
+        raw_css = data.get("hssTarget", data.get("hss_tier", routine.get("hss_tier", "Stable")))
+        routine["hss_tier"] = map_hss_tier(raw_css)
     if "type" in data:
         routine["type"] = data["type"]
     if "intensity" in data:

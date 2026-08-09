@@ -18,7 +18,7 @@ class MLService:
             
     def predict_initial_css(self, user_id: str, lifestyle: dict, dietary: dict, clinical: dict):
         if not self.model:
-            print("Model not loaded, defaulting to CSS 80")
+            print("Model not loaded, defaulting to HSS 80")
             return 80
             
         try:
@@ -50,9 +50,9 @@ class MLService:
             else:
                 tier = "Elevated Risk"
                 
-            # Create css_history entry
+            # Create hss_history entry
             new_css = {
-                "id": f"css-{len(mock_db.css_history) + 1000}",
+                "id": f"hss-{len(mock_db.hss_history) + 1000}",
                 "user_id": user_id,
                 "score": predicted_css,
                 "tier": tier,
@@ -60,7 +60,7 @@ class MLService:
                 "computed_at": datetime.utcnow()
             }
             
-            mock_db.css_history.append(new_css)
+            mock_db.hss_history.append(new_css)
             return new_css
             
         except Exception as e:

@@ -70,10 +70,38 @@ export default function CalculatingScreen() {
       try {
         const base_url = process.env.EXPO_PUBLIC_API_URL;
         
-        // Ensure sleep_hours is a float
+        // 1. Update Profile (Biometrics)
+        const profilePayload = {
+          first_name: data.first_name,
+          last_name: data.last_name,
+          date_of_birth: data.date_of_birth,
+          sex: data.sex,
+          height_cm: parseFloat(data.height_cm) || 0,
+          weight_kg: parseFloat(data.weight_kg) || 0,
+          health_goals: data.health_goals
+        };
+        const profileRes = await fetch(`${base_url}/api/users/${user_id}/profile`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(profilePayload),
+        });
+        
+        if (!profileRes.ok) {
+          throw new Error("Failed to update user profile biometrics");
+        }
+
+        // 2. Complete Baseline
+        const safeInt = (val: any) => val && !isNaN(parseInt(val, 10)) ? parseInt(val, 10) : null;
+        
         const payload = {
           ...data,
           sleep_hours: parseFloat(data.sleep_hours) || 8.0,
+          vigorous_days: safeInt(data.vigorous_days),
+          vigorous_minutes: safeInt(data.vigorous_minutes),
+          moderate_days: safeInt(data.moderate_days),
+          moderate_minutes: safeInt(data.moderate_minutes),
+          walk_bike_days: safeInt(data.walk_bike_days),
+          walk_bike_minutes: safeInt(data.walk_bike_minutes),
         };
 
         const res = await fetch(`${base_url}/api/users/${user_id}/baseline/complete`, {

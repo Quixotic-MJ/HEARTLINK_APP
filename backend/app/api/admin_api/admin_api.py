@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from typing import Dict, Any
 from datetime import datetime, timedelta
-from app.mock_db import profiles, alerts, css_history, exercise_routines, meal_logs, exercise_logs, recipes, system_broadcasts, notifications, save_logs
+from app.mock_db import profiles, alerts, hss_history, exercise_routines, meal_logs, exercise_logs, recipes, system_broadcasts, notifications, save_logs
 from app.utils.security import get_current_admin_user
 import random
 
@@ -34,7 +34,7 @@ def get_admin_dashboard(current_user: dict = Depends(get_current_admin_user)):
             except: return now
         return dt
 
-    for entry in sorted(css_history, key=parse_dt):
+    for entry in sorted(hss_history, key=parse_dt):
         uid = entry.get("user_id", f"mock_{hash(str(entry.get('computed_at', '')))}")
         score = entry.get("score")
         if score is None:
@@ -160,12 +160,12 @@ def get_admin_analytics(current_user: dict = Depends(get_current_admin_user)):
         start_date = month_date - timedelta(days=15)
         end_date = month_date + timedelta(days=15)
         
-        # Count actual css_history records in this month window
+        # Count actual hss_history records in this month window
         stable = 0
         monitor = 0
         critical = 0
         
-        for entry in css_history:
+        for entry in hss_history:
             dt = entry.get("computed_at")
             if dt and isinstance(dt, str):
                 try:

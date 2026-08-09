@@ -7,6 +7,7 @@ import "../global.css";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { UserProvider, useUser } from "../contexts/UserContext";
 import { ToastProvider } from "../contexts/ToastContext";
+import { BaselineProvider } from "../contexts/BaselineContext";
 import { configureReanimatedLogger, ReanimatedLogLevel } from 'react-native-reanimated';
 import { useBroadcastListener } from "../hooks/useBroadcastListener";
 
@@ -98,9 +99,11 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <UserProvider>
-        <ToastProvider>
-          <RootLayoutNav />
-        </ToastProvider>
+        <BaselineProvider>
+          <ToastProvider>
+            <RootLayoutNav />
+          </ToastProvider>
+        </BaselineProvider>
       </UserProvider>
     </GestureHandlerRootView>
   );

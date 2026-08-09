@@ -8,8 +8,8 @@ import { Feather } from "@expo/vector-icons";
 
 const faqs = [
   {
-    question: "How does the CSS (Cardiovascular Status Score) work?",
-    answer: "The CSS is an AI-driven score that evaluates your daily health logs, baseline clinical data, and lifestyle metrics to give you a single snapshot of your cardiovascular health. A higher score indicates better stability."
+    question: "How does the HSS (Health Stability Score) work?",
+    answer: "The HSS is an AI-driven score that evaluates your daily health logs, baseline clinical data, and lifestyle metrics to give you a single snapshot of your cardiovascular health. A higher score indicates better stability."
   },
   {
     question: "How do I edit my Care Team?",
@@ -21,7 +21,7 @@ const faqs = [
   },
   {
     question: "How do I change my daily limits (e.g. Sodium or Fluid)?",
-    answer: "Go to 'Goals & Thresholds' on the Home screen to adjust your daily Sodium, Fluid, and Activity targets. Note that changing these will impact your CSS score."
+    answer: "Go to 'Goals & Thresholds' on the Home screen to adjust your daily Sodium, Fluid, and Activity targets. Note that changing these will impact your HSS score."
   },
   {
     question: "Why aren't my push notifications working?",

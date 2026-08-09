@@ -117,6 +117,8 @@ async def complete_baseline_onboarding(user_id: str, payload: BaselineOnboarding
     }
     if hasattr(mock_db, 'hss_history'):
         mock_db.hss_history.append(new_hss)
+        if hasattr(mock_db, 'save_logs'):
+            mock_db.save_logs()
 
     return {
         "success": True,

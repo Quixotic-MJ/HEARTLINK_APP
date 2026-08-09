@@ -7,7 +7,7 @@ from app.mock_db import (
     alerts,
     recipes,
     exercise_routines,
-    baseline_dietary,
+    baseline_onboarding,
     meal_logs,
     exercise_logs,
     user_thresholds,
@@ -172,6 +172,7 @@ def _get_today_activity(user_id: str) -> dict:
         "vitals_logged": len(vitals_today) > 0,
         "meals_count": len(meals_today),
         "exercises_count": len(exercises_today),
+        "sleep_logged": False,
         "total_sodium_mg": total_sodium,
         "total_calories": total_calories,
         "total_exercise_minutes": total_exercise_min,
@@ -212,7 +213,7 @@ def get_dashboard_data(user_id: str) -> Dict[str, Any]:
     latest_alert = user_alerts[0] if user_alerts else None
 
     # ── Dietary preference filtering ───────────────────────────────────────────
-    dietary_entry = next((d for d in baseline_dietary if d["user_id"] == user_id), None)
+    dietary_entry = next((d for d in baseline_onboarding if d["user_id"] == user_id), None)
     dietary_practice = (
         dietary_entry.get("dietary_practice", "") if dietary_entry else ""
     )
@@ -279,9 +280,10 @@ def get_dashboard_data(user_id: str) -> Dict[str, Any]:
     # ── Today's activity summary ───────────────────────────────────────────────
     today_activity = _get_today_activity(user_id)
 
-    # ── Sodium budget ──────────────────────────────────────────────────────────
+    # ── Nutrition budget ──────────────────────────────────────────────────────────
     threshold = next((t for t in user_thresholds if t["user_id"] == user_id), None)
-    sodium_limit = threshold.get("sodium_limit_mg", 1500) if threshold else 1500
+    sodium_limit = threshold.get("daily_sodium_mg", None) if threshold else None
+    calorie_limit = threshold.get("daily_calories", None) if threshold else None
 
     # ── Unread notifications ───────────────────────────────────────────────────
     from app.mock_db import notifications
@@ -305,14 +307,21 @@ def get_dashboard_data(user_id: str) -> Dict[str, Any]:
                 else "--/--"
             ),
             "trend": trend,
+            "logged_at": latest_log.get("logged_at") if latest_log else None,
         },
         "latest_alert": latest_alert,
         "recommendations": recommendations,
         "insight": insight,
         "today_activity": today_activity,
-        "sodium_budget": {
-            "consumed_mg": today_activity["total_sodium_mg"],
-            "limit_mg": sodium_limit,
+        "nutrition_budget": {
+            "sodium": {
+                "consumed_mg": today_activity["total_sodium_mg"],
+                "limit_mg": sodium_limit,
+            },
+            "calories": {
+                "consumed": today_activity["total_calories"],
+                "limit": calorie_limit,
+            },
         },
     }
 
@@ -366,34 +375,34 @@ def get_7_day_wrap_up_data(user_id: str) -> Dict[str, Any]:
         if not any(s["name"] == ds for s in symptoms_list):
             symptoms_list.append({"name": ds, "count": 0})
 
-    # Days array for chart (last 7 days CSS)
+    # Days array for chart (last 7 days HSS)
     days_arr = []
-    user_css = sorted(
-        [c for c in css_history if c["user_id"] == user_id],
+    user_hss = sorted(
+        [c for c in hss_history if c["user_id"] == user_id],
         key=lambda x: _safe_datetime(x["computed_at"]),
     )
-    avg_css = 0
-    css_count = 0
+    avg_hss = 0
+    hss_count = 0
 
     for i in range(6, -1, -1):
         target_date = (now - timedelta(days=i)).date()
         day_str = target_date.strftime("%a")[0]  # 'M', 'T', 'W', etc.
 
-        # Find CSS for this date
-        day_css = [
-            c["score"] for c in user_css if _safe_date(c["computed_at"]) <= target_date
+        # Find HSS for this date
+        day_hss = [
+            c["score"] for c in user_hss if _safe_date(c["computed_at"]) <= target_date
         ]
-        score = day_css[-1] if day_css else 0
+        score = day_hss[-1] if day_hss else 0
 
         days_arr.append({"day": day_str, "value": score})
         if score > 0:
-            avg_css += score
-            css_count += 1
+            avg_hss += score
+            hss_count += 1
 
-    display_css = round(avg_css / css_count) if css_count > 0 else 0
+    display_hss = round(avg_hss / hss_count) if hss_count > 0 else 0
 
     # Determine positive/negative
-    is_positive = display_css >= 60 or display_css == 0
+    is_positive = display_hss >= 60 or display_hss == 0
     banner_title = "Great progress!" if is_positive else "Action needed"
     banner_text = (
         "Your cardiovascular stability has been consistently good over the last 7 days."
@@ -444,13 +453,13 @@ def get_7_day_wrap_up_data(user_id: str) -> Dict[str, Any]:
 
     # Gamification: Trends vs last week (mocked for simplicity)
     trends = {
-        "css": 5 if is_positive else -3,
+        "hss_score": 5 if is_positive else -3,
         "sodium": -12 if total_sodium < 15000 else 8,
         "active": 30 if total_active > 100 else -10,
     }
 
     return {
-        "css": display_css,
+        "hss_score": display_hss,
         "sodium": total_sodium,
         "active": total_active,
         "missed": logs_missed,

@@ -7,17 +7,13 @@ def get_full_profile(user_id: str) -> dict:
     if not profile:
         return None
         
-    lifestyle = next((l for l in mock_db.baseline_lifestyle if l["user_id"] == user_id), None)
-    dietary = next((d for d in mock_db.baseline_dietary if d["user_id"] == user_id), None)
-    clinical = next((c for c in mock_db.baseline_clinical if c["user_id"] == user_id), None)
+    onboarding = next((o for o in mock_db.baseline_onboarding if o["user_id"] == user_id), None)
     care_team = [c for c in mock_db.care_team_contacts if c["user_id"] == user_id]
     
     return {
         "profile": profile,
         "baselines": {
-            "lifestyle": lifestyle,
-            "dietary": dietary,
-            "clinical": clinical
+            "onboarding": onboarding
         },
         "care_team": care_team
     }
@@ -45,15 +41,14 @@ def delete_user(user_id: str) -> bool:
         
     # Hard delete from all mock_db collections
     mock_db.profiles[:] = [p for p in mock_db.profiles if p["id"] != user_id]
-    mock_db.baseline_lifestyle[:] = [l for l in mock_db.baseline_lifestyle if l["user_id"] != user_id]
-    mock_db.baseline_dietary[:] = [d for d in mock_db.baseline_dietary if d["user_id"] != user_id]
-    mock_db.baseline_clinical[:] = [c for c in mock_db.baseline_clinical if c["user_id"] != user_id]
+    if hasattr(mock_db, 'baseline_onboarding'):
+        mock_db.baseline_onboarding[:] = [o for o in mock_db.baseline_onboarding if o["user_id"] != user_id]
     mock_db.care_team_contacts[:] = [c for c in mock_db.care_team_contacts if c["user_id"] != user_id]
     
     mock_db.meal_logs[:] = [m for m in mock_db.meal_logs if m["user_id"] != user_id]
     mock_db.exercise_logs[:] = [e for e in mock_db.exercise_logs if e["user_id"] != user_id]
     mock_db.daily_health_logs[:] = [l for l in mock_db.daily_health_logs if l["user_id"] != user_id]
-    mock_db.css_history[:] = [c for c in mock_db.css_history if c["user_id"] != user_id]
+    mock_db.hss_history[:] = [c for c in mock_db.hss_history if c["user_id"] != user_id]
     
     mock_db.save_profiles()
     mock_db.save_logs()

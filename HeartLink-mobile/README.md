@@ -1,7 +1,7 @@
 # HeartLink Mobile App 🫀
 
 ## App Purpose
-The application aims to monitor and track users' dietary and lifestyle habits and provide personalized recommendations, including food recipes and exercise routines, based on the user's Cardiovascular Stability Score to support cardiovascular health improvement.
+The application aims to monitor and track users' dietary and lifestyle habits and provide personalized recommendations, including food recipes and exercise routines, based on the user's Health Stability Score to support cardiovascular health improvement.
 
 ## Developer Setup Guide
 

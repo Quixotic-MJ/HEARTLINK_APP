@@ -8,17 +8,20 @@ import {
   ActivityIndicator,
   Pressable,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
+import { useColorScheme } from "nativewind";
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, Easing } from "react-native-reanimated";
 import "../../global.css";
 import { useUser } from "../../contexts/UserContext";
-import { Feather } from "../../lib/icons";
+import { Feather } from "@expo/vector-icons";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { InputField } from "../../components/ui/InputField";
 import { Button } from "../../components/ui/Button";
-import { ScreenWrapper } from "../../components/ui/ScreenWrapper";
+import AnimatedButton from "../../components/ui/AnimatedButton";
 
 const loginSchema = z.object({
   identifier: z.string().min(1, "Please enter your email or phone number."),
@@ -36,6 +39,8 @@ const base_url = process.env.EXPO_PUBLIC_API_URL;
 // ─── Auth Screen ──────────────────────────────────────────────────────────────
 
 export default function AuthScreen() {
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === "dark";
   const router = useRouter();
   const { setUserId } = useUser();
 
@@ -85,7 +90,7 @@ export default function AuthScreen() {
             router.replace("/(home)/(tabs)/dashboard");
           } else {
             router.replace({
-              pathname: "/(baseline)/health_goals",
+              pathname: "/(baseline)/step1_basic_info",
               params: { user_id: resData.user_id },
             });
           }
@@ -103,51 +108,44 @@ export default function AuthScreen() {
   };
 
   return (
-    <ScreenWrapper 
-      withKeyboardAvoidance={true} 
-      contentContainerClassName="flex-grow px-6 pt-4 pb-12"
-    >
-      {/* Header */}
-      <View className="flex-row items-center px-6 pt-4 pb-2">
-        <TouchableOpacity
-          onPress={() => {
+    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950" edges={["top"]}>
+      <StatusBar style={isDark ? "light" : "dark"} />
+      
+      <View className="px-5 pt-4 pb-3 flex-row items-center justify-between">
+        <AnimatedButton onPress={() => {
             if (router.canGoBack()) {
               router.back();
             } else {
               router.replace("/onboarding");
             }
-          }}
-          className="p-2 -ml-2 mr-4"
-          accessible={true}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
+          }} 
+          className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 border-slate-800/70 items-center justify-center"
         >
-          <Feather name="arrow-left" size={24} className="text-foreground" />
-        </TouchableOpacity>
+          <Feather name="arrow-left" size={18} color={isDark ? "#f8fafc" : "#0f172a"} />
+        </AnimatedButton>
         <View className="flex-row items-center gap-2">
-          <View className="w-8 h-8 rounded-full items-center justify-center border border-border bg-card" importantForAccessibility="no">
-            <Feather name="heart" size={14} className="text-foreground" />
+          <View className="w-7 h-7 rounded-full items-center justify-center bg-rose-500/10">
+            <Feather name="heart" size={13} color="#f43f5e" />
           </View>
-          <Text
-            className="text-base text-foreground tracking-tight"
-            style={{ fontWeight: "300" }}
-          >
+          <Text className="text-[14px] text-slate-900 dark:text-white" style={{ fontWeight: "300" }}>
             Heart<Text style={{ fontWeight: "600" }}>Link.</Text>
           </Text>
         </View>
       </View>
+
+      <View className="flex-grow px-5 pt-4 pb-12">
         {/* ── Heading ── */}
-        <View className="mb-8 mt-2">
-          <Text className="text-3xl font-semibold text-foreground tracking-tight leading-tight mb-2" accessibilityRole="header">
+        <View className="mb-8 mt-2 px-1">
+          <Text className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight leading-tight mb-2">
             Welcome{"\n"}back.
           </Text>
-          <Text className="text-sm text-muted-foreground leading-relaxed">
+          <Text className="text-[14px] text-slate-500 dark:text-slate-400 leading-relaxed">
             Log in to access your cardiovascular dashboard.
           </Text>
         </View>
 
         {/* ── Card ── */}
-        <View className="bg-card rounded-3xl border border-border px-5 py-7 gap-5">
+        <View className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 px-5 py-7 gap-5" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 }}>
           
           {/* Identifier Section */}
           <InputField
@@ -174,14 +172,11 @@ export default function AuthScreen() {
                   <TouchableOpacity
                     onPress={() => setShowPassword((p) => !p)}
                     className="p-2 -mr-2"
-                    accessible={true}
-                    accessibilityRole="button"
-                    accessibilityLabel={showPassword ? "Hide password" : "Show password"}
                   >
                     <Feather
                       name={showPassword ? "eye" : "eye-off"}
                       size={18}
-                      className="text-muted-foreground"
+                      color={isDark ? "#94a3b8" : "#64748b"}
                     />
                   </TouchableOpacity>
                 }
@@ -189,11 +184,8 @@ export default function AuthScreen() {
             <TouchableOpacity
               className="self-end py-2 pl-4 -mt-2"
               onPress={() => router.push("/(auth)/forgot-password")}
-              accessible={true}
-              accessibilityRole="link"
-              accessibilityLabel="Forgot your password?"
             >
-              <Text className="text-xs font-semibold text-primary">
+              <Text className="text-xs font-semibold text-rose-500">
                 Forgot your password?
               </Text>
             </TouchableOpacity>
@@ -201,9 +193,9 @@ export default function AuthScreen() {
 
           {/* Error Message */}
           {globalError && (
-            <View className="bg-destructive/10 border border-destructive/30 rounded-2xl p-3.5 flex-row items-center gap-2 mt-1 mb-2" accessible={true} accessibilityRole="alert">
-              <Feather name="alert-triangle" size={16} className="text-destructive" />
-              <Text className="text-destructive text-xs flex-1 font-medium">
+            <View className="bg-rose-500/10 border border-rose-500/30 rounded-2xl p-3.5 flex-row items-center gap-2 mt-1 mb-2">
+              <Feather name="alert-triangle" size={16} color="#f43f5e" />
+              <Text className="text-rose-600 dark:text-rose-400 text-xs flex-1 font-medium">
                 {globalError}
               </Text>
             </View>
@@ -224,17 +216,15 @@ export default function AuthScreen() {
           activeOpacity={0.65}
           onPress={() => router.push("/(auth)/register")}
           className="flex-row justify-center items-center py-4 mb-2 gap-1.5 mt-8"
-          accessible={true}
-          accessibilityRole="link"
-          accessibilityLabel="Don't have an account? Sign up"
         >
-          <Text className="text-sm text-muted-foreground">
+          <Text className="text-sm text-slate-500 dark:text-slate-400">
             Don't have an account?
           </Text>
-          <Text className="text-sm font-semibold text-foreground">
+          <Text className="text-sm font-bold text-slate-900 dark:text-white">
             Sign up
           </Text>
         </TouchableOpacity>
-    </ScreenWrapper>
+      </View>
+    </SafeAreaView>
   );
 }

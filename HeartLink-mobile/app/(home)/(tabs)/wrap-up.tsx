@@ -83,7 +83,7 @@ function DayBarChart({ days, color }: { days: DayBar[]; color: string }) {
   return (
     <View className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-3.5 mb-4">
       <View className="flex-row justify-between items-center mb-3">
-        <Text className="text-[14px] font-medium text-slate-900 dark:text-white">CSS score · daily</Text>
+        <Text className="text-[14px] font-medium text-slate-900 dark:text-white">HSS score · daily</Text>
         <Text className="text-[11px] font-medium text-slate-400">Mon – Sun</Text>
       </View>
       <View className="flex-row items-end h-[68px] gap-1">
@@ -289,11 +289,11 @@ export default function WrapUpScreen() {
   }, [fetchData]);
 
   const d = wrapUpData || {
-    css: 0, sodium: 0, active: 0, missed: 0, satFat: 0, fiber: 0,
+    hss: 0, sodium: 0, active: 0, missed: 0, satFat: 0, fiber: 0,
     bannerTitle: "", bannerText: "", symptoms: [], days: [],
     barColor: "#64748b", isPositive: true, streak_count: 0, streak_calendar: [], trends: {}
   };
-  const displayCss = d.css;
+  const displayHss = d.hss;
   const isPositive = d.isPositive;
 
   const exportPDF = async () => {
@@ -338,8 +338,8 @@ export default function WrapUpScreen() {
                 <th>Trend</th>
               </tr>
               <tr>
-                <td>Average CSS Score</td>
-                <td class="highlight">${displayCss} / 100</td>
+                <td>Average HSS Score</td>
+                <td class="highlight">${displayHss} / 100</td>
                 <td style="color: #639922;">+5 pts from last week</td>
               </tr>
               <tr>
@@ -389,11 +389,11 @@ export default function WrapUpScreen() {
               </tr>
             </table>
 
-            <h2>Daily CSS Breakdown</h2>
+            <h2>Daily HSS Breakdown</h2>
             <table>
               <tr>
                 <th>Day</th>
-                <th>CSS Score</th>
+                <th>HSS Score</th>
               </tr>
               <tr>
                 <td>Monday</td>
@@ -512,13 +512,13 @@ export default function WrapUpScreen() {
         {/* Metrics grid */}
         <View className="flex-row flex-wrap -mx-1.5 mb-2">
           <MetricCard
-            title="Avg CSS score"
-            value={displayCss}
+            title="Avg HSS score"
+            value={displayHss}
             unit="/100"
             icon="heart-pulse"
             iconColor="#3b6d11"
             iconBg="#eaf3de"
-            trend={d.trends?.css}
+            trend={d.trends?.hss}
           />
           <MetricCard
             title="Total sodium"

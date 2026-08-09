@@ -69,7 +69,7 @@ export default function ExerciseDetailsScreen() {
           goal: data.goal || data.description || "",
           type: data.type || "Light Cardio",
           intensity: data.intensity || "Low",
-          category: data.css_tier || "Stable",
+          category: data.hss_tier || "Stable",
           steps: data.steps || [],
           videoUrl: data.video_url || VIDEO_BY_TYPE[data.type] || VIDEO_BY_TYPE["Light Cardio"],
           image: data.media_url || "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=400&h=300&fit=crop",

@@ -197,7 +197,7 @@ const HeartLinkLanding = () => {
               </h4>
               <p className="text-gray-600 leading-relaxed text-xs">
                 Log daily symptoms and vitals. Our rule-based engine calculates
-                your Cardiovascular Stability Score to offer personalized
+                your Health Stability Score to offer personalized
                 recipes and low-intensity workouts.
               </p>
             </div>

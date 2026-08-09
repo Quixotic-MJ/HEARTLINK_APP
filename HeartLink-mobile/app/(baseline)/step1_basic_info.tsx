@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, ScrollView, Platform } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { View, Text, TextInput, KeyboardAvoidingView, ScrollView, Platform } from "react-native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Feather } from "@expo/vector-icons";
 import { useToast } from "../../contexts/ToastContext";
@@ -8,6 +8,8 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useColorScheme } from "nativewind";
 import { useBaseline } from "../../contexts/BaselineContext";
+import { Colors } from "../../constants/theme";
+import AnimatedButton from "../../components/ui/AnimatedButton";
 
 // Reusable components
 function MeasureInput({ value, onChangeText, placeholder = "0", unit, maxLength }: any) {
@@ -31,7 +33,7 @@ function StepProgress({ current, total }: { current: number; total: number }) {
   return (
     <View className="flex-row gap-1.5 mb-6">
       {Array.from({ length: total }).map((_, i) => (
-        <View key={i} className="flex-1 h-1 rounded-full" style={{ backgroundColor: i < current ? "#0f172a" : "#e2e8f0" }} />
+        <View key={i} className="flex-1 h-1 rounded-full" style={{ backgroundColor: i < current ? Colors.light.tint : "#e2e8f0" }} />
       ))}
     </View>
   );
@@ -44,6 +46,10 @@ export default function Step1BasicInfo() {
   const params = useLocalSearchParams();
   const { showToast } = useToast();
   const { data, updateData } = useBaseline();
+  
+  const insets = useSafeAreaInsets();
+  const activeBg = Colors[isDark ? "dark" : "light"].tint;
+  const activeText = isDark ? "#11181C" : "#ffffff";
   
   const [showDatePicker, setShowDatePicker] = useState(false);
 
@@ -85,7 +91,7 @@ export default function Step1BasicInfo() {
       showToast({ title: "Invalid Weight", message: "Please enter a valid weight (20-400 kg).", type: "error" });
       return;
     }
-    router.push({ pathname: "/step2_activity", params });
+    router.push({ pathname: "/(baseline)/step2_activity", params });
   };
 
   return (
@@ -95,9 +101,9 @@ export default function Step1BasicInfo() {
       {/* Header */}
       <View className="px-5 pt-4 pb-3">
         <View className="flex-row items-center mb-4">
-          <TouchableOpacity onPress={() => router.back()} className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 items-center justify-center mr-3">
+          <AnimatedButton onPress={() => router.back()} className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 items-center justify-center mr-3">
             <Feather name="arrow-left" size={18} color={isDark ? "#f8fafc" : "#0f172a"} />
-          </TouchableOpacity>
+          </AnimatedButton>
           <View className="flex-1">
             <Text className="text-[11px] text-slate-400 uppercase tracking-wide">Step 1 of 6</Text>
             <Text className="text-xl font-bold text-slate-900 dark:text-white mt-0.5">Basic Information</Text>
@@ -134,15 +140,18 @@ export default function Step1BasicInfo() {
 
           <View className="mb-6">
             <FieldLabel title="Date of Birth" />
-            <TouchableOpacity 
+            <AnimatedButton 
               onPress={() => setShowDatePicker(true)}
               className="bg-white dark:bg-slate-900 rounded-xl px-3.5 border border-slate-200 dark:border-slate-800 h-[50px] flex-row items-center"
             >
               <Feather name="calendar" size={18} color="#94a3b8" />
-              <Text className={`text-[16px] font-medium ml-3 ${data.date_of_birth ? 'text-slate-900 dark:text-white' : 'text-slate-400'}`}>
+              <Text 
+                className="text-[16px] font-medium ml-3"
+                style={{ color: data.date_of_birth ? (isDark ? "#ffffff" : "#0f172a") : "#94a3b8" }}
+              >
                 {data.date_of_birth ? new Date(data.date_of_birth).toLocaleDateString() : "Select Date"}
               </Text>
-            </TouchableOpacity>
+            </AnimatedButton>
             {showDatePicker && (
               <DateTimePicker
                 value={data.date_of_birth ? new Date(data.date_of_birth) : new Date(1990, 0, 1)}
@@ -158,14 +167,22 @@ export default function Step1BasicInfo() {
           <View className="mb-6">
             <FieldLabel title="Biological Sex" />
             <View className="flex-row bg-slate-100 dark:bg-slate-800/50 p-1 rounded-xl">
-              {["male", "female"].map((s) => (
-                <TouchableOpacity
+              {["male", "female"].map((s) => {
+                const isActive = data.sex === s;
+                return (
+                <AnimatedButton
                   key={s} onPress={() => updateData({ sex: s as any })}
-                  className={`flex-1 items-center justify-center py-3 rounded-lg ${data.sex === s ? "bg-white dark:bg-slate-700 shadow-sm" : ""}`}
+                  className="flex-1 items-center justify-center py-3 rounded-lg"
+                  style={isActive ? { backgroundColor: activeBg, shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 } : undefined}
                 >
-                  <Text className={`text-[14px] font-semibold capitalize ${data.sex === s ? "text-slate-900 dark:text-white" : "text-slate-500"}`}>{s}</Text>
-                </TouchableOpacity>
-              ))}
+                  <Text 
+                    className="text-[14px] font-semibold capitalize"
+                    style={{ color: isActive ? activeText : "#64748b" }}
+                  >
+                    {s}
+                  </Text>
+                </AnimatedButton>
+              )})}
             </View>
           </View>
 
@@ -183,14 +200,18 @@ export default function Step1BasicInfo() {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      <View className="px-5 pb-8 pt-4 bg-white dark:bg-slate-950 border-t border-slate-100 dark:border-slate-900">
-        <TouchableOpacity
+      <View 
+        className="px-5 pt-4 bg-white dark:bg-slate-950 border-t border-slate-100 dark:border-slate-900"
+        style={{ paddingBottom: Math.max(insets.bottom, 20) }}
+      >
+        <AnimatedButton
           onPress={handleNext} disabled={!isReady}
-          className={`h-[54px] rounded-2xl items-center justify-center flex-row ${isReady ? "bg-[#0f172a]" : "bg-slate-200 dark:bg-slate-800"}`}
+          className="h-[54px] rounded-2xl items-center justify-center flex-row"
+          style={{ backgroundColor: isReady ? activeBg : (isDark ? "#1e293b" : "#e2e8f0") }}
         >
-          <Text className={`text-[16px] font-bold ${isReady ? "text-white" : "text-slate-400"}`}>Next Step</Text>
-          <Feather name="arrow-right" size={18} color={isReady ? "white" : "#94a3b8"} style={{ marginLeft: 8 }} />
-        </TouchableOpacity>
+          <Text className="text-[16px] font-bold" style={{ color: isReady ? activeText : "#94a3b8" }}>Next Step</Text>
+          <Feather name="arrow-right" size={18} color={isReady ? activeText : "#94a3b8"} style={{ marginLeft: 8 }} />
+        </AnimatedButton>
       </View>
     </SafeAreaView>
   );

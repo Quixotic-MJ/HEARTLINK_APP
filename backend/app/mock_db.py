@@ -99,46 +99,36 @@ staff_permissions = [
 ]
 
 # 3. Clinical & Onboarding Baseline Metrics Layer (1:1 Relationships)
-baseline_onboarding = []
-
-baseline_lifestyle = [
+baseline_onboarding = [
     {
-        "id": "life-101",
+        "id": "onb-101",
         "user_id": "usr-patient-101",
-        "smoking_status": "never",
-        "avg_sleep_hours": 7,
-        "family_history": True,
-        "created_at": datetime(2026, 6, 25, 8, 10, 0),
-        "updated_at": datetime(2026, 6, 25, 8, 10, 0),
-    }
-]
-
-baseline_dietary = [
-    {
-        "id": "diet-101",
-        "user_id": "usr-patient-101",
-        "sodium_frequency": "occasionally",
+        "vigorous_activity": True,
+        "vigorous_days": "3",
+        "vigorous_minutes": "45",
+        "moderate_activity": True,
+        "moderate_days": "2",
+        "moderate_minutes": "30",
+        "walk_bike_transport": True,
+        "walk_bike_days": "5",
+        "walk_bike_minutes": "20",
+        "sedentary_hours": "4-6h",
+        "sleep_hours": 7.0,
+        "ever_smoked": False,
+        "smoke_now": "Not at all",
+        "ever_drank": True,
+        "drink_frequency": "Monthly or less",
+        "drinks_per_occasion": "1-2",
+        "binge_drinking_freq": "Never",
+        "diet_level": "average",
+        "fried_food_freq": "sometimes",
+        "salty_food_freq": "sometimes",
+        "fruit_veg_servings": "2-3",
+        "health_goals": ["bp"],
         "allergies": ["peanuts"],
         "dietary_practice": "Standard Filipino",
-        "created_at": datetime(2026, 6, 25, 8, 15, 0),
-        "updated_at": datetime(2026, 6, 25, 8, 15, 0),
-    }
-]
-
-baseline_clinical = [
-    {
-        "id": "clin-101",
-        "user_id": "usr-patient-101",
-        "diagnosed_conditions": ["prehypertension"],
-        "on_medication": False,
-        "resting_bp_mmhg": 122,
-        "max_heart_rate_bpm": 185,
-        "fasting_blood_sugar": 0,  # Binary dataset code mapping
-        "serum_cholesterol": 195,
-        "chest_pain_type": 1,
-        "exercise_angina": 0,
-        "created_at": datetime(2026, 6, 25, 8, 20, 0),
-        "updated_at": datetime(2026, 6, 25, 8, 20, 0),
+        "created_at": datetime(2026, 6, 25, 8, 10, 0),
+        "updated_at": datetime(2026, 6, 25, 8, 10, 0),
     }
 ]
 
@@ -230,9 +220,9 @@ exercise_logs = [
 # 6. Medical Evaluation & Predictive Logic Layers
 hss_history = []
 
-css_history = [
+hss_history = [
     {
-        "id": "css-701",
+        "id": "hss-701",
         "user_id": "usr-patient-101",
         "score": 85,
         "tier": "Stable",  # Core Tiering System matching
@@ -240,7 +230,7 @@ css_history = [
         "computed_at": datetime(2026, 7, 5, 20, 10, 0),
     },
     {
-        "id": "css-702",
+        "id": "hss-702",
         "user_id": "usr-patient-101",
         "score": 82,
         "tier": "Moderate",
@@ -248,7 +238,7 @@ css_history = [
         "computed_at": datetime(2026, 7, 6, 20, 10, 0),
     },
     {
-        "id": "css-703",
+        "id": "hss-703",
         "user_id": "usr-patient-101",
         "score": 88,
         "tier": "Stable",
@@ -256,7 +246,7 @@ css_history = [
         "computed_at": datetime(2026, 7, 7, 20, 10, 0),
     },
     {
-        "id": "css-704",
+        "id": "hss-704",
         "user_id": "usr-patient-101",
         "score": 90,
         "tier": "Stable",
@@ -264,7 +254,7 @@ css_history = [
         "computed_at": datetime(2026, 7, 8, 20, 10, 0),
     },
     {
-        "id": "css-705",
+        "id": "hss-705",
         "user_id": "usr-patient-101",
         "score": 78,
         "tier": "Moderate",
@@ -272,7 +262,7 @@ css_history = [
         "computed_at": datetime(2026, 7, 9, 20, 10, 0),
     },
     {
-        "id": "css-706",
+        "id": "hss-706",
         "user_id": "usr-patient-101",
         "score": 52,  # Drops after high BP/symptom log input
         "tier": "Elevated Risk",
@@ -873,7 +863,7 @@ feedback_tickets = [
         "userId": "N/A",
         "category": "Question",
         "preview": "Does the CSS score update automatically?",
-        "fullMessage": "If I log my blood pressure today, does my Cardiovascular Stability Score update right away, or does it take 24 hours?",
+        "fullMessage": "If I log my blood pressure today, does my Health Stability Score update right away, or does it take 24 hours?",
         "status": "Resolved",
         "deviceMeta": { "os": "Unknown", "model": "Unknown", "appVersion": "Unknown" },
         "adminNotes": "Replied via in-app notification confirming real-time updates.",
@@ -974,9 +964,7 @@ def save_profiles():
     try:
         data = {
             "profiles": [_serialize_item(p) for p in profiles],
-            "baseline_lifestyle": [_serialize_item(l) for l in baseline_lifestyle],
-            "baseline_dietary": [_serialize_item(d) for d in baseline_dietary],
-            "baseline_clinical": [_serialize_item(c) for c in baseline_clinical],
+            "baseline_onboarding": [_serialize_item(o) for o in baseline_onboarding],
             "user_thresholds": [_serialize_item(t) for t in user_thresholds]
         }
         with open(DB_FILE, "w", encoding="utf-8") as f:
@@ -993,7 +981,7 @@ def save_temp_profiles():
         print(f"Error saving temp profiles: {e}")
 
 def load_profiles():
-    global profiles, baseline_lifestyle, baseline_dietary, baseline_clinical, user_thresholds
+    global profiles, baseline_onboarding, user_thresholds
     if os.path.exists(DB_FILE):
         try:
             with open(DB_FILE, "r", encoding="utf-8") as f:
@@ -1006,15 +994,9 @@ def load_profiles():
                     if "profiles" in data:
                         profiles.clear()
                         profiles.extend([_deserialize_item(p) for p in data["profiles"]])
-                    if "baseline_lifestyle" in data:
-                        baseline_lifestyle.clear()
-                        baseline_lifestyle.extend([_deserialize_item(l) for l in data["baseline_lifestyle"]])
-                    if "baseline_dietary" in data:
-                        baseline_dietary.clear()
-                        baseline_dietary.extend([_deserialize_item(d) for d in data["baseline_dietary"]])
-                    if "baseline_clinical" in data:
-                        baseline_clinical.clear()
-                        baseline_clinical.extend([_deserialize_item(c) for c in data["baseline_clinical"]])
+                    if "baseline_onboarding" in data:
+                        baseline_onboarding.clear()
+                        baseline_onboarding.extend([_deserialize_item(o) for o in data["baseline_onboarding"]])
                     if "user_thresholds" in data:
                         user_thresholds.clear()
                         user_thresholds.extend([_deserialize_item(t) for t in data["user_thresholds"]])
@@ -1044,7 +1026,7 @@ def save_logs():
             "meal_logs": [_serialize_item(m) for m in meal_logs],
             "exercise_logs": [_serialize_item(e) for e in exercise_logs],
             "daily_health_logs": [_serialize_item(l) for l in daily_health_logs],
-            "css_history": [_serialize_item(c) for c in css_history],
+            "hss_history": [_serialize_item(c) for c in hss_history],
             "notifications": [_serialize_item(n) for n in notifications],
             "alerts": [_serialize_item(a) for a in alerts],
             "saved_recipes": [_serialize_item(r) for r in saved_recipes],
@@ -1058,7 +1040,7 @@ def save_logs():
         print(f"Error saving mock logs: {e}")
 
 def load_logs():
-    global meal_logs, exercise_logs, daily_health_logs, css_history, notifications, alerts, saved_recipes, saved_exercises, expert_evaluations, system_broadcasts
+    global meal_logs, exercise_logs, daily_health_logs, hss_history, notifications, alerts, saved_recipes, saved_exercises, expert_evaluations, system_broadcasts
     if os.path.exists(LOGS_DB_FILE):
         try:
             with open(LOGS_DB_FILE, "r", encoding="utf-8") as f:
@@ -1072,9 +1054,9 @@ def load_logs():
                 if "daily_health_logs" in data:
                     daily_health_logs.clear()
                     daily_health_logs.extend([_deserialize_item(l) for l in data["daily_health_logs"]])
-                if "css_history" in data:
-                    css_history.clear()
-                    css_history.extend([_deserialize_item(c) for c in data["css_history"]])
+                if "hss_history" in data:
+                    hss_history.clear()
+                    hss_history.extend([_deserialize_item(c) for c in data["hss_history"]])
                 if "notifications" in data:
                     notifications.clear()
                     notifications.extend([_deserialize_item(n) for n in data["notifications"]])
