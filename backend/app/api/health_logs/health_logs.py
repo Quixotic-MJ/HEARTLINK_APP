@@ -10,6 +10,24 @@ def read_health_logs(user_id: str):
 
 @router.post("/{user_id}", response_model=Dict[str, Any])
 def add_health_log(user_id: str, data: Dict[str, Any]):
+    sys_bp = data.get("systolic_bp")
+    dia_bp = data.get("diastolic_bp")
+    hr = data.get("heart_rate_bpm")
+    weight = data.get("weight_kg")
+    
+    if sys_bp is not None:
+        if sys_bp < 50 or sys_bp > 300:
+            raise HTTPException(status_code=400, detail="Systolic blood pressure must be between 50 and 300.")
+    if dia_bp is not None:
+        if dia_bp < 30 or dia_bp > 200:
+            raise HTTPException(status_code=400, detail="Diastolic blood pressure must be between 30 and 200.")
+    if hr is not None:
+        if hr < 30 or hr > 250:
+            raise HTTPException(status_code=400, detail="Heart rate must be between 30 and 250.")
+    if weight is not None:
+        if weight <= 0 or weight > 500:
+            raise HTTPException(status_code=400, detail="Weight must be greater than 0.")
+
     log = create_health_log(user_id, data)
     return {"success": True, "message": "Health log saved", "data": log}
 

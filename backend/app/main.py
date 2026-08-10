@@ -4,6 +4,7 @@ from app.api.auth import auth
 from app.api.users import profile
 from app.api.dashboard import dashboard
 from app.api.health_logs import health_logs
+from app.api.sleep_logs import sleep_logs
 from app.api.meals import meals
 from app.api.exercises import exercises
 from app.api.recipes_api import recipes_api
@@ -29,6 +30,7 @@ app.include_router(auth.router, prefix="/api")
 app.include_router(profile.router, prefix="/api")
 app.include_router(dashboard.router)
 app.include_router(health_logs.router)
+app.include_router(sleep_logs.router)
 app.include_router(meals.router)
 app.include_router(exercises.router)
 app.include_router(recipes_api.router)

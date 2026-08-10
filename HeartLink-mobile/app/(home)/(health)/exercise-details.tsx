@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useRef } from "react";
-import { View, Text, TouchableOpacity, ScrollView, Image, Dimensions, Animated } from "react-native";
+import { View, Text, TouchableOpacity, ScrollView, Image, Dimensions, Animated, Easing, ActivityIndicator, Switch } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
-import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Feather } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { CircularProgress } from "../../../components/dashboard/ScoreRing";
-import { Skeleton } from "../../../components/ui/Skeleton";
 import { SafetyCheckSheet } from "../../../components/ui/SafetyCheckSheet";
+import { queueExerciseForSync } from "../../../services/SyncService";
 import { useUser } from "../../../contexts/UserContext";
 import YoutubePlayer from "react-native-youtube-iframe";
 import * as Haptics from "expo-haptics";
@@ -15,35 +14,178 @@ import * as Speech from "expo-speech";
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 const { width } = Dimensions.get("window");
 
-const VIDEO_BY_TYPE: Record<string, string> = {
-  "Light Cardio": "https://www.youtube.com/watch?v=njeZ29umqVE",
-  "Stationary":   "https://www.youtube.com/watch?v=5WEBMhRc_9M",
-  "Breathing":    "https://www.youtube.com/watch?v=DbDoBzGY3vo",
+// ─── Data Normalization ────────────────────────────────────────────────────────
+
+export type RoutineStep = {
+  id: string;
+  instruction: string;
+  duration_seconds: number;
+  type: "instruction" | "breathing";
+  phase?: "inhale" | "hold" | "exhale" | "rest";
+  voice_cue?: string;
 };
 
-function StepItem({ number, text, isLast, isCurrent, allActive }: { number: number; text: string; isLast: boolean; isCurrent: boolean; allActive: boolean }) {
-  const active = allActive || isCurrent;
-  return (
-    <View className="flex-row items-start" style={{ opacity: active ? 1 : 0.4 }}>
-      <View className="items-center mr-4" style={{ width: 28 }}>
-        <View
-          className={`w-7 h-7 rounded-full items-center justify-center ${active ? "bg-primary" : "bg-slate-400 dark:bg-slate-600"}`}
-        >
-          <Text className="text-primary-foreground text-[12px] font-bold">{number}</Text>
-        </View>
-        {!isLast && (
-          <View className="w-px flex-1 mt-1.5" style={{ minHeight: 20, backgroundColor: active ? "#bfdbfe" : "#e2e8f0" }} />
-        )}
+const parseSeconds = (text: string, defaultTime: number = 10) => {
+  const match = text.match(/(\d+)\s*second/i);
+  return match ? parseInt(match[1]) : defaultTime;
+};
+
+const normalizeRoutineSteps = (steps: any[], totalSeconds: number): RoutineStep[] => {
+  if (!steps || steps.length === 0) return [];
+  
+  let normalized: RoutineStep[] = [];
+  
+  if (typeof steps[0] === 'string') {
+    steps.forEach((s, idx) => {
+      normalized.push({
+        id: `legacy-${idx}`,
+        instruction: s,
+        duration_seconds: parseSeconds(s, 10),
+        type: "instruction",
+        voice_cue: "Next movement."
+      });
+    });
+  } else {
+    normalized = steps as RoutineStep[];
+  }
+
+  let timeline: RoutineStep[] = [];
+  let accumulatedTime = 0;
+  let idx = 0;
+  
+  // Extend timeline to exactly match totalSeconds
+  while (accumulatedTime < totalSeconds) {
+    const originalStep = normalized[idx % normalized.length];
+    let timeNeeded = totalSeconds - accumulatedTime;
+    let stepDuration = Math.min(originalStep.duration_seconds || 10, timeNeeded);
+    
+    if (stepDuration > 0) {
+      timeline.push({
+        ...originalStep,
+        id: `${originalStep.id || idx}-${accumulatedTime}`,
+        duration_seconds: stepDuration
+      });
+      accumulatedTime += stepDuration;
+    }
+    idx++;
+  }
+  
+  return timeline;
+};
+
+const getStepIndexFromTimeLeft = (timeLeft: number, totalSeconds: number, timelineSteps: RoutineStep[]) => {
+  const elapsedSeconds = totalSeconds - timeLeft;
+  let timeAccum = 0;
+  for (let i = 0; i < timelineSteps.length; i++) {
+    timeAccum += timelineSteps[i].duration_seconds;
+    if (elapsedSeconds < timeAccum || i === timelineSteps.length - 1) {
+      return i;
+    }
+  }
+  return timelineSteps.length - 1;
+};
+
+// ─── MediaRenderer ─────────────────────────────────────────────────────────────
+
+function getYoutubeVideoId(url: string) {
+  if (!url) return null;
+  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?]+)/);
+  return match ? match[1] : null;
+}
+
+function MediaRenderer({
+  routine,
+  isActive
+}: {
+  routine: any;
+  isActive: boolean;
+}) {
+  const [videoFailed, setVideoFailed] = useState(false);
+  const [imageFailed, setImageFailed] = useState(false);
+  const videoId = routine ? getYoutubeVideoId(routine.videoUrl || "") : null;
+
+  if (videoId && !videoFailed) {
+    return (
+      <View style={{ width: width, aspectRatio: 16 / 9, backgroundColor: "#0f172a" }}>
+        <YoutubePlayer
+          height={width * (9 / 16)}
+          width={width}
+          play={isActive}
+          videoId={videoId}
+          onError={() => setTimeout(() => setVideoFailed(true), 0)}
+          initialPlayerParams={{ controls: false, modestbranding: true }}
+        />
       </View>
-      <Text
-        className={`flex-1 text-[15px] leading-relaxed pt-0.5 ${active ? "font-medium text-slate-800 dark:text-slate-200" : "text-slate-400 dark:text-slate-500"}`}
-        style={{ paddingBottom: isLast ? 0 : 20 }}
-      >
-        {text}
-      </Text>
+    );
+  }
+
+  if (routine?.image && !imageFailed) {
+    return (
+      <View className="w-full items-center justify-center overflow-hidden bg-slate-100" style={{ aspectRatio: 16 / 9 }}>
+        <Image 
+          source={{ uri: routine.image }} 
+          className="absolute inset-0 w-full h-full" 
+          resizeMode="cover"
+          onError={() => setTimeout(() => setImageFailed(true), 0)}
+        />
+        <View className="absolute inset-0 bg-slate-900/10" />
+      </View>
+    );
+  }
+
+  return (
+    <View className="w-full items-center justify-center bg-slate-100 border-b border-slate-200" style={{ aspectRatio: 16 / 9 }}>
+      <Feather name="video-off" size={32} color="#cbd5e1" className="mb-2" />
+      <Text className="text-slate-400 font-medium text-[13px] tracking-wide uppercase">Visuals Unavailable</Text>
     </View>
   );
 }
+
+// ─── BreathingRenderer ─────────────────────────────────────────────────────────
+
+function BreathingRenderer({
+  animValue,
+  currentStep,
+  stepRemaining
+}: {
+  animValue: Animated.Value;
+  currentStep: RoutineStep;
+  stepRemaining: number;
+}) {
+  
+  let scale = animValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.6, 1.4]
+  });
+
+  let opacity = animValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.1, 0.4]
+  });
+
+  return (
+    <View className="w-full items-center justify-center bg-slate-900 flex-1 min-h-[250px] relative">
+      <Animated.View
+        style={{
+          position: "absolute",
+          width: 150,
+          height: 150,
+          borderRadius: 75,
+          backgroundColor: "rgba(244, 63, 94, 0.2)",
+          transform: [{ scale }],
+          opacity
+        }}
+      />
+      <View className="w-24 h-24 rounded-full bg-slate-800/80 border-2 border-rose-500/50 items-center justify-center z-10 shadow-lg shadow-rose-500/20">
+         <Text className="text-white text-3xl font-bold tracking-tighter">
+            {stepRemaining > 0 ? stepRemaining : 1}
+         </Text>
+      </View>
+    </View>
+  );
+}
+
+// ─── Screen Component ─────────────────────────────────────────────────────────
 
 export default function ExerciseDetailsScreen() {
   const router = useRouter();
@@ -52,8 +194,27 @@ export default function ExerciseDetailsScreen() {
   const { userId } = useUser();
 
   const [routine, setRoutine] = useState<any>(null);
+  const [timelineSteps, setTimelineSteps] = useState<RoutineStep[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const [workoutState, setWorkoutState] = useState<"overview" | "get_ready" | "active" | "transition" | "result">("overview");
+  const [sessionStatus, setSessionStatus] = useState<"completed" | "partial" | "abandoned" | "incomplete_due_to_symptoms">("completed");
+  const [isVoiceEnabled, setIsVoiceEnabled] = useState(true);
+
+  // Authoritative clocks
+  const [timeLeft, setTimeLeft] = useState(0);
+  const [isActive, setIsActive] = useState(false);
+  const [getReadyTime, setGetReadyTime] = useState(3);
+  const [transitionTime, setTransitionTime] = useState(2);
+  const [showSafetyCheck, setShowSafetyCheck] = useState(false);
+
+  // Derived state
+  const totalSeconds = routine ? routine.duration * 60 : 0;
+  const currentStepIndex = timelineSteps.length > 0 && timeLeft <= totalSeconds
+    ? getStepIndexFromTimeLeft(timeLeft, totalSeconds, timelineSteps) 
+    : 0;
+  const currentStep = timelineSteps[currentStepIndex];
 
   useEffect(() => {
     async function fetchRoutine() {
@@ -62,7 +223,7 @@ export default function ExerciseDetailsScreen() {
         if (!response.ok) throw new Error("Failed to fetch routine");
         const data = await response.json();
         
-        setRoutine({
+        const r = {
           id: data.id,
           title: data.name || "",
           duration: data.duration_minutes || 0,
@@ -71,9 +232,14 @@ export default function ExerciseDetailsScreen() {
           intensity: data.intensity || "Low",
           category: data.hss_tier || "Stable",
           steps: data.steps || [],
-          videoUrl: data.video_url || VIDEO_BY_TYPE[data.type] || VIDEO_BY_TYPE["Light Cardio"],
-          image: data.media_url || "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=400&h=300&fit=crop",
-        });
+          videoUrl: data.video_url || "",
+          image: data.media_url || "",
+        };
+        
+        setRoutine(r);
+        setTimeLeft(r.duration * 60);
+        setTimelineSteps(normalizeRoutineSteps(r.steps, r.duration * 60));
+
       } catch (error) {
         console.error(error);
       } finally {
@@ -83,259 +249,126 @@ export default function ExerciseDetailsScreen() {
     fetchRoutine();
   }, [id]);
 
-  const [timeLeft, setTimeLeft] = useState(0);
-
+  // Handle the single authoritative interval
   useEffect(() => {
-    if (routine && timeLeft === 0) {
-      setTimeLeft(routine.duration * 60);
-    }
-  }, [routine]);
-  
-  const [isActive, setIsActive] = useState(false);
-  const [showSafetyCheck, setShowSafetyCheck] = useState(false);
-  
-  useEffect(() => {
-    let interval: NodeJS.Timeout | null = null;
+    let interval: ReturnType<typeof setInterval> | null = null;
     
-    if (isActive && timeLeft > 0) {
+    if (workoutState === "get_ready") {
       interval = setInterval(() => {
-        setTimeLeft(time => time - 1);
+        setGetReadyTime(t => {
+          if (t <= 1) {
+            setWorkoutState("active");
+            setIsActive(true);
+            if (isVoiceEnabled) Speech.speak("Begin", { rate: 0.95 });
+            return 3;
+          }
+          if (isVoiceEnabled && t <= 3) Speech.speak(t.toString(), { rate: 0.95 });
+          return t - 1;
+        });
       }, 1000);
-    } else if (timeLeft === 0 && isActive) {
-      setIsActive(false);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      if (interval) clearInterval(interval);
-      handleAutoComplete();
+    } 
+    
+    else if (workoutState === "transition") {
+      interval = setInterval(() => {
+        setTransitionTime(t => {
+          if (t <= 1) {
+            setWorkoutState("active");
+            setIsActive(true);
+            return 2;
+          }
+          return t - 1;
+        });
+      }, 1000);
+    }
+    
+    else if (workoutState === "active" && isActive) {
+      interval = setInterval(() => {
+        setTimeLeft(t => {
+          if (t <= 1) {
+            setIsActive(false);
+            setWorkoutState("result");
+            setSessionStatus("completed");
+            if (isVoiceEnabled) Speech.speak("Exercise complete.", { rate: 0.95 });
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            logExerciseComplete("completed");
+            return 0;
+          }
+          
+          const currentIdx = getStepIndexFromTimeLeft(t, totalSeconds, timelineSteps);
+          const nextIdx = getStepIndexFromTimeLeft(t - 1, totalSeconds, timelineSteps);
+          
+          // Trigger transition if moving to a new instruction step
+          if (nextIdx > currentIdx && timelineSteps[nextIdx].type !== "breathing") {
+            setWorkoutState("transition");
+            setTransitionTime(2);
+            setIsActive(false); // Pause timer during transition
+            return t; // Freeze time
+          }
+          
+          return t - 1;
+        });
+      }, 1000);
     }
     
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isActive, timeLeft]);
+  }, [workoutState, isActive, timelineSteps, totalSeconds, isVoiceEnabled]);
 
-  // Milestone haptics & state
-  const [hasTriggeredHalfway, setHasTriggeredHalfway] = useState(false);
-  const [hasTriggeredSeventyFive, setHasTriggeredSeventyFive] = useState(false);
-  const [hasTriggeredOneMin, setHasTriggeredOneMin] = useState(false);
-
+  // Voice Cue Trigger
   useEffect(() => {
-    if (!routine || !isActive) return;
-    const totalSeconds = routine.duration * 60;
-    
-    // Halfway mark (50%)
-    const halfway = Math.floor(totalSeconds / 2);
-    if (timeLeft === halfway && totalSeconds > 60 && !hasTriggeredHalfway) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      setHasTriggeredHalfway(true);
-    }
-    
-    // 75% mark (25% time left)
-    const seventyFive = Math.floor(totalSeconds * 0.25);
-    if (timeLeft === seventyFive && totalSeconds > 120 && !hasTriggeredSeventyFive) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      setHasTriggeredSeventyFive(true);
-    }
-
-    // 1 minute left
-    if (timeLeft === 60 && totalSeconds > 120 && !hasTriggeredOneMin) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-      setHasTriggeredOneMin(true);
-    }
-  }, [timeLeft, routine, isActive, hasTriggeredHalfway, hasTriggeredSeventyFive, hasTriggeredOneMin]);
-
-  // Breathing Visual Cue & Dynamics
-  const breatheAnim = useRef(new Animated.Value(0)).current;
-  const ringAnim2 = useRef(new Animated.Value(0)).current;
-  const ringAnim3 = useRef(new Animated.Value(0)).current;
-  const [breathingTimes, setBreathingTimes] = useState([4000, 2000, 6000]);
-  const [breathPhase, setBreathPhase] = useState<"ready" | "inhale" | "hold" | "exhale">("ready");
-
-  const parseSeconds = (text: string, defaultTime: number = 4) => {
-    const match = text.match(/(\d+)\s*second/i);
-    return match ? parseInt(match[1]) : defaultTime;
-  };
-
-  useEffect(() => {
-    if (routine?.type === "Breathing" && routine.steps) {
-      const coreSteps = routine.steps.filter((s: string) => !s.toLowerCase().includes("repeat"));
-      if (coreSteps.length >= 3) {
-        setBreathingTimes([
-          parseSeconds(coreSteps[0], 4) * 1000,
-          parseSeconds(coreSteps[1], 2) * 1000,
-          parseSeconds(coreSteps[2], 6) * 1000,
-        ]);
+    if (workoutState === 'active' && isVoiceEnabled && currentStep) {
+      Speech.stop(); // Stop previous cue to prevent overlap
+      if (currentStep.voice_cue) {
+        Speech.speak(currentStep.voice_cue, { rate: 0.95 });
       }
     }
-  }, [routine]);
+  }, [currentStepIndex, workoutState, isVoiceEnabled]);
+
+  // Breathing Animation derivation
+  const breatheAnim = useRef(new Animated.Value(0)).current;
+
+  // Calculate precise step timings
+  let stepStartTime = 0;
+  for (let i = 0; i < currentStepIndex; i++) {
+    stepStartTime += timelineSteps[i].duration_seconds;
+  }
+  const stepElapsed = (totalSeconds - timeLeft) - stepStartTime;
+  const stepRemaining = currentStep ? currentStep.duration_seconds - stepElapsed : 0;
 
   useEffect(() => {
-    let animLoop: Animated.CompositeAnimation | null = null;
-    if (routine?.type === "Breathing" && isActive) {
-      const runCycle = () => {
-        setBreathPhase("inhale");
-        animLoop = Animated.loop(
-          Animated.sequence([
-            // Inhale — expand
-            Animated.parallel([
-              Animated.timing(breatheAnim, { toValue: 1, duration: breathingTimes[0], useNativeDriver: true }),
-              Animated.timing(ringAnim2, { toValue: 1, duration: breathingTimes[0] + 200, useNativeDriver: true }),
-              Animated.timing(ringAnim3, { toValue: 1, duration: breathingTimes[0] + 400, useNativeDriver: true }),
-            ]),
-            // Hold — stay expanded
-            Animated.delay(breathingTimes[1]),
-            // Exhale — contract
-            Animated.parallel([
-              Animated.timing(breatheAnim, { toValue: 0, duration: breathingTimes[2], useNativeDriver: true }),
-              Animated.timing(ringAnim2, { toValue: 0, duration: breathingTimes[2] + 200, useNativeDriver: true }),
-              Animated.timing(ringAnim3, { toValue: 0, duration: breathingTimes[2] + 400, useNativeDriver: true }),
-            ]),
-          ])
-        );
-        animLoop.start();
-      };
-      runCycle();
-
-      // Phase label timer
-      const totalCycle = breathingTimes[0] + breathingTimes[1] + breathingTimes[2];
-      const phaseInterval = setInterval(() => {
-        setBreathPhase(prev => {
-          if (prev === "inhale") return "hold";
-          if (prev === "hold") return "exhale";
-          return "inhale";
-        });
-      }, totalCycle / 3);
-
-      // More precise phase tracking
-      let phaseTimeout: NodeJS.Timeout;
-      const trackPhase = () => {
-        setBreathPhase("inhale");
-        phaseTimeout = setTimeout(() => {
-          setBreathPhase("hold");
-          phaseTimeout = setTimeout(() => {
-            setBreathPhase("exhale");
-            phaseTimeout = setTimeout(trackPhase, breathingTimes[2]);
-          }, breathingTimes[1]);
-        }, breathingTimes[0]);
-      };
-      clearInterval(phaseInterval);
-      trackPhase();
-
-      return () => {
-        if (animLoop) animLoop.stop();
-        clearTimeout(phaseTimeout);
-      };
-    } else {
+    if (workoutState !== 'active' || !isActive || !currentStep) {
       breatheAnim.stopAnimation();
-      breatheAnim.setValue(0);
-      ringAnim2.stopAnimation();
-      ringAnim2.setValue(0);
-      ringAnim3.stopAnimation();
-      ringAnim3.setValue(0);
-      setBreathPhase("ready");
+      return;
     }
-    return () => {
-      if (animLoop) animLoop.stop();
-    };
-  }, [routine, isActive, breatheAnim, ringAnim2, ringAnim3, breathingTimes]);
 
-  // Voice Coaching & Step Sync
-  const [currentStepIndex, setCurrentStepIndex] = useState(-1);
-  const [instructionsComplete, setInstructionsComplete] = useState(false);
-
-  useEffect(() => {
-    let isMounted = true;
-    let timeoutId: NodeJS.Timeout;
-    
-    if (!routine || !routine.steps || routine.steps.length === 0) return;
-
-    if (isActive && !instructionsComplete) {
-      const isBreathing = routine.type === "Breathing";
+    if (currentStep.type === "breathing") {
+      const remainingMs = stepRemaining * 1000;
+      let toValue = 0;
       
-      const runCoachingSequence = async () => {
-        // Read intro only if it's the very start of the routine
-        if (timeLeft === routine.duration * 60) {
-           Speech.speak("Starting routine. Let's go over the form.", { rate: 0.95 });
-           await new Promise(res => { timeoutId = setTimeout(res, 3500); });
-        }
-        if (!isMounted) return;
-
-        if (isBreathing) {
-          // Breathing Mode: Continuous Loop
-          while (isMounted) {
-            for (let i = 0; i < routine.steps.length; i++) {
-              if (!isMounted) return;
-              if (routine.steps[i].toLowerCase().includes("repeat")) continue; 
-              
-              setCurrentStepIndex(i);
-              Speech.speak(routine.steps[i], { rate: 0.95 });
-              
-              const waitTime = parseSeconds(routine.steps[i], 4) * 1000;
-              await new Promise(res => { timeoutId = setTimeout(res, waitTime); });
-            }
-          }
-        } else {
-          // Cardio / Stationary Mode: Read once with smart pacing
-          for (let i = 0; i < routine.steps.length; i++) {
-            if (!isMounted) return;
-            setCurrentStepIndex(i);
-            Speech.speak(routine.steps[i], { rate: 0.95 });
-            
-            const waitTime = parseSeconds(routine.steps[i], 4) * 1000;
-            // Add a buffer so it doesn't clip immediately after talking
-            await new Promise(res => { timeoutId = setTimeout(res, waitTime + 1500); });
-          }
-
-          if (isMounted) {
-            setCurrentStepIndex(-1);
-            setInstructionsComplete(true);
-            Speech.speak("Great. Now keep this up for the rest of the timer.", { rate: 0.95 });
-          }
-        }
-      };
-
-      runCoachingSequence();
-    } else if (!isActive) {
-      Speech.stop();
+      if (currentStep.phase === "inhale") toValue = 1;
+      else if (currentStep.phase === "hold") {
+        breatheAnim.setValue(1);
+        toValue = 1;
+      }
+      else if (currentStep.phase === "exhale") toValue = 0;
+      else if (currentStep.phase === "rest") {
+        breatheAnim.setValue(0);
+        toValue = 0;
+      }
+      
+      Animated.timing(breatheAnim, {
+        toValue,
+        duration: remainingMs,
+        useNativeDriver: true,
+        easing: Easing.linear
+      }).start();
+    } else {
+      breatheAnim.setValue(0);
     }
+  }, [currentStepIndex, isActive, workoutState]);
 
-    return () => {
-      isMounted = false;
-      clearTimeout(timeoutId);
-      if (!isActive) Speech.stop();
-    };
-  }, [isActive, instructionsComplete, routine]);
-
-  // Percentage-based Encouragement
-  const [spokenHalfway, setSpokenHalfway] = useState(false);
-  const [spokenSeventyFive, setSpokenSeventyFive] = useState(false);
-  const [spokenOneMin, setSpokenOneMin] = useState(false);
-
-  useEffect(() => {
-    if (!routine || !isActive || !instructionsComplete) return;
-    const totalSeconds = routine.duration * 60;
-    
-    const halfway = Math.floor(totalSeconds / 2);
-    const seventyFive = Math.floor(totalSeconds * 0.25);
-
-    if (timeLeft === halfway && totalSeconds > 60 && !spokenHalfway) {
-      Speech.speak("You are halfway there. You're doing great, keep going.", { rate: 0.95 });
-      setSpokenHalfway(true);
-    }
-
-    if (timeLeft === seventyFive && totalSeconds > 120 && !spokenSeventyFive) {
-      Speech.speak("Almost done, keep a steady pace.", { rate: 0.95 });
-      setSpokenSeventyFive(true);
-    }
-
-    if (timeLeft === 60 && totalSeconds > 120 && !spokenOneMin) {
-      Speech.speak("Just one minute left! Finish strong.", { rate: 0.95 });
-      setSpokenOneMin(true);
-    }
-  }, [timeLeft, isActive, instructionsComplete, routine, spokenHalfway, spokenSeventyFive, spokenOneMin]);
-
-  const toggleTimer = () => {
-    setIsActive(!isActive);
-  };
+  // ─── Logging & Completion ───────────────────────────────────────────────────
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60).toString().padStart(2, "0");
@@ -347,13 +380,12 @@ export default function ExerciseDetailsScreen() {
 
   const getElapsedDuration = () => {
     if (!routine) return { seconds: 0, minutes: 0 };
-    const totalSeconds = routine.duration * 60;
     const elapsedSeconds = Math.max(0, totalSeconds - timeLeft);
     const elapsedMinutes = parseFloat((elapsedSeconds / 60).toFixed(2));
     return { seconds: elapsedSeconds, minutes: elapsedMinutes };
   };
 
-  const logExerciseAsync = async (status: string, exerciseId: string) => {
+  const logExerciseData = async (status: string, exerciseId: string) => {
     if (!routine) return;
     const { seconds, minutes } = getElapsedDuration();
     const payload = {
@@ -362,6 +394,8 @@ export default function ExerciseDetailsScreen() {
       routine_name: routine.title,
       duration_seconds: seconds,
       duration_minutes: minutes,
+      planned_duration_seconds: routine.duration * 60,
+      planned_duration_minutes: routine.duration,
       status: status,
     };
 
@@ -377,45 +411,40 @@ export default function ExerciseDetailsScreen() {
       });
       clearTimeout(timeoutId);
     } catch (err) {
-      console.warn("Failed to log exercise directly, logging offline fallback:", err);
+      if (userId) {
+        await queueExerciseForSync(userId, payload);
+      }
     }
   };
 
-  const handleAutoComplete = async () => {
-    if (!routine) return;
+  const logExerciseComplete = async (overrideStatus?: string) => {
     setIsSubmitting(true);
     const exerciseId = generateExerciseId();
-    try {
-      await logExerciseAsync("completed", exerciseId);
-    } finally {
-      setIsSubmitting(false);
-      router.push({
-        pathname: "/(home)/(tabs)/exercises",
-        params: { completedId: routine.id },
-      });
-    }
+    const finalStatus = overrideStatus || determineCompletionStatus();
+    await logExerciseData(finalStatus, exerciseId);
+    setIsSubmitting(false);
+  };
+
+  const determineCompletionStatus = () => {
+    if (!routine) return "abandoned";
+    const { seconds } = getElapsedDuration();
+    const pct = seconds / totalSeconds;
+    if (seconds < 60 || pct < 0.1) return "abandoned";
+    if (pct < 0.8) return "partial";
+    return "completed";
   };
 
   const handleEndEarly = () => {
-    // CLINICAL REQUIREMENT: Ending an exercise must have ZERO friction for cardiovascular patients.
-    // Do NOT add a confirmation dialog here so patients feeling fatigued can exit immediately to safety check.
     setIsActive(false);
     setShowSafetyCheck(true);
   };
 
   const handleSafetySafe = async () => {
-    setIsSubmitting(true);
-    const exerciseId = generateExerciseId();
-    try {
-      await logExerciseAsync("completed", exerciseId);
-    } finally {
-      setIsSubmitting(false);
-      setShowSafetyCheck(false);
-      router.push({
-        pathname: "/(home)/(tabs)/exercises",
-        params: { completedId: routine.id },
-      });
-    }
+    setShowSafetyCheck(false);
+    const finalStatus = determineCompletionStatus();
+    setSessionStatus(finalStatus);
+    setWorkoutState("result");
+    await logExerciseComplete(finalStatus);
   };
 
   const handleSafetySymptoms = () => {
@@ -429,260 +458,237 @@ export default function ExerciseDetailsScreen() {
       routine_name: routine.title,
       duration_seconds: seconds,
       duration_minutes: minutes,
+      planned_duration_seconds: routine.duration * 60,
+      planned_duration_minutes: routine.duration,
       status: "incomplete_due_to_symptoms",
     };
     const payloadStr = encodeURIComponent(JSON.stringify(payload));
     router.push(`/(home)/(health)/log-symptoms?triggered_by_exercise_id=${exerciseId}&pending_exercise=${payloadStr}`);
   };
 
-  if (isLoading || !routine) {
-    return (
-      <View className="flex-1 bg-slate-50 dark:bg-slate-950 justify-center items-center">
-        <Text>Loading...</Text>
-      </View>
-    );
-  }
-
-  const getYoutubeVideoId = (url: string) => {
-    if (!url) return null;
-    const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?]+)/);
-    return match ? match[1] : null;
+  const startMovement = () => {
+    setWorkoutState("get_ready");
+    if (isVoiceEnabled) Speech.speak("Get ready.", { rate: 0.95 });
   };
-  const videoId = routine ? (getYoutubeVideoId(routine.image) || getYoutubeVideoId(routine.videoUrl)) : null;
 
-  const steps = routine.steps && routine.steps.length > 0 ? routine.steps : [
-    "Sit straight on the edge of a sturdy chair with your feet flat on the floor.",
-    "Inhale deeply and slowly raise your arms above your head.",
-    "Exhale gently while lowering your arms back down to your sides.",
-    "Keep your shoulders relaxed and avoid straining your neck.",
-    "Repeat this motion smoothly for 10–15 repetitions.",
-  ];
+  // ─── Renderers ──────────────────────────────────────────────────────────────
 
-  const hasStarted = timeLeft < routine.duration * 60;
-
-  return (
-    <View className="flex-1 bg-slate-50 dark:bg-slate-950">
-      <StatusBar style="light" />
-
-      <ScrollView contentContainerStyle={{ paddingBottom: 140 }} showsVerticalScrollIndicator={false} bounces={false}>
-        {/* Header Area */}
-        <View className="w-full bg-black relative" style={{ paddingTop: Math.max(insets.top, 10) }}>
-          {/* Back button */}
+  const renderOverviewState = () => (
+    <View className="flex-1 bg-white">
+      <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
+        <View className="w-full bg-slate-100 relative" style={{ height: width * 0.7 }}>
           <TouchableOpacity
             onPress={() => router.back()}
-            className="absolute z-10 w-10 h-10 rounded-full bg-white/20 items-center justify-center"
+            className="absolute z-10 w-10 h-10 rounded-full bg-white/50 backdrop-blur-md items-center justify-center"
             style={{ top: Math.max(insets.top, 10) + 10, left: 15 }}
           >
-            <Feather name="arrow-left" size={20} color="#fff" />
+            <Feather name="arrow-left" size={20} color="#1e293b" />
           </TouchableOpacity>
-
-          {routine?.type === "Breathing" ? (
-            <View className="w-full items-center justify-center overflow-hidden" style={{ aspectRatio: 16 / 9, backgroundColor: "#0f172a" }}>
-              {/* Outer ring 3 */}
-              <Animated.View
-                style={{
-                  position: "absolute",
-                  width: 180,
-                  height: 180,
-                  borderRadius: 90,
-                  backgroundColor: "transparent",
-                  borderWidth: 1,
-                  borderColor: "rgba(94, 234, 212, 0.1)",
-                  transform: [{
-                    scale: ringAnim3.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0.6, 1.6],
-                    })
-                  }],
-                  opacity: ringAnim3.interpolate({
-                    inputRange: [0, 0.5, 1],
-                    outputRange: [0.1, 0.3, 0.1],
-                  }),
-                }}
-              />
-              {/* Middle ring 2 */}
-              <Animated.View
-                style={{
-                  position: "absolute",
-                  width: 140,
-                  height: 140,
-                  borderRadius: 70,
-                  backgroundColor: "transparent",
-                  borderWidth: 1.5,
-                  borderColor: "rgba(94, 234, 212, 0.2)",
-                  transform: [{
-                    scale: ringAnim2.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0.7, 1.4],
-                    })
-                  }],
-                  opacity: ringAnim2.interpolate({
-                    inputRange: [0, 0.5, 1],
-                    outputRange: [0.15, 0.4, 0.15],
-                  }),
-                }}
-              />
-              {/* Core breathing circle */}
-              <Animated.View
-                style={{
-                  width: 100,
-                  height: 100,
-                  borderRadius: 50,
-                  backgroundColor: "rgba(94, 234, 212, 0.08)",
-                  borderWidth: 2,
-                  borderColor: "rgba(94, 234, 212, 0.5)",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  transform: [{
-                    scale: breatheAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0.8, 1.3],
-                    })
-                  }],
-                }}
-              >
-                <Text style={{ color: "rgba(94, 234, 212, 0.9)", fontSize: 13, fontWeight: "700", letterSpacing: 2, textTransform: "uppercase" }}>
-                  {breathPhase === "ready" ? "" : breathPhase}
-                </Text>
-              </Animated.View>
-              {/* Bottom instruction text */}
-              <Text style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, fontWeight: "500", letterSpacing: 1.5, textTransform: "uppercase", position: "absolute", bottom: 20, textAlign: "center" }}>
-                {isActive ? "Follow the rhythm" : "Press Start to begin"}
-              </Text>
-            </View>
-          ) : videoId ? (
-            <YoutubePlayer
-              height={width * (9 / 16)}
-              width={width}
-              play={isActive}
-              videoId={videoId}
-            />
+          
+          {routine.image ? (
+            <Image source={{ uri: routine.image }} className="absolute inset-0 w-full h-full" resizeMode="cover" />
           ) : (
-            <View className="w-full items-center justify-center overflow-hidden" style={{ aspectRatio: 16 / 9 }}>
-              <Image source={{ uri: routine.image }} className="absolute inset-0 w-full h-full" resizeMode="cover" />
-              <View className="absolute inset-0 bg-black/40" />
+            <View className="flex-1 items-center justify-center bg-rose-50">
+              <Feather name="activity" size={40} color="#f43f5e" />
             </View>
           )}
         </View>
 
-        <View className="px-5 pt-6">
-          <View className="flex-row items-center gap-2 mb-3">
-            <View className="bg-blue-100 dark:bg-blue-900/30 px-3 py-1.5 rounded-lg border border-blue-200 dark:border-blue-800">
-              <Text className="text-[11px] font-bold text-blue-700 dark:text-blue-300 uppercase tracking-wider">{routine.type}</Text>
+        <View className="px-6 pt-6 bg-white flex-1 -mt-6 rounded-t-3xl">
+          <Text className="text-[28px] font-bold text-slate-900 leading-tight mb-4">
+            {routine.title}
+          </Text>
+          
+          <View className="flex-row flex-wrap gap-2 mb-8">
+            <View className="bg-rose-50 px-3 py-1.5 rounded-lg border border-rose-100">
+              <Text className="text-[13px] font-bold text-rose-700">{routine.duration} min</Text>
             </View>
-            <View className="bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700">
-              <Text className="text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">{routine.duration} min</Text>
+            <View className="bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200">
+              <Text className="text-[13px] font-bold text-slate-700">{routine.intensity} Intensity</Text>
+            </View>
+            <View className="bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200">
+              <Text className="text-[13px] font-bold text-slate-700">{timelineSteps.filter(s => s.type !== 'breathing').length || timelineSteps.length} movements</Text>
             </View>
           </View>
           
-          <Text className="text-[30px] font-bold text-slate-900 dark:text-white leading-tight tracking-tight mb-4">
-            {routine.title}
-          </Text>
-          <Text className="text-[16px] text-slate-600 dark:text-slate-300 leading-relaxed mb-8">
-            {routine.goal}
-          </Text>
+          <Text className="text-[18px] font-semibold text-slate-900 mb-2">Why this movement?</Text>
+          <Text className="text-[16px] text-slate-600 leading-relaxed mb-8">{routine.goal}</Text>
 
-          {/* Info Cards */}
-          <View className="flex-row items-center gap-3 mb-10">
-            <View className="flex-1 bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-200 dark:border-slate-800/70 items-center justify-center shadow-sm shadow-slate-100">
-              <View className="w-12 h-12 rounded-full bg-blue-50 dark:bg-blue-900/20 items-center justify-center mb-3">
-                <Feather name="activity" size={22} color="#1e4ed8" />
-              </View>
-              <Text className="text-[11px] text-slate-500 dark:text-slate-400 uppercase font-bold tracking-widest mb-1">Intensity</Text>
-              <Text className="text-[16px] font-black text-slate-900 dark:text-white">{routine.intensity}</Text>
+          <View className="flex-row items-center justify-between bg-slate-50 p-4 rounded-xl border border-slate-100 mb-6">
+            <View className="flex-row items-center">
+              <Feather name="volume-2" size={20} color="#475569" className="mr-3" />
+              <Text className="text-slate-700 font-medium">Voice Guidance</Text>
             </View>
-            <View className="flex-1 bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-200 dark:border-slate-800/70 items-center justify-center shadow-sm shadow-slate-100">
-              <View className="w-12 h-12 rounded-full bg-purple-50 dark:bg-purple-900/20 items-center justify-center mb-3">
-                <Feather name="shield" size={22} color="#7e22ce" />
-              </View>
-              <Text className="text-[11px] text-slate-500 dark:text-slate-400 uppercase font-bold tracking-widest mb-1">Risk Tier</Text>
-              <Text className="text-[16px] font-black text-slate-900 dark:text-white">{routine.category}</Text>
-            </View>
-          </View>
-
-          {/* Gamification Badge */}
-          <View className="flex-row justify-center mb-4 px-2">
-            <View className="flex-1 bg-green-100 dark:bg-green-900/30 px-4 py-2.5 rounded-full flex-row items-center justify-center gap-2 border border-green-200 dark:border-green-800">
-              <Feather name="trending-up" size={16} color="#16a34a" />
-              <Text 
-                className="text-green-700 dark:text-green-400 font-bold text-[13px] text-center"
-                numberOfLines={1}
-                adjustsFontSizeToFit
-              >
-                Finish session to gain +5 Stability Points
-              </Text>
-            </View>
-          </View>
-
-          {/* Timer Section */}
-          <View className="bg-white dark:bg-slate-900 p-6 rounded-[32px] items-center justify-center mb-6 border border-slate-200 dark:border-slate-800/70 shadow-sm shadow-slate-200/50">
-            <Text className="text-[13px] font-bold text-slate-400 uppercase tracking-widest mb-2">Time Remaining</Text>
-            <Text className="text-[56px] font-bold text-slate-900 dark:text-white tracking-tighter leading-none">
-              {formatTime(timeLeft)}
-            </Text>
-          </View>
-
-          {/* ── Step-by-step guide ── */}
-          <Text className="text-[16px] font-medium text-slate-900 dark:text-white mb-4 mt-2">
-            Instruction Guide
-          </Text>
-          <View className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-5 mb-8 shadow-sm shadow-slate-100">
-            {steps.map((step: string, i: number) => (
-              <StepItem 
-                key={i} 
-                number={i + 1} 
-                text={step} 
-                isLast={i === steps.length - 1} 
-                isCurrent={i === currentStepIndex} 
-                allActive={currentStepIndex === -1}
-              />
-            ))}
+            <Switch
+              value={isVoiceEnabled}
+              onValueChange={setIsVoiceEnabled}
+              trackColor={{ false: "#cbd5e1", true: "#f43f5e" }}
+              thumbColor="#ffffff"
+            />
           </View>
         </View>
       </ScrollView>
 
-      {/* Bottom Sticky Action Buttons */}
-      <View style={{ paddingBottom: Math.max(insets.bottom, 20) }} className="absolute bottom-0 left-0 right-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-t border-slate-200/50 dark:border-slate-800/50 px-5 pt-4 pb-6 flex-row gap-3">
-         {hasStarted && (
-           <TouchableOpacity
-             activeOpacity={0.8}
-             onPress={handleEndEarly}
-             className="px-4 py-4 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 items-center justify-center flex-row"
-           >
-             <Feather name="square" size={18} color="#64748b" className="mr-1.5" />
-             <Text className="text-slate-700 dark:text-slate-300 font-bold text-[15px]">End Early</Text>
-           </TouchableOpacity>
-         )}
-
+      <View style={{ paddingBottom: Math.max(insets.bottom, 20) }} className="absolute bottom-0 w-full px-6 pt-4 pb-6 bg-white border-t border-slate-100">
          <TouchableOpacity 
            activeOpacity={0.8}
-           onPress={toggleTimer}
-           className={`flex-1 py-4 rounded-2xl items-center justify-center flex-row shadow-sm ${isActive ? 'bg-red-50 border border-red-100' : hasStarted ? 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700' : 'bg-primary'}`}
+           onPress={startMovement}
+           className="w-full py-4 rounded-full items-center justify-center bg-slate-900 shadow-sm"
          >
-           {isActive ? (
-             <>
-                <Feather name="pause" size={22} color="#b91c1c" className="mr-2" />
-                <Text className="text-red-700 text-[18px] font-bold">Pause Routine</Text>
-             </>
-           ) : (
-             <>
-                <Feather name="play" size={22} className={`mr-2 ${hasStarted ? 'text-primary' : 'text-primary-foreground'}`} />
-                <Text className={`${hasStarted ? 'text-primary' : 'text-primary-foreground'} text-[18px] font-bold`}>
-                  {hasStarted ? "Resume Routine" : "Start Routine"}
-                </Text>
-             </>
-           )}
+           <Text className="text-white text-[18px] font-bold tracking-wide">START MOVEMENT</Text>
          </TouchableOpacity>
       </View>
+    </View>
+  );
 
-      {/* Safety Check Bottom Sheet Modal */}
+  const renderGetReady = () => (
+    <View className="flex-1 bg-slate-900 items-center justify-center px-6">
+      <Text className="text-rose-500 font-bold text-xl uppercase tracking-widest mb-4">Get Ready</Text>
+      <Text className="text-white text-3xl font-bold text-center mb-12">{routine.title}</Text>
+      <View className="w-24 h-24 rounded-full bg-white/10 items-center justify-center">
+        <Text className="text-white text-5xl font-bold">{getReadyTime}</Text>
+      </View>
+    </View>
+  );
+
+  const renderTransition = () => (
+    <View className="flex-1 bg-slate-900 items-center justify-center px-6">
+      <Text className="text-slate-400 font-bold text-lg uppercase tracking-widest mb-4">Next Movement</Text>
+      <Text className="text-white text-3xl font-bold text-center leading-tight mb-8">
+        {timelineSteps[currentStepIndex + 1]?.instruction || "Continue"}
+      </Text>
+      <Text className="text-rose-400 text-lg font-medium">Get ready...</Text>
+    </View>
+  );
+
+  const renderActiveState = () => {
+    const progressPercent = ((totalSeconds - timeLeft) / totalSeconds) * 100;
+    const isBreathing = currentStep?.type === "breathing";
+    
+    return (
+      <View className="flex-1 bg-white">
+        <View className="w-full relative" style={{ paddingTop: Math.max(insets.top, 10), backgroundColor: "#0f172a" }}>
+          <View className="flex-row items-center justify-between px-5 pb-4">
+             <TouchableOpacity onPress={handleEndEarly} className="w-10 h-10 rounded-full bg-white/10 items-center justify-center">
+               <Feather name="x" size={20} color="#fff" />
+             </TouchableOpacity>
+             <Text className="text-white font-medium text-[16px]">{routine.title}</Text>
+             <TouchableOpacity onPress={() => setIsVoiceEnabled(!isVoiceEnabled)} className="w-10 h-10 rounded-full bg-white/10 items-center justify-center">
+               <Feather name={isVoiceEnabled ? "volume-2" : "volume-x"} size={18} color="#fff" />
+             </TouchableOpacity>
+          </View>
+
+          {isBreathing ? (
+            <BreathingRenderer animValue={breatheAnim} currentStep={currentStep} stepRemaining={stepRemaining} />
+          ) : (
+            <MediaRenderer routine={routine} isActive={isActive} />
+          )}
+        </View>
+
+        <View className="flex-1 px-6 pt-8 pb-10 items-center justify-between bg-white">
+          <View className="w-full items-center">
+            <View className="bg-slate-100 px-3 py-1 rounded-full mb-6">
+              <Text className="text-[13px] font-bold text-slate-500 tracking-widest uppercase">
+                {isBreathing ? (currentStep?.phase?.toUpperCase() || "BREATHE") : `STEP ${currentStepIndex + 1} OF ${timelineSteps.length}`}
+              </Text>
+            </View>
+            <Text className="text-[32px] font-bold text-slate-900 text-center leading-tight">
+              {currentStep?.instruction || "Keep going."}
+            </Text>
+          </View>
+
+          <View className="w-full items-center">
+            <Text className="text-[40px] font-semibold text-slate-400 tracking-tighter leading-none mb-6">
+              {formatTime(timeLeft)}
+            </Text>
+            
+            <View className="w-full h-2 bg-slate-100 rounded-full overflow-hidden mb-8">
+              <View className="h-full bg-slate-900 rounded-full" style={{ width: `${progressPercent}%` }} />
+            </View>
+
+            <View className="flex-row items-center justify-center w-full gap-4">
+               <TouchableOpacity onPress={handleEndEarly} className="flex-1 py-4 rounded-2xl bg-slate-100 items-center justify-center border border-slate-200">
+                 <Text className="text-slate-700 font-bold text-[16px]">End Early</Text>
+               </TouchableOpacity>
+
+               <TouchableOpacity onPress={() => setIsActive(!isActive)} className={`flex-1 py-4 rounded-2xl items-center justify-center ${isActive ? 'bg-rose-50 border border-rose-200' : 'bg-slate-900 border border-slate-900'}`}>
+                 <Text className={isActive ? "text-rose-700 text-[16px] font-bold" : "text-white text-[16px] font-bold"}>
+                   {isActive ? "Pause" : "Resume"}
+                 </Text>
+               </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </View>
+    );
+  };
+
+  const renderResultState = () => {
+    const { minutes, seconds } = getElapsedDuration();
+    const formattedElapsed = formatTime(seconds);
+    const formattedPlanned = formatTime(totalSeconds);
+    
+    let title = "";
+    let description = "";
+    
+    if (sessionStatus === "completed") {
+      title = "Movement Complete";
+      description = "Session recorded.";
+    } else if (sessionStatus === "partial") {
+      title = "Movement Ended";
+      description = "Partial activity recorded.";
+    } else if (sessionStatus === "abandoned") {
+      title = "Session Ended";
+      description = "Not counted as active exercise.";
+    } else if (sessionStatus === "incomplete_due_to_symptoms") {
+      title = "Session Stopped";
+      description = "Your activity was saved for your health history.";
+    }
+
+    return (
+      <View className="flex-1 bg-white items-center justify-center px-6">
+        <View className={`w-20 h-20 rounded-full items-center justify-center mb-6 ${sessionStatus === 'completed' ? 'bg-green-100' : 'bg-slate-100'}`}>
+          <Feather name={sessionStatus === 'completed' ? "check" : "clock"} size={40} color={sessionStatus === 'completed' ? "#16a34a" : "#64748b"} />
+        </View>
+        <Text className="text-[28px] font-bold text-slate-900 mb-2">{title}</Text>
+        <Text className="text-[22px] font-semibold text-slate-700 mb-2">{formattedElapsed} / {formattedPlanned}</Text>
+        <Text className="text-[16px] text-slate-500 text-center mb-10 px-4">{description}</Text>
+        
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={() => router.push({ pathname: "/(home)/(tabs)/exercises", params: sessionStatus !== "abandoned" ? { completedId: routine.id } : {} })}
+          className="w-full py-4 rounded-full items-center justify-center bg-slate-900 shadow-sm"
+        >
+          <Text className="text-white text-[16px] font-bold">BACK TO MOVEMENT</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
+  if (isLoading || !routine) {
+    return (
+      <View className="flex-1 bg-slate-50 justify-center items-center">
+        <ActivityIndicator size="large" color="#f43f5e" />
+      </View>
+    );
+  }
+
+  return (
+    <View className="flex-1 bg-white">
+      <StatusBar style={workoutState === "active" || workoutState === "get_ready" || workoutState === "transition" ? "light" : "dark"} />
+      
+      {workoutState === "overview" && renderOverviewState()}
+      {workoutState === "get_ready" && renderGetReady()}
+      {workoutState === "active" && renderActiveState()}
+      {workoutState === "transition" && renderTransition()}
+      {workoutState === "result" && renderResultState()}
+
       <SafetyCheckSheet
         visible={showSafetyCheck}
         onSafe={handleSafetySafe}
         onSymptoms={handleSafetySymptoms}
         isSubmitting={isSubmitting}
       />
-
     </View>
   );
 }

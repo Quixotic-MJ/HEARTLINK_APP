@@ -217,6 +217,16 @@ exercise_logs = [
     }
 ]
 
+sleep_logs = [
+    {
+        "id": "sleep-801",
+        "user_id": "usr-patient-101",
+        "duration_hours": 7.5,
+        "quality": "Good",
+        "logged_at": datetime(2026, 7, 9, 7, 0, 0),
+    }
+]
+
 # 6. Medical Evaluation & Predictive Logic Layers
 hss_history = []
 
@@ -303,7 +313,7 @@ recipes = [
         "name": "Low Sodium Chicken Tinola",
         "subtitle": "Traditional Filipino ginger broth soup tuned for heart health optimization",
         "category": "Lunch",
-        "css_tier": "Stable",
+        "hss_tier": "Stable",
         "sodium_mg": 380,
         "calories": 320,
         "saturated_fat_g": 1.5,
@@ -343,7 +353,7 @@ recipes = [
         "name": "Heart-Healthy Salmon Bowl",
         "subtitle": "Rich in omega-3 fatty acids for cardiovascular support",
         "category": "Dinner",
-        "css_tier": "Stable",
+        "hss_tier": "Stable",
         "sodium_mg": 280,
         "calories": 450,
         "saturated_fat_g": 2.0,
@@ -383,7 +393,7 @@ recipes = [
         "name": "Oatmeal with Berries",
         "subtitle": "High-fiber breakfast to manage cholesterol levels",
         "category": "Breakfast",
-        "css_tier": "Stable",
+        "hss_tier": "Stable",
         "sodium_mg": 10,
         "calories": 250,
         "saturated_fat_g": 0.5,
@@ -419,7 +429,7 @@ recipes = [
         "name": "Grilled Bangus with Citrus & Garlic",
         "subtitle": "Classic Filipino milkfish, heart-healthy style",
         "category": "Lunch",
-        "css_tier": "Stable",
+        "hss_tier": "Stable",
         "sodium_mg": 95,
         "calories": 280,
         "saturated_fat_g": 2.0,
@@ -458,7 +468,7 @@ recipes = [
         "name": "Steamed White Fish with Ginger",
         "subtitle": "Ultra-low sodium and light protein for sensitive digestion",
         "category": "Dinner",
-        "css_tier": "Caution",
+        "hss_tier": "Caution",
         "sodium_mg": 150,
         "calories": 210,
         "saturated_fat_g": 0.5,
@@ -494,7 +504,7 @@ recipes = [
         "name": "Mashed Sweet Potatoes",
         "subtitle": "Potassium-rich complex carbohydrates for stable energy",
         "category": "Lunch",
-        "css_tier": "Caution",
+        "hss_tier": "Caution",
         "sodium_mg": 85,
         "calories": 180,
         "saturated_fat_g": 0,
@@ -530,15 +540,42 @@ exercise_routines = [
         "name": "Basal Paced Breathing Exercise",
         "description": "Controlled deep vagus nerve activation breathing patterns to downregulate stress spikes.",
         "duration_minutes": 10,
-        "css_tier": "Stable",
+        "hss_tier": "Stable",
         "type": "Breathing",
         "intensity": "None",
         "goal": "Downregulate sympathetic nervous activation tracking matrices",
         "steps": [
-            "Sit comfortably in upright position.",
-            "Inhale smoothly through nostrils for 4 seconds.",
-            "Hold basal volume for 2 seconds.",
-            "Exhale silently through mouth for 6 seconds.",
+            {
+                "id": "step-1",
+                "instruction": "Sit comfortably in upright position.",
+                "duration_seconds": 10,
+                "type": "instruction",
+                "voice_cue": "Sit upright."
+            },
+            {
+                "id": "breath-1",
+                "instruction": "Inhale smoothly through nostrils.",
+                "duration_seconds": 4,
+                "type": "breathing",
+                "phase": "inhale",
+                "voice_cue": "Inhale."
+            },
+            {
+                "id": "breath-2",
+                "instruction": "Hold basal volume.",
+                "duration_seconds": 2,
+                "type": "breathing",
+                "phase": "hold",
+                "voice_cue": "Hold."
+            },
+            {
+                "id": "breath-3",
+                "instruction": "Exhale silently through mouth.",
+                "duration_seconds": 6,
+                "type": "breathing",
+                "phase": "exhale",
+                "voice_cue": "Exhale."
+            }
         ],
         "media_url": "https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=600&h=400&fit=crop",
         "video_url": "https://www.youtube.com/watch?v=DbDoBzGY3vo",
@@ -552,14 +589,32 @@ exercise_routines = [
         "name": "20-Minute Neighborhood Walk",
         "description": "Light cardio to improve circulation without overexertion.",
         "duration_minutes": 20,
-        "css_tier": "Stable",
+        "hss_tier": "Stable",
         "type": "Light Cardio",
         "intensity": "Low",
         "goal": "Improves blood circulation and builds gentle endurance.",
         "steps": [
-            "Warm up with light stretching for 2 minutes.",
-            "Walk at a comfortable, conversational pace.",
-            "Cool down with a slower pace for the last 3 minutes.",
+            {
+                "id": "step-1",
+                "instruction": "Warm up with light stretching.",
+                "duration_seconds": 120,
+                "type": "instruction",
+                "voice_cue": "Warm up."
+            },
+            {
+                "id": "step-2",
+                "instruction": "Walk at a comfortable, conversational pace.",
+                "duration_seconds": 900,
+                "type": "instruction",
+                "voice_cue": "Walk at a comfortable pace."
+            },
+            {
+                "id": "step-3",
+                "instruction": "Cool down with a slower pace.",
+                "duration_seconds": 180,
+                "type": "instruction",
+                "voice_cue": "Cool down."
+            }
         ],
         "media_url": "https://images.unsplash.com/photo-1522898467493-49726bf28798?w=600&h=400&fit=crop",
         "video_url": "https://www.youtube.com/watch?v=njeZ29umqVE",
@@ -573,14 +628,32 @@ exercise_routines = [
         "name": "Basic Standing Stretches",
         "description": "Gentle stretching to relieve muscle tension.",
         "duration_minutes": 10,
-        "css_tier": "Stable",
+        "hss_tier": "Stable",
         "type": "Stationary",
         "intensity": "Low",
         "goal": "Enhances flexibility without straining the heart.",
         "steps": [
-            "Reach arms overhead and hold for 15 seconds.",
-            "Gently rotate shoulders backward 10 times.",
-            "Perform side bends holding 10 seconds each side.",
+            {
+                "id": "step-1",
+                "instruction": "Reach arms overhead and hold.",
+                "duration_seconds": 15,
+                "type": "instruction",
+                "voice_cue": "Reach arms overhead."
+            },
+            {
+                "id": "step-2",
+                "instruction": "Gently rotate shoulders backward 10 times.",
+                "duration_seconds": 30,
+                "type": "instruction",
+                "voice_cue": "Rotate shoulders."
+            },
+            {
+                "id": "step-3",
+                "instruction": "Perform side bends holding each side.",
+                "duration_seconds": 20,
+                "type": "instruction",
+                "voice_cue": "Perform side bends."
+            }
         ],
         "media_url": "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=600&h=400&fit=crop",
         "video_url": "https://www.youtube.com/watch?v=5WEBMhRc_9M",
@@ -594,14 +667,32 @@ exercise_routines = [
         "name": "15-Minute Chair Yoga",
         "description": "Maintains mobility while keeping heart rate stable.",
         "duration_minutes": 15,
-        "css_tier": "Moderate",
+        "hss_tier": "Moderate",
         "type": "Stationary",
         "intensity": "Low",
         "goal": "Maintains mobility while keeping heart rate stable.",
         "steps": [
-            "Sit comfortably in a chair.",
-            "Perform seated cat-cow stretches.",
-            "Gently twist torso to each side.",
+            {
+                "id": "step-1",
+                "instruction": "Sit comfortably in a chair.",
+                "duration_seconds": 10,
+                "type": "instruction",
+                "voice_cue": "Sit in a chair."
+            },
+            {
+                "id": "step-2",
+                "instruction": "Perform seated cat-cow stretches.",
+                "duration_seconds": 60,
+                "type": "instruction",
+                "voice_cue": "Perform cat-cow stretches."
+            },
+            {
+                "id": "step-3",
+                "instruction": "Gently twist torso to each side.",
+                "duration_seconds": 60,
+                "type": "instruction",
+                "voice_cue": "Twist torso to each side."
+            }
         ],
         "media_url": "https://images.unsplash.com/photo-1599447421416-3414500d18a5?w=600&h=400&fit=crop",
         "video_url": "https://www.youtube.com/watch?v=5WEBMhRc_9M",
@@ -615,15 +706,39 @@ exercise_routines = [
         "name": "Seated Leg Lifts",
         "description": "Promotes lower body circulation passively.",
         "duration_minutes": 10,
-        "css_tier": "Moderate",
+        "hss_tier": "Moderate",
         "type": "Stationary",
         "intensity": "Low",
         "goal": "Promotes lower body circulation passively.",
         "steps": [
-            "Sit with feet flat on the floor.",
-            "Slowly extend one leg straight out.",
-            "Hold for 3 seconds, then lower.",
-            "Repeat for the other leg."
+            {
+                "id": "step-1",
+                "instruction": "Sit with feet flat on the floor.",
+                "duration_seconds": 10,
+                "type": "instruction",
+                "voice_cue": "Sit with feet flat."
+            },
+            {
+                "id": "step-2",
+                "instruction": "Slowly extend one leg straight out.",
+                "duration_seconds": 15,
+                "type": "instruction",
+                "voice_cue": "Extend one leg."
+            },
+            {
+                "id": "step-3",
+                "instruction": "Hold for 3 seconds, then lower.",
+                "duration_seconds": 10,
+                "type": "instruction",
+                "voice_cue": "Hold and lower."
+            },
+            {
+                "id": "step-4",
+                "instruction": "Repeat for the other leg.",
+                "duration_seconds": 25,
+                "type": "instruction",
+                "voice_cue": "Repeat for the other leg."
+            }
         ],
         "media_url": "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=600&h=400&fit=crop",
         "video_url": "https://www.youtube.com/watch?v=5WEBMhRc_9M",
@@ -637,15 +752,35 @@ exercise_routines = [
         "name": "4-7-8 Deep Breathing Technique",
         "description": "Reduces stress-induced heart rate spikes and calms nervous system.",
         "duration_minutes": 5,
-        "css_tier": "Elevated Risk",
+        "hss_tier": "Elevated Risk",
         "type": "Breathing",
         "intensity": "None",
         "goal": "Reduces stress-induced heart rate spikes and calms nervous system.",
         "steps": [
-            "Inhale through nose for 4 seconds.",
-            "Hold breath for 7 seconds.",
-            "Exhale forcefully through mouth for 8 seconds.",
-            "Repeat cycle 4 times."
+            {
+                "id": "step-1",
+                "instruction": "Inhale through nose.",
+                "duration_seconds": 4,
+                "type": "breathing",
+                "phase": "inhale",
+                "voice_cue": "Inhale."
+            },
+            {
+                "id": "step-2",
+                "instruction": "Hold breath.",
+                "duration_seconds": 7,
+                "type": "breathing",
+                "phase": "hold",
+                "voice_cue": "Hold."
+            },
+            {
+                "id": "step-3",
+                "instruction": "Exhale forcefully through mouth.",
+                "duration_seconds": 8,
+                "type": "breathing",
+                "phase": "exhale",
+                "voice_cue": "Exhale."
+            }
         ],
         "media_url": "https://images.unsplash.com/photo-1545389336-cf090694435e?w=600&h=400&fit=crop",
         "video_url": "https://www.youtube.com/watch?v=Mn4kUw5uXQU",
@@ -659,14 +794,33 @@ exercise_routines = [
         "name": "Guided Seated Relaxation",
         "description": "Lowers blood pressure and induces resting state.",
         "duration_minutes": 10,
-        "css_tier": "Elevated Risk",
+        "hss_tier": "Elevated Risk",
         "type": "Breathing",
         "intensity": "None",
         "goal": "Lowers blood pressure and induces resting state.",
         "steps": [
-            "Close eyes and focus on natural breathing.",
-            "Progressively relax muscles from head to toe.",
-            "Remain still and observe thoughts without engaging."
+            {
+                "id": "step-1",
+                "instruction": "Close eyes and focus on natural breathing.",
+                "duration_seconds": 60,
+                "type": "breathing",
+                "phase": "rest",
+                "voice_cue": "Close your eyes."
+            },
+            {
+                "id": "step-2",
+                "instruction": "Progressively relax muscles from head to toe.",
+                "duration_seconds": 120,
+                "type": "instruction",
+                "voice_cue": "Relax your muscles."
+            },
+            {
+                "id": "step-3",
+                "instruction": "Remain still and observe thoughts without engaging.",
+                "duration_seconds": 120,
+                "type": "instruction",
+                "voice_cue": "Remain still."
+            }
         ],
         "media_url": "https://images.unsplash.com/photo-1520333789090-1afc82db536a?w=600&h=400&fit=crop",
         "video_url": "https://www.youtube.com/watch?v=DbDoBzGY3vo",
@@ -680,15 +834,39 @@ exercise_routines = [
         "name": "Light Ankle Pumps",
         "description": "Seated ankle movements to prevent blood pooling.",
         "duration_minutes": 5,
-        "css_tier": "Caution",
+        "hss_tier": "Caution",
         "type": "Stationary",
         "intensity": "Low",
         "goal": "Maintains basic lower extremity circulation.",
         "steps": [
-            "Sit comfortably with feet flat on the floor.",
-            "Lift your heels while keeping your toes on the floor, then lower.",
-            "Lift your toes while keeping your heels on the floor, then lower.",
-            "Repeat for 5 minutes continuously."
+            {
+                "id": "step-1",
+                "instruction": "Sit comfortably with feet flat on the floor.",
+                "duration_seconds": 10,
+                "type": "instruction",
+                "voice_cue": "Sit with feet flat."
+            },
+            {
+                "id": "step-2",
+                "instruction": "Lift your heels while keeping your toes on the floor, then lower.",
+                "duration_seconds": 60,
+                "type": "instruction",
+                "voice_cue": "Lift your heels."
+            },
+            {
+                "id": "step-3",
+                "instruction": "Lift your toes while keeping your heels on the floor, then lower.",
+                "duration_seconds": 60,
+                "type": "instruction",
+                "voice_cue": "Lift your toes."
+            },
+            {
+                "id": "step-4",
+                "instruction": "Repeat for 5 minutes continuously.",
+                "duration_seconds": 300,
+                "type": "instruction",
+                "voice_cue": "Continue for five minutes."
+            }
         ],
         "media_url": "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=600&h=400&fit=crop",
         "video_url": "https://www.youtube.com/watch?v=5WEBMhRc_9M",
@@ -702,15 +880,41 @@ exercise_routines = [
         "name": "Deep Diaphragmatic Breathing",
         "description": "Reduces cardiac workload and stress.",
         "duration_minutes": 10,
-        "css_tier": "Caution",
+        "hss_tier": "Caution",
         "type": "Breathing",
         "intensity": "None",
         "goal": "Activates the parasympathetic nervous system to lower heart rate.",
         "steps": [
-            "Lie flat on your back with a pillow under your knees.",
-            "Place one hand on your upper chest and the other just below your rib cage.",
-            "Breathe in slowly through your nose so that your stomach moves out against your hand.",
-            "Tighten your stomach muscles, letting them fall inward as you exhale through pursed lips."
+            {
+                "id": "step-1",
+                "instruction": "Lie flat on your back with a pillow under your knees.",
+                "duration_seconds": 10,
+                "type": "instruction",
+                "voice_cue": "Lie flat on your back."
+            },
+            {
+                "id": "step-2",
+                "instruction": "Place one hand on your upper chest and the other just below your rib cage.",
+                "duration_seconds": 10,
+                "type": "instruction",
+                "voice_cue": "Place your hands."
+            },
+            {
+                "id": "breath-1",
+                "instruction": "Breathe in slowly through your nose so that your stomach moves out.",
+                "duration_seconds": 4,
+                "type": "breathing",
+                "phase": "inhale",
+                "voice_cue": "Inhale."
+            },
+            {
+                "id": "breath-2",
+                "instruction": "Tighten your stomach muscles, letting them fall inward as you exhale.",
+                "duration_seconds": 6,
+                "type": "breathing",
+                "phase": "exhale",
+                "voice_cue": "Exhale."
+            }
         ],
         "media_url": "https://images.unsplash.com/photo-1518611012118-696072aa579a?w=600&h=400&fit=crop",
         "video_url": "https://www.youtube.com/watch?v=DbDoBzGY3vo",
@@ -1026,7 +1230,8 @@ def save_logs():
             "meal_logs": [_serialize_item(m) for m in meal_logs],
             "exercise_logs": [_serialize_item(e) for e in exercise_logs],
             "daily_health_logs": [_serialize_item(l) for l in daily_health_logs],
-            "hss_history": [_serialize_item(c) for c in hss_history],
+            "sleep_logs": [_serialize_item(s) for s in sleep_logs],
+            "hss_history": [_serialize_item(h) for h in hss_history],
             "notifications": [_serialize_item(n) for n in notifications],
             "alerts": [_serialize_item(a) for a in alerts],
             "saved_recipes": [_serialize_item(r) for r in saved_recipes],
@@ -1040,7 +1245,7 @@ def save_logs():
         print(f"Error saving mock logs: {e}")
 
 def load_logs():
-    global meal_logs, exercise_logs, daily_health_logs, hss_history, notifications, alerts, saved_recipes, saved_exercises, expert_evaluations, system_broadcasts
+    global meal_logs, exercise_logs, daily_health_logs, sleep_logs, hss_history, notifications, alerts, saved_recipes, saved_exercises, expert_evaluations, system_broadcasts
     if os.path.exists(LOGS_DB_FILE):
         try:
             with open(LOGS_DB_FILE, "r", encoding="utf-8") as f:
@@ -1054,6 +1259,9 @@ def load_logs():
                 if "daily_health_logs" in data:
                     daily_health_logs.clear()
                     daily_health_logs.extend([_deserialize_item(l) for l in data["daily_health_logs"]])
+                if "sleep_logs" in data:
+                    sleep_logs.clear()
+                    sleep_logs.extend([_deserialize_item(s) for s in data["sleep_logs"]])
                 if "hss_history" in data:
                     hss_history.clear()
                     hss_history.extend([_deserialize_item(c) for c in data["hss_history"]])

@@ -16,7 +16,7 @@ class MLService:
         except Exception as e:
             print(f"Failed to load RF model: {e}")
             
-    def predict_initial_css(self, user_id: str, lifestyle: dict, dietary: dict, clinical: dict):
+    def predict_initial_hss(self, user_id: str, lifestyle: dict, dietary: dict, clinical: dict):
         if not self.model:
             print("Model not loaded, defaulting to HSS 80")
             return 80
@@ -38,30 +38,30 @@ class MLService:
             prediction = self.model.predict(df)[0]
             
             # Clamp and round
-            predicted_css = max(0, min(100, round(prediction)))
+            predicted_hss = max(0, min(100, round(prediction)))
             
             # Determine Tier
-            if predicted_css >= 80:
+            if predicted_hss >= 80:
                 tier = "Stable"
-            elif predicted_css >= 60:
+            elif predicted_hss >= 60:
                 tier = "Moderate"
-            elif predicted_css >= 40:
+            elif predicted_hss >= 40:
                 tier = "Caution"
             else:
                 tier = "Elevated Risk"
                 
             # Create hss_history entry
-            new_css = {
+            new_hss = {
                 "id": f"hss-{len(mock_db.hss_history) + 1000}",
                 "user_id": user_id,
-                "score": predicted_css,
+                "score": predicted_hss,
                 "tier": tier,
                 "contributing_factors": {"ml_predicted": "True"},
                 "computed_at": datetime.utcnow()
             }
             
-            mock_db.hss_history.append(new_css)
-            return new_css
+            mock_db.hss_history.append(new_hss)
+            return new_hss
             
         except Exception as e:
             print(f"Prediction error: {e}")

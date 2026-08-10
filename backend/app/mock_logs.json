@@ -154,6 +154,62 @@
       "fiber_g": 0,
       "image_url": null,
       "logged_at": "2026-08-06T16:25:01.115714"
+    },
+    {
+      "id": "meal-0f1b50dd",
+      "user_id": "test-e2e-user-001",
+      "recipe_id": "rec-1",
+      "meal_name": "Test Salad",
+      "barcode": null,
+      "portion": 1,
+      "calories": 300,
+      "sodium_mg": 100,
+      "saturated_fat_g": 2,
+      "fiber_g": 10,
+      "image_url": "test.jpg",
+      "logged_at": "2026-08-10T11:39:56.990934"
+    },
+    {
+      "id": "meal-88182629",
+      "user_id": "test-e2e-final-0",
+      "recipe_id": "rec-503",
+      "meal_name": "Test Oatmeal",
+      "barcode": null,
+      "portion": 1,
+      "calories": 250,
+      "sodium_mg": 10,
+      "saturated_fat_g": 0.5,
+      "fiber_g": 8,
+      "image_url": "t.jpg",
+      "logged_at": "2026-08-10T11:45:10.888304"
+    },
+    {
+      "id": "meal-8158c4a8",
+      "user_id": "test-sleep-user-001",
+      "recipe_id": "rec-503",
+      "meal_name": "Oatmeal",
+      "barcode": null,
+      "portion": 1,
+      "calories": 300,
+      "sodium_mg": 10,
+      "saturated_fat_g": 0.5,
+      "fiber_g": 8,
+      "image_url": "t.jpg",
+      "logged_at": "2026-08-10T11:59:08.650864"
+    },
+    {
+      "id": "meal-ffe44eb8",
+      "user_id": "test-recipe-log-01",
+      "recipe_id": "rec-503",
+      "meal_name": "Oatmeal with Berries",
+      "barcode": null,
+      "portion": 1,
+      "calories": 250,
+      "sodium_mg": 10,
+      "saturated_fat_g": 0.5,
+      "fiber_g": 8,
+      "image_url": "test.jpg",
+      "logged_at": "2026-08-10T12:20:06.822233"
     }
   ],
   "exercise_logs": [
@@ -253,6 +309,267 @@
       "duration_minutes": 0.05,
       "status": "completed",
       "logged_at": "2026-08-06T16:06:58.529149",
+      "deleted_at": null
+    },
+    {
+      "id": "ex-47083ef9",
+      "user_id": "usr-patient-102",
+      "routine_id": "rout-1234",
+      "routine_name": "Test Walking Routine",
+      "duration_seconds": 900,
+      "duration_minutes": 15,
+      "status": "completed",
+      "logged_at": "2026-08-10T11:03:21.202084",
+      "deleted_at": null
+    },
+    {
+      "id": "ex-140594d7",
+      "user_id": "test-e2e-user-001",
+      "routine_id": "rout-1",
+      "routine_name": "Test Walk",
+      "duration_seconds": 1800,
+      "duration_minutes": 30,
+      "status": "completed",
+      "logged_at": "2026-08-10T11:39:57.002193",
+      "deleted_at": null
+    },
+    {
+      "id": "ex-2f9437bf",
+      "user_id": "test-e2e-final-0",
+      "routine_id": "rout-1",
+      "routine_name": "Test Walk",
+      "duration_seconds": 1800,
+      "duration_minutes": 30,
+      "status": "completed",
+      "logged_at": "2026-08-10T11:45:10.900826",
+      "deleted_at": null
+    },
+    {
+      "id": "ex-ab360a39",
+      "user_id": "test-sleep-user-001",
+      "routine_id": "rout-1",
+      "routine_name": "Walk",
+      "duration_seconds": 1800,
+      "duration_minutes": 30,
+      "status": "completed",
+      "logged_at": "2026-08-10T11:59:08.660247",
+      "deleted_at": null
+    },
+    {
+      "id": "ex-8ae5e5a5",
+      "user_id": "test-exercise-log-01",
+      "routine_id": "rout-123",
+      "routine_name": "Test Workout",
+      "duration_seconds": 1800,
+      "duration_minutes": 30,
+      "status": "completed",
+      "logged_at": "2026-08-10T12:33:59.471718",
+      "deleted_at": null
+    },
+    {
+      "id": "ex-1786346759361-umwkoj",
+      "user_id": "usr-patient-7a78087f",
+      "routine_id": "rout-601",
+      "routine_name": "Basal Paced Breathing Exercise",
+      "duration_seconds": 20,
+      "duration_minutes": 0.33,
+      "status": "completed",
+      "logged_at": "2026-08-10T15:26:02.483257",
+      "deleted_at": "2026-08-10T15:31:34.783327"
+    },
+    {
+      "id": "ex-34180935",
+      "user_id": "usr-patient-101",
+      "routine_id": "test-routine",
+      "routine_name": "Test Routine",
+      "duration_seconds": 5,
+      "duration_minutes": 0.08,
+      "planned_duration_seconds": 600,
+      "planned_duration_minutes": 10,
+      "status": "abandoned",
+      "logged_at": "2026-08-10T15:59:30.675588",
+      "deleted_at": null
+    },
+    {
+      "id": "ex-5000cade",
+      "user_id": "usr-patient-101",
+      "routine_id": "test-routine",
+      "routine_name": "Test Routine",
+      "duration_seconds": 45,
+      "duration_minutes": 0.75,
+      "planned_duration_seconds": 600,
+      "planned_duration_minutes": 10,
+      "status": "abandoned",
+      "logged_at": "2026-08-10T15:59:36.812205",
+      "deleted_at": null
+    },
+    {
+      "id": "ex-4697721b",
+      "user_id": "usr-patient-101",
+      "routine_id": "test-routine",
+      "routine_name": "Test Routine",
+      "duration_seconds": 180,
+      "duration_minutes": 3,
+      "planned_duration_seconds": 600,
+      "planned_duration_minutes": 10,
+      "status": "partial",
+      "logged_at": "2026-08-10T15:59:42.967014",
+      "deleted_at": null
+    },
+    {
+      "id": "ex-34a9dd1e",
+      "user_id": "usr-patient-101",
+      "routine_id": "test-routine",
+      "routine_name": "Test Routine",
+      "duration_seconds": 600,
+      "duration_minutes": 10,
+      "planned_duration_seconds": 600,
+      "planned_duration_minutes": 10,
+      "status": "completed",
+      "logged_at": "2026-08-10T15:59:49.077080",
+      "deleted_at": null
+    },
+    {
+      "id": "ex-84044dbf",
+      "user_id": "usr-patient-101",
+      "routine_id": "test-routine",
+      "routine_name": "Test Routine",
+      "duration_seconds": 5,
+      "duration_minutes": 0.08,
+      "planned_duration_seconds": 600,
+      "planned_duration_minutes": 10,
+      "status": "abandoned",
+      "logged_at": "2026-08-10T16:00:27.030227",
+      "deleted_at": null
+    },
+    {
+      "id": "ex-72d40e3a",
+      "user_id": "usr-patient-101",
+      "routine_id": "test-routine",
+      "routine_name": "Test Routine",
+      "duration_seconds": 45,
+      "duration_minutes": 0.75,
+      "planned_duration_seconds": 600,
+      "planned_duration_minutes": 10,
+      "status": "abandoned",
+      "logged_at": "2026-08-10T16:00:33.193367",
+      "deleted_at": null
+    },
+    {
+      "id": "ex-a4a5ded0",
+      "user_id": "usr-patient-101",
+      "routine_id": "test-routine",
+      "routine_name": "Test Routine",
+      "duration_seconds": 180,
+      "duration_minutes": 3,
+      "planned_duration_seconds": 600,
+      "planned_duration_minutes": 10,
+      "status": "partial",
+      "logged_at": "2026-08-10T16:00:39.337926",
+      "deleted_at": null
+    },
+    {
+      "id": "ex-c8bdb601",
+      "user_id": "usr-patient-101",
+      "routine_id": "test-routine",
+      "routine_name": "Test Routine",
+      "duration_seconds": 600,
+      "duration_minutes": 10,
+      "planned_duration_seconds": 600,
+      "planned_duration_minutes": 10,
+      "status": "completed",
+      "logged_at": "2026-08-10T16:00:45.498708",
+      "deleted_at": null
+    },
+    {
+      "id": "ex-134ba3d3",
+      "user_id": "usr-patient-101",
+      "routine_id": "test-routine",
+      "routine_name": "Test Routine",
+      "duration_seconds": 45,
+      "duration_minutes": 0.75,
+      "planned_duration_seconds": 600,
+      "planned_duration_minutes": 10,
+      "status": "incomplete_due_to_symptoms",
+      "logged_at": "2026-08-10T16:00:51.617649",
+      "deleted_at": null
+    },
+    {
+      "id": "ex-5a737dc9",
+      "user_id": "usr-patient-101",
+      "routine_id": "test-routine",
+      "routine_name": "Test Routine",
+      "duration_seconds": 5,
+      "duration_minutes": 0.08,
+      "planned_duration_seconds": 600,
+      "planned_duration_minutes": 10,
+      "status": "abandoned",
+      "logged_at": "2026-08-10T16:01:32.822007",
+      "deleted_at": null
+    },
+    {
+      "id": "ex-a5921c7c",
+      "user_id": "usr-patient-101",
+      "routine_id": "test-routine",
+      "routine_name": "Test Routine",
+      "duration_seconds": 45,
+      "duration_minutes": 0.75,
+      "planned_duration_seconds": 600,
+      "planned_duration_minutes": 10,
+      "status": "abandoned",
+      "logged_at": "2026-08-10T16:01:38.955434",
+      "deleted_at": null
+    },
+    {
+      "id": "ex-4ea19bdc",
+      "user_id": "usr-patient-101",
+      "routine_id": "test-routine",
+      "routine_name": "Test Routine",
+      "duration_seconds": 180,
+      "duration_minutes": 3,
+      "planned_duration_seconds": 600,
+      "planned_duration_minutes": 10,
+      "status": "partial",
+      "logged_at": "2026-08-10T16:01:45.111324",
+      "deleted_at": null
+    },
+    {
+      "id": "ex-1786349119392-l05vgn",
+      "user_id": "usr-patient-7a78087f",
+      "routine_id": "rout-601",
+      "routine_name": "Basal Paced Breathing Exercise",
+      "duration_seconds": 3,
+      "duration_minutes": 0.05,
+      "planned_duration_seconds": 600,
+      "planned_duration_minutes": 10,
+      "status": "abandoned",
+      "logged_at": "2026-08-10T16:05:22.464181",
+      "deleted_at": null
+    },
+    {
+      "id": "ex-1786350889312-x1u7vp",
+      "user_id": "usr-patient-7a78087f",
+      "routine_id": "rout-601",
+      "routine_name": "Basal Paced Breathing Exercise",
+      "duration_seconds": 125,
+      "duration_minutes": 2.08,
+      "planned_duration_seconds": 600,
+      "planned_duration_minutes": 10,
+      "status": "partial",
+      "logged_at": "2026-08-10T16:34:52.519269",
+      "deleted_at": null
+    },
+    {
+      "id": "ex-1786351395444-x56c1o",
+      "user_id": "usr-patient-7a78087f",
+      "routine_id": "rout-601",
+      "routine_name": "Basal Paced Breathing Exercise",
+      "duration_seconds": 17,
+      "duration_minutes": 0.28,
+      "planned_duration_seconds": 600,
+      "planned_duration_minutes": 10,
+      "status": "abandoned",
+      "logged_at": "2026-08-10T16:43:18.553249",
       "deleted_at": null
     }
   ],
@@ -356,6 +673,138 @@
       "triggered_by_exercise_id": null,
       "notes": "",
       "logged_at": "2026-08-06T15:43:01.989505"
+    },
+    {
+      "id": "log-5ab3a9fe",
+      "user_id": "usr-patient-102",
+      "systolic_bp": null,
+      "diastolic_bp": null,
+      "heart_rate_bpm": null,
+      "weight_kg": null,
+      "medication_taken": false,
+      "symptoms": [
+        "Chest Discomfort"
+      ],
+      "severity_map": {},
+      "context": "resting",
+      "triggered_by_exercise_id": null,
+      "notes": "",
+      "logged_at": "2026-08-10T10:43:01.343568"
+    },
+    {
+      "id": "log-85600e41",
+      "user_id": "usr-patient-102",
+      "systolic_bp": 120,
+      "diastolic_bp": 80,
+      "heart_rate_bpm": 72,
+      "weight_kg": null,
+      "medication_taken": false,
+      "symptoms": [
+        "Shortness of Breath"
+      ],
+      "severity_map": {},
+      "context": "resting",
+      "triggered_by_exercise_id": null,
+      "notes": "",
+      "logged_at": "2026-08-10T10:43:01.347504"
+    },
+    {
+      "id": "log-b373139b",
+      "user_id": "test-e2e-user-001",
+      "systolic_bp": null,
+      "diastolic_bp": null,
+      "heart_rate_bpm": 65,
+      "weight_kg": null,
+      "medication_taken": false,
+      "symptoms": [],
+      "severity_map": {},
+      "context": "resting",
+      "triggered_by_exercise_id": null,
+      "notes": "",
+      "logged_at": "2026-08-10T11:39:56.980354"
+    },
+    {
+      "id": "log-f8586595",
+      "user_id": "test-e2e-final-0",
+      "systolic_bp": 110,
+      "diastolic_bp": 70,
+      "heart_rate_bpm": 65,
+      "weight_kg": null,
+      "medication_taken": false,
+      "symptoms": [],
+      "severity_map": {},
+      "context": "resting",
+      "triggered_by_exercise_id": null,
+      "notes": "",
+      "logged_at": "2026-08-10T11:45:10.878574"
+    },
+    {
+      "id": "log-c6c3b174",
+      "user_id": "test-sleep-user-001",
+      "systolic_bp": 120,
+      "diastolic_bp": 80,
+      "heart_rate_bpm": 70,
+      "weight_kg": null,
+      "medication_taken": false,
+      "symptoms": [],
+      "severity_map": {},
+      "context": "resting",
+      "triggered_by_exercise_id": null,
+      "notes": "",
+      "logged_at": "2026-08-10T11:59:08.638933"
+    },
+    {
+      "id": "log-f4ae5636",
+      "user_id": "test-health-log-01",
+      "systolic_bp": 120,
+      "diastolic_bp": 80,
+      "heart_rate_bpm": 75,
+      "weight_kg": null,
+      "medication_taken": false,
+      "symptoms": [],
+      "severity_map": {},
+      "context": "resting",
+      "triggered_by_exercise_id": null,
+      "notes": "",
+      "logged_at": "2026-08-10T12:41:19.577198"
+    }
+  ],
+  "sleep_logs": [
+    {
+      "id": "sleep-801",
+      "user_id": "usr-patient-101",
+      "duration_hours": 7.5,
+      "quality": "Good",
+      "logged_at": "2026-07-09T07:00:00"
+    },
+    {
+      "id": "sleep-58b4054b",
+      "user_id": "test-sleep-user-001",
+      "duration_hours": 7,
+      "quality": "Good",
+      "logged_at": "2026-08-10T11:59:08.611559"
+    },
+    {
+      "id": "sleep-c037e205",
+      "user_id": "test-sleep-user-001",
+      "duration_hours": 0.5,
+      "quality": "Fair",
+      "logged_at": "2026-08-10T11:59:08.627704"
+    },
+    {
+      "id": "sleep-8796a277",
+      "user_id": "test-sleep-log-01",
+      "duration_hours": 7.5,
+      "quality": "Good",
+      "logged_at": "2026-08-10T12:35:58.403158",
+      "deleted_at": "2026-08-10T12:35:58.416109"
+    },
+    {
+      "id": "sleep-3bc9ed65",
+      "user_id": "test-sleep-log-01",
+      "duration_hours": 8.0,
+      "quality": "Excellent",
+      "logged_at": "2026-08-10T12:35:58.416109"
     }
   ],
   "hss_history": [
@@ -849,6 +1298,141 @@
         "multiplier_applied": true
       },
       "computed_at": "2026-08-06T16:25:01.117907"
+    },
+    {
+      "id": "hss-baseline-usr-patient-7a78087f",
+      "user_id": "usr-patient-7a78087f",
+      "score": 83,
+      "tier": "Stable",
+      "risk_probability": 0.17492754636322763,
+      "source": "baseline",
+      "computed_at": "2026-08-10T01:57:45.695727"
+    },
+    {
+      "id": "hss-baseline-usr-patient-102",
+      "user_id": "usr-patient-102",
+      "score": 45,
+      "tier": "At Risk",
+      "risk_probability": 0.5523160128330149,
+      "source": "baseline",
+      "computed_at": "2026-08-10T03:30:09.959382"
+    },
+    {
+      "id": "hss-baseline-test-e2e-user-001",
+      "user_id": "test-e2e-user-001",
+      "score": 90,
+      "tier": "Stable",
+      "risk_probability": 0.09664303337706656,
+      "source": "baseline",
+      "computed_at": "2026-08-10T03:39:56.963640"
+    },
+    {
+      "id": "hss-baseline-test-e2e-user-001",
+      "user_id": "test-e2e-user-001",
+      "score": 90,
+      "tier": "Stable",
+      "risk_probability": 0.09664303337706656,
+      "source": "baseline",
+      "computed_at": "2026-08-10T03:40:39.596952"
+    },
+    {
+      "id": "hss-baseline-test-e2e-user-002",
+      "user_id": "test-e2e-user-002",
+      "score": 90,
+      "tier": "Stable",
+      "risk_probability": 0.09664303337706656,
+      "source": "baseline",
+      "computed_at": "2026-08-10T03:41:23.304366"
+    },
+    {
+      "id": "hss-baseline-test-e2e-user-003",
+      "user_id": "test-e2e-user-003",
+      "score": 90,
+      "tier": "Stable",
+      "risk_probability": 0.09664303337706656,
+      "source": "baseline",
+      "computed_at": "2026-08-10T03:41:57.346812"
+    },
+    {
+      "id": "hss-baseline-test-e2e-final-0",
+      "user_id": "test-e2e-final-0",
+      "score": 90,
+      "tier": "Stable",
+      "risk_probability": 0.09664303337706656,
+      "source": "baseline",
+      "computed_at": "2026-08-10T03:44:22.435987"
+    },
+    {
+      "id": "hss-baseline-test-e2e-final-0",
+      "user_id": "test-e2e-final-0",
+      "score": 90,
+      "tier": "Stable",
+      "risk_probability": 0.09664303337706656,
+      "source": "baseline",
+      "computed_at": "2026-08-10T03:45:10.859738"
+    },
+    {
+      "id": "hss-baseline-test-e2e-final-1",
+      "user_id": "test-e2e-final-1",
+      "score": 90,
+      "tier": "Stable",
+      "risk_probability": 0.09664303337706656,
+      "source": "baseline",
+      "computed_at": "2026-08-10T03:45:10.927319"
+    },
+    {
+      "id": "hss-baseline-test-e2e-final-2",
+      "user_id": "test-e2e-final-2",
+      "score": 90,
+      "tier": "Stable",
+      "risk_probability": 0.09664303337706656,
+      "source": "baseline",
+      "computed_at": "2026-08-10T03:45:10.964222"
+    },
+    {
+      "id": "hss-baseline-test-e2e-final-3",
+      "user_id": "test-e2e-final-3",
+      "score": 90,
+      "tier": "Stable",
+      "risk_probability": 0.09664303337706656,
+      "source": "baseline",
+      "computed_at": "2026-08-10T03:45:10.997360"
+    },
+    {
+      "id": "hss-baseline-test-e2e-final-4",
+      "user_id": "test-e2e-final-4",
+      "score": 90,
+      "tier": "Stable",
+      "risk_probability": 0.09664303337706656,
+      "source": "baseline",
+      "computed_at": "2026-08-10T03:45:11.027730"
+    },
+    {
+      "id": "hss-baseline-test-sleep-user-001",
+      "user_id": "test-sleep-user-001",
+      "score": 57,
+      "tier": "At Risk",
+      "risk_probability": 0.4334571694544475,
+      "source": "baseline",
+      "computed_at": "2026-08-10T03:58:32.334771"
+    },
+    {
+      "id": "hss-baseline-test-sleep-user-001",
+      "user_id": "test-sleep-user-001",
+      "score": 57,
+      "tier": "At Risk",
+      "risk_probability": 0.4334571694544475,
+      "source": "baseline",
+      "computed_at": "2026-08-10T03:59:08.591840"
+    },
+    {
+      "id": "hss-baseline-test-e2e-user-003",
+      "user_id": "test-e2e-user-003",
+      "score": 90,
+      "tier": "Stable",
+      "risk_probability": 0.09664303337706656,
+      "source": "baseline",
+      "computed_at": "2026-08-10T04:19:47.382092"
     }
   ],
   "notifications": [

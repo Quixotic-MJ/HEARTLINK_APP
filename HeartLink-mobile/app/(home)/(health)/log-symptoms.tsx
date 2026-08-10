@@ -158,12 +158,34 @@ export default function LogSymptomsScreen() {
 
   const handleSubmit = async () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    const sys = parseInt(systolic);
+    const dia = parseInt(diastolic);
+    const hr = parseInt(heartRate);
+    const w = parseFloat(weight);
+
+    if (sys && (sys < 50 || sys > 300)) {
+      showToast({ title: "Validation Error", message: "Systolic blood pressure must be between 50 and 300.", type: "error" });
+      return;
+    }
+    if (dia && (dia < 30 || dia > 200)) {
+      showToast({ title: "Validation Error", message: "Diastolic blood pressure must be between 30 and 200.", type: "error" });
+      return;
+    }
+    if (hr && (hr < 30 || hr > 250)) {
+      showToast({ title: "Validation Error", message: "Heart rate must be between 30 and 250.", type: "error" });
+      return;
+    }
+    if (w && (w <= 0 || w > 500)) {
+      showToast({ title: "Validation Error", message: "Weight must be greater than 0.", type: "error" });
+      return;
+    }
+
     const targetUrl = `${base_url}/api/health-logs/${userId}`;
     const payload = {
-      systolic_bp: parseInt(systolic) || 0,
-      diastolic_bp: parseInt(diastolic) || 0,
-      heart_rate_bpm: parseInt(heartRate) || 0,
-      weight_kg: parseFloat(weight) || 0,
+      systolic_bp: sys || null,
+      diastolic_bp: dia || null,
+      heart_rate_bpm: hr || null,
+      weight_kg: w || null,
       medication_taken: medicationTaken || false,
       symptoms: selectedSymptoms,
       severity_map: severities,

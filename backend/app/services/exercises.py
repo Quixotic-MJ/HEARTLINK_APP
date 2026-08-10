@@ -22,17 +22,14 @@ def create_exercise_log(user_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
         "routine_name": data.get("routine_name"),
         "duration_seconds": data.get("duration_seconds", 0),
         "duration_minutes": data.get("duration_minutes", 0),
+        "planned_duration_seconds": data.get("planned_duration_seconds", 0),
+        "planned_duration_minutes": data.get("planned_duration_minutes", 0),
         "status": data.get("status", "completed"),
         "logged_at": datetime.now(),
         "deleted_at": None,
     }
     exercise_logs.append(new_log)
     save_logs()
-
-    try:
-        pass
-    except Exception as e:
-        print(f"Error recalculating HSS on exercise log: {e}")
 
     return new_log
 
@@ -62,11 +59,6 @@ def delete_exercise_log(user_id: str, log_id: str) -> Tuple[bool, str, int]:
     log["deleted_at"] = datetime.now().isoformat()
     save_logs()
 
-    try:
-        pass
-    except Exception as e:
-        print(f"Error recalculating HSS on exercise delete: {e}")
-
     return True, "Exercise log deleted successfully", 200
 
 def map_hss_tier(tier: str) -> str:
@@ -83,13 +75,13 @@ def map_hss_tier(tier: str) -> str:
     return "Stable"
 
 def create_routine(data: Dict[str, Any]) -> Dict[str, Any]:
-    raw_css = data.get("hssTarget", data.get("hss_tier", "Stable"))
+    raw_hss = data.get("hssTarget", data.get("hss_tier", "Stable"))
     new_routine = {
         "id": f"rout-{uuid.uuid4().hex[:8]}",
         "name": data.get("name", "New Routine"),
         "description": data.get("description", ""),
         "duration_minutes": data.get("duration", data.get("duration_minutes", 0)),
-        "hss_tier": map_hss_tier(raw_css),
+        "hss_tier": map_hss_tier(raw_hss),
         "type": data.get("type", "General"),
         "intensity": data.get("intensity", "Low"),
         "goal": data.get("goal", ""),
@@ -115,8 +107,8 @@ def update_routine(routine_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
     if "duration" in data or "duration_minutes" in data:
         routine["duration_minutes"] = data.get("duration", data.get("duration_minutes", 0))
     if "hssTarget" in data or "hss_tier" in data:
-        raw_css = data.get("hssTarget", data.get("hss_tier", routine.get("hss_tier", "Stable")))
-        routine["hss_tier"] = map_hss_tier(raw_css)
+        raw_hss = data.get("hssTarget", data.get("hss_tier", routine.get("hss_tier", "Stable")))
+        routine["hss_tier"] = map_hss_tier(raw_hss)
     if "type" in data:
         routine["type"] = data["type"]
     if "intensity" in data:

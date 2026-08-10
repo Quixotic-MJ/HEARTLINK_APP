@@ -95,7 +95,10 @@ function NumericField({
       <View className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800/70 flex-row items-center px-3 py-2.5">
         <TextInput
           value={value}
-          onChangeText={onChange}
+          onChangeText={(text) => {
+            const sanitized = text.replace(/-/g, "");
+            onChange(sanitized);
+          }}
           placeholder={placeholder}
           placeholderTextColor="#cbd5e1"
           keyboardType="decimal-pad"

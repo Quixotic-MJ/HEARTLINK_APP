@@ -58,8 +58,9 @@ function NutritionTile({
         <TextInput
           value={localValue}
           onChangeText={(text) => {
-            setLocalValue(text);
-            onChange(parseFloat(text) || 0);
+            const sanitized = text.replace(/-/g, "");
+            setLocalValue(sanitized);
+            onChange(Math.max(0, parseFloat(sanitized) || 0));
           }}
           keyboardType="numeric"
           className="text-[22px] font-medium p-0 m-0"
@@ -269,7 +270,7 @@ export default function ScanResultScreen() {
             <View className="items-center">
               <TextInput
                 value={servingsStr}
-                onChangeText={setServingsStr}
+                onChangeText={(text) => setServingsStr(text.replace(/-/g, ""))}
                 keyboardType="numeric"
                 className="text-[20px] font-medium text-slate-900 dark:text-white text-center w-16"
               />

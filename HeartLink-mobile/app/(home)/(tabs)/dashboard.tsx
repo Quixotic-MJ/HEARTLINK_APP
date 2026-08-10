@@ -508,45 +508,7 @@ export default function DashboardScreen() {
           )}
         </Reanimated.View>
 
-        {/* ── Today's Insight ── */}
-        {data?.insight && (
-          <Reanimated.View entering={FadeInDown.delay(300).springify()} className="mx-5 mt-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4">
-            <Text className="text-[11px] text-slate-400 uppercase tracking-wide mb-3">
-              Today's Insight
-            </Text>
-            <View className="flex-row items-start gap-3">
-              <View
-                className="w-9 h-9 rounded-xl items-center justify-center flex-shrink-0"
-                style={{
-                  backgroundColor:
-                    data.insight.icon === "trending-down"
-                      ? "#fcebeb"
-                      : data.insight.icon === "trending-up"
-                      ? "#eaf3de"
-                      : "#f1f5f9",
-                }}
-              >
-                <Feather
-                  name={(data.insight.icon || "zap") as any}
-                  size={16}
-                  color={
-                    data.insight.icon === "trending-down"
-                      ? "#e24b4a"
-                      : data.insight.icon === "trending-up"
-                      ? "#3b6d11"
-                      : "#185fa5"
-                  }
-                />
-              </View>
-              <Text className="flex-1 text-[13px] text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
-                <Text className="font-bold text-foreground">
-                  {data.insight?.title || ""}{" "}
-                </Text>
-                {data.insight.body}
-              </Text>
-            </View>
-          </Reanimated.View>
-        )}
+
 
         {/* ── Today's Health ── */}
         {data?.today_activity && (
@@ -574,13 +536,17 @@ export default function DashboardScreen() {
               </TouchableOpacity>
 
               {/* Sleep */}
-              <View className="w-[48%] bg-slate-50 dark:bg-slate-950 rounded-xl p-3 border border-slate-100 dark:border-slate-800">
+              <TouchableOpacity activeOpacity={0.8} onPress={() => router.push("/(home)/(health)/log-sleep")} className={`w-[48%] bg-slate-50 dark:bg-slate-950 rounded-xl p-3 border border-slate-100 dark:border-slate-800 ${!data.today_activity.sleep_logged ? "opacity-60" : ""}`}>
                 <View className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 items-center justify-center mb-2">
                   <Feather name="moon" size={14} color={isDark ? "#818cf8" : "#4f46e5"} />
                 </View>
                 <Text className="text-[13px] font-medium text-slate-800 dark:text-slate-200">Sleep</Text>
-                <Text className="text-[12px] text-slate-500">{data.today_activity.sleep_logged ? "Logged" : "Not logged"}</Text>
-              </View>
+                <Text className="text-[12px] text-slate-500">
+                  {data.today_activity.sleep_logged 
+                    ? `${Math.floor(data.today_activity.total_sleep_hours)}h ${Math.round((data.today_activity.total_sleep_hours % 1) * 60)}m` 
+                    : "Not logged"}
+                </Text>
+              </TouchableOpacity>
 
               {/* Vitals */}
               <TouchableOpacity activeOpacity={0.8} onPress={() => router.push("/(home)/(health)/log-symptoms")} className="w-[48%] bg-slate-50 dark:bg-slate-950 rounded-xl p-3 border border-slate-100 dark:border-slate-800">
@@ -631,6 +597,46 @@ export default function DashboardScreen() {
                   backgroundColor: (data.nutrition_budget.calories.limit && data.nutrition_budget.calories.consumed > data.nutrition_budget.calories.limit) ? "#e11d48" : "#f59e0b"
                 }} />
               </View>
+            </View>
+          </Reanimated.View>
+        )}
+
+        {/* ── Today's Insight ── */}
+        {data?.insight && (
+          <Reanimated.View entering={FadeInDown.delay(300).springify()} className="mx-5 mt-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4">
+            <Text className="text-[11px] text-slate-400 uppercase tracking-wide mb-3">
+              Today's Insight
+            </Text>
+            <View className="flex-row items-start gap-3">
+              <View
+                className="w-9 h-9 rounded-xl items-center justify-center flex-shrink-0"
+                style={{
+                  backgroundColor:
+                    data.insight.icon === "trending-down"
+                      ? "#fcebeb"
+                      : data.insight.icon === "trending-up"
+                      ? "#eaf3de"
+                      : "#f1f5f9",
+                }}
+              >
+                <Feather
+                  name={(data.insight.icon || "zap") as any}
+                  size={16}
+                  color={
+                    data.insight.icon === "trending-down"
+                      ? "#e24b4a"
+                      : data.insight.icon === "trending-up"
+                      ? "#3b6d11"
+                      : "#185fa5"
+                  }
+                />
+              </View>
+              <Text className="flex-1 text-[13px] text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
+                <Text className="font-bold text-foreground">
+                  {data.insight?.title || ""}{" "}
+                </Text>
+                {data.insight.body}
+              </Text>
             </View>
           </Reanimated.View>
         )}

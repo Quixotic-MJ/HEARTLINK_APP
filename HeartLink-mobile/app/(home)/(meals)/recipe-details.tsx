@@ -183,7 +183,7 @@ export default function RecipeDetailsScreen() {
       setIsLogged(true);
       showToast({ 
         title: "Meal logged!", 
-        message: "Sodium intake updated. Your Health Stability Score has been recalculated.", 
+        message: "Your daily nutrition budget has been updated.", 
         type: "success",
         duration: 4000
       });
