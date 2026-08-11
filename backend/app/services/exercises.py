@@ -87,6 +87,7 @@ def create_routine(data: Dict[str, Any]) -> Dict[str, Any]:
         "goal": data.get("goal", ""),
         "steps": data.get("steps", []),
         "media_url": data.get("mediaUrl", data.get("media_url", None)),
+        "guide_images": data.get("guideImages", data.get("guide_images", [])),
         "status": data.get("status", "draft"),
         "expert_validated": data.get("expertValidated", data.get("expert_validated", False)),
         "created_by": "usr-admin-002",
@@ -119,6 +120,8 @@ def update_routine(routine_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
         routine["steps"] = data["steps"]
     if "mediaUrl" in data or "media_url" in data:
         routine["media_url"] = data.get("mediaUrl", data.get("media_url", routine.get("media_url")))
+    if "guideImages" in data or "guide_images" in data:
+        routine["guide_images"] = data.get("guideImages", data.get("guide_images", routine.get("guide_images", [])))
     if "status" in data:
         routine["status"] = data["status"]
     if "expertValidated" in data or "expert_validated" in data:

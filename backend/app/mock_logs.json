@@ -544,7 +544,7 @@
       "planned_duration_minutes": 10,
       "status": "abandoned",
       "logged_at": "2026-08-10T16:05:22.464181",
-      "deleted_at": null
+      "deleted_at": "2026-08-11T13:52:19.909457"
     },
     {
       "id": "ex-1786350889312-x1u7vp",
@@ -557,7 +557,7 @@
       "planned_duration_minutes": 10,
       "status": "partial",
       "logged_at": "2026-08-10T16:34:52.519269",
-      "deleted_at": null
+      "deleted_at": "2026-08-11T13:52:22.262391"
     },
     {
       "id": "ex-1786351395444-x56c1o",
@@ -570,6 +570,71 @@
       "planned_duration_minutes": 10,
       "status": "abandoned",
       "logged_at": "2026-08-10T16:43:18.553249",
+      "deleted_at": "2026-08-11T13:52:15.493073"
+    },
+    {
+      "id": "ex-1786421410542-gjs7o4",
+      "user_id": "usr-patient-7a78087f",
+      "routine_id": "rout-601",
+      "routine_name": "Basal Paced Breathing Exercise",
+      "duration_seconds": 4,
+      "duration_minutes": 0.07,
+      "planned_duration_seconds": 600,
+      "planned_duration_minutes": 10,
+      "status": "abandoned",
+      "logged_at": "2026-08-11T12:10:06.502147",
+      "deleted_at": "2026-08-11T13:52:17.885777"
+    },
+    {
+      "id": "ex-1786424974151-fc3509",
+      "user_id": "usr-patient-7a78087f",
+      "routine_id": "rout-601",
+      "routine_name": "Basal Paced Breathing Exercise",
+      "duration_seconds": 12,
+      "duration_minutes": 0.2,
+      "planned_duration_seconds": 600,
+      "planned_duration_minutes": 10,
+      "status": "abandoned",
+      "logged_at": "2026-08-11T13:09:30.087542",
+      "deleted_at": "2026-08-11T13:52:13.148420"
+    },
+    {
+      "id": "ex-1786426580311-ynagk8",
+      "user_id": "usr-patient-7a78087f",
+      "routine_id": "rout-601",
+      "routine_name": "Basal Paced Breathing Exercise",
+      "duration_seconds": 24,
+      "duration_minutes": 0.4,
+      "planned_duration_seconds": 600,
+      "planned_duration_minutes": 10,
+      "status": "completed",
+      "logged_at": "2026-08-11T13:36:16.135920",
+      "deleted_at": "2026-08-11T13:44:44.105875"
+    },
+    {
+      "id": "ex-1786429001107-47o8nd",
+      "user_id": "usr-patient-7a78087f",
+      "routine_id": "rout-601",
+      "routine_name": "Basal Paced Breathing Exercise",
+      "duration_seconds": 35,
+      "duration_minutes": 0.58,
+      "planned_duration_seconds": 600,
+      "planned_duration_minutes": 10,
+      "status": "completed",
+      "logged_at": "2026-08-11T14:16:36.962675",
+      "deleted_at": "2026-08-11T14:16:48.584386"
+    },
+    {
+      "id": "ex-1786430898555-jd79if",
+      "user_id": "usr-patient-7a78087f",
+      "routine_id": "rout-603",
+      "routine_name": "Basic Standing Stretches",
+      "duration_seconds": 18,
+      "duration_minutes": 0.3,
+      "planned_duration_seconds": 600,
+      "planned_duration_minutes": 10,
+      "status": "completed",
+      "logged_at": "2026-08-11T14:48:14.475078",
       "deleted_at": null
     }
   ],

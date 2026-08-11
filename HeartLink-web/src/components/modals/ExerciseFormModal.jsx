@@ -26,6 +26,7 @@ const exerciseSchema = z.object({
   status: z.string().default("draft"),
   expertValidated: z.boolean().default(false),
   steps: z.array(z.object({ value: z.string().min(1, "Step cannot be empty") })).optional(),
+  guideImages: z.array(z.object({ url: z.string().min(1, "URL cannot be empty") })).optional(),
 });
 
 const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", onSave, onDelete }) => {
@@ -50,6 +51,7 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
       status: "draft",
       expertValidated: false,
       steps: [{ value: "" }],
+      guideImages: [],
     },
     mode: "onTouched",
   });
@@ -57,6 +59,11 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
   const { fields: stepsFields, append, remove } = useFieldArray({
     control,
     name: "steps",
+  });
+
+  const { fields: guideImageFields, append: appendGuideImage, remove: removeGuideImage } = useFieldArray({
+    control,
+    name: "guideImages",
   });
 
   const expertValidated = watch("expertValidated");
@@ -73,6 +80,9 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
         steps: exercise.steps 
           ? exercise.steps.map(step => ({ value: step }))
           : [{ value: "" }],
+        guideImages: exercise.guide_images
+          ? exercise.guide_images.map(url => ({ url }))
+          : [],
       });
     } else {
       reset({
@@ -84,6 +94,7 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
         status: "draft",
         expertValidated: false,
         steps: [{ value: "" }],
+        guideImages: [],
       });
     }
   }, [exercise, isOpen, reset]);
@@ -91,7 +102,8 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
   const onSubmit = (data) => {
     if (onSave) {
       const flatSteps = data.steps ? data.steps.map(s => s.value) : [];
-      onSave({ ...data, steps: flatSteps });
+      const flatGuideImages = data.guideImages ? data.guideImages.map(gi => gi.url) : [];
+      onSave({ ...data, steps: flatSteps, guideImages: flatGuideImages });
     }
     onClose();
   };
@@ -321,6 +333,92 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
                 />
                 {isUploading && <p className="text-[10px] text-blue-500 mt-1">Uploading...</p>}
               </div>
+            </div>
+
+            {/* Guide Images */}
+            <div className="mb-5 border-t border-slate-100 pt-5">
+              <label className="block text-[11px] font-medium text-slate-700 mb-2">
+                Movement Guide Images
+              </label>
+              <div className="space-y-3 mb-2">
+                {guideImageFields.map((field, index) => (
+                  <div key={field.id} className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-[10px] font-bold text-slate-400 bg-white px-2 py-0.5 rounded-md border border-slate-200">
+                        Image {index + 1}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => removeGuideImage(index)}
+                        className="p-1 hover:bg-white text-slate-400 hover:text-red-500 rounded-lg transition-colors ml-auto"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                    <div className="flex gap-2">
+                      <div className="flex-1">
+                        <input
+                          {...register(`guideImages.${index}.url`)}
+                          type="text"
+                          placeholder="Paste image URL here..."
+                          className="w-full text-xs px-3 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-slate-400 mb-2"
+                        />
+                        <div className="relative">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={async (e) => {
+                              const file = e.target.files[0];
+                              if (file) {
+                                try {
+                                  const formData = new FormData();
+                                  formData.append("file", file);
+                                  const response = await fetch("http://localhost:8000/api/upload", {
+                                    method: "POST",
+                                    body: formData,
+                                  });
+                                  if (!response.ok) {
+                                    const reader = new FileReader();
+                                    reader.onloadend = () => {
+                                      setValue(`guideImages.${index}.url`, reader.result, { shouldValidate: true, shouldDirty: true });
+                                    };
+                                    reader.readAsDataURL(file);
+                                    return;
+                                  }
+                                  const data = await response.json();
+                                  setValue(`guideImages.${index}.url`, data.url, { shouldValidate: true, shouldDirty: true });
+                                } catch (err) {
+                                  const reader = new FileReader();
+                                  reader.onloadend = () => {
+                                    setValue(`guideImages.${index}.url`, reader.result, { shouldValidate: true, shouldDirty: true });
+                                  };
+                                  reader.readAsDataURL(file);
+                                }
+                              }
+                            }}
+                            className="w-full px-2 py-1.5 text-[10px] bg-slate-100 border border-slate-200 rounded-lg file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[9px] file:font-medium file:bg-white hover:file:bg-slate-50 cursor-pointer"
+                          />
+                        </div>
+                      </div>
+                      
+                      <div className="w-16 h-16 rounded-lg bg-white border border-slate-200 overflow-hidden flex items-center justify-center shrink-0">
+                        {watch(`guideImages.${index}.url`) ? (
+                          <img src={watch(`guideImages.${index}.url`)} alt="Guide Preview" className="w-full h-full object-cover" />
+                        ) : (
+                          <span className="text-[9px] text-slate-300">Preview</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={() => appendGuideImage({ url: "" })}
+                className="flex items-center gap-1.5 text-[11px] font-medium text-slate-500 hover:text-slate-700 transition-colors py-1 px-2 rounded hover:bg-slate-100 mt-1"
+              >
+                <PlusCircle size={13} /> Add Guide Image
+              </button>
             </div>
 
             <div>

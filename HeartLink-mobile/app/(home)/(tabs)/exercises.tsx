@@ -405,24 +405,6 @@ export default function ExercisesScreen() {
       {/* ── Top bar ── */}
       <Header />
 
-      <View className="px-6 pt-4 pb-2 flex-row justify-between items-center">
-        <View>
-          <Text className="text-[28px] font-semibold text-slate-900 tracking-tight mb-1">
-            Today's Movement
-          </Text>
-          <Text className="text-[16px] text-slate-500">
-            Move safely. Build consistency.
-          </Text>
-        </View>
-        <TouchableOpacity
-          onPress={() => router.push("/(home)/(health)/exercise-diary")}
-          className="bg-white border border-slate-200 px-4 py-2.5 rounded-xl shadow-sm shadow-slate-100 flex-row items-center gap-2"
-        >
-          <Feather name="calendar" size={16} color="#64748b" />
-          <Text className="text-[13px] font-semibold text-slate-700">History</Text>
-        </TouchableOpacity>
-      </View>
-
       {isLoading && !refreshing ? (
         <View className="px-6 mt-6">
           <Skeleton className="w-full h-56 rounded-3xl mb-8" />
@@ -462,9 +444,25 @@ export default function ExercisesScreen() {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#f43f5e" />
           }
         >
+          <View className="mb-6">
+            <Text className="text-[28px] font-semibold text-slate-900 tracking-tight mb-1">
+              Today's Movement
+            </Text>
+            <Text className="text-[16px] text-slate-500 mb-4">
+              Move safely. Build consistency.
+            </Text>
+            <TouchableOpacity
+              onPress={() => router.push("/(home)/(health)/exercise-diary")}
+              className="bg-white border border-slate-200 px-4 py-2.5 rounded-xl shadow-sm shadow-slate-100 flex-row items-center gap-2 self-start"
+            >
+              <Feather name="calendar" size={16} color="#64748b" />
+              <Text className="text-[13px] font-semibold text-slate-700">History</Text>
+            </TouchableOpacity>
+          </View>
+
           {hssStatus === "Elevated Risk" && (
             <Reanimated.View entering={FadeInDown.springify()} className="bg-rose-50 p-4 rounded-2xl border border-rose-100 flex-row gap-3 mb-8">
-              <Feather name="shield-alert" size={20} color="#e11d48" className="mt-0.5" />
+              <Feather name="alert-triangle" size={20} color="#e11d48" className="mt-0.5" />
               <Text className="flex-1 text-[14px] leading-relaxed text-rose-900 font-medium">
                 Your heart stability is currently elevated. Please consult your physician before engaging in physical activity. Only breathing exercises are shown.
               </Text>

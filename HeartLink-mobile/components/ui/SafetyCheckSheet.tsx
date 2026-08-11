@@ -15,6 +15,7 @@ export interface SafetyCheckSheetProps {
   visible: boolean;
   onSafe: () => void | Promise<void>;
   onSymptoms: () => void | Promise<void>;
+  onBack?: () => void;
   isSubmitting?: boolean;
 }
 
@@ -22,6 +23,7 @@ export function SafetyCheckSheet({
   visible,
   onSafe,
   onSymptoms,
+  onBack,
   isSubmitting = false,
 }: SafetyCheckSheetProps) {
   const insets = useSafeAreaInsets();
@@ -36,8 +38,15 @@ export function SafetyCheckSheet({
           className="bg-white dark:bg-slate-900 rounded-t-[32px] px-6 pt-5 border-t border-slate-200 dark:border-slate-800 shadow-2xl"
           style={{ paddingBottom: Math.max(insets.bottom + 20, 48) }}
         >
-          {/* Drag handle */}
-          <View className="w-14 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full self-center mb-6" />
+          {/* Close Button */}
+          {onBack && (
+            <TouchableOpacity 
+              onPress={onBack}
+              className="absolute top-4 right-4 w-10 h-10 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800"
+            >
+              <MaterialCommunityIcons name="close" size={20} color="#64748b" />
+            </TouchableOpacity>
+          )}
 
           {/* Icon */}
           <View className="w-16 h-16 rounded-3xl bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/50 items-center justify-center self-center mb-5">

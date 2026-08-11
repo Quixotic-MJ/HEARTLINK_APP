@@ -657,6 +657,11 @@ exercise_routines = [
         ],
         "media_url": "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=600&h=400&fit=crop",
         "video_url": "https://www.youtube.com/watch?v=5WEBMhRc_9M",
+        "guide_images": [
+            "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=600&h=400&fit=crop",
+            "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=600&h=400&fit=crop",
+            "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=600&h=400&fit=crop"
+        ],
         "status": "published",
         "expert_validated": True,
         "created_by": "usr-admin-002",
@@ -696,6 +701,10 @@ exercise_routines = [
         ],
         "media_url": "https://images.unsplash.com/photo-1599447421416-3414500d18a5?w=600&h=400&fit=crop",
         "video_url": "https://www.youtube.com/watch?v=5WEBMhRc_9M",
+        "guide_images": [
+            "https://images.unsplash.com/photo-1518611012118-696072aa579a?w=600&h=400&fit=crop",
+            "https://images.unsplash.com/photo-1599447421416-3414500d18a5?w=600&h=400&fit=crop"
+        ],
         "status": "published",
         "expert_validated": True,
         "created_by": "usr-admin-002",
@@ -742,6 +751,11 @@ exercise_routines = [
         ],
         "media_url": "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=600&h=400&fit=crop",
         "video_url": "https://www.youtube.com/watch?v=5WEBMhRc_9M",
+        "guide_images": [
+            "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=600&h=400&fit=crop",
+            "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=600&h=400&fit=crop",
+            "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=600&h=400&fit=crop"
+        ],
         "status": "published",
         "expert_validated": True,
         "created_by": "usr-admin-002",
