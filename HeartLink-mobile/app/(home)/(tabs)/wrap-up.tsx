@@ -1,219 +1,21 @@
-import React, { useState, useCallback, useEffect, useRef } from "react";
-import { View, Text, ScrollView, TouchableOpacity, Image, RefreshControl, Animated } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import React, { useState, useCallback, useRef, useEffect } from "react";
+import { View, Text, ScrollView, TouchableOpacity, Animated, RefreshControl, LayoutAnimation, Platform, UIManager } from "react-native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter, useFocusEffect } from "expo-router";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
+import * as FileSystem from "expo-file-system/legacy";
+import { useColorScheme } from "nativewind";
 import { Header } from "../../../components/Header";
 import { useUser } from "../../../contexts/UserContext";
-import { EmptyState } from "../../../components/ui/EmptyState";
-import { useToast } from "../../../contexts/ToastContext";
+import AnimatedButton from "../../../components/ui/AnimatedButton";
+import { Colors } from "../../../constants/theme";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
-// ─── Types ───────────────────────────────────────────────────────────────────
-
-type DayBar = {
-  day: string;
-  value: number;
-};
-
-type Symptom = {
-  name: string;
-  count: number;
-};
-
-// ─── Metric Card ─────────────────────────────────────────────────────────────
-
-function MetricCard({
-  title,
-  value,
-  unit,
-  icon,
-  iconColor,
-  iconBg,
-  trend,
-}: {
-  title: string;
-  value: string | number;
-  unit?: string;
-  icon: string;
-  iconColor: string;
-  iconBg: string;
-  trend?: number;
-}) {
-  return (
-    <View className="w-1/2 px-1.5 mb-2.5">
-      <View className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-3.5">
-        {/* Icon bg color is dynamic — kept as inline style */}
-        <View className="flex-row justify-between items-start">
-          <View
-          className="w-8 h-8 rounded-lg items-center justify-center mb-2.5"
-          style={{ backgroundColor: iconBg }}
-        >
-          <MaterialCommunityIcons name={icon as any} size={18} color={iconColor} />
-        </View>
-          {trend !== undefined && (
-            <View className="flex-row items-center bg-slate-50 dark:bg-slate-800 px-1.5 py-0.5 rounded-full border border-slate-100 dark:border-slate-700">
-              <Feather name={trend > 0 ? "trending-up" : trend < 0 ? "trending-down" : "minus"} size={10} color={trend > 0 ? "#639922" : trend < 0 ? "#e24b4a" : "#64748b"} />
-              <Text style={{ color: trend > 0 ? "#639922" : trend < 0 ? "#e24b4a" : "#64748b" }} className="text-[10px] font-bold ml-1">
-                {Math.abs(trend)}{trend !== 0 ? '%' : ''}
-              </Text>
-            </View>
-          )}
-        </View>
-        <Text className="text-[22px] font-medium text-slate-900 dark:text-white leading-tight">
-          {value}
-          {unit && <Text className="text-[13px] font-medium text-slate-500"> {unit}</Text>}
-        </Text>
-        <Text className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 uppercase tracking-wide font-bold">
-          {title}
-        </Text>
-      </View>
-    </View>
-  );
-}
-
-// ─── Day Bar Chart ────────────────────────────────────────────────────────────
-
-function DayBarChart({ days, color }: { days: DayBar[]; color: string }) {
-  const max = Math.max(...days.map((d) => d.value));
-  return (
-    <View className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-3.5 mb-4">
-      <View className="flex-row justify-between items-center mb-3">
-        <Text className="text-[14px] font-medium text-slate-900 dark:text-white">HSS score · daily</Text>
-        <Text className="text-[11px] font-medium text-slate-400">Mon – Sun</Text>
-      </View>
-      <View className="flex-row items-end h-[68px] gap-1">
-        {days.map((d, index) => {
-          const heightFraction = d.value / max;
-          const barHeight = Math.round(heightFraction * 52);
-          return (
-            <View key={`${d.day}-${index}`} className="flex-1 items-center gap-1">
-              <View className="flex-1 w-full justify-end">
-                {/* Bar height & color are dynamic — kept as inline style */}
-                <View
-                  className="w-full rounded-t-md"
-                  style={{
-                    height: barHeight,
-                    backgroundColor: color,
-                    opacity: 0.5 + heightFraction * 0.5,
-                  }}
-                />
-              </View>
-              <Text className="text-[10px] font-bold text-slate-500">{d.day}</Text>
-            </View>
-          );
-        })}
-      </View>
-    </View>
-  );
-}
-
-// ─── Symptom Row ──────────────────────────────────────────────────────────────
-
-function SymptomRow({ symptom, isLast }: { symptom: Symptom; isLast: boolean }) {
-  const hasCount = symptom.count > 0;
-  return (
-    <View
-      className={`flex-row items-center justify-between px-3.5 py-3 ${
-        !isLast ? "border-b border-slate-100 dark:border-slate-800" : ""
-      }`}
-    >
-      <View className="flex-row items-center gap-2.5">
-        {/* Pip color is dynamic — kept as inline style */}
-        <View
-          className="w-1.5 h-1.5 rounded-full"
-          style={{ backgroundColor: hasCount ? "#e24b4a" : "#639922" }}
-        />
-        <Text className="text-[13px] text-slate-600">{symptom.name}</Text>
-      </View>
-      <View
-        className={`px-2.5 py-0.5 rounded-full ${
-          hasCount ? "bg-red-50" : "bg-slate-50 dark:bg-slate-950"
-        }`}
-      >
-        <Text
-          className={`text-[11px] font-bold ${hasCount ? "text-red-700" : "text-slate-500 dark:text-slate-400"}`}
-        >
-          {symptom.count} {symptom.count === 1 ? "instance" : "instances"}
-        </Text>
-      </View>
-    </View>
-  );
-}
-
-// ─── Mock Data ────────────────────────────────────────────────────────────────
-
-
-// ─── Streak Banner ────────────────────────────────────────────────────────────
-
-function StreakBanner({ streakCount, calendar }: { streakCount: number, calendar: boolean[] }) {
-  const router = useRouter();
-  const days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-  return (
-    <View className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4 mb-4 shadow-sm">
-      <View className="flex-row items-center gap-3 mb-4">
-        <View className="w-12 h-12 rounded-xl bg-orange-100 items-center justify-center border border-orange-200">
-          <Text className="text-2xl">🔥</Text>
-        </View>
-        <View className="flex-1">
-          <Text className="text-[20px] font-bold text-slate-900 dark:text-white tracking-tight">
-            {streakCount} Day Streak!
-          </Text>
-          <Text className="text-[12px] text-slate-500 mt-0.5 leading-snug">
-            {streakCount > 0 ? "You're crushing it! Keep logging daily." : "Log your vitals today to start a new streak!"}
-          </Text>
-        </View>
-        <TouchableOpacity 
-          onPress={() => router.push("/(home)/(profile)/analytics" as any)}
-          className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 items-center justify-center"
-        >
-          <Feather name="calendar" size={16} color="#64748b" />
-        </TouchableOpacity>
-      </View>
-      <View className="flex-row justify-between">
-        {days.map((day, idx) => {
-          const isDone = calendar?.[idx];
-          return (
-            <View key={idx} className="items-center gap-1.5">
-              <View className={`w-8 h-8 rounded-full items-center justify-center border ${isDone ? 'bg-orange-100 border-orange-200' : 'bg-slate-50 border-slate-200'}`}>
-                {isDone ? (
-                  <Feather name="check" size={14} color="#ea580c" />
-                ) : (
-                  <View className="w-1.5 h-1.5 rounded-full bg-slate-300" />
-                )}
-              </View>
-              <Text className={`text-[10px] font-bold ${isDone ? 'text-orange-600' : 'text-slate-400'}`}>{day}</Text>
-            </View>
-          );
-        })}
-      </View>
-    </View>
-  );
-}
-
-// ─── AI Insights Focus ────────────────────────────────────────────────────────
-
-function WeeklyFocusCard({ focusText }: { focusText: string }) {
-  if (!focusText) return null;
-  return (
-    <View className="bg-indigo-50 dark:bg-indigo-900/30 rounded-2xl border border-indigo-100 dark:border-indigo-800 p-4 mb-5 shadow-sm flex-row gap-3">
-      <View className="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-800 items-center justify-center">
-        <Feather name="target" size={20} color="#4f46e5" />
-      </View>
-      <View className="flex-1">
-        <Text className="text-[14px] font-bold text-indigo-900 dark:text-indigo-200 mb-1">Focus for Next Week</Text>
-        <Text className="text-[13px] text-indigo-800 dark:text-indigo-300 leading-snug">{focusText}</Text>
-      </View>
-    </View>
-  );
-}
-
 // ─── Skeletons ────────────────────────────────────────────────────────────────
-
 function SkeletonPulse({ style, className }: any) {
   const anim = useRef(new Animated.Value(0.3)).current;
 
@@ -224,51 +26,186 @@ function SkeletonPulse({ style, className }: any) {
         Animated.timing(anim, { toValue: 0.3, duration: 800, useNativeDriver: true })
       ])
     ).start();
-  }, []);
+  }, [anim]);
 
   return <Animated.View style={[{ opacity: anim }, style]} className={`bg-slate-200 dark:bg-slate-800 ${className}`} />;
 }
 
 function WrapUpSkeleton() {
   return (
-    <View className="px-5 pt-4 gap-4">
-      <SkeletonPulse className="w-full h-32 rounded-2xl" />
-      <SkeletonPulse className="w-full h-24 rounded-2xl" />
-      <View className="flex-row flex-wrap -mx-1.5">
-        {[1,2,3,4,5,6].map(i => (
-          <View key={i} className="w-1/2 px-1.5 mb-2.5">
-            <SkeletonPulse className="w-full h-24 rounded-2xl" />
-          </View>
-        ))}
+    <View className="px-6 pt-6 gap-6">
+      <View>
+        <SkeletonPulse className="w-32 h-6 rounded-md mb-2" />
+        <SkeletonPulse className="w-48 h-8 rounded-md" />
       </View>
-      <SkeletonPulse className="w-full h-32 rounded-2xl" />
+      <View className="gap-4 mt-6">
+        {[1,2,3,4,5].map(i => <SkeletonPulse key={i} className="w-full h-24 rounded-xl" />)}
+      </View>
+    </View>
+  );
+}
+
+// ─── Reusable Components ──────────────────────────────────────────────────────
+function SectionTitle({ title, icon, color }: { title: string, icon?: any, color?: string }) {
+  return (
+    <View className="flex-row items-center mb-4">
+      {icon && (
+        <View className="w-6 h-6 rounded-md items-center justify-center mr-2" style={{ backgroundColor: `${color}15` }}>
+          <Feather name={icon} size={14} color={color} />
+        </View>
+      )}
+      <Text className="text-[12px] font-bold text-slate-400 dark:text-slate-500 tracking-[0.08em] uppercase">
+        {title}
+      </Text>
+    </View>
+  );
+}
+
+function MetricCard({ title, value, icon, color }: { title: string, value: string, icon: any, color: string }) {
+  return (
+    <View className="flex-1 bg-white dark:bg-slate-900 rounded-xl p-3.5 border border-slate-200 dark:border-slate-800 flex-row items-center">
+      <View className="w-10 h-10 rounded-lg items-center justify-center mr-3" style={{ backgroundColor: `${color}15` }}>
+        <Text style={{ fontSize: 18 }}>{icon}</Text>
+      </View>
+      <View>
+        <Text className="text-[12px] text-slate-500 dark:text-slate-400 font-medium mb-0.5">{title}</Text>
+        <Text className="text-[15px] font-bold text-slate-900 dark:text-white leading-tight">{value}</Text>
+      </View>
+    </View>
+  );
+}
+
+function DailyRecordRow({ dayData, activeTint }: any) {
+  const [expanded, setExpanded] = useState(false);
+
+  const toggleExpand = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setExpanded(!expanded);
+  };
+
+  return (
+    <View className="mb-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+      <TouchableOpacity activeOpacity={0.7} onPress={toggleExpand} className="p-4 flex-row justify-between items-center bg-slate-50 dark:bg-slate-800/50">
+        <View>
+          <Text className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">{dayData.date} · {dayData.day}</Text>
+          <Text className="text-[14px] font-medium text-slate-800 dark:text-slate-200 mt-0.5">
+            {dayData.has_records 
+              ? [
+                  dayData.movement.length ? "Exercise" : null,
+                  dayData.nutrition.length ? "Meals" : null,
+                  dayData.vitals.length ? "Vitals" : null,
+                  dayData.sleep.length ? "Sleep" : null,
+                  dayData.symptoms.length ? "Symptoms" : null
+                ].filter(Boolean).join(" · ")
+              : "No records"}
+          </Text>
+        </View>
+        <View className="w-8 h-8 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800">
+          <Feather name={expanded ? "chevron-up" : "chevron-down"} size={16} color="#94a3b8" />
+        </View>
+      </TouchableOpacity>
+
+      {expanded && (
+        <View className="p-4 gap-y-5">
+          {!dayData.has_records && (
+            <Text className="text-[14px] text-slate-400">No health activity recorded on this day.</Text>
+          )}
+          
+          {dayData.movement.length > 0 && (
+             <View>
+               <Text className="text-[11px] font-bold text-slate-400 uppercase mb-2">Movement</Text>
+               {dayData.movement.map((m: any, i: number) => (
+                 <View key={i} className="mb-2">
+                   <Text className="text-[14px] font-semibold text-slate-900 dark:text-white">{m.name} — {m.duration} min</Text>
+                   <Text className="text-[13px] text-slate-500">{m.type} · {m.intensity} Intensity</Text>
+                 </View>
+               ))}
+             </View>
+          )}
+
+          {dayData.nutrition.length > 0 && (
+             <View>
+               <Text className="text-[11px] font-bold text-slate-400 uppercase mb-2">Meals</Text>
+               {dayData.nutrition.map((m: any, i: number) => (
+                 <View key={i} className="mb-2">
+                   <Text className="text-[14px] font-semibold text-slate-900 dark:text-white">{m.meal_name}</Text>
+                   <Text className="text-[13px] text-slate-500">{m.calories} kcal · {m.sodium_mg} mg sodium</Text>
+                 </View>
+               ))}
+             </View>
+          )}
+
+          {dayData.vitals.length > 0 && (
+             <View>
+               <Text className="text-[11px] font-bold text-slate-400 uppercase mb-2">Vitals</Text>
+               {dayData.vitals.map((v: any, i: number) => (
+                 <View key={i} className="mb-2">
+                   <Text className="text-[14px] font-semibold text-slate-900 dark:text-white">{v.time}</Text>
+                   <Text className="text-[13px] text-slate-500">{v.systolic}/{v.diastolic} mmHg · {v.bpm} BPM</Text>
+                   {v.medication !== undefined && v.medication !== null && (
+                     <Text className="text-[12px] text-slate-500 mt-0.5">Medication: {v.medication ? 'Taken' : 'Not taken'}</Text>
+                   )}
+                 </View>
+               ))}
+             </View>
+          )}
+
+          {dayData.sleep.length > 0 && (
+             <View>
+               <Text className="text-[11px] font-bold text-slate-400 uppercase mb-2">Sleep</Text>
+               {dayData.sleep.map((s: any, i: number) => (
+                 <View key={i} className="mb-2">
+                   <Text className="text-[14px] font-semibold text-slate-900 dark:text-white">{s.hours} hours</Text>
+                   <Text className="text-[13px] text-slate-500">Quality: {s.quality}</Text>
+                 </View>
+               ))}
+             </View>
+          )}
+
+          {dayData.symptoms.length > 0 && (
+             <View>
+               <Text className="text-[11px] font-bold text-slate-400 uppercase mb-2">Symptoms</Text>
+               {dayData.symptoms.map((s: any, i: number) => (
+                 <View key={i} className="mb-2">
+                   <Text className="text-[14px] font-semibold text-slate-900 dark:text-white">{s.name}</Text>
+                   <Text className="text-[13px] text-slate-500">Severity: {s.severity}/10 {s.context ? `· ${s.context}` : ''}</Text>
+                 </View>
+               ))}
+             </View>
+          )}
+        </View>
+      )}
     </View>
   );
 }
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
-
 export default function WrapUpScreen() {
   const router = useRouter();
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === "dark";
+  const insets = useSafeAreaInsets();
+  
+  const activeTint = Colors[isDark ? "dark" : "light"].tint;
+  
   const { userId, user } = useUser();
-  const { showToast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [wrapUpData, setWrapUpData] = useState<any>(null);
+  const [data, setData] = useState<any>(null);
 
   const fetchData = useCallback(async (silent = false) => {
     if (!userId) return;
     if (!silent) setIsLoading(true);
     
     try {
-      const response = await fetch(`${base_url}/api/dashboard/wrapup`, {
-        headers: {
-          "Authorization": `Bearer ${userId}`
-        }
+      const d = new Date();
+      const localDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      const response = await fetch(`${base_url}/api/dashboard/wrapup?local_date=${localDate}`, {
+        headers: { "Authorization": `Bearer ${userId}` }
       });
       if (response.ok) {
-        const data = await response.json();
-        setWrapUpData(data);
+        const result = await response.json();
+        setData(result);
       }
     } catch (error) {
       console.error("Wrap-up fetch error:", error);
@@ -289,150 +226,143 @@ export default function WrapUpScreen() {
     fetchData(true);
   }, [fetchData]);
 
-  const d = wrapUpData || {
-    hss: 0, sodium: 0, active: 0, missed: 0, satFat: 0, fiber: 0,
-    bannerTitle: "", bannerText: "", symptoms: [], days: [],
-    barColor: "#64748b", isPositive: true, streak_count: 0, streak_calendar: [], trends: {}
-  };
-  const displayHss = d.hss;
-  const isPositive = d.isPositive;
-
-  const formatTrend = (val: number | null | undefined, unit: string, positiveIsGood: boolean = true) => {
-    if (val === null || val === undefined) return '<td style="color: #64748b;">No previous data</td>';
-    if (val === 0) return '<td style="color: #64748b;">No change</td>';
-    const isGood = positiveIsGood ? val > 0 : val < 0;
-    const color = isGood ? "#639922" : "#e24b4a";
-    const sign = val > 0 ? "+" : "";
-    return `<td style="color: ${color};">${sign}${val} ${unit} from last week</td>`;
-  };
-
-  const exportPDF = async () => {
+  const exportReport = async () => {
+    if (!data) return;
     try {
       const html = `
         <html>
           <head>
             <style>
-              body { font-family: 'Helvetica', sans-serif; padding: 40px; color: #0f172a; line-height: 1.5; }
-              h1 { font-size: 28px; font-weight: bold; margin-bottom: 8px; color: #0f172a; }
-              p { margin: 0 0 30px 0; color: #64748b; font-size: 16px; }
-              .details { margin-bottom: 30px; font-size: 16px; background-color: #f8fafc; padding: 20px; border-radius: 12px; }
-              table { width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 40px; }
-              th, td { text-align: left; padding: 14px 16px; border-bottom: 1px solid #e2e8f0; }
-              th { background-color: #f1f5f9; font-weight: bold; color: #475569; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; }
-              td { font-size: 15px; color: #334155; }
+              body { font-family: 'Helvetica', sans-serif; padding: 40px; color: #1e293b; line-height: 1.6; }
+              h1 { font-size: 24px; font-weight: bold; margin-bottom: 4px; color: #0f172a; }
+              h2 { font-size: 16px; font-weight: bold; color: #334155; margin-top: 32px; margin-bottom: 12px; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em; }
+              h3 { margin-bottom: 8px; font-size: 14px; text-transform: uppercase; color: #0f172a; }
+              p { margin: 0 0 16px 0; color: #475569; font-size: 14px; }
+              .details { margin-bottom: 32px; font-size: 14px; background-color: #f8fafc; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0; }
+              table { width: 100%; border-collapse: collapse; margin-top: 8px; margin-bottom: 24px; font-size: 14px; }
+              th, td { text-align: left; padding: 12px 16px; border-bottom: 1px solid #e2e8f0; }
+              th { background-color: #f1f5f9; font-weight: bold; color: #475569; }
+              td { color: #334155; }
               .highlight { font-weight: bold; color: #0f172a; }
-              h2 { font-size: 20px; color: #0f172a; margin-bottom: 8px; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; }
+              .subtext { font-size: 12px; color: #64748b; }
+              .record-card { margin-bottom: 16px; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; }
             </style>
           </head>
           <body>
-            <h1>Weekly Cardiovascular Wrap-up</h1>
-            <p>Generated by HeartLink</p>
-            
+            <h1>HEARTLINK WEEKLY HEALTH RECORD</h1>
             <div class="details">
-              <strong>Patient:</strong> ${user?.first_name || 'User'} ${user?.last_name || ''}<br><br>
-              <strong>Date Range:</strong> Last 7 Days
+              <strong>Patient:</strong> ${user?.first_name || 'User'} ${user?.last_name || ''}<br>
+              <strong>Period:</strong> ${data.date_range.display}
             </div>
             
-            <h2>Metrics Summary (with Trends)</h2>
+            <h2>WEEKLY SUMMARY</h2>
             <table>
-              <tr>
-                <th>Metric</th>
-                <th>Recorded Value</th>
-                <th>Trend</th>
-              </tr>
-              <tr>
-                <td>Average HSS Score</td>
-                <td class="highlight">${displayHss} / 100</td>
-                ${formatTrend(d.trends?.hss_score, "pts", true)}
-              </tr>
-              <tr>
-                <td>Total Sodium Consumed</td>
-                <td class="highlight">${d.sodium} mg</td>
-                ${formatTrend(d.trends?.sodium, "mg", false)}
-              </tr>
-              <tr>
-                <td>Total Active Minutes</td>
-                <td class="highlight">${d.active} min</td>
-                ${formatTrend(d.trends?.active, "min", true)}
-              </tr>
-              <tr>
-                <td>Logs Missed</td>
-                <td class="highlight">${d.missed}</td>
-                <td style="color: #64748b;">No change</td>
-              </tr>
+              <tr><td>Average recorded stability score</td><td class="highlight">${data.overview.hss_average ?? 'Not recorded'}</td></tr>
+              <tr><td>Movement</td><td class="highlight">${data.overview.movement_minutes} min</td></tr>
+              <tr><td>Meals</td><td class="highlight">${data.overview.meal_days} days recorded</td></tr>
+              <tr><td>Sleep</td><td class="highlight">${data.overview.sleep_average_hours ? data.overview.sleep_average_hours + ' hr average' : 'Not recorded'}</td></tr>
+              <tr><td>Vitals</td><td class="highlight">${data.overview.vital_days} readings</td></tr>
+              <tr><td>Symptoms</td><td class="highlight">${data.overview.symptom_count} recorded</td></tr>
             </table>
 
-            <h2>Reported Symptoms</h2>
-            <table>
-              <tr>
-                <th>Symptom</th>
-                <th>Frequency</th>
-              </tr>
-              ${d.symptoms && d.symptoms.length > 0 ? d.symptoms.map((s: any) => `
-                <tr>
-                  <td>${s.name}</td>
-                  <td class="highlight">${s.count} instance${s.count === 1 ? '' : 's'}</td>
-                </tr>
-              `).join('') : `
-                <tr>
-                  <td colspan="2" style="text-align: center; color: #64748b;">No symptoms reported</td>
-                </tr>
-              `}
-            </table>
+            <h2>DAILY RECORD</h2>
+            ${data.daily_records.map((r: any) => `
+              <div class="record-card">
+                <h3>${r.date}</h3>
+                ${!r.has_records ? `<p style="color:#94a3b8; font-size: 13px;">No records</p>` : `
+                  ${r.movement.length ? `<p><strong>Movement:</strong><br>${r.movement.map((m: any) => `${m.name} — ${m.duration} min`).join('<br>')}</p>` : ''}
+                  ${r.nutrition.length ? `<p><strong>Meals:</strong><br>${r.nutrition.map((m: any) => `${m.meal_name} — ${m.calories} kcal, ${m.sodium_mg}mg sodium`).join('<br>')}</p>` : ''}
+                  ${r.vitals.length ? `<p><strong>Vitals:</strong><br>${r.vitals.map((v: any) => `${v.systolic}/${v.diastolic} mmHg — ${v.bpm} BPM`).join('<br>')}</p>` : ''}
+                  ${r.sleep.length ? `<p><strong>Sleep:</strong><br>${r.sleep.map((s: any) => `${s.hours} hours (Quality: ${s.quality})`).join('<br>')}</p>` : ''}
+                  ${r.symptoms.length ? `<p><strong>Symptoms:</strong><br>${r.symptoms.map((s: any) => `${s.name} (Severity: ${s.severity}/10)`).join('<br>')}</p>` : ''}
+                `}
+              </div>
+            `).join('')}
 
-            <h2>Daily HSS Breakdown</h2>
-            <table>
-              <tr>
-                <th>Day</th>
-                <th>HSS Score</th>
-              </tr>
-              <tr>
-                <td>Monday</td>
-                <td class="highlight">72 / 100</td>
-              </tr>
-              <tr>
-                <td>Tuesday</td>
-                <td class="highlight">58 / 100</td>
-              </tr>
-              <tr>
-                <td>Wednesday</td>
-                <td class="highlight">60 / 100</td>
-              </tr>
-              <tr>
-                <td>Thursday</td>
-                <td class="highlight">70 / 100</td>
-              </tr>
-              <tr>
-                <td>Friday</td>
-                <td class="highlight">55 / 100</td>
-              </tr>
-              <tr>
-                <td>Saturday</td>
-                <td class="highlight">68 / 100</td>
-              </tr>
-              <tr>
-                <td>Sunday</td>
-                <td class="highlight">52 / 100</td>
-              </tr>
-            </table>
+            <h2>VITAL TIMELINE</h2>
+            ${data.vitals.records.length ? data.vitals.records.map((r: any) => `
+              <div style="margin-bottom: 12px; font-size: 13px;">
+                <strong style="color: #64748b; font-size: 12px; text-transform: uppercase;">${r.date} · ${r.time}</strong><br>
+                Blood Pressure: <strong>${r.systolic} / ${r.diastolic} mmHg</strong><br>
+                Heart Rate: <strong>${r.bpm} BPM</strong>
+                ${r.weight_kg ? `<br>Weight: <strong>${r.weight_kg} kg</strong>` : ''}
+              </div>
+            `).join('') : '<p style="color:#94a3b8;">Not recorded</p>'}
 
+            <h2>SLEEP TIMELINE</h2>
+            ${data.sleep.records.length ? data.sleep.records.map((r: any) => `
+              <div style="margin-bottom: 12px; font-size: 13px;">
+                <strong style="color: #64748b; font-size: 12px; text-transform: uppercase;">${r.date}</strong><br>
+                Duration: <strong>${r.hours}h</strong><br>
+                Quality: <strong>${r.quality}</strong>
+              </div>
+            `).join('') : '<p style="color:#94a3b8;">No sleep records were logged during this period.</p>'}
+
+            <h2>SYMPTOM TIMELINE</h2>
+            ${data.symptoms.records.length ? data.symptoms.records.map((r: any) => `
+              <div style="margin-bottom: 12px; font-size: 13px;">
+                <strong style="color: #64748b; font-size: 12px; text-transform: uppercase;">${r.date} · ${r.time}</strong><br>
+                <strong>${r.name}</strong><br>
+                Severity: <strong>${r.severity}/10</strong><br>
+                Context: <strong>${r.context || 'Not specified'}</strong>
+              </div>
+            `).join('') : '<p style="color:#94a3b8;">Not recorded</p>'}
+
+            <h2>EXERCISE TIMELINE</h2>
+            ${data.movement.records.length ? data.movement.records.map((r: any) => `
+              <div style="margin-bottom: 16px; font-size: 13px;">
+                <strong style="color: #64748b; font-size: 12px; text-transform: uppercase;">${r.date} · ${r.time}</strong><br>
+                <strong>${r.name}</strong><br>
+                Duration: ${r.duration} min<br>
+                Type: ${r.type}<br>
+                Intensity: ${r.intensity}<br>
+                Goal: ${r.goal}<br>
+                Status: ${r.status}<br>
+                ${r.instructions.length ? `<div style="margin-top: 4px; color: #475569;"><em>How it was performed:</em><br> ${r.instructions.map((ins: string, i: number) => `${i+1}. ${ins}`).join('<br>')}</div>` : ''}
+              </div>
+            `).join('') : '<p style="color:#94a3b8;">Not recorded</p>'}
+
+            <h2>MEAL TIMELINE</h2>
+            ${data.nutrition.records.length ? data.nutrition.records.map((r: any) => `
+              <div style="margin-bottom: 12px; font-size: 13px;">
+                <strong style="color: #64748b; font-size: 12px; text-transform: uppercase;">${r.date} · ${r.time}</strong><br>
+                <strong>${r.meal_name}</strong><br>
+                ${r.calories} kcal<br>
+                ${r.sodium_mg} mg sodium
+              </div>
+            `).join('') : '<p style="color:#94a3b8;">Not recorded</p>'}
+
+            <h2>HSS / STABILITY</h2>
+            <p>Weekly Average: <strong>${data.stability.average ?? 'Not recorded'}</strong></p>
+            ${data.stability.records.length ? `
+              <p>Daily Recorded Scores:</p>
+              <ul>
+                ${data.stability.records.map((r: any) => `<li>${r.date} — ${r.score}</li>`).join('')}
+              </ul>
+            ` : ''}
           </body>
         </html>
       `;
 
-      const { uri } = await Print.printToFileAsync({ html });
+      const { uri, base64 } = await Print.printToFileAsync({ html, base64: true });
       if (!(await Sharing.isAvailableAsync())) {
-        showToast({ title: "Error", message: "Sharing is not available on this device.", type: "error" });
+        alert("Sharing is not available on this device.");
         return;
       }
-      await Sharing.shareAsync(uri);
+      
+      const newUri = `${FileSystem.documentDirectory}Weekly_Health_Report.pdf`;
+      await FileSystem.writeAsStringAsync(newUri, base64!, { encoding: FileSystem.EncodingType.Base64 });
+
+      await Sharing.shareAsync(newUri, { UTI: 'com.adobe.pdf', mimeType: 'application/pdf', dialogTitle: 'Share Weekly Report' });
     } catch (error) {
       console.error(error);
-      showToast({ title: "Error", message: "Failed to generate report.", type: "error" });
+      alert("Failed to generate report.");
     }
   };
 
-  if (isLoading || !wrapUpData) {
+  const activeText = isDark ? "#11181C" : "#ffffff";
+
+  if (isLoading || !data) {
     return (
       <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950" edges={["top"]}>
         <Header />
@@ -443,217 +373,198 @@ export default function WrapUpScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950" edges={["top"]}>
-      <StatusBar style="dark" />
-
-      {/* ── Top bar ── */}
+      <StatusBar style={isDark ? "light" : "dark"} />
       <Header />
 
-      <View className="flex-row items-center justify-between px-5 pt-3">
-        <View>
-          <Text className="text-[22px] font-medium text-slate-900 dark:text-white tracking-tight">
-            Weekly wrap-up
-          </Text>
-          <Text className="text-[13px] text-slate-400 mt-0.5">May 28 – June 3</Text>
-        </View>
-        <View className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-800/70 items-center justify-center mt-2">
-          <Feather name="bar-chart-2" size={20} color="#888780" />
-        </View>
-      </View>
-
       <ScrollView
-        contentContainerClassName="px-5 pb-28 pt-2 md:max-w-2xl lg:max-w-4xl mx-auto w-full"
+        contentContainerClassName="px-5 pb-8 pt-4 md:max-w-2xl lg:max-w-4xl mx-auto w-full"
         showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#64748b" />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={activeTint} />}
       >
-        <StreakBanner streakCount={d.streak_count || 0} calendar={d.streak_calendar || [false,false,false,false,false,false,false]} />
-        {/* Banner */}
-        <View
-          className={`rounded-2xl p-4 mb-4 border ${
-            isPositive
-              ? "bg-green-50 border-green-200"
-              : "bg-red-50 border-red-200"
-          }`}
-        >
-          <View className="flex-row items-center gap-2 mb-2">
-            {/* Dot color is dynamic — kept as inline style */}
-            <View
-              className="w-1.5 h-1.5 rounded-full"
-              style={{ backgroundColor: isPositive ? "#639922" : "#e24b4a" }}
+        {/* HERO / WEEK HEADER */}
+        <View className="mb-8 pt-2">
+          <Text className="text-[12px] font-bold text-slate-400 dark:text-slate-500 tracking-[0.1em] uppercase mb-1">
+            Your Week
+          </Text>
+          <Text className="text-[32px] font-bold text-slate-900 dark:text-white tracking-tight leading-tight mb-3">
+            {data.date_range.display}
+          </Text>
+          <Text className="text-[16px] text-slate-600 dark:text-slate-400 leading-relaxed max-w-[90%]">
+            A chronological record of your health activity this week.
+          </Text>
+        </View>
+
+        {/* GLANCE GRID */}
+        <View className="mb-8">
+          <SectionTitle title="Week At A Glance" />
+          <View className="flex-row gap-3 mb-3">
+            <MetricCard 
+              title="Average recorded stability score" 
+              value={data.overview.hss_average ? `${data.overview.hss_average} avg` : "No data"} 
+              icon="❤️" color="#e11d48" 
             />
-            <Text
-              className={`text-xs font-medium tracking-wide ${
-                isPositive ? "text-green-800" : "text-red-800"
-              }`}
-            >
-              {d.bannerTitle}
-            </Text>
+            <MetricCard 
+              title="Movement" 
+              value={`${data.overview.movement_minutes} min`} 
+              icon="🏃" color="#2563eb" 
+            />
           </View>
-        <WeeklyFocusCard focusText={d.bannerText || "Keep logging your health activities to build a more complete weekly summary."} />
-        </View>
-
-        {/* Metrics grid */}
-        <View className="flex-row flex-wrap -mx-1.5 mb-2">
-          <MetricCard
-            title="Avg HSS score"
-            value={displayHss}
-            unit="/100"
-            icon="heart-pulse"
-            iconColor="#3b6d11"
-            iconBg="#eaf3de"
-            trend={d.trends?.hss}
-          />
-          <MetricCard
-            title="Total sodium"
-            value={d.sodium}
-            unit="mg"
-            icon="shaker-outline"
-            iconColor="#185fa5"
-            iconBg="#e6f1fb"
-            trend={d.trends?.sodium}
-          />
-          <MetricCard
-            title="Active minutes"
-            value={d.active}
-            unit="min"
-            icon="run"
-            iconColor="#3b6d11"
-            iconBg="#eaf3de"
-            trend={d.trends?.active}
-          />
-          <MetricCard
-            title="Logs missed"
-            value={d.missed}
-            icon="calendar-remove"
-            iconColor="#854f0b"
-            iconBg="#faeeda"
-          />
-          <MetricCard
-            title="Avg vitals"
-            value={d.avg_vitals ? `${d.avg_vitals.systolic}/${d.avg_vitals.diastolic} mmHg` : "Not logged"}
-            unit={d.avg_vitals ? `\n${d.avg_vitals.heart_rate} BPM · ${d.avg_vitals.readings} reading${d.avg_vitals.readings === 1 ? '' : 's'}` : ""}
-            icon="heart"
-            iconColor="#e24b4a"
-            iconBg="#fef2f2"
-          />
-          <MetricCard
-            title="Avg sleep"
-            value={d.avg_sleep ? `${d.avg_sleep.duration_hours}h average` : "Not logged"}
-            unit={d.avg_sleep ? `\n${d.avg_sleep.days_logged}/7 days logged` : ""}
-            icon="weather-night"
-            iconColor="#4f46e5"
-            iconBg="#eef2ff"
-          />
-        </View>
-
-        {/* Day bar chart */}
-        <DayBarChart days={d.days} color={d.barColor} />
-
-        {/* Symptom frequency */}
-        <Text className="text-[14px] font-medium text-slate-900 dark:text-white mb-2.5">
-          Symptom frequency
-        </Text>
-        <View className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/70 overflow-hidden mb-5">
-          {d.symptoms.map((s: any, i: number) => (
-            <SymptomRow
-              key={s.name}
-              symptom={s}
-              isLast={i === d.symptoms.length - 1}
+          <View className="flex-row gap-3">
+            <MetricCard 
+              title="Sleep" 
+              value={data.overview.sleep_average_hours ? `${data.overview.sleep_average_hours} hr` : "No data"} 
+              icon="😴" color="#7c3aed" 
             />
+            <MetricCard 
+              title="Vitals" 
+              value={`${data.overview.vital_days} days`} 
+              icon="🩺" color="#059669" 
+            />
+          </View>
+        </View>
+
+        {/* DAILY RECORD TIMELINE */}
+        <View className="mb-8">
+          <SectionTitle title="Daily Record" />
+          {data.daily_records.map((dayData: any, idx: number) => (
+            <DailyRecordRow key={idx} dayData={dayData} activeTint={activeTint} />
           ))}
         </View>
 
-        <ActivityLogAccordion activityLog={d.activity_log || []} />
-        {/* Export */}
-        <TouchableOpacity
-          className="bg-primary py-3.5 rounded-2xl flex-row items-center justify-center gap-2"
-          onPress={exportPDF}
-          activeOpacity={0.85}
-        >
-          <Feather name="file-text" size={17} className="text-primary-foreground" />
-          <Text className="text-primary-foreground text-[15px] font-semibold">
-            Export report for physician
+        {/* DOMAIN SECTIONS - DETAILED */}
+        <View className="gap-y-8 mb-8">
+          
+          {/* VITALS */}
+          <View>
+            <SectionTitle title="Vital Readings" icon="heart" color="#e11d48" />
+            <View className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800">
+              {data.vitals.records.length > 0 ? data.vitals.records.map((r: any, idx: number) => (
+                <View key={idx} className="mb-4 last:mb-0">
+                  <Text className="text-[11px] font-bold text-slate-400 uppercase mb-1">{r.date} · {r.time}</Text>
+                  <Text className="text-[15px] font-medium text-slate-900 dark:text-white mb-0.5">Blood Pressure: {r.systolic} / {r.diastolic} mmHg</Text>
+                  <Text className="text-[15px] font-medium text-slate-900 dark:text-white mb-0.5">Heart Rate: {r.bpm} BPM</Text>
+                  {r.weight_kg ? <Text className="text-[15px] font-medium text-slate-900 dark:text-white mb-0.5">Weight: {r.weight_kg} kg</Text> : null}
+                  {r.medication !== undefined && r.medication !== null ? <Text className="text-[14px] text-slate-500">Medication: {r.medication ? 'Taken' : 'Not taken'}</Text> : null}
+                </View>
+              )) : (
+                <Text className="text-[15px] text-slate-400">Not recorded</Text>
+              )}
+            </View>
+          </View>
+
+          {/* SLEEP */}
+          <View>
+            <SectionTitle title="Sleep Record" icon="moon" color="#7c3aed" />
+            <View className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800">
+              {data.sleep.records.length > 0 ? data.sleep.records.map((r: any, idx: number) => (
+                <View key={idx} className="mb-4 last:mb-0">
+                  <Text className="text-[11px] font-bold text-slate-400 uppercase mb-1">{r.date}</Text>
+                  <Text className="text-[15px] font-medium text-slate-900 dark:text-white mb-0.5">Duration: {r.hours}h</Text>
+                  <Text className="text-[15px] font-medium text-slate-900 dark:text-white">Quality: {r.quality}</Text>
+                </View>
+              )) : (
+                <Text className="text-[15px] text-slate-400">Not recorded</Text>
+              )}
+            </View>
+          </View>
+
+          {/* SYMPTOMS */}
+          <View>
+            <SectionTitle title="Symptom Record" icon="alert-circle" color="#ea580c" />
+            <View className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800">
+              {data.symptoms.records.length > 0 ? data.symptoms.records.map((r: any, idx: number) => (
+                <View key={idx} className="mb-4 last:mb-0">
+                  <Text className="text-[11px] font-bold text-slate-400 uppercase mb-1">{r.date} · {r.time}</Text>
+                  <Text className="text-[15px] font-medium text-slate-900 dark:text-white mb-0.5">{r.name}</Text>
+                  <Text className="text-[15px] text-slate-600 dark:text-slate-400">Severity: {r.severity}/10</Text>
+                  {r.context ? <Text className="text-[15px] text-slate-600 dark:text-slate-400">Context: {r.context}</Text> : null}
+                </View>
+              )) : (
+                <Text className="text-[15px] text-slate-400">Not recorded</Text>
+              )}
+            </View>
+          </View>
+
+          {/* EXERCISE */}
+          <View>
+            <SectionTitle title="Exercise Record" icon="activity" color="#2563eb" />
+            <View className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800">
+              {data.movement.records.length > 0 ? data.movement.records.map((r: any, idx: number) => (
+                <View key={idx} className="mb-5 last:mb-0">
+                  <Text className="text-[11px] font-bold text-slate-400 uppercase mb-1">{r.date} · {r.time}</Text>
+                  <Text className="text-[16px] font-bold text-slate-900 dark:text-white mb-2">{r.name}</Text>
+                  <Text className="text-[14px] text-slate-600 dark:text-slate-400 mb-0.5">Duration: {r.duration} min</Text>
+                  <Text className="text-[14px] text-slate-600 dark:text-slate-400 mb-0.5">Type: {r.type}</Text>
+                  <Text className="text-[14px] text-slate-600 dark:text-slate-400 mb-0.5">Intensity: {r.intensity}</Text>
+                  <Text className="text-[14px] text-slate-600 dark:text-slate-400 mb-0.5">Goal: {r.goal}</Text>
+                  <Text className="text-[14px] text-slate-600 dark:text-slate-400 mb-2">Status: {r.status}</Text>
+                  {r.instructions && r.instructions.length > 0 && (
+                    <View className="bg-slate-50 dark:bg-slate-800 rounded-xl p-3 mt-1">
+                      <Text className="text-[12px] font-bold text-slate-500 mb-2 uppercase tracking-wide">How it was performed</Text>
+                      {r.instructions.map((ins: string, i: number) => (
+                        <Text key={i} className="text-[13px] text-slate-600 dark:text-slate-300 mb-1">
+                          {i + 1}. {ins}
+                        </Text>
+                      ))}
+                    </View>
+                  )}
+                </View>
+              )) : (
+                <Text className="text-[15px] text-slate-400">Not recorded</Text>
+              )}
+            </View>
+          </View>
+
+          {/* MEALS */}
+          <View>
+            <SectionTitle title="Meal Record" icon="coffee" color="#d97706" />
+            <View className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800">
+              {data.nutrition.records.length > 0 ? data.nutrition.records.map((r: any, idx: number) => (
+                <View key={idx} className="mb-4 last:mb-0">
+                  <Text className="text-[11px] font-bold text-slate-400 uppercase mb-1">{r.date} · {r.time}</Text>
+                  <Text className="text-[15px] font-semibold text-slate-900 dark:text-white mb-0.5">{r.meal_name}</Text>
+                  <Text className="text-[14px] text-slate-600 dark:text-slate-400">{r.calories} kcal · {r.sodium_mg} mg sodium</Text>
+                </View>
+              )) : (
+                <Text className="text-[15px] text-slate-400">Not recorded</Text>
+              )}
+            </View>
+          </View>
+        </View>
+
+        {/* CONSISTENCY */}
+        <View className="mb-8 bg-orange-50 dark:bg-orange-950/30 rounded-2xl p-5 border border-orange-100 dark:border-orange-900/30">
+          <SectionTitle title="Your Recording Streak" color="#ea580c" />
+          <Text className="text-[20px] font-bold text-slate-900 dark:text-white mb-1">
+            🔥 {data.consistency.current_streak} days
           </Text>
-        </TouchableOpacity>
-        <Text className="text-[13px] text-slate-500 font-medium text-center mt-2.5 mb-10 px-4 leading-[18px]">
-          Creates a secure PDF with your weekly aggregates, baseline data, and symptom tally.
-        </Text>
+          <Text className="text-[15px] text-slate-600 dark:text-slate-400">
+            Keep building your health record.
+          </Text>
+        </View>
+
+        {/* DOCTOR REPORT ACTION */}
+        <View className="mb-8">
+          <AnimatedButton
+            onPress={exportReport}
+            className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 flex-row items-center"
+          >
+            <View className="w-12 h-12 rounded-full items-center justify-center mr-4" style={{ backgroundColor: `${activeTint}15` }}>
+              <Feather name="file-text" size={20} color={activeTint} />
+            </View>
+            <View className="flex-1">
+              <Text className="text-[16px] font-bold text-slate-900 dark:text-white mb-0.5">
+                Export 7-Day Health Report
+              </Text>
+              <Text className="text-[14px] text-slate-500">
+                Share with your doctor
+              </Text>
+            </View>
+            <Feather name="chevron-right" size={20} color="#cbd5e1" />
+          </AnimatedButton>
+        </View>
+
       </ScrollView>
     </SafeAreaView>
   );
 }
-function ActivityLogAccordion({ activityLog }: { activityLog: any[] }) {
-  const [expandedDate, setExpandedDate] = useState<string | null>(null);
-
-  if (!activityLog || activityLog.length === 0) {
-    return (
-      <View className='mb-5'>
-        <Text className='text-[14px] font-medium text-slate-900 dark:text-white mb-2.5'>
-          Activity Log (Last 7 Days)
-        </Text>
-        <EmptyState
-          icon={<Feather name="calendar" size={26} color="#94a3b8" />}
-          title="No activity yet"
-          subtitle="Your meal and exercise logs will appear here."
-          className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/70 py-6"
-        />
-      </View>
-    );
-  }
-
-  return (
-    <View className='mb-5'>
-      <Text className='text-[14px] font-medium text-slate-900 dark:text-white mb-2.5'>
-        Activity Log (Last 7 Days)
-      </Text>
-      <View className='bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/70 overflow-hidden'>
-        {activityLog.map((log, index) => {
-          const isExpanded = expandedDate === log.date;
-          return (
-            <View key={log.date} className={index !== activityLog.length - 1 ? 'border-b border-slate-100 dark:border-slate-800' : ''}>
-              <TouchableOpacity
-                activeOpacity={0.7}
-                onPress={() => setExpandedDate(isExpanded ? null : log.date)}
-                className='flex-row items-center justify-between px-4 py-3.5'
-              >
-                <Text className='text-[14px] font-medium text-slate-800 dark:text-slate-200'>
-                  {new Date(log.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
-                </Text>
-                <View className='flex-row items-center gap-2'>
-                  <View className='flex-row gap-1'>
-                    {log.meals.length > 0 && <View className='w-1.5 h-1.5 rounded-full bg-blue-500' />}
-                    {log.exercises.length > 0 && <View className='w-1.5 h-1.5 rounded-full bg-green-500' />}
-                  </View>
-                  <Feather name={isExpanded ? 'chevron-up' : 'chevron-down'} size={18} color='#64748b' />
-                </View>
-              </TouchableOpacity>
-              
-              {isExpanded && (
-                <View className='px-4 pb-4 pt-1'>
-                  {log.meals.length > 0 && (
-                    <View className='mb-2'>
-                      <Text className='text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1'>Meals</Text>
-                      {log.meals.map((m: string, i: number) => (
-                        <Text key={'m'+i} className='text-[13px] text-slate-600 dark:text-slate-400 py-0.5'>� {m}</Text>
-                      ))}
-                    </View>
-                  )}
-                  {log.exercises.length > 0 && (
-                    <View>
-                      <Text className='text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1'>Exercises</Text>
-                      {log.exercises.map((e: string, i: number) => (
-                        <Text key={'e'+i} className='text-[13px] text-slate-600 dark:text-slate-400 py-0.5'>� {e}</Text>
-                      ))}
-                    </View>
-                  )}
-                </View>
-              )}
-            </View>
-          );
-        })}
-      </View>
-    </View>
-  );
-}
-

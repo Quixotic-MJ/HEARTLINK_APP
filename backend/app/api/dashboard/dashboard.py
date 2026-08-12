@@ -21,8 +21,8 @@ def get_dashboard(user_id: str = Depends(get_current_user)):
     return data
 
 @router.get("/wrapup", response_model=Dict[str, Any])
-def get_wrapup(user_id: str = Depends(get_current_user)):
-    data = get_7_day_wrap_up_data(user_id)
+def get_wrapup(local_date: str = None, user_id: str = Depends(get_current_user)):
+    data = get_7_day_wrap_up_data(user_id, local_date)
     if not data:
         raise HTTPException(status_code=404, detail="Wrap-up data not found")
     return data

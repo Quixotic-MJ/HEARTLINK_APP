@@ -337,182 +337,289 @@ def get_dashboard_data(user_id: str) -> Dict[str, Any]:
     }
 
 
-def get_7_day_wrap_up_data(user_id: str) -> Dict[str, Any]:
-    now = datetime.now()
-    seven_days_ago = now - timedelta(days=7)
-    fourteen_days_ago = now - timedelta(days=14)
+def get_7_day_wrap_up_data(user_id: str, local_date_str: str = None) -> Dict[str, Any]:
+    if local_date_str:
+        try:
+            now = datetime.strptime(local_date_str, "%Y-%m-%d")
+            # If the user passed local date, we want it to act as if it's currently that day
+        except ValueError:
+            now = datetime.now()
+    else:
+        now = datetime.now()
+        
+    seven_days_ago = now - timedelta(days=6) # 7 days inclusive
+    fourteen_days_ago = now - timedelta(days=13) # previous 7 days
 
-    # Filter logs for CURRENT week (days 1-7)
-    user_meals_current = [m for m in meal_logs if m["user_id"] == user_id and seven_days_ago <= _safe_datetime(m["logged_at"]) <= now and m.get("deleted_at") is None]
-    user_exercises_current = [e for e in exercise_logs if e["user_id"] == user_id and seven_days_ago <= _safe_datetime(e["logged_at"]) <= now and e.get("deleted_at") is None and e.get("status", "completed") != "abandoned"]
-    user_health_current = [l for l in daily_health_logs if l["user_id"] == user_id and seven_days_ago <= _safe_datetime(l["logged_at"]) <= now and l.get("deleted_at") is None]
-    user_sleep_current = [s for s in sleep_logs if s["user_id"] == user_id and seven_days_ago <= _safe_datetime(s["logged_at"]) <= now and s.get("deleted_at") is None]
+    # Helper filters
+    def in_current_week(date_str):
+        if not date_str: return False
+        return seven_days_ago.date() <= _safe_date(date_str) <= now.date()
+        
+    def in_prev_week(date_str):
+        if not date_str: return False
+        return fourteen_days_ago.date() <= _safe_date(date_str) < seven_days_ago.date()
 
-    # Filter logs for PREVIOUS week (days 8-14)
-    user_meals_prev = [m for m in meal_logs if m["user_id"] == user_id and fourteen_days_ago <= _safe_datetime(m["logged_at"]) < seven_days_ago and m.get("deleted_at") is None]
-    user_exercises_prev = [e for e in exercise_logs if e["user_id"] == user_id and fourteen_days_ago <= _safe_datetime(e["logged_at"]) < seven_days_ago and e.get("deleted_at") is None and e.get("status", "completed") != "abandoned"]
+    # Raw filtered logs
+    user_meals_current = [m for m in meal_logs if m["user_id"] == user_id and in_current_week(m["logged_at"]) and not m.get("deleted_at")]
+    # Fetch ALL exercises for the timeline, including abandoned
+    user_exercises_current_all = [e for e in exercise_logs if e["user_id"] == user_id and in_current_week(e["logged_at"]) and not e.get("deleted_at")]
+    # Completed/Active exercises for calculations
+    user_exercises_current = [e for e in user_exercises_current_all if e.get("status") != "abandoned"]
+    
+    user_health_current = [l for l in daily_health_logs if l["user_id"] == user_id and in_current_week(l["logged_at"]) and not l.get("deleted_at")]
+    user_sleep_current = [s for s in sleep_logs if s["user_id"] == user_id and in_current_week(s["logged_at"]) and not s.get("deleted_at")]
+    user_hss = sorted([c for c in hss_history if c["user_id"] == user_id], key=lambda x: _safe_datetime(x["computed_at"]))
 
-    # Current Totals
+    user_meals_prev = [m for m in meal_logs if m["user_id"] == user_id and in_prev_week(m["logged_at"]) and not m.get("deleted_at")]
+    user_exercises_prev = [e for e in exercise_logs if e["user_id"] == user_id and in_prev_week(e["logged_at"]) and not e.get("deleted_at") and e.get("status") != "abandoned"]
+
+    # Unique dates
+    logged_vitals_dates = {_safe_date(l["logged_at"]) for l in user_health_current}
+    logged_meals_dates = {_safe_date(m["logged_at"]) for m in user_meals_current}
+    logged_sleep_dates = {_safe_date(s["logged_at"]) for s in user_sleep_current}
+    # Timelines use all exercise attempts
+    logged_exercise_dates = {_safe_date(e["logged_at"]) for e in user_exercises_current_all}
+    logged_symptoms_dates = {_safe_date(l["logged_at"]) for l in user_health_current if any(s != "None (Feeling fine)" for s in l.get("symptoms", []))}
+    # Calculate HSS
+    def get_avg_hss(start_d, end_d):
+        total = 0
+        count = 0
+        for i in range((end_d - start_d).days + 1):
+            target_date = start_d + timedelta(days=i)
+            day_scores = [c["score"] for c in user_hss if _safe_date(c["computed_at"]) <= target_date]
+            if day_scores and day_scores[-1] > 0:
+                total += day_scores[-1]
+                count += 1
+        return round(total / count) if count > 0 else None
+
+    hss_current = get_avg_hss(seven_days_ago.date(), now.date())
+    hss_prev = get_avg_hss(fourteen_days_ago.date(), seven_days_ago.date() - timedelta(days=1))
+
+    # Daily Records & Consistency
+    daily_records = []
+    days_logged = 0
+    
+    # Calculate streak from all historical data up to today
+    all_logged_dates = set()
+    for log_list in [meal_logs, exercise_logs, daily_health_logs, sleep_logs]:
+        for item in log_list:
+            if item["user_id"] == user_id and not item.get("deleted_at"):
+                dt = _safe_date(item["logged_at"])
+                if dt: all_logged_dates.add(dt)
+    
+    current_streak = 0
+    check_date = now.date()
+    while check_date in all_logged_dates:
+        current_streak += 1
+        check_date -= timedelta(days=1)
+        
+    best_streak = 0
+    temp_streak = 0
+    sorted_dates = sorted(list(all_logged_dates))
+    if sorted_dates:
+        temp_streak = 1
+        best_streak = 1
+        for i in range(1, len(sorted_dates)):
+            if (sorted_dates[i] - sorted_dates[i-1]).days == 1:
+                temp_streak += 1
+                best_streak = max(best_streak, temp_streak)
+            else:
+                temp_streak = 1
+
+    for i in range(7):
+        target_date = seven_days_ago.date() + timedelta(days=i)
+        activities = []
+        if target_date in logged_exercise_dates: activities.append("Exercise")
+        if target_date in logged_meals_dates: activities.append("Meals")
+        if target_date in logged_vitals_dates: activities.append("Vitals")
+        if target_date in logged_sleep_dates: activities.append("Sleep")
+        if target_date in logged_symptoms_dates: activities.append("Symptoms")
+        
+        has_records = len(activities) > 0
+        if has_records: days_logged += 1
+        
+        daily_records.append({
+            "date": target_date.strftime("%b %d"),
+            "day": target_date.strftime("%a"),
+            "has_records": has_records,
+            "activities": activities
+        })
+
+    # Movement Formatting (Include abandoned with explicit status for timeline)
+    exercise_records = []
+    for e in user_exercises_current_all:
+        routine = next((r for r in exercise_routines if r["id"] == e.get("routine_id")), {})
+        instructions = [step["content"] for step in routine.get("steps", []) if step.get("type") in ("instruction", "breathing")]
+        
+        status_label = e.get("status")
+        if status_label == "abandoned":
+            status_label = "ABORTED / STOPPED — SYMPTOMS"
+            
+        exercise_records.append({
+            "date": _safe_date(e["logged_at"]).strftime("%b %d"),
+            "time": _safe_datetime(e["logged_at"]).strftime("%I:%M %p"),
+            "name": e.get("routine_name", routine.get("name", "Exercise")),
+            "duration": e.get("duration_minutes", 0),
+            "status": status_label,
+            "type": routine.get("type", "General"),
+            "intensity": routine.get("intensity", "None"),
+            "goal": routine.get("goal", ""),
+            "instructions": instructions
+        })
+
+    nutrition_records = []
+    for m in sorted(user_meals_current, key=lambda x: _safe_datetime(x["logged_at"])):
+        nutrition_records.append({
+            "date": _safe_date(m["logged_at"]).strftime("%b %d"),
+            "time": _safe_datetime(m["logged_at"]).strftime("%I:%M %p"),
+            "meal_name": m.get("meal_name"),
+            "portion": m.get("portion"),
+            "calories": m.get("calories"),
+            "sodium_mg": m.get("sodium_mg"),
+            "sat_fat_g": m.get("saturated_fat_g"),
+            "fiber_g": m.get("fiber_g"),
+            "cholesterol_mg": m.get("cholesterol_mg")
+        })
+
+    vital_records = []
+    for l in sorted(user_health_current, key=lambda x: _safe_datetime(x["logged_at"])):
+        if l.get("systolic_bp") or l.get("weight_kg"):
+            vital_records.append({
+                "date": _safe_date(l["logged_at"]).strftime("%b %d"),
+                "time": _safe_datetime(l["logged_at"]).strftime("%I:%M %p"),
+                "systolic": l.get("systolic_bp"),
+                "diastolic": l.get("diastolic_bp"),
+                "bpm": l.get("heart_rate_bpm"),
+                "weight_kg": l.get("weight_kg"),
+                "medication": l.get("medication_taken")
+            })
+
+    sleep_records = []
+    for s in sorted(user_sleep_current, key=lambda x: _safe_datetime(x["logged_at"])):
+        if s.get("duration_hours"):
+            sleep_records.append({
+                "date": _safe_date(s["logged_at"]).strftime("%b %d"),
+                "time": _safe_datetime(s["logged_at"]).strftime("%I:%M %p"),
+                "hours": s.get("duration_hours"),
+                "quality": s.get("quality")
+            })
+
+    symptoms_records = []
+    for l in sorted(user_health_current, key=lambda x: _safe_datetime(x["logged_at"])):
+        symps = [s for s in l.get("symptoms", []) if s != "None (Feeling fine)"]
+        if symps:
+            for s in symps:
+                symptoms_records.append({
+                    "date": _safe_date(l["logged_at"]).strftime("%b %d"),
+                    "time": _safe_datetime(l["logged_at"]).strftime("%I:%M %p"),
+                    "name": s,
+                    "severity": l.get("severity_map", {}).get(s, 0),
+                    "context": l.get("context", "")
+                })
+
+    hss_records = []
+    for i in range(7):
+        target_date = seven_days_ago.date() + timedelta(days=i)
+        day_scores = [c["score"] for c in user_hss if _safe_date(c["computed_at"]) <= target_date]
+        if day_scores and day_scores[-1] > 0:
+             hss_records.append({
+                 "date": target_date.strftime("%b %d"),
+                 "score": day_scores[-1]
+             })
+
+    # Group records by day for the daily timeline view
+    daily_records_grouped = []
+    for i in range(7):
+        target_date = seven_days_ago.date() + timedelta(days=i)
+        date_str = target_date.strftime("%b %d")
+        
+        day_movement = [r for r in exercise_records if r["date"] == date_str]
+        day_nutrition = [r for r in nutrition_records if r["date"] == date_str]
+        day_vitals = [r for r in vital_records if r["date"] == date_str]
+        day_sleep = [r for r in sleep_records if r["date"] == date_str]
+        day_symptoms = [r for r in symptoms_records if r["date"] == date_str]
+        
+        has_records = bool(day_movement or day_nutrition or day_vitals or day_sleep or day_symptoms)
+        
+        daily_records_grouped.append({
+            "date": date_str,
+            "day": target_date.strftime("%A"),
+            "short_day": target_date.strftime("%a"),
+            "has_records": has_records,
+            "movement": day_movement,
+            "nutrition": day_nutrition,
+            "vitals": day_vitals,
+            "sleep": day_sleep,
+            "symptoms": day_symptoms
+        })
+
+    # Basic Summaries
+    total_active = sum(e.get("duration_minutes", 0) for e in user_exercises_current)
+    prev_active = sum(e.get("duration_minutes", 0) for e in user_exercises_prev)
     total_sodium = sum(m.get("sodium_mg", 0) for m in user_meals_current)
     total_sat_fat = sum(m.get("saturated_fat_g", 0) for m in user_meals_current)
     total_fiber = sum(m.get("fiber_g", 0) for m in user_meals_current)
-    total_active = sum(e.get("duration_minutes", 0) for e in user_exercises_current)
-
-    # Previous Totals
-    prev_sodium = sum(m.get("sodium_mg", 0) for m in user_meals_prev)
-    prev_active = sum(e.get("duration_minutes", 0) for e in user_exercises_prev)
-
-    # Missed days (health logs)
-    logged_dates = {_safe_date(l["logged_at"]) for l in user_health_current}
-    logs_missed = max(0, 7 - len(logged_dates))
-
-    # Symptoms (Current week, no ghost symptoms)
-    symptoms_dict = {}
-    for log in user_health_current:
-        for symp in log.get("symptoms", []):
-            if symp != "None (Feeling fine)":
-                symptoms_dict[symp] = symptoms_dict.get(symp, 0) + 1
-    symptoms_list = [{"name": k, "count": v} for k, v in symptoms_dict.items() if v > 0]
-    symptoms_list.sort(key=lambda x: x["count"], reverse=True)
-
-    # Days array for chart (last 7 days HSS)
-    days_arr = []
-    user_hss = sorted([c for c in hss_history if c["user_id"] == user_id], key=lambda x: _safe_datetime(x["computed_at"]))
-    
-    avg_hss = 0
-    hss_count = 0
-    
-    for i in range(6, -1, -1):
-        target_date = (now - timedelta(days=i)).date()
-        day_str = target_date.strftime("%a")[0]  # 'M', 'T', 'W', etc.
-
-        day_hss = [c["score"] for c in user_hss if _safe_date(c["computed_at"]) <= target_date]
-        score = day_hss[-1] if day_hss else 0
-        days_arr.append({"day": day_str, "value": score})
-        if score > 0:
-            avg_hss += score
-            hss_count += 1
-
-    display_hss = round(avg_hss / hss_count) if hss_count > 0 else 0
-
-    # Calculate previous 7 days HSS for trend
-    prev_avg_hss = 0
-    prev_hss_count = 0
-    for i in range(13, 6, -1):
-        target_date = (now - timedelta(days=i)).date()
-        day_hss = [c["score"] for c in user_hss if _safe_date(c["computed_at"]) <= target_date]
-        score = day_hss[-1] if day_hss else 0
-        if score > 0:
-            prev_avg_hss += score
-            prev_hss_count += 1
-    prev_display_hss = round(prev_avg_hss / prev_hss_count) if prev_hss_count > 0 else 0
-
-    # Determine positive/negative
-    is_positive = display_hss >= 60 or display_hss == 0
-    banner_title = "Great progress!" if is_positive else "Action needed"
-    banner_text = (
-        "Your cardiovascular stability has been consistently good over the last 7 days."
-        if is_positive
-        else "Consider reviewing your recent meals and activity levels."
-    )
-
-    # Activity Log
-    activity_log = {}
-    for i in range(7):
-        d_str = (now - timedelta(days=i)).date().isoformat()
-        activity_log[d_str] = {"meals": [], "exercises": []}
-    
-    for m in user_meals_current:
-        d_str = _safe_date(m["logged_at"]).isoformat()
-        if d_str in activity_log:
-            activity_log[d_str]["meals"].append(m.get("meal_name", "Meal"))
-    
-    for e in user_exercises_current:
-        d_str = _safe_date(e["logged_at"]).isoformat()
-        if d_str in activity_log:
-            activity_log[d_str]["exercises"].append(e.get("routine_name", "Exercise"))
-
-    activity_log_list = []
-    for d_str, data in sorted(activity_log.items(), reverse=True):
-        if data["meals"] or data["exercises"]:
-            activity_log_list.append({"date": d_str, "meals": data["meals"], "exercises": data["exercises"]})
-
-    # Streak calculation
-    streak_calendar = []
-    streak_count = 0
-    for i in range(6, -1, -1):
-        target_date = (now - timedelta(days=i)).date()
-        logged_this_day = target_date in logged_dates
-        streak_calendar.append(logged_this_day)
-    
-    for i in range(6, -1, -1):
-        if streak_calendar[i]:
-            streak_count += 1
-        elif i == 6:
-            continue
-        else:
-            break
-
-    # Trends calculation
-    trends = {
-        "hss_score": (display_hss - prev_display_hss) if prev_hss_count > 0 else None,
-        "sodium": (total_sodium - prev_sodium) if user_meals_prev else None,
-        "active": (total_active - prev_active) if user_exercises_prev else None,
-    }
-
-    # Vitals Aggregation
-    sys_sum, dia_sum, hr_sum, vitals_count = 0, 0, 0, 0
-    for log in user_health_current:
-        s = log.get("systolic_bp")
-        d = log.get("diastolic_bp")
-        h = log.get("heart_rate_bpm")
-        if s and d and h:
-            sys_sum += s
-            dia_sum += d
-            hr_sum += h
-            vitals_count += 1
-    
-    avg_vitals = None
-    if vitals_count > 0:
-        avg_vitals = {
-            "systolic": round(sys_sum / vitals_count),
-            "diastolic": round(dia_sum / vitals_count),
-            "heart_rate": round(hr_sum / vitals_count),
-            "readings": vitals_count
-        }
-
-    # Sleep Aggregation
-    sleep_sum, sleep_count = 0, 0
-    for s in user_sleep_current:
-        dur = s.get("duration_hours")
-        if dur is not None and dur > 0:
-            sleep_sum += dur
-            sleep_count += 1
-
-    avg_sleep = None
-    if sleep_count > 0:
-        avg_sleep = {
-            "duration_hours": round(sleep_sum / sleep_count, 1),
-            "days_logged": sleep_count
-        }
+    sys_sum = sum(l.get("systolic_bp") for l in user_health_current if l.get("systolic_bp"))
+    dia_sum = sum(l.get("diastolic_bp") for l in user_health_current if l.get("diastolic_bp"))
+    hr_sum = sum(l.get("heart_rate_bpm") for l in user_health_current if l.get("heart_rate_bpm"))
+    v_count = len([l for l in user_health_current if l.get("systolic_bp")])
+    sleep_sum = sum(s.get("duration_hours", 0) for s in user_sleep_current if s.get("duration_hours"))
+    s_count = len([s for s in user_sleep_current if s.get("duration_hours")])
 
     return {
-        "hss_score": display_hss,
-        "sodium": total_sodium,
-        "active": total_active,
-        "missed": logs_missed,
-        "satFat": round(total_sat_fat, 1),
-        "fiber": total_fiber,
-        "bannerTitle": banner_title,
-        "bannerText": banner_text,
-        "symptoms": symptoms_list[:3],
-        "days": days_arr,
-        "barColor": "#639922" if is_positive else "#e24b4a",
-        "isPositive": is_positive,
-        "activity_log": activity_log_list,
-        "streak_count": streak_count,
-        "streak_calendar": streak_calendar,
-        "trends": trends,
-        "avg_vitals": avg_vitals,
-        "avg_sleep": avg_sleep
+        "date_range": {
+            "start": seven_days_ago.strftime("%b %d"),
+            "end": now.strftime("%b %d"),
+            "display": f"{seven_days_ago.strftime('%b %d')} – {now.strftime('%b %d')}"
+        },
+        "overview": {
+            "hss_average": hss_current,
+            "movement_minutes": total_active,
+            "meal_days": len(logged_meals_dates),
+            "vital_days": len(logged_vitals_dates),
+            "sleep_average_hours": round(sleep_sum / s_count, 1) if s_count > 0 else None,
+            "symptom_count": len(symptoms_records)
+        },
+        "daily_records": daily_records_grouped,
+        "movement": {
+            "total_minutes": total_active,
+            "session_count": len(user_exercises_current),
+            "trend_minutes": (total_active - prev_active) if user_exercises_prev else None,
+            "records": exercise_records
+        },
+        "nutrition": {
+            "days_logged": len(logged_meals_dates),
+            "meals_recorded": len(user_meals_current),
+            "sodium_mg": total_sodium,
+            "sat_fat_g": total_sat_fat,
+            "fiber_g": total_fiber,
+            "records": nutrition_records
+        },
+        "vitals": {
+            "avg_systolic": round(sys_sum / v_count) if v_count > 0 else None,
+            "avg_diastolic": round(dia_sum / v_count) if v_count > 0 else None,
+            "avg_bpm": round(hr_sum / v_count) if v_count > 0 else None,
+            "days_logged": len(logged_vitals_dates),
+            "records": vital_records
+        },
+        "sleep": {
+            "avg_hours": round(sleep_sum / s_count, 1) if s_count > 0 else None,
+            "days_logged": len(logged_sleep_dates),
+            "records": sleep_records
+        },
+        "symptoms": {
+            "total_count": len(symptoms_records),
+            "records": symptoms_records
+        },
+        "stability": {
+            "average": hss_current,
+            "trend_pts": (hss_current - hss_prev) if (hss_current is not None and hss_prev is not None) else None,
+            "records": hss_records,
+            "prev_average": hss_prev
+        },
+        "consistency": {
+            "days_logged": days_logged,
+            "current_streak": current_streak,
+            "best_streak": best_streak
+        }
     }
