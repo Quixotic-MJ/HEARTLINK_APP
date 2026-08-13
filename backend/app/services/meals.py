@@ -2,6 +2,7 @@ from typing import List, Dict, Any
 from datetime import datetime
 import uuid
 from app.mock_db import meal_logs, recipes, save_logs
+from app.services.recipes import normalize_recipe_fields
 
 def get_meal_logs(user_id: str) -> List[Dict[str, Any]]:
     logs = [m for m in meal_logs if m["user_id"] == user_id and m.get("deleted_at") is None]
@@ -34,7 +35,12 @@ def create_meal_log(user_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
 
 def search_meals(query: str) -> List[Dict[str, Any]]:
     query = query.lower()
-    return [r for r in recipes if query in r["name"].lower() or any(query in tag.lower() for tag in r.get("tags", []))]
+    return [
+        normalize_recipe_fields(r) 
+        for r in recipes 
+        if r.get("status") == "published"
+        and (query in r["name"].lower() or any(query in tag.lower() for tag in r.get("tags", [])))
+    ]
 
 def delete_meal_log(user_id: str, meal_id: str) -> bool:
     global meal_logs

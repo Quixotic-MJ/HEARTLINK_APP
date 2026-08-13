@@ -102,7 +102,11 @@ export default function RecipeDetailsScreen() {
             calories: data.calories || 0,
           },
           ingredients: Array.isArray(data.ingredients)
-            ? data.ingredients.map((ing: any) => ({ qty: `${ing.amount} ${ing.unit}`.trim(), item: ing.name }))
+            ? data.ingredients.map((ing: any) => {
+                const hasAmount = ing.amount !== null && ing.amount !== undefined && ing.amount !== 0;
+                const qtyStr = hasAmount ? `${ing.amount} ${ing.unit || ""}`.trim() : "";
+                return { qty: qtyStr, item: ing.name || "" };
+              })
             : data.ingredients 
               ? Object.keys(data.ingredients).map(k => ({ qty: data.ingredients[k], item: k })) 
               : [],

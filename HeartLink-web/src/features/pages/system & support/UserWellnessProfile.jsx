@@ -11,14 +11,19 @@ const UserWellnessProfile = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [data, setData] = useState(null);
+  const [timeline, setTimeline] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
 
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const response = await apiFetch(`/api/users/${id}/profile`);
-        setData(response);
+        const [profileRes, timelineRes] = await Promise.all([
+          apiFetch(`/api/users/${id}/profile`),
+          apiFetch(`/api/admin/users/${id}/timeline`).catch(() => [])
+        ]);
+        setData(profileRes);
+        setTimeline(timelineRes || []);
       } catch (err) {
         console.error("Failed to fetch user profile", err);
       } finally {
@@ -60,7 +65,8 @@ const UserWellnessProfile = () => {
     { id: "overview", label: "Overview", icon: <User size={16} /> },
     { id: "biometrics", label: "Biometrics & Goals", icon: <Activity size={16} /> },
     { id: "lifestyle", label: "Lifestyle & Diet", icon: <Apple size={16} /> },
-    { id: "baselines", label: "Health Baselines", icon: <HeartPulse size={16} /> }
+    { id: "baselines", label: "Health Baselines", icon: <HeartPulse size={16} /> },
+    { id: "timeline", label: "Health Timeline", icon: <Clock size={16} /> }
   ];
 
   return (
@@ -332,6 +338,162 @@ const UserWellnessProfile = () => {
             </div>
           )}
 
+          {/* HEALTH TIMELINE */}
+          {activeTab === "timeline" && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <h2 className="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2">
+                <Clock size={20} className="text-slate-400" />
+                Chronological Health Timeline
+              </h2>
+              
+              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm relative">
+                {timeline && timeline.length > 0 ? (
+                  <div className="relative border-l border-slate-200 ml-3 md:ml-4 space-y-8 pb-4">
+                    {timeline.map((item, index) => {
+                      // Determine colors/icons based on type
+                      let iconColor = "bg-slate-100 text-slate-500 border-slate-200";
+                      let Icon = Activity;
+                      let typeLabel = "Log";
+                      
+                      if (item.type === "vital") {
+                        iconColor = "bg-rose-50 text-rose-500 border-rose-200";
+                        Icon = HeartPulse;
+                        typeLabel = "Vitals";
+                      } else if (item.type === "symptom") {
+                        iconColor = "bg-amber-50 text-amber-500 border-amber-200";
+                        Icon = AlertTriangle;
+                        typeLabel = "Symptom";
+                      } else if (item.type === "meal") {
+                        iconColor = "bg-emerald-50 text-emerald-500 border-emerald-200";
+                        Icon = Apple;
+                        typeLabel = "Meal";
+                      } else if (item.type === "exercise") {
+                        iconColor = "bg-blue-50 text-blue-500 border-blue-200";
+                        Icon = Flame;
+                        typeLabel = "Exercise";
+                      } else if (item.type === "sleep") {
+                        iconColor = "bg-indigo-50 text-indigo-500 border-indigo-200";
+                        Icon = Moon;
+                        typeLabel = "Sleep";
+                      } else if (item.type === "hss") {
+                        iconColor = "bg-slate-900 text-white border-slate-900";
+                        Icon = ShieldCheck;
+                        typeLabel = "HSS Update";
+                      }
+
+                      return (
+                        <div key={index} className="relative pl-6 md:pl-8">
+                          {/* Timeline Dot */}
+                          <div className={`absolute -left-[17px] top-1 w-8 h-8 rounded-full border-2 flex items-center justify-center ${iconColor}`}>
+                            <Icon size={14} />
+                          </div>
+                          
+                          <div className="flex flex-col sm:flex-row sm:items-baseline gap-2 mb-2">
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">{typeLabel}</span>
+                            <span className="text-xs text-slate-400 font-medium">{new Date(item.timestamp).toLocaleString()}</span>
+                          </div>
+                          
+                          <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                            {item.type === "vital" && (
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                {item.data.systolic && item.data.diastolic && (
+                                  <div>
+                                    <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Blood Pressure</p>
+                                    <p className="text-sm font-bold text-slate-900">{item.data.systolic}/{item.data.diastolic} <span className="text-[10px] text-slate-500 font-normal">mmHg</span></p>
+                                  </div>
+                                )}
+                                {item.data.heart_rate && (
+                                  <div>
+                                    <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Heart Rate</p>
+                                    <p className="text-sm font-bold text-slate-900">{item.data.heart_rate} <span className="text-[10px] text-slate-500 font-normal">bpm</span></p>
+                                  </div>
+                                )}
+                                {item.data.blood_sugar && (
+                                  <div>
+                                    <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Blood Sugar</p>
+                                    <p className="text-sm font-bold text-slate-900">{item.data.blood_sugar} <span className="text-[10px] text-slate-500 font-normal">mg/dL</span></p>
+                                  </div>
+                                )}
+                                {item.data.weight_kg && (
+                                  <div>
+                                    <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Weight</p>
+                                    <p className="text-sm font-bold text-slate-900">{item.data.weight_kg} <span className="text-[10px] text-slate-500 font-normal">kg</span></p>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            {item.type === "symptom" && (
+                              <div>
+                                <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Symptoms Reported</p>
+                                <p className="text-sm font-semibold text-slate-900 capitalize">{item.data.symptoms.join(", ")}</p>
+                                {item.data.notes && <p className="text-xs text-slate-500 mt-2 italic">"{item.data.notes}"</p>}
+                              </div>
+                            )}
+
+                            {item.type === "meal" && (
+                              <div>
+                                <p className="text-sm font-bold text-slate-900 capitalize mb-1">{item.data.meal_type}</p>
+                                {item.data.recipe_name ? (
+                                  <p className="text-xs text-slate-600">Followed recommended recipe: <span className="font-semibold text-slate-900">{item.data.recipe_name}</span></p>
+                                ) : (
+                                  <p className="text-xs text-slate-600">Logged custom meal: <span className="font-semibold text-slate-900">{item.data.description}</span></p>
+                                )}
+                                {item.data.sodium_mg && (
+                                  <p className="text-[10px] font-medium text-slate-500 mt-2">Sodium: {item.data.sodium_mg}mg</p>
+                                )}
+                              </div>
+                            )}
+
+                            {item.type === "exercise" && (
+                              <div>
+                                <p className="text-sm font-bold text-slate-900 mb-1">{item.data.exercise_name || "Custom Exercise"}</p>
+                                <div className="flex gap-4 mt-2">
+                                  <p className="text-xs text-slate-600"><span className="font-semibold text-slate-900">{item.data.duration_minutes}</span> min duration</p>
+                                  <p className="text-xs text-slate-600 capitalize">Intensity: <span className="font-semibold text-slate-900">{item.data.intensity}</span></p>
+                                </div>
+                              </div>
+                            )}
+
+                            {item.type === "sleep" && (
+                              <div>
+                                <div className="flex gap-4">
+                                  <p className="text-xs text-slate-600"><span className="font-semibold text-slate-900">{item.data.duration_hours}</span> hours slept</p>
+                                  <p className="text-xs text-slate-600 capitalize">Quality: <span className="font-semibold text-slate-900">{item.data.quality}</span></p>
+                                </div>
+                              </div>
+                            )}
+
+                            {item.type === "hss" && (
+                              <div className="flex items-center gap-4">
+                                <div>
+                                  <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">HSS Tier Updated</p>
+                                  <p className="text-sm font-bold text-slate-900">{item.data.tier}</p>
+                                </div>
+                                <div className="h-8 w-px bg-slate-200"></div>
+                                <div>
+                                  <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Score</p>
+                                  <p className="text-sm font-bold text-slate-900">{item.data.score}</p>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-10 text-center">
+                    <Clock size={32} className="text-slate-200 mb-3" />
+                    <h3 className="text-sm font-semibold text-slate-900">No Timeline Data</h3>
+                    <p className="text-xs text-slate-500 mt-1 max-w-sm">
+                      There are no recent logs, vital readings, or HSS updates for this patient.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           
         </div>

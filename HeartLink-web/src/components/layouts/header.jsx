@@ -12,6 +12,8 @@ import {
   UserPlus,
   Dumbbell,
   AlertTriangle,
+  LayoutDashboard,
+  ClipboardList,
 } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
@@ -52,12 +54,12 @@ const Header = ({
   const title = propTitle || defaultTitle;
   
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user, userId, logout } = useAuth();
 
   const [quickActionsOpen, setQuickActionsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const userRole = user?.role || "admin";
+  const userRole = user?.role || (user?.id === "usr-chief-admin-001" || userId === "usr-chief-admin-001" ? "admin" : "medical_expert");
 
   const handleSearch = (e) => {
     if (e.key === "Enter" && searchQuery.trim()) {
@@ -173,10 +175,10 @@ const Header = ({
                       className="px-4 pt-1.5 pb-2.5 text-[9px] tracking-[0.18em] uppercase font-semibold"
                       style={{ color: "rgba(15,23,42,0.35)", borderBottom: "1px solid rgba(15,23,42,0.06)" }}
                     >
-                      CLINICAL & CONTENT
+                      EVALUATION ACTIONS
                     </p>
-                    <ActionItem icon={Utensils} label="Add healthy recipe" onClick={() => { navigate('/foods'); setQuickActionsOpen(false); }} />
-                    <ActionItem icon={Dumbbell} label="Add physical activity" onClick={() => { navigate('/exercises'); setQuickActionsOpen(false); }} />
+                    <ActionItem icon={LayoutDashboard} label="View Dashboard" onClick={() => { navigate('/dashboard'); setQuickActionsOpen(false); }} />
+                    <ActionItem icon={ClipboardList} label="Review Cases" onClick={() => { navigate('/cases'); setQuickActionsOpen(false); }} />
                   </>
                 )}
               </div>

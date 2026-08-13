@@ -234,7 +234,8 @@ def get_dashboard_data(user_id: str) -> Dict[str, Any]:
     reco_recipes = [
         r
         for r in recipes
-        if (r.get("hss_tier") == tier or r.get("hss_tier") == "Stable")
+        if r.get("status") == "published"
+        and (r.get("hss_tier") == tier or r.get("hss_tier") == "Stable")
         and _recipe_matches_diet(r, dietary_practice)
     ]
     reco_exercises = [

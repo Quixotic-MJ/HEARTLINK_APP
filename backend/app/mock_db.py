@@ -291,7 +291,7 @@ alerts = [
         "status": "Under Review",  # Alert processing context status state
         "trigger_context": {"systolic": 134, "diastolic": 86},
         "system_action": "Escalated to expert validation review pipeline queue",
-        "flagged_css": 52,
+        "flagged_hss": 52,
         "patient_snapshot": {
             "age": 20,
             "sex": "male",
@@ -305,6 +305,7 @@ alerts = [
 
 
 expert_evaluations = []
+admin_activity = []
 
 # 7. Global Content Library Data (Core Recommendations Asset)
 recipes = [
@@ -1251,7 +1252,8 @@ def save_logs():
             "saved_recipes": [_serialize_item(r) for r in saved_recipes],
             "saved_exercises": [_serialize_item(e) for e in saved_exercises],
             "expert_evaluations": [_serialize_item(ee) for ee in expert_evaluations],
-            "system_broadcasts": [_serialize_item(b) for b in system_broadcasts]
+            "system_broadcasts": [_serialize_item(b) for b in system_broadcasts],
+            "admin_activity": [_serialize_item(act) for act in admin_activity]
         }
         with open(LOGS_DB_FILE, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
@@ -1259,7 +1261,7 @@ def save_logs():
         print(f"Error saving mock logs: {e}")
 
 def load_logs():
-    global meal_logs, exercise_logs, daily_health_logs, sleep_logs, hss_history, notifications, alerts, saved_recipes, saved_exercises, expert_evaluations, system_broadcasts
+    global meal_logs, exercise_logs, daily_health_logs, sleep_logs, hss_history, notifications, alerts, saved_recipes, saved_exercises, expert_evaluations, system_broadcasts, admin_activity
     if os.path.exists(LOGS_DB_FILE):
         try:
             with open(LOGS_DB_FILE, "r", encoding="utf-8") as f:
@@ -1297,6 +1299,9 @@ def load_logs():
                 if "system_broadcasts" in data:
                     system_broadcasts.clear()
                     system_broadcasts.extend([_deserialize_item(b) for b in data["system_broadcasts"]])
+                if "admin_activity" in data:
+                    admin_activity.clear()
+                    admin_activity.extend([_deserialize_item(act) for act in data["admin_activity"]])
         except Exception as e:
             print(f"Error loading mock logs: {e}")
     else:

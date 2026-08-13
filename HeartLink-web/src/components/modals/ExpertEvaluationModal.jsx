@@ -15,7 +15,7 @@ import {
 
 const ExpertEvaluationModal = ({ isOpen, onClose, activeCase, onSave }) => {
   const [notes, setNotes] = useState("");
-  const [expertCssScore, setExpertCssScore] = useState(50);
+  const [expertHssScore, setExpertHssScore] = useState(50);
   const [recommendationFeedback, setRecommendationFeedback] = useState("");
   const [expandedRecipeId, setExpandedRecipeId] = useState(null);
   const [expandedExerciseId, setExpandedExerciseId] = useState(null);
@@ -24,7 +24,7 @@ const ExpertEvaluationModal = ({ isOpen, onClose, activeCase, onSave }) => {
     if (activeCase) {
       setNotes(activeCase.notes || "");
       setRecommendationFeedback(activeCase.recommendation_feedback || "");
-      setExpertCssScore(activeCase.expert_css_score || activeCase.ml_predicted_css || 50);
+      setExpertHssScore(activeCase.expert_hss_score || activeCase.ml_predicted_hss || 50);
       setExpandedRecipeId(null);
       setExpandedExerciseId(null);
     }
@@ -34,7 +34,7 @@ const ExpertEvaluationModal = ({ isOpen, onClose, activeCase, onSave }) => {
 
   const handleSave = () => {
     if (onSave) {
-      onSave({ expert_css_score: expertCssScore, notes, recommendation_feedback: recommendationFeedback });
+      onSave({ expert_hss_score: expertHssScore, notes, recommendation_feedback: recommendationFeedback });
     }
     onClose();
   };
@@ -188,10 +188,10 @@ const ExpertEvaluationModal = ({ isOpen, onClose, activeCase, onSave }) => {
             <div className="p-6 flex flex-col sm:flex-row gap-8 items-center">
               <div className="w-full sm:w-1/3 text-center sm:border-r border-slate-200 pr-0 sm:pr-4">
                 <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-widest mb-2">
-                  ML-PREDICTED CSS
+                  ML-PREDICTED HSS
                 </p>
                 <p className="text-5xl font-bold text-slate-900 mb-2">
-                  {activeCase.ml_predicted_css ?? "--"}
+                  {activeCase.ml_predicted_hss ?? "--"}
                 </p>
               </div>
               <div className="w-full sm:w-2/3">
@@ -333,7 +333,7 @@ const ExpertEvaluationModal = ({ isOpen, onClose, activeCase, onSave }) => {
               {/* Expert CSS Score */}
               <div>
                 <label className="block text-[11px] font-medium text-slate-700 mb-1.5 flex items-center gap-2">
-                  Expert Ground-Truth CSS Score <span className="text-[9px] text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded uppercase font-bold tracking-widest">Model Label</span>
+                  Expert Ground-Truth HSS Score <span className="text-[9px] text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded uppercase font-bold tracking-widest">Model Label</span>
                 </label>
                 <p className="text-[10px] text-slate-500 mb-4">
                   Based on the patient's baseline profile, what should their actual Clinical Stability Score (0-100) be?
@@ -342,12 +342,12 @@ const ExpertEvaluationModal = ({ isOpen, onClose, activeCase, onSave }) => {
                    <input 
                       type="range" 
                       min="0" max="100" 
-                      value={expertCssScore}
-                      onChange={(e) => setExpertCssScore(parseInt(e.target.value))}
+                      value={expertHssScore}
+                      onChange={(e) => setExpertHssScore(parseInt(e.target.value))}
                       className="flex-1 accent-[#0f172a]"
                    />
                    <div className="w-16 h-11 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-center font-bold text-[#0f172a]">
-                      {expertCssScore}
+                      {expertHssScore}
                    </div>
                 </div>
               </div>
@@ -365,7 +365,7 @@ const ExpertEvaluationModal = ({ isOpen, onClose, activeCase, onSave }) => {
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   className="w-full px-4 py-3 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-slate-400 focus:bg-white transition-colors resize-none leading-relaxed"
-                  placeholder="e.g. The CSS penalty for isolated dietary sodium without symptoms might be too aggressive..."
+                  placeholder="e.g. The HSS penalty for isolated dietary sodium without symptoms might be too aggressive..."
                 />
               </div>
             </div>

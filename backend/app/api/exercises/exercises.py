@@ -1,6 +1,8 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
 from typing import List, Dict, Any
 from app.services.exercises import get_routines, get_exercise_logs, create_exercise_log, delete_exercise_log, create_routine, update_routine, delete_routine
+from app.utils.security import get_current_admin_user
+from app.utils.activity_helper import record_admin_activity
 
 router = APIRouter(prefix="/api/exercises", tags=["Exercises"])
 
@@ -17,21 +19,51 @@ def read_routine(routine_id: str):
     return routine
 
 @router.post("/", response_model=Dict[str, Any])
-def add_routine(data: Dict[str, Any]):
-    return create_routine(data)
+def add_routine(data: Dict[str, Any], current_user: dict = Depends(get_current_admin_user)):
+    new_routine = create_routine(data)
+    admin_id = current_user.get("user_id") if current_user else "admin"
+    record_admin_activity(
+        admin_user_id=admin_id,
+        action="created",
+        target_type="exercise",
+        target_id=new_routine.get("id"),
+        target_name=new_routine.get("name")
+    )
+    return new_routine
 
 @router.put("/{routine_id}", response_model=Dict[str, Any])
-def edit_routine(routine_id: str, data: Dict[str, Any]):
+def edit_routine(routine_id: str, data: Dict[str, Any], current_user: dict = Depends(get_current_admin_user)):
     try:
-        return update_routine(routine_id, data)
+        updated_routine = update_routine(routine_id, data)
+        admin_id = current_user.get("user_id") if current_user else "admin"
+        record_admin_activity(
+            admin_user_id=admin_id,
+            action="updated",
+            target_type="exercise",
+            target_id=updated_routine.get("id"),
+            target_name=updated_routine.get("name")
+        )
+        return updated_routine
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
 @router.delete("/{routine_id}", response_model=Dict[str, Any])
-def remove_routine(routine_id: str):
+def remove_routine(routine_id: str, current_user: dict = Depends(get_current_admin_user)):
+    routines = get_routines()
+    routine = next((r for r in routines if r["id"] == routine_id), None)
+    if not routine:
+        raise HTTPException(status_code=404, detail="Routine not found")
     success = delete_routine(routine_id)
     if not success:
         raise HTTPException(status_code=404, detail="Routine not found")
+    admin_id = current_user.get("user_id") if current_user else "admin"
+    record_admin_activity(
+        admin_user_id=admin_id,
+        action="deleted",
+        target_type="exercise",
+        target_id=routine_id,
+        target_name=routine.get("name")
+    )
     return {"success": True, "message": "Routine deleted"}
 
 @router.get("/logs/{user_id}", response_model=List[Dict[str, Any]])

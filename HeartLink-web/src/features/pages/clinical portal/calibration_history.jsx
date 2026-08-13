@@ -105,15 +105,15 @@ const Calibration = () => {
   // Calculate Chart Data
   // We want to show the trend of Error Margin over time
   const chartData = logs
-    .filter(log => log.ml_predicted_css != null && log.expert_css_score != null)
+    .filter(log => log.ml_predicted_hss != null && log.expert_hss_score != null)
     .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
     .map((log, index) => {
-      const errorMargin = Math.abs(log.expert_css_score - log.ml_predicted_css);
+      const errorMargin = Math.abs(log.expert_hss_score - log.ml_predicted_hss);
       return {
         name: `Eval ${index + 1}`,
         error: errorMargin,
-        expert: log.expert_css_score,
-        ml: log.ml_predicted_css,
+        expert: log.expert_hss_score,
+        ml: log.ml_predicted_hss,
         date: new Date(log.created_at).toLocaleDateString()
       };
     });
@@ -184,7 +184,7 @@ const Calibration = () => {
               <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-1">MODEL ACCURACY TREND</p>
               <h3 className="text-lg font-bold text-slate-900">Absolute Error Margin</h3>
               <p className="text-xs text-slate-500 mt-2 leading-relaxed">
-                Tracks the absolute difference between the ML-predicted CSS and the expert's ground-truth CSS over time.
+                Tracks the absolute difference between the ML-predicted HSS and the expert's ground-truth HSS over time.
               </p>
             </div>
             <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-xl mt-4">
@@ -320,7 +320,7 @@ const Calibration = () => {
                   </td>
                   <td className="py-4 px-5 align-middle">
                     <div className="flex items-center gap-1 text-[11px] font-semibold text-slate-800">
-                      {log.expert_css_score} <span className="text-[10px] text-slate-400 font-normal ml-1">(vs {log.ml_predicted_css ?? "--"})</span>
+                      {log.expert_hss_score} <span className="text-[10px] text-slate-400 font-normal ml-1">(vs {log.ml_predicted_hss ?? "--"})</span>
                     </div>
                   </td>
                   <td className="py-4 px-5 align-middle">

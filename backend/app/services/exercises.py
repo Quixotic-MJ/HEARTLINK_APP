@@ -63,15 +63,10 @@ def delete_exercise_log(user_id: str, log_id: str) -> Tuple[bool, str, int]:
 
 def map_hss_tier(tier: str) -> str:
     if not tier: return "Stable"
-    if "Monitor Closely" in tier:
-        return "Moderate"
-    if "Critical" in tier:
-        return "Elevated Risk"
-    # Preserve existing valid tiers as-is
-    valid_tiers = ["Stable", "Moderate", "Caution", "Elevated Risk"]
-    for valid in valid_tiers:
-        if valid in tier:
-            return valid
+    if "Stable" in tier: return "Stable"
+    if "Moderate" in tier or "Monitor Closely" in tier: return "Moderate"
+    if "Elevated Risk" in tier: return "Elevated Risk"
+    if "Critical" in tier: return "Critical"
     return "Stable"
 
 def create_routine(data: Dict[str, Any]) -> Dict[str, Any]:

@@ -16,11 +16,21 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { InputField } from "../ui/InputField";
 
+const formatIngredient = (ing) => {
+  if (typeof ing === "string") return ing;
+  if (!ing) return "";
+  const hasAmount = ing.amount !== null && ing.amount !== undefined && ing.amount !== 0;
+  if (hasAmount) {
+    return `${ing.amount} ${ing.unit || ""} ${ing.name || ""}`.trim().replace(/\s+/g, " ");
+  }
+  return ing.name || "";
+};
+
 const foodSchema = z.object({
   name: z.string().min(1, "Name is required."),
   foodSourceType: z.string().default("Home Recipe"),
   category: z.string().default("Breakfast"),
-  cssTarget: z.string().default("Stable (80-100)"),
+  hssTarget: z.string().default("Stable (80-100)"),
   calories: z.coerce.number().min(0, "Cannot be negative"),
   sodium: z.coerce.number().min(0, "Cannot be negative"),
   satFat: z.coerce.number().min(0, "Cannot be negative"),
@@ -51,7 +61,7 @@ const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave, 
     defaultValues: {
       name: "",
       category: "Breakfast",
-      cssTarget: "Stable (80-100)",
+      hssTarget: "Stable (80-100)",
       foodSourceType: "Home Recipe",
       sodium: 0,
       calories: 0,
@@ -84,14 +94,14 @@ const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave, 
         mediaUrl: recipe.mediaUrl || "",
         instructions: recipe.instructions || "",
         ingredients: recipe.ingredients 
-          ? recipe.ingredients.map(ing => ({ value: ing }))
-          : [{ value: "Mock Ingredient 1" }, { value: "Mock Ingredient 2" }],
+          ? recipe.ingredients.map(ing => ({ value: formatIngredient(ing) }))
+          : [],
       });
     } else {
       reset({
         name: "",
         category: "Breakfast",
-        cssTarget: "Stable (80-100)",
+        hssTarget: "Stable (80-100)",
         foodSourceType: "Home Recipe",
         sodium: 0,
         calories: 0,
@@ -164,11 +174,12 @@ const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave, 
                     ) : (
                       <ShieldAlert size={14} className="text-slate-400" />
                     )}
-                    Medical Expert Validation
+                    {expertValidated ? "Expert Reviewed" : "Pending Review"}
                   </h4>
                   <p className="text-[10px] text-slate-500 leading-relaxed">
-                    Only Authorized Medical Experts can sign off on
-                    nutritional accuracy before pushing to users.
+                    {expertValidated
+                      ? "Reviewed or developed with input from a qualified nutrition expert."
+                      : "Sourced from an external reference and has not yet been reviewed by a nutrition expert."}
                   </p>
                 </div>
   
@@ -240,19 +251,16 @@ const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave, 
                 </div>
                 <div>
                   <label className="block text-[11px] font-medium text-slate-700 mb-1.5">
-                    CSS Target Level
+                    HSS Suitability
                   </label>
                   <select
-                    {...register("cssTarget")}
-                    className={`w-full px-3 py-2 text-xs bg-slate-50 border ${errors.cssTarget ? 'border-red-400' : 'border-slate-200'} rounded-xl focus:outline-none focus:border-slate-400 focus:bg-white transition-colors`}
+                    {...register("hssTarget")}
+                    className={`w-full px-3 py-2 text-xs bg-slate-50 border ${errors.hssTarget ? 'border-red-400' : 'border-slate-200'} rounded-xl focus:outline-none focus:border-slate-400 focus:bg-white transition-colors`}
                   >
                     <option value="Stable (80-100)">Stable (80-100)</option>
-                    <option value="Monitor Closely (50-79)">
-                      Monitor Closely (50-79)
-                    </option>
-                    <option value="Critical (<50)">
-                      Critical (&lt;50)
-                    </option>
+                    <option value="Moderate (60-79)">Moderate (60-79)</option>
+                    <option value="Elevated Risk (50-59)">Elevated Risk (50-59)</option>
+                    <option value="Critical (<50)">Critical (&lt;50)</option>
                   </select>
                 </div>
               </div>

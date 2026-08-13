@@ -114,7 +114,7 @@ const CaseSnapshotModal = ({ isOpen, onClose, snapshotData }) => {
                     </div>
                     <div className="p-4 space-y-3">
                       <div>
-                        <p className="text-[9px] font-medium text-slate-400 uppercase tracking-widest mb-1">Target CSS Tier:</p>
+                        <p className="text-[9px] font-medium text-slate-400 uppercase tracking-widest mb-1">Target HSS Tier:</p>
                         <p className="text-[11px] font-semibold text-slate-700">{snapshotData.patientContext?.telemetry?.recommended?.targetTier}</p>
                       </div>
                       <div>
@@ -170,10 +170,10 @@ const CaseSnapshotModal = ({ isOpen, onClose, snapshotData }) => {
             <div className="p-6 flex flex-col sm:flex-row gap-8 items-center">
               <div className="w-full sm:w-1/3 text-center sm:border-r border-slate-200 pr-0 sm:pr-4">
                 <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-widest mb-2">
-                  COMPUTED CSS
+                  COMPUTED HSS
                 </p>
                 <p className="text-5xl font-bold text-slate-700 mb-2">
-                  {snapshotData.computedCss}
+                  {snapshotData.computedHss}
                 </p>
               </div>
               <div className="w-full sm:w-2/3">

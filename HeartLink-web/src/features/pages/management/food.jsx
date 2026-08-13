@@ -21,65 +21,7 @@ import FoodFormModal from "../../../components/modals/FoodFormModal";
 import { Skeleton } from "../../../components/ui/Skeleton";
 import { apiFetch } from "../../../api";
 
-// Mock Data
-const initialRecipes = [
-  {
-    id: 1,
-    name: "Oatmeal with Fresh Berries",
-    category: "Breakfast",
-    cssTarget: "Stable (80-100)",
-    sodium: 15,
-    calories: 210,
-    satFat: 0.5,
-    cholesterol: 0,
-    fiber: 8,
-    status: "published",
-    expertValidated: true,
-    mediaUrl: "https://images.unsplash.com/photo-1517673132405-a56a62b18caf?auto=format&fit=crop&q=80&w=150&h=150",
-  },
-  {
-    id: 2,
-    name: "Grilled Salmon & Quinoa",
-    category: "Dinner",
-    cssTarget: "Monitor Closely (50-79)",
-    sodium: 120,
-    calories: 450,
-    satFat: 2.5,
-    cholesterol: 55,
-    fiber: 5,
-    status: "published",
-    expertValidated: true,
-    mediaUrl: "https://images.unsplash.com/photo-1467003909585-2f8a72700288?auto=format&fit=crop&q=80&w=150&h=150",
-  },
-  {
-    id: 3,
-    name: "Low-Sodium Chicken Broth",
-    category: "Lunch",
-    cssTarget: "Critical (<50)",
-    sodium: 140,
-    calories: 120,
-    satFat: 1.0,
-    cholesterol: 15,
-    fiber: 1,
-    status: "draft",
-    expertValidated: false,
-    mediaUrl: "https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&q=80&w=150&h=150",
-  },
-  {
-    id: 4,
-    name: "Avocado Toast on Whole Wheat",
-    category: "Breakfast",
-    cssTarget: "Stable (80-100)",
-    sodium: 150,
-    calories: 280,
-    satFat: 2.0,
-    cholesterol: 0,
-    fiber: 11,
-    status: "archived",
-    expertValidated: false,
-    mediaUrl: "https://images.unsplash.com/photo-1588137378633-dea1336ce1e2?auto=format&fit=crop&q=80&w=150&h=150",
-  },
-];
+// Authored recipes loaded from database
 
 const Foods = () => {
   const [recipes, setRecipes] = useState([]);
@@ -92,15 +34,16 @@ const Foods = () => {
     try {
       const data = await apiFetch("/api/recipes");
       const mapped = data.map((r) => {
-        let cssLabel = "Stable (80-100)";
-        if (r.css_tier === "Monitor Closely" || r.css_tier === "Caution") cssLabel = "Monitor Closely (50-79)";
-        if (r.css_tier === "Elevated Risk" || r.css_tier === "Critical") cssLabel = "Critical (<50)";
+        let hssLabel = "Stable (80-100)";
+        if (r.hss_tier === "Moderate") hssLabel = "Moderate (60-79)";
+        if (r.hss_tier === "Elevated Risk") hssLabel = "Elevated Risk (50-59)";
+        if (r.hss_tier === "Critical") hssLabel = "Critical (<50)";
         
         return {
           id: r.id,
           name: r.name || "",
           category: r.category || "Meal",
-          cssTarget: cssLabel,
+          hssTarget: hssLabel,
           sodium: r.sodium_mg || 0,
           calories: r.calories || 0,
           satFat: r.saturated_fat_g || 0,
@@ -109,12 +52,15 @@ const Foods = () => {
           status: r.status || "draft",
           expertValidated: r.expert_validated || false,
           mediaUrl: r.image_url || "",
+          ingredients: r.ingredients || [],
+          steps: r.steps || [],
+          foodSourceType: r.foodSourceType || "Home Recipe",
         };
       });
-      setRecipes(mapped.length > 0 ? mapped : initialRecipes);
+      setRecipes(mapped);
     } catch (err) {
       console.error("Failed to fetch foods", err);
-      setRecipes(initialRecipes);
+      setRecipes([]);
     } finally {
       setLoading(false);
     }
@@ -152,10 +98,10 @@ const Foods = () => {
   });
 
   // Badge Color Helper
-  const getCssBadgeColor = (target) => {
+  const getHssBadgeColor = (target) => {
     if (target.includes("Stable"))
       return { bg: "rgba(15,23,42,0.05)", text: "#0f172a", border: "transparent" };
-    if (target.includes("Monitor"))
+    if (target.includes("Moderate") || target.includes("Elevated Risk"))
       return { bg: "rgba(245,158,11,0.08)", text: "#d97706", border: "transparent" };
     return { bg: "rgba(239,68,68,0.08)", text: "#dc2626", border: "transparent" };
   };
@@ -227,13 +173,13 @@ const Foods = () => {
                   Food / Meal Name
                 </th>
                 <th className="py-3 px-5 text-[9px] font-medium text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100">
-                  CSS Suitability
+                  HSS Suitability
                 </th>
                 <th className="py-3 px-5 text-[9px] font-medium text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100">
                   Nutrition Snapshot
                 </th>
                 <th className="py-3 px-5 text-[9px] font-medium text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100 text-center">
-                  Validation
+                  Expert Review
                 </th>
                 <th className="py-3 px-5 text-[9px] font-medium text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100 text-right">
                   Actions
@@ -274,7 +220,7 @@ const Foods = () => {
           ) : (
             <tbody className="divide-y divide-slate-50">
               {filteredRecipes.map((recipe) => {
-                const badge = getCssBadgeColor(recipe.cssTarget);
+                const badge = getHssBadgeColor(recipe.hssTarget);
                 return (
                   <tr
                     key={recipe.id}
@@ -311,7 +257,7 @@ const Foods = () => {
                           color: badge.text,
                         }}
                       >
-                        {recipe.cssTarget}
+                        {recipe.hssTarget}
                       </span>
                     </td>
                     <td className="py-4 px-5 align-middle">
@@ -330,14 +276,14 @@ const Foods = () => {
                       {recipe.expertValidated ? (
                         <div
                           className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-emerald-50 text-emerald-600 mx-auto"
-                          title="Clinically Validated"
+                          title="Expert Reviewed"
                         >
                           <ShieldCheck size={14} />
                         </div>
                       ) : (
                         <div
                           className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-amber-50 text-amber-500 mx-auto"
-                          title="Pending Validation"
+                          title="Pending Review"
                         >
                           <ShieldAlert size={14} />
                         </div>

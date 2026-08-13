@@ -25,11 +25,13 @@ const Analytics = () => {
   const [activeTab, setActiveTab] = useState("demographics");
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [period, setPeriod] = useState("6months");
 
   useEffect(() => {
     const fetchData = async () => {
+      setLoading(true);
       try {
-        const analyticsData = await apiFetch("/api/admin/analytics");
+        const analyticsData = await apiFetch(`/api/admin/analytics?period=${period}`);
         setData(analyticsData);
       } catch (err) {
         console.error("Failed to fetch analytics data", err);
@@ -38,14 +40,14 @@ const Analytics = () => {
       }
     };
     fetchData();
-  }, []);
+  }, [period]);
 
   const getExportText = () => {
     switch (activeTab) {
       case "demographics":
         return "Export User Data";
       case "outcomes":
-        return "Export CSS Outcomes";
+        return "Export HSS Outcomes";
       case "content":
         return "Export Content Report";
       default:
@@ -83,27 +85,24 @@ const Analytics = () => {
           <h2 className="text-2xl lg:text-3xl font-semibold text-slate-900 leading-[1.1] tracking-tight">
             Analytics & Reporting.
           </h2>
+          <p className="text-xs text-slate-400 mt-1">
+            Understand HeartLink users, activity, HSS trends, and content usage.
+          </p>
         </div>
 
         {/* Global Controls */}
-        <div className="flex flex-col sm:flex-row items-center gap-2.5">
-          <div
-            className="flex items-center gap-2 px-3 py-1.5 bg-white border rounded-xl cursor-pointer hover:border-slate-300 transition-colors w-full sm:w-auto"
-            style={{ borderColor: "rgba(15,23,42,0.12)" }}
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Period:</span>
+          <select
+            value={period}
+            onChange={(e) => setPeriod(e.target.value)}
+            className="px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-[11px] font-medium text-slate-700 outline-none cursor-pointer hover:border-slate-300 transition-colors"
           >
-            <Calendar size={14} className="text-slate-400" />
-            <span className="text-[11px] font-medium text-slate-700">
-              Last 6 Months
-            </span>
-            <ChevronDown size={14} className="text-slate-400 ml-1" />
-          </div>
-          <button
-            className="flex items-center justify-center gap-1.5 px-3.5 py-2 text-white rounded-xl text-[11px] font-medium transition-all hover:opacity-90 active:scale-[0.99] w-full sm:w-auto"
-            style={{ backgroundColor: "#0f172a" }}
-          >
-            <Download size={14} strokeWidth={2} />
-            {getExportText()}
-          </button>
+            <option value="30days">Last 30 Days</option>
+            <option value="3months">Last 3 Months</option>
+            <option value="6months">Last 6 Months</option>
+            <option value="12months">Last 12 Months</option>
+          </select>
         </div>
       </div>
 
@@ -122,7 +121,7 @@ const Analytics = () => {
           style={activeTab === "demographics" ? { backgroundColor: "rgba(15,23,42,0.04)" } : {}}
         >
           <Users size={14} />
-          User Adoption
+          USER ADOPTION
         </button>
         <button
           onClick={() => setActiveTab("outcomes")}
@@ -134,7 +133,7 @@ const Analytics = () => {
           style={activeTab === "outcomes" ? { backgroundColor: "rgba(15,23,42,0.04)" } : {}}
         >
           <HeartPulse size={14} />
-          Wellness Outcomes
+          HSS TRENDS
         </button>
         <button
           onClick={() => setActiveTab("content")}
@@ -146,7 +145,7 @@ const Analytics = () => {
           style={activeTab === "content" ? { backgroundColor: "rgba(15,23,42,0.04)" } : {}}
         >
           <Apple size={14} />
-          Content Efficacy
+          CONTENT USAGE
         </button>
       </div>
 
@@ -173,17 +172,17 @@ const Analytics = () => {
                 {demographics.total_signups.toLocaleString()}
               </p>
               <p
-                className="text-[9px] font-medium mt-2 w-fit px-2 py-0.5 rounded-full"
+                className="text-[9px] font-semibold mt-2 w-fit px-2 py-0.5 rounded-full"
                 style={{ backgroundColor: "rgba(16,185,129,0.08)", color: "#059669" }}
               >
-                {demographics.signups_growth} this month
+                {demographics.signups_growth} from previous period
               </p>
             </div>
 
             <div className="bg-white p-5 rounded-xl border border-slate-200">
               <div className="flex justify-between items-start mb-3">
                 <p className="text-[10px] font-medium text-slate-400 uppercase tracking-[0.22em]">
-                  Avg Session Length
+                  Total Activity Logs
                 </p>
                 <div
                   className="w-7 h-7 rounded-full flex items-center justify-center"
@@ -193,20 +192,20 @@ const Analytics = () => {
                 </div>
               </div>
               <p className="text-2xl font-semibold text-slate-900 tracking-tight">
-                {demographics.avg_session_length}
+                {demographics.total_records.toLocaleString()}
               </p>
               <p
-                className="text-[9px] font-medium mt-2 w-fit px-2 py-0.5 rounded-full"
+                className="text-[9px] font-semibold mt-2 w-fit px-2 py-0.5 rounded-full"
                 style={{ backgroundColor: "rgba(16,185,129,0.08)", color: "#059669" }}
               >
-                {demographics.session_growth} vs last month
+                {demographics.records_growth} vs last period
               </p>
             </div>
 
             <div className="bg-white p-5 rounded-xl border border-slate-200">
               <div className="flex justify-between items-start mb-3">
                 <p className="text-[10px] font-medium text-slate-400 uppercase tracking-[0.22em]">
-                  Churned Accounts
+                  Archived Users
                 </p>
                 <div
                   className="w-7 h-7 rounded-full flex items-center justify-center"
@@ -219,10 +218,10 @@ const Analytics = () => {
                 {demographics.archived_accounts}
               </p>
               <p
-                className="text-[9px] font-medium text-slate-500 mt-2 w-fit px-2 py-0.5 rounded-full"
+                className="text-[9px] font-semibold text-slate-500 mt-2 w-fit px-2 py-0.5 rounded-full"
                 style={{ backgroundColor: "rgba(15,23,42,0.04)" }}
               >
-                {demographics.churn_rate} churn rate
+                {demographics.churn_rate} archiving rate
               </p>
             </div>
           </div>
@@ -248,20 +247,61 @@ const Analytics = () => {
               </ResponsiveContainer>
             </div>
           </div>
+
+          {/* New Grid: Symptom Records & Activity Volume */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mt-5">
+            <div className="bg-white p-5 rounded-xl border border-slate-200">
+              <h3 className="text-sm font-semibold text-slate-900 tracking-tight mb-5">
+                Most Frequently Recorded Symptoms
+              </h3>
+              {data.symptoms_frequency && data.symptoms_frequency.length > 0 ? (
+                <div className="space-y-3">
+                  {data.symptoms_frequency.slice(0, 5).map((item, idx) => (
+                    <div key={idx} className="flex justify-between items-center p-2.5 rounded-lg border border-slate-100 bg-slate-50/50">
+                      <span className="text-xs font-semibold text-slate-800">{item.name}</span>
+                      <span className="text-xs font-bold text-slate-600">{item.count} logs</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-slate-400 italic">No symptoms recorded.</p>
+              )}
+            </div>
+
+            <div className="bg-white p-5 rounded-xl border border-slate-200">
+              <h3 className="text-sm font-semibold text-slate-900 tracking-tight mb-5">
+                Activity Volume Over Time
+              </h3>
+              <div className="w-full h-48">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={data.activity_over_time} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} />
+                    <Tooltip contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0' }} />
+                    <Legend iconType="circle" wrapperStyle={{ fontSize: '10px' }} />
+                    <Area type="monotone" dataKey="meals" name="Meals" stroke="#0f172a" fill="rgba(15,23,42,0.05)" strokeWidth={2} />
+                    <Area type="monotone" dataKey="exercises" name="Exercises" stroke="#f59e0b" fill="rgba(245,158,11,0.05)" strokeWidth={2} />
+                    <Area type="monotone" dataKey="sleep" name="Sleep" stroke="#3b82f6" fill="rgba(59,130,246,0.05)" strokeWidth={2} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
       {/* ========================================= */}
-      {/* TAB 2: WELLNESS OUTCOMES                  */}
+      {/* TAB 2: HSS TRENDS                         */}
       {/* ========================================= */}
       {activeTab === "outcomes" && (
         <div className="space-y-5 animate-in fade-in duration-300">
           <div className="bg-white p-5 rounded-xl border border-slate-200">
             <h3 className="text-sm font-semibold text-slate-900 tracking-tight mb-2">
-              CSS Population Shifts
+              HSS Population Tiers Over Time
             </h3>
             <p className="text-xs text-slate-500 mb-6">
-              Visualizes how users are migrating between CSS tiers over the past 6 months. A growing "Stable" block indicates positive overall health outcomes.
+              Displays how the registered patient population distributes across HSS tiers at the end of each calendar month. Excludes patients with no HSS record computed by that date.
             </p>
             <div className="w-full h-80">
               <ResponsiveContainer width="100%" height="100%">
@@ -274,18 +314,50 @@ const Analytics = () => {
                     cursor={{ fill: '#f8fafc' }}
                   />
                   <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', paddingTop: '20px' }} />
-                  <Bar dataKey="critical" name="Critical Risk" stackId="a" fill="#ef4444" radius={[0, 0, 4, 4]} barSize={40} />
-                  <Bar dataKey="monitor" name="Monitor Closely" stackId="a" fill="#f59e0b" />
+                  <Bar dataKey="critical" name="Critical" stackId="a" fill="#ef4444" radius={[0, 0, 4, 4]} barSize={40} />
+                  <Bar dataKey="elevated_risk" name="Elevated Risk" stackId="a" fill="#f97316" />
+                  <Bar dataKey="moderate" name="Moderate" stackId="a" fill="#f59e0b" />
                   <Bar dataKey="stable" name="Stable" stackId="a" fill="#0f172a" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* New Grid: Content Library by HSS Target Tier */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mt-5">
+            <div className="bg-white p-5 rounded-xl border border-slate-200">
+              <h3 className="text-sm font-semibold text-slate-900 tracking-tight mb-5">
+                Recipe Library by HSS Target Tier
+              </h3>
+              <div className="space-y-2">
+                {Object.entries(data.content_distribution.recipes).map(([tier, count]) => (
+                  <div key={tier} className="flex justify-between items-center p-2.5 rounded-lg border border-slate-100 bg-slate-50/50">
+                    <span className="text-xs font-semibold text-slate-800">{tier}</span>
+                    <span className="text-xs font-bold text-slate-600">{count} recipes</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-white p-5 rounded-xl border border-slate-200">
+              <h3 className="text-sm font-semibold text-slate-900 tracking-tight mb-5">
+                Exercise Library by HSS Target Tier
+              </h3>
+              <div className="space-y-2">
+                {Object.entries(data.content_distribution.exercises).map(([tier, count]) => (
+                  <div key={tier} className="flex justify-between items-center p-2.5 rounded-lg border border-slate-100 bg-slate-50/50">
+                    <span className="text-xs font-semibold text-slate-800">{tier}</span>
+                    <span className="text-xs font-bold text-slate-600">{count} routines</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
       )}
 
       {/* ========================================= */}
-      {/* TAB 3: CONTENT EFFICACY                   */}
+      {/* TAB 3: CONTENT USAGE                      */}
       {/* ========================================= */}
       {activeTab === "content" && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 animate-in fade-in duration-300">
@@ -298,7 +370,7 @@ const Analytics = () => {
               >
                 <Apple size={13} style={{ color: "#0f172a" }} />
               </div>
-              Most Cooked Recipes
+              Most Logged Recipes
             </h3>
             <div className="space-y-4">
               {content_efficacy.top_recipes.map((item, idx) => (
@@ -307,12 +379,11 @@ const Analytics = () => {
                     <span className="text-slate-400 font-bold text-xs">{idx + 1}</span>
                     <div>
                       <p className="text-xs font-semibold text-slate-900">{item.name}</p>
-                      <p className="text-[10px] text-amber-500 font-medium">★ {item.rating.toFixed(1)} rating</p>
                     </div>
                   </div>
                   <div className="text-right">
                     <p className="text-sm font-bold text-slate-700">{item.completions.toLocaleString()}</p>
-                    <p className="text-[9px] uppercase tracking-widest text-slate-400">Cooks</p>
+                    <p className="text-[9px] uppercase tracking-widest text-slate-400">logs</p>
                   </div>
                 </div>
               ))}
@@ -328,7 +399,7 @@ const Analytics = () => {
               >
                 <HeartPulse size={13} style={{ color: "#0f172a" }} />
               </div>
-              Most Completed Exercises
+              Most Logged Exercises
             </h3>
             <div className="space-y-4">
               {content_efficacy.top_exercises.map((item, idx) => (
@@ -337,12 +408,11 @@ const Analytics = () => {
                     <span className="text-slate-400 font-bold text-xs">{idx + 1}</span>
                     <div>
                       <p className="text-xs font-semibold text-slate-900">{item.name}</p>
-                      <p className="text-[10px] text-amber-500 font-medium">★ {item.rating.toFixed(1)} rating</p>
                     </div>
                   </div>
                   <div className="text-right">
                     <p className="text-sm font-bold text-slate-700">{item.completions.toLocaleString()}</p>
-                    <p className="text-[9px] uppercase tracking-widest text-slate-400">Sessions</p>
+                    <p className="text-[9px] uppercase tracking-widest text-slate-400">sessions</p>
                   </div>
                 </div>
               ))}

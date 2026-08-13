@@ -1,5 +1,5 @@
 import React from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   PieChart,
@@ -14,6 +14,7 @@ import {
   Megaphone,
   Settings,
   X,
+  LogOut,
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 
@@ -72,7 +73,7 @@ function SectionLabel({ label, collapsed }) {
 
 function NavItem({ path, icon: Icon, label, collapsed }) {
   const { pathname } = useLocation();
-  const isActive = pathname === path;
+  const isActive = pathname === path || (path !== "/" && pathname.startsWith(path + "/"));
 
   return (
     <Link
@@ -116,11 +117,18 @@ function NavItem({ path, icon: Icon, label, collapsed }) {
 // ─── Sidebar ──────────────────────────────────────────────────────────────────
 
 const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed }) => {
-  const { user, userId } = useAuth();
+  const { user, userId, logout } = useAuth();
+  const navigate = useNavigate();
+  
   const role = user?.role || (userId === "usr-chief-admin-001" ? "admin" : "medical_expert");
   const userName = user?.first_name ? `${user.first_name} ${user.last_name}` : (userId === "usr-chief-admin-001" ? "System Admin" : "Medical Expert");
   const userEmail = user?.email || (userId === "usr-chief-admin-001" ? "admin@heartlink.ph" : "expert@heartlink.ph");
   const userInitials = userName.substring(0, 1).toUpperCase();
+
+  const handleLogout = () => {
+    logout();
+    navigate("/");
+  };
 
   return (
     <>
@@ -196,7 +204,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed }) => {
         {/* Nav links */}
         <nav className="flex-1 overflow-y-auto overflow-x-hidden px-3 pb-6 space-y-0.5">
           <SectionLabel label="Overview" collapsed={collapsed} />
-          <NavItem path="/dashboard" icon={LayoutDashboard} label="Dashboard"  collapsed={collapsed} />
+          <NavItem path="/dashboard" icon={LayoutDashboard} label="Dashboard" collapsed={collapsed} />
           
           {role === "admin" && (
             <NavItem path="/analytics" icon={PieChart} label="Analytics" collapsed={collapsed} />
@@ -204,21 +212,24 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed }) => {
 
           {role === "admin" && (
             <>
-              <SectionLabel label="Management" collapsed={collapsed} />
-              <NavItem path="/foods" icon={Utensils} label="Food & Meal Library" collapsed={collapsed} />
-              <NavItem path="/exercises" icon={Dumbbell} label="Exercise library" collapsed={collapsed} />
+              <SectionLabel label="Content" collapsed={collapsed} />
+              <NavItem path="/foods" icon={Utensils} label="Food & Recipe Library" collapsed={collapsed} />
+              <NavItem path="/exercises" icon={Dumbbell} label="Exercise Library" collapsed={collapsed} />
             </>
           )}
 
-          <SectionLabel label="Calibration" collapsed={collapsed} />
-          <NavItem path="/cases"       icon={ClipboardList} label="Case review"          collapsed={collapsed} />
-          <NavItem path="/calibration" icon={History}       label="Calibration history"  collapsed={collapsed} />
+          <SectionLabel label="HSS Evaluation" collapsed={collapsed} />
+          <NavItem path="/cases"       icon={ClipboardList} label="Case Review"          collapsed={collapsed} />
+          <NavItem path="/calibration" icon={History}       label="Calibration History"  collapsed={collapsed} />
 
           {role === "admin" && (
             <>
-              <SectionLabel label="System" collapsed={collapsed} />
-              <NavItem path="/users"      icon={UserCog}       label="User management" collapsed={collapsed} />
+              <SectionLabel label="Users & Feedback" collapsed={collapsed} />
+              <NavItem path="/users"      icon={UserCog}       label="Users" collapsed={collapsed} />
               <NavItem path="/feedbacks"  icon={MessageSquare} label="Feedback"        collapsed={collapsed} />
+
+              <SectionLabel label="System" collapsed={collapsed} />
+              <NavItem path="/activity-log" icon={Activity}    label="Activity Log" collapsed={collapsed} />
               <NavItem path="/broadcasts" icon={Megaphone}     label="Broadcasts"      collapsed={collapsed} />
               <NavItem path="/settings"   icon={Settings}      label="Settings"        collapsed={collapsed} />
             </>
@@ -226,23 +237,49 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed }) => {
         </nav>
 
         {/* Bottom user strip */}
-        {!collapsed && (
-          <div
-            className="mx-3 mb-4 px-3 py-2.5 rounded-xl flex items-center gap-2.5"
-            style={{ backgroundColor: "rgba(15,23,42,0.04)", border: "1px solid rgba(15,23,42,0.06)" }}
-          >
-            <div
-              className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-white text-[11px] font-semibold"
-              style={{ backgroundColor: "#0f172a" }}
-            >
-              {userInitials}
+        <div className="mx-2 mb-4 flex flex-col items-center gap-2">
+          {collapsed ? (
+            <>
+              <div
+                className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[11px] font-semibold"
+                style={{ backgroundColor: "#0f172a" }}
+                title={`${userName} (${role === "admin" ? "System Admin" : "Medical Expert"})`}
+              >
+                {userInitials}
+              </div>
+              <button
+                onClick={handleLogout}
+                className="w-8 h-8 rounded-lg border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 transition-colors flex items-center justify-center cursor-pointer"
+                title="Sign Out"
+              >
+                <LogOut size={14} />
+              </button>
+            </>
+          ) : (
+            <div className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 flex flex-col gap-2">
+              <div className="flex items-center gap-2">
+                <div
+                  className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-white text-[11px] font-semibold"
+                  style={{ backgroundColor: "#0f172a" }}
+                >
+                  {userInitials}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-slate-900 truncate">{userName}</p>
+                  <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider truncate">
+                    {role === "admin" ? "System Admin" : "Medical Expert"}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={handleLogout}
+                className="w-full py-1.5 px-3 rounded-lg border border-red-200 bg-red-50 hover:bg-red-100 text-red-600 hover:text-red-700 transition-colors text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-1 cursor-pointer"
+              >
+                Sign Out
+              </button>
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium text-slate-900 truncate">{userName}</p>
-              <p className="text-[10px] text-slate-400 truncate">{userEmail}</p>
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </aside>
     </>
   );

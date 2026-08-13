@@ -1674,7 +1674,7 @@
         "diastolic": 86
       },
       "system_action": "Escalated to expert validation review pipeline queue",
-      "flagged_css": 52,
+      "flagged_hss": 52,
       "patient_snapshot": {
         "age": 20,
         "sex": "male",
@@ -1701,7 +1701,7 @@
       "notes": "",
       "reviewer_id": "usr-chief-admin-001",
       "reviewer_name": "Expert",
-      "ml_predicted_css": null,
+      "ml_predicted_hss": null,
       "status": "Archived",
       "created_at": "2026-08-03T23:59:32.275251"
     },
@@ -1713,7 +1713,7 @@
       "notes": "testing 2",
       "reviewer_id": "usr-chief-admin-001",
       "reviewer_name": "Expert",
-      "ml_predicted_css": null,
+      "ml_predicted_hss": null,
       "status": "Archived",
       "created_at": "2026-08-04T00:00:05.190874"
     },
@@ -1725,23 +1725,23 @@
       "notes": "",
       "reviewer_id": "usr-chief-admin-001",
       "reviewer_name": "Expert",
-      "ml_predicted_css": null,
+      "ml_predicted_hss": null,
       "status": "Archived",
       "created_at": "2026-08-04T00:04:39.505165"
     },
     {
       "id": "CAL-1003",
       "user_id": "usr-patient-101",
-      "case_id": "CASE-6524",
-      "expert_hss_score": 63,
-      "notes": "",
-      "recommendation_feedback": "",
+      "case_id": "CASE-8678",
+      "expert_hss_score": 80,
+      "notes": "Doing well.",
+      "recommendation_feedback": "Looks good.",
       "reviewer_id": "usr-chief-admin-001",
       "reviewer_name": "Expert",
-      "ml_predicted_css": 85,
-      "status": "Applied to Algorithm",
-      "created_at": "2026-08-04T00:30:08.505980",
-      "reviewed_at": "2026-08-04T00:59:25.038842"
+      "ml_predicted_hss": 85,
+      "status": "Archived",
+      "created_at": "2026-08-13T02:24:26.438674",
+      "reviewed_at": "2026-08-13T02:24:26.449467"
     }
   ],
   "system_broadcasts": [
@@ -1780,6 +1780,138 @@
       "type": "App Update",
       "target_audience": "All Registered Accounts",
       "created_at": "2026-08-07T11:35:32.318711"
+    }
+  ],
+  "admin_activity": [
+    {
+      "id": "act-6ef17e97",
+      "admin_user_id": "usr-chief-admin-001",
+      "admin_name": "System Admin",
+      "action": "created",
+      "target_type": "recipe",
+      "target_id": "rec-05e59964",
+      "target_name": "Heart-Healthy Oatmeal",
+      "created_at": "2026-08-13T10:24:26.365853"
+    },
+    {
+      "id": "act-3e5af250",
+      "admin_user_id": "usr-expert-201",
+      "admin_name": "Dr. Maria Santos",
+      "action": "updated",
+      "target_type": "recipe",
+      "target_id": "rec-05e59964",
+      "target_name": "Oatmeal with Blueberries",
+      "created_at": "2026-08-13T10:24:26.375306"
+    },
+    {
+      "id": "act-055f4059",
+      "admin_user_id": "usr-chief-admin-001",
+      "admin_name": "System Admin",
+      "action": "deleted",
+      "target_type": "recipe",
+      "target_id": "rec-05e59964",
+      "target_name": "Oatmeal with Blueberries",
+      "created_at": "2026-08-13T10:24:26.383011"
+    },
+    {
+      "id": "act-1b51b6e9",
+      "admin_user_id": "usr-chief-admin-001",
+      "admin_name": "System Admin",
+      "action": "created",
+      "target_type": "exercise",
+      "target_id": "rout-6832ebb3",
+      "target_name": "Morning Cardio Stretch",
+      "created_at": "2026-08-13T10:24:26.391343"
+    },
+    {
+      "id": "act-6b0cbb9e",
+      "admin_user_id": "usr-chief-admin-001",
+      "admin_name": "System Admin",
+      "action": "updated",
+      "target_type": "exercise",
+      "target_id": "rout-6832ebb3",
+      "target_name": "Evening Calm Stretch",
+      "created_at": "2026-08-13T10:24:26.399713"
+    },
+    {
+      "id": "act-086c9395",
+      "admin_user_id": "usr-chief-admin-001",
+      "admin_name": "System Admin",
+      "action": "deleted",
+      "target_type": "exercise",
+      "target_id": "rout-6832ebb3",
+      "target_name": "Evening Calm Stretch",
+      "created_at": "2026-08-13T10:24:26.407356"
+    },
+    {
+      "id": "act-32e44639",
+      "admin_user_id": "usr-chief-admin-001",
+      "admin_name": "System Admin",
+      "action": "published",
+      "target_type": "broadcast",
+      "target_id": "brd-1786587866",
+      "target_name": "Weekly Tip",
+      "created_at": "2026-08-13T10:24:26.420053"
+    },
+    {
+      "id": "act-fcc0425e",
+      "admin_user_id": "usr-chief-admin-001",
+      "admin_name": "System Admin",
+      "action": "deleted",
+      "target_type": "broadcast",
+      "target_id": "brd-1786587866",
+      "target_name": "Weekly Tip",
+      "created_at": "2026-08-13T10:24:26.431072"
+    },
+    {
+      "id": "act-3ede35da",
+      "admin_user_id": "usr-chief-admin-001",
+      "admin_name": "System Admin",
+      "action": "evaluated",
+      "target_type": "case",
+      "target_id": "usr-patient-101",
+      "target_name": "CASE-8678",
+      "created_at": "2026-08-13T10:24:26.442899"
+    },
+    {
+      "id": "act-3701f129",
+      "admin_user_id": "usr-chief-admin-001",
+      "admin_name": "System Admin",
+      "action": "updated",
+      "target_type": "case",
+      "target_id": "usr-patient-101",
+      "target_name": "CASE-8678",
+      "created_at": "2026-08-13T10:24:26.452467"
+    },
+    {
+      "id": "act-34be2d15",
+      "admin_user_id": "usr-chief-admin-001",
+      "admin_name": "System Admin",
+      "action": "archived",
+      "target_type": "case",
+      "target_id": "usr-patient-101",
+      "target_name": "CASE-8678",
+      "created_at": "2026-08-13T10:24:26.462362"
+    },
+    {
+      "id": "act-6d8e15c4",
+      "admin_user_id": "usr-chief-admin-001",
+      "admin_name": "System Admin",
+      "action": "updated",
+      "target_type": "recipe",
+      "target_id": "rec-501",
+      "target_name": "Low Sodium Chicken Tinola",
+      "created_at": "2026-08-13T10:53:51.058896"
+    },
+    {
+      "id": "act-b6f367ac",
+      "admin_user_id": "usr-chief-admin-001",
+      "admin_name": "System Admin",
+      "action": "updated",
+      "target_type": "recipe",
+      "target_id": "rec-501",
+      "target_name": "Low Sodium Chicken Tinola",
+      "created_at": "2026-08-13T10:58:12.523852"
     }
   ]
 }

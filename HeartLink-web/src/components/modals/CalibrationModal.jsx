@@ -21,7 +21,8 @@ const CalibrationModal = ({ isOpen, onClose, activeLog, onArchive }) => {
   const mockSnapshotData = activeLog ? {
     caseId: activeLog.case_id,
     flaggedDate: new Date(activeLog.created_at).toLocaleString(),
-    computedCss: activeLog.ml_predicted_css,
+    computedHss: activeLog.ml_predicted_hss,
+    expertHss: activeLog.expert_hss_score,
     systemAction: "Triggered Precautionary Notification & suggested dietary recipe adjustment.",
     patientContext: {
       age: 45,
@@ -110,9 +111,10 @@ const CalibrationModal = ({ isOpen, onClose, activeLog, onArchive }) => {
                 EXPERT SCORE VS ML
               </p>
               <div className="flex items-baseline gap-2">
-                <span className="text-xl font-bold text-slate-900">{activeLog.expert_css_score}</span>
-                <span className="text-xs font-semibold text-slate-400">vs</span>
-                <span className="text-sm font-semibold text-slate-600">{activeLog.ml_predicted_css ?? "--"}</span>
+                <span className="text-xl font-bold text-slate-900">{activeLog.expert_hss_score}</span>
+                <span className="text-[10px] text-slate-400 font-medium">EXPERT HSS</span>
+                <span className="text-sm font-semibold text-slate-600">{activeLog.ml_predicted_hss ?? "--"}</span>
+                <span className="text-[10px] text-slate-400 font-medium">MODEL HSS</span>
               </div>
             </div>
             <div className="text-right">

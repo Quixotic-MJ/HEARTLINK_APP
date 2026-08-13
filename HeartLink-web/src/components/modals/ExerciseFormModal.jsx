@@ -21,7 +21,7 @@ const exerciseSchema = z.object({
   name: z.string().min(1, "Name is required."),
   description: z.string().min(1, "Description is required."),
   duration: z.coerce.number().min(1, "Must be at least 1 minute."),
-  cssTarget: z.string().default("Stable (80-100)"),
+  hssTarget: z.string().default("Stable (80-100)"),
   mediaUrl: z.string().optional(),
   status: z.string().default("draft"),
   expertValidated: z.boolean().default(false),
@@ -46,7 +46,7 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
       name: "",
       description: "",
       duration: 10,
-      cssTarget: "Stable (80-100)",
+      hssTarget: "Stable (80-100)",
       mediaUrl: "",
       status: "draft",
       expertValidated: false,
@@ -89,7 +89,7 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
         name: "",
         description: "",
         duration: 10,
-        cssTarget: "Stable (80-100)",
+        hssTarget: "Stable (80-100)",
         mediaUrl: "",
         status: "draft",
         expertValidated: false,
@@ -125,7 +125,7 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
               {exercise ? "Edit Exercise Routine" : "Create New Exercise"}
             </h3>
             <p className="text-[10px] font-medium tracking-[0.1em] text-slate-400 uppercase mt-1">
-              Manage physical activities and CSS assignments
+              Manage physical activities and HSS assignments
             </p>
           </div>
           <button
@@ -162,7 +162,7 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
                   </h4>
                   <p className="text-[10px] text-slate-500 leading-relaxed">
                     Only Authorized Medical Experts can officially verify that
-                    this routine is safe for the assigned CSS target group.
+                    this routine is safe for the assigned HSS target group.
                   </p>
                 </div>
   
@@ -235,20 +235,19 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
             </h4>
             <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
               <label className="block text-[11px] font-medium text-slate-900 mb-1.5">
-                CSS Risk Level Suitability
+                HSS Suitability
               </label>
               <p className="text-[10px] text-slate-500 mb-3">
                 Select the cardiovascular stability states this exercise is
                 safe for. The engine uses this to filter content for users.
               </p>
               <select
-                {...register("cssTarget")}
-                className={`w-full px-3 py-2 text-xs bg-white border ${errors.cssTarget ? 'border-red-400 focus:border-red-500' : 'border-slate-200 focus:border-slate-400'} rounded-xl focus:outline-none transition-colors cursor-pointer`}
+                {...register("hssTarget")}
+                className={`w-full px-3 py-2 text-xs bg-white border ${errors.hssTarget ? 'border-red-400 focus:border-red-500' : 'border-slate-200 focus:border-slate-400'} rounded-xl focus:outline-none transition-colors cursor-pointer`}
               >
                 <option value="Stable (80-100)">Stable (80-100)</option>
-                <option value="Monitor Closely (50-79)">
-                  Monitor Closely (50-79)
-                </option>
+                <option value="Moderate (60-79)">Moderate (60-79)</option>
+                <option value="Elevated Risk (50-59)">Elevated Risk (50-59)</option>
                 <option value="Critical (<50)">Critical (&lt;50)</option>
               </select>
             </div>

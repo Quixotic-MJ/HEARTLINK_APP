@@ -8,7 +8,7 @@ from app.services.users import get_full_profile
 
 router = APIRouter(prefix="/api/admin", tags=["Case Review & Calibration"])
 
-def _get_ml_css(user_id: str) -> dict:
+def _get_ml_hss(user_id: str) -> dict:
     user_hss_history = [c for c in mock_db.hss_history if c["user_id"] == user_id]
     if user_hss_history:
         latest = sorted(user_hss_history, key=lambda x: x.get("computed_at", datetime.min), reverse=True)[0]
@@ -43,7 +43,7 @@ def list_reviewable_cases(current_user: dict = Depends(get_current_admin_user)):
         baselines = profile_data.get("baselines", {})
         onboarding = baselines.get("onboarding") or {}
         
-        ml_prediction = _get_ml_css(user_id)
+        ml_prediction = _get_ml_hss(user_id)
         
         # Check if already evaluated
         evaluations = [e for e in mock_db.expert_evaluations if e["user_id"] == user_id]
@@ -58,7 +58,7 @@ def list_reviewable_cases(current_user: dict = Depends(get_current_admin_user)):
             "age": _calculate_age(p.get("date_of_birth")),
             "sex": p.get("sex"),
             "conditions": [], # Handled by HSS metrics
-            "ml_predicted_css": ml_prediction.get("score"),
+            "ml_predicted_hss": ml_prediction.get("score"),
             "ml_tier": ml_prediction.get("tier"),
             "status": status,
         })
@@ -79,12 +79,12 @@ def get_case_detail(user_id: str, current_user: dict = Depends(get_current_admin
     case_id = f"CASE-{abs(hash(user_id)) % 10000:04d}"
     
     baselines = profile_data.get("baselines", {})
-    ml_prediction = _get_ml_css(user_id)
+    ml_prediction = _get_ml_hss(user_id)
     
     # Fetch Recommendations based on ML Tier
     ml_tier = ml_prediction.get("tier")
-    rec_recipes = [r for r in mock_db.recipes if r.get("css_tier") == ml_tier][:2]
-    rec_exercises = [e for e in mock_db.exercise_routines if e.get("css_tier") == ml_tier][:2]
+    rec_recipes = [r for r in mock_db.recipes if r.get("hss_tier") == ml_tier][:2]
+    rec_exercises = [e for e in mock_db.exercise_routines if e.get("hss_tier") == ml_tier][:2]
     
     # Fetch existing evaluation if it exists (for editing)
     existing_eval = next((e for e in mock_db.expert_evaluations if e["user_id"] == user_id), None)
@@ -93,7 +93,7 @@ def get_case_detail(user_id: str, current_user: dict = Depends(get_current_admin
     anonymized_data = {
         "case_id": case_id,
         "user_id": user_id,
-        "ml_predicted_css": ml_prediction.get("score"),
+        "ml_predicted_hss": ml_prediction.get("score"),
         "ml_tier": ml_tier,
         "core": {
             "age": _calculate_age(p.get("date_of_birth")),
@@ -113,7 +113,7 @@ def get_case_detail(user_id: str, current_user: dict = Depends(get_current_admin
 
 @router.post("/cases/{user_id}/evaluate")
 def submit_evaluation(user_id: str, payload: dict, current_user: dict = Depends(get_current_admin_user)):
-    """Submit an expert evaluation providing the ground-truth CSS score and recommendation feedback."""
+    """Submit an expert evaluation providing the ground-truth HSS score and recommendation feedback."""
     expert_hss_score = payload.get("expert_hss_score")
     notes = payload.get("notes")
     recommendation_feedback = payload.get("recommendation_feedback")
@@ -122,6 +122,8 @@ def submit_evaluation(user_id: str, payload: dict, current_user: dict = Depends(
         raise HTTPException(status_code=400, detail="expert_hss_score is required")
         
     existing_eval = next((e for e in mock_db.expert_evaluations if e["user_id"] == user_id), None)
+    action = "updated" if existing_eval else "evaluated"
+    case_id = f"CASE-{abs(hash(user_id)) % 10000:04d}"
     
     if existing_eval:
         existing_eval["expert_hss_score"] = expert_hss_score
@@ -130,8 +132,7 @@ def submit_evaluation(user_id: str, payload: dict, current_user: dict = Depends(
         existing_eval["reviewed_at"] = datetime.utcnow()
         evaluation = existing_eval
     else:
-        case_id = f"CASE-{abs(hash(user_id)) % 10000:04d}"
-        ml_prediction = _get_ml_css(user_id)
+        ml_prediction = _get_ml_hss(user_id)
         eval_id = f"CAL-{len(mock_db.expert_evaluations) + 1000}"
         reviewer_name = current_user.get("name") or (current_user.get("first_name", "Expert") + " " + current_user.get("last_name", ""))
         
@@ -144,13 +145,25 @@ def submit_evaluation(user_id: str, payload: dict, current_user: dict = Depends(
             "recommendation_feedback": recommendation_feedback,
             "reviewer_id": current_user.get("sub", current_user.get("user_id", "admin")),
             "reviewer_name": reviewer_name.strip(),
-            "ml_predicted_css": ml_prediction.get("score"),
+            "ml_predicted_hss": ml_prediction.get("score"),
             "status": "Logged",
             "created_at": datetime.utcnow()
         }
         mock_db.expert_evaluations.append(evaluation)
         
     mock_db.save_logs()
+    
+    # Log admin activity
+    admin_id = current_user.get("user_id") if current_user else "admin"
+    from app.utils.activity_helper import record_admin_activity
+    record_admin_activity(
+        admin_user_id=admin_id,
+        action=action,
+        target_type="case",
+        target_id=user_id,
+        target_name=case_id
+    )
+    
     return {"status": "success", "evaluation": evaluation}
 
 @router.get("/evaluations", response_model=List[Dict[str, Any]])
@@ -173,6 +186,17 @@ def archive_evaluation(eval_id: str, current_user: dict = Depends(get_current_ad
     
     evaluation["status"] = "Archived"
     mock_db.save_logs()
+    
+    # Log admin activity
+    admin_id = current_user.get("user_id") if current_user else "admin"
+    from app.utils.activity_helper import record_admin_activity
+    record_admin_activity(
+        admin_user_id=admin_id,
+        action="archived",
+        target_type="case",
+        target_id=evaluation.get("user_id"),
+        target_name=evaluation.get("case_id")
+    )
     
     return {"status": "success", "evaluation": evaluation}
 

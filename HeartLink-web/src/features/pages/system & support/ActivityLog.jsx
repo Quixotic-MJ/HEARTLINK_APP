@@ -21,7 +21,7 @@ const initialLogs = [
     id: "LOG-1029",
     timestamp: "Jun 13, 2026, 10:15 AM",
     type: "critical",
-    details: "Patient USR-A492 CSS dropped below safe threshold (45).",
+    details: "Patient USR-A492 HSS dropped below safe threshold (45).",
     user: "USR-A492",
     status: "Unread",
   },

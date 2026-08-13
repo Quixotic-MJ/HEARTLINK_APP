@@ -74,8 +74,8 @@ const Cases = () => {
   const filteredCases = cases.filter((c) => {
     const matchesSearch = c.case_id?.toLowerCase().includes(searchQuery.toLowerCase());
     
-    // Pseudo risk category based on ml_predicted_css for filtering/badges
-    const riskCategory = c.ml_predicted_css !== null && c.ml_predicted_css < 60 ? "critical" : "warning";
+    // Pseudo risk category based on ml_predicted_hss for filtering/badges
+    const riskCategory = c.ml_predicted_hss !== null && c.ml_predicted_hss < 60 ? "critical" : "warning";
     const matchesSeverity = filterSeverity === "all" || riskCategory === filterSeverity;
     
     const matchesStatus = filterStatus === "all" || c.status?.toLowerCase() === filterStatus;
@@ -169,7 +169,7 @@ const Cases = () => {
                   CASE ID
                 </th>
                 <th className="py-3 px-5 text-[9px] font-medium text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100 text-center">
-                  COMPUTED CSS
+                  COMPUTED HSS
                 </th>
                 <th className="py-3 px-5 text-[9px] font-medium text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100">
                   RISK CATEGORY
@@ -214,18 +214,18 @@ const Cases = () => {
                   </td>
                   <td className="py-4 px-5 align-middle text-center">
                     <span className="text-xl font-bold text-slate-900">
-                      {c.ml_predicted_css ?? "--"}
+                      {c.ml_predicted_hss ?? "--"}
                     </span>
                   </td>
                   <td className="py-4 px-5 align-middle">
                     <span
                       className={`inline-flex items-center text-[9px] font-medium px-2.5 py-1 rounded-full uppercase tracking-[0.15em] ${
-                        c.ml_predicted_css !== null && c.ml_predicted_css < 60
+                        c.ml_predicted_hss !== null && c.ml_predicted_hss < 60
                         ? "bg-red-50 text-red-600" 
                         : "bg-amber-50 text-amber-600"
                       }`}
                     >
-                      {c.ml_predicted_css !== null && c.ml_predicted_css < 60 ? "CRITICAL" : "WARNING"}
+                      {c.ml_predicted_hss !== null && c.ml_predicted_hss < 60 ? "CRITICAL" : "WARNING"}
                     </span>
                   </td>
                   <td className="py-4 px-5 align-middle">

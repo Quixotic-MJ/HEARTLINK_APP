@@ -29,7 +29,7 @@ const initialExercises = [
     name: "15-Minute Chair Yoga",
     description: "Low-impact seated stretching focusing on flexibility and deep breathing.",
     duration: 15,
-    cssTarget: "Monitor Closely (50-79)",
+    hssTarget: "Moderate (60-79)",
     mediaUrl: "https://www.w3schools.com/html/mov_bbb.mp4",
     status: "published",
     expertValidated: true,
@@ -44,7 +44,7 @@ const initialExercises = [
     name: "Light Paced Walking",
     description: "Gentle cardiovascular activation through steady, flat-surface walking.",
     duration: 20,
-    cssTarget: "Stable (80-100)",
+    hssTarget: "Stable (80-100)",
     mediaUrl: "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?auto=format&fit=crop&q=80&w=150&h=150",
     status: "published",
     expertValidated: true,
@@ -59,7 +59,7 @@ const initialExercises = [
     name: "Bed-Assisted Ankle Pumps",
     description: "Extremely low-exertion movement to promote blood flow while resting.",
     duration: 5,
-    cssTarget: "Critical (<50)",
+    hssTarget: "Critical (<50)",
     mediaUrl: "https://www.w3schools.com/html/mov_bbb.mp4",
     status: "draft",
     expertValidated: false,
@@ -74,7 +74,7 @@ const initialExercises = [
     name: "Brisk Jogging Intervals",
     description: "Moderate intensity intervals for cardiovascular strengthening.",
     duration: 30,
-    cssTarget: "Stable (80-100)",
+    hssTarget: "Stable (80-100)",
     mediaUrl: "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?auto=format&fit=crop&q=80&w=150&h=150",
     status: "archived",
     expertValidated: false,
@@ -89,7 +89,7 @@ const initialExercises = [
 const Exercises = () => {
   const [exercises, setExercises] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [filterCss, setFilterCss] = useState("all");
+  const [filterHss, setFilterHss] = useState("all");
   const [loading, setLoading] = useState(true);
 
   React.useEffect(() => {
@@ -97,16 +97,17 @@ const Exercises = () => {
       try {
         const data = await apiFetch("/api/exercises/");
         const mapped = data.map((r) => {
-          let cssLabel = "Stable (80-100)";
-          if (r.css_tier === "Monitor Closely") cssLabel = "Monitor Closely (50-79)";
-          if (r.css_tier === "Elevated Risk" || r.css_tier === "Critical") cssLabel = "Critical (<50)";
+          let hssLabel = "Stable (80-100)";
+          if (r.hss_tier === "Moderate") hssLabel = "Moderate (60-79)";
+          if (r.hss_tier === "Elevated Risk") hssLabel = "Elevated Risk (50-59)";
+          if (r.hss_tier === "Critical") hssLabel = "Critical (<50)";
           
           return {
             id: r.id,
             name: r.name || "",
             description: r.description || r.goal || "",
             duration: r.duration_minutes || 0,
-            cssTarget: cssLabel,
+            hssTarget: hssLabel,
             mediaUrl: r.media_url || r.image_url || "",
             status: r.status || "draft",
             expertValidated: r.expert_validated || false,
@@ -147,15 +148,15 @@ const Exercises = () => {
     const matchesSearch = e.name
       .toLowerCase()
       .includes(searchQuery.toLowerCase());
-    const matchesFilter = filterCss === "all" || e.cssTarget === filterCss;
+    const matchesFilter = filterHss === "all" || e.hssTarget === filterHss;
     return matchesSearch && matchesFilter;
   });
 
   // Badge Color Helper
-  const getCssBadgeColor = (target) => {
+  const getHssBadgeColor = (target) => {
     if (target.includes("Stable"))
       return { bg: "rgba(15,23,42,0.05)", text: "#0f172a", border: "transparent" };
-    if (target.includes("Monitor"))
+    if (target.includes("Moderate") || target.includes("Elevated Risk"))
       return { bg: "rgba(245,158,11,0.08)", text: "#d97706", border: "transparent" };
     return { bg: "rgba(239,68,68,0.08)", text: "#dc2626", border: "transparent" };
   };
@@ -205,15 +206,14 @@ const Exercises = () => {
                 className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
               />
               <select
-                value={filterCss}
-                onChange={(e) => setFilterCss(e.target.value)}
+                value={filterHss}
+                onChange={(e) => setFilterHss(e.target.value)}
                 className="pl-9 pr-8 py-2 text-[11px] font-medium text-slate-700 bg-white border border-slate-200 rounded-xl focus:outline-none appearance-none cursor-pointer hover:border-slate-300 transition-colors"
               >
                 <option value="all">All Risk Levels</option>
                 <option value="Stable (80-100)">Stable (80-100)</option>
-                <option value="Monitor Closely (50-79)">
-                  Monitor Closely (50-79)
-                </option>
+                <option value="Moderate (60-79)">Moderate (60-79)</option>
+                <option value="Elevated Risk (50-59)">Elevated Risk (50-59)</option>
                 <option value="Critical (<50)">Critical (&lt;50)</option>
               </select>
             </div>
@@ -229,7 +229,7 @@ const Exercises = () => {
                   Routine Name
                 </th>
                 <th className="py-3 px-5 text-[9px] font-medium text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100">
-                  Target Stability Level
+                  Target HSS Suitability
                 </th>
                 <th className="py-3 px-5 text-[9px] font-medium text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100">
                   Duration
@@ -276,7 +276,7 @@ const Exercises = () => {
           ) : (
             <tbody className="divide-y divide-slate-50">
               {filteredExercises.map((exercise) => {
-                const badge = getCssBadgeColor(exercise.cssTarget);
+                const badge = getHssBadgeColor(exercise.hssTarget);
                 return (
                   <tr
                     key={exercise.id}
@@ -321,7 +321,7 @@ const Exercises = () => {
                           color: badge.text,
                         }}
                       >
-                        {exercise.cssTarget}
+                        {exercise.hssTarget}
                       </span>
                     </td>
                     <td className="py-4 px-5 align-middle">
