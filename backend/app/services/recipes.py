@@ -60,19 +60,41 @@ def map_hss_tier(tier: str) -> str:
     return "Stable"
 
 def create_recipe(data: Dict[str, Any]) -> Dict[str, Any]:
-    instructions_str = data.get("instructions") or ""
-    if isinstance(instructions_str, str):
-        steps = [s.strip() for s in instructions_str.split("\n") if s.strip()]
-    else:
-        steps = data.get("steps", [])
+    steps = data.get("steps")
+    if steps is None:
+        instructions_str = data.get("instructions") or ""
+        if isinstance(instructions_str, str):
+            steps = [s.strip() for s in instructions_str.split("\n") if s.strip()]
+        else:
+            steps = []
 
     ingredients_list = []
     for ing in data.get("ingredients", []):
-        ingredients_list.append({
-            "name": ing,
-            "amount": None,
-            "unit": None
-        })
+        if isinstance(ing, dict):
+            amt = ing.get("amount")
+            if amt == 0 or amt == "" or amt is None:
+                amt = None
+            else:
+                try:
+                    amt = float(amt)
+                except Exception:
+                    amt = None
+            
+            ut = ing.get("unit")
+            if ut == "":
+                ut = None
+
+            ingredients_list.append({
+                "name": ing.get("name", ""),
+                "amount": amt,
+                "unit": ut
+            })
+        else:
+            ingredients_list.append({
+                "name": ing,
+                "amount": None,
+                "unit": None
+            })
 
     new_recipe = {
         "id": f"rec-{uuid.uuid4().hex[:8]}",
@@ -113,21 +135,44 @@ def update_recipe(recipe_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
     recipe["image_url"] = data.get("mediaUrl", recipe.get("image_url"))
     recipe["foodSourceType"] = data.get("foodSourceType", recipe.get("foodSourceType"))
     
-    instructions_str = data.get("instructions")
-    if instructions_str is not None:
-        if isinstance(instructions_str, str):
-            recipe["steps"] = [s.strip() for s in instructions_str.split("\n") if s.strip()]
-        else:
-            recipe["steps"] = data.get("steps", [])
+    if "steps" in data:
+        recipe["steps"] = data["steps"]
+    else:
+        instructions_str = data.get("instructions")
+        if instructions_str is not None:
+            if isinstance(instructions_str, str):
+                recipe["steps"] = [s.strip() for s in instructions_str.split("\n") if s.strip()]
+            else:
+                recipe["steps"] = []
             
     if "ingredients" in data:
         ingredients_list = []
         for ing in data["ingredients"]:
-            ingredients_list.append({
-                "name": ing,
-                "amount": None,
-                "unit": None
-            })
+            if isinstance(ing, dict):
+                amt = ing.get("amount")
+                if amt == 0 or amt == "" or amt is None:
+                    amt = None
+                else:
+                    try:
+                        amt = float(amt)
+                    except Exception:
+                        amt = None
+                
+                ut = ing.get("unit")
+                if ut == "":
+                    ut = None
+
+                ingredients_list.append({
+                    "name": ing.get("name", ""),
+                    "amount": amt,
+                    "unit": ut
+                })
+            else:
+                ingredients_list.append({
+                    "name": ing,
+                    "amount": None,
+                    "unit": None
+                })
         recipe["ingredients"] = ingredients_list
 
     return normalize_recipe_fields(recipe)

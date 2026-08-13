@@ -44,13 +44,29 @@ def add_recipe(data: Dict[str, Any] = Body(...), current_user: dict = Depends(ge
 
 @router.put("/{recipe_id}", response_model=Dict[str, Any])
 def edit_recipe(recipe_id: str, data: Dict[str, Any] = Body(...), current_user: dict = Depends(get_current_admin_user)):
+    recipe = get_recipe(recipe_id)
+    if not recipe:
+        raise HTTPException(status_code=404, detail="Recipe not found")
+        
+    old_status = recipe.get("status")
     updated_recipe = update_recipe(recipe_id, data)
     if not updated_recipe:
         raise HTTPException(status_code=404, detail="Recipe not found")
+        
+    new_status = updated_recipe.get("status")
+    action = "updated"
+    if old_status != new_status:
+        if new_status == "published":
+            action = "published"
+        elif new_status == "archived":
+            action = "archived"
+        elif new_status == "draft" and old_status == "archived":
+            action = "restored"
+
     admin_id = current_user.get("user_id") if current_user else "admin"
     record_admin_activity(
         admin_user_id=admin_id,
-        action="updated",
+        action=action,
         target_type="recipe",
         target_id=updated_recipe.get("id"),
         target_name=updated_recipe.get("name")

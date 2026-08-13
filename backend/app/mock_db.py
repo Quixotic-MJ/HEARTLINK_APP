@@ -200,7 +200,7 @@ meal_logs = [
         "sodium_mg": 380,
         "saturated_fat_g": 1.5,
         "fiber_g": 4,
-        "image_url": "https://storage.provider/tinola.jpg",
+        "image_url": "",
         "logged_at": datetime(2026, 7, 9, 12, 0, 0),
     }
 ]
@@ -343,7 +343,7 @@ recipes = [
             "Season with 1 tbsp of low-sodium fish sauce and a pinch of black pepper.",
             "Turn off the heat, add the malunggay or chili leaves, and cover the pot for 2 minutes to let the residual heat cook the greens. Serve hot."
         ],
-        "image_url": "https://storage.provider/tinola.jpg",
+        "image_url": "",
         "status": "published",
         "expert_validated": True,
         "created_by": "usr-admin-002",
@@ -383,7 +383,7 @@ recipes = [
             "Assemble the bowl by placing a generous scoop of cooked quinoa at the bottom. Arrange the baked salmon, steamed broccoli, and halved cherry tomatoes on top.",
             "Drizzle the fresh lemon juice and remaining olive oil over the bowl right before serving."
         ],
-        "image_url": "https://storage.provider/salmon.jpg",
+        "image_url": "",
         "status": "published",
         "expert_validated": True,
         "created_by": "usr-admin-002",
@@ -419,7 +419,7 @@ recipes = [
             "Pour the oatmeal into a serving bowl and let it sit for a minute to thicken slightly.",
             "Top generously with fresh mixed berries. You may add a light drizzle of honey if additional sweetness is desired."
         ],
-        "image_url": "https://storage.provider/oatmeal.jpg",
+        "image_url": "",
         "status": "published",
         "expert_validated": True,
         "created_by": "usr-admin-002",
@@ -494,7 +494,7 @@ recipes = [
             "Remove from steamer and drizzle with sesame oil and soy sauce substitute.",
             "Garnish with scallions and serve immediately."
         ],
-        "image_url": "https://storage.provider/steamed_fish.jpg",
+        "image_url": "",
         "status": "published",
         "expert_validated": True,
         "created_by": "usr-admin-002",
@@ -527,7 +527,7 @@ recipes = [
             "Add the almond milk and cinnamon.",
             "Mash with a potato masher until smooth."
         ],
-        "image_url": "https://storage.provider/sweet_potatoes.jpg",
+        "image_url": "",
         "status": "published",
         "expert_validated": True,
         "created_by": "usr-admin-002",
