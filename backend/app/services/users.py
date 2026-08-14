@@ -2,6 +2,8 @@ from datetime import datetime
 import app.mock_db as mock_db
 
 
+from app.services.clinical import get_clinical_baseline_data
+
 def get_full_profile(user_id: str) -> dict:
     profile = next((p for p in mock_db.profiles if p["id"] == user_id), None)
     if not profile:
@@ -13,7 +15,8 @@ def get_full_profile(user_id: str) -> dict:
     return {
         "profile": profile,
         "baselines": {
-            "onboarding": onboarding
+            "onboarding": onboarding,
+            "clinical": get_clinical_baseline_data(user_id)
         },
         "care_team": care_team
     }

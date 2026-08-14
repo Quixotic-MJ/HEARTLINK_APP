@@ -13,6 +13,7 @@ import {
   Clock,
   UserCircle,
   Activity,
+  Lock,
 } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
 import AdminLayout from "../../../components/layouts/adminLayout";
@@ -26,7 +27,11 @@ const Calibration = () => {
   const [isRetraining, setIsRetraining] = useState(false);
   const [retrainMetrics, setRetrainMetrics] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterType, setFilterType] = useState("all");
+  const [selectedHash, setSelectedHash] = useState("all");
+  const [selectedReason, setSelectedReason] = useState("all");
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportMessage, setExportMessage] = useState("");
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -91,16 +96,138 @@ const Calibration = () => {
     setActiveLog(null);
   };
 
+  const handleExportDataset = async () => {
+    try {
+      setIsExporting(true);
+      setExportMessage("");
+      const res = await apiFetch("/api/admin/datasets/generate", {
+        method: "POST",
+        body: JSON.stringify({ allow_mixed_models: true })
+      });
+      if (res && res.dataset) {
+        setExportMessage(`Dataset ${res.dataset.dataset_id} generated!`);
+        alert(`Versioned training dataset ${res.dataset.dataset_id} successfully compiled on backend database registry. Use offline dataset training script.`);
+      }
+    } catch (e) {
+      console.error("Export failed", e);
+      alert("Failed to export dataset. " + (e.message || "Please resolve mixed model hashes."));
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   // Filter Logic
+  const uniqueHashes = Array.from(new Set(
+    logs
+      .map(log => log.model_metadata?.model_hash)
+      .filter(Boolean)
+  ));
+
   const filteredLogs = logs.filter((log) => {
     const matchesSearch =
       log.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
       log.case_id.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus =
-      filterStatus === "all" ||
-      log.status?.toLowerCase() === filterStatus.toLowerCase();
-    return matchesSearch && matchesStatus;
+      
+    let matchesType = true;
+    if (filterType === "eligible") {
+      matchesType = log.status !== "Archived" && log.expert_hss_score != null && log.input_snapshot?.model_features;
+    } else if (filterType === "archived") {
+      matchesType = log.status === "Archived";
+    } else if (filterType === "disagreement") {
+      matchesType = log.status !== "Archived" && !log.tier_agreement;
+    } else if (filterType === "high_error") {
+      matchesType = log.status !== "Archived" && (log.absolute_error || 0) >= 10;
+    } else if (filterType === "conf_high") {
+      matchesType = log.status !== "Archived" && log.reviewer_confidence === "high";
+    } else if (filterType === "conf_medium") {
+      matchesType = log.status !== "Archived" && log.reviewer_confidence === "medium";
+    } else if (filterType === "conf_low") {
+      matchesType = log.status !== "Archived" && log.reviewer_confidence === "low";
+    }
+    
+    const matchesHash = selectedHash === "all" || log.model_metadata?.model_hash === selectedHash;
+    
+    const matchesReason = selectedReason === "all" || (log.adjustment_reasons && log.adjustment_reasons.includes(selectedReason));
+    
+    return matchesSearch && matchesType && matchesHash && matchesReason;
   });
+
+  // Calculate Summary Statistics
+  const eligibleLogs = logs.filter(log => {
+    return (
+      log.status !== "Archived" &&
+      log.expert_hss_score != null &&
+      log.ml_predicted_hss != null &&
+      log.input_snapshot?.model_features &&
+      Object.keys(log.input_snapshot.model_features).length > 0
+    );
+  });
+  
+  const eligibleCount = eligibleLogs.length;
+  
+  const averageError = eligibleCount > 0 
+    ? (eligibleLogs.reduce((sum, log) => sum + (log.absolute_error || 0), 0) / eligibleCount).toFixed(1)
+    : "0.0";
+    
+  const tierAgreementRate = eligibleCount > 0
+    ? ((eligibleLogs.filter(log => log.tier_agreement).length / eligibleCount) * 100).toFixed(1)
+    : "0.0";
+    
+  const highErrorCount = eligibleLogs.filter(log => (log.absolute_error || 0) >= 10).length;
+
+  const reasonKeys = [
+    { key: "blood_pressure_pattern", label: "Blood pressure pattern" },
+    { key: "heart_rate_pattern", label: "Heart-rate pattern" },
+    { key: "symptoms", label: "Symptoms" },
+    { key: "medication_related_factor", label: "Medication-related factor" },
+    { key: "activity_pattern", label: "Activity pattern" },
+    { key: "nutrition_sodium_pattern", label: "Nutrition / sodium pattern" },
+    { key: "sleep_pattern", label: "Sleep pattern" },
+    { key: "baseline_information", label: "Baseline information" }
+  ];
+
+  const getReasonCount = (reasonKey) => {
+    return eligibleLogs.filter(log => log.adjustment_reasons && log.adjustment_reasons.includes(reasonKey)).length;
+  };
+
+  const getCalibrationStatus = (log) => {
+    if (log.status === "Archived") {
+      return {
+        label: "Archived",
+        style: "bg-slate-100 text-slate-600 border-slate-200",
+        tooltip: "Evaluation archived and excluded from dataset compilation."
+      };
+    }
+    
+    const isEligible = 
+      log.expert_hss_score != null &&
+      log.ml_predicted_hss != null &&
+      log.input_snapshot?.model_features &&
+      Object.keys(log.input_snapshot.model_features).length > 0;
+      
+    if (isEligible) {
+      return {
+        label: "Eligible",
+        style: "bg-emerald-50 text-emerald-700 border-emerald-100",
+        tooltip: "Evaluation is fully eligible for calibration analysis."
+      };
+    }
+    
+    const missingSnapshot = !log.input_snapshot?.model_features || Object.keys(log.input_snapshot.model_features).length === 0;
+    if (missingSnapshot) {
+      return {
+        label: "Incomplete",
+        style: "bg-amber-50 text-amber-700 border-amber-100",
+        tooltip: "Evaluation is incomplete: missing model features snapshot."
+      };
+    }
+    
+    return {
+      label: "Excluded",
+      style: "bg-rose-50 text-rose-700 border-rose-100",
+      tooltip: "Evaluation excluded: missing required expert scores or predictions."
+    };
+  };
 
   // Calculate Chart Data
   // We want to show the trend of Error Margin over time
@@ -150,10 +277,10 @@ const Calibration = () => {
       <div className="flex flex-col md:flex-row md:justify-between md:items-end mb-8 gap-4">
         <div>
           <p className="text-[10px] font-medium text-slate-400 tracking-[0.22em] uppercase mb-2">
-            CLINICAL PORTAL
+            EXPERT REVIEW
           </p>
           <h2 className="text-2xl lg:text-3xl font-semibold text-slate-900 leading-[1.1] tracking-tight">
-            Calibration History.
+            Model Calibration.
           </h2>
         </div>
 
@@ -165,14 +292,46 @@ const Calibration = () => {
                 <span>Model Retrained! MAE: <strong>{retrainMetrics.mae}</strong> | R²: <strong>{retrainMetrics.r2}</strong> | Samples: <strong>{retrainMetrics.sample_count}</strong></span>
              </div>
            )}
-           <button 
-             onClick={handleRetrain}
-             disabled={isRetraining}
-             className="flex items-center gap-1.5 text-white font-medium text-[11px] px-5 py-2.5 rounded-xl shadow-sm transition-all hover:opacity-90 active:scale-[0.99] disabled:opacity-50" 
-             style={{ backgroundColor: "#0f172a" }}>
-             <Activity size={14} strokeWidth={2.5} className={isRetraining ? "animate-spin" : ""} /> 
-             {isRetraining ? "Retraining Model..." : "Retrain Model from Feedback"}
+           <button
+             onClick={handleExportDataset}
+             disabled={isExporting}
+             className="flex items-center gap-2 bg-slate-900 text-white border border-slate-900 px-4 py-2.5 rounded-xl text-[11px] font-semibold hover:bg-slate-800 disabled:opacity-50 transition-colors shadow-sm"
+           >
+             {isExporting ? "Compiling..." : "Generate Calibration Dataset"}
            </button>
+           <div className="flex flex-col gap-1 items-start max-w-xs bg-slate-50 border border-slate-200 p-3 rounded-xl text-slate-600">
+             <div className="flex items-center gap-1.5 text-[11px] font-semibold">
+               <Lock size={12} className="text-slate-400" />
+               <span>Model retraining is performed offline.</span>
+             </div>
+             <p className="text-[9px] text-slate-400 leading-normal">
+               Current expert evaluations are used for calibration analysis. A compatible labeled training dataset is required before the production model can be retrained.
+             </p>
+           </div>
+        </div>
+      </div>
+
+      {/* Calibration Summary Statistics (Compact Banners) */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Eligible Evaluations</span>
+          <div className="text-xl font-bold text-slate-800">{eligibleCount}</div>
+          <span className="text-[9px] text-slate-400 block mt-0.5">Active calibration samples</span>
+        </div>
+        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Average Absolute Error</span>
+          <div className="text-xl font-bold text-slate-800">{averageError} <span className="text-xs font-normal text-slate-500">pts</span></div>
+          <span className="text-[9px] text-slate-400 block mt-0.5">Mean expert vs ML delta</span>
+        </div>
+        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Tier Agreement</span>
+          <div className="text-xl font-bold text-slate-800">{tierAgreementRate}%</div>
+          <span className="text-[9px] text-slate-400 block mt-0.5">Category matching rate</span>
+        </div>
+        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block mb-1">High-Error Cases</span>
+          <div className="text-xl font-bold text-red-600">{highErrorCount}</div>
+          <span className="text-[9px] text-slate-400 block mt-0.5">Error ≥ 10 points</span>
         </div>
       </div>
 
@@ -190,6 +349,16 @@ const Calibration = () => {
             <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-xl mt-4">
                <p className="text-xs font-semibold text-emerald-800 flex items-center gap-1.5"><Activity size={14}/> Goal:</p>
                <p className="text-[11px] text-emerald-700 mt-1">As more expert evaluations are applied to the algorithm, the error margin should trend towards zero.</p>
+            </div>
+
+            {/* Production Model Details */}
+            <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl mt-4">
+              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Production Model</span>
+              <div className="space-y-1.5 text-[10px] text-slate-700">
+                <div><span className="text-slate-400">Identifier:</span> <code className="bg-slate-100 px-1 py-0.5 rounded font-mono text-[9px]">heartlink_model.pkl</code></div>
+                <div><span className="text-slate-400">Pipeline Version:</span> <code className="bg-slate-100 px-1 py-0.5 rounded font-mono text-[9px]">v1.0</code></div>
+                <div><span className="text-slate-400">Binary Hash:</span> <code className="bg-slate-100 px-1 py-0.5 rounded font-mono text-[9px]">d6b9f2...</code></div>
+              </div>
             </div>
           </div>
           
@@ -238,50 +407,101 @@ const Calibration = () => {
                 className="w-full pl-9 pr-3 py-2 text-[11px] border border-slate-200 rounded-xl focus:outline-none focus:border-slate-400 transition-all bg-white"
               />
             </div>
-            <div className="flex gap-2.5">
+            <div className="flex flex-wrap gap-2.5">
               <div className="relative">
                 <Filter
                   size={12}
                   className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
                 />
                 <select
-                  value={filterStatus}
-                  onChange={(e) => setFilterStatus(e.target.value)}
+                  value={filterType}
+                  onChange={(e) => setFilterType(e.target.value)}
                   className="pl-9 pr-8 py-2 text-[11px] font-medium text-slate-700 bg-white border border-slate-200 rounded-xl focus:outline-none appearance-none cursor-pointer hover:border-slate-300 transition-colors"
                 >
                   <option value="all">All Statuses</option>
-                  <option value="logged">Logged</option>
-                  <option value="applied to algorithm">
-                    Applied to Algorithm
-                  </option>
+                  <option value="eligible">Active / Eligible</option>
                   <option value="archived">Archived</option>
+                  <option value="disagreement">Tier Disagreement</option>
+                  <option value="high_error">High Absolute Error (≥10)</option>
+                  <option value="conf_high">Confidence: High</option>
+                  <option value="conf_medium">Confidence: Medium</option>
+                  <option value="conf_low">Confidence: Low</option>
                 </select>
               </div>
+
+              {/* Adjustment Reason Filter */}
+              <div className="relative">
+                <Filter
+                  size={12}
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+                />
+                <select
+                  value={selectedReason}
+                  onChange={(e) => setSelectedReason(e.target.value)}
+                  className="pl-9 pr-8 py-2 text-[11px] font-medium text-slate-700 bg-white border border-slate-200 rounded-xl focus:outline-none appearance-none cursor-pointer hover:border-slate-300 transition-colors max-w-[200px] truncate"
+                >
+                  <option value="all">All Adjustment Reasons</option>
+                  {reasonKeys.map(r => (
+                    <option key={r.key} value={r.key}>{r.label} ({getReasonCount(r.key)})</option>
+                  ))}
+                </select>
+              </div>
+
+              {uniqueHashes.length > 0 && (
+                <div className="relative">
+                  <Filter
+                    size={12}
+                    className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+                  />
+                  <select
+                    value={selectedHash}
+                    onChange={(e) => setSelectedHash(e.target.value)}
+                    className="pl-9 pr-8 py-2 text-[11px] font-medium text-slate-700 bg-white border border-slate-200 rounded-xl focus:outline-none appearance-none cursor-pointer hover:border-slate-300 transition-colors max-w-[150px] truncate"
+                  >
+                    <option value="all">All Models</option>
+                    {uniqueHashes.map(h => (
+                      <option key={h} value={h}>Hash: {h.substring(0, 8)}...</option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
           </div>
         </div>
 
         {/* Calibration List Table */}
         <div className="w-full overflow-x-auto">
-          <table className="w-full text-left border-collapse min-w-[850px]">
+          <table className="w-full text-left border-collapse min-w-[1000px]">
             <thead>
               <tr>
-                <th className="py-3 px-5 text-[9px] font-medium text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100">
-                  FEEDBACK ID & DATE
+                <th className="py-3 px-5 text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100">
+                  EVALUATION
                 </th>
-                <th className="py-3 px-5 text-[9px] font-medium text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100">
-                  CASE ID
+                <th className="py-3 px-5 text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100">
+                  CASE
                 </th>
-                <th className="py-3 px-5 text-[9px] font-medium text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100">
-                  EXPERT SCORE
+                <th className="py-3 px-5 text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100">
+                  MODEL HSS
                 </th>
-                <th className="py-3 px-5 text-[9px] font-medium text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100">
-                  REVIEWER
+                <th className="py-3 px-5 text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100">
+                  EXPERT HSS
                 </th>
-                <th className="py-3 px-5 text-[9px] font-medium text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100">
-                  CALIBRATION STATUS
+                <th className="py-3 px-5 text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100">
+                  ERROR
                 </th>
-                <th className="py-3 px-5 text-[9px] font-medium text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100 text-right">
+                <th className="py-3 px-5 text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100">
+                  TIER AGREEMENT
+                </th>
+                <th className="py-3 px-5 text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100">
+                  CONFIDENCE
+                </th>
+                <th className="py-3 px-5 text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100">
+                  MODEL VERSION
+                </th>
+                <th className="py-3 px-5 text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100">
+                  DATE
+                </th>
+                <th className="py-3 px-5 text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100 text-right">
                   ACTION
                 </th>
               </tr>
@@ -289,13 +509,13 @@ const Calibration = () => {
             <tbody className="divide-y divide-slate-50">
               {loading ? (
                  <tr>
-                   <td colSpan="6" className="py-8 text-center text-slate-500 text-sm">
+                   <td colSpan="10" className="py-8 text-center text-slate-500 text-sm">
                      Loading evaluations...
                    </td>
                  </tr>
                ) : filteredLogs.length === 0 ? (
                  <tr>
-                   <td colSpan="6" className="py-8 text-center text-slate-500 text-sm">
+                   <td colSpan="10" className="py-8 text-center text-slate-500 text-sm">
                      No evaluations found.
                    </td>
                  </tr>
@@ -309,42 +529,54 @@ const Calibration = () => {
                     <p className="text-slate-900 font-semibold text-[11px] font-mono mb-1">
                       {log.id}
                     </p>
-                    <p className="text-slate-500 text-[10px] font-medium">
-                      {new Date(log.created_at).toLocaleString()}
-                    </p>
+                    {(() => {
+                      const statusInfo = getCalibrationStatus(log);
+                      return (
+                        <span 
+                          className={`inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider border ${statusInfo.style}`}
+                          title={statusInfo.tooltip}
+                        >
+                          {statusInfo.label}
+                        </span>
+                      );
+                    })()}
                   </td>
                   <td className="py-4 px-5 align-middle">
                     <span className="text-slate-600 font-semibold text-[10px] font-mono bg-slate-100 px-2 py-1 rounded-md">
                       {log.case_id}
                     </span>
                   </td>
-                  <td className="py-4 px-5 align-middle">
-                    <div className="flex items-center gap-1 text-[11px] font-semibold text-slate-800">
-                      {log.expert_hss_score} <span className="text-[10px] text-slate-400 font-normal ml-1">(vs {log.ml_predicted_hss ?? "--"})</span>
-                    </div>
+                  <td className="py-4 px-5 align-middle text-[11px] font-semibold text-slate-700">
+                    {log.ml_predicted_hss ?? "--"}
                   </td>
-                  <td className="py-4 px-5 align-middle">
-                    <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 shrink-0">
-                        <UserCircle size={14} />
-                      </div>
-                      <span className="text-slate-700 text-[11px] font-medium">
-                        {log.reviewer_name}
-                      </span>
-                    </div>
+                  <td className="py-4 px-5 align-middle text-[11px] font-semibold text-slate-700">
+                    {log.expert_hss_score}
                   </td>
-                  <td className="py-4 px-5 align-middle">
-                    {getStatusBadge(log.status)}
+                  <td className="py-4 px-5 align-middle text-[11px] font-semibold text-slate-600">
+                    {log.absolute_error != null ? `${log.absolute_error} pts` : "--"}
+                  </td>
+                  <td className="py-4 px-5 align-middle text-[11px] font-semibold">
+                    {log.tier_agreement ? (
+                      <span className="text-emerald-600 font-medium">Yes</span>
+                    ) : (
+                      <span className="text-rose-600 font-medium">No</span>
+                    )}
+                  </td>
+                  <td className="py-4 px-5 align-middle text-[11px]">
+                    <span className="capitalize text-slate-600 font-medium">{log.reviewer_confidence || "Not recorded"}</span>
+                  </td>
+                  <td className="py-4 px-5 align-middle text-[11px] font-mono text-slate-500 max-w-[100px] truncate" title={log.model_metadata?.model_hash}>
+                    {log.model_metadata?.model_hash ? `${log.model_metadata.model_hash.substring(0, 8)}...` : "--"}
+                  </td>
+                  <td className="py-4 px-5 align-middle text-[11px] text-slate-500">
+                    {new Date(log.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                   </td>
                   <td className="py-4 px-5 align-middle text-right">
                     <button
+                      onClick={(e) => { e.stopPropagation(); openModal(log); }}
                       className="text-[10px] font-medium px-4 py-2 rounded-xl border bg-white border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors shadow-sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openModal(log);
-                      }}
                     >
-                      View Notes
+                      View Details
                     </button>
                   </td>
                 </tr>

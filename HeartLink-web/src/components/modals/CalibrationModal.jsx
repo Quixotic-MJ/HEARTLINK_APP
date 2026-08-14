@@ -17,27 +17,27 @@ const CalibrationModal = ({ isOpen, onClose, activeLog, onArchive }) => {
 
   if (!isOpen || !activeLog) return null;
 
-  // Mock data for the snapshot modal
-  const mockSnapshotData = activeLog ? {
+  // Telemetry snapshot data for the snapshot modal
+  const snapshotData = activeLog ? {
     caseId: activeLog.case_id,
-    flaggedDate: new Date(activeLog.created_at).toLocaleString(),
+    flaggedDate: activeLog.created_at ? new Date(activeLog.created_at).toLocaleString() : "",
     computedHss: activeLog.ml_predicted_hss,
     expertHss: activeLog.expert_hss_score,
-    systemAction: "Triggered Precautionary Notification & suggested dietary recipe adjustment.",
+    systemAction: `User classified as ${activeLog.ml_predicted_tier ? activeLog.ml_predicted_tier.toUpperCase() : "UNKNOWN"}. Calibration absolute error: ${activeLog.absolute_error != null ? activeLog.absolute_error : "N/A"}.`,
     patientContext: {
-      age: 45,
-      sex: "Female",
-      conditions: ["Hyperlipidemia", "Hypertension"],
+      age: activeLog.input_snapshot?.age || 45,
+      sex: activeLog.input_snapshot?.sex || "Female",
+      conditions: activeLog.input_snapshot?.diagnosed_conditions || ["Hyperlipidemia", "Hypertension"],
       telemetry: {
         recommended: {
-          targetTier: "Monitor Closely",
+          targetTier: activeLog.ml_predicted_tier || "Stable",
           suggestedMeal: "Low-Sodium Chicken Broth",
           suggestedActivity: "15-Minute Chair Yoga",
         },
         actual: {
-          vitals: "BP 140/90, HR 88",
-          loggedMeal: "High Sodium Instant Noodles",
-          loggedActivity: "None",
+          vitals: activeLog.input_snapshot?.resting_bp_mmhg ? `BP ${activeLog.input_snapshot.resting_bp_mmhg}, HR ${activeLog.input_snapshot.max_heart_rate_bpm}` : "BP 140/90, HR 88",
+          loggedMeal: activeLog.input_snapshot?.salty_food_freq ? `Diet Salt Frequency: ${activeLog.input_snapshot.salty_food_freq}` : "High Sodium Instant Noodles",
+          loggedActivity: activeLog.input_snapshot?.on_medication ? "On Meds: Yes" : "None",
           conflict: true,
         },
       },
@@ -105,24 +105,49 @@ const CalibrationModal = ({ isOpen, onClose, activeLog, onArchive }) => {
         {/* Modal Scrollable Content */}
         <div className="flex-1 overflow-y-auto px-6 py-6 custom-scrollbar space-y-8">
           {/* Status & Rating Banner */}
-          <div className="flex items-center justify-between bg-slate-50 p-4 rounded-xl border border-slate-100">
-            <div>
-              <p className="text-[9px] font-medium text-slate-400 uppercase tracking-widest mb-1.5">
-                EXPERT SCORE VS ML
-              </p>
-              <div className="flex items-baseline gap-2">
-                <span className="text-xl font-bold text-slate-900">{activeLog.expert_hss_score}</span>
-                <span className="text-[10px] text-slate-400 font-medium">EXPERT HSS</span>
-                <span className="text-sm font-semibold text-slate-600">{activeLog.ml_predicted_hss ?? "--"}</span>
-                <span className="text-[10px] text-slate-400 font-medium">MODEL HSS</span>
+          <div className="flex flex-col gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-widest mb-1">
+                  EXPERT HSS vs MODEL HSS
+                </p>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-lg font-bold text-slate-900">{activeLog.expert_hss_score}</span>
+                  <span className="text-[10px] text-slate-500 font-semibold uppercase">{activeLog.expert_hss_tier || "Stable"}</span>
+                  <span className="text-slate-300">/</span>
+                  <span className="text-sm font-semibold text-slate-600">{activeLog.ml_predicted_hss ?? "--"}</span>
+                  <span className="text-[10px] text-slate-500 font-semibold uppercase">{activeLog.ml_predicted_tier || "Stable"}</span>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-widest mb-1">
+                  STATUS
+                </p>
+                {getStatusBadge(activeLog.status)}
               </div>
             </div>
-            <div className="text-right">
-              <p className="text-[9px] font-medium text-slate-400 uppercase tracking-widest mb-1.5">
-                STATUS
-              </p>
-              {getStatusBadge(activeLog.status)}
+
+            {/* Derived Calibration Metrics */}
+            <div className="grid grid-cols-2 gap-2 pt-2.5 border-t border-slate-200/60 text-[10px]">
+              <div>
+                <span className="text-slate-400 uppercase font-semibold">Absolute Error:</span>
+                <span className="ml-1 text-slate-800 font-bold">{activeLog.absolute_error != null ? `${activeLog.absolute_error} pts` : "N/A"}</span>
+              </div>
+              <div className="text-right">
+                <span className="text-slate-400 uppercase font-semibold">Tier Agreement:</span>
+                <span className={`ml-1 font-bold ${activeLog.tier_agreement ? "text-emerald-600" : "text-amber-600"}`}>
+                  {activeLog.tier_agreement ? "AGREE" : "DISAGREE"}
+                </span>
+              </div>
             </div>
+
+            {/* Model Metadata */}
+            {activeLog.model_metadata && (
+              <div className="pt-2 border-t border-slate-200/60 text-[9px] text-slate-400 font-mono flex flex-col gap-0.5">
+                <div>Model: {activeLog.model_metadata.model_identifier}</div>
+                {activeLog.model_metadata.model_hash && <div className="truncate">Hash: {activeLog.model_metadata.model_hash.substring(0, 16)}...</div>}
+              </div>
+            )}
           </div>
 
           {/* Reviewer Details */}
@@ -167,14 +192,86 @@ const CalibrationModal = ({ isOpen, onClose, activeLog, onArchive }) => {
             </button>
           </div>
 
+          {/* Structured Calibration Metrics */}
+          <div className="grid grid-cols-1 gap-4 pt-4 border-t border-slate-150 text-[11px]">
+            <div>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] block mb-1.5">Reviewer Confidence</span>
+              <span className={`inline-flex items-center text-[9px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider ${
+                activeLog.reviewer_confidence === "high"
+                  ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
+                  : activeLog.reviewer_confidence === "medium"
+                  ? "bg-blue-50 text-blue-700 border border-blue-100"
+                  : activeLog.reviewer_confidence === "low"
+                  ? "bg-amber-50 text-amber-700 border border-amber-200"
+                  : "bg-slate-100 text-slate-500 border border-slate-200"
+              }`}>
+                {activeLog.reviewer_confidence ? activeLog.reviewer_confidence : "Not recorded"}
+              </span>
+            </div>
+
+            <div>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] block mb-1.5">Adjustment Reasons</span>
+              <div className="flex flex-wrap gap-1.5">
+                {activeLog.adjustment_reasons && activeLog.adjustment_reasons.length > 0 ? (
+                  activeLog.adjustment_reasons.map((code) => {
+                    const labelMap = {
+                      blood_pressure_pattern: "Blood pressure pattern",
+                      heart_rate_pattern: "Heart-rate pattern",
+                      symptoms: "Symptoms",
+                      medication_related_factor: "Medication-related factor",
+                      activity_pattern: "Activity pattern",
+                      nutrition_sodium_pattern: "Nutrition / sodium pattern",
+                      sleep_pattern: "Sleep pattern",
+                      baseline_information: "Baseline information",
+                      other: "Other",
+                      model_consistent: "Model assessment appears consistent",
+                    };
+                    return (
+                      <span key={code} className="text-[9px] font-semibold text-slate-700 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded">
+                        {labelMap[code] || code}
+                      </span>
+                    );
+                  })
+                ) : (
+                  <span className="text-[10px] text-slate-400 italic">Not recorded</span>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-250">
+                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Exercise Suitability</span>
+                <span className="text-[10px] font-bold text-slate-800 capitalize">
+                  {activeLog.exercise_feedback?.status 
+                    ? (activeLog.exercise_feedback.status === "appropriate" ? "Appropriate" : "Needs Review")
+                    : "Not recorded"}
+                </span>
+                {activeLog.exercise_feedback?.notes && (
+                  <p className="text-[9px] text-slate-500 italic mt-1 leading-snug">"{activeLog.exercise_feedback.notes}"</p>
+                )}
+              </div>
+              <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-250">
+                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Recipe Suitability</span>
+                <span className="text-[10px] font-bold text-slate-800 capitalize">
+                  {activeLog.recipe_feedback?.status 
+                    ? (activeLog.recipe_feedback.status === "appropriate" ? "Appropriate" : "Needs Review")
+                    : "Not recorded"}
+                </span>
+                {activeLog.recipe_feedback?.notes && (
+                  <p className="text-[9px] text-slate-500 italic mt-1 leading-snug">"{activeLog.recipe_feedback.notes}"</p>
+                )}
+              </div>
+            </div>
+          </div>
+
           {/* Expert Notes Display (Read-Only) */}
-          <div className="space-y-4">
+          <div className="space-y-4 pt-4 border-t border-slate-150">
             <div>
               <h4 className="text-[10px] font-medium text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100 pb-2 mb-3">
                 Risk Interpretation Notes
               </h4>
               <div className="bg-slate-50 border border-slate-200 p-5 rounded-xl shadow-inner">
-                <p className="text-[11px] text-slate-800 leading-relaxed whitespace-pre-wrap italic font-medium">
+                <p className="text-[11px] text-slate-800 leading-relaxed whitespace-pre-wrap italic font-semibold">
                   {activeLog.notes ? `"${activeLog.notes}"` : "No interpretation notes provided."}
                 </p>
               </div>
@@ -215,7 +312,7 @@ const CalibrationModal = ({ isOpen, onClose, activeLog, onArchive }) => {
       <CaseSnapshotModal
         isOpen={isSnapshotOpen}
         onClose={() => setIsSnapshotOpen(false)}
-        snapshotData={mockSnapshotData}
+        snapshotData={snapshotData}
       />
     </div>
   );

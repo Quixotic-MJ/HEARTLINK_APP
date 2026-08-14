@@ -100,7 +100,7 @@ const Cases = () => {
       <div className="flex flex-col md:flex-row md:justify-between md:items-end mb-8 gap-4">
         <div>
           <p className="text-[10px] font-medium text-slate-400 tracking-[0.22em] uppercase mb-2">
-            CLINICAL PORTAL
+            EXPERT REVIEWER
           </p>
           <h2 className="text-2xl lg:text-3xl font-semibold text-slate-900 leading-[1.1] tracking-tight">
             Case Review Queue.
@@ -168,19 +168,19 @@ const Cases = () => {
             <thead>
               <tr>
                 <th className="py-3 px-5 text-[9px] font-medium text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100">
-                  CASE ID
+                  CASE
                 </th>
                 <th className="py-3 px-5 text-[9px] font-medium text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100 text-center">
-                  COMPUTED HSS
+                  HSS
                 </th>
                 <th className="py-3 px-5 text-[9px] font-medium text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100">
-                  RISK CATEGORY
-                </th>
-                <th className="py-3 px-5 text-[9px] font-medium text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100">
-                  CONDITIONS
+                  RISK
                 </th>
                 <th className="py-3 px-5 text-[9px] font-medium text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100">
                   REVIEW STATUS
+                </th>
+                <th className="py-3 px-5 text-[9px] font-medium text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100">
+                  MODEL / EXPERT
                 </th>
                 <th className="py-3 px-5 text-[9px] font-medium text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100 text-right">
                   ACTION
@@ -200,79 +200,103 @@ const Cases = () => {
                     No cases found.
                   </td>
                 </tr>
-              ) : filteredCases.map((c, idx) => (
-                <tr
-                  key={c.case_id || idx}
-                  className="hover:bg-slate-50/60 transition-colors group cursor-pointer"
-                  onClick={() => openModal(c)}
-                >
-                  <td className="py-4 px-5 align-middle">
-                    <div className="flex items-center gap-2">
-                      <Lock size={13} className="text-slate-400" />
-                      <span className="text-slate-900 font-semibold text-[11px] font-mono">
-                        {c.case_id}
+              ) : filteredCases.map((c, idx) => {
+                const isEvaluated = c.status?.toLowerCase() === "evaluated";
+                const riskTier = c.ml_tier || "Stable";
+                
+                return (
+                  <tr
+                    key={c.case_id || idx}
+                    className="hover:bg-slate-50/60 transition-colors group cursor-pointer"
+                    onClick={() => openModal(c)}
+                  >
+                    <td className="py-4 px-5 align-middle">
+                      <div className="flex flex-col">
+                        <div className="flex items-center gap-1.5">
+                          <Lock size={12} className="text-slate-400" />
+                          <span className="text-slate-900 font-semibold text-[11px] font-mono">
+                            {c.case_id}
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-slate-400 mt-0.5">
+                          {c.age} yrs • {c.sex}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="py-4 px-5 align-middle text-center">
+                      <span className="text-sm font-bold text-slate-900">
+                        {c.ml_predicted_hss ?? "--"}
                       </span>
-                    </div>
-                  </td>
-                  <td className="py-4 px-5 align-middle text-center">
-                    <span className="text-xl font-bold text-slate-900">
-                      {c.ml_predicted_hss ?? "--"}
-                    </span>
-                  </td>
-                  <td className="py-4 px-5 align-middle">
-                    {c.ml_predicted_hss !== null && c.ml_predicted_hss < 60 ? (
+                    </td>
+                    <td className="py-4 px-5 align-middle">
+                      {c.ml_predicted_hss !== null ? (
+                        <span
+                          className={`inline-flex items-center text-[9px] font-semibold px-2.5 py-0.5 rounded-full uppercase tracking-wider ${
+                            c.ml_predicted_hss < 50
+                            ? "bg-red-50 text-red-600 border-red-100" 
+                            : c.ml_predicted_hss < 60
+                            ? "bg-amber-50 text-amber-600 border-amber-200"
+                            : c.ml_predicted_hss < 80
+                            ? "bg-blue-50 text-blue-600 border-blue-100"
+                            : "bg-emerald-50 text-emerald-600 border-emerald-100"
+                          } border`}
+                        >
+                          {riskTier}
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-slate-400 font-medium">None</span>
+                      )}
+                    </td>
+                    <td className="py-4 px-5 align-middle">
                       <span
-                        className={`inline-flex items-center text-[9px] font-medium px-2.5 py-1 rounded-full uppercase tracking-[0.15em] ${
-                          c.ml_predicted_hss < 50
-                          ? "bg-red-50 text-red-600" 
-                          : "bg-amber-50 text-amber-600"
+                        className={`flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider ${
+                          isEvaluated ? "text-emerald-600" : "text-orange-500"
                         }`}
                       >
-                        {c.ml_predicted_hss < 50 ? "CRITICAL" : "WARNING"}
+                        {isEvaluated ? (
+                          <CheckCircle2 size={12} />
+                        ) : (
+                          <Activity size={12} className="animate-pulse" />
+                        )}
+                        {c.status.toUpperCase()}
                       </span>
-                    ) : (
-                      <span className="text-[10px] text-slate-400 font-medium">None</span>
-                    )}
-                  </td>
-                  <td className="py-4 px-5 align-middle">
-                    <span className="text-slate-500 text-[10px] font-medium">
-                      {c.conditions?.length ? c.conditions.join(", ") : "None"}
-                    </span>
-                  </td>
-                  <td className="py-4 px-5 align-middle">
-                    <span
-                      className={`flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider ${
-                        c.status === "Evaluated" ? "text-emerald-600" : "text-orange-500"
-                      }`}
-                    >
-                      {c.status === "Evaluated" ? (
-                        <CheckCircle2 size={13} />
+                    </td>
+                    <td className="py-4 px-5 align-middle text-[10px] text-slate-600 font-semibold leading-normal">
+                      {isEvaluated ? (
+                        <div className="flex flex-col">
+                          <span>Model {c.ml_predicted_hss}</span>
+                          <span>Expert {c.expert_hss_score}</span>
+                          {c.absolute_error !== null && (
+                            <span className="text-[9px] text-slate-400 font-mono mt-0.5">
+                              Difference: {c.absolute_error} pts
+                            </span>
+                          )}
+                        </div>
                       ) : (
-                        <Activity size={13} className="animate-pulse" />
+                        <span className="text-[10px] text-slate-400 font-medium italic">Not yet reviewed</span>
                       )}
-                      {c.status.toUpperCase()}
-                    </span>
-                  </td>
-                  <td className="py-4 px-5 align-middle text-right">
-                    <button
-                      className={`text-[10px] font-medium px-4 py-2 rounded-xl transition-colors shadow-sm ${
-                        c.status === "Evaluated"
-                          ? "bg-white border border-slate-200 text-blue-600 hover:bg-blue-50"
-                          : "text-white transition-all hover:opacity-90 active:scale-[0.99] border border-transparent"
-                      }`}
-                      style={c.status !== "Evaluated" ? { backgroundColor: "#0f172a" } : {}}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openModal(c);
-                      }}
-                    >
-                      {c.status === "Evaluated"
-                        ? "Edit Evaluation"
-                        : "Evaluate Case"}
-                    </button>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td className="py-4 px-5 align-middle text-right">
+                      <button
+                        className={`text-[10px] font-semibold px-4 py-2 rounded-xl transition-colors shadow-sm ${
+                          isEvaluated
+                            ? "bg-white border border-slate-200 text-[#0f172a] hover:bg-slate-50"
+                            : "text-white transition-all hover:opacity-90 active:scale-[0.99] border border-transparent"
+                        }`}
+                        style={!isEvaluated ? { backgroundColor: "#0f172a" } : {}}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openModal(c);
+                        }}
+                      >
+                        {isEvaluated
+                          ? "Edit Evaluation"
+                          : "Evaluate Case"}
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
