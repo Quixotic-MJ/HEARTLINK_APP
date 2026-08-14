@@ -24,14 +24,14 @@ function getScoreTheme(score: number, isDark: boolean): ScoreTheme {
       ringColor: isDark ? "#FBBF24" : "#D97706",
       trackColor: isDark ? "#78350F" : "#FEF3C7",
     };
-  if (score >= 40)
+  if (score >= 50)
     return {
-      label: "Caution",
+      label: "Elevated Risk",
       ringColor: isDark ? "#FB923C" : "#EA580C",
       trackColor: isDark ? "#7C2D12" : "#FFEDD5",
     };
   return {
-    label: "At risk",
+    label: "Critical",
     ringColor: isDark ? "#FB7185" : "#E11D48",
     trackColor: isDark ? "#881337" : "#FFE4E6",
   };

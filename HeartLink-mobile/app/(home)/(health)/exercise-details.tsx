@@ -15,6 +15,16 @@ import { ExerciseResult } from "../../../components/exercise/ExerciseResult";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
+function resolveMediaUrl(url: string) {
+  if (!url) return "";
+  if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:")) {
+    return url;
+  }
+  const cleanBase = base_url?.endsWith("/") ? base_url.slice(0, -1) : base_url;
+  const cleanPath = url.startsWith("/") ? url : `/${url}`;
+  return `${cleanBase || "http://localhost:8000"}${cleanPath}`;
+}
+
 const generateExerciseId = () => `ex-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
 
 export default function ExerciseDetailsScreen() {
@@ -52,8 +62,8 @@ export default function ExerciseDetailsScreen() {
           category: data.hss_tier || "Stable",
           steps: data.steps || [],
           videoUrl: data.video_url || "",
-          image: data.media_url || "",
-          guideImages: data.guide_images || [],
+          image: resolveMediaUrl(data.media_url || ""),
+          guideImages: (data.guide_images || []).map((img: string) => resolveMediaUrl(img)),
         };
         
         setRoutine(r);

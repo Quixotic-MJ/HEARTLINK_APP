@@ -241,7 +241,8 @@ def get_dashboard_data(user_id: str) -> Dict[str, Any]:
     reco_exercises = [
         e
         for e in exercise_routines
-        if e.get("hss_tier") == tier or e.get("hss_tier") == "Stable"
+        if (e.get("hss_tier") == tier or e.get("hss_tier") == "Stable")
+        and e.get("status") == "published"
     ]
 
     recommendations = []

@@ -28,10 +28,10 @@ def determine_tier(hss: int) -> str:
         return "Stable"
     elif hss >= 60:
         return "Moderate"
-    elif hss >= 40:
-        return "At Risk"
+    elif hss >= 50:
+        return "Elevated Risk"
     else:
-        return "Needs Attention"
+        return "Critical"
 
 def compute_initial_hss(onboarding_data: Dict[str, Any], user_profile: Dict[str, Any]) -> Tuple[int, str, float]:
     """

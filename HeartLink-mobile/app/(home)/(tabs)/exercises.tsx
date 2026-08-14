@@ -33,6 +33,16 @@ export interface Routine {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+function resolveMediaUrl(url: string) {
+  if (!url) return "";
+  if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:")) {
+    return url;
+  }
+  const cleanBase = base_url?.endsWith("/") ? base_url.slice(0, -1) : base_url;
+  const cleanPath = url.startsWith("/") ? url : `/${url}`;
+  return `${cleanBase || "http://localhost:8000"}${cleanPath}`;
+}
+
 function getTypeConfig(type: string) {
   if (type === "Breathing")
     return { icon: "wind" as const, color: "#be185d", bg: "#fce7f3" }; // Pink theme for Breathing
@@ -50,11 +60,11 @@ const STATUS_CONFIG = {
     badgeBg: "#fffbeb",
     badgeText: "#b45309",
   },
-  Caution: {
+  "Elevated Risk": {
     badgeBg: "#fff7ed",
     badgeText: "#c2410c",
   },
-  "Elevated Risk": {
+  Critical: {
     badgeBg: "#fef2f2",
     badgeText: "#b91c1c",
   },
@@ -210,7 +220,7 @@ export default function ExercisesScreen() {
           type: r.type || "Light Cardio",
           intensity: r.intensity || "Low",
           category: r.hss_tier || "Stable",
-          image: r.media_url || r.image_url || "",
+          image: resolveMediaUrl(r.media_url || r.image_url || ""),
         }));
         setRoutinesList(mapped);
       } else {
@@ -312,20 +322,20 @@ export default function ExercisesScreen() {
     ]).start(() => setToastMessage(null));
   };
 
-  const hssStatus = useMemo<"Stable" | "Moderate" | "Caution" | "Elevated Risk">(() => {
+  const hssStatus = useMemo<"Stable" | "Moderate" | "Elevated Risk" | "Critical">(() => {
     if (hssScore >= 80) return "Stable";
     if (hssScore >= 60) return "Moderate";
-    if (hssScore >= 40) return "Caution";
-    return "Elevated Risk";
+    if (hssScore >= 50) return "Elevated Risk";
+    return "Critical";
   }, [hssScore]);
 
   // Determine allowed tiers
   const allowedTiers = useMemo(() => {
     const TIER_HIERARCHY: Record<string, string[]> = {
-      "Stable": ["Stable", "Moderate", "Caution", "Elevated Risk"],
-      "Moderate": ["Moderate", "Caution", "Elevated Risk"],
-      "Caution": ["Caution", "Elevated Risk"],
-      "Elevated Risk": ["Elevated Risk"]
+      "Stable": ["Stable", "Moderate", "Elevated Risk", "Critical"],
+      "Moderate": ["Moderate", "Elevated Risk", "Critical"],
+      "Elevated Risk": ["Elevated Risk", "Critical"],
+      "Critical": ["Critical"]
     };
     return TIER_HIERARCHY[hssStatus] || [hssStatus];
   }, [hssStatus]);

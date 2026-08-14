@@ -65,8 +65,8 @@ def map_hss_tier(tier: str) -> str:
     if not tier: return "Stable"
     if "Stable" in tier: return "Stable"
     if "Moderate" in tier or "Monitor Closely" in tier: return "Moderate"
-    if "Elevated Risk" in tier: return "Elevated Risk"
-    if "Critical" in tier: return "Critical"
+    if "Elevated Risk" in tier or "Caution" in tier or "At Risk" in tier: return "Elevated Risk"
+    if "Critical" in tier or "Needs Attention" in tier: return "Critical"
     return "Stable"
 
 def create_routine(data: Dict[str, Any]) -> Dict[str, Any]:
@@ -82,6 +82,7 @@ def create_routine(data: Dict[str, Any]) -> Dict[str, Any]:
         "goal": data.get("goal", ""),
         "steps": data.get("steps", []),
         "media_url": data.get("mediaUrl", data.get("media_url", None)),
+        "video_url": data.get("videoUrl", data.get("video_url", None)),
         "guide_images": data.get("guideImages", data.get("guide_images", [])),
         "status": data.get("status", "draft"),
         "expert_validated": data.get("expertValidated", data.get("expert_validated", False)),
@@ -89,6 +90,7 @@ def create_routine(data: Dict[str, Any]) -> Dict[str, Any]:
         "created_at": datetime.now(),
     }
     exercise_routines.insert(0, new_routine)
+    save_logs()
     return new_routine
 
 def update_routine(routine_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
@@ -115,6 +117,8 @@ def update_routine(routine_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
         routine["steps"] = data["steps"]
     if "mediaUrl" in data or "media_url" in data:
         routine["media_url"] = data.get("mediaUrl", data.get("media_url", routine.get("media_url")))
+    if "videoUrl" in data or "video_url" in data:
+        routine["video_url"] = data.get("videoUrl", data.get("video_url", routine.get("video_url")))
     if "guideImages" in data or "guide_images" in data:
         routine["guide_images"] = data.get("guideImages", data.get("guide_images", routine.get("guide_images", [])))
     if "status" in data:
@@ -122,6 +126,7 @@ def update_routine(routine_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
     if "expertValidated" in data or "expert_validated" in data:
         routine["expert_validated"] = data.get("expertValidated", data.get("expert_validated", routine.get("expert_validated")))
         
+    save_logs()
     return routine
 
 def delete_routine(routine_id: str) -> bool:
@@ -129,4 +134,5 @@ def delete_routine(routine_id: str) -> bool:
     if not routine:
         return False
     exercise_routines.remove(routine)
+    save_logs()
     return True

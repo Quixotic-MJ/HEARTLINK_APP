@@ -55,8 +55,8 @@ def map_hss_tier(tier: str) -> str:
     if not tier: return "Stable"
     if "Stable" in tier: return "Stable"
     if "Moderate" in tier or "Monitor Closely" in tier: return "Moderate"
-    if "Elevated Risk" in tier: return "Elevated Risk"
-    if "Critical" in tier: return "Critical"
+    if "Elevated Risk" in tier or "Caution" in tier or "At Risk" in tier: return "Elevated Risk"
+    if "Critical" in tier or "Needs Attention" in tier: return "Critical"
     return "Stable"
 
 def create_recipe(data: Dict[str, Any]) -> Dict[str, Any]:

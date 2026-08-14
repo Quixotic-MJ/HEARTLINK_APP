@@ -75,7 +75,9 @@ const Cases = () => {
     const matchesSearch = c.case_id?.toLowerCase().includes(searchQuery.toLowerCase());
     
     // Pseudo risk category based on ml_predicted_hss for filtering/badges
-    const riskCategory = c.ml_predicted_hss !== null && c.ml_predicted_hss < 60 ? "critical" : "warning";
+    const riskCategory = c.ml_predicted_hss !== null 
+      ? (c.ml_predicted_hss < 50 ? "critical" : (c.ml_predicted_hss < 60 ? "warning" : "stable"))
+      : "stable";
     const matchesSeverity = filterSeverity === "all" || riskCategory === filterSeverity;
     
     const matchesStatus = filterStatus === "all" || c.status?.toLowerCase() === filterStatus;
@@ -218,15 +220,19 @@ const Cases = () => {
                     </span>
                   </td>
                   <td className="py-4 px-5 align-middle">
-                    <span
-                      className={`inline-flex items-center text-[9px] font-medium px-2.5 py-1 rounded-full uppercase tracking-[0.15em] ${
-                        c.ml_predicted_hss !== null && c.ml_predicted_hss < 60
-                        ? "bg-red-50 text-red-600" 
-                        : "bg-amber-50 text-amber-600"
-                      }`}
-                    >
-                      {c.ml_predicted_hss !== null && c.ml_predicted_hss < 60 ? "CRITICAL" : "WARNING"}
-                    </span>
+                    {c.ml_predicted_hss !== null && c.ml_predicted_hss < 60 ? (
+                      <span
+                        className={`inline-flex items-center text-[9px] font-medium px-2.5 py-1 rounded-full uppercase tracking-[0.15em] ${
+                          c.ml_predicted_hss < 50
+                          ? "bg-red-50 text-red-600" 
+                          : "bg-amber-50 text-amber-600"
+                        }`}
+                      >
+                        {c.ml_predicted_hss < 50 ? "CRITICAL" : "WARNING"}
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-slate-400 font-medium">None</span>
+                    )}
                   </td>
                   <td className="py-4 px-5 align-middle">
                     <span className="text-slate-500 text-[10px] font-medium">

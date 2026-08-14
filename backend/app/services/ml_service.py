@@ -45,10 +45,10 @@ class MLService:
                 tier = "Stable"
             elif predicted_hss >= 60:
                 tier = "Moderate"
-            elif predicted_hss >= 40:
-                tier = "Caution"
-            else:
+            elif predicted_hss >= 50:
                 tier = "Elevated Risk"
+            else:
+                tier = "Critical"
                 
             # Create hss_history entry
             new_hss = {

@@ -64,16 +64,16 @@ function getScoreTheme(score: number, isDark: boolean): ScoreTheme {
       badgeText: isDark ? "#FBBF24" : "#B45309",
       dotColor: "#D97706",
     };
-  if (score >= 40)
+  if (score >= 50)
     return {
-      label: "At Risk",
+      label: "Elevated Risk",
       barColor: "#EA580C",
       badgeBg: isDark ? "rgba(234, 88, 12, 0.15)" : "#FFEDD5",
       badgeText: isDark ? "#FB923C" : "#C2410C",
       dotColor: "#EA580C",
     };
   return {
-    label: "Needs Attention",
+    label: "Critical",
     barColor: "#E11D48",
     badgeBg: isDark ? "rgba(225, 29, 72, 0.15)" : "#FFE4E6",
     badgeText: isDark ? "#FB7185" : "#BE123C",
@@ -171,7 +171,7 @@ export default function DashboardScreen() {
 
   const hssScore = data?.hss_score || 0;
   const theme = getScoreTheme(hssScore, isDark);
-  const isCritical = hssScore < 40;
+  const isCritical = hssScore < 50;
   const lastSyncTime = data?.last_sync ? new Date(data.last_sync) : new Date();
 
   const glowOpacity = pulseAnim.interpolate({
@@ -396,7 +396,7 @@ export default function DashboardScreen() {
           <Animated.View
             style={{
               alignItems: "center",
-              justify: "center",
+              justifyContent: "center",
               transform: [{ scale: pulseAnim }],
             }}
           >
@@ -457,7 +457,7 @@ export default function DashboardScreen() {
               />
             </View>
             <View className="flex-row justify-between mt-1">
-              <Text className="text-[10px] text-slate-300">Needs Attention</Text>
+              <Text className="text-[10px] text-slate-300">Critical</Text>
               <Text className="text-[10px] text-slate-300">Stable 100</Text>
             </View>
           </View>

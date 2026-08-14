@@ -1,21 +1,50 @@
 from fastapi import APIRouter, HTTPException, Query, Depends
-from typing import List, Dict, Any
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from typing import List, Dict, Any, Optional
 from app.services.exercises import get_routines, get_exercise_logs, create_exercise_log, delete_exercise_log, create_routine, update_routine, delete_routine
-from app.utils.security import get_current_admin_user
+from app.utils.security import get_current_admin_user, verify_token
 from app.utils.activity_helper import record_admin_activity
 
 router = APIRouter(prefix="/api/exercises", tags=["Exercises"])
 
+security = HTTPBearer(auto_error=False)
+
 @router.get("/", response_model=List[Dict[str, Any]])
-def read_routines():
-    return get_routines()
+def read_routines(credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)):
+    routines = get_routines()
+    
+    is_admin = False
+    if credentials:
+        try:
+            payload = verify_token(credentials.credentials)
+            if payload.get("role") in ["admin", "medical_expert"]:
+                is_admin = True
+        except Exception:
+            pass
+            
+    if is_admin:
+        return routines
+    return [r for r in routines if r.get("status") == "published"]
 
 @router.get("/{routine_id}", response_model=Dict[str, Any])
-def read_routine(routine_id: str):
+def read_routine(routine_id: str, credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)):
     routines = get_routines()
     routine = next((r for r in routines if r["id"] == routine_id), None)
     if not routine:
         raise HTTPException(status_code=404, detail="Routine not found")
+        
+    is_admin = False
+    if credentials:
+        try:
+            payload = verify_token(credentials.credentials)
+            if payload.get("role") in ["admin", "medical_expert"]:
+                is_admin = True
+        except Exception:
+            pass
+            
+    if not is_admin and routine.get("status") != "published":
+        raise HTTPException(status_code=404, detail="Routine not found")
+        
     return routine
 
 @router.post("/", response_model=Dict[str, Any])

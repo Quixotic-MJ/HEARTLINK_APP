@@ -888,7 +888,7 @@
       "id": "hss-702",
       "user_id": "usr-patient-101",
       "score": 82,
-      "tier": "Moderate",
+      "tier": "Stable",
       "contributing_factors": {
         "sleep_impact": "optimal",
         "bp_variance": "low"
@@ -1143,7 +1143,7 @@
       "id": "hss-a6b3bc71",
       "user_id": "usr-patient-9cbc8c2b",
       "score": 55,
-      "tier": "Caution",
+      "tier": "Elevated Risk",
       "contributing_factors": {
         "bp_penalty": 0,
         "hr_penalty": 0,
@@ -1223,7 +1223,7 @@
       "id": "hss-860ad2cb",
       "user_id": "usr-patient-7c6bd10e",
       "score": 38,
-      "tier": "Elevated Risk",
+      "tier": "Critical",
       "contributing_factors": {
         "bp_penalty": 10,
         "hr_penalty": 0,
@@ -1238,7 +1238,7 @@
       "id": "hss-19751a46",
       "user_id": "usr-patient-7c6bd10e",
       "score": 41,
-      "tier": "Caution",
+      "tier": "Critical",
       "contributing_factors": {
         "bp_penalty": 10,
         "hr_penalty": 0,
@@ -1253,7 +1253,7 @@
       "id": "hss-6271da97",
       "user_id": "usr-patient-7c6bd10e",
       "score": 41,
-      "tier": "Caution",
+      "tier": "Critical",
       "contributing_factors": {
         "bp_penalty": 10,
         "hr_penalty": 0,
@@ -1377,7 +1377,7 @@
       "id": "hss-baseline-usr-patient-102",
       "user_id": "usr-patient-102",
       "score": 45,
-      "tier": "At Risk",
+      "tier": "Critical",
       "risk_probability": 0.5523160128330149,
       "source": "baseline",
       "computed_at": "2026-08-10T03:30:09.959382"
@@ -1476,7 +1476,7 @@
       "id": "hss-baseline-test-sleep-user-001",
       "user_id": "test-sleep-user-001",
       "score": 57,
-      "tier": "At Risk",
+      "tier": "Elevated Risk",
       "risk_probability": 0.4334571694544475,
       "source": "baseline",
       "computed_at": "2026-08-10T03:58:32.334771"
@@ -1485,7 +1485,7 @@
       "id": "hss-baseline-test-sleep-user-001",
       "user_id": "test-sleep-user-001",
       "score": 57,
-      "tier": "At Risk",
+      "tier": "Elevated Risk",
       "risk_probability": 0.4334571694544475,
       "source": "baseline",
       "computed_at": "2026-08-10T03:59:08.591840"
@@ -1732,7 +1732,7 @@
     {
       "id": "CAL-1003",
       "user_id": "usr-patient-101",
-      "case_id": "CASE-8678",
+      "case_id": "CASE-6606",
       "expert_hss_score": 80,
       "notes": "Doing well.",
       "recommendation_feedback": "Looks good.",
@@ -1740,8 +1740,8 @@
       "reviewer_name": "Expert",
       "ml_predicted_hss": 85,
       "status": "Archived",
-      "created_at": "2026-08-13T02:24:26.438674",
-      "reviewed_at": "2026-08-13T02:24:26.449467"
+      "created_at": "2026-08-14T01:39:08.559400",
+      "reviewed_at": "2026-08-14T01:39:08.569113"
     }
   ],
   "system_broadcasts": [
@@ -1784,44 +1784,124 @@
   ],
   "admin_activity": [
     {
-      "id": "act-41d861ba",
+      "id": "act-7b2c6090",
       "admin_user_id": "usr-chief-admin-001",
       "admin_name": "System Admin",
-      "action": "published",
+      "action": "created",
       "target_type": "recipe",
-      "target_id": "rec-row-test-1",
-      "target_name": "Status Test Broth",
-      "created_at": "2026-08-13T16:24:53.788320"
+      "target_id": "rec-648283ee",
+      "target_name": "Heart-Healthy Oatmeal",
+      "created_at": "2026-08-14T09:39:08.463781"
     },
     {
-      "id": "act-c71ed4ce",
-      "admin_user_id": "usr-chief-admin-001",
-      "admin_name": "System Admin",
-      "action": "archived",
+      "id": "act-0945d4e3",
+      "admin_user_id": "usr-expert-201",
+      "admin_name": "Dr. Maria Santos",
+      "action": "updated",
       "target_type": "recipe",
-      "target_id": "rec-row-test-1",
-      "target_name": "Status Test Broth",
-      "created_at": "2026-08-13T16:24:53.796916"
+      "target_id": "rec-648283ee",
+      "target_name": "Oatmeal with Blueberries",
+      "created_at": "2026-08-14T09:39:08.477055"
     },
     {
-      "id": "act-cc20dd01",
-      "admin_user_id": "usr-chief-admin-001",
-      "admin_name": "System Admin",
-      "action": "restored",
-      "target_type": "recipe",
-      "target_id": "rec-row-test-1",
-      "target_name": "Status Test Broth",
-      "created_at": "2026-08-13T16:24:53.805584"
-    },
-    {
-      "id": "act-fa7fe7c8",
+      "id": "act-5f9a0656",
       "admin_user_id": "usr-chief-admin-001",
       "admin_name": "System Admin",
       "action": "deleted",
       "target_type": "recipe",
-      "target_id": "rec-row-test-1",
-      "target_name": "Status Test Broth",
-      "created_at": "2026-08-13T16:24:53.814096"
+      "target_id": "rec-648283ee",
+      "target_name": "Oatmeal with Blueberries",
+      "created_at": "2026-08-14T09:39:08.486545"
+    },
+    {
+      "id": "act-e67105cb",
+      "admin_user_id": "usr-chief-admin-001",
+      "admin_name": "System Admin",
+      "action": "created",
+      "target_type": "exercise",
+      "target_id": "rout-b57dfc1d",
+      "target_name": "Morning Cardio Stretch",
+      "created_at": "2026-08-14T09:39:08.499016"
+    },
+    {
+      "id": "act-33538287",
+      "admin_user_id": "usr-chief-admin-001",
+      "admin_name": "System Admin",
+      "action": "updated",
+      "target_type": "exercise",
+      "target_id": "rout-b57dfc1d",
+      "target_name": "Evening Calm Stretch",
+      "created_at": "2026-08-14T09:39:08.511610"
+    },
+    {
+      "id": "act-9efafee5",
+      "admin_user_id": "usr-chief-admin-001",
+      "admin_name": "System Admin",
+      "action": "deleted",
+      "target_type": "exercise",
+      "target_id": "rout-b57dfc1d",
+      "target_name": "Evening Calm Stretch",
+      "created_at": "2026-08-14T09:39:08.524963"
+    },
+    {
+      "id": "act-1701e3af",
+      "admin_user_id": "usr-chief-admin-001",
+      "admin_name": "System Admin",
+      "action": "published",
+      "target_type": "broadcast",
+      "target_id": "brd-1786671548",
+      "target_name": "Weekly Tip",
+      "created_at": "2026-08-14T09:39:08.538769"
+    },
+    {
+      "id": "act-af81b3f5",
+      "admin_user_id": "usr-chief-admin-001",
+      "admin_name": "System Admin",
+      "action": "deleted",
+      "target_type": "broadcast",
+      "target_id": "brd-1786671548",
+      "target_name": "Weekly Tip",
+      "created_at": "2026-08-14T09:39:08.549700"
+    },
+    {
+      "id": "act-a3497831",
+      "admin_user_id": "usr-chief-admin-001",
+      "admin_name": "System Admin",
+      "action": "evaluated",
+      "target_type": "case",
+      "target_id": "usr-patient-101",
+      "target_name": "CASE-6606",
+      "created_at": "2026-08-14T09:39:08.562535"
+    },
+    {
+      "id": "act-7f680e1c",
+      "admin_user_id": "usr-chief-admin-001",
+      "admin_name": "System Admin",
+      "action": "updated",
+      "target_type": "case",
+      "target_id": "usr-patient-101",
+      "target_name": "CASE-6606",
+      "created_at": "2026-08-14T09:39:08.573898"
+    },
+    {
+      "id": "act-5577a627",
+      "admin_user_id": "usr-chief-admin-001",
+      "admin_name": "System Admin",
+      "action": "archived",
+      "target_type": "case",
+      "target_id": "usr-patient-101",
+      "target_name": "CASE-6606",
+      "created_at": "2026-08-14T09:39:08.584985"
+    },
+    {
+      "id": "act-85cdcfe1",
+      "admin_user_id": "usr-chief-admin-001",
+      "admin_name": "System Admin",
+      "action": "updated",
+      "target_type": "exercise",
+      "target_id": "rout-601",
+      "target_name": "Basal Paced Breathing Exercise",
+      "created_at": "2026-08-14T10:20:54.091735"
     }
   ]
 }
