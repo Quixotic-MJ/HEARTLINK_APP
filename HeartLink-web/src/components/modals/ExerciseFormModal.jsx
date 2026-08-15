@@ -618,7 +618,7 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
                     ) : (
                       <ShieldAlert size={14} className="text-slate-400" />
                     )}
-                    Medical Expert Validation
+                    Expert Reviewer Validation
                   </h4>
                   <p className="text-[10px] text-slate-500 leading-relaxed">
                     Reviewed or developed with input from a qualified nutrition expert.

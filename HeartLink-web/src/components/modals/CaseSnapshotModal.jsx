@@ -61,7 +61,7 @@ const CaseSnapshotModal = ({ isOpen, onClose, snapshotData }) => {
                 PRIVACY GUARDRAILS ACTIVE
               </p>
               <p className="text-[10px] text-emerald-700/70 leading-relaxed">
-                All Personally Identifiable Information (PII) including names, contacts, and exact locations have been stripped. You are viewing strictly anonymized clinical and behavioral telemetry.
+                All Personally Identifiable Information (PII) including names, contacts, and exact locations have been stripped. You are viewing strictly anonymized health and behavioral telemetry.
               </p>
             </div>
           </div>
@@ -70,7 +70,7 @@ const CaseSnapshotModal = ({ isOpen, onClose, snapshotData }) => {
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden opacity-90">
             <div className="px-5 py-3 border-b border-slate-100 bg-slate-50/50">
               <h4 className="text-[10px] font-semibold text-slate-500 uppercase tracking-[0.2em] flex items-center gap-2">
-                <User size={13} /> Panel A: Patient Context
+                <User size={13} /> Panel A: User Context
               </h4>
             </div>
             <div className="p-5 space-y-4">

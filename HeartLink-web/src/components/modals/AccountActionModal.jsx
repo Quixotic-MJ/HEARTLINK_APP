@@ -10,6 +10,7 @@ import {
   Loader2,
   ChevronDown,
 } from "lucide-react";
+import { formatUserRef } from "../../utils/formatUserRef";
 
 const DISABLE_REASONS = [
   "Suspicious activity",
@@ -141,7 +142,7 @@ const AccountActionModal = ({ isOpen, onClose, user, onToggleStatus }) => {
                 className="text-xs font-mono mt-0.5"
                 style={{ color: "rgba(15,23,42,0.45)" }}
               >
-                {user.id}
+                {formatUserRef(user.id)}
               </p>
             </div>
           </div>

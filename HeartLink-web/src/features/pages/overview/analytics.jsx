@@ -301,7 +301,7 @@ const Analytics = () => {
               HSS Population Tiers Over Time
             </h3>
             <p className="text-xs text-slate-500 mb-6">
-              Displays how the registered patient population distributes across HSS tiers at the end of each calendar month. Excludes patients with no HSS record computed by that date.
+              Displays how registered users distribute across HSS tiers at the end of each calendar month. Excludes users with no HSS record computed by that date.
             </p>
             <div className="w-full h-80">
               <ResponsiveContainer width="100%" height="100%">

@@ -197,7 +197,7 @@ async def web_login(payload: Login):
         if profile.get("email") == payload.identifier or profile.get("phone") == payload.identifier:
             if profile.get("password") == hashed_input:
                 # Enforce RBAC
-                if profile.get("role") not in ["admin", "medical_expert"]:
+                if profile.get("role") not in ["admin", "medical_expert", "super_admin"]:
                     raise HTTPException(
                         status_code=status.HTTP_403_FORBIDDEN, 
                         detail="Access Denied. This portal is strictly for Admins and Medical Experts."
@@ -270,6 +270,7 @@ async def web_login_verify_2fa(payload: WebVerify2FA):
         "success": True, 
         "message": "Login Successfully", 
         "user_id": session["user_id"],
+        "role": session["role"],
         "token": access_token
     }
 

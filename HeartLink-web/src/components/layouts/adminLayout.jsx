@@ -16,7 +16,7 @@ const AdminLayout = ({ children }) => {
     // Wait until authenticated to avoid premature redirects
     if (!isAuthenticated) return;
     
-    const role = user?.role || (userId === "usr-chief-admin-001" ? "admin" : "medical_expert");
+    const role = user?.role || (userId === "usr-super-admin-001" ? "super_admin" : (userId === "usr-chief-admin-001" ? "admin" : "medical_expert"));
     
     if (role === "medical_expert") {
       const restrictedRoutes = ["/analytics", "/foods", "/exercises", "/feedbacks", "/broadcasts", "/settings"];
@@ -24,7 +24,7 @@ const AdminLayout = ({ children }) => {
       if (isRestricted) {
         navigate("/dashboard", { replace: true });
       }
-    } else if (role === "admin") {
+    } else if (role === "admin" || role === "super_admin") {
       // Admins should not access the individual user profile, they use the quick-action modal
       const isUserProfile = pathname.startsWith("/users/") && pathname.length > "/users/".length;
       if (isUserProfile) {

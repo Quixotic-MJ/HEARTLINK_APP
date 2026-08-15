@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { X, UserPlus, Save } from "lucide-react";
+import { X, UserPlus, Info } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -7,76 +7,45 @@ import { InputField } from "../ui/InputField";
 import { Button } from "../ui/Button";
 
 const staffSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters."),
-  phone: z.string().regex(/^\+63 \d{3} \d{3} \d{4}$/, "Must follow +63 xxx xxx xxxx format."),
+  name: z.string().min(2, "Name must be at least 2 characters.").trim(),
+  email: z.string().email("Must be a valid email address."),
+  phone: z.string().min(6, "Phone number is required."),
   role: z.string().min(1, "Role is required."),
-  permissions: z.array(z.string()).min(1, "Select at least one permission."),
 });
 
-const StaffFormModal = ({ isOpen, onClose, isEditMode, staff, onSave }) => {
+const StaffFormModal = ({ isOpen, onClose, staff, onSave }) => {
   if (!isOpen) return null;
 
   const {
     register,
     handleSubmit,
     setValue,
-    watch,
     reset,
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(staffSchema),
     defaultValues: {
       name: "",
+      email: "",
       phone: "",
-      role: "Authorized Medical Expert",
-      permissions: ["Validate Recipes & Exercises", "Evaluate High-Risk Cases"],
+      role: "Expert Reviewer",
     },
     mode: "onTouched",
   });
 
-  const selectedPermissions = watch("permissions");
-
-  // Populate data when edit mode changes
   useEffect(() => {
-    if (isEditMode && staff) {
-      reset({
-        name: staff.name || "",
-        phone: staff.phone || "",
-        role: staff.role || "Authorized Medical Expert",
-        permissions: staff.permissions || [],
-      });
-    } else {
-      // Reset for create
-      reset({
-        name: "",
-        phone: "",
-        role: "Authorized Medical Expert",
-        permissions: ["Validate Recipes & Exercises", "Evaluate High-Risk Cases"],
-      });
-    }
-  }, [isEditMode, staff, reset]);
-
-  const handlePermissionChange = (perm) => {
-    const current = new Set(selectedPermissions);
-    if (current.has(perm)) {
-      current.delete(perm);
-    } else {
-      current.add(perm);
-    }
-    setValue("permissions", Array.from(current), { shouldValidate: true });
-  };
-
-  const availablePermissions = [
-    "Validate Recipes & Exercises",
-    "Evaluate High-Risk Cases",
-    "Manage App Users",
-  ];
+    reset({
+      name: "",
+      email: "",
+      phone: "",
+      role: "Expert Reviewer",
+    });
+  }, [isOpen, reset]);
 
   const onSubmit = async (data) => {
     if (onSave) {
-        await onSave(data);
+      await onSave(data);
     }
-    onClose();
   };
 
   return (
@@ -93,7 +62,7 @@ const StaffFormModal = ({ isOpen, onClose, isEditMode, staff, onSave }) => {
         <div className="flex items-center justify-between px-6 py-5 border-b border-slate-200 bg-white shadow-sm z-10">
           <div>
             <h3 className="text-base font-semibold text-slate-900">
-              {isEditMode ? "Edit Staff Permissions" : "Register System Staff"}
+              Provision Staff Account
             </h3>
             <p className="text-[11px] text-slate-500 mt-1">
               Define administrative access controls.
@@ -109,7 +78,7 @@ const StaffFormModal = ({ isOpen, onClose, isEditMode, staff, onSave }) => {
 
         {/* Modal Scrollable Content Area */}
         <form onSubmit={handleSubmit(onSubmit)} className="flex-1 overflow-y-auto p-6 custom-scrollbar">
-          <div className="space-y-5">
+          <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="col-span-2">
                 <InputField
@@ -122,60 +91,45 @@ const StaffFormModal = ({ isOpen, onClose, isEditMode, staff, onSave }) => {
               </div>
               <div className="col-span-2">
                 <InputField
+                  id="email"
+                  type="email"
+                  label="Email Address"
+                  placeholder="e.g. jane.doe@heartlink.ph"
+                  error={errors.email}
+                  {...register("email")}
+                />
+              </div>
+              <div className="col-span-2">
+                <InputField
                   id="phone"
                   type="tel"
                   label="Mobile Number"
-                  placeholder="+63 9xx xxx xxxx"
+                  placeholder="e.g. +639XXXXXXXXX"
                   error={errors.phone}
                   {...register("phone")}
                 />
               </div>
 
-              {!isEditMode && (
-                <div className="col-span-2">
-                  <label className="block text-[11px] font-semibold text-slate-700 mb-1.5">
-                    Temporary Password
-                  </label>
-                  <input
-                    type="text"
-                    className="w-full px-4 py-2.5 text-sm font-mono text-slate-500 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none shadow-sm"
-                    value="TempPass2026!"
-                    readOnly
-                  />
-                </div>
-              )}
-
-              <div className="col-span-2 mt-2">
-                <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100 pb-2 mb-3">
+              <div className="col-span-2">
+                <label className="block text-[11px] font-semibold text-slate-700 mb-1.5">
                   Role Assignment
                 </label>
                 <select
                   {...register("role")}
                   className={`w-full px-4 py-2.5 text-sm font-medium text-slate-800 bg-white border ${errors.role ? 'border-red-400 focus:ring-red-500/10' : 'border-slate-200 focus:border-slate-400 focus:ring-slate-900/5'} rounded-xl focus:ring-2 focus:outline-none shadow-sm cursor-pointer`}
                 >
-                  <option value="Authorized Medical Expert">Authorized Medical Expert</option>
+                  <option value="Authorized Medical Expert">Expert Reviewer</option>
                   <option value="System Admin">System Admin</option>
                 </select>
                 {errors.role && <p className="text-[11px] text-red-500 mt-1.5">{errors.role.message}</p>}
               </div>
-              <div className="col-span-2 mt-2">
-                <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100 pb-2 mb-3">
-                  Granular Permissions
-                </label>
-                <div className="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200 shadow-inner">
-                  {availablePermissions.map((perm) => (
-                    <label key={perm} className="flex items-center gap-3 text-xs font-medium text-slate-800 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={selectedPermissions.includes(perm)}
-                        onChange={() => handlePermissionChange(perm)}
-                        className="w-4 h-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900"
-                      />
-                      {perm}
-                    </label>
-                  ))}
-                </div>
-                {errors.permissions && <p className="text-[11px] text-red-500 mt-1.5">{errors.permissions.message}</p>}
+
+              {/* Notice Banner */}
+              <div className="col-span-2 mt-2 bg-slate-100 p-4 rounded-xl border border-slate-200 flex items-start gap-2.5 shadow-inner">
+                <Info size={14} className="text-slate-400 mt-0.5 shrink-0" />
+                <p className="text-[10px] text-slate-500 font-semibold leading-relaxed m-0 uppercase tracking-wider">
+                  Account created. Initial credentials are managed by the administrator.
+                </p>
               </div>
             </div>
           </div>
@@ -194,10 +148,9 @@ const StaffFormModal = ({ isOpen, onClose, isEditMode, staff, onSave }) => {
             type="submit"
             onClick={handleSubmit(onSubmit)}
             isLoading={isSubmitting}
-            loadingText={isEditMode ? "Saving..." : "Provisioning..."}
+            loadingText="Provisioning..."
           >
-            {isEditMode ? <Save size={14} /> : <UserPlus size={14} />}
-            {isEditMode ? "Save Changes" : "Provision Account"}
+            <UserPlus size={14} /> Provision Account
           </Button>
         </div>
       </div>

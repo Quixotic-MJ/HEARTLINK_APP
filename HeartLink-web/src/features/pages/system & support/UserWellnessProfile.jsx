@@ -6,10 +6,30 @@ import {
 } from "lucide-react";
 import AdminLayout from "../../../components/layouts/adminLayout";
 import { apiFetch } from "../../../api";
+import { useAuth } from "../../../contexts/AuthContext";
+import { formatUserRef } from "../../../utils/formatUserRef";
+
+const normalizeHssTier = (score, tier) => {
+  if (score !== undefined && score !== null) {
+    if (score >= 80) return "Stable";
+    if (score >= 60) return "Moderate";
+    if (score >= 50) return "Elevated Risk";
+    return "Critical";
+  }
+  if (!tier) return "N/A";
+  const t = tier.toLowerCase();
+  if (t.includes("low")) return "Stable";
+  if (t.includes("medium") || t.includes("mid") || t.includes("moderate")) return "Moderate";
+  if (t.includes("high") || t.includes("elevated")) return "Elevated Risk";
+  if (t.includes("critical")) return "Critical";
+  return tier;
+};
 
 const UserWellnessProfile = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user, userId } = useAuth();
+  const currentUserRole = user?.role || (userId === "usr-super-admin-001" ? "super_admin" : (userId === "usr-chief-admin-001" ? "admin" : "medical_expert"));
   const [data, setData] = useState(null);
   const [timeline, setTimeline] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -89,7 +109,7 @@ const UserWellnessProfile = () => {
             P
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Patient {profile.id}</h1>
+            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">User {formatUserRef(profile.id)}</h1>
             <p className="text-slate-500 font-mono text-sm mt-1">Anonymized for Privacy</p>
             <div className="flex items-center gap-3 mt-3">
               <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${profile.account_status === 'active' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-red-50 text-red-600 border border-red-100'}`}>
@@ -101,6 +121,16 @@ const UserWellnessProfile = () => {
             </div>
           </div>
         </div>
+
+        {/* Open Case Review (Authorized Roles Only) */}
+        {(currentUserRole === "super_admin" || currentUserRole === "admin" || currentUserRole === "medical_expert") && (
+          <button
+            onClick={() => navigate(`/cases?patient_id=${profile.id}`)}
+            className="flex items-center gap-2 bg-[#0f172a] hover:opacity-90 active:scale-[0.99] text-white font-semibold text-xs px-5 py-2.5 rounded-xl transition-all shadow-sm shrink-0 cursor-pointer relative z-10"
+          >
+            <Stethoscope size={14} /> Open Case Review
+          </button>
+        )}
       </div>
 
       <div className="flex flex-col lg:flex-row gap-8">
@@ -142,8 +172,8 @@ const UserWellnessProfile = () => {
                       <div>
                         <p className="text-xs font-bold text-slate-700">Anonymized for Privacy</p>
                         <p className="text-[10px] text-slate-500 leading-relaxed mt-1">
-                          Email, phone number, and emergency contacts are hidden to protect patient confidentiality. 
-                          You may only view clinical data necessary for case review.
+                          Email, phone number, and emergency contacts are hidden to protect user privacy. 
+                          You may only view health data necessary for case review.
                         </p>
                       </div>
                     </div>
@@ -297,7 +327,7 @@ const UserWellnessProfile = () => {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-                      <h3 className="text-xs uppercase tracking-widest text-slate-400 font-bold mb-4">Diagnosed Conditions</h3>
+                      <h3 className="text-xs uppercase tracking-widest text-slate-400 font-bold mb-4">Reported Health Conditions</h3>
                       {baselines.clinical.diagnosed_conditions && baselines.clinical.diagnosed_conditions.length > 0 ? (
                         <ul className="space-y-2">
                           {baselines.clinical.diagnosed_conditions.map((cond, i) => (
@@ -311,7 +341,7 @@ const UserWellnessProfile = () => {
                       )}
                     </div>
                     <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-                      <h3 className="text-xs uppercase tracking-widest text-slate-400 font-bold mb-4">Clinical Flags</h3>
+                      <h3 className="text-xs uppercase tracking-widest text-slate-400 font-bold mb-4">Health Flags</h3>
                       <div className="space-y-3">
                         <div className="flex justify-between items-center">
                           <span className="text-sm font-medium text-slate-500">On Medication</span>
@@ -350,32 +380,42 @@ const UserWellnessProfile = () => {
                 {timeline && timeline.length > 0 ? (
                   <div className="relative border-l border-slate-200 ml-3 md:ml-4 space-y-8 pb-4">
                     {timeline.map((item, index) => {
-                      // Determine colors/icons based on type
+                      // Normalize event type naming
+                      const normalizeTimelineType = (type) => {
+                        if (!type) return "";
+                        const lower = type.toLowerCase();
+                        if (lower === "vitals") return "vital";
+                        if (lower === "symptoms") return "symptom";
+                        return lower;
+                      };
+                      const normalizedType = normalizeTimelineType(item.type);
+
+                      // Determine colors/icons based on normalized type
                       let iconColor = "bg-slate-100 text-slate-500 border-slate-200";
                       let Icon = Activity;
                       let typeLabel = "Log";
                       
-                      if (item.type === "vital") {
+                      if (normalizedType === "vital") {
                         iconColor = "bg-rose-50 text-rose-500 border-rose-200";
                         Icon = HeartPulse;
                         typeLabel = "Vitals";
-                      } else if (item.type === "symptom") {
+                      } else if (normalizedType === "symptom") {
                         iconColor = "bg-amber-50 text-amber-500 border-amber-200";
                         Icon = AlertTriangle;
-                        typeLabel = "Symptom";
-                      } else if (item.type === "meal") {
+                        typeLabel = "Symptoms";
+                      } else if (normalizedType === "meal") {
                         iconColor = "bg-emerald-50 text-emerald-500 border-emerald-200";
                         Icon = Apple;
                         typeLabel = "Meal";
-                      } else if (item.type === "exercise") {
+                      } else if (normalizedType === "exercise") {
                         iconColor = "bg-blue-50 text-blue-500 border-blue-200";
                         Icon = Flame;
                         typeLabel = "Exercise";
-                      } else if (item.type === "sleep") {
+                      } else if (normalizedType === "sleep") {
                         iconColor = "bg-indigo-50 text-indigo-500 border-indigo-200";
                         Icon = Moon;
                         typeLabel = "Sleep";
-                      } else if (item.type === "hss") {
+                      } else if (normalizedType === "hss") {
                         iconColor = "bg-slate-900 text-white border-slate-900";
                         Icon = ShieldCheck;
                         typeLabel = "HSS Update";
@@ -394,7 +434,7 @@ const UserWellnessProfile = () => {
                           </div>
                           
                           <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                            {item.type === "vital" && (
+                            {normalizedType === "vital" && (
                               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                 {item.data.systolic && item.data.diastolic && (
                                   <div>
@@ -423,39 +463,43 @@ const UserWellnessProfile = () => {
                               </div>
                             )}
 
-                            {item.type === "symptom" && (
+                            {normalizedType === "symptom" && (
                               <div>
                                 <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Symptoms Reported</p>
-                                <p className="text-sm font-semibold text-slate-900 capitalize">{item.data.symptoms.join(", ")}</p>
-                                {item.data.notes && <p className="text-xs text-slate-500 mt-2 italic">"{item.data.notes}"</p>}
+                                <p className="text-sm font-semibold text-slate-900 capitalize">{item.data.symptoms?.join(", ") || "No specific symptoms"}</p>
+                                {item.data.severity_map && Object.keys(item.data.severity_map).length > 0 && (
+                                  <p className="text-[10px] text-slate-500 mt-1 font-medium">
+                                    Severity: {Object.entries(item.data.severity_map).map(([k, v]) => `${k.replace('_', ' ')} (${v})`).join(", ")}
+                                  </p>
+                                )}
+                                {item.data.context && <p className="text-xs text-slate-500 mt-2 italic">Context: "{item.data.context}"</p>}
                               </div>
                             )}
 
-                            {item.type === "meal" && (
+                            {normalizedType === "meal" && (
                               <div>
-                                <p className="text-sm font-bold text-slate-900 capitalize mb-1">{item.data.meal_type}</p>
-                                {item.data.recipe_name ? (
-                                  <p className="text-xs text-slate-600">Followed recommended recipe: <span className="font-semibold text-slate-900">{item.data.recipe_name}</span></p>
-                                ) : (
-                                  <p className="text-xs text-slate-600">Logged custom meal: <span className="font-semibold text-slate-900">{item.data.description}</span></p>
-                                )}
-                                {item.data.sodium_mg && (
-                                  <p className="text-[10px] font-medium text-slate-500 mt-2">Sodium: {item.data.sodium_mg}mg</p>
-                                )}
+                                <p className="text-sm font-bold text-slate-900 mb-1">{item.data.meal_name || "Logged Meal"}</p>
+                                <p className="text-xs text-slate-600 font-medium">
+                                  {item.data.calories ? `${item.data.calories} kcal` : ""}
+                                  {item.data.calories && item.data.sodium_mg ? " | " : ""}
+                                  {item.data.sodium_mg ? `Sodium: ${item.data.sodium_mg} mg` : ""}
+                                </p>
                               </div>
                             )}
 
-                            {item.type === "exercise" && (
+                            {normalizedType === "exercise" && (
                               <div>
-                                <p className="text-sm font-bold text-slate-900 mb-1">{item.data.exercise_name || "Custom Exercise"}</p>
+                                <p className="text-sm font-bold text-slate-900 mb-1">{item.data.routine_name || "Custom Exercise"}</p>
                                 <div className="flex gap-4 mt-2">
                                   <p className="text-xs text-slate-600"><span className="font-semibold text-slate-900">{item.data.duration_minutes}</span> min duration</p>
-                                  <p className="text-xs text-slate-600 capitalize">Intensity: <span className="font-semibold text-slate-900">{item.data.intensity}</span></p>
+                                  {item.data.status && (
+                                    <p className="text-xs text-slate-600 capitalize">Status: <span className="font-semibold text-slate-900">{item.data.status}</span></p>
+                                  )}
                                 </div>
                               </div>
                             )}
 
-                            {item.type === "sleep" && (
+                            {normalizedType === "sleep" && (
                               <div>
                                 <div className="flex gap-4">
                                   <p className="text-xs text-slate-600"><span className="font-semibold text-slate-900">{item.data.duration_hours}</span> hours slept</p>
@@ -464,11 +508,11 @@ const UserWellnessProfile = () => {
                               </div>
                             )}
 
-                            {item.type === "hss" && (
+                            {normalizedType === "hss" && (
                               <div className="flex items-center gap-4">
                                 <div>
                                   <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">HSS Tier Updated</p>
-                                  <p className="text-sm font-bold text-slate-900">{item.data.tier}</p>
+                                  <p className="text-sm font-bold text-slate-900">{normalizeHssTier(item.data.score, item.data.tier)}</p>
                                 </div>
                                 <div className="h-8 w-px bg-slate-200"></div>
                                 <div>
@@ -487,7 +531,7 @@ const UserWellnessProfile = () => {
                     <Clock size={32} className="text-slate-200 mb-3" />
                     <h3 className="text-sm font-semibold text-slate-900">No Timeline Data</h3>
                     <p className="text-xs text-slate-500 mt-1 max-w-sm">
-                      There are no recent logs, vital readings, or HSS updates for this patient.
+                      There are no recent logs, vital readings, or HSS updates for this user.
                     </p>
                   </div>
                 )}

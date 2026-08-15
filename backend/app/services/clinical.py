@@ -144,7 +144,7 @@ def get_recent_telemetry_timeline(user_id: str, limit_days: int = 30) -> list:
             })
             
     # sleep
-    for s in [s for s in mock_db.sleep_logs if s.get("user_id") == user_id]:
+    for s in [s for s in mock_db.sleep_logs if s.get("user_id") == user_id and s.get("deleted_at") is None]:
         dt = parse_dt(s)
         if dt >= cutoff_date:
             logs.append({

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { X, Activity, AlertTriangle, Ban, CheckCircle2, Archive, Key, Copy } from "lucide-react";
+import { formatUserRef } from "../../utils/formatUserRef";
 
 const PatientDetailsModal = ({ isOpen, onClose, patient, onDeactivate, onEnable }) => {
   const [tempPassword, setTempPassword] = useState("");
@@ -60,7 +61,7 @@ const PatientDetailsModal = ({ isOpen, onClose, patient, onDeactivate, onEnable 
           <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
             <div>
               <h2 className="text-xl font-bold text-slate-900">{patient.name}</h2>
-              <p className="text-xs text-slate-500 font-mono mt-1">{patient.id}</p>
+              <p className="text-xs text-slate-500 font-mono mt-1">{formatUserRef(patient.id)}</p>
             </div>
             {getStatusBadge(patient.status)}
           </div>

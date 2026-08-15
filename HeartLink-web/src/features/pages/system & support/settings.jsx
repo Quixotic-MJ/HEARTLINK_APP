@@ -23,7 +23,7 @@ const Settings = () => {
   const [showSavedToast, setShowSavedToast] = useState(false);
 
   // General Settings State
-  const [systemName, setSystemName] = useState("HeartLink Clinical Portal");
+  const [systemName, setSystemName] = useState("HeartLink Support Console");
   const [maintenanceMode, setMaintenanceMode] = useState(false);
   const [heartbeatInterval, setHeartbeatInterval] = useState("15");
   

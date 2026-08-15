@@ -1,8 +1,8 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from typing import Dict, Any
 from datetime import datetime, timedelta
 from app.mock_db import profiles, alerts, hss_history, exercise_routines, meal_logs, exercise_logs, sleep_logs, daily_health_logs, recipes, system_broadcasts, notifications, save_logs, expert_evaluations, admin_activity
-from app.utils.security import get_current_admin_user
+from app.utils.security import get_current_admin_user, get_current_super_admin
 import random
 
 router = APIRouter(prefix="/api/admin", tags=["Admin"])
@@ -37,7 +37,7 @@ def get_admin_dashboard(current_user: dict = Depends(get_current_admin_user)):
         if is_recent(e.get("logged_at")):
             active_user_ids.add(e.get("user_id"))
     for s in sleep_logs:
-        if is_recent(s.get("logged_at")):
+        if s.get("deleted_at") is None and is_recent(s.get("logged_at")):
             active_user_ids.add(s.get("user_id"))
     for l in daily_health_logs:
         if is_recent(l.get("logged_at")):
@@ -115,7 +115,7 @@ def get_admin_dashboard(current_user: dict = Depends(get_current_admin_user)):
     meals_this_week = sum(1 for m in meal_logs if is_recent(m.get("logged_at")) and m.get("user_id") in patient_ids)
     exercise_this_week = sum(1 for e in exercise_logs if is_recent(e.get("logged_at")) and e.get("user_id") in patient_ids)
     vitals_this_week = sum(1 for l in daily_health_logs if is_recent(l.get("logged_at")) and l.get("user_id") in patient_ids)
-    sleep_this_week = sum(1 for s in sleep_logs if is_recent(s.get("logged_at")) and s.get("user_id") in patient_ids)
+    sleep_this_week = sum(1 for s in sleep_logs if s.get("deleted_at") is None and is_recent(s.get("logged_at")) and s.get("user_id") in patient_ids)
     symptoms_this_week = symptoms_recorded
     
     user_activity = {
@@ -493,35 +493,77 @@ def get_admin_analytics(period: str = "6months", current_user: dict = Depends(ge
     }
 
 @router.get("/staff")
-def get_system_staff(current_user: dict = Depends(get_current_admin_user)):
-    staff = [p for p in profiles if p.get("role") in ["medical_expert", "admin"]]
+def get_system_staff(current_user: dict = Depends(get_current_super_admin)):
+    staff = [p for p in profiles if p.get("role") in ["medical_expert", "admin", "super_admin"]]
     result = []
     for s in staff:
-        role_label = "Authorized Medical Expert" if s.get("role") == "medical_expert" else "System Admin"
-        perms = ["Validate Recipes", "Verify Exercises", "Evaluate Cases"] if s.get("role") == "medical_expert" else ["Manage Content", "Broadcast Alerts", "View Analytics", "Manage Users"]
+        if s.get("role") == "super_admin":
+            role_label = "Super Admin"
+            perms = ["All Administrative Permissions"]
+        elif s.get("role") == "admin":
+            role_label = "System Admin"
+            perms = ["Manage Content", "Broadcast Alerts", "View Analytics", "Manage Users"]
+        else:
+            role_label = "Authorized Medical Expert"
+            perms = ["Validate Recipes", "Verify Exercises", "Evaluate Cases"]
+            
         result.append({
             "id": s.get("id"),
             "name": f"{s.get('first_name', '')} {s.get('last_name', '')}".strip() or s.get("email"),
+            "email": s.get("email"),
             "phone": s.get("phone", "No Phone"),
             "role": role_label,
             "permissions": perms,
-            "status": s.get("account_status", "active").capitalize()
+            "account_status": s.get("account_status", "active"),
+            "status": s.get("account_status", "active").capitalize(),
+            "created_at": s.get("created_at")
         })
     return result
 
 @router.post("/staff")
-def create_system_staff(payload: dict, current_user: dict = Depends(get_current_admin_user)):
-    # Generate staff ID
-    staff_id = f"STAFF-{random.randint(1000, 9999)}"
+def create_system_staff(payload: dict, current_user: dict = Depends(get_current_super_admin)):
+    name = payload.get("name")
+    email = payload.get("email")
+    phone = payload.get("phone")
+    role_label = payload.get("role")
+    
+    if not name or not name.strip():
+        raise HTTPException(status_code=400, detail="Name cannot be empty")
+    if not email or not email.strip() or "@" not in email:
+        raise HTTPException(status_code=400, detail="Invalid email address")
+    if not phone or not phone.strip():
+        raise HTTPException(status_code=400, detail="Phone number is required")
+    if role_label not in ["Authorized Medical Expert", "System Admin", "medical_expert", "admin"]:
+        raise HTTPException(status_code=400, detail="Invalid staff role")
+        
+    # Check duplicate email
+    for p in profiles:
+        if p.get("email") == email:
+            raise HTTPException(status_code=409, detail="Duplicate email address")
+            
+    # Generate staff ID uniquely
+    while True:
+        staff_id = f"STAFF-{random.randint(1000, 9999)}"
+        if not any(p.get("id") == staff_id for p in profiles):
+            break
+            
+    # Generate password hash
+    import hashlib
+    temp_pass = "TempPass2026!"
+    hashed_pwd = hashlib.sha256(temp_pass.encode()).hexdigest()
+    
+    target_role = "medical_expert" if role_label in ["Authorized Medical Expert", "medical_expert"] else "admin"
+    
     new_staff = {
         "id": staff_id,
-        "first_name": payload.get("name", "New").split(" ")[0],
-        "last_name": " ".join(payload.get("name", "Staff").split(" ")[1:]),
-        "phone": payload.get("phone", ""),
-        "email": f"{staff_id.lower()}@heartlink.com",
-        "role": "medical_expert" if payload.get("role") == "Authorized Medical Expert" else "admin",
+        "first_name": name.split(" ")[0],
+        "last_name": " ".join(name.split(" ")[1:]),
+        "phone": phone,
+        "email": email,
+        "password": hashed_pwd,
+        "role": target_role,
         "account_status": "active",
-        "created_at": datetime.now()
+        "created_at": datetime.utcnow()
     }
     profiles.append(new_staff)
     from app.mock_db import save_profiles
@@ -529,13 +571,15 @@ def create_system_staff(payload: dict, current_user: dict = Depends(get_current_
     
     # Record admin activity
     admin_id = current_user.get("user_id") if current_user else "admin"
+    role_desc = "medical expert" if target_role == "medical_expert" else "admin"
+    action_desc = f"Created {role_desc} account"
     from app.utils.activity_helper import record_admin_activity
     record_admin_activity(
         admin_user_id=admin_id,
-        action="created",
-        target_type="user",
+        action=action_desc,
+        target_type="staff",
         target_id=staff_id,
-        target_name=payload.get("name", "New Staff Member")
+        target_name=name
     )
     return {"status": "success", "id": staff_id}
 
@@ -543,9 +587,28 @@ def create_system_staff(payload: dict, current_user: dict = Depends(get_current_
 def toggle_user_status(user_id: str, current_user: dict = Depends(get_current_admin_user)):
     user = next((u for u in profiles if u["id"] == user_id), None)
     if not user:
-        return {"status": "error", "message": "User not found"}
+        raise HTTPException(status_code=404, detail="User not found")
         
     current_status = user.get("account_status", "active")
+    user_role = user.get("role", "patient")
+    
+    # Staff account toggle is strictly super_admin
+    is_staff = user_role in ["admin", "medical_expert", "super_admin"]
+    current_admin_role = current_user.get("role")
+    
+    if is_staff and current_admin_role != "super_admin":
+        raise HTTPException(status_code=403, detail="Access Denied: Only Super Admin can manage staff status")
+        
+    # Safety Check: Self-disable prevention
+    if user_id == current_user.get("user_id"):
+        raise HTTPException(status_code=400, detail="Self-deactivation is not permitted")
+        
+    # Safety Check: Protect the last active super_admin
+    if user_role == "super_admin" and current_status == "active":
+        active_super_admins = [p for p in profiles if p.get("role") == "super_admin" and p.get("account_status") == "active"]
+        if len(active_super_admins) <= 1:
+            raise HTTPException(status_code=400, detail="Deactivating the last active Super Admin is not permitted")
+            
     new_status = "disabled" if current_status == "active" else "active"
     user["account_status"] = new_status
     
@@ -555,16 +618,64 @@ def toggle_user_status(user_id: str, current_user: dict = Depends(get_current_ad
     # Record admin activity
     admin_id = current_user.get("user_id") if current_user else "admin"
     user_name = f"{user.get('first_name', '')} {user.get('last_name', '')}".strip() or user.get("email") or user_id
-    action = "disabled" if new_status == "disabled" else "activated"
+    
+    target_type = "user" if user_role == "patient" else "staff"
+    
+    if user_role == "patient":
+        action_desc = f"{'disabled' if new_status == 'disabled' else 'activated'} user account"
+    else:
+        role_desc = "medical expert" if user_role == "medical_expert" else ("admin" if user_role == "admin" else "super_admin")
+        action_desc = f"{'Disabled' if new_status == 'disabled' else 'Enabled'} {role_desc} account"
+        
     from app.utils.activity_helper import record_admin_activity
     record_admin_activity(
         admin_user_id=admin_id,
-        action=action,
-        target_type="user",
+        action=action_desc,
+        target_type=target_type,
         target_id=user_id,
         target_name=user_name
     )
     return {"status": "success", "new_status": new_status}
+
+@router.put("/staff/{staff_id}/role")
+def change_staff_role(staff_id: str, payload: dict, current_user: dict = Depends(get_current_super_admin)):
+    target_user = next((u for u in profiles if u["id"] == staff_id), None)
+    if not target_user:
+        raise HTTPException(status_code=404, detail="Staff member not found")
+        
+    new_role_label = payload.get("role")
+    if new_role_label not in ["Authorized Medical Expert", "System Admin", "medical_expert", "admin"]:
+        raise HTTPException(status_code=400, detail="Invalid role label")
+        
+    new_role = "medical_expert" if new_role_label in ["Authorized Medical Expert", "medical_expert"] else "admin"
+    
+    if target_user.get("role") not in ["admin", "medical_expert"]:
+        raise HTTPException(status_code=400, detail="Target user is not a regular staff member")
+        
+    # Safety Check: Prevent self-demotion
+    if staff_id == current_user.get("user_id"):
+        raise HTTPException(status_code=400, detail="Self-demotion is not permitted")
+        
+    old_role = target_user.get("role")
+    target_user["role"] = new_role
+    
+    from app.mock_db import save_profiles
+    save_profiles()
+    
+    # Record admin activity
+    admin_id = current_user.get("user_id") if current_user else "admin"
+    user_name = f"{target_user.get('first_name', '')} {target_user.get('last_name', '')}".strip() or target_user.get("email") or staff_id
+    action_desc = f"Changed staff role from {old_role} to {new_role}"
+    
+    from app.utils.activity_helper import record_admin_activity
+    record_admin_activity(
+        admin_user_id=admin_id,
+        action=action_desc,
+        target_type="staff",
+        target_id=staff_id,
+        target_name=user_name
+    )
+    return {"status": "success", "new_role": new_role}
 
 @router.get("/users/{user_id}/timeline")
 def get_user_timeline(user_id: str, current_user: dict = Depends(get_current_admin_user)):
@@ -615,7 +726,7 @@ def get_user_timeline(user_id: str, current_user: dict = Depends(get_current_adm
             }
         })
         
-    for s in [s for s in sleep_logs if s.get("user_id") == user_id]:
+    for s in [s for s in sleep_logs if s.get("user_id") == user_id and s.get("deleted_at") is None]:
         logs.append({
             "type": "Sleep",
             "timestamp": s.get("logged_at"),

@@ -19,12 +19,17 @@ import {
   ShieldCheck,
   Stethoscope,
 } from "lucide-react";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import AdminLayout from "../../../components/layouts/adminLayout"; // Adjust path
 import ExpertEvaluationModal from "../../../components/modals/ExpertEvaluationModal";
 
 import { apiFetch } from "../../../api";
 
 const Cases = () => {
+  const [searchParams] = useSearchParams();
+  const patientIdParam = searchParams.get("patient_id");
+  const navigate = useNavigate();
+
   const [cases, setCases] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -41,6 +46,16 @@ const Cases = () => {
   React.useEffect(() => {
     fetchCases();
   }, []);
+
+  // Auto-open modal if patient_id query param matches a case
+  React.useEffect(() => {
+    if (patientIdParam && cases.length > 0) {
+      const match = cases.find(c => c.user_id === patientIdParam);
+      if (match) {
+        openModal(match);
+      }
+    }
+  }, [patientIdParam, cases]);
 
   const fetchCases = async () => {
     try {
@@ -276,9 +291,18 @@ const Cases = () => {
                         <span className="text-[10px] text-slate-400 font-medium italic">Not yet reviewed</span>
                       )}
                     </td>
-                    <td className="py-4 px-5 align-middle text-right">
+                    <td className="py-4 px-5 align-middle text-right flex items-center justify-end gap-2">
                       <button
-                        className={`text-[10px] font-semibold px-4 py-2 rounded-xl transition-colors shadow-sm ${
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/users/${c.user_id}`);
+                        }}
+                        className="text-[10px] font-semibold px-3 py-2 rounded-xl border border-slate-200 text-slate-600 bg-white hover:bg-slate-50 transition-colors shadow-sm cursor-pointer"
+                      >
+                        User Summary
+                      </button>
+                      <button
+                        className={`text-[10px] font-semibold px-4 py-2 rounded-xl transition-colors shadow-sm cursor-pointer ${
                           isEvaluated
                             ? "bg-white border border-slate-200 text-[#0f172a] hover:bg-slate-50"
                             : "text-white transition-all hover:opacity-90 active:scale-[0.99] border border-transparent"

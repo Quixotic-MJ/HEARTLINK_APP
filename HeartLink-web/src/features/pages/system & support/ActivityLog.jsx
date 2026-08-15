@@ -21,7 +21,7 @@ const initialLogs = [
     id: "LOG-1029",
     timestamp: "Jun 13, 2026, 10:15 AM",
     type: "critical",
-    details: "Patient USR-A492 HSS dropped below safe threshold (45).",
+    details: "User USR-A492 HSS dropped below safe threshold (45).",
     user: "USR-A492",
     status: "Unread",
   },
@@ -53,7 +53,7 @@ const initialLogs = [
     id: "LOG-1025",
     timestamp: "Jun 12, 2026, 02:20 PM",
     type: "critical",
-    details: "Patient USR-B711 missed 3 consecutive medication doses.",
+    details: "User USR-B711 missed 3 consecutive medication doses.",
     user: "USR-B711",
     status: "Resolved",
   },
@@ -174,7 +174,7 @@ const ActivityLog = () => {
                   className="pl-9 pr-8 py-2 text-[11px] font-medium text-slate-700 bg-white border border-slate-200 rounded-xl focus:outline-none appearance-none cursor-pointer hover:border-slate-300 transition-colors"
                 >
                   <option value="all">All Events</option>
-                  <option value="critical">Clinical Alerts</option>
+                  <option value="critical">HSS Alerts</option>
                   <option value="security">Security</option>
                   <option value="support">Support</option>
                   <option value="system">System</option>

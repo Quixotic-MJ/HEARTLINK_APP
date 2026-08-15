@@ -5,6 +5,7 @@ import uuid
 import app.mock_db as mock_db
 from app.utils.security import get_current_admin_user
 from app.services.users import get_full_profile
+from app.services.cases import get_deterministic_case_id
 from app.services.clinical import (
     get_clinical_baseline_data,
     get_recent_telemetry_timeline,
@@ -64,7 +65,7 @@ def list_reviewable_cases(current_user: dict = Depends(get_current_admin_user)):
         status = "Evaluated" if evaluations else "Pending"
         
         # Determine pseudo case_id
-        case_id = f"CASE-{abs(hash(user_id)) % 10000:04d}"
+        case_id = get_deterministic_case_id(user_id)
         
         existing_eval = evaluations[0] if evaluations else None
         
@@ -114,7 +115,7 @@ def get_case_detail(user_id: str, current_user: dict = Depends(get_current_admin
     if p.get("role") != "patient":
         raise HTTPException(status_code=400, detail="Requested user is not a patient")
         
-    case_id = f"CASE-{abs(hash(user_id)) % 10000:04d}"
+    case_id = get_deterministic_case_id(user_id)
     
     baselines = profile_data.get("baselines", {})
     ml_prediction = _get_ml_hss(user_id)
@@ -242,7 +243,7 @@ def submit_evaluation(user_id: str, payload: dict, current_user: dict = Depends(
     
     existing_eval = next((e for e in mock_db.expert_evaluations if e["user_id"] == user_id), None)
     action = "updated" if existing_eval else "evaluated"
-    case_id = f"CASE-{abs(hash(user_id)) % 10000:04d}"
+    case_id = get_deterministic_case_id(user_id)
     
     # Derive Expert HSS Tier consistently using application thresholds
     expert_hss_tier = "Stable"
@@ -347,7 +348,11 @@ def submit_evaluation(user_id: str, payload: dict, current_user: dict = Depends(
         existing_eval["recipe_feedback"] = recipe_feedback
         evaluation = existing_eval
     else:
-        eval_id = f"CAL-{len(mock_db.expert_evaluations) + 1000}"
+        existing_ids = {e["id"] for e in mock_db.expert_evaluations}
+        idx = len(mock_db.expert_evaluations) + 1000
+        while f"CAL-{idx}" in existing_ids:
+            idx += 1
+        eval_id = f"CAL-{idx}"
         reviewer_name = current_user.get("name") or (current_user.get("first_name", "Expert") + " " + current_user.get("last_name", ""))
         
         evaluation = {

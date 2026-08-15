@@ -1,12 +1,13 @@
 # backend/app/utils/mock_db.py
 from datetime import datetime, date
+from app.services.cases import get_deterministic_case_id
 
 # 1. Identity & Profile Layer (Merged with local auth fields for easy tracking)
 profiles = [
     {
         "id": "usr-patient-101",
-        "phone": "+639123456788",
-        "email": "test@gmail.com",
+        "phone": "+639000000001",
+        "email": "user101@example.com",
         "password": "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f",
         "role": "patient",
         "first_name": "John Mark",
@@ -24,8 +25,8 @@ profiles = [
     },
     {
         "id": "usr-patient-102",
-        "phone": "+639111111111",
-        "email": "pedro@example.com",
+        "phone": "+639000000002",
+        "email": "user102@example.com",
         "password": "5aa6b60e659b85fbd29583c48529cb5f134bd91b5c68fbd6e60b81e8eb93cf52",
         "role": "patient",
         "first_name": "Pedro",
@@ -68,6 +69,25 @@ profiles = [
         "role": "admin",
         "first_name": "System",
         "last_name": "Admin",
+        "date_of_birth": date(1985, 1, 1),
+        "sex": "male",
+        "height_cm": 170.0,
+        "weight_kg": 70.0,
+        "avatar_url": None,
+        "health_goals": [],
+        "onboarding_status": "complete",
+        "account_status": "active",
+        "created_at": datetime(2025, 1, 1, 8, 0, 0),
+        "updated_at": datetime(2025, 1, 1, 8, 0, 0),
+    },
+    {
+        "id": "usr-super-admin-001",
+        "phone": "+639999999998",
+        "email": "super.admin@heartlink.ph",
+        "password": "73d2ee4365e59c3cc625ef20e2844918453ee4a704dc36326ac5d88d23aef26d",
+        "role": "super_admin",
+        "first_name": "System",
+        "last_name": "Super Admin",
         "date_of_birth": date(1985, 1, 1),
         "sex": "male",
         "height_cm": 170.0,
@@ -1225,6 +1245,30 @@ def load_profiles():
             print(f"Error loading mock profiles: {e}")
     else:
         save_profiles()
+        
+    # Ensure default super admin exists in database profiles
+    super_admin_exists = any(p.get("id") == "usr-super-admin-001" for p in profiles)
+    if not super_admin_exists:
+        profiles.append({
+            "id": "usr-super-admin-001",
+            "phone": "+639999999998",
+            "email": "super.admin@heartlink.ph",
+            "password": "73d2ee4365e59c3cc625ef20e2844918453ee4a704dc36326ac5d88d23aef26d",
+            "role": "super_admin",
+            "first_name": "System",
+            "last_name": "Super Admin",
+            "date_of_birth": date(1985, 1, 1),
+            "sex": "male",
+            "height_cm": 170.0,
+            "weight_kg": 70.0,
+            "avatar_url": None,
+            "health_goals": [],
+            "onboarding_status": "complete",
+            "account_status": "active",
+            "created_at": datetime(2025, 1, 1, 8, 0, 0),
+            "updated_at": datetime(2025, 1, 1, 8, 0, 0),
+        })
+        save_profiles()
 
 def load_temp_profiles():
     global temp_profiles
@@ -1335,19 +1379,19 @@ def seed_rich_demo_data(force=False):
     global recipes, exercise_routines
 
     # Remove existing demo data to prevent duplication
-    profiles = [p for p in profiles if p["id"] not in (DEMO_USER_IDS - {"usr-patient-101", "usr-patient-102"})]
-    baseline_onboarding = [o for o in baseline_onboarding if o["user_id"] not in DEMO_USER_IDS]
-    user_thresholds = [t for t in user_thresholds if t["user_id"] not in DEMO_USER_IDS]
-    user_reminders = [r for r in user_reminders if r["user_id"] not in DEMO_USER_IDS]
+    profiles = [p for p in profiles if p.get("demo_seed") != "heartlink-demo-v2"]
+    baseline_onboarding = [o for o in baseline_onboarding if o.get("demo_seed") != "heartlink-demo-v2"]
+    user_thresholds = [t for t in user_thresholds if t.get("demo_seed") != "heartlink-demo-v2"]
+    user_reminders = [r for r in user_reminders if r.get("demo_seed") != "heartlink-demo-v2"]
     
-    daily_health_logs = [x for x in daily_health_logs if x.get("user_id") not in DEMO_USER_IDS]
-    meal_logs = [x for x in meal_logs if x.get("user_id") not in DEMO_USER_IDS]
-    exercise_logs = [x for x in exercise_logs if x.get("user_id") not in DEMO_USER_IDS]
-    sleep_logs = [x for x in sleep_logs if x.get("user_id") not in DEMO_USER_IDS]
-    hss_history = [x for x in hss_history if x.get("user_id") not in DEMO_USER_IDS]
-    expert_evaluations = [x for x in expert_evaluations if x.get("user_id") not in DEMO_USER_IDS]
-    alerts = [x for x in alerts if x.get("user_id") not in DEMO_USER_IDS]
-    notifications = [x for x in notifications if x.get("user_id") not in DEMO_USER_IDS]
+    daily_health_logs = [x for x in daily_health_logs if x.get("demo_seed") != "heartlink-demo-v2"]
+    meal_logs = [x for x in meal_logs if x.get("demo_seed") != "heartlink-demo-v2"]
+    exercise_logs = [x for x in exercise_logs if x.get("demo_seed") != "heartlink-demo-v2"]
+    sleep_logs = [x for x in sleep_logs if x.get("demo_seed") != "heartlink-demo-v2"]
+    hss_history = [x for x in hss_history if x.get("demo_seed") != "heartlink-demo-v2"]
+    expert_evaluations = [x for x in expert_evaluations if x.get("demo_seed") != "heartlink-demo-v2"]
+    alerts = [x for x in alerts if x.get("demo_seed") != "heartlink-demo-v2"]
+    notifications = [x for x in notifications if x.get("demo_seed") != "heartlink-demo-v2"]
     admin_activity = [x for x in admin_activity if x.get("demo_seed") != "heartlink-demo-v2"]
     system_broadcasts = [b for b in system_broadcasts if b.get("demo_seed") != "heartlink-demo-v2"]
 
@@ -1483,8 +1527,8 @@ def seed_rich_demo_data(force=False):
     demo_profiles = [
         {
             "id": "usr-patient-101",
-            "phone": "+639123456788",
-            "email": "test@gmail.com",
+            "phone": "+639000000001",
+            "email": "user101@example.com",
             "password": "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f",
             "role": "patient",
             "first_name": "John Mark",
@@ -1499,11 +1543,12 @@ def seed_rich_demo_data(force=False):
             "account_status": "active",
             "created_at": now - timedelta(days=30),
             "updated_at": now - timedelta(days=30),
+            "demo_seed": "heartlink-demo-v2"
         },
         {
             "id": "usr-patient-102",
-            "phone": "+639111111111",
-            "email": "pedro@example.com",
+            "phone": "+639000000002",
+            "email": "user102@example.com",
             "password": "5aa6b60e659b85fbd29583c48529cb5f134bd91b5c68fbd6e60b81e8eb93cf52",
             "role": "patient",
             "first_name": "Pedro",
@@ -1518,11 +1563,12 @@ def seed_rich_demo_data(force=False):
             "account_status": "active",
             "created_at": now - timedelta(days=30),
             "updated_at": now - timedelta(days=30),
+            "demo_seed": "heartlink-demo-v2"
         },
         {
             "id": "usr-patient-a01",
-            "phone": "+639111111122",
-            "email": "alma@example.com",
+            "phone": "+639000000003",
+            "email": "usera01@example.com",
             "password": "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f",
             "role": "patient",
             "first_name": "Alma",
@@ -1541,8 +1587,8 @@ def seed_rich_demo_data(force=False):
         },
         {
             "id": "usr-patient-c01",
-            "phone": "+639222222222",
-            "email": "carlos@example.com",
+            "phone": "+639000000004",
+            "email": "userc01@example.com",
             "password": "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f",
             "role": "patient",
             "first_name": "Carlos",
@@ -1561,8 +1607,8 @@ def seed_rich_demo_data(force=False):
         },
         {
             "id": "usr-patient-d01",
-            "phone": "+639333333333",
-            "email": "dolores@example.com",
+            "phone": "+639000000005",
+            "email": "userd01@example.com",
             "password": "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f",
             "role": "patient",
             "first_name": "Dolores",
@@ -1581,8 +1627,8 @@ def seed_rich_demo_data(force=False):
         },
         {
             "id": "usr-patient-e01",
-            "phone": "+639444444444",
-            "email": "elena@example.com",
+            "phone": "+639000000006",
+            "email": "usere01@example.com",
             "password": "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f",
             "role": "patient",
             "first_name": "Elena",
@@ -1601,8 +1647,8 @@ def seed_rich_demo_data(force=False):
         },
         {
             "id": "usr-patient-f01",
-            "phone": "+639555555555",
-            "email": "fernando@example.com",
+            "phone": "+639000000007",
+            "email": "userf01@example.com",
             "password": "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f",
             "role": "patient",
             "first_name": "Fernando",
@@ -1621,8 +1667,8 @@ def seed_rich_demo_data(force=False):
         },
         {
             "id": "usr-patient-g01",
-            "phone": "+639666666666",
-            "email": "gloria@example.com",
+            "phone": "+639000000008",
+            "email": "userg01@example.com",
             "password": "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f",
             "role": "patient",
             "first_name": "Gloria",
@@ -1641,8 +1687,8 @@ def seed_rich_demo_data(force=False):
         },
         {
             "id": "usr-patient-h01",
-            "phone": "+639777777777",
-            "email": "henry@example.com",
+            "phone": "+639000000009",
+            "email": "userh01@example.com",
             "password": "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f",
             "role": "patient",
             "first_name": "Henry",
@@ -1672,33 +1718,106 @@ def seed_rich_demo_data(force=False):
     # Rebuild baseline onboarding & thresholds for demo users
     for dp in demo_profiles:
         user_id = dp["id"]
+        v_act = True; v_days = "3"; v_min = "30"
+        m_act = True; m_days = "3"; m_min = "30"
+        w_act = True; w_days = "5"; w_min = "30"
+        sed_hrs = "4-6h"; sl_hrs = 7.0
+        smoke = False; smoke_now_val = "Not at all"
+        drink = True; drink_freq_val = "Monthly or less"
+        diet = "average"; fried = "sometimes"; salty = "sometimes"
+        fruit = "2-3"; practice = "Standard Filipino"
+
+        if user_id == "usr-patient-a01":  # Stable
+            v_act = True; v_days = "4"; v_min = "30"
+            m_act = True; m_days = "3"; m_min = "30"
+            w_act = True; w_days = "5"; w_min = "30"
+            sed_hrs = "2-4h"; sl_hrs = 8.0
+            smoke = False; smoke_now_val = "Not at all"
+            drink = False; drink_freq_val = "Never"
+            diet = "excellent"; fried = "rarely"; salty = "rarely"
+            fruit = "4+"; practice = "Low Sodium"
+        elif user_id == "usr-patient-102":  # Moderate
+            v_act = True; v_days = "2"; v_min = "30"
+            m_act = True; m_days = "2"; m_min = "20"
+            w_act = True; w_days = "3"; w_min = "15"
+            sed_hrs = "4-6h"; sl_hrs = 7.0
+            smoke = False; smoke_now_val = "Not at all"
+            drink = True; drink_freq_val = "Monthly or less"
+            diet = "average"; fried = "sometimes"; salty = "sometimes"
+            fruit = "2-3"; practice = "Standard Filipino"
+        elif user_id == "usr-patient-c01":  # Elevated Risk
+            v_act = False; v_days = "0"; v_min = "0"
+            m_act = True; m_days = "1"; m_min = "15"
+            w_act = False; w_days = "0"; w_min = "0"
+            sed_hrs = "6-8h"; sl_hrs = 6.0
+            smoke = True; smoke_now_val = "Not at all"
+            drink = True; drink_freq_val = "Weekly"
+            diet = "poor"; fried = "often"; salty = "often"
+            fruit = "0-1"; practice = "Standard Filipino"
+        elif user_id == "usr-patient-d01":  # Critical
+            v_act = False; v_days = "0"; v_min = "0"
+            m_act = False; m_days = "0"; m_min = "0"
+            w_act = False; w_days = "0"; w_min = "0"
+            sed_hrs = "8h+"; sl_hrs = 5.0
+            smoke = True; smoke_now_val = "Daily"
+            drink = True; drink_freq_val = "Daily"
+            diet = "poor"; fried = "often"; salty = "often"
+            fruit = "0-1"; practice = "High Sodium"
+        elif user_id == "usr-patient-f01":  # High Engagement
+            v_act = True; v_days = "5"; v_min = "45"
+            m_act = True; m_days = "4"; m_min = "30"
+            w_act = True; w_days = "7"; w_min = "30"
+            sed_hrs = "2-4h"; sl_hrs = 8.0
+            smoke = False; smoke_now_val = "Not at all"
+            drink = False; drink_freq_val = "Never"
+            diet = "excellent"; fried = "rarely"; salty = "rarely"
+            fruit = "4+"; practice = "Vegetarian"
+        elif user_id == "usr-patient-g01":  # Improving
+            v_act = True; v_days = "3"; v_min = "30"
+            m_act = True; m_days = "3"; m_min = "30"
+            w_act = True; w_days = "4"; w_min = "20"
+            sed_hrs = "4-6h"; sl_hrs = 7.5
+            smoke = True; smoke_now_val = "Not at all"
+            drink = True; drink_freq_val = "Monthly or less"
+            diet = "average"; fried = "sometimes"; salty = "sometimes"
+            fruit = "2-3"; practice = "Low Sodium"
+        elif user_id == "usr-patient-h01":  # Declining
+            v_act = False; v_days = "0"; v_min = "0"
+            m_act = True; m_days = "1"; m_min = "15"
+            w_act = False; w_days = "0"; w_min = "0"
+            sed_hrs = "8h+"; sl_hrs = 5.5
+            smoke = True; smoke_now_val = "Daily"
+            drink = True; drink_freq_val = "Weekly"
+            diet = "poor"; fried = "often"; salty = "often"
+            fruit = "0-1"; practice = "Standard Filipino"
+
         baseline_onboarding.append({
             "id": f"onb-{user_id}",
             "user_id": user_id,
-            "vigorous_activity": True,
-            "vigorous_days": "3",
-            "vigorous_minutes": "45",
-            "moderate_activity": True,
-            "moderate_days": "2",
-            "moderate_minutes": "30",
-            "walk_bike_transport": True,
-            "walk_bike_days": "5",
-            "walk_bike_minutes": "20",
-            "sedentary_hours": "4-6h",
-            "sleep_hours": 7.0,
-            "ever_smoked": False,
-            "smoke_now": "Not at all",
-            "ever_drank": True,
-            "drink_frequency": "Monthly or less",
+            "vigorous_activity": v_act,
+            "vigorous_days": v_days,
+            "vigorous_minutes": v_min,
+            "moderate_activity": m_act,
+            "moderate_days": m_days,
+            "moderate_minutes": m_min,
+            "walk_bike_transport": w_act,
+            "walk_bike_days": w_days,
+            "walk_bike_minutes": w_min,
+            "sedentary_hours": sed_hrs,
+            "sleep_hours": sl_hrs,
+            "ever_smoked": smoke,
+            "smoke_now": smoke_now_val,
+            "ever_drank": drink,
+            "drink_frequency": drink_freq_val,
             "drinks_per_occasion": "1-2",
             "binge_drinking_freq": "Never",
-            "diet_level": "average",
-            "fried_food_freq": "sometimes",
-            "salty_food_freq": "sometimes",
-            "fruit_veg_servings": "2-3",
+            "diet_level": diet,
+            "fried_food_freq": fried,
+            "salty_food_freq": salty,
+            "fruit_veg_servings": fruit,
             "health_goals": dp["health_goals"],
             "allergies": [],
-            "dietary_practice": "Standard Filipino",
+            "dietary_practice": practice,
             "created_at": dp["created_at"],
             "updated_at": dp["updated_at"],
             "demo_seed": "heartlink-demo-v2"
@@ -1757,10 +1876,14 @@ def seed_rich_demo_data(force=False):
             "demo_seed": "heartlink-demo-v2"
         })
 
+    ex_counts = {}
     def add_exercise_log(uid, routine_id, name, duration, status, days_ago):
         dt = datetime.now() - timedelta(days=days_ago)
+        key = (uid, days_ago)
+        ex_index = ex_counts.get(key, 0)
+        ex_counts[key] = ex_index + 1
         exercise_logs.append({
-            "id": f"ex-{uid}-{days_ago}",
+            "id": f"ex-{uid}-{days_ago}-{ex_index}",
             "user_id": uid,
             "routine_id": routine_id,
             "routine_name": name,
@@ -1770,10 +1893,14 @@ def seed_rich_demo_data(force=False):
             "demo_seed": "heartlink-demo-v2"
         })
 
+    meal_counts = {}
     def add_meal_log(uid, recipe_id, name, portion, calories, sodium, days_ago):
         dt = datetime.now() - timedelta(days=days_ago)
+        key = (uid, days_ago)
+        meal_index = meal_counts.get(key, 0)
+        meal_counts[key] = meal_index + 1
         meal_logs.append({
-            "id": f"meal-{uid}-{days_ago}",
+            "id": f"meal-{uid}-{days_ago}-{meal_index}",
             "user_id": uid,
             "recipe_id": recipe_id,
             "meal_name": name,
@@ -1800,7 +1927,7 @@ def seed_rich_demo_data(force=False):
         })
 
     # ─── USER A (Stable: usr-patient-a01) ───
-    for i in range(7):
+    for i in range(30):
         add_hss("usr-patient-a01", 85, i)
         add_health_log("usr-patient-a01", 116, 75, 72, [], {}, "resting", "Felt great today", i)
         add_sleep_log("usr-patient-a01", 8.0, "Good", i)
@@ -1810,50 +1937,61 @@ def seed_rich_demo_data(force=False):
         add_exercise_log("usr-patient-a01", "rout-601", "Basal Paced Breathing Exercise", 10, "completed", i)
 
     # ─── USER B (Moderate: usr-patient-102) ───
-    for i in range(7):
+    for i in range(30):
         add_hss("usr-patient-102", 70 if i % 2 == 0 else 72, i)
         if i != 3:
             add_health_log("usr-patient-102", 128 if i % 3 == 0 else 122, 82 if i % 3 == 0 else 78, 76, [], {}, "resting", "Normal day", i)
             add_sleep_log("usr-patient-102", 7.0 if i % 2 == 0 else 6.5, "Good" if i % 2 == 0 else "Fair", i)
             add_meal_log("usr-patient-102", "rec-501", "Low Sodium Chicken Tinola", "1 serving", 320, 380, i)
             add_meal_log("usr-patient-102", "rec-507", "Garlic Ginger Tofu Stir-Fry", "1 serving", 190, 220, i)
-            add_exercise_log("usr-patient-102", "rout-604", "4-7-8 Deep Breathing Technique", 10, "completed", i)
+            add_exercise_log("usr-patient-102", "rout-604", "15-Minute Chair Yoga", 10, "completed", i)
 
     # ─── USER C (Elevated Risk: usr-patient-c01) ───
-    for i in range(7):
+    for i in range(30):
         add_hss("usr-patient-c01", 54 if i % 2 == 0 else 52, i)
         sys_bp = 136 if i % 2 == 0 else 134
         dia_bp = 86 if i % 2 == 0 else 84
-        symptoms = ["dizziness"] if i in (2, 4) else []
-        sev_map = {"dizziness": 2} if i in (2, 4) else {}
+        symptoms = ["dizziness"] if i in (2, 4, 10, 15, 20, 25) else []
+        sev_map = {"dizziness": 2} if i in (2, 4, 10, 15, 20, 25) else {}
         add_health_log("usr-patient-c01", sys_bp, dia_bp, 80, symptoms, sev_map, "resting", "Feeling slightly dizzy", i)
         add_sleep_log("usr-patient-c01", 6.0, "Fair", i)
         add_meal_log("usr-patient-c01", "rec-505", "Steamed White Fish with Ginger", "1 serving", 210, 150, i)
         add_meal_log("usr-patient-c01", "rec-506", "Mashed Sweet Potatoes", "1 serving", 180, 85, i)
-        add_exercise_log("usr-patient-c01", "rout-606", "Light Stationary Cycling", 15, "completed" if i % 2 == 0 else "partial", i)
+        add_exercise_log("usr-patient-c01", "rout-606", "4-7-8 Deep Breathing Technique", 15, "completed" if i % 2 == 0 else "partial", i)
 
-    # ─── USER D (Critical / Transitioning: usr-patient-101) ───
-    hss_scores_d = [42, 45, 52, 78, 88, 85, 82]
-    for i in range(7):
+    # ─── USER D (Critical / Transitioning: usr-patient-d01) ───
+    hss_scores_d = []
+    for idx in range(30):
+        if idx <= 2:
+            score = 42 + idx
+        elif idx <= 9:
+            score = 50 + (idx % 5)
+        elif idx <= 20:
+            score = 65 + (idx % 10)
+        else:
+            score = 80 + (idx % 5)
+        hss_scores_d.append(score)
+
+    for i in range(30):
         score = hss_scores_d[i]
-        add_hss("usr-patient-101", score, i)
-        sys_bp = 144 if i <= 2 else (134 if i <= 4 else 118)
-        dia_bp = 94 if i <= 2 else (86 if i <= 4 else 76)
-        hr = 88 if i <= 2 else 76
+        add_hss("usr-patient-d01", score, i)
+        sys_bp = 144 if i <= 2 else (134 if i <= 9 else (126 if i <= 20 else 118))
+        dia_bp = 94 if i <= 2 else (86 if i <= 9 else (82 if i <= 20 else 76))
+        hr = 88 if i <= 2 else (80 if i <= 9 else (76 if i <= 20 else 72))
         symptoms = ["chest_tightness", "dizziness"] if i == 2 else []
         sev_map = {"chest_tightness": 4, "dizziness": 3} if i == 2 else {}
         
         triggered_ex_id = None
         if i == 2:
-            triggered_ex_id = f"ex-usr-patient-101-2"
-            add_exercise_log("usr-patient-101", "rout-603", "20-Minute Neighborhood Walk", 5, "incomplete_due_to_symptoms", i)
+            triggered_ex_id = f"ex-usr-patient-d01-2"
+            add_exercise_log("usr-patient-d01", "rout-602", "20-Minute Neighborhood Walk", 5, "incomplete_due_to_symptoms", i)
             exercise_logs[-1]["id"] = triggered_ex_id
             
-        add_health_log("usr-patient-101", sys_bp, dia_bp, hr, symptoms, sev_map, "resting", "Chest tight during walk", i, triggered_by_exercise_id=triggered_ex_id)
-        add_sleep_log("usr-patient-101", 5.5 if i <= 2 else 7.0, "Poor" if i <= 2 else "Good", i)
-        add_meal_log("usr-patient-101", "rec-508", "Low-Sodium Vegetable Broth", "1 serving", 80, 90, i)
+        add_health_log("usr-patient-d01", sys_bp, dia_bp, hr, symptoms, sev_map, "resting", "Chest tight during walk", i, triggered_by_exercise_id=triggered_ex_id)
+        add_sleep_log("usr-patient-d01", 5.5 if i <= 2 else (6.0 if i <= 9 else 7.0), "Poor" if i <= 2 else "Good", i)
+        add_meal_log("usr-patient-d01", "rec-508", "Low-Sodium Vegetable Broth", "1 serving", 80, 90, i)
         if i != 2:
-            add_exercise_log("usr-patient-101", "rout-610", "Very Light Chair Stretches", 5, "completed", i)
+            add_exercise_log("usr-patient-d01", "rout-610", "Very Light Chair Stretches", 5, "completed", i)
 
     # ─── USER E (Sparse: usr-patient-e01) ───
     add_hss("usr-patient-e01", 80, 0)
@@ -1867,7 +2005,7 @@ def seed_rich_demo_data(force=False):
         add_sleep_log("usr-patient-f01", 7.5 if i % 3 == 0 else 8.0, "Good", i)
         add_meal_log("usr-patient-f01", "rec-501", "Low Sodium Chicken Tinola", "1 serving", 320, 380, i)
         add_meal_log("usr-patient-f01", "rec-502", "Heart-Healthy Salmon Bowl", "1 serving", 450, 280, i)
-        add_exercise_log("usr-patient-f01", "rout-603", "20-Minute Neighborhood Walk", 20, "completed", i)
+        add_exercise_log("usr-patient-f01", "rout-602", "20-Minute Neighborhood Walk", 20, "completed", i)
 
     # ─── USER G (Improving: usr-patient-g01) ───
     g_scores = [74, 68, 61, 52, 45]
@@ -1895,10 +2033,11 @@ def seed_rich_demo_data(force=False):
         add_health_log("usr-patient-h01", sys_bp, dia_bp, hr, symptoms, sev_map, "resting", "Palpitations logged", i)
         add_sleep_log("usr-patient-h01", 8.0 - (i / 29) * 2.5, "Good" if i > 15 else "Poor", i)
         add_meal_log("usr-patient-h01", "rec-503", "Oatmeal with Berries", "1 serving", 250, 10, i)
-        add_exercise_log("usr-patient-h01", "rout-607", "Joint Mobility and Flex Stretch", 10, "completed" if i > 15 else "abandoned", i)
+        add_exercise_log("usr-patient-h01", "rout-607", "Guided Seated Relaxation", 10, "completed" if i > 15 else "abandoned", i)
 
     # Expert Calibration Case Evaluations
-    def add_evaluation(eval_id, user_id, case_id, ml_score, ml_tier, exp_score, exp_tier, status, confidence, reasons=[], exercise_feedback="Looks good", recipe_feedback="Perfect match", notes="Case analysis completed by reviewer."):
+    def add_evaluation(eval_id, user_id, ml_score, ml_tier, exp_score, exp_tier, status, confidence, reasons=[], exercise_feedback="Looks good", recipe_feedback="Perfect match", notes="Case analysis completed by reviewer."):
+        case_id = get_deterministic_case_id(user_id)
         expert_evaluations.append({
             "id": eval_id,
             "user_id": user_id,
@@ -1972,10 +2111,10 @@ def seed_rich_demo_data(force=False):
             "demo_seed": "heartlink-demo-v2"
         })
 
-    add_evaluation("CAL-1002", "usr-patient-102", "CASE-1002", 72, "Moderate", 73, "Moderate", "Evaluated", "high", ["blood_pressure_pattern"], "Very useful routine.", "Tofu dish was helpful.")
-    add_evaluation("CAL-1003", "usr-patient-g01", "CASE-1003", 66, "Moderate", 57, "Elevated Risk", "Evaluated", "medium", ["symptoms", "sleep_pattern"], "Recommend more breathing exercises.", "Reduce potato intake.")
-    add_evaluation("CAL-1004", "usr-patient-h01", "CASE-1004", 78, "Moderate", 48, "Critical", "Evaluated", "low", ["blood_pressure_pattern", "symptoms"], "Urgent care needed, avoid heavy exercises.", "Liquid diet recommended.")
-    add_evaluation("CAL-1001", "usr-patient-101", "CASE-1001", 75, "Moderate", 80, "Stable", "Archived", "medium", [], "Stable condition.", "Broth was good.")
+    add_evaluation("CAL-1002", "usr-patient-102", 72, "Moderate", 73, "Moderate", "Evaluated", "high", ["blood_pressure_pattern"], "Very useful routine.", "Tofu dish was helpful.")
+    add_evaluation("CAL-1003", "usr-patient-g01", 66, "Moderate", 57, "Elevated Risk", "Evaluated", "medium", ["symptoms", "sleep_pattern"], "Recommend more breathing exercises.", "Reduce potato intake.")
+    add_evaluation("CAL-1004", "usr-patient-h01", 78, "Moderate", 48, "Critical", "Evaluated", "low", ["blood_pressure_pattern", "symptoms"], "Urgent care needed, avoid heavy exercises.", "Liquid diet recommended.")
+    add_evaluation("CAL-1001", "usr-patient-d01", 75, "Moderate", 80, "Stable", "Archived", "medium", [], "Stable condition.", "Broth was good.")
 
     # Admin Activity Seeding
     def add_admin_activity(admin_user_id, name, action, target_type, target_id, target_name):
@@ -1993,14 +2132,14 @@ def seed_rich_demo_data(force=False):
 
     add_admin_activity("usr-chief-admin-001", "System Admin", "created", "recipe", "rec-507", "Garlic Ginger Tofu Stir-Fry")
     add_admin_activity("usr-chief-admin-001", "System Admin", "created", "exercise", "rout-610", "Very Light Chair Stretches")
-    add_admin_activity("usr-chief-admin-001", "System Admin", "evaluated", "case", "usr-patient-102", "CASE-1002")
-    add_admin_activity("usr-chief-admin-001", "System Admin", "evaluated", "case", "usr-patient-g01", "CASE-1003")
-    add_admin_activity("usr-chief-admin-001", "System Admin", "evaluated", "case", "usr-patient-h01", "CASE-1004")
+    add_admin_activity("usr-chief-admin-001", "System Admin", "evaluated", "case", "usr-patient-102", get_deterministic_case_id("usr-patient-102"))
+    add_admin_activity("usr-chief-admin-001", "System Admin", "evaluated", "case", "usr-patient-g01", get_deterministic_case_id("usr-patient-g01"))
+    add_admin_activity("usr-chief-admin-001", "System Admin", "evaluated", "case", "usr-patient-h01", get_deterministic_case_id("usr-patient-h01"))
 
     # Alerts & Broadcasts
     alerts.append({
         "id": "alert-demo-d01",
-        "user_id": "usr-patient-101",
+        "user_id": "usr-patient-d01",
         "severity": "Warning",
         "alert_type": "BP Threshold",
         "message": "Systolic limit of 120 exceeded: recorded 144 mmHg",
@@ -2022,6 +2161,22 @@ def seed_rich_demo_data(force=False):
     recipe_ids = {r["id"] for r in recipes}
     routine_ids = {e["id"] for e in exercise_routines}
     user_ids = {p["id"] for p in profiles}
+
+    # ID Uniqueness Assertions
+    meal_ids = [m["id"] for m in meal_logs]
+    assert len(meal_ids) == len(set(meal_ids)), "Integrity violation: duplicate meal IDs found"
+    
+    ex_ids = [ex["id"] for ex in exercise_logs]
+    assert len(ex_ids) == len(set(ex_ids)), "Integrity violation: duplicate exercise IDs found"
+    
+    prof_ids = [p["id"] for p in profiles]
+    assert len(prof_ids) == len(set(prof_ids)), "Integrity violation: duplicate profile IDs found"
+    
+    hss_ids = [h["id"] for h in hss_history]
+    assert len(hss_ids) == len(set(hss_ids)), "Integrity violation: duplicate HSS record IDs found"
+    
+    eval_ids = [ev["id"] for ev in expert_evaluations]
+    assert len(eval_ids) == len(set(eval_ids)), "Integrity violation: duplicate evaluation IDs found"
     
     # 1. Meals FK checks
     for m in meal_logs:
@@ -2045,10 +2200,19 @@ def seed_rich_demo_data(force=False):
         if h.get("demo_seed") == "heartlink-demo-v2" and h["user_id"] not in user_ids:
             raise ValueError(f"Foreign Key violation: HSS record {h['id']} references nonexistent user {h['user_id']}")
 
-    # 5. Evaluations User checks
+    # 5. Evaluations User & Case checks
     for ev in expert_evaluations:
-        if ev.get("demo_seed") == "heartlink-demo-v2" and ev["user_id"] not in user_ids:
-            raise ValueError(f"Foreign Key violation: evaluation {ev['id']} references nonexistent user {ev['user_id']}")
+        if ev.get("demo_seed") == "heartlink-demo-v2":
+            if ev["user_id"] not in user_ids:
+                raise ValueError(f"Foreign Key violation: evaluation {ev['id']} references nonexistent user {ev['user_id']}")
+            expected_case_id = get_deterministic_case_id(ev["user_id"])
+            if ev["case_id"] != expected_case_id:
+                raise ValueError(f"Integrity violation: evaluation {ev['id']} case_id {ev['case_id']} does not match expected {expected_case_id}")
+
+    # 6. Thresholds User checks
+    for t in user_thresholds:
+        if t.get("demo_seed") == "heartlink-demo-v2" and t["user_id"] not in user_ids:
+            raise ValueError(f"Foreign Key violation: threshold {t['id']} references nonexistent user {t['user_id']}")
 
     # Validate HSS Tiers Coverage
     tiers = {"Stable", "Moderate", "Elevated Risk", "Critical"}

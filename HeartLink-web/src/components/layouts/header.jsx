@@ -59,7 +59,7 @@ const Header = ({
   const [quickActionsOpen, setQuickActionsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const userRole = user?.role || (user?.id === "usr-chief-admin-001" || userId === "usr-chief-admin-001" ? "admin" : "medical_expert");
+  const userRole = user?.role || (userId === "usr-super-admin-001" || user?.id === "usr-super-admin-001" ? "super_admin" : (user?.id === "usr-chief-admin-001" || userId === "usr-chief-admin-001" ? "admin" : "medical_expert"));
 
   const handleSearch = (e) => {
     if (e.key === "Enter" && searchQuery.trim()) {
@@ -158,7 +158,7 @@ const Header = ({
                   boxShadow: "0 8px 24px rgba(15,23,42,0.1)",
                 }}
               >
-                {userRole === "admin" || userRole === "sysadmin" ? (
+                {userRole === "admin" || userRole === "sysadmin" || userRole === "super_admin" ? (
                   <>
                     <p
                       className="px-4 pt-1.5 pb-2.5 text-[9px] tracking-[0.18em] uppercase font-semibold"
@@ -167,7 +167,9 @@ const Header = ({
                       SYSTEM ACTIONS
                     </p>
                     <ActionItem icon={BellRing} label="Send broadcast alert" onClick={() => { navigate('/broadcasts'); setQuickActionsOpen(false); }} />
-                    <ActionItem icon={UserPlus} label="Provision staff account" onClick={() => { navigate('/users'); setQuickActionsOpen(false); }} />
+                    {userRole === "super_admin" && (
+                      <ActionItem icon={UserPlus} label="Provision staff account" onClick={() => { navigate('/users'); setQuickActionsOpen(false); }} />
+                    )}
                   </>
                 ) : (
                   <>

@@ -120,9 +120,9 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed }) => {
   const { user, userId, logout } = useAuth();
   const navigate = useNavigate();
   
-  const role = user?.role || (userId === "usr-chief-admin-001" ? "admin" : "medical_expert");
-  const userName = user?.first_name ? `${user.first_name} ${user.last_name}` : (userId === "usr-chief-admin-001" ? "System Admin" : "Medical Expert");
-  const userEmail = user?.email || (userId === "usr-chief-admin-001" ? "admin@heartlink.ph" : "expert@heartlink.ph");
+  const role = user?.role || (userId === "usr-super-admin-001" ? "super_admin" : (userId === "usr-chief-admin-001" ? "admin" : "medical_expert"));
+  const userName = user?.first_name ? `${user.first_name} ${user.last_name}` : (userId === "usr-super-admin-001" ? "System Super Admin" : (userId === "usr-chief-admin-001" ? "System Admin" : "Expert Reviewer"));
+  const userEmail = user?.email || (userId === "usr-super-admin-001" ? "super.admin@heartlink.ph" : (userId === "usr-chief-admin-001" ? "admin@heartlink.ph" : "expert@heartlink.ph"));
   const userInitials = userName.substring(0, 1).toUpperCase();
 
   const handleLogout = () => {
@@ -206,11 +206,11 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed }) => {
           <SectionLabel label="Overview" collapsed={collapsed} />
           <NavItem path="/dashboard" icon={LayoutDashboard} label="Dashboard" collapsed={collapsed} />
           
-          {role === "admin" && (
+          {(role === "admin" || role === "super_admin") && (
             <NavItem path="/analytics" icon={PieChart} label="Analytics" collapsed={collapsed} />
           )}
 
-          {role === "admin" && (
+          {(role === "admin" || role === "super_admin") && (
             <>
               <SectionLabel label="Content" collapsed={collapsed} />
               <NavItem path="/foods" icon={Utensils} label="Food & Recipe Library" collapsed={collapsed} />
@@ -222,7 +222,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed }) => {
           <NavItem path="/cases"       icon={ClipboardList} label="Case Review"          collapsed={collapsed} />
           <NavItem path="/calibration" icon={History}       label="Calibration History"  collapsed={collapsed} />
 
-          {role === "admin" && (
+          {(role === "admin" || role === "super_admin") && (
             <>
               <SectionLabel label="Users & Feedback" collapsed={collapsed} />
               <NavItem path="/users"      icon={UserCog}       label="Users" collapsed={collapsed} />
@@ -243,7 +243,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed }) => {
               <div
                 className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[11px] font-semibold"
                 style={{ backgroundColor: "#0f172a" }}
-                title={`${userName} (${role === "admin" ? "System Admin" : "Medical Expert"})`}
+                title={`${userName} (${role === "super_admin" ? "Super Admin" : (role === "admin" ? "System Admin" : "Expert Reviewer")})`}
               >
                 {userInitials}
               </div>
@@ -267,7 +267,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed }) => {
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-semibold text-slate-900 truncate">{userName}</p>
                   <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider truncate">
-                    {role === "admin" ? "System Admin" : "Medical Expert"}
+                    {role === "super_admin" ? "Super Admin" : (role === "admin" ? "System Admin" : "Expert Reviewer")}
                   </p>
                 </div>
               </div>

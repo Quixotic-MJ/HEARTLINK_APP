@@ -106,7 +106,7 @@ export default function TwoFactorAuth() {
           <div className="w-10 h-px my-10" style={{ backgroundColor: "rgba(255,255,255,0.12)" }} />
 
           <p className="text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.35)" }}>
-            Centralised administration suite for real-time cardiac monitoring, predictive alerts, and patient data orchestration.
+            Centralised administration suite for real-time cardiac monitoring, predictive alerts, and user data orchestration.
           </p>
 
           {/* Version pill */}
@@ -141,7 +141,7 @@ export default function TwoFactorAuth() {
               Two-Factor Authentication
             </h1>
             <p className="text-sm text-slate-400 leading-relaxed">
-              Enter the 6-digit code from your authenticator app to access the clinical dashboard.
+              Enter the 6-digit code from your authenticator app to access the admin dashboard.
             </p>
           </div>
 

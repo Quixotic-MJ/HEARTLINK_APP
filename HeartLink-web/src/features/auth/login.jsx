@@ -140,7 +140,7 @@ export default function HeartLinkAdminLogin() {
           <BrandLogo dark={false} />
           <div className="w-10 h-px my-10" style={{ backgroundColor: "rgba(255,255,255,0.12)" }} />
           <p className="text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.35)" }}>
-            Centralised administration suite for real-time cardiac monitoring, predictive alerts, and patient data orchestration.
+            Centralised administration suite for real-time cardiac monitoring, predictive alerts, and user data orchestration.
           </p>
           <div
             className="mt-8 inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-[10px] tracking-widest uppercase"
@@ -185,7 +185,7 @@ export default function HeartLinkAdminLogin() {
                   Admin login
                 </h1>
                 <p className="text-sm text-slate-400 leading-relaxed">
-                  Verify your credentials to access the clinical dashboard.
+                  Verify your credentials to access the admin dashboard.
                 </p>
               </div>
 
