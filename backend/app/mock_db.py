@@ -1058,6 +1058,7 @@ feedback_tickets = [
             "appVersion": "v1.2.4",
         },
         "adminNotes": "",
+        "demo_seed": "heartlink-feedback-demo-v1",
     },
     {
         "id": 2,
@@ -1076,6 +1077,7 @@ feedback_tickets = [
             "appVersion": "v1.2.4",
         },
         "adminNotes": "Assigned to UI team. Planning to add an accessibility slider in the next minor patch.",
+        "demo_seed": "heartlink-feedback-demo-v1",
     },
     {
         "id": 3,
@@ -1094,6 +1096,7 @@ feedback_tickets = [
             "appVersion": "v1.2.3",
         },
         "adminNotes": "Known Firebase auth token expiration bug. Sent manual reset link and patched backend token lifespan.",
+        "demo_seed": "heartlink-feedback-demo-v1",
     },
     {
         "id": 4,
@@ -1108,6 +1111,7 @@ feedback_tickets = [
         "status": "Resolved",
         "deviceMeta": { "os": "Unknown", "model": "Unknown", "appVersion": "Unknown" },
         "adminNotes": "Replied via in-app notification confirming real-time updates.",
+        "demo_seed": "heartlink-feedback-demo-v1",
     },
 ]
 care_team_contacts = [
@@ -1301,7 +1305,8 @@ def save_logs():
             "datasets": [_serialize_item(ds) for ds in datasets],
             "candidate_models": [_serialize_item(cm) for cm in candidate_models],
             "system_broadcasts": [_serialize_item(b) for b in system_broadcasts],
-            "admin_activity": [_serialize_item(act) for act in admin_activity]
+            "admin_activity": [_serialize_item(act) for act in admin_activity],
+            "feedback_tickets": [_serialize_item(fb) for fb in feedback_tickets]
         }
         with open(LOGS_DB_FILE, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
@@ -1309,7 +1314,7 @@ def save_logs():
         print(f"Error saving mock logs: {e}")
 
 def load_logs():
-    global meal_logs, exercise_logs, daily_health_logs, sleep_logs, hss_history, notifications, alerts, saved_recipes, saved_exercises, expert_evaluations, datasets, candidate_models, system_broadcasts, admin_activity
+    global meal_logs, exercise_logs, daily_health_logs, sleep_logs, hss_history, notifications, alerts, saved_recipes, saved_exercises, expert_evaluations, datasets, candidate_models, system_broadcasts, admin_activity, feedback_tickets
     if os.path.exists(LOGS_DB_FILE):
         try:
             with open(LOGS_DB_FILE, "r", encoding="utf-8") as f:
@@ -1356,6 +1361,11 @@ def load_logs():
                 if "admin_activity" in data:
                     admin_activity.clear()
                     admin_activity.extend([_deserialize_item(act) for act in data["admin_activity"]])
+                if "feedback_tickets" in data:
+                    feedback_tickets.clear()
+                    feedback_tickets.extend([_deserialize_item(fb) for fb in data["feedback_tickets"]])
+                else:
+                    feedback_tickets.clear()
         except Exception as e:
             print(f"Error loading mock logs: {e}")
     else:
@@ -1376,7 +1386,7 @@ def seed_rich_demo_data(force=False):
 
     global profiles, baseline_onboarding, user_thresholds, user_reminders
     global daily_health_logs, meal_logs, exercise_logs, sleep_logs, hss_history, expert_evaluations, alerts, notifications, admin_activity, system_broadcasts
-    global recipes, exercise_routines
+    global recipes, exercise_routines, feedback_tickets
 
     # Remove existing demo data to prevent duplication
     profiles = [p for p in profiles if p.get("demo_seed") != "heartlink-demo-v2"]
@@ -1394,6 +1404,7 @@ def seed_rich_demo_data(force=False):
     notifications = [x for x in notifications if x.get("demo_seed") != "heartlink-demo-v2"]
     admin_activity = [x for x in admin_activity if x.get("demo_seed") != "heartlink-demo-v2"]
     system_broadcasts = [b for b in system_broadcasts if b.get("demo_seed") != "heartlink-demo-v2"]
+    feedback_tickets[:] = [t for t in feedback_tickets if t.get("demo_seed") != "heartlink-feedback-demo-v1"]
 
     # Enrich recipe coverage (Moderate & Critical recipes)
     recipes = [r for r in recipes if r["id"] not in ("rec-507", "rec-508")]
@@ -2156,6 +2167,202 @@ def seed_rich_demo_data(force=False):
         "created_at": datetime.now() - timedelta(hours=2),
         "demo_seed": "heartlink-demo-v2"
     })
+
+    demo_feedbacks = [
+        {
+            "id": 101,
+            "ticketId": "FB-1001",
+            "date": (datetime.now() - timedelta(days=1)).strftime("%B %d, %Y"),
+            "userId": "usr-patient-a01",
+            "category": "Bug Report",
+            "preview": "Exercise video does not load...",
+            "fullMessage": "The exercise guide image stays blank after opening a routine. The loading indicator spins indefinitely and the play button is unresponsive.",
+            "status": "Open",
+            "deviceMeta": {
+                "os": "Android 14",
+                "model": "Samsung Galaxy S21",
+                "appVersion": "v1.2.4",
+            },
+            "adminNotes": "",
+            "demo_seed": "heartlink-feedback-demo-v1",
+        },
+        {
+            "id": 102,
+            "ticketId": "FB-1002",
+            "date": (datetime.now() - timedelta(days=2)).strftime("%B %d, %Y"),
+            "userId": "usr-patient-102",
+            "category": "Bug Report",
+            "preview": "Weekly wrap-up shows incomplete day...",
+            "fullMessage": "The weekly wrap-up is missing one of my logged days. I logged my health parameters on Tuesday, but the summary report shows Tuesday as empty.",
+            "status": "In Progress",
+            "deviceMeta": {
+                "os": "iOS 17.4",
+                "model": "iPhone 13 Pro",
+                "appVersion": "v1.2.4",
+            },
+            "adminNotes": "Reproduced on exercise history logs. Investigating timezone offsets in reports module.",
+            "demo_seed": "heartlink-feedback-demo-v1",
+        },
+        {
+            "id": 103,
+            "ticketId": "FB-1003",
+            "date": (datetime.now() - timedelta(days=3)).strftime("%B %d, %Y"),
+            "userId": "usr-patient-c01",
+            "category": "Bug Report",
+            "preview": "Recipe image not loading...",
+            "fullMessage": "One recipe card (Garlic Ginger Stir-Fry) shows the fallback placeholder image instead of the recipe photo. The other recipes load fine.",
+            "status": "Resolved",
+            "deviceMeta": {
+                "os": "Android 13",
+                "model": "Google Pixel 7",
+                "appVersion": "v1.2.3",
+            },
+            "adminNotes": "Issue confirmed and corrected in the latest content configuration CDN link.",
+            "demo_seed": "heartlink-feedback-demo-v1",
+        },
+        {
+            "id": 104,
+            "ticketId": "FB-1004",
+            "date": (datetime.now() - timedelta(days=4)).strftime("%B %d, %Y"),
+            "userId": "usr-patient-d01",
+            "category": "UI/UX Suggestion",
+            "preview": "Simpler nutrition summary...",
+            "fullMessage": "It would be easier to understand sodium and calorie information if the important numbers were emphasized. Right now, all nutrient numbers look identical in font size.",
+            "status": "Open",
+            "deviceMeta": {
+                "os": "iOS 16.5",
+                "model": "iPhone 11",
+                "appVersion": "v1.2.4",
+            },
+            "adminNotes": "",
+            "demo_seed": "heartlink-feedback-demo-v1",
+        },
+        {
+            "id": 105,
+            "ticketId": "FB-1005",
+            "date": (datetime.now() - timedelta(days=5)).strftime("%B %d, %Y"),
+            "userId": "usr-patient-e01",
+            "category": "UI/UX Suggestion",
+            "preview": "Add a clearer exercise completion state...",
+            "fullMessage": "I want to immediately know whether I completed today's routine when looking at the home dashboard. A larger checkmark or distinct color would help.",
+            "status": "In Progress",
+            "deviceMeta": {
+                "os": "Android 14",
+                "model": "OnePlus 11",
+                "appVersion": "v1.2.4",
+            },
+            "adminNotes": "Assigned to design team to design checkmarks on the circular progress rings.",
+            "demo_seed": "heartlink-feedback-demo-v1",
+        },
+        {
+            "id": 106,
+            "ticketId": "FB-1006",
+            "date": (datetime.now() - timedelta(days=7)).strftime("%B %d, %Y"),
+            "userId": "usr-patient-f01",
+            "category": "UI/UX Suggestion",
+            "preview": "Improve empty-state messaging...",
+            "fullMessage": "The empty activity screen could explain what I should do next. Instead of just saying 'No activity logged today', it could prompt me with a shortcut link to routines.",
+            "status": "Resolved",
+            "deviceMeta": {
+                "os": "iOS 17.2",
+                "model": "iPhone 14",
+                "appVersion": "v1.2.3",
+            },
+            "adminNotes": "Updated empty states with quick action buttons to log metrics.",
+            "demo_seed": "heartlink-feedback-demo-v1",
+        },
+        {
+            "id": 107,
+            "ticketId": "FB-1007",
+            "date": (datetime.now() - timedelta(days=8)).strftime("%B %d, %Y"),
+            "userId": "usr-patient-g01",
+            "category": "Account Issue",
+            "preview": "Unable to update account information...",
+            "fullMessage": "I changed my account information in settings, but the updated details did not appear immediately in the profile page.",
+            "status": "Resolved",
+            "deviceMeta": {
+                "os": "Android 14",
+                "model": "Samsung Galaxy S22",
+                "appVersion": "v1.2.4",
+            },
+            "adminNotes": "Identified caching issue on the user profile microservice. Added cache-control headers.",
+            "demo_seed": "heartlink-feedback-demo-v1",
+        },
+        {
+            "id": 108,
+            "ticketId": "FB-1008",
+            "date": (datetime.now() - timedelta(days=10)).strftime("%B %d, %Y"),
+            "userId": "usr-patient-h01",
+            "category": "Account Issue",
+            "preview": "Account access issue...",
+            "fullMessage": "I was logged out during a background refresh and had difficulty returning to the app without resetting my credentials.",
+            "status": "Archived",
+            "deviceMeta": {
+                "os": "iOS 17.5",
+                "model": "iPhone 15 Pro",
+                "appVersion": "v1.2.4",
+            },
+            "adminNotes": "Resolved previously and archived after confirmation.",
+            "demo_seed": "heartlink-feedback-demo-v1",
+        },
+        {
+            "id": 109,
+            "ticketId": "FB-1009",
+            "date": (datetime.now() - timedelta(days=14)).strftime("%B %d, %Y"),
+            "userId": "usr-patient-a01",
+            "category": "Question",
+            "preview": "How is my HSS calculated?...",
+            "fullMessage": "Can you explain what the HeartLink Health Stability Score represents? I see the numeric score fluctuating but don't know what factors drive it.",
+            "status": "In Progress",
+            "deviceMeta": {
+                "os": "Android 13",
+                "model": "Google Pixel 6",
+                "appVersion": "v1.2.3",
+            },
+            "adminNotes": "Forwarded to support team. Standard HSS calculation guide will be emailed.",
+            "demo_seed": "heartlink-feedback-demo-v1",
+        },
+        {
+            "id": 110,
+            "ticketId": "FB-1010",
+            "date": (datetime.now() - timedelta(days=16)).strftime("%B %d, %Y"),
+            "userId": "usr-patient-102",
+            "category": "Question",
+            "preview": "When should I log a meal?...",
+            "fullMessage": "Should I record meals immediately after eating or later in the day? Does the timing affect the daily sodium limit alerts?",
+            "status": "Resolved",
+            "deviceMeta": {
+                "os": "iOS 17.1",
+                "model": "iPhone 12",
+                "appVersion": "v1.2.4",
+            },
+            "adminNotes": "Confirmed in app instructions that meal logging is real-time but can be logged retroactively without affecting alert limits.",
+            "demo_seed": "heartlink-feedback-demo-v1",
+        },
+        {
+            "id": 111,
+            "ticketId": "FB-1011",
+            "date": (datetime.now() - timedelta(days=20)).strftime("%B %d, %Y"),
+            "userId": "usr-patient-c01",
+            "category": "Question",
+            "preview": "Integration with health trackers...",
+            "fullMessage": "Does the app sync with Apple Health or Google Fit? I want my daily steps and heart rate to import automatically.",
+            "status": "Archived",
+            "deviceMeta": {
+                "os": "Android 14",
+                "model": "Samsung Galaxy Watch 6",
+                "appVersion": "v1.2.4",
+            },
+            "adminNotes": "Informed user that health tracker integrations are planned for Phase 3. Closed and archived.",
+            "demo_seed": "heartlink-feedback-demo-v1",
+        }
+    ]
+
+    for fb in demo_feedbacks:
+        prof = next((p for p in profiles if p["id"] == fb["userId"]), None)
+        fb["user"] = f"{prof['first_name']} {prof['last_name']}" if prof else "Anonymous User"
+        fb["userEmail"] = prof.get("email", "Not Provided") if prof else "Not Provided"
+        feedback_tickets.append(fb)
 
     # Foreign Key & Core Assertions Validation
     recipe_ids = {r["id"] for r in recipes}

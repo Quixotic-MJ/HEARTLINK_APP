@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Search,
   Filter,
@@ -25,33 +25,59 @@ import {
 } from "lucide-react";
 import AdminLayout from "../../../components/layouts/adminLayout";
 import TicketModal from "../../../components/modals/TicketModal";
+import FeedbackCategoryBadge from "../../../components/ui/FeedbackCategoryBadge";
+import { apiFetch } from "../../../api";
 
 const Feedback = () => {
   const [tickets, setTickets] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
+  const isFetchingRef = useRef(false);
   
   useEffect(() => {
+    let intervalId;
     const fetchTickets = () => {
-      fetch("http://localhost:8000/api/feedback")
-        .then(res => {
-          if (!res.ok) throw new Error("Network response was not ok");
-          return res.json();
-        })
+      if (isFetchingRef.current || document.visibilityState === "hidden") return;
+      isFetchingRef.current = true;
+      
+      apiFetch("/api/feedback")
         .then(data => {
           if (Array.isArray(data)) {
             setTickets(data);
+            setFetchError(false);
           }
         })
-        .catch(err => console.error("Error fetching tickets:", err));
+        .catch(err => {
+          console.error("Error fetching tickets:", err);
+          setFetchError(true);
+        })
+        .finally(() => {
+          setLoading(false);
+          isFetchingRef.current = false;
+        });
     };
 
-    fetchTickets(); // Fetch immediately on mount
-    const intervalId = setInterval(fetchTickets, 3000); // Poll every 3 seconds
+    fetchTickets(); // Fetch immediately on mount or manual retry
 
-    return () => clearInterval(intervalId); // Cleanup on unmount
-  }, []);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        fetchTickets();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    intervalId = setInterval(fetchTickets, 3000); // Poll every 3 seconds
+
+    return () => {
+      clearInterval(intervalId);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [retryCount]);
+
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
-  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterStatus, setFilterStatus] = useState("active"); // Default to "Active Tickets"
   const [sortOrder, setSortOrder] = useState("newest");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
@@ -79,32 +105,24 @@ const Feedback = () => {
 
   const handleUpdateTicket = async (id, newStatus, newNotes) => {
     try {
-      const res = await fetch(`http://localhost:8000/api/feedback/${id}`, {
+      const updatedTicket = await apiFetch(`/api/feedback/${id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: newStatus, adminNotes: newNotes }),
       });
-      if (res.ok) {
-        const updatedTicket = await res.json();
-        setTickets(tickets.map((t) => (t.id === id ? updatedTicket : t)));
-      }
+      setTickets(tickets.map((t) => (t.id === id ? updatedTicket : t)));
     } catch (err) {
       console.error("Error updating ticket:", err);
     }
     closeModal();
   };
 
-  const handleArchiveTicket = async (id) => {
+  const handleArchiveTicket = async (id, notes) => {
     try {
-      const res = await fetch(`http://localhost:8000/api/feedback/${id}`, {
+      const updatedTicket = await apiFetch(`/api/feedback/${id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "Archived", adminNotes: adminNotes }),
+        body: JSON.stringify({ status: "Archived", adminNotes: notes !== undefined ? notes : adminNotes }),
       });
-      if (res.ok) {
-        const updatedTicket = await res.json();
-        setTickets(tickets.map((t) => (t.id === id ? updatedTicket : t)));
-      }
+      setTickets(tickets.map((t) => (t.id === id ? updatedTicket : t)));
     } catch (err) {
       console.error("Error archiving ticket:", err);
     }
@@ -118,9 +136,12 @@ const Feedback = () => {
       t.fullMessage.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory =
       filterCategory === "all" || t.category === filterCategory;
+    
     let matchesStatus = false;
     if (filterStatus === "all") {
-      matchesStatus = t.status !== "Archived";
+      matchesStatus = true; // Include ALL tickets (Open, In Progress, Resolved, Archived)
+    } else if (filterStatus === "active") {
+      matchesStatus = t.status !== "Archived"; // Active excludes Archived
     } else {
       matchesStatus = t.status.toLowerCase() === filterStatus.toLowerCase();
     }
@@ -156,34 +177,6 @@ const Feedback = () => {
   }, [searchQuery, filterCategory, filterStatus, sortOrder]);
 
   // UI Helpers
-  const getCategoryBadge = (category) => {
-    switch (category) {
-      case "Bug Report":
-        return (
-          <span className="inline-flex items-center gap-1.5 bg-red-50 text-red-600 border border-red-200 px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest whitespace-nowrap">
-            <Bug size={10} /> Bug
-          </span>
-        );
-      case "UI/UX Suggestion":
-        return (
-          <span className="inline-flex items-center gap-1.5 bg-yellow-50 text-yellow-700 border border-yellow-200 px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest whitespace-nowrap">
-            <Lightbulb size={10} /> Suggestion
-          </span>
-        );
-      case "Account Issue":
-        return (
-          <span className="inline-flex items-center gap-1.5 bg-purple-50 text-purple-700 border border-purple-200 px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest whitespace-nowrap">
-            <UserCircle size={10} /> Account
-          </span>
-        );
-      default:
-        return (
-          <span className="inline-flex items-center gap-1.5 bg-slate-50 text-slate-600 border border-slate-200 px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest whitespace-nowrap">
-            <HelpCircle size={10} /> Question
-          </span>
-        );
-    }
-  };
 
   const getStatusBadge = (status) => {
     switch (status) {
@@ -315,6 +308,7 @@ const Feedback = () => {
                     onChange={(e) => setFilterStatus(e.target.value)}
                     className="pl-9 pr-10 py-2.5 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl focus:outline-none appearance-none cursor-pointer hover:border-slate-300 transition-colors shadow-sm"
                   >
+                    <option value="active">Active Tickets</option>
                     <option value="all">All Statuses</option>
                     <option value="Open">Open</option>
                     <option value="In Progress">In Progress</option>
@@ -335,6 +329,24 @@ const Feedback = () => {
               </div>
             </div>
           </div>
+
+          {/* Error Banner */}
+          {fetchError && (
+            <div className="mx-5 mb-4 p-3 bg-red-50 border border-red-200 rounded-xl flex items-center justify-between animate-in fade-in duration-300">
+              <span className="text-xs font-semibold text-red-600 flex items-center gap-2">
+                <AlertCircle size={14} /> Unable to refresh feedback.
+              </span>
+              <button
+                onClick={() => {
+                  setFetchError(false);
+                  setRetryCount(prev => prev + 1);
+                }}
+                className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-[10px] font-bold uppercase tracking-wider rounded-lg transition-colors shadow-sm cursor-pointer"
+              >
+                Retry
+              </button>
+            </div>
+          )}
 
           {/* Inbox Table */}
           <div className="w-full overflow-x-auto custom-scrollbar flex-1">
@@ -360,7 +372,28 @@ const Feedback = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {paginatedTickets.length > 0 ? (
+                {loading ? (
+                  Array.from({ length: 4 }).map((_, idx) => (
+                    <tr key={`skeleton-${idx}`} className="animate-pulse">
+                      <td className="py-4 px-6 align-middle">
+                        <div className="h-3.5 w-16 bg-slate-200 rounded mb-1"></div>
+                        <div className="h-2.5 w-20 bg-slate-100 rounded"></div>
+                      </td>
+                      <td className="py-4 px-6 align-middle">
+                        <div className="h-5 w-16 bg-slate-100 rounded-full"></div>
+                      </td>
+                      <td className="py-4 px-6 align-middle">
+                        <div className="h-3.5 w-20 bg-slate-100 rounded font-mono"></div>
+                      </td>
+                      <td className="py-4 px-6 align-middle">
+                        <div className="h-3 w-48 bg-slate-100 rounded"></div>
+                      </td>
+                      <td className="py-4 px-6 align-middle text-right">
+                        <div className="h-4 w-16 bg-slate-100 rounded ml-auto"></div>
+                      </td>
+                    </tr>
+                  ))
+                ) : paginatedTickets.length > 0 ? (
                   paginatedTickets.map((ticket) => (
                     <tr
                       key={ticket.id}
@@ -376,7 +409,7 @@ const Feedback = () => {
                       </p>
                     </td>
                     <td className="py-4 px-6 align-middle">
-                      {getCategoryBadge(ticket.category)}
+                      <FeedbackCategoryBadge category={ticket.category} />
                     </td>
                     <td className="py-4 px-6 align-middle">
                       <p className="text-xs font-semibold text-slate-700 font-mono">

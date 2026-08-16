@@ -21,6 +21,10 @@ class TestCalibrationUXPass(unittest.TestCase):
         # Save original collections
         self.original_evaluations = list(mock_db.expert_evaluations)
         self.original_activity = list(mock_db.admin_activity)
+        
+        # Ensure there is room under the 100 cap so appending increases the count
+        if len(mock_db.admin_activity) >= 100:
+            mock_db.admin_activity[:] = mock_db.admin_activity[:95]
 
     def tearDown(self):
         # Restore mock DB state

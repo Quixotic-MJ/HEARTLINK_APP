@@ -46,7 +46,10 @@ export default function SubmitTicketScreen() {
 
       const res = await fetch(apiUrl, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          ...(userId ? { "Authorization": `Bearer ${userId}` } : {})
+        },
         body: JSON.stringify({
           category: category,
           fullMessage: description,
