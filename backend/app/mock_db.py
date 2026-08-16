@@ -970,8 +970,10 @@ saved_exercises = []
 system_broadcasts = [
     {
         "id": "brd-1",
+        "title": "Scheduled Server Optimization",
         "date": "May 28, 2026 10:00 AM",
         "publisher": "SYS-02 (Alex R.)",
+        "display_publisher": "Alex R.",
         "message": "System Maintenance: We are performing a quick server optimization. The app may be briefly unavailable.",
         "type": "Maintenance",
         "target_audience": "All Registered Accounts",
@@ -979,11 +981,13 @@ system_broadcasts = [
     },
     {
         "id": "brd-2",
+        "title": "Weekly Health Check-In Reminder",
         "date": "May 24, 2026 08:30 AM",
         "publisher": "MED-01 (Dr. Jenkins)",
-        "message": "Safety Reminder: Ensure your CSS profile is updated if you have experienced any fatigue this week.",
+        "display_publisher": "Dr. Jenkins",
+        "message": "Safety Reminder: Ensure your HSS profile is updated if you have experienced any fatigue this week.",
         "type": "Safety Reminder",
-        "target_audience": "All Patients",
+        "target_audience": "All Registered Accounts",
         "created_at": datetime(2026, 5, 24, 8, 30, 0)
     }
 ]
@@ -1389,25 +1393,25 @@ def seed_rich_demo_data(force=False):
     global recipes, exercise_routines, feedback_tickets
 
     # Remove existing demo data to prevent duplication
-    profiles = [p for p in profiles if p.get("demo_seed") != "heartlink-demo-v2"]
-    baseline_onboarding = [o for o in baseline_onboarding if o.get("demo_seed") != "heartlink-demo-v2"]
-    user_thresholds = [t for t in user_thresholds if t.get("demo_seed") != "heartlink-demo-v2"]
-    user_reminders = [r for r in user_reminders if r.get("demo_seed") != "heartlink-demo-v2"]
+    profiles[:] = [p for p in profiles if p.get("demo_seed") != "heartlink-demo-v2"]
+    baseline_onboarding[:] = [o for o in baseline_onboarding if o.get("demo_seed") != "heartlink-demo-v2"]
+    user_thresholds[:] = [t for t in user_thresholds if t.get("demo_seed") != "heartlink-demo-v2"]
+    user_reminders[:] = [r for r in user_reminders if r.get("demo_seed") != "heartlink-demo-v2"]
     
-    daily_health_logs = [x for x in daily_health_logs if x.get("demo_seed") != "heartlink-demo-v2"]
-    meal_logs = [x for x in meal_logs if x.get("demo_seed") != "heartlink-demo-v2"]
-    exercise_logs = [x for x in exercise_logs if x.get("demo_seed") != "heartlink-demo-v2"]
-    sleep_logs = [x for x in sleep_logs if x.get("demo_seed") != "heartlink-demo-v2"]
-    hss_history = [x for x in hss_history if x.get("demo_seed") != "heartlink-demo-v2"]
-    expert_evaluations = [x for x in expert_evaluations if x.get("demo_seed") != "heartlink-demo-v2"]
-    alerts = [x for x in alerts if x.get("demo_seed") != "heartlink-demo-v2"]
-    notifications = [x for x in notifications if x.get("demo_seed") != "heartlink-demo-v2"]
-    admin_activity = [x for x in admin_activity if x.get("demo_seed") != "heartlink-demo-v2"]
-    system_broadcasts = [b for b in system_broadcasts if b.get("demo_seed") != "heartlink-demo-v2"]
+    daily_health_logs[:] = [x for x in daily_health_logs if x.get("demo_seed") != "heartlink-demo-v2"]
+    meal_logs[:] = [x for x in meal_logs if x.get("demo_seed") != "heartlink-demo-v2"]
+    exercise_logs[:] = [x for x in exercise_logs if x.get("demo_seed") != "heartlink-demo-v2"]
+    sleep_logs[:] = [x for x in sleep_logs if x.get("demo_seed") != "heartlink-demo-v2"]
+    hss_history[:] = [x for x in hss_history if x.get("demo_seed") != "heartlink-demo-v2"]
+    expert_evaluations[:] = [x for x in expert_evaluations if x.get("demo_seed") != "heartlink-demo-v2"]
+    alerts[:] = [x for x in alerts if x.get("demo_seed") != "heartlink-demo-v2"]
+    notifications[:] = [x for x in notifications if x.get("demo_seed") != "heartlink-demo-v2"]
+    admin_activity[:] = [x for x in admin_activity if x.get("demo_seed") != "heartlink-demo-v2"]
+    system_broadcasts[:] = [b for b in system_broadcasts if b.get("demo_seed") != "heartlink-demo-v2"]
     feedback_tickets[:] = [t for t in feedback_tickets if t.get("demo_seed") != "heartlink-feedback-demo-v1"]
 
     # Enrich recipe coverage (Moderate & Critical recipes)
-    recipes = [r for r in recipes if r["id"] not in ("rec-507", "rec-508")]
+    recipes[:] = [r for r in recipes if r["id"] not in ("rec-507", "rec-508")]
     recipes.append({
         "id": "rec-507",
         "name": "Garlic Ginger Tofu Stir-Fry",
@@ -2159,10 +2163,12 @@ def seed_rich_demo_data(force=False):
 
     system_broadcasts.append({
         "id": "brd-demo-1",
+        "title": "Offline Analytics Update — August 20",
         "date": datetime.now().strftime("%b %d, %Y %I:%M %p"),
         "publisher": "usr-chief-admin-001 (System Admin)",
-        "message": "Maintenance Notice: Offline analytics updates will occur on August 20.",
-        "type": "App Update",
+        "display_publisher": "System Admin",
+        "message": "Scheduled Maintenance: Offline analytics processing will occur on August 20. The app will remain accessible, but some dashboard metrics may temporarily reflect delayed data.",
+        "type": "Maintenance",
         "target_audience": "All Registered Accounts",
         "created_at": datetime.now() - timedelta(hours=2),
         "demo_seed": "heartlink-demo-v2"

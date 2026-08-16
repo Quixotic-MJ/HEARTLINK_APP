@@ -166,7 +166,7 @@ const Header = ({
                     >
                       SYSTEM ACTIONS
                     </p>
-                    <ActionItem icon={BellRing} label="Send broadcast alert" onClick={() => { navigate('/broadcasts'); setQuickActionsOpen(false); }} />
+                    <ActionItem icon={BellRing} label="Send Announcement" onClick={() => { navigate('/broadcasts'); setQuickActionsOpen(false); }} />
                     {userRole === "super_admin" && (
                       <ActionItem icon={UserPlus} label="Provision staff account" onClick={() => { navigate('/users'); setQuickActionsOpen(false); }} />
                     )}

@@ -19,80 +19,81 @@ class TestFeedbackIntegrity(unittest.TestCase):
         cls.patient_token = "usr-patient-101"
 
     def setUp(self):
-        # If empty, seed default mock data for tests
-        if not mock_db.feedback_tickets:
-            mock_db.feedback_tickets.extend([
-                {
-                    "id": 1,
-                    "ticketId": "FB-1042",
-                    "date": "May 28, 2026",
-                    "user": "Robert Villanueva",
-                    "userEmail": "robert.v@email.com",
-                    "userId": "USR-A492",
-                    "category": "Bug Report",
-                    "preview": "The barcode scanner crashes when...",
-                    "fullMessage": "The barcode scanner crashes when I try to scan a generic oat brand. The camera opens, but right after it recognizes the barcode, the app completely freezes and closes itself.",
-                    "status": "Open",
-                    "deviceMeta": {
-                        "os": "Android 14",
-                        "model": "Samsung Galaxy S23 Ultra",
-                        "appVersion": "v1.2.4",
-                    },
-                    "adminNotes": "",
-                },
-                {
-                    "id": 2,
-                    "ticketId": "FB-1041",
-                    "date": "May 27, 2026",
-                    "user": "Elena Marasigan",
-                    "userEmail": "elena.m@email.com",
-                    "userId": "USR-B118",
-                    "category": "UI/UX Suggestion",
-                    "preview": "Could you make the recipe font bigger?",
-                    "fullMessage": "I love the heart-healthy recipes, but when I am cooking in the kitchen, the font for the ingredients list is very hard to read from a distance. Could you add a text size toggle?",
-                    "status": "In Progress",
-                    "deviceMeta": {
-                        "os": "iOS 17.4",
-                        "model": "iPhone 13 Pro",
-                        "appVersion": "v1.2.4",
-                    },
-                    "adminNotes": "Assigned to UI team. Planning to add an accessibility slider in the next minor patch.",
-                },
-                {
-                    "id": 3,
-                    "ticketId": "FB-1039",
-                    "user": "Miguel Santos",
-                    "userEmail": "miguel88@email.com",
-                    "userId": "USR-C882",
-                    "category": "Account Issue",
-                    "preview": "I cannot reset my password...",
-                    "fullMessage": "I forgot my password, but when I click the reset link in my email, it says the token is invalid or expired. I've tried this three times now.",
-                    "status": "Resolved",
-                    "deviceMeta": {
-                        "os": "Android 13",
-                        "model": "Google Pixel 6a",
-                        "appVersion": "v1.2.3",
-                    },
-                    "adminNotes": "Known Firebase auth token expiration bug. Sent manual reset link and patched backend token lifespan.",
-                },
-                {
-                    "id": 4,
-                    "ticketId": "FB-1035",
-                    "user": "Anonymous User",
-                    "userEmail": "Not Provided",
-                    "userId": "N/A",
-                    "category": "Question",
-                    "preview": "Does the CSS score update automatically?",
-                    "fullMessage": "If I log my blood pressure today, does my Health Stability Score update right away, or does it take 24 hours?",
-                    "status": "Resolved",
-                    "deviceMeta": { "os": "Unknown", "model": "Unknown", "appVersion": "Unknown" },
-                    "adminNotes": "Replied via in-app notification confirming real-time updates.",
-                }
-            ])
-            mock_db.save_logs()
-            
+        # Backup original database state
         self.original_tickets = [dict(t) for t in mock_db.feedback_tickets]
         self.original_activity = [dict(a) for a in mock_db.admin_activity]
+        
+        # Unconditionally clear and seed specific tickets for testing
+        mock_db.feedback_tickets.clear()
+        mock_db.feedback_tickets.extend([
+            {
+                "id": 1,
+                "ticketId": "FB-1042",
+                "date": "May 28, 2026",
+                "user": "Robert Villanueva",
+                "userEmail": "robert.v@email.com",
+                "userId": "USR-A492",
+                "category": "Bug Report",
+                "preview": "The barcode scanner crashes when...",
+                "fullMessage": "The barcode scanner crashes when I try to scan a generic oat brand. The camera opens, but right after it recognizes the barcode, the app completely freezes and closes itself.",
+                "status": "Open",
+                "deviceMeta": {
+                    "os": "Android 14",
+                    "model": "Samsung Galaxy S23 Ultra",
+                    "appVersion": "v1.2.4",
+                },
+                "adminNotes": "",
+            },
+            {
+                "id": 2,
+                "ticketId": "FB-1041",
+                "date": "May 27, 2026",
+                "user": "Elena Marasigan",
+                "userEmail": "elena.m@email.com",
+                "userId": "USR-B118",
+                "category": "UI/UX Suggestion",
+                "preview": "Could you make the recipe font bigger?",
+                "fullMessage": "I love the heart-healthy recipes, but when I am cooking in the kitchen, the font for the ingredients list is very hard to read from a distance. Could you add a text size toggle?",
+                "status": "In Progress",
+                "deviceMeta": {
+                    "os": "iOS 17.4",
+                    "model": "iPhone 13 Pro",
+                    "appVersion": "v1.2.4",
+                },
+                "adminNotes": "Assigned to UI team. Planning to add an accessibility slider in the next minor patch.",
+            },
+            {
+                "id": 3,
+                "ticketId": "FB-1039",
+                "user": "Miguel Santos",
+                "userEmail": "miguel88@email.com",
+                "userId": "USR-C882",
+                "category": "Account Issue",
+                "preview": "I cannot reset my password...",
+                "fullMessage": "I forgot my password, but when I click the reset link in my email, it says the token is invalid or expired. I've tried this three times now.",
+                "status": "Resolved",
+                "deviceMeta": {
+                    "os": "Android 13",
+                    "model": "Google Pixel 6a",
+                    "appVersion": "v1.2.3",
+                },
+                "adminNotes": "Known Firebase auth token expiration bug. Sent manual reset link and patched backend token lifespan.",
+            },
+            {
+                "id": 4,
+                "ticketId": "FB-1035",
+                "user": "Anonymous User",
+                "userEmail": "Not Provided",
+                "userId": "N/A",
+                "category": "Question",
+                "preview": "Does the CSS score update automatically?",
+                "fullMessage": "If I log my blood pressure today, does my Health Stability Score update right away, or does it take 24 hours?",
+                "status": "Resolved",
+                "deviceMeta": { "os": "Unknown", "model": "Unknown", "appVersion": "Unknown" },
+                "adminNotes": "Replied via in-app notification confirming real-time updates.",
+            }
+        ])
+        mock_db.save_logs()
 
     def tearDown(self):
         # Restore mock state

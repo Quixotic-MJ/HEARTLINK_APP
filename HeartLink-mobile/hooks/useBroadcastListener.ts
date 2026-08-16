@@ -71,7 +71,7 @@ export function useBroadcastListener() {
             }
 
             showToastRef.current({
-              title: latest.type || "System Broadcast",
+              title: latest.title || latest.type || "System Broadcast",
               message: latest.message,
               type: toastType,
               duration: 5000,

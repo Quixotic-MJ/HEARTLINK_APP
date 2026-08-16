@@ -451,7 +451,7 @@ function NotificationCard({
                     letterSpacing: 0.5,
                   }}
                 >
-                  Broadcast
+                  Announcement
                 </Text>
               </View>
             )}
@@ -765,7 +765,7 @@ export default function NotificationsScreen() {
           isDark={isDark}
         />
         <FilterChip
-          label="Broadcasts"
+          label="Announcements"
           active={filter === "broadcasts"}
           badge={filter !== "broadcasts" ? broadcastCount : undefined}
           onPress={() => setFilter("broadcasts")}

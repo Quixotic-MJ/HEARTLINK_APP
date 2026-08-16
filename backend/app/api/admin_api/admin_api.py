@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from typing import Dict, Any
+from typing import Dict, Any, Optional, List
 from datetime import datetime, timedelta
 from app.mock_db import profiles, alerts, hss_history, exercise_routines, meal_logs, exercise_logs, sleep_logs, daily_health_logs, recipes, system_broadcasts, notifications, save_logs, expert_evaluations, admin_activity
 from app.utils.security import get_current_admin_user, get_current_super_admin
@@ -767,89 +767,117 @@ def get_broadcasts(current_user: dict = Depends(get_current_admin_user)):
     # Sort broadcasts by created_at descending
     return sorted(system_broadcasts, key=lambda x: x.get("created_at", datetime.min), reverse=True)
 
+VALID_BROADCAST_TYPES = {"Maintenance", "App Update", "Safety Reminder", "General"}
+VALID_BROADCAST_AUDIENCES = {"All Registered Accounts"}
+
 @router.post("/broadcasts")
 def create_broadcast(payload: dict, current_user: dict = Depends(get_current_admin_user)):
+    # --- Validate required fields ---
+    title = (payload.get("title") or "").strip()
+    if not title:
+        raise HTTPException(status_code=422, detail="Announcement title is required.")
+    if len(title) > 80:
+        raise HTTPException(status_code=422, detail="Announcement title must be 80 characters or fewer.")
+
+    broadcast_type = payload.get("type", "")
+    if broadcast_type not in VALID_BROADCAST_TYPES:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Invalid category. Must be one of: {', '.join(sorted(VALID_BROADCAST_TYPES))}"
+        )
+
+    target_audience = payload.get("targetAudience", "All Registered Accounts")
+    if target_audience not in VALID_BROADCAST_AUDIENCES:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Invalid audience. Must be one of: {', '.join(sorted(VALID_BROADCAST_AUDIENCES))}"
+        )
+
+    message = (payload.get("message") or "").strip()
+    if not message:
+        raise HTTPException(status_code=422, detail="Announcement message is required.")
+
     now = datetime.now()
     broadcast_id = f"brd-{int(now.timestamp())}"
-    
-    # Resolve publisher name
+
+    # Resolve publisher display name (strip internal user ID from UI)
     publisher_name = "Admin"
     admin_id = current_user.get('user_id', 'SYS')
     for u in profiles:
         if u.get('id') == admin_id:
-            publisher_name = f"{u.get('first_name', '')} {u.get('last_name', '')}".strip()
+            publisher_name = f"{u.get('first_name', '')} {u.get('last_name', '')}".strip() or "Admin"
             break
-    
+
     new_broadcast = {
         "id": broadcast_id,
+        "title": title,
         "date": now.strftime("%b %d, %Y %I:%M %p"),
+        # Store full publisher string internally for accountability;
+        # display_publisher is the clean user-facing name
         "publisher": f"{admin_id} ({publisher_name})",
-        "message": payload.get("message", ""),
-        "type": payload.get("type", "System Notification"),
-        "target_audience": payload.get("targetAudience", "All Registered Accounts"),
+        "display_publisher": publisher_name,
+        "message": message,
+        "type": broadcast_type,
+        "target_audience": target_audience,
         "created_at": now
     }
-    
+
     system_broadcasts.append(new_broadcast)
-    
-    # --- Create notification entries for all targeted users ---
-    target = payload.get("targetAudience", "All Registered Accounts")
+
+    # --- Fan out notifications to all active patients ---
     target_patients = [p for p in profiles if p.get("role") == "patient" and p.get("account_status") == "active"]
-    
     for patient in target_patients:
         notif = {
             "id": f"notif-brd-{broadcast_id}-{patient['id']}",
             "user_id": patient["id"],
             "scope": "broadcast",
             "type": "system",
-            "broadcast_type": payload.get("type", "System Notification"),
+            "broadcast_type": broadcast_type,   # category
             "broadcast_id": broadcast_id,
             "publisher_id": admin_id,
-            "title": payload.get("type", "System Broadcast"),
-            "message": payload.get("message", ""),
+            "title": title,                       # FIX: use announcement title, not category
+            "message": message,
             "read": False,
             "created_at": now,
         }
         notifications.append(notif)
-    
+
     save_logs()
-    
-    # Record admin activity
-    admin_id = current_user.get("user_id") if current_user else "admin"
+
+    # Record admin activity — use announcement title as target_name
     from app.utils.activity_helper import record_admin_activity
     record_admin_activity(
         admin_user_id=admin_id,
         action="published",
         target_type="broadcast",
         target_id=broadcast_id,
-        target_name=payload.get("type", "System Notification")
+        target_name=title
     )
-    return {"status": "success", "data": new_broadcast}
+    return {"status": "success", "data": new_broadcast, "recipients_count": len(target_patients)}
 
 @router.delete("/broadcasts/{broadcast_id}")
 def delete_broadcast(broadcast_id: str, current_user: dict = Depends(get_current_admin_user)):
-    global system_broadcasts
-    
     found = False
-    broadcast_title = "System Broadcast"
+    broadcast_title = "Announcement"
     for i, b in enumerate(system_broadcasts):
         if b.get("id") == broadcast_id:
-            broadcast_title = b.get("type", "System Broadcast")
+            # Use title if available, fall back to type string
+            broadcast_title = b.get("title") or b.get("type", "Announcement")
             del system_broadcasts[i]
             found = True
             break
-    
+
     if not found:
         raise HTTPException(status_code=404, detail="Broadcast not found")
-    
-    # Also remove all notification entries linked to this broadcast
+
+    # Cascade delete linked notification entries
     to_remove = [n for n in notifications if n.get("broadcast_id") == broadcast_id]
     for n in to_remove:
         notifications.remove(n)
-    
+
     save_logs()
-    
-    # Record admin activity
+
+    # Record admin activity — use announcement title as target_name
     admin_id = current_user.get("user_id") if current_user else "admin"
     from app.utils.activity_helper import record_admin_activity
     record_admin_activity(
@@ -860,3 +888,111 @@ def delete_broadcast(broadcast_id: str, current_user: dict = Depends(get_current
         target_name=broadcast_title
     )
     return {"status": "success", "message": "Broadcast deleted"}
+
+@router.get("/activity")
+def get_activity_log(
+    page: int = 1,
+    page_size: int = 20,
+    action: Optional[str] = None,
+    target_type: Optional[str] = None,
+    admin_user_id: Optional[str] = None,
+    search: Optional[str] = None,
+    current_user: dict = Depends(get_current_admin_user)
+):
+    # Enforce admin/super_admin role restriction
+    role = current_user.get("role")
+    if role not in ["admin", "super_admin"]:
+        raise HTTPException(
+            status_code=403,
+            detail="Access Denied: Admin or Super Admin role required."
+        )
+
+    # Validate pagination parameters
+    if page < 1:
+        raise HTTPException(
+            status_code=400,
+            detail="Page parameter must be 1 or greater."
+        )
+    if page_size < 1 or page_size > 100:
+        raise HTTPException(
+            status_code=400,
+            detail="Page size must be between 1 and 100."
+        )
+
+    logs = list(admin_activity)
+
+    # Filtering
+    if action and action.strip():
+        action_val = action.strip().lower()
+        logs = [l for l in logs if l.get("action") and l.get("action").lower() == action_val]
+
+    if target_type and target_type.strip():
+        target_val = target_type.strip().lower()
+        logs = [l for l in logs if l.get("target_type") and l.get("target_type").lower() == target_val]
+
+    if admin_user_id and admin_user_id.strip():
+        actor_val = admin_user_id.strip().lower()
+        logs = [l for l in logs if l.get("admin_user_id") and l.get("admin_user_id").lower() == actor_val]
+
+    # Search (case-insensitive)
+    if search and search.strip():
+        s_val = search.strip().lower()
+        def match_log(l):
+            fields = [
+                l.get("admin_name"),
+                l.get("admin_user_id"),
+                l.get("action"),
+                l.get("target_type"),
+                l.get("target_id"),
+                l.get("target_name")
+            ]
+            for f in fields:
+                if f and s_val in str(f).lower():
+                    return True
+            return False
+        logs = [l for l in logs if match_log(l)]
+
+    # Sorting
+    # Helper to resolve dt for sorting safely
+    def get_sort_key(l):
+        dt = l.get("created_at")
+        if not dt:
+            return datetime.min
+        if isinstance(dt, str):
+            try:
+                return datetime.fromisoformat(dt)
+            except:
+                return datetime.min
+        return dt
+
+    # Sort descending by created_at, then descending by id as a stable tie-breaker
+    logs.sort(key=lambda x: (get_sort_key(x), x.get("id") or ""), reverse=True)
+
+    total = len(logs)
+    total_pages = (total + page_size - 1) // page_size if total > 0 else 0
+
+    # Paginate
+    start_idx = (page - 1) * page_size
+    end_idx = start_idx + page_size
+    paginated_logs = logs[start_idx:end_idx]
+
+    serialized_items = []
+    for l in paginated_logs:
+        serialized_items.append({
+            "id": l.get("id"),
+            "admin_user_id": l.get("admin_user_id"),
+            "admin_name": l.get("admin_name"),
+            "action": l.get("action"),
+            "target_type": l.get("target_type"),
+            "target_id": l.get("target_id"),
+            "target_name": l.get("target_name"),
+            "created_at": l.get("created_at")  # FastAPI automatically serializes datetime to ISO format
+        })
+
+    return {
+        "items": serialized_items,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "total_pages": total_pages
+    }
