@@ -309,7 +309,6 @@ class TestActivityLogsApi(unittest.TestCase):
             "alert_type": "BP Threshold",
             "message": "BP Alert generated"
         })
-        mock_db.save_logs()
         self.assertEqual(len(mock_db.admin_activity), initial_count)
 
     def test_hss_calculation_creates_zero_admin_activity(self):
@@ -321,7 +320,6 @@ class TestActivityLogsApi(unittest.TestCase):
             "tier": "Stable",
             "created_at": datetime.now()
         })
-        mock_db.save_logs()
         self.assertEqual(len(mock_db.admin_activity), initial_count)
 
     def test_symptom_logging_creates_zero_admin_activity(self):

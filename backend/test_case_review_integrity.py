@@ -34,16 +34,11 @@ class TestCaseReviewIntegrity(unittest.TestCase):
 
     def tearDown(self):
         # Restore mock DB lists
-        mock_db.expert_evaluations.clear()
-        mock_db.expert_evaluations.extend(self.original_evaluations)
-        mock_db.profiles.clear()
-        mock_db.profiles.extend(self.original_profiles)
-        mock_db.baseline_onboarding.clear()
-        mock_db.baseline_onboarding.extend(self.original_onboarding)
-        mock_db.daily_health_logs.clear()
-        mock_db.daily_health_logs.extend(self.original_health_logs)
-        mock_db.hss_history.clear()
-        mock_db.hss_history.extend(self.original_hss)
+        mock_db.expert_evaluations[:] = self.original_evaluations
+        mock_db.profiles[:] = self.original_profiles
+        mock_db.baseline_onboarding[:] = self.original_onboarding
+        mock_db.daily_health_logs[:] = self.original_health_logs
+        mock_db.hss_history[:] = self.original_hss
         mock_db.save_logs()
 
     def test_version_metadata(self):
