@@ -1,4 +1,5 @@
-from fastapi import APIRouter, status, HTTPException
+from fastapi import APIRouter, status, HTTPException, Depends
+from app.utils.security import get_current_admin_user
 from app.schemas.user import (
     ProfileUpdate,
     ChangePasswordRequest,
@@ -99,12 +100,63 @@ async def update_user_profile(user_id: str, payload: ProfileUpdate):
     return {"success": True, "message": "Profile updated", "data": result}
 
 @router.put("/{user_id}/password", status_code=status.HTTP_200_OK)
-async def update_user_password(user_id: str, payload: ChangePasswordRequest):
+async def update_user_password(
+    user_id: str,
+    payload: ChangePasswordRequest,
+    current_user: dict = Depends(get_current_admin_user),
+):
+    # ── Ownership check ────────────────────────────────────────────────────────
+    # Authenticated caller may only change their own password.
+    # No admin may use this endpoint to change another user's password.
+    caller_id = current_user.get("user_id")
+    if caller_id != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You may only change your own password.",
+        )
+
+    # ── Rate-limit on failed password attempts ─────────────────────────────────
+    # Reuse the existing login_attempts mechanism from auth.py.
+    # Key is the authenticated caller's user_id so it is tied to identity, not IP.
+    from app.api.auth.auth import check_rate_limit, record_failed_attempt, clear_attempts
+    check_rate_limit(caller_id)
+
+    # ── Password verification and mutation ────────────────────────────────────
     result = change_password(user_id, payload.current_password, payload.new_password)
     if not result:
+        # Count this as a failed attempt toward the lockout threshold
+        record_failed_attempt(caller_id)
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Incorrect current password"
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Incorrect current password",
         )
+
+    # Successful change: reset any accumulated failed attempts for this user
+    clear_attempts(caller_id)
+
+    # ── Activity log ──────────────────────────────────────────────────────────
+    # Actor is the authenticated caller (caller_id), NOT the path parameter.
+    # No passwords, hashes, or tokens are written to the log.
+    # Failed changes never reach this block (HTTPException raised above).
+    try:
+        from app.utils.activity_helper import record_admin_activity
+        import app.mock_db as _mock_db
+        _profile = next((p for p in _mock_db.profiles if p["id"] == user_id), None)
+        _label = None
+        if _profile:
+            _fn = _profile.get("first_name", "")
+            _ln = _profile.get("last_name", "")
+            _label = f"{_fn} {_ln}".strip() or _profile.get("email") or user_id
+        record_admin_activity(
+            admin_user_id=caller_id,   # authenticated caller — not the URL path param
+            action="changed password",
+            target_type="account",
+            target_id=user_id,
+            target_name=_label,
+        )
+    except Exception:
+        pass  # Logging must never block the primary operation
+
     return {"success": True, "message": "Password updated successfully"}
 
 @router.delete("/{user_id}", status_code=status.HTTP_200_OK)
