@@ -94,7 +94,7 @@ export default function HeartLinkAdminLogin() {
         setStep("2fa");
       } else if (response.success) {
         // Fallback if backend hasn't been updated to 2FA yet
-        login(response.user_id, response.token, null, remember);
+        login(response.user_id, response.token, { id: response.user_id, role: response.role }, remember);
         navigate("/dashboard");
       }
     } catch (error) {
@@ -114,7 +114,7 @@ export default function HeartLinkAdminLogin() {
       });
       
       if (response.success) {
-        login(response.user_id, response.token, null, remember);
+        login(response.user_id, response.token, { id: response.user_id, role: response.role }, remember);
         navigate("/dashboard");
       }
     } catch (error) {

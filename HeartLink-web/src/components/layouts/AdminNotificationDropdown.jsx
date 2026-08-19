@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Bell, 
@@ -7,7 +7,9 @@ import {
   ShieldAlert, 
   Settings, 
   CheckCheck,
-  Info
+  Info,
+  RotateCw,
+  AlertCircle
 } from 'lucide-react';
 import { apiFetch } from '../../api';
 
@@ -17,6 +19,10 @@ export default function AdminNotificationDropdown({ userId }) {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [fetchError, setFetchError] = useState(null);
+  const [actionError, setActionError] = useState(null);
+
+  const isFetchingRef = useRef(false);
   const dropdownRef = useRef(null);
 
   // Close dropdown on click outside
@@ -30,49 +36,116 @@ export default function AdminNotificationDropdown({ userId }) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const fetchNotifications = async () => {
-    try {
+  // Keyboard accessibility: Escape to close dropdown
+  useEffect(() => {
+    if (!isOpen) return;
+
+    function handleKeyDown(event) {
+      if (event.key === "Escape") {
+        setIsOpen(false);
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen]);
+
+  const fetchNotifications = useCallback(async (isExplicitUserAction = false) => {
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
+
+    if (isExplicitUserAction || notifications.length === 0) {
       setIsLoading(true);
+    }
+
+    try {
       const data = await apiFetch("/api/admin/notifications");
       setNotifications(data.items || []);
       setUnreadCount(data.unread_count || 0);
+      setFetchError(null);
     } catch (error) {
       console.error("Failed to fetch admin notifications:", error);
+      setFetchError("Unable to load notifications.");
     } finally {
       setIsLoading(false);
+      isFetchingRef.current = false;
     }
-  };
+  }, [notifications.length]);
 
+  // Polling with visibility awareness
   useEffect(() => {
     // Initial fetch
-    fetchNotifications();
-    // Poll every 60 seconds
-    const interval = setInterval(fetchNotifications, 60000);
-    return () => clearInterval(interval);
-  }, []);
+    fetchNotifications(true);
+
+    let intervalId = null;
+
+    const startPolling = () => {
+      if (!intervalId) {
+        intervalId = setInterval(() => {
+          if (document.visibilityState === "visible") {
+            fetchNotifications(false);
+          }
+        }, 60000);
+      }
+    };
+
+    const stopPolling = () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+        intervalId = null;
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        fetchNotifications(false);
+        startPolling();
+      } else {
+        stopPolling();
+      }
+    };
+
+    startPolling();
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      stopPolling();
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [fetchNotifications]);
 
   const handleToggle = () => {
     const nextState = !isOpen;
     setIsOpen(nextState);
+    setActionError(null);
     if (nextState) {
-      fetchNotifications();
+      fetchNotifications(false);
     }
   };
 
-  const markAsRead = async (id, route) => {
-    try {
-      // Optimistically update UI
-      setNotifications(prev => prev.map(n => {
-        if (n.id === id) {
-          const isRead = n.read_by?.includes(userId);
-          if (!isRead) {
-            setUnreadCount(Math.max(0, unreadCount - 1));
-            return { ...n, read_by: [...(n.read_by || []), userId] };
-          }
-        }
-        return n;
-      }));
+  const handleRetry = (e) => {
+    if (e) e.stopPropagation();
+    setFetchError(null);
+    fetchNotifications(true);
+  };
 
+  const markAsRead = async (id, route) => {
+    setActionError(null);
+    const previousNotifications = [...notifications];
+    const previousUnreadCount = unreadCount;
+
+    // Optimistically update UI
+    setNotifications(prev => prev.map(n => {
+      if (n.id === id) {
+        const isRead = n.read_by?.includes(userId);
+        if (!isRead) {
+          setUnreadCount(Math.max(0, unreadCount - 1));
+          return { ...n, read_by: [...(n.read_by || []), userId] };
+        }
+      }
+      return n;
+    }));
+
+    try {
       await apiFetch(`/api/admin/notifications/${id}/read`, { method: "PUT" });
       
       if (route) {
@@ -81,19 +154,33 @@ export default function AdminNotificationDropdown({ userId }) {
       }
     } catch (error) {
       console.error("Failed to mark as read:", error);
+      // Rollback optimistic state
+      setNotifications(previousNotifications);
+      setUnreadCount(previousUnreadCount);
+      setActionError("Unable to mark notification as read.");
     }
   };
 
   const markAllAsRead = async () => {
+    setActionError(null);
+    const previousNotifications = [...notifications];
+    const previousUnreadCount = unreadCount;
+
+    // Optimistically update UI
+    setUnreadCount(0);
+    setNotifications(prev => prev.map(n => ({
+      ...n, 
+      read_by: [...(n.read_by || []), userId]
+    })));
+
     try {
-      setUnreadCount(0);
-      setNotifications(prev => prev.map(n => ({
-        ...n, 
-        read_by: [...(n.read_by || []), userId]
-      })));
       await apiFetch("/api/admin/notifications/mark-all-read", { method: "PUT" });
     } catch (error) {
       console.error("Failed to mark all as read:", error);
+      // Rollback optimistic state
+      setNotifications(previousNotifications);
+      setUnreadCount(previousUnreadCount);
+      setActionError("Unable to mark notifications as read.");
     }
   };
 
@@ -126,6 +213,9 @@ export default function AdminNotificationDropdown({ userId }) {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={handleToggle}
+        aria-label="Notifications"
+        aria-expanded={isOpen}
+        aria-haspopup="true"
         className="relative flex items-center justify-center rounded-xl transition-all ml-2"
         style={{
           width: 36, height: 36,
@@ -148,8 +238,8 @@ export default function AdminNotificationDropdown({ userId }) {
 
       {isOpen && (
         <div 
-          className="absolute right-0 mt-2 z-50 rounded-2xl overflow-hidden flex flex-col shadow-2xl bg-white border border-slate-200/60"
-          style={{ width: 340, maxHeight: 480, animation: "fadeIn 0.15s ease-out" }}
+          className="absolute right-0 mt-2 z-50 rounded-2xl overflow-hidden flex flex-col shadow-2xl bg-white border border-slate-200/60 w-[calc(100vw-2rem)] max-w-[340px] sm:w-[340px]"
+          style={{ maxHeight: 480, animation: "fadeIn 0.15s ease-out" }}
         >
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 bg-slate-50/50 border-b border-slate-100 backdrop-blur-md">
@@ -172,12 +262,60 @@ export default function AdminNotificationDropdown({ userId }) {
             )}
           </div>
 
+          {/* Action Error Banner (e.g. mark-as-read failure) */}
+          {actionError && (
+            <div className="flex items-center justify-between px-3.5 py-2 bg-red-50/90 border-b border-red-100 text-[11px] text-red-700 font-medium">
+              <div className="flex items-center gap-1.5">
+                <AlertCircle size={13} className="text-red-500 flex-shrink-0" />
+                <span>{actionError}</span>
+              </div>
+              <button 
+                onClick={() => setActionError(null)} 
+                className="text-red-500 hover:text-red-800 ml-2 font-bold text-xs"
+                aria-label="Dismiss error"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+
+          {/* Background Refresh Warning (if notifications are present but refresh failed) */}
+          {fetchError && notifications.length > 0 && (
+            <div className="flex items-center justify-between px-3.5 py-1.5 bg-amber-50/90 border-b border-amber-100 text-[10.5px] text-amber-800 font-medium">
+              <div className="flex items-center gap-1.5">
+                <AlertCircle size={12} className="text-amber-500 flex-shrink-0" />
+                <span>Unable to refresh latest updates.</span>
+              </div>
+              <button 
+                onClick={handleRetry}
+                className="text-blue-600 hover:text-blue-800 font-semibold underline ml-2"
+              >
+                Retry
+              </button>
+            </div>
+          )}
+
           {/* List */}
           <div className="overflow-y-auto flex-1 scrollbar-hide" style={{ maxHeight: 380 }}>
             {isLoading && notifications.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-10">
                 <div className="w-5 h-5 border-2 border-slate-200 border-t-slate-800 rounded-full animate-spin mb-3"></div>
                 <p className="text-[11px] text-slate-400 font-medium">Loading notifications...</p>
+              </div>
+            ) : fetchError && notifications.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+                <div className="w-10 h-10 bg-red-50 rounded-full flex items-center justify-center mb-2.5 border border-red-100 text-red-500">
+                  <AlertCircle size={18} />
+                </div>
+                <p className="text-[12.5px] font-semibold text-slate-700">Unable to load notifications.</p>
+                <p className="text-[11px] text-slate-400 mt-0.5 mb-3">Please check your network connection.</p>
+                <button
+                  onClick={handleRetry}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 text-white text-[11px] font-medium shadow-sm hover:bg-slate-800 transition-colors"
+                >
+                  <RotateCw size={12} />
+                  <span>Retry</span>
+                </button>
               </div>
             ) : notifications.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-14 px-4 text-center">
@@ -217,6 +355,11 @@ export default function AdminNotificationDropdown({ userId }) {
                 })}
               </div>
             )}
+          </div>
+
+          {/* Minimal Neutral Footer */}
+          <div className="px-4 py-2 border-t border-slate-100 bg-slate-50/80 text-[11px] text-slate-400 font-medium text-center">
+            Admin notifications
           </div>
         </div>
       )}

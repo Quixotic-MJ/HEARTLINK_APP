@@ -150,7 +150,7 @@ async def update_user_password(
         record_admin_activity(
             admin_user_id=caller_id,   # authenticated caller — not the URL path param
             action="changed password",
-            target_type="account",
+            target_type="user",
             target_id=user_id,
             target_name=_label,
         )

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Menu,
   Search,
@@ -6,16 +6,12 @@ import {
   Zap,
   ChevronDown,
   LogOut,
-  Utensils,
   BellRing,
-  Stethoscope,
   UserPlus,
-  Dumbbell,
-  AlertTriangle,
   LayoutDashboard,
   ClipboardList,
 } from "lucide-react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import AdminNotificationDropdown from "./AdminNotificationDropdown";
 
@@ -40,11 +36,7 @@ function ActionItem({ icon: Icon, label, onClick }) {
 
 const Header = ({ 
   setSidebarOpen, 
-  title: propTitle,
-  openBroadcastModal,
-  openStaffDrawer,
-  openRecipeDrawer,
-  openExerciseDrawer
+  title: propTitle
 }) => {
   const location = useLocation();
   const pathSegment = location.pathname.split("/").filter(Boolean).pop() || "dashboard";
@@ -60,14 +52,38 @@ const Header = ({
   const [quickActionsOpen, setQuickActionsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const userRole = user?.role || (userId === "usr-super-admin-001" || user?.id === "usr-super-admin-001" ? "super_admin" : (user?.id === "usr-chief-admin-001" || userId === "usr-chief-admin-001" ? "admin" : "medical_expert"));
+  const userRole = user?.role;
+
+  // Keyboard accessibility: Escape to close Quick Actions dropdown
+  useEffect(() => {
+    if (!quickActionsOpen) return;
+
+    function handleKeyDown(event) {
+      if (event.key === "Escape") {
+        setQuickActionsOpen(false);
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [quickActionsOpen]);
 
   const handleSearch = (e) => {
-    if (e.key === "Enter" && searchQuery.trim()) {
-      navigate(`/users?search=${encodeURIComponent(searchQuery.trim())}`);
+    if (e.key === "Enter") {
+      const trimmedQuery = searchQuery.trim();
+      if (!trimmedQuery) return;
+
+      if (userRole === "medical_expert") {
+        navigate(`/cases?search=${encodeURIComponent(trimmedQuery)}`);
+      } else {
+        navigate(`/users?search=${encodeURIComponent(trimmedQuery)}`);
+      }
       setSearchQuery(""); 
     }
   };
+
+  const searchPlaceholder = userRole === "medical_expert"
+    ? "Search cases by name or ID..."
+    : "Search users by name or ID...";
 
   return (
     <header
@@ -82,6 +98,7 @@ const Header = ({
       <div className="flex items-center gap-4">
         {/* Mobile menu */}
         <button
+          aria-label="Open sidebar"
           className="lg:hidden p-2 rounded-xl transition-colors"
           style={{ color: "rgba(15,23,42,0.5)", backgroundColor: "#f8fafc", border: "1px solid rgba(15,23,42,0.08)" }}
           onClick={() => setSidebarOpen(true)}
@@ -110,7 +127,8 @@ const Header = ({
           <Search size={13} style={{ color: "rgba(15,23,42,0.3)", flexShrink: 0 }} />
           <input
             type="text"
-            placeholder="Search by Name or ID... (Press Enter)"
+            aria-label="Search"
+            placeholder={searchPlaceholder}
             className="bg-transparent border-none outline-none w-full"
             style={{ fontSize: 13, color: "#0f172a" }}
             value={searchQuery}
@@ -127,6 +145,9 @@ const Header = ({
         <div className="relative hidden md:block">
           <button
             onClick={() => setQuickActionsOpen(!quickActionsOpen)}
+            aria-label="Quick actions"
+            aria-expanded={quickActionsOpen}
+            aria-haspopup="true"
             className="flex items-center gap-2 rounded-xl px-3.5 text-sm font-medium transition-all"
             style={{
               height: 36,
@@ -159,7 +180,7 @@ const Header = ({
                   boxShadow: "0 8px 24px rgba(15,23,42,0.1)",
                 }}
               >
-                {userRole === "admin" || userRole === "sysadmin" || userRole === "super_admin" ? (
+                {userRole === "admin" || userRole === "super_admin" ? (
                   <>
                     <p
                       className="px-4 pt-1.5 pb-2.5 text-[9px] tracking-[0.18em] uppercase font-semibold"
@@ -203,7 +224,7 @@ const Header = ({
               System status
             </p>
             <p className="text-[8px] tracking-widest uppercase leading-tight mt-0.5" style={{ color: "rgba(15,23,42,0.35)" }}>
-              Live monitoring
+              Operational
             </p>
           </div>
           <div className="flex items-center gap-1.5">
@@ -216,7 +237,7 @@ const Header = ({
         <div className="hidden sm:block w-px h-5" style={{ backgroundColor: "rgba(15,23,42,0.08)" }} />
 
         {/* Notifications */}
-        {(userRole === "admin" || userRole === "super_admin" || userRole === "sysadmin") && (
+        {(userRole === "admin" || userRole === "super_admin") && (
           <AdminNotificationDropdown userId={userId || user?.id} />
         )}
 
@@ -226,6 +247,7 @@ const Header = ({
             logout();
             navigate("/");
           }}
+          aria-label="Sign out"
           className="flex items-center justify-center rounded-xl transition-colors ml-2"
           style={{
             width: 36, height: 36,

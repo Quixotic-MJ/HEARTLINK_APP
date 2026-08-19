@@ -16,6 +16,7 @@ class TestAdminNotifications(unittest.TestCase):
             p["account_status"] = "active"
         mock_db.save_profiles()
         mock_db.load_logs()
+        mock_db.admin_notifications[:] = [an for an in mock_db.admin_notifications if an.get("demo_seed") == "heartlink-admin-notifications-demo-v1"]
         mock_db.seed_rich_demo_data()
         self.client = TestClient(app)
 
