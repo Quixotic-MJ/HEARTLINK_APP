@@ -44,6 +44,7 @@ export function Button({
   };
 
   const isDisabled = props.disabled || isLoading;
+  const isPrimary = variant === "primary";
 
   return (
     <AnimatedPressable
@@ -52,17 +53,15 @@ export function Button({
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
       disabled={isDisabled}
-      style={[animatedStyle, props.style]}
+      style={[animatedStyle, { opacity: isDisabled ? 0.7 : 1 }, props.style]}
       accessibilityState={{ busy: isLoading, disabled: isDisabled }}
       accessibilityRole="button"
-      className={`w-full rounded-2xl py-4 flex-row justify-center items-center gap-2 ${
-        variant === "primary" ? "bg-primary" : "bg-transparent border border-border"
-      } ${isDisabled ? "opacity-70" : ""}`}
+      className={isPrimary ? "w-full rounded-2xl py-4 flex-row justify-center items-center gap-2 bg-primary" : "w-full rounded-2xl py-4 flex-row justify-center items-center gap-2 bg-transparent border border-border"}
     >
       {isLoading ? (
         <>
-          <ActivityIndicator size="small" color={variant === "primary" ? "#fff" : "#000"} />
-          <Text className={`text-sm font-semibold ${variant === "primary" ? "text-primary-foreground" : "text-foreground"}`}>
+          <ActivityIndicator size="small" color={isPrimary ? "#fff" : "#000"} />
+          <Text className={isPrimary ? "text-sm font-semibold text-primary-foreground" : "text-sm font-semibold text-foreground"}>
             {loadingText || label}
           </Text>
         </>
@@ -72,10 +71,10 @@ export function Button({
             <Feather 
               name={icon} 
               size={16} 
-              className={variant === "primary" ? "text-primary-foreground" : "text-foreground"} 
+              color={isPrimary ? "#ffffff" : "#0f172a"} 
             />
           )}
-          <Text className={`text-sm font-semibold ${variant === "primary" ? "text-primary-foreground" : "text-foreground"}`}>
+          <Text className={isPrimary ? "text-sm font-semibold text-primary-foreground" : "text-sm font-semibold text-foreground"}>
             {label}
           </Text>
         </>

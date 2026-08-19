@@ -1,10 +1,11 @@
 from fastapi import APIRouter, status, HTTPException, Depends
-from app.utils.security import get_current_admin_user
+from app.utils.security import get_current_admin_user, get_current_user
 from app.schemas.user import (
     ProfileUpdate,
     ChangePasswordRequest,
     RemindersUpdateRequest,
-    CareTeamContactRequest
+    CareTeamContactRequest,
+    BaselineOnboardingRequest
 )
 from app.services.users import (
     update_profile,
@@ -91,7 +92,17 @@ async def read_user_profile(user_id: str):
     return data
 
 @router.put("/{user_id}/profile", status_code=status.HTTP_200_OK)
-async def update_user_profile(user_id: str, payload: ProfileUpdate):
+async def update_user_profile(
+    user_id: str,
+    payload: ProfileUpdate,
+    current_user: dict = Depends(get_current_user),
+):
+    caller_id = current_user.get("user_id")
+    if caller_id != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You may only update your own profile.",
+        )
     result = update_profile(user_id, payload.model_dump())
     if not result:
         raise HTTPException(
@@ -178,12 +189,21 @@ async def update_user_reminders_route(user_id: str, payload: RemindersUpdateRequ
     return {"success": True, "message": "Reminders updated", "data": result}
 
 
-from app.schemas.user import BaselineOnboardingRequest
 from app.services.hss_service import compute_initial_hss, HSSModelError
 from datetime import datetime
 
 @router.post("/{user_id}/baseline/complete", status_code=status.HTTP_201_CREATED)
-async def complete_baseline_onboarding(user_id: str, payload: BaselineOnboardingRequest):
+async def complete_baseline_onboarding(
+    user_id: str,
+    payload: BaselineOnboardingRequest,
+    current_user: dict = Depends(get_current_user),
+):
+    caller_id = current_user.get("user_id")
+    if caller_id != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You may only complete baseline onboarding for your own account.",
+        )
     user_profile = next((p for p in mock_db.profiles if p["id"] == user_id), None)
     if not user_profile:
         raise HTTPException(

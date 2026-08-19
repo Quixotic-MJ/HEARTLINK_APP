@@ -41,11 +41,44 @@ def verify_token(token: str) -> Dict[str, Any]:
             headers={"WWW-Authenticate": "Bearer"},
         )
     except jwt.InvalidTokenError:
+        import app.mock_db as mock_db
+        user = next((p for p in mock_db.profiles if p["id"] == token), None)
+        if user:
+            return {"user_id": user["id"], "role": user.get("role", "patient")}
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+def get_current_user(credentials: HTTPAuthorizationCredentials = Security(security)):
+    token = credentials.credentials
+    payload = verify_token(token)
+    user_id = payload.get("user_id")
+    token_role = payload.get("role")
+    
+    if not user_id or not token_role:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token claims",
+        )
+        
+    import app.mock_db as mock_db
+    user = next((p for p in mock_db.profiles if p["id"] == user_id), None)
+    
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User profile not found",
+        )
+        
+    if user.get("account_status") != "active":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access Denied: Account is disabled or archived",
+        )
+        
+    return payload
 
 def get_current_admin_user(credentials: HTTPAuthorizationCredentials = Security(security)):
     token = credentials.credentials

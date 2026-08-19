@@ -15,7 +15,7 @@ from app.api.admin_api.case_review_api import is_evaluation_eligible
 from offline_training_utility import train_candidate_model
 
 def mock_admin():
-    return {"user_id": "usr-chief-admin-001", "role": "admin", "name": "Chief Admin"}
+    return {"user_id": "usr-expert-201", "role": "medical_expert", "name": "Expert Reviewer"}
 
 class TestCalibrationDatasetFoundation(unittest.TestCase):
     def setUp(self):
@@ -24,6 +24,7 @@ class TestCalibrationDatasetFoundation(unittest.TestCase):
         
         # Backup DB
         self.original_evaluations = list(mock_db.expert_evaluations)
+        self.original_calibrations = list(mock_db.calibrations)
         self.original_datasets = list(mock_db.datasets)
         self.original_activity = list(mock_db.admin_activity)
         self.original_models = list(mock_db.candidate_models)
@@ -32,12 +33,15 @@ class TestCalibrationDatasetFoundation(unittest.TestCase):
         # Restore DB
         mock_db.expert_evaluations.clear()
         mock_db.expert_evaluations.extend(self.original_evaluations)
+        mock_db.calibrations.clear()
+        mock_db.calibrations.extend(self.original_calibrations)
         mock_db.datasets.clear()
         mock_db.datasets.extend(self.original_datasets)
         mock_db.admin_activity.clear()
         mock_db.admin_activity.extend(self.original_activity)
         mock_db.candidate_models.clear()
         mock_db.candidate_models.extend(self.original_models)
+        mock_db.save_logs()
         mock_db.save_logs()
         
         # Cleanup candidates

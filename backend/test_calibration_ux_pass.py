@@ -11,7 +11,7 @@ from app.utils.security import get_current_admin_user
 import app.mock_db as mock_db
 
 def mock_admin():
-    return {"user_id": "usr-chief-admin-001", "role": "admin", "name": "Chief Admin"}
+    return {"user_id": "usr-expert-201", "role": "medical_expert", "name": "Expert Reviewer"}
 
 class TestCalibrationUXPass(unittest.TestCase):
     def setUp(self):
@@ -20,6 +20,7 @@ class TestCalibrationUXPass(unittest.TestCase):
         
         # Save original collections
         self.original_evaluations = list(mock_db.expert_evaluations)
+        self.original_calibrations = list(mock_db.calibrations)
         self.original_activity = list(mock_db.admin_activity)
         
         # Ensure there is room under the 100 cap so appending increases the count
@@ -30,6 +31,8 @@ class TestCalibrationUXPass(unittest.TestCase):
         # Restore mock DB state
         mock_db.expert_evaluations.clear()
         mock_db.expert_evaluations.extend(self.original_evaluations)
+        mock_db.calibrations.clear()
+        mock_db.calibrations.extend(self.original_calibrations)
         mock_db.admin_activity.clear()
         mock_db.admin_activity.extend(self.original_activity)
         mock_db.save_logs()

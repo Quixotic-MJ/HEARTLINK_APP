@@ -325,6 +325,7 @@ alerts = [
 
 
 expert_evaluations = []
+calibrations = []
 datasets = []
 candidate_models = []
 admin_activity = []
@@ -1307,6 +1308,7 @@ def save_logs():
             "saved_recipes": [_serialize_item(r) for r in saved_recipes],
             "saved_exercises": [_serialize_item(e) for e in saved_exercises],
             "expert_evaluations": [_serialize_item(ee) for ee in expert_evaluations],
+            "calibrations": [_serialize_item(c) for c in calibrations],
             "datasets": [_serialize_item(ds) for ds in datasets],
             "candidate_models": [_serialize_item(cm) for cm in candidate_models],
             "system_broadcasts": [_serialize_item(b) for b in system_broadcasts],
@@ -1320,7 +1322,7 @@ def save_logs():
         print(f"Error saving mock logs: {e}")
 
 def load_logs():
-    global meal_logs, exercise_logs, daily_health_logs, sleep_logs, hss_history, notifications, alerts, saved_recipes, saved_exercises, expert_evaluations, datasets, candidate_models, system_broadcasts, admin_activity, feedback_tickets, admin_notifications
+    global meal_logs, exercise_logs, daily_health_logs, sleep_logs, hss_history, notifications, alerts, saved_recipes, saved_exercises, expert_evaluations, calibrations, datasets, candidate_models, system_broadcasts, admin_activity, feedback_tickets, admin_notifications
     if os.path.exists(LOGS_DB_FILE):
         try:
             with open(LOGS_DB_FILE, "r", encoding="utf-8") as f:
@@ -1355,6 +1357,9 @@ def load_logs():
                 if "expert_evaluations" in data:
                     expert_evaluations.clear()
                     expert_evaluations.extend([_deserialize_item(ee) for ee in data["expert_evaluations"]])
+                if "calibrations" in data:
+                    calibrations.clear()
+                    calibrations.extend([_deserialize_item(c) for c in data["calibrations"]])
                 if "datasets" in data:
                     datasets.clear()
                     datasets.extend([_deserialize_item(ds) for ds in data["datasets"]])
@@ -1397,7 +1402,7 @@ def seed_rich_demo_data(force=False):
 
     global profiles, baseline_onboarding, user_thresholds, user_reminders
     global daily_health_logs, meal_logs, exercise_logs, sleep_logs, hss_history, expert_evaluations, alerts, notifications, admin_activity, system_broadcasts
-    global recipes, exercise_routines, feedback_tickets, admin_notifications
+    global recipes, exercise_routines, feedback_tickets, admin_notifications, expert_evaluations, calibrations
 
     # Remove existing demo data to prevent duplication
     profiles[:] = [p for p in profiles if p.get("demo_seed") != "heartlink-demo-v2"]
@@ -1410,7 +1415,8 @@ def seed_rich_demo_data(force=False):
     exercise_logs[:] = [x for x in exercise_logs if x.get("demo_seed") != "heartlink-demo-v2"]
     sleep_logs[:] = [x for x in sleep_logs if x.get("demo_seed") != "heartlink-demo-v2"]
     hss_history[:] = [x for x in hss_history if x.get("demo_seed") != "heartlink-demo-v2"]
-    expert_evaluations[:] = [x for x in expert_evaluations if x.get("demo_seed") != "heartlink-demo-v2"]
+    expert_evaluations[:] = [x for x in expert_evaluations if x.get("demo_seed") not in ("heartlink-demo-v2", "heartlink-case-review-demo-v1") and x.get("user_id") not in DEMO_USER_IDS]
+    calibrations[:] = [x for x in calibrations if x.get("demo_seed") not in ("heartlink-demo-v2", "heartlink-case-review-demo-v1") and x.get("user_id") not in DEMO_USER_IDS]
     alerts[:] = [x for x in alerts if x.get("demo_seed") != "heartlink-demo-v2"]
     notifications[:] = [x for x in notifications if x.get("demo_seed") != "heartlink-demo-v2"]
     admin_activity[:] = [x for x in admin_activity if x.get("demo_seed") != "heartlink-demo-v2"]
@@ -1751,67 +1757,67 @@ def seed_rich_demo_data(force=False):
         fruit = "2-3"; practice = "Standard Filipino"
 
         if user_id == "usr-patient-a01":  # Stable
-            v_act = True; v_days = "4"; v_min = "30"
-            m_act = True; m_days = "3"; m_min = "30"
-            w_act = True; w_days = "5"; w_min = "30"
+            v_act = True; v_days = 4; v_min = 30
+            m_act = True; m_days = 3; m_min = 30
+            w_act = True; w_days = 5; w_min = 30
             sed_hrs = "2-4h"; sl_hrs = 8.0
             smoke = False; smoke_now_val = "Not at all"
             drink = False; drink_freq_val = "Never"
-            diet = "excellent"; fried = "rarely"; salty = "rarely"
-            fruit = "4+"; practice = "Low Sodium"
+            diet = "light"; fried = "rarely"; salty = "rarely"
+            fruit = "4-5"; practice = "Low Sodium"
         elif user_id == "usr-patient-102":  # Moderate
-            v_act = True; v_days = "2"; v_min = "30"
-            m_act = True; m_days = "2"; m_min = "20"
-            w_act = True; w_days = "3"; w_min = "15"
+            v_act = True; v_days = 2; v_min = 30
+            m_act = True; m_days = 2; m_min = 20
+            w_act = True; w_days = 3; w_min = 15
             sed_hrs = "4-6h"; sl_hrs = 7.0
             smoke = False; smoke_now_val = "Not at all"
             drink = True; drink_freq_val = "Monthly or less"
             diet = "average"; fried = "sometimes"; salty = "sometimes"
             fruit = "2-3"; practice = "Standard Filipino"
         elif user_id == "usr-patient-c01":  # Elevated Risk
-            v_act = False; v_days = "0"; v_min = "0"
-            m_act = True; m_days = "1"; m_min = "15"
-            w_act = False; w_days = "0"; w_min = "0"
+            v_act = False; v_days = None; v_min = None
+            m_act = True; m_days = 1; m_min = 15
+            w_act = False; w_days = None; w_min = None
             sed_hrs = "6-8h"; sl_hrs = 6.0
             smoke = True; smoke_now_val = "Not at all"
-            drink = True; drink_freq_val = "Weekly"
-            diet = "poor"; fried = "often"; salty = "often"
+            drink = True; drink_freq_val = "2-3x/week"
+            diet = "heavy"; fried = "often"; salty = "often"
             fruit = "0-1"; practice = "Standard Filipino"
         elif user_id == "usr-patient-d01":  # Critical
-            v_act = False; v_days = "0"; v_min = "0"
-            m_act = False; m_days = "0"; m_min = "0"
-            w_act = False; w_days = "0"; w_min = "0"
-            sed_hrs = "8h+"; sl_hrs = 5.0
-            smoke = True; smoke_now_val = "Daily"
-            drink = True; drink_freq_val = "Daily"
-            diet = "poor"; fried = "often"; salty = "often"
+            v_act = False; v_days = None; v_min = None
+            m_act = False; m_days = None; m_min = None
+            w_act = False; w_days = None; w_min = None
+            sed_hrs = "8+h"; sl_hrs = 5.0
+            smoke = True; smoke_now_val = "Every day"
+            drink = True; drink_freq_val = "4+/week"
+            diet = "very_heavy"; fried = "often"; salty = "often"
             fruit = "0-1"; practice = "High Sodium"
         elif user_id == "usr-patient-f01":  # High Engagement
-            v_act = True; v_days = "5"; v_min = "45"
-            m_act = True; m_days = "4"; m_min = "30"
-            w_act = True; w_days = "7"; w_min = "30"
+            v_act = True; v_days = 5; v_min = 45
+            m_act = True; m_days = 4; m_min = 30
+            w_act = True; w_days = 7; w_min = 30
             sed_hrs = "2-4h"; sl_hrs = 8.0
             smoke = False; smoke_now_val = "Not at all"
             drink = False; drink_freq_val = "Never"
-            diet = "excellent"; fried = "rarely"; salty = "rarely"
-            fruit = "4+"; practice = "Vegetarian"
+            diet = "light"; fried = "rarely"; salty = "rarely"
+            fruit = "4-5"; practice = "Vegetarian"
         elif user_id == "usr-patient-g01":  # Improving
-            v_act = True; v_days = "3"; v_min = "30"
-            m_act = True; m_days = "3"; m_min = "30"
-            w_act = True; w_days = "4"; w_min = "20"
+            v_act = True; v_days = 3; v_min = 30
+            m_act = True; m_days = 3; m_min = 30
+            w_act = True; w_days = 4; w_min = 20
             sed_hrs = "4-6h"; sl_hrs = 7.5
             smoke = True; smoke_now_val = "Not at all"
             drink = True; drink_freq_val = "Monthly or less"
             diet = "average"; fried = "sometimes"; salty = "sometimes"
             fruit = "2-3"; practice = "Low Sodium"
         elif user_id == "usr-patient-h01":  # Declining
-            v_act = False; v_days = "0"; v_min = "0"
-            m_act = True; m_days = "1"; m_min = "15"
-            w_act = False; w_days = "0"; w_min = "0"
-            sed_hrs = "8h+"; sl_hrs = 5.5
-            smoke = True; smoke_now_val = "Daily"
-            drink = True; drink_freq_val = "Weekly"
-            diet = "poor"; fried = "often"; salty = "often"
+            v_act = False; v_days = None; v_min = None
+            m_act = True; m_days = 1; m_min = 15
+            w_act = False; w_days = None; w_min = None
+            sed_hrs = "8+h"; sl_hrs = 5.5
+            smoke = True; smoke_now_val = "Every day"
+            drink = True; drink_freq_val = "2-3x/week"
+            diet = "very_heavy"; fried = "often"; salty = "often"
             fruit = "0-1"; practice = "Standard Filipino"
 
         baseline_onboarding.append({
@@ -2061,7 +2067,7 @@ def seed_rich_demo_data(force=False):
     # Expert Calibration Case Evaluations
     def add_evaluation(eval_id, user_id, ml_score, ml_tier, exp_score, exp_tier, status, confidence, reasons=[], exercise_feedback="Looks good", recipe_feedback="Perfect match", notes="Case analysis completed by reviewer."):
         case_id = get_deterministic_case_id(user_id)
-        expert_evaluations.append({
+        record = {
             "id": eval_id,
             "user_id": user_id,
             "case_id": case_id,
@@ -2131,8 +2137,10 @@ def seed_rich_demo_data(force=False):
             "recipe_feedback": recipe_feedback,
             "created_at": datetime.now() - timedelta(days=1),
             "reviewed_at": datetime.now() - timedelta(days=1),
-            "demo_seed": "heartlink-demo-v2"
-        })
+            "demo_seed": "heartlink-case-review-demo-v1"
+        }
+        expert_evaluations.append(record)
+        calibrations.append(record)
 
     add_evaluation("CAL-1002", "usr-patient-102", 72, "Moderate", 73, "Moderate", "Evaluated", "high", ["blood_pressure_pattern"], "Very useful routine.", "Tofu dish was helpful.")
     add_evaluation("CAL-1003", "usr-patient-g01", 66, "Moderate", 57, "Elevated Risk", "Evaluated", "medium", ["symptoms", "sleep_pattern"], "Recommend more breathing exercises.", "Reduce potato intake.")
@@ -2457,6 +2465,9 @@ def seed_rich_demo_data(force=False):
     eval_ids = [ev["id"] for ev in expert_evaluations]
     assert len(eval_ids) == len(set(eval_ids)), "Integrity violation: duplicate evaluation IDs found"
     
+    cal_ids = [c["id"] for c in calibrations]
+    assert len(cal_ids) == len(set(cal_ids)), "Integrity violation: duplicate calibration IDs found"
+    
     anotif_ids = [an["id"] for an in admin_notifications]
     assert len(anotif_ids) == len(set(anotif_ids)), "Integrity violation: duplicate admin notification IDs found"
     
@@ -2484,7 +2495,7 @@ def seed_rich_demo_data(force=False):
 
     # 5. Evaluations User & Case checks
     for ev in expert_evaluations:
-        if ev.get("demo_seed") == "heartlink-demo-v2":
+        if ev.get("demo_seed") in ["heartlink-demo-v2", "heartlink-case-review-demo-v1"]:
             if ev["user_id"] not in user_ids:
                 raise ValueError(f"Foreign Key violation: evaluation {ev['id']} references nonexistent user {ev['user_id']}")
             expected_case_id = get_deterministic_case_id(ev["user_id"])

@@ -377,6 +377,8 @@ export default function ProfileScreen() {
           let allergies = "None reported";
           if (baselines.dietary?.allergies && baselines.dietary.allergies.length > 0) {
             allergies = baselines.dietary.allergies.join(", ");
+          } else if (baselines.onboarding?.allergies && baselines.onboarding.allergies.length > 0) {
+            allergies = baselines.onboarding.allergies.join(", ");
           }
 
           setUserData(prev => ({

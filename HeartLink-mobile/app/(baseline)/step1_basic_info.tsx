@@ -8,32 +8,36 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useColorScheme } from "nativewind";
 import { useBaseline } from "../../contexts/BaselineContext";
-import { Colors } from "../../constants/theme";
 import AnimatedButton from "../../components/ui/AnimatedButton";
 
 // Reusable components
-function MeasureInput({ value, onChangeText, placeholder = "0", unit, maxLength }: any) {
+function MeasureInput({ value, onChangeText, onBlur, placeholder = "0", unit, maxLength, hasError, isDark }: any) {
   return (
-    <View className="flex-1 bg-white dark:bg-slate-900 rounded-xl flex-row items-center px-3.5" style={{ borderWidth: 1, borderColor: "#e2e8f0", height: 50 }}>
+    <View className={`flex-1 bg-card rounded-xl flex-row items-center px-3.5 border min-h-[52px] ${hasError ? "border-destructive bg-destructive/5" : "border-border"}`}>
       <TextInput
-        value={value} onChangeText={onChangeText} placeholder={placeholder}
-        placeholderTextColor="#cbd5e1" keyboardType="decimal-pad" maxLength={maxLength}
-        className="flex-1 text-[16px] font-medium text-slate-900 dark:text-white h-full"
+        value={value}
+        onChangeText={onChangeText}
+        onBlur={onBlur}
+        placeholder={placeholder}
+        placeholderTextColor={isDark ? "#64748b" : "#94a3b8"}
+        keyboardType="decimal-pad"
+        maxLength={maxLength}
+        className="flex-1 text-[16px] font-medium text-foreground h-full"
       />
-      <Text className="text-[13px] text-slate-400 ml-1">{unit}</Text>
+      <Text className="text-[13px] text-muted-foreground ml-1">{unit}</Text>
     </View>
   );
 }
 
 function FieldLabel({ title }: { title: string }) {
-  return <Text className="text-[11px] text-slate-400 uppercase tracking-wide mb-2 ml-0.5">{title}</Text>;
+  return <Text className="text-[11px] text-muted-foreground uppercase tracking-wide mb-2 ml-0.5">{title}</Text>;
 }
 
 function StepProgress({ current, total }: { current: number; total: number }) {
   return (
     <View className="flex-row gap-1.5 mb-6">
       {Array.from({ length: total }).map((_, i) => (
-        <View key={i} className="flex-1 h-1 rounded-full" style={{ backgroundColor: i < current ? Colors.light.tint : "#e2e8f0" }} />
+        <View key={i} className={`flex-1 h-1 rounded-full ${i < current ? "bg-primary" : "bg-border"}`} />
       ))}
     </View>
   );
@@ -48,29 +52,45 @@ export default function Step1BasicInfo() {
   const { data, updateData } = useBaseline();
   
   const insets = useSafeAreaInsets();
-  const activeBg = Colors[isDark ? "dark" : "light"].tint;
-  const activeText = isDark ? "#11181C" : "#ffffff";
   
+  // Local state to prevent global context thrashing on rapid keystrokes
+  const [localFirstName, setLocalFirstName] = useState(data.first_name || "");
+  const [localLastName, setLocalLastName] = useState(data.last_name || "");
+  const [localHeight, setLocalHeight] = useState(data.height_cm || "");
+  const [localWeight, setLocalWeight] = useState(data.weight_kg || "");
+  const [errorFields, setErrorFields] = useState<string[]>([]);
   const [showDatePicker, setShowDatePicker] = useState(false);
 
-  // Load existing user profile on mount
+  // Load existing user profile on mount (guarded against overwriting existing in-memory baseline state)
   useEffect(() => {
     async function loadExisting() {
       const base_url = process.env.EXPO_PUBLIC_API_URL;
       if (!params.user_id) return;
+      // If context already has data (e.g. user navigated back from Step 2), do not overwrite
+      if (data.first_name || data.height_cm || data.weight_kg) return;
       try {
         const res = await fetch(`${base_url}/api/users/${params.user_id}/profile`);
         if (!res.ok) return;
         const json = await res.json();
         const p = json?.profile;
         if (p) {
+          const fetchedFirstName = p.first_name || '';
+          const fetchedLastName = p.last_name || '';
+          const fetchedHeight = p.height_cm ? String(p.height_cm) : '';
+          const fetchedWeight = p.weight_kg ? String(p.weight_kg) : '';
+
+          setLocalFirstName(fetchedFirstName);
+          setLocalLastName(fetchedLastName);
+          setLocalHeight(fetchedHeight);
+          setLocalWeight(fetchedWeight);
+
           updateData({
-            first_name: p.first_name || '',
-            last_name: p.last_name || '',
+            first_name: fetchedFirstName,
+            last_name: fetchedLastName,
             date_of_birth: p.date_of_birth || '',
             sex: p.sex || '',
-            height_cm: p.height_cm ? String(p.height_cm) : '',
-            weight_kg: p.weight_kg ? String(p.weight_kg) : '',
+            height_cm: fetchedHeight,
+            weight_kg: fetchedWeight,
           });
         }
       } catch (e) {}
@@ -78,61 +98,86 @@ export default function Step1BasicInfo() {
     loadExisting();
   }, [params.user_id]);
 
-  const isReady = !!data.first_name && !!data.date_of_birth && !!data.sex && !!data.height_cm && !!data.weight_kg;
+  const isReady = !!localFirstName.trim() && !!data.date_of_birth && !!data.sex && !!localHeight.trim() && !!localWeight.trim();
 
   const handleNext = () => {
-    const h = parseFloat(data.height_cm);
-    const w = parseFloat(data.weight_kg);
+    const errors: string[] = [];
+    const h = parseFloat(localHeight);
+    const w = parseFloat(localWeight);
     if (isNaN(h) || h < 50 || h > 300) {
+      errors.push("height");
       showToast({ title: "Invalid Height", message: "Please enter a valid height (50-300 cm).", type: "error" });
-      return;
     }
     if (isNaN(w) || w < 20 || w > 400) {
+      errors.push("weight");
       showToast({ title: "Invalid Weight", message: "Please enter a valid weight (20-400 kg).", type: "error" });
+    }
+
+    if (errors.length > 0) {
+      setErrorFields(errors);
       return;
     }
+
+    setErrorFields([]);
+    updateData({
+      first_name: localFirstName.trim(),
+      last_name: localLastName.trim(),
+      height_cm: localHeight.trim(),
+      weight_kg: localWeight.trim(),
+    });
+
     router.push({ pathname: "/(baseline)/step2_activity", params });
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
       <StatusBar style={isDark ? "light" : "dark"} />
       
       {/* Header */}
       <View className="px-5 pt-4 pb-3">
         <View className="flex-row items-center mb-4">
-          <AnimatedButton onPress={() => router.back()} className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 items-center justify-center mr-3">
+          <AnimatedButton onPress={() => router.back()} className="w-9 h-9 rounded-xl bg-card border border-border items-center justify-center mr-3">
             <Feather name="arrow-left" size={18} color={isDark ? "#f8fafc" : "#0f172a"} />
           </AnimatedButton>
           <View className="flex-1">
-            <Text className="text-[11px] text-slate-400 uppercase tracking-wide">Step 1 of 6</Text>
-            <Text className="text-xl font-bold text-slate-900 dark:text-white mt-0.5">Basic Information</Text>
+            <Text className="text-[11px] text-muted-foreground uppercase tracking-wide">Step 1 of 6</Text>
+            <Text className="text-xl font-bold text-foreground mt-0.5">Basic Information</Text>
           </View>
         </View>
         <StepProgress current={1} total={6} />
       </View>
 
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} className="flex-1">
-        <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 20, paddingBottom: 40 }}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
           
           <View className="mb-6 flex-row gap-3">
             <View className="flex-1">
               <FieldLabel title="First Name" />
-              <View className="bg-white dark:bg-slate-900 rounded-xl px-3.5 border border-slate-200 dark:border-slate-800 h-[50px] justify-center">
+              <View className="bg-card rounded-xl px-3.5 border border-border min-h-[52px] justify-center">
                 <TextInput
-                  value={data.first_name} onChangeText={(t) => updateData({ first_name: t })}
-                  placeholder="John" placeholderTextColor="#cbd5e1"
-                  className="text-[16px] font-medium text-slate-900 dark:text-white h-full"
+                  value={localFirstName}
+                  onChangeText={(t) => setLocalFirstName(t)}
+                  onBlur={() => updateData({ first_name: localFirstName.trim() })}
+                  placeholder="John"
+                  placeholderTextColor={isDark ? "#64748b" : "#94a3b8"}
+                  className="text-[16px] font-medium text-foreground h-full"
                 />
               </View>
             </View>
             <View className="flex-1">
               <FieldLabel title="Last Name" />
-              <View className="bg-white dark:bg-slate-900 rounded-xl px-3.5 border border-slate-200 dark:border-slate-800 h-[50px] justify-center">
+              <View className="bg-card rounded-xl px-3.5 border border-border min-h-[52px] justify-center">
                 <TextInput
-                  value={data.last_name} onChangeText={(t) => updateData({ last_name: t })}
-                  placeholder="Doe" placeholderTextColor="#cbd5e1"
-                  className="text-[16px] font-medium text-slate-900 dark:text-white h-full"
+                  value={localLastName}
+                  onChangeText={(t) => setLocalLastName(t)}
+                  onBlur={() => updateData({ last_name: localLastName.trim() })}
+                  placeholder="Doe"
+                  placeholderTextColor={isDark ? "#64748b" : "#94a3b8"}
+                  className="text-[16px] font-medium text-foreground h-full"
                 />
               </View>
             </View>
@@ -142,12 +187,11 @@ export default function Step1BasicInfo() {
             <FieldLabel title="Date of Birth" />
             <AnimatedButton 
               onPress={() => setShowDatePicker(true)}
-              className="bg-white dark:bg-slate-900 rounded-xl px-3.5 border border-slate-200 dark:border-slate-800 h-[50px] flex-row items-center"
+              className="bg-card rounded-xl px-3.5 border border-border min-h-[52px] flex-row items-center"
             >
-              <Feather name="calendar" size={18} color="#94a3b8" />
+              <Feather name="calendar" size={18} color={isDark ? "#94a3b8" : "#64748b"} />
               <Text 
-                className="text-[16px] font-medium ml-3"
-                style={{ color: data.date_of_birth ? (isDark ? "#ffffff" : "#0f172a") : "#94a3b8" }}
+                className={`text-[16px] font-medium ml-3 ${data.date_of_birth ? "text-foreground" : "text-muted-foreground"}`}
               >
                 {data.date_of_birth ? new Date(data.date_of_birth).toLocaleDateString() : "Select Date"}
               </Text>
@@ -166,18 +210,16 @@ export default function Step1BasicInfo() {
 
           <View className="mb-6">
             <FieldLabel title="Biological Sex" />
-            <View className="flex-row bg-slate-100 dark:bg-slate-800/50 p-1 rounded-xl">
+            <View className="flex-row bg-border/40 p-1 rounded-xl">
               {["male", "female"].map((s) => {
                 const isActive = data.sex === s;
                 return (
                 <AnimatedButton
                   key={s} onPress={() => updateData({ sex: s as any })}
-                  className="flex-1 items-center justify-center py-3 rounded-lg"
-                  style={isActive ? { backgroundColor: activeBg, shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 } : undefined}
+                  className={`flex-1 items-center justify-center py-3 rounded-lg ${isActive ? "bg-primary shadow-sm" : "bg-transparent"}`}
                 >
                   <Text 
-                    className="text-[14px] font-semibold capitalize"
-                    style={{ color: isActive ? activeText : "#64748b" }}
+                    className={`text-[14px] font-semibold capitalize ${isActive ? "text-primary-foreground" : "text-muted-foreground"}`}
                   >
                     {s}
                   </Text>
@@ -189,11 +231,33 @@ export default function Step1BasicInfo() {
           <View className="mb-8 flex-row gap-4">
             <View className="flex-1">
               <FieldLabel title="Height" />
-              <MeasureInput value={data.height_cm} onChangeText={(t: string) => updateData({ height_cm: t })} unit="cm" maxLength={5} />
+              <MeasureInput
+                value={localHeight}
+                onChangeText={(t: string) => {
+                  setLocalHeight(t);
+                  setErrorFields((prev) => prev.filter((f) => f !== "height"));
+                }}
+                onBlur={() => updateData({ height_cm: localHeight.trim() })}
+                unit="cm"
+                maxLength={5}
+                hasError={errorFields.includes("height")}
+                isDark={isDark}
+              />
             </View>
             <View className="flex-1">
               <FieldLabel title="Weight" />
-              <MeasureInput value={data.weight_kg} onChangeText={(t: string) => updateData({ weight_kg: t })} unit="kg" maxLength={5} />
+              <MeasureInput
+                value={localWeight}
+                onChangeText={(t: string) => {
+                  setLocalWeight(t);
+                  setErrorFields((prev) => prev.filter((f) => f !== "weight"));
+                }}
+                onBlur={() => updateData({ weight_kg: localWeight.trim() })}
+                unit="kg"
+                maxLength={5}
+                hasError={errorFields.includes("weight")}
+                isDark={isDark}
+              />
             </View>
           </View>
 
@@ -201,16 +265,15 @@ export default function Step1BasicInfo() {
       </KeyboardAvoidingView>
 
       <View 
-        className="px-5 pt-4 bg-white dark:bg-slate-950 border-t border-slate-100 dark:border-slate-900"
+        className="px-5 pt-4 bg-card border-t border-border"
         style={{ paddingBottom: Math.max(insets.bottom, 20) }}
       >
         <AnimatedButton
           onPress={handleNext} disabled={!isReady}
-          className="h-[54px] rounded-2xl items-center justify-center flex-row"
-          style={{ backgroundColor: isReady ? activeBg : (isDark ? "#1e293b" : "#e2e8f0") }}
+          className={`h-[54px] rounded-2xl items-center justify-center flex-row shadow-sm ${isReady ? "bg-primary" : "bg-muted/30"}`}
         >
-          <Text className="text-[16px] font-bold" style={{ color: isReady ? activeText : "#94a3b8" }}>Next Step</Text>
-          <Feather name="arrow-right" size={18} color={isReady ? activeText : "#94a3b8"} style={{ marginLeft: 8 }} />
+          <Text className={`text-[16px] font-bold ${isReady ? "text-primary-foreground" : "text-muted"}`}>Next Step</Text>
+          <Feather name="arrow-right" size={18} color={isReady ? "#ffffff" : (isDark ? "#475569" : "#94a3b8")} className="ml-2" />
         </AnimatedButton>
       </View>
     </SafeAreaView>

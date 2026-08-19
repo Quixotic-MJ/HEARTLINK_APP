@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from typing import Dict, Any, List
 from datetime import datetime
 import uuid
@@ -12,7 +12,16 @@ from app.services.clinical import (
     get_model_metadata
 )
 
-router = APIRouter(prefix="/api/admin", tags=["Case Review & Calibration"])
+router = APIRouter(tags=["Case Review & Calibration"])
+
+def _require_medical_expert(current_user: dict = Depends(get_current_admin_user)) -> dict:
+    role = current_user.get("role")
+    if role != "medical_expert":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access Denied: Medical Expert role required"
+        )
+    return current_user
 
 def _get_ml_hss(user_id: str) -> dict:
     user_hss_history = [c for c in mock_db.hss_history if c["user_id"] == user_id]
@@ -46,7 +55,7 @@ def _calculate_age(dob_str: Any) -> int:
 
 @router.get("/cases", response_model=List[Dict[str, Any]])
 def list_reviewable_cases(current_user: dict = Depends(get_current_admin_user)):
-    """List all onboarded users as anonymized cases for review."""
+    """List reviewable cases meeting clinical trigger criteria (Systolic > 120, Diastolic > 80, or HSS < 50)."""
     cases = []
     
     # We only want patients who have completed onboarding
@@ -58,8 +67,23 @@ def list_reviewable_cases(current_user: dict = Depends(get_current_admin_user)):
         if not profile_data:
             continue
             
+        # Clinical parameters check
+        clinical_data = get_clinical_baseline_data(user_id)
+        resting_bp = clinical_data.get("resting_bp_mmhg", "120/80")
+        try:
+            parts = str(resting_bp).split("/")
+            sys_bp = int(parts[0].strip())
+            dia_bp = int(parts[1].strip())
+        except Exception:
+            sys_bp, dia_bp = 120, 80
+            
         ml_prediction = _get_ml_hss(user_id)
+        hss_score = ml_prediction.get("score") if ml_prediction.get("score") is not None else 80
         
+        # Clinical triggers: Systolic > 120 OR Diastolic > 80 OR HSS < 50
+        if not (sys_bp > 120 or dia_bp > 80 or hss_score < 50):
+            continue
+            
         # Check if already evaluated
         evaluations = [e for e in mock_db.expert_evaluations if e["user_id"] == user_id]
         status = "Evaluated" if evaluations else "Pending"
@@ -180,7 +204,7 @@ def _format_evaluation(eval_item: dict) -> dict:
     return res
 
 @router.post("/cases/{user_id}/evaluate")
-def submit_evaluation(user_id: str, payload: dict, current_user: dict = Depends(get_current_admin_user)):
+def submit_evaluation(user_id: str, payload: dict, current_user: dict = Depends(_require_medical_expert)):
     """Submit an expert evaluation providing the ground-truth HSS score and recommendation feedback."""
     expert_hss_score = payload.get("expert_hss_score")
     notes = payload.get("notes")
@@ -196,9 +220,23 @@ def submit_evaluation(user_id: str, payload: dict, current_user: dict = Depends(
         raise HTTPException(status_code=400, detail="Risk interpretation notes are required and must contain at least 10 non-whitespace characters.")
     notes = notes.strip()
     
-    # 2. Validation check on HSS score
+    # 2. Strict Math Bounds check on HSS score
     if expert_hss_score is None:
         raise HTTPException(status_code=400, detail="expert_hss_score is required")
+    if not isinstance(expert_hss_score, int) or isinstance(expert_hss_score, bool):
+        raise HTTPException(status_code=400, detail="expert_hss_score must be a whole number (integer)")
+    if expert_hss_score < 1 or expert_hss_score > 100:
+        raise HTTPException(status_code=400, detail="expert_hss_score must be between 1 and 100 inclusive")
+        
+    # 3. Case State Lock check
+    existing_eval = next((e for e in mock_db.expert_evaluations if e.get("user_id") == user_id), None)
+    if existing_eval:
+        current_status = str(existing_eval.get("status", "")).strip().lower()
+        if current_status in ["resolved", "archived"]:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Case evaluation is locked ({existing_eval.get('status')}) and cannot be modified."
+            )
         
     # 3. Validation check on adjustment reasons list (Mutual exclusivity rule)
     allowed_reasons = {
@@ -222,16 +260,16 @@ def submit_evaluation(user_id: str, payload: dict, current_user: dict = Depends(
     if exercise_feedback is not None:
         if not isinstance(exercise_feedback, dict):
             raise HTTPException(status_code=400, detail="exercise_feedback must be an object.")
-        status = exercise_feedback.get("status")
-        if status not in {"appropriate", "needs_review", None}:
+        ex_status = exercise_feedback.get("status")
+        if ex_status not in {"appropriate", "needs_review", None}:
             raise HTTPException(status_code=400, detail="exercise_feedback status must be 'appropriate', 'needs_review', or null.")
             
     # 6. Validation check on recipe_feedback
     if recipe_feedback is not None:
         if not isinstance(recipe_feedback, dict):
             raise HTTPException(status_code=400, detail="recipe_feedback must be an object.")
-        status = recipe_feedback.get("status")
-        if status not in {"appropriate", "needs_review", None}:
+        rec_status = recipe_feedback.get("status")
+        if rec_status not in {"appropriate", "needs_review", None}:
             raise HTTPException(status_code=400, detail="recipe_feedback status must be 'appropriate', 'needs_review', or null.")
         
     profile_data = get_full_profile(user_id)
@@ -347,6 +385,13 @@ def submit_evaluation(user_id: str, payload: dict, current_user: dict = Depends(
         existing_eval["exercise_feedback"] = exercise_feedback
         existing_eval["recipe_feedback"] = recipe_feedback
         evaluation = existing_eval
+        
+        # Sync with calibrations collection
+        existing_cal = next((c for c in mock_db.calibrations if c.get("id") == existing_eval["id"]), None)
+        if existing_cal:
+            existing_cal.update(existing_eval)
+        else:
+            mock_db.calibrations.append(existing_eval)
     else:
         existing_ids = {e["id"] for e in mock_db.expert_evaluations}
         idx = len(mock_db.expert_evaluations) + 1000
@@ -363,7 +408,7 @@ def submit_evaluation(user_id: str, payload: dict, current_user: dict = Depends(
             "expert_hss_tier": expert_hss_tier,
             "notes": notes,
             "recommendation_feedback": recommendation_feedback,
-            "reviewer_id": current_user.get("sub", current_user.get("user_id", "admin")),
+            "reviewer_id": current_user.get("sub", current_user.get("user_id", "expert")),
             "reviewer_name": reviewer_name.strip(),
             "ml_predicted_hss": ml_predicted_hss,
             "ml_predicted_tier": ml_predicted_tier,
@@ -381,6 +426,8 @@ def submit_evaluation(user_id: str, payload: dict, current_user: dict = Depends(
             "created_at": datetime.utcnow()
         }
         mock_db.expert_evaluations.append(evaluation)
+        if evaluation not in mock_db.calibrations:
+            mock_db.calibrations.append(evaluation)
         
     mock_db.save_logs()
     

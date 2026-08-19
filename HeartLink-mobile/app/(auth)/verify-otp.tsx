@@ -1,4 +1,3 @@
-import { useColorScheme } from "nativewind";
 import React, { useState, useEffect, useRef } from "react";
 import {
   View,
@@ -17,8 +16,18 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { useColorScheme } from "nativewind";
+import Animated, { 
+  FadeIn, 
+  FadeInDown, 
+  useSharedValue, 
+  useAnimatedStyle, 
+  withSequence, 
+  withTiming 
+} from "react-native-reanimated";
 import "../../global.css";
 import { useUser } from "../../contexts/UserContext";
+import { Button } from "../../components/ui/Button";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -55,6 +64,9 @@ export default function OTPVerificationScreen() {
   const [isResending, setIsResending] = useState(false);
   const [generalError, setGeneralError] = useState<string | null>(null);
 
+  // Micro-interactions
+  const errorShake = useSharedValue(0);
+
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
     if (timer > 0) {
@@ -64,6 +76,22 @@ export default function OTPVerificationScreen() {
     }
     return () => clearInterval(interval);
   }, [timer]);
+
+  useEffect(() => {
+    if (generalError || errors.code) {
+      errorShake.value = withSequence(
+        withTiming(8, { duration: 50 }),
+        withTiming(-8, { duration: 50 }),
+        withTiming(6, { duration: 50 }),
+        withTiming(-6, { duration: 50 }),
+        withTiming(0, { duration: 50 })
+      );
+    }
+  }, [generalError, errors.code]);
+
+  const errorAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: errorShake.value }],
+  }));
 
   const handleOtpChange = (value: string, index: number) => {
     setGeneralError(null);
@@ -157,55 +185,45 @@ export default function OTPVerificationScreen() {
   const isComplete = otp.join("").length === 6;
 
   return (
-    <SafeAreaView
-      className="flex-1 bg-background"
-      edges={["top", "bottom"]}
-    >
-      <StatusBar style="auto" />
+    <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
+      <StatusBar style={isDark ? "light" : "dark"} />
 
-      {/* Header */}
-      <View className="flex-row items-center px-6 pt-4 pb-2">
+      {/* ── Top Bar ── */}
+      <View className="px-5 pt-4 pb-3 flex-row items-center justify-between">
         <TouchableOpacity
           onPress={() => router.back()}
-          className="p-2 -ml-2 mr-4"
-          accessible={true}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
+          className="w-9 h-9 rounded-xl bg-card border border-border items-center justify-center"
+          activeOpacity={0.7}
         >
-          <Feather name="arrow-left" size={24} className="text-foreground" />
+          <Feather name="arrow-left" size={18} color={isDark ? "#f8fafc" : "#0f172a"} />
         </TouchableOpacity>
-        <View className="flex-row items-center gap-2">
-          <View className="w-8 h-8 rounded-full items-center justify-center border border-border bg-card">
-            <Feather name="heart" size={14} className="text-foreground" />
+        <View className="flex-row items-center gap-2.5">
+          <View className="w-8 h-8 rounded-full items-center justify-center border border-border bg-card shadow-sm">
+            <Feather name="heart" size={14} color={isDark ? "#f8fafc" : "#0f172a"} />
           </View>
-          <Text
-            className="text-base text-foreground tracking-tight"
-            style={{ fontWeight: "300" }}
-          >
+          <Text className="text-[15px] text-foreground tracking-tight" style={{ fontWeight: "300" }}>
             Heart<Text style={{ fontWeight: "600" }}>Link.</Text>
           </Text>
         </View>
       </View>
 
       <KeyboardAvoidingView
-        style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
+        className="flex-1"
       >
-        <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag"
-          contentContainerClassName="flex-grow justify-center px-5 pb-10 pt-4"
+        <ScrollView
+          contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 48 }}
           showsVerticalScrollIndicator={false}
-          bounces={false}
+          keyboardShouldPersistTaps="handled"
         >
           {/* ── Card ── */}
-          <View className="bg-card rounded-3xl border border-border px-5 py-7 gap-5">
+          <Animated.View entering={FadeInDown.delay(200).springify()} className="bg-card rounded-2xl border border-border px-5 py-7 gap-5 shadow-md mt-4">
             {/* Icon + heading */}
-            <View className="items-center mb-4">
-              <View
-                className="w-16 h-16 rounded-2xl items-center justify-center mb-5 bg-primary/10 border border-primary/20"
-              >
-                <Feather name="smartphone" size={26} className="text-primary" />
+            <View className="items-center mb-2">
+              <View className="w-14 h-14 rounded-2xl items-center justify-center mb-4 bg-primary/10 border border-primary/20">
+                <Feather name="smartphone" size={24} color={isDark ? "#3b82f6" : "#2563eb"} />
               </View>
-              <Text className="text-3xl font-semibold text-foreground tracking-tight mb-2 text-center" accessibilityRole="header">
+              <Text className="text-2xl font-bold text-foreground tracking-tight mb-2 text-center">
                 Verify your account
               </Text>
               <Text className="text-sm text-muted-foreground text-center leading-relaxed px-2">
@@ -214,58 +232,61 @@ export default function OTPVerificationScreen() {
             </View>
 
             {/* ── OTP boxes ── */}
-            <View className="flex-row justify-between gap-2 mb-2">
-              {otp.map((digit, index) => (
-                <TextInput
-                  key={index}
-                  ref={(ref) => (inputRefs.current[index] = ref)}
-                  value={digit}
-                  onChangeText={(v) => handleOtpChange(v, index)}
-                  onKeyPress={(e) => handleKeyPress(e, index)}
-                  keyboardType="number-pad"
-                  maxLength={1}
-                  selectTextOnFocus
-                  className={`flex-1 aspect-square rounded-2xl border-2 text-center text-2xl font-semibold p-0 ${
-                    digit !== "" 
-                      ? "border-primary bg-primary/10 text-foreground" 
-                      : "border-border bg-background text-foreground"
-                  }`}
-                  style={Platform.OS === "android" ? { includeFontPadding: false, textAlignVertical: "center" } : { textAlignVertical: "center" }}
-                />
-              ))}
+            <View className="flex-row justify-between gap-2 my-2">
+              {otp.map((digit, index) => {
+                const isFilled = digit !== "";
+                const boxBorder = isFilled 
+                  ? (isDark ? "#3b82f6" : "#2563eb") 
+                  : (isDark ? "#334155" : "#e2e8f0");
+                const boxBg = isFilled 
+                  ? (isDark ? "rgba(59, 130, 246, 0.12)" : "rgba(37, 99, 235, 0.06)") 
+                  : (isDark ? "rgba(15, 23, 42, 0.6)" : "rgba(248, 250, 252, 0.9)");
+
+                return (
+                  <TextInput
+                    key={index}
+                    ref={(ref) => (inputRefs.current[index] = ref)}
+                    value={digit}
+                    onChangeText={(v) => handleOtpChange(v, index)}
+                    onKeyPress={(e) => handleKeyPress(e, index)}
+                    keyboardType="number-pad"
+                    maxLength={1}
+                    selectTextOnFocus
+                    className="flex-1 aspect-square rounded-xl border text-center text-2xl font-semibold text-foreground p-0"
+                    style={[
+                      { borderColor: boxBorder, backgroundColor: boxBg },
+                      Platform.OS === "android" ? { includeFontPadding: false, textAlignVertical: "center" } : { textAlignVertical: "center" }
+                    ]}
+                  />
+                );
+              })}
             </View>
 
-            {/* Error Message */}
+            {/* Error Message with Shake Animation */}
             {(generalError || errors.code) && (
-              <View className="bg-destructive/10 border border-destructive/30 rounded-2xl p-3.5 flex-row items-center gap-2 mt-1 mb-1" accessible={true} accessibilityRole="alert">
-                <Feather name="alert-triangle" size={16} className="text-destructive" />
-                <Text className="text-destructive text-sm flex-1 font-medium">
+              <Animated.View 
+                style={errorAnimatedStyle}
+                className="bg-destructive/15 border border-destructive/40 rounded-xl p-3.5 flex-row items-center gap-2 mt-1 mb-1"
+              >
+                <Feather name="alert-triangle" size={16} color="#ef4444" />
+                <Text className="text-destructive text-xs flex-1 font-medium">
                   {generalError || errors.code?.message}
                 </Text>
-              </View>
+              </Animated.View>
             )}
 
             {/* Submit */}
-            <TouchableOpacity
-              activeOpacity={0.85}
+            <Button
               onPress={handleSubmit(onSubmit)}
-              disabled={isVerifying || !isComplete}
-              className={`w-full bg-primary rounded-2xl py-4 flex-row justify-center items-center gap-2 mb-2 ${(!isComplete || isVerifying) ? 'opacity-50' : ''}`}
-            >
-              {isVerifying ? (
-                <ActivityIndicator color="white" size="small" />
-              ) : (
-                <>
-                  <Feather name="check-circle" size={16} className="text-primary-foreground" />
-                  <Text className="text-primary-foreground text-sm font-semibold">
-                    Verify & proceed
-                  </Text>
-                </>
-              )}
-            </TouchableOpacity>
+              isLoading={isVerifying}
+              disabled={!isComplete || isVerifying}
+              loadingText="Verifying..."
+              label="Verify & proceed"
+              icon="check-circle"
+            />
 
             {/* Resend Code */}
-            <View className="items-center mt-2">
+            <View className="items-center mt-3">
               {timer > 0 ? (
                 <Text className="text-sm text-muted-foreground">
                   Resend code in <Text className="font-semibold text-foreground">{formatTime(timer)}</Text>
@@ -275,12 +296,13 @@ export default function OTPVerificationScreen() {
                   onPress={handleResend}
                   disabled={isResending}
                   className="flex-row items-center gap-1.5 py-2 px-4"
+                  activeOpacity={0.7}
                 >
                   {isResending ? (
-                    <ActivityIndicator size="small" color="#3b82f6" />
+                    <ActivityIndicator size="small" color={isDark ? "#3b82f6" : "#2563eb"} />
                   ) : (
                     <>
-                      <Feather name="refresh-cw" size={14} className="text-primary" />
+                      <Feather name="refresh-cw" size={14} color={isDark ? "#3b82f6" : "#2563eb"} />
                       <Text className="text-sm font-semibold text-primary">
                         Resend code
                       </Text>
@@ -289,7 +311,7 @@ export default function OTPVerificationScreen() {
                 </TouchableOpacity>
               )}
             </View>
-          </View>
+          </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

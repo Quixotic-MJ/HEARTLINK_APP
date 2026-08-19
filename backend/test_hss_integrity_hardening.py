@@ -1,4 +1,4 @@
-﻿"""
+"""
 HeartLink — HSS Integrity Hardening Regression Tests
 Verifies:
 1. Repeated onboarding updates baseline in place and does not create duplicate IDs.
@@ -60,12 +60,12 @@ class TestHSSIntegrityHardening(unittest.TestCase):
             "walk_bike_transport": True,
             "walk_bike_days": 5,
             "walk_bike_minutes": 20,
-            "sedentary_hours": "4-6",
+            "sedentary_hours": "4-6h",
             "sleep_hours": 7.5,
             "ever_smoked": False,
             "smoke_now": "Not at all",
             "ever_drank": False,
-            "diet_level": "good",
+            "diet_level": "average",
             "fried_food_freq": "rarely",
             "salty_food_freq": "rarely",
             "fruit_veg_servings": "2-3",
@@ -73,8 +73,10 @@ class TestHSSIntegrityHardening(unittest.TestCase):
             "dietary_practice": "None"
         }
 
+        headers = {"Authorization": f"Bearer {self.patient_token}"}
+
         # First onboarding submission
-        r1 = self.client.post(f"/api/users/{test_uid}/baseline/complete", json=payload)
+        r1 = self.client.post(f"/api/users/{test_uid}/baseline/complete", json=payload, headers=headers)
         self.assertEqual(r1.status_code, 201)
 
         baseline_records_1 = [h for h in mock_db.hss_history if h.get("user_id") == test_uid and h.get("source") == "baseline"]
@@ -84,7 +86,7 @@ class TestHSSIntegrityHardening(unittest.TestCase):
 
         # Second onboarding submission (re-onboarding)
         payload["sleep_hours"] = 8.0
-        r2 = self.client.post(f"/api/users/{test_uid}/baseline/complete", json=payload)
+        r2 = self.client.post(f"/api/users/{test_uid}/baseline/complete", json=payload, headers=headers)
         self.assertEqual(r2.status_code, 201)
 
         baseline_records_2 = [h for h in mock_db.hss_history if h.get("user_id") == test_uid and h.get("source") == "baseline"]

@@ -8,9 +8,11 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { UserProvider, useUser } from "../contexts/UserContext";
 import { ToastProvider } from "../contexts/ToastContext";
 import { BaselineProvider } from "../contexts/BaselineContext";
-import { configureReanimatedLogger, ReanimatedLogLevel } from 'react-native-reanimated';
+import {
+  configureReanimatedLogger,
+  ReanimatedLogLevel,
+} from "react-native-reanimated";
 import { useBroadcastListener } from "../hooks/useBroadcastListener";
-
 configureReanimatedLogger({
   level: ReanimatedLogLevel.warn,
   strict: false,
@@ -20,7 +22,7 @@ function RootLayoutNav() {
   const { userId, user, isLoading } = useUser();
   const segments = useSegments();
   const router = useRouter();
-  
+
   // Listen for system broadcasts
   useBroadcastListener();
 
@@ -29,7 +31,10 @@ function RootLayoutNav() {
 
     const inAuthGroup = segments[0] === "(auth)";
     // segments.length === 0 means we are at the root index.tsx
-    const inOnboarding = segments.length === 0 || segments[0] === "onboarding" || segments[0] === "index";
+    const inOnboarding =
+      segments.length === 0 ||
+      segments[0] === "onboarding" ||
+      segments[0] === "index";
     const inBaseline = segments[0] === "(baseline)";
 
     if (!userId && !inAuthGroup && !inOnboarding) {
@@ -58,6 +63,9 @@ function RootLayoutNav() {
     }
   }, [userId, user, isLoading, segments]);
 
+  // Removed manual useFonts hook to prevent ExpoAsset download errors over tunnel.
+  // Modern Expo Router natively bundles @expo/vector-icons.
+  
   return (
     <>
       <OfflineBanner />

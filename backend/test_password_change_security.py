@@ -1,4 +1,4 @@
-﻿"""
+"""
 test_password_change_security.py
 ---------------------------------
 Security tests for PUT /api/users/{user_id}/password.
@@ -81,12 +81,12 @@ class TestPasswordChangeSecurity(unittest.TestCase):
     def tearDown(self):
         app.dependency_overrides.clear()
 
-        # Restore in-memory state — no save_profiles / save_logs calls so disk
-        # is untouched.
         mock_db.profiles.clear()
         mock_db.profiles.extend(self._orig_profiles)
         mock_db.admin_activity.clear()
         mock_db.admin_activity.extend(self._orig_activity)
+        mock_db.save_profiles()
+        mock_db.save_logs()
         login_attempts.clear()
         login_attempts.update(self._orig_attempts)
         token_blacklist.clear()

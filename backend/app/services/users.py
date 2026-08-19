@@ -12,11 +12,35 @@ def get_full_profile(user_id: str) -> dict:
     onboarding = next((o for o in mock_db.baseline_onboarding if o["user_id"] == user_id), None)
     care_team = [c for c in mock_db.care_team_contacts if c["user_id"] == user_id]
     
+    lifestyle = None
+    dietary = None
+    if onboarding:
+        smoking_status = onboarding.get("smoke_now") or ("Every day" if onboarding.get("ever_smoked") else "Not at all")
+        raw_sleep = onboarding.get("sleep_hours")
+        sleep_hours_val = None
+        if raw_sleep is not None:
+            try:
+                sleep_hours_val = float(raw_sleep)
+            except (ValueError, TypeError):
+                sleep_hours_val = 8.0
+                
+        lifestyle = {
+            "smoking_status": smoking_status,
+            "avg_sleep_hours": sleep_hours_val,
+        }
+        dietary = {
+            "dietary_practice": onboarding.get("dietary_practice", "None"),
+            "sodium_frequency": onboarding.get("salty_food_freq", "sometimes"),
+            "allergies": onboarding.get("allergies", [])
+        }
+    
     return {
         "profile": profile,
         "baselines": {
             "onboarding": onboarding,
-            "clinical": get_clinical_baseline_data(user_id)
+            "clinical": get_clinical_baseline_data(user_id),
+            "lifestyle": lifestyle,
+            "dietary": dietary
         },
         "care_team": care_team
     }

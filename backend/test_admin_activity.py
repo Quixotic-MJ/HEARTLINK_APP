@@ -160,6 +160,7 @@ def run_tests():
 
     # Test 4: Case Evaluations
     print("Testing case evaluation...")
+    app.dependency_overrides[get_current_admin_user] = mock_expert
     eval_payload = {
         "expert_hss_score": 85,
         "notes": "Doing well.",
