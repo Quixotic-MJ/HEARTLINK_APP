@@ -55,7 +55,92 @@
       "onboarding_status": "complete",
       "account_status": "active",
       "created_at": "2025-01-01T08:00:00",
-      "updated_at": "2025-01-01T08:00:00"
+      "updated_at": "2026-08-19T00:46:58.863362"
+    },
+    {
+      "id": "usr-patient-0ee64341",
+      "phone": "+639123456789",
+      "email": "test1@gmail.com",
+      "password": "008c70392e3abfbd0fa47bbc2ed96aa99bd49e159727fcba0f2e6abeb3a9d601",
+      "role": "patient",
+      "first_name": "John mark",
+      "last_name": "Joe",
+      "date_of_birth": "2003-12-31",
+      "sex": "male",
+      "height_cm": 169.0,
+      "weight_kg": 69.0,
+      "avatar_url": null,
+      "health_goals": [
+        "preventive"
+      ],
+      "onboarding_status": "complete",
+      "account_status": "active",
+      "created_at": "2026-08-17T01:57:50.205001",
+      "updated_at": "2026-08-17T02:01:06.344648"
+    },
+    {
+      "id": "usr-patient-ca6c2241",
+      "phone": "+639106682418",
+      "email": "edmarktalingting0@gmail.com",
+      "password": "f7bf525db193eeb8bae75d386848cf9dc708b10fc02dbe3a9ecd47a0b0a4cfaf",
+      "role": "patient",
+      "first_name": "Edmark",
+      "last_name": "Talingting",
+      "date_of_birth": "2005-10-27",
+      "sex": "male",
+      "height_cm": 168.0,
+      "weight_kg": 85.0,
+      "avatar_url": null,
+      "health_goals": [
+        "bp",
+        "cholesterol",
+        "recovery",
+        "preventive"
+      ],
+      "onboarding_status": "complete",
+      "account_status": "active",
+      "created_at": "2026-08-17T02:23:39.165862",
+      "updated_at": "2026-08-17T02:35:34.476559"
+    },
+    {
+      "id": "usr-patient-04e0c142",
+      "phone": "+639123456788",
+      "email": "test2@gmail.com",
+      "password": "008c70392e3abfbd0fa47bbc2ed96aa99bd49e159727fcba0f2e6abeb3a9d601",
+      "role": "patient",
+      "first_name": "Hehe",
+      "last_name": "Jrjd",
+      "date_of_birth": "1989-12-31",
+      "sex": "male",
+      "height_cm": 169.0,
+      "weight_kg": 69.0,
+      "avatar_url": null,
+      "health_goals": [
+        "recovery"
+      ],
+      "onboarding_status": "complete",
+      "account_status": "active",
+      "created_at": "2026-08-17T02:44:03.601078",
+      "updated_at": "2026-08-17T03:25:35.704432"
+    },
+    {
+      "id": "usr-patient-a3bb9211",
+      "phone": "+631111111111",
+      "email": "mock@gmail.com",
+      "password": "ff532b12eef36d9feff0eb9b8fb9b01ec9f595d092a4217f56e099ff9523dbc2",
+      "role": "patient",
+      "first_name": null,
+      "last_name": null,
+      "date_of_birth": null,
+      "sex": null,
+      "height_cm": null,
+      "weight_kg": null,
+      "avatar_url": null,
+      "health_goals": [],
+      "onboarding_status": "pending",
+      "account_status": "active",
+      "created_at": "2026-08-17T03:45:47.518907",
+      "updated_at": "2026-08-17T03:45:47.518907"
     },
     {
       "id": "usr-patient-101",
@@ -65,8 +150,8 @@
       "role": "patient",
       "first_name": "John Mark",
       "last_name": "Magdasal",
-      "date_of_birth": "1980-01-01",
-      "sex": "female",
+      "date_of_birth": "2005-12-01",
+      "sex": "male",
       "height_cm": 172.5,
       "weight_kg": 68.0,
       "avatar_url": null,
@@ -76,8 +161,8 @@
       ],
       "onboarding_status": "complete",
       "account_status": "active",
-      "created_at": "2026-07-17T18:15:30.958772",
-      "updated_at": "2026-07-17T18:15:30.958772",
+      "created_at": "2026-07-20T09:17:45.482436",
+      "updated_at": "2026-07-20T09:17:45.482436",
       "demo_seed": "heartlink-demo-v2"
     },
     {
@@ -100,8 +185,8 @@
       ],
       "onboarding_status": "complete",
       "account_status": "active",
-      "created_at": "2026-07-17T18:15:30.958772",
-      "updated_at": "2026-07-17T18:15:30.958772",
+      "created_at": "2026-07-20T09:17:45.482436",
+      "updated_at": "2026-07-20T09:17:45.482436",
       "demo_seed": "heartlink-demo-v2"
     },
     {
@@ -122,8 +207,8 @@
       ],
       "onboarding_status": "complete",
       "account_status": "active",
-      "created_at": "2026-07-27T18:15:30.958772",
-      "updated_at": "2026-07-27T18:15:30.958772",
+      "created_at": "2026-07-30T09:17:45.482436",
+      "updated_at": "2026-07-30T09:17:45.482436",
       "demo_seed": "heartlink-demo-v2"
     },
     {
@@ -145,8 +230,8 @@
       ],
       "onboarding_status": "complete",
       "account_status": "active",
-      "created_at": "2026-07-27T18:15:30.958772",
-      "updated_at": "2026-07-27T18:15:30.958772",
+      "created_at": "2026-07-30T09:17:45.482436",
+      "updated_at": "2026-07-30T09:17:45.482436",
       "demo_seed": "heartlink-demo-v2"
     },
     {
@@ -168,8 +253,8 @@
       ],
       "onboarding_status": "complete",
       "account_status": "active",
-      "created_at": "2026-08-01T18:15:30.958772",
-      "updated_at": "2026-08-01T18:15:30.958772",
+      "created_at": "2026-08-04T09:17:45.482436",
+      "updated_at": "2026-08-04T09:17:45.482436",
       "demo_seed": "heartlink-demo-v2"
     },
     {
@@ -190,8 +275,8 @@
       ],
       "onboarding_status": "complete",
       "account_status": "active",
-      "created_at": "2026-08-13T18:15:30.958772",
-      "updated_at": "2026-08-13T18:15:30.958772",
+      "created_at": "2026-08-16T09:17:45.482436",
+      "updated_at": "2026-08-16T09:17:45.482436",
       "demo_seed": "heartlink-demo-v2"
     },
     {
@@ -214,8 +299,8 @@
       ],
       "onboarding_status": "complete",
       "account_status": "active",
-      "created_at": "2026-07-07T18:15:30.958772",
-      "updated_at": "2026-07-07T18:15:30.958772",
+      "created_at": "2026-07-10T09:17:45.482436",
+      "updated_at": "2026-07-10T09:17:45.482436",
       "demo_seed": "heartlink-demo-v2"
     },
     {
@@ -237,8 +322,8 @@
       ],
       "onboarding_status": "complete",
       "account_status": "active",
-      "created_at": "2026-07-12T18:15:30.958772",
-      "updated_at": "2026-07-12T18:15:30.958772",
+      "created_at": "2026-07-15T09:17:45.482436",
+      "updated_at": "2026-07-15T09:17:45.482436",
       "demo_seed": "heartlink-demo-v2"
     },
     {
@@ -260,12 +345,99 @@
       ],
       "onboarding_status": "complete",
       "account_status": "active",
-      "created_at": "2026-07-17T18:15:30.958772",
-      "updated_at": "2026-07-17T18:15:30.958772",
+      "created_at": "2026-07-20T09:17:45.482436",
+      "updated_at": "2026-07-20T09:17:45.482436",
       "demo_seed": "heartlink-demo-v2"
     }
   ],
   "baseline_onboarding": [
+    {
+      "id": "onb-209",
+      "user_id": "usr-patient-0ee64341",
+      "vigorous_activity": true,
+      "vigorous_days": 3,
+      "vigorous_minutes": 60,
+      "moderate_activity": true,
+      "moderate_days": 2,
+      "moderate_minutes": 60,
+      "walk_bike_transport": true,
+      "walk_bike_days": 7,
+      "walk_bike_minutes": 30,
+      "sedentary_hours": "<2h",
+      "sleep_hours": 7.0,
+      "ever_smoked": false,
+      "smoke_now": null,
+      "ever_drank": true,
+      "drink_frequency": "Monthly or less",
+      "drinks_per_occasion": "1-2",
+      "binge_drinking_freq": "Never",
+      "diet_level": "average",
+      "fried_food_freq": "sometimes",
+      "salty_food_freq": "sometimes",
+      "fruit_veg_servings": "0-1",
+      "allergies": [],
+      "dietary_practice": "None",
+      "created_at": "2026-08-17T02:01:06.345804",
+      "updated_at": "2026-08-17T02:01:06.345804"
+    },
+    {
+      "id": "onb-210",
+      "user_id": "usr-patient-ca6c2241",
+      "vigorous_activity": true,
+      "vigorous_days": 2,
+      "vigorous_minutes": 30,
+      "moderate_activity": true,
+      "moderate_days": 2,
+      "moderate_minutes": 30,
+      "walk_bike_transport": false,
+      "walk_bike_days": null,
+      "walk_bike_minutes": null,
+      "sedentary_hours": "2-4h",
+      "sleep_hours": 5.0,
+      "ever_smoked": false,
+      "smoke_now": "Not at all",
+      "ever_drank": true,
+      "drink_frequency": "Monthly or less",
+      "drinks_per_occasion": "1-2",
+      "binge_drinking_freq": "Monthly or less",
+      "diet_level": "average",
+      "fried_food_freq": "sometimes",
+      "salty_food_freq": "sometimes",
+      "fruit_veg_servings": "2-3",
+      "allergies": [],
+      "dietary_practice": "Halal",
+      "created_at": "2026-08-17T02:35:34.478557",
+      "updated_at": "2026-08-17T02:35:34.478557"
+    },
+    {
+      "id": "onb-211",
+      "user_id": "usr-patient-04e0c142",
+      "vigorous_activity": false,
+      "vigorous_days": null,
+      "vigorous_minutes": null,
+      "moderate_activity": false,
+      "moderate_days": null,
+      "moderate_minutes": null,
+      "walk_bike_transport": false,
+      "walk_bike_days": null,
+      "walk_bike_minutes": null,
+      "sedentary_hours": "<2h",
+      "sleep_hours": 8.0,
+      "ever_smoked": false,
+      "smoke_now": null,
+      "ever_drank": false,
+      "drink_frequency": null,
+      "drinks_per_occasion": null,
+      "binge_drinking_freq": null,
+      "diet_level": "average",
+      "fried_food_freq": "sometimes",
+      "salty_food_freq": "sometimes",
+      "fruit_veg_servings": "2-3",
+      "allergies": [],
+      "dietary_practice": "None",
+      "created_at": "2026-08-17T03:25:35.707583",
+      "updated_at": "2026-08-17T03:25:35.707583"
+    },
     {
       "id": "onb-usr-patient-101",
       "user_id": "usr-patient-101",
@@ -296,8 +468,8 @@
       ],
       "allergies": [],
       "dietary_practice": "Standard Filipino",
-      "created_at": "2026-07-17T18:15:30.958772",
-      "updated_at": "2026-07-17T18:15:30.958772",
+      "created_at": "2026-07-20T09:17:45.482436",
+      "updated_at": "2026-07-20T09:17:45.482436",
       "demo_seed": "heartlink-demo-v2"
     },
     {
@@ -331,8 +503,8 @@
       ],
       "allergies": [],
       "dietary_practice": "Standard Filipino",
-      "created_at": "2026-07-17T18:15:30.958772",
-      "updated_at": "2026-07-17T18:15:30.958772",
+      "created_at": "2026-07-20T09:17:45.482436",
+      "updated_at": "2026-07-20T09:17:45.482436",
       "demo_seed": "heartlink-demo-v2"
     },
     {
@@ -364,8 +536,8 @@
       ],
       "allergies": [],
       "dietary_practice": "Low Sodium",
-      "created_at": "2026-07-27T18:15:30.958772",
-      "updated_at": "2026-07-27T18:15:30.958772",
+      "created_at": "2026-07-30T09:17:45.482436",
+      "updated_at": "2026-07-30T09:17:45.482436",
       "demo_seed": "heartlink-demo-v2"
     },
     {
@@ -398,8 +570,8 @@
       ],
       "allergies": [],
       "dietary_practice": "Standard Filipino",
-      "created_at": "2026-07-27T18:15:30.958772",
-      "updated_at": "2026-07-27T18:15:30.958772",
+      "created_at": "2026-07-30T09:17:45.482436",
+      "updated_at": "2026-07-30T09:17:45.482436",
       "demo_seed": "heartlink-demo-v2"
     },
     {
@@ -432,8 +604,8 @@
       ],
       "allergies": [],
       "dietary_practice": "High Sodium",
-      "created_at": "2026-08-01T18:15:30.958772",
-      "updated_at": "2026-08-01T18:15:30.958772",
+      "created_at": "2026-08-04T09:17:45.482436",
+      "updated_at": "2026-08-04T09:17:45.482436",
       "demo_seed": "heartlink-demo-v2"
     },
     {
@@ -465,8 +637,8 @@
       ],
       "allergies": [],
       "dietary_practice": "Standard Filipino",
-      "created_at": "2026-08-13T18:15:30.958772",
-      "updated_at": "2026-08-13T18:15:30.958772",
+      "created_at": "2026-08-16T09:17:45.482436",
+      "updated_at": "2026-08-16T09:17:45.482436",
       "demo_seed": "heartlink-demo-v2"
     },
     {
@@ -500,8 +672,8 @@
       ],
       "allergies": [],
       "dietary_practice": "Vegetarian",
-      "created_at": "2026-07-07T18:15:30.958772",
-      "updated_at": "2026-07-07T18:15:30.958772",
+      "created_at": "2026-07-10T09:17:45.482436",
+      "updated_at": "2026-07-10T09:17:45.482436",
       "demo_seed": "heartlink-demo-v2"
     },
     {
@@ -534,8 +706,8 @@
       ],
       "allergies": [],
       "dietary_practice": "Low Sodium",
-      "created_at": "2026-07-12T18:15:30.958772",
-      "updated_at": "2026-07-12T18:15:30.958772",
+      "created_at": "2026-07-15T09:17:45.482436",
+      "updated_at": "2026-07-15T09:17:45.482436",
       "demo_seed": "heartlink-demo-v2"
     },
     {
@@ -568,12 +740,39 @@
       ],
       "allergies": [],
       "dietary_practice": "Standard Filipino",
-      "created_at": "2026-07-17T18:15:30.958772",
-      "updated_at": "2026-07-17T18:15:30.958772",
+      "created_at": "2026-07-20T09:17:45.482436",
+      "updated_at": "2026-07-20T09:17:45.482436",
       "demo_seed": "heartlink-demo-v2"
     }
   ],
   "user_thresholds": [
+    {
+      "id": "thresh-209",
+      "user_id": "usr-patient-0ee64341",
+      "sodium_limit_mg": 1500,
+      "active_minutes_goal": 30,
+      "systolic_threshold": 120,
+      "diastolic_threshold": 80,
+      "updated_at": "2026-08-17T02:01:06.345804"
+    },
+    {
+      "id": "thresh-210",
+      "user_id": "usr-patient-ca6c2241",
+      "sodium_limit_mg": 1500,
+      "active_minutes_goal": 30,
+      "systolic_threshold": 120,
+      "diastolic_threshold": 80,
+      "updated_at": "2026-08-17T02:35:34.478557"
+    },
+    {
+      "id": "thresh-211",
+      "user_id": "usr-patient-04e0c142",
+      "sodium_limit_mg": 1500,
+      "active_minutes_goal": 30,
+      "systolic_threshold": 120,
+      "diastolic_threshold": 80,
+      "updated_at": "2026-08-17T03:25:35.707583"
+    },
     {
       "id": "thresh-usr-patient-101",
       "user_id": "usr-patient-101",
@@ -582,7 +781,7 @@
       "active_minutes_goal": 30,
       "systolic_threshold": 120,
       "diastolic_threshold": 80,
-      "updated_at": "2026-07-17T18:15:39.458826",
+      "updated_at": "2026-07-20T09:17:45.482436",
       "demo_seed": "heartlink-demo-v2"
     },
     {
@@ -593,7 +792,7 @@
       "active_minutes_goal": 30,
       "systolic_threshold": 120,
       "diastolic_threshold": 80,
-      "updated_at": "2026-07-17T18:15:39.458826",
+      "updated_at": "2026-07-20T09:17:45.482436",
       "demo_seed": "heartlink-demo-v2"
     },
     {
@@ -604,7 +803,7 @@
       "active_minutes_goal": 30,
       "systolic_threshold": 120,
       "diastolic_threshold": 80,
-      "updated_at": "2026-07-27T18:15:39.458826",
+      "updated_at": "2026-07-30T09:17:45.482436",
       "demo_seed": "heartlink-demo-v2"
     },
     {
@@ -615,7 +814,7 @@
       "active_minutes_goal": 30,
       "systolic_threshold": 120,
       "diastolic_threshold": 80,
-      "updated_at": "2026-07-27T18:15:39.458826",
+      "updated_at": "2026-07-30T09:17:45.482436",
       "demo_seed": "heartlink-demo-v2"
     },
     {
@@ -626,7 +825,7 @@
       "active_minutes_goal": 30,
       "systolic_threshold": 120,
       "diastolic_threshold": 80,
-      "updated_at": "2026-08-01T18:15:39.458826",
+      "updated_at": "2026-08-04T09:17:45.482436",
       "demo_seed": "heartlink-demo-v2"
     },
     {
@@ -637,7 +836,7 @@
       "active_minutes_goal": 30,
       "systolic_threshold": 120,
       "diastolic_threshold": 80,
-      "updated_at": "2026-08-13T18:15:39.458826",
+      "updated_at": "2026-08-16T09:17:45.482436",
       "demo_seed": "heartlink-demo-v2"
     },
     {
@@ -648,7 +847,7 @@
       "active_minutes_goal": 30,
       "systolic_threshold": 120,
       "diastolic_threshold": 80,
-      "updated_at": "2026-07-07T18:15:39.458826",
+      "updated_at": "2026-07-10T09:17:45.482436",
       "demo_seed": "heartlink-demo-v2"
     },
     {
@@ -659,7 +858,7 @@
       "active_minutes_goal": 30,
       "systolic_threshold": 120,
       "diastolic_threshold": 80,
-      "updated_at": "2026-07-12T18:15:39.458826",
+      "updated_at": "2026-07-15T09:17:45.482436",
       "demo_seed": "heartlink-demo-v2"
     },
     {
@@ -670,7 +869,7 @@
       "active_minutes_goal": 30,
       "systolic_threshold": 120,
       "diastolic_threshold": 80,
-      "updated_at": "2026-07-17T18:15:39.458826",
+      "updated_at": "2026-07-20T09:17:45.482436",
       "demo_seed": "heartlink-demo-v2"
     }
   ]

@@ -198,44 +198,7 @@ export default function OnboardingScreen() {
           />
         </View>
 
-        {/* ── Dev Menu ── */}
-        {__DEV__ && (
-          <View className="mx-6 mb-4 p-4 border border-border rounded-xl bg-card">
-            <Text className="text-foreground font-bold mb-3">Dev Menu</Text>
-            <View className="flex-row flex-wrap gap-2 mb-4">
-              {[
-                { name: 'Login', path: '/(auth)/login' },
-                { name: 'Register', path: '/(auth)/register' },
-                { name: 'Forgot Pass', path: '/(auth)/forgot-password' },
-                { name: 'Verify OTP', path: '/(auth)/verify-otp' },
-                { name: 'Success', path: '/(auth)/verification-success' },
-                { name: 'Dashboard', path: '/(home)/(tabs)/dashboard' },
-                { name: 'Baseline Setup', path: '/(baseline)/step1_basic_info' },
-                { name: 'Locator', path: '/locator' },
-              ].map((route) => (
-                <TouchableOpacity
-                  key={route.path}
-                  onPress={() => router.push(route.path as any)}
-                  className="bg-slate-200 dark:bg-slate-800 px-3 py-2 rounded-lg"
-                >
-                  <Text className="text-xs text-foreground font-medium">{route.name}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            <TouchableOpacity
-              onPress={() => {
-                setUserId("usr-patient-101");
-                router.replace("/(home)/(tabs)/dashboard" as any);
-              }}
-              className="bg-primary rounded-lg py-3 items-center"
-            >
-              <Text className="text-xs text-primary-foreground font-medium">
-                Set mock user & go to Dashboard
-              </Text>
-            </TouchableOpacity>
-          </View>
-        )}
+        
 
       </ScrollView>
 

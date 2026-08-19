@@ -178,9 +178,24 @@ def record_failed_attempt(identifier: str):
          attempts["count"] = 0
          attempts["locked_until"] = None
          
+    was_already_locked = bool(attempts.get("locked_until") and now < attempts["locked_until"])
     attempts["count"] += 1
     if attempts["count"] >= 5:
         attempts["locked_until"] = now + timedelta(minutes=15)
+        if not was_already_locked:
+            try:
+                from app.services.admin_notifications import create_admin_notification
+                create_admin_notification(
+                    type="security",
+                    title="Rate Limit Lockout",
+                    message="Multiple failed authentication attempts triggered a temporary lockout.",
+                    severity="warning",
+                    recipient_roles=["admin", "super_admin"],
+                    route="/settings",
+                    target_id=None
+                )
+            except Exception as e:
+                print(f"Failed to create admin notification for rate limit lockout: {e}")
     login_attempts[identifier] = attempts
 
 def clear_attempts(identifier: str):

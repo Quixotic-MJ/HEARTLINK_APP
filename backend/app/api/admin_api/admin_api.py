@@ -581,6 +581,23 @@ def create_system_staff(payload: dict, current_user: dict = Depends(get_current_
         target_id=staff_id,
         target_name=name
     )
+
+    # Trigger Admin Notification for Super Admins
+    try:
+        from app.services.admin_notifications import create_admin_notification
+        create_admin_notification(
+            type="staff",
+            title="Staff Account Provisioned",
+            message=f"A {role_desc} account was provisioned for {name}.",
+            severity="info",
+            recipient_roles=["super_admin"],
+            route="/users",
+            target_id=staff_id,
+            read_by=[admin_id] if admin_id else []
+        )
+    except Exception as e:
+        print(f"Failed to create admin notification for staff creation: {e}")
+
     return {"status": "success", "id": staff_id}
 
 @router.put("/users/{user_id}/status")
@@ -635,6 +652,25 @@ def toggle_user_status(user_id: str, current_user: dict = Depends(get_current_ad
         target_id=user_id,
         target_name=user_name
     )
+
+    # Trigger Admin Notification only if target is a staff account
+    if is_staff:
+        try:
+            from app.services.admin_notifications import create_admin_notification
+            action_word = "disabled" if new_status == "disabled" else "re-enabled"
+            create_admin_notification(
+                type="staff",
+                title="Staff Account Status Changed",
+                message=f"Staff account for {user_name} was {action_word}.",
+                severity="warning",
+                recipient_roles=["super_admin"],
+                route="/users",
+                target_id=user_id,
+                read_by=[admin_id] if admin_id else []
+            )
+        except Exception as e:
+            print(f"Failed to create admin notification for staff status change: {e}")
+
     return {"status": "success", "new_status": new_status}
 
 @router.put("/staff/{staff_id}/role")

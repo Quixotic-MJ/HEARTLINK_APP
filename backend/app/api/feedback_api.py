@@ -119,6 +119,24 @@ def create_feedback_ticket(
     
     feedback_tickets.insert(0, new_ticket)
     mock_db.save_logs()
+
+    # Trigger Admin Notification (safe, non-blocking)
+    try:
+        from app.services.admin_notifications import create_admin_notification
+        severity = "warning" if ticket.category in ["Bug Report", "Account Issue"] else "info"
+        safe_msg = f"{ticket_id} ({ticket.category}) submitted for review."
+        create_admin_notification(
+            type="feedback",
+            title="New Feedback Received",
+            message=safe_msg,
+            severity=severity,
+            recipient_roles=["admin", "super_admin"],
+            route="/feedbacks",
+            target_id=ticket_id,
+        )
+    except Exception as e:
+        print(f"Failed to create admin notification for feedback: {e}")
+
     return new_ticket
 
 @router.put("/{ticket_id}")

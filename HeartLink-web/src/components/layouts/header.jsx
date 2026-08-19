@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
+import AdminNotificationDropdown from "./AdminNotificationDropdown";
 
 // ─── Quick action item ────────────────────────────────────────────────────────
 
@@ -213,6 +214,11 @@ const Header = ({
 
         {/* Divider */}
         <div className="hidden sm:block w-px h-5" style={{ backgroundColor: "rgba(15,23,42,0.08)" }} />
+
+        {/* Notifications */}
+        {(userRole === "admin" || userRole === "super_admin" || userRole === "sysadmin") && (
+          <AdminNotificationDropdown userId={userId || user?.id} />
+        )}
 
         {/* Sign out */}
         <button

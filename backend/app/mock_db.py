@@ -1131,6 +1131,7 @@ care_team_contacts = [
 ]
 
 activity_logs = []
+admin_notifications = []
 
 
 # 9. Clinics
@@ -1310,7 +1311,8 @@ def save_logs():
             "candidate_models": [_serialize_item(cm) for cm in candidate_models],
             "system_broadcasts": [_serialize_item(b) for b in system_broadcasts],
             "admin_activity": [_serialize_item(act) for act in admin_activity],
-            "feedback_tickets": [_serialize_item(fb) for fb in feedback_tickets]
+            "feedback_tickets": [_serialize_item(fb) for fb in feedback_tickets],
+            "admin_notifications": [_serialize_item(an) for an in admin_notifications]
         }
         with open(LOGS_DB_FILE, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
@@ -1318,7 +1320,7 @@ def save_logs():
         print(f"Error saving mock logs: {e}")
 
 def load_logs():
-    global meal_logs, exercise_logs, daily_health_logs, sleep_logs, hss_history, notifications, alerts, saved_recipes, saved_exercises, expert_evaluations, datasets, candidate_models, system_broadcasts, admin_activity, feedback_tickets
+    global meal_logs, exercise_logs, daily_health_logs, sleep_logs, hss_history, notifications, alerts, saved_recipes, saved_exercises, expert_evaluations, datasets, candidate_models, system_broadcasts, admin_activity, feedback_tickets, admin_notifications
     if os.path.exists(LOGS_DB_FILE):
         try:
             with open(LOGS_DB_FILE, "r", encoding="utf-8") as f:
@@ -1370,6 +1372,11 @@ def load_logs():
                     feedback_tickets.extend([_deserialize_item(fb) for fb in data["feedback_tickets"]])
                 else:
                     feedback_tickets.clear()
+                if "admin_notifications" in data:
+                    admin_notifications.clear()
+                    admin_notifications.extend([_deserialize_item(an) for an in data["admin_notifications"]])
+                else:
+                    admin_notifications.clear()
         except Exception as e:
             print(f"Error loading mock logs: {e}")
     else:
@@ -1390,7 +1397,7 @@ def seed_rich_demo_data(force=False):
 
     global profiles, baseline_onboarding, user_thresholds, user_reminders
     global daily_health_logs, meal_logs, exercise_logs, sleep_logs, hss_history, expert_evaluations, alerts, notifications, admin_activity, system_broadcasts
-    global recipes, exercise_routines, feedback_tickets
+    global recipes, exercise_routines, feedback_tickets, admin_notifications
 
     # Remove existing demo data to prevent duplication
     profiles[:] = [p for p in profiles if p.get("demo_seed") != "heartlink-demo-v2"]
@@ -1409,6 +1416,7 @@ def seed_rich_demo_data(force=False):
     admin_activity[:] = [x for x in admin_activity if x.get("demo_seed") != "heartlink-demo-v2"]
     system_broadcasts[:] = [b for b in system_broadcasts if b.get("demo_seed") != "heartlink-demo-v2"]
     feedback_tickets[:] = [t for t in feedback_tickets if t.get("demo_seed") != "heartlink-feedback-demo-v1"]
+    admin_notifications[:] = [an for an in admin_notifications if an.get("demo_seed") != "heartlink-admin-notifications-demo-v1"]
 
     # Enrich recipe coverage (Moderate & Critical recipes)
     recipes[:] = [r for r in recipes if r["id"] not in ("rec-507", "rec-508")]
@@ -2370,6 +2378,64 @@ def seed_rich_demo_data(force=False):
         fb["userEmail"] = prof.get("email", "Not Provided") if prof else "Not Provided"
         feedback_tickets.append(fb)
 
+    # 8.7 Seed Admin Notifications
+    now_utc = datetime.utcnow()
+    demo_admin_notifs = [
+        {
+            "id": "anotif-seed-001",
+            "recipient_roles": ["admin", "super_admin"],
+            "type": "feedback",
+            "title": "New Feedback Received",
+            "message": "FB-1004 (Account Issue) submitted by Robert Villanueva",
+            "severity": "warning",
+            "read_by": [],
+            "route": "/feedbacks",
+            "target_id": "FB-1004",
+            "created_at": now_utc - timedelta(hours=2),
+            "demo_seed": "heartlink-admin-notifications-demo-v1",
+        },
+        {
+            "id": "anotif-seed-002",
+            "recipient_roles": ["super_admin"],
+            "type": "staff",
+            "title": "Staff Account Provisioned",
+            "message": "An Authorized Medical Expert account was added.",
+            "severity": "info",
+            "read_by": ["usr-super-admin-001"],
+            "route": "/users",
+            "target_id": "usr-expert-001",
+            "created_at": now_utc - timedelta(hours=18),
+            "demo_seed": "heartlink-admin-notifications-demo-v1",
+        },
+        {
+            "id": "anotif-seed-003",
+            "recipient_roles": ["admin", "super_admin"],
+            "type": "feedback",
+            "title": "Bug Report Submitted",
+            "message": "FB-1003 (UI/UX Suggestion) was submitted for review.",
+            "severity": "info",
+            "read_by": ["usr-super-admin-001", "usr-chief-admin-001"],
+            "route": "/feedbacks",
+            "target_id": "FB-1003",
+            "created_at": now_utc - timedelta(days=2),
+            "demo_seed": "heartlink-admin-notifications-demo-v1",
+        },
+        {
+            "id": "anotif-seed-004",
+            "recipient_roles": ["admin", "super_admin"],
+            "type": "security",
+            "title": "Rate Limit Lockout",
+            "message": "Multiple failed authentication attempts triggered a temporary lockout.",
+            "severity": "warning",
+            "read_by": [],
+            "route": "/settings",
+            "target_id": None,
+            "created_at": now_utc - timedelta(days=3),
+            "demo_seed": "heartlink-admin-notifications-demo-v1",
+        }
+    ]
+    admin_notifications.extend(demo_admin_notifs)
+
     # Foreign Key & Core Assertions Validation
     recipe_ids = {r["id"] for r in recipes}
     routine_ids = {e["id"] for e in exercise_routines}
@@ -2390,6 +2456,9 @@ def seed_rich_demo_data(force=False):
     
     eval_ids = [ev["id"] for ev in expert_evaluations]
     assert len(eval_ids) == len(set(eval_ids)), "Integrity violation: duplicate evaluation IDs found"
+    
+    anotif_ids = [an["id"] for an in admin_notifications]
+    assert len(anotif_ids) == len(set(anotif_ids)), "Integrity violation: duplicate admin notification IDs found"
     
     # 1. Meals FK checks
     for m in meal_logs:
