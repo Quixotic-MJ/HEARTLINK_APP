@@ -20,6 +20,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Import extracted UI components
 import { ScoreRing } from "../../../components/dashboard/ScoreRing";
+import { ScoreGradientBar } from "../../../components/dashboard/ScoreGradientBar";
 import { StatCard } from "../../../components/dashboard/StatCard";
 import { RecommendationCard } from "../../../components/dashboard/RecommendationCard";
 import { CustomAlertModal } from "../../../components/dashboard/CustomAlertModal";
@@ -51,33 +52,33 @@ function getScoreTheme(score: number, isDark: boolean): ScoreTheme {
   if (score >= 80)
     return {
       label: "Stable",
-      barColor: "#0D9488",
-      badgeBg: isDark ? "rgba(13, 148, 136, 0.15)" : "#CCFBF1",
-      badgeText: isDark ? "#2DD4BF" : "#0F766E",
-      dotColor: "#0D9488",
+      barColor: "#10B981",
+      badgeBg: isDark ? "rgba(16, 185, 129, 0.15)" : "#ECFDF5",
+      badgeText: isDark ? "#34D399" : "#047857",
+      dotColor: isDark ? "#34D399" : "#10B981",
     };
   if (score >= 60)
     return {
       label: "Moderate",
-      barColor: "#D97706",
-      badgeBg: isDark ? "rgba(217, 119, 6, 0.15)" : "#FEF3C7",
-      badgeText: isDark ? "#FBBF24" : "#B45309",
-      dotColor: "#D97706",
+      barColor: "#EAB308",
+      badgeBg: isDark ? "rgba(234, 179, 8, 0.15)" : "#FEFCE8",
+      badgeText: isDark ? "#FACC15" : "#A16207",
+      dotColor: isDark ? "#FACC15" : "#EAB308",
     };
   if (score >= 50)
     return {
       label: "Elevated Risk",
-      barColor: "#EA580C",
-      badgeBg: isDark ? "rgba(234, 88, 12, 0.15)" : "#FFEDD5",
+      barColor: "#F97316",
+      badgeBg: isDark ? "rgba(249, 115, 22, 0.15)" : "#FFF7ED",
       badgeText: isDark ? "#FB923C" : "#C2410C",
-      dotColor: "#EA580C",
+      dotColor: isDark ? "#FB923C" : "#F97316",
     };
   return {
     label: "Critical",
-    barColor: "#E11D48",
-    badgeBg: isDark ? "rgba(225, 29, 72, 0.15)" : "#FFE4E6",
-    badgeText: isDark ? "#FB7185" : "#BE123C",
-    dotColor: "#E11D48",
+    barColor: "#EF4444",
+    badgeBg: isDark ? "rgba(239, 68, 68, 0.15)" : "#FEF2F2",
+    badgeText: isDark ? "#F87171" : "#B91C1C",
+    dotColor: isDark ? "#F87171" : "#EF4444",
   };
 }
 
@@ -415,22 +416,9 @@ export default function DashboardScreen() {
             <ScoreRing score={hssScore} size={140} strokeWidth={12} />
           </Animated.View>
 
-          {/* Timestamp */}
-          <Text className="text-[11px] text-slate-400 mt-3">
-            Last synced: {formatTimestamp(lastSyncTime)} {isCachedData ? "(Offline Cached)" : ""}
-          </Text>
-
-          {/* Label */}
-          <Text className="text-[16px] font-bold text-slate-900 dark:text-white mt-3 mb-1">
-            Health Stability Score
-          </Text>
-          <Text className="text-[13px] text-slate-500 dark:text-slate-400 text-center px-4 mb-3">
-            Based on your current health profile and habits.
-          </Text>
-
           {/* Status badge */}
           <View
-            className="flex-row items-center px-3.5 py-1.5 rounded-full gap-2"
+            className="flex-row items-center px-3.5 py-1.5 rounded-full gap-2 mt-4"
             style={{ backgroundColor: theme.badgeBg }}
           >
             <View
@@ -445,22 +433,8 @@ export default function DashboardScreen() {
             </Text>
           </View>
 
-          {/* Progress bar */}
-          <View className="w-full mt-4">
-            <View className="h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-              <View
-                className="h-full rounded-full"
-                style={{
-                  width: `${hssScore}%`,
-                  backgroundColor: theme.barColor,
-                }}
-              />
-            </View>
-            <View className="flex-row justify-between mt-1">
-              <Text className="text-[10px] text-slate-300">Critical</Text>
-              <Text className="text-[10px] text-slate-300">Stable 100</Text>
-            </View>
-          </View>
+          {/* Gradient Score Indicator Bar */}
+          <ScoreGradientBar score={hssScore} />
         </View>
 
         {/* ── Compact Vitals Card ── */}
