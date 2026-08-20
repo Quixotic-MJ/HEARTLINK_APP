@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   View,
   Text,
@@ -240,6 +240,7 @@ export default function Step2Activity() {
   const { data, updateData } = useBaseline();
 
   const insets = useSafeAreaInsets();
+  const scrollRef = useRef<ScrollView>(null);
   const [subStep, setSubStep] = useState<1 | 2>(1);
   const [errorFields, setErrorFields] = useState<string[]>([]);
 
@@ -260,6 +261,7 @@ export default function Step2Activity() {
   const handleBack = () => {
     if (subStep === 2) {
       setSubStep(1);
+      scrollRef.current?.scrollTo({ y: 0, animated: false });
     } else {
       router.back();
     }
@@ -315,6 +317,7 @@ export default function Step2Activity() {
 
       setErrorFields([]);
       setSubStep(2);
+      scrollRef.current?.scrollTo({ y: 0, animated: false });
     } else {
       // Validate Part 2 (Daily Sitting Time)
       if (!data.sedentary_hours) {
@@ -378,6 +381,7 @@ export default function Step2Activity() {
         className="flex-1"
       >
         <ScrollView
+          ref={scrollRef}
           className="flex-1"
           contentContainerStyle={{
             paddingHorizontal: 20,
@@ -390,9 +394,12 @@ export default function Step2Activity() {
         >
           {/* Sub-step 1: Movement & Exercise */}
           {subStep === 1 ? (
-            <Animated.View entering={FadeInLeft.duration(200)}>
+            <Animated.View
+              key="step2-part1"
+              entering={FadeInLeft.duration(220)}
+            >
               {/* Section Subtitle */}
-              <View className="flex-row items-center justify-between mb-4">
+              <View className="flex-row items-center justify-between mb-2">
                 <Text className="text-[13px] font-bold text-primary uppercase tracking-wide">
                   Part 1 of 2: Movement & Workouts
                 </Text>
@@ -518,16 +525,19 @@ export default function Step2Activity() {
             </Animated.View>
           ) : (
             /* Sub-step 2: Daily Sitting Time */
-            <Animated.View entering={FadeInRight.duration(200)}>
+            <Animated.View
+              key="step2-part2"
+              entering={FadeInRight.duration(220)}
+            >
               {/* Section Subtitle */}
-              <View className="flex-row items-center justify-between mb-4">
+              <View className="flex-row items-center justify-between mb-2">
                 <Text className="text-[13px] font-bold text-primary uppercase tracking-wide">
                   Part 2 of 2: Daily Sitting Habits
                 </Text>
               </View>
 
               <View className="mb-6">
-                <Text className="text-[17px] font-bold text-foreground tracking-tight leading-snug mb-1">
+                <Text className="text-[16px] font-bold text-foreground tracking-tight leading-snug mb-1">
                   On a typical day, how much total time do you spend sitting or resting?
                 </Text>
                 <Text className="text-[13px] text-muted-foreground leading-5 mb-5">
@@ -563,7 +573,7 @@ export default function Step2Activity() {
                         accessibilityLabel={`${opt.label}, ${
                           isActive ? "selected" : "not selected"
                         }`}
-                        className="px-4 py-4 rounded-xl border-0 overflow-hidden flex-row items-center justify-between"
+                        className="px-4 py-3.5 rounded-xl border-0 overflow-hidden flex-row items-center justify-between"
                       >
                         <View
                           className={`absolute inset-0 border rounded-xl ${
