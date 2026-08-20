@@ -46,10 +46,10 @@ export type BaselineData = {
 
 const defaultData: BaselineData = {
   first_name: '', last_name: '', date_of_birth: '', sex: '', height_cm: '', weight_kg: '',
-  vigorous_activity: false, moderate_activity: false, walk_bike_transport: false, sedentary_hours: '<2h',
-  sleep_hours: '8', ever_smoked: false,
+  vigorous_activity: false, moderate_activity: false, walk_bike_transport: false, sedentary_hours: '',
+  sleep_hours: '', ever_smoked: false,
   ever_drank: false,
-  diet_level: 'average', fried_food_freq: 'sometimes', salty_food_freq: 'sometimes', fruit_veg_servings: '2-3',
+  diet_level: '', fried_food_freq: '', salty_food_freq: '', fruit_veg_servings: '',
   health_goals: [], allergies: [], dietary_practice: 'None'
 };
 
