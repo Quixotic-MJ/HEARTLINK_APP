@@ -428,14 +428,14 @@ export default function Step2Activity() {
                     ...(val ? {} : { vigorous_days: "", vigorous_minutes: "" }),
                   });
                 }}
-                daysValue={data.vigorous_days}
+                daysValue={data.vigorous_days ?? ""}
                 onDaysChange={(t) => {
                   setErrorFields((prev) =>
                     prev.filter((f) => f !== "vigorous_days")
                   );
                   updateData({ vigorous_days: t });
                 }}
-                minsValue={data.vigorous_minutes}
+                minsValue={data.vigorous_minutes ?? ""}
                 onMinsChange={(t) => {
                   setErrorFields((prev) =>
                     prev.filter((f) => f !== "vigorous_minutes")
@@ -466,14 +466,14 @@ export default function Step2Activity() {
                     ...(val ? {} : { moderate_days: "", moderate_minutes: "" }),
                   });
                 }}
-                daysValue={data.moderate_days}
+                daysValue={data.moderate_days ?? ""}
                 onDaysChange={(t) => {
                   setErrorFields((prev) =>
                     prev.filter((f) => f !== "moderate_days")
                   );
                   updateData({ moderate_days: t });
                 }}
-                minsValue={data.moderate_minutes}
+                minsValue={data.moderate_minutes ?? ""}
                 onMinsChange={(t) => {
                   setErrorFields((prev) =>
                     prev.filter((f) => f !== "moderate_minutes")
@@ -504,14 +504,14 @@ export default function Step2Activity() {
                     ...(val ? {} : { walk_bike_days: "", walk_bike_minutes: "" }),
                   });
                 }}
-                daysValue={data.walk_bike_days}
+                daysValue={data.walk_bike_days ?? ""}
                 onDaysChange={(t) => {
                   setErrorFields((prev) =>
                     prev.filter((f) => f !== "walk_bike_days")
                   );
                   updateData({ walk_bike_days: t });
                 }}
-                minsValue={data.walk_bike_minutes}
+                minsValue={data.walk_bike_minutes ?? ""}
                 onMinsChange={(t) => {
                   setErrorFields((prev) =>
                     prev.filter((f) => f !== "walk_bike_minutes")

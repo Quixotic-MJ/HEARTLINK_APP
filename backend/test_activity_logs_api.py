@@ -371,7 +371,7 @@ class TestActivityLogsApi(unittest.TestCase):
         res = self.client.get("/api/admin/activity")
         self.assertEqual(res.status_code, 200)
         items = res.json()["items"]
-        valid_targets = {"recipe", "exercise", "case", "staff", "broadcast", "feedback", "user", "dataset"}
+        valid_targets = {"recipe", "exercise", "case", "staff", "broadcast", "feedback", "user", "dataset", "account"}
         for item in items:
             self.assertIn(item["target_type"], valid_targets)
 
@@ -380,7 +380,7 @@ class TestActivityLogsApi(unittest.TestCase):
         res = self.client.get("/api/admin/dashboard")
         self.assertEqual(res.status_code, 200)
         recent = res.json().get("recent_activity", [])
-        valid_targets = {"recipe", "exercise", "case", "staff", "broadcast", "feedback", "user", "dataset"}
+        valid_targets = {"recipe", "exercise", "case", "staff", "broadcast", "feedback", "user", "dataset", "account"}
         for item in recent:
             self.assertIn(item["target_type"], valid_targets)
 

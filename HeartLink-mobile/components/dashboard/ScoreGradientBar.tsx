@@ -34,14 +34,16 @@ export function ScoreGradientBar({ score = 0 }: { score: number }) {
     };
   });
 
-  const gradientColors = isDark
+  const gradientColors: [string, string, ...string[]] = isDark
     ? ["#F87171", "#FB923C", "#FACC15", "#34D399"]
     : ["#EF4444", "#F97316", "#EAB308", "#10B981"];
 
   const primaryBlue = isDark ? "#60a5fa" : "#2563eb";
+  const tickColor = isDark ? "rgba(255, 255, 255, 0.45)" : "rgba(15, 23, 42, 0.35)";
+  const labelColor = isDark ? "#94a3b8" : "#64748b";
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} accessible={false} importantForAccessibility="no">
       {/* Track & Indicator Wrapper */}
       <View style={styles.trackWrapper}>
         {/* Continuous Linear Gradient Track matching ScoreRing tiers */}
@@ -55,7 +57,12 @@ export function ScoreGradientBar({ score = 0 }: { score: number }) {
           />
         </View>
 
-        {/* Sliding Pure Blue Heart Indicator (No Circle) */}
+        {/* Subtle Threshold Tick Markers at 50, 60, 80 */}
+        <View style={[styles.tickMarker, { left: "50%", backgroundColor: tickColor }]} />
+        <View style={[styles.tickMarker, { left: "60%", backgroundColor: tickColor }]} />
+        <View style={[styles.tickMarker, { left: "80%", backgroundColor: tickColor }]} />
+
+        {/* Sliding Pure Blue Heart Indicator */}
         <Animated.View
           style={[
             styles.heartThumb,
@@ -77,7 +84,16 @@ export function ScoreGradientBar({ score = 0 }: { score: number }) {
         </Animated.View>
       </View>
 
-      {/* Range Labels */}
+      {/* Scale Numeric Markers Row */}
+      <View style={styles.scaleRow}>
+        <Text style={[styles.scaleText, { left: 0, color: labelColor }]}>0</Text>
+        <Text style={[styles.scaleTextCentered, { left: "50%", color: labelColor }]}>50</Text>
+        <Text style={[styles.scaleTextCentered, { left: "60%", color: labelColor }]}>60</Text>
+        <Text style={[styles.scaleTextCentered, { left: "80%", color: labelColor }]}>80</Text>
+        <Text style={[styles.scaleText, { right: 0, color: labelColor }]}>100</Text>
+      </View>
+
+      {/* Tier Category Labels Row */}
       <View style={styles.labelsRow}>
         <Text
           style={[
@@ -93,7 +109,7 @@ export function ScoreGradientBar({ score = 0 }: { score: number }) {
             { color: isDark ? "#34D399" : "#10B981" },
           ]}
         >
-          Stable 100
+          Stable
         </Text>
       </View>
     </View>
@@ -118,6 +134,15 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     overflow: "hidden",
   },
+  tickMarker: {
+    position: "absolute",
+    top: 10,
+    width: 1.5,
+    height: 10,
+    marginLeft: -0.75,
+    borderRadius: 1,
+    zIndex: 1,
+  },
   heartThumb: {
     position: "absolute",
     top: 3,
@@ -126,11 +151,31 @@ const styles = StyleSheet.create({
     height: 24,
     alignItems: "center",
     justifyContent: "center",
+    zIndex: 2,
+  },
+  scaleRow: {
+    width: "100%",
+    height: 14,
+    position: "relative",
+    marginTop: 2,
+  },
+  scaleText: {
+    position: "absolute",
+    fontSize: 10,
+    fontWeight: "600",
+  },
+  scaleTextCentered: {
+    position: "absolute",
+    fontSize: 10,
+    fontWeight: "600",
+    width: 24,
+    marginLeft: -12,
+    textAlign: "center",
   },
   labelsRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 4,
+    marginTop: 2,
   },
   labelText: {
     fontSize: 11,

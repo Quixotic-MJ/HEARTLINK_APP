@@ -137,6 +137,9 @@ async def verifyCode(code: CodeResponse):
 
 
 
+from app.utils.security import create_access_token, token_blacklist
+import uuid
+
 @router.post("/login")
 async def login(payload: Login):
     import hashlib
@@ -144,7 +147,23 @@ async def login(payload: Login):
     for profile in mock_db.profiles:
         if profile.get("email") == payload.identifier or profile.get("phone") == payload.identifier:
             if profile.get("password") == hashed_input:
-                return {"success": True, "message": "Login Successfully", "user_id": profile["id"]}
+                if profile.get("account_status") != "active":
+                    raise HTTPException(
+                        status_code=status.HTTP_403_FORBIDDEN,
+                        detail="Access Denied: Account is disabled or archived"
+                    )
+                access_token = create_access_token(
+                    data={
+                        "user_id": profile["id"],
+                        "role": profile.get("role", "patient")
+                    }
+                )
+                return {
+                    "success": True, 
+                    "message": "Login Successfully", 
+                    "user_id": profile["id"],
+                    "token": access_token
+                }
             else:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND, detail="Invalid Credentials"
@@ -154,8 +173,6 @@ async def login(payload: Login):
         status_code=status.HTTP_404_NOT_FOUND, detail="Invalid Credentials"
     )
 
-from app.utils.security import create_access_token, token_blacklist
-import uuid
 
 # In-memory store for 2FA sessions during mock phase
 temp_2fa_sessions = {}

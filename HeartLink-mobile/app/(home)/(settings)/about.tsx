@@ -1,46 +1,35 @@
-import React, { useRef, useEffect, useState } from "react";
-import { View, Text, TouchableOpacity, ScrollView, Linking, Animated, Alert, ActivityIndicator } from "react-native";
+import React, { useRef, useEffect } from "react";
+import { View, Text, TouchableOpacity, ScrollView, Linking, Animated } from "react-native";
 import { useColorScheme } from "nativewind";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
-import { Feather } from "@expo/vector-icons";
-import { useToast } from "../../../contexts/ToastContext";
+import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 
 export default function AboutScreen() {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
   const router = useRouter();
-  const { showToast } = useToast();
-  const [isCheckingUpdates, setIsCheckingUpdates] = useState(false);
 
-  // Pulse Animation
+  // Gentle Pulse Animation
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     Animated.loop(
       Animated.sequence([
         Animated.timing(scaleAnim, {
-          toValue: 1.1,
-          duration: 1000,
+          toValue: 1.06,
+          duration: 1200,
           useNativeDriver: true,
         }),
         Animated.timing(scaleAnim, {
           toValue: 1,
-          duration: 1000,
+          duration: 1200,
           useNativeDriver: true,
         }),
       ])
     ).start();
   }, [scaleAnim]);
-
-  const handleCheckUpdates = () => {
-    setIsCheckingUpdates(true);
-    setTimeout(() => {
-      setIsCheckingUpdates(false);
-      showToast({ title: "Up to Date", message: "You are running the latest version of HeartLink (1.0.0).", type: "success" });
-    }, 2000);
-  };
 
   const openURL = (path: string) => {
     Linking.openURL(`https://heartlink.com/${path}`);
@@ -51,75 +40,126 @@ export default function AboutScreen() {
       <StatusBar style="dark" />
 
       {/* Header */}
-      <View className="flex-row items-center px-5 pt-4 pb-3 border-b border-slate-200 dark:border-slate-800/50 bg-white dark:bg-slate-900">
+      <View className="flex-row items-center px-5 pt-4 pb-3 border-b border-slate-200 dark:border-slate-800/60 bg-white dark:bg-slate-900">
         <TouchableOpacity
           onPress={() => router.back()}
-          className="w-9 h-9 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/70 items-center justify-center mr-3"
+          accessible={true}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+          className="w-9 h-9 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 items-center justify-center mr-3"
         >
           <Feather name="arrow-left" size={18} color={isDark ? "#f8fafc" : "#0f172a"} />
         </TouchableOpacity>
-        <Text className="text-[17px] font-medium text-slate-900 dark:text-white">About HeartLink</Text>
+        <Text className="text-[18px] font-semibold text-slate-900 dark:text-white tracking-tight">
+          About HeartLink
+        </Text>
       </View>
 
-      <ScrollView contentContainerClassName="px-5 py-8 pb-16" showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerClassName="px-5 py-6 pb-20" showsVerticalScrollIndicator={false}>
         
-        <View className="items-center mb-8 pt-4">
+        {/* App Hero */}
+        <View className="items-center mb-7 pt-2">
           <Animated.View 
             style={{ transform: [{ scale: scaleAnim }] }}
-            className="w-24 h-24 rounded-3xl bg-white dark:bg-slate-900 items-center justify-center border border-slate-200 dark:border-slate-800 shadow-sm shadow-slate-200/50 mb-4"
+            className="w-22 h-22 rounded-3xl bg-white dark:bg-slate-900 items-center justify-center border border-slate-200/80 dark:border-slate-800 shadow-sm shadow-slate-200/50 mb-3.5"
           >
-            <Feather name="heart" size={36} color={isDark ? "#f1f5f9" : "#0f172a"} />
+            <Feather name="heart" size={36} color="#2563eb" />
           </Animated.View>
-          <Text className="text-[28px] font-semibold text-slate-900 dark:text-white tracking-tight mt-2">
-            Heart<Text style={{ fontWeight: "300" }}>Link.</Text>
+          <Text className="text-[26px] font-bold text-slate-900 dark:text-white tracking-tight">
+            Heart<Text className="text-blue-600 font-light">Link</Text>
           </Text>
-          <Text className="text-[15px] font-medium text-slate-500 dark:text-slate-400 mt-1">Version 1.0.0</Text>
+          <Text className="text-[13px] font-semibold text-slate-500 dark:text-slate-400 mt-0.5">
+            Cardiovascular Health Companion
+          </Text>
         </View>
 
-        <View className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/70 px-2 mb-6 shadow-sm shadow-slate-200/50">
+        {/* Build & Release Info Card */}
+        <View className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800/80 p-5 mb-4 shadow-sm shadow-slate-100 dark:shadow-none">
+          <Text className="text-[12px] font-bold text-slate-400 uppercase tracking-wider mb-3">
+            Application Information
+          </Text>
+
+          <View className="flex-row justify-between py-2 border-b border-slate-100 dark:border-slate-800">
+            <Text className="text-[14px] text-slate-600 dark:text-slate-400">Version</Text>
+            <Text className="text-[14px] font-semibold text-slate-900 dark:text-white">1.0.0</Text>
+          </View>
+
+          <View className="flex-row justify-between py-2 border-b border-slate-100 dark:border-slate-800">
+            <Text className="text-[14px] text-slate-600 dark:text-slate-400">Release Build</Text>
+            <Text className="text-[14px] font-semibold text-slate-900 dark:text-white">2026.1</Text>
+          </View>
+
+          <View className="flex-row justify-between py-2">
+            <Text className="text-[14px] text-slate-600 dark:text-slate-400">Environment</Text>
+            <View className="flex-row items-center gap-1.5">
+              <View className="w-2 h-2 rounded-full bg-green-500" />
+              <Text className="text-[14px] font-semibold text-slate-900 dark:text-white">Production API</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Privacy & Data Transparency Card */}
+        <View className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800/80 p-5 mb-4 shadow-sm shadow-slate-100 dark:shadow-none">
+          <View className="flex-row items-center gap-2 mb-3">
+            <View className="w-7 h-7 rounded-xl bg-blue-50 dark:bg-blue-950/50 items-center justify-center">
+              <MaterialCommunityIcons name="shield-check" size={16} color="#2563eb" />
+            </View>
+            <Text className="text-[14px] font-bold text-slate-900 dark:text-white">
+              Privacy & Data Transparency
+            </Text>
+          </View>
+
+          <View className="gap-2">
+            <Text className="text-[12px] text-slate-600 dark:text-slate-400 leading-relaxed">
+              • <Text className="font-semibold text-slate-800 dark:text-slate-200">Patient Ownership:</Text> Your health logs, blood pressure records, and dietary entries belong solely to your account.
+            </Text>
+            <Text className="text-[12px] text-slate-600 dark:text-slate-400 leading-relaxed">
+              • <Text className="font-semibold text-slate-800 dark:text-slate-200">On-Device Export:</Text> Exported clinical summary reports are generated on your device and shared only with your explicit action.
+            </Text>
+            <Text className="text-[12px] text-slate-600 dark:text-slate-400 leading-relaxed">
+              • <Text className="font-semibold text-slate-800 dark:text-slate-200">Private Contacts:</Text> Care team and emergency contacts are stored securely and never shared with third parties.
+            </Text>
+          </View>
+        </View>
+
+        {/* Legal Links */}
+        <View className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800/80 px-4 mb-6 shadow-sm shadow-slate-100 dark:shadow-none">
           <TouchableOpacity 
             onPress={() => openURL("terms")}
-            className="flex-row items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800"
+            accessible={true}
+            accessibilityRole="link"
+            accessibilityLabel="Terms of Service, opens in browser"
+            className="flex-row items-center justify-between py-4 border-b border-slate-100 dark:border-slate-800"
           >
             <Text className="text-[15px] font-medium text-slate-900 dark:text-white">Terms of Service</Text>
-            <Feather name="external-link" size={16} color="#cbd5e1" />
+            <Feather name="external-link" size={16} color="#94a3b8" />
           </TouchableOpacity>
           <TouchableOpacity 
             onPress={() => openURL("privacy")}
-            className="flex-row items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800"
+            accessible={true}
+            accessibilityRole="link"
+            accessibilityLabel="Privacy Policy, opens in browser"
+            className="flex-row items-center justify-between py-4 border-b border-slate-100 dark:border-slate-800"
           >
             <Text className="text-[15px] font-medium text-slate-900 dark:text-white">Privacy Policy</Text>
-            <Feather name="external-link" size={16} color="#cbd5e1" />
+            <Feather name="external-link" size={16} color="#94a3b8" />
           </TouchableOpacity>
           <TouchableOpacity 
             onPress={() => openURL("licenses")}
-            className="flex-row items-center justify-between p-4"
+            accessible={true}
+            accessibilityRole="link"
+            accessibilityLabel="Open Source Licenses, opens in browser"
+            className="flex-row items-center justify-between py-4"
           >
             <Text className="text-[15px] font-medium text-slate-900 dark:text-white">Open Source Licenses</Text>
-            <Feather name="external-link" size={16} color="#cbd5e1" />
+            <Feather name="external-link" size={16} color="#94a3b8" />
           </TouchableOpacity>
         </View>
-        
-        <TouchableOpacity 
-          activeOpacity={0.8}
-          onPress={handleCheckUpdates}
-          disabled={isCheckingUpdates}
-          className="bg-slate-900 dark:bg-blue-600 rounded-xl py-4 flex-row justify-center items-center mb-6"
-        >
-          {isCheckingUpdates ? (
-            <>
-              <ActivityIndicator color="#fff" size="small" style={{ marginRight: 8 }} />
-              <Text className="text-[16px] font-medium text-white">Checking for updates...</Text>
-            </>
-          ) : (
-            <Text className="text-[16px] font-medium text-white">Check for Updates</Text>
-          )}
-        </TouchableOpacity>
 
-        <Text className="text-[13px] text-slate-400 text-center px-4 leading-relaxed mt-2">
-          HeartLink is dedicated to helping individuals manage cardiovascular health proactively through data tracking and meaningful insights.
+        <Text className="text-[12px] text-slate-400 text-center px-4 leading-relaxed">
+          HeartLink empowers patients to actively track vitals, monitor symptoms, and collaborate with their clinical care team.
         </Text>
-        <Text className="text-[12px] text-slate-400 text-center mt-6 mb-10">
+        <Text className="text-[11px] text-slate-400 text-center mt-4 mb-8">
           © 2026 HeartLink Inc. All rights reserved.
         </Text>
 

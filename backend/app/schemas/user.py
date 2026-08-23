@@ -1,11 +1,12 @@
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from typing import Optional, List, Literal
 from datetime import date
+import re
 
 
 # Profile update (onboarding step 1)
 class ProfileUpdate(BaseModel):
-    first_name: str
+    first_name: str = Field(..., min_length=1)
     last_name: Optional[str] = ""
     email: Optional[str] = None
     phone: Optional[str] = None
@@ -14,6 +15,13 @@ class ProfileUpdate(BaseModel):
     height_cm: float = Field(..., ge=50.0, le=300.0)
     weight_kg: float = Field(..., ge=20.0, le=400.0)
     health_goals: List[str] = []
+
+    @field_validator("first_name")
+    @classmethod
+    def validate_first_name(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("first_name cannot be empty or whitespace only")
+        return v.strip()
 
 
 # Unified Onboarding Baseline
@@ -76,22 +84,49 @@ class BaselineOnboardingRequest(BaseModel):
 
 # Change Password
 class ChangePasswordRequest(BaseModel):
-    current_password: str
-    new_password: str
+    current_password: str = Field(..., min_length=1)
+    new_password: str = Field(..., min_length=6)
+
+    @field_validator("new_password")
+    @classmethod
+    def validate_new_password(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("new_password cannot be empty or whitespace only")
+        if len(v) < 6:
+            raise ValueError("new_password must be at least 6 characters")
+        return v
+
+
+# Delete Account
+class DeleteAccountRequest(BaseModel):
+    password: str = Field(..., min_length=1)
+
 
 # Reminders
 class ReminderItem(BaseModel):
     enabled: bool
-    time: str
+    time: str = Field(..., pattern=r"^([01]\d|2[0-3]):([0-5]\d)$")
+
 
 class RemindersUpdateRequest(BaseModel):
     morning: ReminderItem
     evening: ReminderItem
     activity: ReminderItem
 
+
 # Care Team
 class CareTeamContactRequest(BaseModel):
-    name: str
-    role_title: str
-    contact_type: str
-    phone: str
+    name: str = Field(..., min_length=1)
+    role_title: str = Field(..., min_length=1)
+    contact_type: Literal["doctor", "emergency"] = "doctor"
+    phone: str = Field(..., min_length=1)
+
+
+# Health Thresholds
+class ThresholdsUpdateRequest(BaseModel):
+    sodium_limit_mg: int = Field(..., ge=500, le=5000)
+    fluid_limit_ml: Optional[int] = Field(default=2000, ge=500, le=5000)
+    active_minutes_goal: int = Field(..., ge=0, le=300)
+    systolic_threshold: int = Field(..., ge=80, le=200)
+    diastolic_threshold: int = Field(..., ge=40, le=130)
+

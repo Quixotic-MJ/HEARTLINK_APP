@@ -1216,7 +1216,9 @@ def save_profiles():
         data = {
             "profiles": [_serialize_item(p) for p in profiles],
             "baseline_onboarding": [_serialize_item(o) for o in baseline_onboarding],
-            "user_thresholds": [_serialize_item(t) for t in user_thresholds]
+            "user_thresholds": [_serialize_item(t) for t in user_thresholds],
+            "user_reminders": [_serialize_item(r) for r in user_reminders],
+            "care_team_contacts": [_serialize_item(c) for c in care_team_contacts],
         }
         with open(DB_FILE, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
@@ -1232,7 +1234,7 @@ def save_temp_profiles():
         print(f"Error saving temp profiles: {e}")
 
 def load_profiles():
-    global profiles, baseline_onboarding, user_thresholds
+    global profiles, baseline_onboarding, user_thresholds, user_reminders, care_team_contacts
     if os.path.exists(DB_FILE):
         try:
             with open(DB_FILE, "r", encoding="utf-8") as f:
@@ -1251,6 +1253,12 @@ def load_profiles():
                     if "user_thresholds" in data:
                         user_thresholds.clear()
                         user_thresholds.extend([_deserialize_item(t) for t in data["user_thresholds"]])
+                    if "user_reminders" in data:
+                        user_reminders.clear()
+                        user_reminders.extend([_deserialize_item(r) for r in data["user_reminders"]])
+                    if "care_team_contacts" in data:
+                        care_team_contacts.clear()
+                        care_team_contacts.extend([_deserialize_item(c) for c in data["care_team_contacts"]])
         except Exception as e:
             print(f"Error loading mock profiles: {e}")
     else:

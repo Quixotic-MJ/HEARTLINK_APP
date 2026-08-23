@@ -85,7 +85,7 @@ export default function HealthAnalyticsScreen() {
           <TouchableOpacity className="pb-3 border-b-2 border-[#1e4ed8] mr-6">
             <Text className="text-[14px] font-bold text-slate-900 dark:text-white">Overview & HSS</Text>
           </TouchableOpacity>
-          <TouchableOpacity className="pb-3" onPress={() => router.push("/(home)/health-history")}>
+          <TouchableOpacity className="pb-3" onPress={() => router.push("/(home)/health-history" as any)}>
             <Text className="text-[14px] font-medium text-slate-400">Diet & Biometrics</Text>
           </TouchableOpacity>
         </View>
@@ -99,7 +99,7 @@ export default function HealthAnalyticsScreen() {
               <Text className="text-[12px] text-slate-500 dark:text-slate-400 mt-1">Last 7 days trend analysis</Text>
             </View>
             <TouchableOpacity 
-               onPress={() => router.push("/(home)/detailed-analytics")}
+               onPress={() => router.push("/(home)/detailed-analytics" as any)}
                className="bg-white dark:bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 flex-row items-center"
             >
               <View className="w-2 h-2 rounded-full bg-blue-500 mr-2" />

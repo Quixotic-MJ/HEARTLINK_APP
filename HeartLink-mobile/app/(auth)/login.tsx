@@ -129,11 +129,15 @@ export default function AuthScreen() {
       const resData = await response.json();
 
       if (response.ok) {
-        await setUserId(resData.user_id);
+        await setUserId(resData.user_id, resData.token);
 
         // Fetch profile to check onboarding status for correct routing
         try {
-          const profileRes = await fetch(`${base_url}/api/users/${resData.user_id}/profile`);
+          const profileRes = await fetch(`${base_url}/api/users/${resData.user_id}/profile`, {
+            headers: {
+              "Authorization": `Bearer ${resData.token || ""}`,
+            },
+          });
           const profileData = await profileRes.json();
           const onboardingStatus = profileData?.profile?.onboarding_status;
 
@@ -159,11 +163,11 @@ export default function AuthScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-background" edges={["top", "bottom"]}>
       <StatusBar style={isDark ? "light" : "dark"} />
       
       {/* ── Top Bar ── */}
-      <View className="px-5 pt-4 pb-3 flex-row items-center justify-between">
+      <View className="px-5 pt-2 pb-2 flex-row items-center justify-between">
         <TouchableOpacity 
           onPress={() => {
             if (router.canGoBack()) {
@@ -192,12 +196,17 @@ export default function AuthScreen() {
         className="flex-1"
       >
         <ScrollView
-          contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 48 }}
+          contentContainerStyle={{
+            flexGrow: 1,
+            justifyContent: "center",
+            paddingHorizontal: 20,
+            paddingVertical: 16,
+          }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
           {/* ── Heading ── */}
-          <Animated.View entering={FadeIn.delay(100)} className="mb-6 mt-1 px-1">
+          <Animated.View entering={FadeIn.delay(100)} className="mb-5 px-1">
             <Text className="text-3xl font-bold text-foreground tracking-tight leading-tight mb-1.5">
               Welcome back.
             </Text>
@@ -207,31 +216,33 @@ export default function AuthScreen() {
           </Animated.View>
 
           {/* ── Card ── */}
-          <Animated.View entering={FadeInDown.delay(200).springify()} className="bg-card rounded-2xl border border-border px-5 py-7 gap-6 shadow-md">
+          <Animated.View entering={FadeInDown.delay(200).springify()} className="bg-card rounded-2xl border border-border px-5 py-6 gap-4 shadow-md">
             
-            {/* Identifier Section */}
-            <InputField
-              control={control}
-              name="identifier"
-              label="Email or Phone number"
-              icon="user"
-              placeholder="e.g. name@example.com or 912-345-6789"
-              keyboardType="email-address"
-              autoComplete="username"
-              textContentType="username"
-              onChangeText={(text) => {
-                setValue("identifier", formatIdentifier(text), { shouldValidate: true });
-              }}
-            />
-
-            {/* Password Section */}
+            {/* Inputs Section */}
             <View className="gap-2.5">
+              {/* Identifier Section */}
               <InputField
+                control={control}
+                name="identifier"
+                label="Email or Phone number"
+                icon="user"
+                placeholder="Enter your email or phone number"
+                keyboardType="email-address"
+                autoComplete="username"
+                textContentType="username"
+                onChangeText={(text) => {
+                  setValue("identifier", formatIdentifier(text), { shouldValidate: true });
+                }}
+              />
+
+              {/* Password Section */}
+              <View className="gap-1.5">
+                <InputField
                   control={control}
                   name="password"
                   label="Password"
                   icon="lock"
-                  placeholder="Password"
+                  placeholder="Enter your password"
                   secureTextEntry={!showPassword}
                   rightElement={
                     <TouchableOpacity
@@ -249,22 +260,23 @@ export default function AuthScreen() {
                     </TouchableOpacity>
                   }
                 />
-              <TouchableOpacity
-                className="self-end py-2 px-1"
-                onPress={() => router.push("/(auth)/forgot-password")}
-                activeOpacity={0.7}
-              >
-                <Text className="text-xs font-semibold text-primary">
-                  Forgot your password?
-                </Text>
-              </TouchableOpacity>
+                <TouchableOpacity
+                  className="self-end py-1 px-1"
+                  onPress={() => router.push("/(auth)/forgot-password")}
+                  activeOpacity={0.7}
+                >
+                  <Text className="text-xs font-semibold text-primary">
+                    Forgot your password?
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
 
             {/* Error Message with Shake Animation */}
             {globalError && (
               <Animated.View 
                 style={errorAnimatedStyle}
-                className="bg-destructive/15 border border-destructive/40 rounded-xl p-3.5 flex-row items-center gap-2 mt-1 mb-2"
+                className="bg-destructive/15 border border-destructive/40 rounded-xl p-3.5 flex-row items-center gap-2 mt-1 mb-1"
               >
                 <Feather name="alert-triangle" size={16} color="#ef4444" />
                 <Text className="text-destructive text-xs flex-1 font-medium">
@@ -290,7 +302,7 @@ export default function AuthScreen() {
             <TouchableOpacity
               activeOpacity={0.65}
               onPress={() => router.push("/(auth)/register")}
-              className="flex-row justify-center items-center py-4 mb-2 gap-1.5 mt-8"
+              className="flex-row justify-center items-center py-4 gap-1.5 mt-5"
             >
               <Text className="text-sm text-muted-foreground">
                 Don't have an account?

@@ -1,16 +1,16 @@
 from datetime import datetime
+import hashlib
 import app.mock_db as mock_db
-
-
 from app.services.clinical import get_clinical_baseline_data
+
 
 def get_full_profile(user_id: str) -> dict:
     profile = next((p for p in mock_db.profiles if p["id"] == user_id), None)
     if not profile:
         return None
         
-    onboarding = next((o for o in mock_db.baseline_onboarding if o["user_id"] == user_id), None)
-    care_team = [c for c in mock_db.care_team_contacts if c["user_id"] == user_id]
+    onboarding = next((o for o in getattr(mock_db, 'baseline_onboarding', []) if o["user_id"] == user_id), None)
+    care_team = [c for c in getattr(mock_db, 'care_team_contacts', []) if c["user_id"] == user_id]
     
     lifestyle = None
     dietary = None
@@ -34,8 +34,14 @@ def get_full_profile(user_id: str) -> dict:
             "allergies": onboarding.get("allergies", [])
         }
     
+    # Strip sensitive fields from profile object
+    clean_profile = {
+        k: v for k, v in profile.items() 
+        if k not in ["password", "password_hash", "token", "secret"]
+    }
+    
     return {
-        "profile": profile,
+        "profile": clean_profile,
         "baselines": {
             "onboarding": onboarding,
             "clinical": get_clinical_baseline_data(user_id),
@@ -44,6 +50,7 @@ def get_full_profile(user_id: str) -> dict:
         },
         "care_team": care_team
     }
+
 
 def update_profile(user_id: str, data: dict) -> dict:
     for profile in mock_db.profiles:
@@ -54,34 +61,60 @@ def update_profile(user_id: str, data: dict) -> dict:
             profile["sex"] = data["sex"]
             profile["height_cm"] = data["height_cm"]
             profile["weight_kg"] = data["weight_kg"]
-            profile["health_goals"] = data["health_goals"]
+            profile["health_goals"] = data.get("health_goals", [])
             profile["updated_at"] = datetime.utcnow()
-            return profile
+            mock_db.save_profiles()
+            
+            clean_profile = {
+                k: v for k, v in profile.items() 
+                if k not in ["password", "password_hash", "token", "secret"]
+            }
+            return clean_profile
     return None
 
 
-def delete_user(user_id: str) -> bool:
-    # Check if user exists first
-    profile_exists = any(p["id"] == user_id for p in mock_db.profiles)
-    if not profile_exists:
+def delete_user(user_id: str, password: str = None) -> bool:
+    # Check if user exists
+    user = next((p for p in mock_db.profiles if p["id"] == user_id), None)
+    if not user:
         return False
+        
+    # Verify password if provided
+    if password is not None:
+        hashed_input = hashlib.sha256(password.encode()).hexdigest()
+        if user.get("password") != hashed_input:
+            return False
         
     # Hard delete from all mock_db collections
     mock_db.profiles[:] = [p for p in mock_db.profiles if p["id"] != user_id]
     if hasattr(mock_db, 'baseline_onboarding'):
         mock_db.baseline_onboarding[:] = [o for o in mock_db.baseline_onboarding if o["user_id"] != user_id]
-    mock_db.care_team_contacts[:] = [c for c in mock_db.care_team_contacts if c["user_id"] != user_id]
+    if hasattr(mock_db, 'care_team_contacts'):
+        mock_db.care_team_contacts[:] = [c for c in mock_db.care_team_contacts if c["user_id"] != user_id]
+    if hasattr(mock_db, 'user_reminders'):
+        mock_db.user_reminders[:] = [r for r in mock_db.user_reminders if r["user_id"] != user_id]
+    if hasattr(mock_db, 'user_thresholds'):
+        mock_db.user_thresholds[:] = [t for t in mock_db.user_thresholds if t["user_id"] != user_id]
     
-    mock_db.meal_logs[:] = [m for m in mock_db.meal_logs if m["user_id"] != user_id]
-    mock_db.exercise_logs[:] = [e for e in mock_db.exercise_logs if e["user_id"] != user_id]
-    mock_db.daily_health_logs[:] = [l for l in mock_db.daily_health_logs if l["user_id"] != user_id]
-    mock_db.hss_history[:] = [c for c in mock_db.hss_history if c["user_id"] != user_id]
+    if hasattr(mock_db, 'meal_logs'):
+        mock_db.meal_logs[:] = [m for m in mock_db.meal_logs if m["user_id"] != user_id]
+    if hasattr(mock_db, 'exercise_logs'):
+        mock_db.exercise_logs[:] = [e for e in mock_db.exercise_logs if e["user_id"] != user_id]
+    if hasattr(mock_db, 'daily_health_logs'):
+        mock_db.daily_health_logs[:] = [l for l in mock_db.daily_health_logs if l["user_id"] != user_id]
+    if hasattr(mock_db, 'sleep_logs'):
+        mock_db.sleep_logs[:] = [s for s in mock_db.sleep_logs if s["user_id"] != user_id]
+    if hasattr(mock_db, 'hss_history'):
+        mock_db.hss_history[:] = [c for c in mock_db.hss_history if c["user_id"] != user_id]
+    if hasattr(mock_db, 'notifications'):
+        mock_db.notifications[:] = [n for n in mock_db.notifications if n.get("user_id") != user_id]
+    if hasattr(mock_db, 'alerts'):
+        mock_db.alerts[:] = [a for a in mock_db.alerts if a.get("user_id") != user_id]
     
     mock_db.save_profiles()
     mock_db.save_logs()
     
     return True
-
 
 
 def save_baseline_onboarding(user_id: str, data: dict, profile_data: dict) -> dict:
@@ -144,7 +177,6 @@ def save_baseline_onboarding(user_id: str, data: dict, profile_data: dict) -> di
 
 
 def change_password(user_id: str, current_pwd: str, new_pwd: str) -> bool:
-    import hashlib
     hashed_current = hashlib.sha256(current_pwd.encode()).hexdigest()
     hashed_new = hashlib.sha256(new_pwd.encode()).hexdigest()
 
@@ -159,8 +191,9 @@ def change_password(user_id: str, current_pwd: str, new_pwd: str) -> bool:
                 return False
     return False
 
+
 def get_reminders(user_id: str) -> dict:
-    for r in mock_db.user_reminders:
+    for r in getattr(mock_db, 'user_reminders', []):
         if r["user_id"] == user_id:
             return r
     
@@ -171,14 +204,17 @@ def get_reminders(user_id: str) -> dict:
         "activity": {"enabled": False, "time": "17:00"}
     }
     mock_db.user_reminders.append(default)
+    mock_db.save_profiles()
     return default
 
+
 def update_reminders(user_id: str, data: dict) -> dict:
-    for r in mock_db.user_reminders:
+    for r in getattr(mock_db, 'user_reminders', []):
         if r["user_id"] == user_id:
             r["morning"] = data["morning"]
             r["evening"] = data["evening"]
             r["activity"] = data["activity"]
+            mock_db.save_profiles()
             return r
     
     new_r = {
@@ -188,31 +224,37 @@ def update_reminders(user_id: str, data: dict) -> dict:
         "activity": data["activity"]
     }
     mock_db.user_reminders.append(new_r)
+    mock_db.save_profiles()
     return new_r
+
 
 def add_care_team_contact(user_id: str, data: dict) -> dict:
     import uuid
     new_contact = {
         "id": f"team-contacts-{uuid.uuid4().hex[:8]}",
         "user_id": user_id,
-        "contact_type": data.get("contact_type", "emergency"),
+        "contact_type": data.get("contact_type", "doctor"),
         "name": data.get("name", ""),
         "role_title": data.get("role_title", ""),
         "phone": data.get("phone", ""),
         "created_at": datetime.utcnow(),
     }
     mock_db.care_team_contacts.append(new_contact)
+    mock_db.save_profiles()
     return new_contact
 
+
 def update_care_team_contact(user_id: str, contact_id: str, data: dict) -> dict:
-    for contact in mock_db.care_team_contacts:
+    for contact in getattr(mock_db, 'care_team_contacts', []):
         if contact["id"] == contact_id and contact["user_id"] == user_id:
             contact["name"] = data.get("name", contact["name"])
             contact["role_title"] = data.get("role_title", contact["role_title"])
             contact["contact_type"] = data.get("contact_type", contact["contact_type"])
             contact["phone"] = data.get("phone", contact["phone"])
+            mock_db.save_profiles()
             return contact
     return None
+
 
 def delete_care_team_contact(user_id: str, contact_id: str) -> bool:
     initial_length = len(mock_db.care_team_contacts)
@@ -220,4 +262,8 @@ def delete_care_team_contact(user_id: str, contact_id: str) -> bool:
         c for c in mock_db.care_team_contacts 
         if not (c["id"] == contact_id and c["user_id"] == user_id)
     ]
-    return len(mock_db.care_team_contacts) < initial_length
+    if len(mock_db.care_team_contacts) < initial_length:
+        mock_db.save_profiles()
+        return True
+    return False
+

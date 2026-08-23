@@ -11,7 +11,7 @@ interface ButtonProps extends PressableProps {
   isLoading?: boolean;
   loadingText?: string;
   icon?: keyof typeof Feather.glyphMap;
-  variant?: "primary" | "outline";
+  variant?: "primary" | "outline" | "destructive";
 }
 
 export function Button({
@@ -45,6 +45,21 @@ export function Button({
 
   const isDisabled = props.disabled || isLoading;
   const isPrimary = variant === "primary";
+  const isDestructive = variant === "destructive";
+
+  const buttonBg = isDestructive
+    ? "w-full rounded-2xl py-4 flex-row justify-center items-center gap-2 bg-destructive shadow-sm"
+    : isPrimary
+    ? "w-full rounded-2xl py-4 flex-row justify-center items-center gap-2 bg-primary shadow-sm"
+    : "w-full rounded-2xl py-4 flex-row justify-center items-center gap-2 bg-transparent border border-border";
+
+  const textColor = isDestructive
+    ? "text-sm font-semibold text-destructive-foreground"
+    : isPrimary
+    ? "text-sm font-semibold text-primary-foreground"
+    : "text-sm font-semibold text-foreground";
+
+  const iconColor = isDestructive || isPrimary ? "#ffffff" : "#0f172a";
 
   return (
     <AnimatedPressable
@@ -56,12 +71,12 @@ export function Button({
       style={[animatedStyle, { opacity: isDisabled ? 0.7 : 1 }, props.style]}
       accessibilityState={{ busy: isLoading, disabled: isDisabled }}
       accessibilityRole="button"
-      className={isPrimary ? "w-full rounded-2xl py-4 flex-row justify-center items-center gap-2 bg-primary" : "w-full rounded-2xl py-4 flex-row justify-center items-center gap-2 bg-transparent border border-border"}
+      className={buttonBg}
     >
       {isLoading ? (
         <>
-          <ActivityIndicator size="small" color={isPrimary ? "#fff" : "#000"} />
-          <Text className={isPrimary ? "text-sm font-semibold text-primary-foreground" : "text-sm font-semibold text-foreground"}>
+          <ActivityIndicator size="small" color="#fff" />
+          <Text className={textColor}>
             {loadingText || label}
           </Text>
         </>
@@ -71,10 +86,10 @@ export function Button({
             <Feather 
               name={icon} 
               size={16} 
-              color={isPrimary ? "#ffffff" : "#0f172a"} 
+              color={iconColor} 
             />
           )}
-          <Text className={isPrimary ? "text-sm font-semibold text-primary-foreground" : "text-sm font-semibold text-foreground"}>
+          <Text className={textColor}>
             {label}
           </Text>
         </>

@@ -18,15 +18,26 @@ def _safe_date(val: Any) -> datetime.date:
     if isinstance(val, datetime):
         return val.date()
     elif isinstance(val, str):
-        return datetime.fromisoformat(val).date()
-    return datetime.now().date()
+        try:
+            s = val.replace("Z", "+00:00")
+            return datetime.fromisoformat(s).date()
+        except Exception:
+            return datetime.min.date()
+    elif hasattr(val, "year") and hasattr(val, "month") and hasattr(val, "day"):
+        return val
+    return datetime.min.date()
     
 def _safe_datetime(val: Any) -> datetime:
     if isinstance(val, datetime):
-        return val
+        return val.replace(tzinfo=None) if val.tzinfo else val
     elif isinstance(val, str):
-        return datetime.fromisoformat(val)
-    return datetime.now()
+        try:
+            s = val.replace("Z", "+00:00")
+            dt = datetime.fromisoformat(s)
+            return dt.replace(tzinfo=None) if dt.tzinfo else dt
+        except Exception:
+            return datetime.min
+    return datetime.min
 
 # ─── Dietary exclusion map ─────────────────────────────────────────────────────
 # Maps a dietary practice to ingredient keywords that should be excluded.
@@ -200,7 +211,7 @@ def get_dashboard_data(user_id: str) -> Dict[str, Any]:
 
     user_hss = sorted(
         [c for c in hss_history if c["user_id"] == user_id],
-        key=lambda x: x["computed_at"],
+        key=lambda x: _safe_datetime(x.get("computed_at")),
         reverse=True,
     )
     latest_hss = (
@@ -211,14 +222,14 @@ def get_dashboard_data(user_id: str) -> Dict[str, Any]:
 
     user_logs = sorted(
         [l for l in daily_health_logs if l["user_id"] == user_id],
-        key=lambda x: x["logged_at"],
+        key=lambda x: _safe_datetime(x.get("logged_at")),
         reverse=True,
     )
     latest_log = user_logs[0] if user_logs else None
 
     user_alerts = sorted(
         [a for a in alerts if a["user_id"] == user_id],
-        key=lambda x: x["created_at"],
+        key=lambda x: _safe_datetime(x.get("created_at")),
         reverse=True,
     )
     latest_alert = user_alerts[0] if user_alerts else None
@@ -313,10 +324,14 @@ def get_dashboard_data(user_id: str) -> Dict[str, Any]:
         "last_sync": latest_hss.get("computed_at"),
         "unread_notifications_count": unread_count,
         "latest_vitals": {
-            "bpm": latest_log.get("heart_rate_bpm") if latest_log and latest_log.get("heart_rate_bpm") else "--",
+            "bpm": (
+                str(latest_log.get("heart_rate_bpm") if latest_log.get("heart_rate_bpm") is not None else latest_log.get("bpm", "--"))
+                if latest_log and (latest_log.get("heart_rate_bpm") is not None or latest_log.get("bpm") is not None)
+                else "--"
+            ),
             "bp": (
                 f"{latest_log.get('systolic_bp')}/{latest_log.get('diastolic_bp')}"
-                if latest_log and latest_log.get('systolic_bp') and latest_log.get('diastolic_bp')
+                if latest_log and latest_log.get('systolic_bp') is not None and latest_log.get('diastolic_bp') is not None
                 else "--/--"
             ),
             "trend": trend,
@@ -370,7 +385,7 @@ def get_7_day_wrap_up_data(user_id: str, local_date_str: str = None) -> Dict[str
     
     user_health_current = [l for l in daily_health_logs if l["user_id"] == user_id and in_current_week(l["logged_at"]) and not l.get("deleted_at")]
     user_sleep_current = [s for s in sleep_logs if s["user_id"] == user_id and in_current_week(s["logged_at"]) and not s.get("deleted_at")]
-    user_hss = sorted([c for c in hss_history if c["user_id"] == user_id], key=lambda x: _safe_datetime(x["computed_at"]))
+    user_hss = sorted([c for c in hss_history if c["user_id"] == user_id], key=lambda x: _safe_datetime(x.get("computed_at")))
 
     user_meals_prev = [m for m in meal_logs if m["user_id"] == user_id and in_prev_week(m["logged_at"]) and not m.get("deleted_at")]
     user_exercises_prev = [e for e in exercise_logs if e["user_id"] == user_id and in_prev_week(e["logged_at"]) and not e.get("deleted_at") and e.get("status") != "abandoned"]
@@ -450,8 +465,12 @@ def get_7_day_wrap_up_data(user_id: str, local_date_str: str = None) -> Dict[str
     # Movement Formatting (Include abandoned with explicit status for timeline)
     exercise_records = []
     for e in user_exercises_current_all:
-        routine = next((r for r in exercise_routines if r["id"] == e.get("routine_id")), {})
-        instructions = [step["content"] for step in routine.get("steps", []) if step.get("type") in ("instruction", "breathing")]
+        routine = next((r for r in exercise_routines if r.get("id") == e.get("routine_id")), {})
+        instructions = [
+            step.get("content") or step.get("text") or step.get("instruction") or ""
+            for step in routine.get("steps", [])
+            if isinstance(step, dict) and step.get("type") in ("instruction", "breathing")
+        ]
         
         status_label = e.get("status")
         if status_label == "abandoned":

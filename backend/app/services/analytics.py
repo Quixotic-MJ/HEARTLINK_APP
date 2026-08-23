@@ -41,7 +41,7 @@ def update_thresholds(user_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
         "active_minutes_goal": data.get("active_minutes_goal", 30),
         "systolic_threshold": data.get("systolic_threshold", 120),
         "diastolic_threshold": data.get("diastolic_threshold", 80),
-        "updated_at": datetime.now()
+        "updated_at": datetime.utcnow()
     }
     user_thresholds.append(new_threshold)
     from app.mock_db import save_profiles

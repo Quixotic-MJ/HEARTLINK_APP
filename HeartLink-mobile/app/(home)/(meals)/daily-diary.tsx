@@ -1,25 +1,30 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import {
   View,
   Text,
   TouchableOpacity,
   FlatList,
   ActivityIndicator,
-  Alert,
   RefreshControl,
   Image,
+  Modal,
+  Animated,
+  Pressable,
+  Dimensions,
+  Platform,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useRouter, useFocusEffect } from "expo-router";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { Swipeable } from "react-native-gesture-handler";
-import { format, parseISO } from "date-fns";
+import { useColorScheme } from "nativewind";
 import { ConfirmDialog } from "../../../components/ui/ConfirmDialog";
 import { useUser } from "../../../contexts/UserContext";
 import { EmptyState } from "../../../components/ui/EmptyState";
 import { useToast } from "../../../contexts/ToastContext";
 
+const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
 type MealLog = {
@@ -35,15 +40,98 @@ type MealLog = {
   logged_at: string;
 };
 
+// ─── Food Log Options ─────────────────────────────────────────────────────────
+
+const FOOD_LOG_OPTIONS = [
+  {
+    icon: "camera" as const,
+    iconType: "feather" as const,
+    label: "Scan food barcode",
+    subtitle: "Use camera to scan product barcodes",
+    iconColor: "#185fa5",
+    iconBg: "#e6f1fb",
+    route: "/(home)/(meals)/barcode-scan",
+  },
+  {
+    icon: "search" as const,
+    iconType: "feather" as const,
+    label: "Search food database",
+    subtitle: "Search verified meals & nutritional facts",
+    iconColor: "#16a34a",
+    iconBg: "#eaf3de",
+    route: "/(home)/(meals)/search-meal",
+  },
+  {
+    icon: "silverware-fork-knife" as const,
+    iconType: "material" as const,
+    label: "Log manually / Estimate",
+    subtitle: "Enter custom food details & nutrients",
+    iconColor: "#d97706",
+    iconBg: "#fef3c7",
+    route: "/(home)/(meals)/estimate-meal",
+  },
+];
+
 export default function DailyDiaryScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === "dark";
   const { userId } = useUser();
   const { showToast } = useToast();
+
   const [meals, setMeals] = useState<MealLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(new Date());
   const [mealToDelete, setMealToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [logModalVisible, setLogModalVisible] = useState(false);
+
+  // Bottom Sheet animations
+  const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
+  const backdropAnim = useRef(new Animated.Value(0)).current;
+
+  const openLogModal = () => {
+    setLogModalVisible(true);
+  };
+
+  const animateIn = useCallback(() => {
+    Animated.parallel([
+      Animated.timing(backdropAnim, {
+        toValue: 1,
+        duration: 240,
+        useNativeDriver: true,
+      }),
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        damping: 24,
+        stiffness: 280,
+        mass: 0.8,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [slideAnim, backdropAnim]);
+
+  const animateOut = useCallback(() => {
+    Animated.parallel([
+      Animated.timing(backdropAnim, {
+        toValue: 0,
+        duration: 180,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: SCREEN_HEIGHT,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start(() => setLogModalVisible(false));
+  }, [slideAnim, backdropAnim]);
+
+  const handleSelectOption = (route: string) => {
+    animateOut();
+    setTimeout(() => {
+      router.push(route as any);
+    }, 150);
+  };
 
   const fetchMeals = useCallback(async () => {
     if (!userId) return;
@@ -129,7 +217,7 @@ export default function DailyDiaryScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950" edges={["top"]}>
-      <StatusBar style="dark" />
+      <StatusBar style={isDark ? "light" : "dark"} />
 
       {/* ── Header Bar ── */}
       <View className="flex-row items-center justify-between px-5 py-3 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
@@ -137,7 +225,7 @@ export default function DailyDiaryScreen() {
           onPress={() => router.back()}
           className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 items-center justify-center"
         >
-          <Feather name="arrow-left" size={18} color="#0f172a" />
+          <Feather name="arrow-left" size={18} color={isDark ? "#f8fafc" : "#0f172a"} />
         </TouchableOpacity>
 
         <Text className="text-[17px] font-semibold text-slate-900 dark:text-white">
@@ -145,10 +233,13 @@ export default function DailyDiaryScreen() {
         </Text>
 
         <TouchableOpacity
-          onPress={() => router.push("/(home)/(meals)/search-meal")}
-          className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 items-center justify-center"
+          onPress={openLogModal}
+          accessible={true}
+          accessibilityRole="button"
+          accessibilityLabel="Add meal options"
+          className="w-9 h-9 rounded-full bg-primary/10 border border-primary/20 items-center justify-center"
         >
-          <Feather name="plus" size={18} color="#0f172a" />
+          <Feather name="plus" size={18} color={isDark ? "#60a5fa" : "#2563eb"} />
         </TouchableOpacity>
       </View>
 
@@ -193,16 +284,16 @@ export default function DailyDiaryScreen() {
       {/* ── Content / List ── */}
       {loading ? (
         <View className="flex-1 justify-center items-center">
-          <ActivityIndicator size="large" color="#0f172a" />
+          <ActivityIndicator size="large" color={isDark ? "#60a5fa" : "#0f172a"} />
         </View>
       ) : meals.length === 0 ? (
         <EmptyState
           icon={<MaterialCommunityIcons name="food-fork-drink" size={32} color="#94a3b8" />}
           title="No Meals Logged Today"
-          subtitle="Tap the + icon above or scan a barcode to add your first meal."
-          actionLabel="Scan Barcode Now"
-          onAction={() => router.push("/(home)/(meals)/barcode-scan")}
-          actionIcon={<Feather name="camera" size={15} color="#fff" />}
+          subtitle="Tap the + icon above or choose an option to log your food."
+          actionLabel="Log Food"
+          onAction={openLogModal}
+          actionIcon={<Feather name="plus" size={15} color="#fff" />}
         />
       ) : (
         <FlatList
@@ -210,7 +301,7 @@ export default function DailyDiaryScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#0f172a" />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={isDark ? "#f8fafc" : "#0f172a"} />
           }
           renderItem={({ item }) => (
             <Swipeable renderRightActions={() => renderRightActions(item)}>
@@ -251,6 +342,138 @@ export default function DailyDiaryScreen() {
           )}
         />
       )}
+
+      {/* ── Food Log Options Bottom Sheet Modal ── */}
+      <Modal
+        visible={logModalVisible}
+        transparent
+        animationType="none"
+        statusBarTranslucent
+        onShow={animateIn}
+        onRequestClose={animateOut}
+      >
+        {/* Backdrop */}
+        <Animated.View
+          style={{ flex: 1, backgroundColor: "rgba(15,23,42,0.45)", opacity: backdropAnim }}
+        >
+          <Pressable style={{ flex: 1 }} onPress={animateOut} />
+        </Animated.View>
+
+        {/* Sheet */}
+        <Animated.View
+          style={{
+            position: "absolute",
+            bottom: 0,
+            left: 0,
+            right: 0,
+            backgroundColor: isDark ? "#0f172a" : "#fff",
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
+            paddingTop: 12,
+            paddingBottom: Platform.OS === "ios" ? 40 : 28 + insets.bottom,
+            paddingHorizontal: 20,
+            transform: [{ translateY: slideAnim }],
+            ...Platform.select({
+              ios: {
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: -4 },
+                shadowOpacity: 0.1,
+                shadowRadius: 16,
+              },
+              android: { elevation: 20 },
+            }),
+          }}
+        >
+          {/* Drag handle */}
+          <View
+            style={{
+              alignSelf: "center",
+              width: 36,
+              height: 4,
+              backgroundColor: isDark ? "#334155" : "#e2e8f0",
+              borderRadius: 2,
+              marginBottom: 16,
+            }}
+          />
+
+          {/* Title */}
+          <Text style={{ fontSize: 17, fontWeight: "600", color: isDark ? "#f8fafc" : "#0f172a", marginBottom: 3 }}>
+            Log Food
+          </Text>
+          <Text style={{ fontSize: 13, color: isDark ? "#cbd5e1" : "#64748b", marginBottom: 18 }}>
+            Choose how you want to record your meal
+          </Text>
+
+          {/* Options */}
+          {FOOD_LOG_OPTIONS.map((option, index) => (
+            <TouchableOpacity
+              key={option.label}
+              activeOpacity={0.7}
+              onPress={() => handleSelectOption(option.route)}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                backgroundColor: isDark ? "#1e293b" : "#fff",
+                borderRadius: 16,
+                padding: 14,
+                marginBottom: index < FOOD_LOG_OPTIONS.length - 1 ? 10 : 0,
+                borderWidth: 0.5,
+                borderColor: isDark ? "#334155" : "#e2e8f0",
+              }}
+            >
+              {/* Icon */}
+              <View
+                style={{
+                  width: 42,
+                  height: 42,
+                  borderRadius: 12,
+                  backgroundColor: option.iconBg,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginRight: 14,
+                }}
+              >
+                {option.iconType === "feather" ? (
+                  <Feather name={option.icon as any} size={18} color={option.iconColor} />
+                ) : (
+                  <MaterialCommunityIcons name={option.icon as any} size={18} color={option.iconColor} />
+                )}
+              </View>
+
+              {/* Text */}
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 14, fontWeight: "600", color: isDark ? "#f8fafc" : "#0f172a", marginBottom: 2 }}>
+                  {option.label}
+                </Text>
+                <Text style={{ fontSize: 12, color: isDark ? "#cbd5e1" : "#64748b", lineHeight: 16 }}>
+                  {option.subtitle}
+                </Text>
+              </View>
+
+              <Feather name="chevron-right" size={16} color={isDark ? "#64748b" : "#cbd5e1"} />
+            </TouchableOpacity>
+          ))}
+
+          {/* Cancel */}
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={animateOut}
+            style={{
+              marginTop: 14,
+              alignItems: "center",
+              paddingVertical: 13,
+              backgroundColor: isDark ? "#1e293b" : "#f8fafc",
+              borderRadius: 14,
+              borderWidth: 0.5,
+              borderColor: isDark ? "#334155" : "#e2e8f0",
+            }}
+          >
+            <Text style={{ fontSize: 13, fontWeight: "600", color: "#64748b" }}>
+              Cancel
+            </Text>
+          </TouchableOpacity>
+        </Animated.View>
+      </Modal>
 
       <ConfirmDialog
         visible={!!mealToDelete}

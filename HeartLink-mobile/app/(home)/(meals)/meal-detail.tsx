@@ -93,18 +93,17 @@ export default function MealDetailScreen() {
 
   const handleLogMeal = async () => {
     setIsSubmitting(true);
+    const payload = {
+      recipe_id: item.id,
+      meal_name: item.name,
+      portion: servings,
+      calories: scaledCalories,
+      sodium_mg: scaledSodium,
+      saturated_fat_g: scaledSatFat,
+      fiber_g: scaledFiber,
+      image_url: item.image_url,
+    };
     try {
-      const payload = {
-        recipe_id: item.id,
-        meal_name: item.name,
-        portion: servings,
-        calories: scaledCalories,
-        sodium_mg: scaledSodium,
-        saturated_fat_g: scaledSatFat,
-        fiber_g: scaledFiber,
-        image_url: item.image_url,
-      };
-      
       const response = await fetch(`${base_url}/api/meals/${userId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

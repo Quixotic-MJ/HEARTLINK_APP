@@ -67,7 +67,7 @@ export function InputField<T extends FieldValues>({
   const inputBg = isDark ? "rgba(15, 23, 42, 0.6)" : "rgba(248, 250, 252, 0.9)";
 
   return (
-    <View className="mb-2">
+    <View className="mb-1">
       {label && (
         <Text className="text-sm font-semibold text-foreground mb-1.5 ml-1">
           {label}
@@ -119,30 +119,28 @@ export function InputField<T extends FieldValues>({
           }}
           placeholderTextColor={isDark ? "#64748b" : "#94a3b8"}
           className="flex-1 ml-3 text-base text-foreground py-3.5"
-          accessibilityInvalid={hasError}
+          aria-invalid={hasError}
           aria-describedby={hasError ? `${name}-error` : undefined}
           {...textInputProps}
         />
         {rightElement}
       </Animated.View>
 
-      <View className="min-h-[24px] justify-center mt-1 ml-1">
-        {hasError && (
-          <Animated.View
-            entering={FadeInDown.duration(200)}
-            exiting={FadeOutDown.duration(200)}
-            className="flex-row items-center gap-1.5"
-            accessible={true}
-            accessibilityRole="alert"
-            nativeID={`${name}-error`}
-          >
-            <Feather name="alert-circle" size={12} className="text-destructive" />
-            <Text className="text-xs text-destructive font-medium">
-              {fieldState.error?.message}
-            </Text>
-          </Animated.View>
-        )}
-      </View>
+      {hasError && (
+        <Animated.View
+          entering={FadeInDown.duration(200)}
+          exiting={FadeOutDown.duration(200)}
+          className="flex-row items-center gap-1.5 mt-1.5 ml-1"
+          accessible={true}
+          accessibilityRole="alert"
+          nativeID={`${name}-error`}
+        >
+          <Feather name="alert-circle" size={12} className="text-destructive" />
+          <Text className="text-xs text-destructive font-medium">
+            {fieldState.error?.message}
+          </Text>
+        </Animated.View>
+      )}
     </View>
   );
 }

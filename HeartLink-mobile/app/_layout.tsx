@@ -29,13 +29,14 @@ function RootLayoutNav() {
   useEffect(() => {
     if (isLoading) return;
 
-    const inAuthGroup = segments[0] === "(auth)";
+    const firstSegment = segments[0] as string | undefined;
+    const inAuthGroup = firstSegment === "(auth)";
     // segments.length === 0 means we are at the root index.tsx
     const inOnboarding =
-      segments.length === 0 ||
-      segments[0] === "onboarding" ||
-      segments[0] === "index";
-    const inBaseline = segments[0] === "(baseline)";
+      (segments as string[]).length === 0 ||
+      firstSegment === "onboarding" ||
+      firstSegment === "index";
+    const inBaseline = firstSegment === "(baseline)";
 
     if (!userId && !inAuthGroup && !inOnboarding) {
       // Redirect to login if user is not logged in and trying to access protected screen

@@ -184,11 +184,11 @@ export default function RegisterScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-background" edges={["top", "bottom"]}>
       <StatusBar style={isDark ? "light" : "dark"} />
 
       {/* ── Top Bar ── */}
-      <View className="px-5 pt-4 pb-3 flex-row items-center justify-between">
+      <View className="px-5 pt-2 pb-2 flex-row items-center justify-between">
         <TouchableOpacity
           onPress={() => {
             if (router.canGoBack()) {
@@ -217,12 +217,17 @@ export default function RegisterScreen() {
         className="flex-1"
       >
         <ScrollView
-          contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 48 }}
+          contentContainerStyle={{
+            flexGrow: 1,
+            justifyContent: "center",
+            paddingHorizontal: 20,
+            paddingVertical: 16,
+          }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
           {/* ── Heading ── */}
-          <Animated.View entering={FadeIn.delay(100)} className="mb-6 mt-1 px-1">
+          <Animated.View entering={FadeIn.delay(100)} className="mb-5 px-1">
             <Text className="text-3xl font-bold text-foreground tracking-tight leading-tight mb-1.5">
               Create your account
             </Text>
@@ -232,7 +237,7 @@ export default function RegisterScreen() {
           </Animated.View>
 
           {/* ── Card ── */}
-          <Animated.View entering={FadeInDown.delay(200).springify()} className="bg-card rounded-2xl border border-border px-5 py-7 gap-6 shadow-md">
+          <Animated.View entering={FadeInDown.delay(200).springify()} className="bg-card rounded-2xl border border-border px-5 py-6 gap-3.5 shadow-md">
             {/* General Error Banner */}
             {generalError && (
               <Animated.View 
@@ -252,7 +257,7 @@ export default function RegisterScreen() {
               name="email"
               label="Email Address"
               icon="mail"
-              placeholder="e.g. john@example.com"
+              placeholder="Enter your email address"
               keyboardType="email-address"
               autoComplete="email"
               textContentType="emailAddress"
@@ -289,7 +294,7 @@ export default function RegisterScreen() {
               name="password"
               label="Password"
               icon="lock"
-              placeholder="Create a strong password"
+              placeholder="Create a password"
               secureTextEntry={!showPassword}
               editable={!isSubmitting}
               rightElement={
@@ -316,7 +321,7 @@ export default function RegisterScreen() {
               name="confirmPassword"
               label="Confirm Password"
               icon="shield"
-              placeholder="Confirm password"
+              placeholder="Confirm your password"
               secureTextEntry={!showConfirmPassword}
               editable={!isSubmitting}
               rightElement={
@@ -388,7 +393,7 @@ export default function RegisterScreen() {
             <TouchableOpacity
               activeOpacity={0.65}
               onPress={() => router.replace("/(auth)/login")}
-              className="flex-row justify-center items-center py-4 mb-2 gap-1.5 mt-8"
+              className="flex-row justify-center items-center py-4 gap-1.5 mt-5"
             >
               <Text className="text-sm text-muted-foreground">
                 Already have an account?

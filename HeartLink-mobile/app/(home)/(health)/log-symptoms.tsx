@@ -1,26 +1,32 @@
 import { useColorScheme } from "nativewind";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
   ScrollView,
-  Alert,
   Linking,
   Platform,
-  Switch,
   KeyboardAvoidingView,
-  ActivityIndicator
+  PanResponder,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
+import Animated, {
+  FadeIn,
+  FadeInDown,
+  FadeOutUp,
+  LinearTransition,
+  Easing,
+} from "react-native-reanimated";
 import { useUser } from "../../../contexts/UserContext";
 import { OfflineSyncService } from "../../../utils/OfflineSyncService";
 import * as Haptics from "expo-haptics";
 import { useToast } from "../../../contexts/ToastContext";
+import { Button } from "../../../components/ui/Button";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -54,7 +60,6 @@ const CONTEXTS: ContextType[] = [
   "After eating",
 ];
 
-// Icon map for each symptom
 const SYMPTOM_ICONS: Record<SymptomType, string> = {
   "None (Feeling fine)": "emoticon-happy-outline",
   "Chest Discomfort / Tightness": "heart-pulse",
@@ -70,12 +75,28 @@ const CONTEXT_ICONS: Record<ContextType, string> = {
   "After eating": "food-outline",
 };
 
-// ─── Severity colors ──────────────────────────────────────────────────────────
+// ─── Severity Colors ──────────────────────────────────────────────────────────
 
-function getSeverityColor(num: number) {
-  if (num <= 3) return { bg: "#eaf3de", border: "#c0dd97", text: "#3b6d11" };
-  if (num <= 6) return { bg: "#faeeda", border: "#fac775", text: "#854f0b" };
-  return { bg: "#fcebeb", border: "#f7c1c1", text: "#a32d2d" };
+function getSeverityColor(num: number, isDark: boolean) {
+  if (num <= 3) {
+    return {
+      bg: isDark ? "rgba(16, 185, 129, 0.15)" : "#ecfdf5",
+      border: isDark ? "rgba(16, 185, 129, 0.4)" : "#a7f3d0",
+      text: isDark ? "#34d399" : "#047857",
+    };
+  }
+  if (num <= 6) {
+    return {
+      bg: isDark ? "rgba(245, 158, 11, 0.15)" : "#fefce8",
+      border: isDark ? "rgba(245, 158, 11, 0.4)" : "#fde68a",
+      text: isDark ? "#fbbf24" : "#b45309",
+    };
+  }
+  return {
+    bg: isDark ? "rgba(239, 68, 68, 0.15)" : "#fef2f2",
+    border: isDark ? "rgba(239, 68, 68, 0.4)" : "#fecaca",
+    text: isDark ? "#f87171" : "#b91c1c",
+  };
 }
 
 function getSeverityLabel(num: number) {
@@ -84,13 +105,197 @@ function getSeverityLabel(num: number) {
   return "Severe";
 }
 
+// ─── Interactive Severity Slider Component ───────────────────────────────────
+
+function SeveritySlider({
+  value,
+  onChange,
+  isDark,
+}: {
+  value: number;
+  onChange: (val: number) => void;
+  isDark: boolean;
+}) {
+  const [width, setWidth] = useState(0);
+  const valueRef = useRef(value);
+  valueRef.current = value;
+  const widthRef = useRef(width);
+  widthRef.current = width;
+
+  const updateFromPosition = (x: number) => {
+    if (widthRef.current <= 0) return;
+    const padding = 14;
+    const usableWidth = widthRef.current - padding * 2;
+    const clampedX = Math.max(0, Math.min(usableWidth, x - padding));
+    const ratio = clampedX / usableWidth;
+    const stepVal = Math.round(1 + ratio * 9);
+    const clampedVal = Math.max(1, Math.min(10, stepVal));
+    if (clampedVal !== valueRef.current) {
+      const prevVal = valueRef.current;
+      if (clampedVal >= 7 && prevVal < 7) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      } else {
+        Haptics.selectionAsync();
+      }
+      onChange(clampedVal);
+    }
+  };
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: (evt) => {
+        updateFromPosition(evt.nativeEvent.locationX);
+      },
+      onPanResponderMove: (evt) => {
+        updateFromPosition(evt.nativeEvent.locationX);
+      },
+    })
+  ).current;
+
+  const sev = getSeverityColor(value, isDark);
+  const label = getSeverityLabel(value);
+  const percentage = Math.max(0, Math.min(100, ((value - 1) / 9) * 100));
+
+  const primaryColor = isDark ? "#3b82f6" : "#2563eb";
+  const inactiveTrackColor = isDark ? "rgba(59, 130, 246, 0.22)" : "rgba(37, 99, 235, 0.18)";
+  const activeDotColor = "rgba(255, 255, 255, 0.85)";
+  const inactiveDotColor = isDark ? "rgba(59, 130, 246, 0.7)" : "rgba(37, 99, 235, 0.5)";
+
+  return (
+    <View className="bg-background/80 dark:bg-slate-950/70 rounded-2xl border border-border p-4 gap-3">
+      {/* Top Header Row */}
+      <View className="flex-row items-center justify-between">
+        <View className="flex-row items-center gap-1.5">
+          <Text className="text-xs font-semibold text-foreground">
+            Intensity:
+          </Text>
+          <Text className="text-sm font-bold text-foreground">
+            Level {value}
+            <Text className="text-xs font-normal text-muted-foreground">/10</Text>
+          </Text>
+        </View>
+
+        <View
+          className="px-2.5 py-0.5 rounded-full border"
+          style={{ backgroundColor: sev.bg, borderColor: sev.border }}
+        >
+          <Text
+            className="text-[10px] font-bold uppercase tracking-wider"
+            style={{ color: sev.text }}
+          >
+            {label}
+          </Text>
+        </View>
+      </View>
+
+      {/* Discrete Slider Track Container */}
+      <View
+        onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
+        {...panResponder.panHandlers}
+        className="py-3 px-3.5 justify-center"
+      >
+        {/* Inactive Track */}
+        <View
+          style={{
+            height: 6,
+            width: "100%",
+            backgroundColor: inactiveTrackColor,
+            borderRadius: 3,
+            overflow: "hidden",
+            justifyContent: "center",
+          }}
+        >
+          {/* Active Primary Track */}
+          <View
+            style={{
+              height: "100%",
+              width: `${percentage}%`,
+              backgroundColor: primaryColor,
+              borderRadius: 3,
+            }}
+          />
+        </View>
+
+        {/* Discrete Step Dots */}
+        {width > 0 && (
+          <View
+            pointerEvents="none"
+            style={{
+              position: "absolute",
+              left: 14,
+              right: 14,
+              height: 6,
+              justifyContent: "center",
+            }}
+          >
+            {Array.from({ length: 10 }).map((_, idx) => {
+              const dotValue = idx + 1;
+              const dotPos = (idx / 9) * 100;
+              const isPast = dotValue <= value;
+              return (
+                <View
+                  key={idx}
+                  style={{
+                    position: "absolute",
+                    left: `${dotPos}%`,
+                    marginLeft: -1.5,
+                    width: 3,
+                    height: 3,
+                    borderRadius: 1.5,
+                    backgroundColor: isPast ? activeDotColor : inactiveDotColor,
+                  }}
+                />
+              );
+            })}
+          </View>
+        )}
+
+        {/* Floating Solid Primary Thumb */}
+        <View
+          style={{
+            position: "absolute",
+            left: width > 0 ? 14 + (percentage / 100) * (width - 28) - 11 : 0,
+            width: 22,
+            height: 22,
+            borderRadius: 11,
+            backgroundColor: primaryColor,
+            shadowColor: primaryColor,
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.4,
+            shadowRadius: 3,
+            elevation: 4,
+            borderWidth: 2,
+            borderColor: "#ffffff",
+          }}
+        />
+      </View>
+
+      {/* Calibration Labels */}
+      <View className="flex-row justify-between items-center px-1">
+        <Text className="text-[10px] font-bold text-muted-foreground uppercase">
+          1 • Mild
+        </Text>
+        <Text className="text-[10px] font-bold text-muted-foreground uppercase">
+          5 • Moderate
+        </Text>
+        <Text className="text-[10px] font-bold text-muted-foreground uppercase">
+          10 • Severe
+        </Text>
+      </View>
+    </View>
+  );
+}
+
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
 export default function LogSymptomsScreen() {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
   const router = useRouter();
-  const params = useLocalSearchParams<{ triggered_by_exercise_id?: string }>();
+  const insets = useSafeAreaInsets();
+  const params = useLocalSearchParams<{ triggered_by_exercise_id?: string; pending_exercise?: string }>();
   const { userId } = useUser();
   const { showToast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -115,11 +320,9 @@ export default function LogSymptomsScreen() {
   useEffect(() => {
     setTimestamp(
       new Date().toLocaleDateString("en-PH", {
-        weekday: "long",
-        month: "long",
+        weekday: "short",
+        month: "short",
         day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
       })
     );
   }, []);
@@ -180,6 +383,7 @@ export default function LogSymptomsScreen() {
       return;
     }
 
+    setIsSubmitting(true);
     const targetUrl = `${base_url}/api/health-logs/${userId}`;
     const payload = {
       systolic_bp: sys || null,
@@ -194,7 +398,7 @@ export default function LogSymptomsScreen() {
       notes: "",
     };
 
-    // Optimistic UI: Immediately give feedback and return to dashboard
+    // Optimistic UI: Feedback & navigation
     if (isEmergency) {
       showToast({ 
         title: "Critical log submitted", 
@@ -206,7 +410,7 @@ export default function LogSymptomsScreen() {
     } else {
       showToast({ 
         title: "Health log submitted", 
-        message: "Your symptom and vitals log has been saved to your weekly wrap-up.", 
+        message: "Your symptom and vitals log has been saved to your health history.", 
         type: "success" 
       });
       router.back();
@@ -243,413 +447,390 @@ export default function LogSymptomsScreen() {
   };
 
   const maxSeverity = hasRealSymptoms ? Math.max(...selectedSymptoms.map(s => severities[s] || 1)) : 1;
-  const sevColor = getSeverityColor(maxSeverity);
+  const sevColor = getSeverityColor(maxSeverity, isDark);
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950" edges={["top"]}>
-      <StatusBar style="dark" />
+    <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
+      <StatusBar style={isDark ? "light" : "dark"} />
 
-      {/* Header */}
-      <View className="flex-row items-center px-5 pt-4 pb-3 z-10 border-b border-slate-200 dark:border-slate-800/50">
+      {/* ── Top Bar (Consistent with Auth & App standard) ── */}
+      <View className="px-5 pt-2 pb-2 flex-row items-center justify-between">
         <TouchableOpacity
-          onPress={() => step === 2 ? setStep(1) : router.back()}
-          className="p-2 -ml-2 mr-3"
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          onPress={() => {
+            if (step === 2 && !params.triggered_by_exercise_id) {
+              setStep(1);
+            } else {
+              router.back();
+            }
+          }}
+          className="w-9 h-9 rounded-xl bg-card border border-border items-center justify-center"
+          activeOpacity={0.7}
+          accessible={true}
+          accessibilityLabel="Go back"
         >
-          <Feather name="arrow-left" size={20} color={isDark ? "#f8fafc" : "#0f172a"} />
+          <Feather name="arrow-left" size={18} color={isDark ? "#f8fafc" : "#0f172a"} />
         </TouchableOpacity>
-        <View className="flex-1">
-          <Text className="text-[22px] font-medium text-slate-900 dark:text-white tracking-tight">
-            Daily Log
-          </Text>
-          <Text className="text-[13px] text-slate-400 mt-0.5">
-            Step {step} of 2 • {timestamp}
-          </Text>
+
+        <View className="flex-row items-center gap-2.5">
+          <View className="px-2.5 py-1 rounded-full bg-card border border-border">
+            <Text className="text-[11px] font-semibold text-muted-foreground">
+              Step {step} of 2 • {timestamp}
+            </Text>
+          </View>
+          <View className="w-8 h-8 rounded-full items-center justify-center border border-border bg-card shadow-sm">
+            <Feather name="heart" size={14} color={isDark ? "#f8fafc" : "#0f172a"} />
+          </View>
         </View>
       </View>
 
       <KeyboardAvoidingView
-        style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
+        className="flex-1"
       >
-        <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag"
-          contentContainerClassName="px-5 pb-32 pt-4"
+        <ScrollView
+          contentContainerStyle={{
+            paddingHorizontal: 20,
+            paddingTop: 12,
+            paddingBottom: 24,
+          }}
           showsVerticalScrollIndicator={false}
-          bounces={true}
+          keyboardShouldPersistTaps="handled"
         >
+          {/* ── Heading ── */}
+          <Animated.View entering={FadeIn.duration(240)} className="mb-4 mt-1 px-1">
+            <Text className="text-3xl font-bold text-foreground tracking-tight leading-tight mb-1">
+              {step === 1 ? "Daily Vitals" : "Log Symptoms"}
+            </Text>
+            <Text className="text-[14px] text-muted-foreground leading-relaxed">
+              {step === 1
+                ? "Record today's cardiovascular vitals and medication status."
+                : "Select any symptoms experienced today and their intensity."}
+            </Text>
+          </Animated.View>
+
           {/* ============================================================== */}
           {/* STEP 1: VITALS */}
           {/* ============================================================== */}
           {step === 1 && (
-            <>
-              <Text className="text-[13px] text-slate-500 dark:text-slate-400 font-medium leading-relaxed mb-5">
-                Let's start with the numbers. Please record your basic vitals and medication status.
-              </Text>
-
-              {/* 1. Core Vitals */}
-              <View className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4 mb-5">
-                <Text className="text-[15px] font-medium text-slate-900 dark:text-white mb-4 leading-snug">
-                  Basic Vitals
-                </Text>
-
-                <View className="flex-row gap-3 mb-4">
-                  <View className="flex-1">
-                    <Text className="text-[12px] font-medium text-slate-500 dark:text-slate-400 mb-2">
-                      Blood Pressure (SYS)
-                    </Text>
-                    <View className="h-[44px] bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/70 rounded-xl flex-row items-center px-3">
-                      <TextInput
-                        value={systolic}
-                        onChangeText={setSystolic}
-                        placeholder="120"
-                        placeholderTextColor="#94a3b8"
-                        keyboardType="numeric"
-                        maxLength={3}
-                        className="flex-1 text-[14px] text-slate-900 dark:text-white h-full"
-                      />
-                      <Text className="text-[11px] text-slate-400">mmHg</Text>
-                    </View>
+            <Animated.View entering={FadeInDown.duration(260)} className="gap-4">
+              {/* 1. Core Vitals Card */}
+              <View className="bg-card rounded-2xl border border-border px-5 py-6 gap-4 shadow-md">
+                <View className="flex-row items-center gap-2">
+                  <View className="w-7 h-7 rounded-lg bg-primary/10 items-center justify-center">
+                    <Feather name="activity" size={15} color={isDark ? "#60a5fa" : "#2563eb"} />
                   </View>
+                  <Text className="text-[15px] font-semibold text-foreground">
+                    Cardiovascular Metrics
+                  </Text>
+                </View>
 
-                  <View className="flex-1">
-                    <Text className="text-[12px] font-medium text-slate-500 dark:text-slate-400 mb-2">
-                      Blood Pressure (DIA)
-                    </Text>
-                    <View className="h-[44px] bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/70 rounded-xl flex-row items-center px-3">
-                      <TextInput
-                        value={diastolic}
-                        onChangeText={setDiastolic}
-                        placeholder="80"
-                        placeholderTextColor="#94a3b8"
-                        keyboardType="numeric"
-                        maxLength={3}
-                        className="flex-1 text-[14px] text-slate-900 dark:text-white h-full"
-                      />
-                      <Text className="text-[11px] text-slate-400">mmHg</Text>
+                {/* Blood Pressure Row */}
+                <View className="gap-1.5">
+                  <Text className="text-xs font-semibold text-foreground ml-0.5">
+                    Blood Pressure
+                  </Text>
+                  <View className="flex-row gap-3">
+                    <View className="flex-1 gap-1">
+                      <Text className="text-[11px] font-medium text-muted-foreground ml-0.5">
+                        Systolic (SYS)
+                      </Text>
+                      <View className="h-[50px] bg-background/60 dark:bg-slate-950/60 border border-border rounded-xl flex-row items-center px-3.5">
+                        <TextInput
+                          value={systolic}
+                          onChangeText={setSystolic}
+                          placeholder="120"
+                          placeholderTextColor={isDark ? "#64748b" : "#94a3b8"}
+                          keyboardType="numeric"
+                          maxLength={3}
+                          className="flex-1 text-[15px] text-foreground font-medium h-full"
+                        />
+                        <Text className="text-[11px] font-medium text-muted-foreground">mmHg</Text>
+                      </View>
+                    </View>
+
+                    <View className="flex-1 gap-1">
+                      <Text className="text-[11px] font-medium text-muted-foreground ml-0.5">
+                        Diastolic (DIA)
+                      </Text>
+                      <View className="h-[50px] bg-background/60 dark:bg-slate-950/60 border border-border rounded-xl flex-row items-center px-3.5">
+                        <TextInput
+                          value={diastolic}
+                          onChangeText={setDiastolic}
+                          placeholder="80"
+                          placeholderTextColor={isDark ? "#64748b" : "#94a3b8"}
+                          keyboardType="numeric"
+                          maxLength={3}
+                          className="flex-1 text-[15px] text-foreground font-medium h-full"
+                        />
+                        <Text className="text-[11px] font-medium text-muted-foreground">mmHg</Text>
+                      </View>
                     </View>
                   </View>
                 </View>
 
+                {/* Heart Rate & Weight Row */}
                 <View className="flex-row gap-3">
-                  <View className="flex-1">
-                    <Text className="text-[12px] font-medium text-slate-500 dark:text-slate-400 mb-2">
+                  <View className="flex-1 gap-1.5">
+                    <Text className="text-xs font-semibold text-foreground ml-0.5">
                       Heart Rate
                     </Text>
-                    <View className="h-[44px] bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/70 rounded-xl flex-row items-center px-3">
+                    <View className="h-[50px] bg-background/60 dark:bg-slate-950/60 border border-border rounded-xl flex-row items-center px-3.5">
                       <TextInput
                         value={heartRate}
                         onChangeText={setHeartRate}
                         placeholder="72"
-                        placeholderTextColor="#94a3b8"
+                        placeholderTextColor={isDark ? "#64748b" : "#94a3b8"}
                         keyboardType="numeric"
                         maxLength={3}
-                        className="flex-1 text-[14px] text-slate-900 dark:text-white h-full"
+                        className="flex-1 text-[15px] text-foreground font-medium h-full"
                       />
-                      <Text className="text-[11px] text-slate-400">bpm</Text>
+                      <Text className="text-[11px] font-medium text-muted-foreground">BPM</Text>
                     </View>
                   </View>
 
-                  <View className="flex-1">
-                    <Text className="text-[12px] font-medium text-slate-500 dark:text-slate-400 mb-2">
+                  <View className="flex-1 gap-1.5">
+                    <Text className="text-xs font-semibold text-foreground ml-0.5">
                       Weight
                     </Text>
-                    <View className="h-[44px] bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/70 rounded-xl flex-row items-center px-3">
+                    <View className="h-[50px] bg-background/60 dark:bg-slate-950/60 border border-border rounded-xl flex-row items-center px-3.5">
                       <TextInput
                         value={weight}
                         onChangeText={setWeight}
                         placeholder="70"
-                        placeholderTextColor="#94a3b8"
+                        placeholderTextColor={isDark ? "#64748b" : "#94a3b8"}
                         keyboardType="numeric"
-                        maxLength={3}
-                        className="flex-1 text-[14px] text-slate-900 dark:text-white h-full"
+                        maxLength={5}
+                        className="flex-1 text-[15px] text-foreground font-medium h-full"
                       />
-                      <Text className="text-[11px] text-slate-400">kg</Text>
+                      <Text className="text-[11px] font-medium text-muted-foreground">kg</Text>
                     </View>
                   </View>
                 </View>
               </View>
 
-              {/* 2. Medication Status */}
-              <View className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4 mb-5">
-                <Text className="text-[15px] font-medium text-slate-900 dark:text-white mb-3 leading-snug">
-                  Medication Check
-                </Text>
-                <Text className="text-[13px] text-slate-400 mb-4">
-                  Did you take your prescribed maintenance medication today?
+              {/* 2. Medication Status Card */}
+              <View className="bg-card rounded-2xl border border-border px-5 py-6 gap-3.5 shadow-md">
+                <View className="flex-row items-center gap-2">
+                  <View className="w-7 h-7 rounded-lg bg-primary/10 items-center justify-center">
+                    <Feather name="check-circle" size={15} color={isDark ? "#60a5fa" : "#2563eb"} />
+                  </View>
+                  <Text className="text-[15px] font-semibold text-foreground">
+                    Medication Check
+                  </Text>
+                </View>
+
+                <Text className="text-[13px] text-muted-foreground leading-relaxed">
+                  Did you take your prescribed maintenance medications today?
                 </Text>
 
-                <View className="flex-row gap-2">
+                <View className="flex-row gap-3 mt-1">
                   <TouchableOpacity
-                    activeOpacity={0.7}
-                    onPress={() => setMedicationTaken(false)}
-                    className="flex-1 py-2.5 rounded-xl flex-row items-center justify-center border"
-                    style={
+                    activeOpacity={0.75}
+                    onPress={() => {
+                      Haptics.selectionAsync();
+                      setMedicationTaken(false);
+                    }}
+                    className={`flex-1 py-3.5 rounded-xl flex-row items-center justify-center gap-2 border ${
                       medicationTaken === false
-                        ? { backgroundColor: "#fcebeb", borderColor: "#f7c1c1" }
-                        : { backgroundColor: "#f8fafc", borderColor: "#e2e8f0" }
-                    }
+                        ? "bg-destructive/15 border-destructive/40"
+                        : "bg-background/80 border-border"
+                    }`}
                   >
+                    <Feather
+                      name="x-circle"
+                      size={15}
+                      color={medicationTaken === false ? "#ef4444" : (isDark ? "#94a3b8" : "#64748b")}
+                    />
                     <Text
-                      className="font-medium text-[13px]"
-                      style={{ color: medicationTaken === false ? "#a32d2d" : "#64748b" }}
+                      className={`text-sm font-semibold ${
+                        medicationTaken === false ? "text-destructive" : "text-muted-foreground"
+                      }`}
                     >
-                      No
+                      No, missed
                     </Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    activeOpacity={0.7}
-                    onPress={() => setMedicationTaken(true)}
-                    className="flex-1 py-2.5 rounded-xl flex-row items-center justify-center border"
-                    style={
+                    activeOpacity={0.75}
+                    onPress={() => {
+                      Haptics.selectionAsync();
+                      setMedicationTaken(true);
+                    }}
+                    className={`flex-1 py-3.5 rounded-xl flex-row items-center justify-center gap-2 border ${
                       medicationTaken === true
-                        ? { backgroundColor: "#eaf3de", borderColor: "#c0dd97" }
-                        : { backgroundColor: "#f8fafc", borderColor: "#e2e8f0" }
-                    }
+                        ? "bg-success/15 border-success/40"
+                        : "bg-background/80 border-border"
+                    }`}
                   >
+                    <Feather
+                      name="check-circle"
+                      size={15}
+                      color={medicationTaken === true ? "#10b981" : (isDark ? "#94a3b8" : "#64748b")}
+                    />
                     <Text
-                      className="font-medium text-[13px]"
-                      style={{ color: medicationTaken === true ? "#3b6d11" : "#64748b" }}
+                      className={`text-sm font-semibold ${
+                        medicationTaken === true ? "text-success font-bold" : "text-muted-foreground"
+                      }`}
                     >
-                      Yes
+                      Yes, taken
                     </Text>
                   </TouchableOpacity>
                 </View>
               </View>
-            </>
+            </Animated.View>
           )}
 
           {/* ============================================================== */}
           {/* STEP 2: SYMPTOMS */}
           {/* ============================================================== */}
           {step === 2 && (
-            <>
-              {/* ── Emergency Banner ── */}
-              {isEmergency && (
-                <View
-                  className="rounded-2xl p-4 mb-5 border"
-                  style={{ backgroundColor: "#fcebeb", borderColor: "#f7c1c1" }}
-                >
-                  <View className="flex-row items-center gap-2 mb-2">
-                    <Feather name="alert-triangle" size={16} color="#a32d2d" />
-                    <Text
-                      className="text-[13px] font-medium uppercase tracking-wide"
-                      style={{ color: "#a32d2d" }}
-                    >
-                      Elevated risk detected
-                    </Text>
-                  </View>
-                  <Text
-                    className="text-[13px] leading-relaxed mb-3"
-                    style={{ color: "#791f1f" }}
-                  >
-                    Your symptoms suggest an acute cardiovascular event. Please seek
-                    immediate medical evaluation.
+            <Animated.View entering={FadeInDown.duration(260)} layout={LinearTransition.duration(220)} className="gap-4">
+              {/* ── Status Overview Summary ── */}
+              <Animated.View layout={LinearTransition.duration(220)} className="bg-card rounded-2xl border border-border p-4 shadow-sm flex-row gap-3">
+                <View className="flex-1 bg-background/70 border border-border rounded-xl p-3 items-center">
+                  <Text className="text-2xl font-bold text-foreground">
+                    {hasRealSymptoms ? selectedSymptoms.length : 0}
                   </Text>
-                  <TouchableOpacity
-                    onPress={handleLocateCardiologist}
-                    activeOpacity={0.8}
-                    className="bg-white dark:bg-slate-900 rounded-xl py-2.5 flex-row items-center justify-center gap-2 border border-red-100"
-                  >
-                    <MaterialCommunityIcons
-                      name="map-marker-radius"
-                      size={16}
-                      color="#a32d2d"
-                    />
-                    <Text
-                      className="text-[13px] font-medium"
-                      style={{ color: "#a32d2d" }}
-                    >
-                      Find cardiologist in Cebu City
-                    </Text>
-                  </TouchableOpacity>
+                  <Text className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mt-0.5">
+                    Symptoms
+                  </Text>
                 </View>
-              )}
 
-              {/* ── Status overview card ── */}
-              <View className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4 mb-5">
-                <Text className="text-white font-medium text-[16px]">
-                  {isSubmitting ? "Submitting..." : "Submit Daily Log"}
+                <View
+                  className="flex-1 rounded-xl p-3 border items-center justify-center"
+                  style={{
+                    backgroundColor: hasRealSymptoms ? sevColor.bg : (isDark ? "rgba(15, 23, 42, 0.4)" : "#f8fafc"),
+                    borderColor: hasRealSymptoms ? sevColor.border : (isDark ? "#1e293b" : "#e2e8f0"),
+                  }}
+                >
+                  <Text
+                    className="text-2xl font-bold"
+                    style={{ color: hasRealSymptoms ? sevColor.text : (isDark ? "#64748b" : "#94a3b8") }}
+                  >
+                    {hasRealSymptoms ? maxSeverity : "—"}
+                  </Text>
+                  <Text
+                    className="text-[10px] font-bold uppercase tracking-wider mt-0.5"
+                    style={{ color: hasRealSymptoms ? sevColor.text : (isDark ? "#64748b" : "#94a3b8") }}
+                  >
+                    {hasRealSymptoms ? getSeverityLabel(maxSeverity) : "Severity"}
+                  </Text>
+                </View>
+
+                <View className="flex-1 bg-background/70 border border-border rounded-xl p-3 items-center justify-center">
+                  <MaterialCommunityIcons
+                    name={CONTEXT_ICONS[context] as any}
+                    size={22}
+                    color={isDark ? "#94a3b8" : "#64748b"}
+                  />
+                  <Text
+                    className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mt-0.5 text-center"
+                    numberOfLines={1}
+                  >
+                    {context.replace("While ", "").replace("During ", "")}
+                  </Text>
+                </View>
+              </Animated.View>
+
+              {/* ── Symptom Selection Cards ── */}
+              <Animated.View
+                layout={LinearTransition.duration(220)}
+                className="bg-card rounded-2xl border border-border px-5 py-6 gap-3.5 shadow-md"
+              >
+                <Text className="text-[15px] font-semibold text-foreground mb-1">
+                  What are you feeling?
                 </Text>
-                <View className="flex-row gap-3">
-                  {/* Symptom count */}
-                  <View className="flex-1 bg-slate-50 dark:bg-slate-950 rounded-xl p-3 border border-slate-200 dark:border-slate-800/70 items-center">
-                    <Text className="text-[22px] font-medium text-slate-900 dark:text-white">
-                      {hasRealSymptoms ? selectedSymptoms.length : 0}
-                    </Text>
-                    <Text className="text-[10px] text-slate-400 mt-0.5 uppercase tracking-wide">
-                      Symptoms
-                    </Text>
-                  </View>
-                  {/* Severity */}
-                  <View
-                    className="flex-1 rounded-xl p-3 border items-center"
-                    style={{
-                      backgroundColor: hasRealSymptoms ? sevColor.bg : "#f8fafc",
-                      borderColor: hasRealSymptoms ? sevColor.border : "#e2e8f0",
-                    }}
-                  >
-                    <Text
-                      className="text-[22px] font-medium"
-                      style={{ color: hasRealSymptoms ? sevColor.text : "#cbd5e1" }}
-                    >
-                      {hasRealSymptoms ? maxSeverity : "—"}
-                    </Text>
-                    <Text
-                      className="text-[10px] mt-0.5 uppercase tracking-wide"
-                      style={{ color: hasRealSymptoms ? sevColor.text : "#cbd5e1" }}
-                    >
-                      {hasRealSymptoms ? getSeverityLabel(maxSeverity) : "Severity"}
-                    </Text>
-                  </View>
-                  {/* Context */}
-                  <View className="flex-1 bg-slate-50 dark:bg-slate-950 rounded-xl p-3 border border-slate-200 dark:border-slate-800/70 items-center">
-                    <MaterialCommunityIcons
-                      name={CONTEXT_ICONS[context] as any}
-                      size={22}
-                      color="#64748b"
-                    />
-                    <Text
-                      className="text-[10px] text-slate-400 mt-0.5 uppercase tracking-wide text-center"
-                      numberOfLines={2}
-                    >
-                      {context.replace("During ", "")}
-                    </Text>
-                  </View>
-                </View>
-              </View>
 
-              {/* ── Symptoms ── */}
-              <Text className="text-[15px] font-medium text-slate-900 dark:text-white mb-4 leading-snug">
-                What are you feeling?
-              </Text>
+                <View className="gap-2.5">
+                  {SYMPTOMS.map((symp) => {
+                    const isSelected = selectedSymptoms.includes(symp);
+                    const isNone = symp === "None (Feeling fine)";
 
-              <View className="gap-3">
-                {SYMPTOMS.map((symp) => {
-                  const isSelected = selectedSymptoms.includes(symp);
-                  const isNone = symp === "None (Feeling fine)";
-
-                  const bg = isSelected ? (isNone ? "#eaf3de" : "#0f172a") : "#fff";
-                  const border = isSelected
-                    ? isNone
-                      ? "#c0dd97"
-                      : "#0f172a"
-                    : "#e2e8f0";
-                  const textColor = isSelected
-                    ? isNone
-                      ? "#3b6d11"
-                      : "#fff"
-                    : "#475569";
-                  const iconColor = isSelected
-                    ? isNone
-                      ? "#3b6d11"
-                      : "#fff"
-                    : "#94a3b8";
-
-                  return (
-                    <View key={symp} className="mb-1">
-                      <TouchableOpacity
-                        activeOpacity={0.75}
-                        onPress={() => toggleSymptom(symp)}
-                        className="flex-row items-center px-4 py-3.5 rounded-xl border"
-                        style={{ backgroundColor: bg, borderColor: border }}
-                      >
-                        <View
-                          className="w-8 h-8 rounded-lg items-center justify-center mr-3"
-                          style={{
-                            backgroundColor: isSelected
-                              ? "rgba(255,255,255,0.12)"
-                              : "#f8fafc",
-                          }}
+                    return (
+                      <View key={symp} className="gap-2">
+                        <TouchableOpacity
+                          activeOpacity={0.75}
+                          onPress={() => toggleSymptom(symp)}
+                          className={`flex-row items-center px-4 py-3.5 rounded-xl border ${
+                            isSelected
+                              ? isNone
+                                ? "bg-success/15 border-success/40"
+                                : "bg-primary/10 border-primary"
+                              : "bg-background/60 border-border"
+                          }`}
                         >
-                          <MaterialCommunityIcons
-                            name={SYMPTOM_ICONS[symp] as any}
-                            size={17}
-                            color={iconColor}
-                          />
-                        </View>
-                        <Text
-                          className="flex-1 text-[14px] font-medium"
-                          style={{ color: textColor }}
-                        >
-                          {symp}
-                        </Text>
-                        {isSelected && (
                           <View
-                            className="w-5 h-5 rounded-full items-center justify-center"
-                            style={{
-                              backgroundColor: isNone
-                                ? "#c0dd97"
-                                : "rgba(255,255,255,0.2)",
-                            }}
+                            className={`w-8 h-8 rounded-lg items-center justify-center mr-3 ${
+                              isSelected
+                                ? isNone
+                                  ? "bg-success/20"
+                                  : "bg-primary/20"
+                                : "bg-card border border-border"
+                            }`}
                           >
-                            <Feather
-                              name="check"
-                              size={11}
-                              color={isNone ? "#3b6d11" : "#fff"}
+                            <MaterialCommunityIcons
+                              name={SYMPTOM_ICONS[symp] as any}
+                              size={17}
+                              color={
+                                isSelected
+                                  ? isNone
+                                    ? "#10b981"
+                                    : (isDark ? "#60a5fa" : "#2563eb")
+                                  : (isDark ? "#94a3b8" : "#64748b")
+                              }
                             />
                           </View>
-                        )}
-                      </TouchableOpacity>
 
-                      {/* Dropdown severity slider underneath active symptom */}
-                      {isSelected && !isNone && (
-                        <View className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800/70 p-4 mt-2 mb-1">
-                          <View className="flex-row justify-between mb-3">
-                            <Text className="text-[11px] text-slate-400 uppercase tracking-wide">
-                              1 — Mild
-                            </Text>
-                            <Text className="text-[11px] text-slate-400 uppercase tracking-wide">
-                              10 — Severe
-                            </Text>
-                          </View>
-
-                          <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag"
-                            horizontal
-                            showsHorizontalScrollIndicator={false}
-                            contentContainerClassName="gap-2"
+                          <Text
+                            className={`flex-1 text-sm font-semibold ${
+                              isSelected
+                                ? isNone
+                                  ? "text-success font-bold"
+                                  : "text-primary font-bold"
+                                : "text-foreground"
+                            }`}
                           >
-                            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => {
-                              const currentSeverity = severities[symp] || 1;
-                              const isActive = currentSeverity === num;
-                              const c = getSeverityColor(num);
-                              return (
-                                <TouchableOpacity
-                                  key={num}
-                                  onPress={() => {
-                                    Haptics.selectionAsync();
-                                    setSeverities(prev => ({ ...prev, [symp]: num }));
-                                  }}
-                                  className="w-11 h-11 rounded-xl items-center justify-center border"
-                                  style={{
-                                    backgroundColor: isActive ? c.bg : "#f8fafc",
-                                    borderColor: isActive ? c.border : "#e2e8f0",
-                                  }}
-                                >
-                                  <Text
-                                    className="text-[16px] font-medium"
-                                    style={{ color: isActive ? c.text : "#94a3b8" }}
-                                  >
-                                    {num}
-                                  </Text>
-                                </TouchableOpacity>
-                              );
-                            })}
-                          </ScrollView>
-                        </View>
-                      )}
-                    </View>
-                  );
-                })}
-              </View>
+                            {symp}
+                          </Text>
 
-              {/* ── Context ── */}
+                          {isSelected && (
+                            <View
+                              className={`w-5 h-5 rounded-full items-center justify-center ${
+                                isNone ? "bg-success" : "bg-primary"
+                              }`}
+                            >
+                              <Feather name="check" size={12} color="#fff" />
+                            </View>
+                          )}
+                        </TouchableOpacity>
+
+                        {/* Interactive Severity Slider for active symptom */}
+                        {isSelected && !isNone && (
+                          <SeveritySlider
+                            value={severities[symp] || 1}
+                            onChange={(val) =>
+                              setSeverities((prev) => ({ ...prev, [symp]: val }))
+                            }
+                            isDark={isDark}
+                          />
+                        )}
+                      </View>
+                    );
+                  })}
+                </View>
+              </Animated.View>
+
+              {/* ── Context Selector ── */}
               {hasRealSymptoms && (
-                <>
-                  <Text className="text-[15px] font-medium text-slate-900 dark:text-white mt-6 mb-4 leading-snug">
+                <Animated.View
+                  layout={LinearTransition.duration(220)}
+                  className="bg-card rounded-2xl border border-border px-5 py-6 gap-3.5 shadow-md"
+                >
+                  <Text className="text-[15px] font-semibold text-foreground">
                     When did this happen?
                   </Text>
-                  <View className="gap-2 mb-8">
+
+                  <View className="gap-2.5">
                     {CONTEXTS.map((ctx) => {
                       const isSelected = context === ctx;
                       return (
@@ -660,98 +841,111 @@ export default function LogSymptomsScreen() {
                             Haptics.selectionAsync();
                             setContext(ctx);
                           }}
-                          className="flex-row items-center px-4 py-3.5 rounded-xl border"
-                          style={{
-                            backgroundColor: isSelected ? "#0f172a" : "#fff",
-                            borderColor: isSelected ? "#0f172a" : "#e2e8f0",
-                          }}
+                          className={`flex-row items-center px-4 py-3.5 rounded-xl border ${
+                            isSelected
+                              ? "bg-primary/10 border-primary"
+                              : "bg-background/60 border-border"
+                          }`}
                         >
                           <View
-                            className="w-8 h-8 rounded-lg items-center justify-center mr-3"
-                            style={{
-                              backgroundColor: isSelected
-                                ? "rgba(255,255,255,0.1)"
-                                : "#f8fafc",
-                            }}
+                            className={`w-8 h-8 rounded-lg items-center justify-center mr-3 ${
+                              isSelected ? "bg-primary/20" : "bg-card border border-border"
+                            }`}
                           >
                             <MaterialCommunityIcons
                               name={CONTEXT_ICONS[ctx] as any}
                               size={16}
-                              color={isSelected ? "#fff" : "#94a3b8"}
+                              color={isSelected ? (isDark ? "#60a5fa" : "#2563eb") : (isDark ? "#94a3b8" : "#64748b")}
                             />
                           </View>
+
                           <Text
-                            className="flex-1 text-[14px] font-medium"
-                            style={{ color: isSelected ? "#fff" : "#475569" }}
+                            className={`flex-1 text-sm font-semibold ${
+                              isSelected ? "text-primary font-bold" : "text-foreground"
+                            }`}
                           >
                             {ctx}
                           </Text>
-                          {/* Radio indicator */}
+
                           <View
-                            className="w-5 h-5 rounded-full border-2 items-center justify-center"
-                            style={{
-                              borderColor: isSelected
-                                ? "rgba(255,255,255,0.4)"
-                                : "#e2e8f0",
-                            }}
+                            className={`w-5 h-5 rounded-full border-2 items-center justify-center ${
+                              isSelected ? "border-primary" : "border-border"
+                            }`}
                           >
                             {isSelected && (
-                              <View
-                                className="w-2.5 h-2.5 rounded-full"
-                                style={{ backgroundColor: "#fff" }}
-                              />
+                              <View className="w-2.5 h-2.5 rounded-full bg-primary" />
                             )}
                           </View>
                         </TouchableOpacity>
                       );
                     })}
                   </View>
-                </>
+                </Animated.View>
               )}
-            </>
+            </Animated.View>
+          )}
+        </ScrollView>
+
+        {/* ── Bottom Action Bar ── */}
+        <Animated.View
+          layout={LinearTransition.duration(220)}
+          className="bg-background/95 border-t border-border px-5 pt-3 gap-2.5"
+          style={{
+            paddingBottom: Math.max(insets.bottom, 16) + (Platform.OS === "android" ? 10 : 4),
+          }}
+        >
+          {/* Docked Emergency Warning Callout */}
+          {step === 2 && isEmergency && (
+            <Animated.View
+              entering={FadeInDown.duration(250)}
+              exiting={FadeOutUp.duration(160)}
+              className="bg-destructive/15 border border-destructive/40 rounded-2xl p-3.5 gap-2"
+            >
+              <View className="flex-row items-center justify-between">
+                <View className="flex-row items-center gap-1.5">
+                  <Feather name="alert-triangle" size={15} color="#ef4444" />
+                  <Text className="text-xs font-bold text-destructive uppercase tracking-wide">
+                    Elevated Risk Detected
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  onPress={handleLocateCardiologist}
+                  activeOpacity={0.75}
+                  className="bg-card px-2.5 py-1 rounded-lg border border-destructive/30 flex-row items-center gap-1"
+                >
+                  <MaterialCommunityIcons name="map-marker-radius" size={13} color="#ef4444" />
+                  <Text className="text-[11px] font-bold text-destructive">
+                    Find Cardiologist
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              <Text className="text-[12px] text-destructive leading-snug font-medium">
+                Clinical indicators suggest acute risk. Please seek medical evaluation immediately.
+              </Text>
+            </Animated.View>
           )}
 
-        </ScrollView>
+          {step === 1 ? (
+            <Button
+              label="Next: Symptoms"
+              icon="arrow-right"
+              onPress={() => {
+                Haptics.selectionAsync();
+                setStep(2);
+              }}
+            />
+          ) : (
+            <Button
+              label={isEmergency ? "Submit Critical Log" : "Submit Health Log"}
+              icon={isEmergency ? "alert-triangle" : "check"}
+              onPress={handleSubmit}
+              isLoading={isSubmitting}
+              loadingText="Saving log..."
+              variant={isEmergency ? "destructive" : "primary"}
+            />
+          )}
+        </Animated.View>
       </KeyboardAvoidingView>
-
-      {/* Sticky Bottom Action Button */}
-      <View className="absolute bottom-0 left-0 right-0 bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800/70 px-5 pt-3 pb-8">
-         {step === 1 ? (
-           <TouchableOpacity
-             activeOpacity={0.8}
-             onPress={() => setStep(2)}
-             className="w-full py-3.5 rounded-xl flex-row justify-center items-center bg-slate-900"
-           >
-             <Text className="font-medium text-[14px] mr-2 text-white">
-               Next: Symptoms
-             </Text>
-             <Feather name="arrow-right" size={16} color="white" />
-           </TouchableOpacity>
-         ) : (
-           <TouchableOpacity
-             onPress={handleSubmit}
-             activeOpacity={0.85}
-             disabled={isSubmitting}
-             className="w-full rounded-xl py-3.5 flex-row items-center justify-center gap-2"
-             style={{ backgroundColor: isEmergency ? "#a32d2d" : "#0f172a", opacity: isSubmitting ? 0.8 : 1 }}
-           >
-             {isSubmitting ? (
-               <ActivityIndicator size="small" color="#fff" />
-             ) : (
-               <>
-                 <Feather
-                   name={isEmergency ? "alert-triangle" : "check"}
-                   size={16}
-                   color="#fff"
-                 />
-                 <Text className="text-white text-[14px] font-medium">
-                   {isEmergency ? "Submit critical log" : "Submit health log"}
-                 </Text>
-               </>
-             )}
-           </TouchableOpacity>
-         )}
-      </View>
     </SafeAreaView>
   );
 }

@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, TouchableOpacity } from "react-native";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { MaterialCommunityIcons, Feather } from "@expo/vector-icons";
 
 export function RecommendationCard({
   tag,
@@ -17,10 +17,10 @@ export function RecommendationCard({
   title: string;
   subtitle: string;
   icon: string;
-  bg: string;
-  tagBg: string;
-  tagText: string;
-  subColor: string;
+  bg?: string;
+  tagBg?: string;
+  tagText?: string;
+  subColor?: string;
   onPress?: () => void;
 }) {
   return (
@@ -29,7 +29,7 @@ export function RecommendationCard({
       activeOpacity={0.85}
       accessible={true}
       accessibilityRole="button"
-      accessibilityLabel={`${tag} recommendation: ${title}. ${subtitle}`}
+      accessibilityLabel={`${tag} recommendation: ${title}. ${subtitle}. Tap to view details.`}
       className="w-[220px] h-[150px] rounded-2xl overflow-hidden bg-card border border-border"
     >
       <View
@@ -40,7 +40,7 @@ export function RecommendationCard({
           opacity: 0.05,
         }}
       >
-        <MaterialCommunityIcons name={icon as any} size={110} className="text-foreground" />
+        <MaterialCommunityIcons name={icon as any} size={110} />
       </View>
       <View className="p-4 flex-1 justify-between">
         <View
@@ -52,14 +52,20 @@ export function RecommendationCard({
         </View>
         <View>
           <Text
-            className="text-[15px] font-semibold text-foreground leading-snug mb-1"
+            className="text-[14px] font-semibold text-foreground leading-snug mb-1"
             numberOfLines={2}
           >
             {title}
           </Text>
-          <Text className="text-[11px] text-muted-foreground">
-            {subtitle}
-          </Text>
+          <View className="flex-row items-center justify-between mt-1">
+            <Text className="text-[11px] text-muted-foreground flex-1 pr-1" numberOfLines={1}>
+              {subtitle}
+            </Text>
+            <View className="flex-row items-center gap-0.5">
+              <Text className="text-[11px] font-semibold text-primary">View</Text>
+              <Feather name="chevron-right" size={12} color="#2563eb" />
+            </View>
+          </View>
         </View>
       </View>
     </TouchableOpacity>

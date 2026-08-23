@@ -245,7 +245,7 @@ export default function OTPVerificationScreen() {
                 return (
                   <TextInput
                     key={index}
-                    ref={(ref) => (inputRefs.current[index] = ref)}
+                    ref={(ref) => { inputRefs.current[index] = ref; }}
                     value={digit}
                     onChangeText={(v) => handleOtpChange(v, index)}
                     onKeyPress={(e) => handleKeyPress(e, index)}
