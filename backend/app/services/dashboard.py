@@ -1,17 +1,15 @@
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
-from app.mock_db import (
-    profiles,
-    hss_history,
-    daily_health_logs,
-    alerts,
-    recipes,
-    exercise_routines,
-    baseline_onboarding,
-    meal_logs,
-    exercise_logs,
-    sleep_logs,
-    user_thresholds,
+from app.db.repositories import (
+    get_profile_repo,
+    get_hss_repo,
+    get_health_logs_repo,
+    get_meals_repo,
+    get_exercises_repo,
+    get_sleep_repo,
+    get_baseline_repo,
+    get_content_repo,
+    get_notification_repo,
 )
 
 def _safe_date(val: Any) -> datetime.date:
@@ -99,8 +97,6 @@ def _recipe_matches_diet(recipe: dict, dietary_practice: str) -> bool:
     return True
 
 
-from datetime import datetime
-
 def _get_comparison_score(user_hss: list) -> int:
     """Finds the immediately previous score to provide real-time dynamic feedback."""
     if len(user_hss) < 2:
@@ -156,32 +152,37 @@ def _get_today_activity(user_id: str) -> dict:
     """Summarize today's logged activity."""
     today = datetime.now().date()
 
+    daily_health_logs = get_health_logs_repo().list_user_logs(user_id)
+    meal_logs = get_meals_repo().list_user_meals(user_id)
+    exercise_logs = get_exercises_repo().list_user_logs(user_id)
+    sleep_logs = get_sleep_repo().list_user_logs(user_id)
+
     # Vitals logged today
     vitals_today = [
         l
         for l in daily_health_logs
-        if l["user_id"] == user_id and _safe_date(l["logged_at"]) == today
+        if _safe_date(l.get("logged_at")) == today
     ]
 
     # Meals logged today
     meals_today = [
         m
         for m in meal_logs
-        if m["user_id"] == user_id and _safe_date(m["logged_at"]) == today and m.get("deleted_at") is None
+        if _safe_date(m.get("logged_at")) == today and m.get("deleted_at") is None
     ]
 
     # Exercises logged today
     exercises_today = [
         e
         for e in exercise_logs
-        if e["user_id"] == user_id and _safe_date(e["logged_at"]) == today and e.get("deleted_at") is None and e.get("status", "completed") != "abandoned"
+        if _safe_date(e.get("logged_at")) == today and e.get("deleted_at") is None and e.get("status", "completed") != "abandoned"
     ]
 
     # Sleep logged today
     sleeps_today = [
         s
         for s in sleep_logs
-        if s["user_id"] == user_id and _safe_date(s["logged_at"]) == today and s.get("deleted_at") is None
+        if _safe_date(s.get("logged_at")) == today and s.get("deleted_at") is None and not s.get("is_deleted", False)
     ]
 
     total_sodium = sum(m.get("sodium_mg", 0) for m in meals_today)
@@ -202,45 +203,38 @@ def _get_today_activity(user_id: str) -> dict:
 
 
 def get_dashboard_data(user_id: str) -> Dict[str, Any]:
-    print(f"DEBUG get_dashboard_data: looking for {user_id}")
-    print(f"DEBUG get_dashboard_data: profiles available = {[p['id'] for p in profiles]}")
-    profile = next((p for p in profiles if p["id"] == user_id), None)
+    profile_repo = get_profile_repo()
+    profile = profile_repo.get_by_id(user_id)
     if not profile:
-        print("DEBUG get_dashboard_data: profile not found!")
         return {}
 
-    user_hss = sorted(
-        [c for c in hss_history if c["user_id"] == user_id],
-        key=lambda x: _safe_datetime(x.get("computed_at")),
-        reverse=True,
-    )
+    hss_repo = get_hss_repo()
+    user_hss = hss_repo.list_hss_history(user_id)
     latest_hss = (
         user_hss[0]
         if user_hss
         else {"score": 0, "tier": "Unknown", "computed_at": None}
     )
 
-    user_logs = sorted(
-        [l for l in daily_health_logs if l["user_id"] == user_id],
-        key=lambda x: _safe_datetime(x.get("logged_at")),
-        reverse=True,
-    )
+    health_repo = get_health_logs_repo()
+    user_logs = health_repo.list_user_logs(user_id)
     latest_log = user_logs[0] if user_logs else None
 
-    user_alerts = sorted(
-        [a for a in alerts if a["user_id"] == user_id],
-        key=lambda x: _safe_datetime(x.get("created_at")),
-        reverse=True,
-    )
+    user_alerts = health_repo.list_alerts(user_id=user_id)
     latest_alert = user_alerts[0] if user_alerts else None
 
     # ── Dietary preference filtering ───────────────────────────────────────────
-    dietary_entry = next((d for d in baseline_onboarding if d["user_id"] == user_id), None)
+    baseline_repo = get_baseline_repo()
+    dietary_entry = baseline_repo.get_baseline(user_id)
     dietary_practice = (
         dietary_entry.get("dietary_practice", "") if dietary_entry else ""
     )
 
     # ── Recommendations: filter by HSS tier AND dietary preference ─────────────
+    content_repo = get_content_repo()
+    recipes = content_repo.list_recipes()
+    exercise_routines = content_repo.list_routines()
+
     tier = latest_hss.get("tier", "Stable")
     reco_recipes = [
         r
@@ -285,7 +279,7 @@ def get_dashboard_data(user_id: str) -> Dict[str, Any]:
                 "type": "exercise",
                 "tag": "Exercise",
                 "title": e["name"],
-                "subtitle": e["description"][:30] + "...",
+                "subtitle": e.get("description", "")[:30] + "...",
                 "icon": "yoga",
                 "bg": "#1e293b",
                 "tagBg": "rgba(255,255,255,0.12)",
@@ -305,13 +299,14 @@ def get_dashboard_data(user_id: str) -> Dict[str, Any]:
     today_activity = _get_today_activity(user_id)
 
     # ── Nutrition budget ──────────────────────────────────────────────────────────
-    threshold = next((t for t in user_thresholds if t["user_id"] == user_id), None)
+    threshold = baseline_repo.get_thresholds(user_id)
     sodium_limit = threshold.get("sodium_limit_mg", None) if threshold else None
     calorie_limit = threshold.get("daily_calories", None) if threshold else None
 
     # ── Unread notifications ───────────────────────────────────────────────────
-    from app.mock_db import notifications
-    unread_count = sum(1 for n in notifications if n["user_id"] == user_id and not n.get("read", True))
+    notif_repo = get_notification_repo()
+    user_notifs = notif_repo.list_user_notifications(user_id)
+    unread_count = sum(1 for n in user_notifs if not n.get("read", True))
 
     return {
         "user": {
@@ -358,7 +353,6 @@ def get_7_day_wrap_up_data(user_id: str, local_date_str: str = None) -> Dict[str
     if local_date_str:
         try:
             now = datetime.strptime(local_date_str, "%Y-%m-%d")
-            # If the user passed local date, we want it to act as if it's currently that day
         except ValueError:
             now = datetime.now()
     else:
@@ -376,27 +370,34 @@ def get_7_day_wrap_up_data(user_id: str, local_date_str: str = None) -> Dict[str
         if not date_str: return False
         return fourteen_days_ago.date() <= _safe_date(date_str) < seven_days_ago.date()
 
+    # Domain Repositories
+    meal_logs = get_meals_repo().list_user_meals(user_id)
+    exercise_logs = get_exercises_repo().list_user_logs(user_id)
+    daily_health_logs = get_health_logs_repo().list_user_logs(user_id)
+    sleep_logs = get_sleep_repo().list_user_logs(user_id)
+    user_hss = sorted(get_hss_repo().list_hss_history(user_id), key=lambda x: _safe_datetime(x.get("computed_at")))
+    exercise_routines = get_content_repo().list_routines()
+
     # Raw filtered logs
-    user_meals_current = [m for m in meal_logs if m["user_id"] == user_id and in_current_week(m["logged_at"]) and not m.get("deleted_at")]
+    user_meals_current = [m for m in meal_logs if in_current_week(m.get("logged_at")) and not m.get("deleted_at")]
     # Fetch ALL exercises for the timeline, including abandoned
-    user_exercises_current_all = [e for e in exercise_logs if e["user_id"] == user_id and in_current_week(e["logged_at"]) and not e.get("deleted_at")]
+    user_exercises_current_all = [e for e in exercise_logs if in_current_week(e.get("logged_at")) and not e.get("deleted_at")]
     # Completed/Active exercises for calculations
     user_exercises_current = [e for e in user_exercises_current_all if e.get("status") != "abandoned"]
     
-    user_health_current = [l for l in daily_health_logs if l["user_id"] == user_id and in_current_week(l["logged_at"]) and not l.get("deleted_at")]
-    user_sleep_current = [s for s in sleep_logs if s["user_id"] == user_id and in_current_week(s["logged_at"]) and not s.get("deleted_at")]
-    user_hss = sorted([c for c in hss_history if c["user_id"] == user_id], key=lambda x: _safe_datetime(x.get("computed_at")))
+    user_health_current = [l for l in daily_health_logs if in_current_week(l.get("logged_at")) and not l.get("deleted_at")]
+    user_sleep_current = [s for s in sleep_logs if in_current_week(s.get("logged_at")) and not s.get("deleted_at") and not s.get("is_deleted", False)]
 
-    user_meals_prev = [m for m in meal_logs if m["user_id"] == user_id and in_prev_week(m["logged_at"]) and not m.get("deleted_at")]
-    user_exercises_prev = [e for e in exercise_logs if e["user_id"] == user_id and in_prev_week(e["logged_at"]) and not e.get("deleted_at") and e.get("status") != "abandoned"]
+    user_meals_prev = [m for m in meal_logs if in_prev_week(m.get("logged_at")) and not m.get("deleted_at")]
+    user_exercises_prev = [e for e in exercise_logs if in_prev_week(e.get("logged_at")) and not e.get("deleted_at") and e.get("status") != "abandoned"]
 
     # Unique dates
     logged_vitals_dates = {_safe_date(l["logged_at"]) for l in user_health_current}
     logged_meals_dates = {_safe_date(m["logged_at"]) for m in user_meals_current}
     logged_sleep_dates = {_safe_date(s["logged_at"]) for s in user_sleep_current}
-    # Timelines use all exercise attempts
     logged_exercise_dates = {_safe_date(e["logged_at"]) for e in user_exercises_current_all}
     logged_symptoms_dates = {_safe_date(l["logged_at"]) for l in user_health_current if any(s != "None (Feeling fine)" for s in l.get("symptoms", []))}
+    
     # Calculate HSS
     def get_avg_hss(start_d, end_d):
         total = 0
@@ -418,11 +419,22 @@ def get_7_day_wrap_up_data(user_id: str, local_date_str: str = None) -> Dict[str
     
     # Calculate streak from all historical data up to today
     all_logged_dates = set()
-    for log_list in [meal_logs, exercise_logs, daily_health_logs, sleep_logs]:
-        for item in log_list:
-            if item["user_id"] == user_id and not item.get("deleted_at"):
-                dt = _safe_date(item["logged_at"])
-                if dt: all_logged_dates.add(dt)
+    for item in meal_logs:
+        if not item.get("deleted_at"):
+            dt = _safe_date(item.get("logged_at"))
+            if dt: all_logged_dates.add(dt)
+    for item in exercise_logs:
+        if not item.get("deleted_at"):
+            dt = _safe_date(item.get("logged_at"))
+            if dt: all_logged_dates.add(dt)
+    for item in daily_health_logs:
+        if not item.get("deleted_at"):
+            dt = _safe_date(item.get("logged_at"))
+            if dt: all_logged_dates.add(dt)
+    for item in sleep_logs:
+        if not item.get("deleted_at") and not item.get("is_deleted", False):
+            dt = _safe_date(item.get("logged_at"))
+            if dt: all_logged_dates.add(dt)
     
     current_streak = 0
     check_date = now.date()
@@ -462,7 +474,7 @@ def get_7_day_wrap_up_data(user_id: str, local_date_str: str = None) -> Dict[str
             "activities": activities
         })
 
-    # Movement Formatting (Include abandoned with explicit status for timeline)
+    # Movement Formatting
     exercise_records = []
     for e in user_exercises_current_all:
         routine = next((r for r in exercise_routines if r.get("id") == e.get("routine_id")), {})

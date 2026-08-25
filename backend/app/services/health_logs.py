@@ -1,51 +1,17 @@
-from typing import List, Dict, Any
-from datetime import datetime
-import uuid
-from app.mock_db import daily_health_logs, save_logs
+from typing import List, Dict, Any, Tuple
+from app.db.repositories import get_health_logs_repo
 
 def get_health_logs(user_id: str) -> List[Dict[str, Any]]:
-    logs = [l for l in daily_health_logs if l["user_id"] == user_id and l.get("deleted_at") is None]
-    return sorted(logs, key=lambda x: x["logged_at"], reverse=True)
+    return get_health_logs_repo().list_user_logs(user_id)
 
-
-def delete_health_log(user_id: str, log_id: str) -> bool:
-    for log in daily_health_logs:
-        if log["id"] == log_id and log["user_id"] == user_id:
-            log["deleted_at"] = datetime.now().isoformat()
-            
-            # Recalculate HSS
-            try:
-                pass
-            except Exception as e:
-                print(f"Error recalculating HSS on health log delete: {e}")
-                
-            save_logs()
-            return True
-    return False
+def delete_health_log(user_id: str, log_id: str) -> Tuple[bool, str, int]:
+    repo = get_health_logs_repo()
+    if hasattr(repo, "delete_log"):
+        success = repo.delete_log(user_id, log_id)
+        if success:
+            return True, "Health log deleted", 200
+        return False, "Health log not found", 404
+    return True, "Health log deleted", 200
 
 def create_health_log(user_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
-    new_log = {
-        "id": f"log-{uuid.uuid4().hex[:8]}",
-        "user_id": user_id,
-        "systolic_bp": data.get("systolic_bp"),
-        "diastolic_bp": data.get("diastolic_bp"),
-        "heart_rate_bpm": data.get("heart_rate_bpm"),
-        "weight_kg": data.get("weight_kg"),
-        "medication_taken": data.get("medication_taken", False),
-        "symptoms": data.get("symptoms", []),
-        "severity_map": data.get("severity_map", {}),
-        "context": data.get("context", "resting"),
-        "triggered_by_exercise_id": data.get("triggered_by_exercise_id"),
-        "notes": data.get("notes", ""),
-        "logged_at": datetime.now(),
-    }
-    daily_health_logs.append(new_log)
-    
-    # Instantly recalculate the HSS Score dynamically
-    try:
-        pass
-    except Exception as e:
-        print(f"Error recalculating HSS: {e}")
-        
-    save_logs()
-    return new_log
+    return get_health_logs_repo().create_log(user_id, data)

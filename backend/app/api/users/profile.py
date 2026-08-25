@@ -281,7 +281,10 @@ async def complete_baseline_onboarding(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You may only complete baseline onboarding for your own account.",
         )
-    user_profile = next((p for p in mock_db.profiles if p["id"] == user_id), None)
+    
+    from app.db.repositories import get_profile_repo, get_hss_repo
+    profile_repo = get_profile_repo()
+    user_profile = profile_repo.get_by_id(user_id)
     if not user_profile:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
@@ -309,43 +312,15 @@ async def complete_baseline_onboarding(
     result = save_baseline_onboarding(user_id, onboarding_data, user_profile)
     
     # 3. Save or update the baseline HSS score
-    baseline_id = f"hss-base-{user_id}"
     now_utc = datetime.utcnow()
-    new_hss = None
-
-    if hasattr(mock_db, 'hss_history'):
-        # Check for existing baseline record for this user
-        existing_baseline = None
-        for record in mock_db.hss_history:
-            if record.get("user_id") == user_id and (
-                record.get("source") == "baseline" or 
-                record.get("id") in (baseline_id, f"hss-baseline-{user_id}")
-            ):
-                existing_baseline = record
-                break
-
-        if existing_baseline:
-            existing_baseline["id"] = baseline_id
-            existing_baseline["score"] = hss_score
-            existing_baseline["tier"] = hss_tier
-            existing_baseline["risk_probability"] = risk_probability
-            existing_baseline["source"] = "baseline"
-            existing_baseline["computed_at"] = now_utc
-            new_hss = existing_baseline
-        else:
-            new_hss = {
-                "id": baseline_id,
-                "user_id": user_id,
-                "score": hss_score,
-                "tier": hss_tier,
-                "risk_probability": risk_probability,
-                "source": "baseline",
-                "computed_at": now_utc,
-            }
-            mock_db.hss_history.append(new_hss)
-
-        if hasattr(mock_db, 'save_logs'):
-            mock_db.save_logs()
+    hss_repo = get_hss_repo()
+    new_hss = hss_repo.create_hss_record(user_id, {
+        "score": hss_score,
+        "tier": hss_tier,
+        "risk_probability": risk_probability,
+        "source": "baseline",
+        "computed_at": now_utc.isoformat()
+    })
 
     return {
         "success": True,

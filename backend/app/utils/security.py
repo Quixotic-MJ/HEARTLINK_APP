@@ -1,11 +1,14 @@
+import os
 import jwt
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
 from fastapi import Depends, HTTPException, Security, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
-SECRET_KEY = "heartlink-super-secret-jwt-key"
-ALGORITHM = "HS256"
+from app.db.repositories import get_profile_repo
+
+SECRET_KEY = os.getenv("SECRET_KEY", "heartlink-super-secret-jwt-key")
+ALGORITHM = os.getenv("ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_HOURS = 24
 
 security = HTTPBearer()
@@ -41,10 +44,24 @@ def verify_token(token: str) -> Dict[str, Any]:
             headers={"WWW-Authenticate": "Bearer"},
         )
     except jwt.InvalidTokenError:
-        import app.mock_db as mock_db
-        user = next((p for p in mock_db.profiles if p["id"] == token), None)
-        if user:
-            return {"user_id": user["id"], "role": user.get("role", "patient")}
+        # Fallback decode for Supabase GoTrue JWT tokens
+        try:
+            unverified = jwt.decode(token, options={"verify_signature": False})
+            sub_id = unverified.get("sub")
+            if sub_id:
+                profile_repo = get_profile_repo()
+                prof = profile_repo.get_by_id(sub_id)
+                role = prof.get("role", "patient") if prof else unverified.get("role", "patient")
+                return {
+                    "user_id": sub_id,
+                    "role": role,
+                    "exp": unverified.get("exp"),
+                    "email": unverified.get("email"),
+                    "phone": unverified.get("phone")
+                }
+        except Exception:
+            pass
+
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token",
@@ -63,8 +80,8 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Security(securi
             detail="Invalid token claims",
         )
         
-    import app.mock_db as mock_db
-    user = next((p for p in mock_db.profiles if p["id"] == user_id), None)
+    profile_repo = get_profile_repo()
+    user = profile_repo.get_by_id(user_id)
     
     if not user:
         raise HTTPException(
@@ -92,8 +109,8 @@ def get_current_admin_user(credentials: HTTPAuthorizationCredentials = Security(
             detail="Invalid token claims",
         )
         
-    import app.mock_db as mock_db
-    user = next((p for p in mock_db.profiles if p["id"] == user_id), None)
+    profile_repo = get_profile_repo()
+    user = profile_repo.get_by_id(user_id)
     
     if not user:
         raise HTTPException(

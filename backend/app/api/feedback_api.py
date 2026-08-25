@@ -30,22 +30,19 @@ def get_feedback_user(credentials: Optional[HTTPAuthorizationCredentials] = Depe
         raise HTTPException(status_code=401, detail="Not authenticated")
     
     token = credentials.credentials
-    # Try decoding as JWT (for Admin/Super Admin/Expert)
-    try:
-        payload = verify_token(token)
-        user_id = payload.get("user_id")
-        role = payload.get("role")
-        if user_id and role:
-            user = next((p for p in mock_db.profiles if p["id"] == user_id), None)
-            if user:
-                return user
-    except Exception:
-        # Fall back to raw user ID (for Patients)
-        user = next((p for p in mock_db.profiles if p["id"] == token), None)
-        if user:
-            return user
-            
-    raise HTTPException(status_code=401, detail="Invalid or expired token")
+    payload = verify_token(token)
+    user_id = payload.get("user_id")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Invalid token claims")
+        
+    user = next((p for p in mock_db.profiles if p["id"] == user_id), None)
+    if not user:
+        raise HTTPException(status_code=401, detail="User not found")
+        
+    if user.get("account_status") != "active":
+        raise HTTPException(status_code=403, detail="Access Denied: Account is disabled or archived")
+        
+    return user
 
 def require_admin_or_super_admin(current_user: dict = Depends(get_feedback_user)):
     if current_user.get("role") not in ["admin", "super_admin"]:
