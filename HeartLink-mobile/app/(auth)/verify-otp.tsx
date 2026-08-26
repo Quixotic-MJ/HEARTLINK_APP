@@ -129,7 +129,7 @@ export default function OTPVerificationScreen() {
       const resData = await response.json();
 
       if (response.ok) {
-        await setUserId(resData.user_id);
+        await setUserId(resData.user_id, resData.token);
         setIsVerifying(false);
         router.replace({
           pathname: "/(auth)/verification-success",

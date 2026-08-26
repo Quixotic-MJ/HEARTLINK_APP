@@ -77,7 +77,7 @@ export default function DailyDiaryScreen() {
   const insets = useSafeAreaInsets();
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
-  const { userId } = useUser();
+  const { userId, token } = useUser();
   const { showToast } = useToast();
 
   const [meals, setMeals] = useState<MealLog[]>([]);
@@ -136,7 +136,11 @@ export default function DailyDiaryScreen() {
   const fetchMeals = useCallback(async () => {
     if (!userId) return;
     try {
-      const response = await fetch(`${base_url}/api/meals/${userId}`);
+      const response = await fetch(`${base_url}/api/meals/${userId}`, {
+        headers: {
+          "Authorization": `Bearer ${token || ""}`,
+        },
+      });
       if (response.ok) {
         const data: MealLog[] = await response.json();
         
@@ -160,7 +164,7 @@ export default function DailyDiaryScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [userId]);
+  }, [userId, token]);
 
   useFocusEffect(
     useCallback(() => {
@@ -178,6 +182,9 @@ export default function DailyDiaryScreen() {
     try {
       const res = await fetch(`${base_url}/api/meals/${userId}/${mealToDelete.id}`, {
         method: "DELETE",
+        headers: {
+          "Authorization": `Bearer ${token || ""}`,
+        },
       });
       if (res.ok) {
         setMeals((prev) => prev.filter((item) => item.id !== mealToDelete.id));

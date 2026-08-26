@@ -70,7 +70,7 @@ export default function RecipeDetailsScreen() {
   const isDark = colorScheme === "dark";
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { userId } = useUser();
+  const { userId, token } = useUser();
   const { showToast } = useToast();
   const insets = useSafeAreaInsets();
 
@@ -177,7 +177,10 @@ export default function RecipeDetailsScreen() {
     try {
       const response = await fetch(`${base_url}/api/meals/${userId}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token || ""}`,
+        },
         body: JSON.stringify(payload),
       });
 

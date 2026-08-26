@@ -24,6 +24,12 @@ export async function syncOfflineMeals(baseUrl: string) {
     const queue = JSON.parse(queueJson);
     if (queue.length === 0) return;
 
+    const token = await AsyncStorage.getItem("access_token");
+    if (!token) {
+      console.warn("[SyncService] No access token found. Retaining meal queue until authenticated.");
+      return;
+    }
+
     console.log(`[SyncService] Attempting to sync ${queue.length} offline meals...`);
     const newQueue = [];
 
@@ -31,7 +37,10 @@ export async function syncOfflineMeals(baseUrl: string) {
       try {
         const response = await fetch(`${baseUrl}/api/meals/${item.userId}`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { 
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+          },
           body: JSON.stringify(item.payload),
         });
         
@@ -77,6 +86,12 @@ export async function syncOfflineExercises(baseUrl: string) {
     const queue = JSON.parse(queueJson);
     if (queue.length === 0) return;
 
+    const token = await AsyncStorage.getItem("access_token");
+    if (!token) {
+      console.warn("[SyncService] No access token found. Retaining exercise queue until authenticated.");
+      return;
+    }
+
     console.log(`[SyncService] Attempting to sync ${queue.length} offline exercises...`);
     const newQueue = [];
 
@@ -84,7 +99,10 @@ export async function syncOfflineExercises(baseUrl: string) {
       try {
         const response = await fetch(`${baseUrl}/api/exercises/logs/${item.userId}`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { 
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+          },
           body: JSON.stringify(item.payload),
         });
         
@@ -130,6 +148,12 @@ export async function syncOfflineSleeps(baseUrl: string) {
     const queue = JSON.parse(queueJson);
     if (queue.length === 0) return;
 
+    const token = await AsyncStorage.getItem("access_token");
+    if (!token) {
+      console.warn("[SyncService] No access token found. Retaining sleep queue until authenticated.");
+      return;
+    }
+
     console.log(`[SyncService] Attempting to sync ${queue.length} offline sleeps...`);
     const newQueue = [];
 
@@ -139,7 +163,7 @@ export async function syncOfflineSleeps(baseUrl: string) {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${item.userId}`
+            "Authorization": `Bearer ${token}`
           },
           body: JSON.stringify(item.payload),
         });

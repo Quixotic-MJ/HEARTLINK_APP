@@ -8,6 +8,7 @@ import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
 import * as FileSystem from "expo-file-system/legacy";
 import { useColorScheme } from "nativewind";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Header } from "../../../components/Header";
 import { useUser } from "../../../contexts/UserContext";
 import AnimatedButton from "../../../components/ui/AnimatedButton";
@@ -188,7 +189,7 @@ export default function WrapUpScreen() {
   
   const activeTint = Colors[isDark ? "dark" : "light"].tint;
   
-  const { userId, user } = useUser();
+  const { userId, user, token } = useUser();
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [data, setData] = useState<any>(null);
@@ -200,8 +201,9 @@ export default function WrapUpScreen() {
     try {
       const d = new Date();
       const localDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      const effectiveToken = token || (await AsyncStorage.getItem("access_token")) || "";
       const response = await fetch(`${base_url}/api/dashboard/wrapup?local_date=${localDate}`, {
-        headers: { "Authorization": `Bearer ${userId}` }
+        headers: { "Authorization": `Bearer ${effectiveToken}` }
       });
       if (response.ok) {
         const result = await response.json();

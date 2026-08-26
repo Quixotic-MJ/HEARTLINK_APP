@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, ScrollView, Image, Alert } from "react-native";
+import { View, Text, TouchableOpacity, ScrollView, Image, Alert, ActivityIndicator } from "react-native";
 import { useColorScheme } from "nativewind";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -48,48 +48,72 @@ export default function MealDetailScreen() {
   const isDark = colorScheme === "dark";
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const params = useLocalSearchParams();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { userId } = useUser();
+  const { userId, token } = useUser();
   const { showToast } = useToast();
   
-  const [item, setItem] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  useEffect(() => {
-    async function fetchRecipe() {
-      try {
-        const response = await fetch(`${base_url}/api/recipes/${id}`);
-        if (!response.ok) throw new Error("Failed to fetch recipe");
-        const data = await response.json();
-        setItem(data);
-      } catch (error) {
-        console.error(error);
-        showToast({ title: "Error", message: "Could not load recipe details.", type: "error" });
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    fetchRecipe();
-  }, [id]);
-
   const [servings, setServings] = useState(1);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [item, setItem] = useState<any>(params.item ? JSON.parse(params.item as string) : null);
+  const [isLoadingRecipe, setIsLoadingRecipe] = useState(false);
   const [timeOfMeal, setTimeOfMeal] = useState<TimeOfMeal>("Lunch");
 
-  if (isLoading || !item) {
+  useEffect(() => {
+    async function loadRecipe() {
+      if (item) return;
+      if (!id) return;
+      setIsLoadingRecipe(true);
+      try {
+        const response = await fetch(`${base_url}/api/recipes/${id}`, {
+          headers: { "Authorization": `Bearer ${token || ""}` }
+        });
+        if (response.ok) {
+          const r = await response.json();
+          setItem({
+            id: r.id,
+            name: r.name,
+            calories: r.calories,
+            sodium_mg: r.sodium_mg,
+            saturated_fat_g: r.saturated_fat_g || 0,
+            fiber_g: r.fiber_g || 0,
+            cholesterol_mg: r.cholesterol_mg || 0,
+            image_url: r.image_url,
+            category: r.category,
+            hss_tier: r.hss_tier || 'Stable'
+          });
+        }
+      } catch (err) {
+        console.error("Failed to load recipe detail", err);
+      } finally {
+        setIsLoadingRecipe(false);
+      }
+    }
+    loadRecipe();
+  }, [id, item]);
+
+  if (isLoadingRecipe) {
     return (
-      <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950 justify-center items-center">
-        <Text>Loading...</Text>
+      <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950 items-center justify-center">
+        <ActivityIndicator size="large" color={isDark ? "#38bdf8" : "#0284c7"} />
+      </SafeAreaView>
+    );
+  }
+
+  if (!item) {
+    return (
+      <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950 items-center justify-center">
+        <Text className="text-slate-900 dark:text-white">Item not found.</Text>
       </SafeAreaView>
     );
   }
 
   // Calculate scaled values
-  const scaledCalories = (item.calories || 0) * servings;
-  const scaledSodium = (item.sodium_mg || 0) * servings;
-  const scaledSatFat = (item.saturated_fat_g || 0) * servings;
-  const scaledFiber = (item.fiber_g || 0) * servings;
-  const scaledCholesterol = (item.cholesterol_mg || 0) * servings;
+  const scaledCalories = Math.round((item.calories || 0) * servings);
+  const scaledSodium = Math.round((item.sodium_mg || 0) * servings);
+  const scaledSatFat = Math.round(((item.saturated_fat_g || 0) * servings) * 10) / 10;
+  const scaledFiber = Math.round(((item.fiber_g || 0) * servings) * 10) / 10;
+  const scaledCholesterol = Math.round((item.cholesterol_mg || 0) * servings);
 
   const handleLogMeal = async () => {
     setIsSubmitting(true);
@@ -106,7 +130,10 @@ export default function MealDetailScreen() {
     try {
       const response = await fetch(`${base_url}/api/meals/${userId}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token || ""}`,
+        },
         body: JSON.stringify(payload),
       });
 

@@ -5,6 +5,7 @@ import { StatusBar } from "expo-status-bar";
 import { Feather } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useColorScheme } from "nativewind";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useUser } from "../../contexts/UserContext";
 import { useToast } from "../../contexts/ToastContext";
 import { useBaseline } from "../../contexts/BaselineContext";
@@ -14,7 +15,7 @@ export default function CalculatingScreen() {
   const params = useLocalSearchParams();
   const user_id = params.user_id as string;
   
-  const { refreshUser } = useUser();
+  const { refreshUser, token } = useUser();
   const { showToast } = useToast();
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
@@ -79,9 +80,10 @@ export default function CalculatingScreen() {
     const submitData = async () => {
       try {
         const base_url = process.env.EXPO_PUBLIC_API_URL;
+        const storedToken = token || (await AsyncStorage.getItem("access_token")) || "";
         const authHeaders = {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${user_id}`,
+          "Authorization": `Bearer ${storedToken}`,
         };
         
         // 1. Update Profile (Biometrics)

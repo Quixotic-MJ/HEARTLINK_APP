@@ -53,12 +53,18 @@ export const OfflineSyncService = {
       const remainingQueue: QueuedRequest[] = [];
       let successCount = 0;
       let failedCount = 0;
+      const token = await AsyncStorage.getItem("access_token");
 
       for (const item of queue) {
         try {
+          const headers: Record<string, string> = { ...(item.headers || { "Content-Type": "application/json" }) };
+          if (token && !headers["Authorization"] && !headers["authorization"]) {
+            headers["Authorization"] = `Bearer ${token}`;
+          }
+
           const response = await fetch(item.url, {
             method: item.method,
-            headers: item.headers,
+            headers,
             body: item.body,
           });
 

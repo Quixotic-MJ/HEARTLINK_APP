@@ -296,7 +296,7 @@ export default function LogSymptomsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ triggered_by_exercise_id?: string; pending_exercise?: string }>();
-  const { userId } = useUser();
+  const { userId, token } = useUser();
   const { showToast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -425,7 +425,10 @@ export default function LogSymptomsScreen() {
             const exUrl = `${base_url}/api/exercises/logs/${userId}`;
             await fetch(exUrl, {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
+              headers: { 
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token || ""}`,
+              },
               body: JSON.stringify(exercisePayload),
             });
           } catch (e) {
@@ -435,7 +438,10 @@ export default function LogSymptomsScreen() {
 
         const res = await fetch(targetUrl, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { 
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token || ""}`,
+          },
           body: JSON.stringify(payload),
         });
         if (!res.ok) throw new Error("Failed to save log");

@@ -181,7 +181,7 @@ function RoutineCard({
 export default function ExercisesScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ completedId?: string }>();
-  const { userId } = useUser();
+  const { userId, token } = useUser();
 
   const [routinesList, setRoutinesList] = useState<Routine[] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -203,11 +203,15 @@ export default function ExercisesScreen() {
     setError(false);
     try {
       const [routinesRes, dashboardRes, logsRes] = await Promise.all([
-        fetch(`${base_url}/api/exercises/`).catch(() => null),
-        fetch(`${base_url}/api/dashboard/me`, {
-          headers: { "Authorization": `Bearer ${userId}` }
+        fetch(`${base_url}/api/exercises/`, {
+          headers: token ? { "Authorization": `Bearer ${token}` } : {}
         }).catch(() => null),
-        fetch(`${base_url}/api/exercises/logs/${userId}`).catch(() => null)
+        fetch(`${base_url}/api/dashboard/me`, {
+          headers: { "Authorization": `Bearer ${token || ""}` }
+        }).catch(() => null),
+        fetch(`${base_url}/api/exercises/logs/${userId}`, {
+          headers: { "Authorization": `Bearer ${token || ""}` }
+        }).catch(() => null)
       ]);
 
       if (routinesRes && routinesRes.ok) {
@@ -274,7 +278,7 @@ export default function ExercisesScreen() {
       console.error(error);
       setError(true);
     }
-  }, [userId]);
+  }, [userId, token]);
 
   useFocusEffect(
     useCallback(() => {
