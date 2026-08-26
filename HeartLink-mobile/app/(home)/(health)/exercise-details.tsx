@@ -2,10 +2,13 @@ import React, { useState, useEffect } from "react";
 import { View, ActivityIndicator } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useRouter, useLocalSearchParams } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useUser } from "../../../contexts/UserContext";
+import { useToast } from "../../../contexts/ToastContext";
 import { SafetyCheckSheet } from "../../../components/ui/SafetyCheckSheet";
 import { CompletionCheckSheet } from "../../../components/ui/CompletionCheckSheet";
 import { StopExerciseSheet } from "../../../components/ui/StopExerciseSheet";
+import { ShortSessionSheet } from "../../../components/ui/ShortSessionSheet";
 import { queueExerciseForSync } from "../../../services/SyncService";
 
 // Components
@@ -30,7 +33,8 @@ const generateExerciseId = () => `ex-${Date.now()}-${Math.random().toString(36).
 export default function ExerciseDetailsScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { userId } = useUser();
+  const { userId, token, logout } = useUser();
+  const { showToast } = useToast();
 
   const [routine, setRoutine] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -43,12 +47,17 @@ export default function ExerciseDetailsScreen() {
   const [showSafetyCheck, setShowSafetyCheck] = useState(false);
   const [showCompletionCheck, setShowCompletionCheck] = useState(false);
   const [showStopCheck, setShowStopCheck] = useState(false);
+  const [showShortSessionCheck, setShowShortSessionCheck] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     async function fetchRoutine() {
       try {
-        const response = await fetch(`${base_url}/api/exercises/${id}`);
+        const storedToken = await AsyncStorage.getItem("access_token");
+        const effectiveToken = token || storedToken || "";
+        const response = await fetch(`${base_url}/api/exercises/${id}`, {
+          headers: effectiveToken ? { "Authorization": `Bearer ${effectiveToken}` } : {}
+        });
         if (!response.ok) throw new Error("Failed to fetch routine");
         const data = await response.json();
         
@@ -74,12 +83,12 @@ export default function ExerciseDetailsScreen() {
       }
     }
     fetchRoutine();
-  }, [id]);
+  }, [id, token]);
 
   const logExerciseData = async (status: string, overrideSeconds?: number) => {
-    if (!routine) return;
+    if (!routine || !userId) return;
     const finalSeconds = overrideSeconds !== undefined ? overrideSeconds : sessionDurationSeconds;
-    const finalMinutes = parseFloat((finalSeconds / 60).toFixed(2));
+    const finalMinutes = Math.round(finalSeconds / 60);
     
     const exerciseId = generateExerciseId();
     const payload = {
@@ -93,17 +102,39 @@ export default function ExerciseDetailsScreen() {
       status: status,
     };
 
+    const storedToken = await AsyncStorage.getItem("access_token");
+    const effectiveToken = token || storedToken || "";
+
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 4000);
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
 
-      await fetch(`${base_url}/api/exercises/logs/${userId}`, {
+      const response = await fetch(`${base_url}/api/exercises/logs/${userId}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${effectiveToken}`
+        },
         body: JSON.stringify(payload),
         signal: controller.signal,
       });
       clearTimeout(timeoutId);
+
+      if (response.status === 401) {
+        // Preserve completed exercise payload offline before prompting re-login
+        await queueExerciseForSync(userId, payload);
+        showToast({
+          title: "Session Expired",
+          message: "Your workout is preserved offline. Please log in again to sync.",
+          type: "info"
+        });
+        await logout();
+        return payload;
+      }
+
+      if (!response.ok) {
+        throw new Error(`HTTP error ${response.status}`);
+      }
     } catch (err) {
       if (userId) {
         await queueExerciseForSync(userId, payload);
@@ -118,12 +149,36 @@ export default function ExerciseDetailsScreen() {
     setWorkoutState("active");
   };
 
-  // Called when user hits the big FINISH EXERCISE button on the active screen
+  // Called when user hits FINISH EXERCISE button on active screen
   const handleRequestFinish = () => {
     const elapsedSeconds = sessionStartedAt ? Math.floor((Date.now() - sessionStartedAt) / 1000) : 0;
     setSessionDurationSeconds(elapsedSeconds);
-    // Show the "How was the exercise?" modal
+    
+    // Evaluate 30s threshold
+    if (elapsedSeconds < 30) {
+      setShowShortSessionCheck(true);
+    } else {
+      setShowCompletionCheck(true);
+    }
+  };
+
+  // Called when user opts to save short session (< 30s) anyway
+  const handleSaveShortAnyway = () => {
+    setShowShortSessionCheck(false);
     setShowCompletionCheck(true);
+  };
+
+  // Called when user opts to discard short session (< 30s)
+  const handleDiscardShort = () => {
+    setShowShortSessionCheck(false);
+    setWorkoutState("overview");
+    setSessionStartedAt(null);
+    setSessionDurationSeconds(0);
+    showToast({
+      title: "Session Discarded",
+      message: "Exercise session was discarded and not recorded.",
+      type: "info"
+    });
   };
 
   // Called when user selects "I FEEL OK" from the completion check
@@ -136,6 +191,8 @@ export default function ExerciseDetailsScreen() {
   };
 
   const handleCloseActive = () => {
+    const elapsedSeconds = sessionStartedAt ? Math.floor((Date.now() - sessionStartedAt) / 1000) : 0;
+    setSessionDurationSeconds(elapsedSeconds);
     setShowStopCheck(true);
   };
 
@@ -149,11 +206,12 @@ export default function ExerciseDetailsScreen() {
 
   const handleSafetySymptoms = () => {
     setShowSafetyCheck(false);
-    setShowCompletionCheck(false); // Make sure to close this if it was open
+    setShowCompletionCheck(false);
+    setShowShortSessionCheck(false);
     if (!routine) return;
     
     const elapsedSeconds = sessionStartedAt ? Math.floor((Date.now() - sessionStartedAt) / 1000) : 0;
-    const elapsedMinutes = parseFloat((elapsedSeconds / 60).toFixed(2));
+    const elapsedMinutes = Math.round(elapsedSeconds / 60);
     const exerciseId = generateExerciseId();
     
     const payload = {
@@ -205,9 +263,18 @@ export default function ExerciseDetailsScreen() {
         <ExerciseResult
           routine={routine}
           sessionDurationSeconds={sessionDurationSeconds}
-          onDone={() => router.push({ pathname: "/(home)/(tabs)/exercises", params: { completedId: routine.id } })}
+          onDone={() => router.push({ pathname: "/(home)/(tabs)/exercises", params: { completedId: routine.id, durationSeconds: sessionDurationSeconds.toString() } })}
         />
       )}
+
+      {/* Short Session Check (< 30s) */}
+      <ShortSessionSheet
+        visible={showShortSessionCheck}
+        seconds={sessionDurationSeconds}
+        onSaveAnyway={handleSaveShortAnyway}
+        onDiscard={handleDiscardShort}
+        onBack={() => setShowShortSessionCheck(false)}
+      />
 
       {/* Standalone Safety Check (Triggered via X menu or "Feeling unwell?" link) */}
       <SafetyCheckSheet
@@ -218,7 +285,7 @@ export default function ExerciseDetailsScreen() {
         isSubmitting={isSubmitting}
       />
 
-      {/* New Stop Check Sheet */}
+      {/* Stop Check Sheet */}
       <StopExerciseSheet
         visible={showStopCheck}
         onSymptoms={() => {
@@ -227,7 +294,11 @@ export default function ExerciseDetailsScreen() {
         }}
         onTired={() => {
           setShowStopCheck(false);
-          router.back();
+          if (sessionDurationSeconds < 30) {
+            setShowShortSessionCheck(true);
+          } else {
+            setShowCompletionCheck(true);
+          }
         }}
         onJustChecking={() => {
           setShowStopCheck(false);

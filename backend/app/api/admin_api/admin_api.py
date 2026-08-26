@@ -1,80 +1,100 @@
 from fastapi import APIRouter, Depends, HTTPException
 from typing import Dict, Any, Optional, List
 from datetime import datetime, timedelta
-from app.mock_db import profiles, alerts, hss_history, exercise_routines, meal_logs, exercise_logs, sleep_logs, daily_health_logs, recipes, system_broadcasts, notifications, save_logs, expert_evaluations, admin_activity
-from app.utils.security import get_current_admin_user, get_current_super_admin
 import random
+import hashlib
+from app.utils.security import get_current_admin_user, get_current_super_admin
+from app.utils.activity_helper import record_admin_activity
+from app.db.repositories import (
+    get_profile_repo,
+    get_health_logs_repo,
+    get_meals_repo,
+    get_exercises_repo,
+    get_sleep_repo,
+    get_hss_repo,
+    get_content_repo,
+    get_notification_repo,
+    get_admin_repo,
+    get_case_review_repo
+)
 
 router = APIRouter(prefix="/api/admin", tags=["Admin"])
 
+def _parse_dt(dt):
+    if not dt:
+        return None
+    if isinstance(dt, datetime):
+        return dt
+    if isinstance(dt, str):
+        try:
+            return datetime.fromisoformat(dt.replace("Z", "+00:00")).replace(tzinfo=None)
+        except:
+            return None
+    return None
+
 @router.get("/dashboard", response_model=Dict[str, Any])
 def get_admin_dashboard(current_user: dict = Depends(get_current_admin_user)):
-    now = datetime.now()
+    now = datetime.utcnow()
     cutoff = now - timedelta(days=7)
     
-    # Helper to check if datetime is >= cutoff
-    def is_recent(dt):
-        if not dt:
-            return False
-        if isinstance(dt, str):
-            try:
-                dt = datetime.fromisoformat(dt)
-            except:
-                return False
-        return dt >= cutoff
+    def is_recent(dt_val):
+        parsed = _parse_dt(dt_val)
+        return parsed is not None and parsed >= cutoff
 
-    # 1. Total Users (patients)
-    users = [p for p in profiles if p.get("role") == "patient"]
-    patient_ids = {p["id"] for p in users}
+    profile_repo = get_profile_repo()
+    all_profiles = profile_repo.list_all()
+    users = [p for p in all_profiles if p.get("role") == "patient"]
+    patient_ids = {str(p["id"]) for p in users}
     total_users = len(users)
-    
-    # 2. Active Users (at least one health/lifestyle log in last 7 days)
+
+    meal_logs = get_meals_repo().list_all_meals()
+    exercise_logs = get_exercises_repo().list_all_logs()
+    sleep_logs = get_sleep_repo().list_all_logs()
+    daily_health_logs = get_health_logs_repo().list_all_logs()
+    hss_history = get_hss_repo().list_all_hss_records()
+    alerts = get_health_logs_repo().list_alerts()
+    recipes = get_content_repo().list_recipes()
+    exercise_routines = get_content_repo().list_routines()
+    evaluations = get_case_review_repo().list_evaluations()
+
     active_user_ids = set()
     for m in meal_logs:
         if is_recent(m.get("logged_at")):
-            active_user_ids.add(m.get("user_id"))
+            active_user_ids.add(str(m.get("user_id")))
     for e in exercise_logs:
         if is_recent(e.get("logged_at")):
-            active_user_ids.add(e.get("user_id"))
+            active_user_ids.add(str(e.get("user_id")))
     for s in sleep_logs:
-        if s.get("deleted_at") is None and is_recent(s.get("logged_at")):
-            active_user_ids.add(s.get("user_id"))
+        if not s.get("is_deleted") and is_recent(s.get("logged_at")):
+            active_user_ids.add(str(s.get("user_id")))
     for l in daily_health_logs:
         if is_recent(l.get("logged_at")):
-            active_user_ids.add(l.get("user_id"))
+            active_user_ids.add(str(l.get("user_id")))
             
     active_users = len(active_user_ids.intersection(patient_ids))
     
-    # 3. Average HSS (based on latest per user)
+    # Average HSS (latest per user)
     latest_hss = {}
-    for entry in sorted(hss_history, key=lambda x: x.get("computed_at") or datetime.min):
-        uid = entry.get("user_id")
+    sorted_hss = sorted(hss_history, key=lambda x: _parse_dt(x.get("computed_at")) or datetime.min)
+    for entry in sorted_hss:
+        uid = str(entry.get("user_id"))
         score = entry.get("score")
         if uid in patient_ids and score is not None:
             latest_hss[uid] = score
             
-    valid_scores = [score for score in latest_hss.values()]
+    valid_scores = list(latest_hss.values())
     avg_hss = round(sum(valid_scores) / len(valid_scores)) if valid_scores else 0
     
-    # 4. Open Alerts
+    # Open Alerts
     open_alerts = sum(1 for a in alerts if a.get("status") != "Resolved")
     
-    # 5. HSS distribution (percentage of latest score per user)
-    stable = 0
-    moderate = 0
-    elevated_risk = 0
-    critical = 0
-    for score in latest_hss.values():
-        if score >= 80:
-            stable += 1
-        elif score >= 60:
-            moderate += 1
-        elif score >= 50:
-            elevated_risk += 1
-        else:
-            critical += 1
+    # HSS distribution
+    stable = sum(1 for s in valid_scores if s >= 80)
+    moderate = sum(1 for s in valid_scores if 60 <= s < 80)
+    elevated_risk = sum(1 for s in valid_scores if 50 <= s < 60)
+    critical = sum(1 for s in valid_scores if s < 50)
             
-    total_scored = len(latest_hss)
+    total_scored = len(valid_scores)
     hss_distribution = {
         "stable": {
             "count": stable,
@@ -94,15 +114,14 @@ def get_admin_dashboard(current_user: dict = Depends(get_current_admin_user)):
         }
     }
     
-    # 6. Users Needing Review
-    critical_hss_count = sum(1 for score in latest_hss.values() if score < 50)
-    
+    critical_hss_count = critical
     symptoms_recorded = 0
     for l in daily_health_logs:
-        if is_recent(l.get("logged_at")) and l.get("user_id") in patient_ids:
-            symptoms_recorded += len(l.get("symptoms", []))
+        if is_recent(l.get("logged_at")) and str(l.get("user_id")) in patient_ids:
+            symptoms_recorded += len(l.get("symptoms", []) or [])
             
-    pending_evaluations = sum(1 for p in profiles if p.get("role") == "patient" and p.get("onboarding_status") == "complete" and not any(e["user_id"] == p["id"] for e in expert_evaluations))
+    evaluated_user_ids = {str(e.get("user_id")) for e in evaluations}
+    pending_evaluations = sum(1 for p in users if p.get("onboarding_status") == "complete" and str(p["id"]) not in evaluated_user_ids)
     
     users_needing_review = {
         "critical_hss": critical_hss_count,
@@ -111,11 +130,10 @@ def get_admin_dashboard(current_user: dict = Depends(get_current_admin_user)):
         "open_alerts": open_alerts
     }
     
-    # 7. User Activity (Last 7 Days)
-    meals_this_week = sum(1 for m in meal_logs if is_recent(m.get("logged_at")) and m.get("user_id") in patient_ids)
-    exercise_this_week = sum(1 for e in exercise_logs if is_recent(e.get("logged_at")) and e.get("user_id") in patient_ids)
-    vitals_this_week = sum(1 for l in daily_health_logs if is_recent(l.get("logged_at")) and l.get("user_id") in patient_ids)
-    sleep_this_week = sum(1 for s in sleep_logs if s.get("deleted_at") is None and is_recent(s.get("logged_at")) and s.get("user_id") in patient_ids)
+    meals_this_week = sum(1 for m in meal_logs if is_recent(m.get("logged_at")) and str(m.get("user_id")) in patient_ids)
+    exercise_this_week = sum(1 for e in exercise_logs if is_recent(e.get("logged_at")) and str(e.get("user_id")) in patient_ids)
+    vitals_this_week = sum(1 for l in daily_health_logs if is_recent(l.get("logged_at")) and str(l.get("user_id")) in patient_ids)
+    sleep_this_week = sum(1 for s in sleep_logs if not s.get("is_deleted") and is_recent(s.get("logged_at")) and str(s.get("user_id")) in patient_ids)
     symptoms_this_week = symptoms_recorded
     
     user_activity = {
@@ -126,16 +144,15 @@ def get_admin_dashboard(current_user: dict = Depends(get_current_admin_user)):
         "symptoms": symptoms_this_week
     }
     
-    # 8. Content Library
     content_library = {
         "recipes": len(recipes),
         "exercises": len(exercise_routines)
     }
     
-    # 9. Recent Admin Activity (Latest 10 events, newest first)
-    sorted_activity = sorted(admin_activity, key=lambda x: x.get("created_at") or datetime.min, reverse=True)
+    # Recent Admin Activity
+    admin_activity = get_admin_repo().list_activity(limit=10)
     recent_activity = []
-    for act in sorted_activity[:10]:
+    for act in admin_activity:
         recent_activity.append({
             "id": act.get("id"),
             "admin_user_id": act.get("admin_user_id"),
@@ -144,7 +161,7 @@ def get_admin_dashboard(current_user: dict = Depends(get_current_admin_user)):
             "target_type": act.get("target_type"),
             "target_id": act.get("target_id"),
             "target_name": act.get("target_name"),
-            "created_at": act.get("created_at").isoformat() if isinstance(act.get("created_at"), datetime) else act.get("created_at")
+            "created_at": act.get("created_at")
         })
     
     return {
@@ -163,14 +180,13 @@ def get_admin_dashboard(current_user: dict = Depends(get_current_admin_user)):
 
 @router.get("/analytics", response_model=Dict[str, Any])
 def get_admin_analytics(period: str = "6months", current_user: dict = Depends(get_current_admin_user)):
-    now = datetime.now()
+    now = datetime.utcnow()
     
-    # 1. Demographics & Adoption (100% Authentic)
-    actual_patients = [p for p in profiles if p.get("role") == "patient"]
+    all_profiles = get_profile_repo().list_all()
+    actual_patients = [p for p in all_profiles if p.get("role") == "patient"]
     actual_users = len(actual_patients)
     archived_patients = sum(1 for p in actual_patients if p.get("account_status") == "archived")
     
-    # Map period to number of calendar months
     num_months = 6
     if period == "30days":
         num_months = 1
@@ -181,7 +197,6 @@ def get_admin_analytics(period: str = "6months", current_user: dict = Depends(ge
     elif period == "12months":
         num_months = 12
 
-    # Calculate comparative boundaries for Sign-up Growth and Total Activity Logs
     if period == "30days":
         cutoff_current = now - timedelta(days=30)
         cutoff_prev = now - timedelta(days=60)
@@ -191,19 +206,14 @@ def get_admin_analytics(period: str = "6months", current_user: dict = Depends(ge
     elif period == "6months":
         cutoff_current = now - timedelta(days=180)
         cutoff_prev = now - timedelta(days=360)
-    else: # 12months
+    else:
         cutoff_current = now - timedelta(days=365)
         cutoff_prev = now - timedelta(days=730)
 
-    # 1.1 Calculate Sign-up Growth based on actual registration dates
     current_registrations = 0
     prev_registrations = 0
     for p in actual_patients:
-        created = p.get("created_at", now)
-        if isinstance(created, str):
-            try: created = datetime.fromisoformat(created)
-            except: created = now
-        
+        created = _parse_dt(p.get("created_at")) or now
         if cutoff_current <= created <= now:
             current_registrations += 1
         elif cutoff_prev <= created < cutoff_current:
@@ -215,48 +225,34 @@ def get_admin_analytics(period: str = "6months", current_user: dict = Depends(ge
     else:
         signups_growth = "No comparative data"
 
-    # 1.2 Calculate Total Activity Logs for current and previous period
-    total_records = 0
-    
-    # Helper to count records within a timeframe
+    meal_logs = get_meals_repo().list_all_meals()
+    exercise_logs = get_exercises_repo().list_all_logs()
+    sleep_logs = get_sleep_repo().list_all_logs()
+    daily_health_logs = get_health_logs_repo().list_all_logs()
+    hss_history = get_hss_repo().list_all_hss_records()
+    recipes = get_content_repo().list_recipes()
+    exercise_routines = get_content_repo().list_routines()
+
     def count_logs_in_range(start_dt, end_dt):
         cnt = 0
-        # Meals
         for m in meal_logs:
-            if m.get("deleted_at") is None:
-                logged_at = m.get("logged_at")
-                if isinstance(logged_at, str):
-                    try: logged_at = datetime.fromisoformat(logged_at)
-                    except: continue
-                if start_dt <= logged_at <= end_dt:
-                    cnt += 1
-        # Exercises (excluding abandoned)
+            logged_at = _parse_dt(m.get("logged_at"))
+            if logged_at and start_dt <= logged_at <= end_dt:
+                cnt += 1
         for ex in exercise_logs:
-            if ex.get("deleted_at") is None and ex.get("status") != "abandoned":
-                logged_at = ex.get("logged_at")
-                if isinstance(logged_at, str):
-                    try: logged_at = datetime.fromisoformat(logged_at)
-                    except: continue
-                if start_dt <= logged_at <= end_dt:
+            if ex.get("status") != "abandoned":
+                logged_at = _parse_dt(ex.get("logged_at"))
+                if logged_at and start_dt <= logged_at <= end_dt:
                     cnt += 1
-        # Sleep
         for s in sleep_logs:
-            if s.get("deleted_at") is None:
-                logged_at = s.get("logged_at")
-                if isinstance(logged_at, str):
-                    try: logged_at = datetime.fromisoformat(logged_at)
-                    except: continue
-                if start_dt <= logged_at <= end_dt:
+            if not s.get("is_deleted"):
+                logged_at = _parse_dt(s.get("logged_at"))
+                if logged_at and start_dt <= logged_at <= end_dt:
                     cnt += 1
-        # Daily Health Logs (Vitals + Symptoms)
         for l in daily_health_logs:
-            if l.get("deleted_at") is None:
-                logged_at = l.get("logged_at")
-                if isinstance(logged_at, str):
-                    try: logged_at = datetime.fromisoformat(logged_at)
-                    except: continue
-                if start_dt <= logged_at <= end_dt:
-                    cnt += 1
+            logged_at = _parse_dt(l.get("logged_at"))
+            if logged_at and start_dt <= logged_at <= end_dt:
+                cnt += 1
         return cnt
 
     total_records = count_logs_in_range(cutoff_current, now)
@@ -268,7 +264,6 @@ def get_admin_analytics(period: str = "6months", current_user: dict = Depends(ge
     else:
         records_growth = "No comparative data"
 
-    # 1.3 Calculate Churn/Archiving Rate
     churn_rate = f"{round(archived_patients / actual_users * 100, 1) if actual_users else 0}%"
 
     demographics = {
@@ -281,8 +276,6 @@ def get_admin_analytics(period: str = "6months", current_user: dict = Depends(ge
         "monthly_dau": []
     }
 
-    # 1.4 Generate Monthly Active Users (MAU) over calendar month windows
-    # Define calendar month boundaries
     months_boundaries = []
     current_month_start = datetime(now.year, now.month, 1)
     
@@ -302,62 +295,44 @@ def get_admin_analytics(period: str = "6months", current_user: dict = Depends(ge
         months_boundaries.append((start_of_month, end_of_month))
 
     for start_of_month, end_of_month in months_boundaries:
-        # MAU: Count of unique patients with activity logs in this month window
         active_users_in_month = set()
         for p in actual_patients:
-            p_id = p["id"]
-            
-            # Check meals
+            p_id = str(p["id"])
             has_activity = False
             for m in meal_logs:
-                if m.get("user_id") == p_id and m.get("deleted_at") is None:
-                    logged_at = m.get("logged_at")
-                    if isinstance(logged_at, str):
-                        try: logged_at = datetime.fromisoformat(logged_at)
-                        except: continue
-                    if start_of_month <= logged_at < end_of_month:
+                if str(m.get("user_id")) == p_id:
+                    logged_at = _parse_dt(m.get("logged_at"))
+                    if logged_at and start_of_month <= logged_at < end_of_month:
                         has_activity = True
                         break
             if has_activity:
                 active_users_in_month.add(p_id)
                 continue
 
-            # Check exercises
             for ex in exercise_logs:
-                if ex.get("user_id") == p_id and ex.get("deleted_at") is None and ex.get("status") != "abandoned":
-                    logged_at = ex.get("logged_at")
-                    if isinstance(logged_at, str):
-                        try: logged_at = datetime.fromisoformat(logged_at)
-                        except: continue
-                    if start_of_month <= logged_at < end_of_month:
+                if str(ex.get("user_id")) == p_id and ex.get("status") != "abandoned":
+                    logged_at = _parse_dt(ex.get("logged_at"))
+                    if logged_at and start_of_month <= logged_at < end_of_month:
                         has_activity = True
                         break
             if has_activity:
                 active_users_in_month.add(p_id)
                 continue
 
-            # Check sleep
             for s in sleep_logs:
-                if s.get("user_id") == p_id and s.get("deleted_at") is None:
-                    logged_at = s.get("logged_at")
-                    if isinstance(logged_at, str):
-                        try: logged_at = datetime.fromisoformat(logged_at)
-                        except: continue
-                    if start_of_month <= logged_at < end_of_month:
+                if str(s.get("user_id")) == p_id and not s.get("is_deleted"):
+                    logged_at = _parse_dt(s.get("logged_at"))
+                    if logged_at and start_of_month <= logged_at < end_of_month:
                         has_activity = True
                         break
             if has_activity:
                 active_users_in_month.add(p_id)
                 continue
 
-            # Check vitals / symptoms
             for l in daily_health_logs:
-                if l.get("user_id") == p_id and l.get("deleted_at") is None:
-                    logged_at = l.get("logged_at")
-                    if isinstance(logged_at, str):
-                        try: logged_at = datetime.fromisoformat(logged_at)
-                        except: continue
-                    if start_of_month <= logged_at < end_of_month:
+                if str(l.get("user_id")) == p_id:
+                    logged_at = _parse_dt(l.get("logged_at"))
+                    if logged_at and start_of_month <= logged_at < end_of_month:
                         has_activity = True
                         break
             if has_activity:
@@ -368,25 +343,20 @@ def get_admin_analytics(period: str = "6months", current_user: dict = Depends(ge
             "dau": len(active_users_in_month)
         })
 
-    # 2. Wellness Outcomes (HSS Population Shifts - 100% Authentic)
     wellness_outcomes = []
     for start_of_month, end_of_month in months_boundaries:
-        # Determine latest HSS record for EACH patient as of the end of this month
         stable = 0
         moderate = 0
         elevated_risk = 0
         critical = 0
         
         for p in actual_patients:
-            p_id = p["id"]
+            p_id = str(p["id"])
             p_records = []
             for entry in hss_history:
-                if entry.get("user_id") != p_id:
+                if str(entry.get("user_id")) != p_id:
                     continue
-                dt = entry.get("computed_at")
-                if dt and isinstance(dt, str):
-                    try: dt = datetime.fromisoformat(dt)
-                    except: continue
+                dt = _parse_dt(entry.get("computed_at"))
                 if dt and dt < end_of_month:
                     p_records.append((dt, entry))
             
@@ -407,10 +377,10 @@ def get_admin_analytics(period: str = "6months", current_user: dict = Depends(ge
             "critical": critical
         })
 
-    # 3. Content Usage
     scored_recipes = []
     for r in recipes:
-        actual_cooks = sum(1 for m in meal_logs if m.get("recipe_id") == r["id"] and m.get("deleted_at") is None)
+        r_id = str(r["id"])
+        actual_cooks = sum(1 for m in meal_logs if str(m.get("recipe_id")) == r_id)
         scored_recipes.append({
             "name": r.get("name", "Unknown Recipe"),
             "completions": actual_cooks
@@ -419,7 +389,8 @@ def get_admin_analytics(period: str = "6months", current_user: dict = Depends(ge
     
     scored_exercises = []
     for ex in exercise_routines:
-        actual_sessions = sum(1 for l in exercise_logs if l.get("routine_id") == ex["id"] and l.get("deleted_at") is None and l.get("status") != "abandoned")
+        ex_id = str(ex["id"])
+        actual_sessions = sum(1 for l in exercise_logs if str(l.get("routine_id")) == ex_id and l.get("status") != "abandoned")
         scored_exercises.append({
             "name": ex.get("name", "Unknown Routine"),
             "completions": actual_sessions
@@ -431,18 +402,15 @@ def get_admin_analytics(period: str = "6months", current_user: dict = Depends(ge
         "top_exercises": scored_exercises
     }
 
-    # 4. Symptoms frequency
     symptoms_map = {}
     for l in daily_health_logs:
-        if l.get("deleted_at") is None:
-            for sym in l.get("symptoms", []):
-                symptoms_map[sym] = symptoms_map.get(sym, 0) + 1
+        for sym in (l.get("symptoms") or []):
+            symptoms_map[sym] = symptoms_map.get(sym, 0) + 1
     symptoms_frequency = []
     for sym, count in sorted(symptoms_map.items(), key=lambda x: x[1], reverse=True):
-        formatted_name = sym.replace("_", " ").title()
+        formatted_name = str(sym).replace("_", " ").title()
         symptoms_frequency.append({"name": formatted_name, "count": count})
 
-    # 5. Content distribution by HSS tier
     recipes_dist = {"Stable": 0, "Moderate": 0, "Elevated Risk": 0, "Critical": 0}
     for r in recipes:
         tier = r.get("hss_tier", "Stable")
@@ -460,19 +428,35 @@ def get_admin_analytics(period: str = "6months", current_user: dict = Depends(ge
         "exercises": exercises_dist
     }
 
-    # 6. Activity Volume over Time
     activity_over_time = []
     for start_of_month, end_of_month in months_boundaries:
-        meals_count = sum(1 for m in meal_logs if m.get("deleted_at") is None and start_of_month <= m.get("logged_at") < end_of_month)
-        ex_count = sum(1 for e in exercise_logs if e.get("deleted_at") is None and e.get("status") != "abandoned" and start_of_month <= e.get("logged_at") < end_of_month)
-        sleep_count = sum(1 for s in sleep_logs if s.get("deleted_at") is None and start_of_month <= s.get("logged_at") < end_of_month)
+        meals_count = 0
+        for m in meal_logs:
+            logged_at = _parse_dt(m.get("logged_at"))
+            if logged_at and start_of_month <= logged_at < end_of_month:
+                meals_count += 1
+
+        ex_count = 0
+        for e in exercise_logs:
+            if e.get("status") != "abandoned":
+                logged_at = _parse_dt(e.get("logged_at"))
+                if logged_at and start_of_month <= logged_at < end_of_month:
+                    ex_count += 1
+
+        sleep_count = 0
+        for s in sleep_logs:
+            if not s.get("is_deleted"):
+                logged_at = _parse_dt(s.get("logged_at"))
+                if logged_at and start_of_month <= logged_at < end_of_month:
+                    sleep_count += 1
         
         vitals_count = 0
         symptoms_count = 0
         for l in daily_health_logs:
-            if l.get("deleted_at") is None and start_of_month <= l.get("logged_at") < end_of_month:
+            logged_at = _parse_dt(l.get("logged_at"))
+            if logged_at and start_of_month <= logged_at < end_of_month:
                 vitals_count += 1
-                symptoms_count += len(l.get("symptoms", []))
+                symptoms_count += len(l.get("symptoms") or [])
                 
         activity_over_time.append({
             "name": start_of_month.strftime("%b"),
@@ -494,7 +478,8 @@ def get_admin_analytics(period: str = "6months", current_user: dict = Depends(ge
 
 @router.get("/staff")
 def get_system_staff(current_user: dict = Depends(get_current_super_admin)):
-    staff = [p for p in profiles if p.get("role") in ["medical_expert", "admin", "super_admin"]]
+    all_profiles = get_profile_repo().list_all()
+    staff = [p for p in all_profiles if p.get("role") in ["medical_expert", "admin", "super_admin"]]
     result = []
     for s in staff:
         if s.get("role") == "super_admin":
@@ -536,53 +521,39 @@ def create_system_staff(payload: dict, current_user: dict = Depends(get_current_
     if role_label not in ["Authorized Medical Expert", "System Admin", "medical_expert", "admin"]:
         raise HTTPException(status_code=400, detail="Invalid staff role")
         
-    # Check duplicate email
-    for p in profiles:
+    profile_repo = get_profile_repo()
+    all_profiles = profile_repo.list_all()
+    for p in all_profiles:
         if p.get("email") == email:
             raise HTTPException(status_code=409, detail="Duplicate email address")
             
-    # Generate staff ID uniquely
-    while True:
-        staff_id = f"STAFF-{random.randint(1000, 9999)}"
-        if not any(p.get("id") == staff_id for p in profiles):
-            break
-            
-    # Generate password hash
-    import hashlib
     temp_pass = "TempPass2026!"
     hashed_pwd = hashlib.sha256(temp_pass.encode()).hexdigest()
-    
     target_role = "medical_expert" if role_label in ["Authorized Medical Expert", "medical_expert"] else "admin"
     
-    new_staff = {
-        "id": staff_id,
+    new_staff_data = {
         "first_name": name.split(" ")[0],
         "last_name": " ".join(name.split(" ")[1:]),
         "phone": phone,
         "email": email,
         "password": hashed_pwd,
         "role": target_role,
-        "account_status": "active",
-        "created_at": datetime.utcnow()
+        "account_status": "active"
     }
-    profiles.append(new_staff)
-    from app.mock_db import save_profiles
-    save_profiles()
+    created_staff = profile_repo.create_profile(new_staff_data)
+    staff_id = created_staff.get("id")
     
-    # Record admin activity
     admin_id = current_user.get("user_id") if current_user else "admin"
     role_desc = "medical expert" if target_role == "medical_expert" else "admin"
     action_desc = f"Created {role_desc} account"
-    from app.utils.activity_helper import record_admin_activity
     record_admin_activity(
         admin_user_id=admin_id,
         action=action_desc,
         target_type="staff",
-        target_id=staff_id,
+        target_id=str(staff_id),
         target_name=name
     )
 
-    # Trigger Admin Notification for Super Admins
     try:
         from app.services.admin_notifications import create_admin_notification
         create_admin_notification(
@@ -592,50 +563,44 @@ def create_system_staff(payload: dict, current_user: dict = Depends(get_current_
             severity="info",
             recipient_roles=["super_admin"],
             route="/users",
-            target_id=staff_id,
+            target_id=str(staff_id),
             read_by=[admin_id] if admin_id else []
         )
     except Exception as e:
         print(f"Failed to create admin notification for staff creation: {e}")
 
-    return {"status": "success", "id": staff_id}
+    return {"status": "success", "id": str(staff_id)}
 
 @router.put("/users/{user_id}/status")
 def toggle_user_status(user_id: str, current_user: dict = Depends(get_current_admin_user)):
-    user = next((u for u in profiles if u["id"] == user_id), None)
+    profile_repo = get_profile_repo()
+    user = profile_repo.get_by_id(user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
         
     current_status = user.get("account_status", "active")
     user_role = user.get("role", "patient")
     
-    # Staff account toggle is strictly super_admin
     is_staff = user_role in ["admin", "medical_expert", "super_admin"]
     current_admin_role = current_user.get("role")
     
     if is_staff and current_admin_role != "super_admin":
         raise HTTPException(status_code=403, detail="Access Denied: Only Super Admin can manage staff status")
         
-    # Safety Check: Self-disable prevention
-    if user_id == current_user.get("user_id"):
+    if str(user_id) == str(current_user.get("user_id")):
         raise HTTPException(status_code=400, detail="Self-deactivation is not permitted")
         
-    # Safety Check: Protect the last active super_admin
     if user_role == "super_admin" and current_status == "active":
-        active_super_admins = [p for p in profiles if p.get("role") == "super_admin" and p.get("account_status") == "active"]
+        all_profiles = profile_repo.list_all()
+        active_super_admins = [p for p in all_profiles if p.get("role") == "super_admin" and p.get("account_status") == "active"]
         if len(active_super_admins) <= 1:
             raise HTTPException(status_code=400, detail="Deactivating the last active Super Admin is not permitted")
             
     new_status = "disabled" if current_status == "active" else "active"
-    user["account_status"] = new_status
+    profile_repo.update_profile(user_id, {"account_status": new_status})
     
-    from app.mock_db import save_profiles
-    save_profiles()
-    
-    # Record admin activity
     admin_id = current_user.get("user_id") if current_user else "admin"
     user_name = f"{user.get('first_name', '')} {user.get('last_name', '')}".strip() or user.get("email") or user_id
-    
     target_type = "user" if user_role == "patient" else "staff"
     
     if user_role == "patient":
@@ -644,16 +609,14 @@ def toggle_user_status(user_id: str, current_user: dict = Depends(get_current_ad
         role_desc = "medical expert" if user_role == "medical_expert" else ("admin" if user_role == "admin" else "super_admin")
         action_desc = f"{'Disabled' if new_status == 'disabled' else 'Enabled'} {role_desc} account"
         
-    from app.utils.activity_helper import record_admin_activity
     record_admin_activity(
         admin_user_id=admin_id,
         action=action_desc,
         target_type=target_type,
-        target_id=user_id,
+        target_id=str(user_id),
         target_name=user_name
     )
 
-    # Trigger Admin Notification only if target is a staff account
     if is_staff:
         try:
             from app.services.admin_notifications import create_admin_notification
@@ -665,7 +628,7 @@ def toggle_user_status(user_id: str, current_user: dict = Depends(get_current_ad
                 severity="warning",
                 recipient_roles=["super_admin"],
                 route="/users",
-                target_id=user_id,
+                target_id=str(user_id),
                 read_by=[admin_id] if admin_id else []
             )
         except Exception as e:
@@ -675,7 +638,8 @@ def toggle_user_status(user_id: str, current_user: dict = Depends(get_current_ad
 
 @router.put("/staff/{staff_id}/role")
 def change_staff_role(staff_id: str, payload: dict, current_user: dict = Depends(get_current_super_admin)):
-    target_user = next((u for u in profiles if u["id"] == staff_id), None)
+    profile_repo = get_profile_repo()
+    target_user = profile_repo.get_by_id(staff_id)
     if not target_user:
         raise HTTPException(status_code=404, detail="Staff member not found")
         
@@ -688,27 +652,21 @@ def change_staff_role(staff_id: str, payload: dict, current_user: dict = Depends
     if target_user.get("role") not in ["admin", "medical_expert"]:
         raise HTTPException(status_code=400, detail="Target user is not a regular staff member")
         
-    # Safety Check: Prevent self-demotion
-    if staff_id == current_user.get("user_id"):
+    if str(staff_id) == str(current_user.get("user_id")):
         raise HTTPException(status_code=400, detail="Self-demotion is not permitted")
         
     old_role = target_user.get("role")
-    target_user["role"] = new_role
+    profile_repo.update_profile(staff_id, {"role": new_role})
     
-    from app.mock_db import save_profiles
-    save_profiles()
-    
-    # Record admin activity
     admin_id = current_user.get("user_id") if current_user else "admin"
     user_name = f"{target_user.get('first_name', '')} {target_user.get('last_name', '')}".strip() or target_user.get("email") or staff_id
     action_desc = f"Changed staff role from {old_role} to {new_role}"
     
-    from app.utils.activity_helper import record_admin_activity
     record_admin_activity(
         admin_user_id=admin_id,
         action=action_desc,
         target_type="staff",
-        target_id=staff_id,
+        target_id=str(staff_id),
         target_name=user_name
     )
     return {"status": "success", "new_role": new_role}
@@ -717,7 +675,8 @@ def change_staff_role(staff_id: str, payload: dict, current_user: dict = Depends
 def get_user_timeline(user_id: str, current_user: dict = Depends(get_current_admin_user)):
     logs = []
     
-    for log in [l for l in daily_health_logs if l.get("user_id") == user_id]:
+    daily_health_logs = get_health_logs_repo().list_user_logs(user_id)
+    for log in daily_health_logs:
         logs.append({
             "type": "Vitals",
             "timestamp": log.get("logged_at"),
@@ -740,7 +699,8 @@ def get_user_timeline(user_id: str, current_user: dict = Depends(get_current_adm
                 }
             })
             
-    for m in [m for m in meal_logs if m.get("user_id") == user_id]:
+    meal_logs = get_meals_repo().list_user_meals(user_id)
+    for m in meal_logs:
         logs.append({
             "type": "Meal",
             "timestamp": m.get("logged_at"),
@@ -751,7 +711,8 @@ def get_user_timeline(user_id: str, current_user: dict = Depends(get_current_adm
             }
         })
         
-    for e in [e for e in exercise_logs if e.get("user_id") == user_id]:
+    exercise_logs = get_exercises_repo().list_user_logs(user_id)
+    for e in exercise_logs:
         logs.append({
             "type": "Exercise",
             "timestamp": e.get("logged_at"),
@@ -762,7 +723,8 @@ def get_user_timeline(user_id: str, current_user: dict = Depends(get_current_adm
             }
         })
         
-    for s in [s for s in sleep_logs if s.get("user_id") == user_id and s.get("deleted_at") is None]:
+    sleep_logs = get_sleep_repo().list_user_logs(user_id)
+    for s in sleep_logs:
         logs.append({
             "type": "Sleep",
             "timestamp": s.get("logged_at"),
@@ -772,7 +734,8 @@ def get_user_timeline(user_id: str, current_user: dict = Depends(get_current_adm
             }
         })
         
-    for h in [h for h in hss_history if h.get("user_id") == user_id]:
+    hss_logs = get_hss_repo().list_hss_history(user_id)
+    for h in hss_logs:
         logs.append({
             "type": "HSS",
             "timestamp": h.get("computed_at"),
@@ -783,32 +746,21 @@ def get_user_timeline(user_id: str, current_user: dict = Depends(get_current_adm
         })
         
     def parse_dt(x):
-        dt = x.get("timestamp")
-        if isinstance(dt, str):
-            try: return datetime.fromisoformat(dt)
-            except: return datetime.min
-        if not dt:
-            return datetime.min
-        return dt
+        dt = _parse_dt(x.get("timestamp"))
+        return dt if dt else datetime.min
         
     logs.sort(key=parse_dt, reverse=True)
     return logs
 
-
-
-from fastapi import HTTPException
-
 @router.get("/broadcasts", response_model=list)
 def get_broadcasts(current_user: dict = Depends(get_current_admin_user)):
-    # Sort broadcasts by created_at descending
-    return sorted(system_broadcasts, key=lambda x: x.get("created_at", datetime.min), reverse=True)
+    return get_notification_repo().list_broadcasts()
 
 VALID_BROADCAST_TYPES = {"Maintenance", "App Update", "Safety Reminder", "General"}
 VALID_BROADCAST_AUDIENCES = {"All Registered Accounts"}
 
 @router.post("/broadcasts")
 def create_broadcast(payload: dict, current_user: dict = Depends(get_current_admin_user)):
-    # --- Validate required fields ---
     title = (payload.get("title") or "").strip()
     if not title:
         raise HTTPException(status_code=422, detail="Announcement title is required.")
@@ -833,95 +785,48 @@ def create_broadcast(payload: dict, current_user: dict = Depends(get_current_adm
     if not message:
         raise HTTPException(status_code=422, detail="Announcement message is required.")
 
-    now = datetime.now()
-    broadcast_id = f"brd-{int(now.timestamp())}"
-
-    # Resolve publisher display name (strip internal user ID from UI)
-    publisher_name = "Admin"
     admin_id = current_user.get('user_id', 'SYS')
-    for u in profiles:
-        if u.get('id') == admin_id:
-            publisher_name = f"{u.get('first_name', '')} {u.get('last_name', '')}".strip() or "Admin"
-            break
+    admin_prof = get_profile_repo().get_by_id(admin_id)
+    publisher_name = "Admin"
+    if admin_prof:
+        publisher_name = f"{admin_prof.get('first_name', '')} {admin_prof.get('last_name', '')}".strip() or "Admin"
 
-    new_broadcast = {
-        "id": broadcast_id,
+    broadcast_data = {
         "title": title,
-        "date": now.strftime("%b %d, %Y %I:%M %p"),
-        # Store full publisher string internally for accountability;
-        # display_publisher is the clean user-facing name
-        "publisher": f"{admin_id} ({publisher_name})",
-        "display_publisher": publisher_name,
         "message": message,
         "type": broadcast_type,
         "target_audience": target_audience,
-        "created_at": now
+        "publisher": f"{admin_id} ({publisher_name})",
+        "display_publisher": publisher_name,
+        "publisher_id": admin_id
     }
 
-    system_broadcasts.append(new_broadcast)
+    new_broadcast = get_notification_repo().create_broadcast(broadcast_data)
+    broadcast_id = new_broadcast.get("id")
 
-    # --- Fan out notifications to all active patients ---
-    target_patients = [p for p in profiles if p.get("role") == "patient" and p.get("account_status") == "active"]
-    for patient in target_patients:
-        notif = {
-            "id": f"notif-brd-{broadcast_id}-{patient['id']}",
-            "user_id": patient["id"],
-            "scope": "broadcast",
-            "type": "system",
-            "broadcast_type": broadcast_type,   # category
-            "broadcast_id": broadcast_id,
-            "publisher_id": admin_id,
-            "title": title,                       # FIX: use announcement title, not category
-            "message": message,
-            "read": False,
-            "created_at": now,
-        }
-        notifications.append(notif)
-
-    save_logs()
-
-    # Record admin activity — use announcement title as target_name
-    from app.utils.activity_helper import record_admin_activity
+    # Record admin activity
     record_admin_activity(
         admin_user_id=admin_id,
         action="published",
         target_type="broadcast",
-        target_id=broadcast_id,
+        target_id=str(broadcast_id),
         target_name=title
     )
-    return {"status": "success", "data": new_broadcast, "recipients_count": len(target_patients)}
+    return {"status": "success", "data": new_broadcast}
 
 @router.delete("/broadcasts/{broadcast_id}")
 def delete_broadcast(broadcast_id: str, current_user: dict = Depends(get_current_admin_user)):
-    found = False
-    broadcast_title = "Announcement"
-    for i, b in enumerate(system_broadcasts):
-        if b.get("id") == broadcast_id:
-            # Use title if available, fall back to type string
-            broadcast_title = b.get("title") or b.get("type", "Announcement")
-            del system_broadcasts[i]
-            found = True
-            break
-
-    if not found:
+    success = get_notification_repo().delete_broadcast(broadcast_id)
+    if not success:
         raise HTTPException(status_code=404, detail="Broadcast not found")
 
-    # Cascade delete linked notification entries
-    to_remove = [n for n in notifications if n.get("broadcast_id") == broadcast_id]
-    for n in to_remove:
-        notifications.remove(n)
-
-    save_logs()
-
-    # Record admin activity — use announcement title as target_name
     admin_id = current_user.get("user_id") if current_user else "admin"
-    from app.utils.activity_helper import record_admin_activity
     record_admin_activity(
         admin_user_id=admin_id,
         action="deleted",
         target_type="broadcast",
-        target_id=broadcast_id,
-        target_name=broadcast_title
+        target_id=str(broadcast_id),
+        target_name="Broadcast"
     )
     return {"status": "success", "message": "Broadcast deleted"}
 
@@ -935,7 +840,6 @@ def get_activity_log(
     search: Optional[str] = None,
     current_user: dict = Depends(get_current_admin_user)
 ):
-    # Enforce admin/super_admin role restriction
     role = current_user.get("role")
     if role not in ["admin", "super_admin"]:
         raise HTTPException(
@@ -943,71 +847,21 @@ def get_activity_log(
             detail="Access Denied: Admin or Super Admin role required."
         )
 
-    # Validate pagination parameters
     if page < 1:
-        raise HTTPException(
-            status_code=400,
-            detail="Page parameter must be 1 or greater."
-        )
+        raise HTTPException(status_code=400, detail="Page parameter must be 1 or greater.")
     if page_size < 1 or page_size > 100:
-        raise HTTPException(
-            status_code=400,
-            detail="Page size must be between 1 and 100."
-        )
+        raise HTTPException(status_code=400, detail="Page size must be between 1 and 100.")
 
-    logs = list(admin_activity)
-
-    # Filtering
-    if action and action.strip():
-        action_val = action.strip().lower()
-        logs = [l for l in logs if l.get("action") and l.get("action").lower() == action_val]
-
-    if target_type and target_type.strip():
-        target_val = target_type.strip().lower()
-        logs = [l for l in logs if l.get("target_type") and l.get("target_type").lower() == target_val]
-
-    if admin_user_id and admin_user_id.strip():
-        actor_val = admin_user_id.strip().lower()
-        logs = [l for l in logs if l.get("admin_user_id") and l.get("admin_user_id").lower() == actor_val]
-
-    # Search (case-insensitive)
-    if search and search.strip():
-        s_val = search.strip().lower()
-        def match_log(l):
-            fields = [
-                l.get("admin_name"),
-                l.get("admin_user_id"),
-                l.get("action"),
-                l.get("target_type"),
-                l.get("target_id"),
-                l.get("target_name")
-            ]
-            for f in fields:
-                if f and s_val in str(f).lower():
-                    return True
-            return False
-        logs = [l for l in logs if match_log(l)]
-
-    # Sorting
-    # Helper to resolve dt for sorting safely
-    def get_sort_key(l):
-        dt = l.get("created_at")
-        if not dt:
-            return datetime.min
-        if isinstance(dt, str):
-            try:
-                return datetime.fromisoformat(dt)
-            except:
-                return datetime.min
-        return dt
-
-    # Sort descending by created_at, then descending by id as a stable tie-breaker
-    logs.sort(key=lambda x: (get_sort_key(x), x.get("id") or ""), reverse=True)
+    logs = get_admin_repo().list_activity(
+        action=action,
+        target_type=target_type,
+        admin_user_id=admin_user_id,
+        search=search
+    )
 
     total = len(logs)
     total_pages = (total + page_size - 1) // page_size if total > 0 else 0
 
-    # Paginate
     start_idx = (page - 1) * page_size
     end_idx = start_idx + page_size
     paginated_logs = logs[start_idx:end_idx]
@@ -1022,7 +876,7 @@ def get_activity_log(
             "target_type": l.get("target_type"),
             "target_id": l.get("target_id"),
             "target_name": l.get("target_name"),
-            "created_at": l.get("created_at")  # FastAPI automatically serializes datetime to ISO format
+            "created_at": l.get("created_at")
         })
 
     return {

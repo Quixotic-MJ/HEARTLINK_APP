@@ -18,6 +18,8 @@ import { useUser } from "../../../contexts/UserContext";
 import { EmptyState } from "../../../components/ui/EmptyState";
 import { useToast } from "../../../contexts/ToastContext";
 
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
 export type ExerciseLog = {
@@ -25,8 +27,8 @@ export type ExerciseLog = {
   user_id: string;
   routine_id: string;
   routine_name: string;
+  duration_minutes: number;
   duration_seconds?: number;
-  duration_minutes?: number;
   status: "completed" | "incomplete_due_to_symptoms" | string;
   logged_at: string;
   deleted_at?: string | null;
@@ -34,7 +36,7 @@ export type ExerciseLog = {
 
 export default function ExerciseDiaryScreen() {
   const router = useRouter();
-  const { userId } = useUser();
+  const { userId, token, logout } = useUser();
   const { showToast } = useToast();
   const [logs, setLogs] = useState<ExerciseLog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,7 +46,20 @@ export default function ExerciseDiaryScreen() {
   const fetchLogs = useCallback(async () => {
     if (!userId) return;
     try {
-      const response = await fetch(`${base_url}/api/exercises/logs/${userId}?limit=50&offset=0`);
+      const storedToken = await AsyncStorage.getItem("access_token");
+      const effectiveToken = token || storedToken || "";
+      const response = await fetch(`${base_url}/api/exercises/logs/${userId}?limit=50&offset=0`, {
+        headers: {
+          "Authorization": `Bearer ${effectiveToken}`,
+        },
+      });
+
+      if (response.status === 401) {
+        showToast({ title: "Session Expired", message: "Please log in again.", type: "info" });
+        await logout();
+        return;
+      }
+
       if (response.ok) {
         const data: ExerciseLog[] = await response.json();
         setLogs(data);
@@ -55,7 +70,7 @@ export default function ExerciseDiaryScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [userId]);
+  }, [userId, token, logout]);
 
   useFocusEffect(
     useCallback(() => {
@@ -69,11 +84,23 @@ export default function ExerciseDiaryScreen() {
   };
 
   const confirmDeleteLog = async () => {
-    if (!logToDelete) return;
+    if (!logToDelete || !userId) return;
     try {
+      const storedToken = await AsyncStorage.getItem("access_token");
+      const effectiveToken = token || storedToken || "";
       const res = await fetch(`${base_url}/api/exercises/logs/${userId}/${logToDelete.id}`, {
         method: "DELETE",
+        headers: {
+          "Authorization": `Bearer ${effectiveToken}`,
+        },
       });
+
+      if (res.status === 401) {
+        showToast({ title: "Session Expired", message: "Please log in again.", type: "info" });
+        await logout();
+        return;
+      }
+
       const json = await res.json();
       if (res.ok && json.success) {
         setLogs((prev) => prev.filter((item) => item.id !== logToDelete.id));
@@ -106,30 +133,54 @@ export default function ExerciseDiaryScreen() {
     );
   };
 
-  const formatDuration = (log: ExerciseLog) => {
-    let totalSeconds = log.duration_seconds;
-    if (totalSeconds === undefined || totalSeconds === 0) {
-      if (log.duration_minutes) {
-        totalSeconds = Math.round(log.duration_minutes * 60);
-      } else {
-        return "0s";
-      }
+  const formatDuration = (log: ExerciseLog): string => {
+    const sec = log.duration_seconds;
+    const min = log.duration_minutes;
+
+    // Case 1: duration_seconds is explicitly provided and > 0
+    if (sec !== undefined && sec !== null && sec > 0) {
+      if (sec < 60) return `${sec}s`;
+      const mins = Math.floor(sec / 60);
+      const remainderSecs = sec % 60;
+      if (remainderSecs > 0) return `${mins}m ${remainderSecs}s`;
+      return `${mins}m`;
     }
-    const mins = Math.floor(totalSeconds / 60);
-    const secs = totalSeconds % 60;
-    if (mins > 0 && secs > 0) return `${mins}m ${secs}s`;
-    if (mins > 0) return `${mins}m`;
-    return `${secs}s`;
+
+    // Case 2: Legacy rows where duration_seconds is 0 or null, but duration_minutes > 0
+    if (min !== undefined && min !== null && min > 0) {
+      return `${min}m`;
+    }
+
+    // Case 3: Exactly 0s
+    return "0s";
   };
 
   const totalDurationSeconds = logs.reduce((sum, item) => {
-    const sec = item.duration_seconds ?? (item.duration_minutes ? Math.round(item.duration_minutes * 60) : 0);
-    return sum + sec;
+    if (item.duration_seconds !== undefined && item.duration_seconds !== null && item.duration_seconds > 0) {
+      return sum + item.duration_seconds;
+    }
+    if (item.duration_minutes !== undefined && item.duration_minutes !== null && item.duration_minutes > 0) {
+      return sum + item.duration_minutes * 60;
+    }
+    return sum;
   }, 0);
 
-  const formattedTotalTime = () => {
-    const mins = Math.floor(totalDurationSeconds / 60);
-    return `${mins} min`;
+  const formattedTotalTime = (): string => {
+    if (totalDurationSeconds === 0) return "0s";
+    if (totalDurationSeconds < 60) return `${totalDurationSeconds}s`;
+
+    const hours = Math.floor(totalDurationSeconds / 3600);
+    const remainingSeconds = totalDurationSeconds % 3600;
+    const mins = Math.floor(remainingSeconds / 60);
+    const secs = remainingSeconds % 60;
+
+    if (hours > 0) {
+      return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+    }
+    if (secs > 0) {
+      return `${mins}m ${secs}s`;
+    }
+    return `${mins}m`;
   };
 
   return (

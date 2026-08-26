@@ -25,9 +25,30 @@ def add_sleep_log(user_id: str, data: Dict[str, Any], current_user: dict = Depen
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You may only record your own sleep data.",
         )
-    duration = data.get("duration_hours", 0)
+    
+    # Validate and coerce duration_hours
+    try:
+        duration = float(data.get("duration_hours", 0))
+    except (ValueError, TypeError):
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid sleep duration value.")
+
     if duration <= 0:
-        raise HTTPException(status_code=400, detail="Sleep duration must be greater than 0.")
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Sleep duration must be greater than 0.")
+    data["duration_hours"] = duration
+
+    # Normalize quality to canonical TitleCase ('Poor', 'Fair', 'Good', 'Excellent')
+    raw_quality = data.get("quality")
+    if raw_quality:
+        canonical_quality = str(raw_quality).strip().capitalize()
+        if canonical_quality not in ["Poor", "Fair", "Good", "Excellent"]:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Sleep quality must be one of: 'Poor', 'Fair', 'Good', 'Excellent'."
+            )
+        data["quality"] = canonical_quality
+    else:
+        data["quality"] = "Good"
+
     log = create_sleep_log(user_id, data)
     return {"success": True, "message": "Sleep log saved", "data": log}
 

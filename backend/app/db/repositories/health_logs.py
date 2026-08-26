@@ -5,11 +5,16 @@ Daily Health Logs & Clinical Alerts Repository Layer.
 from typing import Optional, Dict, Any, List
 from datetime import datetime
 import uuid
-import app.mock_db as mock_db
-from app.db.repositories.base import handle_db_error
+import logging
+from app.db.repositories.base import handle_db_error, resolve_uuid, serialize_for_db
+
+logger = logging.getLogger(__name__)
 
 class HealthLogsRepository:
     def list_user_logs(self, user_id: str, limit: Optional[int] = None) -> List[Dict[str, Any]]:
+        raise NotImplementedError
+
+    def list_all_logs(self) -> List[Dict[str, Any]]:
         raise NotImplementedError
 
     def create_log(self, user_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
@@ -29,10 +34,17 @@ class HealthLogsRepository:
 
 
 class MockHealthLogsRepository(HealthLogsRepository):
+    def __init__(self):
+        self._logs: List[Dict[str, Any]] = []
+        self._alerts: List[Dict[str, Any]] = []
+
     def list_user_logs(self, user_id: str, limit: Optional[int] = None) -> List[Dict[str, Any]]:
-        logs = [l for l in mock_db.daily_health_logs if l.get("user_id") == user_id]
+        logs = [l for l in self._logs if l.get("user_id") == user_id]
         sorted_logs = sorted(logs, key=lambda x: x.get("logged_at") or datetime.min, reverse=True)
         return sorted_logs[:limit] if limit else sorted_logs
+
+    def list_all_logs(self) -> List[Dict[str, Any]]:
+        return sorted(self._logs, key=lambda x: x.get("logged_at") or datetime.min, reverse=True)
 
     def create_log(self, user_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
         now = datetime.utcnow()
@@ -43,8 +55,7 @@ class MockHealthLogsRepository(HealthLogsRepository):
             "created_at": now,
             "logged_at": data.get("logged_at") or now
         }
-        mock_db.daily_health_logs.append(new_log)
-        mock_db.save_logs()
+        self._logs.append(new_log)
         return new_log
 
     def get_latest_vitals(self, user_id: str) -> Optional[Dict[str, Any]]:
@@ -52,7 +63,7 @@ class MockHealthLogsRepository(HealthLogsRepository):
         return logs[0] if logs else None
 
     def list_alerts(self, user_id: Optional[str] = None, status_filter: Optional[str] = None) -> List[Dict[str, Any]]:
-        alerts = list(mock_db.alerts)
+        alerts = list(self._alerts)
         if user_id:
             alerts = [a for a in alerts if a.get("user_id") == user_id]
         if status_filter:
@@ -65,15 +76,13 @@ class MockHealthLogsRepository(HealthLogsRepository):
             "created_at": datetime.utcnow(),
             **alert_data
         }
-        mock_db.alerts.append(record)
-        mock_db.save_logs()
+        self._alerts.append(record)
         return record
 
     def update_alert(self, alert_id: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        for a in mock_db.alerts:
+        for a in self._alerts:
             if a.get("id") == alert_id:
                 a.update(data)
-                mock_db.save_logs()
                 return a
         return None
 
@@ -82,25 +91,53 @@ class SupabaseHealthLogsRepository(HealthLogsRepository):
     def __init__(self, client):
         self.client = client
 
-    def list_user_logs(self, user_id: str, limit: Optional[int] = None) -> List[Dict[str, Any]]:
+    def _resolve_user_uuid(self, user_id: str) -> Optional[str]:
+        valid_uuid = resolve_uuid(user_id)
+        if valid_uuid:
+            return valid_uuid
         try:
-            query = self.client.table("daily_health_logs").select("*").eq("user_id", user_id).order("logged_at", desc=True)
+            from app.db.repositories import get_profile_repo
+            profile = get_profile_repo().get_by_id(user_id)
+            if profile and profile.get("id"):
+                return resolve_uuid(profile["id"])
+        except Exception:
+            pass
+        return None
+
+    def list_user_logs(self, user_id: str, limit: Optional[int] = None) -> List[Dict[str, Any]]:
+        uuid_val = self._resolve_user_uuid(user_id)
+        if not uuid_val:
+            return []
+        try:
+            query = self.client.table("daily_health_logs").select("*").eq("user_id", uuid_val).order("logged_at", desc=True)
             if limit:
                 query = query.limit(limit)
             res = query.execute()
             return res.data or []
         except Exception as e:
-            handle_db_error(e)
+            logger.warning(f"Error reading health logs for {user_id}: {e}")
+            return []
+
+    def list_all_logs(self) -> List[Dict[str, Any]]:
+        try:
+            res = self.client.table("daily_health_logs").select("*").order("logged_at", desc=True).execute()
+            return res.data or []
+        except Exception as e:
+            logger.warning(f"Error reading all daily health logs: {e}")
             return []
 
     def create_log(self, user_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
+        uuid_val = self._resolve_user_uuid(user_id)
+        if not uuid_val:
+            raise ValueError(f"Cannot record health log: invalid or unknown user '{user_id}'")
         try:
             payload = {
                 **data,
-                "user_id": user_id,
+                "user_id": uuid_val,
                 "created_at": datetime.utcnow().isoformat(),
                 "logged_at": data.get("logged_at") or datetime.utcnow().isoformat()
             }
+            payload = serialize_for_db(payload)
             res = self.client.table("daily_health_logs").insert(payload).execute()
             return res.data[0] if res.data else payload
         except Exception as e:
@@ -115,13 +152,16 @@ class SupabaseHealthLogsRepository(HealthLogsRepository):
         try:
             query = self.client.table("clinical_alerts").select("*")
             if user_id:
-                query = query.eq("user_id", user_id)
+                uuid_val = self._resolve_user_uuid(user_id)
+                if not uuid_val:
+                    return []
+                query = query.eq("user_id", uuid_val)
             if status_filter:
                 query = query.eq("status", status_filter)
             res = query.order("created_at", desc=True).execute()
             return res.data or []
         except Exception as e:
-            handle_db_error(e)
+            logger.warning(f"Error reading clinical alerts: {e}")
             return []
 
     def create_alert(self, alert_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -130,6 +170,11 @@ class SupabaseHealthLogsRepository(HealthLogsRepository):
                 **alert_data,
                 "created_at": datetime.utcnow().isoformat()
             }
+            if alert_data.get("user_id"):
+                resolved = self._resolve_user_uuid(alert_data["user_id"])
+                if resolved:
+                    payload["user_id"] = resolved
+            payload = serialize_for_db(payload)
             res = self.client.table("clinical_alerts").insert(payload).execute()
             return res.data[0] if res.data else payload
         except Exception as e:
@@ -137,8 +182,12 @@ class SupabaseHealthLogsRepository(HealthLogsRepository):
             return {}
 
     def update_alert(self, alert_id: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        valid_id = resolve_uuid(alert_id)
+        if not valid_id:
+            return None
         try:
-            res = self.client.table("clinical_alerts").update(data).eq("id", alert_id).execute()
+            payload = serialize_for_db(data)
+            res = self.client.table("clinical_alerts").update(payload).eq("id", valid_id).execute()
             return res.data[0] if res.data else None
         except Exception as e:
             handle_db_error(e)

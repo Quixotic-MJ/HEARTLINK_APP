@@ -95,6 +95,8 @@ def remove_routine(routine_id: str, current_user: dict = Depends(get_current_adm
     )
     return {"success": True, "message": "Routine deleted"}
 
+from app.db.repositories.base import resolve_uuid
+
 @router.get("/logs/{user_id}", response_model=List[Dict[str, Any]])
 def read_exercise_logs(
     user_id: str,
@@ -102,9 +104,23 @@ def read_exercise_logs(
     offset: int = Query(0, ge=0),
     current_user: dict = Depends(get_current_user)
 ):
+    target_uuid = resolve_uuid(user_id)
+    if not target_uuid:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid user ID format.",
+        )
+
     caller_id = current_user.get("user_id")
     caller_role = current_user.get("role")
-    if caller_role == "patient" and caller_id != user_id:
+    caller_uuid = resolve_uuid(caller_id) if caller_id else None
+
+    # Clinical roles have read oversight; patients are restricted to self
+    if caller_role in ["admin", "super_admin", "medical_expert"]:
+        pass
+    elif caller_role == "patient" and caller_uuid and caller_uuid == target_uuid:
+        pass
+    else:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You may only access your own exercise logs.",
@@ -113,24 +129,44 @@ def read_exercise_logs(
 
 @router.post("/logs/{user_id}", response_model=Dict[str, Any])
 def add_exercise_log(user_id: str, data: Dict[str, Any], current_user: dict = Depends(get_current_user)):
+    target_uuid = resolve_uuid(user_id)
+    if not target_uuid:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid user ID format.",
+        )
+
     caller_id = current_user.get("user_id")
     caller_role = current_user.get("role")
-    if caller_role == "patient" and caller_id != user_id:
+    caller_uuid = resolve_uuid(caller_id) if caller_id else None
+
+    # Write privilege is strictly restricted to the patient account owner
+    if caller_role != "patient" or not caller_uuid or caller_uuid != target_uuid:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="You may only record your own exercise logs.",
+            detail="Only the patient account owner may record their own exercise logs.",
         )
     log = create_exercise_log(user_id, data)
     return {"success": True, "message": "Exercise log saved", "data": log}
 
 @router.delete("/logs/{user_id}/{log_id}", response_model=Dict[str, Any])
 def delete_log(user_id: str, log_id: str, current_user: dict = Depends(get_current_user)):
+    target_uuid = resolve_uuid(user_id)
+    if not target_uuid:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid user ID format.",
+        )
+
     caller_id = current_user.get("user_id")
     caller_role = current_user.get("role")
-    if caller_role == "patient" and caller_id != user_id:
+    caller_uuid = resolve_uuid(caller_id) if caller_id else None
+
+    # Delete privilege is strictly restricted to the patient account owner
+    if caller_role != "patient" or not caller_uuid or caller_uuid != target_uuid:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="You may only delete your own exercise logs.",
+            detail="Only the patient account owner may delete their own exercise logs.",
         )
     success, message, status_code = delete_exercise_log(user_id, log_id)
     if not success:

@@ -163,7 +163,8 @@ export default function DashboardScreen() {
       const cacheKey = `@dashboard_cache_${userId}`;
 
       try {
-        const effectiveToken = token || "";
+        const storedToken = await AsyncStorage.getItem("access_token");
+        const effectiveToken = token || storedToken || "";
         const response = await fetch(`${base_url}/api/dashboard/me`, {
           headers: {
             "Authorization": `Bearer ${effectiveToken}`

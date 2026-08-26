@@ -44,7 +44,7 @@ CREATE TABLE IF NOT EXISTS public.exercise_logs (
     routine_id UUID REFERENCES public.exercise_routines(id) ON DELETE SET NULL,
     routine_name TEXT NOT NULL,
     duration_minutes INT NOT NULL CHECK (duration_minutes >= 1 AND duration_minutes <= 1440),
-    status TEXT NOT NULL DEFAULT 'completed' CHECK (status IN ('completed', 'in_progress', 'skipped')),
+    status TEXT NOT NULL DEFAULT 'completed' CHECK (status IN ('completed', 'in_progress', 'skipped', 'partial', 'incomplete_due_to_symptoms', 'abandoned')),
     logged_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
     created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );

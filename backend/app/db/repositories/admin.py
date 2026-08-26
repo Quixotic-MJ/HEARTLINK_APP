@@ -5,14 +5,16 @@ Admin Activity Logs & Admin Notifications Repository Layer.
 from typing import Optional, Dict, Any, List
 from datetime import datetime
 import uuid
-import app.mock_db as mock_db
-from app.db.repositories.base import handle_db_error
+import logging
+from app.db.repositories.base import handle_db_error, resolve_uuid
+
+logger = logging.getLogger(__name__)
 
 class AdminRepository:
     def record_activity(self, data: Dict[str, Any]) -> Dict[str, Any]:
         raise NotImplementedError
 
-    def list_activity(self, page: int = 1, page_size: int = 20, action: Optional[str] = None, target_type: Optional[str] = None, admin_user_id: Optional[str] = None, search: Optional[str] = None) -> Dict[str, Any]:
+    def list_activity(self, limit: Optional[int] = None, action: Optional[str] = None, target_type: Optional[str] = None, admin_user_id: Optional[str] = None, search: Optional[str] = None) -> List[Dict[str, Any]]:
         raise NotImplementedError
 
     def create_admin_notification(self, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
@@ -29,20 +31,23 @@ class AdminRepository:
 
 
 class MockAdminRepository(AdminRepository):
+    def __init__(self):
+        self._activities: List[Dict[str, Any]] = []
+        self._notifications: List[Dict[str, Any]] = []
+
     def record_activity(self, data: Dict[str, Any]) -> Dict[str, Any]:
         record = {
             "id": f"act-{uuid.uuid4().hex[:8]}",
             "created_at": datetime.utcnow(),
             **data
         }
-        mock_db.admin_activity.append(record)
-        if len(mock_db.admin_activity) > 100:
-            mock_db.admin_activity[:] = mock_db.admin_activity[-100:]
-        mock_db.save_logs()
+        self._activities.append(record)
+        if len(self._activities) > 100:
+            self._activities[:] = self._activities[-100:]
         return record
 
-    def list_activity(self, page: int = 1, page_size: int = 20, action: Optional[str] = None, target_type: Optional[str] = None, admin_user_id: Optional[str] = None, search: Optional[str] = None) -> Dict[str, Any]:
-        items = list(mock_db.admin_activity)
+    def list_activity(self, limit: Optional[int] = None, action: Optional[str] = None, target_type: Optional[str] = None, admin_user_id: Optional[str] = None, search: Optional[str] = None) -> List[Dict[str, Any]]:
+        items = list(self._activities)
         if action:
             items = [x for x in items if x.get("action") == action]
         if target_type:
@@ -54,42 +59,20 @@ class MockAdminRepository(AdminRepository):
             items = [x for x in items if s in (x.get("target_name") or "").lower() or s in (x.get("admin_name") or "").lower()]
 
         items.sort(key=lambda x: x.get("created_at") or datetime.min, reverse=True)
-        total = len(items)
-        start = (page - 1) * page_size
-        end = start + page_size
-        paged = items[start:end]
-        total_pages = max(1, (total + page_size - 1) // page_size) if total > 0 else 1
-
-        formatted = []
-        for x in paged:
-            c = dict(x)
-            if isinstance(c.get("created_at"), datetime):
-                c["created_at"] = c["created_at"].isoformat()
-            formatted.append(c)
-
-        return {
-            "items": formatted,
-            "total": total,
-            "page": page,
-            "page_size": page_size,
-            "total_pages": total_pages
-        }
+        return items[:limit] if limit else items
 
     def create_admin_notification(self, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        from app.services.admin_notifications import create_admin_notification
-        return create_admin_notification(
-            type=data["type"],
-            title=data["title"],
-            message=data["message"],
-            severity=data["severity"],
-            recipient_roles=data["recipient_roles"],
-            route=data["route"],
-            target_id=data.get("target_id"),
-            read_by=data.get("read_by")
-        )
+        record = {
+            "id": f"anotif-{uuid.uuid4().hex[:8]}",
+            "created_at": datetime.utcnow(),
+            "read_by": list(data.get("read_by") or []),
+            **data
+        }
+        self._notifications.append(record)
+        return record
 
     def list_admin_notifications(self, caller_role: str, caller_id: str) -> Dict[str, Any]:
-        visible = [n for n in mock_db.admin_notifications if caller_role in n.get("recipient_roles", [])]
+        visible = [n for n in self._notifications if caller_role in n.get("recipient_roles", [])]
         visible.sort(key=lambda x: x.get("created_at") or datetime.min, reverse=True)
         unread_count = sum(1 for n in visible if caller_id not in n.get("read_by", []))
         formatted = []
@@ -105,7 +88,7 @@ class MockAdminRepository(AdminRepository):
         }
 
     def mark_admin_notification_read(self, notification_id: str, caller_role: str, caller_id: str) -> bool:
-        n = next((x for x in mock_db.admin_notifications if x.get("id") == notification_id), None)
+        n = next((x for x in self._notifications if x.get("id") == notification_id), None)
         if not n:
             return False
         if caller_role not in n.get("recipient_roles", []):
@@ -113,19 +96,14 @@ class MockAdminRepository(AdminRepository):
         read_by = n.setdefault("read_by", [])
         if caller_id not in read_by:
             read_by.append(caller_id)
-            mock_db.save_logs()
         return True
 
     def mark_all_admin_notifications_read(self, caller_role: str, caller_id: str) -> bool:
-        updated = False
-        for n in mock_db.admin_notifications:
+        for n in self._notifications:
             if caller_role in n.get("recipient_roles", []):
                 read_by = n.setdefault("read_by", [])
                 if caller_id not in read_by:
                     read_by.append(caller_id)
-                    updated = True
-        if updated:
-            mock_db.save_logs()
         return True
 
 
@@ -145,7 +123,7 @@ class SupabaseAdminRepository(AdminRepository):
             handle_db_error(e)
             return {}
 
-    def list_activity(self, page: int = 1, page_size: int = 20, action: Optional[str] = None, target_type: Optional[str] = None, admin_user_id: Optional[str] = None, search: Optional[str] = None) -> Dict[str, Any]:
+    def list_activity(self, limit: Optional[int] = None, action: Optional[str] = None, target_type: Optional[str] = None, admin_user_id: Optional[str] = None, search: Optional[str] = None) -> List[Dict[str, Any]]:
         try:
             query = self.client.table("admin_activity_logs").select("*")
             if action:
@@ -159,21 +137,10 @@ class SupabaseAdminRepository(AdminRepository):
             if search:
                 s = search.lower()
                 items = [x for x in items if s in (x.get("target_name") or "").lower() or s in (x.get("admin_name") or "").lower()]
-            total = len(items)
-            start = (page - 1) * page_size
-            end = start + page_size
-            paged = items[start:end]
-            total_pages = max(1, (total + page_size - 1) // page_size) if total > 0 else 1
-            return {
-                "items": paged,
-                "total": total,
-                "page": page,
-                "page_size": page_size,
-                "total_pages": total_pages
-            }
+            return items[:limit] if limit else items
         except Exception as e:
             handle_db_error(e)
-            return {"items": [], "total": 0, "page": page, "page_size": page_size, "total_pages": 1}
+            return []
 
     def create_admin_notification(self, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         try:
@@ -184,7 +151,6 @@ class SupabaseAdminRepository(AdminRepository):
             clean_payload = {k: v for k, v in payload.items() if k != "read_by"}
             res = self.client.table("admin_notifications").insert(clean_payload).execute()
             created = res.data[0] if res.data else clean_payload
-            # If initial read_by provided
             if data.get("read_by") and created.get("id"):
                 reads = [{"notification_id": created["id"], "admin_user_id": uid, "read_at": datetime.utcnow().isoformat()} for uid in data["read_by"]]
                 self.client.table("admin_notification_reads").insert(reads).execute()
@@ -195,13 +161,15 @@ class SupabaseAdminRepository(AdminRepository):
 
     def list_admin_notifications(self, caller_role: str, caller_id: str) -> Dict[str, Any]:
         try:
-            # Query notifications matching role
+            admin_uuid = resolve_uuid(caller_id)
             res = self.client.table("admin_notifications").select("*").order("created_at", desc=True).execute()
             all_notifs = res.data or []
             visible = [n for n in all_notifs if caller_role in n.get("recipient_roles", [])]
-            # Fetch read records for caller
-            reads_res = self.client.table("admin_notification_reads").select("notification_id").eq("admin_user_id", caller_id).execute()
-            read_notif_ids = {r["notification_id"] for r in (reads_res.data or [])}
+            
+            read_notif_ids = set()
+            if admin_uuid:
+                reads_res = self.client.table("admin_notification_reads").select("notification_id").eq("admin_user_id", admin_uuid).execute()
+                read_notif_ids = {r["notification_id"] for r in (reads_res.data or [])}
 
             formatted = []
             unread_count = 0
@@ -223,9 +191,12 @@ class SupabaseAdminRepository(AdminRepository):
 
     def mark_admin_notification_read(self, notification_id: str, caller_role: str, caller_id: str) -> bool:
         try:
+            admin_uuid = resolve_uuid(caller_id)
+            if not admin_uuid:
+                return False
             payload = {
                 "notification_id": notification_id,
-                "admin_user_id": caller_id,
+                "admin_user_id": admin_uuid,
                 "read_at": datetime.utcnow().isoformat()
             }
             self.client.table("admin_notification_reads").insert(payload).execute()
@@ -236,11 +207,14 @@ class SupabaseAdminRepository(AdminRepository):
 
     def mark_all_admin_notifications_read(self, caller_role: str, caller_id: str) -> bool:
         try:
+            admin_uuid = resolve_uuid(caller_id)
+            if not admin_uuid:
+                return False
             notifs = self.list_admin_notifications(caller_role, caller_id)
             items = notifs.get("items", [])
             unread_ids = [n["id"] for n in items if caller_id not in n.get("read_by", [])]
             if unread_ids:
-                reads = [{"notification_id": nid, "admin_user_id": caller_id, "read_at": datetime.utcnow().isoformat()} for nid in unread_ids]
+                reads = [{"notification_id": nid, "admin_user_id": admin_uuid, "read_at": datetime.utcnow().isoformat()} for nid in unread_ids]
                 self.client.table("admin_notification_reads").insert(reads).execute()
             return True
         except Exception as e:

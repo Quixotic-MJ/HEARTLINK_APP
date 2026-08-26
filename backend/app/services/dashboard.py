@@ -185,10 +185,10 @@ def _get_today_activity(user_id: str) -> dict:
         if _safe_date(s.get("logged_at")) == today and s.get("deleted_at") is None and not s.get("is_deleted", False)
     ]
 
-    total_sodium = sum(m.get("sodium_mg", 0) for m in meals_today)
-    total_calories = sum(m.get("calories", 0) for m in meals_today)
-    total_exercise_min = sum(e.get("duration_minutes", 0) for e in exercises_today)
-    total_sleep_hours = sum(s.get("duration_hours", 0) for s in sleeps_today)
+    total_sodium = sum((m.get("sodium_mg") or 0) for m in meals_today)
+    total_calories = sum((m.get("calories") or 0) for m in meals_today)
+    total_exercise_min = sum((e.get("duration_minutes") or 0) for e in exercises_today)
+    total_sleep_hours = sum((s.get("duration_hours") or 0) for s in sleeps_today)
 
     return {
         "vitals_logged": len(vitals_today) > 0,
@@ -208,8 +208,10 @@ def get_dashboard_data(user_id: str) -> Dict[str, Any]:
     if not profile:
         return {}
 
+    canonical_id = profile.get("id") or user_id
+
     hss_repo = get_hss_repo()
-    user_hss = hss_repo.list_hss_history(user_id)
+    user_hss = hss_repo.list_hss_history(canonical_id)
     latest_hss = (
         user_hss[0]
         if user_hss
@@ -217,15 +219,15 @@ def get_dashboard_data(user_id: str) -> Dict[str, Any]:
     )
 
     health_repo = get_health_logs_repo()
-    user_logs = health_repo.list_user_logs(user_id)
+    user_logs = health_repo.list_user_logs(canonical_id)
     latest_log = user_logs[0] if user_logs else None
 
-    user_alerts = health_repo.list_alerts(user_id=user_id)
+    user_alerts = health_repo.list_alerts(user_id=canonical_id)
     latest_alert = user_alerts[0] if user_alerts else None
 
     # ── Dietary preference filtering ───────────────────────────────────────────
     baseline_repo = get_baseline_repo()
-    dietary_entry = baseline_repo.get_baseline(user_id)
+    dietary_entry = baseline_repo.get_baseline(canonical_id)
     dietary_practice = (
         dietary_entry.get("dietary_practice", "") if dietary_entry else ""
     )
@@ -296,16 +298,16 @@ def get_dashboard_data(user_id: str) -> Dict[str, Any]:
     insight = _generate_insight(user_hss, latest_log)
 
     # ── Today's activity summary ───────────────────────────────────────────────
-    today_activity = _get_today_activity(user_id)
+    today_activity = _get_today_activity(canonical_id)
 
     # ── Nutrition budget ──────────────────────────────────────────────────────────
-    threshold = baseline_repo.get_thresholds(user_id)
+    threshold = baseline_repo.get_thresholds(canonical_id)
     sodium_limit = threshold.get("sodium_limit_mg", None) if threshold else None
     calorie_limit = threshold.get("daily_calories", None) if threshold else None
 
     # ── Unread notifications ───────────────────────────────────────────────────
     notif_repo = get_notification_repo()
-    user_notifs = notif_repo.list_user_notifications(user_id)
+    user_notifs = notif_repo.list_user_notifications(canonical_id)
     unread_count = sum(1 for n in user_notifs if not n.get("read", True))
 
     return {
@@ -350,6 +352,9 @@ def get_dashboard_data(user_id: str) -> Dict[str, Any]:
 
 
 def get_7_day_wrap_up_data(user_id: str, local_date_str: str = None) -> Dict[str, Any]:
+    profile = get_profile_repo().get_by_id(user_id)
+    canonical_id = profile.get("id") if profile else user_id
+
     if local_date_str:
         try:
             now = datetime.strptime(local_date_str, "%Y-%m-%d")
@@ -371,11 +376,11 @@ def get_7_day_wrap_up_data(user_id: str, local_date_str: str = None) -> Dict[str
         return fourteen_days_ago.date() <= _safe_date(date_str) < seven_days_ago.date()
 
     # Domain Repositories
-    meal_logs = get_meals_repo().list_user_meals(user_id)
-    exercise_logs = get_exercises_repo().list_user_logs(user_id)
-    daily_health_logs = get_health_logs_repo().list_user_logs(user_id)
-    sleep_logs = get_sleep_repo().list_user_logs(user_id)
-    user_hss = sorted(get_hss_repo().list_hss_history(user_id), key=lambda x: _safe_datetime(x.get("computed_at")))
+    meal_logs = get_meals_repo().list_user_meals(canonical_id)
+    exercise_logs = get_exercises_repo().list_user_logs(canonical_id)
+    daily_health_logs = get_health_logs_repo().list_user_logs(canonical_id)
+    sleep_logs = get_sleep_repo().list_user_logs(canonical_id)
+    user_hss = sorted(get_hss_repo().list_hss_history(canonical_id), key=lambda x: _safe_datetime(x.get("computed_at")))
     exercise_routines = get_content_repo().list_routines()
 
     # Raw filtered logs
@@ -587,16 +592,16 @@ def get_7_day_wrap_up_data(user_id: str, local_date_str: str = None) -> Dict[str
         })
 
     # Basic Summaries
-    total_active = sum(e.get("duration_minutes", 0) for e in user_exercises_current)
-    prev_active = sum(e.get("duration_minutes", 0) for e in user_exercises_prev)
-    total_sodium = sum(m.get("sodium_mg", 0) for m in user_meals_current)
-    total_sat_fat = sum(m.get("saturated_fat_g", 0) for m in user_meals_current)
-    total_fiber = sum(m.get("fiber_g", 0) for m in user_meals_current)
+    total_active = sum((e.get("duration_minutes") or 0) for e in user_exercises_current)
+    prev_active = sum((e.get("duration_minutes") or 0) for e in user_exercises_prev)
+    total_sodium = sum((m.get("sodium_mg") or 0) for m in user_meals_current)
+    total_sat_fat = sum((m.get("saturated_fat_g") or 0) for m in user_meals_current)
+    total_fiber = sum((m.get("fiber_g") or 0) for m in user_meals_current)
     sys_sum = sum(l.get("systolic_bp") for l in user_health_current if l.get("systolic_bp"))
     dia_sum = sum(l.get("diastolic_bp") for l in user_health_current if l.get("diastolic_bp"))
     hr_sum = sum(l.get("heart_rate_bpm") for l in user_health_current if l.get("heart_rate_bpm"))
     v_count = len([l for l in user_health_current if l.get("systolic_bp")])
-    sleep_sum = sum(s.get("duration_hours", 0) for s in user_sleep_current if s.get("duration_hours"))
+    sleep_sum = sum((s.get("duration_hours") or 0) for s in user_sleep_current if s.get("duration_hours"))
     s_count = len([s for s in user_sleep_current if s.get("duration_hours")])
 
     return {

@@ -6,7 +6,7 @@ Encapsulates all user profile operations across Mock and Supabase modes.
 from typing import Optional, Dict, Any, List
 from datetime import datetime, date
 import uuid
-import app.mock_db as mock_db
+import re
 from app.db.repositories.base import handle_db_error, serialize_for_db
 
 class ProfileRepository:
@@ -19,8 +19,14 @@ class ProfileRepository:
     def create(self, profile_data: Dict[str, Any]) -> Dict[str, Any]:
         raise NotImplementedError
 
+    def create_profile(self, profile_data: Dict[str, Any]) -> Dict[str, Any]:
+        return self.create(profile_data)
+
     def update(self, user_id: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         raise NotImplementedError
+
+    def update_profile(self, user_id: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        return self.update(user_id, data)
 
     def delete(self, user_id: str) -> bool:
         raise NotImplementedError
@@ -33,21 +39,22 @@ class ProfileRepository:
 
 
 class MockProfileRepository(ProfileRepository):
+    def __init__(self):
+        self._profiles: List[Dict[str, Any]] = []
+
     def get_by_id(self, user_id: str) -> Optional[Dict[str, Any]]:
-        return next((p for p in mock_db.profiles if p.get("id") == user_id or p.get("legacy_id") == user_id), None)
+        return next((p for p in self._profiles if p.get("id") == user_id or p.get("legacy_id") == user_id), None)
 
     def get_by_identifier(self, identifier: str) -> Optional[Dict[str, Any]]:
-        import re
         ident = identifier.strip()
         if "@" in ident:
-            return next((p for p in mock_db.profiles if p.get("email", "").lower() == ident.lower()), None)
+            return next((p for p in self._profiles if p.get("email", "").lower() == ident.lower()), None)
         
-        # Phone normalization
         cleaned_phone = re.sub(r"[\s\-\(\)\.]", "", ident)
         phone_variants = {ident, cleaned_phone}
         if cleaned_phone.startswith("+63"):
-            phone_variants.add(cleaned_phone[1:])  # 639...
-            phone_variants.add("0" + cleaned_phone[3:])  # 09...
+            phone_variants.add(cleaned_phone[1:])
+            phone_variants.add("0" + cleaned_phone[3:])
         elif cleaned_phone.startswith("63"):
             phone_variants.add("+" + cleaned_phone)
             phone_variants.add("0" + cleaned_phone[2:])
@@ -55,7 +62,7 @@ class MockProfileRepository(ProfileRepository):
             phone_variants.add("+63" + cleaned_phone[1:])
             phone_variants.add("63" + cleaned_phone[1:])
 
-        for p in mock_db.profiles:
+        for p in self._profiles:
             p_phone = re.sub(r"[\s\-\(\)\.]", "", p.get("phone", "") or "")
             if p.get("email", "").lower() == ident.lower() or p.get("id") == ident or p.get("legacy_id") == ident:
                 return p
@@ -64,31 +71,29 @@ class MockProfileRepository(ProfileRepository):
         return None
 
     def create(self, profile_data: Dict[str, Any]) -> Dict[str, Any]:
-        mock_db.profiles.append(profile_data)
-        mock_db.save_profiles()
-        return profile_data
+        item = dict(profile_data)
+        if not item.get("id"):
+            item["id"] = str(uuid.uuid4())
+        self._profiles.append(item)
+        return item
 
     def update(self, user_id: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        for p in mock_db.profiles:
+        for p in self._profiles:
             if p.get("id") == user_id or p.get("legacy_id") == user_id:
                 p.update(data)
                 p["updated_at"] = datetime.utcnow()
-                mock_db.save_profiles()
                 return p
         return None
 
     def delete(self, user_id: str) -> bool:
-        initial = len(mock_db.profiles)
-        mock_db.profiles[:] = [p for p in mock_db.profiles if not (p.get("id") == user_id or p.get("legacy_id") == user_id)]
-        if len(mock_db.profiles) < initial:
-            mock_db.save_profiles()
-            return True
-        return False
+        initial = len(self._profiles)
+        self._profiles[:] = [p for p in self._profiles if not (p.get("id") == user_id or p.get("legacy_id") == user_id)]
+        return len(self._profiles) < initial
 
     def list_all(self, role_filter: Optional[str] = None) -> List[Dict[str, Any]]:
         if role_filter:
-            return [p for p in mock_db.profiles if p.get("role") == role_filter]
-        return list(mock_db.profiles)
+            return [p for p in self._profiles if p.get("role") == role_filter]
+        return list(self._profiles)
 
     def toggle_status(self, user_id: str) -> Optional[Dict[str, Any]]:
         p = self.get_by_id(user_id)
@@ -97,7 +102,6 @@ class MockProfileRepository(ProfileRepository):
         new_status = "disabled" if p.get("account_status", "active") == "active" else "active"
         p["account_status"] = new_status
         p["updated_at"] = datetime.utcnow()
-        mock_db.save_profiles()
         return p
 
 
@@ -106,9 +110,7 @@ class SupabaseProfileRepository(ProfileRepository):
         self.client = client
 
     def get_by_id(self, user_id: str) -> Optional[Dict[str, Any]]:
-        import uuid
         try:
-            # Only query id if user_id is a valid UUID
             try:
                 uuid.UUID(str(user_id))
                 res = self.client.table("profiles").select("*").eq("id", user_id).execute()
@@ -117,7 +119,6 @@ class SupabaseProfileRepository(ProfileRepository):
             except (ValueError, TypeError):
                 pass
 
-            # Fallback check legacy_id
             res_legacy = self.client.table("profiles").select("*").eq("legacy_id", user_id).execute()
             if res_legacy.data and len(res_legacy.data) > 0:
                 return res_legacy.data[0]
@@ -127,7 +128,6 @@ class SupabaseProfileRepository(ProfileRepository):
             return None
 
     def get_by_identifier(self, identifier: str) -> Optional[Dict[str, Any]]:
-        import re
         try:
             ident = identifier.strip()
             if "@" in ident:
@@ -136,12 +136,11 @@ class SupabaseProfileRepository(ProfileRepository):
                     return res.data[0]
                 return None
 
-            # Phone normalization
             cleaned_phone = re.sub(r"[\s\-\(\)\.]", "", ident)
             phone_variants = [ident, cleaned_phone]
             if cleaned_phone.startswith("+63"):
-                phone_variants.append(cleaned_phone[1:])  # 639...
-                phone_variants.append("0" + cleaned_phone[3:])  # 09...
+                phone_variants.append(cleaned_phone[1:])
+                phone_variants.append("0" + cleaned_phone[3:])
             elif cleaned_phone.startswith("63"):
                 phone_variants.append("+" + cleaned_phone)
                 phone_variants.append("0" + cleaned_phone[2:])
@@ -154,7 +153,6 @@ class SupabaseProfileRepository(ProfileRepository):
                 if res.data and len(res.data) > 0:
                     return res.data[0]
 
-            # Fallback UUID / legacy_id check
             return self.get_by_id(ident)
         except Exception as e:
             handle_db_error(e)
@@ -162,7 +160,6 @@ class SupabaseProfileRepository(ProfileRepository):
 
     def create(self, profile_data: Dict[str, Any]) -> Dict[str, Any]:
         try:
-            from app.db.repositories.base import serialize_for_db
             clean_data = serialize_for_db({k: v for k, v in profile_data.items() if k not in ["password", "password_hash"]})
             res = self.client.table("profiles").insert(clean_data).execute()
             return res.data[0] if res.data else clean_data
@@ -172,11 +169,9 @@ class SupabaseProfileRepository(ProfileRepository):
 
     def update(self, user_id: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         try:
-            from app.db.repositories.base import serialize_for_db
             clean_data = serialize_for_db({k: v for k, v in data.items() if k not in ["password", "password_hash"]})
             clean_data["updated_at"] = datetime.utcnow().isoformat()
             
-            # Check if user_id is a valid UUID
             try:
                 uuid.UUID(str(user_id))
                 res = self.client.table("profiles").update(clean_data).eq("id", user_id).execute()
@@ -185,7 +180,6 @@ class SupabaseProfileRepository(ProfileRepository):
             except (ValueError, TypeError):
                 pass
 
-            # Try update by legacy_id
             res = self.client.table("profiles").update(clean_data).eq("legacy_id", user_id).execute()
             return res.data[0] if res.data else None
         except Exception as e:

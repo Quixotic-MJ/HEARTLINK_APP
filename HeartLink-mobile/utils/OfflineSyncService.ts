@@ -54,11 +54,16 @@ export const OfflineSyncService = {
       let successCount = 0;
       let failedCount = 0;
       const token = await AsyncStorage.getItem("access_token");
+      if (!token) {
+        console.warn("[OfflineSyncService] No access token available. Halting queue processing.");
+        return { successCount: 0, failedCount: 0 };
+      }
 
-      for (const item of queue) {
+      for (let i = 0; i < queue.length; i++) {
+        const item = queue[i];
         try {
           const headers: Record<string, string> = { ...(item.headers || { "Content-Type": "application/json" }) };
-          if (token && !headers["Authorization"] && !headers["authorization"]) {
+          if (!headers["Authorization"] && !headers["authorization"]) {
             headers["Authorization"] = `Bearer ${token}`;
           }
 
@@ -71,6 +76,17 @@ export const OfflineSyncService = {
           if (response.ok) {
             successCount++;
             console.log(`[OfflineSyncService] Successfully synced request ${item.id} (${item.url})`);
+          } else if (response.status === 401) {
+            console.warn(`[OfflineSyncService] 401 Unauthorized encountered. Halting queue to avoid spam.`);
+            // Retain this and all remaining items in queue
+            for (let j = i; j < queue.length; j++) {
+              remainingQueue.push(queue[j]);
+            }
+            failedCount += (queue.length - i);
+            break;
+          } else if (response.status === 400 || response.status === 403 || response.status === 422) {
+            console.warn(`[OfflineSyncService] Request ${item.id} rejected with client error ${response.status}. Dropping invalid request.`);
+            failedCount++;
           } else {
             console.warn(`[OfflineSyncService] Request ${item.id} failed with status ${response.status}. Retaining in queue.`);
             remainingQueue.push(item);

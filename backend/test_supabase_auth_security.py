@@ -9,8 +9,9 @@ from datetime import datetime, timedelta
 from fastapi.testclient import TestClient
 from app.main import app
 from app.utils.security import create_access_token
+from app.db.repositories import get_profile_repo
 from app.services.auth_service import get_auth_service
-import app.mock_db as mock_db
+import jwt
 
 client = TestClient(app)
 
@@ -38,19 +39,57 @@ class TestSupabaseAuthSecurity(unittest.TestCase):
         )
         self.assertEqual(res.status_code, 401)
 
+    def test_unsigned_jwt_rejected(self):
+        """P0-01 Security: Unsigned JWT with verify_signature=False bypass must return 401."""
+        unsigned_token = jwt.encode({"user_id": self.admin_id, "role": "super_admin"}, key="", algorithm="none")
+        res = client.get(
+            "/api/admin/dashboard",
+            headers={"Authorization": f"Bearer {unsigned_token}"}
+        )
+        self.assertEqual(res.status_code, 401)
+
+    def test_forged_signature_jwt_rejected(self):
+        """P0-01 Security: JWT signed with attacker key must return 401."""
+        attacker_token = jwt.encode({"user_id": self.admin_id, "role": "super_admin"}, "attacker-secret-key", algorithm="HS256")
+        res = client.get(
+            "/api/admin/dashboard",
+            headers={"Authorization": f"Bearer {attacker_token}"}
+        )
+        self.assertEqual(res.status_code, 401)
+
+    def test_expired_jwt_rejected(self):
+        expired_token = create_access_token({"user_id": self.patient_a_id, "role": "patient"}, expires_delta=timedelta(seconds=-60))
+        res = client.get(
+            f"/api/users/{self.patient_a_id}/profile",
+            headers={"Authorization": f"Bearer {expired_token}"}
+        )
+        self.assertEqual(res.status_code, 401)
+
+    def test_forgot_password_no_credential_leakage(self):
+        """P0-02 Security: Forgot password response must never leak credentials or account existence."""
+        res = client.post("/api/auth/forgot-password", json={"identifier": "test.unknown@example.com"})
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertNotIn("temp_password", data)
+        self.assertNotIn("password", data)
+        self.assertNotIn("password_hash", data)
+        self.assertNotIn("token", data)
+        self.assertIn("message", data)
+
     def test_disabled_account_forbidden(self):
-        p = next((p for p in mock_db.profiles if p["id"] == self.patient_a_id), None)
-        self.assertIsNotNone(p)
-        orig_status = p.get("account_status", "active")
-        try:
-            p["account_status"] = "disabled"
-            res = client.get(
-                f"/api/users/{self.patient_a_id}/profile",
-                headers={"Authorization": f"Bearer {self.patient_a_token}"}
-            )
-            self.assertEqual(res.status_code, 403)
-        finally:
-            p["account_status"] = orig_status
+        profile_repo = get_profile_repo()
+        p = profile_repo.get_by_id(self.patient_a_id)
+        if p:
+            orig_status = p.get("account_status", "active")
+            try:
+                profile_repo.update(p["id"], {"account_status": "disabled"})
+                res = client.get(
+                    f"/api/users/{self.patient_a_id}/profile",
+                    headers={"Authorization": f"Bearer {self.patient_a_token}"}
+                )
+                self.assertEqual(res.status_code, 403)
+            finally:
+                profile_repo.update(p["id"], {"account_status": orig_status})
 
     def test_patient_a_cannot_access_patient_b(self):
         res = client.get(

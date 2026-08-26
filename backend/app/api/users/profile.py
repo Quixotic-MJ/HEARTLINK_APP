@@ -19,8 +19,6 @@ from app.services.users import (
     update_care_team_contact,
     delete_care_team_contact
 )
-import app.mock_db as mock_db
-
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
@@ -36,8 +34,18 @@ async def read_all_users(current_user: dict = Depends(get_current_user)):
 
     enriched_profiles = []
     from datetime import datetime, timedelta
+    from app.db.repositories import (
+        get_profile_repo,
+        get_hss_repo,
+        get_health_logs_repo,
+        get_meals_repo,
+        get_exercises_repo,
+        get_sleep_repo,
+        get_case_review_repo,
+    )
     
-    for p in mock_db.profiles:
+    all_profiles = get_profile_repo().list_all()
+    for p in all_profiles:
         if p.get("role") != "patient":
             # Sanitize passwords before returning
             clean_p = {k: v for k, v in p.items() if k not in ["password", "password_hash", "token", "secret"]}
@@ -45,29 +53,39 @@ async def read_all_users(current_user: dict = Depends(get_current_user)):
             continue
             
         # Compute HSS
-        user_hss = [h for h in mock_db.hss_history if h.get("user_id") == p["id"]]
-        if user_hss:
-            latest = sorted(user_hss, key=lambda x: x.get("computed_at") or datetime.min)[-1]
-            hss_score = latest.get("score")
-            hss_tier = latest.get("tier")
+        latest_hss = get_hss_repo().get_latest_hss(p["id"])
+        if latest_hss:
+            hss_score = latest_hss.get("score")
+            hss_tier = latest_hss.get("tier")
         else:
             hss_score = None
             hss_tier = "N/A"
             
         # Compute Activity Status (Checking last 7 days)
         cutoff = datetime.utcnow() - timedelta(days=7)
+        def parse_dt(x):
+            dt = x.get("created_at") or x.get("logged_at")
+            if isinstance(dt, datetime):
+                return dt
+            if isinstance(dt, str):
+                try:
+                    return datetime.fromisoformat(dt)
+                except Exception:
+                    pass
+            return datetime.min
+
+        meals = get_meals_repo().list_user_meals(p["id"])
+        exercises = get_exercises_repo().list_user_logs(p["id"])
+        sleeps = get_sleep_repo().list_user_logs(p["id"])
+        health_logs = get_health_logs_repo().list_user_logs(p["id"])
+
         recent_logs = []
-        recent_logs.extend([m for m in mock_db.meal_logs if m.get("user_id") == p["id"] and m.get("created_at") and m["created_at"] >= cutoff])
-        recent_logs.extend([e for e in mock_db.exercise_logs if e.get("user_id") == p["id"] and e.get("created_at") and e["created_at"] >= cutoff])
-        recent_logs.extend([s for s in mock_db.sleep_logs if s.get("user_id") == p["id"] and not s.get("is_deleted") and s.get("created_at") and s["created_at"] >= cutoff])
-        recent_logs.extend([d for d in mock_db.daily_health_logs if d.get("user_id") == p["id"] and d.get("created_at") and d["created_at"] >= cutoff])
+        recent_logs.extend([m for m in meals if parse_dt(m) >= cutoff])
+        recent_logs.extend([e for e in exercises if parse_dt(e) >= cutoff])
+        recent_logs.extend([s for s in sleeps if parse_dt(s) >= cutoff])
+        recent_logs.extend([d for d in health_logs if parse_dt(d) >= cutoff])
         
-        has_logs_at_all = any(
-            [m for m in mock_db.meal_logs if m.get("user_id") == p["id"]] + 
-            [e for e in mock_db.exercise_logs if e.get("user_id") == p["id"]] +
-            [s for s in mock_db.sleep_logs if s.get("user_id") == p["id"] and not s.get("is_deleted")] +
-            [d for d in mock_db.daily_health_logs if d.get("user_id") == p["id"]]
-        )
+        has_logs_at_all = bool(meals or exercises or sleeps or health_logs)
         
         if recent_logs:
             activity_status = "Recently Active"
@@ -77,8 +95,11 @@ async def read_all_users(current_user: dict = Depends(get_current_user)):
             activity_status = "New User"
             
         # Compute Review Status
-        has_evaluation = any(e.get("user_id") == p["id"] for e in mock_db.expert_evaluations)
-        review_status = "Evaluated" if has_evaluation else "Pending Review"
+        try:
+            evals = get_case_review_repo().list_evaluations_for_user(p["id"])
+            review_status = "Evaluated" if evals else "Pending Review"
+        except Exception:
+            review_status = "Pending Review"
         
         p_copy = {k: v for k, v in p.items() if k not in ["password", "password_hash", "token", "secret"]}
         p_copy["hss_score"] = hss_score
@@ -98,19 +119,19 @@ async def read_user_profile(
     caller_id = current_user.get("user_id")
     caller_role = current_user.get("role")
     
-    # Ownership rule: patients can only read their own profile; staff can access permitted profiles
-    if caller_role == "patient" and caller_id != user_id:
+    # Ownership rule: users can only access their own profile unless they are admin/medical_expert
+    if caller_id != user_id and caller_role not in ["admin", "super_admin", "medical_expert"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You may only access your own profile.",
         )
         
-    data = get_full_profile(user_id)
-    if not data:
+    user_profile = get_full_profile(user_id)
+    if not user_profile:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
         )
-    return data
+    return user_profile
 
 
 @router.put("/{user_id}/profile", status_code=status.HTTP_200_OK)
@@ -121,7 +142,9 @@ async def update_user_profile(
 ):
     caller_id = current_user.get("user_id")
     caller_role = current_user.get("role")
-    if caller_role == "patient" and caller_id != user_id:
+    
+    # Ownership rule: users can only update their own profile unless super_admin
+    if caller_id != user_id and caller_role != "super_admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You may only update your own profile.",
@@ -166,8 +189,8 @@ async def update_user_password(
     # ── Activity log ──────────────────────────────────────────────────────────
     try:
         from app.utils.activity_helper import record_admin_activity
-        import app.mock_db as _mock_db
-        _profile = next((p for p in _mock_db.profiles if p["id"] == user_id), None)
+        from app.db.repositories import get_profile_repo
+        _profile = get_profile_repo().get_by_id(user_id)
         _label = None
         if _profile:
             _fn = _profile.get("first_name", "")
@@ -202,7 +225,8 @@ async def delete_user_account(
             detail="You may only delete your own account.",
         )
         
-    _profile = next((p for p in mock_db.profiles if p["id"] == user_id), None)
+    from app.db.repositories import get_profile_repo
+    _profile = get_profile_repo().get_by_id(user_id)
     if not _profile:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="User not found"

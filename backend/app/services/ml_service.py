@@ -3,7 +3,7 @@ import uuid
 import joblib
 import pandas as pd
 from datetime import datetime
-from app import mock_db
+from app.db.repositories import get_hss_repo
 
 class MLService:
     def __init__(self):
@@ -58,17 +58,17 @@ class MLService:
                 tier = "Stable"
                 contributing_factors = {"ml_predicted": "FallbackError"}
 
-        # Create hss_history entry with collision-resistant UUID
-        new_hss = {
-            "id": f"hss-pred-{uuid.uuid4().hex[:12]}",
-            "user_id": user_id,
+        # Create hss_history entry
+        new_hss_data = {
             "score": predicted_hss,
             "tier": tier,
+            "source": "baseline_ml",
             "contributing_factors": contributing_factors,
-            "computed_at": datetime.utcnow()
+            "computed_at": datetime.utcnow().isoformat()
         }
         
-        mock_db.hss_history.append(new_hss)
-        return new_hss
+        saved_record = get_hss_repo().create_hss_record(user_id, new_hss_data)
+        return saved_record
 
 ml_service = MLService()
+

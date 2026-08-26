@@ -17,7 +17,6 @@ from fastapi import HTTPException, status
 from app.db.client import is_supabase_mode, get_supabase_client
 from app.utils.security import create_access_token, token_blacklist
 from app.db.repositories import get_profile_repo
-import app.mock_db as mock_db
 
 
 class AuthService:
@@ -54,6 +53,7 @@ class AuthService:
 
 class MockAuthService(AuthService):
     def __init__(self):
+        self.temp_profiles: List[Dict[str, Any]] = []
         self.temp_2fa_sessions: Dict[str, Dict[str, Any]] = {}
         self.login_attempts: Dict[str, Dict[str, Any]] = {}
 
@@ -108,12 +108,12 @@ class MockAuthService(AuthService):
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="duplicate email")
 
         # 2. Check pending temp profiles
-        mock_db.temp_profiles[:] = [
-            tp for tp in mock_db.temp_profiles
+        self.temp_profiles[:] = [
+            tp for tp in self.temp_profiles
             if not (isinstance(tp.get("expires_at"), datetime) and now > tp["expires_at"])
         ]
 
-        for tp in mock_db.temp_profiles:
+        for tp in self.temp_profiles:
             if tp.get("phone") == phone:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
@@ -134,8 +134,7 @@ class MockAuthService(AuthService):
             "created_at": now,
             "expires_at": now + timedelta(minutes=10),
         }
-        mock_db.temp_profiles.append(new_temp)
-        mock_db.save_temp_profiles()
+        self.temp_profiles.append(new_temp)
 
         print(f"sending verification code to: {phone}")
         print("code sent: 123456")
@@ -143,17 +142,15 @@ class MockAuthService(AuthService):
 
     def resend_registration_otp(self, phone: str) -> Dict[str, Any]:
         now = datetime.utcnow()
-        user_data = next((tp for tp in mock_db.temp_profiles if tp.get("phone") == phone), None)
+        user_data = next((tp for tp in self.temp_profiles if tp.get("phone") == phone), None)
         if not user_data:
             raise HTTPException(status_code=404, detail="No pending registration found for this phone number")
 
         if isinstance(user_data.get("expires_at"), datetime) and now > user_data["expires_at"]:
-            mock_db.temp_profiles.remove(user_data)
-            mock_db.save_temp_profiles()
+            self.temp_profiles.remove(user_data)
             raise HTTPException(status_code=404, detail="Verification session expired. Please register again.")
 
         user_data["expires_at"] = now + timedelta(minutes=10)
-        mock_db.save_temp_profiles()
 
         print(f"resending verification code to: {phone}")
         print("code sent: 123456")
@@ -161,13 +158,12 @@ class MockAuthService(AuthService):
 
     def verify_registration_otp(self, phone: str, code: str) -> Dict[str, Any]:
         now = datetime.utcnow()
-        user_data = next((tp for tp in mock_db.temp_profiles if tp.get("phone") == phone), None)
+        user_data = next((tp for tp in self.temp_profiles if tp.get("phone") == phone), None)
         if not user_data:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No pending registration found for this phone number.")
 
         if isinstance(user_data.get("expires_at"), datetime) and now > user_data["expires_at"]:
-            mock_db.temp_profiles.remove(user_data)
-            mock_db.save_temp_profiles()
+            self.temp_profiles.remove(user_data)
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Verification code expired. Please request a new code.")
 
         if code == "123456":
@@ -194,10 +190,8 @@ class MockAuthService(AuthService):
             }
             get_profile_repo().create(new_profile)
 
-            # Cleanup temp profiles
-            if user_data in mock_db.temp_profiles:
-                mock_db.temp_profiles.remove(user_data)
-                mock_db.save_temp_profiles()
+            if user_data in self.temp_profiles:
+                self.temp_profiles.remove(user_data)
 
             access_token = create_access_token(data={"user_id": new_user_id, "role": "patient"})
             return {
@@ -307,28 +301,26 @@ class MockAuthService(AuthService):
     def change_password(self, user_id: str, current_password: str, new_password: str) -> bool:
         if not self.verify_credentials(user_id, current_password):
             return False
-        profile = get_profile_repo().get_by_id(user_id)
+        profile_repo = get_profile_repo()
+        profile = profile_repo.get_by_id(user_id)
         if profile:
-            profile["password"] = hashlib.sha256(new_password.encode()).hexdigest()
-            profile["updated_at"] = datetime.utcnow()
-            mock_db.save_profiles()
+            profile_repo.update(user_id, {"password": hashlib.sha256(new_password.encode()).hexdigest()})
             return True
         return False
 
     def forgot_password(self, identifier: str) -> Dict[str, Any]:
-        profile = get_profile_repo().get_by_identifier(identifier)
+        profile_repo = get_profile_repo()
+        profile = profile_repo.get_by_identifier(identifier)
         if profile:
             temp_pass = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
-            profile["password"] = hashlib.sha256(temp_pass.encode()).hexdigest()
-            mock_db.save_profiles()
-            print(f"\n{'='*40}")
-            print(f"TEMP PASS FOR {identifier}: {temp_pass}")
-            print(f"{'='*40}\n")
-            return {"success": True, "message": "Temporary password sent", "temp_password": temp_pass}
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="This phone or email is not registered.")
+            profile_repo.update(profile["id"], {"password": hashlib.sha256(temp_pass.encode()).hexdigest()})
+            self._last_temp_password = temp_pass
+        return {
+            "success": True,
+            "message": "If the account exists, password recovery instructions have been sent."
+        }
 
     def delete_user_identity(self, user_id: str) -> bool:
-        # In mock mode, profile deletion cascades are handled in users service & repository
         return True
 
 
@@ -644,9 +636,12 @@ class SupabaseAuthService(AuthService):
                 self.client.auth.reset_password_for_email(identifier)
             else:
                 self.client.auth.reset_password_for_phone(identifier)
-            return {"success": True, "message": "Password reset instructions sent"}
-        except Exception as e:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="This phone or email is not registered.")
+        except Exception:
+            pass
+        return {
+            "success": True,
+            "message": "If the account exists, password recovery instructions have been sent."
+        }
 
     def delete_user_identity(self, user_id: str) -> bool:
         try:

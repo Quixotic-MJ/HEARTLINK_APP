@@ -24,6 +24,19 @@ const UserContext = createContext<UserContextType>({
   refreshUser: async () => {},
 });
 
+const PROFILE_CACHE_KEY = "@user_profile_cache";
+
+function sanitizeProfileForCache(profile: any): any {
+  if (!profile || typeof profile !== "object") return profile;
+  const sanitized = { ...profile };
+  delete sanitized.password;
+  delete sanitized.password_hash;
+  delete sanitized.token;
+  delete sanitized.secret;
+  delete sanitized.service_role_key;
+  return sanitized;
+}
+
 export function UserProvider({ children }: { children: React.ReactNode }) {
   const [userId, setUserIdState] = useState<string | null>(null);
   const [token, setTokenState] = useState<string | null>(null);
@@ -39,7 +52,18 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         setProfileError(false);
         const storedId = await AsyncStorage.getItem("user_id");
         const storedToken = await AsyncStorage.getItem("access_token");
+        const cachedProfileStr = await AsyncStorage.getItem(PROFILE_CACHE_KEY);
         
+        let cachedProfile = null;
+        if (cachedProfileStr) {
+          try {
+            cachedProfile = JSON.parse(cachedProfileStr);
+            setUser(cachedProfile);
+          } catch (e) {
+            console.warn("Failed to parse cached user profile", e);
+          }
+        }
+
         if (storedId) {
           setUserIdState(storedId);
           setTokenState(storedToken);
@@ -55,17 +79,34 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             
             if (response.ok) {
               const data = await response.json();
-              setUser(data.profile);
+              const freshProfile = data.profile;
+              setUser(freshProfile);
+              await AsyncStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(sanitizeProfileForCache(freshProfile)));
+              
               // Trigger foreground auto-sync for any pending offline logs
               syncOfflineMeals(baseUrl).catch(e => console.log("Background sync error:", e));
               syncOfflineExercises(baseUrl).catch(e => console.log("Background sync error:", e));
               syncOfflineSleeps(baseUrl).catch(e => console.log("Background sync error:", e));
+            } else if (response.status === 401 || response.status === 403) {
+              console.warn(`[UserContext] Profile fetch returned ${response.status}. Invalidating session.`);
+              await AsyncStorage.removeItem("user_id");
+              await AsyncStorage.removeItem("access_token");
+              await AsyncStorage.removeItem(PROFILE_CACHE_KEY);
+              setUserIdState(null);
+              setTokenState(null);
+              setUser(null);
+              setProfileError(true);
             } else {
               setProfileError(true);
             }
           } catch (fetchErr) {
-            console.error("Failed to fetch user profile (offline?)", fetchErr);
-            setProfileError(true);
+            console.log("Network error fetching user profile (offline mode active)", fetchErr);
+            // In offline mode, retain cachedProfile without throwing error
+            if (cachedProfile) {
+              setProfileError(false);
+            } else {
+              setProfileError(true);
+            }
           }
         } else {
           setUserIdState(null);
@@ -106,7 +147,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           });
           if (response.ok) {
             const data = await response.json();
-            setUser(data.profile);
+            const freshProfile = data.profile;
+            setUser(freshProfile);
+            await AsyncStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(sanitizeProfileForCache(freshProfile)));
           } else {
             setProfileError(true);
           }
@@ -117,6 +160,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       } else {
         await AsyncStorage.removeItem("user_id");
         await AsyncStorage.removeItem("access_token");
+        await AsyncStorage.removeItem(PROFILE_CACHE_KEY);
         setUserIdState(null);
         setTokenState(null);
         setUser(null);
@@ -139,7 +183,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       });
       if (response.ok) {
         const data = await response.json();
-        setUser(data.profile);
+        const freshProfile = data.profile;
+        setUser(freshProfile);
+        await AsyncStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(sanitizeProfileForCache(freshProfile)));
       } else {
         setProfileError(true);
       }

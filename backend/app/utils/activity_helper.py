@@ -1,7 +1,14 @@
 # backend/app/utils/activity_helper.py
-import app.mock_db as mock_db
-from datetime import datetime
+"""
+Audit Activity Logging Helper.
+Persists admin activity logs to Supabase admin_activity_logs.
+"""
 import uuid
+import logging
+from datetime import datetime
+from app.db.repositories import get_admin_repo, get_profile_repo
+
+logger = logging.getLogger(__name__)
 
 def record_admin_activity(
     admin_user_id: str,
@@ -11,10 +18,9 @@ def record_admin_activity(
     target_name: str = None
 ):
     try:
-        # Resolve admin name from mock_db profiles
         admin_name = "System Admin"
         if admin_user_id:
-            profile = next((p for p in mock_db.profiles if p.get("id") == admin_user_id), None)
+            profile = get_profile_repo().get_by_id(admin_user_id)
             if profile:
                 first = profile.get("first_name", "")
                 last = profile.get("last_name", "")
@@ -26,27 +32,16 @@ def record_admin_activity(
             else:
                 admin_name = admin_user_id
 
-        # Format record
         event = {
-            "id": f"act-{uuid.uuid4().hex[:8]}",
             "admin_user_id": admin_user_id,
             "admin_name": admin_name,
             "action": action,
             "target_type": target_type,
             "target_id": target_id,
-            "target_name": target_name,
-            "created_at": datetime.now()
+            "target_name": target_name
         }
 
-        # Keep the latest 100 events
-        mock_db.admin_activity.append(event)
-        if len(mock_db.admin_activity) > 100:
-            mock_db.admin_activity[:] = mock_db.admin_activity[-100:]
-
-        # Save to mock_logs.json
-        mock_db.save_logs()
-        return event
+        return get_admin_repo().record_activity(event)
     except Exception as e:
-        # Fail-safe print but do not propagate
-        print(f"Error logging admin activity: {e}")
+        logger.warning(f"Error logging admin activity: {e}")
         return None

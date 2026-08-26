@@ -1,7 +1,11 @@
+import logging
+import traceback
 from fastapi import APIRouter, HTTPException, Depends, status
 from typing import Any, Dict
 from app.services.dashboard import get_dashboard_data, get_7_day_wrap_up_data
 from app.utils.security import get_current_user
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/dashboard", tags=["Dashboard"])
 
@@ -13,13 +17,22 @@ def get_dashboard(current_user: dict = Depends(get_current_user)):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid authentication credentials",
         )
-    data = get_dashboard_data(user_id)
-    if not data:
+    try:
+        data = get_dashboard_data(user_id)
+        if not data:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Dashboard data not found",
+            )
+        return data
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[Dashboard /me Error for {user_id}]: {e}\n{traceback.format_exc()}")
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Dashboard data not found",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to load dashboard data: {str(e)}",
         )
-    return data
 
 @router.get("/wrapup", response_model=Dict[str, Any])
 def get_wrapup(
@@ -32,11 +45,20 @@ def get_wrapup(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid authentication credentials",
         )
-    data = get_7_day_wrap_up_data(user_id, local_date)
-    if not data:
+    try:
+        data = get_7_day_wrap_up_data(user_id, local_date)
+        if not data:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Wrap-up data not found",
+            )
+        return data
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[Dashboard /wrapup Error for {user_id}]: {e}\n{traceback.format_exc()}")
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Wrap-up data not found",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to load wrap-up data: {str(e)}",
         )
-    return data
 

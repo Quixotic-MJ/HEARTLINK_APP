@@ -44,27 +44,29 @@ def verify_token(token: str) -> Dict[str, Any]:
             headers={"WWW-Authenticate": "Bearer"},
         )
     except jwt.InvalidTokenError:
-        # Fallback decode for Supabase GoTrue JWT tokens
-        try:
-            unverified = jwt.decode(token, options={"verify_signature": False})
-            sub_id = unverified.get("sub")
-            if sub_id:
-                profile_repo = get_profile_repo()
-                prof = profile_repo.get_by_id(sub_id)
-                role = prof.get("role", "patient") if prof else unverified.get("role", "patient")
-                return {
-                    "user_id": sub_id,
-                    "role": role,
-                    "exp": unverified.get("exp"),
-                    "email": unverified.get("email"),
-                    "phone": unverified.get("phone")
-                }
-        except Exception:
-            pass
+        # If a distinct Supabase JWT secret is configured, attempt cryptographically verified decode
+        supabase_jwt_secret = os.getenv("SUPABASE_JWT_SECRET")
+        if supabase_jwt_secret and supabase_jwt_secret != SECRET_KEY:
+            try:
+                payload = jwt.decode(token, supabase_jwt_secret, algorithms=[ALGORITHM])
+                sub_id = payload.get("sub") or payload.get("user_id")
+                if sub_id:
+                    profile_repo = get_profile_repo()
+                    prof = profile_repo.get_by_id(sub_id)
+                    role = prof.get("role", "patient") if prof else payload.get("role", "patient")
+                    return {
+                        "user_id": sub_id,
+                        "role": role,
+                        "exp": payload.get("exp"),
+                        "email": payload.get("email"),
+                        "phone": payload.get("phone")
+                    }
+            except Exception:
+                pass
 
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token",
+            detail="Invalid token or signature",
             headers={"WWW-Authenticate": "Bearer"},
         )
 

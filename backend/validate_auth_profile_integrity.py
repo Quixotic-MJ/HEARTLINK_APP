@@ -15,7 +15,6 @@ from typing import Dict, Any, List
 
 from app.db.client import is_supabase_mode, get_supabase_client, get_database_mode
 from app.db.repositories import get_profile_repo
-import app.mock_db as mock_db
 
 VALID_ROLES = {"patient", "medical_expert", "admin", "super_admin"}
 VALID_ACCOUNT_STATUSES = {"active", "disabled", "archived"}
@@ -32,7 +31,7 @@ def validate_auth_profile_integrity() -> bool:
     print(f"Current Database Mode: {mode}")
 
     profile_repo = get_profile_repo()
-    profiles = profile_repo.list_all() if hasattr(profile_repo, 'list_all') else getattr(mock_db, 'profiles', [])
+    profiles = profile_repo.list_all()
 
     print(f"\nTotal Profiles Retrieved: {len(profiles)}")
 

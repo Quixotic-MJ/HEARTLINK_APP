@@ -74,7 +74,7 @@ def validate_live_schema() -> bool:
         for table in REQUIRED_TABLES:
             try:
                 # Perform a 0-limit select to confirm table presence
-                res = client.from_(table).select("id").limit(0).execute()
+                res = client.from_(table).select("*").limit(0).execute()
                 print(f"  [OK] Table 'public.{table}' verified accessible.")
             except Exception as e:
                 err_msg = f"Table 'public.{table}' check failed: {e}"

@@ -11,12 +11,11 @@ export interface ExerciseResultProps {
 export function ExerciseResult({ routine, sessionDurationSeconds, onDone }: ExerciseResultProps) {
   
   const formatTime = (seconds: number) => {
+    if (seconds < 60) return `${seconds}s`;
     const m = Math.floor(seconds / 60);
     const s = Math.floor(seconds % 60);
-    if (m > 0) {
-      return `${m} min ${s} sec`;
-    }
-    return `${s} sec`;
+    if (s > 0) return `${m}m ${s}s`;
+    return `${m}m`;
   };
 
   return (

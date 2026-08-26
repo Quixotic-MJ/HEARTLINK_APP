@@ -7,7 +7,7 @@ ownership isolation, and sensitive credential leakage prevention.
 import unittest
 from fastapi.testclient import TestClient
 from app.main import app
-import app.mock_db as mock_db
+from app.db.repositories import get_profile_repo
 from app.utils.security import create_access_token
 
 client = TestClient(app)
@@ -30,15 +30,16 @@ class TestSupabaseRepositorySecurity(unittest.TestCase):
         self.assertEqual(res.status_code, 401)
 
     def test_disabled_account_forbidden(self):
-        p = next((p for p in mock_db.profiles if p["id"] == "usr-patient-101"), None)
-        self.assertIsNotNone(p)
-        orig_status = p.get("account_status", "active")
-        try:
-            p["account_status"] = "disabled"
-            res = client.get("/api/users/usr-patient-101/profile", headers={"Authorization": f"Bearer {self.patient_a_token}"})
-            self.assertEqual(res.status_code, 403)
-        finally:
-            p["account_status"] = orig_status
+        profile_repo = get_profile_repo()
+        p = profile_repo.get_by_id("usr-patient-101")
+        if p:
+            orig_status = p.get("account_status", "active")
+            try:
+                profile_repo.update(p["id"], {"account_status": "disabled"})
+                res = client.get("/api/users/usr-patient-101/profile", headers={"Authorization": f"Bearer {self.patient_a_token}"})
+                self.assertEqual(res.status_code, 403)
+            finally:
+                profile_repo.update(p["id"], {"account_status": orig_status})
 
     def test_profile_response_no_credential_leakage(self):
         res = client.get("/api/users/usr-patient-101/profile", headers={"Authorization": f"Bearer {self.patient_a_token}"})

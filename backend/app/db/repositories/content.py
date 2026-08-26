@@ -5,8 +5,10 @@ Global Content (Recipes, Exercises, Clinics) & User Bookmarks Repository Layer.
 from typing import Optional, Dict, Any, List
 from datetime import datetime
 import uuid
-import app.mock_db as mock_db
-from app.db.repositories.base import handle_db_error
+import logging
+from app.db.repositories.base import handle_db_error, resolve_uuid, serialize_for_db
+
+logger = logging.getLogger(__name__)
 
 class ContentRepository:
     # Recipes
@@ -59,82 +61,131 @@ class ContentRepository:
 
 
 class MockContentRepository(ContentRepository):
+    def __init__(self):
+        self._recipes: List[Dict[str, Any]] = []
+        self._routines: List[Dict[str, Any]] = []
+        self._clinics: List[Dict[str, Any]] = []
+        self._saved_recipes: List[Dict[str, Any]] = []
+        self._saved_exercises: List[Dict[str, Any]] = []
+
     def list_recipes(self) -> List[Dict[str, Any]]:
-        return mock_db.recipes
+        return list(self._recipes)
 
     def get_recipe(self, recipe_id: str) -> Optional[Dict[str, Any]]:
-        return next((r for r in mock_db.recipes if r.get("id") == recipe_id or r.get("legacy_id") == recipe_id), None)
+        return next((r for r in self._recipes if r.get("id") == recipe_id or r.get("legacy_id") == recipe_id), None)
 
     def create_recipe(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        from app.services.recipes import create_recipe
-        return create_recipe(data)
+        rec_id = data.get("id") or f"rec-{uuid.uuid4().hex[:8]}"
+        new_rec = {
+            "id": rec_id,
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow(),
+            **data
+        }
+        self._recipes.append(new_rec)
+        return new_rec
 
     def update_recipe(self, recipe_id: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        from app.services.recipes import update_recipe
-        return update_recipe(recipe_id, data)
+        for r in self._recipes:
+            if r.get("id") == recipe_id or r.get("legacy_id") == recipe_id:
+                r.update(data)
+                r["updated_at"] = datetime.utcnow()
+                return r
+        return None
 
     def delete_recipe(self, recipe_id: str) -> bool:
-        from app.services.recipes import delete_recipe
-        return delete_recipe(recipe_id)
+        init_len = len(self._recipes)
+        self._recipes[:] = [r for r in self._recipes if not (r.get("id") == recipe_id or r.get("legacy_id") == recipe_id)]
+        return len(self._recipes) < init_len
 
     def list_saved_recipes(self, user_id: str) -> List[Dict[str, Any]]:
-        from app.services.recipes import get_saved_recipes
-        return get_saved_recipes(user_id)
+        saved_ids = [s["recipe_id"] for s in self._saved_recipes if s.get("user_id") == user_id]
+        return [r for r in self._recipes if r.get("id") in saved_ids or r.get("legacy_id") in saved_ids]
 
     def save_recipe_for_user(self, user_id: str, recipe_id: str) -> bool:
-        from app.services.recipes import save_recipe_for_user
-        return save_recipe_for_user(user_id, recipe_id)
+        if not any(s.get("user_id") == user_id and s.get("recipe_id") == recipe_id for s in self._saved_recipes):
+            self._saved_recipes.append({"user_id": user_id, "recipe_id": recipe_id, "saved_at": datetime.utcnow()})
+        return True
 
     def list_routines(self) -> List[Dict[str, Any]]:
-        return mock_db.exercise_routines
+        return list(self._routines)
 
     def get_routine(self, routine_id: str) -> Optional[Dict[str, Any]]:
-        return next((e for e in mock_db.exercise_routines if e.get("id") == routine_id or e.get("legacy_id") == routine_id), None)
+        return next((e for e in self._routines if e.get("id") == routine_id or e.get("legacy_id") == routine_id), None)
 
     def create_routine(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        from app.services.exercises import create_routine
-        return create_routine(data)
+        r_id = data.get("id") or f"ex-rt-{uuid.uuid4().hex[:8]}"
+        new_rt = {
+            "id": r_id,
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow(),
+            **data
+        }
+        self._routines.append(new_rt)
+        return new_rt
 
     def update_routine(self, routine_id: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        from app.services.exercises import update_routine
-        return update_routine(routine_id, data)
+        for e in self._routines:
+            if e.get("id") == routine_id or e.get("legacy_id") == routine_id:
+                e.update(data)
+                e["updated_at"] = datetime.utcnow()
+                return e
+        return None
 
     def delete_routine(self, routine_id: str) -> bool:
-        from app.services.exercises import delete_routine
-        return delete_routine(routine_id)
+        init_len = len(self._routines)
+        self._routines[:] = [e for e in self._routines if not (e.get("id") == routine_id or e.get("legacy_id") == routine_id)]
+        return len(self._routines) < init_len
 
     def list_saved_exercises(self, user_id: str) -> List[Dict[str, Any]]:
-        from app.services.exercises import get_saved_exercises
-        return get_saved_exercises(user_id)
+        saved_ids = [s["routine_id"] for s in self._saved_exercises if s.get("user_id") == user_id]
+        return [e for e in self._routines if e.get("id") in saved_ids or e.get("legacy_id") in saved_ids]
 
     def save_exercise_for_user(self, user_id: str, routine_id: str) -> bool:
-        from app.services.exercises import save_exercise_for_user
-        return save_exercise_for_user(user_id, routine_id)
+        if not any(s.get("user_id") == user_id and s.get("routine_id") == routine_id for s in self._saved_exercises):
+            self._saved_exercises.append({"user_id": user_id, "routine_id": routine_id, "saved_at": datetime.utcnow()})
+        return True
 
     def list_clinics(self) -> List[Dict[str, Any]]:
-        return mock_db.clinics
+        return list(self._clinics)
 
 
 class SupabaseContentRepository(ContentRepository):
     def __init__(self, client):
         self.client = client
 
+    def _resolve_user_uuid(self, user_id: str) -> Optional[str]:
+        valid_uuid = resolve_uuid(user_id)
+        if valid_uuid:
+            return valid_uuid
+        try:
+            from app.db.repositories import get_profile_repo
+            profile = get_profile_repo().get_by_id(user_id)
+            if profile and profile.get("id"):
+                return resolve_uuid(profile["id"])
+        except Exception:
+            pass
+        return None
+
     def list_recipes(self) -> List[Dict[str, Any]]:
         try:
             res = self.client.table("recipes").select("*").execute()
             return res.data or []
         except Exception as e:
-            handle_db_error(e)
+            logger.warning(f"Error reading recipes from Supabase: {e}")
             return []
 
     def get_recipe(self, recipe_id: str) -> Optional[Dict[str, Any]]:
         try:
-            res = self.client.table("recipes").select("*").eq("id", recipe_id).execute()
-            if not res.data:
-                res = self.client.table("recipes").select("*").eq("legacy_id", recipe_id).execute()
+            valid_id = resolve_uuid(recipe_id)
+            if valid_id:
+                res = self.client.table("recipes").select("*").eq("id", valid_id).execute()
+                if res.data:
+                    return res.data[0]
+            res = self.client.table("recipes").select("*").eq("legacy_id", recipe_id).execute()
             return res.data[0] if res.data else None
         except Exception as e:
-            handle_db_error(e)
+            logger.warning(f"Error reading recipe {recipe_id}: {e}")
             return None
 
     def create_recipe(self, data: Dict[str, Any]) -> Dict[str, Any]:
@@ -144,6 +195,7 @@ class SupabaseContentRepository(ContentRepository):
                 "updated_at": datetime.utcnow().isoformat(),
                 **data
             }
+            payload = serialize_for_db(payload)
             res = self.client.table("recipes").insert(payload).execute()
             return res.data[0] if res.data else payload
         except Exception as e:
@@ -156,9 +208,13 @@ class SupabaseContentRepository(ContentRepository):
                 "updated_at": datetime.utcnow().isoformat(),
                 **data
             }
-            res = self.client.table("recipes").update(payload).eq("id", recipe_id).execute()
-            if not res.data:
-                res = self.client.table("recipes").update(payload).eq("legacy_id", recipe_id).execute()
+            payload = serialize_for_db(payload)
+            valid_id = resolve_uuid(recipe_id)
+            if valid_id:
+                res = self.client.table("recipes").update(payload).eq("id", valid_id).execute()
+                if res.data:
+                    return res.data[0]
+            res = self.client.table("recipes").update(payload).eq("legacy_id", recipe_id).execute()
             return res.data[0] if res.data else None
         except Exception as e:
             handle_db_error(e)
@@ -166,17 +222,23 @@ class SupabaseContentRepository(ContentRepository):
 
     def delete_recipe(self, recipe_id: str) -> bool:
         try:
-            res = self.client.table("recipes").delete().eq("id", recipe_id).execute()
-            if not res.data:
-                res = self.client.table("recipes").delete().eq("legacy_id", recipe_id).execute()
+            valid_id = resolve_uuid(recipe_id)
+            if valid_id:
+                res = self.client.table("recipes").delete().eq("id", valid_id).execute()
+                if res.data:
+                    return True
+            res = self.client.table("recipes").delete().eq("legacy_id", recipe_id).execute()
             return bool(res.data)
         except Exception as e:
             handle_db_error(e)
             return False
 
     def list_saved_recipes(self, user_id: str) -> List[Dict[str, Any]]:
+        uuid_val = self._resolve_user_uuid(user_id)
+        if not uuid_val:
+            return []
         try:
-            res = self.client.table("saved_recipes").select("recipe_id, recipes(*)").eq("user_id", user_id).execute()
+            res = self.client.table("saved_recipes").select("recipe_id, recipes(*)").eq("user_id", uuid_val).execute()
             saved = []
             for row in (res.data or []):
                 r = row.get("recipes")
@@ -184,14 +246,26 @@ class SupabaseContentRepository(ContentRepository):
                     saved.append(r)
             return saved
         except Exception as e:
-            handle_db_error(e)
+            logger.warning(f"Error reading saved recipes for {user_id}: {e}")
             return []
 
     def save_recipe_for_user(self, user_id: str, recipe_id: str) -> bool:
+        uuid_val = self._resolve_user_uuid(user_id)
+        if not uuid_val:
+            return False
         try:
+            valid_r_id = resolve_uuid(recipe_id)
+            actual_recipe_id = valid_r_id
+            if not actual_recipe_id:
+                rec = self.get_recipe(recipe_id)
+                if rec and rec.get("id"):
+                    actual_recipe_id = rec["id"]
+            if not actual_recipe_id:
+                return False
+
             payload = {
-                "user_id": user_id,
-                "recipe_id": recipe_id,
+                "user_id": uuid_val,
+                "recipe_id": actual_recipe_id,
                 "saved_at": datetime.utcnow().isoformat()
             }
             res = self.client.table("saved_recipes").insert(payload).execute()
@@ -205,17 +279,20 @@ class SupabaseContentRepository(ContentRepository):
             res = self.client.table("exercise_routines").select("*").execute()
             return res.data or []
         except Exception as e:
-            handle_db_error(e)
+            logger.warning(f"Error reading exercise routines from Supabase: {e}")
             return []
 
     def get_routine(self, routine_id: str) -> Optional[Dict[str, Any]]:
         try:
-            res = self.client.table("exercise_routines").select("*").eq("id", routine_id).execute()
-            if not res.data:
-                res = self.client.table("exercise_routines").select("*").eq("legacy_id", routine_id).execute()
+            valid_id = resolve_uuid(routine_id)
+            if valid_id:
+                res = self.client.table("exercise_routines").select("*").eq("id", valid_id).execute()
+                if res.data:
+                    return res.data[0]
+            res = self.client.table("exercise_routines").select("*").eq("legacy_id", routine_id).execute()
             return res.data[0] if res.data else None
         except Exception as e:
-            handle_db_error(e)
+            logger.warning(f"Error reading exercise routine {routine_id}: {e}")
             return None
 
     def create_routine(self, data: Dict[str, Any]) -> Dict[str, Any]:
@@ -225,6 +302,7 @@ class SupabaseContentRepository(ContentRepository):
                 "updated_at": datetime.utcnow().isoformat(),
                 **data
             }
+            payload = serialize_for_db(payload)
             res = self.client.table("exercise_routines").insert(payload).execute()
             return res.data[0] if res.data else payload
         except Exception as e:
@@ -237,9 +315,13 @@ class SupabaseContentRepository(ContentRepository):
                 "updated_at": datetime.utcnow().isoformat(),
                 **data
             }
-            res = self.client.table("exercise_routines").update(payload).eq("id", routine_id).execute()
-            if not res.data:
-                res = self.client.table("exercise_routines").update(payload).eq("legacy_id", routine_id).execute()
+            payload = serialize_for_db(payload)
+            valid_id = resolve_uuid(routine_id)
+            if valid_id:
+                res = self.client.table("exercise_routines").update(payload).eq("id", valid_id).execute()
+                if res.data:
+                    return res.data[0]
+            res = self.client.table("exercise_routines").update(payload).eq("legacy_id", routine_id).execute()
             return res.data[0] if res.data else None
         except Exception as e:
             handle_db_error(e)
@@ -247,17 +329,23 @@ class SupabaseContentRepository(ContentRepository):
 
     def delete_routine(self, routine_id: str) -> bool:
         try:
-            res = self.client.table("exercise_routines").delete().eq("id", routine_id).execute()
-            if not res.data:
-                res = self.client.table("exercise_routines").delete().eq("legacy_id", routine_id).execute()
+            valid_id = resolve_uuid(routine_id)
+            if valid_id:
+                res = self.client.table("exercise_routines").delete().eq("id", valid_id).execute()
+                if res.data:
+                    return True
+            res = self.client.table("exercise_routines").delete().eq("legacy_id", routine_id).execute()
             return bool(res.data)
         except Exception as e:
             handle_db_error(e)
             return False
 
     def list_saved_exercises(self, user_id: str) -> List[Dict[str, Any]]:
+        uuid_val = self._resolve_user_uuid(user_id)
+        if not uuid_val:
+            return []
         try:
-            res = self.client.table("saved_exercises").select("routine_id, exercise_routines(*)").eq("user_id", user_id).execute()
+            res = self.client.table("saved_exercises").select("routine_id, exercise_routines(*)").eq("user_id", uuid_val).execute()
             saved = []
             for row in (res.data or []):
                 ex = row.get("exercise_routines")
@@ -265,14 +353,26 @@ class SupabaseContentRepository(ContentRepository):
                     saved.append(ex)
             return saved
         except Exception as e:
-            handle_db_error(e)
+            logger.warning(f"Error reading saved exercises for {user_id}: {e}")
             return []
 
     def save_exercise_for_user(self, user_id: str, routine_id: str) -> bool:
+        uuid_val = self._resolve_user_uuid(user_id)
+        if not uuid_val:
+            return False
         try:
+            valid_r_id = resolve_uuid(routine_id)
+            actual_routine_id = valid_r_id
+            if not actual_routine_id:
+                rt = self.get_routine(routine_id)
+                if rt and rt.get("id"):
+                    actual_routine_id = rt["id"]
+            if not actual_routine_id:
+                return False
+
             payload = {
-                "user_id": user_id,
-                "routine_id": routine_id,
+                "user_id": uuid_val,
+                "routine_id": actual_routine_id,
                 "saved_at": datetime.utcnow().isoformat()
             }
             res = self.client.table("saved_exercises").insert(payload).execute()
@@ -286,5 +386,5 @@ class SupabaseContentRepository(ContentRepository):
             res = self.client.table("clinics").select("*").execute()
             return res.data or []
         except Exception as e:
-            handle_db_error(e)
+            logger.warning(f"Error reading clinics from Supabase: {e}")
             return []

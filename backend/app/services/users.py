@@ -1,6 +1,5 @@
 from datetime import datetime
 import hashlib
-import app.mock_db as mock_db
 from app.services.clinical import get_clinical_baseline_data
 from app.services.auth_service import get_auth_service
 from app.services.storage_service import get_storage_service
@@ -85,42 +84,15 @@ def delete_user(user_id: str, password: str = None) -> bool:
         if not auth_svc.verify_credentials(user_id, password):
             return False
 
-    # 2. Delete Supabase Auth / Mock Identity
+    # 2. Delete Supabase Auth / Identity
     get_auth_service().delete_user_identity(user_id)
 
     # 3. Clean up user assets from storage
     get_storage_service().delete_user_assets(user_id)
 
-    # 4. Hard delete / cascade profile & telemetry data via repository & mock_db
+    # 4. Hard delete profile via repository (cascades related tables)
     profile_repo = get_profile_repo()
     profile_repo.delete(user_id)
-
-    if hasattr(mock_db, 'baseline_onboarding'):
-        mock_db.baseline_onboarding[:] = [o for o in mock_db.baseline_onboarding if o.get("user_id") != user_id]
-    if hasattr(mock_db, 'care_team_contacts'):
-        mock_db.care_team_contacts[:] = [c for c in mock_db.care_team_contacts if c.get("user_id") != user_id]
-    if hasattr(mock_db, 'user_reminders'):
-        mock_db.user_reminders[:] = [r for r in mock_db.user_reminders if r.get("user_id") != user_id]
-    if hasattr(mock_db, 'user_thresholds'):
-        mock_db.user_thresholds[:] = [t for t in mock_db.user_thresholds if t.get("user_id") != user_id]
-
-    if hasattr(mock_db, 'meal_logs'):
-        mock_db.meal_logs[:] = [m for m in mock_db.meal_logs if m.get("user_id") != user_id]
-    if hasattr(mock_db, 'exercise_logs'):
-        mock_db.exercise_logs[:] = [e for e in mock_db.exercise_logs if e.get("user_id") != user_id]
-    if hasattr(mock_db, 'daily_health_logs'):
-        mock_db.daily_health_logs[:] = [l for l in mock_db.daily_health_logs if l.get("user_id") != user_id]
-    if hasattr(mock_db, 'sleep_logs'):
-        mock_db.sleep_logs[:] = [s for s in mock_db.sleep_logs if s.get("user_id") != user_id]
-    if hasattr(mock_db, 'hss_history'):
-        mock_db.hss_history[:] = [c for c in mock_db.hss_history if c.get("user_id") != user_id]
-    if hasattr(mock_db, 'notifications'):
-        mock_db.notifications[:] = [n for n in mock_db.notifications if n.get("user_id") != user_id]
-    if hasattr(mock_db, 'alerts'):
-        mock_db.alerts[:] = [a for a in mock_db.alerts if a.get("user_id") != user_id]
-
-    mock_db.save_profiles()
-    mock_db.save_logs()
 
     return True
 
@@ -146,7 +118,6 @@ def save_baseline_onboarding(user_id: str, data: dict, profile_data: dict) -> di
             "diastolic_threshold": 80
         })
 
-    mock_db.save_profiles()
     return saved_onb
 
 

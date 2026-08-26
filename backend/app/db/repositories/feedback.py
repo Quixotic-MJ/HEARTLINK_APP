@@ -5,8 +5,10 @@ Feedback Tickets Repository Layer.
 from typing import Optional, Dict, Any, List
 from datetime import datetime
 import uuid
-import app.mock_db as mock_db
+import logging
 from app.db.repositories.base import handle_db_error
+
+logger = logging.getLogger(__name__)
 
 class FeedbackRepository:
     def list_tickets(self, status_filter: Optional[str] = None) -> List[Dict[str, Any]]:
@@ -23,29 +25,24 @@ class FeedbackRepository:
 
 
 class MockFeedbackRepository(FeedbackRepository):
+    def __init__(self):
+        self._tickets: List[Dict[str, Any]] = []
+
     def list_tickets(self, status_filter: Optional[str] = None) -> List[Dict[str, Any]]:
-        tickets = list(mock_db.feedback_tickets)
+        tickets = list(self._tickets)
         if status_filter:
             tickets = [t for t in tickets if t.get("status") == status_filter]
         return tickets
 
     def get_ticket(self, ticket_id: str) -> Optional[Dict[str, Any]]:
-        for t in mock_db.feedback_tickets:
+        for t in self._tickets:
             if str(t.get("id")) == str(ticket_id) or t.get("ticketId") == ticket_id or t.get("ticket_code") == ticket_id:
                 return t
         return None
 
     def create_ticket(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        new_id = max([t["id"] for t in mock_db.feedback_tickets]) + 1 if mock_db.feedback_tickets else 1
-        last_fb_id = 1000
-        for t in mock_db.feedback_tickets:
-            try:
-                num = int(t.get("ticketId", "").split("-")[1])
-                if num > last_fb_id:
-                    last_fb_id = num
-            except:
-                pass
-        ticket_code = f"FB-{last_fb_id + 1}"
+        new_id = len(self._tickets) + 1
+        ticket_code = f"FB-{1000 + new_id}"
         record = {
             "id": new_id,
             "ticketId": ticket_code,
@@ -57,8 +54,7 @@ class MockFeedbackRepository(FeedbackRepository):
             "adminNotes": "",
             **data
         }
-        mock_db.feedback_tickets.append(record)
-        mock_db.save_logs()
+        self._tickets.append(record)
         return record
 
     def update_ticket(self, ticket_id: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
@@ -67,7 +63,6 @@ class MockFeedbackRepository(FeedbackRepository):
             return None
         ticket.update(data)
         ticket["updated_at"] = datetime.utcnow()
-        mock_db.save_logs()
         return ticket
 
 
@@ -81,7 +76,6 @@ class SupabaseFeedbackRepository(FeedbackRepository):
             if status_filter:
                 query = query.eq("status", status_filter)
             res = query.order("created_at", desc=True).execute()
-            # Standardize output for web admin consumption
             formatted = []
             for t in (res.data or []):
                 item = dict(t)
@@ -120,7 +114,6 @@ class SupabaseFeedbackRepository(FeedbackRepository):
 
     def create_ticket(self, data: Dict[str, Any]) -> Dict[str, Any]:
         try:
-            # Generate deterministic/sequence ticket code
             res_all = self.client.table("feedback_tickets").select("ticket_code").order("created_at", desc=True).limit(1).execute()
             last_code = 1000
             if res_all.data and len(res_all.data) > 0:

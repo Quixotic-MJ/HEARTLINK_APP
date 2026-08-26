@@ -180,7 +180,7 @@ function RoutineCard({
 
 export default function ExercisesScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ completedId?: string }>();
+  const params = useLocalSearchParams<{ completedId?: string; durationSeconds?: string }>();
   const { userId, token } = useUser();
 
   const [routinesList, setRoutinesList] = useState<Routine[] | null>(null);
@@ -267,7 +267,7 @@ export default function ExercisesScreen() {
           const hasMeaningful = data.some((log: any) => 
             new Date(log.logged_at).toDateString() === targetDateStr &&
             log.status !== "abandoned" &&
-            (log.duration_minutes >= 1 || log.duration_seconds >= 60)
+            (log.duration_seconds !== undefined && log.duration_seconds !== null ? log.duration_seconds >= 30 : (log.duration_minutes || 0) >= 1)
           );
           days[i] = hasMeaningful;
           if (hasMeaningful) count++;
@@ -302,12 +302,20 @@ export default function ExercisesScreen() {
       const routine = routinesList.find((r) => r.id === params.completedId);
       if (routine) {
         if (!completedExercises.includes(routine.id)) {
-          showToast(`Great job! ${routine.duration} minutes recorded.`);
+          const actualSeconds = params.durationSeconds ? parseInt(params.durationSeconds as string, 10) : routine.duration * 60;
+          let timeText = "";
+          if (actualSeconds < 60) {
+            timeText = `${actualSeconds} second${actualSeconds === 1 ? "" : "s"}`;
+          } else {
+            const mins = Math.round(actualSeconds / 60);
+            timeText = `${mins} minute${mins === 1 ? "" : "s"}`;
+          }
+          showToast(`Great job! ${timeText} recorded.`);
         }
-        router.setParams({ completedId: "" });
+        router.setParams({ completedId: "", durationSeconds: "" });
       }
     }
-  }, [params.completedId, routinesList, completedExercises]);
+  }, [params.completedId, params.durationSeconds, routinesList, completedExercises]);
 
   const showToast = (message: string) => {
     setToastMessage(message);

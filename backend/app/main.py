@@ -18,11 +18,27 @@ from fastapi.staticfiles import StaticFiles
 
 app = FastAPI(title="Heartlink", description="development phase", version="1.0.0")
 
+# CORS Configuration
+raw_cors = os.getenv("CORS_ALLOWED_ORIGINS", "").strip()
+if raw_cors:
+    allowed_origins = [o.strip() for o in raw_cors.split(",") if o.strip()]
+else:
+    allowed_origins = [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:8081",
+        "http://127.0.0.1:8081",
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+    ]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -48,14 +64,22 @@ static_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static")
 os.makedirs(static_dir, exist_ok=True)
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
+@app.on_event("startup")
+async def on_startup():
+    from app.db.bootstrap import bootstrap_supabase_content
+    try:
+        bootstrap_supabase_content()
+    except Exception as e:
+        print(f"[Bootstrap Error] {e}")
 
 @app.get("/api/health", tags=["System"])
 def health_check():
     print("Healthy and connected")
     return {"status": "Backend Connected", "database_layer": "decoupled_offline_mode"}
 
-from app.mock_db import clinics
+from app.db.repositories import get_content_repo
 
 @app.get("/api/clinics", tags=["Clinics"])
 def get_clinics():
-    return clinics
+    return get_content_repo().list_clinics()
+

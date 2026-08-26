@@ -2,26 +2,31 @@
 import sys
 from datetime import datetime, date
 
-try:
-    import app.mock_db as mock_db
-    from app.services.cases import get_deterministic_case_id
-except ImportError as e:
-    print(f"Import error: {e}")
-    sys.exit(1)
+from app.db.repositories import (
+    get_profile_repo,
+    get_health_logs_repo,
+    get_meals_repo,
+    get_exercises_repo,
+    get_sleep_repo,
+    get_hss_repo,
+    get_case_review_repo,
+    get_content_repo,
+)
+from app.services.cases import get_deterministic_case_id
 
 def run_validation():
     errors = []
     
-    # 1. Load profiles and logs
-    profiles = mock_db.profiles
-    meal_logs = mock_db.meal_logs
-    exercise_logs = mock_db.exercise_logs
-    sleep_logs = mock_db.sleep_logs
-    hss_history = mock_db.hss_history
-    expert_evaluations = mock_db.expert_evaluations
-    user_thresholds = mock_db.user_thresholds
-    recipes = mock_db.recipes
-    exercise_routines = mock_db.exercise_routines
+    # 1. Load profiles and logs from authoritative repositories
+    profiles = get_profile_repo().list_all()
+    meal_logs = get_meals_repo().list_all_meals()
+    exercise_logs = get_exercises_repo().list_all_logs()
+    sleep_logs = get_sleep_repo().list_all_logs()
+    hss_history = get_hss_repo().list_all_hss_records()
+    expert_evaluations = get_case_review_repo().list_evaluations()
+    recipes = get_content_repo().list_recipes()
+    exercise_routines = get_content_repo().list_routines()
+    daily_health_logs = get_health_logs_repo().list_all_logs()
 
     print("--- Running Data Integrity Assertions ---")
 
@@ -68,7 +73,7 @@ def run_validation():
 
     # Symptom Exercise FK
     exercise_log_ids = {ex["id"] for ex in exercise_logs}
-    for l in mock_db.daily_health_logs:
+    for l in daily_health_logs:
         trigger_ex = l.get("triggered_by_exercise_id")
         if l.get("demo_seed") == "heartlink-demo-v2" and trigger_ex and trigger_ex not in exercise_log_ids:
             errors.append(f"Health Log {l['id']} references nonexistent exercise trigger {trigger_ex}")

@@ -34,6 +34,46 @@ def add_meal_log(user_id: str, data: Dict[str, Any], current_user: dict = Depend
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You may only record your own meal logs.",
         )
+    
+    # Resolve meal_name from aliases (food_name, name, meal_name)
+    raw_meal_name = data.get("meal_name")
+    raw_food_name = data.get("food_name")
+    raw_name = data.get("name")
+
+    names = {str(n).strip() for n in [raw_meal_name, raw_food_name, raw_name] if n and str(n).strip()}
+    if not names:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Meal name is required."
+        )
+    if len(names) > 1:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Conflicting meal name aliases provided."
+        )
+    
+    canonical_meal_name = list(names)[0]
+    data["meal_name"] = canonical_meal_name
+
+    # Validate nutrition fields
+    try:
+        calories = float(data.get("calories", 0))
+        sodium_mg = float(data.get("sodium_mg", 0))
+    except (ValueError, TypeError):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Calories and sodium must be valid numbers."
+        )
+    
+    if calories < 0 or sodium_mg < 0:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Calories and sodium cannot be negative."
+        )
+    
+    data["calories"] = calories
+    data["sodium_mg"] = sodium_mg
+
     log = create_meal_log(user_id, data)
     return {"success": True, "message": "Meal log saved", "data": log}
 
