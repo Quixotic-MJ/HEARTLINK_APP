@@ -419,11 +419,13 @@ class SupabaseAuthService(AuthService):
                             status_code=status.HTTP_400_BAD_REQUEST,
                             detail="This email address is already registered in Auth. Please log in instead."
                         )
-                    if u_phone and clean_phone and clean_phone in u_phone:
-                        raise HTTPException(
-                            status_code=status.HTTP_400_BAD_REQUEST,
-                            detail="This phone number is already registered in Auth. Please log in instead."
-                        )
+                    if u_phone:
+                        clean_u_phone = "".join(filter(str.isdigit, u_phone))
+                        if clean_u_phone and clean_phone and clean_u_phone == clean_phone:
+                            raise HTTPException(
+                                status_code=status.HTTP_400_BAD_REQUEST,
+                                detail="This phone number is already registered in Auth. Please log in instead."
+                            )
             except HTTPException:
                 raise
             except Exception:

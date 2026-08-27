@@ -22,6 +22,7 @@ app = FastAPI(title="Heartlink", description="development phase", version="1.0.0
 raw_cors = os.getenv("CORS_ALLOWED_ORIGINS", "").strip()
 if raw_cors:
     allowed_origins = [o.strip() for o in raw_cors.split(",") if o.strip()]
+    allow_credentials = "*" not in allowed_origins
 else:
     allowed_origins = [
         "http://localhost:5173",
@@ -33,11 +34,12 @@ else:
         "http://localhost:8000",
         "http://127.0.0.1:8000",
     ]
+    allow_credentials = True
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
-    allow_credentials=True,
+    allow_credentials=allow_credentials,
     allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allow_headers=["*"],
 )
@@ -66,16 +68,22 @@ app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 @app.on_event("startup")
 async def on_startup():
+    from app.db.client import is_supabase_mode, get_supabase_client
+    if is_supabase_mode():
+        get_supabase_client()
     from app.db.bootstrap import bootstrap_supabase_content
     try:
         bootstrap_supabase_content()
     except Exception as e:
         print(f"[Bootstrap Error] {e}")
 
+@app.get("/health", tags=["System"])
+def root_health_check():
+    return {"status": "ok"}
+
 @app.get("/api/health", tags=["System"])
-def health_check():
-    print("Healthy and connected")
-    return {"status": "Backend Connected", "database_layer": "decoupled_offline_mode"}
+def api_health_check():
+    return {"status": "ok"}
 
 from app.db.repositories import get_content_repo
 
