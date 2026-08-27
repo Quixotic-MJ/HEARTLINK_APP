@@ -230,7 +230,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed }) => {
 
               <SectionLabel label="System" collapsed={collapsed} />
               <NavItem path="/activity-log" icon={Activity}    label="Activity Log" collapsed={collapsed} />
-              <NavItem path="/broadcasts" icon={Megaphone}     label="Broadcasts"      collapsed={collapsed} />
+              <NavItem path="/broadcasts" icon={Megaphone}     label="Announcements"      collapsed={collapsed} />
               <NavItem path="/settings"   icon={Settings}      label="Settings"        collapsed={collapsed} />
             </>
           )}

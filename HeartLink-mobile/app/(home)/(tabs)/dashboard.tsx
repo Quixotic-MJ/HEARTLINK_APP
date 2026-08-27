@@ -10,17 +10,19 @@ import {
   RefreshControl,
   BackHandler,
   Alert,
+  AccessibilityInfo,
 } from "react-native";
-import Reanimated, { FadeInDown, FadeInRight } from "react-native-reanimated";
+import Reanimated, { FadeIn, FadeInDown, FadeInRight } from "react-native-reanimated";
 import { useRouter, useFocusEffect } from "expo-router";
 import { useColorScheme } from "nativewind";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useUser } from "../../../contexts/UserContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Haptics from "expo-haptics";
 
 // Import extracted UI components
 import { ScoreRing } from "../../../components/dashboard/ScoreRing";
-import { StatCard } from "../../../components/dashboard/StatCard";
+import { ScoreGradientBar } from "../../../components/dashboard/ScoreGradientBar";
 import { RecommendationCard } from "../../../components/dashboard/RecommendationCard";
 import { CustomAlertModal } from "../../../components/dashboard/CustomAlertModal";
 import { Header } from "../../../components/Header";
@@ -51,48 +53,64 @@ function getScoreTheme(score: number, isDark: boolean): ScoreTheme {
   if (score >= 80)
     return {
       label: "Stable",
-      barColor: "#0D9488",
-      badgeBg: isDark ? "rgba(13, 148, 136, 0.15)" : "#CCFBF1",
-      badgeText: isDark ? "#2DD4BF" : "#0F766E",
-      dotColor: "#0D9488",
+      barColor: "#10B981",
+      badgeBg: isDark ? "rgba(16, 185, 129, 0.15)" : "#ECFDF5",
+      badgeText: isDark ? "#34D399" : "#047857",
+      dotColor: isDark ? "#34D399" : "#10B981",
     };
   if (score >= 60)
     return {
       label: "Moderate",
-      barColor: "#D97706",
-      badgeBg: isDark ? "rgba(217, 119, 6, 0.15)" : "#FEF3C7",
-      badgeText: isDark ? "#FBBF24" : "#B45309",
-      dotColor: "#D97706",
+      barColor: "#EAB308",
+      badgeBg: isDark ? "rgba(234, 179, 8, 0.15)" : "#FEFCE8",
+      badgeText: isDark ? "#FACC15" : "#A16207",
+      dotColor: isDark ? "#FACC15" : "#EAB308",
     };
   if (score >= 50)
     return {
       label: "Elevated Risk",
-      barColor: "#EA580C",
-      badgeBg: isDark ? "rgba(234, 88, 12, 0.15)" : "#FFEDD5",
+      barColor: "#F97316",
+      badgeBg: isDark ? "rgba(249, 115, 22, 0.15)" : "#FFF7ED",
       badgeText: isDark ? "#FB923C" : "#C2410C",
-      dotColor: "#EA580C",
+      dotColor: isDark ? "#FB923C" : "#F97316",
     };
   return {
     label: "Critical",
-    barColor: "#E11D48",
-    badgeBg: isDark ? "rgba(225, 29, 72, 0.15)" : "#FFE4E6",
-    badgeText: isDark ? "#FB7185" : "#BE123C",
-    dotColor: "#E11D48",
+    barColor: "#EF4444",
+    badgeBg: isDark ? "rgba(239, 68, 68, 0.15)" : "#FEF2F2",
+    badgeText: isDark ? "#F87171" : "#B91C1C",
+    dotColor: isDark ? "#F87171" : "#EF4444",
   };
 }
 
-// ─── Timestamp Helper ─────────────────────────────────────────────────────────
-function formatTimestamp(date: Date) {
-  const now = new Date();
-  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+// ─── Freshness Helper ─────────────────────────────────────────────────────────
+function formatFreshness(lastSync: string | null | undefined, isOffline: boolean): string {
+  if (!lastSync) {
+    return isOffline ? "Offline • Update time unavailable" : "Update time unavailable";
+  }
+  const date = new Date(lastSync);
+  if (isNaN(date.getTime())) {
+    return isOffline ? "Offline • Update time unavailable" : "Update time unavailable";
+  }
 
-  if (diffInSeconds < 60) return "Just now";
-  const diffInMinutes = Math.floor(diffInSeconds / 60);
-  if (diffInMinutes < 60) return `${diffInMinutes} mins ago`;
-  const diffInHours = Math.floor(diffInMinutes / 60);
-  if (diffInHours < 24) return `${diffInHours} hours ago`;
-  const diffInDays = Math.floor(diffInHours / 24);
-  return `${diffInDays} days ago`;
+  const now = new Date();
+  const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
+
+  let timeStr = "";
+  if (diffInMinutes < 1) {
+    timeStr = "Just now";
+  } else if (diffInMinutes < 60) {
+    timeStr = `${diffInMinutes}m ago`;
+  } else if (now.toDateString() === date.toDateString()) {
+    const timeFormatted = date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+    timeStr = `Today, ${timeFormatted}`;
+  } else {
+    const dateFormatted = date.toLocaleDateString([], { month: "short", day: "numeric" });
+    const timeFormatted = date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+    timeStr = `${dateFormatted}, ${timeFormatted}`;
+  }
+
+  return isOffline ? `Offline • Last updated ${timeStr}` : `Updated ${timeStr}`;
 }
 
 // ─── Dashboard Screen ─────────────────────────────────────────────────────────
@@ -100,67 +118,102 @@ export default function DashboardScreen() {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
   const router = useRouter();
-  const { userId, user, setUserId } = useUser();
+  const { userId, token, user, setUserId, logout } = useUser();
 
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [data, setData] = useState<any>(null);
   const [error, setError] = useState(false);
+  const [refreshError, setRefreshError] = useState(false);
   const [alertModalVisible, setAlertModalVisible] = useState(false);
+  const [reduceMotion, setReduceMotion] = useState(false);
 
+  const isFetchingRef = useRef(false);
+  const isNavigatingRef = useRef(false);
   const pulseAnim = useRef(new Animated.Value(1)).current;
-
-
 
   const [isCachedData, setIsCachedData] = useState(false);
 
+  useEffect(() => {
+    AccessibilityInfo.isReduceMotionEnabled?.().then(setReduceMotion);
+  }, []);
+
+  const safeNavigate = useCallback((route: string, params?: any) => {
+    if (isNavigatingRef.current) return;
+    isNavigatingRef.current = true;
+    if (params) {
+      router.push({ pathname: route as any, params });
+    } else {
+      router.push(route as any);
+    }
+    setTimeout(() => {
+      isNavigatingRef.current = false;
+    }, 500);
+  }, [router]);
+
   const fetchData = useCallback(
     async (silent = false) => {
-      if (!userId) return;
-      
-      if (!silent) setIsLoading(true);
+      if (!userId || isFetchingRef.current) return;
+      isFetchingRef.current = true;
+
+      // Only show full-screen skeleton on initial load when no data exists in memory
+      if (!silent && !data) setIsLoading(true);
       setError(false);
+      setRefreshError(false);
       const cacheKey = `@dashboard_cache_${userId}`;
 
       try {
+        const storedToken = await AsyncStorage.getItem("access_token");
+        const effectiveToken = token || storedToken || "";
         const response = await fetch(`${base_url}/api/dashboard/me`, {
           headers: {
-            "Authorization": `Bearer ${userId}`
+            "Authorization": `Bearer ${effectiveToken}`
           }
         });
         if (response.ok) {
           const json = await response.json();
           setData(json);
           setIsCachedData(false);
+          setRefreshError(false);
           await AsyncStorage.setItem(cacheKey, JSON.stringify(json));
+        } else if (response.status === 401 || response.status === 403) {
+          // Token expired or invalid session - delegate to centralized auth logout
+          await logout();
+          return;
         } else {
           throw new Error(`Dashboard API responded with ${response.status}`);
         }
       } catch (err) {
-        console.error("Dashboard fetch error (checking offline cache):", err);
-        try {
-          const cachedStr = await AsyncStorage.getItem(cacheKey);
-          if (cachedStr) {
-            setData(JSON.parse(cachedStr));
-            setIsCachedData(true);
-            console.log("[Dashboard] Loaded data from local cache.");
-          } else {
+        console.error("Dashboard fetch error:", err);
+        if (data) {
+          // Keep existing in-memory data visible and show non-blocking banner
+          setRefreshError(true);
+        } else {
+          try {
+            const cachedStr = await AsyncStorage.getItem(cacheKey);
+            if (cachedStr) {
+              setData(JSON.parse(cachedStr));
+              setIsCachedData(true);
+              console.log("[Dashboard] Loaded data from local cache.");
+            } else {
+              setError(true);
+            }
+          } catch {
             setError(true);
           }
-        } catch {
-          setError(true);
         }
       } finally {
         setIsLoading(false);
         setRefreshing(false);
+        isFetchingRef.current = false;
       }
     },
-    [userId]
+    [userId, token, data]
   );
 
   useFocusEffect(
     useCallback(() => {
-      fetchData();
+      fetchData(true);
     }, [fetchData])
   );
 
@@ -169,23 +222,33 @@ export default function DashboardScreen() {
     fetchData(true);
   }, [fetchData]);
 
-  const hssScore = data?.hss_score || 0;
+  const hssScore = typeof data?.hss_score === "number" ? data.hss_score : 0;
+  const hasHssScore = hssScore > 0;
   const theme = getScoreTheme(hssScore, isDark);
-  const isCritical = hssScore < 50;
-  const lastSyncTime = data?.last_sync ? new Date(data.last_sync) : new Date();
+  const isCritical = hasHssScore && hssScore < 50;
+
+  const mealsLogged = (data?.today_activity?.meals_count || 0) > 0;
+  const exerciseLogged = (data?.today_activity?.exercises_count || 0) > 0;
+  const sleepLogged = !!data?.today_activity?.sleep_logged;
+  const vitalsLogged = !!data?.today_activity?.vitals_logged || !!data?.latest_vitals?.logged_at;
+  const completedCount = [mealsLogged, exerciseLogged, sleepLogged, vitalsLogged].filter(Boolean).length;
+  const progressPercent = Math.round((completedCount / 4) * 100);
+
+  const movementMins = data?.today_activity?.total_exercise_minutes || 0;
+  const movementGoal = (data as any)?.thresholds?.active_minutes_goal || 30;
 
   const glowOpacity = pulseAnim.interpolate({
-    inputRange: [1, 1.05],
-    outputRange: [0.2, 0.8],
+    inputRange: [1, 1.03],
+    outputRange: [0.2, 0.6],
   });
 
   useEffect(() => {
     let animLoop: Animated.CompositeAnimation | null = null;
-    if (hssScore < 50 && !isLoading) {
+    if (isCritical && !isLoading && !reduceMotion) {
       animLoop = Animated.loop(
         Animated.sequence([
           Animated.timing(pulseAnim, {
-            toValue: 1.05,
+            toValue: 1.03,
             duration: 800,
             useNativeDriver: true,
           }),
@@ -207,7 +270,7 @@ export default function DashboardScreen() {
         animLoop.stop();
       }
     };
-  }, [hssScore, pulseAnim, isLoading]);
+  }, [isCritical, pulseAnim, isLoading, reduceMotion]);
 
   const [dismissedAlertIds, setDismissedAlertIds] = useState<string[]>([]);
 
@@ -239,53 +302,104 @@ export default function DashboardScreen() {
     }
   }, [data?.latest_alert?.id, isLoading, dismissedAlertIds]);
 
-  if (isLoading) {
+  if (isLoading && !data) {
     return (
-      <ScreenWrapper edges={["top"]} withScrollView={false} safeAreaClassName="flex-1 bg-slate-50 dark:bg-slate-950">
+      <ScreenWrapper edges={["top"]} withScrollView={false} safeAreaClassName="flex-1 bg-background">
         <Header />
-        <View className="px-5 pt-4">
-          <View className="flex-row justify-between items-end mb-4">
-            <View>
-              <Skeleton className="w-32 h-6 mb-2" />
-              <Skeleton className="w-48 h-4" />
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerClassName="px-5 pt-3 pb-28 md:max-w-2xl lg:max-w-4xl mx-auto w-full"
+        >
+          {/* Greeting Skeleton */}
+          <View className="mb-3.5">
+            <Skeleton className="w-52 h-7 mb-1.5 rounded-xl" />
+            <Skeleton className="w-36 h-3.5 rounded-lg" />
+          </View>
+
+          {/* Unified Side-by-Side Hero Card Skeleton */}
+          <View className="bg-card rounded-2xl border border-border p-4 mb-4 shadow-sm">
+            <View className="flex-row items-center justify-between mb-3 pb-2.5 border-b border-border/50">
+              <Skeleton className="w-36 h-4 rounded-md" />
+              <Skeleton className="w-16 h-4 rounded-full" />
+            </View>
+            <View className="flex-row items-center gap-4">
+              {/* Left Circle Ring */}
+              <View className="items-center justify-center">
+                <Skeleton className="w-28 h-28 rounded-full" />
+                <Skeleton className="w-20 h-2.5 rounded-md mt-2" />
+              </View>
+              {/* Right Stacked Vitals Chips */}
+              <View className="flex-1 gap-2">
+                <Skeleton className="w-full h-12 rounded-xl" />
+                <Skeleton className="w-full h-12 rounded-xl" />
+              </View>
             </View>
           </View>
-          <View className="flex-row flex-wrap justify-between">
-            <Skeleton className="w-[48%] h-28 mb-4" />
-            <Skeleton className="w-[48%] h-28 mb-4" />
-            <Skeleton className="w-[48%] h-28 mb-4" />
-            <Skeleton className="w-[48%] h-28 mb-4" />
+
+          {/* 4-Button Horizontal Action Strip Skeleton */}
+          <View className="mb-4">
+            <View className="flex-row items-center justify-between mb-2.5 px-1">
+              <Skeleton className="w-24 h-4 rounded-md" />
+              <Skeleton className="w-20 h-3 rounded-md" />
+            </View>
+            <View className="flex-row justify-between items-center bg-card rounded-2xl border border-border py-3 px-2.5 shadow-sm">
+              {[1, 2, 3, 4].map((i) => (
+                <View key={i} className="items-center flex-1">
+                  <Skeleton className="w-12 h-12 rounded-2xl" />
+                  <Skeleton className="w-10 h-2.5 rounded-md mt-1.5" />
+                </View>
+              ))}
+            </View>
           </View>
-          <Skeleton className="w-full h-48 mt-2 mb-6" />
-          <Skeleton className="w-40 h-6 mb-4" />
-          <Skeleton className="w-full h-32 mb-3" />
-        </View>
+
+          {/* Minimalist Summary Card Skeleton */}
+          <View className="bg-card rounded-2xl border border-border p-4 mb-4 shadow-sm">
+            <Skeleton className="w-32 h-4 rounded-md mb-3" />
+            <Skeleton className="w-full h-14 rounded-xl mb-3" />
+            <Skeleton className="w-full h-5 rounded-md mb-2.5" />
+            <Skeleton className="w-full h-5 rounded-md" />
+          </View>
+
+          {/* Recommendations Skeleton */}
+          <View className="mt-2">
+            <Skeleton className="w-36 h-4 rounded-md mb-3" />
+            <View className="flex-row gap-3">
+              <Skeleton className="w-48 h-28 rounded-2xl" />
+              <Skeleton className="w-48 h-28 rounded-2xl" />
+            </View>
+          </View>
+        </ScrollView>
       </ScreenWrapper>
     );
   }
 
   if (error && !data) {
     return (
-      <ScreenWrapper edges={["top"]} withScrollView={false} safeAreaClassName="flex-1 bg-slate-50 dark:bg-slate-950">
+      <ScreenWrapper edges={["top"]} withScrollView={false} safeAreaClassName="flex-1 bg-background">
         <Header />
         <View className="flex-1 justify-center items-center px-5">
-        <View className="w-16 h-16 rounded-2xl bg-red-50 items-center justify-center mb-4">
-          <Feather name="wifi-off" size={28} color="#e24b4a" />
-        </View>
-        <Text className="text-[17px] font-medium text-slate-900 dark:text-white mb-1 text-center">
-          Unable to load dashboard
-        </Text>
-        <Text className="text-[13px] text-slate-400 text-center mb-6 leading-relaxed">
-          Please check your internet connection and try again.
-        </Text>
-        <TouchableOpacity
-          onPress={() => fetchData()}
-          className="bg-slate-900 px-6 py-3 rounded-xl flex-row items-center gap-2"
-          activeOpacity={0.8}
-        >
-          <Feather name="refresh-cw" size={14} color="#fff" />
-          <Text className="text-white font-medium text-[14px]">Try again</Text>
-        </TouchableOpacity>
+          <View className="bg-card rounded-2xl border border-border p-8 items-center w-full max-w-sm shadow-md">
+            <View className="w-14 h-14 rounded-2xl bg-destructive/10 border border-destructive/20 items-center justify-center mb-4">
+              <Feather name="wifi-off" size={24} color="#ef4444" />
+            </View>
+            <Text className="text-[18px] font-bold text-foreground mb-1 text-center">
+              Unable to load dashboard
+            </Text>
+            <Text className="text-[13px] text-muted-foreground text-center mb-6 leading-relaxed">
+              Check your connection and try again.
+            </Text>
+            <TouchableOpacity
+              onPress={() => fetchData(false)}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel="Try again to load dashboard"
+              className="bg-primary px-6 py-3 rounded-xl flex-row items-center gap-2"
+              activeOpacity={0.8}
+            >
+              <Feather name="refresh-cw" size={14} color="#ffffff" />
+              <Text className="text-white font-bold text-[14px]">Try again</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </ScreenWrapper>
     );
@@ -297,7 +411,7 @@ export default function DashboardScreen() {
     <ScreenWrapper
       edges={["top"]}
       withScrollView={false}
-      safeAreaClassName="flex-1 bg-slate-50 dark:bg-slate-950"
+      safeAreaClassName="flex-1 bg-background"
     >
 
       {/* Custom Alert Modal */}
@@ -318,7 +432,7 @@ export default function DashboardScreen() {
               label: "Find a healthcare facility",
               onPress: () => {
                 handleDismissAlert(data.latest_alert.id);
-                router.push("/locator");
+                safeNavigate("/locator");
               },
               primary: true,
             },
@@ -331,7 +445,7 @@ export default function DashboardScreen() {
       )}
 
       {/* ── Top bar ── */}
-      <Header />
+      <Header unreadCount={data?.unread_notifications_count} />
 
       <ScrollView
         contentContainerClassName="pb-28 md:max-w-2xl lg:max-w-4xl mx-auto w-full"
@@ -344,12 +458,34 @@ export default function DashboardScreen() {
           />
         }
       >
+        {/* ── Background Refresh Error Banner ── */}
+        {refreshError && (
+          <View className="mx-5 mt-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 px-4 py-2.5 rounded-2xl flex-row items-center justify-between">
+            <View className="flex-row items-center gap-2 flex-1 pr-2">
+              <Feather name="alert-circle" size={14} color="#e11d48" />
+              <Text className="text-[12px] text-rose-800 dark:text-rose-300 font-medium">
+                Couldn't refresh your latest data.
+              </Text>
+            </View>
+            <TouchableOpacity
+              onPress={() => fetchData(true)}
+              activeOpacity={0.7}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel="Retry refreshing dashboard"
+              className="bg-rose-100 dark:bg-rose-900/60 px-2.5 py-1 rounded-lg"
+            >
+              <Text className="text-[11px] font-semibold text-rose-700 dark:text-rose-200">Try again</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* ── Offline Banner ── */}
         {isCachedData && (
-          <View className="bg-amber-100 dark:bg-amber-900/40 px-5 py-2.5 flex-row items-center justify-center">
-            <Feather name="wifi-off" size={14} color="#b45309" className="mr-2" />
-            <Text className="text-[12px] font-medium text-amber-700 dark:text-amber-500">
-              Offline - Showing last updated score
+          <View className="mx-5 mt-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/50 px-4 py-2 rounded-xl flex-row items-center justify-center gap-2">
+            <Feather name="wifi-off" size={13} color={isDark ? "#fbbf24" : "#b45309"} />
+            <Text className="text-[12px] font-medium text-amber-800 dark:text-amber-300">
+              Offline • Showing last saved data
             </Text>
           </View>
         )}
@@ -368,7 +504,7 @@ export default function DashboardScreen() {
               <Text className="text-[12px] font-bold text-rose-700 dark:text-rose-300 uppercase tracking-wide mb-0.5">
                 Active Health Alert
               </Text>
-              <Text className="text-[13px] text-rose-900 dark:text-rose-200 font-medium" numberOfLines={1}>
+              <Text className="text-[13px] text-foreground font-medium leading-snug" numberOfLines={2}>
                 {data.latest_alert.message || "Attention required. Tap to view action items."}
               </Text>
             </View>
@@ -377,266 +513,347 @@ export default function DashboardScreen() {
         )}
 
         {/* ── Greeting ── */}
-        <View className="px-5 pt-4 pb-1">
-          <Text className="text-3xl font-semibold text-foreground tracking-tight leading-tight" numberOfLines={1} adjustsFontSizeToFit>
+        <Reanimated.View entering={FadeIn.duration(240)} className="px-5 pt-3 pb-1">
+          <Text className="text-3xl font-bold text-foreground tracking-tight leading-tight" numberOfLines={1} adjustsFontSizeToFit>
             Welcome back, {data?.user?.first_name || "Guest"}
           </Text>
-          <Text className="text-[13px] text-muted-foreground mt-1">
+          <Text className="text-[14px] text-muted-foreground mt-0.5 leading-relaxed">
             {new Date().toLocaleDateString(undefined, {
               weekday: "long",
-              day: "numeric",
               month: "long",
+              day: "numeric",
             })}
           </Text>
-        </View>
+        </Reanimated.View>
 
-        {/* ── HSS Score hero card ── */}
-        <View className="mx-5 mt-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 pt-6 pb-5 px-5 items-center">
-          {/* Score Ring Component */}
-          <Animated.View
-            style={{
-              alignItems: "center",
-              justifyContent: "center",
-              transform: [{ scale: pulseAnim }],
-            }}
-          >
-            {hssScore < 50 && (
+        {/* ============================================================== */}
+        {/* 1. UNIFIED HERO CARD (SCORE + VITALS SIDE-BY-SIDE) */}
+        {/* ============================================================== */}
+        <Reanimated.View entering={FadeInDown.delay(100).duration(260)} className="mx-5 mt-3 bg-card rounded-2xl border border-border p-4 shadow-md">
+          <View className="flex-row items-center justify-between mb-3 pb-2.5 border-b border-border/50">
+            <View className="flex-row items-center gap-2">
+              <View className="w-6 h-6 rounded-md bg-primary/10 border border-primary/20 items-center justify-center">
+                <Feather name="shield" size={12} color={isDark ? "#60a5fa" : "#2563eb"} />
+              </View>
+              <Text className="text-[13px] font-bold text-foreground">
+                Heart Health Status
+              </Text>
+            </View>
+            <View
+              className="flex-row items-center px-2 py-0.5 rounded-full gap-1"
+              style={{ backgroundColor: theme.badgeBg }}
+            >
+              <View
+                className="w-1.5 h-1.5 rounded-full"
+                style={{ backgroundColor: theme.dotColor }}
+              />
+              <Text
+                className="text-[10px] font-bold"
+                style={{ color: theme.badgeText }}
+              >
+                {theme.label}
+              </Text>
+            </View>
+          </View>
+
+          <View className="flex-row items-center gap-4">
+            {/* Left: Compact Score Ring */}
+            <View className="items-center justify-center">
               <Animated.View
                 style={{
-                  position: "absolute",
-                  width: 160,
-                  height: 160,
-                  borderRadius: 80,
-                  backgroundColor: "rgba(226, 75, 74, 0.15)",
-                  opacity: glowOpacity,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  transform: [{ scale: pulseAnim }],
                 }}
-              />
-            )}
-            <ScoreRing score={hssScore} size={140} strokeWidth={12} />
-          </Animated.View>
+              >
+                {isCritical && (
+                  <Animated.View
+                    style={{
+                      position: "absolute",
+                      width: 125,
+                      height: 125,
+                      borderRadius: 62.5,
+                      backgroundColor: "rgba(226, 75, 74, 0.15)",
+                      opacity: glowOpacity,
+                    }}
+                  />
+                )}
+                <ScoreRing score={hssScore} size={115} strokeWidth={9} />
+              </Animated.View>
+              <Text
+                className="text-[10px] text-muted-foreground mt-1.5 font-medium tracking-tight text-center"
+                numberOfLines={1}
+              >
+                {formatFreshness(data?.last_sync, isCachedData)}
+              </Text>
+            </View>
 
-          {/* Timestamp */}
-          <Text className="text-[11px] text-slate-400 mt-3">
-            Last synced: {formatTimestamp(lastSyncTime)} {isCachedData ? "(Offline Cached)" : ""}
-          </Text>
-
-          {/* Label */}
-          <Text className="text-[16px] font-bold text-slate-900 dark:text-white mt-3 mb-1">
-            Health Stability Score
-          </Text>
-          <Text className="text-[13px] text-slate-500 dark:text-slate-400 text-center px-4 mb-3">
-            Based on your current health profile and habits.
-          </Text>
-
-          {/* Status badge */}
-          <View
-            className="flex-row items-center px-3.5 py-1.5 rounded-full gap-2"
-            style={{ backgroundColor: theme.badgeBg }}
-          >
-            <View
-              className="w-2 h-2 rounded-full"
-              style={{ backgroundColor: theme.dotColor }}
-            />
-            <Text
-              className="text-[13px] font-medium"
-              style={{ color: theme.badgeText }}
-            >
-              {theme.label}
-            </Text>
-          </View>
-
-          {/* Progress bar */}
-          <View className="w-full mt-4">
-            <View className="h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-              <View
-                className="h-full rounded-full"
-                style={{
-                  width: `${hssScore}%`,
-                  backgroundColor: theme.barColor,
+            {/* Right: Stacked Vitals Metrics */}
+            <View className="flex-1 gap-2">
+              {/* Heart Rate Chip */}
+              <TouchableOpacity
+                activeOpacity={0.8}
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel={
+                  data?.latest_vitals?.bpm
+                    ? `Heart Rate: ${data.latest_vitals.bpm} BPM. Tap to view or log vitals.`
+                    : "Heart Rate: Not recorded today. Tap to log vitals."
+                }
+                onPress={() => {
+                  Haptics.selectionAsync();
+                  safeNavigate("/(home)/(health)/log-symptoms");
                 }}
-              />
-            </View>
-            <View className="flex-row justify-between mt-1">
-              <Text className="text-[10px] text-slate-300">Critical</Text>
-              <Text className="text-[10px] text-slate-300">Stable 100</Text>
+                className="bg-background/70 dark:bg-slate-950/70 rounded-xl p-2.5 border border-border flex-row items-center justify-between"
+              >
+                <View className="flex-row items-center gap-2 flex-1">
+                  <View className="w-6 h-6 rounded-lg bg-rose-500/10 items-center justify-center">
+                    <Feather name="heart" size={12} color="#f43f5e" />
+                  </View>
+                  <View className="flex-1">
+                    <Text className="text-[10px] font-semibold text-muted-foreground" numberOfLines={1}>Heart Rate</Text>
+                    <View className="flex-row items-baseline gap-1">
+                      <Text className="text-[15px] font-extrabold text-foreground" numberOfLines={1}>
+                        {data?.latest_vitals?.bpm || "--"}
+                      </Text>
+                      <Text className="text-[9px] font-bold text-muted-foreground">BPM</Text>
+                    </View>
+                  </View>
+                </View>
+                <Feather name="chevron-right" size={12} color={isDark ? "#64748b" : "#94a3b8"} />
+              </TouchableOpacity>
+
+              {/* Blood Pressure Chip */}
+              <TouchableOpacity
+                activeOpacity={0.8}
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel={
+                  data?.latest_vitals?.bp
+                    ? `Blood Pressure: ${data.latest_vitals.bp} mmHg. Tap to view or log vitals.`
+                    : "Blood Pressure: Not recorded today. Tap to log vitals."
+                }
+                onPress={() => {
+                  Haptics.selectionAsync();
+                  safeNavigate("/(home)/(health)/log-symptoms");
+                }}
+                className="bg-background/70 dark:bg-slate-950/70 rounded-xl p-2.5 border border-border flex-row items-center justify-between"
+              >
+                <View className="flex-row items-center gap-2 flex-1">
+                  <View className="w-6 h-6 rounded-lg bg-blue-500/10 items-center justify-center">
+                    <Feather name="trending-up" size={12} color={isDark ? "#60a5fa" : "#2563eb"} />
+                  </View>
+                  <View className="flex-1">
+                    <Text className="text-[10px] font-semibold text-muted-foreground" numberOfLines={1}>Blood Pressure</Text>
+                    <View className="flex-row items-baseline gap-1">
+                      <Text className="text-[15px] font-extrabold text-foreground" numberOfLines={1}>
+                        {data?.latest_vitals?.bp === "--/--" ? "--/--" : data?.latest_vitals?.bp || "--/--"}
+                      </Text>
+                      <Text className="text-[9px] font-bold text-muted-foreground">mmHg</Text>
+                    </View>
+                  </View>
+                </View>
+                <Feather name="chevron-right" size={12} color={isDark ? "#64748b" : "#94a3b8"} />
+              </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </Reanimated.View>
 
-        {/* ── Compact Vitals Card ── */}
-        <Reanimated.View entering={FadeInDown.delay(100).springify()} className="mx-5 mt-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4">
-          <View className="flex-row items-center justify-between mb-3">
-            <Text className="text-[11px] text-slate-400 uppercase tracking-wide">
-              Latest Vitals
+        {/* ============================================================== */}
+        {/* 2. 4-BUTTON HORIZONTAL QUICK ACTION STRIP */}
+        {/* ============================================================== */}
+        <Reanimated.View entering={FadeInDown.delay(180).duration(260)} className="mx-5 mt-4">
+          <View className="flex-row items-center justify-between mb-2.5 px-1">
+            <Text className="text-[13px] font-bold text-foreground">
+              Daily Check-in
             </Text>
-            <Text className="text-[11px] text-slate-400">
-              {data?.latest_vitals?.logged_at 
-                ? `Last recorded: ${new Date(data.latest_vitals.logged_at).toLocaleDateString()}` 
-                : "Not recorded"}
+            <Text className="text-[11px] font-semibold text-muted-foreground">
+              {completedCount} of 4 logged
             </Text>
           </View>
           
-          <View className="flex-row justify-between">
-            <View>
-              <Text className="text-[13px] text-slate-500 mb-1">Heart Rate</Text>
-              <View className="flex-row items-end gap-1">
-                <Text className="text-[20px] font-bold text-slate-900 dark:text-white">
-                  {data?.latest_vitals?.bpm || "---"}
-                </Text>
-                <Text className="text-[12px] text-slate-400 mb-1">BPM</Text>
-              </View>
-            </View>
-            
-            <View>
-              <Text className="text-[13px] text-slate-500 mb-1">Blood Pressure</Text>
-              <View className="flex-row items-end gap-1">
-                <Text className="text-[20px] font-bold text-slate-900 dark:text-white">
-                  {data?.latest_vitals?.bp === "--/--" ? "--- / ---" : data?.latest_vitals?.bp || "--- / ---"}
-                </Text>
-                <Text className="text-[12px] text-slate-400 mb-1">mmHg</Text>
-              </View>
-            </View>
-          </View>
-
-          {(!data?.latest_vitals?.logged_at) && (
-            <TouchableOpacity 
-              onPress={() => router.push("/(home)/(health)/log-symptoms")}
-              className="mt-4 bg-primary/10 py-2.5 rounded-lg items-center"
+          <View className="flex-row justify-between items-center bg-card rounded-2xl border border-border py-3 px-2.5 shadow-sm">
+            {/* Meals Action */}
+            <TouchableOpacity
+              activeOpacity={0.7}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel={mealsLogged ? "Meals logged today. Tap to open diary." : "Log meals"}
+              onPress={() => {
+                Haptics.selectionAsync();
+                safeNavigate("/(home)/(meals)/daily-diary");
+              }}
+              className="items-center flex-1"
             >
-              <Text className="text-primary text-[13px] font-semibold">Log Vitals</Text>
+              <View className="relative">
+                <View className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 items-center justify-center">
+                  <MaterialCommunityIcons name="silverware-fork-knife" size={20} color="#f59e0b" />
+                </View>
+                {mealsLogged && (
+                  <View className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 border border-card items-center justify-center">
+                    <Feather name="check" size={10} color="#ffffff" />
+                  </View>
+                )}
+              </View>
+              <Text className="text-[11px] font-semibold text-foreground mt-1.5" numberOfLines={1}>
+                Meals
+              </Text>
             </TouchableOpacity>
-          )}
+
+            {/* Exercise Action */}
+            <TouchableOpacity
+              activeOpacity={0.7}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel={exerciseLogged ? "Exercise logged today. Tap to open diary." : "Log exercise"}
+              onPress={() => {
+                Haptics.selectionAsync();
+                safeNavigate("/(home)/(health)/exercise-diary");
+              }}
+              className="items-center flex-1"
+            >
+              <View className="relative">
+                <View className="w-12 h-12 rounded-2xl bg-blue-500/10 border border-blue-500/20 items-center justify-center">
+                  <Feather name="activity" size={20} color={isDark ? "#60a5fa" : "#2563eb"} />
+                </View>
+                {exerciseLogged && (
+                  <View className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 border border-card items-center justify-center">
+                    <Feather name="check" size={10} color="#ffffff" />
+                  </View>
+                )}
+              </View>
+              <Text className="text-[11px] font-semibold text-foreground mt-1.5" numberOfLines={1}>
+                Exercise
+              </Text>
+            </TouchableOpacity>
+
+            {/* Sleep Action */}
+            <TouchableOpacity
+              activeOpacity={0.7}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel={sleepLogged ? "Sleep logged today. Tap to open sleep log." : "Log sleep"}
+              onPress={() => {
+                Haptics.selectionAsync();
+                safeNavigate("/(home)/(health)/log-sleep");
+              }}
+              className="items-center flex-1"
+            >
+              <View className="relative">
+                <View className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 items-center justify-center">
+                  <Feather name="moon" size={20} color="#6366f1" />
+                </View>
+                {sleepLogged && (
+                  <View className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 border border-card items-center justify-center">
+                    <Feather name="check" size={10} color="#ffffff" />
+                  </View>
+                )}
+              </View>
+              <Text className="text-[11px] font-semibold text-foreground mt-1.5" numberOfLines={1}>
+                Sleep
+              </Text>
+            </TouchableOpacity>
+
+            {/* Symptoms Action */}
+            <TouchableOpacity
+              activeOpacity={0.7}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel={vitalsLogged ? "Symptoms logged today. Tap to open health log." : "Log symptoms and vitals"}
+              onPress={() => {
+                Haptics.selectionAsync();
+                safeNavigate("/(home)/(health)/log-symptoms");
+              }}
+              className="items-center flex-1"
+            >
+              <View className="relative">
+                <View className="w-12 h-12 rounded-2xl bg-rose-500/10 border border-rose-500/20 items-center justify-center">
+                  <Feather name="heart" size={20} color="#f43f5e" />
+                </View>
+                {vitalsLogged && (
+                  <View className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 border border-card items-center justify-center">
+                    <Feather name="check" size={10} color="#ffffff" />
+                  </View>
+                )}
+              </View>
+              <Text className="text-[11px] font-semibold text-foreground mt-1.5" numberOfLines={1}>
+                Symptoms
+              </Text>
+            </TouchableOpacity>
+          </View>
         </Reanimated.View>
 
-
-
-        {/* ── Today's Health ── */}
-        {data?.today_activity && (
-          <Reanimated.View entering={FadeInDown.delay(350).springify()} className="mx-5 mt-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4">
-            <Text className="text-[15px] font-medium text-slate-900 dark:text-white mb-3">
-              Today's Health
-            </Text>
-            <View className="flex-row flex-wrap justify-between">
-              {/* Meals */}
-              <TouchableOpacity activeOpacity={0.8} onPress={() => router.push("/(home)/(meals)/daily-diary")} className="w-[48%] bg-slate-50 dark:bg-slate-950 rounded-xl p-3 mb-3 border border-slate-100 dark:border-slate-800">
-                <View className="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-900/30 items-center justify-center mb-2">
-                  <MaterialCommunityIcons name="silverware-fork-knife" size={14} color={isDark ? "#fbbf24" : "#ea580c"} />
-                </View>
-                <Text className="text-[13px] font-medium text-slate-800 dark:text-slate-200">Meals</Text>
-                <Text className="text-[12px] text-slate-500">{data.today_activity.meals_count > 0 ? `${data.today_activity.meals_count} logged` : "0 logged"}</Text>
-              </TouchableOpacity>
-
-              {/* Exercise */}
-              <TouchableOpacity activeOpacity={0.8} onPress={() => router.push("/(home)/(health)/exercise-diary")} className="w-[48%] bg-slate-50 dark:bg-slate-950 rounded-xl p-3 mb-3 border border-slate-100 dark:border-slate-800">
-                <View className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 items-center justify-center mb-2">
-                  <Feather name="activity" size={14} color={isDark ? "#60a5fa" : "#2563eb"} />
-                </View>
-                <Text className="text-[13px] font-medium text-slate-800 dark:text-slate-200">Exercise</Text>
-                <Text className="text-[12px] text-slate-500">{data.today_activity.exercises_count > 0 ? `${data.today_activity.total_exercise_minutes} min` : "0 min"}</Text>
-              </TouchableOpacity>
-
-              {/* Sleep */}
-              <TouchableOpacity activeOpacity={0.8} onPress={() => router.push("/(home)/(health)/log-sleep")} className={`w-[48%] bg-slate-50 dark:bg-slate-950 rounded-xl p-3 border border-slate-100 dark:border-slate-800 ${!data.today_activity.sleep_logged ? "opacity-60" : ""}`}>
-                <View className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 items-center justify-center mb-2">
-                  <Feather name="moon" size={14} color={isDark ? "#818cf8" : "#4f46e5"} />
-                </View>
-                <Text className="text-[13px] font-medium text-slate-800 dark:text-slate-200">Sleep</Text>
-                <Text className="text-[12px] text-slate-500">
-                  {data.today_activity.sleep_logged 
-                    ? `${Math.floor(data.today_activity.total_sleep_hours)}h ${Math.round((data.today_activity.total_sleep_hours % 1) * 60)}m` 
-                    : "Not logged"}
+        {/* ============================================================== */}
+        {/* 3. MINIMALIST SUMMARY CARD (AI TIP + TARGETS) */}
+        {/* ============================================================== */}
+        {(data?.insight || data?.nutrition_budget || data?.today_activity) && (
+          <Reanimated.View entering={FadeInDown.delay(240).duration(260)} className="mx-5 mt-4 bg-card rounded-2xl border border-border p-4 shadow-sm">
+            <View className="flex-row items-center justify-between mb-3">
+              <View className="flex-row items-center gap-1.5">
+                <Feather name="compass" size={13} color={isDark ? "#60a5fa" : "#2563eb"} />
+                <Text className="text-[13px] font-bold text-foreground">
+                  Today's Summary
                 </Text>
-              </TouchableOpacity>
-
-              {/* Vitals */}
-              <TouchableOpacity activeOpacity={0.8} onPress={() => router.push("/(home)/(health)/log-symptoms")} className="w-[48%] bg-slate-50 dark:bg-slate-950 rounded-xl p-3 border border-slate-100 dark:border-slate-800">
-                <View className="w-8 h-8 rounded-full bg-rose-100 dark:bg-rose-900/30 items-center justify-center mb-2">
-                  <Feather name="heart" size={14} color={isDark ? "#fb7185" : "#e11d48"} />
-                </View>
-                <Text className="text-[13px] font-medium text-slate-800 dark:text-slate-200">Vitals</Text>
-                <Text className="text-[12px] text-slate-500">{data.today_activity.vitals_logged ? "Logged" : "Not logged"}</Text>
-              </TouchableOpacity>
-            </View>
-          </Reanimated.View>
-        )}
-
-        {/* ── Nutrition Today ── */}
-        {data?.nutrition_budget && (
-          <Reanimated.View entering={FadeInDown.delay(500).springify()} className="mx-5 mt-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4">
-            <Text className="text-[15px] font-medium text-slate-900 dark:text-white mb-3">
-              Nutrition Today
-            </Text>
-            
-            {/* Sodium */}
-            <View className="mb-4">
-              <View className="flex-row items-center justify-between mb-2">
-                <Text className="text-[13px] text-slate-600 dark:text-slate-400">Sodium</Text>
-                <Text className="text-[13px] font-medium" style={{ color: (data.nutrition_budget.sodium.limit_mg && data.nutrition_budget.sodium.consumed_mg > data.nutrition_budget.sodium.limit_mg) ? "#e11d48" : (isDark ? "#f8fafc" : "#0f172a") }}>
-                  {data.nutrition_budget.sodium.consumed_mg} / {data.nutrition_budget.sodium.limit_mg ? `${data.nutrition_budget.sodium.limit_mg} mg` : "Target not set"}
-                </Text>
-              </View>
-              <View className="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                <View className="h-full rounded-full" style={{
-                  width: data.nutrition_budget.sodium.limit_mg ? `${Math.min((data.nutrition_budget.sodium.consumed_mg / data.nutrition_budget.sodium.limit_mg) * 100, 100)}%` : "0%",
-                  backgroundColor: (data.nutrition_budget.sodium.limit_mg && data.nutrition_budget.sodium.consumed_mg > data.nutrition_budget.sodium.limit_mg) ? "#e11d48" : "#0d9488"
-                }} />
               </View>
             </View>
 
-            {/* Calories */}
-            <View>
-              <View className="flex-row items-center justify-between mb-2">
-                <Text className="text-[13px] text-slate-600 dark:text-slate-400">Calories</Text>
-                <Text className="text-[13px] font-medium" style={{ color: (data.nutrition_budget.calories.limit && data.nutrition_budget.calories.consumed > data.nutrition_budget.calories.limit) ? "#e11d48" : (isDark ? "#f8fafc" : "#0f172a") }}>
-                  {data.nutrition_budget.calories.consumed} / {data.nutrition_budget.calories.limit ? `${data.nutrition_budget.calories.limit} kcal` : "Target not set"}
-                </Text>
-              </View>
-              <View className="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                <View className="h-full rounded-full" style={{
-                  width: data.nutrition_budget.calories.limit ? `${Math.min((data.nutrition_budget.calories.consumed / data.nutrition_budget.calories.limit) * 100, 100)}%` : "0%",
-                  backgroundColor: (data.nutrition_budget.calories.limit && data.nutrition_budget.calories.consumed > data.nutrition_budget.calories.limit) ? "#e11d48" : "#f59e0b"
-                }} />
-              </View>
-            </View>
-          </Reanimated.View>
-        )}
-
-        {/* ── Today's Insight ── */}
-        {data?.insight && (
-          <Reanimated.View entering={FadeInDown.delay(300).springify()} className="mx-5 mt-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4">
-            <Text className="text-[11px] text-slate-400 uppercase tracking-wide mb-3">
-              Today's Insight
-            </Text>
-            <View className="flex-row items-start gap-3">
-              <View
-                className="w-9 h-9 rounded-xl items-center justify-center flex-shrink-0"
-                style={{
-                  backgroundColor:
-                    data.insight.icon === "trending-down"
-                      ? "#fcebeb"
-                      : data.insight.icon === "trending-up"
-                      ? "#eaf3de"
-                      : "#f1f5f9",
-                }}
-              >
+            {/* AI Insight banner */}
+            {data?.insight && (
+              <View className="bg-background/70 dark:bg-slate-950/70 rounded-xl p-3 border border-border flex-row items-start gap-2.5 mb-3">
                 <Feather
                   name={(data.insight.icon || "zap") as any}
-                  size={16}
+                  size={14}
                   color={
                     data.insight.icon === "trending-down"
-                      ? "#e24b4a"
+                      ? "#ef4444"
                       : data.insight.icon === "trending-up"
-                      ? "#3b6d11"
-                      : "#185fa5"
+                      ? "#10b981"
+                      : (isDark ? "#60a5fa" : "#2563eb")
                   }
+                  style={{ marginTop: 2 }}
                 />
-              </View>
-              <Text className="flex-1 text-[13px] text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
-                <Text className="font-bold text-foreground">
-                  {data.insight?.title || ""}{" "}
+                <Text className="flex-1 text-[12px] text-muted-foreground leading-relaxed font-medium">
+                  <Text className="font-bold text-foreground">{data.insight?.title || ""}{" "}</Text>
+                  {data.insight.body}
                 </Text>
-                {data.insight.body}
-              </Text>
+              </View>
+            )}
+
+            {/* Targets */}
+            <View className="gap-2.5">
+              {/* Sodium */}
+              {data?.nutrition_budget?.sodium && (
+                <View>
+                  <View className="flex-row items-center justify-between mb-1 gap-2">
+                    <Text className="text-[11px] font-semibold text-foreground">Sodium Intake</Text>
+                    <Text className="text-[11px] font-bold text-muted-foreground">
+                      {data.nutrition_budget.sodium.consumed_mg} / {data.nutrition_budget.sodium.limit_mg ? `${data.nutrition_budget.sodium.limit_mg} mg` : "Target not set"}
+                    </Text>
+                  </View>
+                  <View className="h-1.5 bg-muted/20 rounded-full overflow-hidden">
+                    <View className="h-full rounded-full" style={{
+                      width: data.nutrition_budget.sodium.limit_mg ? `${Math.min((data.nutrition_budget.sodium.consumed_mg / data.nutrition_budget.sodium.limit_mg) * 100, 100)}%` : "0%",
+                      backgroundColor: (data.nutrition_budget.sodium.limit_mg && data.nutrition_budget.sodium.consumed_mg > data.nutrition_budget.sodium.limit_mg) ? "#ef4444" : "#0d9488"
+                    }} />
+                  </View>
+                </View>
+              )}
+
+              {/* Movement */}
+              <View>
+                <View className="flex-row items-center justify-between mb-1 gap-2">
+                  <Text className="text-[11px] font-semibold text-foreground">Daily Movement</Text>
+                  <Text className="text-[11px] font-bold text-muted-foreground">
+                    {movementMins} / {movementGoal} mins
+                  </Text>
+                </View>
+                <View className="h-1.5 bg-muted/20 rounded-full overflow-hidden">
+                  <View className="h-full rounded-full" style={{
+                    width: `${Math.min((movementMins / movementGoal) * 100, 100)}%`,
+                    backgroundColor: movementMins >= movementGoal ? "#10b981" : (isDark ? "#60a5fa" : "#2563eb")
+                  }} />
+                </View>
+              </View>
             </View>
           </Reanimated.View>
         )}
@@ -644,25 +861,28 @@ export default function DashboardScreen() {
         {isCritical ? (
           <View className="mt-6 mb-4">
             <View className="px-5 mb-3">
-              <Text className="text-[14px] font-bold text-red-600 uppercase tracking-wide">
+              <Text className="text-[14px] font-bold text-destructive uppercase tracking-wide">
                 Prioritize Safety
               </Text>
             </View>
             <TouchableOpacity
               activeOpacity={0.8}
-              onPress={() => router.push("/locator")}
-              className="mx-5 bg-red-50 rounded-2xl p-4 border border-red-200 flex-row items-center justify-between"
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel="Need professional guidance. Find a cardiologist near you to discuss your risk level."
+              onPress={() => safeNavigate("/locator")}
+              className="mx-5 bg-destructive/10 rounded-2xl p-4 border border-destructive/30 flex-row items-center justify-between shadow-sm"
             >
               <View className="flex-1 pr-4">
-                <Text className="text-[15px] font-medium text-slate-900 dark:text-white mb-0.5">
+                <Text className="text-[15px] font-bold text-foreground mb-0.5">
                   Need professional guidance?
                 </Text>
-                <Text className="text-[13px] text-slate-600">
+                <Text className="text-[13px] text-muted-foreground leading-relaxed">
                   Find a cardiologist near you to discuss your risk level.
                 </Text>
               </View>
-              <View className="w-10 h-10 bg-red-100 rounded-xl items-center justify-center">
-                <Feather name="map-pin" size={18} color="#e24b4a" />
+              <View className="w-10 h-10 bg-destructive/15 border border-destructive/20 rounded-xl items-center justify-center">
+                <Feather name="map-pin" size={18} color="#ef4444" />
               </View>
             </TouchableOpacity>
           </View>
@@ -671,13 +891,15 @@ export default function DashboardScreen() {
             {/* ── Recommendations ── */}
             <View className="mt-6">
               <View className="px-5 flex-row items-center justify-between mb-3">
-                <Text className="text-[15px] font-medium text-slate-900 dark:text-white">
+                <Text className="text-[16px] font-bold text-foreground">
                   Recommended for you
                 </Text>
               </View>
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
+                nestedScrollEnabled={true}
+                directionalLockEnabled={true}
                 contentContainerClassName="px-5 gap-3"
               >
                 {data?.recommendations?.map((r: any, idx: number) => (
@@ -693,15 +915,9 @@ export default function DashboardScreen() {
                     subColor={r.subColor}
                     onPress={() => {
                       if (r.type === "recipe") {
-                        router.push({
-                          pathname: "/(home)/(meals)/recipe-details",
-                          params: { id: r.id },
-                        });
+                        safeNavigate("/(home)/(meals)/recipe-details", { id: r.id });
                       } else if (r.type === "exercise") {
-                        router.push({
-                          pathname: "/(home)/(health)/exercise-details",
-                          params: { id: r.id },
-                        });
+                        safeNavigate("/(home)/(health)/exercise-details", { id: r.id });
                       }
                     }}
                   />
@@ -712,19 +928,22 @@ export default function DashboardScreen() {
             {/* ── Locator CTA ── */}
             <TouchableOpacity
               activeOpacity={0.8}
-              onPress={() => router.push("/locator")}
-              className="mx-5 mt-4 bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200 dark:border-slate-800 flex-row items-center justify-between"
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel="Find a healthcare facility. Locate clinics or healthcare providers near you."
+              onPress={() => safeNavigate("/locator")}
+              className="mx-5 mt-4 bg-card rounded-2xl p-4 border border-border flex-row items-center justify-between shadow-sm"
             >
               <View className="flex-1 pr-4">
-                <Text className="text-[15px] font-medium text-slate-900 dark:text-white mb-0.5">
+                <Text className="text-[15px] font-bold text-foreground mb-0.5">
                   Find a healthcare facility
                 </Text>
-                <Text className="text-[13px] text-slate-400">
+                <Text className="text-[13px] text-muted-foreground leading-relaxed">
                   Locate clinics or healthcare providers near you.
                 </Text>
               </View>
-              <View className="w-10 h-10 bg-blue-50 rounded-xl items-center justify-center">
-                <Feather name="map-pin" size={18} color="#1e4ed8" />
+              <View className="w-10 h-10 bg-primary/10 border border-primary/20 rounded-xl items-center justify-center">
+                <Feather name="map-pin" size={18} color={isDark ? "#60a5fa" : "#2563eb"} />
               </View>
             </TouchableOpacity>
           </>

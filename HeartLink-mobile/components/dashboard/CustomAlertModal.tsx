@@ -1,5 +1,6 @@
 import React from "react";
 import { View, Text, TouchableOpacity, Modal } from "react-native";
+import { useColorScheme } from "nativewind";
 import { Feather } from "@expo/vector-icons";
 
 export function CustomAlertModal({
@@ -21,6 +22,9 @@ export function CustomAlertModal({
   iconColor: string;
   actions: { label: string; onPress: () => void; primary?: boolean }[];
 }) {
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === "dark";
+
   return (
     <Modal
       visible={visible}
@@ -31,14 +35,14 @@ export function CustomAlertModal({
       <View
         style={{
           flex: 1,
-          backgroundColor: "rgba(0,0,0,0.4)",
+          backgroundColor: "rgba(0,0,0,0.5)",
           justifyContent: "center",
           alignItems: "center",
           paddingHorizontal: 28,
         }}
       >
         <View
-          className="bg-white dark:bg-slate-900 rounded-3xl w-full overflow-hidden"
+          className="bg-white dark:bg-slate-900 rounded-3xl w-full overflow-hidden border border-transparent dark:border-slate-800"
           style={{ maxWidth: 360 }}
         >
           <View className="items-center pt-7 pb-4 px-6">
@@ -56,26 +60,36 @@ export function CustomAlertModal({
             </Text>
           </View>
           <View className="px-5 pb-5 gap-2">
-            {actions.map((action, i) => (
-              <TouchableOpacity
-                key={i}
-                onPress={action.onPress}
-                activeOpacity={0.8}
-                className="w-full py-3.5 rounded-xl items-center"
-                style={{
-                  backgroundColor: action.primary ? "#0f172a" : "transparent",
-                  borderWidth: action.primary ? 0 : 1,
-                  borderColor: "#e2e8f0",
-                }}
-              >
-                <Text
-                  className="text-[14px] font-medium"
-                  style={{ color: action.primary ? "#fff" : "#64748b" }}
+            {actions.map((action, i) => {
+              const primaryBg = isDark ? "#2563eb" : "#0f172a";
+              const secondaryBorder = isDark ? "#334155" : "#e2e8f0";
+              const textColor = action.primary
+                ? "#ffffff"
+                : isDark
+                ? "#cbd5e1"
+                : "#64748b";
+
+              return (
+                <TouchableOpacity
+                  key={i}
+                  onPress={action.onPress}
+                  activeOpacity={0.8}
+                  className="w-full py-3.5 rounded-xl items-center"
+                  style={{
+                    backgroundColor: action.primary ? primaryBg : "transparent",
+                    borderWidth: action.primary ? 0 : 1,
+                    borderColor: action.primary ? "transparent" : secondaryBorder,
+                  }}
                 >
-                  {action.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
+                  <Text
+                    className="text-[14px] font-medium"
+                    style={{ color: textColor }}
+                  >
+                    {action.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </View>
       </View>

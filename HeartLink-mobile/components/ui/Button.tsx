@@ -11,7 +11,7 @@ interface ButtonProps extends PressableProps {
   isLoading?: boolean;
   loadingText?: string;
   icon?: keyof typeof Feather.glyphMap;
-  variant?: "primary" | "outline";
+  variant?: "primary" | "outline" | "destructive";
 }
 
 export function Button({
@@ -44,6 +44,22 @@ export function Button({
   };
 
   const isDisabled = props.disabled || isLoading;
+  const isPrimary = variant === "primary";
+  const isDestructive = variant === "destructive";
+
+  const buttonBg = isDestructive
+    ? "w-full rounded-2xl py-4 flex-row justify-center items-center gap-2 bg-destructive shadow-sm"
+    : isPrimary
+    ? "w-full rounded-2xl py-4 flex-row justify-center items-center gap-2 bg-primary shadow-sm"
+    : "w-full rounded-2xl py-4 flex-row justify-center items-center gap-2 bg-transparent border border-border";
+
+  const textColor = isDestructive
+    ? "text-sm font-semibold text-destructive-foreground"
+    : isPrimary
+    ? "text-sm font-semibold text-primary-foreground"
+    : "text-sm font-semibold text-foreground";
+
+  const iconColor = isDestructive || isPrimary ? "#ffffff" : "#0f172a";
 
   return (
     <AnimatedPressable
@@ -52,17 +68,15 @@ export function Button({
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
       disabled={isDisabled}
-      style={[animatedStyle, props.style]}
+      style={[animatedStyle, { opacity: isDisabled ? 0.7 : 1 }, props.style]}
       accessibilityState={{ busy: isLoading, disabled: isDisabled }}
       accessibilityRole="button"
-      className={`w-full rounded-2xl py-4 flex-row justify-center items-center gap-2 ${
-        variant === "primary" ? "bg-primary" : "bg-transparent border border-border"
-      } ${isDisabled ? "opacity-70" : ""}`}
+      className={buttonBg}
     >
       {isLoading ? (
         <>
-          <ActivityIndicator size="small" color={variant === "primary" ? "#fff" : "#000"} />
-          <Text className={`text-sm font-semibold ${variant === "primary" ? "text-primary-foreground" : "text-foreground"}`}>
+          <ActivityIndicator size="small" color="#fff" />
+          <Text className={textColor}>
             {loadingText || label}
           </Text>
         </>
@@ -72,10 +86,10 @@ export function Button({
             <Feather 
               name={icon} 
               size={16} 
-              className={variant === "primary" ? "text-primary-foreground" : "text-foreground"} 
+              color={iconColor} 
             />
           )}
-          <Text className={`text-sm font-semibold ${variant === "primary" ? "text-primary-foreground" : "text-foreground"}`}>
+          <Text className={textColor}>
             {label}
           </Text>
         </>

@@ -16,7 +16,7 @@ const AdminLayout = ({ children }) => {
     // Wait until authenticated to avoid premature redirects
     if (!isAuthenticated) return;
     
-    const role = user?.role || (userId === "usr-super-admin-001" ? "super_admin" : (userId === "usr-chief-admin-001" ? "admin" : "medical_expert"));
+    const role = user?.role;
     
     if (role === "medical_expert") {
       const restrictedRoutes = ["/analytics", "/foods", "/exercises", "/feedbacks", "/broadcasts", "/settings"];

@@ -113,7 +113,7 @@ export default function ScanResultScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams();
-  const { userId } = useUser();
+  const { userId, token } = useUser();
   const { showToast } = useToast();
 
   const [product, setProduct] = useState(() => 
@@ -138,11 +138,11 @@ export default function ScanResultScreen() {
   const servings = parseFloat(servingsStr) || 1;
 
   const calc = {
-    sodium:      product.sodium_mg * servings,
-    fat:         product.saturated_fat_g * servings,
-    calories:    product.energy_kcal * servings,
-    fiber:       product.fiber_g * servings,
-    cholesterol: product.cholesterol_mg * servings,
+    sodium:      (product.sodium_mg || 0) * servings,
+    fat:         (product.saturated_fat_g || 0) * servings,
+    calories:    (product.energy_kcal || 0) * servings,
+    fiber:       (product.fiber_g || 0) * servings,
+    cholesterol: (product.cholesterol_mg || 0) * servings,
   };
 
   const isHighSodium = calc.sodium > 500;
@@ -162,7 +162,10 @@ export default function ScanResultScreen() {
     try {
       const response = await fetch(`${base_url}/api/meals/${userId}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token || ""}`,
+        },
         body: JSON.stringify(payload),
       });
 

@@ -54,8 +54,6 @@ export function ScreenWrapper({
     <SafeAreaView className={safeAreaClassName} edges={edges}>
       <StatusBar 
         style={colorScheme === "dark" ? "light" : "dark"} 
-        backgroundColor="transparent" 
-        translucent={true} 
       />
       {content}
     </SafeAreaView>

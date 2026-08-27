@@ -70,7 +70,7 @@ export default function RecipeDetailsScreen() {
   const isDark = colorScheme === "dark";
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { userId } = useUser();
+  const { userId, token } = useUser();
   const { showToast } = useToast();
   const insets = useSafeAreaInsets();
 
@@ -164,21 +164,23 @@ export default function RecipeDetailsScreen() {
 
   const handleLogMeal = async () => {
     setIsSubmitting(true);
+    const payload = {
+      recipe_id: recipe.id,
+      meal_name: recipe.title,
+      portion: servingsMultiplier,
+      calories: currentCalories,
+      sodium_mg: currentSodium,
+      saturated_fat_g: currentSatFat,
+      fiber_g: currentFiber,
+      image_url: recipe.image,
+    };
     try {
-      const payload = {
-        recipe_id: recipe.id,
-        meal_name: recipe.title,
-        portion: servingsMultiplier,
-        calories: currentCalories,
-        sodium_mg: currentSodium,
-        saturated_fat_g: currentSatFat,
-        fiber_g: currentFiber,
-        image_url: recipe.image,
-      };
-      
       const response = await fetch(`${base_url}/api/meals/${userId}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token || ""}`,
+        },
         body: JSON.stringify(payload),
       });
 
@@ -233,7 +235,6 @@ export default function RecipeDetailsScreen() {
             name="heart"
             size={20}
             color={isSaved ? "#ef4444" : "#0f172a"}
-            style={isSaved ? { fill: "#ef4444" } : {}}
           />
         </TouchableOpacity>
       </View>
@@ -268,11 +269,11 @@ export default function RecipeDetailsScreen() {
           </View>
           <View
             className="absolute bottom-4 right-5 px-2.5 py-1 rounded-lg"
-            style={{ backgroundColor: DIFFICULTY_CONFIG[recipe.difficulty].bg }}
+            style={{ backgroundColor: (DIFFICULTY_CONFIG as any)[recipe.difficulty]?.bg || "#eaf3de" }}
           >
             <Text
               className="text-[10px] font-medium uppercase tracking-wide"
-              style={{ color: DIFFICULTY_CONFIG[recipe.difficulty].text }}
+              style={{ color: (DIFFICULTY_CONFIG as any)[recipe.difficulty]?.text || "#3b6d11" }}
             >
               {recipe.difficulty}
             </Text>
@@ -289,7 +290,7 @@ export default function RecipeDetailsScreen() {
           </Text>
 
           <View className="flex-row flex-wrap gap-1.5 mb-6">
-            {recipe.tags.map((tag) => (
+            {recipe.tags.map((tag: string) => (
               <View
                 key={tag}
                 className="px-2 py-0.5 rounded-md border"
@@ -461,7 +462,7 @@ export default function RecipeDetailsScreen() {
 
           {activeTab === "Ingredients" ? (
             <View className="bg-slate-50 dark:bg-slate-950 rounded-3xl p-5 border border-slate-100 dark:border-slate-800 mb-6">
-              {recipe.ingredients.map((ing, i) => (
+              {recipe.ingredients.map((ing: any, i: number) => (
                 <View
                   key={i}
                   className="flex-row items-center py-4"
@@ -484,7 +485,7 @@ export default function RecipeDetailsScreen() {
             </View>
           ) : (
             <View className="bg-slate-50 dark:bg-slate-950 rounded-3xl p-5 border border-slate-100 dark:border-slate-800 mb-6">
-              {recipe.steps.map((step, i) => (
+              {recipe.steps.map((step: any, i: number) => (
                 <View
                   key={i}
                   className="flex-row py-4"

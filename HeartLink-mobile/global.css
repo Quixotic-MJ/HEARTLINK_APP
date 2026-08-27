@@ -23,6 +23,9 @@
     --color-success: 16 185 129; /* #10B981 - emerald-500 */
     --color-success-foreground: 255 255 255;
 
+    --color-accent: 244 63 94; /* #F43F5E - rose-500 */
+    --color-accent-foreground: 255 255 255;
+
     /* Health Score Themes */
     --color-health-stable: 13 148 136; /* #0D9488 - teal-600 */
     --color-health-stable-track: 204 251 241; /* #CCFBF1 - teal-100 */
@@ -56,6 +59,9 @@
 
     --color-success: 52 211 153; /* #34D399 - emerald-400 */
     --color-success-foreground: 2 44 34;
+
+    --color-accent: 251 113 133; /* #FB7185 - rose-400 */
+    --color-accent-foreground: 255 255 255;
 
     /* Dark Mode Health Themes */
     --color-health-stable: 45 212 191; /* #2DD4BF - teal-400 */

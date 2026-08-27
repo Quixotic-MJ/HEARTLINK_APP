@@ -80,7 +80,7 @@ function generateHeatmapCalendar(loggedDates: Set<string>) {
 
 export default function AnalyticsScreen() {
   const router = useRouter();
-  const { userId } = useUser();
+  const { userId, token } = useUser();
   const [isLoading, setIsLoading] = useState(true);
   const [logs, setLogs] = useState<any[]>([]);
 
@@ -88,7 +88,11 @@ export default function AnalyticsScreen() {
     if (!userId) return;
     setIsLoading(true);
     try {
-      const response = await fetch(`${base_url}/api/health-logs/${userId}`);
+      const response = await fetch(`${base_url}/api/health-logs/${userId}`, {
+        headers: {
+          "Authorization": `Bearer ${token || ""}`,
+        },
+      });
       if (response.ok) {
         const data = await response.json();
         setLogs(data);
@@ -98,7 +102,7 @@ export default function AnalyticsScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, [userId]);
+  }, [userId, token]);
 
   useFocusEffect(
     useCallback(() => {

@@ -1,7 +1,13 @@
 from datetime import datetime, timedelta
 import os
 import hashlib
-import app.mock_db as mock_db
+from app.db.repositories import (
+    get_profile_repo,
+    get_health_logs_repo,
+    get_meals_repo,
+    get_exercises_repo,
+    get_sleep_repo,
+)
 from app.services.feature_transform import transform_to_model_features
 
 def get_model_metadata() -> dict:
@@ -38,11 +44,12 @@ def get_clinical_baseline_data(user_id: str) -> dict:
     and user baseline thresholds to serve Case Review and Profile portals.
     """
     # 1. Fetch patient profile to check diagnosed conditions
-    profile = next((p for p in mock_db.profiles if p["id"] == user_id), {})
+    profile = get_profile_repo().get_by_id(user_id) or {}
     
     # Diagnosed conditions are usually stored in health_goals or alerts snapshot
     conditions = []
-    alert = next((a for a in mock_db.alerts if a["user_id"] == user_id), None)
+    alerts = get_health_logs_repo().list_alerts(user_id=user_id)
+    alert = alerts[0] if alerts else None
     if alert and alert.get("patient_snapshot", {}).get("conditions"):
         conditions = alert["patient_snapshot"]["conditions"]
     else:
@@ -52,10 +59,10 @@ def get_clinical_baseline_data(user_id: str) -> dict:
             conditions.append("Hyperlipidemia")
             
     # 2. Query daily health logs for BP and HR
-    user_logs = [log for log in mock_db.daily_health_logs if log["user_id"] == user_id]
+    user_logs = get_health_logs_repo().list_user_logs(user_id)
     latest_log = {}
     if user_logs:
-        latest_log = sorted(user_logs, key=lambda x: x.get("logged_at", datetime.min), reverse=True)[0]
+        latest_log = sorted(user_logs, key=lambda x: str(x.get("logged_at") or ""), reverse=True)[0]
         
     resting_bp = f"{latest_log.get('systolic_bp', 120)}/{latest_log.get('diastolic_bp', 80)}" if latest_log else "120/80"
     max_hr = latest_log.get("heart_rate_bpm", 72) if latest_log else 72
@@ -88,10 +95,12 @@ def get_recent_telemetry_timeline(user_id: str, limit_days: int = 30) -> list:
                 return datetime.fromisoformat(dt)
             except ValueError:
                 return datetime.min
-        return dt or datetime.min
+        if isinstance(dt, datetime):
+            return dt
+        return datetime.min
 
     # daily health logs (Vitals & Symptoms)
-    for log in [l for l in mock_db.daily_health_logs if l.get("user_id") == user_id]:
+    for log in get_health_logs_repo().list_user_logs(user_id):
         dt = parse_dt(log)
         if dt >= cutoff_date:
             logs.append({
@@ -116,7 +125,7 @@ def get_recent_telemetry_timeline(user_id: str, limit_days: int = 30) -> list:
                 })
                 
     # meals
-    for m in [m for m in mock_db.meal_logs if m.get("user_id") == user_id]:
+    for m in get_meals_repo().list_user_meals(user_id):
         dt = parse_dt(m)
         if dt >= cutoff_date:
             logs.append({
@@ -130,7 +139,7 @@ def get_recent_telemetry_timeline(user_id: str, limit_days: int = 30) -> list:
             })
             
     # exercises
-    for e in [e for e in mock_db.exercise_logs if e.get("user_id") == user_id]:
+    for e in get_exercises_repo().list_user_logs(user_id):
         dt = parse_dt(e)
         if dt >= cutoff_date:
             logs.append({
@@ -144,9 +153,9 @@ def get_recent_telemetry_timeline(user_id: str, limit_days: int = 30) -> list:
             })
             
     # sleep
-    for s in [s for s in mock_db.sleep_logs if s.get("user_id") == user_id and s.get("deleted_at") is None]:
+    for s in get_sleep_repo().list_user_logs(user_id):
         dt = parse_dt(s)
-        if dt >= cutoff_date:
+        if dt >= cutoff_date and not s.get("is_deleted", False):
             logs.append({
                 "type": "Sleep",
                 "timestamp": s.get("logged_at"),

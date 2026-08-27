@@ -1,11 +1,12 @@
 import React from 'react';
-import { Pressable, PressableProps, StyleProp, ViewStyle } from 'react-native';
+import { Pressable, PressableProps, StyleProp, ViewStyle, Platform } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withTiming,
   Easing,
 } from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -13,7 +14,6 @@ export interface AnimatedButtonProps extends PressableProps {
   className?: string;
   style?: StyleProp<ViewStyle>;
   children?: React.ReactNode;
-  slideDistance?: number;
 }
 
 export default function AnimatedButton({
@@ -22,31 +22,33 @@ export default function AnimatedButton({
   className,
   onPressIn,
   onPressOut,
-  slideDistance = 4, // Slides 4 pixels right on press
   ...rest
 }: AnimatedButtonProps) {
-  const offset = useSharedValue(0);
+  const scale = useSharedValue(1);
 
   const animatedStyle = useAnimatedStyle(() => {
     return {
-      transform: [{ translateX: offset.value }],
+      transform: [{ scale: scale.value }],
     };
   });
 
   const handlePressIn = (e: any) => {
-    offset.value = withTiming(slideDistance, {
-      duration: 150,
-      easing: Easing.out(Easing.cubic),
+    scale.value = withTiming(0.97, {
+      duration: 100,
+      easing: Easing.out(Easing.ease),
     });
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
     if (onPressIn) {
       onPressIn(e);
     }
   };
 
   const handlePressOut = (e: any) => {
-    offset.value = withTiming(0, {
-      duration: 200,
-      easing: Easing.out(Easing.cubic),
+    scale.value = withTiming(1, {
+      duration: 150,
+      easing: Easing.out(Easing.ease),
     });
     if (onPressOut) {
       onPressOut(e);

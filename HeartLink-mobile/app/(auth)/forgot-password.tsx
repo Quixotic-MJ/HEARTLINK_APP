@@ -74,14 +74,10 @@ export default function ForgotPasswordScreen() {
       const data = await response.json();
 
       if (response.ok) {
-        console.log("=====================================");
-        console.log("TEMP PASS RECEIVED:", resData.temp_password);
-        console.log("=====================================");
-        
         showToast({ title: "Link Sent", message: "If this account is registered, you will receive reset instructions shortly.", type: "success" });
         setTimeout(() => router.back(), 1500);
       } else {
-        setGeneralError(resData.detail || "Account not found.");
+        setGeneralError(data.detail || "Account not found.");
       }
     } catch (err) {
       console.log(err);
@@ -153,8 +149,7 @@ export default function ForgotPasswordScreen() {
                 name="identifier"
                 label="Email or Phone number"
                 icon="user"
-                placeholder="john@example.com or +63..."
-                error={errors.identifier?.message}
+                placeholder="Enter your email or phone number"
                 keyboardType="default"
               />
             </View>

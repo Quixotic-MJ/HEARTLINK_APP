@@ -317,7 +317,7 @@ export default function ProfileScreen() {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
   const router = useRouter();
-  const { userId, user, logout } = useUser();
+  const { userId, token, user, logout, refreshUser } = useUser();
   const { showToast } = useToast();
 
   const [showUpdateModal, setShowUpdateModal] = useState(false);
@@ -345,9 +345,18 @@ export default function ProfileScreen() {
   useEffect(() => {
     async function fetchProfile() {
       try {
+        const effectiveToken = token || "";
         const [profileRes, logsRes] = await Promise.all([
-          fetch(`${base_url}/api/users/${userId}/profile`),
-          fetch(`${base_url}/api/health-logs/${userId}`).catch(() => null)
+          fetch(`${base_url}/api/users/${userId}/profile`, {
+            headers: {
+              "Authorization": `Bearer ${effectiveToken}`,
+            },
+          }),
+          fetch(`${base_url}/api/health-logs/${userId}`, {
+            headers: {
+              "Authorization": `Bearer ${effectiveToken}`,
+            },
+          }).catch(() => null)
         ]);
         
         if (!profileRes.ok) throw new Error("Failed to fetch profile");
@@ -377,6 +386,8 @@ export default function ProfileScreen() {
           let allergies = "None reported";
           if (baselines.dietary?.allergies && baselines.dietary.allergies.length > 0) {
             allergies = baselines.dietary.allergies.join(", ");
+          } else if (baselines.onboarding?.allergies && baselines.onboarding.allergies.length > 0) {
+            allergies = baselines.onboarding.allergies.join(", ");
           }
 
           setUserData(prev => ({
@@ -407,19 +418,19 @@ export default function ProfileScreen() {
       }
     }
     if (userId) fetchProfile();
-  }, [userId]);
+  }, [userId, token]);
 
   const handleUpdateData = async (newData: any) => {
     try {
-      const names = (newData.name || "").split(" ");
+      const names = (newData.name || "").trim().split(" ");
       const firstName = names[0] || "";
       const lastName = names.slice(1).join(" ");
       
       const payload = {
         first_name: firstName,
         last_name: lastName,
-        email: newData.email || userData.email,
-        phone: newData.phone || userData.phone,
+        email: newData.email || userData.email || null,
+        phone: newData.phone || userData.phone || null,
         date_of_birth: newData.birthdate || userData.birthdate,
         sex: newData.gender || userData.gender,
         height_cm: parseFloat(newData.height),
@@ -427,16 +438,42 @@ export default function ProfileScreen() {
         health_goals: [] // default
       };
       
-      await fetch(`${base_url}/api/users/${userId}/profile`, {
+      const effectiveToken = token || "";
+      const response = await fetch(`${base_url}/api/users/${userId}/profile`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${effectiveToken}`,
+        },
         body: JSON.stringify(payload)
       });
+      
+      const resData = await response.json();
+      if (!response.ok) {
+        showToast({
+          title: "Update Failed",
+          message: resData.detail || "Failed to update profile.",
+          type: "error",
+        });
+        return;
+      }
+      
       setUserData((prev) => ({ ...prev, ...newData }));
+      showToast({
+        title: "Profile Updated",
+        message: "Your profile details have been saved.",
+        type: "success",
+      });
+      setShowUpdateModal(false);
+      await refreshUser();
     } catch (err) {
       console.error(err);
+      showToast({
+        title: "Error",
+        message: "An unexpected error occurred while saving.",
+        type: "error",
+      });
     }
-    setShowUpdateModal(false);
   };
 
   const exportPDF = async () => {

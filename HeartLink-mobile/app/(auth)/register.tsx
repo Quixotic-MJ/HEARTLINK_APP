@@ -1,17 +1,23 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
   TouchableOpacity,
   Platform,
-  ActivityIndicator,
-  Pressable,
+  KeyboardAvoidingView,
+  ScrollView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
-import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
-import Animated, { useSharedValue, useAnimatedStyle, withTiming, Easing } from "react-native-reanimated";
+import Animated, { 
+  FadeIn, 
+  FadeInDown, 
+  useSharedValue, 
+  useAnimatedStyle, 
+  withSequence, 
+  withTiming 
+} from "react-native-reanimated";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -20,7 +26,6 @@ import "../../global.css";
 import { Feather } from "@expo/vector-icons";
 import { InputField } from "../../components/ui/InputField";
 import { Button } from "../../components/ui/Button";
-import AnimatedButton from "../../components/ui/AnimatedButton";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -28,7 +33,13 @@ const base_url = process.env.EXPO_PUBLIC_API_URL;
 
 const registerSchema = z.object({
   email: z.string().min(1, "Please fill out this field.").email("Enter a valid email address (e.g., name@example.com)."),
-  phone: z.string().regex(/^\d{10}$/, "Enter a valid 10-digit phone number (e.g., 9123456789)."),
+  phone: z
+    .string()
+    .min(1, "Please fill out this field.")
+    .refine(
+      (val) => val.replace(/\D/g, "").length === 10,
+      "Enter a valid 10-digit phone number (e.g., 912-345-6789)."
+    ),
   password: z
     .string()
     .min(8, "Password must be at least 8 characters.")
@@ -43,21 +54,25 @@ const registerSchema = z.object({
 
 type RegisterFormValues = z.infer<typeof registerSchema>;
 
-// ─── Animated Button ──────────────────────────────────────────────────────────
-
-// Removed local PrimaryButton in favor of centralized Button component
-
-// Removed local InputField component in favor of centralized InputField component.
-
+// ─── Register Screen ──────────────────────────────────────────────────────────
 
 export default function RegisterScreen() {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
   const router = useRouter();
 
+  const formatPhoneNumber = (value: string) => {
+    const digits = value.replace(/\D/g, "").slice(0, 10);
+    if (digits.length <= 3) return digits;
+    if (digits.length <= 6) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+    return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6, 10)}`;
+  };
+
   const {
     control,
     handleSubmit,
+    setValue,
+    clearErrors,
     watch,
     formState: { errors, isSubmitting },
     setError,
@@ -69,19 +84,68 @@ export default function RegisterScreen() {
       password: "",
       confirmPassword: "",
     },
-    mode: "onTouched",
+    mode: "onSubmit",
+    reValidateMode: "onSubmit",
   });
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [generalError, setGeneralError] = useState<string | null>(null);
 
+  // Micro-interactions
+  const errorShake = useSharedValue(0);
+  const eyeScale = useSharedValue(1);
+  const confirmEyeScale = useSharedValue(1);
+
   const passwordValue = watch("password") || "";
+
+  useEffect(() => {
+    if (generalError) {
+      errorShake.value = withSequence(
+        withTiming(8, { duration: 50 }),
+        withTiming(-8, { duration: 50 }),
+        withTiming(6, { duration: 50 }),
+        withTiming(-6, { duration: 50 }),
+        withTiming(0, { duration: 50 })
+      );
+    }
+  }, [generalError]);
+
+  const errorAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: errorShake.value }],
+  }));
+
+  const eyeAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: eyeScale.value }],
+  }));
+
+  const confirmEyeAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: confirmEyeScale.value }],
+  }));
+
+  const togglePasswordVisibility = () => {
+    eyeScale.value = withSequence(
+      withTiming(0.7, { duration: 80 }),
+      withTiming(1.15, { duration: 100 }),
+      withTiming(1, { duration: 80 })
+    );
+    setShowPassword((prev) => !prev);
+  };
+
+  const toggleConfirmPasswordVisibility = () => {
+    confirmEyeScale.value = withSequence(
+      withTiming(0.7, { duration: 80 }),
+      withTiming(1.15, { duration: 100 }),
+      withTiming(1, { duration: 80 })
+    );
+    setShowConfirmPassword((prev) => !prev);
+  };
 
   const onSubmit = async (data: RegisterFormValues) => {
     setGeneralError(null);
 
-    let normalizedPhone = data.phone;
+    const rawDigits = data.phone.replace(/\D/g, "");
+    let normalizedPhone = rawDigits;
     if (normalizedPhone.startsWith("0")) {
       normalizedPhone = normalizedPhone.substring(1);
     }
@@ -105,10 +169,11 @@ export default function RegisterScreen() {
       if (response.ok) {
         router.push({ pathname: "/(auth)/verify-otp", params: { phone: normalizedPhone } });
       } else {
-        if (resData.detail === "duplicate phone number") {
-          setError("phone", { type: "server", message: "This phone number is already registered." });
-        } else if (resData.detail === "duplicate email") {
-          setError("email", { type: "server", message: "This email address is already registered." });
+        const detail = (typeof resData.detail === "string" ? resData.detail : "").toLowerCase();
+        if (detail.includes("phone") && (detail.includes("already registered") || detail.includes("duplicate"))) {
+          setError("phone", { type: "server", message: "This phone number is already registered. Please log in." });
+        } else if (detail.includes("email") && (detail.includes("already registered") || detail.includes("duplicate"))) {
+          setError("email", { type: "server", message: "This email address is already registered. Please log in." });
         } else if (resData.detail && typeof resData.detail === "string") {
           setGeneralError(resData.detail);
         } else {
@@ -122,15 +187,12 @@ export default function RegisterScreen() {
   };
 
   return (
-    <SafeAreaView
-      className="flex-1 bg-slate-50 dark:bg-slate-950"
-      edges={["top", "bottom"]}
-    >
+    <SafeAreaView className="flex-1 bg-background" edges={["top", "bottom"]}>
       <StatusBar style={isDark ? "light" : "dark"} />
 
-      {/* Header */}
-      <View className="flex-row items-center px-5 pt-4 pb-3 justify-between">
-        <AnimatedButton
+      {/* ── Top Bar ── */}
+      <View className="px-5 pt-2 pb-2 flex-row items-center justify-between">
+        <TouchableOpacity
           onPress={() => {
             if (router.canGoBack()) {
               router.back();
@@ -138,185 +200,235 @@ export default function RegisterScreen() {
               router.replace("/onboarding");
             }
           }}
-          className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 border-slate-800/70 items-center justify-center"
+          className="w-9 h-9 rounded-xl bg-card border border-border items-center justify-center"
+          activeOpacity={0.7}
         >
           <Feather name="arrow-left" size={18} color={isDark ? "#f8fafc" : "#0f172a"} />
-        </AnimatedButton>
-        <View className="flex-row items-center gap-2">
-          <View className="w-7 h-7 rounded-full items-center justify-center bg-rose-500/10">
-            <Feather name="heart" size={13} color="#f43f5e" />
+        </TouchableOpacity>
+        <View className="flex-row items-center gap-2.5">
+          <View className="w-8 h-8 rounded-full items-center justify-center border border-border bg-card shadow-sm">
+            <Feather name="heart" size={14} color={isDark ? "#f8fafc" : "#0f172a"} />
           </View>
-          <Text className="text-[14px] text-slate-900 dark:text-white" style={{ fontWeight: "300" }}>
+          <Text className="text-[15px] text-foreground tracking-tight" style={{ fontWeight: "300" }}>
             Heart<Text style={{ fontWeight: "600" }}>Link.</Text>
           </Text>
         </View>
       </View>
 
-      <KeyboardAwareScrollView
-        contentContainerClassName="flex-grow px-5 pt-4 pb-12"
-        showsVerticalScrollIndicator={false}
-        enableOnAndroid={true}
-        extraScrollHeight={Platform.OS === "ios" ? 40 : 60}
-        keyboardShouldPersistTaps="handled"
-        bounces={false}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        className="flex-1"
       >
-        {/* ── Card ── */}
-        <View className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 px-5 py-7" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 }}>
-          {/* Heading */}
-          <View className="mb-7">
-            <Text className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight mb-2">
+        <ScrollView
+          contentContainerStyle={{
+            flexGrow: 1,
+            justifyContent: "center",
+            paddingHorizontal: 20,
+            paddingVertical: 16,
+          }}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* ── Heading ── */}
+          <Animated.View entering={FadeIn.delay(100)} className="mb-5 px-1">
+            <Text className="text-3xl font-bold text-foreground tracking-tight leading-tight mb-1.5">
               Create your account
             </Text>
-            <Text className="text-[14px] text-slate-500 dark:text-slate-400 leading-relaxed">
+            <Text className="text-[14px] text-muted-foreground leading-relaxed">
               Securely monitor your cardiovascular well-being.
             </Text>
-          </View>
+          </Animated.View>
 
-          {/* General Error */}
-          {generalError && (
-            <View className="bg-rose-500/10 border border-rose-500/30 rounded-2xl p-3.5 mb-5 flex-row items-center gap-2">
-              <Feather name="alert-triangle" size={16} color="#f43f5e" />
-              <Text className="text-rose-600 dark:text-rose-400 text-xs flex-1 font-medium">
-                {generalError}
-              </Text>
-            </View>
-          )}
+          {/* ── Card ── */}
+          <Animated.View entering={FadeInDown.delay(200).springify()} className="bg-card rounded-2xl border border-border px-5 py-6 gap-3.5 shadow-md">
+            {/* General Error Banner */}
+            {generalError && (
+              <Animated.View 
+                style={errorAnimatedStyle}
+                className="bg-destructive/15 border border-destructive/40 rounded-xl p-3.5 flex-row items-center gap-2"
+              >
+                <Feather name="alert-triangle" size={16} color="#ef4444" />
+                <Text className="text-destructive text-xs flex-1 font-medium">
+                  {generalError}
+                </Text>
+              </Animated.View>
+            )}
 
-          {/* ── Fields ── */}
+            {/* Email Field */}
+            <InputField
+              control={control}
+              name="email"
+              label="Email Address"
+              icon="mail"
+              placeholder="Enter your email address"
+              keyboardType="email-address"
+              autoComplete="email"
+              textContentType="emailAddress"
+              editable={!isSubmitting}
+              onChangeText={(text) => {
+                setValue("email", text, { shouldValidate: false, shouldDirty: true });
+                if (errors.email) {
+                  clearErrors("email");
+                }
+              }}
+            />
 
-          {/* Email */}
-          <InputField
-            control={control}
-            name="email"
-            label="Email Address"
-            icon="mail"
-            placeholder="e.g. john@example.com"
-            error={errors.email?.message}
-            keyboardType="email-address"
-            autoComplete="email"
-            textContentType="emailAddress"
-            editable={!isSubmitting}
-          />
+            {/* Phone Field */}
+            <InputField
+              control={control}
+              name="phone"
+              label="Phone Number"
+              icon="phone"
+              placeholder="912-345-6789"
+              keyboardType="phone-pad"
+              autoComplete="tel"
+              textContentType="telephoneNumber"
+              maxLength={12}
+              editable={!isSubmitting}
+              onChangeText={(text) => {
+                setValue("phone", formatPhoneNumber(text), { shouldValidate: false, shouldDirty: true });
+                if (errors.phone) {
+                  clearErrors("phone");
+                }
+              }}
+              leftElement={
+                <View className="flex-row items-center border-r border-border pr-3 ml-2 mr-0 self-stretch py-2 my-2">
+                  <Text className="text-base font-semibold text-foreground">
+                    +63
+                  </Text>
+                </View>
+              }
+            />
 
-          <View className="h-4" />
+            {/* Password Field */}
+            <InputField
+              control={control}
+              name="password"
+              label="Password"
+              icon="lock"
+              placeholder="Create a password"
+              secureTextEntry={!showPassword}
+              editable={!isSubmitting}
+              onChangeText={(text) => {
+                setValue("password", text, { shouldValidate: false, shouldDirty: true });
+                if (errors.password) {
+                  clearErrors("password");
+                }
+              }}
+              rightElement={
+                <TouchableOpacity
+                  onPress={togglePasswordVisibility}
+                  className="p-2 -mr-2"
+                  disabled={isSubmitting}
+                  activeOpacity={0.7}
+                >
+                  <Animated.View style={eyeAnimatedStyle}>
+                    <Feather
+                      name={showPassword ? "eye" : "eye-off"}
+                      size={18}
+                      color={isDark ? (isSubmitting ? "#475569" : "#94a3b8") : (isSubmitting ? "#cbd5e1" : "#64748b")}
+                    />
+                  </Animated.View>
+                </TouchableOpacity>
+              }
+            />
 
-          {/* Phone */}
-          <InputField
-            control={control}
-            name="phone"
-            label="Phone Number"
-            icon="phone"
-            placeholder="912 345 6789"
-            error={errors.phone?.message}
-            keyboardType="phone-pad"
-            autoComplete="tel"
-            textContentType="telephoneNumber"
-            editable={!isSubmitting}
-            leftElement={
-              <View className="flex-row items-center border-r border-slate-200 dark:border-slate-700 pr-3 ml-2 mr-0 self-stretch py-2 my-2">
-                <Text className="text-base font-semibold text-slate-900 dark:text-white">
-                  +63
+            {/* Confirm Password Field */}
+            <InputField
+              control={control}
+              name="confirmPassword"
+              label="Confirm Password"
+              icon="shield"
+              placeholder="Confirm your password"
+              secureTextEntry={!showConfirmPassword}
+              editable={!isSubmitting}
+              onChangeText={(text) => {
+                setValue("confirmPassword", text, { shouldValidate: false, shouldDirty: true });
+                if (errors.confirmPassword) {
+                  clearErrors("confirmPassword");
+                }
+              }}
+              rightElement={
+                <TouchableOpacity
+                  onPress={toggleConfirmPasswordVisibility}
+                  className="p-2 -mr-2"
+                  disabled={isSubmitting}
+                  activeOpacity={0.7}
+                >
+                  <Animated.View style={confirmEyeAnimatedStyle}>
+                    <Feather
+                      name={showConfirmPassword ? "eye" : "eye-off"}
+                      size={18}
+                      color={isDark ? (isSubmitting ? "#475569" : "#94a3b8") : (isSubmitting ? "#cbd5e1" : "#64748b")}
+                    />
+                  </Animated.View>
+                </TouchableOpacity>
+              }
+            />
+
+            {/* Password Validation Hints */}
+            <View className="mb-1 ml-1">
+              <View className="flex-row items-center gap-2 mb-1.5">
+                <Feather 
+                  name={passwordValue.length >= 8 ? "check-circle" : "circle"} 
+                  size={14} 
+                  color={passwordValue.length >= 8 ? "#10b981" : (isDark ? "#64748b" : "#94a3b8")} 
+                />
+                <Text className={`text-[13px] ${passwordValue.length >= 8 ? "text-foreground font-medium" : "text-muted-foreground"}`}>
+                  At least 8 characters
                 </Text>
               </View>
-            }
-          />
-
-          <View className="h-4" />
-
-          {/* Password */}
-          <InputField
-            control={control}
-            name="password"
-            label="Password"
-            icon="lock"
-            placeholder="Create a strong password"
-            error={errors.password?.message}
-            secureTextEntry={!showPassword}
-            editable={!isSubmitting}
-            rightElement={
-              <TouchableOpacity
-                onPress={() => setShowPassword(!showPassword)}
-                className="p-2 -mr-2"
-                disabled={isSubmitting}
-              >
-                <Feather
-                  name={showPassword ? "eye" : "eye-off"}
-                  size={18}
-                  color={isDark ? (isSubmitting ? "#475569" : "#94a3b8") : (isSubmitting ? "#cbd5e1" : "#64748b")}
+              <View className="flex-row items-center gap-2 mb-1.5">
+                <Feather 
+                  name={/(?=.*[A-Z])/.test(passwordValue) && /(?=.*[a-z])/.test(passwordValue) ? "check-circle" : "circle"} 
+                  size={14} 
+                  color={/(?=.*[A-Z])/.test(passwordValue) && /(?=.*[a-z])/.test(passwordValue) ? "#10b981" : (isDark ? "#64748b" : "#94a3b8")} 
                 />
-              </TouchableOpacity>
-            }
-          />
-
-          <View className="h-4" />
-
-          {/* Confirm password */}
-          <InputField
-            control={control}
-            name="confirmPassword"
-            label="Confirm Password"
-            icon="shield"
-            placeholder="Confirm password"
-            error={errors.confirmPassword?.message}
-            secureTextEntry={!showConfirmPassword}
-            editable={!isSubmitting}
-            rightElement={
-              <TouchableOpacity
-                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="p-2 -mr-2"
-                disabled={isSubmitting}
-              >
-                <Feather
-                  name={showConfirmPassword ? "eye" : "eye-off"}
-                  size={18}
-                  color={isDark ? (isSubmitting ? "#475569" : "#94a3b8") : (isSubmitting ? "#cbd5e1" : "#64748b")}
+                <Text className={`text-[13px] ${/(?=.*[A-Z])/.test(passwordValue) && /(?=.*[a-z])/.test(passwordValue) ? "text-foreground font-medium" : "text-muted-foreground"}`}>
+                  Uppercase & lowercase letter
+                </Text>
+              </View>
+              <View className="flex-row items-center gap-2">
+                <Feather 
+                  name={/(?=.*\d)/.test(passwordValue) ? "check-circle" : "circle"} 
+                  size={14} 
+                  color={/(?=.*\d)/.test(passwordValue) ? "#10b981" : (isDark ? "#64748b" : "#94a3b8")} 
                 />
-              </TouchableOpacity>
-            }
-          />
-
-          <View className="h-2" />
-
-          {/* Password hint */}
-          <View className="mb-7 ml-1">
-            <View className="flex-row items-center gap-2 mb-1.5">
-              <Feather name={passwordValue.length >= 8 ? "check-circle" : "circle"} size={14} color={passwordValue.length >= 8 ? "#10b981" : (isDark ? "#64748b" : "#94a3b8")} />
-              <Text className={`text-[13px] ${passwordValue.length >= 8 ? "text-slate-900 dark:text-white" : "text-slate-500 dark:text-slate-400"}`}>At least 8 characters</Text>
+                <Text className={`text-[13px] ${/(?=.*\d)/.test(passwordValue) ? "text-foreground font-medium" : "text-muted-foreground"}`}>
+                  At least one number
+                </Text>
+              </View>
             </View>
-            <View className="flex-row items-center gap-2 mb-1.5">
-              <Feather name={/(?=.*[A-Z])/.test(passwordValue) && /(?=.*[a-z])/.test(passwordValue) ? "check-circle" : "circle"} size={14} color={/(?=.*[A-Z])/.test(passwordValue) && /(?=.*[a-z])/.test(passwordValue) ? "#10b981" : (isDark ? "#64748b" : "#94a3b8")} />
-              <Text className={`text-[13px] ${/(?=.*[A-Z])/.test(passwordValue) && /(?=.*[a-z])/.test(passwordValue) ? "text-slate-900 dark:text-white" : "text-slate-500 dark:text-slate-400"}`}>Uppercase & lowercase letter</Text>
-            </View>
-            <View className="flex-row items-center gap-2">
-              <Feather name={/(?=.*\d)/.test(passwordValue) ? "check-circle" : "circle"} size={14} color={/(?=.*\d)/.test(passwordValue) ? "#10b981" : (isDark ? "#64748b" : "#94a3b8")} />
-              <Text className={`text-[13px] ${/(?=.*\d)/.test(passwordValue) ? "text-slate-900 dark:text-white" : "text-slate-500 dark:text-slate-400"}`}>At least one number</Text>
-            </View>
-          </View>
 
-          {/* Submit */}
-          <Button
-            onPress={handleSubmit(onSubmit)}
-            isLoading={isSubmitting}
-            loadingText="Sending..."
-            label="Send verification code"
-            icon="send"
-          />
+            {/* Submit */}
+            <View className="mt-1">
+              <Button
+                onPress={handleSubmit(onSubmit)}
+                isLoading={isSubmitting}
+                loadingText="Sending code..."
+                label="Send verification code"
+                icon="send"
+              />
+            </View>
+          </Animated.View>
 
-          {/* Login link */}
-          <TouchableOpacity
-            activeOpacity={0.65}
-            onPress={() => router.replace("/(auth)/login")}
-            className="flex-row justify-center items-center gap-1.5 mt-6 pt-2 pb-4 mb-2"
-          >
-            <Text className="text-sm text-slate-500 dark:text-slate-400">
-              Already have an account?
-            </Text>
-            <Text className="text-sm font-bold text-slate-900 dark:text-white">
-              Log in
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </KeyboardAwareScrollView>
+          {/* ── Mode toggle ── */}
+          <Animated.View entering={FadeInDown.delay(300).springify()}>
+            <TouchableOpacity
+              activeOpacity={0.65}
+              onPress={() => router.replace("/(auth)/login")}
+              className="flex-row justify-center items-center py-4 gap-1.5 mt-5"
+            >
+              <Text className="text-sm text-muted-foreground">
+                Already have an account?
+              </Text>
+              <Text className="text-sm font-bold text-primary">
+                Log in
+              </Text>
+            </TouchableOpacity>
+          </Animated.View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

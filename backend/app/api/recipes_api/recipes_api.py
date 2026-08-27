@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Body, Depends
+from fastapi import APIRouter, HTTPException, Body, Depends, status
 from typing import List, Dict, Any
 from app.services.recipes import (
     get_recipes, 
@@ -9,7 +9,7 @@ from app.services.recipes import (
     update_recipe,
     delete_recipe
 )
-from app.utils.security import get_current_admin_user
+from app.utils.security import get_current_admin_user, get_current_user
 from app.utils.activity_helper import record_admin_activity
 
 router = APIRouter(prefix="/api/recipes", tags=["Recipes"])
@@ -19,7 +19,14 @@ def read_recipes():
     return get_recipes()
 
 @router.get("/saved/{user_id}", response_model=List[Dict[str, Any]])
-def read_saved_recipes(user_id: str):
+def read_saved_recipes(user_id: str, current_user: dict = Depends(get_current_user)):
+    caller_id = current_user.get("user_id")
+    caller_role = current_user.get("role")
+    if caller_role == "patient" and caller_id != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You may only access your own saved recipes.",
+        )
     return get_saved_recipes(user_id)
 
 @router.get("/{recipe_id}", response_model=Dict[str, Any])
@@ -92,6 +99,13 @@ def remove_recipe(recipe_id: str, current_user: dict = Depends(get_current_admin
     return {"success": True, "message": "Recipe deleted successfully"}
 
 @router.post("/{recipe_id}/save/{user_id}")
-def save_recipe(recipe_id: str, user_id: str):
+def save_recipe(recipe_id: str, user_id: str, current_user: dict = Depends(get_current_user)):
+    caller_id = current_user.get("user_id")
+    caller_role = current_user.get("role")
+    if caller_role == "patient" and caller_id != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You may only save recipes for your own account.",
+        )
     save_recipe_for_user(user_id, recipe_id)
     return {"success": True, "message": "Recipe saved"}

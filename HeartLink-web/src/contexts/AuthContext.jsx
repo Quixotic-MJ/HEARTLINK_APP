@@ -2,6 +2,20 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const AuthContext = createContext();
 
+const decodeJwt = (token) => {
+  try {
+    const base64Url = token.split('.')[1];
+    if (!base64Url) return null;
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(atob(base64).split('').map((c) => {
+      return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+    }).join(''));
+    return JSON.parse(jsonPayload);
+  } catch (e) {
+    return null;
+  }
+};
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [userId, setUserId] = useState(null);
@@ -21,6 +35,14 @@ export const AuthProvider = ({ children }) => {
       setIsAuthenticated(true);
       if (storedUser) {
         setUser(JSON.parse(storedUser));
+      } else {
+        const payload = decodeJwt(storedToken);
+        if (payload) {
+          const fallbackUser = { id: payload.user_id || storedUserId, role: payload.role };
+          setUser(fallbackUser);
+          const storage = localStorage.getItem('heartlink_admin_token') ? localStorage : sessionStorage;
+          storage.setItem('heartlink_admin_user', JSON.stringify(fallbackUser));
+        }
       }
     }
     setLoading(false);
@@ -44,9 +66,17 @@ export const AuthProvider = ({ children }) => {
     storage.setItem('heartlink_admin_user_id', userId);
     storage.setItem('heartlink_admin_token', tokenStr);
     
-    if (userData) {
-      setUser(userData);
-      storage.setItem('heartlink_admin_user', JSON.stringify(userData));
+    let resolvedUser = userData;
+    if (!resolvedUser && tokenStr) {
+      const payload = decodeJwt(tokenStr);
+      if (payload) {
+        resolvedUser = { id: payload.user_id || userId, role: payload.role };
+      }
+    }
+    
+    if (resolvedUser) {
+      setUser(resolvedUser);
+      storage.setItem('heartlink_admin_user', JSON.stringify(resolvedUser));
     }
   };
 

@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useToast } from "../contexts/ToastContext";
-import { Platform } from "react-native";
+import { Platform, AppState, AppStateStatus } from "react-native";
 
 const API_URL =
   process.env.EXPO_PUBLIC_API_URL ||
@@ -28,8 +28,20 @@ export function useBroadcastListener() {
   }, [showToast]);
 
   useEffect(() => {
-    let intervalId: ReturnType<typeof setInterval>;
+    let intervalId: ReturnType<typeof setInterval> | null = null;
     let isMounted = true;
+
+    const stopPolling = () => {
+      if (intervalId !== null) {
+        clearInterval(intervalId);
+        intervalId = null;
+      }
+    };
+
+    const startPolling = () => {
+      stopPolling();
+      intervalId = setInterval(fetchBroadcasts, POLLING_INTERVAL_MS);
+    };
 
     const fetchBroadcasts = async () => {
       if (!isMounted) return;
@@ -71,7 +83,7 @@ export function useBroadcastListener() {
             }
 
             showToastRef.current({
-              title: latest.type || "System Broadcast",
+              title: latest.title || latest.type || "System Broadcast",
               message: latest.message,
               type: toastType,
               duration: 5000,
@@ -88,15 +100,27 @@ export function useBroadcastListener() {
       }
     };
 
-    // Initial fetch (records current state, no toast on first run)
-    fetchBroadcasts();
+    const handleAppStateChange = (nextAppState: AppStateStatus) => {
+      if (nextAppState === "active") {
+        fetchBroadcasts();
+        startPolling();
+      } else {
+        stopPolling();
+      }
+    };
 
-    // Poll every 15s
-    intervalId = setInterval(fetchBroadcasts, POLLING_INTERVAL_MS);
+    // Initial fetch and polling if currently active
+    if (AppState.currentState === "active") {
+      fetchBroadcasts();
+      startPolling();
+    }
+
+    const subscription = AppState.addEventListener("change", handleAppStateChange);
 
     return () => {
       isMounted = false;
-      clearInterval(intervalId);
+      stopPolling();
+      subscription.remove();
     };
   }, []);
 }

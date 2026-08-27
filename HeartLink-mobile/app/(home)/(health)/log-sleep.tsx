@@ -13,10 +13,10 @@ export default function LogSleepScreen() {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
   const router = useRouter();
-  const { userId } = useUser();
+  const { userId, token } = useUser();
 
   const [hours, setHours] = useState(7);
-  const [minutes, setMinutes] = useState(0);
+  const [minutes, setMinutes] = useState(30);
   const [quality, setQuality] = useState("Good");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -36,7 +36,7 @@ export default function LogSleepScreen() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${userId}`
+          "Authorization": `Bearer ${token || ""}`
         },
         body: JSON.stringify(payload)
       });

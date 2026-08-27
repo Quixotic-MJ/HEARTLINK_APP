@@ -6,6 +6,7 @@ import { StatusBar } from "expo-status-bar";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useUser } from "../../../contexts/UserContext";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -13,7 +14,7 @@ export default function HealthAnalyticsScreen() {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
   const router = useRouter();
-  const { userId } = useUser();
+  const { userId, token, logout } = useUser();
 
   const [analytics, setAnalytics] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -21,7 +22,17 @@ export default function HealthAnalyticsScreen() {
   useEffect(() => {
     async function fetchAnalytics() {
       try {
-        const response = await fetch(`${base_url}/api/analytics/${userId}`);
+        const storedToken = await AsyncStorage.getItem("access_token");
+        const effectiveToken = token || storedToken || "";
+        const response = await fetch(`${base_url}/api/analytics/${userId}`, {
+          headers: {
+            "Authorization": `Bearer ${effectiveToken}`,
+          },
+        });
+        if (response.status === 401) {
+          await logout();
+          return;
+        }
         if (!response.ok) throw new Error("Failed to fetch analytics");
         const data = await response.json();
         setAnalytics(data);
@@ -32,7 +43,7 @@ export default function HealthAnalyticsScreen() {
       }
     }
     if (userId) fetchAnalytics();
-  }, [userId]);
+  }, [userId, token, logout]);
 
   if (isLoading || !analytics) {
     return (
@@ -44,7 +55,7 @@ export default function HealthAnalyticsScreen() {
 
   // Get the latest HSS score from history
   const history = analytics.history || [];
-  const latestHSS = history.length > 0 ? history[history.length - 1].score : 84;
+  const latestHSS = history.length > 0 ? history[history.length - 1].score : null;
 
   return (
     <SafeAreaView className="flex-1 bg-white dark:bg-slate-900" edges={["top"]}>
@@ -85,7 +96,7 @@ export default function HealthAnalyticsScreen() {
           <TouchableOpacity className="pb-3 border-b-2 border-[#1e4ed8] mr-6">
             <Text className="text-[14px] font-bold text-slate-900 dark:text-white">Overview & HSS</Text>
           </TouchableOpacity>
-          <TouchableOpacity className="pb-3" onPress={() => router.push("/(home)/health-history")}>
+          <TouchableOpacity className="pb-3" onPress={() => router.push("/(home)/health-history" as any)}>
             <Text className="text-[14px] font-medium text-slate-400">Diet & Biometrics</Text>
           </TouchableOpacity>
         </View>
@@ -99,11 +110,11 @@ export default function HealthAnalyticsScreen() {
               <Text className="text-[12px] text-slate-500 dark:text-slate-400 mt-1">Last 7 days trend analysis</Text>
             </View>
             <TouchableOpacity 
-               onPress={() => router.push("/(home)/detailed-analytics")}
+               onPress={() => router.push("/(home)/detailed-analytics" as any)}
                className="bg-white dark:bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 flex-row items-center"
             >
               <View className="w-2 h-2 rounded-full bg-blue-500 mr-2" />
-              <Text className="text-[18px] font-bold text-[#1e4ed8]">{latestHSS}</Text>
+              <Text className="text-[18px] font-bold text-[#1e4ed8]">{latestHSS !== null ? latestHSS : "Pending"}</Text>
             </TouchableOpacity>
           </View>
 

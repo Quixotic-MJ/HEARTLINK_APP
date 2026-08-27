@@ -1,0 +1,977 @@
+{
+  "exercise_routines": [
+    {
+      "id": "rout-601",
+      "name": "Basal Paced Breathing Exercise",
+      "description": "Controlled deep vagus nerve activation breathing patterns to downregulate stress spikes.",
+      "duration_minutes": 10,
+      "hss_tier": "Stable",
+      "type": "Breathing",
+      "intensity": "None",
+      "goal": "Downregulate sympathetic nervous activation tracking matrices",
+      "steps": [
+        {
+          "id": "step-1",
+          "instruction": "Sit comfortably in upright position.",
+          "duration_seconds": 10,
+          "type": "instruction",
+          "voice_cue": "Sit upright."
+        },
+        {
+          "id": "breath-1",
+          "instruction": "Inhale smoothly through nostrils.",
+          "duration_seconds": 4,
+          "type": "breathing",
+          "phase": "inhale",
+          "voice_cue": "Inhale."
+        },
+        {
+          "id": "breath-2",
+          "instruction": "Hold basal volume.",
+          "duration_seconds": 2,
+          "type": "breathing",
+          "phase": "hold",
+          "voice_cue": "Hold."
+        },
+        {
+          "id": "breath-3",
+          "instruction": "Exhale silently through mouth.",
+          "duration_seconds": 6,
+          "type": "breathing",
+          "phase": "exhale",
+          "voice_cue": "Exhale."
+        }
+      ],
+      "media_url": "https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=600&h=400&fit=crop",
+      "video_url": "https://www.youtube.com/watch?v=DbDoBzGY3vo",
+      "status": "published",
+      "expert_validated": true,
+      "created_by": "usr-admin-002",
+      "created_at": "2026-05-01 11:00:00"
+    },
+    {
+      "id": "rout-602",
+      "name": "20-Minute Neighborhood Walk",
+      "description": "Light cardio to improve circulation without overexertion.",
+      "duration_minutes": 20,
+      "hss_tier": "Stable",
+      "type": "Light Cardio",
+      "intensity": "Low",
+      "goal": "Improves blood circulation and builds gentle endurance.",
+      "steps": [
+        {
+          "id": "step-1",
+          "instruction": "Warm up with light stretching.",
+          "duration_seconds": 120,
+          "type": "instruction",
+          "voice_cue": "Warm up."
+        },
+        {
+          "id": "step-2",
+          "instruction": "Walk at a comfortable, conversational pace.",
+          "duration_seconds": 900,
+          "type": "instruction",
+          "voice_cue": "Walk at a comfortable pace."
+        },
+        {
+          "id": "step-3",
+          "instruction": "Cool down with a slower pace.",
+          "duration_seconds": 180,
+          "type": "instruction",
+          "voice_cue": "Cool down."
+        }
+      ],
+      "media_url": "https://images.unsplash.com/photo-1522898467493-49726bf28798?w=600&h=400&fit=crop",
+      "video_url": "https://www.youtube.com/watch?v=njeZ29umqVE",
+      "status": "published",
+      "expert_validated": true,
+      "created_by": "usr-admin-002",
+      "created_at": "2026-06-01 08:00:00"
+    },
+    {
+      "id": "rout-603",
+      "name": "Basic Standing Stretches",
+      "description": "Gentle stretching to relieve muscle tension.",
+      "duration_minutes": 10,
+      "hss_tier": "Stable",
+      "type": "Stationary",
+      "intensity": "Low",
+      "goal": "Enhances flexibility without straining the heart.",
+      "steps": [
+        {
+          "id": "step-1",
+          "instruction": "Reach arms overhead and hold.",
+          "duration_seconds": 15,
+          "type": "instruction",
+          "voice_cue": "Reach arms overhead."
+        },
+        {
+          "id": "step-2",
+          "instruction": "Gently rotate shoulders backward 10 times.",
+          "duration_seconds": 30,
+          "type": "instruction",
+          "voice_cue": "Rotate shoulders."
+        },
+        {
+          "id": "step-3",
+          "instruction": "Perform side bends holding each side.",
+          "duration_seconds": 20,
+          "type": "instruction",
+          "voice_cue": "Perform side bends."
+        }
+      ],
+      "media_url": "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=600&h=400&fit=crop",
+      "video_url": "https://www.youtube.com/watch?v=5WEBMhRc_9M",
+      "guide_images": [
+        "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=600&h=400&fit=crop",
+        "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=600&h=400&fit=crop",
+        "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=600&h=400&fit=crop"
+      ],
+      "status": "published",
+      "expert_validated": true,
+      "created_by": "usr-admin-002",
+      "created_at": "2026-06-05 09:00:00"
+    },
+    {
+      "id": "rout-604",
+      "name": "15-Minute Chair Yoga",
+      "description": "Maintains mobility while keeping heart rate stable.",
+      "duration_minutes": 15,
+      "hss_tier": "Moderate",
+      "type": "Stationary",
+      "intensity": "Low",
+      "goal": "Maintains mobility while keeping heart rate stable.",
+      "steps": [
+        {
+          "id": "step-1",
+          "instruction": "Sit comfortably in a chair.",
+          "duration_seconds": 10,
+          "type": "instruction",
+          "voice_cue": "Sit in a chair."
+        },
+        {
+          "id": "step-2",
+          "instruction": "Perform seated cat-cow stretches.",
+          "duration_seconds": 60,
+          "type": "instruction",
+          "voice_cue": "Perform cat-cow stretches."
+        },
+        {
+          "id": "step-3",
+          "instruction": "Gently twist torso to each side.",
+          "duration_seconds": 60,
+          "type": "instruction",
+          "voice_cue": "Twist torso to each side."
+        }
+      ],
+      "media_url": "https://images.unsplash.com/photo-1599447421416-3414500d18a5?w=600&h=400&fit=crop",
+      "video_url": "https://www.youtube.com/watch?v=5WEBMhRc_9M",
+      "guide_images": [
+        "https://images.unsplash.com/photo-1518611012118-696072aa579a?w=600&h=400&fit=crop",
+        "https://images.unsplash.com/photo-1599447421416-3414500d18a5?w=600&h=400&fit=crop"
+      ],
+      "status": "published",
+      "expert_validated": true,
+      "created_by": "usr-admin-002",
+      "created_at": "2026-06-10 09:00:00"
+    },
+    {
+      "id": "rout-605",
+      "name": "Seated Leg Lifts",
+      "description": "Promotes lower body circulation passively.",
+      "duration_minutes": 10,
+      "hss_tier": "Moderate",
+      "type": "Stationary",
+      "intensity": "Low",
+      "goal": "Promotes lower body circulation passively.",
+      "steps": [
+        {
+          "id": "step-1",
+          "instruction": "Sit with feet flat on the floor.",
+          "duration_seconds": 10,
+          "type": "instruction",
+          "voice_cue": "Sit with feet flat."
+        },
+        {
+          "id": "step-2",
+          "instruction": "Slowly extend one leg straight out.",
+          "duration_seconds": 15,
+          "type": "instruction",
+          "voice_cue": "Extend one leg."
+        },
+        {
+          "id": "step-3",
+          "instruction": "Hold for 3 seconds, then lower.",
+          "duration_seconds": 10,
+          "type": "instruction",
+          "voice_cue": "Hold and lower."
+        },
+        {
+          "id": "step-4",
+          "instruction": "Repeat for the other leg.",
+          "duration_seconds": 25,
+          "type": "instruction",
+          "voice_cue": "Repeat for the other leg."
+        }
+      ],
+      "media_url": "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=600&h=400&fit=crop",
+      "video_url": "https://www.youtube.com/watch?v=5WEBMhRc_9M",
+      "guide_images": [
+        "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=600&h=400&fit=crop",
+        "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=600&h=400&fit=crop",
+        "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=600&h=400&fit=crop"
+      ],
+      "status": "published",
+      "expert_validated": true,
+      "created_by": "usr-admin-002",
+      "created_at": "2026-06-12 09:00:00"
+    },
+    {
+      "id": "rout-606",
+      "name": "4-7-8 Deep Breathing Technique",
+      "description": "Reduces stress-induced heart rate spikes and calms nervous system.",
+      "duration_minutes": 5,
+      "hss_tier": "Elevated Risk",
+      "type": "Breathing",
+      "intensity": "None",
+      "goal": "Reduces stress-induced heart rate spikes and calms nervous system.",
+      "steps": [
+        {
+          "id": "step-1",
+          "instruction": "Inhale through nose.",
+          "duration_seconds": 4,
+          "type": "breathing",
+          "phase": "inhale",
+          "voice_cue": "Inhale."
+        },
+        {
+          "id": "step-2",
+          "instruction": "Hold breath.",
+          "duration_seconds": 7,
+          "type": "breathing",
+          "phase": "hold",
+          "voice_cue": "Hold."
+        },
+        {
+          "id": "step-3",
+          "instruction": "Exhale forcefully through mouth.",
+          "duration_seconds": 8,
+          "type": "breathing",
+          "phase": "exhale",
+          "voice_cue": "Exhale."
+        }
+      ],
+      "media_url": "https://images.unsplash.com/photo-1545389336-cf090694435e?w=600&h=400&fit=crop",
+      "video_url": "https://www.youtube.com/watch?v=Mn4kUw5uXQU",
+      "status": "published",
+      "expert_validated": true,
+      "created_by": "usr-admin-002",
+      "created_at": "2026-06-14 09:00:00"
+    },
+    {
+      "id": "rout-607",
+      "name": "Guided Seated Relaxation",
+      "description": "Lowers blood pressure and induces resting state.",
+      "duration_minutes": 10,
+      "hss_tier": "Elevated Risk",
+      "type": "Breathing",
+      "intensity": "None",
+      "goal": "Lowers blood pressure and induces resting state.",
+      "steps": [
+        {
+          "id": "step-1",
+          "instruction": "Close eyes and focus on natural breathing.",
+          "duration_seconds": 60,
+          "type": "breathing",
+          "phase": "rest",
+          "voice_cue": "Close your eyes."
+        },
+        {
+          "id": "step-2",
+          "instruction": "Progressively relax muscles from head to toe.",
+          "duration_seconds": 120,
+          "type": "instruction",
+          "voice_cue": "Relax your muscles."
+        },
+        {
+          "id": "step-3",
+          "instruction": "Remain still and observe thoughts without engaging.",
+          "duration_seconds": 120,
+          "type": "instruction",
+          "voice_cue": "Remain still."
+        }
+      ],
+      "media_url": "https://images.unsplash.com/photo-1520333789090-1afc82db536a?w=600&h=400&fit=crop",
+      "video_url": "https://www.youtube.com/watch?v=DbDoBzGY3vo",
+      "status": "published",
+      "expert_validated": true,
+      "created_by": "usr-admin-002",
+      "created_at": "2026-06-15 09:00:00"
+    },
+    {
+      "id": "rout-608",
+      "name": "Light Ankle Pumps",
+      "description": "Seated ankle movements to prevent blood pooling.",
+      "duration_minutes": 5,
+      "hss_tier": "Elevated Risk",
+      "type": "Stationary",
+      "intensity": "Low",
+      "goal": "Maintains basic lower extremity circulation.",
+      "steps": [
+        {
+          "id": "step-1",
+          "instruction": "Sit comfortably with feet flat on the floor.",
+          "duration_seconds": 10,
+          "type": "instruction",
+          "voice_cue": "Sit with feet flat."
+        },
+        {
+          "id": "step-2",
+          "instruction": "Lift your heels while keeping your toes on the floor, then lower.",
+          "duration_seconds": 60,
+          "type": "instruction",
+          "voice_cue": "Lift your heels."
+        },
+        {
+          "id": "step-3",
+          "instruction": "Lift your toes while keeping your heels on the floor, then lower.",
+          "duration_seconds": 60,
+          "type": "instruction",
+          "voice_cue": "Lift your toes."
+        },
+        {
+          "id": "step-4",
+          "instruction": "Repeat for 5 minutes continuously.",
+          "duration_seconds": 300,
+          "type": "instruction",
+          "voice_cue": "Continue for five minutes."
+        }
+      ],
+      "media_url": "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=600&h=400&fit=crop",
+      "video_url": "https://www.youtube.com/watch?v=5WEBMhRc_9M",
+      "status": "published",
+      "expert_validated": true,
+      "created_by": "usr-admin-002",
+      "created_at": "2026-06-20 09:00:00"
+    },
+    {
+      "id": "rout-609",
+      "name": "Deep Diaphragmatic Breathing",
+      "description": "Reduces cardiac workload and stress.",
+      "duration_minutes": 10,
+      "hss_tier": "Elevated Risk",
+      "type": "Breathing",
+      "intensity": "None",
+      "goal": "Activates the parasympathetic nervous system to lower heart rate.",
+      "steps": [
+        {
+          "id": "step-1",
+          "instruction": "Lie flat on your back with a pillow under your knees.",
+          "duration_seconds": 10,
+          "type": "instruction",
+          "voice_cue": "Lie flat on your back."
+        },
+        {
+          "id": "step-2",
+          "instruction": "Place one hand on your upper chest and the other just below your rib cage.",
+          "duration_seconds": 10,
+          "type": "instruction",
+          "voice_cue": "Place your hands."
+        },
+        {
+          "id": "breath-1",
+          "instruction": "Breathe in slowly through your nose so that your stomach moves out.",
+          "duration_seconds": 4,
+          "type": "breathing",
+          "phase": "inhale",
+          "voice_cue": "Inhale."
+        },
+        {
+          "id": "breath-2",
+          "instruction": "Tighten your stomach muscles, letting them fall inward as you exhale.",
+          "duration_seconds": 6,
+          "type": "breathing",
+          "phase": "exhale",
+          "voice_cue": "Exhale."
+        }
+      ],
+      "media_url": "https://images.unsplash.com/photo-1518611012118-696072aa579a?w=600&h=400&fit=crop",
+      "video_url": "https://www.youtube.com/watch?v=DbDoBzGY3vo",
+      "status": "published",
+      "expert_validated": true,
+      "created_by": "usr-admin-002",
+      "created_at": "2026-06-21 09:00:00"
+    },
+    {
+      "id": "rout-610",
+      "name": "Very Light Chair Stretches",
+      "description": "Very gentle stretches suitable for high cardiac risk states.",
+      "duration_minutes": 5,
+      "hss_tier": "Critical",
+      "type": "Stretching",
+      "intensity": "None",
+      "goal": "Maintains range of motion and joint health with zero cardiovascular strain.",
+      "steps": [
+        {
+          "id": "step-1",
+          "instruction": "Sit comfortably in a sturdy chair with your feet flat on the floor.",
+          "duration_seconds": 10,
+          "type": "instruction",
+          "voice_cue": "Sit upright."
+        },
+        {
+          "id": "step-2",
+          "instruction": "Slowly roll your shoulders backward in small circles.",
+          "duration_seconds": 15,
+          "type": "instruction",
+          "voice_cue": "Roll your shoulders."
+        },
+        {
+          "id": "breath-1",
+          "instruction": "Inhale slowly, sitting tall, then exhale relaxing your neck.",
+          "duration_seconds": 5,
+          "type": "breathing",
+          "phase": "inhale",
+          "voice_cue": "Inhale deeply."
+        }
+      ],
+      "media_url": "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=600&h=400&fit=crop",
+      "video_url": "https://www.youtube.com/watch?v=DbDoBzGY3vo",
+      "status": "published",
+      "expert_validated": true,
+      "created_by": "usr-chief-admin-001",
+      "created_at": "2026-07-27 21:09:33.753649"
+    }
+  ],
+  "recipes": [
+    {
+      "id": "rec-501",
+      "name": "Low Sodium Chicken Tinola",
+      "subtitle": "Traditional Filipino ginger broth soup tuned for heart health optimization",
+      "category": "Lunch",
+      "hss_tier": "Stable",
+      "sodium_mg": 380,
+      "calories": 320,
+      "saturated_fat_g": 1.5,
+      "cholesterol_mg": 65,
+      "fiber_g": 4,
+      "prep_time_minutes": 35,
+      "servings": 4,
+      "difficulty": "Easy",
+      "heart_benefit": "Lowers cellular fluid retention via deliberate reduction of industrial sodium extracts.",
+      "tags": [
+        "Low Sodium",
+        "Filipino",
+        "Soup"
+      ],
+      "ingredients": [
+        {
+          "name": "Chicken breast, cut into serving pieces",
+          "amount": 500,
+          "unit": "g"
+        },
+        {
+          "name": "Fresh ginger, julienned",
+          "amount": 5,
+          "unit": "slices"
+        },
+        {
+          "name": "Chayote (sayote), peeled and sliced",
+          "amount": 2,
+          "unit": "medium"
+        },
+        {
+          "name": "Moringa (malunggay) or chili leaves",
+          "amount": 1,
+          "unit": "cup"
+        },
+        {
+          "name": "Garlic, crushed",
+          "amount": 3,
+          "unit": "cloves"
+        },
+        {
+          "name": "Onion, chopped",
+          "amount": 1,
+          "unit": "medium"
+        },
+        {
+          "name": "Water or low-sodium chicken broth",
+          "amount": 1000,
+          "unit": "ml"
+        },
+        {
+          "name": "Fish sauce (low-sodium variant)",
+          "amount": 1,
+          "unit": "tbsp"
+        }
+      ],
+      "steps": [
+        "In a large pot, heat 1 tablespoon of olive oil over medium heat. Saut\u00e9 the crushed garlic, chopped onion, and julienned ginger until they are fragrant and the onions become translucent.",
+        "Add the cut chicken pieces into the pot. Saut\u00e9 for about 5 to 7 minutes until the chicken turns light brown on all sides.",
+        "Pour in the 1000ml of water or low-sodium broth. Bring the mixture to a gentle boil, then lower the heat and let it simmer for 25-30 minutes until the chicken is completely tender.",
+        "Add the sliced chayote to the boiling soup and cook for another 5 minutes until the vegetables are tender but still crisp.",
+        "Season with 1 tbsp of low-sodium fish sauce and a pinch of black pepper.",
+        "Turn off the heat, add the malunggay or chili leaves, and cover the pot for 2 minutes to let the residual heat cook the greens. Serve hot."
+      ],
+      "image_url": "https://images.unsplash.com/photo-1547592180-85f173990554?w=400&h=300&fit=crop",
+      "status": "published",
+      "expert_validated": true,
+      "created_by": "usr-admin-002",
+      "created_at": "2026-05-01 10:00:00"
+    },
+    {
+      "id": "rec-502",
+      "name": "Heart-Healthy Salmon Bowl",
+      "subtitle": "Rich in omega-3 fatty acids for cardiovascular support",
+      "category": "Dinner",
+      "hss_tier": "Stable",
+      "sodium_mg": 280,
+      "calories": 450,
+      "saturated_fat_g": 2.0,
+      "cholesterol_mg": 55,
+      "fiber_g": 6,
+      "prep_time_minutes": 25,
+      "servings": 2,
+      "difficulty": "Medium",
+      "heart_benefit": "High in Omega-3 to help reduce inflammation and lower blood pressure.",
+      "tags": [
+        "Omega-3",
+        "Seafood",
+        "Dinner"
+      ],
+      "ingredients": [
+        {
+          "name": "Fresh salmon fillet",
+          "amount": 300,
+          "unit": "g"
+        },
+        {
+          "name": "Quinoa, rinsed",
+          "amount": 1,
+          "unit": "cup"
+        },
+        {
+          "name": "Broccoli florets",
+          "amount": 2,
+          "unit": "cups"
+        },
+        {
+          "name": "Cherry tomatoes, halved",
+          "amount": 1,
+          "unit": "cup"
+        },
+        {
+          "name": "Lemon juice, freshly squeezed",
+          "amount": 2,
+          "unit": "tbsp"
+        },
+        {
+          "name": "Extra virgin olive oil",
+          "amount": 1,
+          "unit": "tbsp"
+        },
+        {
+          "name": "Black pepper and herbs (dill or parsley)",
+          "amount": "To taste",
+          "unit": ""
+        }
+      ],
+      "steps": [
+        "Preheat your oven to 400\u00b0F (200\u00b0C). Line a baking tray with parchment paper.",
+        "Place the salmon fillet on the tray. Lightly brush with olive oil and sprinkle with black pepper and your choice of herbs.",
+        "Bake the salmon for 12-15 minutes, or until the fish easily flakes with a fork. Avoid overcooking.",
+        "While the salmon bakes, combine 1 cup of rinsed quinoa with 2 cups of water in a saucepan. Bring to a boil, reduce to a low simmer, cover, and cook for 15 minutes until the water is absorbed.",
+        "Steam the broccoli florets for 5 minutes until they are tender-crisp and vibrant green.",
+        "Assemble the bowl by placing a generous scoop of cooked quinoa at the bottom. Arrange the baked salmon, steamed broccoli, and halved cherry tomatoes on top.",
+        "Drizzle the fresh lemon juice and remaining olive oil over the bowl right before serving."
+      ],
+      "image_url": "https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=400&h=300&fit=crop",
+      "status": "published",
+      "expert_validated": true,
+      "created_by": "usr-admin-002",
+      "created_at": "2026-06-01 10:00:00"
+    },
+    {
+      "id": "rec-503",
+      "name": "Oatmeal with Berries",
+      "subtitle": "High-fiber breakfast to manage cholesterol levels",
+      "category": "Breakfast",
+      "hss_tier": "Stable",
+      "sodium_mg": 10,
+      "calories": 250,
+      "saturated_fat_g": 0.5,
+      "cholesterol_mg": 0,
+      "fiber_g": 8,
+      "prep_time_minutes": 10,
+      "servings": 1,
+      "difficulty": "Easy",
+      "heart_benefit": "Soluble fiber in oats helps lower LDL cholesterol.",
+      "tags": [
+        "High Fiber",
+        "Breakfast",
+        "Vegan"
+      ],
+      "ingredients": [
+        {
+          "name": "Rolled oats (not instant)",
+          "amount": 0.5,
+          "unit": "cup"
+        },
+        {
+          "name": "Mixed berries (blueberries, strawberries)",
+          "amount": 0.5,
+          "unit": "cup"
+        },
+        {
+          "name": "Unsweetened almond milk",
+          "amount": 1,
+          "unit": "cup"
+        },
+        {
+          "name": "Chia seeds",
+          "amount": 1,
+          "unit": "tbsp"
+        },
+        {
+          "name": "Cinnamon powder",
+          "amount": 0.5,
+          "unit": "tsp"
+        }
+      ],
+      "steps": [
+        "In a small saucepan, combine the rolled oats and unsweetened almond milk. Bring the mixture to a gentle simmer over medium heat.",
+        "Reduce the heat to low and cook for 5-7 minutes, stirring occasionally, until the oats have absorbed most of the liquid and reached a creamy consistency.",
+        "Remove the saucepan from the heat and stir in the chia seeds and cinnamon powder.",
+        "Pour the oatmeal into a serving bowl and let it sit for a minute to thicken slightly.",
+        "Top generously with fresh mixed berries. You may add a light drizzle of honey if additional sweetness is desired."
+      ],
+      "image_url": "https://images.unsplash.com/photo-1517881917430-e70dfb3610aa?w=400&h=300&fit=crop",
+      "status": "published",
+      "expert_validated": true,
+      "created_by": "usr-admin-002",
+      "created_at": "2026-06-10 08:00:00"
+    },
+    {
+      "id": "rec-504",
+      "name": "Grilled Bangus with Citrus & Garlic",
+      "subtitle": "Classic Filipino milkfish, heart-healthy style",
+      "category": "Lunch",
+      "hss_tier": "Stable",
+      "sodium_mg": 95,
+      "calories": 280,
+      "saturated_fat_g": 2.0,
+      "cholesterol_mg": 50,
+      "fiber_g": 2,
+      "prep_time_minutes": 35,
+      "servings": 2,
+      "difficulty": "Medium",
+      "heart_benefit": "Calamansi and garlic provide robust flavor without the need for excess salt, making it ideal for blood pressure management.",
+      "tags": [
+        "Low Sodium",
+        "High Protein",
+        "Filipino"
+      ],
+      "ingredients": [
+        {
+          "name": "Whole Bangus (milkfish), butterflied and deboned",
+          "amount": 1,
+          "unit": "large"
+        },
+        {
+          "name": "Garlic, finely minced",
+          "amount": 4,
+          "unit": "cloves"
+        },
+        {
+          "name": "Calamansi juice (or lemon)",
+          "amount": 2,
+          "unit": "tbsp"
+        },
+        {
+          "name": "Extra virgin olive oil",
+          "amount": 1,
+          "unit": "tbsp"
+        },
+        {
+          "name": "Ground black pepper",
+          "amount": 1,
+          "unit": "tsp"
+        },
+        {
+          "name": "Tomato and onion salsa (for serving)",
+          "amount": 1,
+          "unit": "cup"
+        }
+      ],
+      "steps": [
+        "Ensure the butterflied bangus is thoroughly deboned. Rinse it lightly under cold water and pat completely dry with paper towels.",
+        "In a small bowl, whisk together the minced garlic, calamansi juice, olive oil, and ground black pepper to create the marinade.",
+        "Brush the marinade generously over the meaty side of the bangus. Let it marinate for at least 15-20 minutes at room temperature to absorb the flavors.",
+        "Preheat your grill or a large grill pan over medium-high heat. Lightly oil the grates to prevent sticking.",
+        "Place the bangus skin-side down on the grill. Cook for about 5-7 minutes until the skin is crispy and slightly charred.",
+        "Carefully flip the fish using a wide spatula and grill the meat side for another 3-4 minutes until fully cooked and opaque.",
+        "Transfer to a serving platter and serve immediately with fresh tomato and onion salsa on the side."
+      ],
+      "image_url": "https://images.unsplash.com/photo-1580476262798-bddd9f4b7369?w=400&h=300&fit=crop",
+      "status": "published",
+      "expert_validated": true,
+      "created_by": "usr-admin-002",
+      "created_at": "2026-06-12 10:00:00"
+    },
+    {
+      "id": "rec-505",
+      "name": "Steamed White Fish with Ginger",
+      "subtitle": "Ultra-low sodium and light protein for sensitive digestion",
+      "category": "Dinner",
+      "hss_tier": "Elevated Risk",
+      "sodium_mg": 150,
+      "calories": 210,
+      "saturated_fat_g": 0.5,
+      "cholesterol_mg": 45,
+      "fiber_g": 1,
+      "prep_time_minutes": 20,
+      "servings": 2,
+      "difficulty": "Easy",
+      "heart_benefit": "Provides high-quality protein without taxing the cardiovascular system with sodium.",
+      "tags": [
+        "Low Sodium",
+        "Seafood",
+        "Dinner"
+      ],
+      "ingredients": [
+        {
+          "name": "White fish fillet (tilapia or cod)",
+          "amount": 300,
+          "unit": "g"
+        },
+        {
+          "name": "Fresh ginger, julienned",
+          "amount": 1,
+          "unit": "tbsp"
+        },
+        {
+          "name": "Scallions, thinly sliced",
+          "amount": 2,
+          "unit": "stalks"
+        },
+        {
+          "name": "Low-sodium soy sauce substitute",
+          "amount": 1,
+          "unit": "tsp"
+        },
+        {
+          "name": "Sesame oil",
+          "amount": 1,
+          "unit": "tsp"
+        }
+      ],
+      "steps": [
+        "Place the fish fillet on a heat-proof plate.",
+        "Top the fish evenly with the julienned ginger.",
+        "Steam over boiling water for 10-12 minutes until the fish is opaque and flakes easily.",
+        "Remove from steamer and drizzle with sesame oil and soy sauce substitute.",
+        "Garnish with scallions and serve immediately."
+      ],
+      "image_url": "https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=400&h=300&fit=crop",
+      "status": "published",
+      "expert_validated": true,
+      "created_by": "usr-admin-002",
+      "created_at": "2026-06-10 10:00:00"
+    },
+    {
+      "id": "rec-506",
+      "name": "Mashed Sweet Potatoes",
+      "subtitle": "Potassium-rich complex carbohydrates for stable energy",
+      "category": "Lunch",
+      "hss_tier": "Elevated Risk",
+      "sodium_mg": 85,
+      "calories": 180,
+      "saturated_fat_g": 0,
+      "cholesterol_mg": 0,
+      "fiber_g": 5,
+      "prep_time_minutes": 25,
+      "servings": 4,
+      "difficulty": "Easy",
+      "heart_benefit": "High potassium content helps counteract the effects of sodium on blood pressure.",
+      "tags": [
+        "Vegetarian",
+        "Lunch",
+        "Side Dish"
+      ],
+      "ingredients": [
+        {
+          "name": "Sweet potatoes, peeled and cubed",
+          "amount": 500,
+          "unit": "g"
+        },
+        {
+          "name": "Unsweetened almond milk",
+          "amount": 60,
+          "unit": "ml"
+        },
+        {
+          "name": "Cinnamon",
+          "amount": 0.5,
+          "unit": "tsp"
+        }
+      ],
+      "steps": [
+        "Boil the sweet potato cubes in unsalted water for 15 minutes until very tender.",
+        "Drain well and return to the pot.",
+        "Add the almond milk and cinnamon.",
+        "Mash with a potato masher until smooth."
+      ],
+      "image_url": "https://images.unsplash.com/photo-1590080875515-8a3a8dc5735e?w=400&h=300&fit=crop",
+      "status": "published",
+      "expert_validated": true,
+      "created_by": "usr-admin-002",
+      "created_at": "2026-06-12 11:00:00"
+    },
+    {
+      "id": "rec-507",
+      "name": "Garlic Ginger Tofu Stir-Fry",
+      "subtitle": "Lean protein and anti-inflammatory spices",
+      "category": "Lunch",
+      "hss_tier": "Moderate",
+      "sodium_mg": 220,
+      "calories": 190,
+      "saturated_fat_g": 0.5,
+      "cholesterol_mg": 0,
+      "fiber_g": 3,
+      "prep_time_minutes": 15,
+      "servings": 2,
+      "difficulty": "Easy",
+      "heart_benefit": "Ginger supports circulation and garlic improves endothelial function.",
+      "tags": [
+        "Low Sodium",
+        "Vegetarian",
+        "Lunch"
+      ],
+      "ingredients": [
+        {
+          "name": "Extra firm tofu, cubed",
+          "amount": 200,
+          "unit": "g"
+        },
+        {
+          "name": "Minced garlic",
+          "amount": 2,
+          "unit": "cloves"
+        },
+        {
+          "name": "Minced ginger",
+          "amount": 1,
+          "unit": "tsp"
+        },
+        {
+          "name": "Broccoli florets",
+          "amount": 1,
+          "unit": "cup"
+        },
+        {
+          "name": "Low-sodium soy substitute",
+          "amount": 1,
+          "unit": "tsp"
+        }
+      ],
+      "steps": [
+        "Pan-sear tofu cubes in a non-stick pan with a light spray of olive oil.",
+        "Add garlic, ginger, and broccoli florets, tossing frequently.",
+        "Drizzle low-sodium soy substitute and serve hot."
+      ],
+      "image_url": "https://images.unsplash.com/photo-1512058564366-18510be2db19?w=400&h=300&fit=crop",
+      "status": "published",
+      "expert_validated": true,
+      "created_by": "usr-chief-admin-001",
+      "created_at": "2026-07-27 21:09:33.753649"
+    },
+    {
+      "id": "rec-508",
+      "name": "Low-Sodium Vegetable Broth",
+      "subtitle": "Soothing, mineral-dense hydration broth",
+      "category": "Dinner",
+      "hss_tier": "Critical",
+      "sodium_mg": 90,
+      "calories": 80,
+      "saturated_fat_g": 0.1,
+      "cholesterol_mg": 0,
+      "fiber_g": 2,
+      "prep_time_minutes": 45,
+      "servings": 4,
+      "difficulty": "Easy",
+      "heart_benefit": "Ultra-low sodium profile minimizes myocardial strain and fluid overload risk.",
+      "tags": [
+        "Low Sodium",
+        "Soup",
+        "Dinner"
+      ],
+      "ingredients": [
+        {
+          "name": "Carrots, sliced",
+          "amount": 2,
+          "unit": "medium"
+        },
+        {
+          "name": "Celery stalks, sliced",
+          "amount": 2,
+          "unit": "stalks"
+        },
+        {
+          "name": "Onion, halved",
+          "amount": 1,
+          "unit": "medium"
+        },
+        {
+          "name": "Garlic cloves",
+          "amount": 4,
+          "unit": "cloves"
+        },
+        {
+          "name": "Fresh herbs (thyme, parsley)",
+          "amount": "To taste",
+          "unit": ""
+        }
+      ],
+      "steps": [
+        "Place carrots, celery, onion, and garlic in a large pot.",
+        "Cover with water and bring to a boil, then reduce heat to low.",
+        "Simmer for 45 minutes, strain out vegetables, and serve the warm broth."
+      ],
+      "image_url": "https://images.unsplash.com/photo-1541832676-9b763b0239ab?w=400&h=300&fit=crop",
+      "status": "published",
+      "expert_validated": true,
+      "created_by": "usr-chief-admin-001",
+      "created_at": "2026-07-27 21:09:33.753649"
+    }
+  ],
+  "clinics": [
+    {
+      "id": "1",
+      "name": "Chong Hua Hospital Heart Institute",
+      "doctor": "Dr. Maria Santos, MD, FACC",
+      "latitude": 10.3129,
+      "longitude": 123.8925,
+      "phone": "1234567890",
+      "specialty": "General Cardiology"
+    },
+    {
+      "id": "2",
+      "name": "Cebu Doctors' University Hospital",
+      "doctor": "Dr. Juan Dela Cruz, MD",
+      "latitude": 10.3152,
+      "longitude": 123.8897,
+      "phone": "0987654321",
+      "specialty": "General Cardiology"
+    },
+    {
+      "id": "3",
+      "name": "Perpetual Succour Hospital",
+      "doctor": "Dr. Anna Reyes, MD",
+      "latitude": 10.3188,
+      "longitude": 123.8966,
+      "phone": "1122334455",
+      "specialty": "Cardiac Rehabilitation"
+    }
+  ]
+}

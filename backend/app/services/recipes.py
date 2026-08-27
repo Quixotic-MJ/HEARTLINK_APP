@@ -1,17 +1,22 @@
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from datetime import datetime
 import uuid
-from app.mock_db import recipes, saved_recipes
+from app.db.repositories import get_content_repo
 
-def normalize_recipe_fields(recipe: Dict[str, Any]) -> Dict[str, Any]:
+def normalize_recipe_fields(recipe: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
     if not recipe:
         return recipe
     
+    # Clone to avoid mutating internal records
+    recipe = dict(recipe)
+
     # 1. Standardize instructions/steps
     if not recipe.get("steps"):
         inst = recipe.get("instructions") or ""
         if isinstance(inst, str):
             recipe["steps"] = [s.strip() for s in inst.split("\n") if s.strip()]
+        elif isinstance(inst, list):
+            recipe["steps"] = inst
         else:
             recipe["steps"] = []
             
@@ -45,10 +50,11 @@ def normalize_recipe_fields(recipe: Dict[str, Any]) -> Dict[str, Any]:
     return recipe
 
 def get_recipes() -> List[Dict[str, Any]]:
+    recipes = get_content_repo().list_recipes()
     return [normalize_recipe_fields(r) for r in recipes]
 
-def get_recipe(recipe_id: str) -> Dict[str, Any]:
-    r = next((r for r in recipes if r["id"] == recipe_id), None)
+def get_recipe(recipe_id: str) -> Optional[Dict[str, Any]]:
+    r = get_content_repo().get_recipe(recipe_id)
     return normalize_recipe_fields(r) if r else None
 
 def map_hss_tier(tier: str) -> str:
@@ -96,54 +102,57 @@ def create_recipe(data: Dict[str, Any]) -> Dict[str, Any]:
                 "unit": None
             })
 
-    new_recipe = {
-        "id": f"rec-{uuid.uuid4().hex[:8]}",
+    new_recipe_payload = {
         "name": data.get("name", ""),
         "category": data.get("category", ""),
         "hss_tier": map_hss_tier(data.get("hssTarget", "Stable")),
-        "sodium_mg": data.get("sodium", 0),
+        "sodium_mg": data.get("sodium", 0) or data.get("sodium_mg", 0),
         "calories": data.get("calories", 0),
-        "saturated_fat_g": data.get("satFat", 0),
-        "cholesterol_mg": data.get("cholesterol", 0),
-        "fiber_g": data.get("fiber", 0),
+        "saturated_fat_g": data.get("satFat", 0) or data.get("saturated_fat_g", 0),
+        "cholesterol_mg": data.get("cholesterol", 0) or data.get("cholesterol_mg", 0),
+        "fiber_g": data.get("fiber", 0) or data.get("fiber_g", 0),
         "status": data.get("status", "draft"),
-        "expert_validated": data.get("expertValidated", False),
-        "image_url": data.get("mediaUrl", ""),
+        "expert_validated": data.get("expertValidated", False) or data.get("expert_validated", False),
+        "image_url": data.get("mediaUrl", "") or data.get("image_url", ""),
         "steps": steps,
         "ingredients": ingredients_list,
-        "created_at": datetime.now(),
         "foodSourceType": data.get("foodSourceType", "Home Recipe")
     }
-    recipes.append(new_recipe)
-    return normalize_recipe_fields(new_recipe)
+    if data.get("id"):
+        new_recipe_payload["id"] = data["id"]
+    res = get_content_repo().create_recipe(new_recipe_payload)
+    return normalize_recipe_fields(res)
 
-def update_recipe(recipe_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
-    recipe = next((r for r in recipes if r["id"] == recipe_id), None)
-    if not recipe:
-        return None
-    
-    recipe["name"] = data.get("name", recipe.get("name"))
-    recipe["category"] = data.get("category", recipe.get("category"))
-    recipe["hss_tier"] = map_hss_tier(data.get("hssTarget", recipe.get("hss_tier")))
-    recipe["sodium_mg"] = data.get("sodium", recipe.get("sodium_mg"))
-    recipe["calories"] = data.get("calories", recipe.get("calories"))
-    recipe["saturated_fat_g"] = data.get("satFat", recipe.get("saturated_fat_g"))
-    recipe["cholesterol_mg"] = data.get("cholesterol", recipe.get("cholesterol_mg"))
-    recipe["fiber_g"] = data.get("fiber", recipe.get("fiber_g"))
-    recipe["status"] = data.get("status", recipe.get("status"))
-    recipe["expert_validated"] = data.get("expertValidated", recipe.get("expert_validated"))
-    recipe["image_url"] = data.get("mediaUrl", recipe.get("image_url"))
-    recipe["foodSourceType"] = data.get("foodSourceType", recipe.get("foodSourceType"))
+def update_recipe(recipe_id: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    update_data = {}
+    if "name" in data: update_data["name"] = data["name"]
+    if "category" in data: update_data["category"] = data["category"]
+    if "hssTarget" in data or "hss_tier" in data:
+        update_data["hss_tier"] = map_hss_tier(data.get("hssTarget", data.get("hss_tier")))
+    if "sodium" in data or "sodium_mg" in data:
+        update_data["sodium_mg"] = data.get("sodium", data.get("sodium_mg"))
+    if "calories" in data: update_data["calories"] = data["calories"]
+    if "satFat" in data or "saturated_fat_g" in data:
+        update_data["saturated_fat_g"] = data.get("satFat", data.get("saturated_fat_g"))
+    if "cholesterol" in data or "cholesterol_mg" in data:
+        update_data["cholesterol_mg"] = data.get("cholesterol", data.get("cholesterol_mg"))
+    if "fiber" in data or "fiber_g" in data:
+        update_data["fiber_g"] = data.get("fiber", data.get("fiber_g"))
+    if "status" in data: update_data["status"] = data["status"]
+    if "expertValidated" in data or "expert_validated" in data:
+        update_data["expert_validated"] = data.get("expertValidated", data.get("expert_validated"))
+    if "mediaUrl" in data or "image_url" in data:
+        update_data["image_url"] = data.get("mediaUrl", data.get("image_url"))
+    if "foodSourceType" in data: update_data["foodSourceType"] = data["foodSourceType"]
     
     if "steps" in data:
-        recipe["steps"] = data["steps"]
-    else:
-        instructions_str = data.get("instructions")
-        if instructions_str is not None:
-            if isinstance(instructions_str, str):
-                recipe["steps"] = [s.strip() for s in instructions_str.split("\n") if s.strip()]
-            else:
-                recipe["steps"] = []
+        update_data["steps"] = data["steps"]
+    elif "instructions" in data and data["instructions"] is not None:
+        instructions_str = data["instructions"]
+        if isinstance(instructions_str, str):
+            update_data["steps"] = [s.strip() for s in instructions_str.split("\n") if s.strip()]
+        else:
+            update_data["steps"] = []
             
     if "ingredients" in data:
         ingredients_list = []
@@ -157,11 +166,7 @@ def update_recipe(recipe_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
                         amt = float(amt)
                     except Exception:
                         amt = None
-                
-                ut = ing.get("unit")
-                if ut == "":
-                    ut = None
-
+                ut = ing.get("unit") or None
                 ingredients_list.append({
                     "name": ing.get("name", ""),
                     "amount": amt,
@@ -173,21 +178,17 @@ def update_recipe(recipe_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
                     "amount": None,
                     "unit": None
                 })
-        recipe["ingredients"] = ingredients_list
+        update_data["ingredients"] = ingredients_list
 
-    return normalize_recipe_fields(recipe)
+    res = get_content_repo().update_recipe(recipe_id, update_data)
+    return normalize_recipe_fields(res) if res else None
 
 def delete_recipe(recipe_id: str) -> bool:
-    global recipes
-    original_length = len(recipes)
-    recipes[:] = [r for r in recipes if r["id"] != recipe_id]
-    return len(recipes) < original_length
+    return get_content_repo().delete_recipe(recipe_id)
 
 def save_recipe_for_user(user_id: str, recipe_id: str) -> bool:
-    if not any(s["user_id"] == user_id and s["recipe_id"] == recipe_id for s in saved_recipes):
-        saved_recipes.append({"user_id": user_id, "recipe_id": recipe_id})
-    return True
+    return get_content_repo().save_recipe_for_user(user_id, recipe_id)
 
 def get_saved_recipes(user_id: str) -> List[Dict[str, Any]]:
-    saved_ids = [s["recipe_id"] for s in saved_recipes if s["user_id"] == user_id]
-    return [normalize_recipe_fields(r) for r in recipes if r["id"] in saved_ids]
+    recipes = get_content_repo().list_saved_recipes(user_id)
+    return [normalize_recipe_fields(r) for r in recipes]

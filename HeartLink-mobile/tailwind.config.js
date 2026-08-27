@@ -29,6 +29,10 @@ module.exports = {
           DEFAULT: "rgb(var(--color-success) / <alpha-value>)",
           foreground: "rgb(var(--color-success-foreground) / <alpha-value>)",
         },
+        accent: {
+          DEFAULT: "rgb(var(--color-accent) / <alpha-value>)",
+          foreground: "rgb(var(--color-accent-foreground) / <alpha-value>)",
+        },
         health: {
           stable: "rgb(var(--color-health-stable) / <alpha-value>)",
           "stable-track": "rgb(var(--color-health-stable-track) / <alpha-value>)",

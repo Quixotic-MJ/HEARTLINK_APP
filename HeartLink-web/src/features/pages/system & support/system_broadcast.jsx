@@ -17,7 +17,7 @@ import {
 import { apiFetch } from "../../../api";
 import AdminLayout from "../../../components/layouts/adminLayout";
 import NewBroadcastModal from "../../../components/modals/NewBroadcastModal";
-import ViewBroadcastModal from "../../../components/modals/ViewBroadcastModal";
+import ViewBroadcastModal, { getCategoryBadge } from "../../../components/modals/ViewBroadcastModal";
 
 const Broadcasts = () => {
   const [broadcasts, setBroadcasts] = useState([]);
@@ -53,7 +53,7 @@ const Broadcasts = () => {
       setBroadcasts(data);
     } catch (err) {
       console.error(err);
-      showToast("Failed to load broadcasts", "error");
+      showToast("Failed to load announcements", "error");
     } finally {
       setIsLoading(false);
     }
@@ -62,8 +62,8 @@ const Broadcasts = () => {
   const openModal = () => setIsModalOpen(true);
   const closeModal = () => { setIsModalOpen(false); setPendingBroadcast(null); };
 
-  const handlePublishClick = (type, msg, targetAudience) => {
-    setPendingBroadcast({ type, message: msg, targetAudience });
+  const handlePublishClick = (type, msg, targetAudience, title) => {
+    setPendingBroadcast({ type, message: msg, targetAudience, title });
     setIsConfirmModalOpen(true);
   };
 
@@ -73,18 +73,19 @@ const Broadcasts = () => {
       const res = await apiFetch("/api/admin/broadcasts", {
         method: "POST",
         body: JSON.stringify({
+          title: pendingBroadcast.title,
           type: pendingBroadcast.type,
           message: pendingBroadcast.message,
           targetAudience: pendingBroadcast.targetAudience
         })
       });
       setBroadcasts([res.data, ...broadcasts]);
-      showToast("Broadcast published successfully");
+      showToast("Announcement published successfully");
       setIsConfirmModalOpen(false);
       closeModal();
     } catch (err) {
       console.error(err);
-      showToast("Failed to publish broadcast", "error");
+      showToast("Failed to publish announcement", "error");
     } finally {
       setIsSubmitting(false);
     }
@@ -96,17 +97,18 @@ const Broadcasts = () => {
         method: "DELETE"
       });
       setBroadcasts(broadcasts.filter((b) => b.id !== broadcastId));
-      showToast("Broadcast deleted successfully");
+      showToast("Announcement deleted successfully");
       setViewModalOpen(false);
     } catch (err) {
       console.error(err);
-      showToast("Failed to delete broadcast", "error");
+      showToast("Failed to delete announcement", "error");
     }
   };
 
   const filteredBroadcasts = broadcasts.filter(b => 
+    (b.title || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
     b.message.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    b.publisher.toLowerCase().includes(searchQuery.toLowerCase())
+    (b.display_publisher || b.publisher || "").toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -119,14 +121,14 @@ const Broadcasts = () => {
               Communication Portal
             </p>
             <h2 className="text-2xl lg:text-3xl font-bold text-slate-900 leading-[1.1] tracking-tight">
-              System <span className="text-[#0f172a]">Broadcasts.</span>
+              System <span className="text-[#0f172a]">Announcements.</span>
             </h2>
           </div>
           <button 
             onClick={openModal}
             className="flex items-center gap-2 px-5 py-2.5 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-xl transition-colors shadow-sm"
           >
-            <Plus size={14} strokeWidth={2.5} /> New Broadcast
+            <Plus size={14} strokeWidth={2.5} /> Create Announcement
           </button>
         </div>
 
@@ -137,7 +139,7 @@ const Broadcasts = () => {
               <Search size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
               <input 
                 type="text" 
-                placeholder="Search past announcements..." 
+                placeholder="Search announcements..." 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 placeholder-slate-400 outline-none transition-all focus:bg-white focus:ring-2 focus:ring-slate-900/5 focus:border-slate-400 shadow-sm" 
@@ -161,14 +163,14 @@ const Broadcasts = () => {
                     <td colSpan="4" className="py-8 text-center">
                       <div className="flex justify-center items-center gap-2 text-slate-400">
                         <Loader2 size={16} className="animate-spin" />
-                        <span className="text-xs font-medium">Loading broadcasts...</span>
+                        <span className="text-xs font-medium">Loading announcements...</span>
                       </div>
                     </td>
                   </tr>
                 ) : filteredBroadcasts.length === 0 ? (
                   <tr>
                     <td colSpan="4" className="py-8 text-center text-slate-500 text-xs">
-                      No broadcasts found.
+                      No announcements found.
                     </td>
                   </tr>
                 ) : (
@@ -178,10 +180,20 @@ const Broadcasts = () => {
                         <span className="text-slate-900 font-bold text-xs">{b.date}</span>
                       </td>
                       <td className="py-4 px-6 align-middle">
-                        <span className="text-slate-700 font-semibold text-xs">{b.publisher}</span>
+                        <span className="text-slate-700 font-semibold text-xs">
+                          {b.display_publisher || (b.publisher ? b.publisher.replace(/^[^(]+\((.+)\)$/, "$1") : "System Admin")}
+                        </span>
                       </td>
                       <td className="py-4 px-6 align-middle">
-                        <span className="text-slate-600 text-xs font-medium truncate max-w-[350px] inline-block">{b.message}</span>
+                        <div className="space-y-1.5 max-w-[420px]">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-slate-900 text-xs font-bold truncate">
+                              {b.title || "Announcement"}
+                            </span>
+                            {getCategoryBadge(b.type)}
+                          </div>
+                          <p className="text-slate-500 text-xs font-medium truncate">{b.message}</p>
+                        </div>
                       </td>
                       <td className="py-4 px-6 align-middle text-right">
                         <button 
@@ -219,19 +231,63 @@ const Broadcasts = () => {
       {isConfirmModalOpen && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsConfirmModalOpen(false)}></div>
-          <div className="bg-white p-6 rounded-2xl shadow-xl max-w-sm w-full relative animate-in fade-in zoom-in-95 duration-200">
-            <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mb-4">
-              <AlertTriangle className="text-red-600" size={24} />
+          <div className="bg-white p-6 rounded-2xl shadow-2xl max-w-md w-full relative animate-in fade-in zoom-in-95 duration-200 border border-slate-100 flex flex-col max-h-[90vh] overflow-hidden">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center shrink-0 border border-red-100">
+                <AlertTriangle className="text-red-600" size={20} />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900">Confirm Announcement</h3>
+                <p className="text-[11px] text-slate-500 font-medium">Review details before publishing to all users</p>
+              </div>
             </div>
-            <h3 className="text-base font-bold text-slate-900 mb-2">Confirm Broadcast</h3>
-            <p className="text-xs text-slate-600 mb-6 leading-relaxed">
-              This message will be pushed to <strong>{pendingBroadcast?.targetAudience || "all users"}</strong> immediately. This action cannot be undone.
-            </p>
-            <div className="flex gap-3">
-              <button disabled={isSubmitting} onClick={() => setIsConfirmModalOpen(false)} className="flex-1 px-4 py-2.5 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-100 rounded-xl transition-colors border border-slate-200 shadow-sm disabled:opacity-50">Cancel</button>
-              <button disabled={isSubmitting} onClick={handleConfirmPublish} className="flex-1 px-4 py-2.5 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 rounded-xl shadow-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50">
+
+            <div className="flex-1 overflow-y-auto space-y-3 custom-scrollbar py-2">
+              {/* Title & Category */}
+              <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200/80 space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Title</span>
+                  {getCategoryBadge(pendingBroadcast?.type)}
+                </div>
+                <p className="text-xs font-bold text-slate-900">{pendingBroadcast?.title || "Untitled Announcement"}</p>
+              </div>
+
+              {/* Audience */}
+              <div className="flex items-center justify-between px-3.5 py-2.5 bg-slate-50 rounded-xl border border-slate-200/80 text-xs">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Audience</span>
+                <span className="font-semibold text-slate-800">{pendingBroadcast?.targetAudience || "All Registered Accounts"}</span>
+              </div>
+
+              {/* Message Preview */}
+              <div className="space-y-1.5">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Message Preview</span>
+                <div className="bg-slate-50/80 rounded-xl border border-slate-200 p-3.5 max-h-36 overflow-y-auto custom-scrollbar">
+                  <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-wrap select-text">
+                    {pendingBroadcast?.message}
+                  </p>
+                </div>
+              </div>
+
+              <p className="text-[11px] text-slate-500 leading-relaxed pt-1">
+                This message will be published to <strong>{pendingBroadcast?.targetAudience || "all users"}</strong> immediately. This action cannot be undone.
+              </p>
+            </div>
+
+            <div className="flex gap-3 pt-3 border-t border-slate-100 mt-2">
+              <button 
+                disabled={isSubmitting} 
+                onClick={() => setIsConfirmModalOpen(false)} 
+                className="flex-1 px-4 py-2.5 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-100 rounded-xl transition-colors border border-slate-200 shadow-sm disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button 
+                disabled={isSubmitting} 
+                onClick={handleConfirmPublish} 
+                className="flex-1 px-4 py-2.5 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 rounded-xl shadow-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+              >
                 {isSubmitting ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />} 
-                {isSubmitting ? "Sending..." : "Yes, Send"}
+                {isSubmitting ? "Sending..." : "Yes, Publish"}
               </button>
             </div>
           </div>

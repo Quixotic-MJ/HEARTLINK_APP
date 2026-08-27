@@ -5,6 +5,7 @@ import { StatusBar } from "expo-status-bar";
 import { Feather } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useColorScheme } from "nativewind";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useUser } from "../../contexts/UserContext";
 import { useToast } from "../../contexts/ToastContext";
 import { useBaseline } from "../../contexts/BaselineContext";
@@ -14,7 +15,7 @@ export default function CalculatingScreen() {
   const params = useLocalSearchParams();
   const user_id = params.user_id as string;
   
-  const { refreshUser } = useUser();
+  const { refreshUser, token } = useUser();
   const { showToast } = useToast();
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
@@ -66,9 +67,24 @@ export default function CalculatingScreen() {
       }
     }, 1200);
 
+    const mapSleepHours = (val: string) => {
+      switch (val) {
+        case "5": return 5.0;
+        case "5-6": return 5.5;
+        case "7-8": return 7.5;
+        case "9": return 9.0;
+        default: return parseFloat(val) || 8.0;
+      }
+    };
+
     const submitData = async () => {
       try {
         const base_url = process.env.EXPO_PUBLIC_API_URL;
+        const storedToken = token || (await AsyncStorage.getItem("access_token")) || "";
+        const authHeaders = {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${storedToken}`,
+        };
         
         // 1. Update Profile (Biometrics)
         const profilePayload = {
@@ -82,7 +98,7 @@ export default function CalculatingScreen() {
         };
         const profileRes = await fetch(`${base_url}/api/users/${user_id}/profile`, {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
+          headers: authHeaders,
           body: JSON.stringify(profilePayload),
         });
         
@@ -95,18 +111,22 @@ export default function CalculatingScreen() {
         
         const payload = {
           ...data,
-          sleep_hours: parseFloat(data.sleep_hours) || 8.0,
-          vigorous_days: safeInt(data.vigorous_days),
-          vigorous_minutes: safeInt(data.vigorous_minutes),
-          moderate_days: safeInt(data.moderate_days),
-          moderate_minutes: safeInt(data.moderate_minutes),
-          walk_bike_days: safeInt(data.walk_bike_days),
-          walk_bike_minutes: safeInt(data.walk_bike_minutes),
+          sleep_hours: mapSleepHours(data.sleep_hours),
+          vigorous_days: data.vigorous_activity ? safeInt(data.vigorous_days) : null,
+          vigorous_minutes: data.vigorous_activity ? safeInt(data.vigorous_minutes) : null,
+          moderate_days: data.moderate_activity ? safeInt(data.moderate_days) : null,
+          moderate_minutes: data.moderate_activity ? safeInt(data.moderate_minutes) : null,
+          walk_bike_days: data.walk_bike_transport ? safeInt(data.walk_bike_days) : null,
+          walk_bike_minutes: data.walk_bike_transport ? safeInt(data.walk_bike_minutes) : null,
+          smoke_now: data.ever_smoked ? (data.smoke_now || "Not at all") : "Not at all",
+          drink_frequency: data.ever_drank ? (data.drink_frequency || "Never") : "Never",
+          drinks_per_occasion: data.ever_drank && data.drink_frequency !== "Never" ? data.drinks_per_occasion : null,
+          binge_drinking_freq: data.ever_drank && data.drink_frequency !== "Never" ? data.binge_drinking_freq : null,
         };
 
         const res = await fetch(`${base_url}/api/users/${user_id}/baseline/complete`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: authHeaders,
           body: JSON.stringify(payload),
         });
 
@@ -144,31 +164,31 @@ export default function CalculatingScreen() {
   }, []);
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950 justify-center items-center px-6" >
+    <SafeAreaView className="flex-1 bg-background justify-center items-center px-6">
       <StatusBar style={isDark ? "light" : "dark"} />
 
       {/* Pulse / Status Icon */}
       <Animated.View
         style={{ transform: [{ scale: pulseAnim }] }}
         className={`w-24 h-24 rounded-full items-center justify-center mb-8 border ${
-          isComplete ? "bg-emerald-500/10 border-emerald-500/30" : isDark ? "bg-white/10 border-white/20" : "bg-slate-900/10 border-slate-900/20"
+          isComplete ? "bg-success/10 border-success/30" : "bg-card border-border shadow-sm"
         }`}
       >
         {isComplete ? (
-          <Feather name="check" size={38} color="#10b981" />
+          <Feather name="check" size={38} className="text-success" />
         ) : (
-          <Feather name="activity" size={36} color={isDark ? "#ffffff" : "#0f172a"} />
+          <Feather name="activity" size={36} className="text-primary" />
         )}
       </Animated.View>
 
       {/* Title Header */}
-      <Text className="text-[22px] font-semibold text-slate-900 dark:text-white mb-3 tracking-tight text-center">
+      <Text className="text-[22px] font-semibold text-foreground mb-3 tracking-tight text-center">
         {isComplete ? "HSS Calibrated!" : "Computing HSS"}
       </Text>
 
       {/* Dynamic Subtitle Step Text */}
       <Animated.View style={{ opacity: textOpacity, transform: [{ translateY: textTranslateY }] }}>
-        <Text className="text-[14px] text-slate-500 dark:text-slate-400 font-medium text-center">
+        <Text className="text-[14px] text-muted-foreground font-medium text-center">
           {isComplete ? "Redirecting to your dashboard..." : steps[step]}
         </Text>
       </Animated.View>

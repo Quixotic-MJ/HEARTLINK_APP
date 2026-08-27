@@ -1,11 +1,14 @@
+import os
 import jwt
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
 from fastapi import Depends, HTTPException, Security, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
-SECRET_KEY = "heartlink-super-secret-jwt-key"
-ALGORITHM = "HS256"
+from app.db.repositories import get_profile_repo
+
+SECRET_KEY = os.getenv("SECRET_KEY", "heartlink-super-secret-jwt-key")
+ALGORITHM = os.getenv("ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_HOURS = 24
 
 security = HTTPBearer()
@@ -41,11 +44,60 @@ def verify_token(token: str) -> Dict[str, Any]:
             headers={"WWW-Authenticate": "Bearer"},
         )
     except jwt.InvalidTokenError:
+        # If a distinct Supabase JWT secret is configured, attempt cryptographically verified decode
+        supabase_jwt_secret = os.getenv("SUPABASE_JWT_SECRET")
+        if supabase_jwt_secret and supabase_jwt_secret != SECRET_KEY:
+            try:
+                payload = jwt.decode(token, supabase_jwt_secret, algorithms=[ALGORITHM])
+                sub_id = payload.get("sub") or payload.get("user_id")
+                if sub_id:
+                    profile_repo = get_profile_repo()
+                    prof = profile_repo.get_by_id(sub_id)
+                    role = prof.get("role", "patient") if prof else payload.get("role", "patient")
+                    return {
+                        "user_id": sub_id,
+                        "role": role,
+                        "exp": payload.get("exp"),
+                        "email": payload.get("email"),
+                        "phone": payload.get("phone")
+                    }
+            except Exception:
+                pass
+
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token",
+            detail="Invalid token or signature",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+def get_current_user(credentials: HTTPAuthorizationCredentials = Security(security)):
+    token = credentials.credentials
+    payload = verify_token(token)
+    user_id = payload.get("user_id")
+    token_role = payload.get("role")
+    
+    if not user_id or not token_role:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token claims",
+        )
+        
+    profile_repo = get_profile_repo()
+    user = profile_repo.get_by_id(user_id)
+    
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User profile not found",
+        )
+        
+    if user.get("account_status") != "active":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access Denied: Account is disabled or archived",
+        )
+        
+    return payload
 
 def get_current_admin_user(credentials: HTTPAuthorizationCredentials = Security(security)):
     token = credentials.credentials
@@ -59,8 +111,8 @@ def get_current_admin_user(credentials: HTTPAuthorizationCredentials = Security(
             detail="Invalid token claims",
         )
         
-    import app.mock_db as mock_db
-    user = next((p for p in mock_db.profiles if p["id"] == user_id), None)
+    profile_repo = get_profile_repo()
+    user = profile_repo.get_by_id(user_id)
     
     if not user:
         raise HTTPException(

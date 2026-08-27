@@ -258,10 +258,12 @@ const UserWellnessProfile = () => {
                         <span className="text-sm font-medium text-slate-500">Avg. Sleep</span>
                         <span className="text-sm font-bold text-slate-900">{baselines.lifestyle.avg_sleep_hours} Hours</span>
                       </div>
-                      <div className="flex justify-between items-center py-2">
-                        <span className="text-sm font-medium text-slate-500">Family History</span>
-                        <span className="text-sm font-bold text-slate-900">{baselines.lifestyle.family_history ? "Yes" : "No"}</span>
-                      </div>
+                      {baselines.lifestyle.family_history !== undefined && (
+                        <div className="flex justify-between items-center py-2">
+                          <span className="text-sm font-medium text-slate-500">Family History</span>
+                          <span className="text-sm font-bold text-slate-900">{baselines.lifestyle.family_history ? "Yes" : "No"}</span>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <p className="text-slate-400 text-sm">No lifestyle baseline available.</p>

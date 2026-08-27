@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -7,12 +7,21 @@ import {
   Platform,
   ActivityIndicator,
   Pressable,
+  KeyboardAvoidingView,
+  ScrollView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
 import { useColorScheme } from "nativewind";
-import Animated, { useSharedValue, useAnimatedStyle, withTiming, Easing } from "react-native-reanimated";
+import Animated, { 
+  FadeIn, 
+  FadeInDown, 
+  useSharedValue, 
+  useAnimatedStyle, 
+  withSequence, 
+  withTiming 
+} from "react-native-reanimated";
 import "../../global.css";
 import { useUser } from "../../contexts/UserContext";
 import { Feather } from "@expo/vector-icons";
@@ -21,7 +30,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { InputField } from "../../components/ui/InputField";
 import { Button } from "../../components/ui/Button";
-import AnimatedButton from "../../components/ui/AnimatedButton";
 
 const loginSchema = z.object({
   identifier: z.string().min(1, "Please enter your email or phone number."),
@@ -31,10 +39,6 @@ const loginSchema = z.object({
 type LoginFormData = z.infer<typeof loginSchema>;
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
-
-// ─── Animated Button ──────────────────────────────────────────────────────────
-
-// Removed local PrimaryButton in favor of centralized Button component
 
 // ─── Auth Screen ──────────────────────────────────────────────────────────────
 
@@ -47,21 +51,68 @@ export default function AuthScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [globalError, setGlobalError] = useState<string | null>(null);
 
-  const { control, handleSubmit, formState: { isSubmitting } } = useForm<LoginFormData>({
+  // Reanimated Micro-interactions
+  const eyeScale = useSharedValue(1);
+  const errorShake = useSharedValue(0);
+
+  const formatIdentifier = (text: string) => {
+    const trimmed = text.trim();
+    if (/^[\d-]+$/.test(trimmed)) {
+      const digits = trimmed.replace(/\D/g, "").slice(0, 10);
+      if (digits.length <= 3) return digits;
+      if (digits.length <= 6) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+      return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6, 10)}`;
+    }
+    return text;
+  };
+
+  const { control, handleSubmit, setValue, formState: { isSubmitting } } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: { identifier: "", password: "" },
     mode: "onTouched",
   });
 
+  // Trigger error shake animation when globalError updates
+  useEffect(() => {
+    if (globalError) {
+      errorShake.value = withSequence(
+        withTiming(8, { duration: 50 }),
+        withTiming(-8, { duration: 50 }),
+        withTiming(6, { duration: 50 }),
+        withTiming(-6, { duration: 50 }),
+        withTiming(0, { duration: 50 })
+      );
+    }
+  }, [globalError]);
+
+  const errorAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: errorShake.value }],
+  }));
+
+  const eyeAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: eyeScale.value }],
+  }));
+
+  const togglePasswordVisibility = () => {
+    eyeScale.value = withSequence(
+      withTiming(0.7, { duration: 80 }),
+      withTiming(1.15, { duration: 100 }),
+      withTiming(1, { duration: 80 })
+    );
+    setShowPassword((prev) => !prev);
+  };
+
   const onSubmit = async (data: LoginFormData) => {
     setGlobalError(null);
 
     let finalIdentifier = data.identifier.trim().toLowerCase();
-    if (/^\d+$/.test(finalIdentifier)) {
-      if (finalIdentifier.startsWith("0")) {
-        finalIdentifier = finalIdentifier.substring(1);
+    const digitsOnly = finalIdentifier.replace(/\D/g, "");
+    if (/^[\d-]+$/.test(finalIdentifier) && digitsOnly.length >= 7) {
+      let p = digitsOnly;
+      if (p.startsWith("0")) {
+        p = p.substring(1);
       }
-      finalIdentifier = `+63${finalIdentifier}`;
+      finalIdentifier = `+63${p}`;
     }
 
     try {
@@ -78,11 +129,15 @@ export default function AuthScreen() {
       const resData = await response.json();
 
       if (response.ok) {
-        await setUserId(resData.user_id);
+        await setUserId(resData.user_id, resData.token);
 
         // Fetch profile to check onboarding status for correct routing
         try {
-          const profileRes = await fetch(`${base_url}/api/users/${resData.user_id}/profile`);
+          const profileRes = await fetch(`${base_url}/api/users/${resData.user_id}/profile`, {
+            headers: {
+              "Authorization": `Bearer ${resData.token || ""}`,
+            },
+          });
           const profileData = await profileRes.json();
           const onboardingStatus = profileData?.profile?.onboarding_status;
 
@@ -108,123 +163,157 @@ export default function AuthScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-background" edges={["top", "bottom"]}>
       <StatusBar style={isDark ? "light" : "dark"} />
       
-      <View className="px-5 pt-4 pb-3 flex-row items-center justify-between">
-        <AnimatedButton onPress={() => {
+      {/* ── Top Bar ── */}
+      <View className="px-5 pt-2 pb-2 flex-row items-center justify-between">
+        <TouchableOpacity 
+          onPress={() => {
             if (router.canGoBack()) {
               router.back();
             } else {
               router.replace("/onboarding");
             }
           }} 
-          className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 border-slate-800/70 items-center justify-center"
+          className="w-9 h-9 rounded-xl bg-card border border-border items-center justify-center"
+          activeOpacity={0.7}
         >
           <Feather name="arrow-left" size={18} color={isDark ? "#f8fafc" : "#0f172a"} />
-        </AnimatedButton>
-        <View className="flex-row items-center gap-2">
-          <View className="w-7 h-7 rounded-full items-center justify-center bg-rose-500/10">
-            <Feather name="heart" size={13} color="#f43f5e" />
+        </TouchableOpacity>
+        <View className="flex-row items-center gap-2.5">
+          <View className="w-8 h-8 rounded-full items-center justify-center border border-border bg-card shadow-sm">
+            <Feather name="heart" size={14} color={isDark ? "#f8fafc" : "#0f172a"} />
           </View>
-          <Text className="text-[14px] text-slate-900 dark:text-white" style={{ fontWeight: "300" }}>
+          <Text className="text-[15px] text-foreground tracking-tight" style={{ fontWeight: "300" }}>
             Heart<Text style={{ fontWeight: "600" }}>Link.</Text>
           </Text>
         </View>
       </View>
 
-      <View className="flex-grow px-5 pt-4 pb-12">
-        {/* ── Heading ── */}
-        <View className="mb-8 mt-2 px-1">
-          <Text className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight leading-tight mb-2">
-            Welcome{"\n"}back.
-          </Text>
-          <Text className="text-[14px] text-slate-500 dark:text-slate-400 leading-relaxed">
-            Log in to access your cardiovascular dashboard.
-          </Text>
-        </View>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        className="flex-1"
+      >
+        <ScrollView
+          contentContainerStyle={{
+            flexGrow: 1,
+            justifyContent: "center",
+            paddingHorizontal: 20,
+            paddingVertical: 16,
+          }}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* ── Heading ── */}
+          <Animated.View entering={FadeIn.delay(100)} className="mb-5 px-1">
+            <Text className="text-3xl font-bold text-foreground tracking-tight leading-tight mb-1.5">
+              Welcome back.
+            </Text>
+            <Text className="text-[14px] text-muted-foreground leading-relaxed">
+              Sign in to check your daily health score.
+            </Text>
+          </Animated.View>
 
-        {/* ── Card ── */}
-        <View className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 px-5 py-7 gap-5" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 }}>
-          
-          {/* Identifier Section */}
-          <InputField
-            control={control}
-            name="identifier"
-            label="Email or Phone number"
-            icon="user"
-            placeholder="email or phone"
-            keyboardType="default"
-            autoComplete="username"
-            textContentType="username"
-          />
-
-          {/* Password Section */}
-          <View>
-            <InputField
+          {/* ── Card ── */}
+          <Animated.View entering={FadeInDown.delay(200).springify()} className="bg-card rounded-2xl border border-border px-5 py-6 gap-4 shadow-md">
+            
+            {/* Inputs Section */}
+            <View className="gap-2.5">
+              {/* Identifier Section */}
+              <InputField
                 control={control}
-                name="password"
-                label="Password"
-                icon="lock"
-                placeholder="Password"
-                secureTextEntry={!showPassword}
-                rightElement={
-                  <TouchableOpacity
-                    onPress={() => setShowPassword((p) => !p)}
-                    className="p-2 -mr-2"
-                  >
-                    <Feather
-                      name={showPassword ? "eye" : "eye-off"}
-                      size={18}
-                      color={isDark ? "#94a3b8" : "#64748b"}
-                    />
-                  </TouchableOpacity>
-                }
+                name="identifier"
+                label="Email or Phone number"
+                icon="user"
+                placeholder="Enter your email or phone number"
+                keyboardType="email-address"
+                autoComplete="username"
+                textContentType="username"
+                onChangeText={(text) => {
+                  setValue("identifier", formatIdentifier(text), { shouldValidate: true });
+                }}
               />
+
+              {/* Password Section */}
+              <View className="gap-1.5">
+                <InputField
+                  control={control}
+                  name="password"
+                  label="Password"
+                  icon="lock"
+                  placeholder="Enter your password"
+                  secureTextEntry={!showPassword}
+                  rightElement={
+                    <TouchableOpacity
+                      onPress={togglePasswordVisibility}
+                      className="p-2 -mr-2"
+                      activeOpacity={0.7}
+                    >
+                      <Animated.View style={eyeAnimatedStyle}>
+                        <Feather
+                          name={showPassword ? "eye" : "eye-off"}
+                          size={18}
+                          color={isDark ? "#94a3b8" : "#64748b"}
+                        />
+                      </Animated.View>
+                    </TouchableOpacity>
+                  }
+                />
+                <TouchableOpacity
+                  className="self-end py-1 px-1"
+                  onPress={() => router.push("/(auth)/forgot-password")}
+                  activeOpacity={0.7}
+                >
+                  <Text className="text-xs font-semibold text-primary">
+                    Forgot your password?
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Error Message with Shake Animation */}
+            {globalError && (
+              <Animated.View 
+                style={errorAnimatedStyle}
+                className="bg-destructive/15 border border-destructive/40 rounded-xl p-3.5 flex-row items-center gap-2 mt-1 mb-1"
+              >
+                <Feather name="alert-triangle" size={16} color="#ef4444" />
+                <Text className="text-destructive text-xs flex-1 font-medium">
+                  {globalError}
+                </Text>
+              </Animated.View>
+            )}
+
+            {/* Submit */}
+            <View className="mt-1">
+              <Button
+                onPress={handleSubmit(onSubmit)}
+                isLoading={isSubmitting}
+                loadingText="Logging in..."
+                label="Log in"
+                icon="log-in"
+              />
+            </View>
+          </Animated.View>
+
+          {/* ── Mode toggle ── */}
+          <Animated.View entering={FadeInDown.delay(300).springify()}>
             <TouchableOpacity
-              className="self-end py-2 pl-4 -mt-2"
-              onPress={() => router.push("/(auth)/forgot-password")}
+              activeOpacity={0.65}
+              onPress={() => router.push("/(auth)/register")}
+              className="flex-row justify-center items-center py-4 gap-1.5 mt-5"
             >
-              <Text className="text-xs font-semibold text-rose-500">
-                Forgot your password?
+              <Text className="text-sm text-muted-foreground">
+                Don't have an account?
+              </Text>
+              <Text className="text-sm font-bold text-primary">
+                Sign up
               </Text>
             </TouchableOpacity>
-          </View>
-
-          {/* Error Message */}
-          {globalError && (
-            <View className="bg-rose-500/10 border border-rose-500/30 rounded-2xl p-3.5 flex-row items-center gap-2 mt-1 mb-2">
-              <Feather name="alert-triangle" size={16} color="#f43f5e" />
-              <Text className="text-rose-600 dark:text-rose-400 text-xs flex-1 font-medium">
-                {globalError}
-              </Text>
-            </View>
-          )}
-
-          {/* Submit */}
-          <Button
-            onPress={handleSubmit(onSubmit)}
-            isLoading={isSubmitting}
-            loadingText="Logging in..."
-            label="Log in"
-            icon="log-in"
-          />
-        </View>
-
-        {/* ── Mode toggle ── */}
-        <TouchableOpacity
-          activeOpacity={0.65}
-          onPress={() => router.push("/(auth)/register")}
-          className="flex-row justify-center items-center py-4 mb-2 gap-1.5 mt-8"
-        >
-          <Text className="text-sm text-slate-500 dark:text-slate-400">
-            Don't have an account?
-          </Text>
-          <Text className="text-sm font-bold text-slate-900 dark:text-white">
-            Sign up
-          </Text>
-        </TouchableOpacity>
-      </View>
+          </Animated.View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

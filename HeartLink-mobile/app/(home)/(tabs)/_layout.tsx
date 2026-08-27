@@ -8,6 +8,7 @@ import {
   Animated,
   Pressable,
   Dimensions,
+  ScrollView,
 } from "react-native";
 import { withLayoutContext, useRouter } from "expo-router";
 import { createMaterialTopTabNavigator } from "expo-router/js-top-tabs";
@@ -24,7 +25,7 @@ const RECORD_OPTIONS = [
     icon: "camera" as const,
     iconType: "feather" as const,
     label: "Scan food barcode",
-    subtitle: "Use your camera to scan product barcodes",
+    subtitle: "Use camera to scan product barcodes",
     iconColor: "#185fa5",
     iconBg: "#e6f1fb",
     route: "/(home)/(meals)/barcode-scan",
@@ -33,18 +34,36 @@ const RECORD_OPTIONS = [
     icon: "silverware-fork-knife" as const,
     iconType: "material" as const,
     label: "Log meal manually",
-    subtitle: "Search and log what you ate today",
+    subtitle: "Search and log meals & nutrition",
     iconColor: "#3b6d11",
     iconBg: "#eaf3de",
     route: "/(home)/(meals)/search-meal",
   },
   {
-    icon: "clipboard" as const,
+    icon: "activity" as const,
     iconType: "feather" as const,
-    label: "Log daily vitals & symptoms",
-    subtitle: "Record how you're feeling right now",
-    iconColor: "#854f0b",
-    iconBg: "#faeeda",
+    label: "Log exercise & workouts",
+    subtitle: "Record active minutes and routines",
+    iconColor: "#2563eb",
+    iconBg: "#eff6ff",
+    route: "/(home)/(health)/exercise-diary",
+  },
+  {
+    icon: "moon" as const,
+    iconType: "feather" as const,
+    label: "Log sleep",
+    subtitle: "Track sleep duration and quality",
+    iconColor: "#6366f1",
+    iconBg: "#eef2ff",
+    route: "/(home)/(health)/log-sleep",
+  },
+  {
+    icon: "heart" as const,
+    iconType: "feather" as const,
+    label: "Log vitals & symptoms",
+    subtitle: "Record cardiovascular vitals & how you feel",
+    iconColor: "#e11d48",
+    iconBg: "#ffe4e6",
     route: "/(home)/(health)/log-symptoms",
   },
 ];
@@ -120,6 +139,7 @@ function RecordBottomSheet({
           bottom: 0,
           left: 0,
           right: 0,
+          maxHeight: SCREEN_HEIGHT * 0.85,
           backgroundColor: isDark ? "#0f172a" : "#fff",
           borderTopLeftRadius: 24,
           borderTopRightRadius: 24,
@@ -146,81 +166,83 @@ function RecordBottomSheet({
             height: 4,
             backgroundColor: isDark ? "#334155" : "#e2e8f0",
             borderRadius: 2,
-            marginBottom: 20,
+            marginBottom: 16,
           }}
         />
 
         {/* Title */}
-        <Text style={{ fontSize: 17, fontWeight: "500", color: isDark ? "#f8fafc" : "#0f172a", marginBottom: 4 }}>
+        <Text style={{ fontSize: 17, fontWeight: "600", color: isDark ? "#f8fafc" : "#0f172a", marginBottom: 3 }}>
           Quick record
         </Text>
-        <Text style={{ fontSize: 13, color: isDark ? "#cbd5e1" : "#64748b", marginBottom: 20 }}>
+        <Text style={{ fontSize: 13, color: isDark ? "#cbd5e1" : "#64748b", marginBottom: 16 }}>
           What would you like to log?
         </Text>
 
-        {/* Options */}
-        {RECORD_OPTIONS.map((option, index) => (
-          <TouchableOpacity
-            key={option.label}
-            activeOpacity={0.7}
-            onPress={() => {
-              if (option.route) {
-                router.push(option.route as any);
-              }
-              animateOut();
-            }}
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              backgroundColor: isDark ? "#1e293b" : "#fff",
-              borderRadius: 16,
-              padding: 14,
-              marginBottom: index < RECORD_OPTIONS.length - 1 ? 10 : 0,
-              borderWidth: 0.5,
-              borderColor: isDark ? "#334155" : "#e2e8f0",
-            }}
-          >
-            {/* Icon */}
-            <View
+        {/* Scrollable Options */}
+        <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
+          {RECORD_OPTIONS.map((option, index) => (
+            <TouchableOpacity
+              key={option.label}
+              activeOpacity={0.7}
+              onPress={() => {
+                if (option.route) {
+                  router.push(option.route as any);
+                }
+                animateOut();
+              }}
               style={{
-                width: 42,
-                height: 42,
-                borderRadius: 12,
-                backgroundColor: option.iconBg,
+                flexDirection: "row",
                 alignItems: "center",
-                justifyContent: "center",
-                marginRight: 14,
+                backgroundColor: isDark ? "#1e293b" : "#fff",
+                borderRadius: 16,
+                padding: 13,
+                marginBottom: index < RECORD_OPTIONS.length - 1 ? 9 : 0,
+                borderWidth: 0.5,
+                borderColor: isDark ? "#334155" : "#e2e8f0",
               }}
             >
-              {option.iconType === "feather" ? (
-                <Feather name={option.icon as any} size={18} color={option.iconColor} />
-              ) : (
-                <MaterialCommunityIcons name={option.icon as any} size={18} color={option.iconColor} />
-              )}
-            </View>
+              {/* Icon */}
+              <View
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 12,
+                  backgroundColor: option.iconBg,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginRight: 13,
+                }}
+              >
+                {option.iconType === "feather" ? (
+                  <Feather name={option.icon as any} size={18} color={option.iconColor} />
+                ) : (
+                  <MaterialCommunityIcons name={option.icon as any} size={18} color={option.iconColor} />
+                )}
+              </View>
 
-            {/* Text */}
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 14, fontWeight: "500", color: isDark ? "#f8fafc" : "#0f172a", marginBottom: 2 }}>
-                {option.label}
-              </Text>
-              <Text style={{ fontSize: 12, color: isDark ? "#cbd5e1" : "#64748b", lineHeight: 16 }}>
-                {option.subtitle}
-              </Text>
-            </View>
+              {/* Text */}
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 14, fontWeight: "600", color: isDark ? "#f8fafc" : "#0f172a", marginBottom: 2 }}>
+                  {option.label}
+                </Text>
+                <Text style={{ fontSize: 12, color: isDark ? "#cbd5e1" : "#64748b", lineHeight: 16 }}>
+                  {option.subtitle}
+                </Text>
+              </View>
 
-            <Feather name="chevron-right" size={16} color={isDark ? "#64748b" : "#cbd5e1"} />
-          </TouchableOpacity>
-        ))}
+              <Feather name="chevron-right" size={16} color={isDark ? "#64748b" : "#cbd5e1"} />
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
 
         {/* Cancel */}
         <TouchableOpacity
           activeOpacity={0.7}
           onPress={animateOut}
           style={{
-            marginTop: 14,
+            marginTop: 12,
             alignItems: "center",
-            paddingVertical: 13,
+            paddingVertical: 12,
             backgroundColor: isDark ? "#1e293b" : "#f8fafc",
             borderRadius: 14,
             borderWidth: 0.5,
@@ -280,7 +302,7 @@ function CustomTabBar({ state, navigation, onFabPress }: any) {
         }),
       }}
     >
-      {TABS.map((tab) => {
+      {TABS.map((tab: any) => {
         const routeIndex = state.routes.findIndex((r: any) => r.name === tab.name);
         const isFocused = state.index === routeIndex;
 

@@ -31,8 +31,8 @@ function FeatureCard({
 }) {
   return (
     <Animated.View
-      entering={FadeInDown.delay(delay).springify()}
-      className="bg-card rounded-2xl p-4 flex-row items-center border border-border mb-3"
+      entering={FadeInDown.delay(delay).springify().damping(12).stiffness(90)}
+      className="bg-card rounded-2xl p-4 flex-row items-center border border-border/80 shadow-sm mb-3.5"
       accessible={true}
       accessibilityRole="text"
       accessibilityLabel={`${title}. ${subtitle}`}
@@ -55,11 +55,11 @@ function FeatureCard({
           />
         )}
       </View>
-      <View className="flex-1">
-        <Text className="text-base font-semibold text-foreground mb-1">
+      <View className="flex-1 pr-1">
+        <Text className="text-base font-semibold text-foreground mb-1 tracking-tight">
           {title}
         </Text>
-        <Text className="text-sm text-muted-foreground leading-relaxed">
+        <Text className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
           {subtitle}
         </Text>
       </View>
@@ -135,9 +135,12 @@ export default function OnboardingScreen() {
         bounces={false}
       >
         {/* ── Logo bar ── */}
-        <Animated.View entering={FadeIn.delay(100)} className="flex-row items-center px-6 pt-6 mb-8">
+        <Animated.View 
+          entering={FadeInDown.delay(100).springify().damping(14).stiffness(100)} 
+          className="flex-row items-center px-6 pt-4 sm:pt-6 mb-6 sm:mb-8"
+        >
           <View 
-            className="w-8 h-8 rounded-full items-center justify-center border border-border bg-card" 
+            className="w-8 h-8 rounded-full items-center justify-center border border-border bg-card shadow-sm" 
             importantForAccessibility="no"
           >
             <Feather name="heart" size={14} className="text-foreground" />
@@ -150,20 +153,20 @@ export default function OnboardingScreen() {
           </Text>
         </Animated.View>
 
-        <View className="items-center px-6 mb-10">
+        <View className="items-center px-6 mb-8 sm:mb-10">
           {/* Headline */}
           <Animated.Text 
-            entering={FadeInDown.delay(200).springify()} 
-            className="text-3xl font-semibold text-foreground text-center tracking-tight leading-tight mb-4" 
+            entering={FadeInDown.delay(200).springify().damping(12).stiffness(90)} 
+            className="text-3xl sm:text-4xl font-semibold text-foreground text-center tracking-tight leading-tight mb-3 sm:mb-4" 
             accessibilityRole="header"
           >
-            Proactive{"\n"}cardiovascular{"\n"}well-being.
+            Everyday care for{"\n"}a healthier,{"\n"}stronger heart.
           </Animated.Text>
           <Animated.Text 
-            entering={FadeInDown.delay(300).springify()} 
-            className="text-base text-muted-foreground text-center leading-relaxed px-2"
+            entering={FadeInDown.delay(300).springify().damping(12).stiffness(90)} 
+            className="text-sm sm:text-base text-muted-foreground text-center leading-relaxed px-1 sm:px-3"
           >
-            Monitor and track your dietary and lifestyle habits to get personalized food recipes and exercise routines based on your Health Stability Score.
+            Track daily vitals, discover personalized meals and workouts, and take confident steps toward lifelong cardiovascular wellness.
           </Animated.Text>
         </View>
 
@@ -175,7 +178,7 @@ export default function OnboardingScreen() {
             iconBgClass="bg-primary/15"
             iconColorClass="text-primary"
             title="Health Stability Score"
-            subtitle="Track your daily habits and biometrics to receive real-time cardiovascular health scores."
+            subtitle="Clear, daily insights into your cardiovascular wellness without complex clinical jargon."
             delay={400}
           />
           <FeatureCard
@@ -183,8 +186,8 @@ export default function OnboardingScreen() {
             iconType="mci"
             iconBgClass="bg-emerald-500/15 dark:bg-emerald-400/15"
             iconColorClass="text-emerald-600 dark:text-emerald-400"
-            title="Personalized Meal Recipes"
-            subtitle="Discover heart-healthy food recipes tailored specifically to your cardiovascular needs."
+            title="Heart-Healthy Recipes"
+            subtitle="Discover delicious, balanced meals customized specifically to support your heart health."
             delay={500}
           />
           <FeatureCard
@@ -192,65 +195,29 @@ export default function OnboardingScreen() {
             iconType="material"
             iconBgClass="bg-amber-500/15 dark:bg-amber-400/15"
             iconColorClass="text-amber-600 dark:text-amber-400"
-            title="Tailored Exercise Routines"
-            subtitle="Follow personalized physical workout plans designed to improve your heart stability."
+            title="Personalized Workouts"
+            subtitle="Follow tailored, comfortable exercise routines adapted to your current stamina."
             delay={600}
           />
         </View>
 
-        {/* ── Dev Menu ── */}
-        {__DEV__ && (
-          <View className="mx-6 mb-4 p-4 border border-border rounded-xl bg-card">
-            <Text className="text-foreground font-bold mb-3">Dev Menu</Text>
-            <View className="flex-row flex-wrap gap-2 mb-4">
-              {[
-                { name: 'Login', path: '/(auth)/login' },
-                { name: 'Register', path: '/(auth)/register' },
-                { name: 'Forgot Pass', path: '/(auth)/forgot-password' },
-                { name: 'Verify OTP', path: '/(auth)/verify-otp' },
-                { name: 'Success', path: '/(auth)/verification-success' },
-                { name: 'Dashboard', path: '/(home)/(tabs)/dashboard' },
-                { name: 'Baseline Setup', path: '/(baseline)/step1_basic_info' },
-                { name: 'Locator', path: '/locator' },
-              ].map((route) => (
-                <TouchableOpacity
-                  key={route.path}
-                  onPress={() => router.push(route.path as any)}
-                  className="bg-slate-200 dark:bg-slate-800 px-3 py-2 rounded-lg"
-                >
-                  <Text className="text-xs text-foreground font-medium">{route.name}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            <TouchableOpacity
-              onPress={() => {
-                setUserId("usr-patient-101");
-                router.replace("/(home)/(tabs)/dashboard" as any);
-              }}
-              className="bg-primary rounded-lg py-3 items-center"
-            >
-              <Text className="text-xs text-primary-foreground font-medium">
-                Set mock user & go to Dashboard
-              </Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
       </ScrollView>
 
       {/* ── Actions (Fixed Footer) ── */}
-      <Animated.View entering={FadeInDown.delay(300).springify()} className="px-6 pt-2 pb-6 bg-background">
+      <Animated.View 
+        entering={FadeInDown.delay(700).springify().damping(12).stiffness(90)} 
+        className="px-6 pt-2 pb-6 bg-background border-t border-border/40"
+      >
         {/* Server Offline Error */}
         {showError && (
           <Animated.View 
             entering={FadeIn} 
-            className="bg-destructive/10 border border-destructive/30 rounded-xl p-3 mb-4 flex-row items-center gap-2" 
+            className="bg-destructive/15 border border-destructive/40 rounded-xl p-3 mb-4 flex-row items-center gap-2.5" 
             accessible={true} 
             accessibilityRole="alert"
           >
-            <Feather name="wifi-off" size={16} className="text-destructive" />
-            <Text className="text-destructive text-sm flex-1">
+            <Feather name="wifi-off" size={16} className="text-destructive flex-shrink-0" />
+            <Text className="text-destructive text-xs sm:text-sm font-medium flex-1 leading-snug">
               Unable to connect to the server. Please check your internet connection and try again.
             </Text>
           </Animated.View>
@@ -259,7 +226,7 @@ export default function OnboardingScreen() {
         {/* Primary CTA */}
         <TouchableOpacity
           activeOpacity={0.85}
-          className={`w-full bg-primary rounded-2xl py-4 flex-row justify-center items-center gap-2 mb-3 ${isCheckingServer ? 'opacity-80' : ''}`}
+          className={`w-full bg-primary rounded-2xl py-4 flex-row justify-center items-center gap-2 mb-3 shadow-sm ${isCheckingServer ? 'opacity-80' : ''}`}
           onPress={handleGetStarted}
           disabled={isCheckingServer}
           accessible={true}
@@ -271,7 +238,7 @@ export default function OnboardingScreen() {
             <ActivityIndicator size="small" color="#fff" />
           ) : (
             <>
-              <Text className="text-primary-foreground text-sm font-semibold">
+              <Text className="text-primary-foreground text-sm font-semibold tracking-wide">
                 Get started
               </Text>
               <Feather name="arrow-right" size={16} className="text-primary-foreground" />
@@ -282,7 +249,7 @@ export default function OnboardingScreen() {
         {/* Secondary CTA */}
         <TouchableOpacity
           activeOpacity={0.65}
-          className="py-4 flex-row justify-center items-center gap-1.5"
+          className="py-3.5 flex-row justify-center items-center gap-1.5"
           onPress={() => router.push("/login")}
           accessible={true}
           accessibilityRole="button"

@@ -293,7 +293,7 @@ function RecipeCard({ recipe, onPress, isSaved, onSave }: { recipe: Recipe; onPr
           onPress={(e) => { e.stopPropagation(); onSave(); }}
           className="absolute top-3 right-3 w-8 h-8 bg-white dark:bg-slate-900/90 rounded-full items-center justify-center shadow-sm"
         >
-          <Feather name="heart" size={15} color={isSaved ? "#ef4444" : "#64748b"} style={isSaved ? { fill: "#ef4444" } : {}} />
+          <Feather name="heart" size={15} color={isSaved ? "#ef4444" : "#64748b"} />
         </TouchableOpacity>
 
         {/* Prep time */}

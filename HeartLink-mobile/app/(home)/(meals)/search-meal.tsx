@@ -20,14 +20,18 @@ export default function SearchMealScreen() {
   const [items, setItems] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [recentLogs, setRecentLogs] = useState<any[]>([]);
-  const { userId } = useUser();
+  const { userId, token } = useUser();
 
   // Fetch past meal logs once on mount
   useEffect(() => {
     async function loadRecentLogs() {
       if (!userId) return;
       try {
-        const res = await fetch(`${base_url}/api/meals/${userId}`);
+        const res = await fetch(`${base_url}/api/meals/${userId}`, {
+          headers: {
+            "Authorization": `Bearer ${token || ""}`,
+          },
+        });
         if (res.ok) {
           const data = await res.json();
           const uniqueMap = new Map();
@@ -67,7 +71,7 @@ export default function SearchMealScreen() {
           combined = [...recentLogs];
           
           const res = await fetch(`${base_url}/api/dashboard/me`, {
-            headers: { Authorization: `Bearer ${userId}` }
+            headers: { Authorization: `Bearer ${token || ""}` }
           }).catch(() => null);
           
           if (res && res.ok) {
