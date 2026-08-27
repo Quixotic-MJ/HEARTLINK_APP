@@ -146,6 +146,35 @@ def add_exercise_log(user_id: str, data: Dict[str, Any], current_user: dict = De
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only the patient account owner may record their own exercise logs.",
         )
+
+    if "duration_seconds" in data and data["duration_seconds"] is not None:
+        try:
+            sec_val = int(data["duration_seconds"])
+            if sec_val < 0 or sec_val > 86400:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail="duration_seconds must be between 0 and 86400 (24 hours).",
+                )
+        except (ValueError, TypeError):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="duration_seconds must be a valid integer.",
+            )
+
+    if "duration_minutes" in data and data["duration_minutes"] is not None:
+        try:
+            min_val = int(data["duration_minutes"])
+            if min_val < 0 or min_val > 1440:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail="duration_minutes must be between 0 and 1440 (24 hours).",
+                )
+        except (ValueError, TypeError):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="duration_minutes must be a valid integer.",
+            )
+
     log = create_exercise_log(user_id, data)
     return {"success": True, "message": "Exercise log saved", "data": log}
 

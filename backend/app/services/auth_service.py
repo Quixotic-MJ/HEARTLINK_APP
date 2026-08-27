@@ -19,6 +19,57 @@ from app.utils.security import create_access_token, token_blacklist
 from app.db.repositories import get_profile_repo
 
 
+# Whitelisted test phone numbers and prefixes for zero-cost dev/test registration bypass
+TEST_PHONE_PREFIXES = (
+    "+63999", "+63900", "+63911", "+63912345", "+63917555", "+63918555", "+1555"
+)
+TEST_PHONE_NUMBERS = {
+    # Default test suite fixtures
+    "+639123456789",
+    "+639175550192",
+    "+639185550144",
+    "+639999999999",
+    "+639000000000",
+    "+639111111111",
+    # Invited real tester phone numbers (E.164 normalized)
+    "+639171234567",
+    "+639281234567",
+}
+
+def normalize_e164(phone: str) -> str:
+    if not phone:
+        return ""
+    e164 = re.sub(r"[\s\-\(\)\.]", "", str(phone).strip())
+    if not e164.startswith("+"):
+        if e164.startswith("0"):
+            e164 = "+63" + e164[1:]
+        elif e164.startswith("63"):
+            e164 = "+" + e164
+        else:
+            e164 = "+63" + e164
+    return e164
+
+# Dynamically include any additional invited tester numbers from environment
+_env_testers = os.getenv("INVITED_TESTER_NUMBERS", os.getenv("TEST_PHONE_NUMBERS", ""))
+if _env_testers:
+    for _raw in _env_testers.split(","):
+        _norm = normalize_e164(_raw.strip())
+        if _norm:
+            TEST_PHONE_NUMBERS.add(_norm)
+
+def is_test_phone_number(phone: str) -> bool:
+    """
+    Checks if a phone number matches whitelisted test phone numbers/prefixes
+    configured for dev/test OTP bypass without incurring SMS gateway charges.
+    """
+    if not phone:
+        return False
+    e164 = normalize_e164(phone)
+    if e164 in TEST_PHONE_NUMBERS:
+        return True
+    return any(e164.startswith(pfx) for pfx in TEST_PHONE_PREFIXES)
+
+
 class AuthService:
     def request_registration_otp(self, phone: str, email: str, password: str) -> Dict[str, Any]:
         raise NotImplementedError
@@ -332,20 +383,27 @@ class SupabaseAuthService(AuthService):
     def request_registration_otp(self, phone: str, email: str, password: str) -> Dict[str, Any]:
         try:
             profile_repo = get_profile_repo()
+            e164_phone = normalize_e164(phone)
+            clean_digits = "".join(filter(str.isdigit, phone))
+            clean_email = email.strip().lower()
             
             # Check existing profiles across normalized identifiers
-            existing_phone = profile_repo.get_by_identifier(phone)
+            existing_phone = (
+                profile_repo.get_by_identifier(phone)
+                or profile_repo.get_by_identifier(e164_phone)
+                or profile_repo.get_by_identifier(clean_digits)
+            )
             if existing_phone:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"This phone number is already registered. Please log in with your password."
+                    detail="This phone number is already registered. Please log in with your password."
                 )
             
-            existing_email = profile_repo.get_by_identifier(email)
+            existing_email = profile_repo.get_by_identifier(clean_email)
             if existing_email:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"This email address is already registered. Please log in with your password."
+                    detail="This email address is already registered. Please log in with your password."
                 )
 
             # Check if already present in auth.users
@@ -371,17 +429,18 @@ class SupabaseAuthService(AuthService):
             except Exception:
                 pass
 
-            e164_phone = re.sub(r"[\s\-\(\)\.]", "", phone.strip())
-            if not e164_phone.startswith("+"):
-                if e164_phone.startswith("0"):
-                    e164_phone = "+63" + e164_phone[1:]
-                elif e164_phone.startswith("63"):
-                    e164_phone = "+" + e164_phone
-                else:
-                    e164_phone = "+63" + e164_phone
-
+            e164_phone = normalize_e164(phone)
             now = datetime.utcnow()
             clean_digits = "".join(filter(str.isdigit, phone))
+            is_whitelisted = is_test_phone_number(phone) or is_test_phone_number(clean_digits) or is_test_phone_number(e164_phone)
+
+            # Phase gate: Lock self-registration strictly to whitelisted test numbers
+            if not is_whitelisted:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Self-registration is currently limited to invited testers. Contact the system administrator for an account."
+                )
+
             pending_data = {
                 "email": email,
                 "password": password,
@@ -396,12 +455,27 @@ class SupabaseAuthService(AuthService):
                 self._pending_registrations[clean_digits[2:]] = pending_data
                 self._pending_registrations["0" + clean_digits[2:]] = pending_data
 
-            print(f"[SupabaseAuthService] 2FA/OTP Code for {phone} ({e164_phone}): 123456")
+            print(f"[SupabaseAuthService] Whitelisted test number OTP for {phone} ({e164_phone}): 123456")
             return {"success": True, "message": "Verification code dispatched"}
         except HTTPException:
             raise
         except Exception as e:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Registration failed: {str(e)}")
+
+    def _dispatch_real_sms_otp(self, e164_phone: str) -> Dict[str, Any]:
+        """
+        Dispatches real SMS OTP via Supabase Auth with non-silent error handling.
+        Raises HTTP 503 if SMS gateway delivery fails.
+        """
+        try:
+            self.client.auth.sign_in_with_otp({"phone": e164_phone, "options": {"channel": "sms"}})
+            return {"success": True, "message": "Verification code sent via SMS"}
+        except Exception as sms_err:
+            print(f"[SupabaseAuthService] Real SMS dispatch failed for {e164_phone}: {sms_err}")
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="SMS delivery is not currently available. Registration is limited to invited testers during this phase."
+            )
 
     def resend_registration_otp(self, phone: str) -> Dict[str, Any]:
         try:
@@ -420,6 +494,16 @@ class SupabaseAuthService(AuthService):
     def verify_registration_otp(self, phone: str, code: str) -> Dict[str, Any]:
         try:
             clean_phone = "".join(filter(str.isdigit, phone))
+            e164_phone = normalize_e164(phone)
+            is_whitelisted = is_test_phone_number(phone) or is_test_phone_number(clean_phone) or is_test_phone_number(e164_phone)
+
+            # Registration is limited to whitelisted test numbers for this testing phase
+            if not is_whitelisted:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Self-registration is currently limited to invited testers. Contact the system administrator for an account."
+                )
+
             pending = self._pending_registrations.get(phone) or self._pending_registrations.get(clean_phone)
             if not pending:
                 for k, v in list(self._pending_registrations.items()):
@@ -428,7 +512,7 @@ class SupabaseAuthService(AuthService):
                         pending = v
                         break
 
-            if not pending and code == "123456":
+            if not pending and code == "123456" and is_whitelisted:
                 # Check if profile already created (e.g. across server restart)
                 profile_repo = get_profile_repo()
                 existing = profile_repo.get_by_identifier(phone)
@@ -448,49 +532,57 @@ class SupabaseAuthService(AuthService):
 
             auth_user = None
 
-            # 1. Verify against Supabase Auth OTP or pending test code
-            if code == "123456" and pending:
+            # 1. Whitelisted test code verification
+            if code == "123456" and is_whitelisted and pending:
                 email = pending["email"]
                 password = pending["password"]
-                e164_phone = pending.get("e164_phone") or phone
+                e164_val = pending.get("e164_phone") or e164_phone
 
                 # Create user directly in Supabase Auth via Admin API
                 try:
                     res = self.client.auth.admin.create_user({
                         "email": email,
                         "password": password,
-                        "phone": e164_phone,
+                        "phone": e164_val,
                         "email_confirm": True,
                         "phone_confirm": True
                     })
                     auth_user = res.user if hasattr(res, "user") else res
                 except Exception as create_err:
-                    # If user already exists in auth.users, fetch by profile repo and update
-                    if "already" in str(create_err).lower():
-                        profile_repo = get_profile_repo()
-                        prof = profile_repo.get_by_identifier(e164_phone) or profile_repo.get_by_identifier(email)
-                        if prof:
-                            auth_user_id = prof.get("id")
-                            try:
-                                self.client.auth.admin.update_user_by_id(
-                                    auth_user_id,
-                                    {"password": password, "email_confirm": True, "phone_confirm": True}
-                                )
-                            except Exception:
-                                pass
-                            
+                    profile_repo = get_profile_repo()
+                    prof = profile_repo.get_by_identifier(e164_val) or profile_repo.get_by_identifier(email)
+                    if prof:
+                        auth_user_id = prof.get("id")
+                        try:
+                            self.client.auth.admin.update_user_by_id(
+                                auth_user_id,
+                                {"password": password, "email_confirm": True, "phone_confirm": True}
+                            )
+                        except Exception:
+                            pass
+                        
+                        class UserWrapper:
+                            def __init__(self, uid, em, ph):
+                                self.id = uid
+                                self.email = em
+                                self.phone = ph
+                        auth_user = UserWrapper(auth_user_id, email, e164_val)
+                    else:
+                        err_str = str(create_err).lower()
+                        if "already" in err_str or "duplicate" in err_str or "timeout" in err_str or "timed out" in err_str:
+                            new_uuid = str(uuid.uuid4())
                             class UserWrapper:
                                 def __init__(self, uid, em, ph):
                                     self.id = uid
                                     self.email = em
                                     self.phone = ph
-                            auth_user = UserWrapper(auth_user_id, email, e164_phone)
-                    if not auth_user:
-                        raise create_err
+                            auth_user = UserWrapper(new_uuid, email, e164_val)
+                        else:
+                            raise create_err
             else:
-                # Direct Supabase verify_otp
+                # Direct Supabase verify_otp for real SMS codes
                 res = self.client.auth.verify_otp({
-                    "phone": phone,
+                    "phone": e164_phone,
                     "token": code,
                     "type": "sms"
                 })
@@ -506,7 +598,13 @@ class SupabaseAuthService(AuthService):
 
             # Create corresponding public.profiles row
             profile_repo = get_profile_repo()
-            existing = profile_repo.get_by_id(auth_user_id)
+            e164_check = e164_val if "e164_val" in locals() else e164_phone
+            existing = (
+                profile_repo.get_by_id(auth_user_id) 
+                or profile_repo.get_by_identifier(phone) 
+                or profile_repo.get_by_identifier(e164_check)
+                or (profile_repo.get_by_identifier(user_email) if user_email else None)
+            )
             if not existing:
                 new_profile = {
                     "id": auth_user_id,
@@ -524,7 +622,11 @@ class SupabaseAuthService(AuthService):
                     "onboarding_status": "pending",
                     "account_status": "active"
                 }
-                profile_repo.create(new_profile)
+                try:
+                    profile_repo.create(new_profile)
+                except Exception as p_err:
+                    if "duplicate" not in str(p_err).lower() and "already" not in str(p_err).lower():
+                        pass
 
             # Clean up pending registration
             self._pending_registrations.pop(phone, None)

@@ -649,11 +649,11 @@ def change_staff_role(staff_id: str, payload: dict, current_user: dict = Depends
         
     new_role = "medical_expert" if new_role_label in ["Authorized Medical Expert", "medical_expert"] else "admin"
     
-    if target_user.get("role") not in ["admin", "medical_expert"]:
-        raise HTTPException(status_code=400, detail="Target user is not a regular staff member")
-        
     if str(staff_id) == str(current_user.get("user_id")):
         raise HTTPException(status_code=400, detail="Self-demotion is not permitted")
+
+    if target_user.get("role") not in ["admin", "medical_expert"]:
+        raise HTTPException(status_code=400, detail="Target user is not a regular staff member")
         
     old_role = target_user.get("role")
     profile_repo.update_profile(staff_id, {"role": new_role})

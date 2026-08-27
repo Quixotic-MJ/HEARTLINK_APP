@@ -72,6 +72,7 @@ export default function RegisterScreen() {
     control,
     handleSubmit,
     setValue,
+    clearErrors,
     watch,
     formState: { errors, isSubmitting },
     setError,
@@ -83,7 +84,8 @@ export default function RegisterScreen() {
       password: "",
       confirmPassword: "",
     },
-    mode: "onTouched",
+    mode: "onSubmit",
+    reValidateMode: "onSubmit",
   });
 
   const [showPassword, setShowPassword] = useState(false);
@@ -167,10 +169,11 @@ export default function RegisterScreen() {
       if (response.ok) {
         router.push({ pathname: "/(auth)/verify-otp", params: { phone: normalizedPhone } });
       } else {
-        if (resData.detail === "duplicate phone number") {
-          setError("phone", { type: "server", message: "This phone number is already registered." });
-        } else if (resData.detail === "duplicate email") {
-          setError("email", { type: "server", message: "This email address is already registered." });
+        const detail = (typeof resData.detail === "string" ? resData.detail : "").toLowerCase();
+        if (detail.includes("phone") && (detail.includes("already registered") || detail.includes("duplicate"))) {
+          setError("phone", { type: "server", message: "This phone number is already registered. Please log in." });
+        } else if (detail.includes("email") && (detail.includes("already registered") || detail.includes("duplicate"))) {
+          setError("email", { type: "server", message: "This email address is already registered. Please log in." });
         } else if (resData.detail && typeof resData.detail === "string") {
           setGeneralError(resData.detail);
         } else {
@@ -262,6 +265,12 @@ export default function RegisterScreen() {
               autoComplete="email"
               textContentType="emailAddress"
               editable={!isSubmitting}
+              onChangeText={(text) => {
+                setValue("email", text, { shouldValidate: false, shouldDirty: true });
+                if (errors.email) {
+                  clearErrors("email");
+                }
+              }}
             />
 
             {/* Phone Field */}
@@ -277,7 +286,10 @@ export default function RegisterScreen() {
               maxLength={12}
               editable={!isSubmitting}
               onChangeText={(text) => {
-                setValue("phone", formatPhoneNumber(text), { shouldValidate: true });
+                setValue("phone", formatPhoneNumber(text), { shouldValidate: false, shouldDirty: true });
+                if (errors.phone) {
+                  clearErrors("phone");
+                }
               }}
               leftElement={
                 <View className="flex-row items-center border-r border-border pr-3 ml-2 mr-0 self-stretch py-2 my-2">
@@ -297,6 +309,12 @@ export default function RegisterScreen() {
               placeholder="Create a password"
               secureTextEntry={!showPassword}
               editable={!isSubmitting}
+              onChangeText={(text) => {
+                setValue("password", text, { shouldValidate: false, shouldDirty: true });
+                if (errors.password) {
+                  clearErrors("password");
+                }
+              }}
               rightElement={
                 <TouchableOpacity
                   onPress={togglePasswordVisibility}
@@ -324,6 +342,12 @@ export default function RegisterScreen() {
               placeholder="Confirm your password"
               secureTextEntry={!showConfirmPassword}
               editable={!isSubmitting}
+              onChangeText={(text) => {
+                setValue("confirmPassword", text, { shouldValidate: false, shouldDirty: true });
+                if (errors.confirmPassword) {
+                  clearErrors("confirmPassword");
+                }
+              }}
               rightElement={
                 <TouchableOpacity
                   onPress={toggleConfirmPasswordVisibility}
