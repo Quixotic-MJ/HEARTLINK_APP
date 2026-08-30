@@ -19,13 +19,15 @@ from fastapi.staticfiles import StaticFiles
 
 try:
     from dotenv import load_dotenv
-    env_path = Path(__file__).resolve().parent.parent / ".env"
-    if env_path.exists():
-        load_dotenv(dotenv_path=env_path)
-    secret_env = Path("/etc/secrets/.env")
-    if secret_env.exists():
-        load_dotenv(dotenv_path=secret_env)
-    load_dotenv()
+    for candidate in [
+        Path(__file__).resolve().parent.parent.parent / ".env",
+        Path(__file__).resolve().parent.parent / ".env",
+        Path.cwd() / ".env",
+        Path("/etc/secrets/.env"),
+    ]:
+        if candidate.exists():
+            load_dotenv(dotenv_path=candidate, override=True)
+    load_dotenv(override=True)
 except ImportError:
     pass
 
@@ -38,6 +40,7 @@ if raw_cors:
     allow_credentials = "*" not in allowed_origins
 else:
     allowed_origins = [
+        "https://heartlink-admin.vercel.app",
         "http://localhost:5173",
         "http://127.0.0.1:5173",
         "http://localhost:3000",
