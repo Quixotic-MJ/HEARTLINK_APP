@@ -40,6 +40,7 @@ if raw_cors:
     allow_credentials = "*" not in allowed_origins
 else:
     allowed_origins = [
+        "https://heartlink-admin-six.vercel.app",
         "https://heartlink-admin.vercel.app",
         "http://localhost:5173",
         "http://127.0.0.1:5173",
@@ -55,6 +56,7 @@ else:
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=allow_credentials,
     allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allow_headers=["*"],
