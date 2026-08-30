@@ -9,12 +9,15 @@ from pathlib import Path
 
 try:
     from dotenv import load_dotenv
-    # Load backend/.env if exists
-    env_path = Path(__file__).resolve().parent.parent.parent / ".env"
-    if env_path.exists():
-        load_dotenv(dotenv_path=env_path)
-    else:
-        load_dotenv()
+    for candidate in [
+        Path(__file__).resolve().parent.parent.parent / ".env",
+        Path(__file__).resolve().parent.parent / ".env",
+        Path.cwd() / ".env",
+        Path("/etc/secrets/.env"),
+    ]:
+        if candidate.exists():
+            load_dotenv(dotenv_path=candidate, override=True)
+    load_dotenv(override=True)
 except ImportError:
     pass
 
@@ -24,8 +27,13 @@ DATABASE_MODE_SUPABASE = "supabase"
 _supabase_client = None
 
 def get_database_mode() -> str:
-    """Returns the current database mode ('mock' or 'supabase')."""
-    return os.getenv("DATABASE_MODE", DATABASE_MODE_MOCK).strip().lower()
+    """Returns the current database mode ('mock' or 'supabase'). Defaults to supabase."""
+    mode = os.getenv("DATABASE_MODE", "").strip().lower()
+    if mode in [DATABASE_MODE_MOCK, DATABASE_MODE_SUPABASE]:
+        return mode
+    if os.getenv("SUPABASE_URL"):
+        return DATABASE_MODE_SUPABASE
+    return DATABASE_MODE_SUPABASE
 
 def is_supabase_mode() -> bool:
     """Returns True if the backend is configured to use Supabase as its persistence store."""

@@ -1,21 +1,5 @@
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from app.api.auth import auth
-from app.api.users import profile
-from app.api.dashboard import dashboard
-from app.api.health_logs import health_logs
-from app.api.sleep_logs import sleep_logs
-from app.api.meals import meals
-from app.api.exercises import exercises
-from app.api.recipes_api import recipes_api
-from app.api.notifications_api import notifications_api
-from app.api.analytics_api import analytics_api
-from app.api.admin_api import admin_api, case_review_api, admin_notifications_api
-from app.api import uploads_api
-from app.api import feedback_api
 import os
 from pathlib import Path
-from fastapi.staticfiles import StaticFiles
 
 try:
     from dotenv import load_dotenv
@@ -30,6 +14,24 @@ try:
     load_dotenv(override=True)
 except ImportError:
     pass
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+
+from app.api.auth import auth
+from app.api.users import profile
+from app.api.dashboard import dashboard
+from app.api.health_logs import health_logs
+from app.api.sleep_logs import sleep_logs
+from app.api.meals import meals
+from app.api.exercises import exercises
+from app.api.recipes_api import recipes_api
+from app.api.notifications_api import notifications_api
+from app.api.analytics_api import analytics_api
+from app.api.admin_api import admin_api, case_review_api, admin_notifications_api
+from app.api import uploads_api
+from app.api import feedback_api
 
 app = FastAPI(title="Heartlink", description="development phase", version="1.0.0")
 
