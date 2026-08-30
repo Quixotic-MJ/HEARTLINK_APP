@@ -14,7 +14,20 @@ from app.api.admin_api import admin_api, case_review_api, admin_notifications_ap
 from app.api import uploads_api
 from app.api import feedback_api
 import os
+from pathlib import Path
 from fastapi.staticfiles import StaticFiles
+
+try:
+    from dotenv import load_dotenv
+    env_path = Path(__file__).resolve().parent.parent / ".env"
+    if env_path.exists():
+        load_dotenv(dotenv_path=env_path)
+    secret_env = Path("/etc/secrets/.env")
+    if secret_env.exists():
+        load_dotenv(dotenv_path=secret_env)
+    load_dotenv()
+except ImportError:
+    pass
 
 app = FastAPI(title="Heartlink", description="development phase", version="1.0.0")
 
