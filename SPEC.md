@@ -1334,23 +1334,30 @@ ACCESS_TOKEN_EXPIRE_HOURS=24
 # ------------------------------------------------------------------------------
 # INVITED_TESTER_NUMBERS=+639171234567,+639281234567
 
-# ------------------------------------------------------------------------------
-# NETWORK SECURITY & CORS ORIGIN WHITELIST
-# ------------------------------------------------------------------------------
-CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:8081,http://localhost:8000,http://127.0.0.1:5173,http://127.0.0.1:8000
+# Production Web Admin Domain & Local Development Origins
+CORS_ALLOWED_ORIGINS=https://heartlink-admin.vercel.app,https://heartlink-web.onrender.com,http://localhost:5173,http://localhost:8081,http://localhost:8000,http://127.0.0.1:5173,http://127.0.0.1:8000
 ```
 
 ### 18.2 Mobile Client Configuration (`HeartLink-mobile/.env`)
 ```ini
-# Public API Gateway (LAN Host or Production Domain)
-EXPO_PUBLIC_API_URL=http://192.168.254.155:8000
+# Public API Gateway (Live Render Deployment)
+EXPO_PUBLIC_API_URL=https://heartlink-app-b8ba.onrender.com
 ```
 
 ### 18.3 Web Client Configuration (`HeartLink-web/.env`)
 ```ini
-# Public API Gateway
-VITE_API_URL=http://localhost:8000
+# Public API Gateway (Live Render Deployment)
+VITE_API_URL=https://heartlink-app-b8ba.onrender.com
 ```
+
+### 18.4 Cloud Deployment Specifications (Render)
+- **Primary API URL**: `https://heartlink-app-b8ba.onrender.com`
+- **Health Check Endpoints**: `https://heartlink-app-b8ba.onrender.com/health` and `/api/health`
+- **OpenAPI Interactive Documentation**: `https://heartlink-app-b8ba.onrender.com/docs`
+- **Runtime Environment**: Python 3.11.9 (declared in `backend/.python-version`)
+- **Start Command**: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+- **Region**: Singapore (Southeast Asia)
+- **Auto-Deploy**: Enabled on Git push to `main`
 
 ---
 
@@ -1392,8 +1399,9 @@ VITE_API_URL=http://localhost:8000
 | **Authorization & RBAC** | `VERIFIED` | `security.py`, `010_functions_triggers_rls.sql` |
 | **PostgreSQL Schema (26 Tables)** | `VERIFIED` | `backend/supabase/migrations/*.sql`, `validate_live_supabase_schema.py` |
 | **Repository Layer** | `VERIFIED` | `backend/app/db/repositories/*.py`, `test_supabase_repository_contract.py` |
-| **Mobile Client (Expo)** | `VERIFIED` | `HeartLink-mobile/app/**`, TypeScript check (`tsc --noEmit`) |
-| **Web Admin & Expert Portal** | `VERIFIED` | `HeartLink-web/src/**`, Vite production build |
+| **Cloud Hosting (Render Gateway)** | `DEPLOYED & ACTIVE` | `https://heartlink-app-b8ba.onrender.com`, `render.yaml`, `RENDER_DEPLOYMENT.md` |
+| **Mobile Client (Expo)** | `VERIFIED & CONNECTED`| `HeartLink-mobile/.env`, TypeScript check (`tsc --noEmit`) |
+| **Web Admin & Expert Portal** | `VERIFIED & CONNECTED`| `HeartLink-web/.env`, Vite production build |
 | **HSS / Clinical Scoring Engine** | `VERIFIED` | `hss_service.py`, `feature_transform.py`, `heartlink_model.pkl` |
 | **Notifications & Broadcasts** | `VERIFIED` | `notifications_api.py`, `admin_notifications_api.py`, `006_notifications.sql` |
 | **Offline Synchronization** | `VERIFIED` | `SyncService.ts`, `OfflineSyncService.ts`, `UserContext.tsx` |

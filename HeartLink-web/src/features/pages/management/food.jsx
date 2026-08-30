@@ -23,6 +23,7 @@ import FoodFormModal from "../../../components/modals/FoodFormModal";
 import { Skeleton } from "../../../components/ui/Skeleton";
 import { apiFetch } from "../../../api";
 import RecipeImage from "../../../components/ui/RecipeImage";
+import { useAuth } from "../../../contexts/AuthContext";
 
 // Authored recipes loaded from database
 
@@ -192,8 +193,8 @@ const Foods = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRecipe, setEditingRecipe] = useState(null);
 
-  // Toggle this between "sysadmin" and "medical" to test the Validation Toggle
-  const [userRole] = useState("medical");
+  const { user } = useAuth();
+  const userRole = user?.role;
 
   // Open Modal for Create or Edit
   const openModal = (recipe = null) => {

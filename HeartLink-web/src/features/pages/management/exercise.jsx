@@ -24,6 +24,7 @@ import AdminLayout from "../../../components/layouts/adminLayout";
 import ExerciseFormModal from "../../../components/modals/ExerciseFormModal";
 import { Skeleton } from "../../../components/ui/Skeleton";
 import { apiFetch, BASE_URL } from "../../../api";
+import { useAuth } from "../../../contexts/AuthContext";
 
 const resolveMediaUrl = (url) => {
   if (!url) return "";
@@ -175,8 +176,8 @@ const Exercises = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingExercise, setEditingExercise] = useState(null);
 
-  // Toggle this between "sysadmin" and "medical" to test the Validation Toggle
-  const [userRole] = useState("medical");
+  const { user } = useAuth();
+  const userRole = user?.role;
 
   // Open Modal for Create or Edit
   const openModal = (exercise = null) => {

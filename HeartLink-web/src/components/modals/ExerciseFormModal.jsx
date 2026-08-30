@@ -16,7 +16,7 @@ import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { InputField } from "../ui/InputField";
-import { BASE_URL } from "../../api";
+import { BASE_URL, apiUpload } from "../../api";
 
 const resolveMediaUrl = (url) => {
   if (!url) return "";
@@ -356,18 +356,11 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
                         if (file) {
                           setIsUploading(true);
                           try {
-                            const formData = new FormData();
-                            formData.append("file", file);
-                            const response = await fetch(`${BASE_URL}/api/upload`, {
-                              method: "POST",
-                              body: formData,
-                            });
-                            if (!response.ok) throw new Error("Upload failed");
-                            const data = await response.json();
+                            const data = await apiUpload(file, "exercises");
                             setValue("mediaUrl", data.url, { shouldValidate: true, shouldDirty: true });
                           } catch (err) {
                             console.error("Upload error:", err);
-                            alert("Failed to upload file.");
+                            alert("Failed to upload file: " + (err?.data?.detail || err?.message || "Upload failed"));
                           } finally {
                             setIsUploading(false);
                           }
@@ -449,23 +442,10 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
                           const file = e.target.files[0];
                           if (file) {
                             try {
-                              const formData = new FormData();
-                              formData.append("file", file);
-                              const response = await fetch(`${BASE_URL}/api/upload`, {
-                                method: "POST",
-                                body: formData,
-                              });
-                              if (!response.ok) {
-                                const reader = new FileReader();
-                                reader.onloadend = () => {
-                                  setValue(`guideImages.${index}.url`, reader.result, { shouldValidate: true, shouldDirty: true });
-                                };
-                                reader.readAsDataURL(file);
-                                return;
-                              }
-                              const data = await response.json();
+                              const data = await apiUpload(file, "exercises");
                               setValue(`guideImages.${index}.url`, data.url, { shouldValidate: true, shouldDirty: true });
                             } catch (err) {
+                              console.error("Guide upload error:", err);
                               const reader = new FileReader();
                               reader.onloadend = () => {
                                 setValue(`guideImages.${index}.url`, reader.result, { shouldValidate: true, shouldDirty: true });

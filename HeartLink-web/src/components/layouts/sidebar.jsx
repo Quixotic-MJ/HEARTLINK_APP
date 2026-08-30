@@ -120,10 +120,10 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed }) => {
   const { user, userId, logout } = useAuth();
   const navigate = useNavigate();
   
-  const role = user?.role || (userId === "usr-super-admin-001" ? "super_admin" : (userId === "usr-chief-admin-001" ? "admin" : "medical_expert"));
-  const userName = user?.first_name ? `${user.first_name} ${user.last_name}` : (userId === "usr-super-admin-001" ? "System Super Admin" : (userId === "usr-chief-admin-001" ? "System Admin" : "Expert Reviewer"));
-  const userEmail = user?.email || (userId === "usr-super-admin-001" ? "super.admin@heartlink.ph" : (userId === "usr-chief-admin-001" ? "admin@heartlink.ph" : "expert@heartlink.ph"));
-  const userInitials = userName.substring(0, 1).toUpperCase();
+  const role = user?.role || "admin";
+  const userName = (user?.first_name || user?.last_name) ? `${user.first_name || ""} ${user.last_name || ""}`.trim() : (user?.email || "Staff User");
+  const userEmail = user?.email || "";
+  const userInitials = userName ? userName.substring(0, 1).toUpperCase() : "U";
 
   const handleLogout = () => {
     logout();

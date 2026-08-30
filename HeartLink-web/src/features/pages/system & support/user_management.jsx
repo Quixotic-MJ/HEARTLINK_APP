@@ -55,8 +55,8 @@ const initialSystemStaff = [
 ];
 
 const Users = () => {
-  const { user, userId } = useAuth();
-  const currentUserRole = user?.role || (userId === "usr-super-admin-001" ? "super_admin" : (userId === "usr-chief-admin-001" ? "admin" : "medical_expert"));
+  const { user } = useAuth();
+  const currentUserRole = user?.role || "admin";
   const [activeTab, setActiveTab] = useState("app_users");
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();

@@ -28,8 +28,8 @@ const normalizeHssTier = (score, tier) => {
 const UserWellnessProfile = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user, userId } = useAuth();
-  const currentUserRole = user?.role || (userId === "usr-super-admin-001" ? "super_admin" : (userId === "usr-chief-admin-001" ? "admin" : "medical_expert"));
+  const { user } = useAuth();
+  const currentUserRole = user?.role || "admin";
   const [data, setData] = useState(null);
   const [timeline, setTimeline] = useState([]);
   const [loading, setLoading] = useState(true);

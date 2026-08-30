@@ -67,7 +67,7 @@ const Feedback = () => {
     };
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
-    intervalId = setInterval(fetchTickets, 3000); // Poll every 3 seconds
+    intervalId = setInterval(fetchTickets, 30000); // Poll every 30 seconds
 
     return () => {
       clearInterval(intervalId);

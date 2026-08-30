@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import AdminLayout from "../../../components/layouts/adminLayout";
-import PatientDetailsModal from "../../../components/modals/PatientDetailsModal";
 import { apiFetch } from "../../../api";
 import {
   Search,
@@ -33,10 +32,6 @@ const ActivityLog = () => {
   const [pageSize] = useState(20);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
-
-  // Modal States
-  const [selectedAuditUser, setSelectedAuditUser] = useState(null);
-  const [isUserModalOpen, setIsUserModalOpen] = useState(false);
 
   // Debounce search query to reduce API hits
   useEffect(() => {
@@ -100,20 +95,6 @@ const ActivityLog = () => {
       active = false;
     };
   }, [page, pageSize, debouncedSearch, eventTypeFilter, retryCount]);
-
-  const handleOpenUser = (userId) => {
-    setSelectedAuditUser({
-      id: userId,
-      name: `User ${userId}`,
-      status: "Active",
-      metrics: {
-        loginsThisWeek: Math.floor(Math.random() * 20) + 1,
-        avgSession: `${Math.floor(Math.random() * 30) + 5} mins`,
-        alertsTriggered: Math.floor(Math.random() * 5),
-      }
-    });
-    setIsUserModalOpen(true);
-  };
 
   const getEventBadge = (type) => {
     const formattedType = type ? type.toLowerCase() : "";
@@ -413,12 +394,10 @@ const ActivityLog = () => {
                       </p>
                     </td>
                     <td className="py-4 px-5 align-middle">
-                      <button 
-                        onClick={() => handleOpenUser(log.admin_user_id)}
-                        className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-600 hover:text-slate-900 transition-colors bg-slate-100 hover:bg-slate-200 px-2.5 py-1 rounded-lg"
-                      >
-                        {log.admin_name} <ExternalLink size={10} />
-                      </button>
+                      <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-slate-700 bg-slate-100 px-2.5 py-1 rounded-lg">
+                        <Shield size={11} className="text-slate-400" />
+                        {log.admin_name || log.admin_user_id || "System"}
+                      </span>
                     </td>
                     <td className="py-4 px-5 align-middle text-right">
                       <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md">
@@ -463,14 +442,6 @@ const ActivityLog = () => {
           </div>
         </div>
       </div>
-
-      <PatientDetailsModal
-        isOpen={isUserModalOpen}
-        onClose={() => setIsUserModalOpen(false)}
-        patient={selectedAuditUser}
-        onDeactivate={() => {}}
-        onEnable={() => {}}
-      />
     </AdminLayout>
   );
 };

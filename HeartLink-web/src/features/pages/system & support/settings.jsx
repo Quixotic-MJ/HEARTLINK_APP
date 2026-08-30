@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   User,
   Mail,
@@ -499,8 +499,8 @@ function SystemTab() {
           <SystemConfigRow
             icon={Database}
             label="Activity Log Retention"
-            value="100 most recent events"
-            note="The backend retains the 100 most recent admin activity events in mock_logs.json. Date-based retention is not yet implemented."
+            value="Audited events"
+            note="The backend maintains admin activity audit events in PostgreSQL repository storage."
           />
         </div>
       </Card>
@@ -510,14 +510,14 @@ function SystemTab() {
           <SystemConfigRow
             icon={Settings2}
             label="Backend Mode"
-            value="Mock / Development"
-            note="The system is running against an in-memory mock database backed by mock_profiles.json and mock_logs.json."
+            value="Production API (Render + Supabase)"
+            note="The system is running against the production FastAPI backend backed by Supabase PostgreSQL."
           />
           <SystemConfigRow
             icon={Database}
             label="Persistence Layer"
-            value="mock_profiles.json + mock_logs.json"
-            note="All mutations are written to the local JSON files on the backend server. Session data and token blacklists are in-memory and reset on restart."
+            value="Supabase PostgreSQL + Storage"
+            note="All mutations are persisted to Supabase PostgreSQL database tables and Supabase Storage buckets."
           />
         </div>
       </Card>
@@ -559,7 +559,7 @@ function SecurityTab({ role }) {
             icon={ShieldCheck}
             label="Max Failed Login Attempts"
             value="5 attempts → 15-minute lockout"
-            note="After 5 consecutive failed login attempts, the account identifier is locked for 15 minutes. This threshold is enforced server-side and resets on server restart in the current mock phase."
+            note="After 5 consecutive failed login attempts, the account identifier is locked for 15 minutes. This threshold is enforced server-side."
           />
         </div>
       </Card>
@@ -602,14 +602,8 @@ const Settings = () => {
   const { user, userId } = useAuth();
   const [activeTab, setActiveTab] = useState("account");
 
-  // Derive role from context — mirrors sidebar/adminLayout logic
-  const role =
-    user?.role ??
-    (userId === "usr-super-admin-001"
-      ? "super_admin"
-      : userId === "usr-chief-admin-001"
-      ? "admin"
-      : "medical_expert");
+  // Derive role from context
+  const role = user?.role || "admin";
 
   // Enrich profile from the backend if the AuthContext user object is sparse.
   // The /api/users/{id}/profile endpoint returns the full profile dict.

@@ -17,6 +17,7 @@ import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { InputField } from "../ui/InputField";
+import { apiUpload } from "../../api";
 
 const parseIngredientString = (str) => {
   if (!str) return { name: "", amount: "", unit: "" };
@@ -336,14 +337,20 @@ const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave, 
                   <input
                     type="file"
                     accept="image/*"
-                    onChange={(e) => {
+                    onChange={async (e) => {
                       const file = e.target.files?.[0];
                       if (file) {
-                        const reader = new FileReader();
-                        reader.onloadend = () => {
-                          setValue("mediaUrl", reader.result);
-                        };
-                        reader.readAsDataURL(file);
+                        try {
+                          const data = await apiUpload(file, "recipes");
+                          setValue("mediaUrl", data.url, { shouldValidate: true, shouldDirty: true });
+                        } catch (err) {
+                          console.error("Recipe image upload error:", err);
+                          const reader = new FileReader();
+                          reader.onloadend = () => {
+                            setValue("mediaUrl", reader.result);
+                          };
+                          reader.readAsDataURL(file);
+                        }
                       }
                     }}
                     className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-slate-400 focus:bg-white transition-colors file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-[10px] file:font-medium file:bg-slate-200 file:text-slate-700 hover:file:bg-slate-300 cursor-pointer"

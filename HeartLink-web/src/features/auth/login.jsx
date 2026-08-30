@@ -93,9 +93,12 @@ export default function HeartLinkAdminLogin() {
         setTemp2faToken(response.token_2fa);
         setStep("2fa");
       } else if (response.success) {
-        // Fallback if backend hasn't been updated to 2FA yet
         login(response.user_id, response.token, { id: response.user_id, role: response.role }, remember);
-        navigate("/dashboard");
+        if (response.role === "medical_expert") {
+          navigate("/cases");
+        } else {
+          navigate("/dashboard");
+        }
       }
     } catch (error) {
       setGlobalError(error.data?.detail || "Login failed. Please try again.");
@@ -115,7 +118,11 @@ export default function HeartLinkAdminLogin() {
       
       if (response.success) {
         login(response.user_id, response.token, { id: response.user_id, role: response.role }, remember);
-        navigate("/dashboard");
+        if (response.role === "medical_expert") {
+          navigate("/cases");
+        } else {
+          navigate("/dashboard");
+        }
       }
     } catch (error) {
       setGlobalError(error.data?.detail || "Invalid code. Please try again.");

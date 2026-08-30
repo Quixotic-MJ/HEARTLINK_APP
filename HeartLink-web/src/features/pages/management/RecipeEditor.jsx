@@ -715,13 +715,13 @@ const RecipeEditor = ({ recipe, userRole, onSave, onDelete, onBack }) => {
                 <input
                   type="checkbox"
                   className="sr-only peer"
-                  disabled={userRole !== "medical"}
+                  disabled={!(userRole === "medical_expert" || userRole === "super_admin" || userRole === "admin")}
                   checked={watchAll.expertValidated}
                   onChange={(e) => setValue("expertValidated", e.target.checked)}
                 />
                 <div
                   className={`w-9 h-5 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all ${
-                    userRole !== "medical" ? "cursor-not-allowed opacity-50" : ""
+                    !(userRole === "medical_expert" || userRole === "super_admin" || userRole === "admin") ? "cursor-not-allowed opacity-50" : ""
                   } peer-checked:bg-emerald-500`}
                 ></div>
               </label>
