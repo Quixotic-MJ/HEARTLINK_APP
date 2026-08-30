@@ -55,7 +55,7 @@ const initialSystemStaff = [
 ];
 
 const Users = () => {
-  const { user } = useAuth();
+  const { user, userId } = useAuth();
   const currentUserRole = user?.role || "admin";
   const [activeTab, setActiveTab] = useState("app_users");
   const navigate = useNavigate();
