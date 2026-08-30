@@ -95,7 +95,29 @@ app.mount("/static", StaticFiles(directory=static_dir), name="static")
 @app.on_event("startup")
 async def on_startup():
     from app.db.client import is_supabase_mode, get_supabase_client, get_database_mode
-    print(f"[HeartLink Startup] DATABASE_MODE={get_database_mode()}, SUPABASE_URL_SET={bool(os.getenv('SUPABASE_URL'))}")
+    # ── Diagnostic: show env-var loading status ──
+    print(f"[HeartLink Startup] CWD={os.getcwd()}")
+    print(f"[HeartLink Startup] DATABASE_MODE={os.getenv('DATABASE_MODE')}")
+    print(f"[HeartLink Startup] SUPABASE_URL={os.getenv('SUPABASE_URL', '<NOT SET>')[:40]}...")
+    print(f"[HeartLink Startup] SUPABASE_SERVICE_ROLE_KEY={'SET' if os.getenv('SUPABASE_SERVICE_ROLE_KEY') else 'NOT SET'}")
+    print(f"[HeartLink Startup] SECRET_KEY={'SET' if os.getenv('SECRET_KEY') else 'NOT SET'}")
+    # ── Diagnostic: check /etc/secrets directory ──
+    secrets_dir = Path("/etc/secrets")
+    if secrets_dir.exists():
+        files = list(secrets_dir.iterdir())
+        print(f"[HeartLink Startup] /etc/secrets/ contains {len(files)} file(s): {[f.name for f in files]}")
+        for f in files:
+            if f.is_file():
+                try:
+                    content = f.read_text()
+                    lines = [l.strip() for l in content.splitlines() if l.strip() and not l.strip().startswith('#')]
+                    keys = [l.split('=')[0] for l in lines if '=' in l]
+                    print(f"[HeartLink Startup]   {f.name}: {len(lines)} vars, keys={keys}")
+                except Exception as ex:
+                    print(f"[HeartLink Startup]   {f.name}: read error: {ex}")
+    else:
+        print("[HeartLink Startup] /etc/secrets/ does NOT exist")
+    # ── Connect to Supabase ──
     try:
         if is_supabase_mode():
             client = get_supabase_client()
