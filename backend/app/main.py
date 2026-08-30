@@ -94,14 +94,21 @@ app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 @app.on_event("startup")
 async def on_startup():
-    from app.db.client import is_supabase_mode, get_supabase_client
-    if is_supabase_mode():
-        get_supabase_client()
-    from app.db.bootstrap import bootstrap_supabase_content
+    from app.db.client import is_supabase_mode, get_supabase_client, get_database_mode
+    print(f"[HeartLink Startup] DATABASE_MODE={get_database_mode()}, SUPABASE_URL_SET={bool(os.getenv('SUPABASE_URL'))}")
     try:
+        if is_supabase_mode():
+            client = get_supabase_client()
+            if client:
+                print("[HeartLink Startup] Supabase Client Connected Successfully.")
+    except Exception as e:
+        print(f"[HeartLink Startup DB Warning] {e}")
+
+    try:
+        from app.db.bootstrap import bootstrap_supabase_content
         bootstrap_supabase_content()
     except Exception as e:
-        print(f"[Bootstrap Error] {e}")
+        print(f"[HeartLink Startup Bootstrap Warning] {e}")
 
 @app.get("/health", tags=["System"])
 def root_health_check():
