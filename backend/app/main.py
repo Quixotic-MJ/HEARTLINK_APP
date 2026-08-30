@@ -7,10 +7,16 @@ try:
         Path(__file__).resolve().parent.parent.parent / ".env",
         Path(__file__).resolve().parent.parent / ".env",
         Path.cwd() / ".env",
+        Path.cwd() / "backend" / ".env",
         Path("/etc/secrets/.env"),
     ]:
         if candidate.exists():
             load_dotenv(dotenv_path=candidate, override=True)
+    secrets_dir = Path("/etc/secrets")
+    if secrets_dir.exists() and secrets_dir.is_dir():
+        for secret_file in secrets_dir.iterdir():
+            if secret_file.is_file():
+                load_dotenv(dotenv_path=secret_file, override=True)
     load_dotenv(override=True)
 except ImportError:
     pass
