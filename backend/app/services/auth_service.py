@@ -112,9 +112,11 @@ class MockAuthService(AuthService):
         now = datetime.utcnow()
         attempts = self.login_attempts.get(identifier, {"count": 0, "locked_until": None})
         if attempts["locked_until"] and now < attempts["locked_until"]:
+            remaining = int((attempts["locked_until"] - now).total_seconds())
+            remaining = max(1, remaining)
             raise HTTPException(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail="Too many attempts. Please try again in 15 minutes."
+                detail=f"Too many attempts. Please try again in {remaining} seconds."
             )
         return attempts
 
@@ -128,7 +130,7 @@ class MockAuthService(AuthService):
         was_already_locked = bool(attempts.get("locked_until") and now < attempts["locked_until"])
         attempts["count"] += 1
         if attempts["count"] >= 5:
-            attempts["locked_until"] = now + timedelta(minutes=15)
+            attempts["locked_until"] = now + timedelta(seconds=10)
             if not was_already_locked:
                 try:
                     from app.services.admin_notifications import create_admin_notification
