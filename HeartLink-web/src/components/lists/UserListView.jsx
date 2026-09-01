@@ -2,7 +2,42 @@ import React from "react";
 import { Search, Filter, ShieldCheck, Heart, Ban, CheckCircle2, Archive, Activity, UserCheck, AlertTriangle } from "lucide-react";
 import { formatUserRef } from "../../utils/formatUserRef";
 
-const UserListView = ({ users, searchQuery, onSearchChange, filterStatus, onFilterChange, onOpenUser }) => {
+const UserListView = ({ users, searchQuery, onSearchChange, filterStatus, onFilterChange, onOpenUser, loading }) => {
+  const SkeletonRow = () => (
+    <tr className="animate-pulse">
+      <td className="py-4 px-5">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200" />
+          <div className="space-y-1">
+            <div className="h-3 w-28 bg-slate-200 rounded" />
+            <div className="h-2.5 w-16 bg-slate-100 rounded" />
+          </div>
+        </div>
+      </td>
+      <td className="py-4 px-5">
+        <div className="h-4 w-20 bg-slate-200 rounded-full" />
+      </td>
+      <td className="py-4 px-5">
+        <div className="h-4 w-16 bg-slate-200 rounded-full" />
+      </td>
+      <td className="py-4 px-5">
+        <div className="h-4 w-16 bg-slate-200 rounded-full" />
+      </td>
+      <td className="py-4 px-5">
+        <div className="h-4 w-16 bg-slate-200 rounded-full" />
+      </td>
+      <td className="py-4 px-5">
+        <div className="h-4 w-16 bg-slate-200 rounded-full" />
+      </td>
+      <td className="py-4 px-5">
+        <div className="h-4 w-20 bg-slate-200 rounded-full" />
+      </td>
+      <td className="py-4 px-5 text-right">
+        <div className="h-7 w-16 bg-slate-200 rounded-lg inline-block" />
+      </td>
+    </tr>
+  );
+
   const getStatusBadge = (status) => {
     if (status === "Active" || status === "active")
       return (
@@ -167,7 +202,9 @@ const UserListView = ({ users, searchQuery, onSearchChange, filterStatus, onFilt
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
-            {users.length === 0 ? (
+            {loading ? (
+              Array.from({ length: 5 }).map((_, index) => <SkeletonRow key={`skeleton-${index}`} />)
+            ) : users.length === 0 ? (
               <tr>
                 <td colSpan="8" className="py-8 px-5 text-center text-slate-400 text-xs">
                   No user accounts match the search or filter settings.

@@ -146,3 +146,17 @@ from app.db.repositories import get_content_repo
 def get_clinics():
     return get_content_repo().list_clinics()
 
+import logging
+from fastapi.responses import JSONResponse
+from fastapi import Request
+
+logger = logging.getLogger(__name__)
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.error(f"Unhandled exception on {request.url.path}: {exc}", exc_info=True)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal Server Error", "error": str(exc)}
+    )
+

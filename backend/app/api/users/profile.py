@@ -45,6 +45,93 @@ async def read_all_users(current_user: dict = Depends(get_current_user)):
     )
     
     all_profiles = get_profile_repo().list_all()
+    
+    # --- BULK AGGREGATION TO PREVENT N+1 QUERY ---
+    import logging
+    logger = logging.getLogger(__name__)
+
+    all_hss = all_meals = all_exercises = all_sleeps = all_health_logs = all_reviews = []
+
+    try:
+        all_hss = get_hss_repo().list_all_hss_records()
+    except Exception as e:
+        logger.error(f"[read_all_users] Failed to fetch HSS records: {e}", exc_info=True)
+
+    try:
+        all_meals = get_meals_repo().list_all_meals()
+    except Exception as e:
+        logger.error(f"[read_all_users] Failed to fetch meal logs: {e}", exc_info=True)
+
+    try:
+        all_exercises = get_exercises_repo().list_all_logs()
+    except Exception as e:
+        logger.error(f"[read_all_users] Failed to fetch exercise logs: {e}", exc_info=True)
+
+    try:
+        all_sleeps = get_sleep_repo().list_all_logs()
+    except Exception as e:
+        logger.error(f"[read_all_users] Failed to fetch sleep logs: {e}", exc_info=True)
+
+    try:
+        all_health_logs = get_health_logs_repo().list_all_logs()
+    except Exception as e:
+        logger.error(f"[read_all_users] Failed to fetch health logs: {e}", exc_info=True)
+
+    try:
+        all_reviews = get_case_review_repo().list_evaluations()
+    except Exception as e:
+        logger.error(f"[read_all_users] Failed to fetch case reviews: {e}", exc_info=True)
+
+    # Build memory maps
+    hss_map = {}
+    for r in all_hss:
+        uid = r.get("user_id")
+        # Since it's ordered by computed_at desc in the repo, the first one encountered is the latest.
+        if uid and uid not in hss_map:
+            hss_map[uid] = r
+
+    activity_map = {}
+    cutoff = datetime.utcnow() - timedelta(days=7)
+    
+    def parse_dt(x):
+        if x is None:
+            return datetime.min
+        dt = x
+        if isinstance(x, dict):
+            dt = x.get("created_at") or x.get("logged_at") or x.get("timestamp") or x.get("computed_at")
+        if isinstance(dt, datetime):
+            if dt.tzinfo is not None:
+                return dt.astimezone(timezone.utc).replace(tzinfo=None)
+            return dt
+        if isinstance(dt, str):
+            try:
+                s = dt.strip()
+                if s.endswith("Z"):
+                    s = s[:-1] + "+00:00"
+                parsed = datetime.fromisoformat(s)
+                if parsed.tzinfo is not None:
+                    return parsed.astimezone(timezone.utc).replace(tzinfo=None)
+                return parsed
+            except Exception:
+                return datetime.min
+        return datetime.min
+
+    def add_dates(data_list):
+        for r in data_list:
+            uid = r.get("user_id")
+            if not uid: continue
+            if uid not in activity_map:
+                activity_map[uid] = []
+            activity_map[uid].append(parse_dt(r))
+
+    add_dates(all_meals)
+    add_dates(all_exercises)
+    add_dates(all_sleeps)
+    add_dates(all_health_logs)
+    
+    review_set = {r.get("user_id") for r in all_reviews if r.get("user_id")}
+    # ---------------------------------------------
+
     for p in all_profiles:
         if p.get("role") != "patient":
             # Sanitize passwords before returning
@@ -53,8 +140,9 @@ async def read_all_users(current_user: dict = Depends(get_current_user)):
             continue
 
         try:
+            uid = p.get("id")
             # Compute HSS
-            latest_hss = get_hss_repo().get_latest_hss(p["id"])
+            latest_hss = hss_map.get(uid)
             if latest_hss:
                 hss_score = latest_hss.get("score")
                 hss_tier = latest_hss.get("tier")
@@ -62,57 +150,18 @@ async def read_all_users(current_user: dict = Depends(get_current_user)):
                 hss_score = None
                 hss_tier = "N/A"
                 
-            # Compute Activity Status (Checking last 7 days)
-            cutoff = datetime.utcnow() - timedelta(days=7)
-            def parse_dt(x):
-                if x is None:
-                    return datetime.min
-                dt = x
-                if isinstance(x, dict):
-                    dt = x.get("created_at") or x.get("logged_at") or x.get("timestamp") or x.get("computed_at")
-                if isinstance(dt, datetime):
-                    if dt.tzinfo is not None:
-                        return dt.astimezone(timezone.utc).replace(tzinfo=None)
-                    return dt
-                if isinstance(dt, str):
-                    try:
-                        s = dt.strip()
-                        if s.endswith("Z"):
-                            s = s[:-1] + "+00:00"
-                        parsed = datetime.fromisoformat(s)
-                        if parsed.tzinfo is not None:
-                            return parsed.astimezone(timezone.utc).replace(tzinfo=None)
-                        return parsed
-                    except Exception:
-                        return datetime.min
-                return datetime.min
-
-            meals = get_meals_repo().list_user_meals(p["id"])
-            exercises = get_exercises_repo().list_user_logs(p["id"])
-            sleeps = get_sleep_repo().list_user_logs(p["id"])
-            health_logs = get_health_logs_repo().list_user_logs(p["id"])
-
-            recent_logs = []
-            recent_logs.extend([m for m in meals if parse_dt(m) >= cutoff])
-            recent_logs.extend([e for e in exercises if parse_dt(e) >= cutoff])
-            recent_logs.extend([s for s in sleeps if parse_dt(s) >= cutoff])
-            recent_logs.extend([d for d in health_logs if parse_dt(d) >= cutoff])
-            
-            has_logs_at_all = bool(meals or exercises or sleeps or health_logs)
-            
+            # Compute Activity Status
+            user_dates = activity_map.get(uid, [])
+            recent_logs = [d for d in user_dates if d >= cutoff]
             if recent_logs:
                 activity_status = "Recently Active"
-            elif has_logs_at_all:
+            elif user_dates:
                 activity_status = "Inactive"
             else:
                 activity_status = "New User"
                 
             # Compute Review Status
-            try:
-                evals = get_case_review_repo().list_evaluations_for_user(p["id"])
-                review_status = "Evaluated" if evals else "Pending Review"
-            except Exception:
-                review_status = "Pending Review"
+            review_status = "Evaluated" if uid in review_set else "Pending Review"
             
             p_copy = {k: v for k, v in p.items() if k not in ["password", "password_hash", "token", "secret"]}
             p_copy["hss_score"] = hss_score
@@ -121,9 +170,7 @@ async def read_all_users(current_user: dict = Depends(get_current_user)):
             p_copy["review_status"] = review_status
             enriched_profiles.append(p_copy)
         except Exception as enrich_err:
-            # If enrichment fails for a patient, still include them with default values
-            # so the admin panel doesn't lose visibility of any user
-            print(f"[read_all_users] Enrichment failed for user {p.get('id')}: {enrich_err}")
+            print(f"[read_all_users] Enrichment logic failed for user {p.get('id')}: {enrich_err}")
             p_copy = {k: v for k, v in p.items() if k not in ["password", "password_hash", "token", "secret"]}
             p_copy["hss_score"] = None
             p_copy["hss_tier"] = "N/A"

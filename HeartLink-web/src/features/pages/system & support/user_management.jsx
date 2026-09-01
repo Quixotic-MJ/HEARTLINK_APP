@@ -303,6 +303,7 @@ const Users = () => {
           filterStatus={filterStatus}
           onFilterChange={setFilterStatus}
           onOpenUser={handleOpenUser}
+          loading={loading}
         />
       )}
 
