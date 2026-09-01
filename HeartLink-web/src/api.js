@@ -18,7 +18,12 @@ export const apiFetch = async (endpoint, options = {}) => {
     const data = await response.json().catch(() => ({}));
 
     if (!response.ok) {
-      if (response.status === 401) {
+      const isAuthEndpoint = endpoint.includes("/auth/web-login") || 
+                             endpoint.includes("/auth/login") || 
+                             endpoint.includes("/auth/request-code") || 
+                             endpoint.includes("/auth/verify-code") || 
+                             endpoint.includes("/auth/forgot-password");
+      if (response.status === 401 && !isAuthEndpoint) {
         window.dispatchEvent(new Event('auth:unauthorized'));
       }
       throw { status: response.status, data };

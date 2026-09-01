@@ -50,7 +50,10 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const handleUnauthorized = () => {
-      logout();
+      const hasToken = localStorage.getItem('heartlink_admin_token') || sessionStorage.getItem('heartlink_admin_token');
+      if (hasToken && window.location.pathname !== '/' && window.location.pathname !== '/login') {
+        logout();
+      }
     };
     window.addEventListener('auth:unauthorized', handleUnauthorized);
     return () => window.removeEventListener('auth:unauthorized', handleUnauthorized);
