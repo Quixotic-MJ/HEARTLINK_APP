@@ -5,6 +5,7 @@ import random
 import hashlib
 from app.utils.security import get_current_admin_user, get_current_super_admin
 from app.utils.activity_helper import record_admin_activity
+from app.db.client import get_supabase_client
 from app.db.repositories import (
     get_profile_repo,
     get_health_logs_repo,
