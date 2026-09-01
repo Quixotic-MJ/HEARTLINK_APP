@@ -14,6 +14,7 @@ from app.utils.activity_helper import record_admin_activity
 
 router = APIRouter(prefix="/api/recipes", tags=["Recipes"])
 
+@router.get("", response_model=List[Dict[str, Any]])
 @router.get("/", response_model=List[Dict[str, Any]])
 def read_recipes():
     return get_recipes()
@@ -36,12 +37,18 @@ def read_recipe(recipe_id: str):
         raise HTTPException(status_code=404, detail="Recipe not found")
     return recipe
 
+@router.post("", response_model=Dict[str, Any])
 @router.post("/", response_model=Dict[str, Any])
 def add_recipe(data: Dict[str, Any] = Body(...), current_user: dict = Depends(get_current_admin_user)):
-    new_recipe = create_recipe(data)
-    admin_id = current_user.get("user_id") if current_user else "admin"
+    admin_id = current_user.get("user_id") if current_user else None
+    new_recipe = create_recipe(data, created_by=admin_id)
+    if not new_recipe or not new_recipe.get("id"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Failed to create recipe. Please check all nutritional and general fields."
+        )
     record_admin_activity(
-        admin_user_id=admin_id,
+        admin_user_id=admin_id or "admin",
         action="created",
         target_type="recipe",
         target_id=new_recipe.get("id"),

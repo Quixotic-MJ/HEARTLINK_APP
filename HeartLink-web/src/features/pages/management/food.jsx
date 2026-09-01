@@ -25,6 +25,7 @@ import { Skeleton } from "../../../components/ui/Skeleton";
 import { apiFetch } from "../../../api";
 import RecipeImage from "../../../components/ui/RecipeImage";
 import { useAuth } from "../../../contexts/AuthContext";
+import { toast } from "sonner";
 
 // Authored recipes loaded from database
 
@@ -60,6 +61,10 @@ const Foods = () => {
         category: recipe.category,
         hssTarget: recipe.hssTarget,
         foodSourceType: recipe.foodSourceType,
+        prepTimeMinutes: recipe.prepTimeMinutes,
+        servings: recipe.servings,
+        difficulty: recipe.difficulty,
+        heartBenefit: recipe.heartBenefit,
         sodium: recipe.sodium,
         calories: recipe.calories,
         satFat: recipe.satFat,
@@ -76,10 +81,15 @@ const Foods = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      showToast(newStatus === "published" ? "Recipe published." : "Recipe restored to draft.");
+      toast.success(newStatus === "published" ? "Recipe Published" : "Recipe Restored to Draft", {
+        description: `"${recipe.name}" status updated to ${newStatus}.`,
+      });
       fetchFoods();
     } catch (err) {
       console.error("Failed to update status", err);
+      toast.error("Failed to Update Status", {
+        description: err?.data?.detail || "Could not change status.",
+      });
     }
   };
 
@@ -95,6 +105,10 @@ const Foods = () => {
         category: recipe.category,
         hssTarget: recipe.hssTarget,
         foodSourceType: recipe.foodSourceType,
+        prepTimeMinutes: recipe.prepTimeMinutes,
+        servings: recipe.servings,
+        difficulty: recipe.difficulty,
+        heartBenefit: recipe.heartBenefit,
         sodium: recipe.sodium,
         calories: recipe.calories,
         satFat: recipe.satFat,
@@ -111,10 +125,15 @@ const Foods = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      showToast("Recipe archived.");
+      toast.info("Recipe Archived", {
+        description: `"${recipe.name}" is now archived and hidden from mobile.`,
+      });
       fetchFoods();
     } catch (err) {
       console.error("Failed to archive recipe", err);
+      toast.error("Failed to Archive Recipe", {
+        description: err?.data?.detail || "Could not archive recipe.",
+      });
     }
   };
 
@@ -126,10 +145,15 @@ const Foods = () => {
 
     try {
       await apiFetch(`/api/recipes/${recipe.id}`, { method: "DELETE" });
-      showToast("Recipe deleted.");
+      toast.success("Recipe Deleted", {
+        description: `"${recipe.name}" was permanently removed.`,
+      });
       fetchFoods();
     } catch (err) {
       console.error("Failed to delete recipe", err);
+      toast.error("Failed to Delete Recipe", {
+        description: err?.data?.detail || "Could not delete recipe.",
+      });
     }
   };
 
@@ -160,6 +184,7 @@ const Foods = () => {
         return {
           id: r.id,
           name: r.name || "",
+          subtitle: r.subtitle || "",
           category: r.category || "Meal",
           hssTarget: hssLabel,
           hssTier: r.hss_tier || "Stable",
@@ -168,6 +193,10 @@ const Foods = () => {
           satFat: r.saturated_fat_g || 0,
           cholesterol: r.cholesterol_mg || 0,
           fiber: r.fiber_g || 0,
+          prepTimeMinutes: r.prep_time_minutes || 15,
+          servings: r.servings || 1,
+          difficulty: r.difficulty || "Easy",
+          heartBenefit: r.heart_benefit || "",
           status: r.status || "draft",
           expertValidated: r.expert_validated || false,
           mediaUrl: r.image_url || "",
@@ -647,24 +676,39 @@ const Foods = () => {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(data),
               });
+              toast.success("Recipe Updated", {
+                description: `"${data.name}" was saved successfully.`,
+              });
             } else {
               await apiFetch("/api/recipes", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(data),
               });
+              toast.success("Recipe Created", {
+                description: `"${data.name}" was added to the food library.`,
+              });
             }
             fetchFoods();
           } catch (err) {
             console.error("Error saving recipe:", err);
+            toast.error("Failed to Save Recipe", {
+              description: err?.data?.detail || "Could not save recipe to database.",
+            });
           }
         }}
         onDelete={async (id) => {
           try {
             await apiFetch(`/api/recipes/${id}`, { method: "DELETE" });
+            toast.success("Recipe Deleted", {
+              description: "The recipe has been permanently removed.",
+            });
             fetchFoods();
           } catch (err) {
             console.error("Error deleting recipe:", err);
+            toast.error("Failed to Delete Recipe", {
+              description: err?.data?.detail || "Could not delete recipe.",
+            });
           }
         }}
       />

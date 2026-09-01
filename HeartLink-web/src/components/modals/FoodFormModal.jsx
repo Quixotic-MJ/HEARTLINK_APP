@@ -45,6 +45,10 @@ const foodSchema = z.object({
   foodSourceType: z.string().default("Home Recipe"),
   category: z.string().min(1, "Category is required."),
   hssTarget: z.string().min(1, "HSS Tier is required."),
+  prepTimeMinutes: z.coerce.number().min(0, "Cannot be negative").default(15),
+  servings: z.coerce.number().min(1, "At least 1 serving").default(1),
+  difficulty: z.string().default("Easy"),
+  heartBenefit: z.string().optional(),
   calories: z.coerce.number().min(0, "Cannot be negative"),
   sodium: z.coerce.number().min(0, "Cannot be negative"),
   satFat: z.coerce.number().min(0, "Cannot be negative"),
@@ -88,6 +92,10 @@ const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave, 
       category: "Breakfast",
       hssTarget: "Stable (80-100)",
       foodSourceType: "Home Recipe",
+      prepTimeMinutes: 15,
+      servings: 1,
+      difficulty: "Easy",
+      heartBenefit: "",
       sodium: 0,
       calories: 0,
       satFat: 0,
@@ -158,6 +166,10 @@ const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave, 
         category: recipe.category || "Breakfast",
         hssTarget: recipe.hssTarget || "Stable (80-100)",
         foodSourceType: recipe.foodSourceType || "Home Recipe",
+        prepTimeMinutes: recipe.prepTimeMinutes !== undefined ? recipe.prepTimeMinutes : 15,
+        servings: recipe.servings !== undefined ? recipe.servings : 1,
+        difficulty: recipe.difficulty || "Easy",
+        heartBenefit: recipe.heartBenefit || "",
         sodium: recipe.sodium || 0,
         calories: recipe.calories || 0,
         satFat: recipe.satFat || 0,
@@ -175,6 +187,10 @@ const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave, 
         category: "Breakfast",
         hssTarget: "Stable (80-100)",
         foodSourceType: "Home Recipe",
+        prepTimeMinutes: 15,
+        servings: 1,
+        difficulty: "Easy",
+        heartBenefit: "",
         sodium: 0,
         calories: 0,
         satFat: 0,
@@ -205,6 +221,10 @@ const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave, 
 
       onSave({
         ...data,
+        prepTimeMinutes: Number(data.prepTimeMinutes) || 15,
+        servings: Number(data.servings) || 1,
+        difficulty: data.difficulty || "Easy",
+        heartBenefit: data.heartBenefit || "",
         ingredients: mappedIngredients,
         steps: mappedSteps,
       });
@@ -306,6 +326,53 @@ const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave, 
                   </select>
                   {errors.hssTarget && <p className="text-[11px] text-red-400 mt-1">{errors.hssTarget.message}</p>}
                 </div>
+              </div>
+
+              {/* PREPARATION & METRICS */}
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <InputField
+                    id="prepTimeMinutes"
+                    type="number"
+                    label="Prep Time (mins)"
+                    placeholder="15"
+                    error={errors.prepTimeMinutes}
+                    {...register("prepTimeMinutes")}
+                  />
+                </div>
+                <div>
+                  <InputField
+                    id="servings"
+                    type="number"
+                    label="Servings"
+                    placeholder="1"
+                    error={errors.servings}
+                    {...register("servings")}
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-[#89899C] uppercase tracking-wider mb-1.5">
+                    Difficulty
+                  </label>
+                  <select
+                    {...register("difficulty")}
+                    className={`w-full px-3.5 py-2.5 text-xs font-semibold bg-[#1A1A1A] border ${errors.difficulty ? 'border-red-500' : 'border-white/10 focus:border-[#E55F37]'} rounded-xl focus:outline-none text-white transition-colors cursor-pointer`}
+                  >
+                    <option value="Easy" className="bg-[#161616]">Easy</option>
+                    <option value="Medium" className="bg-[#161616]">Medium</option>
+                    <option value="Hard" className="bg-[#161616]">Hard</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <InputField
+                  id="heartBenefit"
+                  label="Heart-Health Benefit (Optional)"
+                  placeholder="e.g. Rich in soluble fiber, low in sodium for blood pressure stability."
+                  error={errors.heartBenefit}
+                  {...register("heartBenefit")}
+                />
               </div>
 
               {/* MEDIA */}
