@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import os
 import hashlib
 from app.db.repositories import (
@@ -89,14 +89,26 @@ def get_recent_telemetry_timeline(user_id: str, limit_days: int = 30) -> list:
     cutoff_date = datetime.utcnow() - timedelta(days=limit_days)
     
     def parse_dt(x):
-        dt = x.get("timestamp") or x.get("logged_at") or x.get("computed_at")
+        if x is None:
+            return datetime.min
+        dt = x
+        if isinstance(x, dict):
+            dt = x.get("timestamp") or x.get("logged_at") or x.get("computed_at") or x.get("created_at")
+        if isinstance(dt, datetime):
+            if dt.tzinfo is not None:
+                return dt.astimezone(timezone.utc).replace(tzinfo=None)
+            return dt
         if isinstance(dt, str):
             try:
-                return datetime.fromisoformat(dt)
-            except ValueError:
+                s = dt.strip()
+                if s.endswith("Z"):
+                    s = s[:-1] + "+00:00"
+                parsed = datetime.fromisoformat(s)
+                if parsed.tzinfo is not None:
+                    return parsed.astimezone(timezone.utc).replace(tzinfo=None)
+                return parsed
+            except Exception:
                 return datetime.min
-        if isinstance(dt, datetime):
-            return dt
         return datetime.min
 
     # daily health logs (Vitals & Symptoms)

@@ -33,7 +33,7 @@ async def read_all_users(current_user: dict = Depends(get_current_user)):
         )
 
     enriched_profiles = []
-    from datetime import datetime, timedelta
+    from datetime import datetime, timedelta, timezone
     from app.db.repositories import (
         get_profile_repo,
         get_hss_repo,
@@ -64,14 +64,26 @@ async def read_all_users(current_user: dict = Depends(get_current_user)):
         # Compute Activity Status (Checking last 7 days)
         cutoff = datetime.utcnow() - timedelta(days=7)
         def parse_dt(x):
-            dt = x.get("created_at") or x.get("logged_at")
+            if x is None:
+                return datetime.min
+            dt = x
+            if isinstance(x, dict):
+                dt = x.get("created_at") or x.get("logged_at") or x.get("timestamp") or x.get("computed_at")
             if isinstance(dt, datetime):
+                if dt.tzinfo is not None:
+                    return dt.astimezone(timezone.utc).replace(tzinfo=None)
                 return dt
             if isinstance(dt, str):
                 try:
-                    return datetime.fromisoformat(dt)
+                    s = dt.strip()
+                    if s.endswith("Z"):
+                        s = s[:-1] + "+00:00"
+                    parsed = datetime.fromisoformat(s)
+                    if parsed.tzinfo is not None:
+                        return parsed.astimezone(timezone.utc).replace(tzinfo=None)
+                    return parsed
                 except Exception:
-                    pass
+                    return datetime.min
             return datetime.min
 
         meals = get_meals_repo().list_user_meals(p["id"])

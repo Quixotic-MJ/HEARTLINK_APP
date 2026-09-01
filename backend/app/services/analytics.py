@@ -1,5 +1,5 @@
 from typing import List, Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone
 from app.db.repositories import get_hss_repo, get_baseline_repo
 
 def get_analytics(user_id: str) -> Dict[str, Any]:
@@ -7,14 +7,26 @@ def get_analytics(user_id: str) -> Dict[str, Any]:
     history = hss_repo.list_hss_history(user_id)
     
     def parse_dt(x):
-        dt = x.get("computed_at") or x.get("created_at")
+        if x is None:
+            return datetime.min
+        dt = x
+        if isinstance(x, dict):
+            dt = x.get("computed_at") or x.get("created_at") or x.get("timestamp") or x.get("logged_at")
         if isinstance(dt, datetime):
+            if dt.tzinfo is not None:
+                return dt.astimezone(timezone.utc).replace(tzinfo=None)
             return dt
         if isinstance(dt, str):
             try:
-                return datetime.fromisoformat(dt)
+                s = dt.strip()
+                if s.endswith("Z"):
+                    s = s[:-1] + "+00:00"
+                parsed = datetime.fromisoformat(s)
+                if parsed.tzinfo is not None:
+                    return parsed.astimezone(timezone.utc).replace(tzinfo=None)
+                return parsed
             except Exception:
-                pass
+                return datetime.min
         return datetime.min
 
     history = sorted(history, key=parse_dt)
