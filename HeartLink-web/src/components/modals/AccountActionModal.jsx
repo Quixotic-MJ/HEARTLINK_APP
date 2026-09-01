@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   X,
   User,
@@ -25,22 +26,14 @@ const AccountActionModal = ({ isOpen, onClose, user, onToggleStatus, canDelete, 
   const [selectedReason, setSelectedReason] = useState("");
   const [customReason, setCustomReason] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
 
   if (!isOpen || !user) return null;
 
   const isActive = user.status === "Active";
 
-  const handleDelete = async () => {
-    if (window.confirm(`Are you sure you want to permanently delete the account for "${user.name}"?\n\nAll personal vitals, health logs, and authentication records will be permanently purged. This action cannot be undone.`)) {
-      setIsDeleting(true);
-      try {
-        if (onDeleteUser) {
-          await onDeleteUser(user.id, user.name);
-        }
-      } finally {
-        setIsDeleting(false);
-      }
+  const handleDelete = () => {
+    if (onDeleteUser) {
+      onDeleteUser(user.id, user.name, user);
     }
   };
 
@@ -87,17 +80,28 @@ const AccountActionModal = ({ isOpen, onClose, user, onToggleStatus, canDelete, 
     (selectedReason !== "Other" || customReason.trim().length > 0);
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-        onClick={handleClose}
-      />
+    <AnimatePresence>
+      <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+        {/* Backdrop */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+          className="fixed inset-0 bg-black/75 backdrop-blur-sm"
+          onClick={handleClose}
+        />
 
-      {/* Modal */}
-      <div className="relative w-full max-w-md bg-[#1A1A1A] rounded-2xl shadow-2xl border border-white/10 overflow-hidden animate-in fade-in zoom-in-95 duration-200 text-white">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-[#161616]">
+        {/* Modal */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 12 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 12 }}
+          transition={{ type: "spring", damping: 26, stiffness: 350 }}
+          className="relative w-full max-w-md bg-[#1A1A1A] rounded-3xl shadow-2xl border border-white/10 overflow-hidden text-white z-10"
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-[#161616]">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-[#36272B] flex items-center justify-center text-[#E55F37] border border-[#E55F37]/30 shrink-0">
               <Shield size={16} />
@@ -303,8 +307,9 @@ const AccountActionModal = ({ isOpen, onClose, user, onToggleStatus, canDelete, 
             </div>
           )}
         </div>
-      </div>
+      </motion.div>
     </div>
+  </AnimatePresence>
   );
 };
 

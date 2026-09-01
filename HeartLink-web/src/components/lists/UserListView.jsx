@@ -1,9 +1,15 @@
 import React from "react";
-import { Search, Filter, ShieldCheck, Heart, Ban, CheckCircle2, Archive, Activity, UserCheck, AlertTriangle, ChevronDown } from "lucide-react";
+import { motion } from "framer-motion";
+import { Search, Filter, ShieldCheck, Heart, Ban, CheckCircle2, Archive, Activity, UserCheck, AlertTriangle, ChevronDown, Users, AlertCircle } from "lucide-react";
 import { formatUserRef } from "../../utils/formatUserRef";
 import { Skeleton } from "../ui/Skeleton";
 
 const UserListView = ({ users, searchQuery, onSearchChange, filterStatus, onFilterChange, onOpenUser, loading }) => {
+  const totalUsers = users.length;
+  const activeUsers = users.filter((u) => u.status === "Active" || u.status === "active").length;
+  const elevatedRisk = users.filter((u) => u.hssScore !== null && u.hssScore !== undefined && u.hssScore < 60).length;
+  const evaluated = users.filter((u) => u.reviewStatus === "Evaluated").length;
+
   const getStatusBadge = (status) => {
     if (status === "Active" || status === "active")
       return (
@@ -109,34 +115,86 @@ const UserListView = ({ users, searchQuery, onSearchChange, filterStatus, onFilt
   };
 
   return (
-    <div className="bg-[#1A1A1A] rounded-2xl border border-white/10 flex flex-col overflow-hidden animate-in fade-in duration-300">
-      {/* Search & Filter bar */}
-      <div className="p-4 border-b border-white/10 bg-[#161616] flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
-          <input
-            type="text"
-            placeholder="Search by ID or name..."
-            value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 text-xs border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] transition-all bg-[#1A1A1A] text-white placeholder:text-slate-500"
-          />
-        </div>
-        <div className="relative">
-          <select
-            value={filterStatus}
-            onChange={(e) => onFilterChange(e.target.value)}
-            className="pl-3 pr-8 py-2 text-xs font-semibold text-white bg-[#1A1A1A] border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] appearance-none cursor-pointer hover:border-white/20 transition-colors"
-          >
-            <option value="all" className="bg-[#161616]">All Accounts</option>
-            <option value="active" className="bg-[#161616]">Active</option>
-            <option value="disabled" className="bg-[#161616]">Disabled</option>
-          </select>
-          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5">
-            <ChevronDown size={12} className="text-slate-400" />
+    <div className="space-y-6">
+      {/* Metrics Row */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <motion.div
+          whileHover={{ y: -3 }}
+          transition={{ duration: 0.2 }}
+          className="bg-[#1A1A1A] border border-white/10 rounded-2xl p-4 shadow-sm hover:border-white/20 transition-colors"
+        >
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-[10px] font-bold text-[#89899C] uppercase tracking-wider">Total Patients</p>
+            <Users size={14} className="text-[#89899C]" />
+          </div>
+          <p className="text-2xl font-extrabold text-white">{loading ? "..." : totalUsers}</p>
+        </motion.div>
+
+        <motion.div
+          whileHover={{ y: -3 }}
+          transition={{ duration: 0.2 }}
+          className="bg-[#1A1A1A] border border-white/10 rounded-2xl p-4 shadow-sm hover:border-white/20 transition-colors"
+        >
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-[10px] font-bold text-[#89899C] uppercase tracking-wider">Active Accounts</p>
+            <CheckCircle2 size={14} className="text-emerald-400" />
+          </div>
+          <p className="text-2xl font-extrabold text-emerald-400">{loading ? "..." : activeUsers}</p>
+        </motion.div>
+
+        <motion.div
+          whileHover={{ y: -3 }}
+          transition={{ duration: 0.2 }}
+          className="bg-[#1A1A1A] border border-white/10 rounded-2xl p-4 shadow-sm hover:border-white/20 transition-colors"
+        >
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-[10px] font-bold text-[#89899C] uppercase tracking-wider">Elevated Risk</p>
+            <AlertCircle size={14} className="text-[#E55F37]" />
+          </div>
+          <p className="text-2xl font-extrabold text-[#E55F37]">{loading ? "..." : elevatedRisk}</p>
+        </motion.div>
+
+        <motion.div
+          whileHover={{ y: -3 }}
+          transition={{ duration: 0.2 }}
+          className="bg-[#1A1A1A] border border-white/10 rounded-2xl p-4 shadow-sm hover:border-white/20 transition-colors"
+        >
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-[10px] font-bold text-[#89899C] uppercase tracking-wider">Evaluated</p>
+            <ShieldCheck size={14} className="text-indigo-400" />
+          </div>
+          <p className="text-2xl font-extrabold text-indigo-400">{loading ? "..." : evaluated}</p>
+        </motion.div>
+      </div>
+
+      <div className="bg-[#1A1A1A] rounded-2xl border border-white/10 flex flex-col overflow-hidden shadow-sm">
+        {/* Search & Filter bar */}
+        <div className="p-4 border-b border-white/10 bg-[#161616] flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Search by ID or name..."
+              value={searchQuery}
+              onChange={(e) => onSearchChange(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 text-xs border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] transition-all bg-[#1A1A1A] text-white placeholder:text-slate-500"
+            />
+          </div>
+          <div className="relative">
+            <select
+              value={filterStatus}
+              onChange={(e) => onFilterChange(e.target.value)}
+              className="pl-3 pr-8 py-2 text-xs font-semibold text-white bg-[#1A1A1A] border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] appearance-none cursor-pointer hover:border-white/20 transition-colors"
+            >
+              <option value="all" className="bg-[#161616]">All Accounts</option>
+              <option value="active" className="bg-[#161616]">Active</option>
+              <option value="disabled" className="bg-[#161616]">Disabled</option>
+            </select>
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5">
+              <ChevronDown size={12} className="text-slate-400" />
+            </div>
           </div>
         </div>
-      </div>
 
       {/* Users Table */}
       <div className="w-full overflow-x-auto custom-scrollbar">
@@ -241,6 +299,7 @@ const UserListView = ({ users, searchQuery, onSearchChange, filterStatus, onFilt
         </table>
       </div>
     </div>
+  </div>
   );
 };
 

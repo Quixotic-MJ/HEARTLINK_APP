@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { Search, Filter, ShieldCheck, Stethoscope, ChevronRight, UserPlus, Ban, CheckCircle2, RotateCcw, ChevronDown } from "lucide-react";
+import { motion } from "framer-motion";
+import { Search, Filter, ShieldCheck, Stethoscope, ChevronRight, UserPlus, Ban, CheckCircle2, RotateCcw, ChevronDown, Users, Shield } from "lucide-react";
 import { Skeleton } from "../ui/Skeleton";
 
 const StaffListView = ({
@@ -106,25 +107,56 @@ const StaffListView = ({
   };
 
   return (
-    <div className="animate-in fade-in duration-300">
-      {/* Metrics Row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-[#1A1A1A] border border-white/10 rounded-2xl p-4">
-          <p className="text-[10px] font-bold text-[#89899C] uppercase tracking-wider">Total Staff</p>
-          <p className="text-2xl font-extrabold text-white mt-1">{loading ? "..." : totalStaff}</p>
-        </div>
-        <div className="bg-[#1A1A1A] border border-white/10 rounded-2xl p-4">
-          <p className="text-[10px] font-bold text-[#89899C] uppercase tracking-wider">System Admins</p>
-          <p className="text-2xl font-extrabold text-white mt-1">{loading ? "..." : admins}</p>
-        </div>
-        <div className="bg-[#1A1A1A] border border-white/10 rounded-2xl p-4">
-          <p className="text-[10px] font-bold text-[#89899C] uppercase tracking-wider">Expert Reviewers</p>
-          <p className="text-2xl font-extrabold text-emerald-400 mt-1">{loading ? "..." : experts}</p>
-        </div>
-        <div className="bg-[#1A1A1A] border border-white/10 rounded-2xl p-4">
-          <p className="text-[10px] font-bold text-[#89899C] uppercase tracking-wider">Active Staff</p>
-          <p className="text-2xl font-extrabold text-white mt-1">{loading ? "..." : activeStaff}</p>
-        </div>
+    <div className="space-y-6">
+      {/* Metrics Row with Smooth Hover/Stagger */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <motion.div
+          whileHover={{ y: -3 }}
+          transition={{ duration: 0.2 }}
+          className="bg-[#1A1A1A] border border-white/10 rounded-2xl p-4 shadow-sm hover:border-white/20 transition-colors"
+        >
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-[10px] font-bold text-[#89899C] uppercase tracking-wider">Total Staff</p>
+            <Users size={14} className="text-[#89899C]" />
+          </div>
+          <p className="text-2xl font-extrabold text-white">{loading ? "..." : totalStaff}</p>
+        </motion.div>
+
+        <motion.div
+          whileHover={{ y: -3 }}
+          transition={{ duration: 0.2 }}
+          className="bg-[#1A1A1A] border border-white/10 rounded-2xl p-4 shadow-sm hover:border-white/20 transition-colors"
+        >
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-[10px] font-bold text-[#89899C] uppercase tracking-wider">System Admins</p>
+            <Shield size={14} className="text-blue-400" />
+          </div>
+          <p className="text-2xl font-extrabold text-white">{loading ? "..." : admins}</p>
+        </motion.div>
+
+        <motion.div
+          whileHover={{ y: -3 }}
+          transition={{ duration: 0.2 }}
+          className="bg-[#1A1A1A] border border-white/10 rounded-2xl p-4 shadow-sm hover:border-white/20 transition-colors"
+        >
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-[10px] font-bold text-[#89899C] uppercase tracking-wider">Expert Reviewers</p>
+            <Stethoscope size={14} className="text-emerald-400" />
+          </div>
+          <p className="text-2xl font-extrabold text-emerald-400">{loading ? "..." : experts}</p>
+        </motion.div>
+
+        <motion.div
+          whileHover={{ y: -3 }}
+          transition={{ duration: 0.2 }}
+          className="bg-[#1A1A1A] border border-white/10 rounded-2xl p-4 shadow-sm hover:border-white/20 transition-colors"
+        >
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-[10px] font-bold text-[#89899C] uppercase tracking-wider">Active Staff</p>
+            <CheckCircle2 size={14} className="text-emerald-400" />
+          </div>
+          <p className="text-2xl font-extrabold text-white">{loading ? "..." : activeStaff}</p>
+        </motion.div>
       </div>
 
       <div className="bg-[#1A1A1A] rounded-2xl border border-white/10 flex flex-col overflow-hidden">

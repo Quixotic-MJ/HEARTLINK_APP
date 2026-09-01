@@ -1,4 +1,5 @@
 import React, { useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { X, UserPlus, Info } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -49,16 +50,27 @@ const StaffFormModal = ({ isOpen, onClose, staff, onSave }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/70 backdrop-blur-sm transition-opacity"
-        onClick={onClose}
-      ></div>
+    <AnimatePresence>
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+        {/* Backdrop */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+          className="fixed inset-0 bg-black/75 backdrop-blur-sm"
+          onClick={onClose}
+        />
 
-      {/* Modal Panel */}
-      <div className="relative w-full max-w-lg bg-[#1A1A1A] max-h-full rounded-2xl shadow-2xl border border-white/10 flex flex-col animate-in fade-in zoom-in-95 duration-200 overflow-hidden text-white">
-        {/* Modal Header */}
+        {/* Modal Panel */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 12 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 12 }}
+          transition={{ type: "spring", damping: 26, stiffness: 350 }}
+          className="relative w-full max-w-lg bg-[#1A1A1A] max-h-full rounded-2xl shadow-2xl border border-white/10 flex flex-col overflow-hidden text-white z-10"
+        >
+          {/* Modal Header */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-white/10 bg-[#161616] z-10">
           <div>
             <h3 className="text-base font-bold text-white">
@@ -154,8 +166,9 @@ const StaffFormModal = ({ isOpen, onClose, staff, onSave }) => {
             <UserPlus size={14} /> {isSubmitting ? "Provisioning..." : "Provision Account"}
           </button>
         </div>
+        </motion.div>
       </div>
-    </div>
+    </AnimatePresence>
   );
 };
 

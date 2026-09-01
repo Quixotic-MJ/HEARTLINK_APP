@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 import {
   Search,
   Filter,
@@ -22,6 +24,8 @@ import {
   ChevronRight,
   Stethoscope,
   Users as UsersIcon,
+  Trash2,
+  RefreshCw,
 } from "lucide-react";
 import { useAuth } from "../../../contexts/AuthContext";
 import AdminLayout from "../../../components/layouts/adminLayout";
@@ -31,6 +35,7 @@ import StaffListView from "../../../components/lists/StaffListView";
 import StaffDetailsModal from "../../../components/modals/StaffDetailsModal";
 import StaffFormModal from "../../../components/modals/StaffFormModal";
 import AccountActionModal from "../../../components/modals/AccountActionModal";
+import ConfirmActionModal from "../../../components/modals/ConfirmActionModal";
 
 const Users = () => {
   const { user, userId } = useAuth();
@@ -51,26 +56,55 @@ const Users = () => {
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(false);
 
+  // Confirmation Modal State
+  const [confirmConfig, setConfirmConfig] = useState({
+    isOpen: false,
+    title: "",
+    subtitle: "",
+    description: "",
+    confirmText: "Confirm",
+    cancelText: "Cancel",
+    variant: "danger",
+    icon: null,
+    entityInfo: null,
+    impactDetails: [],
+    onConfirm: null,
+  });
+
+  const closeConfirmModal = () => {
+    setConfirmConfig((prev) => ({ ...prev, isOpen: false }));
+  };
+
   const fetchUsers = async () => {
     try {
       setLoading(true);
       setFetchError(false);
-      
+
       const patientsData = await apiFetch("/api/users/");
-      const mappedPatients = (patientsData || []).filter((u) => u.role === "patient").map((r) => {
-        return {
-          id: r.id,
-          name: `${r.first_name || ""} ${r.last_name || ""}`.trim() || "Anonymized Patient",
-          phone: r.phone || "",
-          regDate: r.created_at ? new Date(r.created_at).toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" }) : "N/A",
-          status: r.account_status === "active" ? "Active" : "Disabled",
-          onboardingStatus: r.onboarding_status,
-          hssScore: r.hss_score,
-          hssTier: r.hss_tier,
-          activityStatus: r.activity_status,
-          reviewStatus: r.review_status,
-        };
-      });
+      const mappedPatients = (patientsData || [])
+        .filter((u) => u.role === "patient")
+        .map((r) => {
+          return {
+            id: r.id,
+            name:
+              `${r.first_name || ""} ${r.last_name || ""}`.trim() ||
+              "Anonymized Patient",
+            phone: r.phone || "",
+            regDate: r.created_at
+              ? new Date(r.created_at).toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "2-digit",
+                  year: "numeric",
+                })
+              : "N/A",
+            status: r.account_status === "active" ? "Active" : "Disabled",
+            onboardingStatus: r.onboarding_status,
+            hssScore: r.hss_score,
+            hssTier: r.hss_tier,
+            activityStatus: r.activity_status,
+            reviewStatus: r.review_status,
+          };
+        });
       setAppUsers(mappedPatients);
 
       if (currentUserRole === "super_admin") {
@@ -85,6 +119,7 @@ const Users = () => {
     } catch (err) {
       console.error("Failed to fetch users", err);
       setFetchError(true);
+      toast.error("Failed to load user directory");
     } finally {
       setLoading(false);
     }
@@ -101,13 +136,13 @@ const Users = () => {
     }
   }, [searchParams]);
 
-  const handleOpenUser = (user) => {
+  const handleOpenUser = (u) => {
     if (currentUserRole === "admin" || currentUserRole === "super_admin") {
-      setActiveEntity(user);
+      setActiveEntity(u);
       setModalMode("view_app_user");
       setIsModalOpen(true);
     } else {
-      navigate(`/users/${user.id}`);
+      navigate(`/users/${u.id}`);
     }
   };
 
@@ -128,95 +163,194 @@ const Users = () => {
     setIsModalOpen(true);
   };
 
-  const handleToggleStatus = async (staff) => {
-    const isStaff = staff.role?.includes("Admin") || staff.role?.includes("Expert") || staff.db_role === "super_admin";
-    let confirmMsg = "Change user status?";
-    
-    if (isStaff) {
-      const isActive = (staff.account_status || staff.status)?.toLowerCase() === "active";
-      if (isActive) {
-        confirmMsg = "Disable this staff account?\n\nThe account will lose access to protected HeartLink administrative features.";
-      } else {
-        confirmMsg = "Enable this staff account?";
-      }
-    } else {
-      confirmMsg = `Are you sure you want to ${staff.status === "Active" ? "disable" : "enable"} this user account?`;
-    }
-    
-    if (window.confirm(confirmMsg)) {
-      try {
-        await apiFetch(`/api/admin/users/${staff.id}/status`, { method: "PUT" });
-        alert("Account status updated successfully.");
-        await fetchUsers();
-        closeModal();
-      } catch (e) {
-        console.error("Failed to toggle status", e);
-        alert(e.data?.detail || "Failed to change account status.");
-      }
-    }
+  // 1. Staff Status Toggle (with confirmation)
+  const requestToggleStaffStatus = (staff) => {
+    const isActive =
+      (staff.account_status || staff.status)?.toLowerCase() === "active";
+    const willDisable = isActive;
+
+    setConfirmConfig({
+      isOpen: true,
+      title: willDisable ? "Disable Staff Account" : "Activate Staff Account",
+      subtitle: staff.name,
+      description: willDisable
+        ? "Disabling this staff member will immediately prevent them from logging in and executing administrative actions."
+        : "Re-activating this account will restore full access to their designated staff role features.",
+      confirmText: willDisable ? "Disable Account" : "Activate Account",
+      variant: willDisable ? "warning" : "success",
+      icon: willDisable ? Ban : CheckCircle2,
+      entityInfo: {
+        name: staff.name,
+        email: staff.email,
+        badge: staff.role,
+        id: staff.id,
+      },
+      impactDetails: willDisable
+        ? [
+            "Active session tokens will be invalidated.",
+            "Account status set to inactive.",
+            "Can be re-enabled at any time by a Super Admin.",
+          ]
+        : [
+            "User credentials and login access will be immediately restored.",
+            "Role privileges reactivated.",
+          ],
+      onConfirm: async () => {
+        try {
+          await apiFetch(`/api/admin/users/${staff.id}/status`, {
+            method: "PUT",
+          });
+          toast.success(
+            `Staff account ${willDisable ? "disabled" : "activated"} successfully.`
+          );
+          await fetchUsers();
+          closeModal();
+          closeConfirmModal();
+        } catch (e) {
+          console.error("Failed to toggle staff status", e);
+          toast.error(e.data?.detail || "Failed to update staff status.");
+        }
+      },
+    });
   };
 
+  // 2. Staff Role Change (with confirmation)
+  const requestChangeStaffRole = (staffId, currentRole, newRoleLabel, staffObj) => {
+    const isTargetExpert =
+      newRoleLabel.includes("Expert") || newRoleLabel === "Authorized Medical Expert";
+
+    setConfirmConfig({
+      isOpen: true,
+      title: "Confirm Role Reassignment",
+      subtitle: `${currentRole} → ${isTargetExpert ? "Expert Reviewer" : "System Admin"}`,
+      description: `Reassigning permissions for ${staffObj?.name || "this staff member"}. This modification updates authorization boundaries immediately.`,
+      confirmText: "Update Role",
+      variant: "warning",
+      icon: ShieldAlert,
+      entityInfo: {
+        name: staffObj?.name || "Staff Member",
+        email: staffObj?.email,
+        badge: currentRole,
+        id: staffId,
+      },
+      impactDetails: isTargetExpert
+        ? [
+            "Grants clinical case evaluation, meal plan and exercise validation access.",
+            "Revokes system configuration & administrative account provisioning rights.",
+          ]
+        : [
+            "Grants system administration, audit log visibility, and support permissions.",
+            "Removes direct clinical decision signing.",
+          ],
+      onConfirm: async () => {
+        try {
+          await apiFetch(`/api/admin/staff/${staffId}/role`, {
+            method: "PUT",
+            body: JSON.stringify({ role: newRoleLabel }),
+          });
+          toast.success(
+            `Role updated to ${isTargetExpert ? "Expert Reviewer" : "System Admin"}.`
+          );
+          await fetchUsers();
+          closeModal();
+          closeConfirmModal();
+        } catch (e) {
+          console.error("Failed to change staff role", e);
+          toast.error(e.data?.detail || "Failed to update staff role.");
+        }
+      },
+    });
+  };
+
+  // 3. Delete Staff Account (with confirmation)
+  const requestDeleteStaff = (staffId, staffName, staffObj) => {
+    setConfirmConfig({
+      isOpen: true,
+      title: "Permanently Delete Staff Account",
+      subtitle: staffName,
+      description: `Are you sure you want to permanently delete the staff record for "${staffName}"? This action is permanent and cannot be undone.`,
+      confirmText: "Delete Permanently",
+      variant: "danger",
+      icon: Trash2,
+      entityInfo: {
+        name: staffName,
+        email: staffObj?.email,
+        badge: staffObj?.role,
+        id: staffId,
+      },
+      impactDetails: [
+        "Staff profile and administrative access credentials will be permanently erased.",
+        "Active authentication tokens will be immediately destroyed.",
+        "Action is logged for compliance and security auditing.",
+      ],
+      onConfirm: async () => {
+        try {
+          await apiFetch(`/api/admin/staff/${staffId}`, {
+            method: "DELETE",
+          });
+          toast.success(`Staff account for ${staffName} permanently deleted.`);
+          await fetchUsers();
+          closeModal();
+          closeConfirmModal();
+        } catch (e) {
+          console.error("Failed to delete staff", e);
+          toast.error(e.data?.detail || "Failed to delete staff account.");
+        }
+      },
+    });
+  };
+
+  // 4. Delete Patient Account (with confirmation)
+  const requestDeleteUser = (userId, userName, userObj) => {
+    setConfirmConfig({
+      isOpen: true,
+      title: "Permanently Delete Patient Account",
+      subtitle: userName,
+      description: `Are you sure you want to permanently purge all data for "${userName}"? All patient telemetry, health scores, and records will be deleted.`,
+      confirmText: "Delete Patient Record",
+      variant: "danger",
+      icon: Trash2,
+      entityInfo: {
+        name: userName,
+        id: userId,
+        badge: "Patient",
+      },
+      impactDetails: [
+        "All recorded heart vitals, symptom logs, and ECG snapshots will be purged.",
+        "Supabase Auth identity and patient profile permanently removed.",
+        "This operation cannot be reversed.",
+      ],
+      onConfirm: async () => {
+        try {
+          await apiFetch(`/api/admin/users/${userId}`, {
+            method: "DELETE",
+          });
+          toast.success(`Patient record for ${userName} has been purged.`);
+          await fetchUsers();
+          closeModal();
+          closeConfirmModal();
+        } catch (e) {
+          console.error("Failed to delete user", e);
+          toast.error(e.data?.detail || "Failed to delete user record.");
+        }
+      },
+    });
+  };
+
+  // 5. Patient Account Status Toggle (Direct from AccountActionModal)
   const handleToggleAppUserStatus = async (entityId, reason) => {
     try {
       await apiFetch(`/api/admin/users/${entityId}/status`, { method: "PUT" });
-      alert("User account status toggled successfully.");
+      toast.success("Patient account status updated successfully.");
       await fetchUsers();
       closeModal();
     } catch (e) {
       console.error("Failed to toggle user status", e);
-      alert("Failed to change user status.");
+      toast.error(e.data?.detail || "Failed to change user status.");
     }
   };
 
-  const handleChangeStaffRole = async (staffId, currentRole, newRoleLabel) => {
-    const effectText = newRoleLabel === "Authorized Medical Expert"
-      ? "Changing this account to Medical Expert will replace its current administrative permissions with expert-review permissions."
-      : "Changing this account to System Admin will replace its current expert-review permissions with administrative permissions.";
-      
-    if (window.confirm(`Change role?\n\nCurrent Role: ${currentRole}\nNew Role: ${newRoleLabel}\n\n${effectText}`)) {
-      try {
-        await apiFetch(`/api/admin/staff/${staffId}/role`, {
-          method: "PUT",
-          body: JSON.stringify({ role: newRoleLabel }),
-        });
-        alert("Staff role updated successfully.");
-        await fetchUsers();
-        closeModal();
-      } catch (e) {
-        console.error("Failed to change staff role", e);
-        alert(e.data?.detail || "Failed to change staff role.");
-      }
-    }
-  };
-
-  const handleDeleteStaff = async (staffId, staffName) => {
-    try {
-      await apiFetch(`/api/admin/staff/${staffId}`, {
-        method: "DELETE",
-      });
-      alert(`Staff account for ${staffName} has been permanently deleted.`);
-      await fetchUsers();
-      closeModal();
-    } catch (e) {
-      console.error("Failed to delete staff", e);
-      alert(e.data?.detail || "Failed to delete staff account.");
-    }
-  };
-
-  const handleDeleteUser = async (userId, userName) => {
-    try {
-      await apiFetch(`/api/admin/users/${userId}`, {
-        method: "DELETE",
-      });
-      alert(`User account for ${userName} has been permanently deleted.`);
-      await fetchUsers();
-      closeModal();
-    } catch (e) {
-      console.error("Failed to delete user", e);
-      alert(e.data?.detail || "Failed to delete user account.");
-    }
-  };
-
+  // 6. Save/Provision Staff Account
   const handleSaveStaff = async (staffData) => {
     try {
       await apiFetch(`/api/admin/staff`, {
@@ -224,12 +358,14 @@ const Users = () => {
         body: JSON.stringify(staffData),
       });
       const isExpert = staffData.role?.toLowerCase().includes("expert");
-      alert(`${isExpert ? "Medical Expert" : "Admin"} account created.`);
+      toast.success("Staff Account Provisioned Successfully", {
+        description: `${staffData.name} has been enrolled as a ${isExpert ? "Medical Expert" : "System Admin"} (Default Password: TempPass2026!).`,
+      });
       await fetchUsers();
       closeModal();
     } catch (e) {
       console.error("Failed to save staff", e);
-      alert(e.data?.detail || "Failed to create staff member.");
+      toast.error(e.data?.detail || "Failed to provision staff member.");
     }
   };
 
@@ -241,7 +377,7 @@ const Users = () => {
 
   const handleTabSwitch = (tab) => {
     if (tab === "system_staff" && currentUserRole !== "super_admin") {
-      alert("Access Denied: Only a Super Admin can view or modify System Staff records.");
+      toast.error("Access Denied: Only a Super Admin can view or modify System Staff records.");
       return;
     }
     setActiveTab(tab);
@@ -260,10 +396,15 @@ const Users = () => {
 
   return (
     <AdminLayout>
-      {/* Page Header */}
-      <div className="flex flex-col md:flex-row md:justify-between md:items-end mb-6 gap-4">
+      {/* Page Header with Animation */}
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className="flex flex-col md:flex-row md:justify-between md:items-end mb-6 gap-4"
+      >
         <div>
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-[#E55F37]/30 bg-[#E55F37]/10 text-[10px] font-bold uppercase tracking-widest text-[#E55F37] mb-2">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-[#E55F37]/30 bg-[#E55F37]/10 text-[10px] font-bold uppercase tracking-widest text-[#E55F37] mb-2 shadow-sm">
             <UsersIcon size={11} />
             <span>User Governance</span>
           </div>
@@ -274,60 +415,107 @@ const Users = () => {
             Manage user health access, account authorization states, and medical review permissions.
           </p>
         </div>
-      </div>
 
-      {/* Segmented Control (Tabs) */}
-      <div className="bg-[#1A1A1A] p-1.5 rounded-2xl inline-flex flex-wrap border border-white/10 mb-6 w-full sm:w-auto">
+        <motion.button
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={fetchUsers}
+          disabled={loading}
+          className="self-start md:self-auto px-3.5 py-2 rounded-xl text-xs font-semibold bg-[#1A1A1A] hover:bg-[#21202E] border border-white/10 text-[#89899C] hover:text-white transition-all flex items-center gap-2 cursor-pointer shadow-sm disabled:opacity-50"
+        >
+          <RefreshCw size={13} className={loading ? "animate-spin text-[#E55F37]" : ""} />
+          <span>Refresh Directory</span>
+        </motion.button>
+      </motion.div>
+
+      {/* Segmented Control (Tabs) with Animated Pill */}
+      <motion.div
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.1 }}
+        className="bg-[#1A1A1A] p-1.5 rounded-2xl inline-flex flex-wrap border border-white/10 mb-6 w-full sm:w-auto relative"
+      >
         <button
           onClick={() => handleTabSwitch("app_users")}
-          className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-            activeTab === "app_users"
-              ? "bg-[#E55F37] text-white shadow-sm shadow-[#E55F37]/25"
-              : "text-[#89899C] hover:text-white hover:bg-white/5"
+          className={`relative z-10 flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            activeTab === "app_users" ? "text-white" : "text-[#89899C] hover:text-white"
           }`}
         >
-          <User size={14} /> User Accounts ({appUsers.length})
+          {activeTab === "app_users" && (
+            <motion.div
+              layoutId="userMgmtTabIndicator"
+              className="absolute inset-0 bg-[#E55F37] rounded-xl shadow-sm shadow-[#E55F37]/30"
+              transition={{ type: "spring", bounce: 0.15, duration: 0.4 }}
+            />
+          )}
+          <span className="relative z-10 flex items-center gap-2">
+            <User size={14} /> User Accounts ({appUsers.length})
+          </span>
         </button>
 
         {currentUserRole === "super_admin" && (
           <button
             onClick={() => handleTabSwitch("system_staff")}
-            className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-              activeTab === "system_staff"
-                ? "bg-[#E55F37] text-white shadow-sm shadow-[#E55F37]/25"
-                : "text-[#89899C] hover:text-white hover:bg-white/5"
+            className={`relative z-10 flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              activeTab === "system_staff" ? "text-white" : "text-[#89899C] hover:text-white"
             }`}
           >
-            <ShieldCheck size={14} />
-            System Staff ({systemStaff.length})
+            {activeTab === "system_staff" && (
+              <motion.div
+                layoutId="userMgmtTabIndicator"
+                className="absolute inset-0 bg-[#E55F37] rounded-xl shadow-sm shadow-[#E55F37]/30"
+                transition={{ type: "spring", bounce: 0.15, duration: 0.4 }}
+              />
+            )}
+            <span className="relative z-10 flex items-center gap-2">
+              <ShieldCheck size={14} />
+              System Staff ({systemStaff.length})
+            </span>
           </button>
         )}
-      </div>
+      </motion.div>
 
-      {/* TAB 1: Users */}
-      {activeTab === "app_users" && (
-        <UserListView
-          users={filteredUsers}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          filterStatus={filterStatus}
-          onFilterChange={setFilterStatus}
-          onOpenUser={handleOpenUser}
-          loading={loading}
-        />
-      )}
+      {/* Tab Panels with Smooth Crossfade */}
+      <AnimatePresence mode="wait">
+        {activeTab === "app_users" && (
+          <motion.div
+            key="tab_users"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2 }}
+          >
+            <UserListView
+              users={filteredUsers}
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              filterStatus={filterStatus}
+              onFilterChange={setFilterStatus}
+              onOpenUser={handleOpenUser}
+              loading={loading}
+            />
+          </motion.div>
+        )}
 
-      {/* TAB 2: Staff Accounts */}
-      {activeTab === "system_staff" && currentUserRole === "super_admin" && (
-        <StaffListView
-          staffList={systemStaff}
-          loading={loading}
-          error={fetchError}
-          onRetry={fetchUsers}
-          onOpenStaff={handleOpenStaff}
-          onCreateStaff={handleCreateStaff}
-        />
-      )}
+        {activeTab === "system_staff" && currentUserRole === "super_admin" && (
+          <motion.div
+            key="tab_staff"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2 }}
+          >
+            <StaffListView
+              staffList={systemStaff}
+              loading={loading}
+              error={fetchError}
+              onRetry={fetchUsers}
+              onOpenStaff={handleOpenStaff}
+              onCreateStaff={handleCreateStaff}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* User Account Actions Modal */}
       <AccountActionModal
@@ -336,7 +524,7 @@ const Users = () => {
         user={activeEntity}
         onToggleStatus={handleToggleAppUserStatus}
         canDelete={currentUserRole === "super_admin"}
-        onDeleteUser={handleDeleteUser}
+        onDeleteUser={requestDeleteUser}
       />
 
       {/* Staff Detail View Modal */}
@@ -346,9 +534,9 @@ const Users = () => {
         staff={activeEntity}
         currentUserRole={currentUserRole}
         currentUserId={userId}
-        onToggleStatus={handleToggleStatus}
-        onChangeRole={handleChangeStaffRole}
-        onDeleteStaff={handleDeleteStaff}
+        onToggleStatus={requestToggleStaffStatus}
+        onChangeRole={requestChangeStaffRole}
+        onDeleteStaff={requestDeleteStaff}
       />
 
       {/* Provision Staff Modal */}
@@ -358,9 +546,24 @@ const Users = () => {
         staff={activeEntity}
         onSave={handleSaveStaff}
       />
+
+      {/* Reusable Animated Confirmation Modal */}
+      <ConfirmActionModal
+        isOpen={confirmConfig.isOpen}
+        onClose={closeConfirmModal}
+        onConfirm={confirmConfig.onConfirm}
+        title={confirmConfig.title}
+        subtitle={confirmConfig.subtitle}
+        description={confirmConfig.description}
+        confirmText={confirmConfig.confirmText}
+        cancelText={confirmConfig.cancelText}
+        variant={confirmConfig.variant}
+        icon={confirmConfig.icon}
+        entityInfo={confirmConfig.entityInfo}
+        impactDetails={confirmConfig.impactDetails}
+      />
     </AdminLayout>
   );
 };
 
 export default Users;
-
