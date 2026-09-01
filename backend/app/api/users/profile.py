@@ -51,76 +51,88 @@ async def read_all_users(current_user: dict = Depends(get_current_user)):
             clean_p = {k: v for k, v in p.items() if k not in ["password", "password_hash", "token", "secret"]}
             enriched_profiles.append(clean_p)
             continue
-            
-        # Compute HSS
-        latest_hss = get_hss_repo().get_latest_hss(p["id"])
-        if latest_hss:
-            hss_score = latest_hss.get("score")
-            hss_tier = latest_hss.get("tier")
-        else:
-            hss_score = None
-            hss_tier = "N/A"
-            
-        # Compute Activity Status (Checking last 7 days)
-        cutoff = datetime.utcnow() - timedelta(days=7)
-        def parse_dt(x):
-            if x is None:
-                return datetime.min
-            dt = x
-            if isinstance(x, dict):
-                dt = x.get("created_at") or x.get("logged_at") or x.get("timestamp") or x.get("computed_at")
-            if isinstance(dt, datetime):
-                if dt.tzinfo is not None:
-                    return dt.astimezone(timezone.utc).replace(tzinfo=None)
-                return dt
-            if isinstance(dt, str):
-                try:
-                    s = dt.strip()
-                    if s.endswith("Z"):
-                        s = s[:-1] + "+00:00"
-                    parsed = datetime.fromisoformat(s)
-                    if parsed.tzinfo is not None:
-                        return parsed.astimezone(timezone.utc).replace(tzinfo=None)
-                    return parsed
-                except Exception:
-                    return datetime.min
-            return datetime.min
 
-        meals = get_meals_repo().list_user_meals(p["id"])
-        exercises = get_exercises_repo().list_user_logs(p["id"])
-        sleeps = get_sleep_repo().list_user_logs(p["id"])
-        health_logs = get_health_logs_repo().list_user_logs(p["id"])
-
-        recent_logs = []
-        recent_logs.extend([m for m in meals if parse_dt(m) >= cutoff])
-        recent_logs.extend([e for e in exercises if parse_dt(e) >= cutoff])
-        recent_logs.extend([s for s in sleeps if parse_dt(s) >= cutoff])
-        recent_logs.extend([d for d in health_logs if parse_dt(d) >= cutoff])
-        
-        has_logs_at_all = bool(meals or exercises or sleeps or health_logs)
-        
-        if recent_logs:
-            activity_status = "Recently Active"
-        elif has_logs_at_all:
-            activity_status = "Inactive"
-        else:
-            activity_status = "New User"
-            
-        # Compute Review Status
         try:
-            evals = get_case_review_repo().list_evaluations_for_user(p["id"])
-            review_status = "Evaluated" if evals else "Pending Review"
-        except Exception:
-            review_status = "Pending Review"
-        
-        p_copy = {k: v for k, v in p.items() if k not in ["password", "password_hash", "token", "secret"]}
-        p_copy["hss_score"] = hss_score
-        p_copy["hss_tier"] = hss_tier
-        p_copy["activity_status"] = activity_status
-        p_copy["review_status"] = review_status
-        enriched_profiles.append(p_copy)
+            # Compute HSS
+            latest_hss = get_hss_repo().get_latest_hss(p["id"])
+            if latest_hss:
+                hss_score = latest_hss.get("score")
+                hss_tier = latest_hss.get("tier")
+            else:
+                hss_score = None
+                hss_tier = "N/A"
+                
+            # Compute Activity Status (Checking last 7 days)
+            cutoff = datetime.utcnow() - timedelta(days=7)
+            def parse_dt(x):
+                if x is None:
+                    return datetime.min
+                dt = x
+                if isinstance(x, dict):
+                    dt = x.get("created_at") or x.get("logged_at") or x.get("timestamp") or x.get("computed_at")
+                if isinstance(dt, datetime):
+                    if dt.tzinfo is not None:
+                        return dt.astimezone(timezone.utc).replace(tzinfo=None)
+                    return dt
+                if isinstance(dt, str):
+                    try:
+                        s = dt.strip()
+                        if s.endswith("Z"):
+                            s = s[:-1] + "+00:00"
+                        parsed = datetime.fromisoformat(s)
+                        if parsed.tzinfo is not None:
+                            return parsed.astimezone(timezone.utc).replace(tzinfo=None)
+                        return parsed
+                    except Exception:
+                        return datetime.min
+                return datetime.min
+
+            meals = get_meals_repo().list_user_meals(p["id"])
+            exercises = get_exercises_repo().list_user_logs(p["id"])
+            sleeps = get_sleep_repo().list_user_logs(p["id"])
+            health_logs = get_health_logs_repo().list_user_logs(p["id"])
+
+            recent_logs = []
+            recent_logs.extend([m for m in meals if parse_dt(m) >= cutoff])
+            recent_logs.extend([e for e in exercises if parse_dt(e) >= cutoff])
+            recent_logs.extend([s for s in sleeps if parse_dt(s) >= cutoff])
+            recent_logs.extend([d for d in health_logs if parse_dt(d) >= cutoff])
+            
+            has_logs_at_all = bool(meals or exercises or sleeps or health_logs)
+            
+            if recent_logs:
+                activity_status = "Recently Active"
+            elif has_logs_at_all:
+                activity_status = "Inactive"
+            else:
+                activity_status = "New User"
+                
+            # Compute Review Status
+            try:
+                evals = get_case_review_repo().list_evaluations_for_user(p["id"])
+                review_status = "Evaluated" if evals else "Pending Review"
+            except Exception:
+                review_status = "Pending Review"
+            
+            p_copy = {k: v for k, v in p.items() if k not in ["password", "password_hash", "token", "secret"]}
+            p_copy["hss_score"] = hss_score
+            p_copy["hss_tier"] = hss_tier
+            p_copy["activity_status"] = activity_status
+            p_copy["review_status"] = review_status
+            enriched_profiles.append(p_copy)
+        except Exception as enrich_err:
+            # If enrichment fails for a patient, still include them with default values
+            # so the admin panel doesn't lose visibility of any user
+            print(f"[read_all_users] Enrichment failed for user {p.get('id')}: {enrich_err}")
+            p_copy = {k: v for k, v in p.items() if k not in ["password", "password_hash", "token", "secret"]}
+            p_copy["hss_score"] = None
+            p_copy["hss_tier"] = "N/A"
+            p_copy["activity_status"] = "Unknown"
+            p_copy["review_status"] = "Pending Review"
+            enriched_profiles.append(p_copy)
         
     return enriched_profiles
+
 
 
 @router.get("/{user_id}/profile", status_code=status.HTTP_200_OK)
@@ -183,21 +195,13 @@ async def update_user_password(
             detail="You may only change your own password.",
         )
 
-    # ── Rate-limit on failed password attempts ─────────────────────────────────
-    from app.api.auth.auth import check_rate_limit, record_failed_attempt, clear_attempts
-    check_rate_limit(caller_id)
-
     # ── Password verification and mutation ────────────────────────────────────
     result = change_password(user_id, payload.current_password, payload.new_password)
     if not result:
-        record_failed_attempt(caller_id)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Incorrect current password",
         )
-
-    clear_attempts(caller_id)
-
     # ── Activity log ──────────────────────────────────────────────────────────
     try:
         from app.utils.activity_helper import record_admin_activity

@@ -9,7 +9,7 @@ import re
 from typing import Dict, Any, Optional, List
 from fastapi import HTTPException, status, UploadFile
 
-from app.db.client import is_supabase_mode, get_supabase_client
+from app.db.client import get_supabase_client
 
 BUCKET_AVATARS = "avatars"
 BUCKET_RECIPES = "recipes"
@@ -63,67 +63,6 @@ def sanitize_filename(filename: str) -> str:
     name, ext = os.path.splitext(base)
     clean_name = re.sub(r"[^a-zA-Z0-9_-]", "_", name)[:50]
     return f"{clean_name}{ext.lower()}"
-
-
-class MockStorageService(StorageService):
-    def upload_file(
-        self,
-        file_bytes: bytes,
-        filename: str,
-        content_type: str,
-        bucket: str,
-        target_id: str,
-        caller_id: str,
-        caller_role: str
-    ) -> Dict[str, Any]:
-        if bucket not in BUCKET_CONFIGS:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid bucket: {bucket}")
-
-        cfg = BUCKET_CONFIGS[bucket]
-
-        # 1. Role validation
-        if caller_role not in cfg["allowed_roles"]:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You do not have permission to upload to this storage bucket.")
-
-        # 2. Ownership validation for avatars
-        if bucket == BUCKET_AVATARS and target_id != caller_id and caller_role not in ["admin", "super_admin"]:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You can only upload your own avatar.")
-
-        # 3. Size validation
-        if len(file_bytes) > cfg["max_bytes"]:
-            max_mb = cfg["max_bytes"] // (1024 * 1024)
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"File exceeds maximum allowed size of {max_mb} MB.")
-
-        # 4. MIME validation
-        ext = os.path.splitext(filename)[1].lower()
-        if content_type not in cfg["allowed_mimes"] or ext not in cfg["allowed_extensions"]:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid file type or MIME type.")
-
-        # 5. Local file write
-        safe_name = sanitize_filename(filename)
-        unique_name = f"{uuid.uuid4().hex}_{safe_name}"
-        dest_dir = os.path.join(LOCAL_UPLOAD_DIR, bucket, target_id)
-        os.makedirs(dest_dir, exist_ok=True)
-        file_path = os.path.join(dest_dir, unique_name)
-
-        with open(file_path, "wb") as f:
-            f.write(file_bytes)
-
-        relative_url = f"/static/uploads/{bucket}/{target_id}/{unique_name}"
-        return {
-            "url": relative_url,
-            "filename": unique_name,
-            "bucket": bucket,
-            "path": f"{bucket}/{target_id}/{unique_name}",
-            "size": len(file_bytes)
-        }
-
-    def delete_user_assets(self, user_id: str) -> bool:
-        user_avatar_dir = os.path.join(LOCAL_UPLOAD_DIR, BUCKET_AVATARS, user_id)
-        if os.path.exists(user_avatar_dir):
-            import shutil
-            shutil.rmtree(user_avatar_dir, ignore_errors=True)
-        return True
 
 
 class SupabaseStorageService(StorageService):
@@ -201,8 +140,5 @@ _storage_service = None
 def get_storage_service() -> StorageService:
     global _storage_service
     if _storage_service is None:
-        if is_supabase_mode():
-            _storage_service = SupabaseStorageService(get_supabase_client())
-        else:
-            _storage_service = MockStorageService()
+        _storage_service = SupabaseStorageService(get_supabase_client())
     return _storage_service

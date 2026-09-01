@@ -27,23 +27,9 @@ try:
 except ImportError:
     pass
 
-DATABASE_MODE_MOCK = "mock"
 DATABASE_MODE_SUPABASE = "supabase"
 
 _supabase_client = None
-
-def get_database_mode() -> str:
-    """Returns the current database mode ('mock' or 'supabase'). Defaults to supabase."""
-    mode = os.getenv("DATABASE_MODE", "").strip().lower()
-    if mode in [DATABASE_MODE_MOCK, DATABASE_MODE_SUPABASE]:
-        return mode
-    if os.getenv("SUPABASE_URL"):
-        return DATABASE_MODE_SUPABASE
-    return DATABASE_MODE_SUPABASE
-
-def is_supabase_mode() -> bool:
-    """Returns True if the backend is configured to use Supabase as its persistence store."""
-    return get_database_mode() == DATABASE_MODE_SUPABASE
 
 def get_supabase_client():
     """
@@ -51,9 +37,6 @@ def get_supabase_client():
     Initializes from environment variables or secure production configuration.
     """
     global _supabase_client
-
-    if not is_supabase_mode():
-        return None
 
     if _supabase_client is not None:
         return _supabase_client
@@ -82,7 +65,7 @@ def get_database_status() -> Dict[str, Any]:
     """
     Safe configuration diagnostic that returns configuration status without leaking secret values.
     """
-    mode = get_database_mode()
+    mode = DATABASE_MODE_SUPABASE
     url = os.getenv("SUPABASE_URL", "").strip()
     has_url = bool(url and not url.startswith("https://your-project"))
     has_service_key = bool(os.getenv("SUPABASE_SERVICE_ROLE_KEY", "").strip())
@@ -94,5 +77,5 @@ def get_database_status() -> Dict[str, Any]:
         "supabase_service_role_configured": has_service_key,
         "supabase_anon_key_configured": has_anon_key,
         "is_authoritative_gateway": True,
-        "ready": mode == DATABASE_MODE_MOCK or (has_url and has_service_key)
+        "ready": has_url and has_service_key
     }

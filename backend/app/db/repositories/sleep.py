@@ -24,39 +24,6 @@ class SleepLogsRepository:
         raise NotImplementedError
 
 
-class MockSleepLogsRepository(SleepLogsRepository):
-    def __init__(self):
-        self._logs: List[Dict[str, Any]] = []
-
-    def list_user_logs(self, user_id: str, limit: Optional[int] = None) -> List[Dict[str, Any]]:
-        logs = [s for s in self._logs if s.get("user_id") == user_id and not s.get("is_deleted")]
-        sorted_logs = sorted(logs, key=lambda x: x.get("logged_at") or datetime.min, reverse=True)
-        return sorted_logs[:limit] if limit else sorted_logs
-
-    def list_all_logs(self) -> List[Dict[str, Any]]:
-        logs = [s for s in self._logs if not s.get("is_deleted")]
-        return sorted(logs, key=lambda x: x.get("logged_at") or datetime.min, reverse=True)
-
-    def create_log(self, user_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
-        now = datetime.utcnow()
-        new_log = {
-            "id": f"sleep-{uuid.uuid4().hex[:8]}",
-            "user_id": user_id,
-            **data,
-            "created_at": now,
-            "logged_at": data.get("logged_at") or now
-        }
-        self._logs.append(new_log)
-        return new_log
-
-    def delete_log(self, user_id: str, log_id: str) -> bool:
-        for s in self._logs:
-            if s.get("id") == log_id and s.get("user_id") == user_id:
-                s["is_deleted"] = True
-                return True
-        return False
-
-
 class SupabaseSleepLogsRepository(SleepLogsRepository):
     def __init__(self, client):
         self.client = client

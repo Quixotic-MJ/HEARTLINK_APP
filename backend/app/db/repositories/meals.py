@@ -24,36 +24,6 @@ class MealsRepository:
         raise NotImplementedError
 
 
-class MockMealsRepository(MealsRepository):
-    def __init__(self):
-        self._meals: List[Dict[str, Any]] = []
-
-    def list_user_meals(self, user_id: str, limit: Optional[int] = None) -> List[Dict[str, Any]]:
-        meals = [m for m in self._meals if m.get("user_id") == user_id]
-        sorted_meals = sorted(meals, key=lambda x: x.get("logged_at") or datetime.min, reverse=True)
-        return sorted_meals[:limit] if limit else sorted_meals
-
-    def list_all_meals(self) -> List[Dict[str, Any]]:
-        return sorted(self._meals, key=lambda x: x.get("logged_at") or datetime.min, reverse=True)
-
-    def create_meal(self, user_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
-        now = datetime.utcnow()
-        new_meal = {
-            "id": f"meal-{uuid.uuid4().hex[:8]}",
-            "user_id": user_id,
-            **data,
-            "created_at": now,
-            "logged_at": data.get("logged_at") or now
-        }
-        self._meals.append(new_meal)
-        return new_meal
-
-    def delete_meal(self, user_id: str, meal_id: str) -> bool:
-        initial = len(self._meals)
-        self._meals[:] = [m for m in self._meals if not (m.get("id") == meal_id and m.get("user_id") == user_id)]
-        return len(self._meals) < initial
-
-
 class SupabaseMealsRepository(MealsRepository):
     def __init__(self, client):
         self.client = client

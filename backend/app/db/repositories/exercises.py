@@ -24,43 +24,6 @@ class ExercisesRepository:
         raise NotImplementedError
 
 
-class MockExercisesRepository(ExercisesRepository):
-    def __init__(self):
-        self._logs: List[Dict[str, Any]] = []
-
-    def list_user_logs(self, user_id: str, limit: Optional[int] = None) -> List[Dict[str, Any]]:
-        logs = [e for e in self._logs if e.get("user_id") == user_id]
-        sorted_logs = sorted(logs, key=lambda x: x.get("logged_at") or datetime.min, reverse=True)
-        return sorted_logs[:limit] if limit else sorted_logs
-
-    def list_all_logs(self) -> List[Dict[str, Any]]:
-        return sorted(self._logs, key=lambda x: x.get("logged_at") or datetime.min, reverse=True)
-
-    def create_log(self, user_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
-        now = datetime.utcnow()
-        duration_sec = int(data.get("duration_seconds") or 0)
-        if duration_sec == 0 and data.get("duration_minutes"):
-            duration_sec = int(round(float(data.get("duration_minutes")) * 60))
-        duration_min = int(round(duration_sec / 60.0)) if duration_sec > 0 else int(data.get("duration_minutes") or 0)
-
-        new_log = {
-            "id": f"ex-{uuid.uuid4().hex[:8]}",
-            "user_id": user_id,
-            **data,
-            "duration_seconds": duration_sec,
-            "duration_minutes": duration_min,
-            "created_at": now,
-            "logged_at": data.get("logged_at") or now
-        }
-        self._logs.append(new_log)
-        return new_log
-
-    def delete_log(self, user_id: str, log_id: str) -> bool:
-        initial = len(self._logs)
-        self._logs[:] = [e for e in self._logs if not (e.get("id") == log_id and e.get("user_id") == user_id)]
-        return len(self._logs) < initial
-
-
 class SupabaseExercisesRepository(ExercisesRepository):
     def __init__(self, client):
         self.client = client

@@ -94,7 +94,7 @@ app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 @app.on_event("startup")
 async def on_startup():
-    from app.db.client import is_supabase_mode, get_supabase_client, get_database_mode
+    from app.db.client import get_supabase_client
     # ── Diagnostic: show env-var loading status ──
     print(f"[HeartLink Startup] CWD={os.getcwd()}")
     print(f"[HeartLink Startup] DATABASE_MODE={os.getenv('DATABASE_MODE')}")
@@ -119,10 +119,9 @@ async def on_startup():
         print("[HeartLink Startup] /etc/secrets/ does NOT exist")
     # ── Connect to Supabase ──
     try:
-        if is_supabase_mode():
-            client = get_supabase_client()
-            if client:
-                print("[HeartLink Startup] Supabase Client Connected Successfully.")
+        client = get_supabase_client()
+        if client:
+            print("[HeartLink Startup] Supabase Client Connected Successfully.")
     except Exception as e:
         print(f"[HeartLink Startup DB Warning] {e}")
 

@@ -6,23 +6,11 @@ Routes registration, OTP verification, password login, 2FA, password recovery, a
 from fastapi import APIRouter, status, HTTPException, Header
 from app.schemas.auth import RegisterRequest, CodeResponse, Login, ResendCodeRequest, WebVerify2FA, ForgotPasswordRequest
 from app.utils.security import token_blacklist
-from app.services.auth_service import get_auth_service, MockAuthService
+from app.services.auth_service import get_auth_service
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
-# Exported for backwards compatibility with existing test fixtures in mock mode
-_mock_instance = MockAuthService()
-login_attempts = _mock_instance.login_attempts
-temp_2fa_sessions = _mock_instance.temp_2fa_sessions
 
-def check_rate_limit(identifier: str):
-    return _mock_instance._check_rate_limit(identifier)
-
-def record_failed_attempt(identifier: str):
-    return _mock_instance._record_failed_attempt(identifier)
-
-def clear_attempts(identifier: str):
-    return _mock_instance._clear_attempts(identifier)
 
 
 @router.post("/request-code", status_code=status.HTTP_200_OK)

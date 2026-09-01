@@ -24,48 +24,6 @@ class FeedbackRepository:
         raise NotImplementedError
 
 
-class MockFeedbackRepository(FeedbackRepository):
-    def __init__(self):
-        self._tickets: List[Dict[str, Any]] = []
-
-    def list_tickets(self, status_filter: Optional[str] = None) -> List[Dict[str, Any]]:
-        tickets = list(self._tickets)
-        if status_filter:
-            tickets = [t for t in tickets if t.get("status") == status_filter]
-        return tickets
-
-    def get_ticket(self, ticket_id: str) -> Optional[Dict[str, Any]]:
-        for t in self._tickets:
-            if str(t.get("id")) == str(ticket_id) or t.get("ticketId") == ticket_id or t.get("ticket_code") == ticket_id:
-                return t
-        return None
-
-    def create_ticket(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        new_id = len(self._tickets) + 1
-        ticket_code = f"FB-{1000 + new_id}"
-        record = {
-            "id": new_id,
-            "ticketId": ticket_code,
-            "ticket_code": ticket_code,
-            "date": datetime.now().strftime("%b %d, %Y"),
-            "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow(),
-            "status": "Open",
-            "adminNotes": "",
-            **data
-        }
-        self._tickets.append(record)
-        return record
-
-    def update_ticket(self, ticket_id: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        ticket = self.get_ticket(ticket_id)
-        if not ticket:
-            return None
-        ticket.update(data)
-        ticket["updated_at"] = datetime.utcnow()
-        return ticket
-
-
 class SupabaseFeedbackRepository(FeedbackRepository):
     def __init__(self, client):
         self.client = client

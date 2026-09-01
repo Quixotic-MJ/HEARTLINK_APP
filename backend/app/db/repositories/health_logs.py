@@ -33,60 +33,6 @@ class HealthLogsRepository:
         raise NotImplementedError
 
 
-class MockHealthLogsRepository(HealthLogsRepository):
-    def __init__(self):
-        self._logs: List[Dict[str, Any]] = []
-        self._alerts: List[Dict[str, Any]] = []
-
-    def list_user_logs(self, user_id: str, limit: Optional[int] = None) -> List[Dict[str, Any]]:
-        logs = [l for l in self._logs if l.get("user_id") == user_id]
-        sorted_logs = sorted(logs, key=lambda x: x.get("logged_at") or datetime.min, reverse=True)
-        return sorted_logs[:limit] if limit else sorted_logs
-
-    def list_all_logs(self) -> List[Dict[str, Any]]:
-        return sorted(self._logs, key=lambda x: x.get("logged_at") or datetime.min, reverse=True)
-
-    def create_log(self, user_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
-        now = datetime.utcnow()
-        new_log = {
-            "id": f"log-{uuid.uuid4().hex[:8]}",
-            "user_id": user_id,
-            **data,
-            "created_at": now,
-            "logged_at": data.get("logged_at") or now
-        }
-        self._logs.append(new_log)
-        return new_log
-
-    def get_latest_vitals(self, user_id: str) -> Optional[Dict[str, Any]]:
-        logs = self.list_user_logs(user_id, limit=1)
-        return logs[0] if logs else None
-
-    def list_alerts(self, user_id: Optional[str] = None, status_filter: Optional[str] = None) -> List[Dict[str, Any]]:
-        alerts = list(self._alerts)
-        if user_id:
-            alerts = [a for a in alerts if a.get("user_id") == user_id]
-        if status_filter:
-            alerts = [a for a in alerts if a.get("status") == status_filter]
-        return sorted(alerts, key=lambda x: x.get("created_at") or datetime.min, reverse=True)
-
-    def create_alert(self, alert_data: Dict[str, Any]) -> Dict[str, Any]:
-        record = {
-            "id": f"alert-{uuid.uuid4().hex[:8]}",
-            "created_at": datetime.utcnow(),
-            **alert_data
-        }
-        self._alerts.append(record)
-        return record
-
-    def update_alert(self, alert_id: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        for a in self._alerts:
-            if a.get("id") == alert_id:
-                a.update(data)
-                return a
-        return None
-
-
 class SupabaseHealthLogsRepository(HealthLogsRepository):
     def __init__(self, client):
         self.client = client

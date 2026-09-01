@@ -9,7 +9,7 @@ import json
 import logging
 from pathlib import Path
 from typing import List, Dict, Any
-from app.db.client import is_supabase_mode, get_supabase_client
+from app.db.client import get_supabase_client
 
 logger = logging.getLogger(__name__)
 
@@ -26,9 +26,6 @@ def _load_seed_content() -> Dict[str, Any]:
 
 def bootstrap_supabase_content():
     """Seeds global content into Supabase tables if they are empty."""
-    if not is_supabase_mode():
-        return
-
     sb = get_supabase_client()
     if not sb:
         return
