@@ -9,6 +9,7 @@ import {
   Ban,
   Loader2,
   ChevronDown,
+  Trash2,
 } from "lucide-react";
 import { formatUserRef } from "../../utils/formatUserRef";
 
@@ -19,15 +20,29 @@ const DISABLE_REASONS = [
   "Other",
 ];
 
-const AccountActionModal = ({ isOpen, onClose, user, onToggleStatus }) => {
+const AccountActionModal = ({ isOpen, onClose, user, onToggleStatus, canDelete, onDeleteUser }) => {
   const [isConfirming, setIsConfirming] = useState(false);
   const [selectedReason, setSelectedReason] = useState("");
   const [customReason, setCustomReason] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   if (!isOpen || !user) return null;
 
   const isActive = user.status === "Active";
+
+  const handleDelete = async () => {
+    if (window.confirm(`Are you sure you want to permanently delete the account for "${user.name}"?\n\nAll personal vitals, health logs, and authentication records will be permanently purged. This action cannot be undone.`)) {
+      setIsDeleting(true);
+      try {
+        if (onDeleteUser) {
+          await onDeleteUser(user.id, user.name);
+        }
+      } finally {
+        setIsDeleting(false);
+      }
+    }
+  };
 
   const handleDisableClick = () => {
     setIsConfirming(true);
@@ -169,25 +184,25 @@ const AccountActionModal = ({ isOpen, onClose, user, onToggleStatus }) => {
         {/* Action area */}
         <div className="px-6 py-4 border-t border-white/10 bg-[#161616]">
           {!isConfirming ? (
-            <div className="flex gap-3">
+            <div className="flex flex-wrap gap-2.5">
               <button
                 onClick={handleClose}
-                className="flex-1 px-4 py-2.5 text-xs font-semibold text-slate-300 hover:text-white bg-[#21202E] border border-white/10 rounded-xl transition-colors cursor-pointer"
+                className="px-4 py-2.5 text-xs font-semibold text-slate-300 hover:text-white bg-[#21202E] border border-white/10 rounded-xl transition-colors cursor-pointer"
               >
                 Close
               </button>
               {isActive ? (
                 <button
                   onClick={handleDisableClick}
-                  disabled={isSubmitting}
-                  className="flex-1 px-4 py-2.5 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition-colors shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+                  disabled={isSubmitting || isDeleting}
+                  className="flex-1 px-4 py-2.5 text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-xl transition-colors shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
                 >
                   <Ban size={13} /> Disable Account
                 </button>
               ) : (
                 <button
                   onClick={handleEnable}
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || isDeleting}
                   className="flex-1 px-4 py-2.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-colors shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
                 >
                   {isSubmitting ? (
@@ -196,6 +211,16 @@ const AccountActionModal = ({ isOpen, onClose, user, onToggleStatus }) => {
                     <CheckCircle2 size={13} />
                   )}
                   Re-enable Account
+                </button>
+              )}
+              {canDelete && (
+                <button
+                  onClick={handleDelete}
+                  disabled={isSubmitting || isDeleting}
+                  className="px-3.5 py-2.5 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-sm transition-colors cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
+                >
+                  {isDeleting ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
+                  Delete
                 </button>
               )}
             </div>

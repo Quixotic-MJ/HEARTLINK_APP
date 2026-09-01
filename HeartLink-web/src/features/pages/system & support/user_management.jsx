@@ -189,6 +189,34 @@ const Users = () => {
     }
   };
 
+  const handleDeleteStaff = async (staffId, staffName) => {
+    try {
+      await apiFetch(`/api/admin/staff/${staffId}`, {
+        method: "DELETE",
+      });
+      alert(`Staff account for ${staffName} has been permanently deleted.`);
+      await fetchUsers();
+      closeModal();
+    } catch (e) {
+      console.error("Failed to delete staff", e);
+      alert(e.data?.detail || "Failed to delete staff account.");
+    }
+  };
+
+  const handleDeleteUser = async (userId, userName) => {
+    try {
+      await apiFetch(`/api/admin/users/${userId}`, {
+        method: "DELETE",
+      });
+      alert(`User account for ${userName} has been permanently deleted.`);
+      await fetchUsers();
+      closeModal();
+    } catch (e) {
+      console.error("Failed to delete user", e);
+      alert(e.data?.detail || "Failed to delete user account.");
+    }
+  };
+
   const handleSaveStaff = async (staffData) => {
     try {
       await apiFetch(`/api/admin/staff`, {
@@ -307,6 +335,8 @@ const Users = () => {
         onClose={closeModal}
         user={activeEntity}
         onToggleStatus={handleToggleAppUserStatus}
+        canDelete={currentUserRole === "super_admin"}
+        onDeleteUser={handleDeleteUser}
       />
 
       {/* Staff Detail View Modal */}
@@ -318,6 +348,7 @@ const Users = () => {
         currentUserId={userId}
         onToggleStatus={handleToggleStatus}
         onChangeRole={handleChangeStaffRole}
+        onDeleteStaff={handleDeleteStaff}
       />
 
       {/* Provision Staff Modal */}

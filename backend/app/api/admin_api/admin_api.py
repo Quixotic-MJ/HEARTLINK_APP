@@ -707,6 +707,69 @@ def change_staff_role(staff_id: str, payload: dict, current_user: dict = Depends
     )
     return {"status": "success", "new_role": new_role}
 
+@router.delete("/users/{user_id}")
+@router.delete("/staff/{user_id}")
+def delete_user_or_staff(user_id: str, current_user: dict = Depends(get_current_super_admin)):
+    if str(user_id) == str(current_user.get("user_id")):
+        raise HTTPException(status_code=400, detail="Self-deletion is not permitted")
+
+    profile_repo = get_profile_repo()
+    user = profile_repo.get_by_id(user_id)
+    user_role = user.get("role", "patient") if user else None
+    
+    if user_role == "super_admin":
+        raise HTTPException(status_code=400, detail="Deleting another Super Admin is not permitted")
+
+    user_name = f"{user.get('first_name', '')} {user.get('last_name', '')}".strip() if user else (user.get("email") if user else user_id)
+    
+    # 1. Clean up associated database child records across tables to satisfy foreign keys
+    supabase_client = get_supabase_client()
+    child_tables = [
+        ("admin_activity_logs", "admin_user_id"),
+        ("feedback_tickets", "user_id"),
+        ("feedback_tickets", "resolved_by"),
+        ("case_reviews", "expert_id"),
+        ("case_reviews", "patient_id"),
+        ("daily_health_logs", "user_id"),
+        ("health_logs", "user_id"),
+        ("sleep_logs", "user_id"),
+        ("meal_logs", "user_id"),
+        ("exercise_logs", "user_id"),
+        ("patient_notifications", "user_id"),
+        ("user_reminders", "user_id"),
+        ("user_thresholds", "user_id"),
+        ("baseline_onboarding", "user_id"),
+        ("clinical_alerts", "user_id"),
+    ]
+    for table_name, col_name in child_tables:
+        try:
+            supabase_client.table(table_name).delete().eq(col_name, user_id).execute()
+        except Exception:
+            pass
+
+    # 2. Delete profile
+    profile_repo.delete(user_id)
+
+    # 3. Delete from Supabase Auth
+    try:
+        supabase_client.auth.admin.delete_user(user_id)
+    except Exception as auth_err:
+        print(f"[delete_user_or_staff] Auth delete note: {auth_err}")
+
+    # 4. Record admin activity
+    admin_id = current_user.get("user_id") if current_user else "admin"
+    target_type = "staff" if user_role in ["admin", "medical_expert"] else "user"
+    role_label = "staff" if target_type == "staff" else "patient"
+    record_admin_activity(
+        admin_user_id=admin_id,
+        action=f"Deleted {role_label} account for {user_name}",
+        target_type=target_type,
+        target_id=str(user_id),
+        target_name=user_name
+    )
+
+    return {"status": "success", "message": f"Account {user_name} deleted successfully"}
+
 @router.get("/users/{user_id}/timeline")
 def get_user_timeline(user_id: str, current_user: dict = Depends(get_current_admin_user)):
     logs = []

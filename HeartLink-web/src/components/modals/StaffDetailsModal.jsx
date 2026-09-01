@@ -1,5 +1,5 @@
-import React from "react";
-import { X, ShieldCheck, CheckCircle2, Ban, Archive, Lock, ShieldAlert, KeyRound, UserCheck } from "lucide-react";
+import React, { useState } from "react";
+import { X, ShieldCheck, CheckCircle2, Ban, Archive, Lock, ShieldAlert, KeyRound, UserCheck, Trash2, Loader2 } from "lucide-react";
 
 const StaffDetailsModal = ({
   isOpen,
@@ -9,12 +9,28 @@ const StaffDetailsModal = ({
   currentUserId,
   onToggleStatus,
   onChangeRole,
+  onDeleteStaff,
 }) => {
+  const [isDeleting, setIsDeleting] = useState(false);
   if (!isOpen || !staff) return null;
 
   const isSuperAdminRole = staff.role === "Super Admin" || staff.db_role === "super_admin";
   const isSelf = staff.id === currentUserId;
   const isProtected = isSuperAdminRole;
+  const canDelete = currentUserRole === "super_admin" && !isProtected && !isSelf;
+
+  const handleDelete = async () => {
+    if (window.confirm(`Are you sure you want to permanently delete the staff account for "${staff.name}" (${staff.email})?\n\nThis will revoke access immediately and remove all associated records. This action cannot be undone.`)) {
+      setIsDeleting(true);
+      try {
+        if (onDeleteStaff) {
+          await onDeleteStaff(staff.id, staff.name);
+        }
+      } finally {
+        setIsDeleting(false);
+      }
+    }
+  };
 
   const getStatusBadge = (status) => {
     const norm = status?.toLowerCase();
@@ -123,7 +139,7 @@ const StaffDetailsModal = ({
 
         {/* Footer actions */}
         <div className="px-6 py-4 border-t border-white/10 bg-[#161616] flex flex-wrap justify-between items-center gap-3 shrink-0">
-          <div className="flex gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {!isProtected && (
               <>
                 <button
@@ -135,12 +151,22 @@ const StaffDetailsModal = ({
                 <button
                   onClick={() => onToggleStatus(staff)}
                   className={`px-3.5 py-2 text-xs font-bold text-white rounded-xl shadow-sm transition-colors cursor-pointer ${
-                    isStatusActive ? "bg-rose-600 hover:bg-rose-700" : "bg-emerald-600 hover:bg-emerald-700"
+                    isStatusActive ? "bg-amber-600 hover:bg-amber-700" : "bg-emerald-600 hover:bg-emerald-700"
                   }`}
                 >
                   {isStatusActive ? "Disable" : "Enable"}
                 </button>
               </>
+            )}
+            {canDelete && (
+              <button
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className="px-3.5 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-sm transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+              >
+                {isDeleting ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
+                Delete Account
+              </button>
             )}
           </div>
           <button
