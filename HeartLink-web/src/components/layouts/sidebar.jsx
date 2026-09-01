@@ -1,9 +1,7 @@
-import React from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   PieChart,
-  Stethoscope,
   Utensils,
   Dumbbell,
   ClipboardList,
@@ -20,96 +18,81 @@ import { useAuth } from "../../contexts/AuthContext";
 
 // ─── Brand logo ───────────────────────────────────────────────────────────────
 
-function HeartOutlineIcon({ size = 16, color = "currentColor" }) {
+function HeartLogoIcon({ size = 18 }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
-      stroke={color} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+    <svg 
+      width={size} 
+      height={size} 
+      viewBox="0 0 100 100" 
+      fill="none" 
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      {/* Left facet (Warm Coral Orange-Red #F66127) */}
+      <path d="M50 86 C48.5 84 12 55 12 32 C12 18 23 8 36 8 C43.5 8 48 13 50 18.5 L50 86 Z" fill="#F66127" />
+      {/* Right facet (Deep Vibrant Red #D82A1E) */}
+      <path d="M50 18.5 C52 13 56.5 8 64 8 C77 8 88 18 88 32 C88 55 51.5 84 50 86 L50 18.5 Z" fill="#D82A1E" />
     </svg>
-  );
-}
-
-function SidebarLogo({ collapsed }) {
-  return (
-    <div className="flex items-center gap-3 px-5 py-5 mb-1">
-      <div
-        className="flex-shrink-0 w-8 h-8 rounded-full border flex items-center justify-center"
-        style={{ borderColor: "rgba(15,23,42,0.2)" }}
-      >
-        <HeartOutlineIcon size={15} color="#0f172a" />
-      </div>
-
-      <div
-        className="overflow-hidden transition-all duration-300 whitespace-nowrap"
-        style={{ width: collapsed ? 0 : 120, opacity: collapsed ? 0 : 1 }}
-      >
-        <span className="text-[15px] leading-none tracking-tight" style={{ color: "#0f172a" }}>
-          <span style={{ fontWeight: 300 }}>Heart</span>
-          <span style={{ fontWeight: 700 }}>Link</span>
-          <span style={{ fontWeight: 700 }}>.</span>
-        </span>
-        <p className="text-[7px] tracking-[0.22em] uppercase mt-0.5" style={{ color: "rgba(15,23,42,0.35)", fontWeight: 400 }}>
-          Atelier
-        </p>
-      </div>
-    </div>
   );
 }
 
 // ─── Section label ────────────────────────────────────────────────────────────
 
 function SectionLabel({ label, collapsed }) {
+  if (collapsed) return null;
   return (
-    <div className="mt-5 mb-1 px-2">
-      {collapsed
-        ? <div className="h-px w-5 mx-auto rounded-full" style={{ backgroundColor: "rgba(15,23,42,0.1)" }} />
-        : <p className="text-[9px] font-semibold tracking-[0.18em] uppercase" style={{ color: "rgba(15,23,42,0.35)" }}>{label}</p>
-      }
-    </div>
+    <p
+      className="px-3 pt-3 pb-1 text-[8px] font-bold uppercase tracking-[0.2em]"
+      style={{ color: "rgba(15,23,42,0.35)" }}
+    >
+      {label}
+    </p>
   );
 }
 
 // ─── Nav item ─────────────────────────────────────────────────────────────────
 
-function NavItem({ path, icon: Icon, label, collapsed }) {
-  const { pathname } = useLocation();
-  const isActive = pathname === path || (path !== "/" && pathname.startsWith(path + "/"));
+function NavItem({ path, icon: Icon, label, collapsed, badge = null, activeOverride = false }) {
+  const location = useLocation();
+  const active = activeOverride || location.pathname === path;
 
   return (
     <Link
       to={path}
       title={collapsed ? label : undefined}
-      className="flex items-center rounded-xl transition-all group"
+      className={`group relative flex items-center rounded-xl transition-all duration-150 select-none ${
+        active
+          ? "bg-[#0f172a] text-white shadow-sm font-semibold"
+          : "text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-medium"
+      }`}
       style={{
-        padding: collapsed ? "9px" : "8px 10px",
+        padding: collapsed ? "10px 0" : "10px 12px",
         justifyContent: collapsed ? "center" : "flex-start",
-        backgroundColor: isActive ? "#0f172a" : "transparent",
-        color: isActive ? "#ffffff" : "rgba(15,23,42,0.5)",
-      }}
-      onMouseEnter={(e) => {
-        if (!isActive) {
-          e.currentTarget.style.backgroundColor = "rgba(15,23,42,0.05)";
-          e.currentTarget.style.color = "#0f172a";
-        }
-      }}
-      onMouseLeave={(e) => {
-        if (!isActive) {
-          e.currentTarget.style.backgroundColor = "transparent";
-          e.currentTarget.style.color = "rgba(15,23,42,0.5)";
-        }
+        gap: collapsed ? 0 : 10,
       }}
     >
       <Icon
-        size={15}
-        strokeWidth={isActive ? 2.5 : 1.8}
-        style={{ flexShrink: 0, color: isActive ? "#ffffff" : "inherit" }}
+        size={16}
+        className={`flex-shrink-0 transition-transform group-hover:scale-105 ${
+          active ? "text-white" : "text-slate-500 group-hover:text-slate-800"
+        }`}
       />
+
       <span
-        className="overflow-hidden whitespace-nowrap transition-all duration-300 text-xs font-medium"
-        style={{ width: collapsed ? 0 : "auto", opacity: collapsed ? 0 : 1, marginLeft: collapsed ? 0 : 9 }}
+        className="text-[13px] leading-none whitespace-nowrap overflow-hidden transition-all duration-200"
+        style={{
+          width: collapsed ? 0 : "auto",
+          opacity: collapsed ? 0 : 1,
+        }}
       >
         {label}
       </span>
+      
+      {!collapsed && badge && (
+        <span className="ml-auto px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 text-[10px] font-bold">
+          {badge}
+        </span>
+      )}
     </Link>
   );
 }
@@ -117,12 +100,11 @@ function NavItem({ path, icon: Icon, label, collapsed }) {
 // ─── Sidebar ──────────────────────────────────────────────────────────────────
 
 const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed }) => {
-  const { user, userId, logout } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   
   const role = user?.role || "admin";
   const userName = (user?.first_name || user?.last_name) ? `${user.first_name || ""} ${user.last_name || ""}`.trim() : (user?.email || "Staff User");
-  const userEmail = user?.email || "";
   const userInitials = userName ? userName.substring(0, 1).toUpperCase() : "U";
 
   const handleLogout = () => {
@@ -176,24 +158,20 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed }) => {
           }}
           title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
-          <div
-            className="flex-shrink-0 w-8 h-8 rounded-full border flex items-center justify-center transition-colors"
-            style={{ borderColor: "rgba(15,23,42,0.2)", backgroundColor: "#fff" }}
-          >
-            <HeartOutlineIcon size={15} color="#0f172a" />
+          <div className="flex-shrink-0 flex items-center justify-center">
+            <HeartLogoIcon size={22} />
           </div>
 
           <div
             className="overflow-hidden transition-all duration-300 whitespace-nowrap"
             style={{ width: collapsed ? 0 : 120, opacity: collapsed ? 0 : 1 }}
           >
-            <span className="text-[15px] leading-none tracking-tight" style={{ color: "#0f172a" }}>
-              <span style={{ fontWeight: 300 }}>Heart</span>
-              <span style={{ fontWeight: 700 }}>Link</span>
-              <span style={{ fontWeight: 700 }}>.</span>
+            <span className="text-[17px] leading-none tracking-tight font-semibold flex items-start" style={{ color: "#0f172a" }}>
+              <span>HeartLink</span>
+              <span className="text-[9px] text-slate-400 font-normal ml-0.5">™</span>
             </span>
-            <p className="text-[7px] tracking-[0.22em] uppercase mt-0.5" style={{ color: "rgba(15,23,42,0.35)", fontWeight: 400 }}>
-              Atelier
+            <p className="text-[7px] tracking-[0.22em] uppercase mt-1" style={{ color: "rgba(15,23,42,0.45)", fontWeight: 500 }}>
+              Portal
             </p>
           </div>
         </button>

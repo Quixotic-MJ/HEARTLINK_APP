@@ -42,9 +42,12 @@ const RoleRoute = ({ children, allowedRoles = [] }) => {
 const ADMIN_ROLES = ["admin", "super_admin"];
 const CLINICAL_ROLES = ["medical_expert", "admin", "super_admin"];
 
+import { Toaster } from "sonner";
+
 export default function App() {
   return (
     <AuthProvider>
+      <Toaster position="top-right" expand={false} richColors />
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Login />} />

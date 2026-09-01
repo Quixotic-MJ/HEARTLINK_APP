@@ -56,7 +56,7 @@ class SupabaseAdminRepository(AdminRepository):
             if admin_user_id:
                 query = query.eq("admin_user_id", admin_user_id)
             res = query.order("created_at", desc=True).execute()
-            items = res.data or []
+            items = [item for item in (res.data or []) if "[TEST FIXTURE" not in str(item.get("details", ""))]
             if search:
                 s = search.lower()
                 items = [x for x in items if s in (x.get("target_name") or "").lower() or s in (x.get("admin_name") or "").lower()]

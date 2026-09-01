@@ -4,6 +4,7 @@ import { useRouter, useFocusEffect } from "expo-router";
 import { useColorScheme } from "nativewind";
 import { Feather } from "@expo/vector-icons";
 import { useUser } from "../contexts/UserContext";
+import HeartLogo from "./ui/HeartLogo";
 
 export function Header({ unreadCount }: { unreadCount?: number } = {}) {
   const router = useRouter();
@@ -46,12 +47,10 @@ export function Header({ unreadCount }: { unreadCount?: number } = {}) {
 
   return (
     <View className="flex-row justify-between items-center px-5 pt-3 pb-2 bg-background">
-      <View className="flex-row items-center gap-2.5">
-        <View className="w-8 h-8 rounded-full items-center justify-center border border-border bg-card shadow-sm">
-          <Feather name="heart" size={14} color={isDark ? "#f8fafc" : "#0f172a"} />
-        </View>
-        <Text className="text-[15px] text-foreground tracking-tight" style={{ fontWeight: "300" }}>
-          Heart<Text style={{ fontWeight: "600" }}>Link.</Text>
+      <View className="flex-row items-center gap-2">
+        <HeartLogo size={20} />
+        <Text className="text-[17px] text-foreground tracking-tight font-semibold">
+          HeartLink<Text className="text-[10px] text-muted-foreground font-normal">™</Text>
         </Text>
       </View>
       <View className="flex-row items-center gap-2">

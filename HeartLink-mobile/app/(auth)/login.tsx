@@ -25,6 +25,7 @@ import Animated, {
 import "../../global.css";
 import { useUser } from "../../contexts/UserContext";
 import { Feather } from "@expo/vector-icons";
+import HeartLogo from "../../components/ui/HeartLogo";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -181,12 +182,10 @@ export default function AuthScreen() {
         >
           <Feather name="arrow-left" size={18} color={isDark ? "#f8fafc" : "#0f172a"} />
         </TouchableOpacity>
-        <View className="flex-row items-center gap-2.5">
-          <View className="w-8 h-8 rounded-full items-center justify-center border border-border bg-card shadow-sm">
-            <Feather name="heart" size={14} color={isDark ? "#f8fafc" : "#0f172a"} />
-          </View>
-          <Text className="text-[15px] text-foreground tracking-tight" style={{ fontWeight: "300" }}>
-            Heart<Text style={{ fontWeight: "600" }}>Link.</Text>
+        <View className="flex-row items-center gap-2">
+          <HeartLogo size={20} />
+          <Text className="text-[17px] text-foreground tracking-tight font-semibold">
+            HeartLink<Text className="text-[10px] text-muted-foreground font-normal">™</Text>
           </Text>
         </View>
       </View>

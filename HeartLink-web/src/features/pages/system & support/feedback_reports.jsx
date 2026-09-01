@@ -419,7 +419,7 @@ const Feedback = () => {
 
                     <td className="py-4 px-6 align-middle">
                       <p className="text-slate-600 text-xs font-medium truncate max-w-[280px]">
-                        {ticket.fullMessage.length > 50 ? `${ticket.fullMessage.substring(0, 50)}...` : ticket.fullMessage}
+                        {(ticket.fullMessage || "").length > 50 ? `${ticket.fullMessage.substring(0, 50)}...` : (ticket.fullMessage || "No message provided")}
                       </p>
                     </td>
                     <td className="py-4 px-6 align-middle text-right">

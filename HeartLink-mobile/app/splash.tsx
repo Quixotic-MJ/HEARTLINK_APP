@@ -6,6 +6,7 @@ import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useColorScheme } from "nativewind";
 import { useUser } from "../contexts/UserContext";
+import HeartLogo from "../components/ui/HeartLogo";
 import "../global.css";
 
 // ─── Splash Screen ───────────────────────────────────────────────────────────
@@ -86,17 +87,15 @@ export default function SplashScreen() {
         {/* ── Centre content ── */}
         <View className="flex-1 items-center justify-center px-5">
 
-          {/* Minimalist Heart Icon */}
-          <Animated.View style={{ opacity: iconFade, transform: [{ scale: iconScale }], marginBottom: 24 }}>
-            <View className="w-24 h-24 rounded-full items-center justify-center bg-foreground">
-              <Feather name="heart" size={34} color={isDark ? "#09090b" : "#ffffff"} />
-            </View>
+          {/* Two-Tone Folded Heart Icon */}
+          <Animated.View style={{ opacity: iconFade, transform: [{ scale: iconScale }], marginBottom: 20 }}>
+            <HeartLogo size={72} />
           </Animated.View>
 
           {/* Wordmark */}
           <Animated.View style={{ opacity: iconFade, transform: [{ scale: iconScale }], marginBottom: 8 }}>
-            <Text className="text-foreground text-4xl tracking-tighter text-center font-light">
-              Heart<Text className="font-semibold">Link.</Text>
+            <Text className="text-foreground text-4xl tracking-tight text-center font-semibold">
+              HeartLink<Text className="text-sm text-muted-foreground font-normal">™</Text>
             </Text>
           </Animated.View>
 
