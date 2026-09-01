@@ -466,13 +466,43 @@ class SupabaseAuthService(AuthService):
             return False
 
     def change_password(self, user_id: str, current_password: str, new_password: str) -> bool:
-        if not self.verify_credentials(user_id, current_password):
-            return False
         try:
-            # Update password via Supabase Auth
-            self.client.auth.admin.update_user_by_id(user_id, {"password": new_password})
-            return True
-        except Exception:
+            profile = get_profile_repo().get_by_id(user_id)
+            if not profile:
+                return False
+
+            credentials = {"password": current_password}
+            if profile.get("email"):
+                credentials["email"] = profile["email"]
+            elif profile.get("phone"):
+                credentials["phone"] = profile["phone"]
+            else:
+                return False
+
+            auth_res = None
+            try:
+                auth_res = self.client.auth.sign_in_with_password(credentials)
+            except Exception as sign_err:
+                print(f"[change_password] Sign-in verification failed: {sign_err}")
+                return False
+
+            if not auth_res or not hasattr(auth_res, "user") or not auth_res.user:
+                return False
+
+            # Update password with authenticated session
+            try:
+                self.client.auth.update_user({"password": new_password})
+                return True
+            except Exception as update_err:
+                print(f"[change_password] Session update_user failed: {update_err}, attempting admin fallback")
+                try:
+                    self.client.auth.admin.update_user_by_id(user_id, {"password": new_password})
+                    return True
+                except Exception as admin_err:
+                    print(f"[change_password] Admin update_user_by_id failed: {admin_err}")
+                    return False
+        except Exception as e:
+            print(f"[change_password] Error: {e}")
             return False
 
     def forgot_password(self, identifier: str) -> Dict[str, Any]:

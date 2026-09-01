@@ -140,8 +140,8 @@ const StaffFormModal = ({ isOpen, onClose, staff, onSave }) => {
               {/* Notice Banner */}
               <div className="col-span-2 mt-2 bg-[#21202E]/40 p-4 rounded-xl border border-white/10 flex items-start gap-2.5">
                 <Info size={14} className="text-[#E55F37] mt-0.5 shrink-0" />
-                <p className="text-[10px] text-[#89899C] font-semibold leading-relaxed m-0 uppercase tracking-wider">
-                  Account will be provisioned with default credentials (Password: TempPass2026!) and direct email login.
+                <p className="text-xs text-[#89899C] font-medium leading-relaxed m-0">
+                  Account will be provisioned with default credentials (<span className="text-white font-semibold">Password: </span><code className="text-[#E55F37] font-mono bg-white/10 px-1.5 py-0.5 rounded font-bold select-all">TempPass2026!</code>) and direct email login.
                 </p>
               </div>
             </div>
