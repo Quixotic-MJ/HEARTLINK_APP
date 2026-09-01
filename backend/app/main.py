@@ -3,6 +3,12 @@ from pathlib import Path
 
 try:
     from dotenv import load_dotenv
+    # Load secrets first (if present), but do not override explicit environment variables
+    secrets_dir = Path("/etc/secrets")
+    if secrets_dir.exists() and secrets_dir.is_dir():
+        for secret_file in secrets_dir.iterdir():
+            if secret_file.is_file():
+                load_dotenv(dotenv_path=secret_file, override=False)
     for candidate in [
         Path(__file__).resolve().parent.parent.parent / ".env",
         Path(__file__).resolve().parent.parent / ".env",
@@ -11,13 +17,8 @@ try:
         Path("/etc/secrets/.env"),
     ]:
         if candidate.exists():
-            load_dotenv(dotenv_path=candidate, override=True)
-    secrets_dir = Path("/etc/secrets")
-    if secrets_dir.exists() and secrets_dir.is_dir():
-        for secret_file in secrets_dir.iterdir():
-            if secret_file.is_file():
-                load_dotenv(dotenv_path=secret_file, override=True)
-    load_dotenv(override=True)
+            load_dotenv(dotenv_path=candidate, override=False)
+    load_dotenv(override=False)
 except ImportError:
     pass
 
