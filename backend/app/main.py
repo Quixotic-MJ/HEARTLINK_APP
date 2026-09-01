@@ -132,6 +132,10 @@ async def on_startup():
     except Exception as e:
         print(f"[HeartLink Startup Bootstrap Warning] {e}")
 
+@app.get("/", tags=["System"])
+def root_check():
+    return {"status": "ok", "service": "HeartLink API"}
+
 @app.get("/health", tags=["System"])
 def root_health_check():
     return {"status": "ok"}
