@@ -528,20 +528,38 @@ def create_system_staff(payload: dict, current_user: dict = Depends(get_current_
             raise HTTPException(status_code=409, detail="Duplicate email address")
             
     temp_pass = "TempPass2026!"
-    hashed_pwd = hashlib.sha256(temp_pass.encode()).hexdigest()
     target_role = "medical_expert" if role_label in ["Authorized Medical Expert", "medical_expert"] else "admin"
     
+    # 1. Provision user identity in Supabase Auth
+    auth_user_id = None
+    try:
+        supabase_client = get_supabase_client()
+        e164_phone = phone if phone.startswith("+") else ("+63" + phone.lstrip("0"))
+        auth_res = supabase_client.auth.admin.create_user({
+            "email": email,
+            "password": temp_pass,
+            "phone": e164_phone,
+            "email_confirm": True,
+            "phone_confirm": True
+        })
+        if auth_res and hasattr(auth_res, "user") and auth_res.user:
+            auth_user_id = str(auth_res.user.id)
+    except Exception as auth_err:
+        print(f"[create_system_staff] Auth creation note: {auth_err}")
+
     new_staff_data = {
         "first_name": name.split(" ")[0],
         "last_name": " ".join(name.split(" ")[1:]),
         "phone": phone,
         "email": email,
-        "password": hashed_pwd,
         "role": target_role,
         "account_status": "active"
     }
+    if auth_user_id:
+        new_staff_data["id"] = auth_user_id
+
     created_staff = profile_repo.create_profile(new_staff_data)
-    staff_id = created_staff.get("id")
+    staff_id = created_staff.get("id") or auth_user_id
     
     admin_id = current_user.get("user_id") if current_user else "admin"
     role_desc = "medical expert" if target_role == "medical_expert" else "admin"

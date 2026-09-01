@@ -377,7 +377,7 @@ class SupabaseAuthService(AuthService):
             profile_repo = get_profile_repo()
             profile = profile_repo.get_by_identifier(identifier)
             if not profile:
-                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invalid Credentials")
+                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Credentials")
 
             if profile.get("account_status") != "active":
                 raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access Denied: Account is disabled or archived")
@@ -409,7 +409,10 @@ class SupabaseAuthService(AuthService):
                     except Exception:
                         pass
 
-            auth_user_id = str(res.user.id) if (res and hasattr(res, "user") and res.user) else profile["id"]
+            if not res or not hasattr(res, "user") or not res.user:
+                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Credentials")
+
+            auth_user_id = str(res.user.id)
             token = create_access_token(data={"user_id": auth_user_id, "role": profile.get("role", "patient")})
             return {
                 "success": True,
@@ -420,12 +423,14 @@ class SupabaseAuthService(AuthService):
         except HTTPException:
             raise
         except Exception:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invalid Credentials")
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Credentials")
 
     def web_login(self, identifier: str, password: str, remember: bool = False) -> Dict[str, Any]:
         # Supabase web login verifying role
         login_res = self.login(identifier, password)
         profile = get_profile_repo().get_by_id(login_res["user_id"])
+        if not profile:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Credentials")
         if profile.get("role") not in ["admin", "medical_expert", "super_admin"]:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access Denied. This portal is strictly for Admins and Medical Experts.")
 
@@ -446,8 +451,13 @@ class SupabaseAuthService(AuthService):
             if not profile:
                 return False
             ident = profile.get("email") or profile.get("phone")
-            res = self.client.auth.sign_in_with_password({"email": ident, "password": password})
-            return bool(res.user)
+            credentials = {"password": password}
+            if profile.get("email"):
+                credentials["email"] = profile["email"]
+            else:
+                credentials["phone"] = profile["phone"]
+            res = self.client.auth.sign_in_with_password(credentials)
+            return bool(res and hasattr(res, "user") and res.user)
         except Exception:
             return False
 
