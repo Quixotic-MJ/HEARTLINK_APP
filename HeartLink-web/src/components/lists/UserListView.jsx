@@ -1,52 +1,18 @@
 import React from "react";
-import { Search, Filter, ShieldCheck, Heart, Ban, CheckCircle2, Archive, Activity, UserCheck, AlertTriangle } from "lucide-react";
+import { Search, Filter, ShieldCheck, Heart, Ban, CheckCircle2, Archive, Activity, UserCheck, AlertTriangle, ChevronDown } from "lucide-react";
 import { formatUserRef } from "../../utils/formatUserRef";
+import { Skeleton } from "../ui/Skeleton";
 
 const UserListView = ({ users, searchQuery, onSearchChange, filterStatus, onFilterChange, onOpenUser, loading }) => {
-  const SkeletonRow = () => (
-    <tr className="animate-pulse">
-      <td className="py-4 px-5">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200" />
-          <div className="space-y-1">
-            <div className="h-3 w-28 bg-slate-200 rounded" />
-            <div className="h-2.5 w-16 bg-slate-100 rounded" />
-          </div>
-        </div>
-      </td>
-      <td className="py-4 px-5">
-        <div className="h-4 w-20 bg-slate-200 rounded-full" />
-      </td>
-      <td className="py-4 px-5">
-        <div className="h-4 w-16 bg-slate-200 rounded-full" />
-      </td>
-      <td className="py-4 px-5">
-        <div className="h-4 w-16 bg-slate-200 rounded-full" />
-      </td>
-      <td className="py-4 px-5">
-        <div className="h-4 w-16 bg-slate-200 rounded-full" />
-      </td>
-      <td className="py-4 px-5">
-        <div className="h-4 w-16 bg-slate-200 rounded-full" />
-      </td>
-      <td className="py-4 px-5">
-        <div className="h-4 w-20 bg-slate-200 rounded-full" />
-      </td>
-      <td className="py-4 px-5 text-right">
-        <div className="h-7 w-16 bg-slate-200 rounded-lg inline-block" />
-      </td>
-    </tr>
-  );
-
   const getStatusBadge = (status) => {
     if (status === "Active" || status === "active")
       return (
-        <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-[0.15em] flex items-center gap-1 w-fit">
+        <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-[0.15em] flex items-center gap-1 w-fit">
           <CheckCircle2 size={10} /> Active
         </span>
       );
     return (
-      <span className="bg-rose-50 text-rose-700 border border-rose-200 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-[0.15em] flex items-center gap-1 w-fit">
+      <span className="bg-rose-500/10 text-rose-400 border border-rose-500/20 px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-[0.15em] flex items-center gap-1 w-fit">
         <Ban size={10} /> Disabled
       </span>
     );
@@ -55,31 +21,31 @@ const UserListView = ({ users, searchQuery, onSearchChange, filterStatus, onFilt
   const getHssBadge = (score, tier) => {
     if (score === null || score === undefined) {
       return (
-        <span className="bg-slate-50 text-slate-500 border border-slate-200 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-[0.15em] w-fit inline-block">
+        <span className="bg-white/5 text-[#89899C] border border-white/10 px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-[0.15em] w-fit inline-block">
           N/A
         </span>
       );
     }
 
     let standardTier = "Stable";
-    let colorClasses = "bg-emerald-50 text-emerald-700 border border-emerald-200";
+    let colorClasses = "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
 
     if (score >= 80) {
       standardTier = "Stable";
-      colorClasses = "bg-emerald-50 text-emerald-700 border border-emerald-200";
+      colorClasses = "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
     } else if (score >= 60) {
       standardTier = "Moderate";
-      colorClasses = "bg-amber-50 text-amber-700 border border-amber-200";
+      colorClasses = "bg-amber-500/10 text-amber-400 border-amber-500/20";
     } else if (score >= 50) {
       standardTier = "Elevated Risk";
-      colorClasses = "bg-rose-50/50 text-rose-700 border border-rose-200/60";
+      colorClasses = "bg-[#E55F37]/10 text-[#E55F37] border-[#E55F37]/20";
     } else {
       standardTier = "Critical";
-      colorClasses = "bg-rose-50 text-rose-700 border border-rose-200";
+      colorClasses = "bg-rose-500/10 text-rose-400 border-rose-500/20";
     }
 
     return (
-      <span className={`${colorClasses} px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-[0.15em] flex items-center gap-1 w-fit`}>
+      <span className={`${colorClasses} border px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-[0.15em] flex items-center gap-1 w-fit`}>
         <Heart size={10} className="fill-current" /> {score} ({standardTier})
       </span>
     );
@@ -88,25 +54,25 @@ const UserListView = ({ users, searchQuery, onSearchChange, filterStatus, onFilt
   const getActivityBadge = (activity) => {
     if (activity === "Recently Active") {
       return (
-        <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-[0.15em] flex items-center gap-1 w-fit">
+        <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-[0.15em] flex items-center gap-1 w-fit">
           <Activity size={10} /> Recently Active
         </span>
       );
     } else if (activity === "Inactive") {
       return (
-        <span className="bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-[0.15em] flex items-center gap-1 w-fit">
+        <span className="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-[0.15em] flex items-center gap-1 w-fit">
           <AlertTriangle size={10} /> Inactive
         </span>
       );
     } else if (activity === "Sparse Data" || activity === "Sparse") {
       return (
-        <span className="bg-orange-50 text-orange-700 border border-orange-200 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-[0.15em] flex items-center gap-1 w-fit">
+        <span className="bg-orange-500/10 text-orange-400 border border-orange-500/20 px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-[0.15em] flex items-center gap-1 w-fit">
           <AlertTriangle size={10} /> Sparse Data
         </span>
       );
     }
     return (
-      <span className="bg-slate-50 text-slate-500 border border-slate-200 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-[0.15em] w-fit">
+      <span className="bg-white/5 text-[#89899C] border border-white/10 px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-[0.15em] w-fit">
         New User
       </span>
     );
@@ -115,13 +81,13 @@ const UserListView = ({ users, searchQuery, onSearchChange, filterStatus, onFilt
   const getOnboardingBadge = (status) => {
     if (status === "Complete" || status === "complete") {
       return (
-        <span className="bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-[0.15em] flex items-center gap-1 w-fit">
+        <span className="bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-[0.15em] flex items-center gap-1 w-fit">
           <UserCheck size={10} /> Done
         </span>
       );
     }
     return (
-      <span className="bg-orange-50 text-orange-700 border border-orange-200 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-[0.15em] w-fit">
+      <span className="bg-orange-500/10 text-orange-400 border border-orange-500/20 px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-[0.15em] w-fit">
         Pending
       </span>
     );
@@ -130,43 +96,45 @@ const UserListView = ({ users, searchQuery, onSearchChange, filterStatus, onFilt
   const getReviewBadge = (status) => {
     if (status === "Evaluated") {
       return (
-        <span className="bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-[0.15em] flex items-center gap-1 w-fit">
+        <span className="bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-[0.15em] flex items-center gap-1 w-fit">
           <ShieldCheck size={10} /> Evaluated
         </span>
       );
     }
     return (
-      <span className="bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-[0.15em] w-fit">
+      <span className="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-[0.15em] w-fit">
         Pending
       </span>
     );
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col overflow-hidden animate-in fade-in duration-300">
+    <div className="bg-[#1A1A1A] rounded-2xl border border-white/10 flex flex-col overflow-hidden animate-in fade-in duration-300">
       {/* Search & Filter bar */}
-      <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row gap-3">
+      <div className="p-4 border-b border-white/10 bg-[#161616] flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
-          <Search size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" />
+          <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
           <input
             type="text"
             placeholder="Search by ID or name..."
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 placeholder-slate-300 outline-none transition-all focus:bg-white focus:ring-2 focus:ring-slate-900/5 focus:border-slate-400 shadow-sm"
+            className="w-full pl-9 pr-4 py-2 text-xs border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] transition-all bg-[#1A1A1A] text-white placeholder:text-slate-500"
           />
         </div>
         <div className="relative">
-          <Filter size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" />
           <select
             value={filterStatus}
             onChange={(e) => onFilterChange(e.target.value)}
-            className="pl-10 pr-8 py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-xl focus:outline-none appearance-none cursor-pointer hover:border-slate-300 transition-colors shadow-sm focus:ring-2 focus:ring-slate-900/5"
+            className="pl-3 pr-8 py-2 text-xs font-semibold text-white bg-[#1A1A1A] border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] appearance-none cursor-pointer hover:border-white/20 transition-colors"
           >
-            <option value="all">All Accounts</option>
-            <option value="active">Active</option>
-            <option value="disabled">Disabled</option>
+            <option value="all" className="bg-[#161616]">All Accounts</option>
+            <option value="active" className="bg-[#161616]">Active</option>
+            <option value="disabled" className="bg-[#161616]">Disabled</option>
           </select>
+          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5">
+            <ChevronDown size={12} className="text-slate-400" />
+          </div>
         </div>
       </div>
 
@@ -174,39 +142,50 @@ const UserListView = ({ users, searchQuery, onSearchChange, filterStatus, onFilt
       <div className="w-full overflow-x-auto custom-scrollbar">
         <table className="w-full text-left border-collapse min-w-[900px]">
           <thead>
-            <tr className="bg-slate-50/50">
-              <th className="py-4 px-5 text-[10px] font-semibold text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100">
+            <tr className="border-b border-white/10">
+              <th className="py-3 px-5 text-[10px] font-bold text-[#89899C] uppercase tracking-[0.15em]">
                 Name
               </th>
-              <th className="py-4 px-5 text-[10px] font-semibold text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100">
+              <th className="py-3 px-5 text-[10px] font-bold text-[#89899C] uppercase tracking-[0.15em]">
                 User ID
               </th>
-              <th className="py-4 px-5 text-[10px] font-semibold text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100">
+              <th className="py-3 px-5 text-[10px] font-bold text-[#89899C] uppercase tracking-[0.15em]">
                 HSS
               </th>
-              <th className="py-4 px-5 text-[10px] font-semibold text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100">
+              <th className="py-3 px-5 text-[10px] font-bold text-[#89899C] uppercase tracking-[0.15em]">
                 Activity
               </th>
-              <th className="py-4 px-5 text-[10px] font-semibold text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100">
+              <th className="py-3 px-5 text-[10px] font-bold text-[#89899C] uppercase tracking-[0.15em]">
                 Account
               </th>
-              <th className="py-4 px-5 text-[10px] font-semibold text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100">
+              <th className="py-3 px-5 text-[10px] font-bold text-[#89899C] uppercase tracking-[0.15em]">
                 Onboarding
               </th>
-              <th className="py-4 px-5 text-[10px] font-semibold text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100">
+              <th className="py-3 px-5 text-[10px] font-bold text-[#89899C] uppercase tracking-[0.15em]">
                 Review
               </th>
-              <th className="py-4 px-5 text-[10px] font-semibold text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100 text-right">
+              <th className="py-3 px-5 text-[10px] font-bold text-[#89899C] uppercase tracking-[0.15em] text-right">
                 Action
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-50">
+          <tbody className="divide-y divide-white/5">
             {loading ? (
-              Array.from({ length: 5 }).map((_, index) => <SkeletonRow key={`skeleton-${index}`} />)
+              [1, 2, 3, 4, 5].map((item) => (
+                <tr key={item} className="border-t border-white/5">
+                  <td className="py-4 px-5"><Skeleton className="w-28 h-4 bg-white/10" /></td>
+                  <td className="py-4 px-5"><Skeleton className="w-16 h-4 bg-white/10" /></td>
+                  <td className="py-4 px-5"><Skeleton className="w-20 h-4 bg-white/10" /></td>
+                  <td className="py-4 px-5"><Skeleton className="w-20 h-4 bg-white/10" /></td>
+                  <td className="py-4 px-5"><Skeleton className="w-16 h-4 bg-white/10" /></td>
+                  <td className="py-4 px-5"><Skeleton className="w-16 h-4 bg-white/10" /></td>
+                  <td className="py-4 px-5"><Skeleton className="w-16 h-4 bg-white/10" /></td>
+                  <td className="py-4 px-5 text-right"><Skeleton className="w-16 h-7 ml-auto bg-white/10 rounded-xl" /></td>
+                </tr>
+              ))
             ) : users.length === 0 ? (
               <tr>
-                <td colSpan="8" className="py-8 px-5 text-center text-slate-400 text-xs">
+                <td colSpan="8" className="py-12 px-5 text-center text-slate-400 text-xs">
                   No user accounts match the search or filter settings.
                 </td>
               </tr>
@@ -214,21 +193,21 @@ const UserListView = ({ users, searchQuery, onSearchChange, filterStatus, onFilt
               users.map((user) => (
                 <tr
                   key={user.id}
-                  className="hover:bg-slate-50/50 transition-colors group cursor-pointer"
+                  className="hover:bg-white/5 transition-colors group cursor-pointer"
                   onClick={() => onOpenUser(user)}
                 >
                   <td className="py-4 px-5 align-middle">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center font-bold text-xs border border-slate-200">
+                      <div className="w-8 h-8 rounded-full bg-[#36272B] text-[#E55F37] border border-[#E55F37]/30 flex items-center justify-center font-bold text-xs shrink-0">
                         {user.name.charAt(0)}
                       </div>
-                      <p className="text-slate-900 font-semibold text-xs group-hover:text-slate-700 transition-colors">
+                      <p className="text-white font-bold text-xs group-hover:text-[#E55F37] transition-colors">
                         {user.name}
                       </p>
                     </div>
                   </td>
                   <td className="py-4 px-5 align-middle">
-                    <span className="font-mono text-[9px] font-medium bg-slate-100 px-1.5 py-0.5 rounded text-slate-500 border border-slate-200 uppercase tracking-widest">
+                    <span className="font-mono text-[10px] font-bold bg-[#21202E] px-2 py-1 rounded-lg text-slate-300 border border-white/10 uppercase tracking-wider">
                       {formatUserRef(user.id)}
                     </span>
                   </td>
@@ -250,7 +229,7 @@ const UserListView = ({ users, searchQuery, onSearchChange, filterStatus, onFilt
                   <td className="py-4 px-5 align-middle text-right" onClick={(e) => e.stopPropagation()}>
                     <button
                       onClick={() => onOpenUser(user)}
-                      className="text-[11px] font-medium px-3 py-1.5 rounded-lg border bg-white border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors shadow-sm inline-flex items-center gap-1"
+                      className="text-xs font-semibold px-3.5 py-1.5 rounded-xl border border-white/10 bg-[#21202E] text-slate-300 hover:text-white hover:border-white/20 transition-colors cursor-pointer"
                     >
                       Manage
                     </button>
@@ -266,3 +245,4 @@ const UserListView = ({ users, searchQuery, onSearchChange, filterStatus, onFilt
 };
 
 export default UserListView;
+

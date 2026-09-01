@@ -7,25 +7,25 @@ export const getCategoryConfig = (category) => {
       return {
         label: "Bug",
         icon: Bug,
-        className: "bg-red-50 text-red-600 border border-red-200",
+        className: "bg-rose-500/10 text-rose-400 border border-rose-500/20",
       };
     case "UI/UX Suggestion":
       return {
         label: "Suggestion",
         icon: Lightbulb,
-        className: "bg-yellow-50 text-yellow-700 border border-yellow-200",
+        className: "bg-amber-500/10 text-amber-400 border border-amber-500/20",
       };
     case "Account Issue":
       return {
         label: "Account",
         icon: UserCircle,
-        className: "bg-purple-50 text-purple-700 border border-purple-200",
+        className: "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20",
       };
     default:
       return {
         label: "Question",
         icon: HelpCircle,
-        className: "bg-slate-50 text-slate-600 border border-slate-200",
+        className: "bg-white/5 text-slate-300 border border-white/10",
       };
   }
 };
@@ -34,10 +34,11 @@ const FeedbackCategoryBadge = ({ category }) => {
   const config = getCategoryConfig(category);
   const Icon = config.icon;
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest whitespace-nowrap ${config.className}`}>
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-widest whitespace-nowrap ${config.className}`}>
       <Icon size={10} /> {config.label}
     </span>
   );
 };
 
 export default FeedbackCategoryBadge;
+

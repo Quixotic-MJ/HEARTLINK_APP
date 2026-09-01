@@ -17,6 +17,7 @@ import {
   Edit2,
   MoreVertical,
   ChevronDown,
+  Sparkles,
 } from "lucide-react";
 import AdminLayout from "../../../components/layouts/adminLayout";
 import FoodFormModal from "../../../components/modals/FoodFormModal";
@@ -243,50 +244,56 @@ const Foods = () => {
   // Badge Color Helper
   const getHssBadgeColor = (target) => {
     if (target.includes("Stable"))
-      return { bg: "rgba(15,23,42,0.05)", text: "#0f172a", border: "transparent" };
-    if (target.includes("Moderate") || target.includes("Elevated Risk"))
-      return { bg: "rgba(245,158,11,0.08)", text: "#d97706", border: "transparent" };
-    return { bg: "rgba(239,68,68,0.08)", text: "#dc2626", border: "transparent" };
+      return "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
+    if (target.includes("Moderate"))
+      return "bg-amber-500/10 text-amber-400 border border-amber-500/20";
+    if (target.includes("Elevated Risk"))
+      return "bg-[#E55F37]/10 text-[#E55F37] border border-[#E55F37]/20";
+    return "bg-red-500/10 text-red-400 border border-red-500/20";
   };
 
   return (
     <AdminLayout>
       {/* Page Header */}
-      <div className="flex flex-col md:flex-row md:justify-between md:items-end mb-8 gap-4">
+      <div className="flex flex-col md:flex-row md:justify-between md:items-end mb-6 gap-4">
         <div>
-          <p className="text-[10px] font-medium text-slate-400 tracking-[0.22em] uppercase mb-2">
-            Content Library
-          </p>
-          <h2 className="text-2xl lg:text-3xl font-semibold text-slate-900 leading-[1.1] tracking-tight">
-            Food & Meal Library.
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-[#E55F37]/30 bg-[#E55F37]/10 text-[10px] font-bold uppercase tracking-widest text-[#E55F37] mb-2">
+            <Sparkles size={11} />
+            <span>Content Library</span>
+          </div>
+          <h2 className="text-2xl lg:text-3xl font-bold text-white tracking-tight leading-tight">
+            Food & Recipe Library
           </h2>
+          <p className="text-[#89899C] text-xs mt-1 font-medium">
+            Manage nutritional databases, heart-healthy recipes, and clinical HSS targets.
+          </p>
         </div>
         <button
           onClick={() => openModal()}
-          className="flex items-center gap-1.5 text-white font-medium text-[11px] px-3.5 py-2 rounded-xl transition-all hover:opacity-90 active:scale-[0.99]"
-          style={{ backgroundColor: "#0f172a" }}
+          className="flex items-center gap-2 text-white font-semibold text-xs px-4 py-2.5 rounded-xl bg-[#E55F37] hover:bg-[#D4542E] shadow-sm shadow-[#E55F37]/25 transition-all cursor-pointer"
         >
-          <Plus size={14} strokeWidth={2} /> Create New Entry
+          <Plus size={15} strokeWidth={2.5} />
+          <span>Create New Entry</span>
         </button>
       </div>
 
       {/* Main View: Data Table Container */}
-      <div className="bg-white rounded-xl border border-slate-200 flex flex-col overflow-hidden">
+      <div className="bg-[#1A1A1A] rounded-2xl border border-white/10 flex flex-col overflow-hidden">
         {/* Search & Filter Bar */}
-        <div className="p-4 border-b border-slate-100 bg-slate-50/50 space-y-3">
+        <div className="p-4 border-b border-white/10 bg-[#161616] space-y-3">
           <div className="flex flex-col md:flex-row gap-3">
             {/* Search input */}
             <div className="relative flex-1">
               <Search
                 size={14}
-                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500"
               />
               <input
                 type="text"
                 placeholder="Search recipes, categories, or tags..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 text-[11px] border border-slate-200 rounded-xl focus:outline-none focus:border-slate-400 transition-all bg-white"
+                className="w-full pl-9 pr-3.5 py-2 text-xs border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] transition-all bg-[#1A1A1A] text-white placeholder:text-slate-500"
               />
             </div>
             
@@ -294,7 +301,7 @@ const Foods = () => {
             {(searchQuery || filterStatus !== "all" || filterHss !== "all" || filterCategory !== "all" || filterFoodSource !== "all" || filterReview !== "all") && (
               <button
                 onClick={clearFilters}
-                className="text-[10px] text-red-500 hover:text-red-600 font-semibold px-3 py-1.5 rounded-lg border border-red-200 hover:bg-red-50 transition-colors shrink-0 flex items-center gap-1 self-start md:self-auto"
+                className="text-[10px] text-red-400 hover:text-red-300 font-bold px-3 py-1.5 rounded-xl border border-red-500/20 bg-red-500/10 hover:bg-red-500/20 transition-colors shrink-0 flex items-center gap-1 self-start md:self-auto cursor-pointer"
               >
                 Clear Filters
               </button>
@@ -308,15 +315,15 @@ const Foods = () => {
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
-                className="w-full md:w-auto pl-3 pr-8 py-1.5 text-[11px] font-medium text-slate-700 bg-white border border-slate-200 rounded-lg focus:outline-none appearance-none cursor-pointer hover:border-slate-300 transition-colors"
+                className="w-full md:w-auto pl-3 pr-8 py-1.5 text-xs font-semibold text-white bg-[#1A1A1A] border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] appearance-none cursor-pointer hover:border-white/20 transition-colors"
               >
-                <option value="all">All Status</option>
-                <option value="published">Published</option>
-                <option value="draft">Draft</option>
-                <option value="archived">Archived</option>
+                <option value="all" className="bg-[#161616]">All Status</option>
+                <option value="published" className="bg-[#161616]">Published</option>
+                <option value="draft" className="bg-[#161616]">Draft</option>
+                <option value="archived" className="bg-[#161616]">Archived</option>
               </select>
               <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5">
-                <ChevronDown size={11} className="text-slate-400" />
+                <ChevronDown size={12} className="text-slate-400" />
               </div>
             </div>
 
@@ -325,16 +332,16 @@ const Foods = () => {
               <select
                 value={filterHss}
                 onChange={(e) => setFilterHss(e.target.value)}
-                className="w-full md:w-auto pl-3 pr-8 py-1.5 text-[11px] font-medium text-slate-700 bg-white border border-slate-200 rounded-lg focus:outline-none appearance-none cursor-pointer hover:border-slate-300 transition-colors"
+                className="w-full md:w-auto pl-3 pr-8 py-1.5 text-xs font-semibold text-white bg-[#1A1A1A] border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] appearance-none cursor-pointer hover:border-white/20 transition-colors"
               >
-                <option value="all">All HSS Tiers</option>
-                <option value="Stable">Stable</option>
-                <option value="Moderate">Moderate</option>
-                <option value="Elevated Risk">Elevated Risk</option>
-                <option value="Critical">Critical</option>
+                <option value="all" className="bg-[#161616]">All HSS Tiers</option>
+                <option value="Stable" className="bg-[#161616]">Stable</option>
+                <option value="Moderate" className="bg-[#161616]">Moderate</option>
+                <option value="Elevated Risk" className="bg-[#161616]">Elevated Risk</option>
+                <option value="Critical" className="bg-[#161616]">Critical</option>
               </select>
               <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5">
-                <ChevronDown size={11} className="text-slate-400" />
+                <ChevronDown size={12} className="text-slate-400" />
               </div>
             </div>
 
@@ -343,16 +350,16 @@ const Foods = () => {
               <select
                 value={filterCategory}
                 onChange={(e) => setFilterCategory(e.target.value)}
-                className="w-full md:w-auto pl-3 pr-8 py-1.5 text-[11px] font-medium text-slate-700 bg-white border border-slate-200 rounded-lg focus:outline-none appearance-none cursor-pointer hover:border-slate-300 transition-colors"
+                className="w-full md:w-auto pl-3 pr-8 py-1.5 text-xs font-semibold text-white bg-[#1A1A1A] border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] appearance-none cursor-pointer hover:border-white/20 transition-colors"
               >
-                <option value="all">All Categories</option>
-                <option value="Breakfast">Breakfast</option>
-                <option value="Lunch">Lunch</option>
-                <option value="Dinner">Dinner</option>
-                <option value="Snack">Snack</option>
+                <option value="all" className="bg-[#161616]">All Categories</option>
+                <option value="Breakfast" className="bg-[#161616]">Breakfast</option>
+                <option value="Lunch" className="bg-[#161616]">Lunch</option>
+                <option value="Dinner" className="bg-[#161616]">Dinner</option>
+                <option value="Snack" className="bg-[#161616]">Snack</option>
               </select>
               <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5">
-                <ChevronDown size={11} className="text-slate-400" />
+                <ChevronDown size={12} className="text-slate-400" />
               </div>
             </div>
 
@@ -361,16 +368,16 @@ const Foods = () => {
               <select
                 value={filterFoodSource}
                 onChange={(e) => setFilterFoodSource(e.target.value)}
-                className="w-full md:w-auto pl-3 pr-8 py-1.5 text-[11px] font-medium text-slate-700 bg-white border border-slate-200 rounded-lg focus:outline-none appearance-none cursor-pointer hover:border-slate-300 transition-colors"
+                className="w-full md:w-auto pl-3 pr-8 py-1.5 text-xs font-semibold text-white bg-[#1A1A1A] border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] appearance-none cursor-pointer hover:border-white/20 transition-colors"
               >
-                <option value="all">All Food Sources</option>
-                <option value="Home Recipe">Home Recipe</option>
-                <option value="Fast Food Chain">Fast Food Chain</option>
-                <option value="Local Carenderia">Local Carenderia</option>
-                <option value="Raw Ingredient">Raw Ingredient</option>
+                <option value="all" className="bg-[#161616]">All Food Sources</option>
+                <option value="Home Recipe" className="bg-[#161616]">Home Recipe</option>
+                <option value="Fast Food Chain" className="bg-[#161616]">Fast Food Chain</option>
+                <option value="Local Carenderia" className="bg-[#161616]">Local Carenderia</option>
+                <option value="Raw Ingredient" className="bg-[#161616]">Raw Ingredient</option>
               </select>
               <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5">
-                <ChevronDown size={11} className="text-slate-400" />
+                <ChevronDown size={12} className="text-slate-400" />
               </div>
             </div>
 
@@ -379,14 +386,14 @@ const Foods = () => {
               <select
                 value={filterReview}
                 onChange={(e) => setFilterReview(e.target.value)}
-                className="w-full md:w-auto pl-3 pr-8 py-1.5 text-[11px] font-medium text-slate-700 bg-white border border-slate-200 rounded-lg focus:outline-none appearance-none cursor-pointer hover:border-slate-300 transition-colors"
+                className="w-full md:w-auto pl-3 pr-8 py-1.5 text-xs font-semibold text-white bg-[#1A1A1A] border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] appearance-none cursor-pointer hover:border-white/20 transition-colors"
               >
-                <option value="all">All Review Status</option>
-                <option value="reviewed">Expert Reviewed</option>
-                <option value="pending">Pending Review</option>
+                <option value="all" className="bg-[#161616]">All Review Status</option>
+                <option value="reviewed" className="bg-[#161616]">Expert Reviewed</option>
+                <option value="pending" className="bg-[#161616]">Pending Review</option>
               </select>
               <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5">
-                <ChevronDown size={11} className="text-slate-400" />
+                <ChevronDown size={12} className="text-slate-400" />
               </div>
             </div>
           </div>
@@ -397,19 +404,19 @@ const Foods = () => {
           <table className="w-full text-left border-collapse min-w-[750px]">
             <thead>
               <tr>
-                <th className="py-3 px-5 text-[10px] font-semibold text-slate-500 uppercase tracking-[0.15em] border-b border-slate-100 w-1/3">
+                <th className="py-3 px-5 text-[10px] font-bold text-[#89899C] uppercase tracking-[0.15em] border-b border-white/10 w-1/3">
                   Food / Meal Name
                 </th>
-                <th className="py-3 px-5 text-[10px] font-semibold text-slate-500 uppercase tracking-[0.15em] border-b border-slate-100">
+                <th className="py-3 px-5 text-[10px] font-bold text-[#89899C] uppercase tracking-[0.15em] border-b border-white/10">
                   HSS Suitability
                 </th>
-                <th className="py-3 px-5 text-[10px] font-semibold text-slate-500 uppercase tracking-[0.15em] border-b border-slate-100">
+                <th className="py-3 px-5 text-[10px] font-bold text-[#89899C] uppercase tracking-[0.15em] border-b border-white/10">
                   Nutrition Snapshot
                 </th>
-                <th className="py-3 px-5 text-[10px] font-semibold text-slate-500 uppercase tracking-[0.15em] border-b border-slate-100 text-center">
+                <th className="py-3 px-5 text-[10px] font-bold text-[#89899C] uppercase tracking-[0.15em] border-b border-white/10 text-center">
                   Expert Review
                 </th>
-                <th className="py-3 px-5 text-[10px] font-semibold text-slate-500 uppercase tracking-[0.15em] border-b border-slate-100 text-right">
+                <th className="py-3 px-5 text-[10px] font-bold text-[#89899C] uppercase tracking-[0.15em] border-b border-white/10 text-right">
                   Actions
                 </th>
               </tr>
@@ -417,42 +424,42 @@ const Foods = () => {
             {loading ? (
               <tbody>
                 {[1, 2, 3, 4, 5].map((item) => (
-                  <tr key={item} className="border-t border-slate-50">
+                  <tr key={item} className="border-t border-white/5">
                     <td className="py-4 px-5">
                       <div className="flex items-center gap-3">
-                        <Skeleton className="w-9 h-9 rounded-full shrink-0" />
+                        <Skeleton className="w-9 h-9 rounded-full shrink-0 bg-white/10" />
                         <div>
-                          <Skeleton className="w-32 h-4 mb-1" />
-                          <Skeleton className="w-20 h-3" />
+                          <Skeleton className="w-32 h-4 mb-1 bg-white/10" />
+                          <Skeleton className="w-20 h-3 bg-white/10" />
                         </div>
                       </div>
                     </td>
                     <td className="py-4 px-5">
-                      <Skeleton className="w-24 h-5 rounded-full" />
+                      <Skeleton className="w-24 h-5 rounded-full bg-white/10" />
                     </td>
                     <td className="py-4 px-5">
-                      <Skeleton className="w-20 h-4 mb-1" />
-                      <Skeleton className="w-16 h-3" />
+                      <Skeleton className="w-20 h-4 mb-1 bg-white/10" />
+                      <Skeleton className="w-16 h-3 bg-white/10" />
                     </td>
                     <td className="py-4 px-5 flex justify-center">
-                      <Skeleton className="w-7 h-7 rounded-full" />
+                      <Skeleton className="w-7 h-7 rounded-full bg-white/10" />
                     </td>
                     <td className="py-4 px-5">
                       <div className="flex justify-end">
-                        <Skeleton className="w-6 h-6 rounded-md" />
+                        <Skeleton className="w-6 h-6 rounded-md bg-white/10" />
                       </div>
                     </td>
                   </tr>
                 ))}
               </tbody>
             ) : filteredRecipes.length > 0 ? (
-              <tbody className="divide-y divide-slate-50">
+              <tbody className="divide-y divide-white/5">
                 {filteredRecipes.map((recipe, index) => {
-                  const badge = getHssBadgeColor(recipe.hssTarget);
+                  const badgeClass = getHssBadgeColor(recipe.hssTarget);
                   return (
                     <tr
                       key={recipe.id}
-                      className={`hover:bg-slate-50/60 transition-colors group cursor-pointer ${recipe.status === "archived" ? "opacity-50" : ""}`}
+                      className={`hover:bg-white/5 transition-colors group cursor-pointer ${recipe.status === "archived" ? "opacity-50" : ""}`}
                       onClick={() => openModal(recipe)}
                     >
                       <td className="py-4 px-5 align-middle">
@@ -460,53 +467,50 @@ const Foods = () => {
                           <RecipeImage
                             src={recipe.mediaUrl}
                             alt={recipe.name}
-                            containerClassName="w-9 h-9 rounded-full flex items-center justify-center shrink-0 overflow-hidden bg-slate-100 border border-slate-200/50"
-                            fallbackIconSize={14}
+                            containerClassName="w-9 h-9 rounded-full flex items-center justify-center shrink-0 overflow-hidden bg-[#36272B] border border-[#E55F37]/30 text-[#E55F37] shadow-sm"
+                            fallbackIconSize={15}
+                            fallbackIconClassName="text-[#E55F37]"
                           />
                           <div>
-                            <p className="text-slate-900 font-semibold text-xs mb-0.5">
+                            <p className="text-white font-semibold text-xs mb-0.5">
                               {recipe.name}
                             </p>
-                            <p className="text-slate-400 text-[10px]">
-                              {recipe.category} • {recipe.status}
+                            <p className="text-[#89899C] text-[10px] font-medium">
+                              {recipe.category} • <span className="capitalize">{recipe.status}</span>
                             </p>
                           </div>
                         </div>
                       </td>
                       <td className="py-4 px-5 align-middle">
                         <span
-                          className="inline-flex items-center text-[9px] font-medium px-2.5 py-1 rounded-full uppercase tracking-[0.15em]"
-                          style={{
-                            backgroundColor: badge.bg,
-                            color: badge.text,
-                          }}
+                          className={`inline-flex items-center text-[9px] font-bold px-2.5 py-1 rounded-full uppercase tracking-[0.15em] ${badgeClass}`}
                         >
                           {recipe.hssTarget}
                         </span>
                       </td>
                       <td className="py-4 px-5 align-middle">
-                        <p className="text-slate-900 text-xs font-semibold flex items-center gap-1.5">
-                          <Activity size={13} style={{ color: "#0f172a" }} />{" "}
+                        <p className="text-white text-xs font-semibold flex items-center gap-1.5">
+                          <Activity size={13} className="text-[#E55F37]" />{" "}
                           {recipe.sodium}mg{" "}
-                          <span className="text-[10px] text-slate-400 font-normal">
+                          <span className="text-[10px] text-[#89899C] font-normal">
                             Sodium
                           </span>
                         </p>
-                        <p className="text-slate-500 text-[10px] mt-1 ml-[18px]">
+                        <p className="text-[#89899C] text-[10px] font-medium mt-1 ml-[18px]">
                           {recipe.calories} kcal
                         </p>
                       </td>
                       <td className="py-4 px-5 align-middle text-center">
                         {recipe.expertValidated ? (
                           <div
-                            className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-emerald-50 text-emerald-600 mx-auto"
+                            className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 mx-auto"
                             title="Expert Reviewed"
                           >
                             <ShieldCheck size={14} />
                           </div>
                         ) : (
                           <div
-                            className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-amber-50 text-amber-500 mx-auto"
+                            className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 mx-auto"
                             title="Pending Review"
                           >
                             <ShieldAlert size={14} />
@@ -516,7 +520,7 @@ const Foods = () => {
                       <td className="py-4 px-5 align-middle text-right relative" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-end">
                           <button
-                            className="p-1.5 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
+                            className="p-1.5 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors cursor-pointer"
                             onClick={(e) => toggleMenu(e, recipe.id)}
                             title="Actions"
                           >
@@ -525,7 +529,7 @@ const Foods = () => {
                         </div>
                         {activeMenuRecipeId === recipe.id && (
                           <div
-                            className={`absolute right-5 w-40 bg-white border border-slate-200 rounded-xl shadow-lg py-1.5 z-50 text-left ${
+                            className={`absolute right-5 w-44 bg-[#1A1A1A] border border-white/10 rounded-2xl shadow-2xl py-1.5 z-50 text-left ${
                               index >= filteredRecipes.length - 2 && filteredRecipes.length > 2
                                 ? "bottom-full mb-1"
                                 : "top-full mt-1"
@@ -538,9 +542,9 @@ const Foods = () => {
                                 setActiveMenuRecipeId(null);
                                 openModal(recipe);
                               }}
-                              className="w-full px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2 font-medium"
+                              className="w-full px-3.5 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/5 flex items-center gap-2 font-medium cursor-pointer"
                             >
-                              <Edit2 size={13} /> Edit Recipe
+                              <Edit2 size={13} className="text-[#E55F37]" /> Edit Recipe
                             </button>
 
                             {/* Publish Action (DRAFT only) */}
@@ -551,9 +555,9 @@ const Foods = () => {
                                   setActiveMenuRecipeId(null);
                                   handleUpdateStatus(recipe, "published");
                                 }}
-                                className="w-full px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2 font-medium"
+                                className="w-full px-3.5 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/5 flex items-center gap-2 font-medium cursor-pointer"
                               >
-                                <CheckCircle2 size={13} className="text-emerald-500" /> Publish
+                                <CheckCircle2 size={13} className="text-emerald-400" /> Publish
                               </button>
                             )}
 
@@ -565,9 +569,9 @@ const Foods = () => {
                                   setActiveMenuRecipeId(null);
                                   handleArchiveRecipe(recipe);
                                 }}
-                                className="w-full px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2 font-medium"
+                                className="w-full px-3.5 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/5 flex items-center gap-2 font-medium cursor-pointer"
                               >
-                                <Archive size={13} className="text-amber-500" /> Archive
+                                <Archive size={13} className="text-amber-400" /> Archive
                               </button>
                             )}
 
@@ -579,14 +583,14 @@ const Foods = () => {
                                   setActiveMenuRecipeId(null);
                                   handleUpdateStatus(recipe, "draft");
                                 }}
-                                className="w-full px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2 font-medium"
+                                className="w-full px-3.5 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/5 flex items-center gap-2 font-medium cursor-pointer"
                               >
-                                <CheckCircle2 size={13} className="text-blue-500" /> Restore to Draft
+                                <CheckCircle2 size={13} className="text-blue-400" /> Restore to Draft
                               </button>
                             )}
 
                             {/* Divider */}
-                            <div className="border-t border-slate-100 my-1" />
+                            <div className="border-t border-white/10 my-1" />
 
                             {/* Delete Action */}
                             <button
@@ -595,7 +599,7 @@ const Foods = () => {
                                 setActiveMenuRecipeId(null);
                                 handleDeleteRecipe(recipe);
                               }}
-                              className="w-full px-3 py-1.5 text-xs text-red-600 hover:bg-red-50 flex items-center gap-2 font-medium"
+                              className="w-full px-3.5 py-2 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 flex items-center gap-2 font-medium cursor-pointer"
                             >
                               <Trash2 size={13} /> Delete
                             </button>
@@ -610,7 +614,7 @@ const Foods = () => {
           </table>
 
           {!loading && filteredRecipes.length === 0 && (
-            <div className="p-12 text-center text-slate-500 text-xs flex flex-col items-center justify-center gap-3 border-t border-slate-50">
+            <div className="p-12 text-center text-slate-400 text-xs flex flex-col items-center justify-center gap-3 border-t border-white/5">
               {recipes.length === 0 ? (
                 <p className="font-medium text-slate-400">No recipes available.</p>
               ) : (
@@ -618,8 +622,7 @@ const Foods = () => {
                   <p className="font-medium text-slate-400">No recipes match your filters.</p>
                   <button
                     onClick={clearFilters}
-                    className="mt-2 px-4 py-2 text-[11px] font-medium text-white rounded-xl transition-all hover:opacity-90 active:scale-[0.99]"
-                    style={{ backgroundColor: "#0f172a" }}
+                    className="mt-2 px-4 py-2 text-xs font-semibold text-white bg-[#E55F37] hover:bg-[#D4542E] rounded-xl transition-all cursor-pointer"
                   >
                     Clear Filters
                   </button>
@@ -667,7 +670,7 @@ const Foods = () => {
       />
       {/* Floating Success Toast Message */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 bg-slate-900 text-white text-xs font-medium px-4 py-2.5 rounded-xl shadow-xl z-[9999] flex items-center gap-2 animate-in fade-in slide-in-from-bottom-4 duration-200">
+        <div className="fixed bottom-6 right-6 bg-[#1A1A1A] border border-white/10 text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow-2xl z-[9999] flex items-center gap-2 animate-in fade-in slide-in-from-bottom-4 duration-200">
           <CheckCircle2 size={14} className="text-emerald-400" />
           {toastMessage}
         </div>

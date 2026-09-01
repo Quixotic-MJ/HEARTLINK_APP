@@ -5,8 +5,9 @@ export const RecipeImage = ({
   src,
   alt = "Recipe image",
   className = "w-full h-full object-cover",
-  fallbackIconSize = 14,
-  containerClassName = "w-9 h-9 rounded-full flex items-center justify-center shrink-0 overflow-hidden bg-slate-100 border border-slate-200/50",
+  fallbackIconSize = 15,
+  containerClassName = "w-9 h-9 rounded-full flex items-center justify-center shrink-0 overflow-hidden bg-[#21202E] border border-white/10",
+  fallbackIconClassName = "text-[#E55F37]",
 }) => {
   const [hasError, setHasError] = useState(false);
 
@@ -20,12 +21,11 @@ export const RecipeImage = ({
     return (
       <div 
         className={containerClassName} 
-        style={{ backgroundColor: "rgba(15,23,42,0.04)" }}
         title={alt}
         role="img"
         aria-label={alt}
       >
-        <Utensils size={fallbackIconSize} style={{ color: "#0f172a" }} />
+        <Utensils size={fallbackIconSize} className={fallbackIconClassName} />
       </div>
     );
   }

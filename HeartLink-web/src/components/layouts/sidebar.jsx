@@ -42,8 +42,7 @@ function SectionLabel({ label, collapsed }) {
   if (collapsed) return null;
   return (
     <p
-      className="px-3 pt-3 pb-1 text-[8px] font-bold uppercase tracking-[0.2em]"
-      style={{ color: "rgba(15,23,42,0.35)" }}
+      className="px-3 pt-3 pb-1 text-[8px] font-bold uppercase tracking-[0.2em] text-[#89899C]"
     >
       {label}
     </p>
@@ -62,8 +61,8 @@ function NavItem({ path, icon: Icon, label, collapsed, badge = null, activeOverr
       title={collapsed ? label : undefined}
       className={`group relative flex items-center rounded-xl transition-all duration-150 select-none ${
         active
-          ? "bg-[#0f172a] text-white shadow-sm font-semibold"
-          : "text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-medium"
+          ? "bg-[#E55F37] text-white shadow-sm shadow-[#E55F37]/25 font-semibold"
+          : "text-[#89899C] hover:text-white hover:bg-white/5 font-medium"
       }`}
       style={{
         padding: collapsed ? "10px 0" : "10px 12px",
@@ -74,7 +73,7 @@ function NavItem({ path, icon: Icon, label, collapsed, badge = null, activeOverr
       <Icon
         size={16}
         className={`flex-shrink-0 transition-transform group-hover:scale-105 ${
-          active ? "text-white" : "text-slate-500 group-hover:text-slate-800"
+          active ? "text-white" : "text-[#89899C] group-hover:text-white"
         }`}
       />
 
@@ -89,7 +88,7 @@ function NavItem({ path, icon: Icon, label, collapsed, badge = null, activeOverr
       </span>
       
       {!collapsed && badge && (
-        <span className="ml-auto px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 text-[10px] font-bold">
+        <span className="ml-auto px-1.5 py-0.5 rounded-full bg-white/10 text-white text-[10px] font-bold">
           {badge}
         </span>
       )}
@@ -99,7 +98,7 @@ function NavItem({ path, icon: Icon, label, collapsed, badge = null, activeOverr
 
 // ─── Sidebar ──────────────────────────────────────────────────────────────────
 
-const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed }) => {
+const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed, onLogoutClick }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   
@@ -108,8 +107,12 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed }) => {
   const userInitials = userName ? userName.substring(0, 1).toUpperCase() : "U";
 
   const handleLogout = () => {
-    logout();
-    navigate("/");
+    if (onLogoutClick) {
+      onLogoutClick();
+    } else {
+      logout();
+      navigate("/");
+    }
   };
 
   return (
@@ -117,19 +120,16 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed }) => {
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 z-40 lg:hidden"
-          style={{ backgroundColor: "rgba(15,23,42,0.4)", backdropFilter: "blur(4px)" }}
+          className="fixed inset-0 z-40 lg:hidden bg-black/60 backdrop-blur-sm"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
       {/* Sidebar container */}
       <aside
-        className="fixed lg:static top-0 left-0 h-full overflow-y-auto overflow-x-hidden z-50 flex flex-col flex-shrink-0 transition-all duration-300"
+        className="fixed lg:static top-0 left-0 h-full overflow-y-auto overflow-x-hidden z-50 flex flex-col flex-shrink-0 transition-all duration-300 bg-[#13121F] border-r border-white/10"
         style={{
           width: collapsed ? 64 : 240,
-          backgroundColor: "#f8fafc",
-          borderRight: "1px solid rgba(15,23,42,0.06)",
           transform: sidebarOpen ? "translateX(0)" : undefined,
           msOverflowStyle: "none",
           scrollbarWidth: "none",
@@ -137,8 +137,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed }) => {
       >
         {/* Mobile close button */}
         <button
-          className="lg:hidden absolute right-3 top-4 p-1.5 rounded-lg z-10"
-          style={{ color: "rgba(15,23,42,0.4)" }}
+          className="lg:hidden absolute right-3 top-4 p-1.5 rounded-lg z-10 text-slate-400 hover:text-white"
           onClick={() => setSidebarOpen(false)}
         >
           <X size={16} />
@@ -148,7 +147,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed }) => {
         <button
           type="button"
           onClick={() => setCollapsed(prev => !prev)}
-          className="flex items-center w-full text-left transition-all duration-300 hover:bg-slate-100 rounded-xl cursor-pointer"
+          className="flex items-center w-full text-left transition-all duration-300 hover:bg-white/5 rounded-xl cursor-pointer"
           style={{
             padding: collapsed ? "16px 0" : "12px 16px",
             margin: collapsed ? "8px auto" : "8px",
@@ -166,18 +165,18 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed }) => {
             className="overflow-hidden transition-all duration-300 whitespace-nowrap"
             style={{ width: collapsed ? 0 : 120, opacity: collapsed ? 0 : 1 }}
           >
-            <span className="text-[17px] leading-none tracking-tight font-semibold flex items-start" style={{ color: "#0f172a" }}>
+            <span className="text-[17px] leading-none tracking-tight font-semibold flex items-start text-white">
               <span>HeartLink</span>
               <span className="text-[9px] text-slate-400 font-normal ml-0.5">™</span>
             </span>
-            <p className="text-[7px] tracking-[0.22em] uppercase mt-1" style={{ color: "rgba(15,23,42,0.45)", fontWeight: 500 }}>
+            <p className="text-[7px] tracking-[0.22em] uppercase mt-1 text-[#E55F37] font-bold">
               Portal
             </p>
           </div>
         </button>
 
         {/* Divider */}
-        <div className="mx-5 mb-2" style={{ height: 1, backgroundColor: "rgba(15,23,42,0.06)" }} />
+        <div className="mx-5 mb-2 border-t border-white/10" />
 
         {/* Nav links */}
         <nav className="flex-1 overflow-y-auto overflow-x-hidden px-3 pb-6 space-y-0.5">
@@ -219,39 +218,37 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed }) => {
           {collapsed ? (
             <>
               <div
-                className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[11px] font-semibold"
-                style={{ backgroundColor: "#0f172a" }}
+                className="w-7 h-7 rounded-full flex items-center justify-center text-[#E55F37] bg-[#36272B] text-[11px] font-bold border border-white/5"
                 title={`${userName} (${role === "super_admin" ? "Super Admin" : (role === "admin" ? "System Admin" : "Expert Reviewer")})`}
               >
                 {userInitials}
               </div>
               <button
                 onClick={handleLogout}
-                className="w-8 h-8 rounded-lg border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 transition-colors flex items-center justify-center cursor-pointer"
+                className="w-8 h-8 rounded-lg border border-red-500/20 bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:text-red-300 transition-colors flex items-center justify-center cursor-pointer"
                 title="Sign Out"
               >
                 <LogOut size={14} />
               </button>
             </>
           ) : (
-            <div className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 flex flex-col gap-2">
+            <div className="w-full p-2.5 rounded-xl border border-white/10 bg-[#1A1A1A] flex flex-col gap-2">
               <div className="flex items-center gap-2">
                 <div
-                  className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-white text-[11px] font-semibold"
-                  style={{ backgroundColor: "#0f172a" }}
+                  className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-[#E55F37] bg-[#36272B] text-[11px] font-bold border border-white/5"
                 >
                   {userInitials}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-slate-900 truncate">{userName}</p>
-                  <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider truncate">
+                  <p className="text-xs font-semibold text-white truncate">{userName}</p>
+                  <p className="text-[9px] text-[#89899C] font-bold uppercase tracking-wider truncate">
                     {role === "super_admin" ? "Super Admin" : (role === "admin" ? "System Admin" : "Expert Reviewer")}
                   </p>
                 </div>
               </div>
               <button
                 onClick={handleLogout}
-                className="w-full py-1.5 px-3 rounded-lg border border-red-200 bg-red-50 hover:bg-red-100 text-red-600 hover:text-red-700 transition-colors text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-1 cursor-pointer"
+                className="w-full py-1.5 px-3 rounded-lg border border-red-500/20 bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 transition-colors text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-1 cursor-pointer"
               >
                 Sign Out
               </button>

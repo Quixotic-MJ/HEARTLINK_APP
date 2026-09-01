@@ -286,25 +286,27 @@ const RecipeEditor = ({ recipe, userRole, onSave, onDelete, onBack }) => {
   const completeness = getCompletenessInfo();
 
   return (
-    <div className="flex flex-col min-h-0 bg-white">
-      {/* Back Button & Title Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-4 border-b border-slate-100 mb-6 gap-3">
-        <div>
-          <button 
+    <div className="flex flex-col min-h-0 text-white">
+      {/* Header and Controls */}
+      <div className="flex justify-between items-center pb-4 border-b border-white/10 shrink-0 mb-6">
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
             onClick={onBack}
-            className="flex items-center gap-1 text-slate-500 hover:text-slate-800 text-[11px] font-medium mb-1.5 transition-colors"
+            className="p-2 rounded-xl border border-white/10 bg-[#21202E] text-slate-300 hover:text-white hover:bg-white/5 transition-colors cursor-pointer flex items-center gap-1.5 text-xs font-semibold"
+            title="Go back"
           >
-            <ChevronLeft size={13} /> Back to Food & Recipe Library
+            <ChevronLeft size={16} /> Back
           </button>
           
           <div className="flex items-center gap-3">
-            <h2 className="text-xl font-bold text-slate-900 leading-none">
+            <h2 className="text-xl font-bold text-white leading-none">
               {recipe ? "Edit Recipe" : "Create Recipe"}
             </h2>
             
             {/* Completeness indicator */}
             <span 
-              className={`text-[9px] px-2 py-0.5 rounded font-medium border leading-tight ${completeness.colorClass}`}
+              className={`text-[9px] px-2 py-0.5 rounded font-bold border leading-tight ${completeness.colorClass}`}
               title={completeness.missingText || "All content fields present"}
             >
               {completeness.label}
@@ -312,7 +314,7 @@ const RecipeEditor = ({ recipe, userRole, onSave, onDelete, onBack }) => {
 
             {/* Usage Counter */}
             {recipe && (
-              <span className="text-[10px] text-slate-400 bg-slate-50 border border-slate-100 px-2 py-0.5 rounded">
+              <span className="text-[10px] text-[#89899C] bg-[#21202E] border border-white/10 px-2 py-0.5 rounded font-medium">
                 {recipe.usageCount || 0} logged meals
               </span>
             )}
@@ -321,14 +323,14 @@ const RecipeEditor = ({ recipe, userRole, onSave, onDelete, onBack }) => {
 
         {/* Top Status Dropdown */}
         <div className="flex items-center gap-2">
-          <label className="text-[11px] font-medium text-slate-500">Status:</label>
+          <label className="text-[11px] font-bold text-[#89899C] uppercase">Status:</label>
           <select
             {...register("status")}
-            className="px-3 py-1.5 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:bg-white cursor-pointer transition-colors"
+            className="px-3.5 py-1.5 text-xs font-bold bg-[#1A1A1A] border border-white/10 rounded-xl text-white focus:outline-none focus:border-[#E55F37] cursor-pointer transition-colors"
           >
-            <option value="draft">Draft</option>
-            <option value="published">Published</option>
-            <option value="archived">Archived</option>
+            <option value="draft" className="bg-[#161616]">Draft</option>
+            <option value="published" className="bg-[#161616]">Published</option>
+            <option value="archived" className="bg-[#161616]">Archived</option>
           </select>
         </div>
       </div>
@@ -340,8 +342,8 @@ const RecipeEditor = ({ recipe, userRole, onSave, onDelete, onBack }) => {
         <div className="flex-1 overflow-y-auto pr-2 space-y-6 custom-scrollbar pb-12">
           
           {/* Section 1: Recipe Details */}
-          <div className="border border-slate-200 rounded-2xl p-5 bg-white shadow-sm space-y-4">
-            <h3 className="text-xs font-bold text-slate-900 border-b border-slate-100 pb-2 mb-1 uppercase tracking-wider">
+          <div className="border border-white/10 rounded-2xl p-5 bg-[#1A1A1A] shadow-sm space-y-4">
+            <h3 className="text-xs font-bold text-white border-b border-white/10 pb-2 mb-1 uppercase tracking-wider">
               1. Recipe Details
             </h3>
             
@@ -355,53 +357,53 @@ const RecipeEditor = ({ recipe, userRole, onSave, onDelete, onBack }) => {
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <label className="block text-[11px] font-medium text-slate-700 mb-1.5">
+                <label className="block text-[11px] font-bold text-[#89899C] uppercase tracking-wider mb-1.5">
                   Food Source
                 </label>
                 <select
                   {...register("foodSourceType")}
-                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-slate-450 focus:bg-white transition-colors"
+                  className="w-full px-3 py-2 text-xs bg-[#21202E]/60 border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] text-white transition-colors cursor-pointer"
                 >
-                  <option value="Home Recipe">Home Recipe</option>
-                  <option value="Fast Food Chain">Fast Food Chain</option>
-                  <option value="Local Carenderia">Local Carenderia</option>
-                  <option value="Raw Ingredient">Raw Ingredient</option>
+                  <option value="Home Recipe" className="bg-[#161616]">Home Recipe</option>
+                  <option value="Fast Food Chain" className="bg-[#161616]">Fast Food Chain</option>
+                  <option value="Local Carenderia" className="bg-[#161616]">Local Carenderia</option>
+                  <option value="Raw Ingredient" className="bg-[#161616]">Raw Ingredient</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-[11px] font-medium text-slate-700 mb-1.5">
+                <label className="block text-[11px] font-bold text-[#89899C] uppercase tracking-wider mb-1.5">
                   Meal Category
                 </label>
                 <select
                   {...register("category")}
-                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-slate-450 focus:bg-white transition-colors"
+                  className="w-full px-3 py-2 text-xs bg-[#21202E]/60 border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] text-white transition-colors cursor-pointer"
                 >
-                  <option value="Breakfast">Breakfast</option>
-                  <option value="Lunch">Lunch</option>
-                  <option value="Dinner">Dinner</option>
-                  <option value="Snack">Snack</option>
+                  <option value="Breakfast" className="bg-[#161616]">Breakfast</option>
+                  <option value="Lunch" className="bg-[#161616]">Lunch</option>
+                  <option value="Dinner" className="bg-[#161616]">Dinner</option>
+                  <option value="Snack" className="bg-[#161616]">Snack</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-[11px] font-medium text-slate-700 mb-1.5">
+                <label className="block text-[11px] font-bold text-[#89899C] uppercase tracking-wider mb-1.5">
                   HSS Suitability Target
                 </label>
                 <select
                   {...register("hssTarget")}
-                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-slate-450 focus:bg-white transition-colors"
+                  className="w-full px-3 py-2 text-xs bg-[#21202E]/60 border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] text-white transition-colors cursor-pointer"
                 >
-                  <option value="Stable (80-100)">Stable (80-100) — Fallback</option>
-                  <option value="Moderate (60-79)">Moderate (60-79)</option>
-                  <option value="Elevated Risk (50-59)">Elevated Risk (50-59)</option>
-                  <option value="Critical (<50)">Critical (&lt;50)</option>
+                  <option value="Stable (80-100)" className="bg-[#161616]">Stable (80-100) — Fallback</option>
+                  <option value="Moderate (60-79)" className="bg-[#161616]">Moderate (60-79)</option>
+                  <option value="Elevated Risk (50-59)" className="bg-[#161616]">Elevated Risk (50-59)</option>
+                  <option value="Critical (<50)" className="bg-[#161616]">Critical (&lt;50)</option>
                 </select>
               </div>
             </div>
 
             <div>
-              <label className="block text-[11px] font-medium text-slate-700 mb-1.5">
+              <label className="block text-[11px] font-bold text-[#89899C] uppercase tracking-wider mb-1.5">
                 Tags (Comma-separated)
               </label>
               <input
@@ -412,21 +414,21 @@ const RecipeEditor = ({ recipe, userRole, onSave, onDelete, onBack }) => {
                   setValue("tags", tagsArr);
                 }}
                 defaultValue={recipe?.tags ? recipe.tags.join(", ") : ""}
-                className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-slate-450 focus:bg-white transition-colors"
+                className="w-full px-3 py-2 text-xs bg-[#21202E]/60 border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] text-white placeholder:text-slate-500 transition-colors"
               />
             </div>
 
             <div>
-              <label className="block text-[11px] font-medium text-slate-700 mb-1.5">
+              <label className="block text-[11px] font-bold text-[#89899C] uppercase tracking-wider mb-1.5">
                 Image Banner URL
               </label>
               {watchAll.mediaUrl && (
-                <div className="mb-3 w-full h-24 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 relative group">
+                <div className="mb-3 w-full h-24 rounded-xl overflow-hidden bg-[#21202E] border border-white/10 relative group">
                   <img src={watchAll.mediaUrl} alt="Preview" className="w-full h-full object-cover" />
                   <button 
                     type="button"
                     onClick={() => setValue("mediaUrl", "")}
-                    className="absolute top-2 right-2 bg-slate-900/80 text-white p-1 rounded-full hover:bg-slate-950"
+                    className="absolute top-2 right-2 bg-black/80 text-white p-1 rounded-full hover:bg-black cursor-pointer"
                   >
                     <X size={10} />
                   </button>
@@ -446,15 +448,15 @@ const RecipeEditor = ({ recipe, userRole, onSave, onDelete, onBack }) => {
                       reader.readAsDataURL(file);
                     }
                   }}
-                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-slate-400 focus:bg-white transition-colors file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-[10px] file:font-medium file:bg-slate-200 file:text-slate-700 hover:file:bg-slate-300 cursor-pointer"
+                  className="w-full px-3 py-2 text-xs bg-[#21202E]/60 border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] text-white transition-colors file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-[10px] file:font-semibold file:bg-[#21202E] file:text-white hover:file:bg-[#36272B] hover:file:text-[#E55F37] cursor-pointer"
                 />
               </div>
             </div>
           </div>
 
           {/* Section 2: Nutrition */}
-          <div className="border border-slate-200 rounded-2xl p-5 bg-white shadow-sm space-y-4">
-            <h3 className="text-xs font-bold text-slate-900 border-b border-slate-100 pb-2 mb-1 uppercase tracking-wider">
+          <div className="border border-white/10 rounded-2xl p-5 bg-[#1A1A1A] shadow-sm space-y-4">
+            <h3 className="text-xs font-bold text-white border-b border-white/10 pb-2 mb-1 uppercase tracking-wider">
               2. Nutrition & Details
             </h3>
 
@@ -474,16 +476,16 @@ const RecipeEditor = ({ recipe, userRole, onSave, onDelete, onBack }) => {
                 {...register("prepTime")}
               />
               <div>
-                <label className="block text-[11px] font-medium text-slate-700 mb-1.5">
+                <label className="block text-[11px] font-bold text-[#89899C] uppercase tracking-wider mb-1.5">
                   Difficulty
                 </label>
                 <select
                   {...register("difficulty")}
-                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-slate-450 focus:bg-white transition-colors"
+                  className="w-full px-3 py-2 text-xs bg-[#21202E]/60 border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] text-white transition-colors cursor-pointer"
                 >
-                  <option value="Easy">Easy</option>
-                  <option value="Medium">Medium</option>
-                  <option value="Hard">Hard</option>
+                  <option value="Easy" className="bg-[#161616]">Easy</option>
+                  <option value="Medium" className="bg-[#161616]">Medium</option>
+                  <option value="Hard" className="bg-[#161616]">Hard</option>
                 </select>
               </div>
             </div>
@@ -527,43 +529,43 @@ const RecipeEditor = ({ recipe, userRole, onSave, onDelete, onBack }) => {
             </div>
 
             <div>
-              <label className="block text-[11px] font-medium text-slate-700 mb-1.5">
+              <label className="block text-[11px] font-bold text-[#89899C] uppercase tracking-wider mb-1.5">
                 Heart Benefits Overview
               </label>
               <textarea
                 rows="2"
                 placeholder="Briefly summarize benefits..."
                 {...register("heartBenefit")}
-                className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-slate-400 focus:bg-white transition-colors resize-none"
+                className="w-full px-3 py-2 text-xs bg-[#21202E]/60 border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] text-white placeholder:text-slate-500 transition-colors resize-none"
               ></textarea>
             </div>
           </div>
 
           {/* Section 3: Ingredients Builder */}
-          <div className="border border-slate-200 rounded-2xl p-5 bg-white shadow-sm space-y-4">
-            <div className="flex justify-between items-center border-b border-slate-100 pb-2 mb-1">
-              <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+          <div className="border border-white/10 rounded-2xl p-5 bg-[#1A1A1A] shadow-sm space-y-4">
+            <div className="flex justify-between items-center border-b border-white/10 pb-2 mb-1">
+              <h3 className="text-xs font-bold text-white uppercase tracking-wider">
                 3. Ingredients
               </h3>
               <div className="flex gap-2">
                 <button
                   type="button"
                   onClick={() => addIngredientRow(false)}
-                  className="text-[9px] font-bold bg-slate-50 border border-slate-200 text-slate-700 px-2 py-0.5 rounded-lg hover:bg-slate-100"
+                  className="text-[9px] font-bold bg-[#21202E] border border-white/10 text-white px-2.5 py-1 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
                 >
                   + Structured
                 </button>
                 <button
                   type="button"
                   onClick={() => addIngredientRow(true)}
-                  className="text-[9px] font-bold bg-slate-50 border border-slate-200 text-slate-700 px-2 py-0.5 rounded-lg hover:bg-slate-100"
+                  className="text-[9px] font-bold bg-[#21202E] border border-white/10 text-white px-2.5 py-1 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
                 >
                   + Free-text
                 </button>
               </div>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               {ingredientsList.map((ing, index) => (
                 <div key={index} className="flex items-center gap-2">
                   {ing.isFreeText ? (
@@ -572,7 +574,7 @@ const RecipeEditor = ({ recipe, userRole, onSave, onDelete, onBack }) => {
                       placeholder="e.g. 1 cup low-sodium chicken broth"
                       value={ing.name}
                       onChange={(e) => updateIngredientRow(index, "name", e.target.value)}
-                      className="flex-1 px-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-slate-400"
+                      className="flex-1 px-3 py-1.5 text-xs bg-[#21202E]/60 border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] text-white placeholder:text-slate-500"
                     />
                   ) : (
                     <div className="flex-1 flex gap-2">
@@ -581,21 +583,21 @@ const RecipeEditor = ({ recipe, userRole, onSave, onDelete, onBack }) => {
                         placeholder="Qty"
                         value={ing.amount}
                         onChange={(e) => updateIngredientRow(index, "amount", e.target.value)}
-                        className="w-16 px-2 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-slate-400"
+                        className="w-16 px-2.5 py-1.5 text-xs bg-[#21202E]/60 border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] text-white placeholder:text-slate-500"
                       />
                       <input
                         type="text"
                         placeholder="Unit"
                         value={ing.unit}
                         onChange={(e) => updateIngredientRow(index, "unit", e.target.value)}
-                        className="w-16 px-2 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-slate-400"
+                        className="w-16 px-2.5 py-1.5 text-xs bg-[#21202E]/60 border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] text-white placeholder:text-slate-500"
                       />
                       <input
                         type="text"
-                        placeholder="Ingredient Name (Chicken breast)"
+                        placeholder="Ingredient Name (e.g. Chicken breast)"
                         value={ing.name}
                         onChange={(e) => updateIngredientRow(index, "name", e.target.value)}
-                        className="flex-1 px-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-slate-400"
+                        className="flex-1 px-3 py-1.5 text-xs bg-[#21202E]/60 border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] text-white placeholder:text-slate-500"
                       />
                     </div>
                   )}
@@ -603,7 +605,7 @@ const RecipeEditor = ({ recipe, userRole, onSave, onDelete, onBack }) => {
                   <button
                     type="button"
                     onClick={() => toggleIngredientMode(index)}
-                    className="text-[9px] font-bold text-slate-400 hover:text-slate-700 px-1.5 py-1 rounded"
+                    className="text-[9px] font-bold text-[#89899C] hover:text-white px-2 py-1 rounded bg-[#21202E] border border-white/5 cursor-pointer"
                   >
                     {ing.isFreeText ? "Structure" : "Free-text"}
                   </button>
@@ -611,28 +613,28 @@ const RecipeEditor = ({ recipe, userRole, onSave, onDelete, onBack }) => {
                   <button
                     type="button"
                     onClick={() => removeIngredientRow(index)}
-                    className="text-slate-400 hover:text-red-500 p-1.5 rounded hover:bg-slate-100"
+                    className="text-slate-400 hover:text-red-400 p-1.5 rounded hover:bg-red-500/10 transition-colors cursor-pointer"
                   >
                     <Trash2 size={13} />
                   </button>
                 </div>
               ))}
               {ingredientsList.length === 0 && (
-                <p className="text-[10px] text-slate-400 text-center py-2">No ingredients added yet.</p>
+                <p className="text-[10px] text-[#89899C] text-center py-2">No ingredients added yet.</p>
               )}
             </div>
           </div>
 
           {/* Section 4: Instructions Builder */}
-          <div className="border border-slate-200 rounded-2xl p-5 bg-white shadow-sm space-y-4">
-            <div className="flex justify-between items-center border-b border-slate-100 pb-2 mb-1">
-              <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+          <div className="border border-white/10 rounded-2xl p-5 bg-[#1A1A1A] shadow-sm space-y-4">
+            <div className="flex justify-between items-center border-b border-white/10 pb-2 mb-1">
+              <h3 className="text-xs font-bold text-white uppercase tracking-wider">
                 4. Instructions
               </h3>
               <button
                 type="button"
                 onClick={addStep}
-                className="text-[9px] font-bold bg-slate-50 border border-slate-200 text-slate-700 px-2 py-0.5 rounded-lg hover:bg-slate-100"
+                className="text-[9px] font-bold bg-[#21202E] border border-white/10 text-white px-2.5 py-1 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
               >
                 + Add Step
               </button>
@@ -641,7 +643,7 @@ const RecipeEditor = ({ recipe, userRole, onSave, onDelete, onBack }) => {
             <div className="space-y-3">
               {stepsList.map((step, index) => (
                 <div key={index} className="flex gap-2 items-start">
-                  <span className="text-[9px] font-bold text-slate-400 mt-2.5 w-10 shrink-0">
+                  <span className="text-[9px] font-bold text-[#89899C] mt-2.5 w-10 shrink-0">
                     STEP {index + 1}
                   </span>
                   
@@ -650,7 +652,7 @@ const RecipeEditor = ({ recipe, userRole, onSave, onDelete, onBack }) => {
                     placeholder="Describe step..."
                     value={step}
                     onChange={(e) => updateStepVal(index, e.target.value)}
-                    className="flex-1 px-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-slate-400 resize-none"
+                    className="flex-1 px-3 py-1.5 text-xs bg-[#21202E]/60 border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] text-white placeholder:text-slate-500 resize-none"
                   ></textarea>
 
                   <div className="flex flex-col gap-0.5 shrink-0 mt-0.5">
@@ -658,7 +660,7 @@ const RecipeEditor = ({ recipe, userRole, onSave, onDelete, onBack }) => {
                       type="button"
                       disabled={index === 0}
                       onClick={() => moveStepUp(index)}
-                      className="p-1 text-slate-400 hover:text-slate-800 disabled:opacity-30 rounded hover:bg-slate-100"
+                      className="p-1 text-slate-400 hover:text-white disabled:opacity-30 rounded hover:bg-white/5 cursor-pointer"
                     >
                       <ArrowUp size={12} />
                     </button>
@@ -666,7 +668,7 @@ const RecipeEditor = ({ recipe, userRole, onSave, onDelete, onBack }) => {
                       type="button"
                       disabled={index === stepsList.length - 1}
                       onClick={() => moveStepDown(index)}
-                      className="p-1 text-slate-400 hover:text-slate-800 disabled:opacity-30 rounded hover:bg-slate-100"
+                      className="p-1 text-slate-400 hover:text-white disabled:opacity-30 rounded hover:bg-white/5 cursor-pointer"
                     >
                       <ArrowDown size={12} />
                     </button>
@@ -675,36 +677,36 @@ const RecipeEditor = ({ recipe, userRole, onSave, onDelete, onBack }) => {
                   <button
                     type="button"
                     onClick={() => removeStep(index)}
-                    className="text-slate-400 hover:text-red-500 p-1.5 rounded hover:bg-slate-100 mt-1 shrink-0"
+                    className="text-slate-400 hover:text-red-400 p-1.5 rounded hover:bg-red-500/10 mt-1 shrink-0 cursor-pointer"
                   >
                     <Trash2 size={13} />
                   </button>
                 </div>
               ))}
               {stepsList.length === 0 && (
-                <p className="text-[10px] text-slate-400 text-center py-2">No steps added yet.</p>
+                <p className="text-[10px] text-[#89899C] text-center py-2">No steps added yet.</p>
               )}
             </div>
           </div>
 
           {/* Section 5: Expert Review & Dietary Compatibility */}
-          <div className="border border-slate-200 rounded-2xl p-5 bg-white shadow-sm space-y-4">
-            <h3 className="text-xs font-bold text-slate-900 border-b border-slate-100 pb-2 mb-1 uppercase tracking-wider">
+          <div className="border border-white/10 rounded-2xl p-5 bg-[#1A1A1A] shadow-sm space-y-4">
+            <h3 className="text-xs font-bold text-white border-b border-white/10 pb-2 mb-1 uppercase tracking-wider">
               5. Expert Review & Dietary Compatibility
             </h3>
 
             {/* Expert Switch Toggle */}
-            <div className="flex items-center justify-between p-3 border border-slate-100 rounded-xl bg-slate-50/50">
+            <div className="flex items-center justify-between p-3.5 border border-white/10 rounded-xl bg-[#21202E]/40">
               <div>
-                <h4 className="text-xs font-semibold text-slate-800 flex items-center gap-1.5">
+                <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
                   {watchAll.expertValidated ? (
-                    <ShieldCheck size={14} className="text-emerald-600" />
+                    <ShieldCheck size={14} className="text-emerald-400" />
                   ) : (
-                    <ShieldAlert size={14} className="text-slate-400" />
+                    <ShieldAlert size={14} className="text-amber-400" />
                   )}
                   {watchAll.expertValidated ? "Expert Reviewed" : "Pending Review"}
                 </h4>
-                <p className="text-[10px] text-slate-500 leading-tight mt-0.5">
+                <p className="text-[10px] text-[#89899C] leading-tight mt-0.5">
                   {watchAll.expertValidated
                     ? "Reviewed or developed with input from a qualified nutrition expert."
                     : "Sourced from an external reference and has not yet been reviewed by a nutrition expert."}
@@ -720,7 +722,7 @@ const RecipeEditor = ({ recipe, userRole, onSave, onDelete, onBack }) => {
                   onChange={(e) => setValue("expertValidated", e.target.checked)}
                 />
                 <div
-                  className={`w-9 h-5 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all ${
+                  className={`w-9 h-5 bg-[#161616] border border-white/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all ${
                     !(userRole === "medical_expert" || userRole === "super_admin" || userRole === "admin") ? "cursor-not-allowed opacity-50" : ""
                   } peer-checked:bg-emerald-500`}
                 ></div>
@@ -728,14 +730,14 @@ const RecipeEditor = ({ recipe, userRole, onSave, onDelete, onBack }) => {
             </div>
 
             {/* Compact Dietary row */}
-            <div className="flex items-center gap-4 text-[10px] text-slate-500 pt-1">
-              <span className="font-semibold text-slate-700">Dietary Compatibility:</span>
+            <div className="flex items-center gap-4 text-[10px] text-[#89899C] pt-1">
+              <span className="font-bold text-white">Dietary Compatibility:</span>
               <div className="flex items-center gap-3">
                 {Object.keys(dietMap).map((key) => (
                   <span 
                     key={key} 
                     className={`font-semibold capitalize flex items-center gap-0.5 ${
-                      dietMap[key] ? "text-emerald-700" : "text-slate-300"
+                      dietMap[key] ? "text-emerald-400" : "text-slate-600"
                     }`}
                   >
                     {dietMap[key] ? "✓" : "—"} {key}
@@ -748,45 +750,45 @@ const RecipeEditor = ({ recipe, userRole, onSave, onDelete, onBack }) => {
         </div>
 
         {/* Right Side: Lightweight Preview Frame */}
-        <div className="w-[280px] shrink-0 hidden xl:flex flex-col bg-slate-50/50 p-4 border border-slate-200 rounded-2xl h-[560px] overflow-y-auto custom-scrollbar">
-          <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1">
-            <Sparkles size={11} className="text-slate-500" /> Mobile View Preview
+        <div className="w-[280px] shrink-0 hidden xl:flex flex-col bg-[#161616] p-4 border border-white/10 rounded-2xl h-[560px] overflow-y-auto custom-scrollbar">
+          <h4 className="text-[10px] font-bold text-[#89899C] uppercase tracking-wider mb-2 flex items-center gap-1">
+            <Sparkles size={11} className="text-[#E55F37]" /> Mobile View Preview
           </h4>
           
-          <div className="flex-1 bg-white rounded-xl border border-slate-100 overflow-hidden flex flex-col shadow-inner text-[10px]">
+          <div className="flex-1 bg-[#1A1A1A] rounded-xl border border-white/10 overflow-hidden flex flex-col shadow-inner text-[10px]">
             {/* Preview Banner */}
-            <div className="w-full h-24 bg-slate-100 relative overflow-hidden flex items-center justify-center border-b border-slate-100">
+            <div className="w-full h-24 bg-[#21202E] relative overflow-hidden flex items-center justify-center border-b border-white/10">
               {watchAll.mediaUrl ? (
                 <img src={watchAll.mediaUrl} alt="Preview" className="w-full h-full object-cover" />
               ) : (
-                <Utensils size={18} className="text-slate-300 stroke-1" />
+                <Utensils size={18} className="text-slate-600 stroke-1" />
               )}
-              <span className="absolute bottom-1.5 left-1.5 bg-slate-900/80 text-white font-bold text-[7px] px-1 py-0.2 rounded uppercase">
+              <span className="absolute bottom-1.5 left-1.5 bg-[#161616]/90 border border-white/10 text-white font-bold text-[7px] px-1.5 py-0.5 rounded uppercase">
                 {watchAll.category}
               </span>
             </div>
 
             {/* Preview Content */}
-            <div className="p-3 space-y-3 overflow-y-auto flex-1 custom-scrollbar">
+            <div className="p-3 space-y-3 overflow-y-auto flex-1 custom-scrollbar text-white">
               <div>
-                <h5 className="font-bold text-slate-900 leading-tight">
+                <h5 className="font-bold text-white leading-tight">
                   {watchAll.name || "Recipe Title"}
                 </h5>
-                <p className="text-[8px] text-slate-400 mt-0.5 uppercase tracking-wide font-medium">
+                <p className="text-[8px] text-[#89899C] mt-0.5 uppercase tracking-wide font-medium">
                   {watchAll.difficulty} • {watchAll.prepTime} mins • {watchAll.servings} serving{watchAll.servings === 1 ? "" : "s"}
                 </p>
               </div>
 
               {/* HSS Suitability block */}
-              <div className="p-2 border border-slate-100 rounded-lg bg-slate-50/50 flex justify-between items-center">
+              <div className="p-2 border border-white/10 rounded-lg bg-[#21202E]/60 flex justify-between items-center">
                 <div>
-                  <span className="text-[7px] text-slate-400 font-bold uppercase tracking-wider block">HSS SUITABILITY</span>
-                  <span className="font-bold text-slate-800">{watchAll.hssTarget}</span>
+                  <span className="text-[7px] text-[#89899C] font-bold uppercase tracking-wider block">HSS SUITABILITY</span>
+                  <span className="font-bold text-white">{watchAll.hssTarget}</span>
                 </div>
                 {watchAll.expertValidated ? (
-                  <span className="text-[7px] font-bold text-emerald-700 bg-emerald-50 px-1 py-0.5 rounded border border-emerald-100">Reviewed</span>
+                  <span className="text-[7px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">Reviewed</span>
                 ) : (
-                  <span className="text-[7px] font-bold text-amber-600 bg-amber-50 px-1 py-0.5 rounded border border-amber-100">Unreviewed</span>
+                  <span className="text-[7px] font-bold text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">Unreviewed</span>
                 )}
               </div>
 
@@ -799,40 +801,40 @@ const RecipeEditor = ({ recipe, userRole, onSave, onDelete, onBack }) => {
                   { label: "fiber", val: `${watchAll.fiber}g` },
                   { label: "chol.", val: `${watchAll.cholesterol}mg` }
                 ].map((item, idx) => (
-                  <div key={idx} className="bg-slate-100/40 p-1 border border-slate-50 rounded flex flex-col items-center">
-                    <span className="text-[6px] text-slate-400 font-medium uppercase leading-none">{item.label}</span>
-                    <span className="text-[8px] font-bold text-slate-800 mt-0.5 leading-none">{item.val}</span>
+                  <div key={idx} className="bg-[#21202E]/60 p-1 border border-white/5 rounded flex flex-col items-center">
+                    <span className="text-[6px] text-[#89899C] font-medium uppercase leading-none">{item.label}</span>
+                    <span className="text-[8px] font-bold text-white mt-0.5 leading-none">{item.val}</span>
                   </div>
                 ))}
               </div>
 
               {/* Ingredients */}
               <div>
-                <p className="text-[8px] font-bold text-slate-400 uppercase tracking-wider mb-1">Ingredients</p>
-                <ul className="list-disc list-inside space-y-0.5 text-slate-600 text-[9px]">
+                <p className="text-[8px] font-bold text-[#89899C] uppercase tracking-wider mb-1">Ingredients</p>
+                <ul className="list-disc list-inside space-y-0.5 text-slate-300 text-[9px]">
                   {ingredientsList.map((ing, idx) => (
                     <li key={idx} className="truncate">
                       {formatPreviewIngredient(ing)}
                     </li>
                   ))}
                   {ingredientsList.length === 0 && (
-                    <p className="text-[8px] text-slate-400 italic">No ingredients.</p>
+                    <p className="text-[8px] text-slate-500 italic">No ingredients.</p>
                   )}
-                </div>
+                </ul>
               </div>
 
               {/* Steps */}
               <div>
-                <p className="text-[8px] font-bold text-slate-400 uppercase tracking-wider mb-1">Instructions</p>
+                <p className="text-[8px] font-bold text-[#89899C] uppercase tracking-wider mb-1">Instructions</p>
                 <div className="space-y-1">
                   {stepsList.map((step, idx) => (
-                    <div key={idx} className="flex gap-1 items-start text-[8px] text-slate-600 leading-snug">
-                      <span className="font-bold text-slate-900 shrink-0">{idx + 1}.</span>
+                    <div key={idx} className="flex gap-1 items-start text-[8px] text-slate-300 leading-snug">
+                      <span className="font-bold text-[#E55F37] shrink-0">{idx + 1}.</span>
                       <p>{step}</p>
                     </div>
                   ))}
                   {stepsList.length === 0 && (
-                    <p className="text-[8px] text-slate-400 italic">No instructions.</p>
+                    <p className="text-[8px] text-slate-500 italic">No instructions.</p>
                   )}
                 </div>
               </div>
@@ -844,14 +846,14 @@ const RecipeEditor = ({ recipe, userRole, onSave, onDelete, onBack }) => {
       </div>
 
       {/* Editor Screen Footer Actions */}
-      <div className="pt-4 border-t border-slate-100 bg-white flex justify-between items-center shrink-0 mt-6">
+      <div className="pt-4 border-t border-white/10 bg-[#161616] flex justify-between items-center shrink-0 mt-6">
         <div className="flex items-center gap-4">
           {/* Status Actions */}
           {watchAll.status === "archived" && (
             <button
               type="button"
               onClick={() => setValue("status", "draft")}
-              className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 hover:text-emerald-700 transition-colors"
+              className="flex items-center gap-1 text-xs font-bold text-emerald-400 hover:text-emerald-300 transition-colors cursor-pointer"
             >
               <CheckCircle2 size={13} /> Restore to Draft
             </button>
@@ -860,7 +862,7 @@ const RecipeEditor = ({ recipe, userRole, onSave, onDelete, onBack }) => {
             <button
               type="button"
               onClick={() => setValue("status", "published")}
-              className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 hover:text-emerald-700 transition-colors"
+              className="flex items-center gap-1 text-xs font-bold text-emerald-400 hover:text-emerald-300 transition-colors cursor-pointer"
             >
               <CheckCircle2 size={13} /> Publish Recipe
             </button>
@@ -869,7 +871,7 @@ const RecipeEditor = ({ recipe, userRole, onSave, onDelete, onBack }) => {
             <button
               type="button"
               onClick={() => setValue("status", "archived")}
-              className="flex items-center gap-1 text-[11px] font-bold text-slate-400 hover:text-orange-500 transition-colors"
+              className="flex items-center gap-1 text-xs font-bold text-amber-400 hover:text-amber-300 transition-colors cursor-pointer"
             >
               <Archive size={13} /> Archive Entry
             </button>
@@ -884,26 +886,25 @@ const RecipeEditor = ({ recipe, userRole, onSave, onDelete, onBack }) => {
                   onBack();
                 }
               }}
-              className="flex items-center gap-1 text-[11px] font-medium text-slate-400 hover:text-red-500 transition-colors"
+              className="flex items-center gap-1 text-xs font-semibold text-red-400 hover:text-red-300 transition-colors cursor-pointer"
             >
               <Trash2 size={13} /> Delete Entry
             </button>
           )}
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex gap-2.5">
           <button
             type="button"
             onClick={onBack}
-            className="px-4 py-1.5 text-[11px] font-semibold text-slate-500 hover:bg-slate-200 bg-slate-100 rounded-xl transition-colors"
+            className="px-4 py-2 text-xs font-semibold text-slate-300 hover:text-white bg-[#21202E] border border-white/10 rounded-xl transition-colors cursor-pointer"
           >
             Cancel
           </button>
           <button
             type="button"
             onClick={handleSubmit(onSubmit)}
-            className="flex items-center gap-1.5 px-5 py-1.5 text-[11px] font-semibold text-white rounded-xl transition-all hover:opacity-90 active:scale-[0.99] shadow-sm"
-            style={{ backgroundColor: "#0f172a" }}
+            className="flex items-center gap-1.5 px-5 py-2 text-xs font-bold text-white bg-[#E55F37] hover:bg-[#D4542E] rounded-xl shadow-sm shadow-[#E55F37]/25 transition-all cursor-pointer"
           >
             <Save size={13} /> Save Changes
           </button>

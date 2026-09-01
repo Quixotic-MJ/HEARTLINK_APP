@@ -4,6 +4,7 @@ import {
   Lock, 
   Eye, 
   EyeOff, 
+  Check,
   ArrowRight, 
   KeyRound, 
   ArrowLeft, 
@@ -114,7 +115,7 @@ function BrandLogoLockup({ dark = false, size = "md", withTagline = false }) {
 
   return (
     <div className="flex flex-col items-start select-none">
-      <div className={`flex items-center ${config.gap} leading-none`}>
+      <div className={`flex items-center ${config.gap} leading-tight`}>
         <HeartLogoIcon size={config.icon} />
         <span className={`font-semibold tracking-tight ${config.text} flex items-start`} style={{ color: textColor }}>
           <span>HeartLink</span>
@@ -164,7 +165,7 @@ function ForgotPasswordModal({ isOpen, onClose }) {
 
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="forgot-password-title"
@@ -173,41 +174,41 @@ function ForgotPasswordModal({ isOpen, onClose }) {
         initial={{ opacity: 0, scale: 0.95, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 10 }}
-        className="bg-white rounded-2xl border border-slate-200 max-w-md w-full p-6 shadow-xl relative"
+        className="bg-[#161616] rounded-2xl border border-white/10 max-w-md w-full p-6 shadow-2xl relative text-white"
       >
         <button
           type="button"
           onClick={onClose}
           aria-label="Close dialog"
-          className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+          className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
         >
           <X size={18} />
         </button>
 
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600">
+          <div className="w-10 h-10 rounded-xl bg-[#36272B] border border-white/5 flex items-center justify-center text-[#E55F37]">
             <HelpCircle size={20} />
           </div>
           <div>
-            <h3 id="forgot-password-title" className="text-lg font-bold text-slate-900">
+            <h3 id="forgot-password-title" className="text-base font-bold text-white">
               Account Recovery
             </h3>
-            <p className="text-xs text-slate-500">Password Reset Assistance</p>
+            <p className="text-xs text-slate-400">Password Reset Assistance</p>
           </div>
         </div>
 
         {!submitted ? (
           <form onSubmit={handleSubmit} className="space-y-4">
-            <p className="text-sm text-slate-600 leading-relaxed">
+            <p className="text-xs text-slate-400 leading-relaxed">
               Enter your registered email address or username. Instructions to reset your password will be sent to your account.
             </p>
 
             <div>
-              <label htmlFor="recovery-identifier" className="text-xs font-semibold text-slate-900 block mb-1.5">
+              <label htmlFor="recovery-identifier" className="text-xs font-semibold text-white block mb-1.5">
                 Email or Username
               </label>
-              <div className="w-full rounded-xl flex items-center px-4 min-h-[48px] border border-slate-200 bg-slate-50 focus-within:border-blue-600 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-600/15 transition-all">
-                <User size={16} className="text-slate-400 mr-2.5" />
+              <div className="w-full rounded-xl flex items-center px-4 min-h-[44px] border border-white/10 bg-[#1A1A1A] focus-within:border-[#E55F37] transition-all">
+                <User size={15} className="text-slate-500 mr-2.5" />
                 <input
                   id="recovery-identifier"
                   type="text"
@@ -215,13 +216,13 @@ function ForgotPasswordModal({ isOpen, onClose }) {
                   placeholder="admin@heartlink.ph"
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
-                  className="flex-1 text-sm text-slate-900 placeholder:text-slate-400 bg-transparent outline-none py-2"
+                  className="flex-1 text-xs sm:text-sm text-white placeholder:text-slate-500 bg-transparent outline-none py-2"
                 />
               </div>
             </div>
 
-            <div className="p-3 bg-blue-50 border border-blue-200/80 rounded-xl text-xs text-blue-800 flex items-start gap-2">
-              <Shield size={14} className="text-blue-600 shrink-0 mt-0.5" />
+            <div className="p-3 bg-[#21202E]/60 border border-white/5 rounded-xl text-xs text-[#89899C] flex items-start gap-2">
+              <Shield size={14} className="text-[#E55F37] shrink-0 mt-0.5" />
               <span>If you need immediate access, you can also contact your system administrator directly.</span>
             </div>
 
@@ -229,18 +230,18 @@ function ForgotPasswordModal({ isOpen, onClose }) {
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 py-3 px-4 rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+                className="flex-1 py-2.5 px-4 rounded-xl border border-white/10 text-xs font-semibold text-slate-300 hover:bg-white/5 transition-colors cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={isSubmitting || !identifier.trim()}
-                className="flex-1 py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-sm font-semibold text-white shadow-sm transition-all flex items-center justify-center gap-2"
+                className="flex-1 py-2.5 px-4 rounded-xl bg-[#D15334] hover:bg-[#b0452a] disabled:opacity-60 text-xs font-semibold text-white shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
                 {isSubmitting ? (
                   <>
-                    <Loader2 size={16} className="animate-spin" />
+                    <Loader2 size={15} className="animate-spin" />
                     <span>Sending...</span>
                   </>
                 ) : (
@@ -252,18 +253,18 @@ function ForgotPasswordModal({ isOpen, onClose }) {
         ) : (
           <div className="space-y-4 py-2">
             <div className="text-center py-4">
-              <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center mx-auto mb-3">
+              <div className="w-12 h-12 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 flex items-center justify-center mx-auto mb-3">
                 <CheckCircle2 size={24} />
               </div>
-              <h4 className="text-base font-bold text-slate-900 mb-1">Request Received</h4>
-              <p className="text-sm text-slate-600 leading-relaxed max-w-xs mx-auto">
+              <h4 className="text-base font-bold text-white mb-1">Request Received</h4>
+              <p className="text-xs text-slate-400 leading-relaxed max-w-xs mx-auto">
                 If the provided identifier corresponds to an active staff account, instructions have been generated.
               </p>
             </div>
             <button
               type="button"
               onClick={onClose}
-              className="w-full py-3 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-sm font-semibold text-white transition-colors"
+              className="w-full py-2.5 px-4 rounded-xl bg-[#D15334] hover:bg-[#b0452a] text-xs font-semibold text-white transition-colors cursor-pointer"
             >
               Return to Sign In
             </button>
@@ -390,76 +391,61 @@ export default function HeartLinkAdminLogin() {
 
   return (
     <div 
-      className="min-h-screen w-full flex flex-col lg:flex-row bg-[#F8FAFC] text-slate-900 selection:bg-blue-600 selection:text-white"
+      className="min-h-screen lg:h-screen lg:overflow-hidden w-full flex flex-col lg:flex-row bg-[#161616] text-white selection:bg-[#E55F37] selection:text-white"
       style={{ fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}
     >
       {/* ═════════════════════════════════════════════════════════════════════════
           LEFT ZONE — Desktop Brand Showcase (lg and above)
-          Calm, professional, trustworthy healthcare tone
       ═════════════════════════════════════════════════════════════════════════ */}
       <section 
-        className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 xl:p-16 relative overflow-hidden bg-[#0B132B]"
+        className="hidden lg:flex lg:w-1/2 flex-col justify-between py-6 px-6 lg:py-8 lg:px-10 xl:px-12 relative bg-[#13121F] overflow-y-auto overflow-x-hidden [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden select-none"
         aria-label="HeartLink Brand Overview"
       >
-        {/* Subtle background ambient gradients */}
-        <div 
-          className="absolute inset-0 pointer-events-none opacity-40"
-          style={{
-            background: "radial-gradient(ellipse 60% 50% at 30% 20%, rgba(37,99,235,0.18) 0%, transparent 70%)",
-          }}
-        />
-        <div 
-          className="absolute inset-0 pointer-events-none opacity-30"
-          style={{
-            background: "radial-gradient(ellipse 50% 60% at 80% 80%, rgba(244,63,94,0.12) 0%, transparent 70%)",
-          }}
-        />
-
         {/* Top brand header */}
         <div className="relative z-10">
           <BrandLogoLockup size="md" dark={false} />
-          <p className="text-[10px] uppercase tracking-[0.2em] text-slate-400 font-medium mt-1.5 pl-[42px]">
-            Admin & Management Portal
+          <p className="text-[9px] uppercase tracking-[0.05em] text-[#E55F37] font-bold mt-1 pl-[42px]">
+            ADMIN & MANAGEMENT PORTAL
           </p>
         </div>
 
         {/* Center narrative & trust pillars */}
-        <div className="relative z-10 max-w-lg my-auto py-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-400/20 text-blue-400 text-xs font-semibold tracking-wide mb-6">
-            <Shield size={13} />
-            <span>Admin & Management Portal</span>
+        <div className="relative z-10 max-w-md my-auto py-2">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-[#E55F37] text-[#E55F37] text-[11px] font-semibold tracking-wide mb-4">
+            <HeartLogoIcon size={13} className="opacity-90" />
+            <span>Admin & management portal</span>
           </div>
 
-          <h2 className="text-3xl xl:text-4xl font-bold text-white tracking-tight leading-[1.2] mb-4">
-            Smart cardiovascular wellness & health tracking.
+          <h2 className="text-2xl xl:text-3xl font-bold text-white tracking-tight leading-snug mb-3">
+            Smart cardiovascular<br/>wellness and health<br/>tracking.
           </h2>
 
-          <p className="text-slate-400 text-sm xl:text-base leading-relaxed mb-8">
-            Centralized dashboard for monitoring heart wellness logs, managing food & exercise content, and reviewing health insights.
+          <p className="text-[#89899C] text-xs xl:text-sm leading-relaxed mb-6 font-medium">
+            Centralized dashboard for monitoring heart<br/>wellness logs, managing food and exercise content,<br/>and reviewing health insights.
           </p>
 
           {/* Trust Pillars */}
-          <div className="space-y-3.5 pt-2">
-            <div className="flex items-start gap-3.5 p-3.5 rounded-xl bg-white/[0.03] border border-white/[0.08] backdrop-blur-sm">
-              <div className="w-8 h-8 rounded-lg bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0 mt-0.5">
-                <Activity size={16} />
+          <div className="space-y-2.5">
+            <div className="flex items-start gap-3 p-3 rounded-xl bg-[#21202E]/60 border border-white/5 backdrop-blur-sm">
+              <div className="w-8 h-8 rounded-lg bg-[#36272B] flex items-center justify-center text-[#E55F37] shrink-0">
+                <Activity size={16} strokeWidth={2.5} />
               </div>
-              <div>
-                <p className="text-xs font-semibold text-white">Real-Time Health Monitoring</p>
-                <p className="text-[11px] text-slate-400 leading-normal mt-0.5">
-                  Live heart metrics, wellness scores, and daily health activity updates.
+              <div className="mt-0.5">
+                <p className="text-xs font-bold text-white">Real-time health monitoring</p>
+                <p className="text-[11px] text-[#89899C] leading-snug mt-0.5 font-medium">
+                  Live heart metrics, wellness scores, and daily updates.
                 </p>
               </div>
             </div>
 
-            <div className="flex items-start gap-3.5 p-3.5 rounded-xl bg-white/[0.03] border border-white/[0.08] backdrop-blur-sm">
-              <div className="w-8 h-8 rounded-lg bg-rose-500/20 border border-rose-500/30 flex items-center justify-center text-rose-400 shrink-0 mt-0.5">
-                <Shield size={16} />
+            <div className="flex items-start gap-3 p-3 rounded-xl bg-[#21202E]/60 border border-white/5 backdrop-blur-sm">
+              <div className="w-8 h-8 rounded-lg bg-[#36272B] flex items-center justify-center text-[#E55F37] shrink-0">
+                <Shield size={16} strokeWidth={2.5} />
               </div>
-              <div>
-                <p className="text-xs font-semibold text-white">Role-Based Access</p>
-                <p className="text-[11px] text-slate-400 leading-normal mt-0.5">
-                  Dedicated workspaces for administrators and health specialist reviews.
+              <div className="mt-0.5">
+                <p className="text-xs font-bold text-white">Role-based access</p>
+                <p className="text-[11px] text-[#89899C] leading-snug mt-0.5 font-medium">
+                  Dedicated workspaces for admins and health specialists.
                 </p>
               </div>
             </div>
@@ -467,65 +453,63 @@ export default function HeartLinkAdminLogin() {
         </div>
 
         {/* Left Footer info */}
-        <div className="relative z-10 flex items-center justify-between text-xs text-slate-500 border-t border-white/10 pt-6">
-          <span>HeartLink Web Portal • v1.0</span>
+        <div className="relative z-10 flex items-center justify-between text-[11px] text-[#89899C] border-t border-white/10 pt-4 font-medium">
+          <span>HeartLink web portal • v1.0</span>
           <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-slate-400 text-[11px]">System Online</span>
+            <span className="w-2 h-2 rounded-full bg-[#5EC235]" />
+            <span className="text-[#5EC235]">System online</span>
           </div>
         </div>
       </section>
 
       {/* ═════════════════════════════════════════════════════════════════════════
           RIGHT ZONE — Login Card & Authentication Form
-          Responsive across 320px to 1440px+
       ═════════════════════════════════════════════════════════════════════════ */}
-      <main className="w-full lg:w-1/2 flex-1 flex flex-col justify-between p-5 sm:p-8 lg:p-12 xl:p-16 overflow-y-auto">
+      <main className="w-full lg:w-1/2 flex-1 flex flex-col justify-between py-6 px-4 sm:px-8 lg:py-8 lg:px-10 xl:px-12 bg-[#161616] overflow-y-auto overflow-x-hidden [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
         
         {/* Mobile Header (Hidden on Desktop) */}
-        <header className="flex lg:hidden items-center justify-between w-full max-w-[420px] mx-auto pt-2 pb-6">
+        <header className="flex lg:hidden items-center justify-between w-full max-w-[390px] mx-auto pt-1 pb-4">
           {step === "2fa" ? (
             <button
               type="button"
               onClick={() => { setStep("login"); setStructuredError(null); }}
-              className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-900 hover:bg-slate-50 shadow-sm transition-all active:scale-95 cursor-pointer"
-              aria-label="Back to sign in"
+              className="w-8 h-8 rounded-lg bg-[#1A1A1A] border border-white/10 flex items-center justify-center text-white hover:bg-white/5 transition-all cursor-pointer"
             >
-              <ArrowLeft size={18} />
+              <ArrowLeft size={16} />
             </button>
           ) : (
-            <div className="w-9 h-9" />
+            <div className="w-8 h-8" />
           )}
 
-          <BrandLogoLockup size="sm" dark={true} />
+          <BrandLogoLockup size="sm" dark={false} />
 
-          <div className="w-9 h-9" />
+          <div className="w-8 h-8" />
         </header>
 
         {/* Main Authentication Card Container */}
-        <div className="w-full max-w-[420px] mx-auto my-auto py-4">
+        <div className="w-full max-w-[390px] mx-auto my-auto py-1">
           
           <AnimatePresence mode="wait">
             {step === "login" ? (
               <motion.div
                 key="login-step"
-                initial={{ opacity: 0, y: 12 }}
+                initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -12 }}
-                transition={{ duration: 0.25, ease: "easeOut" }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
               >
-                {/* Heading (matches mobile heading tokens) */}
-                <div className="mb-6 px-1">
-                  <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight leading-tight mb-1.5">
+                {/* Heading */}
+                <div className="mb-5 px-1">
+                  <h1 className="text-2xl sm:text-[28px] font-bold text-white tracking-tight leading-tight mb-1.5">
                     Welcome back.
                   </h1>
-                  <p className="text-sm text-slate-500 leading-relaxed">
+                  <p className="text-xs sm:text-sm text-slate-400 font-medium leading-relaxed">
                     Sign in to access your administrative dashboard.
                   </p>
                 </div>
 
-                {/* Form Card (matches mobile card tokens: bg-card rounded-2xl border px-5 py-6 shadow-md) */}
-                <div className="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 shadow-sm space-y-4">
+                {/* Form Card */}
+                <div className="bg-transparent rounded-[14px] border border-white/10 p-5 sm:p-6 shadow-sm space-y-3">
                   
                   <form onSubmit={handleLoginSubmit(onLogin)} className="space-y-4" noValidate>
                     
@@ -533,39 +517,30 @@ export default function HeartLinkAdminLogin() {
                     <div>
                       <label 
                         htmlFor="identifier" 
-                        className="text-sm font-semibold text-slate-900 mb-1.5 ml-1 block"
+                        className="text-xs font-bold text-white mb-1.5 block"
                       >
-                        Email or Username
+                        Email or username
                       </label>
                       <div 
-                        className={`w-full rounded-xl flex items-center px-4 min-h-[50px] sm:min-h-[52px] border transition-all ${
+                        className={`w-full rounded-[8px] flex items-center px-3.5 min-h-[42px] border transition-all ${
                           loginErrors.identifier
-                            ? "border-red-500 bg-red-50/30 ring-2 ring-red-500/10"
-                            : "border-slate-200 bg-[#F8FAFC] focus-within:border-blue-600 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-600/15"
+                            ? "border-red-500 bg-red-500/10"
+                            : "border-white/10 bg-[#1A1A1A] focus-within:border-[#E55F37]"
                         }`}
                       >
-                        <User 
-                          size={18} 
-                          className={loginErrors.identifier ? "text-red-500 shrink-0" : "text-slate-400 shrink-0 group-focus-within:text-blue-600 transition-colors"} 
-                        />
                         <input
                           id="identifier"
                           type="text"
                           placeholder="Enter your email or username"
                           autoComplete="username"
                           aria-invalid={!!loginErrors.identifier}
-                          aria-describedby={loginErrors.identifier ? "identifier-error" : undefined}
-                          className="flex-1 ml-3 text-sm text-slate-900 placeholder:text-slate-400 bg-transparent outline-none py-3"
+                          className="flex-1 text-xs sm:text-sm text-white placeholder:text-slate-500 bg-transparent outline-none py-2 font-medium"
                           {...registerLogin("identifier")}
                         />
                       </div>
                       {loginErrors.identifier && (
-                        <div 
-                          id="identifier-error"
-                          role="alert"
-                          className="flex items-center gap-1.5 mt-1.5 ml-1 text-red-500 text-xs font-medium"
-                        >
-                          <AlertCircle size={12} className="shrink-0" />
+                        <div className="flex items-center gap-1.5 mt-1.5 ml-0.5 text-red-500 text-[11px] font-medium">
+                          <AlertCircle size={11} className="shrink-0" />
                           <span>{loginErrors.identifier.message}</span>
                         </div>
                       )}
@@ -573,63 +548,52 @@ export default function HeartLinkAdminLogin() {
 
                     {/* Password Input */}
                     <div>
-                      <div className="flex items-center justify-between mb-1.5 ml-1">
-                        <label 
-                          htmlFor="password" 
-                          className="text-sm font-semibold text-slate-900 block"
-                        >
-                          Password
-                        </label>
-                      </div>
+                      <label 
+                        htmlFor="password" 
+                        className="text-xs font-bold text-white mb-1.5 block"
+                      >
+                        Password
+                      </label>
 
                       <div 
-                        className={`w-full rounded-xl flex items-center px-4 min-h-[50px] sm:min-h-[52px] border transition-all ${
+                        className={`w-full rounded-[8px] flex items-center px-3.5 min-h-[42px] border transition-all ${
                           loginErrors.password
-                            ? "border-red-500 bg-red-50/30 ring-2 ring-red-500/10"
-                            : "border-slate-200 bg-[#F8FAFC] focus-within:border-blue-600 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-600/15"
+                            ? "border-red-500 bg-red-500/10"
+                            : "border-white/10 bg-[#1A1A1A] focus-within:border-[#E55F37]"
                         }`}
                       >
-                        <Lock 
-                          size={18} 
-                          className={loginErrors.password ? "text-red-500 shrink-0" : "text-slate-400 shrink-0 group-focus-within:text-blue-600 transition-colors"} 
-                        />
                         <input
                           id="password"
                           type={showPassword ? "text" : "password"}
                           placeholder="Enter your password"
                           autoComplete="current-password"
                           aria-invalid={!!loginErrors.password}
-                          aria-describedby={loginErrors.password ? "password-error" : undefined}
-                          className="flex-1 ml-3 text-sm text-slate-900 placeholder:text-slate-400 bg-transparent outline-none py-3"
+                          className="flex-1 text-xs sm:text-sm text-white placeholder:text-slate-500 bg-transparent outline-none py-2 font-medium"
                           {...registerLogin("password")}
                         />
                         <button
                           type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="p-1 -mr-1 text-slate-400 hover:text-slate-600 focus:outline-none transition-colors cursor-pointer"
+                          onClick={() => setShowPassword((prev) => !prev)}
+                          className="text-slate-400 hover:text-white p-1 transition-colors cursor-pointer"
                           aria-label={showPassword ? "Hide password" : "Show password"}
                         >
-                          {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                          {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                         </button>
                       </div>
 
                       {loginErrors.password && (
-                        <div 
-                          id="password-error"
-                          role="alert"
-                          className="flex items-center gap-1.5 mt-1.5 ml-1 text-red-500 text-xs font-medium"
-                        >
-                          <AlertCircle size={12} className="shrink-0" />
+                        <div className="flex items-center gap-1.5 mt-1.5 ml-0.5 text-red-500 text-[11px] font-medium">
+                          <AlertCircle size={11} className="shrink-0" />
                           <span>{loginErrors.password.message}</span>
                         </div>
                       )}
 
                       {/* Forgot Password trigger */}
-                      <div className="flex justify-end pt-1 px-1">
+                      <div className="flex justify-end pt-1.5">
                         <button
                           type="button"
                           onClick={() => setIsForgotModalOpen(true)}
-                          className="text-xs font-semibold text-blue-600 hover:text-blue-700 transition-colors cursor-pointer"
+                          className="text-[11px] font-medium text-[#E55F37] hover:text-[#D4542E] transition-colors cursor-pointer"
                         >
                           Forgot your password?
                         </button>
@@ -637,16 +601,23 @@ export default function HeartLinkAdminLogin() {
                     </div>
 
                     {/* Keep me signed in */}
-                    <div className="pt-1 ml-1">
-                      <label className="flex items-center gap-2.5 cursor-pointer select-none group">
-                        <input
-                          id="remember-me"
-                          type="checkbox"
-                          checked={remember}
-                          onChange={(e) => setRemember(e.target.checked)}
-                          className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 accent-blue-600 cursor-pointer"
-                        />
-                        <span className="text-xs font-medium text-slate-600 group-hover:text-slate-900 transition-colors">
+                    <div className="pt-0.5">
+                      <label className="flex items-center gap-2.5 cursor-pointer select-none group w-max">
+                        <div className={`w-4 h-4 rounded-[4px] border flex items-center justify-center relative transition-all ${
+                          remember 
+                            ? "bg-[#E55F37] border-[#E55F37] text-white" 
+                            : "border-white/40 bg-transparent group-hover:border-white"
+                        }`}>
+                          <input
+                            id="remember-me"
+                            type="checkbox"
+                            checked={remember}
+                            onChange={(e) => setRemember(e.target.checked)}
+                            className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                          />
+                          {remember && <Check size={11} strokeWidth={3} />}
+                        </div>
+                        <span className="text-xs font-medium text-slate-300 group-hover:text-white transition-colors">
                           Keep me signed in on this device
                         </span>
                       </label>
@@ -658,37 +629,36 @@ export default function HeartLinkAdminLogin() {
                         initial={{ opacity: 0, scale: 0.98 }}
                         animate={{ opacity: 1, scale: 1 }}
                         role="alert"
-                        aria-live="assertive"
-                        className="bg-red-50 border border-red-200/90 rounded-xl p-3.5 flex items-start gap-2.5 text-red-700 mt-2"
+                        className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 flex items-start gap-2 text-red-500 mt-1"
                       >
-                        <AlertTriangle size={17} className="text-red-500 shrink-0 mt-0.5" />
+                        <AlertTriangle size={15} className="shrink-0 mt-0.5" />
                         <div className="flex-1 text-xs">
-                          <p className="font-semibold text-red-900 leading-tight">
+                          <p className="font-bold leading-tight">
                             {structuredError.title}
                           </p>
-                          <p className="text-red-600 leading-relaxed mt-0.5">
+                          <p className="text-red-400 leading-relaxed mt-0.5 font-medium text-[11px]">
                             {structuredError.message}
                           </p>
                         </div>
                       </motion.div>
                     )}
 
-                    {/* Submit Button (matches mobile rounded-2xl py-4 bg-primary) */}
+                    {/* Submit Button */}
                     <div className="pt-2">
                       <button
                         type="submit"
                         disabled={isSubmittingLogin}
-                        className="w-full rounded-2xl min-h-[50px] sm:min-h-[52px] py-3.5 px-4 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed text-white font-semibold text-sm shadow-sm transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2"
+                        className="w-full rounded-[8px] min-h-[42px] py-2.5 flex items-center justify-center gap-2 bg-[#D15334] hover:bg-[#b0452a] active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed text-white font-bold text-xs sm:text-sm transition-all cursor-pointer focus:outline-none"
                       >
                         {isSubmittingLogin ? (
                           <>
-                            <Loader2 size={18} className="animate-spin shrink-0" />
+                            <Loader2 size={16} className="animate-spin shrink-0" />
                             <span>Signing in...</span>
                           </>
                         ) : (
                           <>
-                            <span>Sign In</span>
-                            <ArrowRight size={16} strokeWidth={2.2} className="shrink-0" />
+                            <span>Sign in</span>
+                            <ArrowRight size={15} strokeWidth={2.5} className="shrink-0" />
                           </>
                         )}
                       </button>
@@ -700,57 +670,53 @@ export default function HeartLinkAdminLogin() {
             ) : (
               <motion.div
                 key="2fa-step"
-                initial={{ opacity: 0, y: 12 }}
+                initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -12 }}
-                transition={{ duration: 0.25, ease: "easeOut" }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
               >
                 {/* Desktop Back button */}
                 <button
                   type="button"
                   onClick={() => { setStep("login"); setStructuredError(null); }}
-                  className="hidden lg:inline-flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-slate-900 transition-colors mb-4 cursor-pointer"
+                  className="hidden lg:inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-white transition-colors mb-4 cursor-pointer"
                 >
-                  <ArrowLeft size={14} />
+                  <ArrowLeft size={13} />
                   <span>Back to Sign In</span>
                 </button>
 
                 {/* 2FA Heading */}
-                <div className="mb-6 px-1">
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-rose-50 border border-rose-100 text-rose-600 text-[11px] font-bold uppercase tracking-wider mb-2">
-                    <KeyRound size={11} />
+                <div className="mb-5 px-1">
+                  <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#E55F37]/10 border border-[#E55F37]/20 text-[#E55F37] text-[10px] font-bold uppercase tracking-wider mb-2">
+                    <KeyRound size={10} />
                     <span>Two-Factor Auth</span>
                   </div>
-                  <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight leading-tight mb-1.5">
+                  <h1 className="text-2xl sm:text-[28px] font-bold text-white tracking-tight leading-tight mb-1.5">
                     Enter Secure Code
                   </h1>
-                  <p className="text-sm text-slate-500 leading-relaxed">
+                  <p className="text-xs sm:text-sm text-slate-400 font-medium leading-relaxed">
                     We've sent a 6-digit verification code to your authorized security device.
                   </p>
                 </div>
 
                 {/* 2FA Card */}
-                <div className="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 shadow-sm space-y-4">
+                <div className="bg-transparent rounded-[14px] border border-white/10 p-5 sm:p-6 shadow-sm space-y-3">
                   <form onSubmit={handle2FASubmit(onVerify2FA)} className="space-y-4" noValidate>
                     
                     <div>
                       <label 
                         htmlFor="otp-code" 
-                        className="text-sm font-semibold text-slate-900 mb-1.5 ml-1 block"
+                        className="text-xs font-bold text-white mb-1.5 block"
                       >
                         Verification Code
                       </label>
                       <div 
-                        className={`w-full rounded-xl flex items-center px-4 min-h-[54px] sm:min-h-[58px] border transition-all ${
+                        className={`w-full rounded-[8px] flex items-center px-3.5 min-h-[46px] border transition-all ${
                           errors2FA.code
-                            ? "border-red-500 bg-red-50/30 ring-2 ring-red-500/10"
-                            : "border-slate-200 bg-[#F8FAFC] focus-within:border-blue-600 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-600/15"
+                            ? "border-red-500 bg-red-500/10"
+                            : "border-white/10 bg-[#1A1A1A] focus-within:border-[#E55F37]"
                         }`}
                       >
-                        <KeyRound 
-                          size={18} 
-                          className={errors2FA.code ? "text-red-500 shrink-0" : "text-slate-400 shrink-0 group-focus-within:text-blue-600 transition-colors"} 
-                        />
                         <input
                           id="otp-code"
                           ref={(e) => {
@@ -763,19 +729,13 @@ export default function HeartLinkAdminLogin() {
                           maxLength={6}
                           placeholder="123456"
                           autoComplete="one-time-code"
-                          aria-invalid={!!errors2FA.code}
-                          aria-describedby={errors2FA.code ? "otp-error" : undefined}
-                          className="flex-1 ml-3 text-lg font-bold tracking-[0.35em] sm:tracking-[0.45em] text-slate-900 placeholder:text-slate-300 placeholder:font-normal placeholder:tracking-normal bg-transparent outline-none py-3"
+                          className="flex-1 text-lg font-bold tracking-[0.25em] text-white placeholder:text-slate-600 placeholder:font-normal placeholder:tracking-normal bg-transparent outline-none py-2 text-center"
                           {...register2FA("code")}
                         />
                       </div>
                       {errors2FA.code && (
-                        <div 
-                          id="otp-error"
-                          role="alert"
-                          className="flex items-center gap-1.5 mt-1.5 ml-1 text-red-500 text-xs font-medium"
-                        >
-                          <AlertCircle size={12} className="shrink-0" />
+                        <div className="flex items-center gap-1.5 mt-1.5 ml-0.5 text-red-500 text-[11px] font-medium">
+                          <AlertCircle size={11} className="shrink-0" />
                           <span>{errors2FA.code.message}</span>
                         </div>
                       )}
@@ -787,15 +747,14 @@ export default function HeartLinkAdminLogin() {
                         initial={{ opacity: 0, scale: 0.98 }}
                         animate={{ opacity: 1, scale: 1 }}
                         role="alert"
-                        aria-live="assertive"
-                        className="bg-red-50 border border-red-200/90 rounded-xl p-3.5 flex items-start gap-2.5 text-red-700 mt-2"
+                        className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 flex items-start gap-2 text-red-500 mt-1"
                       >
-                        <AlertTriangle size={17} className="text-red-500 shrink-0 mt-0.5" />
+                        <AlertTriangle size={15} className="shrink-0 mt-0.5" />
                         <div className="flex-1 text-xs">
-                          <p className="font-semibold text-red-900 leading-tight">
+                          <p className="font-bold leading-tight">
                             {structuredError.title}
                           </p>
-                          <p className="text-red-600 leading-relaxed mt-0.5">
+                          <p className="text-red-400 leading-relaxed mt-0.5 font-medium text-[11px]">
                             {structuredError.message}
                           </p>
                         </div>
@@ -807,23 +766,23 @@ export default function HeartLinkAdminLogin() {
                       <button
                         type="submit"
                         disabled={isSubmitting2FA}
-                        className="w-full rounded-2xl min-h-[50px] sm:min-h-[52px] py-3.5 px-4 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed text-white font-semibold text-sm shadow-sm transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2"
+                        className="w-full rounded-[8px] min-h-[42px] py-2.5 flex items-center justify-center gap-2 bg-[#D15334] hover:bg-[#b0452a] active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed text-white font-bold text-xs sm:text-sm transition-all cursor-pointer focus:outline-none"
                       >
                         {isSubmitting2FA ? (
                           <>
-                            <Loader2 size={18} className="animate-spin shrink-0" />
+                            <Loader2 size={16} className="animate-spin shrink-0" />
                             <span>Verifying...</span>
                           </>
                         ) : (
                           <>
                             <span>Verify & Access Dashboard</span>
-                            <ArrowRight size={16} strokeWidth={2.2} className="shrink-0" />
+                            <ArrowRight size={15} strokeWidth={2.5} className="shrink-0" />
                           </>
                         )}
                       </button>
                     </div>
 
-                    <div className="text-center pt-2">
+                    <div className="text-center pt-1.5">
                       <button
                         type="button"
                         onClick={() => {
@@ -831,7 +790,7 @@ export default function HeartLinkAdminLogin() {
                             description: "A fresh verification code has been dispatched to your device.",
                           });
                         }}
-                        className="text-xs font-semibold text-slate-500 hover:text-slate-900 transition-colors"
+                        className="text-[11px] font-medium text-slate-400 hover:text-white transition-colors cursor-pointer"
                       >
                         Didn't receive code? Resend
                       </button>
@@ -845,9 +804,9 @@ export default function HeartLinkAdminLogin() {
         </div>
 
         {/* Global Security Footer */}
-        <footer className="w-full max-w-[420px] mx-auto pt-6 text-center select-none">
-          <p className="text-xs text-slate-400 font-medium flex items-center justify-center gap-1.5">
-            <Lock size={13} className="text-slate-400 shrink-0" />
+        <footer className="w-full max-w-[390px] mx-auto pt-4 text-center select-none">
+          <p className="text-[10px] text-[#89899C] font-medium flex items-center justify-center gap-1.5">
+            <Lock size={11} className="shrink-0" />
             <span>End-to-end encrypted administrative portal</span>
           </p>
         </footer>

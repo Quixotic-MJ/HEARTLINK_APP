@@ -21,13 +21,10 @@ function ActionItem({ icon: Icon, label, onClick }) {
   return (
     <button
       onClick={onClick}
-      className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left transition-colors"
-      style={{ fontSize: 12, color: "rgba(15,23,42,0.7)" }}
-      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "rgba(15,23,42,0.04)")}
-      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+      className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left transition-colors text-xs text-slate-300 hover:text-white hover:bg-white/5 cursor-pointer"
     >
-      <Icon size={13} style={{ color: "#0f172a", flexShrink: 0 }} strokeWidth={1.8} />
-      {label}
+      <Icon size={14} className="text-[#E55F37] shrink-0" strokeWidth={2} />
+      <span>{label}</span>
     </button>
   );
 }
@@ -36,7 +33,8 @@ function ActionItem({ icon: Icon, label, onClick }) {
 
 const Header = ({ 
   setSidebarOpen, 
-  title: propTitle
+  title: propTitle,
+  onLogoutClick,
 }) => {
   const location = useLocation();
   const pathSegment = location.pathname.split("/").filter(Boolean).pop() || "dashboard";
@@ -87,20 +85,14 @@ const Header = ({
 
   return (
     <header
-      className="sticky top-0 z-10 flex items-center justify-between flex-shrink-0 px-5 sm:px-6 rounded-none"
-      style={{
-        height: 64,
-        backgroundColor: "#fff",
-        borderBottom: "1px solid rgba(15,23,42,0.06)",
-      }}
+      className="sticky top-0 z-10 flex items-center justify-between flex-shrink-0 px-5 sm:px-6 bg-[#161616] border-b border-white/10 h-16"
     >
       {/* ── Left ── */}
       <div className="flex items-center gap-4">
         {/* Mobile menu */}
         <button
           aria-label="Open sidebar"
-          className="lg:hidden p-2 rounded-xl transition-colors"
-          style={{ color: "rgba(15,23,42,0.5)", backgroundColor: "#f8fafc", border: "1px solid rgba(15,23,42,0.08)" }}
+          className="lg:hidden p-2 rounded-xl transition-colors bg-[#1A1A1A] border border-white/10 text-slate-300 hover:text-white"
           onClick={() => setSidebarOpen(true)}
         >
           <Menu size={17} />
@@ -108,29 +100,21 @@ const Header = ({
 
         {/* Page title */}
         <h1
-          className="hidden lg:block text-[15px] font-medium tracking-tight"
-          style={{ color: "#0f172a" }}
+          className="hidden lg:block text-[15px] font-semibold tracking-tight text-white"
         >
           {title}
         </h1>
 
         {/* Search */}
         <div
-          className="flex items-center gap-2.5 rounded-xl px-3.5 transition-all"
-          style={{
-            height: 36,
-            backgroundColor: "#f8fafc",
-            border: "1px solid rgba(15,23,42,0.08)",
-            width: 240,
-          }}
+          className="flex items-center gap-2.5 rounded-xl px-3.5 h-9 bg-[#1A1A1A] border border-white/10 focus-within:border-[#E55F37] transition-all w-52 sm:w-64"
         >
-          <Search size={13} style={{ color: "rgba(15,23,42,0.3)", flexShrink: 0 }} />
+          <Search size={14} className="text-slate-500 shrink-0" />
           <input
             type="text"
             aria-label="Search"
             placeholder={searchPlaceholder}
-            className="bg-transparent border-none outline-none w-full"
-            style={{ fontSize: 13, color: "#0f172a" }}
+            className="bg-transparent border-none outline-none w-full text-xs sm:text-sm text-white placeholder:text-slate-500 font-medium"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={handleSearch}
@@ -148,23 +132,14 @@ const Header = ({
             aria-label="Quick actions"
             aria-expanded={quickActionsOpen}
             aria-haspopup="true"
-            className="flex items-center gap-2 rounded-xl px-3.5 text-sm font-medium transition-all"
-            style={{
-              height: 36,
-              backgroundColor: "#0f172a",
-              color: "#fff",
-              fontSize: 12,
-            }}
+            className="flex items-center gap-2 rounded-xl px-3.5 h-9 text-xs font-semibold bg-[#E55F37] hover:bg-[#D4542E] text-white transition-all cursor-pointer shadow-sm shadow-[#E55F37]/20"
           >
             <Zap size={13} strokeWidth={2.5} />
             <span>Quick actions</span>
             <ChevronDown
               size={12}
               strokeWidth={2.5}
-              style={{
-                transition: "transform 0.2s",
-                transform: quickActionsOpen ? "rotate(180deg)" : "rotate(0deg)",
-              }}
+              className={`transition-transform duration-200 ${quickActionsOpen ? "rotate-180" : "rotate-0"}`}
             />
           </button>
 
@@ -172,19 +147,12 @@ const Header = ({
             <>
               <div className="fixed inset-0 z-40" onClick={() => setQuickActionsOpen(false)} />
               <div
-                className="absolute right-0 mt-2 z-50 py-1.5 rounded-2xl overflow-hidden"
-                style={{
-                  width: 200,
-                  backgroundColor: "#fff",
-                  border: "1px solid rgba(15,23,42,0.08)",
-                  boxShadow: "0 8px 24px rgba(15,23,42,0.1)",
-                }}
+                className="absolute right-0 mt-2 z-50 py-1.5 rounded-2xl overflow-hidden w-52 bg-[#1A1A1A] border border-white/10 shadow-2xl"
               >
                 {userRole === "admin" || userRole === "super_admin" ? (
                   <>
                     <p
-                      className="px-4 pt-1.5 pb-2.5 text-[9px] tracking-[0.18em] uppercase font-semibold"
-                      style={{ color: "rgba(15,23,42,0.35)", borderBottom: "1px solid rgba(15,23,42,0.06)" }}
+                      className="px-4 pt-1.5 pb-2 text-[9px] tracking-[0.18em] uppercase font-bold text-[#89899C] border-b border-white/10"
                     >
                       SYSTEM ACTIONS
                     </p>
@@ -196,8 +164,7 @@ const Header = ({
                 ) : (
                   <>
                     <p
-                      className="px-4 pt-1.5 pb-2.5 text-[9px] tracking-[0.18em] uppercase font-semibold"
-                      style={{ color: "rgba(15,23,42,0.35)", borderBottom: "1px solid rgba(15,23,42,0.06)" }}
+                      className="px-4 pt-1.5 pb-2 text-[9px] tracking-[0.18em] uppercase font-bold text-[#89899C] border-b border-white/10"
                     >
                       EVALUATION ACTIONS
                     </p>
@@ -212,29 +179,24 @@ const Header = ({
 
         {/* System status */}
         <div
-          className="hidden lg:flex items-center gap-3 rounded-xl px-3"
-          style={{
-            height: 36,
-            backgroundColor: "#f8fafc",
-            border: "1px solid rgba(15,23,42,0.08)",
-          }}
+          className="hidden lg:flex items-center gap-3 rounded-xl px-3 h-9 bg-[#1A1A1A] border border-white/10 select-none"
         >
           <div>
-            <p className="text-[11px] font-medium leading-tight" style={{ color: "#0f172a" }}>
+            <p className="text-[11px] font-semibold leading-tight text-white">
               System status
             </p>
-            <p className="text-[8px] tracking-widest uppercase leading-tight mt-0.5" style={{ color: "rgba(15,23,42,0.35)" }}>
+            <p className="text-[8px] tracking-widest uppercase leading-tight mt-0.5 text-[#5EC235] font-bold">
               Operational
             </p>
           </div>
           <div className="flex items-center gap-1.5">
-            <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
-            <Activity size={13} strokeWidth={2} style={{ color: "rgba(15,23,42,0.4)" }} />
+            <div className="w-1.5 h-1.5 rounded-full bg-[#5EC235] animate-pulse" />
+            <Activity size={13} strokeWidth={2} className="text-[#5EC235]" />
           </div>
         </div>
 
         {/* Divider */}
-        <div className="hidden sm:block w-px h-5" style={{ backgroundColor: "rgba(15,23,42,0.08)" }} />
+        <div className="hidden sm:block w-px h-5 bg-white/10" />
 
         {/* Notifications */}
         {(userRole === "admin" || userRole === "super_admin") && (
@@ -243,29 +205,13 @@ const Header = ({
 
         {/* Sign out */}
         <button
-          onClick={() => {
+          onClick={onLogoutClick || (() => {
             logout();
             navigate("/");
-          }}
+          })}
           aria-label="Sign out"
-          className="flex items-center justify-center rounded-xl transition-colors ml-2"
-          style={{
-            width: 36, height: 36,
-            backgroundColor: "#f8fafc",
-            border: "1px solid rgba(15,23,42,0.08)",
-            color: "rgba(15,23,42,0.4)",
-          }}
+          className="flex items-center justify-center rounded-xl w-9 h-9 bg-[#1A1A1A] border border-white/10 text-slate-400 hover:text-red-400 hover:bg-red-500/10 hover:border-red-500/20 transition-all cursor-pointer ml-1"
           title="Sign out"
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = "#fef2f2";
-            e.currentTarget.style.borderColor = "rgba(239,68,68,0.2)";
-            e.currentTarget.style.color = "#ef4444";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = "#f8fafc";
-            e.currentTarget.style.borderColor = "rgba(15,23,42,0.08)";
-            e.currentTarget.style.color = "rgba(15,23,42,0.4)";
-          }}
         >
           <LogOut size={15} strokeWidth={2} />
         </button>

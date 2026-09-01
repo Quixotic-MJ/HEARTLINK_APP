@@ -180,41 +180,41 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-hidden">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-slate-900/20 backdrop-blur-sm transition-opacity"
+        className="absolute inset-0 bg-black/70 backdrop-blur-sm transition-opacity"
         onClick={onClose}
       ></div>
 
       {/* Modal Panel */}
-      <form onSubmit={handleSubmit(onSubmit)} className="relative w-full max-w-2xl bg-white max-h-[90vh] rounded-2xl shadow-2xl flex flex-col animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
+      <form onSubmit={handleSubmit(onSubmit)} className="relative w-full max-w-2xl bg-[#1A1A1A] border border-white/10 text-white max-h-[90vh] rounded-2xl shadow-2xl flex flex-col animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
         {/* Modal Header (Fixed) */}
-        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 bg-white shrink-0">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-white/10 bg-[#161616] shrink-0">
           <div>
-            <span className="text-[9px] font-bold tracking-[0.15em] text-slate-400 uppercase">
+            <span className="text-[9px] font-bold tracking-[0.15em] text-[#89899C] uppercase">
               {exercise ? "Edit Exercise" : "Create Exercise"}
             </span>
-            <h3 className="text-sm font-semibold text-slate-900 mt-0.5">
+            <h3 className="text-sm font-bold text-white mt-0.5">
               {watch("name") || (exercise ? exercise.name : "New Exercise")}
             </h3>
-            <p className="text-[10px] text-slate-500 font-medium mt-0.5 flex items-center gap-1.5">
-              <span className={`inline-block w-1.5 h-1.5 rounded-full ${status === "published" ? "bg-emerald-500" : status === "draft" ? "bg-amber-500" : "bg-slate-400"}`}></span>
+            <p className="text-[10px] text-[#89899C] font-medium mt-0.5 flex items-center gap-1.5">
+              <span className={`inline-block w-1.5 h-1.5 rounded-full ${status === "published" ? "bg-emerald-400" : status === "draft" ? "bg-amber-400" : "bg-slate-500"}`}></span>
               <span className="capitalize">{status}</span>
-              <span className="text-slate-300">•</span>
+              <span className="text-slate-600">•</span>
               <span>{watch("hssTarget")}</span>
             </p>
           </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-900 p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
+            className="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-white/5 transition-colors cursor-pointer"
           >
             <X size={16} />
           </button>
         </div>
 
         {/* Modal Scrollable Form Content */}
-        <div className="flex-1 overflow-y-auto px-6 py-6 custom-scrollbar space-y-8">
+        <div className="flex-1 overflow-y-auto px-6 py-6 custom-scrollbar space-y-7">
           {/* Section 1: Basic Information */}
           <div>
-            <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100 pb-2 mb-4">
+            <h4 className="text-[10px] font-bold text-[#89899C] uppercase tracking-[0.2em] border-b border-white/10 pb-2 mb-4">
               Basic Information
             </h4>
             <div className="space-y-4">
@@ -229,46 +229,46 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
               </div>
 
               <div>
-                <label className="block text-[11px] font-medium text-slate-700 mb-1.5">
+                <label className="block text-[11px] font-bold text-[#89899C] uppercase tracking-wider mb-1.5">
                   Description
                 </label>
                 <textarea
                   rows="2"
                   {...register("description")}
-                  className={`w-full px-3 py-2 text-xs bg-slate-50 border ${errors.description ? 'border-red-400' : 'border-slate-200'} rounded-xl focus:outline-none focus:border-slate-400 focus:bg-white transition-colors resize-none`}
+                  className={`w-full px-3 py-2 text-xs bg-[#21202E]/60 border ${errors.description ? 'border-red-500' : 'border-white/10'} rounded-xl focus:outline-none focus:border-[#E55F37] text-white placeholder:text-slate-500 transition-colors resize-none`}
                   placeholder="Short text summary of physical benefits..."
                 ></textarea>
-                {errors.description && <p className="text-[11px] text-red-500 mt-1">{errors.description.message}</p>}
+                {errors.description && <p className="text-[11px] text-red-400 mt-1">{errors.description.message}</p>}
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[11px] font-medium text-slate-700 mb-1.5">
+                  <label className="block text-[11px] font-bold text-[#89899C] uppercase tracking-wider mb-1.5">
                     Exercise Type
                   </label>
                   <select
                     {...register("type")}
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-slate-400 focus:bg-white transition-colors cursor-pointer"
+                    className="w-full px-3.5 py-2.5 text-xs font-semibold bg-[#21202E]/60 border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] text-white transition-colors cursor-pointer"
                   >
-                    <option value="Breathing">Breathing</option>
-                    <option value="Light Cardio">Light Cardio</option>
-                    <option value="Stationary">Stationary</option>
-                    <option value="General">General</option>
+                    <option value="Breathing" className="bg-[#161616]">Breathing</option>
+                    <option value="Light Cardio" className="bg-[#161616]">Light Cardio</option>
+                    <option value="Stationary" className="bg-[#161616]">Stationary</option>
+                    <option value="General" className="bg-[#161616]">General</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-medium text-slate-700 mb-1.5">
+                  <label className="block text-[11px] font-bold text-[#89899C] uppercase tracking-wider mb-1.5">
                     Intensity
                   </label>
                   <select
                     {...register("intensity")}
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-slate-400 focus:bg-white transition-colors cursor-pointer"
+                    className="w-full px-3.5 py-2.5 text-xs font-semibold bg-[#21202E]/60 border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] text-white transition-colors cursor-pointer"
                   >
-                    <option value="None">None</option>
-                    <option value="Low">Low</option>
-                    <option value="Medium">Medium</option>
-                    <option value="High">High</option>
+                    <option value="None" className="bg-[#161616]">None</option>
+                    <option value="Low" className="bg-[#161616]">Low</option>
+                    <option value="Medium" className="bg-[#161616]">Medium</option>
+                    <option value="High" className="bg-[#161616]">High</option>
                   </select>
                 </div>
               </div>
@@ -287,13 +287,13 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-medium text-slate-700 mb-1.5">
+                  <label className="block text-[11px] font-bold text-[#89899C] uppercase tracking-wider mb-1.5">
                     Routine Goal
                   </label>
                   <input
                     type="text"
                     {...register("goal")}
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-slate-400 focus:bg-white transition-colors"
+                    className="w-full px-3 py-2 text-xs bg-[#21202E]/60 border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] text-white placeholder:text-slate-500 transition-colors"
                     placeholder="e.g. Builds gentle endurance..."
                   />
                 </div>
@@ -303,37 +303,37 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
 
           {/* Section 2: Targeting */}
           <div>
-            <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100 pb-2 mb-4">
+            <h4 className="text-[10px] font-bold text-[#89899C] uppercase tracking-[0.2em] border-b border-white/10 pb-2 mb-4">
               Targeting
             </h4>
-            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
-              <label className="block text-[11px] font-bold text-slate-900 mb-1">
+            <div className="bg-[#21202E]/40 p-4 rounded-xl border border-white/10">
+              <label className="block text-xs font-bold text-white mb-0.5">
                 HSS Suitability
               </label>
-              <p className="text-[10px] text-slate-500 mb-2.5">
-                Determines which users may receive this exercise.
+              <p className="text-[10px] text-[#89899C] mb-2.5 font-medium">
+                Determines which users may receive this exercise routine based on clinical status.
               </p>
               <select
                 {...register("hssTarget")}
-                className={`w-full px-3 py-2 text-xs bg-white border ${errors.hssTarget ? 'border-red-400 focus:border-red-500' : 'border-slate-200 focus:border-slate-400'} rounded-xl focus:outline-none transition-colors cursor-pointer`}
+                className={`w-full px-3.5 py-2.5 text-xs font-semibold bg-[#1A1A1A] border ${errors.hssTarget ? 'border-red-500' : 'border-white/10 focus:border-[#E55F37]'} rounded-xl focus:outline-none text-white transition-colors cursor-pointer`}
               >
-                <option value="Stable (80-100)">Stable (80-100)</option>
-                <option value="Moderate (60-79)">Moderate (60-79)</option>
-                <option value="Elevated Risk (50-59)">Elevated Risk (50-59)</option>
-                <option value="Critical (<50)">Critical (&lt;50)</option>
+                <option value="Stable (80-100)" className="bg-[#161616]">Stable (80-100)</option>
+                <option value="Moderate (60-79)" className="bg-[#161616]">Moderate (60-79)</option>
+                <option value="Elevated Risk (50-59)" className="bg-[#161616]">Elevated Risk (50-59)</option>
+                <option value="Critical (<50)" className="bg-[#161616]">Critical (&lt;50)</option>
               </select>
             </div>
           </div>
 
           {/* Section 3: Media */}
           <div>
-            <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100 pb-2 mb-4">
+            <h4 className="text-[10px] font-bold text-[#89899C] uppercase tracking-[0.2em] border-b border-white/10 pb-2 mb-4">
               Media Assets
             </h4>
             <div className="space-y-6">
               {/* Thumbnail Image */}
               <div>
-                <label className="block text-[11px] font-semibold text-slate-700 mb-1.5">
+                <label className="block text-[11px] font-bold text-[#89899C] uppercase tracking-wider mb-1.5">
                   Thumbnail Image
                 </label>
                 <div className="flex gap-2 mb-3">
@@ -342,10 +342,10 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
                       {...register("mediaUrl")}
                       type="text"
                       placeholder="Paste image URL..."
-                      className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-slate-400 focus:bg-white"
+                      className="w-full text-xs px-3 py-2 bg-[#21202E]/60 border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] text-white placeholder:text-slate-500"
                     />
                   </div>
-                  <label className="px-4 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 text-[11px] font-semibold rounded-xl cursor-pointer transition-colors flex items-center justify-center">
+                  <label className="px-4 py-2 bg-[#21202E] hover:bg-[#36272B] hover:text-[#E55F37] border border-white/10 text-slate-300 text-xs font-bold rounded-xl cursor-pointer transition-colors flex items-center justify-center">
                     Upload
                     <input
                       type="file"
@@ -370,10 +370,10 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
                     />
                   </label>
                 </div>
-                {isUploading && <p className="text-[10px] text-blue-500 mb-2">Uploading...</p>}
+                {isUploading && <p className="text-[10px] text-[#E55F37] font-semibold mb-2">Uploading asset...</p>}
                 
                 {mediaUrl && !mediaUrl.includes("youtube.com") && !mediaUrl.includes("youtu.be") && (
-                  <div className="w-40 h-24 rounded-xl overflow-hidden border border-slate-200 bg-slate-50 flex items-center justify-center">
+                  <div className="w-40 h-24 rounded-xl overflow-hidden border border-white/10 bg-[#21202E] flex items-center justify-center">
                     {mediaUrl.startsWith("data:video") || mediaUrl.endsWith(".mp4") ? (
                       <video src={resolveMediaUrl(mediaUrl)} className="w-full h-full object-cover" muted />
                     ) : (
@@ -385,18 +385,18 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
 
               {/* Instructional Video */}
               <div>
-                <label className="block text-[11px] font-semibold text-slate-700 mb-1.5">
-                  Instructional Video
+                <label className="block text-[11px] font-bold text-[#89899C] uppercase tracking-wider mb-1.5">
+                  Instructional Video Link
                 </label>
                 <input
                   {...register("videoUrl")}
                   type="text"
                   placeholder="Paste YouTube video link..."
-                  className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-slate-400 focus:bg-white mb-3"
+                  className="w-full text-xs px-3 py-2 bg-[#21202E]/60 border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] text-white placeholder:text-slate-500 mb-3"
                 />
 
                 {watch("videoUrl") && (watch("videoUrl").includes("youtube.com") || watch("videoUrl").includes("youtu.be")) && (
-                  <div className="w-full max-w-md aspect-video rounded-xl overflow-hidden border border-slate-200 bg-slate-100">
+                  <div className="w-full max-w-md aspect-video rounded-xl overflow-hidden border border-white/10 bg-black">
                     <iframe
                       width="100%"
                       height="100%"
@@ -414,17 +414,17 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
 
           {/* Section 4: Guide Images */}
           <div>
-            <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100 pb-2 mb-4">
+            <h4 className="text-[10px] font-bold text-[#89899C] uppercase tracking-[0.2em] border-b border-white/10 pb-2 mb-4">
               Movement Guide Images
             </h4>
             <div className="space-y-2.5 max-h-56 overflow-y-auto pr-1">
               {guideImageFields.map((field, index) => (
-                <div key={field.id} className="flex items-center gap-3 border border-slate-200 rounded-xl p-2.5 bg-slate-50/50">
-                  <div className="w-12 h-12 rounded-lg bg-white border border-slate-200 overflow-hidden shrink-0 flex items-center justify-center relative">
+                <div key={field.id} className="flex items-center gap-3 border border-white/10 rounded-xl p-2.5 bg-[#21202E]/40">
+                  <div className="w-12 h-12 rounded-lg bg-[#161616] border border-white/10 overflow-hidden shrink-0 flex items-center justify-center relative">
                     {watch(`guideImages.${index}.url`) ? (
                       <img src={resolveMediaUrl(watch(`guideImages.${index}.url`))} alt="Guide Preview" className="w-full h-full object-cover" />
                     ) : (
-                      <span className="text-[9px] text-slate-400">No Image</span>
+                      <span className="text-[9px] text-slate-600 font-semibold">No Image</span>
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -432,7 +432,7 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
                       {...register(`guideImages.${index}.url`)}
                       type="text"
                       placeholder="Paste guide image URL..."
-                      className="w-full text-xs px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-slate-400"
+                      className="w-full text-xs px-2.5 py-1.5 bg-[#1A1A1A] border border-white/10 rounded-lg focus:outline-none focus:border-[#E55F37] text-white placeholder:text-slate-500"
                     />
                     <div className="relative mt-1">
                       <input
@@ -454,7 +454,7 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
                             }
                           }
                         }}
-                        className="w-full text-[10px] text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[9px] file:font-semibold file:bg-slate-100 hover:file:bg-slate-200 cursor-pointer"
+                        className="w-full text-[10px] text-slate-400 file:mr-2 file:py-0.5 file:px-2 file:rounded file:border-0 file:text-[9px] file:font-semibold file:bg-[#21202E] file:text-white hover:file:bg-[#36272B] hover:file:text-[#E55F37] cursor-pointer"
                       />
                     </div>
                   </div>
@@ -470,7 +470,7 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
                         }
                       }}
                       disabled={index === 0}
-                      className="p-1.5 hover:bg-white text-slate-400 hover:text-slate-700 disabled:opacity-30 rounded-lg transition-colors"
+                      className="p-1.5 hover:bg-white/5 text-slate-400 hover:text-white disabled:opacity-30 rounded-lg transition-colors cursor-pointer"
                       title="Move Up"
                     >
                       ▲
@@ -486,7 +486,7 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
                         }
                       }}
                       disabled={index === guideImageFields.length - 1}
-                      className="p-1.5 hover:bg-white text-slate-400 hover:text-slate-700 disabled:opacity-30 rounded-lg transition-colors"
+                      className="p-1.5 hover:bg-white/5 text-slate-400 hover:text-white disabled:opacity-30 rounded-lg transition-colors cursor-pointer"
                       title="Move Down"
                     >
                       ▼
@@ -494,7 +494,7 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
                     <button
                       type="button"
                       onClick={() => removeGuideImage(index)}
-                      className="p-1.5 hover:bg-white text-slate-400 hover:text-red-500 rounded-lg transition-colors"
+                      className="p-1.5 hover:bg-red-500/10 text-slate-400 hover:text-red-400 rounded-lg transition-colors cursor-pointer"
                       title="Remove"
                     >
                       <Trash2 size={13} />
@@ -506,32 +506,32 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
             <button
               type="button"
               onClick={() => appendGuideImage({ url: "" })}
-              className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500 hover:text-slate-700 transition-colors py-1.5 px-2.5 rounded hover:bg-slate-100 mt-2"
+              className="flex items-center gap-1.5 text-xs font-bold text-[#E55F37] hover:text-[#D4542E] transition-colors py-1.5 mt-2 cursor-pointer"
             >
-              <PlusCircle size={13} /> Add Guide Image
+              <PlusCircle size={14} /> Add Guide Image
             </button>
           </div>
 
           {/* Section 5: Instructions */}
           <div>
-            <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100 pb-2 mb-4">
+            <h4 className="text-[10px] font-bold text-[#89899C] uppercase tracking-[0.2em] border-b border-white/10 pb-2 mb-4">
               Step-by-Step Instructions
             </h4>
             <div className="space-y-3.5 max-h-80 overflow-y-auto pr-1">
               {stepsFields.map((field, index) => (
-                <div key={field.id} className="flex items-start gap-3 w-full border border-slate-100 rounded-xl p-3 bg-slate-50/50">
-                  <div className="mt-1 text-[10px] font-bold text-slate-400 bg-white border border-slate-200 w-5 h-5 flex items-center justify-center rounded-full shrink-0">
+                <div key={field.id} className="flex items-start gap-3 w-full border border-white/10 rounded-xl p-3 bg-[#21202E]/40">
+                  <div className="mt-1 text-[10px] font-bold text-[#89899C] bg-[#161616] border border-white/10 w-5 h-5 flex items-center justify-center rounded-full shrink-0">
                     {index + 1}
                   </div>
                   <div className="flex-1">
                     <textarea
                       rows="2"
                       {...register(`steps.${index}.value`)}
-                      className={`w-full px-3 py-2 text-xs bg-white border ${errors.steps?.[index]?.value ? 'border-red-400 focus:border-red-500' : 'border-slate-200 focus:border-slate-400'} rounded-xl focus:outline-none focus:bg-white transition-colors resize-none leading-relaxed`}
+                      className={`w-full px-3 py-2 text-xs bg-[#1A1A1A] border ${errors.steps?.[index]?.value ? 'border-red-500' : 'border-white/10 focus:border-[#E55F37]'} rounded-xl focus:outline-none text-white placeholder:text-slate-500 transition-colors resize-none leading-relaxed`}
                       placeholder="Describe this instruction step..."
                     />
                     {errors.steps?.[index]?.value && (
-                      <span className="text-[10px] text-red-500 mt-1 block">
+                      <span className="text-[10px] text-red-400 mt-1 block font-medium">
                         {errors.steps[index].value.message}
                       </span>
                     )}
@@ -541,7 +541,7 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
                       type="button"
                       onClick={() => moveStepUp(index)}
                       disabled={index === 0}
-                      className="p-1.5 hover:bg-white text-slate-400 hover:text-slate-700 disabled:opacity-30 rounded-lg transition-colors"
+                      className="p-1.5 hover:bg-white/5 text-slate-400 hover:text-white disabled:opacity-30 rounded-lg transition-colors cursor-pointer"
                       title="Move Step Up"
                     >
                       ▲
@@ -550,7 +550,7 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
                       type="button"
                       onClick={() => moveStepDown(index)}
                       disabled={index === stepsFields.length - 1}
-                      className="p-1.5 hover:bg-white text-slate-400 hover:text-slate-700 disabled:opacity-30 rounded-lg transition-colors"
+                      className="p-1.5 hover:bg-white/5 text-slate-400 hover:text-white disabled:opacity-30 rounded-lg transition-colors cursor-pointer"
                       title="Move Step Down"
                     >
                       ▼
@@ -558,7 +558,7 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
                     <button
                       type="button"
                       onClick={() => remove(index)}
-                      className="p-1.5 hover:bg-white text-slate-400 hover:text-red-500 rounded-lg transition-colors"
+                      className="p-1.5 hover:bg-red-500/10 text-slate-400 hover:text-red-400 rounded-lg transition-colors cursor-pointer"
                       title="Delete Step"
                     >
                       <Trash2 size={14} />
@@ -570,38 +570,37 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
             <button
               type="button"
               onClick={() => append({ value: "" })}
-              className="flex items-center gap-1.5 text-[10px] font-bold mt-3 hover:opacity-75 transition-opacity"
-              style={{ color: "#0f172a" }}
+              className="flex items-center gap-1.5 text-xs font-bold text-[#E55F37] hover:text-[#D4542E] transition-colors mt-3 cursor-pointer"
             >
-              <PlusCircle size={13} /> Add Step
+              <PlusCircle size={14} /> Add Step
             </button>
           </div>
 
           {/* Section 6: Validation Toggle */}
-          <div className="border-t border-slate-100 pt-6">
+          <div className="border-t border-white/10 pt-6">
             <div
               className={`p-4 rounded-xl border ${
                 expertValidated
-                  ? "bg-emerald-50/50 border-emerald-100"
-                  : "bg-slate-50 border-slate-200"
+                  ? "bg-emerald-500/10 border-emerald-500/20"
+                  : "bg-[#21202E]/40 border-white/10"
               }`}
             >
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <h4
-                    className={`text-xs font-semibold ${
-                      expertValidated ? "text-emerald-700" : "text-slate-900"
+                    className={`text-xs font-bold ${
+                      expertValidated ? "text-emerald-400" : "text-white"
                     } flex items-center gap-2 mb-1`}
                   >
                     {expertValidated ? (
-                      <ShieldCheck size={14} className="text-emerald-600" />
+                      <ShieldCheck size={14} className="text-emerald-400" />
                     ) : (
-                      <ShieldAlert size={14} className="text-slate-400" />
+                      <ShieldAlert size={14} className="text-amber-400" />
                     )}
                     Expert Reviewer Validation
                   </h4>
-                  <p className="text-[10px] text-slate-500 leading-relaxed">
-                    Reviewed or developed with input from a qualified nutrition expert.
+                  <p className="text-[10px] text-[#89899C] leading-relaxed">
+                    Reviewed or developed with input from a qualified cardiology or sports medicine expert.
                   </p>
                 </div>
   
@@ -614,7 +613,7 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
                     {...register("expertValidated")}
                   />
                   <div
-                    className={`w-9 h-5 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all ${
+                    className={`w-9 h-5 bg-[#161616] border border-white/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all ${
                       userRole !== "medical"
                         ? "cursor-not-allowed opacity-50"
                         : ""
@@ -627,7 +626,7 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
         </div>
 
         {/* Sticky Footer / Actions */}
-        <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex justify-between items-center shrink-0 sticky bottom-0 z-10">
+        <div className="px-6 py-4 border-t border-white/10 bg-[#161616] flex justify-between items-center shrink-0 sticky bottom-0 z-10">
           {/* Left Actions (Delete) */}
           <div>
             {exercise && onDelete && (
@@ -639,7 +638,7 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
                     onClose();
                   }
                 }}
-                className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-400 hover:text-red-500 transition-colors"
+                className="flex items-center gap-1.5 text-xs font-semibold text-red-400 hover:text-red-300 transition-colors cursor-pointer"
               >
                 <Trash2 size={14} /> Delete Exercise
               </button>
@@ -647,11 +646,11 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
           </div>
 
           {/* Right Actions */}
-          <div className="flex gap-2">
+          <div className="flex gap-2.5">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-[11px] font-semibold text-slate-600 hover:bg-slate-200 bg-slate-100 rounded-xl transition-colors"
+              className="px-4 py-2 text-xs font-semibold text-slate-300 hover:text-white bg-[#21202E] border border-white/10 rounded-xl transition-colors cursor-pointer"
             >
               Cancel
             </button>
@@ -662,14 +661,14 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
                 <button
                   type="submit"
                   onClick={() => handleSaveWithStatus("draft")}
-                  className="px-4 py-2 text-[11px] font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors"
+                  className="px-4 py-2 text-xs font-semibold text-slate-300 hover:text-white bg-[#21202E] border border-white/10 rounded-xl transition-colors cursor-pointer"
                 >
                   Save Draft
                 </button>
                 <button
                   type="submit"
                   onClick={() => handleSaveWithStatus("published")}
-                  className="flex items-center gap-1.5 px-4 py-2 text-[11px] font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-colors"
+                  className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-colors cursor-pointer"
                 >
                   <CheckCircle2 size={14} /> Publish
                 </button>
@@ -682,15 +681,14 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
                 <button
                   type="submit"
                   onClick={() => handleSaveWithStatus("archived")}
-                  className="flex items-center gap-1.5 px-4 py-2 text-[11px] font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors"
+                  className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-amber-400 hover:text-amber-300 bg-amber-500/10 border border-amber-500/20 rounded-xl transition-colors cursor-pointer"
                 >
                   <Archive size={14} /> Archive
                 </button>
                 <button
                   type="submit"
                   onClick={() => handleSaveWithStatus("published")}
-                  className="flex items-center gap-1.5 px-5 py-2 text-[11px] font-semibold text-white rounded-xl transition-all hover:opacity-90 active:scale-[0.99]"
-                  style={{ backgroundColor: "#0f172a" }}
+                  className="flex items-center gap-1.5 px-5 py-2 text-xs font-bold text-white bg-[#E55F37] hover:bg-[#D4542E] rounded-xl shadow-sm shadow-[#E55F37]/25 transition-all cursor-pointer"
                 >
                   <Save size={14} /> Save Changes
                 </button>
@@ -702,7 +700,7 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
               <button
                 type="submit"
                 onClick={() => handleSaveWithStatus("draft")}
-                className="flex items-center gap-1.5 px-4 py-2 text-[11px] font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors"
+                className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors cursor-pointer"
               >
                 <CheckCircle2 size={14} /> Restore to Draft
               </button>

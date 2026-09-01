@@ -75,51 +75,30 @@ const AccountActionModal = ({ isOpen, onClose, user, onToggleStatus }) => {
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
         onClick={handleClose}
       />
 
       {/* Modal */}
-      <div
-        className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200"
-        style={{ border: "1px solid rgba(15,23,42,0.08)" }}
-      >
+      <div className="relative w-full max-w-md bg-[#1A1A1A] rounded-2xl shadow-2xl border border-white/10 overflow-hidden animate-in fade-in zoom-in-95 duration-200 text-white">
         {/* Header */}
-        <div
-          className="flex items-center justify-between px-6 py-4"
-          style={{
-            borderBottom: "1px solid rgba(15,23,42,0.06)",
-            backgroundColor: "#fafbfc",
-          }}
-        >
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-[#161616]">
           <div className="flex items-center gap-3">
-            <div
-              className="w-9 h-9 rounded-xl flex items-center justify-center"
-              style={{
-                backgroundColor: "#0f172a",
-              }}
-            >
-              <Shield size={16} className="text-white" />
+            <div className="w-9 h-9 rounded-xl bg-[#36272B] flex items-center justify-center text-[#E55F37] border border-[#E55F37]/30 shrink-0">
+              <Shield size={16} />
             </div>
             <div>
-              <h3
-                className="text-sm font-semibold"
-                style={{ color: "#0f172a" }}
-              >
-                Account Management
+              <h3 className="text-sm font-bold text-white">
+                Account Governance
               </h3>
-              <p
-                className="text-[10px] font-medium uppercase tracking-widest"
-                style={{ color: "rgba(15,23,42,0.35)" }}
-              >
-                User Governance
+              <p className="text-[10px] font-bold text-[#89899C] uppercase tracking-widest">
+                User Access Controls
               </p>
             </div>
           </div>
           <button
             onClick={handleClose}
-            className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-slate-100"
-            style={{ color: "rgba(15,23,42,0.4)" }}
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
           >
             <X size={16} />
           </button>
@@ -128,62 +107,41 @@ const AccountActionModal = ({ isOpen, onClose, user, onToggleStatus }) => {
         {/* User Info */}
         <div className="px-6 py-5">
           <div className="flex items-center gap-4 mb-5">
-            <div className="w-14 h-14 rounded-2xl bg-slate-100 text-slate-600 flex items-center justify-center font-bold text-xl border border-slate-200">
+            <div className="w-12 h-12 rounded-2xl bg-[#36272B] text-[#E55F37] border border-[#E55F37]/30 flex items-center justify-center font-bold text-lg shrink-0">
               {user.name?.charAt(0) || "?"}
             </div>
             <div className="flex-1 min-w-0">
-              <p
-                className="text-base font-semibold truncate"
-                style={{ color: "#0f172a" }}
-              >
+              <p className="text-base font-bold text-white truncate">
                 {user.name}
               </p>
-              <p
-                className="text-xs font-mono mt-0.5"
-                style={{ color: "rgba(15,23,42,0.45)" }}
-              >
+              <p className="text-xs font-mono text-[#89899C] mt-0.5">
                 {formatUserRef(user.id)}
               </p>
             </div>
           </div>
 
           {/* Details grid */}
-          <div
-            className="grid grid-cols-2 gap-4 p-4 rounded-xl"
-            style={{
-              backgroundColor: "#f8fafc",
-              border: "1px solid rgba(15,23,42,0.06)",
-            }}
-          >
+          <div className="grid grid-cols-2 gap-4 p-4 rounded-xl bg-[#21202E]/50 border border-white/10">
             <div>
-              <p
-                className="text-[9px] font-bold uppercase tracking-[0.18em] mb-1.5"
-                style={{ color: "rgba(15,23,42,0.35)" }}
-              >
+              <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#89899C] mb-1.5">
                 Account Status
               </p>
               {isActive ? (
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                   <CheckCircle2 size={10} /> Active
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-red-50 text-red-700 border border-red-200">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-rose-500/10 text-rose-400 border border-rose-500/20">
                   <Ban size={10} /> Disabled
                 </span>
               )}
             </div>
             <div>
-              <p
-                className="text-[9px] font-bold uppercase tracking-[0.18em] mb-1.5"
-                style={{ color: "rgba(15,23,42,0.35)" }}
-              >
+              <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#89899C] mb-1.5">
                 Registered
               </p>
-              <p
-                className="text-xs font-medium flex items-center gap-1.5"
-                style={{ color: "#0f172a" }}
-              >
-                <Calendar size={12} style={{ color: "rgba(15,23,42,0.4)" }} />
+              <p className="text-xs font-semibold text-white flex items-center gap-1.5">
+                <Calendar size={12} className="text-[#89899C]" />
                 {user.regDate}
               </p>
             </div>
@@ -191,22 +149,16 @@ const AccountActionModal = ({ isOpen, onClose, user, onToggleStatus }) => {
 
           {/* Deactivation reason (if disabled) */}
           {!isActive && user.deactivationReason && (
-            <div
-              className="mt-4 p-3 rounded-xl flex items-start gap-2.5"
-              style={{
-                backgroundColor: "#fef2f2",
-                border: "1px solid rgba(239,68,68,0.15)",
-              }}
-            >
+            <div className="mt-4 p-3 rounded-xl flex items-start gap-2.5 bg-rose-500/10 border border-rose-500/20">
               <AlertTriangle
                 size={14}
-                className="text-red-500 mt-0.5 flex-shrink-0"
+                className="text-rose-400 mt-0.5 flex-shrink-0"
               />
               <div>
-                <p className="text-[10px] font-bold text-red-700 uppercase tracking-wider mb-0.5">
+                <p className="text-[10px] font-bold text-rose-400 uppercase tracking-wider mb-0.5">
                   Disabled Reason
                 </p>
-                <p className="text-xs text-red-600 leading-relaxed">
+                <p className="text-xs text-rose-300 leading-relaxed font-medium">
                   {user.deactivationReason}
                 </p>
               </div>
@@ -215,23 +167,12 @@ const AccountActionModal = ({ isOpen, onClose, user, onToggleStatus }) => {
         </div>
 
         {/* Action area */}
-        <div
-          className="px-6 py-4"
-          style={{
-            borderTop: "1px solid rgba(15,23,42,0.06)",
-            backgroundColor: "#fafbfc",
-          }}
-        >
+        <div className="px-6 py-4 border-t border-white/10 bg-[#161616]">
           {!isConfirming ? (
             <div className="flex gap-3">
               <button
                 onClick={handleClose}
-                className="flex-1 px-4 py-2.5 text-xs font-semibold rounded-xl transition-colors border shadow-sm"
-                style={{
-                  color: "#64748b",
-                  backgroundColor: "#fff",
-                  borderColor: "rgba(15,23,42,0.1)",
-                }}
+                className="flex-1 px-4 py-2.5 text-xs font-semibold text-slate-300 hover:text-white bg-[#21202E] border border-white/10 rounded-xl transition-colors cursor-pointer"
               >
                 Close
               </button>
@@ -239,8 +180,7 @@ const AccountActionModal = ({ isOpen, onClose, user, onToggleStatus }) => {
                 <button
                   onClick={handleDisableClick}
                   disabled={isSubmitting}
-                  className="flex-1 px-4 py-2.5 text-xs font-semibold text-white rounded-xl transition-colors shadow-sm flex items-center justify-center gap-2 disabled:opacity-50"
-                  style={{ backgroundColor: "#dc2626" }}
+                  className="flex-1 px-4 py-2.5 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition-colors shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
                 >
                   <Ban size={13} /> Disable Account
                 </button>
@@ -248,8 +188,7 @@ const AccountActionModal = ({ isOpen, onClose, user, onToggleStatus }) => {
                 <button
                   onClick={handleEnable}
                   disabled={isSubmitting}
-                  className="flex-1 px-4 py-2.5 text-xs font-semibold text-white rounded-xl transition-colors shadow-sm flex items-center justify-center gap-2 disabled:opacity-50"
-                  style={{ backgroundColor: "#16a34a" }}
+                  className="flex-1 px-4 py-2.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-colors shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
                 >
                   {isSubmitting ? (
                     <Loader2 size={13} className="animate-spin" />
@@ -263,64 +202,46 @@ const AccountActionModal = ({ isOpen, onClose, user, onToggleStatus }) => {
           ) : (
             /* Disable confirmation with reason */
             <div className="space-y-3">
-              <div
-                className="flex items-start gap-2.5 p-3 rounded-xl"
-                style={{
-                  backgroundColor: "#fef2f2",
-                  border: "1px solid rgba(239,68,68,0.15)",
-                }}
-              >
+              <div className="flex items-start gap-2.5 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20">
                 <AlertTriangle
                   size={14}
-                  className="text-red-500 mt-0.5 flex-shrink-0"
+                  className="text-rose-400 mt-0.5 flex-shrink-0"
                 />
-                <p className="text-xs text-red-700 leading-relaxed font-medium">
+                <p className="text-xs text-rose-300 leading-relaxed font-medium">
                   This will immediately revoke the user's access. They will not
                   be able to log in until the account is re-enabled.
                 </p>
               </div>
 
               <div>
-                <label
-                  className="text-[10px] font-bold uppercase tracking-[0.18em] mb-2 block"
-                  style={{ color: "rgba(15,23,42,0.5)" }}
-                >
+                <label className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#89899C] mb-2 block">
                   Reason for disabling *
                 </label>
                 <div className="relative">
                   <select
                     value={selectedReason}
                     onChange={(e) => setSelectedReason(e.target.value)}
-                    className="w-full pl-4 pr-8 py-2.5 text-xs font-medium rounded-xl appearance-none cursor-pointer transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900/5"
-                    style={{
-                      color: selectedReason ? "#0f172a" : "#94a3b8",
-                      backgroundColor: "#fff",
-                      border: "1px solid rgba(15,23,42,0.1)",
-                    }}
+                    className="w-full pl-3 pr-8 py-2.5 text-xs font-semibold text-white bg-[#1A1A1A] border border-white/10 rounded-xl appearance-none cursor-pointer transition-colors focus:outline-none focus:border-[#E55F37]"
                   >
-                    <option value="" disabled>
+                    <option value="" disabled className="bg-[#161616]">
                       Select a reason...
                     </option>
                     {DISABLE_REASONS.map((reason) => (
-                      <option key={reason} value={reason}>
+                      <option key={reason} value={reason} className="bg-[#161616]">
                         {reason}
                       </option>
                     ))}
                   </select>
                   <ChevronDown
                     size={14}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"
-                    style={{ color: "rgba(15,23,42,0.3)" }}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400"
                   />
                 </div>
               </div>
 
               {selectedReason === "Other" && (
                 <div>
-                  <label
-                    className="text-[10px] font-bold uppercase tracking-[0.18em] mb-2 block"
-                    style={{ color: "rgba(15,23,42,0.5)" }}
-                  >
+                  <label className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#89899C] mb-2 block">
                     Custom Reason *
                   </label>
                   <textarea
@@ -328,12 +249,7 @@ const AccountActionModal = ({ isOpen, onClose, user, onToggleStatus }) => {
                     onChange={(e) => setCustomReason(e.target.value)}
                     placeholder="Describe the reason for disabling this account..."
                     rows={2}
-                    className="w-full px-4 py-2.5 text-xs rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-slate-900/5"
-                    style={{
-                      color: "#0f172a",
-                      backgroundColor: "#fff",
-                      border: "1px solid rgba(15,23,42,0.1)",
-                    }}
+                    className="w-full px-3 py-2 text-xs rounded-xl bg-[#1A1A1A] border border-white/10 text-white placeholder:text-slate-500 resize-none focus:outline-none focus:border-[#E55F37]"
                   />
                 </div>
               )}
@@ -342,20 +258,14 @@ const AccountActionModal = ({ isOpen, onClose, user, onToggleStatus }) => {
                 <button
                   onClick={() => setIsConfirming(false)}
                   disabled={isSubmitting}
-                  className="flex-1 px-4 py-2.5 text-xs font-semibold rounded-xl transition-colors border shadow-sm disabled:opacity-50"
-                  style={{
-                    color: "#64748b",
-                    backgroundColor: "#fff",
-                    borderColor: "rgba(15,23,42,0.1)",
-                  }}
+                  className="flex-1 px-4 py-2.5 text-xs font-semibold text-slate-300 hover:text-white bg-[#21202E] border border-white/10 rounded-xl transition-colors cursor-pointer disabled:opacity-50"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleConfirmDisable}
                   disabled={isSubmitting || !canSubmitDisable}
-                  className="flex-1 px-4 py-2.5 text-xs font-semibold text-white rounded-xl transition-colors shadow-sm flex items-center justify-center gap-2 disabled:opacity-50"
-                  style={{ backgroundColor: "#dc2626" }}
+                  className="flex-1 px-4 py-2.5 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition-colors shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
                 >
                   {isSubmitting ? (
                     <Loader2 size={13} className="animate-spin" />
@@ -374,3 +284,4 @@ const AccountActionModal = ({ isOpen, onClose, user, onToggleStatus }) => {
 };
 
 export default AccountActionModal;
+

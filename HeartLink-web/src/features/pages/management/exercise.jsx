@@ -19,6 +19,8 @@ import {
   MoreVertical,
   Play,
   Image,
+  Sparkles,
+  ChevronDown,
 } from "lucide-react";
 import AdminLayout from "../../../components/layouts/adminLayout";
 import ExerciseFormModal from "../../../components/modals/ExerciseFormModal";
@@ -35,70 +37,6 @@ const resolveMediaUrl = (url) => {
   const cleanPath = url.startsWith("/") ? url : `/${url}`;
   return `${cleanBase}${cleanPath}`;
 };
-
-// Mock Data
-const initialExercises = [
-  {
-    id: 1,
-    name: "15-Minute Chair Yoga",
-    description: "Low-impact seated stretching focusing on flexibility and deep breathing.",
-    duration: 15,
-    hssTarget: "Moderate (60-79)",
-    mediaUrl: "https://www.w3schools.com/html/mov_bbb.mp4",
-    status: "published",
-    expertValidated: true,
-    steps: [
-      "Sit upright in a sturdy chair with feet flat on the floor.",
-      "Inhale deeply while raising both arms towards the ceiling.",
-      "Exhale and slowly lower arms back to your sides.",
-    ],
-  },
-  {
-    id: 2,
-    name: "Light Paced Walking",
-    description: "Gentle cardiovascular activation through steady, flat-surface walking.",
-    duration: 20,
-    hssTarget: "Stable (80-100)",
-    mediaUrl: "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?auto=format&fit=crop&q=80&w=150&h=150",
-    status: "published",
-    expertValidated: true,
-    steps: [
-      "Ensure you are wearing supportive athletic shoes.",
-      "Begin walking at a pace where you can comfortably hold a conversation.",
-      "Cool down for the last 3 minutes by slowing your pace.",
-    ],
-  },
-  {
-    id: 3,
-    name: "Bed-Assisted Ankle Pumps",
-    description: "Extremely low-exertion movement to promote blood flow while resting.",
-    duration: 5,
-    hssTarget: "Critical (<50)",
-    mediaUrl: "https://www.w3schools.com/html/mov_bbb.mp4",
-    status: "draft",
-    expertValidated: false,
-    steps: [
-      "Lie flat on your back or sit slightly propped up in bed.",
-      "Point your toes downward away from your body, then pull them back up towards your shins.",
-      "Repeat 10 times per foot, breathing normally.",
-    ],
-  },
-  {
-    id: 4,
-    name: "Brisk Jogging Intervals",
-    description: "Moderate intensity intervals for cardiovascular strengthening.",
-    duration: 30,
-    hssTarget: "Stable (80-100)",
-    mediaUrl: "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?auto=format&fit=crop&q=80&w=150&h=150",
-    status: "archived",
-    expertValidated: false,
-    steps: [
-      "Warm up with a 5-minute brisk walk.",
-      "Jog at a moderate pace for 2 minutes, then walk for 1 minute.",
-      "Repeat interval 5 times.",
-    ],
-  },
-];
 
 const Exercises = () => {
   const [exercises, setExercises] = useState([]);
@@ -232,9 +170,18 @@ const Exercises = () => {
     }
   };
 
+  const clearFilters = () => {
+    setSearchQuery("");
+    setFilterStatus("all");
+    setFilterHss("all");
+    setFilterType("all");
+    setFilterIntensity("all");
+    setFilterReview("all");
+  };
+
   // Filter Logic
   const filteredExercises = exercises.filter((e) => {
-    const query = searchQuery.toLowerCase();
+    const query = searchQuery.toLowerCase().trim();
     const matchesSearch = !query || 
       (e.name || "").toLowerCase().includes(query) ||
       (e.description || "").toLowerCase().includes(query) ||
@@ -255,41 +202,45 @@ const Exercises = () => {
   // Badge Color Helper
   const getHssBadgeColor = (target) => {
     if (target.includes("Stable"))
-      return { bg: "rgba(15,23,42,0.05)", text: "#0f172a", border: "transparent" };
+      return "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
     if (target.includes("Moderate"))
-      return { bg: "rgba(245,158,11,0.08)", text: "#d97706", border: "transparent" };
+      return "bg-amber-500/10 text-amber-400 border border-amber-500/20";
     if (target.includes("Elevated Risk"))
-      return { bg: "rgba(249,115,22,0.08)", text: "#ea580c", border: "transparent" };
-    return { bg: "rgba(239,68,68,0.08)", text: "#dc2626", border: "transparent" };
+      return "bg-[#E55F37]/10 text-[#E55F37] border border-[#E55F37]/20";
+    return "bg-red-500/10 text-red-400 border border-red-500/20";
   };
 
   return (
     <AdminLayout>
       {/* Page Header */}
-      <div className="flex flex-col md:flex-row md:justify-between md:items-end mb-8 gap-4">
+      <div className="flex flex-col md:flex-row md:justify-between md:items-end mb-6 gap-4">
         <div>
-          <p className="text-[10px] font-medium text-slate-400 tracking-[0.22em] uppercase mb-2">
-            Content Library
-          </p>
-          <h2 className="text-2xl lg:text-3xl font-semibold text-slate-900 leading-[1.1] tracking-tight">
-            Exercise Management.
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-[#E55F37]/30 bg-[#E55F37]/10 text-[10px] font-bold uppercase tracking-widest text-[#E55F37] mb-2">
+            <Sparkles size={11} />
+            <span>Content Library</span>
+          </div>
+          <h2 className="text-2xl lg:text-3xl font-bold text-white tracking-tight leading-tight">
+            Exercise Management
           </h2>
+          <p className="text-[#89899C] text-xs mt-1 font-medium">
+            Manage cardiovascular routines, guided movement sets, and clinical HSS targets.
+          </p>
         </div>
         <button
           onClick={() => openModal()}
-          className="flex items-center gap-1.5 text-white font-medium text-[11px] px-3.5 py-2 rounded-xl transition-all hover:opacity-90 active:scale-[0.99]"
-          style={{ backgroundColor: "#0f172a" }}
+          className="flex items-center gap-2 text-white font-semibold text-xs px-4 py-2.5 rounded-xl bg-[#E55F37] hover:bg-[#D4542E] shadow-sm shadow-[#E55F37]/25 transition-all cursor-pointer"
         >
-          <Plus size={14} strokeWidth={2} /> Create New Exercise
+          <Plus size={15} strokeWidth={2.5} />
+          <span>Create New Exercise</span>
         </button>
       </div>
 
       {error && (
-        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-center justify-between">
-          <p className="text-xs font-medium text-red-700">{error}</p>
+        <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center justify-between">
+          <p className="text-xs font-semibold text-red-400">{error}</p>
           <button 
             onClick={fetchExercises}
-            className="text-[10px] font-bold text-white bg-red-600 px-3 py-1.5 rounded-lg transition-colors hover:bg-red-700 active:scale-95"
+            className="text-xs font-bold text-white bg-red-500 hover:bg-red-600 px-3.5 py-1.5 rounded-xl transition-colors cursor-pointer"
           >
             Retry
           </button>
@@ -297,104 +248,122 @@ const Exercises = () => {
       )}
 
       {/* Main View: Data Table Container */}
-      <div className="bg-white rounded-xl border border-slate-200 flex flex-col overflow-hidden">
+      <div className="bg-[#1A1A1A] rounded-2xl border border-white/10 flex flex-col overflow-hidden">
         {/* Search & Filter Toolbar */}
-        <div className="p-4 border-b border-slate-100 bg-slate-50/50">
-          <div className="flex flex-col gap-3">
-            <div className="flex flex-col xl:flex-row gap-3">
-              {/* Search */}
-              <div className="relative flex-1">
-                <Search
-                  size={14}
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
-                />
-                <input
-                  type="text"
-                  placeholder="Search exercises..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 text-[11px] border border-slate-200 rounded-xl focus:outline-none focus:border-slate-400 transition-all bg-white text-slate-700 font-medium"
-                />
+        <div className="p-4 border-b border-white/10 bg-[#161616] space-y-3">
+          <div className="flex flex-col md:flex-row gap-3">
+            {/* Search */}
+            <div className="relative flex-1">
+              <Search
+                size={14}
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500"
+              />
+              <input
+                type="text"
+                placeholder="Search exercises, goals, or descriptions..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-3.5 py-2 text-xs border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] transition-all bg-[#1A1A1A] text-white placeholder:text-slate-500"
+              />
+            </div>
+
+            {/* Clear Filters */}
+            {(searchQuery || filterStatus !== "all" || filterHss !== "all" || filterType !== "all" || filterIntensity !== "all" || filterReview !== "all") && (
+              <button
+                onClick={clearFilters}
+                className="text-[10px] text-red-400 hover:text-red-300 font-bold px-3 py-1.5 rounded-xl border border-red-500/20 bg-red-500/10 hover:bg-red-500/20 transition-colors shrink-0 flex items-center gap-1 self-start md:self-auto cursor-pointer"
+              >
+                Clear Filters
+              </button>
+            )}
+          </div>
+
+          {/* Horizontally aligned filters */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:flex md:flex-wrap gap-2 pt-1">
+            {/* Status */}
+            <div className="relative">
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="w-full md:w-auto pl-3 pr-8 py-1.5 text-xs font-semibold text-white bg-[#1A1A1A] border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] appearance-none cursor-pointer hover:border-white/20 transition-colors"
+              >
+                <option value="all" className="bg-[#161616]">Status: All</option>
+                <option value="draft" className="bg-[#161616]">Draft</option>
+                <option value="published" className="bg-[#161616]">Published</option>
+                <option value="archived" className="bg-[#161616]">Archived</option>
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5">
+                <ChevronDown size={12} className="text-slate-400" />
               </div>
+            </div>
 
-              {/* Horizontally aligned filters */}
-              <div className="flex flex-wrap gap-2">
-                {/* Status */}
-                <div className="relative">
-                  <select
-                    value={filterStatus}
-                    onChange={(e) => setFilterStatus(e.target.value)}
-                    className="pl-3 pr-8 py-2 text-[11px] font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl focus:outline-none appearance-none cursor-pointer hover:border-slate-300 transition-colors"
-                  >
-                    <option value="all">Status: All</option>
-                    <option value="draft">Draft</option>
-                    <option value="published">Published</option>
-                    <option value="archived">Archived</option>
-                  </select>
-                  <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-[10px]">▼</div>
-                </div>
+            {/* HSS */}
+            <div className="relative">
+              <select
+                value={filterHss}
+                onChange={(e) => setFilterHss(e.target.value)}
+                className="w-full md:w-auto pl-3 pr-8 py-1.5 text-xs font-semibold text-white bg-[#1A1A1A] border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] appearance-none cursor-pointer hover:border-white/20 transition-colors"
+              >
+                <option value="all" className="bg-[#161616]">HSS: All</option>
+                <option value="Stable (80-100)" className="bg-[#161616]">Stable (80-100)</option>
+                <option value="Moderate (60-79)" className="bg-[#161616]">Moderate (60-79)</option>
+                <option value="Elevated Risk (50-59)" className="bg-[#161616]">Elevated Risk (50-59)</option>
+                <option value="Critical (<50)" className="bg-[#161616]">Critical (&lt;50)</option>
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5">
+                <ChevronDown size={12} className="text-slate-400" />
+              </div>
+            </div>
 
-                {/* HSS */}
-                <div className="relative">
-                  <select
-                    value={filterHss}
-                    onChange={(e) => setFilterHss(e.target.value)}
-                    className="pl-3 pr-8 py-2 text-[11px] font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl focus:outline-none appearance-none cursor-pointer hover:border-slate-300 transition-colors"
-                  >
-                    <option value="all">HSS: All</option>
-                    <option value="Stable (80-100)">Stable (80-100)</option>
-                    <option value="Moderate (60-79)">Moderate (60-79)</option>
-                    <option value="Elevated Risk (50-59)">Elevated Risk (50-59)</option>
-                    <option value="Critical (<50)">Critical (&lt;50)</option>
-                  </select>
-                  <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-[10px]">▼</div>
-                </div>
+            {/* Type */}
+            <div className="relative">
+              <select
+                value={filterType}
+                onChange={(e) => setFilterType(e.target.value)}
+                className="w-full md:w-auto pl-3 pr-8 py-1.5 text-xs font-semibold text-white bg-[#1A1A1A] border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] appearance-none cursor-pointer hover:border-white/20 transition-colors"
+              >
+                <option value="all" className="bg-[#161616]">Type: All</option>
+                <option value="Breathing" className="bg-[#161616]">Breathing</option>
+                <option value="Light Cardio" className="bg-[#161616]">Light Cardio</option>
+                <option value="Stationary" className="bg-[#161616]">Stationary</option>
+                <option value="General" className="bg-[#161616]">General</option>
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5">
+                <ChevronDown size={12} className="text-slate-400" />
+              </div>
+            </div>
 
-                {/* Type */}
-                <div className="relative">
-                  <select
-                    value={filterType}
-                    onChange={(e) => setFilterType(e.target.value)}
-                    className="pl-3 pr-8 py-2 text-[11px] font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl focus:outline-none appearance-none cursor-pointer hover:border-slate-300 transition-colors"
-                  >
-                    <option value="all">Type: All</option>
-                    <option value="Breathing">Breathing</option>
-                    <option value="Light Cardio">Light Cardio</option>
-                    <option value="Stationary">Stationary</option>
-                    <option value="General">General</option>
-                  </select>
-                  <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-[10px]">▼</div>
-                </div>
+            {/* Intensity */}
+            <div className="relative">
+              <select
+                value={filterIntensity}
+                onChange={(e) => setFilterIntensity(e.target.value)}
+                className="w-full md:w-auto pl-3 pr-8 py-1.5 text-xs font-semibold text-white bg-[#1A1A1A] border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] appearance-none cursor-pointer hover:border-white/20 transition-colors"
+              >
+                <option value="all" className="bg-[#161616]">Intensity: All</option>
+                <option value="None" className="bg-[#161616]">None</option>
+                <option value="Low" className="bg-[#161616]">Low</option>
+                <option value="Medium" className="bg-[#161616]">Medium</option>
+                <option value="High" className="bg-[#161616]">High</option>
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5">
+                <ChevronDown size={12} className="text-slate-400" />
+              </div>
+            </div>
 
-                {/* Intensity */}
-                <div className="relative">
-                  <select
-                    value={filterIntensity}
-                    onChange={(e) => setFilterIntensity(e.target.value)}
-                    className="pl-3 pr-8 py-2 text-[11px] font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl focus:outline-none appearance-none cursor-pointer hover:border-slate-300 transition-colors"
-                  >
-                    <option value="all">Intensity: All</option>
-                    <option value="None">None</option>
-                    <option value="Low">Low</option>
-                    <option value="Medium">Medium</option>
-                    <option value="High">High</option>
-                  </select>
-                  <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-[10px]">▼</div>
-                </div>
-
-                {/* Review */}
-                <div className="relative">
-                  <select
-                    value={filterReview}
-                    onChange={(e) => setFilterReview(e.target.value)}
-                    className="pl-3 pr-8 py-2 text-[11px] font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl focus:outline-none appearance-none cursor-pointer hover:border-slate-300 transition-colors"
-                  >
-                    <option value="all">Review: All</option>
-                    <option value="validated">Expert Reviewed</option>
-                    <option value="pending">Pending Review</option>
-                  </select>
-                  <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-[10px]">▼</div>
-                </div>
+            {/* Review */}
+            <div className="relative">
+              <select
+                value={filterReview}
+                onChange={(e) => setFilterReview(e.target.value)}
+                className="w-full md:w-auto pl-3 pr-8 py-1.5 text-xs font-semibold text-white bg-[#1A1A1A] border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] appearance-none cursor-pointer hover:border-white/20 transition-colors"
+              >
+                <option value="all" className="bg-[#161616]">Review: All</option>
+                <option value="validated" className="bg-[#161616]">Expert Reviewed</option>
+                <option value="pending" className="bg-[#161616]">Pending Review</option>
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5">
+                <ChevronDown size={12} className="text-slate-400" />
               </div>
             </div>
           </div>
@@ -404,26 +373,26 @@ const Exercises = () => {
         <div className="w-full overflow-x-auto">
           <table className="w-full text-left border-collapse min-w-[900px] table-auto">
             <thead>
-              <tr className="border-b border-slate-100 bg-slate-50/50">
-                <th className="py-3 px-5 text-[9px] font-semibold text-slate-400 uppercase tracking-[0.2em] w-[35%]">
+              <tr className="border-b border-white/10">
+                <th className="py-3 px-5 text-[10px] font-bold text-[#89899C] uppercase tracking-[0.15em] w-[35%]">
                   Exercise
                 </th>
-                <th className="py-3 px-5 text-[9px] font-semibold text-slate-400 uppercase tracking-[0.2em] w-[18%]">
+                <th className="py-3 px-5 text-[10px] font-bold text-[#89899C] uppercase tracking-[0.15em] w-[18%]">
                   Type / Intensity
                 </th>
-                <th className="py-3 px-5 text-[9px] font-semibold text-slate-400 uppercase tracking-[0.2em] w-[15%]">
+                <th className="py-3 px-5 text-[10px] font-bold text-[#89899C] uppercase tracking-[0.15em] w-[15%]">
                   HSS Target
                 </th>
-                <th className="py-3 px-5 text-[9px] font-semibold text-slate-400 uppercase tracking-[0.2em] w-[10%]">
+                <th className="py-3 px-5 text-[10px] font-bold text-[#89899C] uppercase tracking-[0.15em] w-[10%]">
                   Duration
                 </th>
-                <th className="py-3 px-5 text-[9px] font-semibold text-slate-400 uppercase tracking-[0.2em] w-[10%]">
+                <th className="py-3 px-5 text-[10px] font-bold text-[#89899C] uppercase tracking-[0.15em] w-[10%]">
                   Media
                 </th>
-                <th className="py-3 px-5 text-[9px] font-semibold text-slate-400 uppercase tracking-[0.2em] w-[12%]">
+                <th className="py-3 px-5 text-[10px] font-bold text-[#89899C] uppercase tracking-[0.15em] w-[12%]">
                   Status / Review
                 </th>
-                <th className="py-3 px-5 text-[9px] font-semibold text-slate-400 uppercase tracking-[0.2em] text-right w-16">
+                <th className="py-3 px-5 text-[10px] font-bold text-[#89899C] uppercase tracking-[0.15em] text-right w-16">
                   Actions
                 </th>
               </tr>
@@ -431,61 +400,62 @@ const Exercises = () => {
             {loading ? (
               <tbody>
                 {[1, 2, 3, 4, 5].map((item) => (
-                  <tr key={item} className="border-t border-slate-50">
+                  <tr key={item} className="border-t border-white/5">
                     <td className="py-4 px-5">
                       <div className="flex items-center gap-3">
-                        <Skeleton className="w-10 h-10 rounded-xl shrink-0" />
+                        <Skeleton className="w-10 h-10 rounded-xl shrink-0 bg-white/10" />
                         <div>
-                          <Skeleton className="w-32 h-4 mb-1" />
-                          <Skeleton className="w-48 h-3" />
+                          <Skeleton className="w-32 h-4 mb-1 bg-white/10" />
+                          <Skeleton className="w-48 h-3 bg-white/10" />
                         </div>
                       </div>
                     </td>
                     <td className="py-4 px-5">
-                      <Skeleton className="w-20 h-3 mb-1" />
-                      <Skeleton className="w-16 h-3" />
+                      <Skeleton className="w-20 h-3 mb-1 bg-white/10" />
+                      <Skeleton className="w-16 h-3 bg-white/10" />
                     </td>
                     <td className="py-4 px-5">
-                      <Skeleton className="w-24 h-5 rounded-full" />
+                      <Skeleton className="w-24 h-5 rounded-full bg-white/10" />
                     </td>
                     <td className="py-4 px-5">
-                      <Skeleton className="w-12 h-4" />
+                      <Skeleton className="w-12 h-4 bg-white/10" />
                     </td>
                     <td className="py-4 px-5">
                       <div className="flex gap-2">
-                        <Skeleton className="w-12 h-3" />
+                        <Skeleton className="w-12 h-3 bg-white/10" />
                       </div>
                     </td>
                     <td className="py-4 px-5">
-                      <Skeleton className="w-16 h-3 mb-1" />
-                      <Skeleton className="w-20 h-3" />
+                      <Skeleton className="w-16 h-3 mb-1 bg-white/10" />
+                      <Skeleton className="w-20 h-3 bg-white/10" />
                     </td>
                     <td className="py-4 px-5">
                       <div className="flex justify-end">
-                        <Skeleton className="w-6 h-6 rounded-md" />
+                        <Skeleton className="w-6 h-6 rounded-md bg-white/10" />
                       </div>
                     </td>
                   </tr>
                 ))}
               </tbody>
             ) : (
-              <tbody className="divide-y divide-slate-50">
+              <tbody className="divide-y divide-white/5">
                 {filteredExercises.map((exercise, index) => {
-                  const badge = getHssBadgeColor(exercise.hssTarget);
+                  const badgeClass = getHssBadgeColor(exercise.hssTarget);
                   return (
                     <tr
                       key={exercise.id}
-                      className={`hover:bg-slate-50/40 transition-colors group cursor-default ${exercise.status === "archived" ? "opacity-60" : ""}`}
+                      className={`hover:bg-white/5 transition-colors group cursor-pointer ${exercise.status === "archived" ? "opacity-50" : ""}`}
+                      onClick={() => openModal(exercise)}
                     >
                       {/* 1. EXERCISE */}
                       <td className="py-4 px-5 align-middle">
                         <div className="flex items-center gap-3">
                           <div
-                            className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors overflow-hidden bg-slate-100 border border-slate-200"
+                            className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors overflow-hidden bg-[#36272B] border border-[#E55F37]/30 text-[#E55F37] shadow-sm"
                           >
                             {(() => {
                               const resolvedUrl = resolveMediaUrl(exercise.mediaUrl);
-                              if (!resolvedUrl) return <Dumbbell size={16} className="text-slate-500" />;
+                              if (!resolvedUrl) return <Dumbbell size={18} className="text-[#E55F37]" />;
                               
                               const ytMatch = resolvedUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?]+)/);
                               if (ytMatch && ytMatch[1]) {
@@ -500,10 +470,10 @@ const Exercises = () => {
                             })()}
                           </div>
                           <div>
-                            <p className="text-slate-900 font-semibold text-xs mb-0.5">
+                            <p className="text-white font-semibold text-xs mb-0.5">
                               {exercise.name}
                             </p>
-                            <p className="text-slate-400 text-[10px] truncate max-w-[240px]">
+                            <p className="text-[#89899C] text-[10px] font-medium truncate max-w-[240px]">
                               {exercise.description}
                             </p>
                           </div>
@@ -513,19 +483,15 @@ const Exercises = () => {
                       {/* 2. TYPE / INTENSITY */}
                       <td className="py-4 px-5 align-middle">
                         <div className="flex flex-col">
-                          <span className="text-slate-900 font-semibold text-[11px]">{exercise.type}</span>
-                          <span className="text-slate-400 text-[10px]">{exercise.intensity} intensity</span>
+                          <span className="text-white font-semibold text-xs">{exercise.type}</span>
+                          <span className="text-[#89899C] text-[10px] font-medium">{exercise.intensity} intensity</span>
                         </div>
                       </td>
 
                       {/* 3. HSS */}
                       <td className="py-4 px-5 align-middle">
                         <span
-                          className="inline-flex items-center text-[9px] font-medium px-2.5 py-1 rounded-full uppercase tracking-[0.15em]"
-                          style={{
-                            backgroundColor: badge.bg,
-                            color: badge.text,
-                          }}
+                          className={`inline-flex items-center text-[9px] font-bold px-2.5 py-1 rounded-full uppercase tracking-[0.15em] ${badgeClass}`}
                         >
                           {exercise.hssTarget.split(" ")[0]}
                         </span>
@@ -533,28 +499,28 @@ const Exercises = () => {
 
                       {/* 4. DURATION */}
                       <td className="py-4 px-5 align-middle">
-                        <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-700">
-                          <Clock size={12} className="text-slate-400" />
+                        <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-white">
+                          <Clock size={13} className="text-[#E55F37]" />
                           {exercise.duration} min
                         </span>
                       </td>
 
                       {/* 5. MEDIA */}
                       <td className="py-4 px-5 align-middle">
-                        <div className="flex flex-col gap-1 text-[10px] text-slate-500 font-medium">
+                        <div className="flex flex-col gap-1 text-[10px] font-medium">
                           {exercise.videoUrl ? (
-                            <span className="flex items-center gap-1 text-emerald-600">
+                            <span className="flex items-center gap-1 text-emerald-400 font-semibold">
                               <Play size={11} strokeWidth={2.5} /> Video
                             </span>
                           ) : (
-                            <span className="text-slate-300 flex items-center gap-1">— Video</span>
+                            <span className="text-slate-600 flex items-center gap-1">— Video</span>
                           )}
                           {exercise.guideImages && exercise.guideImages.length > 0 ? (
-                            <span className="flex items-center gap-1 text-emerald-600">
+                            <span className="flex items-center gap-1 text-emerald-400 font-semibold">
                               <Image size={11} strokeWidth={2.5} /> {exercise.guideImages.length} Guides
                             </span>
                           ) : (
-                            <span className="text-slate-300 flex items-center gap-1">— Guides</span>
+                            <span className="text-slate-600 flex items-center gap-1">— Guides</span>
                           )}
                         </div>
                       </td>
@@ -565,20 +531,20 @@ const Exercises = () => {
                           <span
                             className={`text-[9px] font-bold uppercase tracking-[0.15em] px-2 py-0.5 rounded-md ${
                               exercise.status === "published"
-                                ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
+                                ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
                                 : exercise.status === "draft"
-                                ? "bg-amber-50 text-amber-600 border border-amber-100"
-                                : "bg-slate-100 text-slate-400 border border-slate-200"
+                                ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                                : "bg-white/5 text-slate-400 border border-white/10"
                             }`}
                           >
                             {exercise.status}
                           </span>
                           {exercise.expertValidated ? (
-                            <span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1 mt-0.5">
+                            <span className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1 mt-0.5">
                               ✓ Expert Reviewed
                             </span>
                           ) : (
-                            <span className="text-[10px] text-amber-600 font-semibold flex items-center gap-1 mt-0.5">
+                            <span className="text-[10px] text-amber-400 font-semibold flex items-center gap-1 mt-0.5">
                               ⚠ Pending Review
                             </span>
                           )}
@@ -589,7 +555,7 @@ const Exercises = () => {
                       <td className="py-4 px-5 align-middle text-right relative" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-end">
                           <button
-                            className="p-1.5 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
+                            className="p-1.5 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors cursor-pointer"
                             onClick={(e) => toggleMenu(e, exercise.id)}
                             title="Actions"
                           >
@@ -598,7 +564,7 @@ const Exercises = () => {
                         </div>
                         {activeMenuId === exercise.id && (
                           <div
-                            className={`absolute right-5 w-44 bg-white border border-slate-200 rounded-xl shadow-lg py-1.5 z-50 text-left ${
+                            className={`absolute right-5 w-44 bg-[#1A1A1A] border border-white/10 rounded-2xl shadow-2xl py-1.5 z-50 text-left ${
                               index >= filteredExercises.length - 2 && filteredExercises.length > 2
                                 ? "bottom-full mb-1"
                                 : "top-full mt-1"
@@ -611,9 +577,9 @@ const Exercises = () => {
                                 setActiveMenuId(null);
                                 openModal(exercise);
                               }}
-                              className="w-full px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2 font-semibold"
+                              className="w-full px-3.5 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/5 flex items-center gap-2 font-medium cursor-pointer"
                             >
-                              <Edit2 size={13} /> Edit Exercise
+                              <Edit2 size={13} className="text-[#E55F37]" /> Edit Exercise
                             </button>
 
                             {/* Publish Action (DRAFT only) */}
@@ -624,9 +590,9 @@ const Exercises = () => {
                                   setActiveMenuId(null);
                                   handleUpdateStatus(exercise, "published");
                                 }}
-                                className="w-full px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2 font-semibold"
+                                className="w-full px-3.5 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/5 flex items-center gap-2 font-medium cursor-pointer"
                               >
-                                <CheckCircle2 size={13} className="text-emerald-500" /> Publish
+                                <CheckCircle2 size={13} className="text-emerald-400" /> Publish
                               </button>
                             )}
 
@@ -638,9 +604,9 @@ const Exercises = () => {
                                   setActiveMenuId(null);
                                   handleUpdateStatus(exercise, "archived");
                                 }}
-                                className="w-full px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2 font-semibold"
+                                className="w-full px-3.5 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/5 flex items-center gap-2 font-medium cursor-pointer"
                               >
-                                <Archive size={13} className="text-amber-500" /> Archive
+                                <Archive size={13} className="text-amber-400" /> Archive
                               </button>
                             )}
 
@@ -652,14 +618,14 @@ const Exercises = () => {
                                   setActiveMenuId(null);
                                   handleUpdateStatus(exercise, "draft");
                                 }}
-                                className="w-full px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2 font-semibold"
+                                className="w-full px-3.5 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/5 flex items-center gap-2 font-medium cursor-pointer"
                               >
-                                <CheckCircle2 size={13} className="text-blue-500" /> Restore to Draft
+                                <CheckCircle2 size={13} className="text-blue-400" /> Restore to Draft
                               </button>
                             )}
 
                             {/* Divider */}
-                            <div className="border-t border-slate-100 my-1" />
+                            <div className="border-t border-white/10 my-1" />
 
                             {/* Delete Action */}
                             <button
@@ -668,7 +634,7 @@ const Exercises = () => {
                                 setActiveMenuId(null);
                                 handleDeleteExercise(exercise);
                               }}
-                              className="w-full px-3 py-1.5 text-xs text-red-600 hover:bg-red-50 flex items-center gap-2 font-semibold"
+                              className="w-full px-3.5 py-2 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 flex items-center gap-2 font-medium cursor-pointer"
                             >
                               <Trash2 size={13} /> Delete
                             </button>
@@ -682,8 +648,20 @@ const Exercises = () => {
             )}
           </table>
           {!loading && filteredExercises.length === 0 && (
-            <div className="p-8 text-center text-slate-400 text-xs">
-              {exercises.length === 0 ? "No exercises available." : "No exercises match your filters."}
+            <div className="p-12 text-center text-slate-400 text-xs flex flex-col items-center justify-center gap-3 border-t border-white/5">
+              {exercises.length === 0 ? (
+                <p className="font-medium text-slate-400">No exercises available.</p>
+              ) : (
+                <>
+                  <p className="font-medium text-slate-400">No exercises match your filters.</p>
+                  <button
+                    onClick={clearFilters}
+                    className="mt-2 px-4 py-2 text-xs font-semibold text-white bg-[#E55F37] hover:bg-[#D4542E] rounded-xl transition-all cursor-pointer"
+                  >
+                    Clear Filters
+                  </button>
+                </>
+              )}
             </div>
           )}
         </div>
@@ -731,3 +709,4 @@ const Exercises = () => {
 };
 
 export default Exercises;
+

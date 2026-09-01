@@ -13,6 +13,13 @@ import {
   ChevronRight,
   Download,
   CheckCircle,
+  Clock,
+  ChevronDown,
+  Sparkles,
+  Utensils,
+  Dumbbell,
+  Radio,
+  FileSpreadsheet,
 } from "lucide-react";
 
 const ActivityLog = () => {
@@ -101,65 +108,56 @@ const ActivityLog = () => {
     switch (formattedType) {
       case "case":
         return {
-          bg: "bg-red-50",
-          text: "text-red-600",
-          icon: <Activity size={12} />,
+          bg: "bg-rose-500/10 text-rose-400 border border-rose-500/20",
+          icon: <Activity size={11} />,
           label: "CASE REVIEW",
         };
       case "staff":
         return {
-          bg: "bg-blue-50",
-          text: "text-blue-600",
-          icon: <Shield size={12} />,
+          bg: "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20",
+          icon: <Shield size={11} />,
           label: "STAFF",
         };
       case "recipe":
         return {
-          bg: "bg-slate-100",
-          text: "text-slate-600",
-          icon: <Settings size={12} />,
+          bg: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20",
+          icon: <Utensils size={11} />,
           label: "RECIPE",
         };
       case "exercise":
         return {
-          bg: "bg-blue-50",
-          text: "text-blue-600",
-          icon: <Activity size={12} />,
+          bg: "bg-blue-500/10 text-blue-400 border border-blue-500/20",
+          icon: <Dumbbell size={11} />,
           label: "EXERCISE",
         };
       case "feedback":
         return {
-          bg: "bg-amber-50",
-          text: "text-amber-600",
-          icon: <Headset size={12} />,
+          bg: "bg-amber-500/10 text-amber-400 border border-amber-500/20",
+          icon: <Headset size={11} />,
           label: "FEEDBACK",
         };
       case "broadcast":
         return {
-          bg: "bg-amber-50",
-          text: "text-amber-600",
-          icon: <Headset size={12} />,
+          bg: "bg-amber-500/10 text-amber-400 border border-amber-500/20",
+          icon: <Radio size={11} />,
           label: "BROADCAST",
         };
       case "user":
         return {
-          bg: "bg-blue-50",
-          text: "text-blue-600",
-          icon: <Shield size={12} />,
+          bg: "bg-purple-500/10 text-purple-400 border border-purple-500/20",
+          icon: <Shield size={11} />,
           label: "USER",
         };
       case "dataset":
         return {
-          bg: "bg-slate-100",
-          text: "text-slate-600",
-          icon: <Settings size={12} />,
+          bg: "bg-white/5 text-slate-300 border border-white/10",
+          icon: <FileSpreadsheet size={11} />,
           label: "DATASET",
         };
       default:
         return {
-          bg: "bg-slate-100",
-          text: "text-slate-600",
-          icon: <Activity size={12} />,
+          bg: "bg-white/5 text-slate-300 border border-white/10",
+          icon: <Activity size={11} />,
           label: "GENERAL",
         };
     }
@@ -197,19 +195,19 @@ const ActivityLog = () => {
     return Array.from({ length: 5 }).map((_, idx) => (
       <tr key={`sk-${idx}`} className="animate-pulse">
         <td className="py-4 px-5 align-middle">
-          <div className="h-3 bg-slate-200 rounded w-24"></div>
+          <div className="h-3.5 bg-white/10 rounded w-28"></div>
         </td>
         <td className="py-4 px-5 align-middle">
-          <div className="h-5 bg-slate-200 rounded-full w-20"></div>
+          <div className="h-5 bg-white/10 rounded-full w-24"></div>
         </td>
         <td className="py-4 px-5 align-middle">
-          <div className="h-3 bg-slate-200 rounded w-64"></div>
+          <div className="h-3.5 bg-white/10 rounded w-64"></div>
         </td>
         <td className="py-4 px-5 align-middle">
-          <div className="h-6 bg-slate-200 rounded-lg w-24"></div>
+          <div className="h-6 bg-white/10 rounded-xl w-28"></div>
         </td>
         <td className="py-4 px-5 align-middle text-right">
-          <div className="h-3 bg-slate-200 rounded w-16 ml-auto"></div>
+          <div className="h-4 bg-white/10 rounded-md w-16 ml-auto"></div>
         </td>
       </tr>
     ));
@@ -221,8 +219,8 @@ const ActivityLog = () => {
     const end = Math.min(page * pageSize, total);
     return (
       <>
-        Showing <span className="text-slate-900 font-semibold">{start}-{end}</span> of{" "}
-        <span className="text-slate-900 font-semibold">{total}</span> events
+        Showing <span className="text-white font-bold">{start}-{end}</span> of{" "}
+        <span className="text-white font-bold">{total}</span> events
       </>
     );
   };
@@ -230,12 +228,12 @@ const ActivityLog = () => {
   if (accessDenied) {
     return (
       <AdminLayout>
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mb-4 border border-red-100">
+        <div className="flex flex-col items-center justify-center py-20 text-center animate-in fade-in duration-300">
+          <div className="w-16 h-16 bg-rose-500/10 text-rose-400 rounded-2xl flex items-center justify-center mb-4 border border-rose-500/20">
             <Shield size={32} />
           </div>
-          <h3 className="text-lg font-bold text-slate-900 mb-2">Access Denied</h3>
-          <p className="text-slate-500 text-xs max-w-sm mb-6">
+          <h3 className="text-lg font-bold text-white mb-2">Access Denied</h3>
+          <p className="text-[#89899C] text-xs max-w-sm mb-6">
             You do not have the required permissions to view the system audit activity logs. Only administrators are allowed.
           </p>
         </div>
@@ -250,69 +248,68 @@ const ActivityLog = () => {
   return (
     <AdminLayout>
       {/* 1. Page Header Area */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between mb-6 gap-4">
+      <div className="flex flex-col md:flex-row md:items-end justify-between mb-6 gap-4 animate-in fade-in duration-300">
         <div>
-          <p className="text-[10px] font-medium text-slate-400 tracking-[0.22em] uppercase mb-2">
-            ADMIN AUDIT TRAIL
-          </p>
-          <h2 className="text-2xl lg:text-3xl font-semibold text-slate-900 leading-[1.1] tracking-tight">
-            Admin Activity Log.
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-[#E55F37]/30 bg-[#E55F37]/10 text-[10px] font-bold uppercase tracking-widest text-[#E55F37] mb-2">
+            <Activity size={11} />
+            <span>Audit Trail</span>
+          </div>
+          <h2 className="text-2xl lg:text-3xl font-bold text-white tracking-tight leading-tight">
+            Admin Activity Log
           </h2>
-          <p className="text-slate-500 text-xs mt-1">
-            Administrative actions performed in HeartLink.
+          <p className="text-[#89899C] text-xs mt-1 font-medium">
+            Immutable clinical and administrative audit trail of all platform activities.
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <button className="flex items-center gap-1.5 px-4 py-2 text-[11px] font-medium text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors">
+          <button className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-slate-300 hover:text-white bg-[#21202E] border border-white/10 hover:border-white/20 rounded-xl transition-colors shadow-sm cursor-pointer">
             <Download size={14} /> Export Audit CSV
           </button>
           <button
-            className="flex items-center gap-1.5 px-4 py-2 text-[11px] font-medium text-white rounded-xl transition-all hover:opacity-90 active:scale-[0.99]"
-            style={{ backgroundColor: "#0f172a" }}
+            className="flex items-center gap-1.5 px-5 py-2 text-xs font-bold text-white bg-[#E55F37] hover:bg-[#D4542E] rounded-xl shadow-sm shadow-[#E55F37]/25 transition-all cursor-pointer"
           >
             <CheckCircle size={14} /> Mark All as Read
           </button>
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-slate-200 flex flex-col overflow-hidden">
+      <div className="bg-[#1A1A1A] rounded-2xl border border-white/10 flex flex-col overflow-hidden animate-in fade-in duration-300">
         {/* 2. Search & Filter Bar */}
-        <div className="p-4 border-b border-slate-100 bg-slate-50/50">
+        <div className="p-4 border-b border-white/10 bg-[#161616]">
           <div className="flex flex-col md:flex-row gap-3">
             <div className="relative flex-1">
               <Search
                 size={14}
-                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none"
               />
               <input
                 type="text"
                 placeholder="Search by User ID, keyword, or event..."
                 value={searchQuery}
                 onChange={handleSearchChange}
-                className="w-full pl-9 pr-3 py-2 text-[11px] border border-slate-200 rounded-xl focus:outline-none focus:border-slate-400 transition-all bg-white"
+                className="w-full pl-9 pr-4 py-2 text-xs border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] transition-all bg-[#1A1A1A] text-white placeholder:text-slate-500"
               />
             </div>
             <div className="flex gap-3">
               <div className="relative">
-                <Filter
-                  size={12}
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
-                />
                 <select
                   value={eventTypeFilter}
                   onChange={handleFilterChange}
-                  className="pl-9 pr-8 py-2 text-[11px] font-medium text-slate-700 bg-white border border-slate-200 rounded-xl focus:outline-none appearance-none cursor-pointer hover:border-slate-300 transition-colors"
+                  className="pl-3 pr-8 py-2 text-xs font-semibold text-white bg-[#1A1A1A] border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] appearance-none cursor-pointer hover:border-white/20 transition-colors"
                 >
-                  <option value="all">All Categories</option>
-                  <option value="recipe">Recipes</option>
-                  <option value="exercise">Exercises</option>
-                  <option value="case">Case Reviews</option>
-                  <option value="staff">Staff</option>
-                  <option value="feedback">Feedback</option>
-                  <option value="broadcast">Broadcasts</option>
-                  <option value="user">Users</option>
-                  <option value="dataset">Datasets</option>
+                  <option value="all" className="bg-[#161616]">All Categories</option>
+                  <option value="recipe" className="bg-[#161616]">Recipes</option>
+                  <option value="exercise" className="bg-[#161616]">Exercises</option>
+                  <option value="case" className="bg-[#161616]">Case Reviews</option>
+                  <option value="staff" className="bg-[#161616]">Staff</option>
+                  <option value="feedback" className="bg-[#161616]">Feedback</option>
+                  <option value="broadcast" className="bg-[#161616]">Broadcasts</option>
+                  <option value="user" className="bg-[#161616]">Users</option>
+                  <option value="dataset" className="bg-[#161616]">Datasets</option>
                 </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5">
+                  <ChevronDown size={12} className="text-slate-400" />
+                </div>
               </div>
             </div>
           </div>
@@ -320,14 +317,14 @@ const ActivityLog = () => {
 
         {/* Retry Banner on Error */}
         {fetchError && (
-          <div className="p-4 bg-red-50 border-b border-red-100 flex items-center justify-between text-red-700 text-xs font-medium">
+          <div className="p-3 mx-4 my-3 bg-rose-500/10 border border-rose-500/20 rounded-xl flex items-center justify-between text-rose-400 text-xs font-medium">
             <span>Unable to load activity history.</span>
             <button
               onClick={() => {
                 setFetchError(false);
                 setRetryCount((prev) => prev + 1);
               }}
-              className="px-3 py-1 bg-white border border-red-200 rounded-lg text-red-700 hover:bg-red-50 active:scale-95 transition-all font-semibold"
+              className="px-3 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded-lg transition-colors font-bold text-[10px] uppercase tracking-wider cursor-pointer"
             >
               Retry
             </button>
@@ -335,33 +332,33 @@ const ActivityLog = () => {
         )}
 
         {/* 3. The Data Table */}
-        <div className="w-full overflow-x-auto">
+        <div className="w-full overflow-x-auto custom-scrollbar">
           <table className="w-full text-left border-collapse min-w-[900px]">
             <thead>
-              <tr>
-                <th className="py-3 px-5 text-[9px] font-medium text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100">
+              <tr className="border-b border-white/10">
+                <th className="py-3 px-5 text-[10px] font-bold text-[#89899C] uppercase tracking-[0.15em]">
                   Timestamp
                 </th>
-                <th className="py-3 px-5 text-[9px] font-medium text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100">
+                <th className="py-3 px-5 text-[10px] font-bold text-[#89899C] uppercase tracking-[0.15em]">
                   Event Type
                 </th>
-                <th className="py-3 px-5 text-[9px] font-medium text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100 w-2/5">
+                <th className="py-3 px-5 text-[10px] font-bold text-[#89899C] uppercase tracking-[0.15em] w-2/5">
                   Details
                 </th>
-                <th className="py-3 px-5 text-[9px] font-medium text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100">
+                <th className="py-3 px-5 text-[10px] font-bold text-[#89899C] uppercase tracking-[0.15em]">
                   Associated User
                 </th>
-                <th className="py-3 px-5 text-[9px] font-medium text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100 text-right">
+                <th className="py-3 px-5 text-[10px] font-bold text-[#89899C] uppercase tracking-[0.15em] text-right">
                   Status
                 </th>
               </tr>
             </thead>
-            <tbody className={`divide-y divide-slate-50 transition-opacity duration-200 ${loading && !showSkeleton ? "opacity-60" : "opacity-100"}`}>
+            <tbody className={`divide-y divide-white/5 transition-opacity duration-200 ${loading && !showSkeleton ? "opacity-60" : "opacity-100"}`}>
               {showSkeleton && renderSkeletons()}
 
               {isEmpty && (
                 <tr>
-                  <td colSpan={5} className="py-12 text-center text-xs text-slate-500 font-medium bg-slate-50/20">
+                  <td colSpan={5} className="py-12 text-center text-xs text-slate-400 font-medium">
                     {isSearchOrFilterApplied
                       ? "No activity matches your filters."
                       : "No administrative activity recorded."}
@@ -374,33 +371,33 @@ const ActivityLog = () => {
                 return (
                   <tr
                     key={log.id}
-                    className="hover:bg-slate-50/60 transition-colors group cursor-default"
+                    className="hover:bg-white/5 transition-colors group cursor-default"
                   >
                     <td className="py-4 px-5 align-middle">
-                      <span className="text-xs font-medium text-slate-700">
+                      <span className="text-xs font-mono font-medium text-[#89899C]">
                         {formatTimestamp(log.created_at)}
                       </span>
                     </td>
                     <td className="py-4 px-5 align-middle">
                       <span
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-semibold tracking-wider ${badge.bg} ${badge.text}`}
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[9px] font-bold tracking-wider uppercase border ${badge.bg}`}
                       >
                         {badge.icon} {badge.label}
                       </span>
                     </td>
                     <td className="py-4 px-5 align-middle">
-                      <p className="text-xs text-slate-900 leading-relaxed font-medium">
+                      <p className="text-xs text-white leading-relaxed font-semibold">
                         {formatDetails(log)}
                       </p>
                     </td>
                     <td className="py-4 px-5 align-middle">
-                      <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-slate-700 bg-slate-100 px-2.5 py-1 rounded-lg">
-                        <Shield size={11} className="text-slate-400" />
+                      <span className="inline-flex items-center gap-1.5 text-xs font-mono font-bold text-slate-300 bg-[#21202E] border border-white/10 px-2.5 py-1 rounded-xl">
+                        <Shield size={11} className="text-[#E55F37]" />
                         {log.admin_name || log.admin_user_id || "System"}
                       </span>
                     </td>
                     <td className="py-4 px-5 align-middle text-right">
-                      <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md">
+                      <span className="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
                         Logged
                       </span>
                     </td>
@@ -412,18 +409,18 @@ const ActivityLog = () => {
         </div>
 
         {/* 4. Pagination */}
-        <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <p className="text-[11px] text-slate-500 font-medium">
+        <div className="p-4 border-t border-white/10 bg-[#161616] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <p className="text-xs text-[#89899C] font-medium">
             {getPaginationText()}
           </p>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setPage((prev) => Math.max(1, prev - 1))}
               disabled={page <= 1 || loading}
-              className={`flex items-center gap-1 px-3 py-1.5 text-[11px] font-medium rounded-lg border transition-all ${
+              className={`flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-xl border border-white/10 bg-[#21202E] transition-all cursor-pointer ${
                 page <= 1 || loading
-                  ? "text-slate-400 bg-white border-slate-200 cursor-not-allowed opacity-50"
-                  : "text-slate-600 bg-white border-slate-200 hover:text-slate-900 hover:bg-slate-50 active:scale-95"
+                  ? "text-slate-500 cursor-not-allowed opacity-40"
+                  : "text-slate-300 hover:text-white hover:border-white/20 active:scale-95"
               }`}
             >
               <ChevronLeft size={12} /> Previous
@@ -431,10 +428,10 @@ const ActivityLog = () => {
             <button
               onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
               disabled={page >= totalPages || loading}
-              className={`flex items-center gap-1 px-3 py-1.5 text-[11px] font-medium rounded-lg border transition-all ${
+              className={`flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-xl border border-white/10 bg-[#21202E] transition-all cursor-pointer ${
                 page >= totalPages || loading
-                  ? "text-slate-400 bg-white border-slate-200 cursor-not-allowed opacity-50"
-                  : "text-slate-600 bg-white border-slate-200 hover:text-slate-900 hover:bg-slate-50 active:scale-95"
+                  ? "text-slate-500 cursor-not-allowed opacity-40"
+                  : "text-slate-300 hover:text-white hover:border-white/20 active:scale-95"
               }`}
             >
               Next <ChevronRight size={12} />
@@ -447,3 +444,4 @@ const ActivityLog = () => {
 };
 
 export default ActivityLog;
+

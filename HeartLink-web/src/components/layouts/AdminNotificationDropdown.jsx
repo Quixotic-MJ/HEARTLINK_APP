@@ -216,20 +216,13 @@ export default function AdminNotificationDropdown({ userId }) {
         aria-label="Notifications"
         aria-expanded={isOpen}
         aria-haspopup="true"
-        className="relative flex items-center justify-center rounded-xl transition-all ml-2"
-        style={{
-          width: 36, height: 36,
-          backgroundColor: isOpen ? "rgba(15,23,42,0.06)" : "#f8fafc",
-          border: "1px solid",
-          borderColor: isOpen ? "rgba(15,23,42,0.12)" : "rgba(15,23,42,0.08)",
-          color: "rgba(15,23,42,0.7)",
-        }}
+        className="relative flex items-center justify-center rounded-xl w-9 h-9 bg-[#1A1A1A] border border-white/10 text-slate-300 hover:text-white transition-all ml-1 cursor-pointer"
         title="Notifications"
       >
-        <Bell size={16} strokeWidth={2} className={unreadCount > 0 ? "animate-pulse" : ""} />
+        <Bell size={16} strokeWidth={2} className={unreadCount > 0 ? "animate-pulse text-[#E55F37]" : ""} />
         {unreadCount > 0 && (
           <span 
-            className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white shadow-sm ring-2 ring-white"
+            className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-[#E55F37] text-[9px] font-bold text-white shadow-sm ring-2 ring-[#161616]"
           >
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
@@ -238,15 +231,15 @@ export default function AdminNotificationDropdown({ userId }) {
 
       {isOpen && (
         <div 
-          className="absolute right-0 mt-2 z-50 rounded-2xl overflow-hidden flex flex-col shadow-2xl bg-white border border-slate-200/60 w-[calc(100vw-2rem)] max-w-[340px] sm:w-[340px]"
+          className="absolute right-0 mt-2 z-50 rounded-2xl overflow-hidden flex flex-col shadow-2xl bg-[#1A1A1A] border border-white/10 w-[calc(100vw-2rem)] max-w-[340px] sm:w-[340px] text-white"
           style={{ maxHeight: 480, animation: "fadeIn 0.15s ease-out" }}
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 bg-slate-50/50 border-b border-slate-100 backdrop-blur-md">
+          <div className="flex items-center justify-between px-4 py-3 bg-[#161616] border-b border-white/10">
             <div className="flex items-center gap-2">
-              <h3 className="text-[13px] font-semibold text-slate-800">Notifications</h3>
+              <h3 className="text-[13px] font-semibold text-white">Notifications</h3>
               {unreadCount > 0 && (
-                <span className="px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 text-[10px] font-bold tracking-wide">
+                <span className="px-1.5 py-0.5 rounded bg-[#E55F37]/20 text-[#E55F37] text-[10px] font-bold tracking-wide">
                   {unreadCount} NEW
                 </span>
               )}
@@ -254,7 +247,7 @@ export default function AdminNotificationDropdown({ userId }) {
             {unreadCount > 0 && (
               <button 
                 onClick={markAllAsRead}
-                className="flex items-center gap-1 text-[11px] font-medium text-slate-500 hover:text-blue-600 transition-colors"
+                className="flex items-center gap-1 text-[11px] font-medium text-[#E55F37] hover:text-[#D4542E] transition-colors cursor-pointer"
               >
                 <CheckCheck size={13} />
                 Mark all read
@@ -262,16 +255,16 @@ export default function AdminNotificationDropdown({ userId }) {
             )}
           </div>
 
-          {/* Action Error Banner (e.g. mark-as-read failure) */}
+          {/* Action Error Banner */}
           {actionError && (
-            <div className="flex items-center justify-between px-3.5 py-2 bg-red-50/90 border-b border-red-100 text-[11px] text-red-700 font-medium">
+            <div className="flex items-center justify-between px-3.5 py-2 bg-red-500/10 border-b border-red-500/20 text-[11px] text-red-400 font-medium">
               <div className="flex items-center gap-1.5">
-                <AlertCircle size={13} className="text-red-500 flex-shrink-0" />
+                <AlertCircle size={13} className="text-red-400 flex-shrink-0" />
                 <span>{actionError}</span>
               </div>
               <button 
                 onClick={() => setActionError(null)} 
-                className="text-red-500 hover:text-red-800 ml-2 font-bold text-xs"
+                className="text-red-400 hover:text-red-300 ml-2 font-bold text-xs cursor-pointer"
                 aria-label="Dismiss error"
               >
                 ✕
@@ -279,16 +272,16 @@ export default function AdminNotificationDropdown({ userId }) {
             </div>
           )}
 
-          {/* Background Refresh Warning (if notifications are present but refresh failed) */}
+          {/* Background Refresh Warning */}
           {fetchError && notifications.length > 0 && (
-            <div className="flex items-center justify-between px-3.5 py-1.5 bg-amber-50/90 border-b border-amber-100 text-[10.5px] text-amber-800 font-medium">
+            <div className="flex items-center justify-between px-3.5 py-1.5 bg-amber-500/10 border-b border-amber-500/20 text-[10.5px] text-amber-300 font-medium">
               <div className="flex items-center gap-1.5">
-                <AlertCircle size={12} className="text-amber-500 flex-shrink-0" />
+                <AlertCircle size={12} className="text-amber-400 flex-shrink-0" />
                 <span>Unable to refresh latest updates.</span>
               </div>
               <button 
                 onClick={handleRetry}
-                className="text-blue-600 hover:text-blue-800 font-semibold underline ml-2"
+                className="text-[#E55F37] hover:text-[#D4542E] font-semibold underline ml-2 cursor-pointer"
               >
                 Retry
               </button>
@@ -299,19 +292,19 @@ export default function AdminNotificationDropdown({ userId }) {
           <div className="overflow-y-auto flex-1 scrollbar-hide" style={{ maxHeight: 380 }}>
             {isLoading && notifications.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-10">
-                <div className="w-5 h-5 border-2 border-slate-200 border-t-slate-800 rounded-full animate-spin mb-3"></div>
+                <div className="w-5 h-5 border-2 border-white/20 border-t-[#E55F37] rounded-full animate-spin mb-3"></div>
                 <p className="text-[11px] text-slate-400 font-medium">Loading notifications...</p>
               </div>
             ) : fetchError && notifications.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-                <div className="w-10 h-10 bg-red-50 rounded-full flex items-center justify-center mb-2.5 border border-red-100 text-red-500">
+                <div className="w-10 h-10 bg-red-500/10 rounded-full flex items-center justify-center mb-2.5 border border-red-500/20 text-red-400">
                   <AlertCircle size={18} />
                 </div>
-                <p className="text-[12.5px] font-semibold text-slate-700">Unable to load notifications.</p>
+                <p className="text-[12.5px] font-semibold text-white">Unable to load notifications.</p>
                 <p className="text-[11px] text-slate-400 mt-0.5 mb-3">Please check your network connection.</p>
                 <button
                   onClick={handleRetry}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 text-white text-[11px] font-medium shadow-sm hover:bg-slate-800 transition-colors"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#E55F37] hover:bg-[#D4542E] text-white text-[11px] font-medium transition-colors cursor-pointer"
                 >
                   <RotateCw size={12} />
                   <span>Retry</span>
@@ -319,34 +312,34 @@ export default function AdminNotificationDropdown({ userId }) {
               </div>
             ) : notifications.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-14 px-4 text-center">
-                <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mb-3 border border-slate-100">
-                  <Bell size={18} className="text-slate-300" />
+                <div className="w-12 h-12 bg-white/5 rounded-full flex items-center justify-center mb-3 border border-white/10">
+                  <Bell size={18} className="text-slate-500" />
                 </div>
-                <p className="text-[13px] font-medium text-slate-600">You're all caught up!</p>
-                <p className="text-[11px] text-slate-400 mt-1">No new notifications right now.</p>
+                <p className="text-[13px] font-medium text-slate-300">You're all caught up!</p>
+                <p className="text-[11px] text-slate-500 mt-1">No new notifications right now.</p>
               </div>
             ) : (
-              <div className="flex flex-col divide-y divide-slate-50/50">
+              <div className="flex flex-col divide-y divide-white/5">
                 {notifications.map((n) => {
                   const isRead = n.read_by?.includes(userId);
                   return (
                     <button
                       key={n.id}
                       onClick={() => markAsRead(n.id, n.route)}
-                      className={`text-left w-full px-4 py-3 transition-colors hover:bg-slate-50 flex items-start gap-3.5 relative ${isRead ? 'opacity-75' : 'bg-blue-50/20'}`}
+                      className={`text-left w-full px-4 py-3 transition-colors hover:bg-white/5 flex items-start gap-3.5 relative cursor-pointer ${isRead ? 'opacity-70' : 'bg-[#E55F37]/5'}`}
                     >
-                      {!isRead && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-blue-500 rounded-r-full" />}
-                      <div className={`mt-0.5 p-2 rounded-xl flex-shrink-0 ${isRead ? 'bg-slate-50 border border-slate-100' : 'bg-white shadow-sm border border-slate-200'}`}>
+                      {!isRead && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-[#E55F37] rounded-r-full" />}
+                      <div className={`mt-0.5 p-2 rounded-xl flex-shrink-0 ${isRead ? 'bg-[#161616] border border-white/5' : 'bg-[#21202E] border border-white/10 shadow-sm'}`}>
                         {getIcon(n.type, n.severity)}
                       </div>
                       <div className="flex-1 min-w-0 pr-1">
-                        <p className={`text-[12.5px] leading-snug mb-0.5 truncate ${isRead ? 'font-medium text-slate-600' : 'font-semibold text-slate-900'}`}>
+                        <p className={`text-[12.5px] leading-snug mb-0.5 truncate ${isRead ? 'font-medium text-slate-300' : 'font-semibold text-white'}`}>
                           {n.title}
                         </p>
-                        <p className="text-[11px] text-slate-500 line-clamp-2 leading-relaxed">
+                        <p className="text-[11px] text-slate-400 line-clamp-2 leading-relaxed">
                           {n.message}
                         </p>
-                        <p className="text-[9.5px] text-slate-400 mt-1.5 font-medium tracking-wide uppercase">
+                        <p className="text-[9.5px] text-[#89899C] mt-1.5 font-medium tracking-wide uppercase">
                           {formatTime(n.created_at)}
                         </p>
                       </div>
@@ -358,7 +351,7 @@ export default function AdminNotificationDropdown({ userId }) {
           </div>
 
           {/* Minimal Neutral Footer */}
-          <div className="px-4 py-2 border-t border-slate-100 bg-slate-50/80 text-[11px] text-slate-400 font-medium text-center">
+          <div className="px-4 py-2 border-t border-white/10 bg-[#161616] text-[10px] text-[#89899C] font-medium text-center">
             Admin notifications
           </div>
         </div>
