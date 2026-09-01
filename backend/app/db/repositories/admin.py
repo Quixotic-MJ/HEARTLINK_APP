@@ -109,6 +109,9 @@ class SupabaseAdminRepository(AdminRepository):
                 "total": len(formatted)
             }
         except Exception as e:
+            err_str = str(e).lower()
+            if "relation" in err_str or "does not exist" in err_str or "42p01" in err_str or "42501" in err_str:
+                return {"items": [], "unread_count": 0, "total": 0}
             handle_db_error(e)
             return {"items": [], "unread_count": 0, "total": 0}
 

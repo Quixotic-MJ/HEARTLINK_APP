@@ -28,7 +28,7 @@ def _parse_dt(dt):
     if isinstance(dt, str):
         try:
             return datetime.fromisoformat(dt.replace("Z", "+00:00")).replace(tzinfo=None)
-        except:
+        except (ValueError, TypeError):
             return None
     return None
 
