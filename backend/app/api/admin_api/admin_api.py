@@ -532,9 +532,10 @@ def create_system_staff(payload: dict, current_user: dict = Depends(get_current_
     
     # 1. Provision user identity in Supabase Auth
     auth_user_id = None
+    supabase_client = get_supabase_client()
+    e164_phone = phone if phone.startswith("+") else ("+63" + phone.lstrip("0"))
+    
     try:
-        supabase_client = get_supabase_client()
-        e164_phone = phone if phone.startswith("+") else ("+63" + phone.lstrip("0"))
         auth_res = supabase_client.auth.admin.create_user({
             "email": email,
             "password": temp_pass,
@@ -545,7 +546,24 @@ def create_system_staff(payload: dict, current_user: dict = Depends(get_current_
         if auth_res and hasattr(auth_res, "user") and auth_res.user:
             auth_user_id = str(auth_res.user.id)
     except Exception as auth_err:
-        print(f"[create_system_staff] Auth creation note: {auth_err}")
+        err_msg = str(auth_err)
+        print(f"[create_system_staff] Auth creation note: {err_msg}")
+        # If user already exists in Auth, try to find their ID
+        if "already" in err_msg.lower() or "exists" in err_msg.lower() or "duplicate" in err_msg.lower():
+            try:
+                users_list = supabase_client.auth.admin.list_users()
+                for u in users_list:
+                    if u.email == email or (u.phone and (u.phone == e164_phone or u.phone == phone)):
+                        auth_user_id = str(u.id)
+                        break
+            except Exception as lookup_err:
+                print(f"[create_system_staff] Auth user lookup failed: {lookup_err}")
+        
+        if not auth_user_id:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Failed to create authentication account: {err_msg}"
+            )
 
     new_staff_data = {
         "first_name": name.split(" ")[0],
