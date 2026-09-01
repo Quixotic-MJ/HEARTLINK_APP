@@ -33,17 +33,46 @@ export const AuthProvider = ({ children }) => {
       setUserId(storedUserId);
       setToken(storedToken);
       setIsAuthenticated(true);
+      let parsedUser = null;
       if (storedUser) {
-        setUser(JSON.parse(storedUser));
-      } else {
+        try {
+          parsedUser = JSON.parse(storedUser);
+          setUser(parsedUser);
+        } catch (e) {}
+      }
+      
+      if (!parsedUser) {
         const payload = decodeJwt(storedToken);
         if (payload) {
           const fallbackUser = { id: payload.user_id || storedUserId, role: payload.role };
           setUser(fallbackUser);
+          parsedUser = fallbackUser;
           const storage = localStorage.getItem('heartlink_admin_token') ? localStorage : sessionStorage;
           storage.setItem('heartlink_admin_user', JSON.stringify(fallbackUser));
         }
       }
+
+      // Sync latest profile details dynamically
+      fetch(`${import.meta.env.VITE_API_URL || "http://localhost:8000"}/api/users/${storedUserId}/profile`, {
+        headers: { "Authorization": `Bearer ${storedToken}` }
+      })
+        .then((res) => (res.ok ? res.json() : null))
+        .then((profileData) => {
+          if (profileData && profileData.id) {
+            const updatedUser = {
+              id: profileData.id,
+              role: profileData.role || parsedUser?.role,
+              first_name: profileData.first_name || "",
+              last_name: profileData.last_name || "",
+              email: profileData.email || "",
+              phone: profileData.phone || "",
+            };
+            setUser(updatedUser);
+            const storage = localStorage.getItem('heartlink_admin_token') ? localStorage : sessionStorage;
+            storage.setItem('heartlink_admin_user', JSON.stringify(updatedUser));
+          }
+        })
+        .catch(() => {});
     }
     setLoading(false);
   }, []);

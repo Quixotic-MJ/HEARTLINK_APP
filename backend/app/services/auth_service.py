@@ -439,6 +439,10 @@ class SupabaseAuthService(AuthService):
             "requires_2fa": False,
             "user_id": profile["id"],
             "role": profile["role"],
+            "first_name": profile.get("first_name", ""),
+            "last_name": profile.get("last_name", ""),
+            "email": profile.get("email", ""),
+            "phone": profile.get("phone", ""),
             "token": login_res["token"]
         }
 

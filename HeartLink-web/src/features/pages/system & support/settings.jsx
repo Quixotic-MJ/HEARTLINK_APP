@@ -332,8 +332,8 @@ function AccountTab({ user, userId }) {
 
       {/* ── 2FA status ──────────────────────────────────────────────────── */}
       <Card
-        title="Multi-Factor Authentication"
-        subtitle="Second-factor verification policy for console logins"
+        title="Admin Authentication Policy"
+        subtitle="Authentication and credential access controls for staff console"
         icon={ShieldCheck}
       >
         <div className="flex items-start gap-4">
@@ -343,18 +343,18 @@ function AccountTab({ user, userId }) {
           <div className="flex-1">
             <div className="flex items-center gap-2.5 mb-1.5 flex-wrap">
               <h4 className="text-xs font-bold text-white">
-                Two-Factor Authentication Enforced
+                Direct Email & Password Authentication
               </h4>
               <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[9px] font-bold uppercase tracking-wider">
                 <span className="w-1.5 h-1.5 rounded-full bg-current opacity-80" />
                 Active
               </span>
-              <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[9px] font-bold uppercase tracking-wider">
-                Mock Phase
+              <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-500/10 text-slate-400 border border-slate-500/20 text-[9px] font-bold uppercase tracking-wider">
+                Phone OTP Bypassed
               </span>
             </div>
             <p className="text-xs text-[#89899C] leading-relaxed max-w-2xl">
-              All web administration logins require a 6-digit verification code sent to your registered device. During current preview staging, the system validates the default security code. Dynamic SMS/Email OTP delivery will be activated upon production release.
+              Web administration access utilizes direct email and password authentication with salted cryptographic hashing and server-side JWT session invalidation. Phone number OTP is not required for admin login.
             </p>
           </div>
         </div>
@@ -721,9 +721,9 @@ function SecurityTab({ role }) {
         <div className="divide-y divide-white/5">
           <SystemConfigRow
             icon={ShieldCheck}
-            label="Two-Factor Authentication (2FA)"
-            value="Mandatory for all Administrator and Expert accounts"
-            note="Secondary authentication ensures accounts remain secure even if primary passwords are compromised."
+            label="Staff Console Authentication"
+            value="Direct Email & Password (Phone OTP Bypassed)"
+            note="Staff authentication uses direct email and password verification without requiring SMS OTP delivery."
           />
           <SystemConfigRow
             icon={Lock}

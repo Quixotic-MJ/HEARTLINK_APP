@@ -510,67 +510,84 @@ def get_system_staff(current_user: dict = Depends(get_current_super_admin)):
 def create_system_staff(payload: dict, current_user: dict = Depends(get_current_super_admin)):
     name = payload.get("name")
     email = payload.get("email")
-    phone = payload.get("phone")
+    phone = payload.get("phone", "").strip() if payload.get("phone") else ""
     role_label = payload.get("role")
     
     if not name or not name.strip():
         raise HTTPException(status_code=400, detail="Name cannot be empty")
     if not email or not email.strip() or "@" not in email:
         raise HTTPException(status_code=400, detail="Invalid email address")
-    if not phone or not phone.strip():
-        raise HTTPException(status_code=400, detail="Phone number is required")
-    if role_label not in ["Authorized Medical Expert", "System Admin", "medical_expert", "admin"]:
+    if role_label in ["Super Admin", "super_admin"]:
+        target_role = "super_admin"
+    elif role_label in ["Authorized Medical Expert", "medical_expert", "Expert Reviewer"]:
+        target_role = "medical_expert"
+    elif role_label in ["System Admin", "admin"]:
+        target_role = "admin"
+    else:
         raise HTTPException(status_code=400, detail="Invalid staff role")
         
     profile_repo = get_profile_repo()
     all_profiles = profile_repo.list_all()
     for p in all_profiles:
-        if p.get("email") == email:
-            raise HTTPException(status_code=409, detail="Duplicate email address")
+        if p.get("email", "").strip().lower() == email.strip().lower():
+            raise HTTPException(status_code=409, detail="Duplicate email address in staff directory")
             
     temp_pass = "TempPass2026!"
-    target_role = "medical_expert" if role_label in ["Authorized Medical Expert", "medical_expert"] else "admin"
     
-    # 1. Provision user identity in Supabase Auth
+    # 1. Provision user identity in Supabase Auth (Email + Password only, no phone OTP)
     auth_user_id = None
     supabase_client = get_supabase_client()
-    e164_phone = phone if phone.startswith("+") else ("+63" + phone.lstrip("0"))
     
+    # Check if user already exists in auth.users
     try:
-        auth_res = supabase_client.auth.admin.create_user({
-            "email": email,
-            "password": temp_pass,
-            "phone": e164_phone,
-            "email_confirm": True,
-            "phone_confirm": True
-        })
-        if auth_res and hasattr(auth_res, "user") and auth_res.user:
-            auth_user_id = str(auth_res.user.id)
-    except Exception as auth_err:
-        err_msg = str(auth_err)
-        print(f"[create_system_staff] Auth creation note: {err_msg}")
-        # If user already exists in Auth, try to find their ID
-        if "already" in err_msg.lower() or "exists" in err_msg.lower() or "duplicate" in err_msg.lower():
+        users_res = supabase_client.auth.admin.list_users()
+        users_list = users_res if isinstance(users_res, list) else (getattr(users_res, 'users', []) or [])
+        for u in users_list:
+            u_email = (getattr(u, 'email', None) or "").lower()
+            if u_email and u_email == email.strip().lower():
+                auth_user_id = str(u.id)
+                break
+    except Exception as lookup_err:
+        print(f"[create_system_staff] Auth user pre-lookup note: {lookup_err}")
+
+    if not auth_user_id:
+        try:
+            user_meta = {"phone": phone} if phone else {}
+            auth_res = supabase_client.auth.admin.create_user({
+                "email": email.strip().lower(),
+                "password": temp_pass,
+                "email_confirm": True,
+                "user_metadata": user_meta
+            })
+            if auth_res and hasattr(auth_res, "user") and auth_res.user:
+                auth_user_id = str(auth_res.user.id)
+        except Exception as auth_err:
+            err_msg = str(auth_err)
+            print(f"[create_system_staff] Auth creation error: {err_msg}")
+            
+            # Check list_users once more in case user already existed
             try:
-                users_list = supabase_client.auth.admin.list_users()
+                users_res = supabase_client.auth.admin.list_users()
+                users_list = users_res if isinstance(users_res, list) else (getattr(users_res, 'users', []) or [])
                 for u in users_list:
-                    if u.email == email or (u.phone and (u.phone == e164_phone or u.phone == phone)):
+                    u_email = (getattr(u, 'email', None) or "").lower()
+                    if u_email and u_email == email.strip().lower():
                         auth_user_id = str(u.id)
                         break
-            except Exception as lookup_err:
-                print(f"[create_system_staff] Auth user lookup failed: {lookup_err}")
-        
-        if not auth_user_id:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Failed to create authentication account: {err_msg}"
-            )
+            except Exception:
+                pass
+
+            if not auth_user_id:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Failed to create authentication account: {err_msg}"
+                )
 
     new_staff_data = {
         "first_name": name.split(" ")[0],
         "last_name": " ".join(name.split(" ")[1:]),
-        "phone": phone,
-        "email": email,
+        "phone": phone or "No Phone",
+        "email": email.strip().lower(),
         "role": target_role,
         "account_status": "active"
     }

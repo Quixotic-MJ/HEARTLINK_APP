@@ -9,7 +9,7 @@ import { Button } from "../ui/Button";
 const staffSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters.").trim(),
   email: z.string().email("Must be a valid email address."),
-  phone: z.string().min(6, "Phone number is required."),
+  phone: z.string().optional().or(z.literal("")),
   role: z.string().min(1, "Role is required."),
 });
 
@@ -103,8 +103,8 @@ const StaffFormModal = ({ isOpen, onClose, staff, onSave }) => {
                 <InputField
                   id="phone"
                   type="tel"
-                  label="Mobile Number"
-                  placeholder="e.g. +639XXXXXXXXX"
+                  label="Contact Number (Optional)"
+                  placeholder="e.g. 09XXXXXXXXX"
                   error={errors.phone}
                   {...register("phone")}
                 />
@@ -120,6 +120,7 @@ const StaffFormModal = ({ isOpen, onClose, staff, onSave }) => {
                 >
                   <option value="Authorized Medical Expert" className="bg-[#161616]">Expert Reviewer</option>
                   <option value="System Admin" className="bg-[#161616]">System Admin</option>
+                  <option value="Super Admin" className="bg-[#161616]">Super Admin</option>
                 </select>
                 {errors.role && <p className="text-[11px] text-red-400 mt-1.5">{errors.role.message}</p>}
               </div>
@@ -128,7 +129,7 @@ const StaffFormModal = ({ isOpen, onClose, staff, onSave }) => {
               <div className="col-span-2 mt-2 bg-[#21202E]/40 p-4 rounded-xl border border-white/10 flex items-start gap-2.5">
                 <Info size={14} className="text-[#E55F37] mt-0.5 shrink-0" />
                 <p className="text-[10px] text-[#89899C] font-semibold leading-relaxed m-0 uppercase tracking-wider">
-                  Account will be provisioned with default security credentials managed by the administrator.
+                  Account will be provisioned with default credentials (Password: TempPass2026!) and direct email login.
                 </p>
               </div>
             </div>

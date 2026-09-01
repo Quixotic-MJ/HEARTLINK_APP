@@ -342,7 +342,19 @@ export default function HeartLinkAdminLogin() {
         toast.success("Authentication successful", {
           description: "Accessing HeartLink clinical portal...",
         });
-        login(response.user_id, response.token, { id: response.user_id, role: response.role }, remember);
+        login(
+          response.user_id,
+          response.token,
+          {
+            id: response.user_id,
+            role: response.role,
+            first_name: response.first_name || "",
+            last_name: response.last_name || "",
+            email: response.email || "",
+            phone: response.phone || "",
+          },
+          remember
+        );
 
         if (response.role === "medical_expert") {
           navigate("/cases");
@@ -374,7 +386,19 @@ export default function HeartLinkAdminLogin() {
         toast.success("Verification successful", {
           description: "Security credentials confirmed. Launching portal...",
         });
-        login(response.user_id, response.token, { id: response.user_id, role: response.role }, remember);
+        login(
+          response.user_id,
+          response.token,
+          {
+            id: response.user_id,
+            role: response.role,
+            first_name: response.first_name || "",
+            last_name: response.last_name || "",
+            email: response.email || "",
+            phone: response.phone || "",
+          },
+          remember
+        );
 
         if (response.role === "medical_expert") {
           navigate("/cases");
