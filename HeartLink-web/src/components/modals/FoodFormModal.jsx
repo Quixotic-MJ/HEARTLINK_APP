@@ -75,8 +75,6 @@ const foodSchema = z.object({
 });
 
 const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave, onDelete }) => {
-  if (!isOpen) return null;
-
   const {
     register,
     handleSubmit,
@@ -231,6 +229,8 @@ const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave, 
     }
     onClose();
   };
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
@@ -615,11 +615,14 @@ const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave, 
             <h4 className="text-[10px] font-bold text-[#89899C] uppercase tracking-[0.2em] border-b border-white/10 pb-2 mb-4">
               EXPERT VALIDATION
             </h4>
-            <div className={`p-4 rounded-xl border ${
-              expertValidated
-                ? "bg-emerald-500/10 border-emerald-500/20"
-                : "bg-[#21202E]/40 border-white/5"
-            }`}>
+            <div
+              onClick={() => setValue("expertValidated", !expertValidated, { shouldValidate: true, shouldDirty: true })}
+              className={`p-4 rounded-xl border cursor-pointer transition-all ${
+                expertValidated
+                  ? "bg-emerald-500/10 border-emerald-500/30 hover:border-emerald-500/50"
+                  : "bg-[#21202E]/40 border-white/10 hover:border-white/20"
+              }`}
+            >
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <h4
@@ -634,28 +637,26 @@ const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave, 
                     )}
                     {expertValidated ? "Expert Reviewed" : "Pending Review"}
                   </h4>
-                  <p className="text-[10px] text-[#89899C] leading-relaxed">
+                  <p className="text-[10px] text-[#89899C] leading-relaxed select-none">
                     {expertValidated
                       ? "Reviewed or developed with input from a qualified nutrition expert."
                       : "Sourced from an external reference and has not yet been reviewed by a nutrition expert."}
                   </p>
                 </div>
 
-                <label className="relative inline-flex items-center cursor-pointer shrink-0 mt-1">
-                  <input
-                    type="checkbox"
-                    className="sr-only peer"
-                    disabled={userRole !== "medical"}
-                    {...register("expertValidated")}
-                  />
+                <div className="relative inline-flex items-center shrink-0 mt-1 pointer-events-none">
                   <div
-                    className={`w-9 h-5 bg-[#161616] border border-white/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all ${
-                      userRole !== "medical"
-                        ? "cursor-not-allowed opacity-50"
-                        : ""
-                    } peer-checked:bg-emerald-500`}
-                  ></div>
-                </label>
+                    className={`w-9 h-5 rounded-full transition-colors relative ${
+                      expertValidated ? "bg-emerald-500" : "bg-[#161616] border border-white/20"
+                    }`}
+                  >
+                    <div
+                      className={`absolute top-[2px] left-[2px] bg-white rounded-full h-4 w-4 transition-transform ${
+                        expertValidated ? "translate-x-4" : "translate-x-0"
+                      }`}
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           </div>

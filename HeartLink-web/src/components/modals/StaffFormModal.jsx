@@ -15,8 +15,6 @@ const staffSchema = z.object({
 });
 
 const StaffFormModal = ({ isOpen, onClose, staff, onSave }) => {
-  if (!isOpen) return null;
-
   const {
     register,
     handleSubmit,
@@ -48,6 +46,8 @@ const StaffFormModal = ({ isOpen, onClose, staff, onSave }) => {
       await onSave(data);
     }
   };
+
+  if (!isOpen) return null;
 
   return (
     <AnimatePresence>
