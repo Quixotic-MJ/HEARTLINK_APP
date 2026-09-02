@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import AdminLayout from "../../../components/layouts/adminLayout";
 import FoodFormModal from "../../../components/modals/FoodFormModal";
+import ConfirmActionModal from "../../../components/modals/ConfirmActionModal";
 import { Skeleton } from "../../../components/ui/Skeleton";
 import { apiFetch } from "../../../api";
 import RecipeImage from "../../../components/ui/RecipeImage";
@@ -40,13 +41,24 @@ const Foods = () => {
   const [loading, setLoading] = useState(true);
 
   const [activeMenuRecipeId, setActiveMenuRecipeId] = useState(null);
-  const [toastMessage, setToastMessage] = useState("");
 
-  const showToast = (message) => {
-    setToastMessage(message);
-    setTimeout(() => {
-      setToastMessage("");
-    }, 3000);
+  // Animated Confirmation Modal State
+  const [confirmConfig, setConfirmConfig] = useState({
+    isOpen: false,
+    title: "",
+    subtitle: "",
+    description: "",
+    confirmText: "Confirm",
+    cancelText: "Cancel",
+    variant: "danger",
+    icon: null,
+    entityInfo: null,
+    impactDetails: [],
+    onConfirm: null,
+  });
+
+  const closeConfirmModal = () => {
+    setConfirmConfig((prev) => ({ ...prev, isOpen: false }));
   };
 
   const toggleMenu = (e, id) => {
@@ -93,68 +105,107 @@ const Foods = () => {
     }
   };
 
-  const handleArchiveRecipe = async (recipe) => {
-    const confirmed = window.confirm(
-      `Archive "${recipe.name}"?\n\nThis will hide the recipe from mobile recommendations and search. The recipe will remain in the admin library.`
-    );
-    if (!confirmed) return;
-
-    try {
-      const payload = {
+  const requestArchiveRecipe = (recipe) => {
+    if (!recipe) return;
+    setConfirmConfig({
+      isOpen: true,
+      title: "Archive Recipe?",
+      subtitle: "Hide from Mobile Patients",
+      description: `Archive "${recipe.name}"? This recipe will be hidden from mobile patient recommendations and search while remaining in your admin library.`,
+      confirmText: "Archive Recipe",
+      cancelText: "Cancel",
+      variant: "warning",
+      icon: Archive,
+      entityInfo: {
         name: recipe.name,
-        category: recipe.category,
-        hssTarget: recipe.hssTarget,
-        foodSourceType: recipe.foodSourceType,
-        prepTimeMinutes: recipe.prepTimeMinutes,
-        servings: recipe.servings,
-        difficulty: recipe.difficulty,
-        heartBenefit: recipe.heartBenefit,
-        sodium: recipe.sodium,
-        calories: recipe.calories,
-        satFat: recipe.satFat,
-        cholesterol: recipe.cholesterol,
-        fiber: recipe.fiber,
-        status: "archived",
-        expertValidated: recipe.expertValidated,
-        mediaUrl: recipe.mediaUrl,
-        ingredients: recipe.ingredients,
-        steps: recipe.steps,
-      };
-      await apiFetch(`/api/recipes/${recipe.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      toast.info("Recipe Archived", {
-        description: `"${recipe.name}" is now archived and hidden from mobile.`,
-      });
-      fetchFoods();
-    } catch (err) {
-      console.error("Failed to archive recipe", err);
-      toast.error("Failed to Archive Recipe", {
-        description: err?.data?.detail || "Could not archive recipe.",
-      });
-    }
+        badge: "Published -> Archived",
+        email: `${recipe.category} • ${recipe.hssTarget}`,
+        id: recipe.id,
+      },
+      impactDetails: [
+        "Hidden from patient search results and personalized meal plans.",
+        "Can be restored back to Draft status at any time from this table.",
+      ],
+      onConfirm: async () => {
+        try {
+          const payload = {
+            name: recipe.name,
+            category: recipe.category,
+            hssTarget: recipe.hssTarget,
+            foodSourceType: recipe.foodSourceType,
+            prepTimeMinutes: recipe.prepTimeMinutes,
+            servings: recipe.servings,
+            difficulty: recipe.difficulty,
+            heartBenefit: recipe.heartBenefit,
+            sodium: recipe.sodium,
+            calories: recipe.calories,
+            satFat: recipe.satFat,
+            cholesterol: recipe.cholesterol,
+            fiber: recipe.fiber,
+            status: "archived",
+            expertValidated: recipe.expertValidated,
+            mediaUrl: recipe.mediaUrl,
+            ingredients: recipe.ingredients,
+            steps: recipe.steps,
+          };
+          await apiFetch(`/api/recipes/${recipe.id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          toast.info("Recipe Archived", {
+            description: `"${recipe.name}" is now archived and hidden from mobile.`,
+          });
+          closeConfirmModal();
+          fetchFoods();
+        } catch (err) {
+          console.error("Failed to archive recipe", err);
+          toast.error("Failed to Archive Recipe", {
+            description: err?.data?.detail || "Could not archive recipe.",
+          });
+        }
+      },
+    });
   };
 
-  const handleDeleteRecipe = async (recipe) => {
-    const confirmed = window.confirm(
-      `Delete '${recipe.name}'?\n\nDeleted recipes cannot be recovered.`
-    );
-    if (!confirmed) return;
-
-    try {
-      await apiFetch(`/api/recipes/${recipe.id}`, { method: "DELETE" });
-      toast.success("Recipe Deleted", {
-        description: `"${recipe.name}" was permanently removed.`,
-      });
-      fetchFoods();
-    } catch (err) {
-      console.error("Failed to delete recipe", err);
-      toast.error("Failed to Delete Recipe", {
-        description: err?.data?.detail || "Could not delete recipe.",
-      });
-    }
+  const requestDeleteRecipe = (recipe) => {
+    if (!recipe) return;
+    setConfirmConfig({
+      isOpen: true,
+      title: "Delete Recipe?",
+      subtitle: "Permanent Database Removal",
+      description: `Are you sure you want to permanently delete "${recipe.name}"? This will remove the recipe from the global library and mobile dietary recommendations.`,
+      confirmText: "Delete Recipe",
+      cancelText: "Cancel",
+      variant: "danger",
+      icon: Trash2,
+      entityInfo: {
+        name: recipe.name,
+        badge: recipe.category || "Recipe",
+        email: `${recipe.hssTarget || "All Stages"} • ${recipe.sodium || 0}mg Na • ${recipe.calories || 0} kcal`,
+        id: recipe.id,
+      },
+      impactDetails: [
+        "Permanently deletes recipe instructions, ingredients, and nutrition metrics.",
+        "Immediately stops suggesting this meal to patients on mobile devices.",
+        "This action cannot be undone.",
+      ],
+      onConfirm: async () => {
+        try {
+          await apiFetch(`/api/recipes/${recipe.id}`, { method: "DELETE" });
+          toast.success("Recipe Deleted", {
+            description: `"${recipe.name}" was permanently removed.`,
+          });
+          closeConfirmModal();
+          fetchFoods();
+        } catch (err) {
+          console.error("Failed to delete recipe", err);
+          toast.error("Failed to Delete Recipe", {
+            description: err?.data?.detail || "Could not delete recipe.",
+          });
+        }
+      },
+    });
   };
 
   // Close menus on outside click/Escape
@@ -596,7 +647,7 @@ const Foods = () => {
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setActiveMenuRecipeId(null);
-                                  handleArchiveRecipe(recipe);
+                                  requestArchiveRecipe(recipe);
                                 }}
                                 className="w-full px-3.5 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/5 flex items-center gap-2 font-medium cursor-pointer"
                               >
@@ -626,7 +677,7 @@ const Foods = () => {
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setActiveMenuRecipeId(null);
-                                handleDeleteRecipe(recipe);
+                                requestDeleteRecipe(recipe);
                               }}
                               className="w-full px-3.5 py-2 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 flex items-center gap-2 font-medium cursor-pointer"
                             >
@@ -697,29 +748,27 @@ const Foods = () => {
             });
           }
         }}
-        onDelete={async (id) => {
-          try {
-            await apiFetch(`/api/recipes/${id}`, { method: "DELETE" });
-            toast.success("Recipe Deleted", {
-              description: "The recipe has been permanently removed.",
-            });
-            fetchFoods();
-          } catch (err) {
-            console.error("Error deleting recipe:", err);
-            toast.error("Failed to Delete Recipe", {
-              description: err?.data?.detail || "Could not delete recipe.",
-            });
-          }
+        onDelete={(recipeToDelete) => {
+          requestDeleteRecipe(recipeToDelete || editingRecipe);
         }}
       />
-      {/* Floating Success Toast Message */}
-      {toastMessage && (
-        <div className="fixed bottom-6 right-6 bg-[#1A1A1A] border border-white/10 text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow-2xl z-[9999] flex items-center gap-2 animate-in fade-in slide-in-from-bottom-4 duration-200">
-          <CheckCircle2 size={14} className="text-emerald-400" />
-          {toastMessage}
-        </div>
-      )}
-      </AdminLayout>
+
+      {/* Reusable Animated Confirmation Modal */}
+      <ConfirmActionModal
+        isOpen={confirmConfig.isOpen}
+        onClose={closeConfirmModal}
+        onConfirm={confirmConfig.onConfirm}
+        title={confirmConfig.title}
+        subtitle={confirmConfig.subtitle}
+        description={confirmConfig.description}
+        confirmText={confirmConfig.confirmText}
+        cancelText={confirmConfig.cancelText}
+        variant={confirmConfig.variant}
+        icon={confirmConfig.icon}
+        entityInfo={confirmConfig.entityInfo}
+        impactDetails={confirmConfig.impactDetails}
+      />
+    </AdminLayout>
   );
 };
 

@@ -718,10 +718,8 @@ const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave, 
               <button
                 type="button"
                 onClick={() => {
-                  if (window.confirm("Are you sure you want to permanently delete this entry?")) {
-                    onDelete(recipe.id);
-                    onClose();
-                  }
+                  onClose();
+                  onDelete(recipe);
                 }}
                 className="flex items-center gap-1.5 text-xs font-semibold text-red-400 hover:text-red-300 transition-colors cursor-pointer"
               >
