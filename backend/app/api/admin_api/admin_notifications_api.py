@@ -20,7 +20,10 @@ def _require_admin_or_super_admin(current_user: dict = Depends(get_current_admin
 def get_admin_notifications(current_user: dict = Depends(_require_admin_or_super_admin)):
     caller_id = current_user.get("user_id")
     caller_role = current_user.get("role")
-    return get_admin_repo().list_admin_notifications(caller_role, caller_id)
+    try:
+        return get_admin_repo().list_admin_notifications(caller_role, caller_id)
+    except Exception:
+        return {"items": [], "unread_count": 0, "total": 0}
 
 @router.put("/{notification_id}/read")
 def mark_notification_read(notification_id: str, current_user: dict = Depends(_require_admin_or_super_admin)):

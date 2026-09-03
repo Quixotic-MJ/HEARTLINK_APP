@@ -46,6 +46,21 @@ END $$;
 CREATE OR REPLACE FUNCTION public.prevent_admin_activity_tampering()
 RETURNS TRIGGER AS $$
 BEGIN
+    -- Allow FK cascade: Postgres SET NULL when the referenced user is deleted.
+    -- This only permits nullifying admin_user_id while all audit data fields stay unchanged.
+    IF TG_OP = 'UPDATE'
+       AND OLD.admin_user_id IS NOT NULL
+       AND NEW.admin_user_id IS NULL
+       AND OLD.action          IS NOT DISTINCT FROM NEW.action
+       AND OLD.target_type     IS NOT DISTINCT FROM NEW.target_type
+       AND OLD.target_id       IS NOT DISTINCT FROM NEW.target_id
+       AND OLD.target_name     IS NOT DISTINCT FROM NEW.target_name
+       AND OLD.admin_name      IS NOT DISTINCT FROM NEW.admin_name
+       AND OLD.details         IS NOT DISTINCT FROM NEW.details
+    THEN
+        RETURN NEW;  -- allow the cascade nullification
+    END IF;
+
     RAISE EXCEPTION 'Audit records in admin_activity_logs are strictly immutable. UPDATE and DELETE operations are denied.';
 END;
 $$ LANGUAGE plpgsql;
@@ -194,6 +209,17 @@ END $$;
 DO $$ BEGIN
     DROP POLICY IF EXISTS "Admins view activity logs" ON public.admin_activity_logs;
     CREATE POLICY "Admins view activity logs" ON public.admin_activity_logs FOR SELECT USING (public.get_auth_role() IN ('admin', 'super_admin'));
+END $$;
+
+-- Admin Notifications Policies (were missing — causing 500 on GET /api/admin/notifications)
+DO $$ BEGIN
+    DROP POLICY IF EXISTS "Admins manage admin notifications" ON public.admin_notifications;
+    CREATE POLICY "Admins manage admin notifications" ON public.admin_notifications
+    FOR ALL USING (public.get_auth_role() IN ('admin', 'super_admin'));
+
+    DROP POLICY IF EXISTS "Admins manage notification reads" ON public.admin_notification_reads;
+    CREATE POLICY "Admins manage notification reads" ON public.admin_notification_reads
+    FOR ALL USING (public.get_auth_role() IN ('admin', 'super_admin'));
 END $$;
 
 -- Feedback Tickets Policies

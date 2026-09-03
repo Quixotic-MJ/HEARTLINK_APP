@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from typing import Dict, Any, Optional, List
 from datetime import datetime, timedelta
+import os
 import random
 import hashlib
 from app.utils.security import get_current_admin_user, get_current_super_admin
@@ -508,15 +509,17 @@ def get_system_staff(current_user: dict = Depends(get_current_super_admin)):
 
 @router.post("/staff")
 def create_system_staff(payload: dict, current_user: dict = Depends(get_current_super_admin)):
-    name = payload.get("name")
-    email = payload.get("email")
-    phone = payload.get("phone", "").strip() if payload.get("phone") else ""
-    role_label = payload.get("role")
-    
-    if not name or not name.strip():
+    name = payload.get("name", "").strip()
+    email = (payload.get("email") or "").strip()
+    phone = (payload.get("phone") or "").strip()
+    role_label = payload.get("role", "")
+
+    # --- Input validation ---
+    if not name:
         raise HTTPException(status_code=400, detail="Name cannot be empty")
-    if not email or not email.strip() or "@" not in email:
+    if not email or "@" not in email:
         raise HTTPException(status_code=400, detail="Invalid email address")
+
     if role_label in ["Super Admin", "super_admin"]:
         target_role = "super_admin"
     elif role_label in ["Authorized Medical Expert", "medical_expert", "Expert Reviewer"]:
@@ -524,90 +527,145 @@ def create_system_staff(payload: dict, current_user: dict = Depends(get_current_
     elif role_label in ["System Admin", "admin"]:
         target_role = "admin"
     else:
-        raise HTTPException(status_code=400, detail="Invalid staff role")
-        
+        raise HTTPException(status_code=400, detail=f"Invalid staff role: '{role_label}'")
+
+    # --- Duplicate email check ---
     profile_repo = get_profile_repo()
     all_profiles = profile_repo.list_all()
     for p in all_profiles:
-        if p.get("email", "").strip().lower() == email.strip().lower():
-            raise HTTPException(status_code=409, detail="Duplicate email address in staff directory")
-            
+        if (p.get("email") or "").strip().lower() == email.lower():
+            raise HTTPException(status_code=409, detail="An account with this email already exists.")
+
     temp_pass = "TempPass2026!"
-    
-    # 1. Provision user identity in Supabase Auth (Email + Password only, no phone OTP)
-    auth_user_id = None
     supabase_client = get_supabase_client()
-    
-    # Check if user already exists in auth.users
+    supabase_url = os.getenv("SUPABASE_URL", "").strip()
+    service_role_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "").strip()
+
+    # --- Step 1: Check if user already exists in Supabase Auth ---
+    auth_user_id = None
     try:
         users_res = supabase_client.auth.admin.list_users()
         users_list = users_res if isinstance(users_res, list) else (getattr(users_res, 'users', []) or [])
         for u in users_list:
             u_email = (getattr(u, 'email', None) or "").lower()
-            if u_email and u_email == email.strip().lower():
+            if u_email == email.lower():
                 auth_user_id = str(u.id)
+                print(f"[create_system_staff] User already exists in auth: {auth_user_id}")
                 break
     except Exception as lookup_err:
-        print(f"[create_system_staff] Auth user pre-lookup note: {lookup_err}")
+        print(f"[create_system_staff] Pre-lookup warning: {lookup_err}")
 
+    # --- Step 2: Create Supabase Auth user via direct REST (bypasses gotrue-py restrictions) ---
     if not auth_user_id:
+        import httpx
         try:
-            user_meta = {"phone": phone} if phone else {}
-            auth_res = supabase_client.auth.admin.create_user({
-                "email": email.strip().lower(),
-                "password": temp_pass,
-                "email_confirm": True,
-                "user_metadata": user_meta
-            })
-            if auth_res and hasattr(auth_res, "user") and auth_res.user:
-                auth_user_id = str(auth_res.user.id)
-        except Exception as auth_err:
-            err_msg = str(auth_err)
-            print(f"[create_system_staff] Auth creation error: {err_msg}")
-            
-            # Check list_users once more in case user already existed
-            try:
-                users_res = supabase_client.auth.admin.list_users()
-                users_list = users_res if isinstance(users_res, list) else (getattr(users_res, 'users', []) or [])
-                for u in users_list:
-                    u_email = (getattr(u, 'email', None) or "").lower()
-                    if u_email and u_email == email.strip().lower():
-                        auth_user_id = str(u.id)
-                        break
-            except Exception:
-                pass
-
-            if not auth_user_id:
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"Failed to create authentication account: {err_msg}"
+            with httpx.Client(timeout=15.0) as http:
+                resp = http.post(
+                    f"{supabase_url}/auth/v1/admin/users",
+                    headers={
+                        "Authorization": f"Bearer {service_role_key}",
+                        "apikey": service_role_key,
+                        "Content-Type": "application/json"
+                    },
+                    json={
+                        "email": email.lower(),
+                        "password": temp_pass,
+                        "email_confirm": True,
+                        "user_metadata": {"phone": phone} if phone else {}
+                    }
                 )
 
+            if resp.status_code in (200, 201):
+                resp_data = resp.json()
+                raw_id = resp_data.get("id", "")
+                # Validate it's a real UUID before using it
+                try:
+                    import uuid as _uuid
+                    auth_user_id = str(_uuid.UUID(str(raw_id)))
+                    print(f"[create_system_staff] Auth user created: {auth_user_id}")
+                except (ValueError, TypeError):
+                    raise HTTPException(
+                        status_code=500,
+                        detail=f"Supabase returned an invalid user ID: '{raw_id}'. Cannot create profile."
+                    )
+            else:
+                err_body = {}
+                try:
+                    err_body = resp.json()
+                except Exception:
+                    pass
+                err_msg = (
+                    err_body.get("msg")
+                    or err_body.get("message")
+                    or err_body.get("error_description")
+                    or err_body.get("error")
+                    or f"HTTP {resp.status_code}"
+                )
+                print(f"[create_system_staff] REST auth creation failed {resp.status_code}: {err_body}")
+
+                # Last-chance check: maybe user was created despite the error code
+                try:
+                    users_res2 = supabase_client.auth.admin.list_users()
+                    users_list2 = users_res2 if isinstance(users_res2, list) else (getattr(users_res2, 'users', []) or [])
+                    for u in users_list2:
+                        if (getattr(u, 'email', None) or "").lower() == email.lower():
+                            auth_user_id = str(u.id)
+                            break
+                except Exception:
+                    pass
+
+                if not auth_user_id:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Failed to create authentication account: {err_msg}"
+                    )
+
+        except HTTPException:
+            raise
+        except Exception as http_err:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Network error contacting Supabase Auth: {http_err}"
+            )
+
+    # --- Step 3: Insert profile row (requires auth_user_id to exist in auth.users) ---
+    name_parts = name.split(" ", 1)
     new_staff_data = {
-        "first_name": name.split(" ")[0],
-        "last_name": " ".join(name.split(" ")[1:]),
+        "id": auth_user_id,              # FK → auth.users(id)  MUST be valid UUID
+        "first_name": name_parts[0],
+        "last_name": name_parts[1] if len(name_parts) > 1 else "",
         "phone": phone or "No Phone",
-        "email": email.strip().lower(),
+        "email": email.lower(),
         "role": target_role,
         "account_status": "active"
     }
-    if auth_user_id:
-        new_staff_data["id"] = auth_user_id
 
-    created_staff = profile_repo.create_profile(new_staff_data)
-    staff_id = created_staff.get("id") or auth_user_id
-    
+    try:
+        created_staff = profile_repo.create_profile(new_staff_data)
+        if not created_staff:
+            raise HTTPException(status_code=500, detail="Profile record could not be created after auth account was provisioned.")
+        staff_id = created_staff.get("id") or auth_user_id
+    except HTTPException:
+        # Profile insert failed — attempt to clean up the dangling auth user
+        try:
+            supabase_client.auth.admin.delete_user(auth_user_id)
+            print(f"[create_system_staff] Rolled back auth user {auth_user_id} after profile insert failure.")
+        except Exception:
+            pass
+        raise
+
+    # --- Step 4: Audit log ---
     admin_id = current_user.get("user_id") if current_user else "admin"
     role_desc = "medical expert" if target_role == "medical_expert" else "admin"
-    action_desc = f"Created {role_desc} account"
     record_admin_activity(
         admin_user_id=admin_id,
-        action=action_desc,
+        action=f"Created {role_desc} account",
         target_type="staff",
         target_id=str(staff_id),
         target_name=name
     )
 
+    # --- Step 5: Notification (non-critical, never blocks the response) ---
     try:
         from app.services.admin_notifications import create_admin_notification
         create_admin_notification(
@@ -620,10 +678,12 @@ def create_system_staff(payload: dict, current_user: dict = Depends(get_current_
             target_id=str(staff_id),
             read_by=[admin_id] if admin_id else []
         )
-    except Exception as e:
-        print(f"Failed to create admin notification for staff creation: {e}")
+    except Exception as notif_err:
+        print(f"[create_system_staff] Notification skipped: {notif_err}")
 
     return {"status": "success", "id": str(staff_id)}
+
+
 
 @router.put("/users/{user_id}/status")
 def toggle_user_status(user_id: str, current_user: dict = Depends(get_current_admin_user)):
@@ -738,12 +798,13 @@ def delete_user_or_staff(user_id: str, current_user: dict = Depends(get_current_
     if user_role == "super_admin":
         raise HTTPException(status_code=400, detail="Deleting another Super Admin is not permitted")
 
-    user_name = f"{user.get('first_name', '')} {user.get('last_name', '')}".strip() if user else (user.get("email") if user else user_id)
+    user_name = f"{user.get('first_name', '')} {user.get('last_name', '')}".strip() if user else user_id
     
     # 1. Clean up associated database child records across tables to satisfy foreign keys
+    # NOTE: admin_activity_logs is intentionally excluded — it has an immutability trigger
+    # that blocks DELETE operations. Its FK uses ON DELETE SET NULL, so it self-manages.
     supabase_client = get_supabase_client()
     child_tables = [
-        ("admin_activity_logs", "admin_user_id"),
         ("feedback_tickets", "user_id"),
         ("feedback_tickets", "resolved_by"),
         ("case_reviews", "expert_id"),

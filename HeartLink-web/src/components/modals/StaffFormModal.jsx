@@ -25,7 +25,7 @@ const StaffFormModal = ({ isOpen, onClose, staff, onSave }) => {
       name: "",
       email: "",
       phone: "",
-      role: "Expert Reviewer",
+      role: "Authorized Medical Expert",
     },
     mode: "onTouched",
   });
@@ -35,7 +35,7 @@ const StaffFormModal = ({ isOpen, onClose, staff, onSave }) => {
       name: "",
       email: "",
       phone: "",
-      role: "Expert Reviewer",
+      role: "Authorized Medical Expert",
     });
   }, [isOpen, reset]);
 
@@ -90,7 +90,7 @@ const StaffFormModal = ({ isOpen, onClose, staff, onSave }) => {
           </div>
 
           {/* Modal Scrollable Content Area */}
-          <form onSubmit={handleSubmit(onSubmit)} className="flex-1 overflow-y-auto p-6 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+          <form id="staff-provision-form" onSubmit={handleSubmit(onSubmit)} className="flex-1 overflow-y-auto p-6 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3.5">
                 <div className="col-span-2">
@@ -159,8 +159,8 @@ const StaffFormModal = ({ isOpen, onClose, staff, onSave }) => {
               Cancel
             </button>
             <button
-              type="button"
-              onClick={handleSubmit(onSubmit)}
+              type="submit"
+              form="staff-provision-form"
               disabled={isSubmitting}
               className="flex items-center gap-1.5 px-4.5 py-2 text-[12px] font-semibold text-white bg-[#E8532E] hover:bg-[#C13E20] rounded-[8px] shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
             >
