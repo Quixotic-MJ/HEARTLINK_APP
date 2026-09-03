@@ -19,6 +19,7 @@ import TicketModal from "../../../components/modals/TicketModal";
 import FeedbackCategoryBadge from "../../../components/ui/FeedbackCategoryBadge";
 import { apiFetch } from "../../../api";
 import { Skeleton } from "../../../components/ui/Skeleton";
+import { UI, FONTS, PageHeader, KpiCard } from "../../../styles/designSystem";
 
 const Feedback = () => {
   const [tickets, setTickets] = useState([]);
@@ -210,89 +211,49 @@ const Feedback = () => {
 
   return (
     <AdminLayout>
-      <div 
-        className="max-w-[1180px] mx-auto text-[#152131] selection:bg-[#E8532E] selection:text-white"
-        style={{ fontFamily: "'Inter', sans-serif" }}
-      >
+      <div className={UI.page.container} style={{ fontFamily: FONTS.sans }}>
         {/* ── PAGE HEAD ── */}
-        <div className="flex flex-wrap gap-4 justify-between items-end mb-6">
-          <div>
-            <span className="block text-[12px] text-[#8B9893] font-medium mb-1 flex items-center gap-1.5">
-              <MessageSquare size={13} className="text-[#E8532E]" /> System support
-            </span>
-            <h1 
-              className="text-[26px] font-medium tracking-tight text-[#152131] m-0"
-              style={{ fontFamily: "'Fraunces', serif" }}
-            >
-              Feedback & support inquiries
-            </h1>
-            <p className="text-[13px] text-[#5C6B66] mt-1.5 max-w-[55ch] leading-[1.5]">
-              Review user feedback submissions, technical bug tickets, and product improvement ideas.
-            </p>
-          </div>
-        </div>
+        <PageHeader
+          eyebrow="System support"
+          eyebrowIcon={MessageSquare}
+          title="Feedback & support inquiries"
+          description="Review user feedback submissions, technical bug tickets, and product improvement ideas."
+        />
 
         {/* ── METRICS ROW ── */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 mb-6">
-          <div className="bg-[#FFFFFF] p-4 rounded-[10px] border border-[#DCE3DF] flex items-center justify-between shadow-2xs">
-            <div>
-              <p className="text-[10px] font-semibold text-[#8B9893] uppercase tracking-wider mb-1">Total Tickets</p>
-              <p 
-                className="text-[26px] font-medium text-[#152131] leading-tight"
-                style={{ fontFamily: "'Fraunces', serif" }}
-              >
-                {totalTickets}
-              </p>
-            </div>
-            <div className="w-9 h-9 rounded-[8px] bg-[#EDF1EF] border border-[#DCE3DF] flex items-center justify-center text-[#5C6B66]">
-              <Inbox size={16} />
-            </div>
-          </div>
-
-          <div className="bg-[#FFFFFF] p-4 rounded-[10px] border border-[#DCE3DF] flex items-center justify-between shadow-2xs">
-            <div>
-              <p className="text-[10px] font-semibold text-[#8B9893] uppercase tracking-wider mb-1">Open / In Progress</p>
-              <p 
-                className="text-[26px] font-medium text-[#E8532E] leading-tight"
-                style={{ fontFamily: "'Fraunces', serif" }}
-              >
-                {openTicketsCount}
-              </p>
-            </div>
-            <div className="w-9 h-9 rounded-[8px] bg-[#FBEAE6] border border-[#F5C7BD] flex items-center justify-center text-[#E8532E]">
-              <Activity size={16} />
-            </div>
-          </div>
-
-          <div className="bg-[#FFFFFF] p-4 rounded-[10px] border border-[#DCE3DF] flex items-center justify-between shadow-2xs">
-            <div>
-              <p className="text-[10px] font-semibold text-[#8B9893] uppercase tracking-wider mb-1">Resolved</p>
-              <p 
-                className="text-[26px] font-medium text-[#1B6E63] leading-tight"
-                style={{ fontFamily: "'Fraunces', serif" }}
-              >
-                {resolvedTicketsCount}
-              </p>
-            </div>
-            <div className="w-9 h-9 rounded-[8px] bg-[#E3EFEC] border border-[#C5DFD8] flex items-center justify-center text-[#1B6E63]">
-              <CheckCircle2 size={16} />
-            </div>
-          </div>
-
-          <div className="bg-[#FFFFFF] p-4 rounded-[10px] border border-[#DCE3DF] flex items-center justify-between shadow-2xs">
-            <div>
-              <p className="text-[10px] font-semibold text-[#8B9893] uppercase tracking-wider mb-1">Bug Reports</p>
-              <p 
-                className="text-[26px] font-medium text-[#A93226] leading-tight"
-                style={{ fontFamily: "'Fraunces', serif" }}
-              >
-                {bugReportsCount}
-              </p>
-            </div>
-            <div className="w-9 h-9 rounded-[8px] bg-[#F7E4E1] border border-[#F0C4B8] flex items-center justify-center text-[#A93226]">
-              <Bug size={16} />
-            </div>
-          </div>
+        <div className={UI.kpi.grid}>
+          <KpiCard
+            label="Total Tickets"
+            value={totalTickets}
+            icon={Inbox}
+          />
+          <KpiCard
+            label="Open / In Progress"
+            value={openTicketsCount}
+            icon={Activity}
+            iconBg="bg-[#FBEAE6]"
+            iconColor="text-[#E8532E]"
+            iconBorder="border-[#F5C7BD]"
+            valueColor="text-[#E8532E]"
+          />
+          <KpiCard
+            label="Resolved"
+            value={resolvedTicketsCount}
+            icon={CheckCircle2}
+            iconBg="bg-[#E3EFEC]"
+            iconColor="text-[#1B6E63]"
+            iconBorder="border-[#C5DFD8]"
+            valueColor="text-[#1B6E63]"
+          />
+          <KpiCard
+            label="Bug Reports"
+            value={bugReportsCount}
+            icon={Bug}
+            iconBg="bg-[#F7E4E1]"
+            iconColor="text-[#A93226]"
+            iconBorder="border-[#F0C4B8]"
+            valueColor="text-[#A93226]"
+          />
         </div>
 
         {/* ── FEEDBACK INBOX TABLE CARD ── */}

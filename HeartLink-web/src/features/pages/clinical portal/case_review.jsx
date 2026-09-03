@@ -13,6 +13,7 @@ import AdminLayout from "../../../components/layouts/adminLayout";
 import ExpertEvaluationModal from "../../../components/modals/ExpertEvaluationModal";
 import { Skeleton } from "../../../components/ui/Skeleton";
 import { apiFetch } from "../../../api";
+import { UI, FONTS, PageHeader } from "../../../styles/designSystem";
 
 const Cases = () => {
   const [searchParams] = useSearchParams();
@@ -109,27 +110,14 @@ const Cases = () => {
 
   return (
     <AdminLayout>
-      <div 
-        className="max-w-[1180px] mx-auto text-[#152131] selection:bg-[#E8532E] selection:text-white"
-        style={{ fontFamily: "'Inter', sans-serif" }}
-      >
+      <div className={UI.page.container} style={{ fontFamily: FONTS.sans }}>
         {/* ── PAGE HEAD ── */}
-        <div className="flex flex-wrap gap-4 justify-between items-end mb-6">
-          <div>
-            <span className="block text-[12px] text-[#8B9893] font-medium mb-1 flex items-center gap-1.5">
-              <Stethoscope size={13} className="text-[#E8532E]" /> Clinical portal
-            </span>
-            <h1 
-              className="text-[26px] font-medium tracking-tight text-[#152131] m-0"
-              style={{ fontFamily: "'Fraunces', serif" }}
-            >
-              Case review queue
-            </h1>
-            <p className="text-[13px] text-[#5C6B66] mt-1.5 max-w-[55ch] leading-[1.5]">
-              Evaluate anonymized patient telemetry, review ML model assessments, and record clinical calibration.
-            </p>
-          </div>
-        </div>
+        <PageHeader
+          eyebrow="Clinical portal"
+          eyebrowIcon={Stethoscope}
+          title="Case review queue"
+          description="Evaluate anonymized patient telemetry, review ML model assessments, and record clinical calibration."
+        />
 
         {/* ── MAIN CARD: SEARCH, FILTER & TABLE ── */}
         <div className="bg-[#FFFFFF] border border-[#DCE3DF] rounded-[10px] shadow-2xs overflow-hidden">

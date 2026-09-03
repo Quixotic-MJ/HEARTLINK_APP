@@ -7,13 +7,12 @@ import {
   Utensils,
   Dumbbell,
   ClipboardList,
-  Sparkles,
-  ArrowRight
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import AdminLayout from "../../../components/layouts/adminLayout";
 import { Skeleton } from "../../../components/ui/Skeleton";
 import { apiFetch } from "../../../api";
+import { UI, FONTS, PageHeader, KpiCard } from "../../../styles/designSystem";
 
 const Dashboard = () => {
   const [data, setData] = React.useState(null);
@@ -37,7 +36,7 @@ const Dashboard = () => {
   if (loading || !data) {
     return (
       <AdminLayout>
-        <div className="max-w-[1180px] mx-auto py-2" style={{ fontFamily: "'Inter', sans-serif" }}>
+        <div className={UI.page.container} style={{ fontFamily: FONTS.sans }}>
           {/* Page Head Skeleton */}
           <div className="mb-6">
             <Skeleton className="w-28 h-3.5 mb-2 bg-[#DCE3DF]/70 rounded" />
@@ -49,11 +48,11 @@ const Dashboard = () => {
           <Skeleton className="w-full h-[120px] rounded-[10px] mb-5 bg-[#DCE3DF]/60" />
 
           {/* KPI Grid Skeleton */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 mb-5">
-            <Skeleton className="w-full h-[120px] rounded-[10px] bg-[#DCE3DF]/60" />
-            <Skeleton className="w-full h-[120px] rounded-[10px] bg-[#DCE3DF]/60" />
-            <Skeleton className="w-full h-[120px] rounded-[10px] bg-[#DCE3DF]/60" />
-            <Skeleton className="w-full h-[120px] rounded-[10px] bg-[#DCE3DF]/60" />
+          <div className={UI.kpi.grid}>
+            <Skeleton className="w-full h-[100px] rounded-[10px] bg-[#DCE3DF]/60" />
+            <Skeleton className="w-full h-[100px] rounded-[10px] bg-[#DCE3DF]/60" />
+            <Skeleton className="w-full h-[100px] rounded-[10px] bg-[#DCE3DF]/60" />
+            <Skeleton className="w-full h-[100px] rounded-[10px] bg-[#DCE3DF]/60" />
           </div>
 
           {/* Two-col Panels Skeleton */}
@@ -97,27 +96,13 @@ const Dashboard = () => {
 
   return (
     <AdminLayout>
-      <div 
-        className="max-w-[1180px] mx-auto text-[#152131] selection:bg-[#E8532E] selection:text-white"
-        style={{ fontFamily: "'Inter', sans-serif" }}
-      >
+      <div className={UI.page.container} style={{ fontFamily: FONTS.sans }}>
         {/* ── PAGE HEAD ── */}
-        <div className="flex flex-wrap gap-4 justify-between items-end mb-6">
-          <div>
-            <span className="block text-[12px] text-[#8B9893] font-medium mb-1">
-              Operations console
-            </span>
-            <h1 
-              className="text-[26px] font-medium tracking-tight text-[#152131] m-0"
-              style={{ fontFamily: "'Fraunces', serif" }}
-            >
-              Dashboard
-            </h1>
-            <p className="text-[13px] text-[#5C6B66] mt-1.5 max-w-[46ch] leading-[1.5]">
-              Monitor users, clinical activity, HSS telemetry, and content management.
-            </p>
-          </div>
-        </div>
+        <PageHeader
+          eyebrow="Operations console"
+          title="Dashboard"
+          description="Monitor users, clinical activity, HSS telemetry, and content management."
+        />
 
         {/* ── QUICK ACTIONS ── */}
         <div className="bg-[#FFFFFF] border border-[#DCE3DF] rounded-[10px] p-5 mb-5 shadow-2xs">
@@ -178,79 +163,46 @@ const Dashboard = () => {
         </div>
 
         {/* ── KPI GRID ── */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 mb-5">
-          {/* Total Users */}
-          <div className="bg-[#FFFFFF] border border-[#DCE3DF] rounded-[10px] p-4 sm:p-[18px_18px_16px] relative overflow-hidden shadow-2xs">
-            <div className="flex justify-between items-start mb-4">
-              <span className="text-[11.5px] text-[#5C6B66] font-semibold">Total users</span>
-              <div className="w-7 h-7 rounded-[7px] flex items-center justify-center bg-[#EDF1EF] text-[#5C6B66]">
-                <User size={15} />
-              </div>
-            </div>
-            <div 
-              className="text-[26px] text-[#152131] font-medium tracking-tight"
-              style={{ fontFamily: "'Fraunces', serif" }}
-            >
-              {formatNumber(kpi?.total_users)}
-            </div>
-            <div className="text-[11px] text-[#8B9893] mt-1 font-medium">Registered accounts</div>
-          </div>
+        <div className={UI.kpi.grid}>
+          <KpiCard
+            label="Total users"
+            value={formatNumber(kpi?.total_users)}
+            icon={User}
+            iconBg="bg-[#EDF1EF]"
+            iconColor="text-[#5C6B66]"
+          />
 
-          {/* Active Users */}
-          <div className="bg-[#FFFFFF] border border-[#DCE3DF] rounded-[10px] p-4 sm:p-[18px_18px_16px] relative overflow-hidden shadow-2xs">
-            <div className="flex justify-between items-start mb-4">
-              <span className="text-[11.5px] text-[#5C6B66] font-semibold">Active users</span>
-              <div className="w-7 h-7 rounded-[7px] flex items-center justify-center bg-[#E3EFEC] text-[#1B6E63]">
-                <Activity size={15} />
-              </div>
-            </div>
-            <div 
-              className="text-[26px] text-[#1B6E63] font-medium tracking-tight"
-              style={{ fontFamily: "'Fraunces', serif" }}
-            >
-              {formatNumber(kpi?.active_users)}
-            </div>
-            <div className="text-[11px] text-[#8B9893] mt-1 font-medium">Active this week</div>
-          </div>
+          <KpiCard
+            label="Active users"
+            value={formatNumber(kpi?.active_users)}
+            icon={Activity}
+            iconBg="bg-[#E3EFEC]"
+            iconColor="text-[#1B6E63]"
+            valueColor="text-[#1B6E63]"
+          />
 
-          {/* Average HSS */}
-          <div className="bg-[#FFFFFF] border border-[#DCE3DF] rounded-[10px] p-4 sm:p-[18px_18px_16px] relative overflow-hidden shadow-2xs">
-            <div className="flex justify-between items-start mb-4">
-              <span className="text-[11.5px] text-[#5C6B66] font-semibold">Average HSS</span>
-              <div className="w-7 h-7 rounded-[7px] flex items-center justify-center bg-[#FBEAE6] text-[#E8532E]">
-                <HeartPulse size={15} />
-              </div>
-            </div>
-            <div 
-              className="text-[26px] text-[#E8532E] font-medium tracking-tight"
-              style={{ fontFamily: "'Fraunces', serif" }}
-            >
-              {kpi?.avg_hss ?? 0}
-            </div>
-            <div className="text-[11px] text-[#8B9893] mt-1 font-medium">Mean health score</div>
-          </div>
+          <KpiCard
+            label="Average HSS"
+            value={kpi?.avg_hss ?? 0}
+            icon={HeartPulse}
+            iconBg="bg-[#FBEAE6]"
+            iconColor="text-[#E8532E]"
+            valueColor="text-[#E8532E]"
+          />
 
-          {/* Open Alerts */}
-          <div className={`bg-[#FFFFFF] border border-[#DCE3DF] rounded-[10px] p-4 sm:p-[18px_18px_16px] relative overflow-hidden shadow-2xs ${Number(kpi?.open_alerts) > 0 ? "before:content-[''] before:absolute before:top-0 before:left-0 before:right-0 before:h-[3px] before:bg-[#A93226]" : ""}`}>
-            <div className="flex justify-between items-start mb-4">
-              <span className="text-[11.5px] text-[#5C6B66] font-semibold">Open alerts</span>
-              <div className={`w-7 h-7 rounded-[7px] flex items-center justify-center ${Number(kpi?.open_alerts) > 0 ? "bg-[#F7E4E1] text-[#A93226]" : "bg-[#EDF1EF] text-[#5C6B66]"}`}>
-                <AlertTriangle size={15} />
-              </div>
-            </div>
-            <div 
-              className={`text-[26px] font-medium tracking-tight ${Number(kpi?.open_alerts) > 0 ? "text-[#A93226]" : "text-[#152131]"}`}
-              style={{ fontFamily: "'Fraunces', serif" }}
-            >
-              {kpi?.open_alerts ?? 0}
-            </div>
-            <div className="text-[11px] text-[#8B9893] mt-1 font-medium">Unresolved system flags</div>
-          </div>
+          <KpiCard
+            label="Open alerts"
+            value={kpi?.open_alerts ?? 0}
+            icon={AlertTriangle}
+            iconBg={Number(kpi?.open_alerts) > 0 ? "bg-[#F7E4E1]" : "bg-[#EDF1EF]"}
+            iconColor={Number(kpi?.open_alerts) > 0 ? "text-[#A93226]" : "text-[#5C6B66]"}
+            valueColor={Number(kpi?.open_alerts) > 0 ? "text-[#A93226]" : "text-[#152131]"}
+            className={Number(kpi?.open_alerts) > 0 ? "before:content-[''] before:absolute before:top-0 before:left-0 before:right-0 before:h-[3px] before:bg-[#A93226]" : ""}
+          />
         </div>
 
         {/* ── PANELS: USERS NEEDING REVIEW & HSS DISTRIBUTION ── */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 mb-5">
-          
           {/* Users needing review */}
           <div className="bg-[#FFFFFF] border border-[#DCE3DF] rounded-[10px] p-5 shadow-2xs flex flex-col justify-between">
             <div>
@@ -398,7 +350,7 @@ const Dashboard = () => {
               </span>
               <span 
                 className="text-[19px] text-[#152131] font-medium"
-                style={{ fontFamily: "'Fraunces', serif" }}
+                style={{ fontFamily: FONTS.serif }}
               >
                 {formatNumber(user_activity.meals)}
               </span>
@@ -410,7 +362,7 @@ const Dashboard = () => {
               </span>
               <span 
                 className="text-[19px] text-[#152131] font-medium"
-                style={{ fontFamily: "'Fraunces', serif" }}
+                style={{ fontFamily: FONTS.serif }}
               >
                 {formatNumber(user_activity.exercise)}
               </span>
@@ -422,7 +374,7 @@ const Dashboard = () => {
               </span>
               <span 
                 className="text-[19px] text-[#152131] font-medium"
-                style={{ fontFamily: "'Fraunces', serif" }}
+                style={{ fontFamily: FONTS.serif }}
               >
                 {formatNumber(user_activity.vitals)}
               </span>
@@ -434,7 +386,7 @@ const Dashboard = () => {
               </span>
               <span 
                 className="text-[19px] text-[#152131] font-medium"
-                style={{ fontFamily: "'Fraunces', serif" }}
+                style={{ fontFamily: FONTS.serif }}
               >
                 {formatNumber(user_activity.sleep)}
               </span>
@@ -446,7 +398,7 @@ const Dashboard = () => {
               </span>
               <span 
                 className={`text-[19px] font-medium ${Number(user_activity.symptoms) > 0 ? "text-[#A9741B]" : "text-[#152131]"}`}
-                style={{ fontFamily: "'Fraunces', serif" }}
+                style={{ fontFamily: FONTS.serif }}
               >
                 {formatNumber(user_activity.symptoms)}
               </span>
@@ -468,7 +420,7 @@ const Dashboard = () => {
                     <span className="text-[10.5px] uppercase text-[#5C6B66] font-semibold block">Recipes</span>
                     <span 
                       className="text-[22px] text-[#152131] font-medium block mt-0.5"
-                      style={{ fontFamily: "'Fraunces', serif" }}
+                      style={{ fontFamily: FONTS.serif }}
                     >
                       {formatNumber(content_library.recipes)}
                     </span>
@@ -483,7 +435,7 @@ const Dashboard = () => {
                     <span className="text-[10.5px] uppercase text-[#5C6B66] font-semibold block">Exercises</span>
                     <span 
                       className="text-[22px] text-[#152131] font-medium block mt-0.5"
-                      style={{ fontFamily: "'Fraunces', serif" }}
+                      style={{ fontFamily: FONTS.serif }}
                     >
                       {formatNumber(content_library.exercises)}
                     </span>
@@ -571,7 +523,6 @@ const Dashboard = () => {
             </div>
           </div>
         </div>
-
       </div>
     </AdminLayout>
   );

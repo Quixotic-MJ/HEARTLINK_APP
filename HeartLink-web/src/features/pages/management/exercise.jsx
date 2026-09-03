@@ -27,6 +27,7 @@ import { Skeleton } from "../../../components/ui/Skeleton";
 import { apiFetch, BASE_URL } from "../../../api";
 import { useAuth } from "../../../contexts/AuthContext";
 import { toast } from "sonner";
+import { UI, FONTS, PageHeader } from "../../../styles/designSystem";
 
 const resolveMediaUrl = (url) => {
   if (!url) return "";
@@ -312,35 +313,22 @@ const Exercises = () => {
 
   return (
     <AdminLayout>
-      <div 
-        className="max-w-[1180px] mx-auto text-[#152131] selection:bg-[#E8532E] selection:text-white"
-        style={{ fontFamily: "'Inter', sans-serif" }}
-      >
+      <div className={UI.page.container} style={{ fontFamily: FONTS.sans }}>
         {/* ── PAGE HEAD ── */}
-        <div className="flex flex-wrap gap-4 justify-between items-end mb-6">
-          <div>
-            <span className="block text-[12px] text-[#8B9893] font-medium mb-1">
-              Content library
-            </span>
-            <h1 
-              className="text-[26px] font-medium tracking-tight text-[#152131] m-0"
-              style={{ fontFamily: "'Fraunces', serif" }}
+        <PageHeader
+          eyebrow="Content library"
+          title="Exercise library"
+          description="Manage workout regimens, movement guides, and clinical HSS targets."
+          actions={
+            <button
+              onClick={() => openModal()}
+              className={UI.button.primary}
             >
-              Exercise library
-            </h1>
-            <p className="text-[13px] text-[#5C6B66] mt-1.5 max-w-[50ch] leading-[1.5]">
-              Manage workout regimens, movement guides, and clinical HSS targets.
-            </p>
-          </div>
-
-          <button
-            onClick={() => openModal()}
-            className="flex items-center gap-2 text-white font-semibold text-[13px] px-4 py-2.5 rounded-[8px] bg-[#E8532E] hover:bg-[#C13E20] shadow-2xs transition-colors cursor-pointer"
-          >
-            <Plus size={15} strokeWidth={2.5} />
-            <span>Create new routine</span>
-          </button>
-        </div>
+              <Plus size={15} strokeWidth={2.5} />
+              <span>Create new routine</span>
+            </button>
+          }
+        />
 
         {/* ── MAIN CARD: SEARCH, FILTER & TABLE ── */}
         <div className="bg-[#FFFFFF] border border-[#DCE3DF] rounded-[10px] shadow-2xs overflow-hidden">

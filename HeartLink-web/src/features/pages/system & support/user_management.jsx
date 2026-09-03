@@ -21,6 +21,7 @@ import StaffDetailsModal from "../../../components/modals/StaffDetailsModal";
 import StaffFormModal from "../../../components/modals/StaffFormModal";
 import AccountActionModal from "../../../components/modals/AccountActionModal";
 import ConfirmActionModal from "../../../components/modals/ConfirmActionModal";
+import { UI, FONTS, PageHeader } from "../../../styles/designSystem";
 
 const Users = () => {
   const { user, userId } = useAuth();
@@ -381,36 +382,24 @@ const Users = () => {
 
   return (
     <AdminLayout>
-      <div 
-        className="max-w-[1180px] mx-auto text-[#152131] selection:bg-[#E8532E] selection:text-white"
-        style={{ fontFamily: "'Inter', sans-serif" }}
-      >
+      <div className={UI.page.container} style={{ fontFamily: FONTS.sans }}>
         {/* ── PAGE HEAD ── */}
-        <div className="flex flex-wrap gap-4 justify-between items-end mb-6">
-          <div>
-            <span className="block text-[12px] text-[#8B9893] font-medium mb-1 flex items-center gap-1.5">
-              <UsersIcon size={13} className="text-[#E8532E]" /> User governance
-            </span>
-            <h1 
-              className="text-[26px] font-medium tracking-tight text-[#152131] m-0"
-              style={{ fontFamily: "'Fraunces', serif" }}
+        <PageHeader
+          eyebrow="User governance"
+          eyebrowIcon={UsersIcon}
+          title="User & staff directory"
+          description="Manage patient health access, account authorization states, and medical review permissions."
+          actions={
+            <button
+              onClick={fetchUsers}
+              disabled={loading}
+              className={UI.button.secondary}
             >
-              User & staff directory
-            </h1>
-            <p className="text-[13px] text-[#5C6B66] mt-1.5 max-w-[55ch] leading-[1.5]">
-              Manage patient health access, account authorization states, and medical review permissions.
-            </p>
-          </div>
-
-          <button
-            onClick={fetchUsers}
-            disabled={loading}
-            className="flex items-center gap-2 bg-[#FFFFFF] hover:bg-[#EDF1EF] text-[#152131] border border-[#DCE3DF] px-3.5 py-2 rounded-[8px] text-[13px] font-semibold transition-colors cursor-pointer shadow-2xs disabled:opacity-50"
-          >
-            <RefreshCw size={13} className={loading ? "animate-spin text-[#E8532E]" : ""} />
-            <span>Refresh Directory</span>
-          </button>
-        </div>
+              <RefreshCw size={13} className={loading ? "animate-spin text-[#E8532E]" : ""} />
+              <span>Refresh Directory</span>
+            </button>
+          }
+        />
 
         {/* ── SEGMENTED TAB BUTTONS ── */}
         <div className="bg-[#FFFFFF] p-1 rounded-[10px] inline-flex flex-wrap border border-[#DCE3DF] mb-6 shadow-2xs">

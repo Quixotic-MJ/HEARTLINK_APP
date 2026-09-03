@@ -27,6 +27,7 @@ import {
 import AdminLayout from "../../../components/layouts/adminLayout";
 import { useAuth } from "../../../contexts/AuthContext";
 import { apiFetch } from "../../../api";
+import { UI, FONTS, PageHeader, KpiCard } from "../../../styles/designSystem";
 
 // ─── Shared primitives ────────────────────────────────────────────────────────
 
@@ -776,97 +777,44 @@ const Settings = () => {
 
   return (
     <AdminLayout>
-      <div 
-        className="max-w-[1180px] mx-auto text-[#152131] selection:bg-[#E8532E] selection:text-white"
-        style={{ fontFamily: "'Inter', sans-serif" }}
-      >
+      <div className={UI.page.container} style={{ fontFamily: FONTS.sans }}>
         {/* ── Page Header ─────────────────────────────────────────────────── */}
-        <div className="flex flex-col md:flex-row md:justify-between md:items-end mb-6 gap-4">
-          <div>
-            <span className="block text-[12px] text-[#8B9893] font-medium mb-1 flex items-center gap-1.5">
-              <Sliders size={13} className="text-[#E8532E]" /> System preferences
-            </span>
-            <h1 
-              className="text-[26px] font-medium tracking-tight text-[#152131] m-0"
-              style={{ fontFamily: "'Fraunces', serif" }}
-            >
-              Admin Settings & Preferences
-            </h1>
-            <p className="text-[13px] text-[#5C6B66] mt-1.5 max-w-[55ch] leading-[1.5]">
-              Manage your administrator profile, security credentials, and review live platform configurations.
-            </p>
-          </div>
-        </div>
+        <PageHeader
+          eyebrow="System preferences"
+          eyebrowIcon={Sliders}
+          title="Admin Settings & Preferences"
+          description="Manage your administrator profile, security credentials, and review live platform configurations."
+        />
 
         {/* ── Quick KPI / Status Row ───────────────────────────────────────── */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 mb-6">
-          <div className="bg-[#FFFFFF] p-4 rounded-[10px] border border-[#DCE3DF] flex items-center justify-between shadow-2xs">
-            <div>
-              <p className="text-[10px] font-semibold text-[#8B9893] uppercase tracking-wider mb-1">
-                Active Role
-              </p>
-              <p 
-                className="text-[17px] font-medium text-[#152131] leading-tight"
-                style={{ fontFamily: "'Fraunces', serif" }}
-              >
-                {getRoleLabel(role)}
-              </p>
-            </div>
-            <div className="w-8 h-8 rounded-[8px] bg-[#FBEAE6] border border-[#F5C7BD] flex items-center justify-center text-[#E8532E]">
-              <BadgeCheck size={16} />
-            </div>
-          </div>
-
-          <div className="bg-[#FFFFFF] p-4 rounded-[10px] border border-[#DCE3DF] flex items-center justify-between shadow-2xs">
-            <div>
-              <p className="text-[10px] font-semibold text-[#8B9893] uppercase tracking-wider mb-1">
-                2FA Security
-              </p>
-              <p 
-                className="text-[17px] font-medium text-[#1B6E63] leading-tight"
-                style={{ fontFamily: "'Fraunces', serif" }}
-              >
-                Active
-              </p>
-            </div>
-            <div className="w-8 h-8 rounded-[8px] bg-[#E3EFEC] border border-[#C5DFD8] flex items-center justify-center text-[#1B6E63]">
-              <ShieldCheck size={16} />
-            </div>
-          </div>
-
-          <div className="bg-[#FFFFFF] p-4 rounded-[10px] border border-[#DCE3DF] flex items-center justify-between shadow-2xs">
-            <div>
-              <p className="text-[10px] font-semibold text-[#8B9893] uppercase tracking-wider mb-1">
-                Backend API
-              </p>
-              <p 
-                className="text-[17px] font-medium text-[#152131] leading-tight"
-                style={{ fontFamily: "'Fraunces', serif" }}
-              >
-                FastAPI / Online
-              </p>
-            </div>
-            <div className="w-8 h-8 rounded-[8px] bg-[#EDF1EF] border border-[#DCE3DF] flex items-center justify-center text-[#5C6B66]">
-              <Server size={16} />
-            </div>
-          </div>
-
-          <div className="bg-[#FFFFFF] p-4 rounded-[10px] border border-[#DCE3DF] flex items-center justify-between shadow-2xs">
-            <div>
-              <p className="text-[10px] font-semibold text-[#8B9893] uppercase tracking-wider mb-1">
-                Session Policy
-              </p>
-              <p 
-                className="text-[17px] font-medium text-[#152131] leading-tight"
-                style={{ fontFamily: "'Fraunces', serif" }}
-              >
-                24h Expire
-              </p>
-            </div>
-            <div className="w-8 h-8 rounded-[8px] bg-[#EDF1EF] border border-[#DCE3DF] flex items-center justify-center text-[#5C6B66]">
-              <Clock size={16} />
-            </div>
-          </div>
+        <div className={UI.kpi.grid}>
+          <KpiCard
+            label="Active Role"
+            value={getRoleLabel(role)}
+            icon={BadgeCheck}
+            iconBg="bg-[#FBEAE6]"
+            iconColor="text-[#E8532E]"
+            iconBorder="border-[#F5C7BD]"
+          />
+          <KpiCard
+            label="2FA Security"
+            value="Active"
+            icon={ShieldCheck}
+            iconBg="bg-[#E3EFEC]"
+            iconColor="text-[#1B6E63]"
+            iconBorder="border-[#C5DFD8]"
+            valueColor="text-[#1B6E63]"
+          />
+          <KpiCard
+            label="Backend API"
+            value="FastAPI / Online"
+            icon={Server}
+          />
+          <KpiCard
+            label="Session Policy"
+            value="24h Expire"
+            icon={Clock}
+          />
         </div>
 
         {/* ── Segmented Tab Strip ─────────────────────────────────────────── */}

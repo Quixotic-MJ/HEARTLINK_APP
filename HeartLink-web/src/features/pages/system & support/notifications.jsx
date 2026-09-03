@@ -25,6 +25,7 @@ import AdminLayout from "../../../components/layouts/adminLayout";
 import { useAuth } from "../../../contexts/AuthContext";
 import { apiFetch } from "../../../api";
 import { Skeleton } from "../../../components/ui/Skeleton";
+import { UI, FONTS, PageHeader, KpiCard } from "../../../styles/designSystem";
 
 const Notifications = () => {
   const navigate = useNavigate();
@@ -247,118 +248,70 @@ const Notifications = () => {
 
   return (
     <AdminLayout>
-      <div 
-        className="max-w-[1180px] mx-auto text-[#152131] selection:bg-[#E8532E] selection:text-white"
-        style={{ fontFamily: "'Inter', sans-serif" }}
-      >
+      <div className={UI.page.container} style={{ fontFamily: FONTS.sans }}>
         {/* ── PAGE HEAD ── */}
-        <div className="flex flex-wrap gap-4 justify-between items-end mb-6">
-          <div>
-            <span className="block text-[12px] text-[#8B9893] font-medium mb-1 flex items-center gap-1.5">
-              <Bell size={13} className="text-[#E8532E]" /> System alerts
-            </span>
-            <h1 
-              className="text-[26px] font-medium tracking-tight text-[#152131] m-0"
-              style={{ fontFamily: "'Fraunces', serif" }}
-            >
-              Notifications & Alerts Inbox
-            </h1>
-            <p className="text-[13px] text-[#5C6B66] mt-1.5 max-w-[55ch] leading-[1.5]">
-              Real-time feed of clinical escalations, support inquiries, staff events, and system security alerts.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2.5">
-            <button
-              onClick={() => fetchNotifications()}
-              disabled={loading}
-              className="flex items-center gap-1.5 px-3.5 py-2 text-[12.5px] font-semibold text-[#152131] bg-[#FFFFFF] hover:bg-[#EDF1EF] border border-[#DCE3DF] rounded-[8px] transition-colors shadow-2xs cursor-pointer disabled:opacity-50"
-              title="Refresh notifications"
-            >
-              <RotateCw size={13} className={loading ? "animate-spin" : ""} />
-              <span>Refresh</span>
-            </button>
-            {unreadItemsCount > 0 && (
+        <PageHeader
+          eyebrow="System alerts"
+          eyebrowIcon={Bell}
+          title="Notifications & Alerts Inbox"
+          description="Real-time feed of clinical escalations, support inquiries, staff events, and system security alerts."
+          actions={
+            <div className="flex items-center gap-2.5">
               <button
-                onClick={markAllAsRead}
-                className="flex items-center gap-1.5 px-4 py-2 text-[12.5px] font-semibold text-white bg-[#E8532E] hover:bg-[#C13E20] rounded-[8px] shadow-2xs transition-colors cursor-pointer"
+                onClick={() => fetchNotifications()}
+                disabled={loading}
+                className={UI.button.secondary}
+                title="Refresh notifications"
               >
-                <CheckCheck size={14} />
-                <span>Mark all as read</span>
+                <RotateCw size={13} className={loading ? "animate-spin" : ""} />
+                <span>Refresh</span>
               </button>
-            )}
-          </div>
-        </div>
+              {unreadItemsCount > 0 && (
+                <button
+                  onClick={markAllAsRead}
+                  className={UI.button.primary}
+                >
+                  <CheckCheck size={14} />
+                  <span>Mark all as read</span>
+                </button>
+              )}
+            </div>
+          }
+        />
 
         {/* ── KPI METRICS ROW ── */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 mb-6">
-          <div className="bg-[#FFFFFF] p-4 rounded-[10px] border border-[#DCE3DF] flex items-center justify-between shadow-2xs">
-            <div>
-              <p className="text-[10px] font-semibold text-[#8B9893] uppercase tracking-wider mb-1">
-                Total Alerts
-              </p>
-              <p 
-                className="text-[20px] font-medium text-[#152131] leading-none"
-                style={{ fontFamily: "'Fraunces', serif" }}
-              >
-                {loading ? "…" : totalCount}
-              </p>
-            </div>
-            <div className="w-8 h-8 rounded-[8px] bg-[#EDF1EF] border border-[#DCE3DF] flex items-center justify-center text-[#5C6B66]">
-              <Bell size={16} />
-            </div>
-          </div>
-
-          <div className="bg-[#FFFFFF] p-4 rounded-[10px] border border-[#DCE3DF] flex items-center justify-between shadow-2xs">
-            <div>
-              <p className="text-[10px] font-semibold text-[#8B9893] uppercase tracking-wider mb-1">
-                Unread Items
-              </p>
-              <p 
-                className="text-[20px] font-medium text-[#E8532E] leading-none"
-                style={{ fontFamily: "'Fraunces', serif" }}
-              >
-                {loading ? "…" : unreadItemsCount}
-              </p>
-            </div>
-            <div className="w-8 h-8 rounded-[8px] bg-[#FBEAE6] border border-[#F5C7BD] flex items-center justify-center text-[#E8532E]">
-              <AlertCircle size={16} />
-            </div>
-          </div>
-
-          <div className="bg-[#FFFFFF] p-4 rounded-[10px] border border-[#DCE3DF] flex items-center justify-between shadow-2xs">
-            <div>
-              <p className="text-[10px] font-semibold text-[#8B9893] uppercase tracking-wider mb-1">
-                Clinical Cases
-              </p>
-              <p 
-                className="text-[20px] font-medium text-[#152131] leading-none"
-                style={{ fontFamily: "'Fraunces', serif" }}
-              >
-                {loading ? "…" : clinicalCasesCount}
-              </p>
-            </div>
-            <div className="w-8 h-8 rounded-[8px] bg-[#F7E4E1] border border-[#F0C4B8] flex items-center justify-center text-[#A93226]">
-              <Activity size={16} />
-            </div>
-          </div>
-
-          <div className="bg-[#FFFFFF] p-4 rounded-[10px] border border-[#DCE3DF] flex items-center justify-between shadow-2xs">
-            <div>
-              <p className="text-[10px] font-semibold text-[#8B9893] uppercase tracking-wider mb-1">
-                Feedback & Support
-              </p>
-              <p 
-                className="text-[20px] font-medium text-[#152131] leading-none"
-                style={{ fontFamily: "'Fraunces', serif" }}
-              >
-                {loading ? "…" : feedbackTicketsCount}
-              </p>
-            </div>
-            <div className="w-8 h-8 rounded-[8px] bg-[#F6EDDD] border border-[#EBD7B8] flex items-center justify-center text-[#A9741B]">
-              <MessageSquare size={16} />
-            </div>
-          </div>
+        <div className={UI.kpi.grid}>
+          <KpiCard
+            label="Total Alerts"
+            value={loading ? "…" : totalCount}
+            icon={Bell}
+          />
+          <KpiCard
+            label="Unread Items"
+            value={loading ? "…" : unreadItemsCount}
+            icon={AlertCircle}
+            iconBg="bg-[#FBEAE6]"
+            iconColor="text-[#E8532E]"
+            iconBorder="border-[#F5C7BD]"
+            valueColor="text-[#E8532E]"
+          />
+          <KpiCard
+            label="Clinical Cases"
+            value={loading ? "…" : clinicalCasesCount}
+            icon={Activity}
+            iconBg="bg-[#F7E4E1]"
+            iconColor="text-[#A93226]"
+            iconBorder="border-[#F0C4B8]"
+            valueColor="text-[#A93226]"
+          />
+          <KpiCard
+            label="Feedback & Support"
+            value={loading ? "…" : feedbackTicketsCount}
+            icon={MessageSquare}
+            iconBg="bg-[#F6EDDD]"
+            iconColor="text-[#A9741B]"
+            iconBorder="border-[#EBD7B8]"
+          />
         </div>
 
         {/* ── ACTION ERROR BANNER ── */}

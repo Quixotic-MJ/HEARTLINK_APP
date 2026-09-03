@@ -13,6 +13,7 @@ import AdminLayout from "../../../components/layouts/adminLayout";
 import CalibrationModal from "../../../components/modals/CalibrationModal";
 import { Skeleton } from "../../../components/ui/Skeleton";
 import { apiFetch } from "../../../api";
+import { UI, FONTS, PageHeader, KpiCard } from "../../../styles/designSystem";
 
 const CustomLightTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
@@ -252,82 +253,45 @@ const Calibration = () => {
 
   return (
     <AdminLayout>
-      <div 
-        className="max-w-[1180px] mx-auto text-[#152131] selection:bg-[#E8532E] selection:text-white"
-        style={{ fontFamily: "'Inter', sans-serif" }}
-      >
+      <div className={UI.page.container} style={{ fontFamily: FONTS.sans }}>
         {/* ── PAGE HEAD ── */}
-        <div className="flex flex-wrap gap-4 justify-between items-end mb-6">
-          <div>
-            <span className="block text-[12px] text-[#8B9893] font-medium mb-1 flex items-center gap-1.5">
-              <History size={13} className="text-[#E8532E]" /> Clinical portal
-            </span>
-            <h1 
-              className="text-[26px] font-medium tracking-tight text-[#152131] m-0"
-              style={{ fontFamily: "'Fraunces', serif" }}
+        <PageHeader
+          eyebrow="Clinical portal"
+          eyebrowIcon={History}
+          title="Model calibration history"
+          description="Monitor ground-truth clinical evaluations, algorithm accuracy margins, and offline training datasets."
+          actions={
+            <button
+              onClick={handleExportDataset}
+              disabled={isExporting}
+              className={UI.button.primary}
             >
-              Model calibration history
-            </h1>
-            <p className="text-[13px] text-[#5C6B66] mt-1.5 max-w-[55ch] leading-[1.5]">
-              Monitor ground-truth clinical evaluations, algorithm accuracy margins, and offline training datasets.
-            </p>
-          </div>
-
-          <button
-            onClick={handleExportDataset}
-            disabled={isExporting}
-            className="flex items-center gap-2 bg-[#E8532E] hover:bg-[#C13E20] text-white px-4 py-2.5 rounded-[8px] text-[13px] font-semibold shadow-2xs disabled:opacity-50 transition-colors cursor-pointer"
-          >
-            <Download size={14} strokeWidth={2.5} />
-            <span>{isExporting ? "Compiling…" : "Generate calibration dataset"}</span>
-          </button>
-        </div>
+              <Download size={14} strokeWidth={2.5} />
+              <span>{isExporting ? "Compiling…" : "Generate calibration dataset"}</span>
+            </button>
+          }
+        />
 
         {/* ── METRIC STAT CARDS ── */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5 mb-6">
-          <div className="bg-[#FFFFFF] p-4 rounded-[10px] border border-[#DCE3DF] shadow-2xs">
-            <span className="text-[10px] font-semibold text-[#8B9893] uppercase tracking-wider block mb-1">Eligible evaluations</span>
-            <div 
-              className="text-[26px] font-medium text-[#152131] leading-tight"
-              style={{ fontFamily: "'Fraunces', serif" }}
-            >
-              {eligibleCount}
-            </div>
-            <span className="text-[11px] text-[#5C6B66] font-medium block mt-1">Active calibration samples</span>
-          </div>
-
-          <div className="bg-[#FFFFFF] p-4 rounded-[10px] border border-[#DCE3DF] shadow-2xs">
-            <span className="text-[10px] font-semibold text-[#8B9893] uppercase tracking-wider block mb-1">Average absolute error</span>
-            <div 
-              className="text-[26px] font-medium text-[#152131] leading-tight"
-              style={{ fontFamily: "'Fraunces', serif" }}
-            >
-              {averageError} <span className="text-[13px] font-normal text-[#5C6B66]">pts</span>
-            </div>
-            <span className="text-[11px] text-[#5C6B66] font-medium block mt-1">Mean expert vs ML delta</span>
-          </div>
-
-          <div className="bg-[#FFFFFF] p-4 rounded-[10px] border border-[#DCE3DF] shadow-2xs">
-            <span className="text-[10px] font-semibold text-[#8B9893] uppercase tracking-wider block mb-1">Tier agreement</span>
-            <div 
-              className="text-[26px] font-medium text-[#1B6E63] leading-tight"
-              style={{ fontFamily: "'Fraunces', serif" }}
-            >
-              {tierAgreementRate}%
-            </div>
-            <span className="text-[11px] text-[#5C6B66] font-medium block mt-1">Category matching rate</span>
-          </div>
-
-          <div className="bg-[#FFFFFF] p-4 rounded-[10px] border border-[#DCE3DF] shadow-2xs">
-            <span className="text-[10px] font-semibold text-[#8B9893] uppercase tracking-wider block mb-1">High-error cases</span>
-            <div 
-              className="text-[26px] font-medium text-[#A93226] leading-tight"
-              style={{ fontFamily: "'Fraunces', serif" }}
-            >
-              {highErrorCount}
-            </div>
-            <span className="text-[11px] text-[#5C6B66] font-medium block mt-1">Error ≥ 10 points</span>
-          </div>
+        <div className={UI.kpi.grid}>
+          <KpiCard
+            label="Eligible evaluations"
+            value={eligibleCount}
+          />
+          <KpiCard
+            label="Average absolute error"
+            value={`${averageError} pts`}
+          />
+          <KpiCard
+            label="Tier agreement"
+            value={`${tierAgreementRate}%`}
+            valueColor="text-[#1B6E63]"
+          />
+          <KpiCard
+            label="High-error cases"
+            value={highErrorCount}
+            valueColor="text-[#A93226]"
+          />
         </div>
 
         {/* ── ACCURACY TREND DASHBOARD ── */}

@@ -14,6 +14,7 @@ import { apiFetch } from "../../../api";
 import AdminLayout from "../../../components/layouts/adminLayout";
 import NewBroadcastModal from "../../../components/modals/NewBroadcastModal";
 import ViewBroadcastModal, { getCategoryBadge } from "../../../components/modals/ViewBroadcastModal";
+import { UI, FONTS, PageHeader } from "../../../styles/designSystem";
 
 const Broadcasts = () => {
   const [broadcasts, setBroadcasts] = useState([]);
@@ -109,33 +110,22 @@ const Broadcasts = () => {
 
   return (
     <AdminLayout>
-      <div 
-        className="max-w-[1180px] mx-auto text-[#152131] selection:bg-[#E8532E] selection:text-white"
-        style={{ fontFamily: "'Inter', sans-serif" }}
-      >
+      <div className={UI.page.container} style={{ fontFamily: FONTS.sans }}>
         {/* ── PAGE HEAD ── */}
-        <div className="flex flex-wrap gap-4 justify-between items-end mb-6">
-          <div>
-            <span className="block text-[12px] text-[#8B9893] font-medium mb-1 flex items-center gap-1.5">
-              <Megaphone size={13} className="text-[#E8532E]" /> Communication portal
-            </span>
-            <h1 
-              className="text-[26px] font-medium tracking-tight text-[#152131] m-0"
-              style={{ fontFamily: "'Fraunces', serif" }}
+        <PageHeader
+          eyebrow="Communication portal"
+          eyebrowIcon={Megaphone}
+          title="System announcements"
+          description="Publish platform announcements, health alerts, and maintenance advisories to all users."
+          actions={
+            <button 
+              onClick={openModal}
+              className={UI.button.primary}
             >
-              System announcements
-            </h1>
-            <p className="text-[13px] text-[#5C6B66] mt-1.5 max-w-[55ch] leading-[1.5]">
-              Publish platform announcements, health alerts, and maintenance advisories to all users.
-            </p>
-          </div>
-          <button 
-            onClick={openModal}
-            className="flex items-center gap-2 px-4 py-2.5 text-[13px] font-semibold text-white bg-[#E8532E] hover:bg-[#C13E20] rounded-[8px] shadow-2xs transition-colors cursor-pointer"
-          >
-            <Plus size={14} strokeWidth={2.5} /> <span>Create announcement</span>
-          </button>
-        </div>
+              <Plus size={14} strokeWidth={2.5} /> <span>Create announcement</span>
+            </button>
+          }
+        />
 
         {/* ── MAIN CARD: ANNOUNCEMENTS TABLE ── */}
         <div className="bg-[#FFFFFF] rounded-[10px] border border-[#DCE3DF] flex flex-col overflow-hidden shadow-2xs">

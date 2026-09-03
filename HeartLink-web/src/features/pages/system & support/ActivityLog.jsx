@@ -19,6 +19,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { Skeleton } from "../../../components/ui/Skeleton";
+import { UI, FONTS, PageHeader } from "../../../styles/designSystem";
 
 const ActivityLog = () => {
   const [logs, setLogs] = useState([]);
@@ -257,38 +258,24 @@ const ActivityLog = () => {
 
   return (
     <AdminLayout>
-      <div 
-        className="max-w-[1180px] mx-auto text-[#152131] selection:bg-[#E8532E] selection:text-white"
-        style={{ fontFamily: "'Inter', sans-serif" }}
-      >
+      <div className={UI.page.container} style={{ fontFamily: FONTS.sans }}>
         {/* ── PAGE HEAD ── */}
-        <div className="flex flex-wrap gap-4 justify-between items-end mb-6">
-          <div>
-            <span className="block text-[12px] text-[#8B9893] font-medium mb-1 flex items-center gap-1.5">
-              <Activity size={13} className="text-[#E8532E]" /> Audit trail
-            </span>
-            <h1 
-              className="text-[26px] font-medium tracking-tight text-[#152131] m-0"
-              style={{ fontFamily: "'Fraunces', serif" }}
-            >
-              System activity audit log
-            </h1>
-            <p className="text-[13px] text-[#5C6B66] mt-1.5 max-w-[55ch] leading-[1.5]">
-              Immutable clinical and administrative audit trail of all platform activities and modifications.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2.5">
-            <button className="flex items-center gap-1.5 px-3.5 py-2 text-[12.5px] font-semibold text-[#152131] bg-[#FFFFFF] hover:bg-[#EDF1EF] border border-[#DCE3DF] rounded-[8px] transition-colors shadow-2xs cursor-pointer">
-              <Download size={13} /> <span>Export audit CSV</span>
-            </button>
-            <button
-              className="flex items-center gap-1.5 px-4 py-2 text-[12.5px] font-semibold text-white bg-[#E8532E] hover:bg-[#C13E20] rounded-[8px] shadow-2xs transition-colors cursor-pointer"
-            >
-              <CheckCircle size={13} /> <span>Mark all as read</span>
-            </button>
-          </div>
-        </div>
+        <PageHeader
+          eyebrow="Audit trail"
+          eyebrowIcon={Activity}
+          title="System activity audit log"
+          description="Immutable clinical and administrative audit trail of all platform activities and modifications."
+          actions={
+            <div className="flex items-center gap-2.5">
+              <button className={UI.button.secondary}>
+                <Download size={13} /> <span>Export audit CSV</span>
+              </button>
+              <button className={UI.button.primary}>
+                <CheckCircle size={13} /> <span>Mark all as read</span>
+              </button>
+            </div>
+          }
+        />
 
         {/* ── MAIN CARD: AUDIT LOG TABLE ── */}
         <div className="bg-[#FFFFFF] rounded-[10px] border border-[#DCE3DF] flex flex-col overflow-hidden shadow-2xs">

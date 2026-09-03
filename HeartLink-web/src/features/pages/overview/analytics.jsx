@@ -19,6 +19,7 @@ import {
 import AdminLayout from "../../../components/layouts/adminLayout";
 import { Skeleton } from "../../../components/ui/Skeleton";
 import { apiFetch } from "../../../api";
+import { UI, FONTS, PageHeader } from "../../../styles/designSystem";
 
 // ─── Custom Light Tooltip for Recharts ────────────────────────────────────────
 const CustomLightTooltip = ({ active, payload, label }) => {
@@ -26,7 +27,7 @@ const CustomLightTooltip = ({ active, payload, label }) => {
     return (
       <div 
         className="bg-[#FFFFFF] border border-[#DCE3DF] rounded-[8px] p-2.5 px-3 shadow-lg text-xs select-none min-w-[130px]"
-        style={{ fontFamily: "'Inter', sans-serif" }}
+        style={{ fontFamily: FONTS.sans }}
       >
         <p className="font-semibold text-[#152131] mb-1.5 border-b border-[#DCE3DF] pb-1">
           {label}
@@ -77,7 +78,7 @@ const Analytics = () => {
   if (loading || !data) {
     return (
       <AdminLayout>
-        <div className="max-w-[1180px] mx-auto text-[#152131]" style={{ fontFamily: "'Inter', sans-serif" }}>
+        <div className={UI.page.container} style={{ fontFamily: FONTS.sans }}>
           {/* Header Skeleton */}
           <div className="flex flex-wrap gap-4 justify-between items-end mb-5">
             <div>
@@ -109,44 +110,31 @@ const Analytics = () => {
 
   return (
     <AdminLayout>
-      <div 
-        className="max-w-[1180px] mx-auto text-[#152131] selection:bg-[#E8532E] selection:text-white"
-        style={{ fontFamily: "'Inter', sans-serif" }}
-      >
+      <div className={UI.page.container} style={{ fontFamily: FONTS.sans }}>
         {/* ── PAGE HEAD ── */}
-        <div className="flex flex-wrap gap-4 justify-between items-end mb-5">
-          <div>
-            <span className="block text-[12px] text-[#8B9893] font-medium mb-1">
-              System intelligence
-            </span>
-            <h1 
-              className="text-[24px] font-medium tracking-tight text-[#152131] m-0"
-              style={{ fontFamily: "'Fraunces', serif" }}
-            >
-              Analytics &amp; reporting
-            </h1>
-            <p className="text-[13px] text-[#5C6B66] mt-1 max-w-[50ch] leading-[1.5]">
-              Understand HeartLink users, clinical activity, HSS telemetry trends, and content usage.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2.5">
-            <label htmlFor="period" className="text-[11.5px] font-semibold text-[#5C6B66]">
-              Period
-            </label>
-            <select
-              id="period"
-              value={period}
-              onChange={(e) => setPeriod(e.target.value)}
-              className="border border-[#DCE3DF] bg-[#FFFFFF] rounded-[8px] px-3 py-2 text-[12.5px] font-semibold text-[#152131] outline-none cursor-pointer hover:border-[#152131] transition-colors"
-            >
-              <option value="30days">Last 30 days</option>
-              <option value="3months">Last 3 months</option>
-              <option value="6months">Last 6 months</option>
-              <option value="12months">Last 12 months</option>
-            </select>
-          </div>
-        </div>
+        <PageHeader
+          eyebrow="System intelligence"
+          title="Analytics & reporting"
+          description="Understand HeartLink users, clinical activity, HSS telemetry trends, and content usage."
+          actions={
+            <div className="flex items-center gap-2.5">
+              <label htmlFor="period" className="text-[11.5px] font-semibold text-[#5C6B66]">
+                Period
+              </label>
+              <select
+                id="period"
+                value={period}
+                onChange={(e) => setPeriod(e.target.value)}
+                className="border border-[#DCE3DF] bg-[#FFFFFF] rounded-[8px] px-3 py-2 text-[12.5px] font-semibold text-[#152131] outline-none cursor-pointer hover:border-[#152131] transition-colors"
+              >
+                <option value="30days">Last 30 days</option>
+                <option value="3months">Last 3 months</option>
+                <option value="6months">Last 6 months</option>
+                <option value="12months">Last 12 months</option>
+              </select>
+            </div>
+          }
+        />
 
         {/* ── TABS ── */}
         <div className="inline-flex gap-1 bg-[#FFFFFF] border border-[#DCE3DF] rounded-[10px] p-1 mb-5 shadow-2xs">
@@ -207,7 +195,7 @@ const Analytics = () => {
                 </div>
                 <div 
                   className="text-[24px] font-medium text-[#152131] tracking-tight"
-                  style={{ fontFamily: "'Fraunces', serif" }}
+                  style={{ fontFamily: FONTS.serif }}
                 >
                   {formatNumber(demographics?.total_signups)}
                 </div>
@@ -226,7 +214,7 @@ const Analytics = () => {
                 </div>
                 <div 
                   className="text-[24px] font-medium text-[#152131] tracking-tight"
-                  style={{ fontFamily: "'Fraunces', serif" }}
+                  style={{ fontFamily: FONTS.serif }}
                 >
                   {formatNumber(demographics?.total_records)}
                 </div>
@@ -245,7 +233,7 @@ const Analytics = () => {
                 </div>
                 <div 
                   className="text-[24px] font-medium text-[#152131] tracking-tight"
-                  style={{ fontFamily: "'Fraunces', serif" }}
+                  style={{ fontFamily: FONTS.serif }}
                 >
                   {formatNumber(demographics?.archived_accounts)}
                 </div>
