@@ -406,14 +406,17 @@ class SupabaseAuthService(AuthService):
                 elif p.startswith("09"):
                     auth_attempts.append({"phone": "+63" + p[1:]})
 
-            for key_to_use in [anon_key, service_key]:
-                if not key_to_use or auth_user_id:
+            valid_keys = [k for k in [service_key, anon_key] if k]
+            for key_to_use in valid_keys:
+                if auth_user_id:
                     break
                 for cred in auth_attempts:
                     try:
-                        headers = {"apikey": key_to_use, "Content-Type": "application/json"}
-                        if key_to_use == service_key:
-                            headers["Authorization"] = f"Bearer {service_key}"
+                        headers = {
+                            "apikey": key_to_use,
+                            "Authorization": f"Bearer {key_to_use}",
+                            "Content-Type": "application/json"
+                        }
                         with httpx.Client(timeout=10.0) as http:
                             resp = http.post(
                                 f"{supabase_url}/auth/v1/token?grant_type=password",
@@ -425,7 +428,10 @@ class SupabaseAuthService(AuthService):
                             user_obj = data.get("user") or {}
                             if user_obj.get("id"):
                                 auth_user_id = str(user_obj["id"])
+                                print(f"[login] Direct REST login successful for {cred.get('email') or cred.get('phone')} (id={auth_user_id})")
                                 break
+                        else:
+                            print(f"[login] Direct REST attempt failed ({resp.status_code}): {resp.text[:120]}")
                     except Exception as http_err:
                         print(f"[login] httpx auth attempt error: {http_err}")
 
