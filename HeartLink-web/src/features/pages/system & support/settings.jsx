@@ -33,19 +33,19 @@ import { apiFetch } from "../../../api";
 /** A read-only information row inside an info card */
 function InfoRow({ icon: Icon, label, value, mono = false, pill = null }) {
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 py-3.5 border-b border-white/5 last:border-0">
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 py-3.5 border-b border-[#DCE3DF] last:border-0">
       <div className="flex items-center gap-3">
-        <div className="flex-shrink-0 w-8 h-8 rounded-xl bg-[#21202E] border border-white/10 flex items-center justify-center text-slate-400">
+        <div className="flex-shrink-0 w-8 h-8 rounded-[8px] bg-[#EDF1EF] border border-[#DCE3DF] flex items-center justify-center text-[#5C6B66]">
           <Icon size={14} />
         </div>
-        <p className="text-[10px] font-bold text-[#89899C] uppercase tracking-wider">
+        <p className="text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-wider">
           {label}
         </p>
       </div>
       <div className="pl-11 sm:pl-0">
         {pill ? (
           <span
-            className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${pill.cls}`}
+            className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[4px] text-[10px] font-bold uppercase tracking-wider ${pill.cls}`}
           >
             {pill.dot && (
               <span className="w-1.5 h-1.5 rounded-full bg-current opacity-80" />
@@ -54,8 +54,8 @@ function InfoRow({ icon: Icon, label, value, mono = false, pill = null }) {
           </span>
         ) : (
           <p
-            className={`text-xs font-semibold text-white ${
-              mono ? "font-mono text-slate-300" : ""
+            className={`text-[12.5px] font-semibold text-[#152131] ${
+              mono ? "font-mono text-[#5C6B66]" : ""
             }`}
           >
             {value ?? "—"}
@@ -69,19 +69,19 @@ function InfoRow({ icon: Icon, label, value, mono = false, pill = null }) {
 /** A system-managed config row (read-only, with "managed by system" badge) */
 function SystemConfigRow({ icon: Icon, label, value, note, statusPill = null }) {
   return (
-    <div className="flex items-start gap-3.5 py-4 border-b border-white/5 last:border-0">
-      <div className="flex-shrink-0 w-8 h-8 rounded-xl bg-[#21202E] border border-white/10 flex items-center justify-center mt-0.5 text-[#E55F37]">
+    <div className="flex items-start gap-3.5 py-4 border-b border-[#DCE3DF] last:border-0">
+      <div className="flex-shrink-0 w-8 h-8 rounded-[8px] bg-[#FBEAE6] border border-[#F5C7BD] flex items-center justify-center mt-0.5 text-[#E8532E]">
         <Icon size={14} />
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap mb-1">
-          <p className="text-xs font-bold text-white">{label}</p>
-          <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-[9px] font-bold text-[#89899C] uppercase tracking-wider">
+          <p className="text-[13px] font-bold text-[#152131]">{label}</p>
+          <span className="inline-flex items-center px-2 py-0.5 rounded-[4px] bg-[#EDF1EF] border border-[#DCE3DF] text-[9.5px] font-semibold text-[#5C6B66] uppercase tracking-wider">
             System managed
           </span>
           {statusPill && (
             <span
-              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${statusPill.cls}`}
+              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-[4px] text-[9.5px] font-bold uppercase tracking-wider ${statusPill.cls}`}
             >
               {statusPill.dot && (
                 <span className="w-1.5 h-1.5 rounded-full bg-current opacity-80" />
@@ -90,9 +90,9 @@ function SystemConfigRow({ icon: Icon, label, value, note, statusPill = null }) 
             </span>
           )}
         </div>
-        <p className="text-xs font-semibold text-slate-300">{value}</p>
+        <p className="text-[12.5px] font-semibold text-[#152131]">{value}</p>
         {note && (
-          <p className="text-[11px] text-[#89899C] mt-1 leading-relaxed">
+          <p className="text-[11.5px] text-[#5C6B66] mt-1 leading-relaxed">
             {note}
           </p>
         )}
@@ -101,25 +101,28 @@ function SystemConfigRow({ icon: Icon, label, value, note, statusPill = null }) 
   );
 }
 
-/** Section card wrapper matching the HeartLink dark aesthetic */
+/** Section card wrapper matching the HeartLink light paper aesthetic */
 function Card({ title, subtitle, icon: Icon, action, children, className = "" }) {
   return (
     <div
-      className={`bg-[#1A1A1A] rounded-2xl border border-white/10 shadow-sm overflow-hidden animate-in fade-in duration-300 ${className}`}
+      className={`bg-[#FFFFFF] rounded-[10px] border border-[#DCE3DF] shadow-2xs overflow-hidden ${className}`}
     >
-      <div className="px-6 py-4 border-b border-white/10 bg-[#161616] flex items-center justify-between">
+      <div className="px-6 py-4 border-b border-[#DCE3DF] bg-[#FFFFFF] flex items-center justify-between">
         <div className="flex items-center gap-3">
           {Icon && (
-            <div className="w-8 h-8 rounded-xl bg-[#21202E] border border-white/10 flex items-center justify-center text-[#E55F37]">
+            <div className="w-8 h-8 rounded-[8px] bg-[#FBEAE6] border border-[#F5C7BD] flex items-center justify-center text-[#E8532E]">
               <Icon size={15} />
             </div>
           )}
           <div>
-            <h4 className="text-xs font-bold text-white uppercase tracking-wider">
+            <h4 
+              className="text-[15px] font-medium text-[#152131]"
+              style={{ fontFamily: "'Fraunces', serif" }}
+            >
               {title}
             </h4>
             {subtitle && (
-              <p className="text-[11px] text-[#89899C] mt-0.5 font-medium">
+              <p className="text-[11px] text-[#8B9893] mt-0.5 font-medium">
                 {subtitle}
               </p>
             )}
@@ -153,24 +156,24 @@ function getRolePill(role) {
   if (role === "super_admin")
     return {
       label: "Super Admin",
-      cls: "bg-purple-500/10 text-purple-400 border border-purple-500/20",
+      cls: "bg-[#FBEAE6] text-[#E8532E] border border-[#F5C7BD]",
       dot: true,
     };
   if (role === "admin")
     return {
       label: "System Admin",
-      cls: "bg-blue-500/10 text-blue-400 border border-blue-500/20",
+      cls: "bg-[#EDF1EF] text-[#152131] border border-[#DCE3DF]",
       dot: true,
     };
   if (role === "medical_expert")
     return {
       label: "Medical Expert",
-      cls: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20",
+      cls: "bg-[#E3EFEC] text-[#1B6E63] border border-[#C5DFD8]",
       dot: true,
     };
   return {
     label: getRoleLabel(role),
-    cls: "bg-white/5 text-slate-300 border border-white/10",
+    cls: "bg-[#EDF1EF] text-[#5C6B66] border border-[#DCE3DF]",
     dot: false,
   };
 }
@@ -179,18 +182,18 @@ function getStatusPill(status) {
   if (status === "active")
     return {
       label: "Active",
-      cls: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20",
+      cls: "bg-[#E3EFEC] text-[#1B6E63] border border-[#C5DFD8]",
       dot: true,
     };
   if (status === "disabled")
     return {
       label: "Disabled",
-      cls: "bg-rose-500/10 text-rose-400 border border-rose-500/20",
+      cls: "bg-[#F7E4E1] text-[#A93226] border border-[#F0C4B8]",
       dot: true,
     };
   return {
     label: status ?? "Unknown",
-    cls: "bg-white/5 text-slate-400 border border-white/10",
+    cls: "bg-[#EDF1EF] text-[#5C6B66] border border-[#DCE3DF]",
     dot: false,
   };
 }
@@ -267,7 +270,7 @@ function AccountTab({ user, userId }) {
     <button
       type="button"
       onClick={() => setShowPw((prev) => ({ ...prev, [field]: !prev[field] }))}
-      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors cursor-pointer"
+      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#8B9893] hover:text-[#152131] transition-colors cursor-pointer"
       tabIndex={-1}
       aria-label={showPw[field] ? "Hide password" : "Show password"}
     >
@@ -277,55 +280,60 @@ function AccountTab({ user, userId }) {
 
   const getPasswordStrength = (pw) => {
     if (!pw) return { label: "", color: "", width: "0%" };
-    if (pw.length < 8) return { label: "Too Short", color: "bg-rose-500 text-rose-400", width: "25%" };
-    if (pw.length < 12) return { label: "Fair", color: "bg-amber-500 text-amber-400", width: "65%" };
-    return { label: "Strong", color: "bg-emerald-500 text-emerald-400", width: "100%" };
+    if (pw.length < 8) return { label: "Too Short", color: "bg-[#A93226] text-[#A93226]", width: "25%" };
+    if (pw.length < 12) return { label: "Fair", color: "bg-[#A9741B] text-[#A9741B]", width: "65%" };
+    return { label: "Strong", color: "bg-[#1B6E63] text-[#1B6E63]", width: "100%" };
   };
 
   const strength = getPasswordStrength(pwForm.next);
 
   return (
-    <div className="space-y-6 max-w-4xl animate-in fade-in duration-300">
+    <div className="space-y-6 max-w-4xl">
       {/* ── Profile Information ─────────────────────────────────────────── */}
       <Card
         title="Account Profile"
         subtitle="Active administrative identity and permission tier"
         icon={User}
       >
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 pb-6 mb-4 border-b border-white/10">
-          <div className="w-16 h-16 rounded-2xl bg-[#36272B] text-[#E55F37] border border-[#E55F37]/30 flex items-center justify-center text-2xl font-extrabold shadow-md flex-shrink-0">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4.5 pb-5 mb-4 border-b border-[#DCE3DF]">
+          <div className="w-14 h-14 rounded-full bg-[#FBEAE6] text-[#E8532E] border border-[#F5C7BD] flex items-center justify-center text-xl font-bold shadow-2xs flex-shrink-0">
             {fullName !== "—" ? fullName.charAt(0).toUpperCase() : "A"}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-3 flex-wrap">
-              <h3 className="text-lg font-bold text-white tracking-tight">{fullName}</h3>
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <h3 
+                className="text-[18px] font-medium text-[#152131] tracking-tight"
+                style={{ fontFamily: "'Fraunces', serif" }}
+              >
+                {fullName}
+              </h3>
               {getRolePill(role) && (
                 <span
-                  className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${getRolePill(role).cls}`}
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[4px] text-[10px] font-bold uppercase tracking-wider ${getRolePill(role).cls}`}
                 >
                   <span className="w-1.5 h-1.5 rounded-full bg-current opacity-80" />
                   {getRolePill(role).label}
                 </span>
               )}
             </div>
-            <p className="text-xs text-[#89899C] mt-1 font-mono">
+            <p className="text-[12px] text-[#5C6B66] mt-0.5 font-mono">
               {user?.email || "No email on record"}
             </p>
           </div>
         </div>
 
-        <div className="divide-y divide-white/5">
+        <div className="divide-y divide-[#DCE3DF]">
           <InfoRow icon={Mail} label="Email Address" value={user?.email} />
           <InfoRow icon={Hash} label="Admin Account ID" value={userId} mono />
           <InfoRow icon={BadgeCheck} label="Access Role" pill={getRolePill(role)} />
           <InfoRow icon={CheckCircle2} label="Account Status" pill={getStatusPill(status)} />
         </div>
 
-        <div className="mt-5 p-3.5 rounded-xl bg-[#161616] border border-white/5 flex items-start gap-2.5 text-[#89899C]">
-          <Info size={14} className="mt-0.5 flex-shrink-0 text-blue-400" />
-          <p className="text-[11px] leading-relaxed">
+        <div className="mt-5 p-3 rounded-[8px] bg-[#EDF1EF]/60 border border-[#DCE3DF] flex items-start gap-2.5 text-[#5C6B66]">
+          <Info size={14} className="mt-0.5 flex-shrink-0 text-[#1B6E63]" />
+          <p className="text-[11.5px] leading-relaxed">
             Role assignments and account statuses are centrally governed by Super Administrators in{" "}
-            <span className="text-white font-semibold">User & Staff Directory</span>.
+            <span className="text-[#152131] font-semibold">User & Staff Directory</span>.
           </p>
         </div>
       </Card>
@@ -336,24 +344,24 @@ function AccountTab({ user, userId }) {
         subtitle="Authentication and credential access controls for staff console"
         icon={ShieldCheck}
       >
-        <div className="flex items-start gap-4">
-          <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
-            <ShieldCheck size={20} />
+        <div className="flex items-start gap-3.5">
+          <div className="flex-shrink-0 w-9 h-9 rounded-[8px] bg-[#E3EFEC] border border-[#C5DFD8] flex items-center justify-center text-[#1B6E63]">
+            <ShieldCheck size={18} />
           </div>
           <div className="flex-1">
-            <div className="flex items-center gap-2.5 mb-1.5 flex-wrap">
-              <h4 className="text-xs font-bold text-white">
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
+              <h4 className="text-[13px] font-bold text-[#152131]">
                 Direct Email & Password Authentication
               </h4>
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[9px] font-bold uppercase tracking-wider">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[4px] bg-[#E3EFEC] text-[#1B6E63] border border-[#C5DFD8] text-[9.5px] font-bold uppercase tracking-wider">
                 <span className="w-1.5 h-1.5 rounded-full bg-current opacity-80" />
                 Active
               </span>
-              <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-500/10 text-slate-400 border border-slate-500/20 text-[9px] font-bold uppercase tracking-wider">
+              <span className="inline-flex items-center px-2 py-0.5 rounded-[4px] bg-[#EDF1EF] text-[#5C6B66] border border-[#DCE3DF] text-[9.5px] font-semibold uppercase tracking-wider">
                 Phone OTP Bypassed
               </span>
             </div>
-            <p className="text-xs text-[#89899C] leading-relaxed max-w-2xl">
+            <p className="text-[12px] text-[#5C6B66] leading-relaxed max-w-2xl">
               Web administration access utilizes direct email and password authentication with salted cryptographic hashing and server-side JWT session invalidation. Phone number OTP is not required for admin login.
             </p>
           </div>
@@ -367,21 +375,21 @@ function AccountTab({ user, userId }) {
         icon={KeyRound}
       >
         {pwState === "success" ? (
-          <div className="p-5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-start gap-4">
-            <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
-              <CheckCircle2 size={20} />
+          <div className="p-4 rounded-[8px] bg-[#E3EFEC] border border-[#C5DFD8] flex items-start gap-3.5">
+            <div className="flex-shrink-0 w-9 h-9 rounded-[8px] bg-[#C5DFD8] text-[#1B6E63] flex items-center justify-center">
+              <CheckCircle2 size={18} />
             </div>
             <div className="flex-1">
-              <h4 className="text-sm font-bold text-white mb-1">
+              <h4 className="text-[14px] font-bold text-[#152131] mb-0.5">
                 Password Updated Successfully
               </h4>
-              <p className="text-xs text-emerald-300/80 leading-relaxed mb-4">
+              <p className="text-[12px] text-[#1B6E63] leading-relaxed mb-3 font-medium">
                 Your administrative password has been updated securely. Your current console session remains authenticated.
               </p>
               <button
                 type="button"
                 onClick={clearPwForm}
-                className="text-xs font-bold text-white bg-[#21202E] hover:bg-white/10 border border-white/10 px-4 py-2 rounded-xl transition-all cursor-pointer"
+                className="text-[12px] font-semibold text-[#152131] bg-[#FFFFFF] hover:bg-[#EDF1EF] border border-[#DCE3DF] px-3.5 py-1.5 rounded-[6px] transition-colors cursor-pointer"
               >
                 Change password again
               </button>
@@ -394,33 +402,33 @@ function AccountTab({ user, userId }) {
             id="settings-password-form"
             className="space-y-4"
           >
-            <p className="text-xs text-[#89899C] leading-relaxed">
+            <p className="text-[12px] text-[#5C6B66] leading-relaxed">
               Passwords must be at least 8 characters. Ensure you use a strong combination of letters, numbers, and symbols.
             </p>
 
             {pwError && (
               <div
                 id="settings-pw-error"
-                className="flex items-start gap-2.5 p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300"
+                className="flex items-start gap-2 p-3 rounded-[8px] bg-[#F7E4E1] border border-[#F0C4B8] text-[#A93226]"
               >
-                <XCircle size={15} className="text-rose-400 flex-shrink-0 mt-0.5" />
-                <p className="text-xs font-semibold leading-relaxed">
+                <XCircle size={14} className="text-[#A93226] flex-shrink-0 mt-0.5" />
+                <p className="text-[12px] font-semibold leading-relaxed">
                   {pwError}
                 </p>
               </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 pt-1">
               {/* Current password */}
               <div className="md:col-span-2">
                 <label
                   htmlFor="pw-current"
-                  className="block text-[11px] font-bold text-[#89899C] uppercase tracking-wider mb-1.5"
+                  className="block text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-wider mb-1"
                 >
                   Current Password
                 </label>
                 <div className="relative">
-                  <Lock size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+                  <Lock size={13} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8B9893]" />
                   <input
                     id="pw-current"
                     type={showPw.current ? "text" : "password"}
@@ -431,7 +439,7 @@ function AccountTab({ user, userId }) {
                     autoComplete="current-password"
                     required
                     disabled={pwState === "loading"}
-                    className="w-full pl-10 pr-10 py-2.5 text-xs bg-[#161616] border border-white/10 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-[#E55F37] focus:ring-1 focus:ring-[#E55F37]/30 transition-all disabled:opacity-50"
+                    className="w-full pl-9 pr-9 py-2 text-[13px] bg-[#EDF1EF] border border-[#DCE3DF] rounded-[8px] text-[#152131] placeholder:text-[#8B9893] focus:outline-none focus:border-[#152131] transition-colors disabled:opacity-50"
                     placeholder="Enter current password"
                   />
                   <ToggleEye field="current" />
@@ -442,12 +450,12 @@ function AccountTab({ user, userId }) {
               <div>
                 <label
                   htmlFor="pw-new"
-                  className="block text-[11px] font-bold text-[#89899C] uppercase tracking-wider mb-1.5"
+                  className="block text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-wider mb-1"
                 >
                   New Password
                 </label>
                 <div className="relative">
-                  <Lock size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+                  <Lock size={13} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8B9893]" />
                   <input
                     id="pw-new"
                     type={showPw.next ? "text" : "password"}
@@ -459,21 +467,21 @@ function AccountTab({ user, userId }) {
                     required
                     minLength={8}
                     disabled={pwState === "loading"}
-                    className="w-full pl-10 pr-10 py-2.5 text-xs bg-[#161616] border border-white/10 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-[#E55F37] focus:ring-1 focus:ring-[#E55F37]/30 transition-all disabled:opacity-50"
+                    className="w-full pl-9 pr-9 py-2 text-[13px] bg-[#EDF1EF] border border-[#DCE3DF] rounded-[8px] text-[#152131] placeholder:text-[#8B9893] focus:outline-none focus:border-[#152131] transition-colors disabled:opacity-50"
                     placeholder="Minimum 8 characters"
                   />
                   <ToggleEye field="next" />
                 </div>
                 {pwForm.next.length > 0 && (
-                  <div className="mt-2 space-y-1">
-                    <div className="h-1 w-full bg-white/10 rounded-full overflow-hidden">
+                  <div className="mt-1.5 space-y-0.5">
+                    <div className="h-1 w-full bg-[#DCE3DF] rounded-full overflow-hidden">
                       <div
                         className={`h-full transition-all duration-300 ${strength.color.split(" ")[0]}`}
                         style={{ width: strength.width }}
                       />
                     </div>
                     <div className="flex justify-between items-center text-[10px]">
-                      <span className="text-[#89899C]">Password Strength</span>
+                      <span className="text-[#8B9893]">Strength</span>
                       <span className={`font-bold ${strength.color.split(" ")[1]}`}>
                         {strength.label}
                       </span>
@@ -486,12 +494,12 @@ function AccountTab({ user, userId }) {
               <div>
                 <label
                   htmlFor="pw-confirm"
-                  className="block text-[11px] font-bold text-[#89899C] uppercase tracking-wider mb-1.5"
+                  className="block text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-wider mb-1"
                 >
                   Confirm New Password
                 </label>
                 <div className="relative">
-                  <Lock size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+                  <Lock size={13} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8B9893]" />
                   <input
                     id="pw-confirm"
                     type={showPw.confirm ? "text" : "password"}
@@ -502,43 +510,43 @@ function AccountTab({ user, userId }) {
                     autoComplete="new-password"
                     required
                     disabled={pwState === "loading"}
-                    className={`w-full pl-10 pr-10 py-2.5 text-xs bg-[#161616] border rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:ring-1 transition-all disabled:opacity-50 ${
+                    className={`w-full pl-9 pr-9 py-2 text-[13px] bg-[#EDF1EF] border rounded-[8px] text-[#152131] placeholder:text-[#8B9893] focus:outline-none transition-colors disabled:opacity-50 ${
                       pwForm.confirm && pwForm.next !== pwForm.confirm
-                        ? "border-rose-500/60 focus:border-rose-500 focus:ring-rose-500/20 text-rose-200"
-                        : "border-white/10 focus:border-[#E55F37] focus:ring-[#E55F37]/30"
+                        ? "border-[#A93226] text-[#A93226]"
+                        : "border-[#DCE3DF] focus:border-[#152131]"
                     }`}
                     placeholder="Re-enter new password"
                   />
                   <ToggleEye field="confirm" />
                 </div>
                 {pwForm.confirm && pwForm.next !== pwForm.confirm && (
-                  <p className="text-[10px] text-rose-400 mt-1 font-medium flex items-center gap-1">
+                  <p className="text-[11px] text-[#A93226] mt-1 font-medium flex items-center gap-1">
                     <XCircle size={11} /> Passwords do not match
                   </p>
                 )}
                 {pwForm.confirm && pwForm.next === pwForm.confirm && pwForm.confirm.length >= 8 && (
-                  <p className="text-[10px] text-emerald-400 mt-1 font-medium flex items-center gap-1">
+                  <p className="text-[11px] text-[#1B6E63] mt-1 font-medium flex items-center gap-1">
                     <Check size={11} /> Passwords match
                   </p>
                 )}
               </div>
             </div>
 
-            <div className="flex items-center gap-3 pt-3">
+            <div className="flex items-center gap-2.5 pt-2">
               <button
                 id="settings-pw-submit"
                 type="submit"
                 disabled={pwState === "loading" || (pwForm.confirm && pwForm.next !== pwForm.confirm)}
-                className="flex items-center gap-2 bg-[#E55F37] hover:bg-[#D4542E] text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-sm shadow-[#E55F37]/25 transition-all cursor-pointer disabled:opacity-50"
+                className="flex items-center gap-1.5 bg-[#E8532E] hover:bg-[#C13E20] text-white font-semibold text-[12.5px] px-4 py-2 rounded-[8px] shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
               >
                 {pwState === "loading" ? (
                   <>
-                    <Loader2 size={14} className="animate-spin" />
+                    <Loader2 size={13} className="animate-spin" />
                     <span>Updating…</span>
                   </>
                 ) : (
                   <>
-                    <KeyRound size={14} />
+                    <KeyRound size={13} />
                     <span>Update Password</span>
                   </>
                 )}
@@ -548,7 +556,7 @@ function AccountTab({ user, userId }) {
                 type="button"
                 onClick={handleCancelPw}
                 disabled={pwState === "loading"}
-                className="px-4 py-2.5 text-xs font-semibold text-[#89899C] hover:text-white hover:bg-white/5 rounded-xl transition-colors cursor-pointer disabled:opacity-40"
+                className="px-3.5 py-2 text-[12.5px] font-semibold text-[#5C6B66] hover:text-[#152131] hover:bg-[#EDF1EF] rounded-[8px] transition-colors cursor-pointer disabled:opacity-40"
               >
                 Clear
               </button>
@@ -564,14 +572,14 @@ function AccountTab({ user, userId }) {
 
 function SystemTab() {
   return (
-    <div className="space-y-6 max-w-4xl animate-in fade-in duration-300">
-      <div className="flex items-start gap-3.5 p-4 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-300">
-        <Info size={18} className="text-blue-400 flex-shrink-0 mt-0.5" />
+    <div className="space-y-6 max-w-4xl">
+      <div className="flex items-start gap-3 p-3.5 rounded-[8px] bg-[#EDF1EF]/70 border border-[#DCE3DF] text-[#5C6B66]">
+        <Info size={16} className="text-[#1B6E63] flex-shrink-0 mt-0.5" />
         <div>
-          <p className="text-xs font-bold text-white mb-1">
+          <p className="text-[12.5px] font-bold text-[#152131] mb-0.5">
             Enforced Platform Configuration
           </p>
-          <p className="text-xs text-blue-200/80 leading-relaxed">
+          <p className="text-[11.5px] text-[#5C6B66] leading-relaxed font-medium">
             These values represent live environment constraints and backend services currently running for the HeartLink web console. System runtime variables are managed via cloud deployment configuration.
           </p>
         </div>
@@ -582,14 +590,14 @@ function SystemTab() {
         subtitle="Global platform operation parameters"
         icon={Settings2}
       >
-        <div className="divide-y divide-white/5">
+        <div className="divide-y divide-[#DCE3DF]">
           <SystemConfigRow
             icon={AlertTriangle}
             label="Platform Maintenance Mode"
             value="Disabled (Normal Operation)"
             statusPill={{
               label: "Operational",
-              cls: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20",
+              cls: "bg-[#E3EFEC] text-[#1B6E63] border border-[#C5DFD8]",
               dot: true,
             }}
             note="When activated, mobile users and standard staff are restricted to offline caching. Managed via backend deployment environmental variables."
@@ -600,7 +608,7 @@ function SystemTab() {
             value="Continuous PostgreSQL Repository"
             statusPill={{
               label: "Persistent",
-              cls: "bg-blue-500/10 text-blue-400 border border-blue-500/20",
+              cls: "bg-[#EDF1EF] text-[#152131] border border-[#DCE3DF]",
               dot: false,
             }}
             note="Clinical and administrative activity events are committed to PostgreSQL audit tables with immutable timestamps."
@@ -611,7 +619,7 @@ function SystemTab() {
             value="Automated HeartLink Risk Stratification (HSS v2)"
             statusPill={{
               label: "Online",
-              cls: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20",
+              cls: "bg-[#E3EFEC] text-[#1B6E63] border border-[#C5DFD8]",
               dot: true,
             }}
             note="Rule-based heart status scoring computes real-time biometric and symptomatic risk tiers for patient profiles."
@@ -624,7 +632,7 @@ function SystemTab() {
         subtitle="Infrastructure connectivity and service mapping"
         icon={Server}
       >
-        <div className="divide-y divide-white/5">
+        <div className="divide-y divide-[#DCE3DF]">
           <SystemConfigRow
             icon={Server}
             label="FastAPI Backend Cluster"
@@ -655,27 +663,27 @@ function SecurityTab({ role }) {
   const isSuperAdmin = role === "super_admin";
 
   return (
-    <div className="space-y-6 max-w-4xl animate-in fade-in duration-300">
+    <div className="space-y-6 max-w-4xl">
       {!isSuperAdmin ? (
-        <div className="flex items-start gap-3.5 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-300">
-          <Shield size={18} className="text-amber-400 flex-shrink-0 mt-0.5" />
+        <div className="flex items-start gap-3 p-3.5 rounded-[8px] bg-[#F6EDDD] border border-[#EBD7B8] text-[#A9741B]">
+          <Shield size={16} className="text-[#A9741B] flex-shrink-0 mt-0.5" />
           <div>
-            <p className="text-xs font-bold text-white mb-1">
+            <p className="text-[12.5px] font-bold text-[#152131] mb-0.5">
               Super Admin Policy Authorization Required
             </p>
-            <p className="text-xs text-amber-200/80 leading-relaxed">
+            <p className="text-[11.5px] text-[#A9741B] leading-relaxed font-medium">
               Global security policy reconfiguration is restricted to Super Administrator credentials. Your account can inspect current active policies below.
             </p>
           </div>
         </div>
       ) : (
-        <div className="flex items-start gap-3.5 p-4 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-purple-300">
-          <Sparkles size={18} className="text-purple-400 flex-shrink-0 mt-0.5" />
+        <div className="flex items-start gap-3 p-3.5 rounded-[8px] bg-[#E3EFEC] border border-[#C5DFD8] text-[#1B6E63]">
+          <Sparkles size={16} className="text-[#1B6E63] flex-shrink-0 mt-0.5" />
           <div>
-            <p className="text-xs font-bold text-white mb-1">
+            <p className="text-[12.5px] font-bold text-[#152131] mb-0.5">
               Super Admin Governance Privileges Active
             </p>
-            <p className="text-xs text-purple-200/80 leading-relaxed">
+            <p className="text-[11.5px] text-[#1B6E63] leading-relaxed font-medium">
               You are signed in with Super Admin privileges. Editable security rule overrides (custom session timeouts, rate-limit thresholds, IP restrictions) will be configurable directly from this portal in upcoming releases.
             </p>
           </div>
@@ -687,14 +695,14 @@ function SecurityTab({ role }) {
         subtitle="Enforced session lifespan and account protection rules"
         icon={ShieldCheck}
       >
-        <div className="divide-y divide-white/5">
+        <div className="divide-y divide-[#DCE3DF]">
           <SystemConfigRow
             icon={Clock}
             label="Administrative Session Lifetime"
             value="24 Hours (30 Days with 'Remember Me')"
             statusPill={{
               label: "Enforced",
-              cls: "bg-blue-500/10 text-blue-400 border border-blue-500/20",
+              cls: "bg-[#EDF1EF] text-[#152131] border border-[#DCE3DF]",
               dot: false,
             }}
             note="JWT access tokens automatically expire after 24 hours of inactivity unless 'Remember Me' is selected during login."
@@ -705,7 +713,7 @@ function SecurityTab({ role }) {
             value="5 attempts → 15-minute temporary lockout"
             statusPill={{
               label: "Active Guard",
-              cls: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20",
+              cls: "bg-[#E3EFEC] text-[#1B6E63] border border-[#C5DFD8]",
               dot: true,
             }}
             note="Prevents credential brute-forcing by locking authentication endpoints for repeated failed password attempts."
@@ -718,7 +726,7 @@ function SecurityTab({ role }) {
         subtitle="Security standards protecting administrative communications"
         icon={KeyRound}
       >
-        <div className="divide-y divide-white/5">
+        <div className="divide-y divide-[#DCE3DF]">
           <SystemConfigRow
             icon={ShieldCheck}
             label="Staff Console Authentication"
@@ -768,93 +776,110 @@ const Settings = () => {
 
   return (
     <AdminLayout>
-      <div className="flex flex-col h-full animate-in fade-in duration-300">
+      <div 
+        className="max-w-[1180px] mx-auto text-[#152131] selection:bg-[#E8532E] selection:text-white"
+        style={{ fontFamily: "'Inter', sans-serif" }}
+      >
         {/* ── Page Header ─────────────────────────────────────────────────── */}
         <div className="flex flex-col md:flex-row md:justify-between md:items-end mb-6 gap-4">
           <div>
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-[#E55F37]/30 bg-[#E55F37]/10 text-[10px] font-bold uppercase tracking-widest text-[#E55F37] mb-2">
-              <Sliders size={11} />
-              <span>System Preferences</span>
-            </div>
-            <h2 className="text-2xl lg:text-3xl font-bold text-white tracking-tight leading-tight">
-              Admin Settings
-            </h2>
-            <p className="text-[#89899C] text-xs mt-1 font-medium">
-              Manage your administrator profile, security credentials, and review platform configurations.
+            <span className="block text-[12px] text-[#8B9893] font-medium mb-1 flex items-center gap-1.5">
+              <Sliders size={13} className="text-[#E8532E]" /> System preferences
+            </span>
+            <h1 
+              className="text-[26px] font-medium tracking-tight text-[#152131] m-0"
+              style={{ fontFamily: "'Fraunces', serif" }}
+            >
+              Admin Settings & Preferences
+            </h1>
+            <p className="text-[13px] text-[#5C6B66] mt-1.5 max-w-[55ch] leading-[1.5]">
+              Manage your administrator profile, security credentials, and review live platform configurations.
             </p>
           </div>
         </div>
 
         {/* ── Quick KPI / Status Row ───────────────────────────────────────── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <div className="bg-[#1A1A1A] p-5 rounded-2xl border border-white/10 flex items-center justify-between">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 mb-6">
+          <div className="bg-[#FFFFFF] p-4 rounded-[10px] border border-[#DCE3DF] flex items-center justify-between shadow-2xs">
             <div>
-              <p className="text-[10px] font-bold text-[#89899C] uppercase tracking-wider mb-1">
+              <p className="text-[10px] font-semibold text-[#8B9893] uppercase tracking-wider mb-1">
                 Active Role
               </p>
-              <p className="text-base font-extrabold text-white">
+              <p 
+                className="text-[17px] font-medium text-[#152131] leading-tight"
+                style={{ fontFamily: "'Fraunces', serif" }}
+              >
                 {getRoleLabel(role)}
               </p>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-[#21202E] border border-white/10 flex items-center justify-center text-[#E55F37]">
-              <BadgeCheck size={18} />
+            <div className="w-8 h-8 rounded-[8px] bg-[#FBEAE6] border border-[#F5C7BD] flex items-center justify-center text-[#E8532E]">
+              <BadgeCheck size={16} />
             </div>
           </div>
 
-          <div className="bg-[#1A1A1A] p-5 rounded-2xl border border-white/10 flex items-center justify-between">
+          <div className="bg-[#FFFFFF] p-4 rounded-[10px] border border-[#DCE3DF] flex items-center justify-between shadow-2xs">
             <div>
-              <p className="text-[10px] font-bold text-[#89899C] uppercase tracking-wider mb-1">
+              <p className="text-[10px] font-semibold text-[#8B9893] uppercase tracking-wider mb-1">
                 2FA Security
               </p>
-              <p className="text-base font-extrabold text-emerald-400">
-                Active (Mock)
+              <p 
+                className="text-[17px] font-medium text-[#1B6E63] leading-tight"
+                style={{ fontFamily: "'Fraunces', serif" }}
+              >
+                Active
               </p>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
-              <ShieldCheck size={18} />
+            <div className="w-8 h-8 rounded-[8px] bg-[#E3EFEC] border border-[#C5DFD8] flex items-center justify-center text-[#1B6E63]">
+              <ShieldCheck size={16} />
             </div>
           </div>
 
-          <div className="bg-[#1A1A1A] p-5 rounded-2xl border border-white/10 flex items-center justify-between">
+          <div className="bg-[#FFFFFF] p-4 rounded-[10px] border border-[#DCE3DF] flex items-center justify-between shadow-2xs">
             <div>
-              <p className="text-[10px] font-bold text-[#89899C] uppercase tracking-wider mb-1">
+              <p className="text-[10px] font-semibold text-[#8B9893] uppercase tracking-wider mb-1">
                 Backend API
               </p>
-              <p className="text-base font-extrabold text-blue-400">
+              <p 
+                className="text-[17px] font-medium text-[#152131] leading-tight"
+                style={{ fontFamily: "'Fraunces', serif" }}
+              >
                 FastAPI / Online
               </p>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
-              <Server size={18} />
+            <div className="w-8 h-8 rounded-[8px] bg-[#EDF1EF] border border-[#DCE3DF] flex items-center justify-center text-[#5C6B66]">
+              <Server size={16} />
             </div>
           </div>
 
-          <div className="bg-[#1A1A1A] p-5 rounded-2xl border border-white/10 flex items-center justify-between">
+          <div className="bg-[#FFFFFF] p-4 rounded-[10px] border border-[#DCE3DF] flex items-center justify-between shadow-2xs">
             <div>
-              <p className="text-[10px] font-bold text-[#89899C] uppercase tracking-wider mb-1">
+              <p className="text-[10px] font-semibold text-[#8B9893] uppercase tracking-wider mb-1">
                 Session Policy
               </p>
-              <p className="text-base font-extrabold text-purple-400">
-                24h Auto-Expire
+              <p 
+                className="text-[17px] font-medium text-[#152131] leading-tight"
+                style={{ fontFamily: "'Fraunces', serif" }}
+              >
+                24h Expire
               </p>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400">
-              <Clock size={18} />
+            <div className="w-8 h-8 rounded-[8px] bg-[#EDF1EF] border border-[#DCE3DF] flex items-center justify-center text-[#5C6B66]">
+              <Clock size={16} />
             </div>
           </div>
         </div>
 
         {/* ── Segmented Tab Strip ─────────────────────────────────────────── */}
-        <div className="bg-[#1A1A1A] p-1.5 rounded-2xl inline-flex flex-wrap border border-white/10 mb-6 w-full sm:w-auto gap-1">
+        <div className="bg-[#FFFFFF] p-1 rounded-[10px] inline-flex flex-wrap border border-[#DCE3DF] mb-6 w-full sm:w-auto gap-1 shadow-2xs">
           {TABS.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
               id={`settings-tab-${id}`}
               onClick={() => setActiveTab(id)}
-              className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-[7px] text-[12.5px] font-semibold transition-all cursor-pointer ${
                 activeTab === id
-                  ? "bg-[#E55F37] text-white shadow-sm shadow-[#E55F37]/25"
-                  : "text-[#89899C] hover:text-white hover:bg-white/5"
+                  ? "bg-[#E8532E] text-white shadow-2xs"
+                  : "text-[#5C6B66] hover:text-[#152131] hover:bg-[#EDF1EF]"
               }`}
             >
               <Icon size={14} />
@@ -864,7 +889,7 @@ const Settings = () => {
         </div>
 
         {/* ── Tab Panels ──────────────────────────────────────────────────── */}
-        <div className="animate-in fade-in duration-200">
+        <div>
           {activeTab === "account" && (
             <AccountTab user={profile} userId={userId} />
           )}

@@ -11,13 +11,11 @@ import {
   Archive,
   Save,
   Activity,
-  Image as ImageIcon,
-  PlusCircle,
   Trash2,
   Edit2,
   MoreVertical,
   ChevronDown,
-  Sparkles,
+  RotateCcw,
 } from "lucide-react";
 import AdminLayout from "../../../components/layouts/adminLayout";
 import FoodFormModal from "../../../components/modals/FoodFormModal";
@@ -27,8 +25,6 @@ import { apiFetch } from "../../../api";
 import RecipeImage from "../../../components/ui/RecipeImage";
 import { useAuth } from "../../../contexts/AuthContext";
 import { toast } from "sonner";
-
-// Authored recipes loaded from database
 
 const Foods = () => {
   const [recipes, setRecipes] = useState([]);
@@ -65,6 +61,13 @@ const Foods = () => {
     e.stopPropagation();
     setActiveMenuRecipeId(activeMenuRecipeId === id ? null : id);
   };
+
+  // Close actions dropdown when clicking anywhere outside
+  React.useEffect(() => {
+    const handleDocumentClick = () => setActiveMenuRecipeId(null);
+    document.addEventListener("click", handleDocumentClick);
+    return () => document.removeEventListener("click", handleDocumentClick);
+  }, []);
 
   const handleUpdateStatus = async (recipe, newStatus) => {
     try {
@@ -111,7 +114,7 @@ const Foods = () => {
       isOpen: true,
       title: "Archive Recipe?",
       subtitle: "Hide from Mobile Patients",
-      description: `Archive "${recipe.name}"? This recipe will be hidden from mobile patient recommendations and search while remaining in your admin library.`,
+      description: `Archive "${recipe.name}"? This recipe will be hidden from mobile patient recommendations while remaining accessible in your admin library.`,
       confirmText: "Archive Recipe",
       cancelText: "Cancel",
       variant: "warning",
@@ -124,7 +127,7 @@ const Foods = () => {
       },
       impactDetails: [
         "Hidden from patient search results and personalized meal plans.",
-        "Can be restored back to Draft status at any time from this table.",
+        "Can be restored back to Draft status at any time.",
       ],
       onConfirm: async () => {
         try {
@@ -153,10 +156,9 @@ const Foods = () => {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload),
           });
-          toast.info("Recipe Archived", {
-            description: `"${recipe.name}" is now archived and hidden from mobile.`,
+          toast.success("Recipe Archived", {
+            description: `"${recipe.name}" has been moved to archive.`,
           });
-          closeConfirmModal();
           fetchFoods();
         } catch (err) {
           console.error("Failed to archive recipe", err);
@@ -172,23 +174,22 @@ const Foods = () => {
     if (!recipe) return;
     setConfirmConfig({
       isOpen: true,
-      title: "Delete Recipe?",
-      subtitle: "Permanent Database Removal",
-      description: `Are you sure you want to permanently delete "${recipe.name}"? This will remove the recipe from the global library and mobile dietary recommendations.`,
-      confirmText: "Delete Recipe",
+      title: "Delete Recipe Permanently?",
+      subtitle: "Permanent Database Action",
+      description: `Permanently delete "${recipe.name}"? This action cannot be undone and will remove all nutritional profiles, ingredients, and steps.`,
+      confirmText: "Delete Permanently",
       cancelText: "Cancel",
       variant: "danger",
       icon: Trash2,
       entityInfo: {
         name: recipe.name,
-        badge: recipe.category || "Recipe",
-        email: `${recipe.hssTarget || "All Stages"} • ${recipe.sodium || 0}mg Na • ${recipe.calories || 0} kcal`,
+        badge: recipe.status?.toUpperCase() || "RECIPE",
+        email: `${recipe.category} • ${recipe.hssTarget}`,
         id: recipe.id,
       },
       impactDetails: [
-        "Permanently deletes recipe instructions, ingredients, and nutrition metrics.",
-        "Immediately stops suggesting this meal to patients on mobile devices.",
-        "This action cannot be undone.",
+        "Permanently removed from the nutritional database.",
+        "Patient meal plan logs referencing this recipe will retain historical logs only.",
       ],
       onConfirm: async () => {
         try {
@@ -196,7 +197,9 @@ const Foods = () => {
           toast.success("Recipe Deleted", {
             description: `"${recipe.name}" was permanently removed.`,
           });
-          closeConfirmModal();
+          if (editingRecipe?.id === recipe.id) {
+            closeModal();
+          }
           fetchFoods();
         } catch (err) {
           console.error("Failed to delete recipe", err);
@@ -208,45 +211,32 @@ const Foods = () => {
     });
   };
 
-  // Close menus on outside click/Escape
-  React.useEffect(() => {
-    const handleOutsideClick = () => setActiveMenuRecipeId(null);
-    const handleKeyDown = (e) => {
-      if (e.key === "Escape") setActiveMenuRecipeId(null);
-    };
-    document.addEventListener("click", handleOutsideClick);
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("click", handleOutsideClick);
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, []);
-
   const fetchFoods = async () => {
-    setLoading(true);
     try {
-      const data = await apiFetch("/api/recipes");
-      const mapped = data.map((r) => {
-        let hssLabel = "Stable (80-100)";
-        if (r.hss_tier === "Moderate") hssLabel = "Moderate (60-79)";
-        if (r.hss_tier === "Elevated Risk") hssLabel = "Elevated Risk (50-59)";
-        if (r.hss_tier === "Critical") hssLabel = "Critical (<50)";
-        
+      setLoading(true);
+      const res = await apiFetch("/api/recipes");
+      const list = Array.isArray(res) ? res : res.data || [];
+      const mapped = list.map((r) => {
+        let hssTier = "Stable";
+        const hssVal = r.hss_target || "";
+        if (hssVal.includes("Moderate")) hssTier = "Moderate";
+        else if (hssVal.includes("Elevated")) hssTier = "Elevated Risk";
+        else if (hssVal.includes("Critical")) hssTier = "Critical";
+
         return {
           id: r.id,
-          name: r.name || "",
-          subtitle: r.subtitle || "",
-          category: r.category || "Meal",
-          hssTarget: hssLabel,
-          hssTier: r.hss_tier || "Stable",
-          sodium: r.sodium_mg || 0,
-          calories: r.calories || 0,
-          satFat: r.saturated_fat_g || 0,
-          cholesterol: r.cholesterol_mg || 0,
-          fiber: r.fiber_g || 0,
+          name: r.name,
+          category: r.category || "Breakfast",
+          hssTarget: r.hss_target || "Stable (80-100)",
+          hssTier: hssTier,
           prepTimeMinutes: r.prep_time_minutes || 15,
           servings: r.servings || 1,
           difficulty: r.difficulty || "Easy",
+          sodium: r.sodium || 0,
+          calories: r.calories || 0,
+          satFat: r.sat_fat || 0,
+          cholesterol: r.cholesterol || 0,
+          fiber: r.fiber || 0,
           heartBenefit: r.heart_benefit || "",
           status: r.status || "draft",
           expertValidated: r.expert_validated || false,
@@ -277,7 +267,6 @@ const Foods = () => {
   const { user } = useAuth();
   const userRole = user?.role;
 
-  // Open Modal for Create or Edit
   const openModal = (recipe = null) => {
     setEditingRecipe(recipe || null);
     setIsModalOpen(true);
@@ -321,453 +310,492 @@ const Foods = () => {
     return matchesSearch && matchesStatus && matchesHss && matchesCategory && matchesFoodSource && matchesReview;
   });
 
-  // Badge Color Helper
-  const getHssBadgeColor = (target) => {
+  // HSS Badge Styling
+  const getHssBadgeStyle = (target) => {
     if (target.includes("Stable"))
-      return "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
+      return "bg-[#E3EFEC] text-[#1B6E63] border border-[#C5DFD8]";
     if (target.includes("Moderate"))
-      return "bg-amber-500/10 text-amber-400 border border-amber-500/20";
-    if (target.includes("Elevated Risk"))
-      return "bg-[#E55F37]/10 text-[#E55F37] border border-[#E55F37]/20";
-    return "bg-red-500/10 text-red-400 border border-red-500/20";
+      return "bg-[#F6EDDD] text-[#A9741B] border border-[#EBD7B8]";
+    if (target.includes("Elevated"))
+      return "bg-[#FBEAE6] text-[#E8532E] border border-[#F5C7BD]";
+    return "bg-[#F7E4E1] text-[#A93226] border border-[#F0C4B8]";
   };
+
+  const hasActiveFilters = 
+    Boolean(searchQuery) ||
+    filterStatus !== "all" ||
+    filterHss !== "all" ||
+    filterCategory !== "all" ||
+    filterFoodSource !== "all" ||
+    filterReview !== "all";
 
   return (
     <AdminLayout>
-      {/* Page Header */}
-      <div className="flex flex-col md:flex-row md:justify-between md:items-end mb-6 gap-4">
-        <div>
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-[#E55F37]/30 bg-[#E55F37]/10 text-[10px] font-bold uppercase tracking-widest text-[#E55F37] mb-2">
-            <Sparkles size={11} />
-            <span>Content Library</span>
-          </div>
-          <h2 className="text-2xl lg:text-3xl font-bold text-white tracking-tight leading-tight">
-            Food & Recipe Library
-          </h2>
-          <p className="text-[#89899C] text-xs mt-1 font-medium">
-            Manage nutritional databases, heart-healthy recipes, and clinical HSS targets.
-          </p>
-        </div>
-        <button
-          onClick={() => openModal()}
-          className="flex items-center gap-2 text-white font-semibold text-xs px-4 py-2.5 rounded-xl bg-[#E55F37] hover:bg-[#D4542E] shadow-sm shadow-[#E55F37]/25 transition-all cursor-pointer"
-        >
-          <Plus size={15} strokeWidth={2.5} />
-          <span>Create New Entry</span>
-        </button>
-      </div>
-
-      {/* Main View: Data Table Container */}
-      <div className="bg-[#1A1A1A] rounded-2xl border border-white/10 flex flex-col overflow-hidden">
-        {/* Search & Filter Bar */}
-        <div className="p-4 border-b border-white/10 bg-[#161616] space-y-3">
-          <div className="flex flex-col md:flex-row gap-3">
-            {/* Search input */}
-            <div className="relative flex-1">
-              <Search
-                size={14}
-                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500"
-              />
-              <input
-                type="text"
-                placeholder="Search recipes, categories, or tags..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-3.5 py-2 text-xs border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] transition-all bg-[#1A1A1A] text-white placeholder:text-slate-500"
-              />
-            </div>
-            
-            {/* Quick Clear button */}
-            {(searchQuery || filterStatus !== "all" || filterHss !== "all" || filterCategory !== "all" || filterFoodSource !== "all" || filterReview !== "all") && (
-              <button
-                onClick={clearFilters}
-                className="text-[10px] text-red-400 hover:text-red-300 font-bold px-3 py-1.5 rounded-xl border border-red-500/20 bg-red-500/10 hover:bg-red-500/20 transition-colors shrink-0 flex items-center gap-1 self-start md:self-auto cursor-pointer"
-              >
-                Clear Filters
-              </button>
-            )}
+      <div 
+        className="max-w-[1180px] mx-auto text-[#152131] selection:bg-[#E8532E] selection:text-white"
+        style={{ fontFamily: "'Inter', sans-serif" }}
+      >
+        {/* ── PAGE HEAD ── */}
+        <div className="flex flex-wrap gap-4 justify-between items-end mb-6">
+          <div>
+            <span className="block text-[12px] text-[#8B9893] font-medium mb-1">
+              Content library
+            </span>
+            <h1 
+              className="text-[26px] font-medium tracking-tight text-[#152131] m-0"
+              style={{ fontFamily: "'Fraunces', serif" }}
+            >
+              Food &amp; recipe library
+            </h1>
+            <p className="text-[13px] text-[#5C6B66] mt-1.5 max-w-[50ch] leading-[1.5]">
+              Manage nutritional databases, heart-healthy recipes, and clinical HSS targets.
+            </p>
           </div>
 
-          {/* Compact Dropdowns */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:flex md:flex-wrap gap-2 pt-1">
-            {/* Status Dropdown */}
-            <div className="relative">
-              <select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                className="w-full md:w-auto pl-3 pr-8 py-1.5 text-xs font-semibold text-white bg-[#1A1A1A] border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] appearance-none cursor-pointer hover:border-white/20 transition-colors"
-              >
-                <option value="all" className="bg-[#161616]">All Status</option>
-                <option value="published" className="bg-[#161616]">Published</option>
-                <option value="draft" className="bg-[#161616]">Draft</option>
-                <option value="archived" className="bg-[#161616]">Archived</option>
-              </select>
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5">
-                <ChevronDown size={12} className="text-slate-400" />
-              </div>
-            </div>
-
-            {/* HSS Tier Dropdown */}
-            <div className="relative">
-              <select
-                value={filterHss}
-                onChange={(e) => setFilterHss(e.target.value)}
-                className="w-full md:w-auto pl-3 pr-8 py-1.5 text-xs font-semibold text-white bg-[#1A1A1A] border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] appearance-none cursor-pointer hover:border-white/20 transition-colors"
-              >
-                <option value="all" className="bg-[#161616]">All HSS Tiers</option>
-                <option value="Stable" className="bg-[#161616]">Stable</option>
-                <option value="Moderate" className="bg-[#161616]">Moderate</option>
-                <option value="Elevated Risk" className="bg-[#161616]">Elevated Risk</option>
-                <option value="Critical" className="bg-[#161616]">Critical</option>
-              </select>
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5">
-                <ChevronDown size={12} className="text-slate-400" />
-              </div>
-            </div>
-
-            {/* Category Dropdown */}
-            <div className="relative">
-              <select
-                value={filterCategory}
-                onChange={(e) => setFilterCategory(e.target.value)}
-                className="w-full md:w-auto pl-3 pr-8 py-1.5 text-xs font-semibold text-white bg-[#1A1A1A] border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] appearance-none cursor-pointer hover:border-white/20 transition-colors"
-              >
-                <option value="all" className="bg-[#161616]">All Categories</option>
-                <option value="Breakfast" className="bg-[#161616]">Breakfast</option>
-                <option value="Lunch" className="bg-[#161616]">Lunch</option>
-                <option value="Dinner" className="bg-[#161616]">Dinner</option>
-                <option value="Snack" className="bg-[#161616]">Snack</option>
-              </select>
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5">
-                <ChevronDown size={12} className="text-slate-400" />
-              </div>
-            </div>
-
-            {/* Food Source Dropdown */}
-            <div className="relative">
-              <select
-                value={filterFoodSource}
-                onChange={(e) => setFilterFoodSource(e.target.value)}
-                className="w-full md:w-auto pl-3 pr-8 py-1.5 text-xs font-semibold text-white bg-[#1A1A1A] border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] appearance-none cursor-pointer hover:border-white/20 transition-colors"
-              >
-                <option value="all" className="bg-[#161616]">All Food Sources</option>
-                <option value="Home Recipe" className="bg-[#161616]">Home Recipe</option>
-                <option value="Fast Food Chain" className="bg-[#161616]">Fast Food Chain</option>
-                <option value="Local Carenderia" className="bg-[#161616]">Local Carenderia</option>
-                <option value="Raw Ingredient" className="bg-[#161616]">Raw Ingredient</option>
-              </select>
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5">
-                <ChevronDown size={12} className="text-slate-400" />
-              </div>
-            </div>
-
-            {/* Review Dropdown */}
-            <div className="relative">
-              <select
-                value={filterReview}
-                onChange={(e) => setFilterReview(e.target.value)}
-                className="w-full md:w-auto pl-3 pr-8 py-1.5 text-xs font-semibold text-white bg-[#1A1A1A] border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] appearance-none cursor-pointer hover:border-white/20 transition-colors"
-              >
-                <option value="all" className="bg-[#161616]">All Review Status</option>
-                <option value="reviewed" className="bg-[#161616]">Expert Reviewed</option>
-                <option value="pending" className="bg-[#161616]">Pending Review</option>
-              </select>
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5">
-                <ChevronDown size={12} className="text-slate-400" />
-              </div>
-            </div>
-          </div>
+          <button
+            onClick={() => openModal()}
+            className="flex items-center gap-2 text-white font-semibold text-[13px] px-4 py-2.5 rounded-[8px] bg-[#E8532E] hover:bg-[#C13E20] shadow-2xs transition-colors cursor-pointer"
+          >
+            <Plus size={15} strokeWidth={2.5} />
+            <span>Create new entry</span>
+          </button>
         </div>
 
-        {/* Directory List Table */}
-        <div className="w-full overflow-x-auto">
-          <table className="w-full text-left border-collapse min-w-[750px]">
-            <thead>
-              <tr>
-                <th className="py-3 px-5 text-[10px] font-bold text-[#89899C] uppercase tracking-[0.15em] border-b border-white/10 w-1/3">
-                  Food / Meal Name
-                </th>
-                <th className="py-3 px-5 text-[10px] font-bold text-[#89899C] uppercase tracking-[0.15em] border-b border-white/10">
-                  HSS Suitability
-                </th>
-                <th className="py-3 px-5 text-[10px] font-bold text-[#89899C] uppercase tracking-[0.15em] border-b border-white/10">
-                  Nutrition Snapshot
-                </th>
-                <th className="py-3 px-5 text-[10px] font-bold text-[#89899C] uppercase tracking-[0.15em] border-b border-white/10 text-center">
-                  Expert Review
-                </th>
-                <th className="py-3 px-5 text-[10px] font-bold text-[#89899C] uppercase tracking-[0.15em] border-b border-white/10 text-right">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            {loading ? (
-              <tbody>
-                {[1, 2, 3, 4, 5].map((item) => (
-                  <tr key={item} className="border-t border-white/5">
-                    <td className="py-4 px-5">
-                      <div className="flex items-center gap-3">
-                        <Skeleton className="w-9 h-9 rounded-full shrink-0 bg-white/10" />
-                        <div>
-                          <Skeleton className="w-32 h-4 mb-1 bg-white/10" />
-                          <Skeleton className="w-20 h-3 bg-white/10" />
-                        </div>
-                      </div>
-                    </td>
-                    <td className="py-4 px-5">
-                      <Skeleton className="w-24 h-5 rounded-full bg-white/10" />
-                    </td>
-                    <td className="py-4 px-5">
-                      <Skeleton className="w-20 h-4 mb-1 bg-white/10" />
-                      <Skeleton className="w-16 h-3 bg-white/10" />
-                    </td>
-                    <td className="py-4 px-5 flex justify-center">
-                      <Skeleton className="w-7 h-7 rounded-full bg-white/10" />
-                    </td>
-                    <td className="py-4 px-5">
-                      <div className="flex justify-end">
-                        <Skeleton className="w-6 h-6 rounded-md bg-white/10" />
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            ) : filteredRecipes.length > 0 ? (
-              <tbody className="divide-y divide-white/5">
-                {filteredRecipes.map((recipe, index) => {
-                  const badgeClass = getHssBadgeColor(recipe.hssTarget);
-                  return (
-                    <tr
-                      key={recipe.id}
-                      className={`hover:bg-white/5 transition-colors group cursor-pointer ${recipe.status === "archived" ? "opacity-50" : ""}`}
-                      onClick={() => openModal(recipe)}
-                    >
-                      <td className="py-4 px-5 align-middle">
-                        <div className="flex items-center gap-3">
-                          <RecipeImage
-                            src={recipe.mediaUrl}
-                            alt={recipe.name}
-                            containerClassName="w-9 h-9 rounded-full flex items-center justify-center shrink-0 overflow-hidden bg-[#36272B] border border-[#E55F37]/30 text-[#E55F37] shadow-sm"
-                            fallbackIconSize={15}
-                            fallbackIconClassName="text-[#E55F37]"
-                          />
-                          <div>
-                            <p className="text-white font-semibold text-xs mb-0.5">
-                              {recipe.name}
-                            </p>
-                            <p className="text-[#89899C] text-[10px] font-medium">
-                              {recipe.category} • <span className="capitalize">{recipe.status}</span>
-                            </p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-4 px-5 align-middle">
-                        <span
-                          className={`inline-flex items-center text-[9px] font-bold px-2.5 py-1 rounded-full uppercase tracking-[0.15em] ${badgeClass}`}
-                        >
-                          {recipe.hssTarget}
-                        </span>
-                      </td>
-                      <td className="py-4 px-5 align-middle">
-                        <p className="text-white text-xs font-semibold flex items-center gap-1.5">
-                          <Activity size={13} className="text-[#E55F37]" />{" "}
-                          {recipe.sodium}mg{" "}
-                          <span className="text-[10px] text-[#89899C] font-normal">
-                            Sodium
-                          </span>
-                        </p>
-                        <p className="text-[#89899C] text-[10px] font-medium mt-1 ml-[18px]">
-                          {recipe.calories} kcal
-                        </p>
-                      </td>
-                      <td className="py-4 px-5 align-middle text-center">
-                        {recipe.expertValidated ? (
-                          <div
-                            className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 mx-auto"
-                            title="Expert Reviewed"
-                          >
-                            <ShieldCheck size={14} />
-                          </div>
-                        ) : (
-                          <div
-                            className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 mx-auto"
-                            title="Pending Review"
-                          >
-                            <ShieldAlert size={14} />
-                          </div>
-                        )}
-                      </td>
-                      <td className="py-4 px-5 align-middle text-right relative" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center justify-end">
-                          <button
-                            className="p-1.5 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors cursor-pointer"
-                            onClick={(e) => toggleMenu(e, recipe.id)}
-                            title="Actions"
-                          >
-                            <MoreVertical size={14} />
-                          </button>
-                        </div>
-                        {activeMenuRecipeId === recipe.id && (
-                          <div
-                            className={`absolute right-5 w-44 bg-[#1A1A1A] border border-white/10 rounded-2xl shadow-2xl py-1.5 z-50 text-left ${
-                              index >= filteredRecipes.length - 2 && filteredRecipes.length > 2
-                                ? "bottom-full mb-1"
-                                : "top-full mt-1"
-                            }`}
-                          >
-                            {/* Edit Action */}
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setActiveMenuRecipeId(null);
-                                openModal(recipe);
-                              }}
-                              className="w-full px-3.5 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/5 flex items-center gap-2 font-medium cursor-pointer"
-                            >
-                              <Edit2 size={13} className="text-[#E55F37]" /> Edit Recipe
-                            </button>
+        {/* ── MAIN CARD: SEARCH, FILTER & TABLE ── */}
+        <div className="bg-[#FFFFFF] border border-[#DCE3DF] rounded-[10px] shadow-2xs overflow-hidden">
+          
+          {/* Filter Bar */}
+          <div className="p-4 border-b border-[#DCE3DF] bg-[#FFFFFF] space-y-3">
+            <div className="flex flex-col md:flex-row gap-3">
+              {/* Search Box */}
+              <div className="relative flex-1">
+                <Search
+                  size={14}
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8B9893]"
+                />
+                <input
+                  type="text"
+                  placeholder="Search recipes, categories, or tags…"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-3.5 py-2 text-[13px] border border-[#DCE3DF] rounded-[8px] focus:outline-none focus:border-[#152131] transition-colors bg-[#EDF1EF] text-[#152131] placeholder:text-[#8B9893]"
+                />
+              </div>
 
-                            {/* Publish Action (DRAFT only) */}
-                            {recipe.status === "draft" && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setActiveMenuRecipeId(null);
-                                  handleUpdateStatus(recipe, "published");
-                                }}
-                                className="w-full px-3.5 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/5 flex items-center gap-2 font-medium cursor-pointer"
-                              >
-                                <CheckCircle2 size={13} className="text-emerald-400" /> Publish
-                              </button>
-                            )}
-
-                            {/* Archive Action (PUBLISHED only) */}
-                            {recipe.status === "published" && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setActiveMenuRecipeId(null);
-                                  requestArchiveRecipe(recipe);
-                                }}
-                                className="w-full px-3.5 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/5 flex items-center gap-2 font-medium cursor-pointer"
-                              >
-                                <Archive size={13} className="text-amber-400" /> Archive
-                              </button>
-                            )}
-
-                            {/* Restore Action (ARCHIVED only) */}
-                            {recipe.status === "archived" && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setActiveMenuRecipeId(null);
-                                  handleUpdateStatus(recipe, "draft");
-                                }}
-                                className="w-full px-3.5 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/5 flex items-center gap-2 font-medium cursor-pointer"
-                              >
-                                <CheckCircle2 size={13} className="text-blue-400" /> Restore to Draft
-                              </button>
-                            )}
-
-                            {/* Divider */}
-                            <div className="border-t border-white/10 my-1" />
-
-                            {/* Delete Action */}
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setActiveMenuRecipeId(null);
-                                requestDeleteRecipe(recipe);
-                              }}
-                              className="w-full px-3.5 py-2 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 flex items-center gap-2 font-medium cursor-pointer"
-                            >
-                              <Trash2 size={13} /> Delete
-                            </button>
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            ) : null}
-          </table>
-
-          {!loading && filteredRecipes.length === 0 && (
-            <div className="p-12 text-center text-slate-400 text-xs flex flex-col items-center justify-center gap-3 border-t border-white/5">
-              {recipes.length === 0 ? (
-                <p className="font-medium text-slate-400">No recipes available.</p>
-              ) : (
-                <>
-                  <p className="font-medium text-slate-400">No recipes match your filters.</p>
-                  <button
-                    onClick={clearFilters}
-                    className="mt-2 px-4 py-2 text-xs font-semibold text-white bg-[#E55F37] hover:bg-[#D4542E] rounded-xl transition-all cursor-pointer"
-                  >
-                    Clear Filters
-                  </button>
-                </>
+              {/* Clear Filters Button */}
+              {hasActiveFilters && (
+                <button
+                  onClick={clearFilters}
+                  className="text-[11px] text-[#A93226] font-semibold px-3 py-2 rounded-[8px] border border-[#F0C4B8] bg-[#F7E4E1] hover:bg-[#F0C4B8] transition-colors shrink-0 flex items-center gap-1.5 cursor-pointer"
+                >
+                  <RotateCcw size={12} />
+                  <span>Clear filters</span>
+                </button>
               )}
             </div>
-          )}
-        </div>
-      </div>
 
-      {/* Slide-over Modal Component */}
-      <FoodFormModal
-        isOpen={isModalOpen}
-        onClose={closeModal}
-        recipe={editingRecipe}
-        userRole={userRole}
-        onSave={async (data) => {
-          try {
-            if (editingRecipe?.id) {
-              await apiFetch(`/api/recipes/${editingRecipe.id}`, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(data),
-              });
-              toast.success("Recipe Updated", {
-                description: `"${data.name}" was saved successfully.`,
-              });
-            } else {
-              await apiFetch("/api/recipes", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(data),
-              });
-              toast.success("Recipe Created", {
-                description: `"${data.name}" was added to the food library.`,
+            {/* Dropdown Filters Row */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:flex md:flex-wrap gap-2 pt-0.5">
+              {/* Status */}
+              <div className="relative">
+                <select
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                  className="w-full md:w-auto pl-3 pr-7 py-1.5 text-[12px] font-semibold text-[#152131] bg-[#FFFFFF] border border-[#DCE3DF] rounded-[8px] focus:outline-none focus:border-[#152131] appearance-none cursor-pointer hover:border-[#8B9893] transition-colors"
+                >
+                  <option value="all">All status</option>
+                  <option value="published">Published</option>
+                  <option value="draft">Draft</option>
+                  <option value="archived">Archived</option>
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
+                  <ChevronDown size={12} className="text-[#8B9893]" />
+                </div>
+              </div>
+
+              {/* HSS Tier */}
+              <div className="relative">
+                <select
+                  value={filterHss}
+                  onChange={(e) => setFilterHss(e.target.value)}
+                  className="w-full md:w-auto pl-3 pr-7 py-1.5 text-[12px] font-semibold text-[#152131] bg-[#FFFFFF] border border-[#DCE3DF] rounded-[8px] focus:outline-none focus:border-[#152131] appearance-none cursor-pointer hover:border-[#8B9893] transition-colors"
+                >
+                  <option value="all">All HSS tiers</option>
+                  <option value="Stable">Stable</option>
+                  <option value="Moderate">Moderate</option>
+                  <option value="Elevated Risk">Elevated Risk</option>
+                  <option value="Critical">Critical</option>
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
+                  <ChevronDown size={12} className="text-[#8B9893]" />
+                </div>
+              </div>
+
+              {/* Category */}
+              <div className="relative">
+                <select
+                  value={filterCategory}
+                  onChange={(e) => setFilterCategory(e.target.value)}
+                  className="w-full md:w-auto pl-3 pr-7 py-1.5 text-[12px] font-semibold text-[#152131] bg-[#FFFFFF] border border-[#DCE3DF] rounded-[8px] focus:outline-none focus:border-[#152131] appearance-none cursor-pointer hover:border-[#8B9893] transition-colors"
+                >
+                  <option value="all">All categories</option>
+                  <option value="Breakfast">Breakfast</option>
+                  <option value="Lunch">Lunch</option>
+                  <option value="Dinner">Dinner</option>
+                  <option value="Snack">Snack</option>
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
+                  <ChevronDown size={12} className="text-[#8B9893]" />
+                </div>
+              </div>
+
+              {/* Food Source */}
+              <div className="relative">
+                <select
+                  value={filterFoodSource}
+                  onChange={(e) => setFilterFoodSource(e.target.value)}
+                  className="w-full md:w-auto pl-3 pr-7 py-1.5 text-[12px] font-semibold text-[#152131] bg-[#FFFFFF] border border-[#DCE3DF] rounded-[8px] focus:outline-none focus:border-[#152131] appearance-none cursor-pointer hover:border-[#8B9893] transition-colors"
+                >
+                  <option value="all">All food sources</option>
+                  <option value="Home Recipe">Home Recipe</option>
+                  <option value="Fast Food Chain">Fast Food Chain</option>
+                  <option value="Local Carenderia">Local Carenderia</option>
+                  <option value="Raw Ingredient">Raw Ingredient</option>
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
+                  <ChevronDown size={12} className="text-[#8B9893]" />
+                </div>
+              </div>
+
+              {/* Review Status */}
+              <div className="relative">
+                <select
+                  value={filterReview}
+                  onChange={(e) => setFilterReview(e.target.value)}
+                  className="w-full md:w-auto pl-3 pr-7 py-1.5 text-[12px] font-semibold text-[#152131] bg-[#FFFFFF] border border-[#DCE3DF] rounded-[8px] focus:outline-none focus:border-[#152131] appearance-none cursor-pointer hover:border-[#8B9893] transition-colors"
+                >
+                  <option value="all">All review status</option>
+                  <option value="reviewed">Expert Reviewed</option>
+                  <option value="pending">Pending Review</option>
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
+                  <ChevronDown size={12} className="text-[#8B9893]" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Directory Table */}
+          <div className="w-full overflow-x-auto">
+            <table className="w-full text-left border-collapse min-w-[720px]">
+              <thead>
+                <tr className="border-b border-[#DCE3DF] bg-[#EDF1EF]/40">
+                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-[0.1em] w-1/3">
+                    Food / meal name
+                  </th>
+                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-[0.1em]">
+                    HSS suitability
+                  </th>
+                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-[0.1em]">
+                    Nutrition snapshot
+                  </th>
+                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-[0.1em] text-center">
+                    Expert review
+                  </th>
+                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-[0.1em] text-right">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+
+              {loading ? (
+                <tbody>
+                  {[1, 2, 3, 4, 5].map((item) => (
+                    <tr key={item} className="border-b border-[#DCE3DF]/60">
+                      <td className="py-3.5 px-5">
+                        <div className="flex items-center gap-3">
+                          <Skeleton className="w-9 h-9 rounded-[8px] shrink-0 bg-[#DCE3DF]/70" />
+                          <div>
+                            <Skeleton className="w-32 h-4 mb-1.5 bg-[#DCE3DF]/70 rounded" />
+                            <Skeleton className="w-20 h-3 bg-[#DCE3DF]/70 rounded" />
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-3.5 px-5">
+                        <Skeleton className="w-24 h-5 rounded-full bg-[#DCE3DF]/70" />
+                      </td>
+                      <td className="py-3.5 px-5">
+                        <Skeleton className="w-20 h-4 mb-1 bg-[#DCE3DF]/70 rounded" />
+                        <Skeleton className="w-16 h-3 bg-[#DCE3DF]/70 rounded" />
+                      </td>
+                      <td className="py-3.5 px-5 flex justify-center">
+                        <Skeleton className="w-7 h-7 rounded-full bg-[#DCE3DF]/70" />
+                      </td>
+                      <td className="py-3.5 px-5 text-right">
+                        <Skeleton className="w-6 h-6 rounded-md bg-[#DCE3DF]/70 ml-auto" />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              ) : filteredRecipes.length > 0 ? (
+                <tbody className="divide-y divide-[#DCE3DF]">
+                  {filteredRecipes.map((recipe, index) => {
+                    const badgeClass = getHssBadgeStyle(recipe.hssTarget);
+                    return (
+                      <tr
+                        key={recipe.id}
+                        onClick={() => openModal(recipe)}
+                        className={`hover:bg-[#EDF1EF]/60 transition-colors group cursor-pointer ${
+                          recipe.status === "archived" ? "opacity-60 bg-[#EDF1EF]/30" : ""
+                        }`}
+                      >
+                        {/* Food Name & Image */}
+                        <td className="py-3.5 px-4 sm:px-5 align-middle">
+                          <div className="flex items-center gap-3">
+                            <RecipeImage
+                              src={recipe.mediaUrl}
+                              alt={recipe.name}
+                              containerClassName="w-9 h-9 rounded-[8px] flex items-center justify-center shrink-0 overflow-hidden bg-[#FBEAE6] border border-[#DCE3DF] text-[#E8532E] shadow-2xs"
+                              fallbackIconSize={16}
+                              fallbackIconClassName="text-[#E8532E]"
+                            />
+                            <div className="min-w-0 pr-2">
+                              <p className="text-[#152131] font-semibold text-[13px] leading-tight mb-0.5 truncate">
+                                {recipe.name}
+                              </p>
+                              <p className="text-[#5C6B66] text-[11px] font-medium truncate">
+                                {recipe.category} · <span className="capitalize">{recipe.status}</span>
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* HSS Badge */}
+                        <td className="py-3.5 px-4 sm:px-5 align-middle">
+                          <span
+                            className={`inline-flex items-center text-[10px] font-semibold px-2.5 py-0.5 rounded-full ${badgeClass}`}
+                          >
+                            {recipe.hssTarget}
+                          </span>
+                        </td>
+
+                        {/* Nutrition */}
+                        <td className="py-3.5 px-4 sm:px-5 align-middle">
+                          <p className="text-[#152131] text-[12.5px] font-semibold flex items-center gap-1.5 m-0 leading-tight">
+                            <Activity size={13} className="text-[#E8532E] shrink-0" />
+                            {recipe.sodium}mg{" "}
+                            <span className="text-[10.5px] text-[#5C6B66] font-normal">
+                              Sodium
+                            </span>
+                          </p>
+                          <p className="text-[#5C6B66] text-[11px] font-medium mt-0.5 ml-[18px]">
+                            {recipe.calories} kcal
+                          </p>
+                        </td>
+
+                        {/* Expert Review Status */}
+                        <td className="py-3.5 px-4 sm:px-5 align-middle text-center">
+                          {recipe.expertValidated ? (
+                            <div
+                              className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-[#E3EFEC] text-[#1B6E63] border border-[#C5DFD8] mx-auto"
+                              title="Expert Reviewed"
+                            >
+                              <ShieldCheck size={14} />
+                            </div>
+                          ) : (
+                            <div
+                              className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-[#F6EDDD] text-[#A9741B] border border-[#EBD7B8] mx-auto"
+                              title="Pending Review"
+                            >
+                              <ShieldAlert size={14} />
+                            </div>
+                          )}
+                        </td>
+
+                        {/* Actions Menu */}
+                        <td 
+                          className="py-3.5 px-4 sm:px-5 align-middle text-right relative" 
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <div className="flex items-center justify-end">
+                            <button
+                              type="button"
+                              className="p-1.5 text-[#5C6B66] hover:text-[#152131] hover:bg-[#EDF1EF] rounded-[8px] transition-colors cursor-pointer"
+                              onClick={(e) => toggleMenu(e, recipe.id)}
+                              title="Actions"
+                            >
+                              <MoreVertical size={14} />
+                            </button>
+                          </div>
+
+                          {activeMenuRecipeId === recipe.id && (
+                            <div
+                              className={`absolute right-4 w-44 bg-[#FFFFFF] border border-[#DCE3DF] rounded-[10px] shadow-xl p-1.5 z-50 text-left ${
+                                index >= filteredRecipes.length - 2 && filteredRecipes.length > 2
+                                  ? "bottom-full mb-1"
+                                  : "top-full mt-1"
+                              }`}
+                            >
+                              {/* Edit Action */}
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveMenuRecipeId(null);
+                                  openModal(recipe);
+                                }}
+                                className="w-full px-2.5 py-1.5 text-[12px] text-[#152131] hover:bg-[#EDF1EF] rounded-[6px] flex items-center gap-2 font-medium cursor-pointer"
+                              >
+                                <Edit2 size={13} className="text-[#E8532E]" />
+                                <span>Edit recipe</span>
+                              </button>
+
+                              {/* Publish Action (DRAFT only) */}
+                              {recipe.status === "draft" && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActiveMenuRecipeId(null);
+                                    handleUpdateStatus(recipe, "published");
+                                  }}
+                                  className="w-full px-2.5 py-1.5 text-[12px] text-[#152131] hover:bg-[#EDF1EF] rounded-[6px] flex items-center gap-2 font-medium cursor-pointer"
+                                >
+                                  <CheckCircle2 size={13} className="text-[#1B6E63]" />
+                                  <span>Publish</span>
+                                </button>
+                              )}
+
+                              {/* Archive Action (PUBLISHED only) */}
+                              {recipe.status === "published" && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActiveMenuRecipeId(null);
+                                    requestArchiveRecipe(recipe);
+                                  }}
+                                  className="w-full px-2.5 py-1.5 text-[12px] text-[#152131] hover:bg-[#EDF1EF] rounded-[6px] flex items-center gap-2 font-medium cursor-pointer"
+                                >
+                                  <Archive size={13} className="text-[#A9741B]" />
+                                  <span>Archive</span>
+                                </button>
+                              )}
+
+                              {/* Restore Action (ARCHIVED only) */}
+                              {recipe.status === "archived" && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActiveMenuRecipeId(null);
+                                    handleUpdateStatus(recipe, "draft");
+                                  }}
+                                  className="w-full px-2.5 py-1.5 text-[12px] text-[#152131] hover:bg-[#EDF1EF] rounded-[6px] flex items-center gap-2 font-medium cursor-pointer"
+                                >
+                                  <CheckCircle2 size={13} className="text-[#1B6E63]" />
+                                  <span>Restore to draft</span>
+                                </button>
+                              )}
+
+                              {/* Divider */}
+                              <div className="border-t border-[#DCE3DF] my-1" />
+
+                              {/* Delete Action */}
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveMenuRecipeId(null);
+                                  requestDeleteRecipe(recipe);
+                                }}
+                                className="w-full px-2.5 py-1.5 text-[12px] text-[#A93226] hover:bg-[#F7E4E1] rounded-[6px] flex items-center gap-2 font-medium cursor-pointer"
+                              >
+                                <Trash2 size={13} />
+                                <span>Delete</span>
+                              </button>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              ) : null}
+            </table>
+
+            {/* Empty State */}
+            {!loading && filteredRecipes.length === 0 && (
+              <div className="p-12 text-center text-[#5C6B66] text-[13px] flex flex-col items-center justify-center gap-2.5 border-t border-[#DCE3DF]">
+                {recipes.length === 0 ? (
+                  <p className="font-medium text-[#5C6B66]">No recipes available in the library.</p>
+                ) : (
+                  <>
+                    <p className="font-medium text-[#152131]">No recipes match your filter criteria.</p>
+                    <button
+                      onClick={clearFilters}
+                      className="mt-1 px-3.5 py-1.5 text-[12px] font-semibold text-white bg-[#E8532E] hover:bg-[#C13E20] rounded-[8px] transition-colors cursor-pointer"
+                    >
+                      Clear filters
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Modal Component for Create / Edit */}
+        <FoodFormModal
+          isOpen={isModalOpen}
+          onClose={closeModal}
+          recipe={editingRecipe}
+          userRole={userRole}
+          onSave={async (formData) => {
+            try {
+              if (editingRecipe?.id) {
+                await apiFetch(`/api/recipes/${editingRecipe.id}`, {
+                  method: "PUT",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify(formData),
+                });
+                toast.success("Recipe Updated", {
+                  description: `"${formData.name}" was saved successfully.`,
+                });
+              } else {
+                await apiFetch("/api/recipes", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify(formData),
+                });
+                toast.success("Recipe Created", {
+                  description: `"${formData.name}" was added to the food library.`,
+                });
+              }
+              fetchFoods();
+            } catch (err) {
+              console.error("Error saving recipe:", err);
+              toast.error("Failed to Save Recipe", {
+                description: err?.data?.detail || "Could not save recipe to database.",
               });
             }
-            fetchFoods();
-          } catch (err) {
-            console.error("Error saving recipe:", err);
-            toast.error("Failed to Save Recipe", {
-              description: err?.data?.detail || "Could not save recipe to database.",
-            });
-          }
-        }}
-        onDelete={(recipeToDelete) => {
-          requestDeleteRecipe(recipeToDelete || editingRecipe);
-        }}
-      />
+          }}
+          onDelete={(recipeToDelete) => {
+            requestDeleteRecipe(recipeToDelete || editingRecipe);
+          }}
+        />
 
-      {/* Reusable Animated Confirmation Modal */}
-      <ConfirmActionModal
-        isOpen={confirmConfig.isOpen}
-        onClose={closeConfirmModal}
-        onConfirm={confirmConfig.onConfirm}
-        title={confirmConfig.title}
-        subtitle={confirmConfig.subtitle}
-        description={confirmConfig.description}
-        confirmText={confirmConfig.confirmText}
-        cancelText={confirmConfig.cancelText}
-        variant={confirmConfig.variant}
-        icon={confirmConfig.icon}
-        entityInfo={confirmConfig.entityInfo}
-        impactDetails={confirmConfig.impactDetails}
-      />
+        {/* Reusable Action Confirmation Modal */}
+        <ConfirmActionModal
+          isOpen={confirmConfig.isOpen}
+          onClose={closeConfirmModal}
+          onConfirm={confirmConfig.onConfirm}
+          title={confirmConfig.title}
+          subtitle={confirmConfig.subtitle}
+          description={confirmConfig.description}
+          confirmText={confirmConfig.confirmText}
+          cancelText={confirmConfig.cancelText}
+          variant={confirmConfig.variant}
+          icon={confirmConfig.icon}
+          entityInfo={confirmConfig.entityInfo}
+          impactDetails={confirmConfig.impactDetails}
+        />
+      </div>
     </AdminLayout>
   );
 };

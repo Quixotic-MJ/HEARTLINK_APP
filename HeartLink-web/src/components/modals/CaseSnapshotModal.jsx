@@ -4,10 +4,6 @@ import {
   ShieldCheck,
   Lock,
   User,
-  HeartPulse,
-  Utensils,
-  Activity,
-  Download,
   AlertTriangle,
 } from "lucide-react";
 
@@ -15,83 +11,86 @@ const CaseSnapshotModal = ({ isOpen, onClose, snapshotData }) => {
   if (!isOpen || !snapshotData) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6" style={{ fontFamily: "'Inter', sans-serif" }}>
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/70 backdrop-blur-sm transition-opacity"
+        className="absolute inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
         onClick={onClose}
-      ></div>
+      />
 
       {/* Modal Panel - Centered */}
-      <div className="relative w-full max-w-2xl bg-[#1A1A1A] max-h-full rounded-2xl shadow-2xl border border-white/10 flex flex-col animate-in fade-in zoom-in-95 duration-200 overflow-hidden text-white">
+      <div className="relative w-full max-w-2xl bg-[#FFFFFF] max-h-full rounded-2xl shadow-2xl border border-[#DCE3DF] flex flex-col animate-in fade-in zoom-in-95 duration-200 overflow-hidden text-[#152131]">
         {/* Modal Header */}
-        <div className="flex items-center justify-between px-6 py-5 border-b border-white/10 bg-[#161616] z-10">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-[#36272B] flex items-center justify-center text-[#E55F37] border border-[#E55F37]/30 shrink-0">
-              <Lock size={22} />
+        <div className="flex items-center justify-between px-6 py-4.5 border-b border-[#DCE3DF] bg-[#FFFFFF] z-10">
+          <div className="flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-[8px] bg-[#FBEAE6] flex items-center justify-center text-[#E8532E] border border-[#DCE3DF] shrink-0">
+              <Lock size={18} />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-white flex items-center gap-2.5">
+              <h3 
+                className="text-[17px] font-medium text-[#152131] flex items-center gap-2 tracking-tight"
+                style={{ fontFamily: "'Fraunces', serif" }}
+              >
                 Original Health Log Snapshot
-                <span className="text-[9px] px-2.5 py-0.5 rounded-full border border-white/10 bg-white/5 text-slate-300 tracking-widest uppercase font-bold">
-                  READ-ONLY RECORD
+                <span className="text-[9.5px] px-2 py-0.5 rounded-full border border-[#DCE3DF] bg-[#EDF1EF] text-[#5C6B66] tracking-wider uppercase font-semibold">
+                  READ-ONLY
                 </span>
               </h3>
-              <p className="text-[10px] text-[#89899C] mt-1 font-mono flex items-center gap-1.5 font-medium">
-                <Lock size={11} className="text-[#89899C]" /> {snapshotData.caseId} • Flagged:{" "}
+              <p className="text-[11px] text-[#8B9893] mt-0.5 font-mono flex items-center gap-1 font-medium">
+                <Lock size={11} className="text-[#8B9893]" /> {snapshotData.caseId} • Flagged:{" "}
                 {snapshotData.flaggedDate}
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-white p-2 rounded-xl hover:bg-white/10 transition-colors cursor-pointer"
+            className="text-[#5C6B66] hover:text-[#152131] p-1.5 rounded-lg hover:bg-[#EDF1EF] transition-colors cursor-pointer"
           >
-            <X size={18} />
+            <X size={16} />
           </button>
         </div>
 
         {/* Modal Scrollable Content */}
-        <div className="flex-1 overflow-y-auto p-6 custom-scrollbar space-y-6">
+        <div className="flex-1 overflow-y-auto p-6 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden space-y-5">
           {/* Privacy Banner */}
-          <div className="bg-emerald-500/10 border border-emerald-500/20 p-4 rounded-2xl flex items-start gap-3">
-            <ShieldCheck size={18} className="text-emerald-400 shrink-0 mt-0.5" />
+          <div className="bg-[#E3EFEC] border border-[#C5DFD8] p-3.5 rounded-[8px] flex items-start gap-2.5">
+            <ShieldCheck size={16} className="text-[#1B6E63] shrink-0 mt-0.5" />
             <div>
-              <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-[0.15em] mb-1">
+              <p className="text-[10px] font-semibold text-[#1B6E63] uppercase tracking-wider mb-0.5">
                 PRIVACY GUARDRAILS ACTIVE
               </p>
-              <p className="text-xs text-emerald-300/90 leading-relaxed font-medium">
+              <p className="text-[11.5px] text-[#1B6E63] leading-relaxed font-medium">
                 All Personally Identifiable Information (PII) including names, contacts, and exact locations have been stripped. You are viewing strictly anonymized health and behavioral telemetry.
               </p>
             </div>
           </div>
 
           {/* Panel A (Patient Context) */}
-          <div className="bg-[#21202E]/40 rounded-2xl border border-white/10 overflow-hidden">
-            <div className="px-5 py-3 border-b border-white/10 bg-[#161616]">
-              <h4 className="text-[10px] font-bold text-[#89899C] uppercase tracking-[0.15em] flex items-center gap-2">
-                <User size={13} className="text-[#E55F37]" /> Panel A: User Context
+          <div className="bg-[#EDF1EF]/50 rounded-[10px] border border-[#DCE3DF] overflow-hidden">
+            <div className="px-4 py-2.5 border-b border-[#DCE3DF] bg-[#FFFFFF]">
+              <h4 className="text-[11px] font-semibold text-[#8B9893] uppercase tracking-wider flex items-center gap-1.5">
+                <User size={12} className="text-[#E8532E]" /> User Context
               </h4>
             </div>
-            <div className="p-5 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-[#161616] p-4 rounded-xl border border-white/10">
-                  <p className="text-[9px] font-bold text-[#89899C] uppercase tracking-widest mb-1.5">
+            <div className="p-4 space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-[#FFFFFF] p-3 rounded-[8px] border border-[#DCE3DF]">
+                  <p className="text-[10px] font-semibold text-[#8B9893] uppercase tracking-wider mb-1">
                     BASELINE PROFILE
                   </p>
-                  <p className="text-xs font-bold text-white">
+                  <p className="text-[13px] font-bold text-[#152131]">
                     {snapshotData.patientContext?.age} yrs • {snapshotData.patientContext?.sex}
                   </p>
                 </div>
-                <div className="bg-[#161616] p-4 rounded-xl border border-white/10">
-                  <p className="text-[9px] font-bold text-[#89899C] uppercase tracking-widest mb-2">
+                <div className="bg-[#FFFFFF] p-3 rounded-[8px] border border-[#DCE3DF]">
+                  <p className="text-[10px] font-semibold text-[#8B9893] uppercase tracking-wider mb-1">
                     REPORTED CONDITIONS
                   </p>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-1.5 mt-0.5">
                     {snapshotData.patientContext?.conditions?.map((cond, i) => (
                       <span
                         key={i}
-                        className="text-[10px] font-semibold text-slate-200 bg-[#21202E] border border-white/10 px-2.5 py-1 rounded-lg"
+                        className="text-[10.5px] font-medium text-[#152131] bg-[#EDF1EF] border border-[#DCE3DF] px-2 py-0.5 rounded-[5px]"
                       >
                         {cond}
                       </span>
@@ -100,99 +99,72 @@ const CaseSnapshotModal = ({ isOpen, onClose, snapshotData }) => {
                 </div>
               </div>
 
-              <div className="pt-2 border-t border-white/10">
-                <p className="text-[10px] font-bold text-[#89899C] uppercase tracking-widest mb-3">
-                  Telemetry: System Output vs. User Action
+              <div className="pt-2 border-t border-[#DCE3DF]">
+                <p className="text-[11px] font-semibold text-[#8B9893] uppercase tracking-wider mb-2.5">
+                  Telemetry: System output vs. user action
                 </p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {/* Left Column: Algorithm Recommended */}
-                  <div className="bg-[#161616] border border-white/10 rounded-xl overflow-hidden">
-                    <div className="px-4 py-2 border-b border-white/10 bg-[#1A1A1A]">
-                      <p className="text-[9px] font-bold text-slate-300 uppercase tracking-widest flex items-center gap-1.5">
+                  <div className="bg-[#FFFFFF] border border-[#DCE3DF] rounded-[8px] overflow-hidden">
+                    <div className="px-3 py-1.5 border-b border-[#DCE3DF] bg-[#EDF1EF]/40">
+                      <p className="text-[10px] font-semibold text-[#5C6B66] uppercase tracking-wider">
                         Algorithm Recommended
                       </p>
                     </div>
-                    <div className="p-4 space-y-3 text-xs">
+                    <div className="p-3 space-y-2 text-[12px]">
                       <div>
-                        <p className="text-[9px] font-bold text-[#89899C] uppercase tracking-widest mb-1">Target HSS Tier:</p>
-                        <p className="font-bold text-white">{snapshotData.patientContext?.telemetry?.recommended?.targetTier}</p>
+                        <p className="text-[10px] font-semibold text-[#8B9893] uppercase tracking-wider">Target HSS Tier:</p>
+                        <p className="font-bold text-[#152131]">{snapshotData.patientContext?.telemetry?.recommended?.targetTier}</p>
                       </div>
                       <div>
-                        <p className="text-[9px] font-bold text-[#89899C] uppercase tracking-widest mb-1">Suggested Meal:</p>
-                        <p className="font-medium text-slate-200">{snapshotData.patientContext?.telemetry?.recommended?.suggestedMeal}</p>
+                        <p className="text-[10px] font-semibold text-[#8B9893] uppercase tracking-wider">Suggested Meal:</p>
+                        <p className="font-medium text-[#5C6B66]">{snapshotData.patientContext?.telemetry?.recommended?.suggestedMeal}</p>
                       </div>
                       <div>
-                        <p className="text-[9px] font-bold text-[#89899C] uppercase tracking-widest mb-1">Suggested Activity:</p>
-                        <p className="font-medium text-slate-200">{snapshotData.patientContext?.telemetry?.recommended?.suggestedActivity}</p>
+                        <p className="text-[10px] font-semibold text-[#8B9893] uppercase tracking-wider">Suggested Activity:</p>
+                        <p className="font-medium text-[#5C6B66]">{snapshotData.patientContext?.telemetry?.recommended?.suggestedActivity}</p>
                       </div>
                     </div>
                   </div>
 
                   {/* Right Column: User Actually Logged */}
-                  <div className="bg-[#161616] border border-white/10 rounded-xl overflow-hidden">
-                    <div className="px-4 py-2 border-b border-white/10 bg-[#1A1A1A] flex justify-between items-center">
-                      <p className="text-[9px] font-bold text-slate-300 uppercase tracking-widest flex items-center gap-1.5">
+                  <div className="bg-[#FFFFFF] border border-[#DCE3DF] rounded-[8px] overflow-hidden">
+                    <div className="px-3 py-1.5 border-b border-[#DCE3DF] bg-[#EDF1EF]/40 flex justify-between items-center">
+                      <p className="text-[10px] font-semibold text-[#5C6B66] uppercase tracking-wider">
                         User Actually Logged
                       </p>
                       {snapshotData.patientContext?.telemetry?.actual?.conflict && (
-                        <AlertTriangle size={12} className="text-amber-400" />
+                        <AlertTriangle size={12} className="text-[#A9741B]" />
                       )}
                     </div>
-                    <div className="p-4 space-y-3 text-xs">
+                    <div className="p-3 space-y-2 text-[12px]">
                       <div>
-                        <p className="text-[9px] font-bold text-[#89899C] uppercase tracking-widest mb-1 flex items-center gap-1">
+                        <p className="text-[10px] font-semibold text-[#8B9893] uppercase tracking-wider">
                           Reported Vitals:
                         </p>
-                        <p className="font-bold text-white">{snapshotData.patientContext?.telemetry?.actual?.vitals}</p>
+                        <p className="font-bold text-[#152131]">{snapshotData.patientContext?.telemetry?.actual?.vitals}</p>
                       </div>
                       <div>
-                        <p className="text-[9px] font-bold text-[#89899C] uppercase tracking-widest mb-1">Logged Meal:</p>
-                        <p className="font-medium text-slate-200">{snapshotData.patientContext?.telemetry?.actual?.loggedMeal}</p>
+                        <p className="text-[10px] font-semibold text-[#8B9893] uppercase tracking-wider">Logged Meal:</p>
+                        <p className="font-medium text-[#5C6B66]">{snapshotData.patientContext?.telemetry?.actual?.loggedMeal}</p>
                       </div>
                       <div>
-                        <p className="text-[9px] font-bold text-[#89899C] uppercase tracking-widest mb-1">Logged Activity:</p>
-                        <p className="font-medium text-slate-200">{snapshotData.patientContext?.telemetry?.actual?.loggedActivity}</p>
+                        <p className="text-[10px] font-semibold text-[#8B9893] uppercase tracking-wider">Logged Activity:</p>
+                        <p className="font-medium text-[#5C6B66]">{snapshotData.patientContext?.telemetry?.actual?.loggedActivity}</p>
                       </div>
                     </div>
                   </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Panel B (Algorithmic Output) */}
-          <div className="bg-[#21202E]/40 rounded-2xl border border-white/10 overflow-hidden">
-            <div className="px-5 py-3 border-b border-white/10 bg-[#161616]">
-              <h4 className="text-[10px] font-bold text-[#89899C] uppercase tracking-[0.15em] flex items-center gap-2">
-                <Activity size={13} className="text-[#E55F37]" /> Panel B: Algorithmic Output
-              </h4>
-            </div>
-            <div className="p-6 flex flex-col sm:flex-row gap-6 items-center">
-              <div className="w-full sm:w-1/3 text-center sm:border-r border-white/10 pr-0 sm:pr-4">
-                <p className="text-[9px] font-bold text-[#89899C] uppercase tracking-widest mb-2">
-                  COMPUTED HSS
-                </p>
-                <p className="text-5xl font-black text-white mb-2">
-                  {snapshotData.computedHss}
-                </p>
-              </div>
-              <div className="w-full sm:w-2/3">
-                <p className="text-[9px] font-bold text-[#89899C] uppercase tracking-widest mb-2">
-                  SYSTEM ACTION TAKEN
-                </p>
-                <div className="text-xs font-medium text-slate-200 leading-relaxed bg-[#161616] p-4 rounded-xl border border-white/10">
-                  {snapshotData.systemAction}
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Modal Footer / Actions */}
-        <div className="px-6 py-4 border-t border-white/10 bg-[#161616] flex justify-end gap-3 shrink-0">
+        {/* Modal Footer */}
+        <div className="px-6 py-3.5 border-t border-[#DCE3DF] bg-[#FFFFFF] flex justify-end gap-2 shrink-0">
           <button
             onClick={onClose}
-            className="px-5 py-2.5 text-xs font-semibold text-slate-300 hover:text-white bg-[#21202E] border border-white/10 rounded-xl transition-colors cursor-pointer"
+            className="px-4 py-2 text-[12px] font-semibold text-[#152131] bg-[#EDF1EF] hover:bg-[#DCE3DF] border border-[#DCE3DF] rounded-[8px] transition-colors cursor-pointer"
           >
             Close
           </button>
@@ -203,4 +175,3 @@ const CaseSnapshotModal = ({ isOpen, onClose, snapshotData }) => {
 };
 
 export default CaseSnapshotModal;
-

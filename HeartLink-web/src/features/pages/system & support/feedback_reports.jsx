@@ -1,33 +1,24 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
   Search,
-  Filter,
-  X,
   MessageSquare,
   Bug,
-  Lightbulb,
-  UserCircle,
-  HelpCircle,
-  Smartphone,
   Save,
-  Trash2,
   CheckCircle2,
   Clock,
-  ExternalLink,
   AlertCircle,
   Activity,
-  User,
   ChevronLeft,
   ChevronRight,
-  BarChart3,
-  TrendingUp,
   Inbox,
   ChevronDown,
+  RotateCcw,
 } from "lucide-react";
 import AdminLayout from "../../../components/layouts/adminLayout";
 import TicketModal from "../../../components/modals/TicketModal";
 import FeedbackCategoryBadge from "../../../components/ui/FeedbackCategoryBadge";
 import { apiFetch } from "../../../api";
+import { Skeleton } from "../../../components/ui/Skeleton";
 
 const Feedback = () => {
   const [tickets, setTickets] = useState([]);
@@ -81,7 +72,7 @@ const Feedback = () => {
   const [filterStatus, setFilterStatus] = useState("active"); // Default to "Active Tickets"
   const [sortOrder, setSortOrder] = useState("newest");
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
+  const itemsPerPage = 8;
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -130,21 +121,29 @@ const Feedback = () => {
     closeModal();
   };
 
+  const clearFilters = () => {
+    setSearchQuery("");
+    setFilterCategory("all");
+    setFilterStatus("all");
+    setSortOrder("newest");
+  };
+
   // Filter Logic
   let filteredTickets = tickets.filter((t) => {
     const matchesSearch =
-      t.ticketId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      t.fullMessage.toLowerCase().includes(searchQuery.toLowerCase());
+      (t.ticketId || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (t.fullMessage || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (t.userId || "").toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory =
       filterCategory === "all" || t.category === filterCategory;
     
     let matchesStatus = false;
     if (filterStatus === "all") {
-      matchesStatus = true; // Include ALL tickets (Open, In Progress, Resolved, Archived)
+      matchesStatus = true;
     } else if (filterStatus === "active") {
-      matchesStatus = t.status !== "Archived"; // Active excludes Archived
+      matchesStatus = t.status !== "Archived";
     } else {
-      matchesStatus = t.status.toLowerCase() === filterStatus.toLowerCase();
+      matchesStatus = (t.status || "").toLowerCase() === filterStatus.toLowerCase();
     }
     return matchesSearch && matchesCategory && matchesStatus;
   });
@@ -182,171 +181,217 @@ const Feedback = () => {
     switch (status) {
       case "Resolved":
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 whitespace-nowrap">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[4px] text-[9px] font-bold uppercase tracking-wider bg-[#E3EFEC] text-[#1B6E63] border border-[#C5DFD8] whitespace-nowrap">
             <CheckCircle2 size={10} /> Resolved
           </span>
         );
       case "In Progress":
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-blue-500/10 text-blue-400 border border-blue-500/20 whitespace-nowrap">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[4px] text-[9px] font-bold uppercase tracking-wider bg-[#F6EDDD] text-[#A9741B] border border-[#EBD7B8] whitespace-nowrap">
             <Activity size={10} className="animate-pulse" /> In Progress
           </span>
         );
       case "Archived":
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-white/5 text-slate-400 border border-white/10 whitespace-nowrap">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[4px] text-[9px] font-semibold uppercase tracking-wider bg-[#EDF1EF] text-[#5C6B66] border border-[#DCE3DF] whitespace-nowrap">
             <Inbox size={10} /> Archived
           </span>
         );
       default:
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-rose-500/10 text-rose-400 border border-rose-500/20 whitespace-nowrap">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[4px] text-[9px] font-bold uppercase tracking-wider bg-[#FBEAE6] text-[#E8532E] border border-[#F5C7BD] whitespace-nowrap">
             <AlertCircle size={10} /> Open
           </span>
         );
     }
   };
 
+  const hasActiveFilters = Boolean(searchQuery) || filterCategory !== "all" || filterStatus !== "active" || sortOrder !== "newest";
+
   return (
     <AdminLayout>
-      <div className="flex flex-col h-full animate-in fade-in duration-300">
-        {/* Page Header */}
-        <div className="flex flex-col md:flex-row md:justify-between md:items-end mb-6 gap-4">
+      <div 
+        className="max-w-[1180px] mx-auto text-[#152131] selection:bg-[#E8532E] selection:text-white"
+        style={{ fontFamily: "'Inter', sans-serif" }}
+      >
+        {/* ── PAGE HEAD ── */}
+        <div className="flex flex-wrap gap-4 justify-between items-end mb-6">
           <div>
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-[#E55F37]/30 bg-[#E55F37]/10 text-[10px] font-bold uppercase tracking-widest text-[#E55F37] mb-2">
-              <MessageSquare size={11} />
-              <span>System Support</span>
-            </div>
-            <h2 className="text-2xl lg:text-3xl font-bold text-white tracking-tight leading-tight">
-              Feedback & Inquiries
-            </h2>
-            <p className="text-[#89899C] text-xs mt-1 font-medium">
-              Review user feedback, technical bug submissions, and system improvement requests.
+            <span className="block text-[12px] text-[#8B9893] font-medium mb-1 flex items-center gap-1.5">
+              <MessageSquare size={13} className="text-[#E8532E]" /> System support
+            </span>
+            <h1 
+              className="text-[26px] font-medium tracking-tight text-[#152131] m-0"
+              style={{ fontFamily: "'Fraunces', serif" }}
+            >
+              Feedback & support inquiries
+            </h1>
+            <p className="text-[13px] text-[#5C6B66] mt-1.5 max-w-[55ch] leading-[1.5]">
+              Review user feedback submissions, technical bug tickets, and product improvement ideas.
             </p>
           </div>
         </div>
 
-        {/* Metrics Summary */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <div className="bg-[#1A1A1A] p-5 rounded-2xl border border-white/10 flex items-center justify-between">
+        {/* ── METRICS ROW ── */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 mb-6">
+          <div className="bg-[#FFFFFF] p-4 rounded-[10px] border border-[#DCE3DF] flex items-center justify-between shadow-2xs">
             <div>
-              <p className="text-[10px] font-bold text-[#89899C] uppercase tracking-wider mb-1">Total Tickets</p>
-              <p className="text-2xl font-extrabold text-white">{totalTickets}</p>
+              <p className="text-[10px] font-semibold text-[#8B9893] uppercase tracking-wider mb-1">Total Tickets</p>
+              <p 
+                className="text-[26px] font-medium text-[#152131] leading-tight"
+                style={{ fontFamily: "'Fraunces', serif" }}
+              >
+                {totalTickets}
+              </p>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-[#21202E] border border-white/10 flex items-center justify-center">
-              <Inbox size={18} className="text-slate-400" />
+            <div className="w-9 h-9 rounded-[8px] bg-[#EDF1EF] border border-[#DCE3DF] flex items-center justify-center text-[#5C6B66]">
+              <Inbox size={16} />
             </div>
           </div>
-          <div className="bg-[#1A1A1A] p-5 rounded-2xl border border-white/10 flex items-center justify-between">
+
+          <div className="bg-[#FFFFFF] p-4 rounded-[10px] border border-[#DCE3DF] flex items-center justify-between shadow-2xs">
             <div>
-              <p className="text-[10px] font-bold text-[#89899C] uppercase tracking-wider mb-1">Open / In Progress</p>
-              <p className="text-2xl font-extrabold text-blue-400">{openTicketsCount}</p>
+              <p className="text-[10px] font-semibold text-[#8B9893] uppercase tracking-wider mb-1">Open / In Progress</p>
+              <p 
+                className="text-[26px] font-medium text-[#E8532E] leading-tight"
+                style={{ fontFamily: "'Fraunces', serif" }}
+              >
+                {openTicketsCount}
+              </p>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
-              <Activity size={18} className="text-blue-400" />
+            <div className="w-9 h-9 rounded-[8px] bg-[#FBEAE6] border border-[#F5C7BD] flex items-center justify-center text-[#E8532E]">
+              <Activity size={16} />
             </div>
           </div>
-          <div className="bg-[#1A1A1A] p-5 rounded-2xl border border-white/10 flex items-center justify-between">
+
+          <div className="bg-[#FFFFFF] p-4 rounded-[10px] border border-[#DCE3DF] flex items-center justify-between shadow-2xs">
             <div>
-              <p className="text-[10px] font-bold text-[#89899C] uppercase tracking-wider mb-1">Resolved</p>
-              <p className="text-2xl font-extrabold text-emerald-400">{resolvedTicketsCount}</p>
+              <p className="text-[10px] font-semibold text-[#8B9893] uppercase tracking-wider mb-1">Resolved</p>
+              <p 
+                className="text-[26px] font-medium text-[#1B6E63] leading-tight"
+                style={{ fontFamily: "'Fraunces', serif" }}
+              >
+                {resolvedTicketsCount}
+              </p>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
-              <CheckCircle2 size={18} className="text-emerald-400" />
+            <div className="w-9 h-9 rounded-[8px] bg-[#E3EFEC] border border-[#C5DFD8] flex items-center justify-center text-[#1B6E63]">
+              <CheckCircle2 size={16} />
             </div>
           </div>
-          <div className="bg-[#1A1A1A] p-5 rounded-2xl border border-white/10 flex items-center justify-between">
+
+          <div className="bg-[#FFFFFF] p-4 rounded-[10px] border border-[#DCE3DF] flex items-center justify-between shadow-2xs">
             <div>
-              <p className="text-[10px] font-bold text-[#89899C] uppercase tracking-wider mb-1">Bug Reports</p>
-              <p className="text-2xl font-extrabold text-rose-400">{bugReportsCount}</p>
+              <p className="text-[10px] font-semibold text-[#8B9893] uppercase tracking-wider mb-1">Bug Reports</p>
+              <p 
+                className="text-[26px] font-medium text-[#A93226] leading-tight"
+                style={{ fontFamily: "'Fraunces', serif" }}
+              >
+                {bugReportsCount}
+              </p>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center">
-              <Bug size={18} className="text-rose-400" />
+            <div className="w-9 h-9 rounded-[8px] bg-[#F7E4E1] border border-[#F0C4B8] flex items-center justify-center text-[#A93226]">
+              <Bug size={16} />
             </div>
           </div>
         </div>
 
-        {/* Main View: Feedback Inbox Table */}
-        <div className="bg-[#1A1A1A] rounded-2xl border border-white/10 flex flex-col overflow-hidden">
+        {/* ── FEEDBACK INBOX TABLE CARD ── */}
+        <div className="bg-[#FFFFFF] rounded-[10px] border border-[#DCE3DF] flex flex-col overflow-hidden shadow-2xs">
           {/* Search & Filter Bar */}
-          <div className="p-4 border-b border-white/10 bg-[#161616]">
+          <div className="p-4 border-b border-[#DCE3DF] bg-[#FFFFFF] space-y-3">
             <div className="flex flex-col sm:flex-row gap-3">
               <div className="relative flex-1">
                 <Search
                   size={14}
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none"
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8B9893] pointer-events-none"
                 />
                 <input
                   type="text"
-                  placeholder="Search by Ticket ID or keywords..."
+                  placeholder="Search by Ticket ID, keywords, or Account ID…"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 text-xs border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] transition-all bg-[#1A1A1A] text-white placeholder:text-slate-500"
+                  className="w-full pl-9 pr-4 py-2 text-[13px] border border-[#DCE3DF] rounded-[8px] focus:outline-none focus:border-[#152131] transition-colors bg-[#EDF1EF] text-[#152131] placeholder:text-[#8B9893]"
                 />
               </div>
-              <div className="flex flex-wrap sm:flex-nowrap gap-3">
-                <div className="relative flex-1 sm:flex-none">
+
+              <div className="flex flex-wrap sm:flex-nowrap gap-2 items-center">
+                {/* Category Dropdown */}
+                <div className="relative">
                   <select
                     value={filterCategory}
                     onChange={(e) => setFilterCategory(e.target.value)}
-                    className="w-full sm:w-auto pl-3 pr-8 py-2 text-xs font-semibold text-white bg-[#1A1A1A] border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] appearance-none cursor-pointer hover:border-white/20 transition-colors"
+                    className="pl-3 pr-7 py-2 text-[12px] font-semibold text-[#152131] bg-[#FFFFFF] border border-[#DCE3DF] rounded-[8px] focus:outline-none focus:border-[#152131] appearance-none cursor-pointer hover:border-[#8B9893] transition-colors"
                   >
-                    <option value="all" className="bg-[#161616]">All Categories</option>
-                    <option value="Bug Report" className="bg-[#161616]">Bug Report</option>
-                    <option value="UI/UX Suggestion" className="bg-[#161616]">UI/UX Suggestion</option>
-                    <option value="Account Issue" className="bg-[#161616]">Account Issue</option>
-                    <option value="Question" className="bg-[#161616]">Question</option>
+                    <option value="all">All Categories</option>
+                    <option value="Bug Report">Bug Report</option>
+                    <option value="UI/UX Suggestion">UI/UX Suggestion</option>
+                    <option value="Account Issue">Account Issue</option>
+                    <option value="Question">Question</option>
                   </select>
-                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5">
-                    <ChevronDown size={12} className="text-slate-400" />
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
+                    <ChevronDown size={12} className="text-[#8B9893]" />
                   </div>
                 </div>
-                <div className="relative flex-1 sm:flex-none">
+
+                {/* Status Dropdown */}
+                <div className="relative">
                   <select
                     value={filterStatus}
                     onChange={(e) => setFilterStatus(e.target.value)}
-                    className="w-full sm:w-auto pl-3 pr-8 py-2 text-xs font-semibold text-white bg-[#1A1A1A] border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] appearance-none cursor-pointer hover:border-white/20 transition-colors"
+                    className="pl-3 pr-7 py-2 text-[12px] font-semibold text-[#152131] bg-[#FFFFFF] border border-[#DCE3DF] rounded-[8px] focus:outline-none focus:border-[#152131] appearance-none cursor-pointer hover:border-[#8B9893] transition-colors"
                   >
-                    <option value="active" className="bg-[#161616]">Active Tickets</option>
-                    <option value="all" className="bg-[#161616]">All Statuses</option>
-                    <option value="Open" className="bg-[#161616]">Open</option>
-                    <option value="In Progress" className="bg-[#161616]">In Progress</option>
-                    <option value="Resolved" className="bg-[#161616]">Resolved</option>
-                    <option value="Archived" className="bg-[#161616]">Archived</option>
+                    <option value="active">Active Tickets</option>
+                    <option value="all">All Statuses</option>
+                    <option value="Open">Open</option>
+                    <option value="In Progress">In Progress</option>
+                    <option value="Resolved">Resolved</option>
+                    <option value="Archived">Archived</option>
                   </select>
-                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5">
-                    <ChevronDown size={12} className="text-slate-400" />
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
+                    <ChevronDown size={12} className="text-[#8B9893]" />
                   </div>
                 </div>
-                <div className="relative flex-1 sm:flex-none">
+
+                {/* Sort Order */}
+                <div className="relative">
                   <select
                     value={sortOrder}
                     onChange={(e) => setSortOrder(e.target.value)}
-                    className="w-full sm:w-auto pl-3 pr-8 py-2 text-xs font-semibold text-white bg-[#1A1A1A] border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] appearance-none cursor-pointer hover:border-white/20 transition-colors"
+                    className="pl-3 pr-7 py-2 text-[12px] font-semibold text-[#152131] bg-[#FFFFFF] border border-[#DCE3DF] rounded-[8px] focus:outline-none focus:border-[#152131] appearance-none cursor-pointer hover:border-[#8B9893] transition-colors"
                   >
-                    <option value="newest" className="bg-[#161616]">Newest First</option>
-                    <option value="oldest" className="bg-[#161616]">Oldest First</option>
+                    <option value="newest">Newest First</option>
+                    <option value="oldest">Oldest First</option>
                   </select>
-                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5">
-                    <ChevronDown size={12} className="text-slate-400" />
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
+                    <ChevronDown size={12} className="text-[#8B9893]" />
                   </div>
                 </div>
+
+                {hasActiveFilters && (
+                  <button
+                    onClick={clearFilters}
+                    className="text-[11px] text-[#A93226] font-semibold px-3 py-2 rounded-[8px] border border-[#F0C4B8] bg-[#F7E4E1] hover:bg-[#F0C4B8] transition-colors shrink-0 flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <RotateCcw size={12} />
+                    <span>Clear</span>
+                  </button>
+                )}
               </div>
             </div>
           </div>
 
           {/* Error Banner */}
           {fetchError && (
-            <div className="mx-4 my-3 p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl flex items-center justify-between animate-in fade-in duration-300">
-              <span className="text-xs font-semibold text-rose-400 flex items-center gap-2">
-                <AlertCircle size={14} /> Unable to refresh feedback.
+            <div className="mx-4 my-3 p-3 bg-[#F7E4E1] border border-[#F0C4B8] rounded-[8px] flex items-center justify-between">
+              <span className="text-[12px] font-semibold text-[#A93226] flex items-center gap-2">
+                <AlertCircle size={14} /> Unable to refresh feedback tickets.
               </span>
               <button
                 onClick={() => {
                   setFetchError(false);
                   setRetryCount(prev => prev + 1);
                 }}
-                className="px-3 py-1 bg-rose-600 hover:bg-rose-700 text-white text-[10px] font-bold uppercase tracking-wider rounded-lg transition-colors shadow-sm cursor-pointer"
+                className="px-3 py-1 bg-[#A93226] hover:bg-[#8A1F1A] text-white text-[11px] font-bold uppercase tracking-wider rounded-[6px] transition-colors cursor-pointer"
               >
                 Retry
               </button>
@@ -354,79 +399,68 @@ const Feedback = () => {
           )}
 
           {/* Inbox Table */}
-          <div className="w-full overflow-x-auto custom-scrollbar flex-1">
+          <div className="w-full overflow-x-auto flex-1">
             <table className="w-full text-left border-collapse min-w-[900px]">
               <thead>
-                <tr className="border-b border-white/10">
-                  <th className="py-3 px-6 text-[10px] font-bold text-[#89899C] uppercase tracking-[0.15em]">
+                <tr className="border-b border-[#DCE3DF] bg-[#EDF1EF]/40">
+                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-[0.1em]">
                     Ticket ID & Date
                   </th>
-                  <th className="py-3 px-6 text-[10px] font-bold text-[#89899C] uppercase tracking-[0.15em]">
+                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-[0.1em]">
                     Category
                   </th>
-                  <th className="py-3 px-6 text-[10px] font-bold text-[#89899C] uppercase tracking-[0.15em]">
+                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-[0.1em]">
                     Account ID
                   </th>
-                  <th className="py-3 px-6 text-[10px] font-bold text-[#89899C] uppercase tracking-[0.15em] w-1/3">
-                    Preview
+                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-[0.1em] w-2/5">
+                    User Message Preview
                   </th>
-                  <th className="py-3 px-6 text-[10px] font-bold text-[#89899C] uppercase tracking-[0.15em] text-right">
+                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-[0.1em] text-right">
                     Status
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/5">
+              <tbody className="divide-y divide-[#DCE3DF]">
                 {loading ? (
                   [1, 2, 3, 4].map((idx) => (
-                    <tr key={`skeleton-${idx}`} className="animate-pulse">
-                      <td className="py-4 px-6 align-middle">
-                        <div className="h-3.5 w-16 bg-white/10 rounded mb-1"></div>
-                        <div className="h-2.5 w-20 bg-white/5 rounded"></div>
-                      </td>
-                      <td className="py-4 px-6 align-middle">
-                        <div className="h-5 w-16 bg-white/10 rounded-full"></div>
-                      </td>
-                      <td className="py-4 px-6 align-middle">
-                        <div className="h-3.5 w-20 bg-white/10 rounded font-mono"></div>
-                      </td>
-                      <td className="py-4 px-6 align-middle">
-                        <div className="h-3 w-48 bg-white/10 rounded"></div>
-                      </td>
-                      <td className="py-4 px-6 align-middle text-right">
-                        <div className="h-4 w-16 bg-white/10 rounded ml-auto"></div>
-                      </td>
+                    <tr key={`skeleton-${idx}`}>
+                      <td className="py-3.5 px-5"><Skeleton className="w-24 h-4 bg-[#DCE3DF]/70 rounded" /></td>
+                      <td className="py-3.5 px-5"><Skeleton className="w-16 h-4 bg-[#DCE3DF]/70 rounded" /></td>
+                      <td className="py-3.5 px-5"><Skeleton className="w-16 h-4 bg-[#DCE3DF]/70 rounded" /></td>
+                      <td className="py-3.5 px-5"><Skeleton className="w-48 h-4 bg-[#DCE3DF]/70 rounded" /></td>
+                      <td className="py-3.5 px-5 text-right"><Skeleton className="w-16 h-4 ml-auto bg-[#DCE3DF]/70 rounded" /></td>
                     </tr>
                   ))
                 ) : paginatedTickets.length > 0 ? (
                   paginatedTickets.map((ticket) => (
                     <tr
                       key={ticket.id}
-                      className={`hover:bg-white/5 transition-colors group cursor-pointer ${ticket.status === "Resolved" ? "opacity-60" : ""}`}
+                      className={`hover:bg-[#EDF1EF]/60 transition-colors group cursor-pointer ${ticket.status === "Resolved" ? "opacity-75" : ""}`}
                       onClick={() => openModal(ticket)}
                     >
-                      <td className="py-4 px-6 align-middle">
-                        <p className="text-white font-bold text-xs font-mono mb-0.5 group-hover:text-[#E55F37] transition-colors">
+                      <td className="py-3.5 px-4 sm:px-5 align-middle">
+                        <p className="text-[#152131] font-bold text-[12.5px] font-mono mb-0.5 group-hover:text-[#E8532E] transition-colors">
                           {ticket.ticketId}
                         </p>
-                        <p className="text-[#89899C] text-[10px] font-medium flex items-center gap-1.5">
+                        <p className="text-[#8B9893] text-[11px] font-medium flex items-center gap-1">
                           <Clock size={10} /> {ticket.date}
                         </p>
                       </td>
-                      <td className="py-4 px-6 align-middle">
+                      <td className="py-3.5 px-4 sm:px-5 align-middle">
                         <FeedbackCategoryBadge category={ticket.category} />
                       </td>
-                      <td className="py-4 px-6 align-middle">
-                        <span className="text-xs font-bold text-slate-300 font-mono bg-[#21202E] px-2 py-1 rounded-lg border border-white/10">
+                      <td className="py-3.5 px-4 sm:px-5 align-middle">
+                        <span className="text-[11px] font-semibold text-[#152131] font-mono bg-[#EDF1EF] px-2 py-0.5 rounded-[5px] border border-[#DCE3DF]">
                           {ticket.userId || "N/A"}
                         </span>
                       </td>
 
-                      <td className="py-4 px-6 align-middle">
-                        <p className="text-slate-300 text-xs font-medium truncate max-w-[280px]">
-                          {(ticket.fullMessage || "").length > 50 ? `${ticket.fullMessage.substring(0, 50)}...` : (ticket.fullMessage || "No message provided")}
+                      <td className="py-3.5 px-4 sm:px-5 align-middle">
+                        <p className="text-[#5C6B66] text-[12.5px] font-medium truncate max-w-[320px]">
+                          {(ticket.fullMessage || "").length > 60 ? `${ticket.fullMessage.substring(0, 60)}…` : (ticket.fullMessage || "No message provided")}
                         </p>
                       </td>
-                      <td className="py-4 px-6 align-middle text-right">
+                      <td className="py-3.5 px-4 sm:px-5 align-middle text-right">
                         <div className="flex items-center justify-end">
                           {getStatusBadge(ticket.status)}
                         </div>
@@ -435,8 +469,8 @@ const Feedback = () => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="5" className="py-12 text-center text-slate-400 text-xs font-medium">
-                      No tickets found matching your filters.
+                    <td colSpan="5" className="py-12 text-center text-[#5C6B66] text-[13px] font-medium">
+                      No feedback tickets found matching your filter criteria.
                     </td>
                   </tr>
                 )}
@@ -446,36 +480,34 @@ const Feedback = () => {
 
           {/* Pagination Controls */}
           {totalPages > 1 && (
-            <div className="p-4 border-t border-white/10 bg-[#161616] flex items-center justify-between">
-              <span className="text-xs font-medium text-[#89899C]">
+            <div className="p-3.5 border-t border-[#DCE3DF] bg-[#FFFFFF] flex items-center justify-between">
+              <span className="text-[12px] font-medium text-[#5C6B66]">
                 Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredTickets.length)} of {filteredTickets.length} entries
               </span>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 <button
                   onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
-                  className="p-1.5 rounded-xl border border-white/10 bg-[#21202E] text-slate-300 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                  className="p-1.5 rounded-[6px] border border-[#DCE3DF] bg-[#EDF1EF] text-[#152131] hover:bg-[#DCE3DF] disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
                 >
-                  <ChevronLeft size={16} />
+                  <ChevronLeft size={15} />
                 </button>
-                <span className="text-xs font-bold text-white min-w-[32px] text-center">
+                <span className="text-[12px] font-bold text-[#152131] min-w-[32px] text-center">
                   {currentPage} / {totalPages}
                 </span>
                 <button
                   onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                   disabled={currentPage === totalPages}
-                  className="p-1.5 rounded-xl border border-white/10 bg-[#21202E] text-slate-300 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                  className="p-1.5 rounded-[6px] border border-[#DCE3DF] bg-[#EDF1EF] text-[#152131] hover:bg-[#DCE3DF] disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
                 >
-                  <ChevronRight size={16} />
+                  <ChevronRight size={15} />
                 </button>
               </div>
             </div>
           )}
         </div>
 
-        {/* ========================================= */}
-        {/* SLIDE-OUT DRAWER: Ticket Resolution View  */}
-        {/* ========================================= */}
+        {/* Modal: Ticket Resolution Workspace */}
         <TicketModal
           isOpen={isModalOpen}
           onClose={closeModal}
@@ -489,4 +521,3 @@ const Feedback = () => {
 };
 
 export default Feedback;
-

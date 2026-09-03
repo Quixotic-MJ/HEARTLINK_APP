@@ -1,16 +1,18 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   X,
   ShieldCheck,
   ShieldAlert,
   Activity,
-  PlaySquare,
   PlusCircle,
   Trash2,
   Archive,
   CheckCircle2,
   Save,
   Clock,
+  Image as ImageIcon,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -98,7 +100,7 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
   const expertValidated = watch("expertValidated");
   const mediaUrl = watch("mediaUrl");
   const status = watch("status");
-  const [isUploading, setIsUploading] = React.useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
     if (exercise) {
@@ -121,10 +123,15 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
             })
           : [{ value: "" }],
         guideImages: exercise.guideImages
-          ? exercise.guideImages.map(url => (typeof url === 'string' ? { url } : { url: url.url || "" }))
-          : (exercise.guide_images 
-              ? exercise.guide_images.map(url => (typeof url === 'string' ? { url } : { url: url.url || "" }))
-              : []),
+          ? exercise.guideImages.map(img => {
+              if (typeof img === 'string') {
+                return { url: img };
+              } else if (img && typeof img === 'object') {
+                return { url: img.url || "" };
+              }
+              return { url: "" };
+            })
+          : [],
       });
     } else {
       reset({
@@ -145,79 +152,78 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
     }
   }, [exercise, isOpen, reset]);
 
-  const handleSaveWithStatus = (newStatus) => {
-    setValue("status", newStatus, { shouldValidate: true, shouldDirty: true });
-  };
-
   const onSubmit = (data) => {
     if (onSave) {
-      const originalSteps = exercise?.steps || [];
-      const flatSteps = data.steps ? data.steps.map((s, index) => {
-        const originalStep = originalSteps[index];
-        if (originalStep && typeof originalStep === 'object') {
-          return {
-            ...originalStep,
-            instruction: s.value
-          };
-        }
-        return s.value;
-      }) : [];
-      const flatGuideImages = data.guideImages ? data.guideImages.map(gi => gi.url) : [];
-      onSave({ ...data, steps: flatSteps, guideImages: flatGuideImages });
+      const cleanSteps = (data.steps || [])
+        .map(s => (s.value || "").trim())
+        .filter(s => s.length > 0);
+
+      const cleanGuides = (data.guideImages || [])
+        .map(g => (g.url || "").trim())
+        .filter(g => g.length > 0);
+
+      onSave({
+        ...data,
+        steps: cleanSteps,
+        guideImages: cleanGuides,
+      });
     }
     onClose();
   };
 
-  useEffect(() => {
-    if (Object.keys(errors).length > 0) {
-      console.log("Validation Errors:", errors);
-    }
-  }, [errors]);
+  const handleSaveWithStatus = (newStatus) => {
+    setValue("status", newStatus);
+    handleSubmit((data) => {
+      onSubmit({ ...data, status: newStatus });
+    })();
+  };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6" style={{ fontFamily: "'Inter', sans-serif" }}>
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/70 backdrop-blur-sm transition-opacity"
+        className="absolute inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
         onClick={onClose}
-      ></div>
+      />
 
-      {/* Modal Panel */}
-      <form onSubmit={handleSubmit(onSubmit)} className="relative w-full max-w-2xl bg-[#1A1A1A] border border-white/10 text-white max-h-[90vh] rounded-2xl shadow-2xl flex flex-col animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
-        {/* Modal Header (Fixed) */}
-        <div className="flex items-center justify-between px-6 py-5 border-b border-white/10 bg-[#161616] shrink-0">
+      {/* Modal Dialog Panel */}
+      <div className="relative w-full max-w-2xl bg-[#FFFFFF] border border-[#DCE3DF] max-h-full rounded-2xl shadow-2xl flex flex-col animate-in fade-in zoom-in-95 duration-200 overflow-hidden text-[#152131]">
+        
+        {/* Modal Header */}
+        <div className="flex items-center justify-between px-6 py-4.5 border-b border-[#DCE3DF] bg-[#FFFFFF]">
           <div>
-            <span className="text-[9px] font-bold tracking-[0.15em] text-[#89899C] uppercase">
-              {exercise ? "Edit Exercise" : "Create Exercise"}
-            </span>
-            <h3 className="text-sm font-bold text-white mt-0.5">
-              {watch("name") || (exercise ? exercise.name : "New Exercise")}
+            <h3 
+              className="text-[18px] font-medium text-[#152131] tracking-tight"
+              style={{ fontFamily: "'Fraunces', serif" }}
+            >
+              {exercise ? "Edit exercise routine" : "Create new routine"}
             </h3>
-            <p className="text-[10px] text-[#89899C] font-medium mt-0.5 flex items-center gap-1.5">
-              <span className={`inline-block w-1.5 h-1.5 rounded-full ${status === "published" ? "bg-emerald-400" : status === "draft" ? "bg-amber-400" : "bg-slate-500"}`}></span>
+            <p className="text-[11px] font-semibold text-[#8B9893] uppercase tracking-wider mt-0.5 flex items-center gap-1.5">
               <span className="capitalize">{status}</span>
-              <span className="text-slate-600">•</span>
+              <span>•</span>
               <span>{watch("hssTarget")}</span>
             </p>
           </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-white/5 transition-colors cursor-pointer"
+            className="text-[#5C6B66] hover:text-[#152131] hover:bg-[#EDF1EF] p-1.5 rounded-lg transition-colors cursor-pointer"
+            aria-label="Close modal"
           >
             <X size={16} />
           </button>
         </div>
 
-        {/* Modal Scrollable Form Content */}
-        <div className="flex-1 overflow-y-auto px-6 py-6 custom-scrollbar space-y-7">
-          {/* Section 1: Basic Information */}
+        {/* Modal Scrollable Form */}
+        <form onSubmit={handleSubmit(onSubmit)} className="flex-1 overflow-y-auto px-6 py-5 space-y-6 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+          
+          {/* ── BASIC INFORMATION ── */}
           <div>
-            <h4 className="text-[10px] font-bold text-[#89899C] uppercase tracking-[0.2em] border-b border-white/10 pb-2 mb-4">
-              Basic Information
+            <h4 className="text-[11px] font-semibold text-[#8B9893] uppercase tracking-wider border-b border-[#DCE3DF] pb-2 mb-3.5">
+              Basic information
             </h4>
-            <div className="space-y-4">
+            <div className="space-y-3.5">
               <div>
                 <InputField
                   id="name"
@@ -229,51 +235,53 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-[#89899C] uppercase tracking-wider mb-1.5">
+                <label className="block text-[11px] font-semibold text-[#5C6B66] uppercase tracking-wider mb-1">
                   Description
                 </label>
                 <textarea
                   rows="2"
                   {...register("description")}
-                  className={`w-full px-3 py-2 text-xs bg-[#21202E]/60 border ${errors.description ? 'border-red-500' : 'border-white/10'} rounded-xl focus:outline-none focus:border-[#E55F37] text-white placeholder:text-slate-500 transition-colors resize-none`}
-                  placeholder="Short text summary of physical benefits..."
-                ></textarea>
-                {errors.description && <p className="text-[11px] text-red-400 mt-1">{errors.description.message}</p>}
+                  className={`w-full px-3 py-2 text-[12.5px] bg-[#EDF1EF] border ${
+                    errors.description ? 'border-[#A93226]' : 'border-[#DCE3DF] focus:border-[#152131]'
+                  } rounded-[8px] focus:outline-none text-[#152131] placeholder:text-[#8B9893] transition-colors resize-none`}
+                  placeholder="Short text summary of physical benefits…"
+                />
+                {errors.description && <p className="text-[11px] text-[#A93226] mt-1">{errors.description.message}</p>}
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
                 <div>
-                  <label className="block text-[11px] font-bold text-[#89899C] uppercase tracking-wider mb-1.5">
+                  <label className="block text-[11px] font-semibold text-[#5C6B66] uppercase tracking-wider mb-1">
                     Exercise Type
                   </label>
                   <select
                     {...register("type")}
-                    className="w-full px-3.5 py-2.5 text-xs font-semibold bg-[#21202E]/60 border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] text-white transition-colors cursor-pointer"
+                    className="w-full px-3 py-2 text-[13px] font-medium bg-[#EDF1EF] border border-[#DCE3DF] rounded-[8px] focus:outline-none focus:border-[#152131] text-[#152131] transition-colors cursor-pointer"
                   >
-                    <option value="Breathing" className="bg-[#161616]">Breathing</option>
-                    <option value="Light Cardio" className="bg-[#161616]">Light Cardio</option>
-                    <option value="Stationary" className="bg-[#161616]">Stationary</option>
-                    <option value="General" className="bg-[#161616]">General</option>
+                    <option value="Breathing">Breathing</option>
+                    <option value="Light Cardio">Light Cardio</option>
+                    <option value="Stationary">Stationary</option>
+                    <option value="General">General</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold text-[#89899C] uppercase tracking-wider mb-1.5">
+                  <label className="block text-[11px] font-semibold text-[#5C6B66] uppercase tracking-wider mb-1">
                     Intensity
                   </label>
                   <select
                     {...register("intensity")}
-                    className="w-full px-3.5 py-2.5 text-xs font-semibold bg-[#21202E]/60 border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] text-white transition-colors cursor-pointer"
+                    className="w-full px-3 py-2 text-[13px] font-medium bg-[#EDF1EF] border border-[#DCE3DF] rounded-[8px] focus:outline-none focus:border-[#152131] text-[#152131] transition-colors cursor-pointer"
                   >
-                    <option value="None" className="bg-[#161616]">None</option>
-                    <option value="Low" className="bg-[#161616]">Low</option>
-                    <option value="Medium" className="bg-[#161616]">Medium</option>
-                    <option value="High" className="bg-[#161616]">High</option>
+                    <option value="None">None</option>
+                    <option value="Low">Low</option>
+                    <option value="Medium">Medium</option>
+                    <option value="High">High</option>
                   </select>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
                 <div>
                   <InputField
                     id="duration"
@@ -287,72 +295,74 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold text-[#89899C] uppercase tracking-wider mb-1.5">
+                  <label className="block text-[11px] font-semibold text-[#5C6B66] uppercase tracking-wider mb-1">
                     Routine Goal
                   </label>
                   <input
                     type="text"
                     {...register("goal")}
-                    className="w-full px-3 py-2 text-xs bg-[#21202E]/60 border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] text-white placeholder:text-slate-500 transition-colors"
-                    placeholder="e.g. Builds gentle endurance..."
+                    className="w-full px-3 py-2 text-[12.5px] bg-[#EDF1EF] border border-[#DCE3DF] rounded-[8px] focus:outline-none focus:border-[#152131] text-[#152131] placeholder:text-[#8B9893] transition-colors"
+                    placeholder="e.g. Builds gentle aerobic endurance…"
                   />
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Section 2: Targeting */}
+          {/* ── TARGETING ── */}
           <div>
-            <h4 className="text-[10px] font-bold text-[#89899C] uppercase tracking-[0.2em] border-b border-white/10 pb-2 mb-4">
-              Targeting
+            <h4 className="text-[11px] font-semibold text-[#8B9893] uppercase tracking-wider border-b border-[#DCE3DF] pb-2 mb-3.5">
+              Clinical targeting
             </h4>
-            <div className="bg-[#21202E]/40 p-4 rounded-xl border border-white/10">
-              <label className="block text-xs font-bold text-white mb-0.5">
+            <div className="bg-[#EDF1EF]/60 p-3.5 rounded-[8px] border border-[#DCE3DF]">
+              <label className="block text-[12.5px] font-semibold text-[#152131] mb-0.5">
                 HSS Suitability
               </label>
-              <p className="text-[10px] text-[#89899C] mb-2.5 font-medium">
-                Determines which users may receive this exercise routine based on clinical status.
+              <p className="text-[11px] text-[#5C6B66] mb-2 font-medium">
+                Determines which patients receive this exercise routine based on clinical HSS status.
               </p>
               <select
                 {...register("hssTarget")}
-                className={`w-full px-3.5 py-2.5 text-xs font-semibold bg-[#1A1A1A] border ${errors.hssTarget ? 'border-red-500' : 'border-white/10 focus:border-[#E55F37]'} rounded-xl focus:outline-none text-white transition-colors cursor-pointer`}
+                className={`w-full px-3 py-2 text-[13px] font-medium bg-[#FFFFFF] border ${
+                  errors.hssTarget ? 'border-[#A93226]' : 'border-[#DCE3DF] focus:border-[#152131]'
+                } rounded-[8px] focus:outline-none text-[#152131] transition-colors cursor-pointer`}
               >
-                <option value="Stable (80-100)" className="bg-[#161616]">Stable (80-100)</option>
-                <option value="Moderate (60-79)" className="bg-[#161616]">Moderate (60-79)</option>
-                <option value="Elevated Risk (50-59)" className="bg-[#161616]">Elevated Risk (50-59)</option>
-                <option value="Critical (<50)" className="bg-[#161616]">Critical (&lt;50)</option>
+                <option value="Stable (80-100)">Stable (80-100)</option>
+                <option value="Moderate (60-79)">Moderate (60-79)</option>
+                <option value="Elevated Risk (50-59)">Elevated Risk (50-59)</option>
+                <option value="Critical (<50)">Critical &lt;50</option>
               </select>
             </div>
           </div>
 
-          {/* Section 3: Media */}
+          {/* ── MEDIA ── */}
           <div>
-            <h4 className="text-[10px] font-bold text-[#89899C] uppercase tracking-[0.2em] border-b border-white/10 pb-2 mb-4">
-              Media Assets
+            <h4 className="text-[11px] font-semibold text-[#8B9893] uppercase tracking-wider border-b border-[#DCE3DF] pb-2 mb-3.5">
+              Media assets
             </h4>
-            <div className="space-y-6">
+            <div className="space-y-4">
               {/* Thumbnail Image */}
               <div>
-                <label className="block text-[11px] font-bold text-[#89899C] uppercase tracking-wider mb-1.5">
+                <label className="block text-[11px] font-semibold text-[#5C6B66] uppercase tracking-wider mb-1">
                   Thumbnail Image
                 </label>
-                <div className="flex gap-2 mb-3">
+                <div className="flex gap-2 mb-2.5">
                   <div className="flex-1">
                     <input
                       {...register("mediaUrl")}
                       type="text"
-                      placeholder="Paste image URL..."
-                      className="w-full text-xs px-3 py-2 bg-[#21202E]/60 border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] text-white placeholder:text-slate-500"
+                      placeholder="Paste image URL…"
+                      className="w-full text-[12.5px] px-3 py-2 bg-[#EDF1EF] border border-[#DCE3DF] rounded-[8px] focus:outline-none focus:border-[#152131] text-[#152131] placeholder:text-[#8B9893]"
                     />
                   </div>
-                  <label className="px-4 py-2 bg-[#21202E] hover:bg-[#36272B] hover:text-[#E55F37] border border-white/10 text-slate-300 text-xs font-bold rounded-xl cursor-pointer transition-colors flex items-center justify-center">
+                  <label className="px-3.5 py-2 bg-[#EDF1EF] hover:bg-[#DCE3DF] border border-[#DCE3DF] text-[#152131] text-[12px] font-semibold rounded-[8px] cursor-pointer transition-colors flex items-center justify-center shrink-0">
                     Upload
                     <input
                       type="file"
                       accept="image/*"
                       disabled={isUploading}
                       onChange={async (e) => {
-                        const file = e.target.files[0];
+                        const file = e.target.files?.[0];
                         if (file) {
                           setIsUploading(true);
                           try {
@@ -360,7 +370,6 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
                             setValue("mediaUrl", data.url, { shouldValidate: true, shouldDirty: true });
                           } catch (err) {
                             console.error("Upload error:", err);
-                            alert("Failed to upload file: " + (err?.data?.detail || err?.message || "Upload failed"));
                           } finally {
                             setIsUploading(false);
                           }
@@ -370,10 +379,10 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
                     />
                   </label>
                 </div>
-                {isUploading && <p className="text-[10px] text-[#E55F37] font-semibold mb-2">Uploading asset...</p>}
+                {isUploading && <p className="text-[10.5px] text-[#E8532E] font-semibold mb-2">Uploading asset…</p>}
                 
                 {mediaUrl && !mediaUrl.includes("youtube.com") && !mediaUrl.includes("youtu.be") && (
-                  <div className="w-40 h-24 rounded-xl overflow-hidden border border-white/10 bg-[#21202E] flex items-center justify-center">
+                  <div className="w-36 h-20 rounded-[8px] overflow-hidden border border-[#DCE3DF] bg-[#EDF1EF] flex items-center justify-center">
                     {mediaUrl.startsWith("data:video") || mediaUrl.endsWith(".mp4") ? (
                       <video src={resolveMediaUrl(mediaUrl)} className="w-full h-full object-cover" muted />
                     ) : (
@@ -383,20 +392,20 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
                 )}
               </div>
 
-              {/* Instructional Video */}
+              {/* Instructional Video Link */}
               <div>
-                <label className="block text-[11px] font-bold text-[#89899C] uppercase tracking-wider mb-1.5">
+                <label className="block text-[11px] font-semibold text-[#5C6B66] uppercase tracking-wider mb-1">
                   Instructional Video Link
                 </label>
                 <input
                   {...register("videoUrl")}
                   type="text"
-                  placeholder="Paste YouTube video link..."
-                  className="w-full text-xs px-3 py-2 bg-[#21202E]/60 border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] text-white placeholder:text-slate-500 mb-3"
+                  placeholder="Paste YouTube video link…"
+                  className="w-full text-[12.5px] px-3 py-2 bg-[#EDF1EF] border border-[#DCE3DF] rounded-[8px] focus:outline-none focus:border-[#152131] text-[#152131] placeholder:text-[#8B9893] mb-2.5"
                 />
 
                 {watch("videoUrl") && (watch("videoUrl").includes("youtube.com") || watch("videoUrl").includes("youtu.be")) && (
-                  <div className="w-full max-w-md aspect-video rounded-xl overflow-hidden border border-white/10 bg-black">
+                  <div className="w-full max-w-md aspect-video rounded-[8px] overflow-hidden border border-[#DCE3DF] bg-black">
                     <iframe
                       width="100%"
                       height="100%"
@@ -405,41 +414,41 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
                       frameBorder="0"
                       allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                       allowFullScreen
-                    ></iframe>
+                    />
                   </div>
                 )}
               </div>
             </div>
           </div>
 
-          {/* Section 4: Guide Images */}
+          {/* ── GUIDE IMAGES ── */}
           <div>
-            <h4 className="text-[10px] font-bold text-[#89899C] uppercase tracking-[0.2em] border-b border-white/10 pb-2 mb-4">
-              Movement Guide Images
+            <h4 className="text-[11px] font-semibold text-[#8B9893] uppercase tracking-wider border-b border-[#DCE3DF] pb-2 mb-3.5">
+              Movement guide images
             </h4>
-            <div className="space-y-2.5 max-h-56 overflow-y-auto pr-1">
+            <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
               {guideImageFields.map((field, index) => (
-                <div key={field.id} className="flex items-center gap-3 border border-white/10 rounded-xl p-2.5 bg-[#21202E]/40">
-                  <div className="w-12 h-12 rounded-lg bg-[#161616] border border-white/10 overflow-hidden shrink-0 flex items-center justify-center relative">
+                <div key={field.id} className="flex items-center gap-2.5 border border-[#DCE3DF] rounded-[8px] p-2 bg-[#EDF1EF]/40">
+                  <div className="w-10 h-10 rounded-[6px] bg-[#FFFFFF] border border-[#DCE3DF] overflow-hidden shrink-0 flex items-center justify-center relative">
                     {watch(`guideImages.${index}.url`) ? (
                       <img src={resolveMediaUrl(watch(`guideImages.${index}.url`))} alt="Guide Preview" className="w-full h-full object-cover" />
                     ) : (
-                      <span className="text-[9px] text-slate-600 font-semibold">No Image</span>
+                      <span className="text-[9px] text-[#8B9893] font-semibold">No img</span>
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <input
                       {...register(`guideImages.${index}.url`)}
                       type="text"
-                      placeholder="Paste guide image URL..."
-                      className="w-full text-xs px-2.5 py-1.5 bg-[#1A1A1A] border border-white/10 rounded-lg focus:outline-none focus:border-[#E55F37] text-white placeholder:text-slate-500"
+                      placeholder="Paste guide image URL…"
+                      className="w-full text-[12px] px-2.5 py-1.5 bg-[#FFFFFF] border border-[#DCE3DF] rounded-[6px] focus:outline-none focus:border-[#152131] text-[#152131] placeholder:text-[#8B9893]"
                     />
                     <div className="relative mt-1">
                       <input
                         type="file"
                         accept="image/*"
                         onChange={async (e) => {
-                          const file = e.target.files[0];
+                          const file = e.target.files?.[0];
                           if (file) {
                             try {
                               const data = await apiUpload(file, "exercises");
@@ -454,7 +463,7 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
                             }
                           }
                         }}
-                        className="w-full text-[10px] text-slate-400 file:mr-2 file:py-0.5 file:px-2 file:rounded file:border-0 file:text-[9px] file:font-semibold file:bg-[#21202E] file:text-white hover:file:bg-[#36272B] hover:file:text-[#E55F37] cursor-pointer"
+                        className="w-full text-[10px] text-[#5C6B66] file:mr-2 file:py-0.5 file:px-2 file:rounded file:border file:border-[#DCE3DF] file:text-[9.5px] file:font-semibold file:bg-[#FFFFFF] file:text-[#152131] hover:file:border-[#E8532E] hover:file:text-[#E8532E] cursor-pointer"
                       />
                     </div>
                   </div>
@@ -470,10 +479,10 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
                         }
                       }}
                       disabled={index === 0}
-                      className="p-1.5 hover:bg-white/5 text-slate-400 hover:text-white disabled:opacity-30 rounded-lg transition-colors cursor-pointer"
+                      className="p-1 hover:bg-[#EDF1EF] text-[#5C6B66] hover:text-[#152131] disabled:opacity-30 rounded transition-colors cursor-pointer"
                       title="Move Up"
                     >
-                      ▲
+                      <ArrowUp size={13} />
                     </button>
                     <button
                       type="button"
@@ -486,15 +495,15 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
                         }
                       }}
                       disabled={index === guideImageFields.length - 1}
-                      className="p-1.5 hover:bg-white/5 text-slate-400 hover:text-white disabled:opacity-30 rounded-lg transition-colors cursor-pointer"
+                      className="p-1 hover:bg-[#EDF1EF] text-[#5C6B66] hover:text-[#152131] disabled:opacity-30 rounded transition-colors cursor-pointer"
                       title="Move Down"
                     >
-                      ▼
+                      <ArrowDown size={13} />
                     </button>
                     <button
                       type="button"
                       onClick={() => removeGuideImage(index)}
-                      className="p-1.5 hover:bg-red-500/10 text-slate-400 hover:text-red-400 rounded-lg transition-colors cursor-pointer"
+                      className="p-1 hover:bg-[#F7E4E1] text-[#5C6B66] hover:text-[#A93226] rounded transition-colors cursor-pointer"
                       title="Remove"
                     >
                       <Trash2 size={13} />
@@ -506,32 +515,34 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
             <button
               type="button"
               onClick={() => appendGuideImage({ url: "" })}
-              className="flex items-center gap-1.5 text-xs font-bold text-[#E55F37] hover:text-[#D4542E] transition-colors py-1.5 mt-2 cursor-pointer"
+              className="flex items-center gap-1.5 text-[12px] font-semibold text-[#E8532E] hover:text-[#C13E20] transition-colors py-1 mt-2 cursor-pointer"
             >
-              <PlusCircle size={14} /> Add Guide Image
+              <PlusCircle size={14} /> <span>Add guide image</span>
             </button>
           </div>
 
-          {/* Section 5: Instructions */}
+          {/* ── STEP-BY-STEP INSTRUCTIONS ── */}
           <div>
-            <h4 className="text-[10px] font-bold text-[#89899C] uppercase tracking-[0.2em] border-b border-white/10 pb-2 mb-4">
-              Step-by-Step Instructions
+            <h4 className="text-[11px] font-semibold text-[#8B9893] uppercase tracking-wider border-b border-[#DCE3DF] pb-2 mb-3.5">
+              Step-by-step instructions
             </h4>
-            <div className="space-y-3.5 max-h-80 overflow-y-auto pr-1">
+            <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
               {stepsFields.map((field, index) => (
-                <div key={field.id} className="flex items-start gap-3 w-full border border-white/10 rounded-xl p-3 bg-[#21202E]/40">
-                  <div className="mt-1 text-[10px] font-bold text-[#89899C] bg-[#161616] border border-white/10 w-5 h-5 flex items-center justify-center rounded-full shrink-0">
+                <div key={field.id} className="flex items-start gap-2.5 w-full border border-[#DCE3DF] rounded-[8px] p-2.5 bg-[#EDF1EF]/40">
+                  <div className="mt-1 text-[10px] font-bold text-[#8B9893] bg-[#FFFFFF] border border-[#DCE3DF] w-5 h-5 flex items-center justify-center rounded-full shrink-0">
                     {index + 1}
                   </div>
                   <div className="flex-1">
                     <textarea
                       rows="2"
                       {...register(`steps.${index}.value`)}
-                      className={`w-full px-3 py-2 text-xs bg-[#1A1A1A] border ${errors.steps?.[index]?.value ? 'border-red-500' : 'border-white/10 focus:border-[#E55F37]'} rounded-xl focus:outline-none text-white placeholder:text-slate-500 transition-colors resize-none leading-relaxed`}
-                      placeholder="Describe this instruction step..."
+                      className={`w-full px-3 py-2 text-[12.5px] bg-[#FFFFFF] border ${
+                        errors.steps?.[index]?.value ? 'border-[#A93226]' : 'border-[#DCE3DF] focus:border-[#152131]'
+                      } rounded-[6px] focus:outline-none text-[#152131] placeholder:text-[#8B9893] transition-colors resize-none leading-relaxed`}
+                      placeholder="Describe this instruction step…"
                     />
                     {errors.steps?.[index]?.value && (
-                      <span className="text-[10px] text-red-400 mt-1 block font-medium">
+                      <span className="text-[10px] text-[#A93226] mt-1 block font-medium">
                         {errors.steps[index].value.message}
                       </span>
                     )}
@@ -541,27 +552,27 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
                       type="button"
                       onClick={() => moveStepUp(index)}
                       disabled={index === 0}
-                      className="p-1.5 hover:bg-white/5 text-slate-400 hover:text-white disabled:opacity-30 rounded-lg transition-colors cursor-pointer"
+                      className="p-1 hover:bg-[#EDF1EF] text-[#5C6B66] hover:text-[#152131] disabled:opacity-30 rounded transition-colors cursor-pointer"
                       title="Move Step Up"
                     >
-                      ▲
+                      <ArrowUp size={13} />
                     </button>
                     <button
                       type="button"
                       onClick={() => moveStepDown(index)}
                       disabled={index === stepsFields.length - 1}
-                      className="p-1.5 hover:bg-white/5 text-slate-400 hover:text-white disabled:opacity-30 rounded-lg transition-colors cursor-pointer"
+                      className="p-1 hover:bg-[#EDF1EF] text-[#5C6B66] hover:text-[#152131] disabled:opacity-30 rounded transition-colors cursor-pointer"
                       title="Move Step Down"
                     >
-                      ▼
+                      <ArrowDown size={13} />
                     </button>
                     <button
                       type="button"
                       onClick={() => remove(index)}
-                      className="p-1.5 hover:bg-red-500/10 text-slate-400 hover:text-red-400 rounded-lg transition-colors cursor-pointer"
+                      className="p-1 hover:bg-[#F7E4E1] text-[#5C6B66] hover:text-[#A93226] rounded transition-colors cursor-pointer"
                       title="Delete Step"
                     >
-                      <Trash2 size={14} />
+                      <Trash2 size={13} />
                     </button>
                   </div>
                 </div>
@@ -570,144 +581,144 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
             <button
               type="button"
               onClick={() => append({ value: "" })}
-              className="flex items-center gap-1.5 text-xs font-bold text-[#E55F37] hover:text-[#D4542E] transition-colors mt-3 cursor-pointer"
+              className="flex items-center gap-1.5 text-[12px] font-semibold text-[#E8532E] hover:text-[#C13E20] transition-colors mt-2 cursor-pointer"
             >
-              <PlusCircle size={14} /> Add Step
+              <PlusCircle size={14} /> <span>Add step</span>
             </button>
           </div>
 
-          {/* Section 6: Validation Toggle */}
-          <div className="border-t border-white/10 pt-6">
+          {/* ── EXPERT VALIDATION ── */}
+          <div>
+            <h4 className="text-[11px] font-semibold text-[#8B9893] uppercase tracking-wider border-b border-[#DCE3DF] pb-2 mb-3">
+              Expert validation
+            </h4>
             <div
-              className={`p-4 rounded-xl border ${
+              onClick={() => setValue("expertValidated", !expertValidated, { shouldValidate: true, shouldDirty: true })}
+              className={`p-3.5 rounded-[8px] border cursor-pointer transition-colors ${
                 expertValidated
-                  ? "bg-emerald-500/10 border-emerald-500/20"
-                  : "bg-[#21202E]/40 border-white/10"
+                  ? "bg-[#E3EFEC] border-[#C5DFD8]"
+                  : "bg-[#EDF1EF]/60 border-[#DCE3DF] hover:border-[#8B9893]"
               }`}
             >
-              <div className="flex items-start justify-between gap-4">
+              <div className="flex items-start justify-between gap-3">
                 <div>
                   <h4
-                    className={`text-xs font-bold ${
-                      expertValidated ? "text-emerald-400" : "text-white"
-                    } flex items-center gap-2 mb-1`}
+                    className={`text-[12.5px] font-semibold ${
+                      expertValidated ? "text-[#1B6E63]" : "text-[#152131]"
+                    } flex items-center gap-1.5 mb-0.5`}
                   >
                     {expertValidated ? (
-                      <ShieldCheck size={14} className="text-emerald-400" />
+                      <ShieldCheck size={14} className="text-[#1B6E63]" />
                     ) : (
-                      <ShieldAlert size={14} className="text-amber-400" />
+                      <ShieldAlert size={14} className="text-[#A9741B]" />
                     )}
-                    Expert Reviewer Validation
+                    {expertValidated ? "Expert reviewed" : "Pending review"}
                   </h4>
-                  <p className="text-[10px] text-[#89899C] leading-relaxed">
+                  <p className="text-[11px] text-[#5C6B66] leading-relaxed select-none">
                     Reviewed or developed with input from a qualified cardiology or sports medicine expert.
                   </p>
                 </div>
-  
-                {/* Toggle Switch */}
-                <label className="relative inline-flex items-center cursor-pointer shrink-0 mt-1">
-                  <input
-                    type="checkbox"
-                    className="sr-only peer"
-                    disabled={userRole !== "medical"}
-                    {...register("expertValidated")}
-                  />
+
+                <div className="relative inline-flex items-center shrink-0 mt-0.5 pointer-events-none">
                   <div
-                    className={`w-9 h-5 bg-[#161616] border border-white/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all ${
-                      userRole !== "medical"
-                        ? "cursor-not-allowed opacity-50"
-                        : ""
-                    } peer-checked:bg-emerald-500`}
-                  ></div>
-                </label>
+                    className={`w-9 h-5 rounded-full transition-colors relative ${
+                      expertValidated ? "bg-[#1B6E63]" : "bg-[#DCE3DF]"
+                    }`}
+                  >
+                    <div
+                      className={`absolute top-[2px] left-[2px] bg-white rounded-full h-4 w-4 transition-transform ${
+                        expertValidated ? "translate-x-4" : "translate-x-0"
+                      }`}
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Sticky Footer / Actions */}
-        <div className="px-6 py-4 border-t border-white/10 bg-[#161616] flex justify-between items-center shrink-0 sticky bottom-0 z-10">
-          {/* Left Actions (Delete) */}
+        </form>
+
+        {/* Modal Footer / Actions */}
+        <div className="px-6 py-3.5 border-t border-[#DCE3DF] bg-[#FFFFFF] flex justify-between items-center shrink-0">
           <div>
             {exercise && onDelete && (
               <button
                 type="button"
                 onClick={() => {
-                  if (window.confirm("Are you sure you want to permanently delete this exercise routine?")) {
-                    onDelete(exercise.id);
-                    onClose();
-                  }
+                  onClose();
+                  onDelete(exercise);
                 }}
-                className="flex items-center gap-1.5 text-xs font-semibold text-red-400 hover:text-red-300 transition-colors cursor-pointer"
+                className="flex items-center gap-1.5 text-[12px] font-semibold text-[#A93226] hover:text-[#8A1F1A] transition-colors cursor-pointer"
               >
-                <Trash2 size={14} /> Delete Exercise
+                <Trash2 size={14} />
+                <span>Delete routine</span>
               </button>
             )}
           </div>
 
-          {/* Right Actions */}
-          <div className="flex gap-2.5">
+          <div className="flex gap-2">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-xs font-semibold text-slate-300 hover:text-white bg-[#21202E] border border-white/10 rounded-xl transition-colors cursor-pointer"
+              className="px-4 py-2 text-[12px] font-semibold text-[#152131] bg-[#EDF1EF] hover:bg-[#DCE3DF] border border-[#DCE3DF] rounded-[8px] transition-colors cursor-pointer"
             >
               Cancel
             </button>
 
-            {/* If Draft: Save Draft + Publish */}
             {status === "draft" && (
               <>
                 <button
-                  type="submit"
+                  type="button"
                   onClick={() => handleSaveWithStatus("draft")}
-                  className="px-4 py-2 text-xs font-semibold text-slate-300 hover:text-white bg-[#21202E] border border-white/10 rounded-xl transition-colors cursor-pointer"
+                  className="px-3.5 py-2 text-[12px] font-semibold text-[#152131] bg-[#EDF1EF] hover:bg-[#DCE3DF] border border-[#DCE3DF] rounded-[8px] transition-colors cursor-pointer"
                 >
-                  Save Draft
+                  Save draft
                 </button>
                 <button
-                  type="submit"
+                  type="button"
                   onClick={() => handleSaveWithStatus("published")}
-                  className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-colors cursor-pointer"
+                  className="flex items-center gap-1.5 px-4 py-2 text-[12px] font-semibold text-white bg-[#1B6E63] hover:bg-[#14534B] rounded-[8px] shadow-2xs transition-colors cursor-pointer"
                 >
-                  <CheckCircle2 size={14} /> Publish
+                  <CheckCircle2 size={14} />
+                  <span>Publish</span>
                 </button>
               </>
             )}
 
-            {/* If Published: Save Changes + Archive */}
             {status === "published" && (
               <>
                 <button
-                  type="submit"
+                  type="button"
                   onClick={() => handleSaveWithStatus("archived")}
-                  className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-amber-400 hover:text-amber-300 bg-amber-500/10 border border-amber-500/20 rounded-xl transition-colors cursor-pointer"
+                  className="flex items-center gap-1.5 px-3.5 py-2 text-[12px] font-semibold text-[#A9741B] bg-[#F6EDDD] hover:bg-[#ebd7b8] border border-[#ebd7b8] rounded-[8px] transition-colors cursor-pointer"
                 >
-                  <Archive size={14} /> Archive
+                  <Archive size={14} />
+                  <span>Archive</span>
                 </button>
                 <button
-                  type="submit"
+                  type="button"
                   onClick={() => handleSaveWithStatus("published")}
-                  className="flex items-center gap-1.5 px-5 py-2 text-xs font-bold text-white bg-[#E55F37] hover:bg-[#D4542E] rounded-xl shadow-sm shadow-[#E55F37]/25 transition-all cursor-pointer"
+                  className="flex items-center gap-1.5 px-4 py-2 text-[12px] font-semibold text-white bg-[#E8532E] hover:bg-[#C13E20] rounded-[8px] shadow-2xs transition-colors cursor-pointer"
                 >
-                  <Save size={14} /> Save Changes
+                  <Save size={14} />
+                  <span>Save changes</span>
                 </button>
               </>
             )}
 
-            {/* If Archived: Restore to Draft */}
             {status === "archived" && (
               <button
-                type="submit"
+                type="button"
                 onClick={() => handleSaveWithStatus("draft")}
-                className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors cursor-pointer"
+                className="flex items-center gap-1.5 px-4 py-2 text-[12px] font-semibold text-white bg-[#1B6E63] hover:bg-[#14534B] rounded-[8px] shadow-2xs transition-colors cursor-pointer"
               >
-                <CheckCircle2 size={14} /> Restore to Draft
+                <CheckCircle2 size={14} />
+                <span>Restore to draft</span>
               </button>
             )}
           </div>
         </div>
-      </form>
+      </div>
     </div>
   );
 };

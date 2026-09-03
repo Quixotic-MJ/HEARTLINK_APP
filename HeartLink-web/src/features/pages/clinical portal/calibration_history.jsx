@@ -1,21 +1,12 @@
 import React, { useState } from "react";
 import {
   Search,
-  Filter,
-  X,
   Download,
   History,
-  Star,
-  FileText,
-  ExternalLink,
-  Archive,
-  CheckCircle2,
-  Clock,
-  UserCircle,
   Activity,
-  Lock,
-  Sparkles,
   ChevronDown,
+  RotateCcw,
+  Sparkles,
 } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
 import AdminLayout from "../../../components/layouts/adminLayout";
@@ -23,11 +14,28 @@ import CalibrationModal from "../../../components/modals/CalibrationModal";
 import { Skeleton } from "../../../components/ui/Skeleton";
 import { apiFetch } from "../../../api";
 
+const CustomLightTooltip = ({ active, payload, label }) => {
+  if (active && payload && payload.length) {
+    return (
+      <div 
+        className="bg-[#FFFFFF] border border-[#DCE3DF] rounded-[8px] p-2.5 shadow-xl text-[12px] text-[#152131]"
+        style={{ fontFamily: "'Inter', sans-serif" }}
+      >
+        <p className="font-semibold text-[#152131] mb-1">{label}</p>
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-[#E8532E]" />
+          <span className="text-[#5C6B66]">Error Margin:</span>
+          <span className="font-bold text-[#152131]">{payload[0].value} pts</span>
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
+
 const Calibration = () => {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [isRetraining, setIsRetraining] = useState(false);
-  const [retrainMetrics, setRetrainMetrics] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState("all");
   const [selectedHash, setSelectedHash] = useState("all");
@@ -51,6 +59,7 @@ const Calibration = () => {
       if (data) setLogs(data);
     } catch (e) {
       console.error("Failed to fetch evaluations", e);
+      setLogs([]);
     } finally {
       setLoading(false);
     }
@@ -189,7 +198,7 @@ const Calibration = () => {
     if (log.status === "Archived") {
       return {
         label: "Archived",
-        style: "bg-white/5 text-slate-400 border-white/10",
+        style: "bg-[#EDF1EF] text-[#5C6B66] border border-[#DCE3DF]",
         tooltip: "Evaluation archived and excluded from dataset compilation.",
       };
     }
@@ -203,7 +212,7 @@ const Calibration = () => {
     if (isEligible) {
       return {
         label: "Eligible",
-        style: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+        style: "bg-[#E3EFEC] text-[#1B6E63] border border-[#C5DFD8]",
         tooltip: "Evaluation is fully eligible for calibration analysis.",
       };
     }
@@ -212,14 +221,14 @@ const Calibration = () => {
     if (missingSnapshot) {
       return {
         label: "Incomplete",
-        style: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+        style: "bg-[#F6EDDD] text-[#A9741B] border border-[#EBD7B8]",
         tooltip: "Evaluation is incomplete: missing model features snapshot.",
       };
     }
     
     return {
       label: "Excluded",
-      style: "bg-rose-500/10 text-rose-400 border-rose-500/20",
+      style: "bg-[#F7E4E1] text-[#A93226] border border-[#F0C4B8]",
       tooltip: "Evaluation excluded: missing required expert scores or predictions.",
     };
   };
@@ -239,360 +248,408 @@ const Calibration = () => {
       };
     });
 
+  const hasActiveFilters = Boolean(searchQuery) || filterType !== "all" || selectedReason !== "all" || selectedHash !== "all";
+
   return (
     <AdminLayout>
-      {/* Page Header */}
-      <div className="flex flex-col md:flex-row md:justify-between md:items-end mb-6 gap-4">
-        <div>
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-[#E55F37]/30 bg-[#E55F37]/10 text-[10px] font-bold uppercase tracking-widest text-[#E55F37] mb-2">
-            <History size={11} />
-            <span>Clinical Portal</span>
+      <div 
+        className="max-w-[1180px] mx-auto text-[#152131] selection:bg-[#E8532E] selection:text-white"
+        style={{ fontFamily: "'Inter', sans-serif" }}
+      >
+        {/* ── PAGE HEAD ── */}
+        <div className="flex flex-wrap gap-4 justify-between items-end mb-6">
+          <div>
+            <span className="block text-[12px] text-[#8B9893] font-medium mb-1 flex items-center gap-1.5">
+              <History size={13} className="text-[#E8532E]" /> Clinical portal
+            </span>
+            <h1 
+              className="text-[26px] font-medium tracking-tight text-[#152131] m-0"
+              style={{ fontFamily: "'Fraunces', serif" }}
+            >
+              Model calibration history
+            </h1>
+            <p className="text-[13px] text-[#5C6B66] mt-1.5 max-w-[55ch] leading-[1.5]">
+              Monitor ground-truth clinical evaluations, algorithm accuracy margins, and offline training datasets.
+            </p>
           </div>
-          <h2 className="text-2xl lg:text-3xl font-bold text-white tracking-tight leading-tight">
-            Model Calibration History
-          </h2>
-          <p className="text-[#89899C] text-xs mt-1 font-medium">
-            Monitor ground-truth clinical evaluations, algorithm accuracy margins, and offline training datasets.
-          </p>
-        </div>
 
-        {/* Feature: Export Dataset Button */}
-        <div className="flex flex-col sm:flex-row gap-3 items-end">
           <button
             onClick={handleExportDataset}
             disabled={isExporting}
-            className="flex items-center gap-2 bg-[#E55F37] hover:bg-[#D4542E] text-white px-4 py-2.5 rounded-xl text-xs font-bold shadow-sm shadow-[#E55F37]/25 disabled:opacity-50 transition-all cursor-pointer"
+            className="flex items-center gap-2 bg-[#E8532E] hover:bg-[#C13E20] text-white px-4 py-2.5 rounded-[8px] text-[13px] font-semibold shadow-2xs disabled:opacity-50 transition-colors cursor-pointer"
           >
-            <Download size={14} />
-            <span>{isExporting ? "Compiling..." : "Generate Calibration Dataset"}</span>
+            <Download size={14} strokeWidth={2.5} />
+            <span>{isExporting ? "Compiling…" : "Generate calibration dataset"}</span>
           </button>
         </div>
-      </div>
 
-      {/* Calibration Summary Statistics */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-[#1A1A1A] p-4 rounded-2xl border border-white/10">
-          <span className="text-[9px] font-bold text-[#89899C] uppercase tracking-widest block mb-1">Eligible Evaluations</span>
-          <div className="text-2xl font-extrabold text-white">{eligibleCount}</div>
-          <span className="text-[10px] text-[#89899C] font-medium block mt-0.5">Active calibration samples</span>
-        </div>
-        <div className="bg-[#1A1A1A] p-4 rounded-2xl border border-white/10">
-          <span className="text-[9px] font-bold text-[#89899C] uppercase tracking-widest block mb-1">Average Absolute Error</span>
-          <div className="text-2xl font-extrabold text-white">{averageError} <span className="text-xs font-normal text-slate-400">pts</span></div>
-          <span className="text-[10px] text-[#89899C] font-medium block mt-0.5">Mean expert vs ML delta</span>
-        </div>
-        <div className="bg-[#1A1A1A] p-4 rounded-2xl border border-white/10">
-          <span className="text-[9px] font-bold text-[#89899C] uppercase tracking-widest block mb-1">Tier Agreement</span>
-          <div className="text-2xl font-extrabold text-emerald-400">{tierAgreementRate}%</div>
-          <span className="text-[10px] text-[#89899C] font-medium block mt-0.5">Category matching rate</span>
-        </div>
-        <div className="bg-[#1A1A1A] p-4 rounded-2xl border border-white/10">
-          <span className="text-[9px] font-bold text-[#89899C] uppercase tracking-widest block mb-1">High-Error Cases</span>
-          <div className="text-2xl font-extrabold text-red-400">{highErrorCount}</div>
-          <span className="text-[10px] text-[#89899C] font-medium block mt-0.5">Error ≥ 10 points</span>
-        </div>
-      </div>
-
-      {/* Model Accuracy Trend Dashboard */}
-      {chartData.length > 0 && (
-        <div className="bg-[#1A1A1A] rounded-2xl border border-white/10 p-6 mb-6 flex flex-col md:flex-row gap-6">
-          <div className="w-full md:w-1/3 space-y-4 border-b md:border-b-0 md:border-r border-white/10 pb-4 md:pb-0 md:pr-6">
-            <div>
-              <p className="text-[10px] font-bold text-[#89899C] uppercase tracking-widest mb-1">MODEL ACCURACY TREND</p>
-              <h3 className="text-base font-bold text-white">Absolute Error Margin</h3>
-              <p className="text-xs text-[#89899C] mt-1.5 leading-relaxed font-medium">
-                Tracks the absolute difference between ML-predicted HSS and expert ground-truth HSS over time.
-              </p>
+        {/* ── METRIC STAT CARDS ── */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5 mb-6">
+          <div className="bg-[#FFFFFF] p-4 rounded-[10px] border border-[#DCE3DF] shadow-2xs">
+            <span className="text-[10px] font-semibold text-[#8B9893] uppercase tracking-wider block mb-1">Eligible evaluations</span>
+            <div 
+              className="text-[26px] font-medium text-[#152131] leading-tight"
+              style={{ fontFamily: "'Fraunces', serif" }}
+            >
+              {eligibleCount}
             </div>
-            <div className="bg-emerald-500/10 border border-emerald-500/20 p-3.5 rounded-xl">
-              <p className="text-xs font-bold text-emerald-400 flex items-center gap-1.5"><Activity size={14}/> Accuracy Objective</p>
-              <p className="text-[11px] text-emerald-300/90 mt-1 leading-relaxed">As more expert evaluations are applied, the error margin trends toward zero.</p>
-            </div>
+            <span className="text-[11px] text-[#5C6B66] font-medium block mt-1">Active calibration samples</span>
+          </div>
 
-            {/* Production Model Details */}
-            <div className="bg-[#161616] border border-white/10 p-3.5 rounded-xl space-y-1.5 text-xs">
-              <span className="text-[9px] font-bold text-[#89899C] uppercase tracking-widest block mb-1">Production Model</span>
-              <div className="flex justify-between text-slate-300 font-medium">
-                <span className="text-[#89899C]">Identifier:</span>
-                <code className="text-[#E55F37] font-mono text-[11px]">heartlink_model.pkl</code>
+          <div className="bg-[#FFFFFF] p-4 rounded-[10px] border border-[#DCE3DF] shadow-2xs">
+            <span className="text-[10px] font-semibold text-[#8B9893] uppercase tracking-wider block mb-1">Average absolute error</span>
+            <div 
+              className="text-[26px] font-medium text-[#152131] leading-tight"
+              style={{ fontFamily: "'Fraunces', serif" }}
+            >
+              {averageError} <span className="text-[13px] font-normal text-[#5C6B66]">pts</span>
+            </div>
+            <span className="text-[11px] text-[#5C6B66] font-medium block mt-1">Mean expert vs ML delta</span>
+          </div>
+
+          <div className="bg-[#FFFFFF] p-4 rounded-[10px] border border-[#DCE3DF] shadow-2xs">
+            <span className="text-[10px] font-semibold text-[#8B9893] uppercase tracking-wider block mb-1">Tier agreement</span>
+            <div 
+              className="text-[26px] font-medium text-[#1B6E63] leading-tight"
+              style={{ fontFamily: "'Fraunces', serif" }}
+            >
+              {tierAgreementRate}%
+            </div>
+            <span className="text-[11px] text-[#5C6B66] font-medium block mt-1">Category matching rate</span>
+          </div>
+
+          <div className="bg-[#FFFFFF] p-4 rounded-[10px] border border-[#DCE3DF] shadow-2xs">
+            <span className="text-[10px] font-semibold text-[#8B9893] uppercase tracking-wider block mb-1">High-error cases</span>
+            <div 
+              className="text-[26px] font-medium text-[#A93226] leading-tight"
+              style={{ fontFamily: "'Fraunces', serif" }}
+            >
+              {highErrorCount}
+            </div>
+            <span className="text-[11px] text-[#5C6B66] font-medium block mt-1">Error ≥ 10 points</span>
+          </div>
+        </div>
+
+        {/* ── ACCURACY TREND DASHBOARD ── */}
+        {chartData.length > 0 && (
+          <div className="bg-[#FFFFFF] rounded-[10px] border border-[#DCE3DF] p-5 mb-6 shadow-2xs flex flex-col md:flex-row gap-6">
+            <div className="w-full md:w-1/3 space-y-3.5 border-b md:border-b-0 md:border-r border-[#DCE3DF] pb-4 md:pb-0 md:pr-6">
+              <div>
+                <p className="text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-wider mb-1">Model accuracy trend</p>
+                <h3 
+                  className="text-[18px] font-medium text-[#152131]"
+                  style={{ fontFamily: "'Fraunces', serif" }}
+                >
+                  Absolute error margin
+                </h3>
+                <p className="text-[12px] text-[#5C6B66] mt-1 leading-relaxed">
+                  Tracks the absolute difference between ML-predicted HSS and expert ground-truth HSS over time.
+                </p>
               </div>
-              <div className="flex justify-between text-slate-300 font-medium">
-                <span className="text-[#89899C]">Pipeline:</span>
-                <code className="text-white font-mono text-[11px]">v1.0 (offline)</code>
+
+              <div className="bg-[#E3EFEC] border border-[#C5DFD8] p-3.5 rounded-[8px]">
+                <p className="text-[12px] font-semibold text-[#1B6E63] flex items-center gap-1.5">
+                  <Activity size={14} /> Accuracy objective
+                </p>
+                <p className="text-[11px] text-[#1B6E63]/90 mt-0.5 leading-relaxed font-medium">
+                  As more expert evaluations are applied, the model error margin trends toward zero.
+                </p>
               </div>
+
+              {/* Production Model Details */}
+              <div className="bg-[#EDF1EF] border border-[#DCE3DF] p-3 rounded-[8px] space-y-1 text-[11.5px]">
+                <span className="text-[9.5px] font-semibold text-[#8B9893] uppercase tracking-wider block mb-0.5">Production Model</span>
+                <div className="flex justify-between text-[#152131] font-medium">
+                  <span className="text-[#5C6B66]">Identifier:</span>
+                  <code className="text-[#E8532E] font-mono text-[11px]">heartlink_model.pkl</code>
+                </div>
+                <div className="flex justify-between text-[#152131] font-medium">
+                  <span className="text-[#5C6B66]">Pipeline:</span>
+                  <code className="text-[#152131] font-mono text-[11px]">v1.0 (offline)</code>
+                </div>
+              </div>
+            </div>
+            
+            <div className="w-full md:w-2/3 h-56 relative pt-2">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#DCE3DF" />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: "#8B9893" }} dy={8} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: "#8B9893" }} />
+                  <Tooltip content={<CustomLightTooltip />} />
+                  <ReferenceLine y={0} stroke="#DCE3DF" />
+                  <Line 
+                    type="monotone" 
+                    dataKey="error" 
+                    name="Error Margin"
+                    stroke="#E8532E" 
+                    strokeWidth={2.5}
+                    dot={{ r: 3.5, strokeWidth: 1.5, fill: "#FFFFFF", stroke: "#E8532E" }} 
+                    activeDot={{ r: 5.5, fill: "#E8532E", stroke: "#FFFFFF", strokeWidth: 2 }}
+                    animationDuration={1000}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
             </div>
           </div>
+        )}
+
+        {/* ── MAIN CARD: REFERENCE LOG TABLE ── */}
+        <div className="bg-[#FFFFFF] rounded-[10px] border border-[#DCE3DF] shadow-2xs overflow-hidden">
           
-          <div className="w-full md:w-2/3 h-56 relative">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.06)" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: "#89899C" }} dy={10} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: "#89899C" }} />
-                <Tooltip 
-                  contentStyle={{
-                    backgroundColor: "#161616",
-                    borderColor: "rgba(255,255,255,0.1)",
-                    borderRadius: "12px",
-                    color: "#fff",
-                    fontSize: "12px",
-                    boxShadow: "0 10px 25px -5px rgba(0,0,0,0.5)",
-                  }}
-                  labelStyle={{ fontWeight: "bold", color: "#fff", marginBottom: "4px" }}
+          {/* Search & Filter Bar */}
+          <div className="p-4 border-b border-[#DCE3DF] bg-[#FFFFFF] space-y-3">
+            <div className="flex flex-col sm:flex-row gap-3">
+              {/* Search Box */}
+              <div className="relative flex-1">
+                <Search
+                  size={14}
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8B9893]"
                 />
-                <ReferenceLine y={0} stroke="rgba(255,255,255,0.1)" />
-                <Line 
-                  type="monotone" 
-                  dataKey="error" 
-                  name="Error Margin"
-                  stroke="#E55F37" 
-                  strokeWidth={2.5}
-                  dot={{ r: 4, strokeWidth: 2, fill: "#161616", stroke: "#E55F37" }} 
-                  activeDot={{ r: 6, fill: "#E55F37", stroke: "#fff", strokeWidth: 2 }}
-                  animationDuration={1200}
+                <input
+                  type="text"
+                  placeholder="Search by Feedback ID or Case ID…"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-3.5 py-2 text-[13px] border border-[#DCE3DF] rounded-[8px] focus:outline-none focus:border-[#152131] transition-colors bg-[#EDF1EF] text-[#152131] placeholder:text-[#8B9893]"
                 />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      )}
-
-      {/* Main View: Reference Log Data Table */}
-      <div className="bg-[#1A1A1A] rounded-2xl border border-white/10 flex flex-col overflow-hidden">
-        {/* Search & Filter Bar */}
-        <div className="p-4 border-b border-white/10 bg-[#161616]">
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1">
-              <Search
-                size={14}
-                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500"
-              />
-              <input
-                type="text"
-                placeholder="Search by Feedback ID or Case ID..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-3.5 py-2 text-xs border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] transition-all bg-[#1A1A1A] text-white placeholder:text-slate-500"
-              />
-            </div>
-            <div className="flex flex-wrap gap-2.5">
-              <div className="relative">
-                <select
-                  value={filterType}
-                  onChange={(e) => setFilterType(e.target.value)}
-                  className="pl-3 pr-8 py-2 text-xs font-semibold text-white bg-[#1A1A1A] border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] appearance-none cursor-pointer hover:border-white/20 transition-colors"
-                >
-                  <option value="all" className="bg-[#161616]">All Statuses</option>
-                  <option value="eligible" className="bg-[#161616]">Active / Eligible</option>
-                  <option value="archived" className="bg-[#161616]">Archived</option>
-                  <option value="disagreement" className="bg-[#161616]">Tier Disagreement</option>
-                  <option value="high_error" className="bg-[#161616]">High Error (≥10)</option>
-                  <option value="conf_high" className="bg-[#161616]">Confidence: High</option>
-                  <option value="conf_medium" className="bg-[#161616]">Confidence: Medium</option>
-                  <option value="conf_low" className="bg-[#161616]">Confidence: Low</option>
-                </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5">
-                  <ChevronDown size={12} className="text-slate-400" />
-                </div>
               </div>
 
-              {/* Adjustment Reason Filter */}
-              <div className="relative">
-                <select
-                  value={selectedReason}
-                  onChange={(e) => setSelectedReason(e.target.value)}
-                  className="pl-3 pr-8 py-2 text-xs font-semibold text-white bg-[#1A1A1A] border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] appearance-none cursor-pointer hover:border-white/20 transition-colors max-w-[200px] truncate"
-                >
-                  <option value="all" className="bg-[#161616]">All Adjustment Reasons</option>
-                  {reasonKeys.map((r) => (
-                    <option key={r.key} value={r.key} className="bg-[#161616]">{r.label} ({getReasonCount(r.key)})</option>
-                  ))}
-                </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5">
-                  <ChevronDown size={12} className="text-slate-400" />
-                </div>
-              </div>
-
-              {uniqueHashes.length > 0 && (
+              {/* Filters Row */}
+              <div className="flex flex-wrap gap-2 items-center">
+                {/* Status */}
                 <div className="relative">
                   <select
-                    value={selectedHash}
-                    onChange={(e) => setSelectedHash(e.target.value)}
-                    className="pl-3 pr-8 py-2 text-xs font-semibold text-white bg-[#1A1A1A] border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] appearance-none cursor-pointer hover:border-white/20 transition-colors max-w-[150px] truncate"
+                    value={filterType}
+                    onChange={(e) => setFilterType(e.target.value)}
+                    className="pl-3 pr-7 py-1.5 text-[12px] font-semibold text-[#152131] bg-[#FFFFFF] border border-[#DCE3DF] rounded-[8px] focus:outline-none focus:border-[#152131] appearance-none cursor-pointer hover:border-[#8B9893] transition-colors"
                   >
-                    <option value="all" className="bg-[#161616]">All Models</option>
-                    {uniqueHashes.map((h) => (
-                      <option key={h} value={h} className="bg-[#161616]">Hash: {h.substring(0, 8)}...</option>
-                    ))}
+                    <option value="all">All Statuses</option>
+                    <option value="eligible">Active / Eligible</option>
+                    <option value="archived">Archived</option>
+                    <option value="disagreement">Tier Disagreement</option>
+                    <option value="high_error">High Error (≥10)</option>
+                    <option value="conf_high">Confidence: High</option>
+                    <option value="conf_medium">Confidence: Medium</option>
+                    <option value="conf_low">Confidence: Low</option>
                   </select>
-                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5">
-                    <ChevronDown size={12} className="text-slate-400" />
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
+                    <ChevronDown size={12} className="text-[#8B9893]" />
                   </div>
                 </div>
-              )}
 
-              {/* Clear Filters */}
-              {(searchQuery || filterType !== "all" || selectedReason !== "all" || selectedHash !== "all") && (
-                <button
-                  onClick={clearFilters}
-                  className="text-[10px] text-red-400 hover:text-red-300 font-bold px-3 py-1.5 rounded-xl border border-red-500/20 bg-red-500/10 hover:bg-red-500/20 transition-colors shrink-0 flex items-center gap-1 cursor-pointer"
-                >
-                  Clear Filters
-                </button>
-              )}
+                {/* Adjustment Reason Filter */}
+                <div className="relative">
+                  <select
+                    value={selectedReason}
+                    onChange={(e) => setSelectedReason(e.target.value)}
+                    className="pl-3 pr-7 py-1.5 text-[12px] font-semibold text-[#152131] bg-[#FFFFFF] border border-[#DCE3DF] rounded-[8px] focus:outline-none focus:border-[#152131] appearance-none cursor-pointer hover:border-[#8B9893] transition-colors max-w-[200px] truncate"
+                  >
+                    <option value="all">All Adjustment Reasons</option>
+                    {reasonKeys.map((r) => (
+                      <option key={r.key} value={r.key}>{r.label} ({getReasonCount(r.key)})</option>
+                    ))}
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
+                    <ChevronDown size={12} className="text-[#8B9893]" />
+                  </div>
+                </div>
+
+                {uniqueHashes.length > 0 && (
+                  <div className="relative">
+                    <select
+                      value={selectedHash}
+                      onChange={(e) => setSelectedHash(e.target.value)}
+                      className="pl-3 pr-7 py-1.5 text-[12px] font-semibold text-[#152131] bg-[#FFFFFF] border border-[#DCE3DF] rounded-[8px] focus:outline-none focus:border-[#152131] appearance-none cursor-pointer hover:border-[#8B9893] transition-colors max-w-[150px] truncate"
+                    >
+                      <option value="all">All Models</option>
+                      {uniqueHashes.map((h) => (
+                        <option key={h} value={h}>Hash: {h.substring(0, 8)}…</option>
+                      ))}
+                    </select>
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
+                      <ChevronDown size={12} className="text-[#8B9893]" />
+                    </div>
+                  </div>
+                )}
+
+                {/* Clear Filters */}
+                {hasActiveFilters && (
+                  <button
+                    onClick={clearFilters}
+                    className="text-[11px] text-[#A93226] font-semibold px-3 py-1.5 rounded-[8px] border border-[#F0C4B8] bg-[#F7E4E1] hover:bg-[#F0C4B8] transition-colors shrink-0 flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <RotateCcw size={12} />
+                    <span>Clear filters</span>
+                  </button>
+                )}
+              </div>
             </div>
+          </div>
+
+          {/* Calibration List Table */}
+          <div className="w-full overflow-x-auto">
+            <table className="w-full text-left border-collapse min-w-[950px]">
+              <thead>
+                <tr className="border-b border-[#DCE3DF] bg-[#EDF1EF]/40">
+                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-[0.1em]">
+                    Evaluation ID
+                  </th>
+                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-[0.1em]">
+                    Case
+                  </th>
+                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-[0.1em]">
+                    Model HSS
+                  </th>
+                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-[0.1em]">
+                    Expert HSS
+                  </th>
+                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-[0.1em]">
+                    Error
+                  </th>
+                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-[0.1em]">
+                    Tier agreement
+                  </th>
+                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-[0.1em]">
+                    Confidence
+                  </th>
+                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-[0.1em]">
+                    Model version
+                  </th>
+                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-[0.1em]">
+                    Date
+                  </th>
+                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-[0.1em] text-right">
+                    Action
+                  </th>
+                </tr>
+              </thead>
+
+              {loading ? (
+                <tbody>
+                  {[1, 2, 3, 4, 5].map((item) => (
+                    <tr key={item} className="border-b border-[#DCE3DF]/60">
+                      <td className="py-3.5 px-5"><Skeleton className="w-24 h-4 bg-[#DCE3DF]/70 rounded" /></td>
+                      <td className="py-3.5 px-5"><Skeleton className="w-16 h-4 bg-[#DCE3DF]/70 rounded" /></td>
+                      <td className="py-3.5 px-5"><Skeleton className="w-8 h-4 bg-[#DCE3DF]/70 rounded" /></td>
+                      <td className="py-3.5 px-5"><Skeleton className="w-8 h-4 bg-[#DCE3DF]/70 rounded" /></td>
+                      <td className="py-3.5 px-5"><Skeleton className="w-12 h-4 bg-[#DCE3DF]/70 rounded" /></td>
+                      <td className="py-3.5 px-5"><Skeleton className="w-12 h-4 bg-[#DCE3DF]/70 rounded" /></td>
+                      <td className="py-3.5 px-5"><Skeleton className="w-16 h-4 bg-[#DCE3DF]/70 rounded" /></td>
+                      <td className="py-3.5 px-5"><Skeleton className="w-16 h-4 bg-[#DCE3DF]/70 rounded" /></td>
+                      <td className="py-3.5 px-5"><Skeleton className="w-12 h-4 bg-[#DCE3DF]/70 rounded" /></td>
+                      <td className="py-3.5 px-5 text-right"><Skeleton className="w-16 h-7 ml-auto bg-[#DCE3DF]/70 rounded-[6px]" /></td>
+                    </tr>
+                  ))}
+                </tbody>
+              ) : filteredLogs.length === 0 ? (
+                <tbody>
+                  <tr>
+                    <td colSpan="10" className="p-12 text-center text-[#5C6B66] text-[13px]">
+                      <div className="flex flex-col items-center justify-center gap-2">
+                        <p className="font-medium text-[#5C6B66]">
+                          {logs.length === 0 ? "No calibration logs recorded yet." : "No evaluations match your filters."}
+                        </p>
+                        {logs.length > 0 && (
+                          <button
+                            onClick={clearFilters}
+                            className="mt-1 px-3.5 py-1.5 text-[12px] font-semibold text-white bg-[#E8532E] hover:bg-[#C13E20] rounded-[8px] transition-colors cursor-pointer"
+                          >
+                            Clear filters
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              ) : (
+                <tbody className="divide-y divide-[#DCE3DF]">
+                  {filteredLogs.map((log) => (
+                    <tr
+                      key={log.id}
+                      className={`hover:bg-[#EDF1EF]/60 transition-colors group cursor-pointer ${log.status === "Archived" ? "opacity-60 bg-[#EDF1EF]/30" : ""}`}
+                      onClick={() => openModal(log)}
+                    >
+                      <td className="py-3.5 px-4 sm:px-5 align-middle">
+                        <p className="text-[#152131] font-bold text-[12.5px] font-mono mb-0.5">
+                          {log.id}
+                        </p>
+                        {(() => {
+                          const statusInfo = getCalibrationStatus(log);
+                          return (
+                            <span 
+                              className={`inline-flex items-center px-2 py-0.5 rounded-[4px] text-[8.5px] font-bold uppercase tracking-wider ${statusInfo.style}`}
+                              title={statusInfo.tooltip}
+                            >
+                              {statusInfo.label}
+                            </span>
+                          );
+                        })()}
+                      </td>
+
+                      <td className="py-3.5 px-4 sm:px-5 align-middle">
+                        <span className="text-[#152131] font-semibold text-[11px] font-mono bg-[#EDF1EF] border border-[#DCE3DF] px-2 py-0.5 rounded-[5px]">
+                          {log.case_id}
+                        </span>
+                      </td>
+
+                      <td className="py-3.5 px-4 sm:px-5 align-middle text-[12.5px] font-bold text-[#152131]">
+                        {log.ml_predicted_hss ?? "--"}
+                      </td>
+
+                      <td className="py-3.5 px-4 sm:px-5 align-middle text-[12.5px] font-bold text-[#1B6E63]">
+                        {log.expert_hss_score}
+                      </td>
+
+                      <td className="py-3.5 px-4 sm:px-5 align-middle text-[12px] font-semibold text-[#5C6B66]">
+                        {log.absolute_error != null ? `${log.absolute_error} pts` : "--"}
+                      </td>
+
+                      <td className="py-3.5 px-4 sm:px-5 align-middle text-[12px] font-semibold">
+                        {log.tier_agreement ? (
+                          <span className="text-[#1B6E63] font-bold">Yes</span>
+                        ) : (
+                          <span className="text-[#A93226] font-bold">No</span>
+                        )}
+                      </td>
+
+                      <td className="py-3.5 px-4 sm:px-5 align-middle text-[12px]">
+                        <span className="capitalize text-[#5C6B66] font-medium">{log.reviewer_confidence || "Not recorded"}</span>
+                      </td>
+
+                      <td className="py-3.5 px-4 sm:px-5 align-middle text-[11.5px] font-mono text-[#8B9893] max-w-[100px] truncate" title={log.model_metadata?.model_hash}>
+                        {log.model_metadata?.model_hash ? `${log.model_metadata.model_hash.substring(0, 8)}…` : "--"}
+                      </td>
+
+                      <td className="py-3.5 px-4 sm:px-5 align-middle text-[11.5px] text-[#8B9893] font-medium">
+                        {new Date(log.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                      </td>
+
+                      <td className="py-3.5 px-4 sm:px-5 align-middle text-right" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); openModal(log); }}
+                          className="text-[12px] font-semibold px-2.5 py-1 rounded-[6px] border border-[#DCE3DF] bg-[#EDF1EF] text-[#152131] hover:bg-[#DCE3DF] transition-colors cursor-pointer"
+                        >
+                          View Details
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              )}
+            </table>
           </div>
         </div>
 
-        {/* Calibration List Table */}
-        <div className="w-full overflow-x-auto">
-          <table className="w-full text-left border-collapse min-w-[1000px] table-auto">
-            <thead>
-              <tr className="border-b border-white/10">
-                <th className="py-3 px-5 text-[10px] font-bold text-[#89899C] uppercase tracking-[0.15em]">
-                  Evaluation
-                </th>
-                <th className="py-3 px-5 text-[10px] font-bold text-[#89899C] uppercase tracking-[0.15em]">
-                  Case
-                </th>
-                <th className="py-3 px-5 text-[10px] font-bold text-[#89899C] uppercase tracking-[0.15em]">
-                  Model HSS
-                </th>
-                <th className="py-3 px-5 text-[10px] font-bold text-[#89899C] uppercase tracking-[0.15em]">
-                  Expert HSS
-                </th>
-                <th className="py-3 px-5 text-[10px] font-bold text-[#89899C] uppercase tracking-[0.15em]">
-                  Error
-                </th>
-                <th className="py-3 px-5 text-[10px] font-bold text-[#89899C] uppercase tracking-[0.15em]">
-                  Tier Agreement
-                </th>
-                <th className="py-3 px-5 text-[10px] font-bold text-[#89899C] uppercase tracking-[0.15em]">
-                  Confidence
-                </th>
-                <th className="py-3 px-5 text-[10px] font-bold text-[#89899C] uppercase tracking-[0.15em]">
-                  Model Version
-                </th>
-                <th className="py-3 px-5 text-[10px] font-bold text-[#89899C] uppercase tracking-[0.15em]">
-                  Date
-                </th>
-                <th className="py-3 px-5 text-[10px] font-bold text-[#89899C] uppercase tracking-[0.15em] text-right">
-                  Action
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5">
-              {loading ? (
-                [1, 2, 3, 4, 5].map((item) => (
-                  <tr key={item} className="border-t border-white/5">
-                    <td className="py-4 px-5"><Skeleton className="w-24 h-4 bg-white/10" /></td>
-                    <td className="py-4 px-5"><Skeleton className="w-16 h-4 bg-white/10" /></td>
-                    <td className="py-4 px-5"><Skeleton className="w-8 h-4 bg-white/10" /></td>
-                    <td className="py-4 px-5"><Skeleton className="w-8 h-4 bg-white/10" /></td>
-                    <td className="py-4 px-5"><Skeleton className="w-12 h-4 bg-white/10" /></td>
-                    <td className="py-4 px-5"><Skeleton className="w-12 h-4 bg-white/10" /></td>
-                    <td className="py-4 px-5"><Skeleton className="w-16 h-4 bg-white/10" /></td>
-                    <td className="py-4 px-5"><Skeleton className="w-16 h-4 bg-white/10" /></td>
-                    <td className="py-4 px-5"><Skeleton className="w-12 h-4 bg-white/10" /></td>
-                    <td className="py-4 px-5 text-right"><Skeleton className="w-16 h-7 ml-auto bg-white/10 rounded-xl" /></td>
-                  </tr>
-                ))
-              ) : filteredLogs.length === 0 ? (
-                <tr>
-                  <td colSpan="10" className="p-12 text-center text-slate-400 text-xs">
-                    <div className="flex flex-col items-center justify-center gap-2">
-                      <p className="font-medium text-slate-400">
-                        {logs.length === 0 ? "No calibration logs recorded yet." : "No evaluations match your filters."}
-                      </p>
-                      {logs.length > 0 && (
-                        <button
-                          onClick={clearFilters}
-                          className="mt-2 px-4 py-2 text-xs font-semibold text-white bg-[#E55F37] hover:bg-[#D4542E] rounded-xl transition-all cursor-pointer"
-                        >
-                          Clear Filters
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                filteredLogs.map((log) => (
-                  <tr
-                    key={log.id}
-                    className={`hover:bg-white/5 transition-colors group cursor-pointer ${log.status === "Archived" ? "opacity-50" : ""}`}
-                    onClick={() => openModal(log)}
-                  >
-                    <td className="py-4 px-5 align-middle">
-                      <p className="text-white font-bold text-xs font-mono mb-1">
-                        {log.id}
-                      </p>
-                      {(() => {
-                        const statusInfo = getCalibrationStatus(log);
-                        return (
-                          <span 
-                            className={`inline-flex items-center px-2 py-0.5 rounded-md text-[8px] font-bold uppercase tracking-wider border ${statusInfo.style}`}
-                            title={statusInfo.tooltip}
-                          >
-                            {statusInfo.label}
-                          </span>
-                        );
-                      })()}
-                    </td>
-                    <td className="py-4 px-5 align-middle">
-                      <span className="text-slate-300 font-bold text-[10px] font-mono bg-[#21202E] border border-white/10 px-2 py-1 rounded-lg">
-                        {log.case_id}
-                      </span>
-                    </td>
-                    <td className="py-4 px-5 align-middle text-xs font-bold text-white">
-                      {log.ml_predicted_hss ?? "--"}
-                    </td>
-                    <td className="py-4 px-5 align-middle text-xs font-bold text-emerald-400">
-                      {log.expert_hss_score}
-                    </td>
-                    <td className="py-4 px-5 align-middle text-xs font-semibold text-slate-300">
-                      {log.absolute_error != null ? `${log.absolute_error} pts` : "--"}
-                    </td>
-                    <td className="py-4 px-5 align-middle text-xs font-semibold">
-                      {log.tier_agreement ? (
-                        <span className="text-emerald-400 font-bold">Yes</span>
-                      ) : (
-                        <span className="text-rose-400 font-bold">No</span>
-                      )}
-                    </td>
-                    <td className="py-4 px-5 align-middle text-xs">
-                      <span className="capitalize text-slate-300 font-medium">{log.reviewer_confidence || "Not recorded"}</span>
-                    </td>
-                    <td className="py-4 px-5 align-middle text-xs font-mono text-[#89899C] max-w-[100px] truncate" title={log.model_metadata?.model_hash}>
-                      {log.model_metadata?.model_hash ? `${log.model_metadata.model_hash.substring(0, 8)}...` : "--"}
-                    </td>
-                    <td className="py-4 px-5 align-middle text-xs text-[#89899C] font-medium">
-                      {new Date(log.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
-                    </td>
-                    <td className="py-4 px-5 align-middle text-right" onClick={(e) => e.stopPropagation()}>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); openModal(log); }}
-                        className="text-xs font-semibold px-3.5 py-1.5 rounded-xl border border-white/10 bg-[#21202E] text-slate-300 hover:text-white hover:border-white/20 transition-colors cursor-pointer"
-                      >
-                        View Details
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+        <CalibrationModal
+          isOpen={isModalOpen}
+          onClose={closeModal}
+          activeLog={activeLog}
+          onArchive={handleArchive}
+        />
       </div>
-
-      <CalibrationModal
-        isOpen={isModalOpen}
-        onClose={closeModal}
-        activeLog={activeLog}
-        onArchive={handleArchive}
-      />
     </AdminLayout>
   );
 };
 
 export default Calibration;
-

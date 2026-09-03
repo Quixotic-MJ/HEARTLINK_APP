@@ -11,22 +11,22 @@ import {
   Archive,
   Save,
   Activity,
-  PlaySquare,
-  PlusCircle,
   Trash2,
   Clock,
   Edit2,
   MoreVertical,
   Play,
   Image,
-  Sparkles,
   ChevronDown,
+  RotateCcw,
 } from "lucide-react";
 import AdminLayout from "../../../components/layouts/adminLayout";
 import ExerciseFormModal from "../../../components/modals/ExerciseFormModal";
+import ConfirmActionModal from "../../../components/modals/ConfirmActionModal";
 import { Skeleton } from "../../../components/ui/Skeleton";
 import { apiFetch, BASE_URL } from "../../../api";
 import { useAuth } from "../../../contexts/AuthContext";
+import { toast } from "sonner";
 
 const resolveMediaUrl = (url) => {
   if (!url) return "";
@@ -50,6 +50,25 @@ const Exercises = () => {
   const [error, setError] = useState(null);
 
   const [activeMenuId, setActiveMenuId] = useState(null);
+
+  // Animated Confirmation Modal State
+  const [confirmConfig, setConfirmConfig] = useState({
+    isOpen: false,
+    title: "",
+    subtitle: "",
+    description: "",
+    confirmText: "Confirm",
+    cancelText: "Cancel",
+    variant: "danger",
+    icon: null,
+    entityInfo: null,
+    impactDetails: [],
+    onConfirm: null,
+  });
+
+  const closeConfirmModal = () => {
+    setConfirmConfig((prev) => ({ ...prev, isOpen: false }));
+  };
 
   const toggleMenu = (e, id) => {
     e.stopPropagation();
@@ -101,6 +120,7 @@ const Exercises = () => {
     } catch (err) {
       console.error("Failed to fetch exercises", err);
       setError("Unable to load exercises.");
+      setExercises([]);
     } finally {
       setLoading(false);
     }
@@ -117,7 +137,6 @@ const Exercises = () => {
   const { user } = useAuth();
   const userRole = user?.role;
 
-  // Open Modal for Create or Edit
   const openModal = (exercise = null) => {
     setEditingExercise(exercise || null);
     setIsModalOpen(true);
@@ -151,23 +170,92 @@ const Exercises = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
+
+      toast.success(newStatus === "published" ? "Routine Published" : "Routine Updated", {
+        description: `"${exercise.name}" status updated to ${newStatus}.`,
+      });
       fetchExercises();
     } catch (err) {
       console.error("Failed to update status", err);
+      toast.error("Failed to Update Status", {
+        description: err?.data?.detail || "Could not change status.",
+      });
     }
   };
 
-  const handleDeleteExercise = async (exercise) => {
-    if (window.confirm(`Are you sure you want to permanently delete "${exercise.name}"?`)) {
-      try {
-        await apiFetch(`/api/exercises/${exercise.id}`, {
-          method: "DELETE",
-        });
-        fetchExercises();
-      } catch (err) {
-        console.error("Failed to delete exercise", err);
-      }
-    }
+  const requestArchiveExercise = (exercise) => {
+    if (!exercise) return;
+    setConfirmConfig({
+      isOpen: true,
+      title: "Archive Exercise Routine?",
+      subtitle: "Hide from Mobile Patients",
+      description: `Archive "${exercise.name}"? This routine will be hidden from mobile patient recommendations while remaining accessible in your admin library.`,
+      confirmText: "Archive Routine",
+      cancelText: "Cancel",
+      variant: "warning",
+      icon: Archive,
+      entityInfo: {
+        name: exercise.name,
+        badge: "Published -> Archived",
+        email: `${exercise.type} • ${exercise.hssTarget}`,
+        id: exercise.id,
+      },
+      impactDetails: [
+        "Hidden from patient search results and recommended workout regimens.",
+        "Can be restored back to Draft status at any time.",
+      ],
+      onConfirm: async () => {
+        try {
+          await handleUpdateStatus(exercise, "archived");
+          toast.success("Routine Archived", {
+            description: `"${exercise.name}" was moved to archive.`,
+          });
+        } catch (err) {
+          console.error("Failed to archive exercise", err);
+        }
+      },
+    });
+  };
+
+  const requestDeleteExercise = (exercise) => {
+    if (!exercise) return;
+    setConfirmConfig({
+      isOpen: true,
+      title: "Delete Routine Permanently?",
+      subtitle: "Permanent Database Action",
+      description: `Permanently delete "${exercise.name}"? This action cannot be undone and will remove all movement guides, video links, and instructions.`,
+      confirmText: "Delete Permanently",
+      cancelText: "Cancel",
+      variant: "danger",
+      icon: Trash2,
+      entityInfo: {
+        name: exercise.name,
+        badge: exercise.status?.toUpperCase() || "EXERCISE",
+        email: `${exercise.type} • ${exercise.hssTarget}`,
+        id: exercise.id,
+      },
+      impactDetails: [
+        "Permanently removed from the exercise library database.",
+        "Historical patient workout logs will retain activity summary only.",
+      ],
+      onConfirm: async () => {
+        try {
+          await apiFetch(`/api/exercises/${exercise.id}`, { method: "DELETE" });
+          toast.success("Routine Deleted", {
+            description: `"${exercise.name}" was permanently removed.`,
+          });
+          if (editingExercise?.id === exercise.id) {
+            closeModal();
+          }
+          fetchExercises();
+        } catch (err) {
+          console.error("Failed to delete exercise", err);
+          toast.error("Failed to Delete Routine", {
+            description: err?.data?.detail || "Could not delete routine.",
+          });
+        }
+      },
+    });
   };
 
   const clearFilters = () => {
@@ -179,534 +267,575 @@ const Exercises = () => {
     setFilterReview("all");
   };
 
-  // Filter Logic
-  const filteredExercises = exercises.filter((e) => {
-    const query = searchQuery.toLowerCase().trim();
-    const matchesSearch = !query || 
-      (e.name || "").toLowerCase().includes(query) ||
-      (e.description || "").toLowerCase().includes(query) ||
-      (e.type || "").toLowerCase().includes(query) ||
-      (e.goal || "").toLowerCase().includes(query);
+  // Filter logic
+  const filteredExercises = exercises.filter((r) => {
+    const q = searchQuery.toLowerCase().trim();
+    const matchesSearch =
+      !q ||
+      r.name.toLowerCase().includes(q) ||
+      (r.description && r.description.toLowerCase().includes(q)) ||
+      (r.goal && r.goal.toLowerCase().includes(q));
 
-    const matchesStatus = filterStatus === "all" || e.status === filterStatus;
-    const matchesHss = filterHss === "all" || e.hssTarget === filterHss;
-    const matchesType = filterType === "all" || e.type === filterType;
-    const matchesIntensity = filterIntensity === "all" || e.intensity === filterIntensity;
-    const matchesReview = filterReview === "all" || 
-      (filterReview === "validated" && e.expertValidated) ||
-      (filterReview === "pending" && !e.expertValidated);
+    const matchesStatus = filterStatus === "all" || r.status === filterStatus;
+    const matchesHss = filterHss === "all" || r.hssTarget === filterHss;
+    const matchesType = filterType === "all" || r.type === filterType;
+    const matchesIntensity = filterIntensity === "all" || r.intensity === filterIntensity;
+
+    let matchesReview = true;
+    if (filterReview === "validated") {
+      matchesReview = r.expertValidated === true;
+    } else if (filterReview === "pending") {
+      matchesReview = r.expertValidated === false;
+    }
 
     return matchesSearch && matchesStatus && matchesHss && matchesType && matchesIntensity && matchesReview;
   });
 
-  // Badge Color Helper
-  const getHssBadgeColor = (target) => {
+  // HSS Badge Styling
+  const getHssBadgeStyle = (target) => {
     if (target.includes("Stable"))
-      return "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
+      return "bg-[#E3EFEC] text-[#1B6E63] border border-[#C5DFD8]";
     if (target.includes("Moderate"))
-      return "bg-amber-500/10 text-amber-400 border border-amber-500/20";
-    if (target.includes("Elevated Risk"))
-      return "bg-[#E55F37]/10 text-[#E55F37] border border-[#E55F37]/20";
-    return "bg-red-500/10 text-red-400 border border-red-500/20";
+      return "bg-[#F6EDDD] text-[#A9741B] border border-[#EBD7B8]";
+    if (target.includes("Elevated"))
+      return "bg-[#FBEAE6] text-[#E8532E] border border-[#F5C7BD]";
+    return "bg-[#F7E4E1] text-[#A93226] border border-[#F0C4B8]";
   };
+
+  const hasActiveFilters =
+    Boolean(searchQuery) ||
+    filterStatus !== "all" ||
+    filterHss !== "all" ||
+    filterType !== "all" ||
+    filterIntensity !== "all" ||
+    filterReview !== "all";
 
   return (
     <AdminLayout>
-      {/* Page Header */}
-      <div className="flex flex-col md:flex-row md:justify-between md:items-end mb-6 gap-4">
-        <div>
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-[#E55F37]/30 bg-[#E55F37]/10 text-[10px] font-bold uppercase tracking-widest text-[#E55F37] mb-2">
-            <Sparkles size={11} />
-            <span>Content Library</span>
+      <div 
+        className="max-w-[1180px] mx-auto text-[#152131] selection:bg-[#E8532E] selection:text-white"
+        style={{ fontFamily: "'Inter', sans-serif" }}
+      >
+        {/* ── PAGE HEAD ── */}
+        <div className="flex flex-wrap gap-4 justify-between items-end mb-6">
+          <div>
+            <span className="block text-[12px] text-[#8B9893] font-medium mb-1">
+              Content library
+            </span>
+            <h1 
+              className="text-[26px] font-medium tracking-tight text-[#152131] m-0"
+              style={{ fontFamily: "'Fraunces', serif" }}
+            >
+              Exercise library
+            </h1>
+            <p className="text-[13px] text-[#5C6B66] mt-1.5 max-w-[50ch] leading-[1.5]">
+              Manage workout regimens, movement guides, and clinical HSS targets.
+            </p>
           </div>
-          <h2 className="text-2xl lg:text-3xl font-bold text-white tracking-tight leading-tight">
-            Exercise Management
-          </h2>
-          <p className="text-[#89899C] text-xs mt-1 font-medium">
-            Manage cardiovascular routines, guided movement sets, and clinical HSS targets.
-          </p>
-        </div>
-        <button
-          onClick={() => openModal()}
-          className="flex items-center gap-2 text-white font-semibold text-xs px-4 py-2.5 rounded-xl bg-[#E55F37] hover:bg-[#D4542E] shadow-sm shadow-[#E55F37]/25 transition-all cursor-pointer"
-        >
-          <Plus size={15} strokeWidth={2.5} />
-          <span>Create New Exercise</span>
-        </button>
-      </div>
 
-      {error && (
-        <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center justify-between">
-          <p className="text-xs font-semibold text-red-400">{error}</p>
-          <button 
-            onClick={fetchExercises}
-            className="text-xs font-bold text-white bg-red-500 hover:bg-red-600 px-3.5 py-1.5 rounded-xl transition-colors cursor-pointer"
+          <button
+            onClick={() => openModal()}
+            className="flex items-center gap-2 text-white font-semibold text-[13px] px-4 py-2.5 rounded-[8px] bg-[#E8532E] hover:bg-[#C13E20] shadow-2xs transition-colors cursor-pointer"
           >
-            Retry
+            <Plus size={15} strokeWidth={2.5} />
+            <span>Create new routine</span>
           </button>
         </div>
-      )}
 
-      {/* Main View: Data Table Container */}
-      <div className="bg-[#1A1A1A] rounded-2xl border border-white/10 flex flex-col overflow-hidden">
-        {/* Search & Filter Toolbar */}
-        <div className="p-4 border-b border-white/10 bg-[#161616] space-y-3">
-          <div className="flex flex-col md:flex-row gap-3">
-            {/* Search */}
-            <div className="relative flex-1">
-              <Search
-                size={14}
-                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500"
-              />
-              <input
-                type="text"
-                placeholder="Search exercises, goals, or descriptions..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-3.5 py-2 text-xs border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] transition-all bg-[#1A1A1A] text-white placeholder:text-slate-500"
-              />
-            </div>
-
-            {/* Clear Filters */}
-            {(searchQuery || filterStatus !== "all" || filterHss !== "all" || filterType !== "all" || filterIntensity !== "all" || filterReview !== "all") && (
-              <button
-                onClick={clearFilters}
-                className="text-[10px] text-red-400 hover:text-red-300 font-bold px-3 py-1.5 rounded-xl border border-red-500/20 bg-red-500/10 hover:bg-red-500/20 transition-colors shrink-0 flex items-center gap-1 self-start md:self-auto cursor-pointer"
-              >
-                Clear Filters
-              </button>
-            )}
-          </div>
-
-          {/* Horizontally aligned filters */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:flex md:flex-wrap gap-2 pt-1">
-            {/* Status */}
-            <div className="relative">
-              <select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                className="w-full md:w-auto pl-3 pr-8 py-1.5 text-xs font-semibold text-white bg-[#1A1A1A] border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] appearance-none cursor-pointer hover:border-white/20 transition-colors"
-              >
-                <option value="all" className="bg-[#161616]">Status: All</option>
-                <option value="draft" className="bg-[#161616]">Draft</option>
-                <option value="published" className="bg-[#161616]">Published</option>
-                <option value="archived" className="bg-[#161616]">Archived</option>
-              </select>
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5">
-                <ChevronDown size={12} className="text-slate-400" />
+        {/* ── MAIN CARD: SEARCH, FILTER & TABLE ── */}
+        <div className="bg-[#FFFFFF] border border-[#DCE3DF] rounded-[10px] shadow-2xs overflow-hidden">
+          
+          {/* Search & Filter Toolbar */}
+          <div className="p-4 border-b border-[#DCE3DF] bg-[#FFFFFF] space-y-3">
+            <div className="flex flex-col md:flex-row gap-3">
+              {/* Search Box */}
+              <div className="relative flex-1">
+                <Search
+                  size={14}
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8B9893]"
+                />
+                <input
+                  type="text"
+                  placeholder="Search exercises, goals, or descriptions…"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-3.5 py-2 text-[13px] border border-[#DCE3DF] rounded-[8px] focus:outline-none focus:border-[#152131] transition-colors bg-[#EDF1EF] text-[#152131] placeholder:text-[#8B9893]"
+                />
               </div>
-            </div>
 
-            {/* HSS */}
-            <div className="relative">
-              <select
-                value={filterHss}
-                onChange={(e) => setFilterHss(e.target.value)}
-                className="w-full md:w-auto pl-3 pr-8 py-1.5 text-xs font-semibold text-white bg-[#1A1A1A] border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] appearance-none cursor-pointer hover:border-white/20 transition-colors"
-              >
-                <option value="all" className="bg-[#161616]">HSS: All</option>
-                <option value="Stable (80-100)" className="bg-[#161616]">Stable (80-100)</option>
-                <option value="Moderate (60-79)" className="bg-[#161616]">Moderate (60-79)</option>
-                <option value="Elevated Risk (50-59)" className="bg-[#161616]">Elevated Risk (50-59)</option>
-                <option value="Critical (<50)" className="bg-[#161616]">Critical (&lt;50)</option>
-              </select>
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5">
-                <ChevronDown size={12} className="text-slate-400" />
-              </div>
-            </div>
-
-            {/* Type */}
-            <div className="relative">
-              <select
-                value={filterType}
-                onChange={(e) => setFilterType(e.target.value)}
-                className="w-full md:w-auto pl-3 pr-8 py-1.5 text-xs font-semibold text-white bg-[#1A1A1A] border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] appearance-none cursor-pointer hover:border-white/20 transition-colors"
-              >
-                <option value="all" className="bg-[#161616]">Type: All</option>
-                <option value="Breathing" className="bg-[#161616]">Breathing</option>
-                <option value="Light Cardio" className="bg-[#161616]">Light Cardio</option>
-                <option value="Stationary" className="bg-[#161616]">Stationary</option>
-                <option value="General" className="bg-[#161616]">General</option>
-              </select>
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5">
-                <ChevronDown size={12} className="text-slate-400" />
-              </div>
-            </div>
-
-            {/* Intensity */}
-            <div className="relative">
-              <select
-                value={filterIntensity}
-                onChange={(e) => setFilterIntensity(e.target.value)}
-                className="w-full md:w-auto pl-3 pr-8 py-1.5 text-xs font-semibold text-white bg-[#1A1A1A] border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] appearance-none cursor-pointer hover:border-white/20 transition-colors"
-              >
-                <option value="all" className="bg-[#161616]">Intensity: All</option>
-                <option value="None" className="bg-[#161616]">None</option>
-                <option value="Low" className="bg-[#161616]">Low</option>
-                <option value="Medium" className="bg-[#161616]">Medium</option>
-                <option value="High" className="bg-[#161616]">High</option>
-              </select>
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5">
-                <ChevronDown size={12} className="text-slate-400" />
-              </div>
-            </div>
-
-            {/* Review */}
-            <div className="relative">
-              <select
-                value={filterReview}
-                onChange={(e) => setFilterReview(e.target.value)}
-                className="w-full md:w-auto pl-3 pr-8 py-1.5 text-xs font-semibold text-white bg-[#1A1A1A] border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] appearance-none cursor-pointer hover:border-white/20 transition-colors"
-              >
-                <option value="all" className="bg-[#161616]">Review: All</option>
-                <option value="validated" className="bg-[#161616]">Expert Reviewed</option>
-                <option value="pending" className="bg-[#161616]">Pending Review</option>
-              </select>
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5">
-                <ChevronDown size={12} className="text-slate-400" />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Exercise List Table */}
-        <div className="w-full overflow-x-auto">
-          <table className="w-full text-left border-collapse min-w-[900px] table-auto">
-            <thead>
-              <tr className="border-b border-white/10">
-                <th className="py-3 px-5 text-[10px] font-bold text-[#89899C] uppercase tracking-[0.15em] w-[35%]">
-                  Exercise
-                </th>
-                <th className="py-3 px-5 text-[10px] font-bold text-[#89899C] uppercase tracking-[0.15em] w-[18%]">
-                  Type / Intensity
-                </th>
-                <th className="py-3 px-5 text-[10px] font-bold text-[#89899C] uppercase tracking-[0.15em] w-[15%]">
-                  HSS Target
-                </th>
-                <th className="py-3 px-5 text-[10px] font-bold text-[#89899C] uppercase tracking-[0.15em] w-[10%]">
-                  Duration
-                </th>
-                <th className="py-3 px-5 text-[10px] font-bold text-[#89899C] uppercase tracking-[0.15em] w-[10%]">
-                  Media
-                </th>
-                <th className="py-3 px-5 text-[10px] font-bold text-[#89899C] uppercase tracking-[0.15em] w-[12%]">
-                  Status / Review
-                </th>
-                <th className="py-3 px-5 text-[10px] font-bold text-[#89899C] uppercase tracking-[0.15em] text-right w-16">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            {loading ? (
-              <tbody>
-                {[1, 2, 3, 4, 5].map((item) => (
-                  <tr key={item} className="border-t border-white/5">
-                    <td className="py-4 px-5">
-                      <div className="flex items-center gap-3">
-                        <Skeleton className="w-10 h-10 rounded-xl shrink-0 bg-white/10" />
-                        <div>
-                          <Skeleton className="w-32 h-4 mb-1 bg-white/10" />
-                          <Skeleton className="w-48 h-3 bg-white/10" />
-                        </div>
-                      </div>
-                    </td>
-                    <td className="py-4 px-5">
-                      <Skeleton className="w-20 h-3 mb-1 bg-white/10" />
-                      <Skeleton className="w-16 h-3 bg-white/10" />
-                    </td>
-                    <td className="py-4 px-5">
-                      <Skeleton className="w-24 h-5 rounded-full bg-white/10" />
-                    </td>
-                    <td className="py-4 px-5">
-                      <Skeleton className="w-12 h-4 bg-white/10" />
-                    </td>
-                    <td className="py-4 px-5">
-                      <div className="flex gap-2">
-                        <Skeleton className="w-12 h-3 bg-white/10" />
-                      </div>
-                    </td>
-                    <td className="py-4 px-5">
-                      <Skeleton className="w-16 h-3 mb-1 bg-white/10" />
-                      <Skeleton className="w-20 h-3 bg-white/10" />
-                    </td>
-                    <td className="py-4 px-5">
-                      <div className="flex justify-end">
-                        <Skeleton className="w-6 h-6 rounded-md bg-white/10" />
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            ) : (
-              <tbody className="divide-y divide-white/5">
-                {filteredExercises.map((exercise, index) => {
-                  const badgeClass = getHssBadgeColor(exercise.hssTarget);
-                  return (
-                    <tr
-                      key={exercise.id}
-                      className={`hover:bg-white/5 transition-colors group cursor-pointer ${exercise.status === "archived" ? "opacity-50" : ""}`}
-                      onClick={() => openModal(exercise)}
-                    >
-                      {/* 1. EXERCISE */}
-                      <td className="py-4 px-5 align-middle">
-                        <div className="flex items-center gap-3">
-                          <div
-                            className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors overflow-hidden bg-[#36272B] border border-[#E55F37]/30 text-[#E55F37] shadow-sm"
-                          >
-                            {(() => {
-                              const resolvedUrl = resolveMediaUrl(exercise.mediaUrl);
-                              if (!resolvedUrl) return <Dumbbell size={18} className="text-[#E55F37]" />;
-                              
-                              const ytMatch = resolvedUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?]+)/);
-                              if (ytMatch && ytMatch[1]) {
-                                return <img src={`https://img.youtube.com/vi/${ytMatch[1]}/hqdefault.jpg`} alt={exercise.name} className="w-full h-full object-cover" />;
-                              }
-                              
-                              if (resolvedUrl.startsWith("data:video") || resolvedUrl.endsWith(".mp4")) {
-                                return <video src={resolvedUrl} className="w-full h-full object-cover" muted loop autoPlay playsInline />;
-                              }
-                              
-                              return <img src={resolvedUrl} alt={exercise.name} className="w-full h-full object-cover" />;
-                            })()}
-                          </div>
-                          <div>
-                            <p className="text-white font-semibold text-xs mb-0.5">
-                              {exercise.name}
-                            </p>
-                            <p className="text-[#89899C] text-[10px] font-medium truncate max-w-[240px]">
-                              {exercise.description}
-                            </p>
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* 2. TYPE / INTENSITY */}
-                      <td className="py-4 px-5 align-middle">
-                        <div className="flex flex-col">
-                          <span className="text-white font-semibold text-xs">{exercise.type}</span>
-                          <span className="text-[#89899C] text-[10px] font-medium">{exercise.intensity} intensity</span>
-                        </div>
-                      </td>
-
-                      {/* 3. HSS */}
-                      <td className="py-4 px-5 align-middle">
-                        <span
-                          className={`inline-flex items-center text-[9px] font-bold px-2.5 py-1 rounded-full uppercase tracking-[0.15em] ${badgeClass}`}
-                        >
-                          {exercise.hssTarget.split(" ")[0]}
-                        </span>
-                      </td>
-
-                      {/* 4. DURATION */}
-                      <td className="py-4 px-5 align-middle">
-                        <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-white">
-                          <Clock size={13} className="text-[#E55F37]" />
-                          {exercise.duration} min
-                        </span>
-                      </td>
-
-                      {/* 5. MEDIA */}
-                      <td className="py-4 px-5 align-middle">
-                        <div className="flex flex-col gap-1 text-[10px] font-medium">
-                          {exercise.videoUrl ? (
-                            <span className="flex items-center gap-1 text-emerald-400 font-semibold">
-                              <Play size={11} strokeWidth={2.5} /> Video
-                            </span>
-                          ) : (
-                            <span className="text-slate-600 flex items-center gap-1">— Video</span>
-                          )}
-                          {exercise.guideImages && exercise.guideImages.length > 0 ? (
-                            <span className="flex items-center gap-1 text-emerald-400 font-semibold">
-                              <Image size={11} strokeWidth={2.5} /> {exercise.guideImages.length} Guides
-                            </span>
-                          ) : (
-                            <span className="text-slate-600 flex items-center gap-1">— Guides</span>
-                          )}
-                        </div>
-                      </td>
-
-                      {/* 6. STATUS / REVIEW */}
-                      <td className="py-4 px-5 align-middle">
-                        <div className="flex flex-col gap-1 items-start">
-                          <span
-                            className={`text-[9px] font-bold uppercase tracking-[0.15em] px-2 py-0.5 rounded-md ${
-                              exercise.status === "published"
-                                ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-                                : exercise.status === "draft"
-                                ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
-                                : "bg-white/5 text-slate-400 border border-white/10"
-                            }`}
-                          >
-                            {exercise.status}
-                          </span>
-                          {exercise.expertValidated ? (
-                            <span className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1 mt-0.5">
-                              ✓ Expert Reviewed
-                            </span>
-                          ) : (
-                            <span className="text-[10px] text-amber-400 font-semibold flex items-center gap-1 mt-0.5">
-                              ⚠ Pending Review
-                            </span>
-                          )}
-                        </div>
-                      </td>
-
-                      {/* 7. ACTIONS */}
-                      <td className="py-4 px-5 align-middle text-right relative" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center justify-end">
-                          <button
-                            className="p-1.5 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors cursor-pointer"
-                            onClick={(e) => toggleMenu(e, exercise.id)}
-                            title="Actions"
-                          >
-                            <MoreVertical size={14} />
-                          </button>
-                        </div>
-                        {activeMenuId === exercise.id && (
-                          <div
-                            className={`absolute right-5 w-44 bg-[#1A1A1A] border border-white/10 rounded-2xl shadow-2xl py-1.5 z-50 text-left ${
-                              index >= filteredExercises.length - 2 && filteredExercises.length > 2
-                                ? "bottom-full mb-1"
-                                : "top-full mt-1"
-                            }`}
-                          >
-                            {/* Edit Action */}
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setActiveMenuId(null);
-                                openModal(exercise);
-                              }}
-                              className="w-full px-3.5 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/5 flex items-center gap-2 font-medium cursor-pointer"
-                            >
-                              <Edit2 size={13} className="text-[#E55F37]" /> Edit Exercise
-                            </button>
-
-                            {/* Publish Action (DRAFT only) */}
-                            {exercise.status === "draft" && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setActiveMenuId(null);
-                                  handleUpdateStatus(exercise, "published");
-                                }}
-                                className="w-full px-3.5 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/5 flex items-center gap-2 font-medium cursor-pointer"
-                              >
-                                <CheckCircle2 size={13} className="text-emerald-400" /> Publish
-                              </button>
-                            )}
-
-                            {/* Archive Action (PUBLISHED only) */}
-                            {exercise.status === "published" && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setActiveMenuId(null);
-                                  handleUpdateStatus(exercise, "archived");
-                                }}
-                                className="w-full px-3.5 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/5 flex items-center gap-2 font-medium cursor-pointer"
-                              >
-                                <Archive size={13} className="text-amber-400" /> Archive
-                              </button>
-                            )}
-
-                            {/* Restore Action (ARCHIVED only) */}
-                            {exercise.status === "archived" && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setActiveMenuId(null);
-                                  handleUpdateStatus(exercise, "draft");
-                                }}
-                                className="w-full px-3.5 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/5 flex items-center gap-2 font-medium cursor-pointer"
-                              >
-                                <CheckCircle2 size={13} className="text-blue-400" /> Restore to Draft
-                              </button>
-                            )}
-
-                            {/* Divider */}
-                            <div className="border-t border-white/10 my-1" />
-
-                            {/* Delete Action */}
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setActiveMenuId(null);
-                                handleDeleteExercise(exercise);
-                              }}
-                              className="w-full px-3.5 py-2 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 flex items-center gap-2 font-medium cursor-pointer"
-                            >
-                              <Trash2 size={13} /> Delete
-                            </button>
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            )}
-          </table>
-          {!loading && filteredExercises.length === 0 && (
-            <div className="p-12 text-center text-slate-400 text-xs flex flex-col items-center justify-center gap-3 border-t border-white/5">
-              {exercises.length === 0 ? (
-                <p className="font-medium text-slate-400">No exercises available.</p>
-              ) : (
-                <>
-                  <p className="font-medium text-slate-400">No exercises match your filters.</p>
-                  <button
-                    onClick={clearFilters}
-                    className="mt-2 px-4 py-2 text-xs font-semibold text-white bg-[#E55F37] hover:bg-[#D4542E] rounded-xl transition-all cursor-pointer"
-                  >
-                    Clear Filters
-                  </button>
-                </>
+              {/* Clear Filters Button */}
+              {hasActiveFilters && (
+                <button
+                  onClick={clearFilters}
+                  className="text-[11px] text-[#A93226] font-semibold px-3 py-2 rounded-[8px] border border-[#F0C4B8] bg-[#F7E4E1] hover:bg-[#F0C4B8] transition-colors shrink-0 flex items-center gap-1.5 cursor-pointer"
+                >
+                  <RotateCcw size={12} />
+                  <span>Clear filters</span>
+                </button>
               )}
             </div>
-          )}
-        </div>
-      </div>
 
-      {/* Slide-over Modal Component */}
-      <ExerciseFormModal
-        isOpen={isModalOpen}
-        onClose={closeModal}
-        exercise={editingExercise}
-        userRole={userRole}
-        onSave={async (data) => {
-          try {
-            if (editingExercise?.id) {
-              await apiFetch(`/api/exercises/${editingExercise.id}`, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(data),
-              });
-            } else {
-              await apiFetch("/api/exercises", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(data),
+            {/* Dropdown Filters Row */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:flex md:flex-wrap gap-2 pt-0.5">
+              {/* Status */}
+              <div className="relative">
+                <select
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                  className="w-full md:w-auto pl-3 pr-7 py-1.5 text-[12px] font-semibold text-[#152131] bg-[#FFFFFF] border border-[#DCE3DF] rounded-[8px] focus:outline-none focus:border-[#152131] appearance-none cursor-pointer hover:border-[#8B9893] transition-colors"
+                >
+                  <option value="all">Status: All</option>
+                  <option value="draft">Draft</option>
+                  <option value="published">Published</option>
+                  <option value="archived">Archived</option>
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
+                  <ChevronDown size={12} className="text-[#8B9893]" />
+                </div>
+              </div>
+
+              {/* HSS */}
+              <div className="relative">
+                <select
+                  value={filterHss}
+                  onChange={(e) => setFilterHss(e.target.value)}
+                  className="w-full md:w-auto pl-3 pr-7 py-1.5 text-[12px] font-semibold text-[#152131] bg-[#FFFFFF] border border-[#DCE3DF] rounded-[8px] focus:outline-none focus:border-[#152131] appearance-none cursor-pointer hover:border-[#8B9893] transition-colors"
+                >
+                  <option value="all">HSS: All</option>
+                  <option value="Stable (80-100)">Stable (80-100)</option>
+                  <option value="Moderate (60-79)">Moderate (60-79)</option>
+                  <option value="Elevated Risk (50-59)">Elevated Risk (50-59)</option>
+                  <option value="Critical (<50)">Critical (&lt;50)</option>
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
+                  <ChevronDown size={12} className="text-[#8B9893]" />
+                </div>
+              </div>
+
+              {/* Type */}
+              <div className="relative">
+                <select
+                  value={filterType}
+                  onChange={(e) => setFilterType(e.target.value)}
+                  className="w-full md:w-auto pl-3 pr-7 py-1.5 text-[12px] font-semibold text-[#152131] bg-[#FFFFFF] border border-[#DCE3DF] rounded-[8px] focus:outline-none focus:border-[#152131] appearance-none cursor-pointer hover:border-[#8B9893] transition-colors"
+                >
+                  <option value="all">Type: All</option>
+                  <option value="Breathing">Breathing</option>
+                  <option value="Light Cardio">Light Cardio</option>
+                  <option value="Stationary">Stationary</option>
+                  <option value="General">General</option>
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
+                  <ChevronDown size={12} className="text-[#8B9893]" />
+                </div>
+              </div>
+
+              {/* Intensity */}
+              <div className="relative">
+                <select
+                  value={filterIntensity}
+                  onChange={(e) => setFilterIntensity(e.target.value)}
+                  className="w-full md:w-auto pl-3 pr-7 py-1.5 text-[12px] font-semibold text-[#152131] bg-[#FFFFFF] border border-[#DCE3DF] rounded-[8px] focus:outline-none focus:border-[#152131] appearance-none cursor-pointer hover:border-[#8B9893] transition-colors"
+                >
+                  <option value="all">Intensity: All</option>
+                  <option value="None">None</option>
+                  <option value="Low">Low</option>
+                  <option value="Medium">Medium</option>
+                  <option value="High">High</option>
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
+                  <ChevronDown size={12} className="text-[#8B9893]" />
+                </div>
+              </div>
+
+              {/* Review */}
+              <div className="relative">
+                <select
+                  value={filterReview}
+                  onChange={(e) => setFilterReview(e.target.value)}
+                  className="w-full md:w-auto pl-3 pr-7 py-1.5 text-[12px] font-semibold text-[#152131] bg-[#FFFFFF] border border-[#DCE3DF] rounded-[8px] focus:outline-none focus:border-[#152131] appearance-none cursor-pointer hover:border-[#8B9893] transition-colors"
+                >
+                  <option value="all">Review: All</option>
+                  <option value="validated">Expert Reviewed</option>
+                  <option value="pending">Pending Review</option>
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
+                  <ChevronDown size={12} className="text-[#8B9893]" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Table Container */}
+          <div className="w-full overflow-x-auto">
+            <table className="w-full text-left border-collapse min-w-[850px]">
+              <thead>
+                <tr className="border-b border-[#DCE3DF] bg-[#EDF1EF]/40">
+                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-[0.1em] w-[32%]">
+                    Exercise routine
+                  </th>
+                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-[0.1em]">
+                    Type / Intensity
+                  </th>
+                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-[0.1em]">
+                    HSS target
+                  </th>
+                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-[0.1em]">
+                    Duration
+                  </th>
+                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-[0.1em]">
+                    Media
+                  </th>
+                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-[0.1em]">
+                    Status / Review
+                  </th>
+                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-[0.1em] text-right">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+
+              {loading ? (
+                <tbody>
+                  {[1, 2, 3, 4, 5].map((item) => (
+                    <tr key={item} className="border-b border-[#DCE3DF]/60">
+                      <td className="py-3.5 px-5">
+                        <div className="flex items-center gap-3">
+                          <Skeleton className="w-9 h-9 rounded-[8px] shrink-0 bg-[#DCE3DF]/70" />
+                          <div>
+                            <Skeleton className="w-32 h-4 mb-1.5 bg-[#DCE3DF]/70 rounded" />
+                            <Skeleton className="w-44 h-3 bg-[#DCE3DF]/70 rounded" />
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-3.5 px-5">
+                        <Skeleton className="w-20 h-4 mb-1 bg-[#DCE3DF]/70 rounded" />
+                        <Skeleton className="w-16 h-3 bg-[#DCE3DF]/70 rounded" />
+                      </td>
+                      <td className="py-3.5 px-5">
+                        <Skeleton className="w-20 h-5 rounded-full bg-[#DCE3DF]/70" />
+                      </td>
+                      <td className="py-3.5 px-5">
+                        <Skeleton className="w-16 h-4 bg-[#DCE3DF]/70 rounded" />
+                      </td>
+                      <td className="py-3.5 px-5">
+                        <Skeleton className="w-14 h-4 bg-[#DCE3DF]/70 rounded" />
+                      </td>
+                      <td className="py-3.5 px-5">
+                        <Skeleton className="w-16 h-3 mb-1 bg-[#DCE3DF]/70 rounded" />
+                        <Skeleton className="w-20 h-3 bg-[#DCE3DF]/70 rounded" />
+                      </td>
+                      <td className="py-3.5 px-5 text-right">
+                        <Skeleton className="w-6 h-6 rounded-md bg-[#DCE3DF]/70 ml-auto" />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              ) : filteredExercises.length > 0 ? (
+                <tbody className="divide-y divide-[#DCE3DF]">
+                  {filteredExercises.map((exercise, index) => {
+                    const badgeClass = getHssBadgeStyle(exercise.hssTarget);
+                    return (
+                      <tr
+                        key={exercise.id}
+                        onClick={() => openModal(exercise)}
+                        className={`hover:bg-[#EDF1EF]/60 transition-colors group cursor-pointer ${
+                          exercise.status === "archived" ? "opacity-60 bg-[#EDF1EF]/30" : ""
+                        }`}
+                      >
+                        {/* 1. EXERCISE */}
+                        <td className="py-3.5 px-4 sm:px-5 align-middle">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-[8px] flex items-center justify-center shrink-0 overflow-hidden bg-[#FBEAE6] border border-[#DCE3DF] text-[#E8532E] shadow-2xs">
+                              {(() => {
+                                const resolvedUrl = resolveMediaUrl(exercise.mediaUrl);
+                                if (!resolvedUrl) return <Dumbbell size={16} className="text-[#E8532E]" />;
+                                
+                                const ytMatch = resolvedUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?]+)/);
+                                if (ytMatch && ytMatch[1]) {
+                                  return <img src={`https://img.youtube.com/vi/${ytMatch[1]}/hqdefault.jpg`} alt={exercise.name} className="w-full h-full object-cover" />;
+                                }
+                                
+                                if (resolvedUrl.startsWith("data:video") || resolvedUrl.endsWith(".mp4")) {
+                                  return <video src={resolvedUrl} className="w-full h-full object-cover" muted loop autoPlay playsInline />;
+                                }
+                                
+                                return <img src={resolvedUrl} alt={exercise.name} className="w-full h-full object-cover" />;
+                              })()}
+                            </div>
+                            <div className="min-w-0 pr-2">
+                              <p className="text-[#152131] font-semibold text-[13px] leading-tight mb-0.5 truncate">
+                                {exercise.name}
+                              </p>
+                              <p className="text-[#5C6B66] text-[11px] font-medium truncate max-w-[240px]">
+                                {exercise.description || exercise.goal || "Physical rehabilitation regimen"}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* 2. TYPE / INTENSITY */}
+                        <td className="py-3.5 px-4 sm:px-5 align-middle">
+                          <div className="flex flex-col">
+                            <span className="text-[#152131] font-semibold text-[12.5px] leading-tight">
+                              {exercise.type}
+                            </span>
+                            <span className="text-[#5C6B66] text-[11px] font-medium mt-0.5">
+                              {exercise.intensity} intensity
+                            </span>
+                          </div>
+                        </td>
+
+                        {/* 3. HSS TARGET */}
+                        <td className="py-3.5 px-4 sm:px-5 align-middle">
+                          <span
+                            className={`inline-flex items-center text-[10px] font-semibold px-2.5 py-0.5 rounded-full ${badgeClass}`}
+                          >
+                            {exercise.hssTarget.split(" ")[0]}
+                          </span>
+                        </td>
+
+                        {/* 4. DURATION */}
+                        <td className="py-3.5 px-4 sm:px-5 align-middle">
+                          <span className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-[#152131]">
+                            <Clock size={13} className="text-[#E8532E]" />
+                            {exercise.duration} min
+                          </span>
+                        </td>
+
+                        {/* 5. MEDIA */}
+                        <td className="py-3.5 px-4 sm:px-5 align-middle">
+                          <div className="flex flex-col gap-0.5 text-[10.5px] font-medium">
+                            {exercise.videoUrl ? (
+                              <span className="flex items-center gap-1 text-[#1B6E63] font-semibold">
+                                <Play size={11} strokeWidth={2.5} /> Video
+                              </span>
+                            ) : (
+                              <span className="text-[#8B9893] flex items-center gap-1">— Video</span>
+                            )}
+                            {exercise.guideImages && exercise.guideImages.length > 0 ? (
+                              <span className="flex items-center gap-1 text-[#1B6E63] font-semibold">
+                                <Image size={11} strokeWidth={2.5} /> {exercise.guideImages.length} Guides
+                              </span>
+                            ) : (
+                              <span className="text-[#8B9893] flex items-center gap-1">— Guides</span>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* 6. STATUS / REVIEW */}
+                        <td className="py-3.5 px-4 sm:px-5 align-middle">
+                          <div className="flex flex-col gap-1 items-start">
+                            <span
+                              className={`text-[9.5px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-[5px] ${
+                                exercise.status === "published"
+                                  ? "bg-[#E3EFEC] text-[#1B6E63] border border-[#C5DFD8]"
+                                  : exercise.status === "draft"
+                                  ? "bg-[#F6EDDD] text-[#A9741B] border border-[#EBD7B8]"
+                                  : "bg-[#EDF1EF] text-[#5C6B66] border border-[#DCE3DF]"
+                              }`}
+                            >
+                              {exercise.status}
+                            </span>
+                            {exercise.expertValidated ? (
+                              <span className="text-[10px] text-[#1B6E63] font-semibold flex items-center gap-1">
+                                ✓ Reviewed
+                              </span>
+                            ) : (
+                              <span className="text-[10px] text-[#A9741B] font-semibold flex items-center gap-1">
+                                ⚠ Pending
+                              </span>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* 7. ACTIONS */}
+                        <td 
+                          className="py-3.5 px-4 sm:px-5 align-middle text-right relative" 
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <div className="flex items-center justify-end">
+                            <button
+                              type="button"
+                              className="p-1.5 text-[#5C6B66] hover:text-[#152131] hover:bg-[#EDF1EF] rounded-[8px] transition-colors cursor-pointer"
+                              onClick={(e) => toggleMenu(e, exercise.id)}
+                              title="Actions"
+                            >
+                              <MoreVertical size={14} />
+                            </button>
+                          </div>
+
+                          {activeMenuId === exercise.id && (
+                            <div
+                              className={`absolute right-4 w-44 bg-[#FFFFFF] border border-[#DCE3DF] rounded-[10px] shadow-xl p-1.5 z-50 text-left ${
+                                index >= filteredExercises.length - 2 && filteredExercises.length > 2
+                                  ? "bottom-full mb-1"
+                                  : "top-full mt-1"
+                              }`}
+                            >
+                              {/* Edit Action */}
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveMenuId(null);
+                                  openModal(exercise);
+                                }}
+                                className="w-full px-2.5 py-1.5 text-[12px] text-[#152131] hover:bg-[#EDF1EF] rounded-[6px] flex items-center gap-2 font-medium cursor-pointer"
+                              >
+                                <Edit2 size={13} className="text-[#E8532E]" />
+                                <span>Edit routine</span>
+                              </button>
+
+                              {/* Publish Action (DRAFT only) */}
+                              {exercise.status === "draft" && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActiveMenuId(null);
+                                    handleUpdateStatus(exercise, "published");
+                                  }}
+                                  className="w-full px-2.5 py-1.5 text-[12px] text-[#152131] hover:bg-[#EDF1EF] rounded-[6px] flex items-center gap-2 font-medium cursor-pointer"
+                                >
+                                  <CheckCircle2 size={13} className="text-[#1B6E63]" />
+                                  <span>Publish</span>
+                                </button>
+                              )}
+
+                              {/* Archive Action (PUBLISHED only) */}
+                              {exercise.status === "published" && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActiveMenuId(null);
+                                    requestArchiveExercise(exercise);
+                                  }}
+                                  className="w-full px-2.5 py-1.5 text-[12px] text-[#152131] hover:bg-[#EDF1EF] rounded-[6px] flex items-center gap-2 font-medium cursor-pointer"
+                                >
+                                  <Archive size={13} className="text-[#A9741B]" />
+                                  <span>Archive</span>
+                                </button>
+                              )}
+
+                              {/* Restore Action (ARCHIVED only) */}
+                              {exercise.status === "archived" && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActiveMenuId(null);
+                                    handleUpdateStatus(exercise, "draft");
+                                  }}
+                                  className="w-full px-2.5 py-1.5 text-[12px] text-[#152131] hover:bg-[#EDF1EF] rounded-[6px] flex items-center gap-2 font-medium cursor-pointer"
+                                >
+                                  <CheckCircle2 size={13} className="text-[#1B6E63]" />
+                                  <span>Restore to draft</span>
+                                </button>
+                              )}
+
+                              {/* Divider */}
+                              <div className="border-t border-[#DCE3DF] my-1" />
+
+                              {/* Delete Action */}
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveMenuId(null);
+                                  requestDeleteExercise(exercise);
+                                }}
+                                className="w-full px-2.5 py-1.5 text-[12px] text-[#A93226] hover:bg-[#F7E4E1] rounded-[6px] flex items-center gap-2 font-medium cursor-pointer"
+                              >
+                                <Trash2 size={13} />
+                                <span>Delete</span>
+                              </button>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              ) : null}
+            </table>
+
+            {/* Empty State */}
+            {!loading && filteredExercises.length === 0 && (
+              <div className="p-12 text-center text-[#5C6B66] text-[13px] flex flex-col items-center justify-center gap-2.5 border-t border-[#DCE3DF]">
+                {exercises.length === 0 ? (
+                  <p className="font-medium text-[#5C6B66]">No exercises available in the library.</p>
+                ) : (
+                  <>
+                    <p className="font-medium text-[#152131]">No exercise routines match your filter criteria.</p>
+                    <button
+                      onClick={clearFilters}
+                      className="mt-1 px-3.5 py-1.5 text-[12px] font-semibold text-white bg-[#E8532E] hover:bg-[#C13E20] rounded-[8px] transition-colors cursor-pointer"
+                    >
+                      Clear filters
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Slide-over Form Modal */}
+        <ExerciseFormModal
+          isOpen={isModalOpen}
+          onClose={closeModal}
+          exercise={editingExercise}
+          userRole={userRole}
+          onSave={async (data) => {
+            try {
+              if (editingExercise?.id) {
+                await apiFetch(`/api/exercises/${editingExercise.id}`, {
+                  method: "PUT",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify(data),
+                });
+                toast.success("Routine Updated", {
+                  description: `"${data.name}" was saved successfully.`,
+                });
+              } else {
+                await apiFetch("/api/exercises", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify(data),
+                });
+                toast.success("Routine Created", {
+                  description: `"${data.name}" was added to the exercise library.`,
+                });
+              }
+              closeModal();
+              fetchExercises();
+            } catch (err) {
+              console.error("Error saving exercise:", err);
+              toast.error("Failed to Save Routine", {
+                description: err?.data?.detail || "Could not save exercise routine.",
               });
             }
-            closeModal();
-            fetchExercises();
-          } catch (err) {
-            console.error("Error saving exercise:", err);
-          }
-        }}
-        onDelete={async (id) => {
-          try {
-            await apiFetch(`/api/exercises/${id}`, { method: "DELETE" });
-            closeModal();
-            fetchExercises();
-          } catch (err) {
-            console.error("Error deleting exercise:", err);
-          }
-        }}
-      />
+          }}
+          onDelete={(exToDelete) => {
+            requestDeleteExercise(exToDelete || editingExercise);
+          }}
+        />
+
+        {/* Confirmation Modal */}
+        <ConfirmActionModal
+          isOpen={confirmConfig.isOpen}
+          onClose={closeConfirmModal}
+          onConfirm={confirmConfig.onConfirm}
+          title={confirmConfig.title}
+          subtitle={confirmConfig.subtitle}
+          description={confirmConfig.description}
+          confirmText={confirmConfig.confirmText}
+          cancelText={confirmConfig.cancelText}
+          variant={confirmConfig.variant}
+          icon={confirmConfig.icon}
+          entityInfo={confirmConfig.entityInfo}
+          impactDetails={confirmConfig.impactDetails}
+        />
+      </div>
     </AdminLayout>
   );
 };
 
 export default Exercises;
-

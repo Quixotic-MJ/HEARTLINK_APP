@@ -3,26 +3,11 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import {
-  Search,
-  Filter,
-  X,
   User,
   ShieldCheck,
   ShieldAlert,
-  Archive,
-  Save,
-  Activity,
-  UserPlus,
-  Lock,
-  Mail,
-  Calendar,
-  AlertTriangle,
   Ban,
   CheckCircle2,
-  Clock,
-  MoreVertical,
-  ChevronRight,
-  Stethoscope,
   Users as UsersIcon,
   Trash2,
   RefreshCw,
@@ -396,172 +381,154 @@ const Users = () => {
 
   return (
     <AdminLayout>
-      {/* Page Header with Animation */}
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-        className="flex flex-col md:flex-row md:justify-between md:items-end mb-6 gap-4"
+      <div 
+        className="max-w-[1180px] mx-auto text-[#152131] selection:bg-[#E8532E] selection:text-white"
+        style={{ fontFamily: "'Inter', sans-serif" }}
       >
-        <div>
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-[#E55F37]/30 bg-[#E55F37]/10 text-[10px] font-bold uppercase tracking-widest text-[#E55F37] mb-2 shadow-sm">
-            <UsersIcon size={11} />
-            <span>User Governance</span>
+        {/* ── PAGE HEAD ── */}
+        <div className="flex flex-wrap gap-4 justify-between items-end mb-6">
+          <div>
+            <span className="block text-[12px] text-[#8B9893] font-medium mb-1 flex items-center gap-1.5">
+              <UsersIcon size={13} className="text-[#E8532E]" /> User governance
+            </span>
+            <h1 
+              className="text-[26px] font-medium tracking-tight text-[#152131] m-0"
+              style={{ fontFamily: "'Fraunces', serif" }}
+            >
+              User & staff directory
+            </h1>
+            <p className="text-[13px] text-[#5C6B66] mt-1.5 max-w-[55ch] leading-[1.5]">
+              Manage patient health access, account authorization states, and medical review permissions.
+            </p>
           </div>
-          <h2 className="text-2xl lg:text-3xl font-bold text-white tracking-tight leading-tight">
-            User & Staff Directory
-          </h2>
-          <p className="text-[#89899C] text-xs mt-1 font-medium">
-            Manage user health access, account authorization states, and medical review permissions.
-          </p>
+
+          <button
+            onClick={fetchUsers}
+            disabled={loading}
+            className="flex items-center gap-2 bg-[#FFFFFF] hover:bg-[#EDF1EF] text-[#152131] border border-[#DCE3DF] px-3.5 py-2 rounded-[8px] text-[13px] font-semibold transition-colors cursor-pointer shadow-2xs disabled:opacity-50"
+          >
+            <RefreshCw size={13} className={loading ? "animate-spin text-[#E8532E]" : ""} />
+            <span>Refresh Directory</span>
+          </button>
         </div>
 
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          onClick={fetchUsers}
-          disabled={loading}
-          className="self-start md:self-auto px-3.5 py-2 rounded-xl text-xs font-semibold bg-[#1A1A1A] hover:bg-[#21202E] border border-white/10 text-[#89899C] hover:text-white transition-all flex items-center gap-2 cursor-pointer shadow-sm disabled:opacity-50"
-        >
-          <RefreshCw size={13} className={loading ? "animate-spin text-[#E55F37]" : ""} />
-          <span>Refresh Directory</span>
-        </motion.button>
-      </motion.div>
-
-      {/* Segmented Control (Tabs) with Animated Pill */}
-      <motion.div
-        initial={{ opacity: 0, y: 6 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3, delay: 0.1 }}
-        className="bg-[#1A1A1A] p-1.5 rounded-2xl inline-flex flex-wrap border border-white/10 mb-6 w-full sm:w-auto relative"
-      >
-        <button
-          onClick={() => handleTabSwitch("app_users")}
-          className={`relative z-10 flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-            activeTab === "app_users" ? "text-white" : "text-[#89899C] hover:text-white"
-          }`}
-        >
-          {activeTab === "app_users" && (
-            <motion.div
-              layoutId="userMgmtTabIndicator"
-              className="absolute inset-0 bg-[#E55F37] rounded-xl shadow-sm shadow-[#E55F37]/30"
-              transition={{ type: "spring", bounce: 0.15, duration: 0.4 }}
-            />
-          )}
-          <span className="relative z-10 flex items-center gap-2">
-            <User size={14} /> User Accounts ({appUsers.length})
-          </span>
-        </button>
-
-        {currentUserRole === "super_admin" && (
+        {/* ── SEGMENTED TAB BUTTONS ── */}
+        <div className="bg-[#FFFFFF] p-1 rounded-[10px] inline-flex flex-wrap border border-[#DCE3DF] mb-6 shadow-2xs">
           <button
-            onClick={() => handleTabSwitch("system_staff")}
-            className={`relative z-10 flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-              activeTab === "system_staff" ? "text-white" : "text-[#89899C] hover:text-white"
+            onClick={() => handleTabSwitch("app_users")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-[7px] text-[12.5px] font-semibold transition-all cursor-pointer ${
+              activeTab === "app_users" 
+                ? "bg-[#E8532E] text-white shadow-2xs" 
+                : "text-[#5C6B66] hover:text-[#152131] hover:bg-[#EDF1EF]"
             }`}
           >
-            {activeTab === "system_staff" && (
-              <motion.div
-                layoutId="userMgmtTabIndicator"
-                className="absolute inset-0 bg-[#E55F37] rounded-xl shadow-sm shadow-[#E55F37]/30"
-                transition={{ type: "spring", bounce: 0.15, duration: 0.4 }}
-              />
-            )}
-            <span className="relative z-10 flex items-center gap-2">
-              <ShieldCheck size={14} />
-              System Staff ({systemStaff.length})
-            </span>
+            <User size={14} />
+            <span>User accounts ({appUsers.length})</span>
           </button>
-        )}
-      </motion.div>
 
-      {/* Tab Panels with Smooth Crossfade */}
-      <AnimatePresence mode="wait">
-        {activeTab === "app_users" && (
-          <motion.div
-            key="tab_users"
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.2 }}
-          >
-            <UserListView
-              users={filteredUsers}
-              searchQuery={searchQuery}
-              onSearchChange={setSearchQuery}
-              filterStatus={filterStatus}
-              onFilterChange={setFilterStatus}
-              onOpenUser={handleOpenUser}
-              loading={loading}
-            />
-          </motion.div>
-        )}
+          {currentUserRole === "super_admin" && (
+            <button
+              onClick={() => handleTabSwitch("system_staff")}
+              className={`flex items-center gap-2 px-4 py-2 rounded-[7px] text-[12.5px] font-semibold transition-all cursor-pointer ${
+                activeTab === "system_staff" 
+                  ? "bg-[#E8532E] text-white shadow-2xs" 
+                  : "text-[#5C6B66] hover:text-[#152131] hover:bg-[#EDF1EF]"
+              }`}
+            >
+              <ShieldCheck size={14} />
+              <span>System staff ({systemStaff.length})</span>
+            </button>
+          )}
+        </div>
 
-        {activeTab === "system_staff" && currentUserRole === "super_admin" && (
-          <motion.div
-            key="tab_staff"
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.2 }}
-          >
-            <StaffListView
-              staffList={systemStaff}
-              loading={loading}
-              error={fetchError}
-              onRetry={fetchUsers}
-              onOpenStaff={handleOpenStaff}
-              onCreateStaff={handleCreateStaff}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
+        {/* ── TAB CONTENT ── */}
+        <AnimatePresence mode="wait">
+          {activeTab === "app_users" && (
+            <motion.div
+              key="tab_users"
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.15 }}
+            >
+              <UserListView
+                users={filteredUsers}
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                filterStatus={filterStatus}
+                onFilterChange={setFilterStatus}
+                onOpenUser={handleOpenUser}
+                loading={loading}
+              />
+            </motion.div>
+          )}
 
-      {/* User Account Actions Modal */}
-      <AccountActionModal
-        isOpen={isModalOpen && modalMode === "view_app_user"}
-        onClose={closeModal}
-        user={activeEntity}
-        onToggleStatus={handleToggleAppUserStatus}
-        canDelete={currentUserRole === "super_admin"}
-        onDeleteUser={requestDeleteUser}
-      />
+          {activeTab === "system_staff" && currentUserRole === "super_admin" && (
+            <motion.div
+              key="tab_staff"
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.15 }}
+            >
+              <StaffListView
+                staffList={systemStaff}
+                loading={loading}
+                error={fetchError}
+                onRetry={fetchUsers}
+                onOpenStaff={handleOpenStaff}
+                onCreateStaff={handleCreateStaff}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-      {/* Staff Detail View Modal */}
-      <StaffDetailsModal
-        isOpen={isModalOpen && modalMode === "view_staff"}
-        onClose={closeModal}
-        staff={activeEntity}
-        currentUserRole={currentUserRole}
-        currentUserId={userId}
-        onToggleStatus={requestToggleStaffStatus}
-        onChangeRole={requestChangeStaffRole}
-        onDeleteStaff={requestDeleteStaff}
-      />
+        {/* User Account Actions Modal */}
+        <AccountActionModal
+          isOpen={isModalOpen && modalMode === "view_app_user"}
+          onClose={closeModal}
+          user={activeEntity}
+          onToggleStatus={handleToggleAppUserStatus}
+          canDelete={currentUserRole === "super_admin"}
+          onDeleteUser={requestDeleteUser}
+        />
 
-      {/* Provision Staff Modal */}
-      <StaffFormModal
-        isOpen={isModalOpen && modalMode === "create_staff"}
-        onClose={closeModal}
-        staff={activeEntity}
-        onSave={handleSaveStaff}
-      />
+        {/* Staff Detail View Modal */}
+        <StaffDetailsModal
+          isOpen={isModalOpen && modalMode === "view_staff"}
+          onClose={closeModal}
+          staff={activeEntity}
+          currentUserRole={currentUserRole}
+          currentUserId={userId}
+          onToggleStatus={requestToggleStaffStatus}
+          onChangeRole={requestChangeStaffRole}
+          onDeleteStaff={requestDeleteStaff}
+        />
 
-      {/* Reusable Animated Confirmation Modal */}
-      <ConfirmActionModal
-        isOpen={confirmConfig.isOpen}
-        onClose={closeConfirmModal}
-        onConfirm={confirmConfig.onConfirm}
-        title={confirmConfig.title}
-        subtitle={confirmConfig.subtitle}
-        description={confirmConfig.description}
-        confirmText={confirmConfig.confirmText}
-        cancelText={confirmConfig.cancelText}
-        variant={confirmConfig.variant}
-        icon={confirmConfig.icon}
-        entityInfo={confirmConfig.entityInfo}
-        impactDetails={confirmConfig.impactDetails}
-      />
+        {/* Provision Staff Modal */}
+        <StaffFormModal
+          isOpen={isModalOpen && modalMode === "create_staff"}
+          onClose={closeModal}
+          staff={activeEntity}
+          onSave={handleSaveStaff}
+        />
+
+        {/* Reusable Confirmation Modal */}
+        <ConfirmActionModal
+          isOpen={confirmConfig.isOpen}
+          onClose={closeConfirmModal}
+          onConfirm={confirmConfig.onConfirm}
+          title={confirmConfig.title}
+          subtitle={confirmConfig.subtitle}
+          description={confirmConfig.description}
+          confirmText={confirmConfig.confirmText}
+          cancelText={confirmConfig.cancelText}
+          variant={confirmConfig.variant}
+          icon={confirmConfig.icon}
+          entityInfo={confirmConfig.entityInfo}
+          impactDetails={confirmConfig.impactDetails}
+        />
+      </div>
     </AdminLayout>
   );
 };

@@ -2,10 +2,6 @@ import React, { useState, useEffect } from "react";
 import {
   X,
   MessageSquare,
-  Bug,
-  Lightbulb,
-  UserCircle,
-  HelpCircle,
   Smartphone,
   Save,
   Archive,
@@ -115,28 +111,33 @@ const TicketModal = ({ isOpen, onClose, ticket, onUpdate, onArchive }) => {
   const isArchived = ticket.status === "Archived";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6" style={{ fontFamily: "'Inter', sans-serif" }}>
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/70 backdrop-blur-sm transition-opacity cursor-pointer"
+        className="absolute inset-0 bg-black/60 backdrop-blur-xs transition-opacity cursor-pointer"
         onClick={handleCloseAttempt}
-      ></div>
+      />
 
       {/* Modal Panel */}
-      <div className="relative w-full max-w-lg bg-[#1A1A1A] max-h-full rounded-2xl shadow-2xl border border-white/10 flex flex-col animate-in fade-in zoom-in-95 duration-200 overflow-hidden text-white">
+      <div className="relative w-full max-w-lg bg-[#FFFFFF] max-h-full rounded-2xl shadow-2xl border border-[#DCE3DF] flex flex-col animate-in fade-in zoom-in-95 duration-200 overflow-hidden text-[#152131]">
         
         {/* Custom Confirmation Overlays */}
         {showDiscardConfirm && (
-          <div className="absolute inset-0 z-20 flex items-center justify-center p-6 bg-black/75 backdrop-blur-sm">
-            <div className="bg-[#1A1A1A] rounded-2xl p-6 max-w-sm shadow-2xl border border-white/10 flex flex-col text-left">
-              <h4 className="text-sm font-bold text-white mb-2">Discard unsaved changes?</h4>
-              <p className="text-xs text-[#89899C] mb-6 leading-relaxed">
+          <div className="absolute inset-0 z-20 flex items-center justify-center p-6 bg-black/60 backdrop-blur-xs">
+            <div className="bg-[#FFFFFF] rounded-2xl p-5 max-w-sm shadow-2xl border border-[#DCE3DF] flex flex-col text-left">
+              <h4 
+                className="text-[16px] font-medium text-[#152131] mb-1.5"
+                style={{ fontFamily: "'Fraunces', serif" }}
+              >
+                Discard unsaved changes?
+              </h4>
+              <p className="text-[12px] text-[#5C6B66] mb-5 leading-relaxed">
                 You have unsaved changes in your notes or status. Are you sure you want to discard them?
               </p>
-              <div className="flex justify-end gap-3">
+              <div className="flex justify-end gap-2">
                 <button
                   onClick={() => setShowDiscardConfirm(false)}
-                  className="px-4 py-2 text-xs font-semibold text-slate-300 hover:text-white bg-[#21202E] border border-white/10 rounded-xl transition-colors cursor-pointer"
+                  className="px-3.5 py-1.5 text-[12px] font-semibold text-[#152131] bg-[#EDF1EF] hover:bg-[#DCE3DF] border border-[#DCE3DF] rounded-[8px] transition-colors cursor-pointer"
                 >
                   Keep Editing
                 </button>
@@ -145,7 +146,7 @@ const TicketModal = ({ isOpen, onClose, ticket, onUpdate, onArchive }) => {
                     setShowDiscardConfirm(false);
                     onClose();
                   }}
-                  className="px-4 py-2 text-xs font-bold bg-rose-600 text-white rounded-xl hover:bg-rose-700 shadow-sm transition-colors cursor-pointer"
+                  className="px-3.5 py-1.5 text-[12px] font-semibold bg-[#A93226] text-white rounded-[8px] hover:bg-[#8A1F1A] shadow-2xs transition-colors cursor-pointer"
                 >
                   Discard
                 </button>
@@ -155,22 +156,27 @@ const TicketModal = ({ isOpen, onClose, ticket, onUpdate, onArchive }) => {
         )}
 
         {showArchiveConfirm && (
-          <div className="absolute inset-0 z-20 flex items-center justify-center p-6 bg-black/75 backdrop-blur-sm">
-            <div className="bg-[#1A1A1A] rounded-2xl p-6 max-w-sm shadow-2xl border border-white/10 flex flex-col text-left">
-              <h4 className="text-sm font-bold text-white mb-2">Archive this feedback ticket?</h4>
-              <p className="text-xs text-[#89899C] mb-6 leading-relaxed">
-                Archived tickets remain available and can be restored at any time.
+          <div className="absolute inset-0 z-20 flex items-center justify-center p-6 bg-black/60 backdrop-blur-xs">
+            <div className="bg-[#FFFFFF] rounded-2xl p-5 max-w-sm shadow-2xl border border-[#DCE3DF] flex flex-col text-left">
+              <h4 
+                className="text-[16px] font-medium text-[#152131] mb-1.5"
+                style={{ fontFamily: "'Fraunces', serif" }}
+              >
+                Archive this feedback ticket?
+              </h4>
+              <p className="text-[12px] text-[#5C6B66] mb-5 leading-relaxed">
+                Archived tickets remain accessible and can be restored at any time.
               </p>
-              <div className="flex justify-end gap-3">
+              <div className="flex justify-end gap-2">
                 <button
                   onClick={() => setShowArchiveConfirm(false)}
-                  className="px-4 py-2 text-xs font-semibold text-slate-300 hover:text-white bg-[#21202E] border border-white/10 rounded-xl transition-colors cursor-pointer"
+                  className="px-3.5 py-1.5 text-[12px] font-semibold text-[#152131] bg-[#EDF1EF] hover:bg-[#DCE3DF] border border-[#DCE3DF] rounded-[8px] transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleArchiveConfirmAction}
-                  className="px-4 py-2 text-xs font-bold bg-[#E55F37] text-white rounded-xl hover:bg-[#D4542E] shadow-sm transition-colors cursor-pointer"
+                  className="px-3.5 py-1.5 text-[12px] font-semibold bg-[#E8532E] text-white rounded-[8px] hover:bg-[#C13E20] shadow-2xs transition-colors cursor-pointer"
                 >
                   Archive Ticket
                 </button>
@@ -180,18 +186,21 @@ const TicketModal = ({ isOpen, onClose, ticket, onUpdate, onArchive }) => {
         )}
 
         {conflictError && (
-          <div className="absolute inset-0 z-20 flex items-center justify-center p-6 bg-black/75 backdrop-blur-sm">
-            <div className="bg-[#1A1A1A] rounded-2xl p-6 max-w-sm shadow-2xl border border-white/10 flex flex-col text-left">
-              <h4 className="text-sm font-bold text-rose-400 mb-2 flex items-center gap-1.5">
+          <div className="absolute inset-0 z-20 flex items-center justify-center p-6 bg-black/60 backdrop-blur-xs">
+            <div className="bg-[#FFFFFF] rounded-2xl p-5 max-w-sm shadow-2xl border border-[#DCE3DF] flex flex-col text-left">
+              <h4 
+                className="text-[16px] font-medium text-[#A93226] mb-1.5 flex items-center gap-1.5"
+                style={{ fontFamily: "'Fraunces', serif" }}
+              >
                 <AlertCircle size={16} /> Conflict Detected
               </h4>
-              <p className="text-xs text-[#89899C] mb-6 leading-relaxed">
-                This feedback ticket was updated by another administrator. Reload the latest version before saving.
+              <p className="text-[12px] text-[#5C6B66] mb-5 leading-relaxed">
+                This ticket was updated by another administrator. Reload the latest version before saving.
               </p>
-              <div className="flex justify-end gap-3">
+              <div className="flex justify-end gap-2">
                 <button
                   onClick={() => setConflictError(false)}
-                  className="px-4 py-2 text-xs font-semibold text-slate-300 hover:text-white bg-[#21202E] border border-white/10 rounded-xl transition-colors cursor-pointer"
+                  className="px-3.5 py-1.5 text-[12px] font-semibold text-[#152131] bg-[#EDF1EF] hover:bg-[#DCE3DF] border border-[#DCE3DF] rounded-[8px] transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -205,7 +214,7 @@ const TicketModal = ({ isOpen, onClose, ticket, onUpdate, onArchive }) => {
                     }
                     setConflictError(false);
                   }}
-                  className="px-4 py-2 text-xs font-bold bg-[#E55F37] text-white rounded-xl hover:bg-[#D4542E] shadow-sm transition-colors cursor-pointer"
+                  className="px-3.5 py-1.5 text-[12px] font-semibold bg-[#E8532E] text-white rounded-[8px] hover:bg-[#C13E20] shadow-2xs transition-colors cursor-pointer"
                 >
                   Reload Latest
                 </button>
@@ -215,44 +224,47 @@ const TicketModal = ({ isOpen, onClose, ticket, onUpdate, onArchive }) => {
         )}
 
         {/* Modal Header */}
-        <div className="flex items-center justify-between px-6 py-5 border-b border-white/10 bg-[#161616] z-10">
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl bg-[#36272B] flex items-center justify-center text-[#E55F37] border border-[#E55F37]/30 shadow-sm shrink-0">
+        <div className="flex items-center justify-between px-6 py-4.5 border-b border-[#DCE3DF] bg-[#FFFFFF] z-10">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-[8px] bg-[#FBEAE6] flex items-center justify-center text-[#E8532E] border border-[#F5C7BD] shadow-2xs shrink-0">
               <MessageSquare size={16} />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-white flex items-center gap-2 font-mono">
+              <h3 
+                className="text-[17px] font-medium text-[#152131] flex items-center gap-2 font-mono tracking-tight"
+                style={{ fontFamily: "'Fraunces', serif" }}
+              >
                 {ticket.ticketId}
               </h3>
-              <div className="mt-1 flex items-center gap-2">
+              <div className="mt-0.5 flex items-center gap-2">
                 <FeedbackCategoryBadge category={ticket.category} />
+                <span className="text-[11px] text-[#8B9893] font-medium flex items-center gap-1">
+                  <Clock size={10} /> {ticket.date}
+                </span>
               </div>
-              <p className="text-[10px] text-[#89899C] mt-1 font-medium flex items-center gap-1">
-                <Clock size={10} /> Submitted: {ticket.date}
-              </p>
             </div>
           </div>
           <button
             onClick={handleCloseAttempt}
-            className="text-slate-400 hover:text-white p-2 rounded-xl hover:bg-white/10 transition-colors self-start cursor-pointer"
+            className="text-[#5C6B66] hover:text-[#152131] p-1.5 rounded-lg hover:bg-[#EDF1EF] transition-colors cursor-pointer"
           >
-            <X size={18} />
+            <X size={16} />
           </button>
         </div>
 
         {/* Modal Scrollable Content */}
-        <div className="flex-1 overflow-y-auto p-6 custom-scrollbar space-y-6">
+        <div className="flex-1 overflow-y-auto p-6 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden space-y-4.5">
           {/* Account ID Context */}
-          <div className="flex items-center justify-between bg-[#21202E]/40 p-4 rounded-xl border border-white/10">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full flex items-center justify-center bg-[#36272B] text-[#E55F37] border border-[#E55F37]/30">
+          <div className="flex items-center justify-between bg-[#EDF1EF]/60 p-3.5 rounded-[8px] border border-[#DCE3DF]">
+            <div className="flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-full flex items-center justify-center bg-[#FBEAE6] text-[#E8532E] border border-[#F5C7BD]">
                 <User size={12} />
               </div>
               <div>
-                <p className="text-[10px] font-bold text-[#89899C] uppercase tracking-widest mb-0.5">
+                <p className="text-[10px] font-semibold text-[#8B9893] uppercase tracking-wider">
                   Account Reference ID
                 </p>
-                <p className="text-xs font-bold text-white font-mono">
+                <p className="text-[12.5px] font-bold text-[#152131] font-mono leading-tight">
                   {ticket.userId || "N/A"}
                 </p>
               </div>
@@ -261,11 +273,11 @@ const TicketModal = ({ isOpen, onClose, ticket, onUpdate, onArchive }) => {
           
           {/* Full Issue Description */}
           <div>
-            <h4 className="text-[10px] font-bold text-[#89899C] uppercase tracking-[0.2em] border-b border-white/10 pb-2 mb-3 flex items-center gap-1.5">
-              <MessageSquare size={13} className="text-[#E55F37]" /> User Message
+            <h4 className="text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-wider border-b border-[#DCE3DF] pb-1.5 mb-2 flex items-center gap-1.5">
+              <MessageSquare size={12} className="text-[#E8532E]" /> User message
             </h4>
-            <div className="bg-[#161616] rounded-xl border border-white/10 p-5">
-              <p className="text-xs text-slate-200 leading-relaxed whitespace-pre-wrap font-medium">
+            <div className="bg-[#EDF1EF]/50 rounded-[8px] border border-[#DCE3DF] p-3.5">
+              <p className="text-[12.5px] text-[#152131] leading-relaxed whitespace-pre-wrap font-medium">
                 "{ticket.fullMessage}"
               </p>
             </div>
@@ -273,31 +285,31 @@ const TicketModal = ({ isOpen, onClose, ticket, onUpdate, onArchive }) => {
 
           {/* Device Metadata */}
           <div>
-            <h4 className="text-[10px] font-bold text-[#89899C] uppercase tracking-[0.2em] border-b border-white/10 pb-2 mb-3 flex items-center gap-1.5">
-              <Smartphone size={13} className="text-indigo-400" /> Device Metadata
+            <h4 className="text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-wider border-b border-[#DCE3DF] pb-1.5 mb-2 flex items-center gap-1.5">
+              <Smartphone size={12} className="text-[#1B6E63]" /> Device metadata
             </h4>
-            <div className="bg-[#161616] p-5 rounded-xl border border-white/10 grid grid-cols-2 gap-4">
+            <div className="bg-[#FFFFFF] p-3.5 rounded-[8px] border border-[#DCE3DF] grid grid-cols-2 gap-3 text-[12px]">
               <div>
-                <p className="text-[10px] font-bold text-[#89899C] uppercase tracking-wider mb-1">
+                <p className="text-[10px] font-semibold text-[#8B9893] uppercase tracking-wider mb-0.5">
                   Operating System
                 </p>
-                <p className="text-xs font-bold text-white">
+                <p className="font-bold text-[#152131]">
                   {ticket.deviceMeta?.os || "N/A"}
                 </p>
               </div>
               <div>
-                <p className="text-[10px] font-bold text-[#89899C] uppercase tracking-wider mb-1">
+                <p className="text-[10px] font-semibold text-[#8B9893] uppercase tracking-wider mb-0.5">
                   App Version
                 </p>
-                <p className="text-xs font-bold text-white font-mono">
+                <p className="font-bold text-[#152131] font-mono">
                   {ticket.deviceMeta?.appVersion || "N/A"}
                 </p>
               </div>
-              <div className="col-span-2 pt-3 border-t border-white/10">
-                <p className="text-[10px] font-bold text-[#89899C] uppercase tracking-wider mb-1">
+              <div className="col-span-2 pt-2 border-t border-[#DCE3DF]">
+                <p className="text-[10px] font-semibold text-[#8B9893] uppercase tracking-wider mb-0.5">
                   Device Model
                 </p>
-                <p className="text-xs font-bold text-white">
+                <p className="font-bold text-[#152131]">
                   {ticket.deviceMeta?.model || "N/A"}
                 </p>
               </div>
@@ -306,49 +318,49 @@ const TicketModal = ({ isOpen, onClose, ticket, onUpdate, onArchive }) => {
 
           {/* Admin Resolution Area */}
           <div>
-            <h4 className="text-[10px] font-bold text-[#89899C] uppercase tracking-[0.2em] border-b border-white/10 pb-2 mb-3 flex items-center gap-1.5">
-              <Save size={13} className="text-emerald-400" /> Resolution Logging
+            <h4 className="text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-wider border-b border-[#DCE3DF] pb-1.5 mb-2 flex items-center gap-1.5">
+              <Save size={12} className="text-[#1B6E63]" /> Resolution logging
             </h4>
 
-            <div className="space-y-4">
+            <div className="space-y-3">
               <div>
-                <label className="block text-[11px] font-bold text-[#89899C] uppercase tracking-wider mb-2">
+                <label className="block text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-wider mb-1">
                   Admin / Developer Notes
                 </label>
                 <textarea
-                  rows="4"
+                  rows="3"
                   value={adminNotes}
                   onChange={(e) => setAdminNotes(e.target.value)}
-                  className="w-full px-4 py-3 text-xs bg-[#161616] border border-white/10 text-white rounded-xl focus:outline-none focus:border-[#E55F37] transition-colors resize-none leading-relaxed placeholder:text-slate-500"
-                  placeholder="Log cause of issue and specific fixes deployed..."
+                  className="w-full px-3.5 py-2 text-[12.5px] bg-[#EDF1EF] border border-[#DCE3DF] text-[#152131] rounded-[8px] focus:outline-none focus:border-[#152131] transition-colors resize-none leading-relaxed placeholder:text-[#8B9893]"
+                  placeholder="Log root cause of issue or specific fixes deployed…"
                 />
               </div>
 
               {!isArchived ? (
                 <div>
-                  <label className="block text-[11px] font-bold text-[#89899C] uppercase tracking-wider mb-2">
+                  <label className="block text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-wider mb-1">
                     Ticket Status
                   </label>
                   <select
                     value={ticketStatus}
                     onChange={(e) => setTicketStatus(e.target.value)}
-                    className="w-full px-4 py-2.5 text-xs font-semibold bg-[#161616] border border-white/10 text-white rounded-xl focus:outline-none focus:border-[#E55F37] transition-colors cursor-pointer"
+                    className="w-full px-3 py-2 text-[12.5px] font-semibold bg-[#EDF1EF] border border-[#DCE3DF] text-[#152131] rounded-[8px] focus:outline-none focus:border-[#152131] transition-colors cursor-pointer"
                   >
-                    <option value="Open" className="bg-[#161616]">Open</option>
-                    <option value="In Progress" className="bg-[#161616]">In Progress</option>
-                    <option value="Resolved" className="bg-[#161616]">Resolved</option>
-                    <option value="Archived" className="bg-[#161616]">Archived</option>
+                    <option value="Open">Open</option>
+                    <option value="In Progress">In Progress</option>
+                    <option value="Resolved">Resolved</option>
+                    <option value="Archived">Archived</option>
                   </select>
                 </div>
               ) : (
-                <div className="p-4 bg-[#21202E]/50 rounded-xl border border-white/10 flex items-center justify-between">
+                <div className="p-3 bg-[#EDF1EF]/60 rounded-[8px] border border-[#DCE3DF] flex items-center justify-between">
                   <div>
-                    <p className="text-[10px] font-bold text-[#89899C] uppercase tracking-widest mb-0.5">
+                    <p className="text-[10px] font-semibold text-[#8B9893] uppercase tracking-wider mb-0.5">
                       Current Status
                     </p>
-                    <p className="text-xs font-bold text-slate-400 uppercase">Archived</p>
+                    <p className="text-[12px] font-bold text-[#5C6B66] uppercase">Archived</p>
                   </div>
-                  <span className="text-[10px] text-slate-400 italic font-medium">
+                  <span className="text-[11px] text-[#5C6B66] italic font-medium">
                     Restoring returns ticket to Open
                   </span>
                 </div>
@@ -358,38 +370,38 @@ const TicketModal = ({ isOpen, onClose, ticket, onUpdate, onArchive }) => {
         </div>
 
         {/* Modal Footer / Actions */}
-        <div className="p-5 border-t border-white/10 bg-[#161616] flex justify-between items-center shrink-0">
+        <div className="px-6 py-4 border-t border-[#DCE3DF] bg-[#FFFFFF] flex justify-between items-center shrink-0">
           {!isArchived ? (
             <button
               onClick={handleArchiveClick}
-              className="flex items-center gap-2 px-4 py-2.5 text-xs font-semibold text-slate-400 hover:text-white bg-[#21202E] border border-white/10 hover:border-white/20 rounded-xl transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 px-3.5 py-2 text-[12px] font-semibold text-[#5C6B66] hover:text-[#152131] bg-[#EDF1EF] border border-[#DCE3DF] hover:bg-[#DCE3DF] rounded-[8px] transition-colors cursor-pointer"
               title="Archive submission"
             >
-              <Archive size={14} /> Archive
+              <Archive size={13} /> <span>Archive</span>
             </button>
           ) : (
             <button
               onClick={handleRestoreClick}
-              className="flex items-center gap-2 px-4 py-2.5 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-colors shadow-sm cursor-pointer"
+              className="flex items-center gap-1.5 px-3.5 py-2 text-[12px] font-semibold bg-[#1B6E63] hover:bg-[#14534B] text-white rounded-[8px] transition-colors shadow-2xs cursor-pointer"
               title="Restore archived ticket"
             >
-              <RotateCcw size={14} /> Restore Ticket
+              <RotateCcw size={13} /> <span>Restore ticket</span>
             </button>
           )}
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <button
               onClick={handleCloseAttempt}
-              className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white transition-colors cursor-pointer"
+              className="px-3.5 py-2 text-[12px] font-semibold text-[#152131] bg-[#EDF1EF] hover:bg-[#DCE3DF] border border-[#DCE3DF] rounded-[8px] transition-colors cursor-pointer"
             >
               Cancel
             </button>
             {!isArchived && (
               <button
                 onClick={handleSave}
-                className="flex items-center gap-2 px-5 py-2.5 text-xs font-bold text-white rounded-xl transition-all shadow-sm shadow-[#E55F37]/25 bg-[#E55F37] hover:bg-[#D4542E] cursor-pointer"
+                className="flex items-center gap-1.5 px-4 py-2 text-[12px] font-semibold text-white rounded-[8px] shadow-2xs bg-[#E8532E] hover:bg-[#C13E20] transition-colors cursor-pointer"
               >
-                <Save size={14} /> Update Ticket
+                <Save size={13} /> <span>Update ticket</span>
               </button>
             )}
           </div>
@@ -400,4 +412,3 @@ const TicketModal = ({ isOpen, onClose, ticket, onUpdate, onArchive }) => {
 };
 
 export default TicketModal;
-

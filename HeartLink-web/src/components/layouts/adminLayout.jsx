@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import Sidebar from "../../components/layouts/sidebar"; // Adjust path based on your structure
-import Header from "../../components/layouts/header"; // Adjust path based on your structure
+import Sidebar from "./sidebar";
+import Header from "./header";
 import LogoutConfirmModal from "../modals/LogoutConfirmModal";
 import { useAuth } from "../../contexts/AuthContext";
 
@@ -27,7 +27,7 @@ const AdminLayout = ({ children }) => {
         navigate("/dashboard", { replace: true });
       }
     } else if (role === "admin" || role === "super_admin") {
-      // Admins should not access the individual user profile, they use the quick-action modal
+      // Admins should not access the individual user profile directly, they use the user detail drawer
       const isUserProfile = pathname.startsWith("/users/") && pathname.length > "/users/".length;
       if (isUserProfile) {
         navigate("/users", { replace: true });
@@ -36,7 +36,10 @@ const AdminLayout = ({ children }) => {
   }, [pathname, user, userId, isAuthenticated, navigate]);
 
   return (
-    <div className="flex h-screen w-full bg-[#13121F] font-sans text-white selection:bg-[#E55F37] selection:text-white overflow-hidden fixed inset-0">
+    <div 
+      className="flex h-screen w-full bg-[#EDF1EF] text-[#152131] selection:bg-[#E8532E] selection:text-white overflow-hidden fixed inset-0"
+      style={{ fontFamily: "'Inter', sans-serif" }}
+    >
       {/* Sidebar Component */}
       <Sidebar
         sidebarOpen={sidebarOpen}
@@ -46,8 +49,8 @@ const AdminLayout = ({ children }) => {
         onLogoutClick={() => setIsLogoutModalOpen(true)}
       />
 
-      {/* Main Content Area */}
-      <main className="flex-1 flex flex-col h-full min-w-0 overflow-hidden relative bg-[#161616] border-l border-white/10 rounded-none">
+      {/* Main Column Area */}
+      <div className="flex-1 flex flex-col h-full min-w-0 overflow-hidden relative bg-[#EDF1EF]">
         {/* Header Component */}
         <Header
           setSidebarOpen={setSidebarOpen}
@@ -55,10 +58,10 @@ const AdminLayout = ({ children }) => {
         />
 
         {/* Scrollable Content Wrapper */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden p-6 lg:p-8 custom-scrollbar bg-[#161616]">
-          <div className="max-w-7xl mx-auto pb-10">{children}</div>
-        </div>
-      </main>
+        <main className="flex-1 overflow-y-auto overflow-x-hidden p-5 sm:p-6 lg:p-8 bg-[#EDF1EF]">
+          <div className="max-w-[1180px] mx-auto pb-10">{children}</div>
+        </main>
+      </div>
 
       {/* Logout Confirmation Modal */}
       <LogoutConfirmModal

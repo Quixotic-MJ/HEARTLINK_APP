@@ -3,24 +3,22 @@ import AdminLayout from "../../../components/layouts/adminLayout";
 import { apiFetch } from "../../../api";
 import {
   Search,
-  Filter,
   Activity,
   Shield,
-  Settings,
   Headset,
-  ExternalLink,
   ChevronLeft,
   ChevronRight,
   Download,
   CheckCircle,
   Clock,
   ChevronDown,
-  Sparkles,
   Utensils,
   Dumbbell,
   Radio,
   FileSpreadsheet,
+  RotateCcw,
 } from "lucide-react";
+import { Skeleton } from "../../../components/ui/Skeleton";
 
 const ActivityLog = () => {
   const [logs, setLogs] = useState([]);
@@ -56,6 +54,13 @@ const ActivityLog = () => {
 
   const handleFilterChange = (e) => {
     setEventTypeFilter(e.target.value);
+    setPage(1);
+  };
+
+  const handleClearFilters = () => {
+    setSearchQuery("");
+    setDebouncedSearch("");
+    setEventTypeFilter("all");
     setPage(1);
   };
 
@@ -108,56 +113,56 @@ const ActivityLog = () => {
     switch (formattedType) {
       case "case":
         return {
-          bg: "bg-rose-500/10 text-rose-400 border border-rose-500/20",
-          icon: <Activity size={11} />,
+          bg: "bg-[#F7E4E1] text-[#A93226] border-[#F0C4B8]",
+          icon: <Activity size={10} />,
           label: "CASE REVIEW",
         };
       case "staff":
         return {
-          bg: "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20",
-          icon: <Shield size={11} />,
+          bg: "bg-[#EDF1EF] text-[#152131] border-[#DCE3DF]",
+          icon: <Shield size={10} />,
           label: "STAFF",
         };
       case "recipe":
         return {
-          bg: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20",
-          icon: <Utensils size={11} />,
+          bg: "bg-[#E3EFEC] text-[#1B6E63] border-[#C5DFD8]",
+          icon: <Utensils size={10} />,
           label: "RECIPE",
         };
       case "exercise":
         return {
-          bg: "bg-blue-500/10 text-blue-400 border border-blue-500/20",
-          icon: <Dumbbell size={11} />,
+          bg: "bg-[#EDF1EF] text-[#152131] border-[#DCE3DF]",
+          icon: <Dumbbell size={10} />,
           label: "EXERCISE",
         };
       case "feedback":
         return {
-          bg: "bg-amber-500/10 text-amber-400 border border-amber-500/20",
-          icon: <Headset size={11} />,
+          bg: "bg-[#F6EDDD] text-[#A9741B] border-[#EBD7B8]",
+          icon: <Headset size={10} />,
           label: "FEEDBACK",
         };
       case "broadcast":
         return {
-          bg: "bg-amber-500/10 text-amber-400 border border-amber-500/20",
-          icon: <Radio size={11} />,
+          bg: "bg-[#FBEAE6] text-[#E8532E] border-[#F5C7BD]",
+          icon: <Radio size={10} />,
           label: "BROADCAST",
         };
       case "user":
         return {
-          bg: "bg-purple-500/10 text-purple-400 border border-purple-500/20",
-          icon: <Shield size={11} />,
+          bg: "bg-[#EDF1EF] text-[#152131] border-[#DCE3DF]",
+          icon: <Shield size={10} />,
           label: "USER",
         };
       case "dataset":
         return {
-          bg: "bg-white/5 text-slate-300 border border-white/10",
-          icon: <FileSpreadsheet size={11} />,
+          bg: "bg-[#E3EFEC] text-[#1B6E63] border-[#C5DFD8]",
+          icon: <FileSpreadsheet size={10} />,
           label: "DATASET",
         };
       default:
         return {
-          bg: "bg-white/5 text-slate-300 border border-white/10",
-          icon: <Activity size={11} />,
+          bg: "bg-[#EDF1EF] text-[#5C6B66] border-[#DCE3DF]",
+          icon: <Activity size={10} />,
           label: "GENERAL",
         };
     }
@@ -192,22 +197,22 @@ const ActivityLog = () => {
   };
 
   const renderSkeletons = () => {
-    return Array.from({ length: 5 }).map((_, idx) => (
-      <tr key={`sk-${idx}`} className="animate-pulse">
-        <td className="py-4 px-5 align-middle">
-          <div className="h-3.5 bg-white/10 rounded w-28"></div>
+    return Array.from({ length: 6 }).map((_, idx) => (
+      <tr key={`sk-${idx}`}>
+        <td className="py-3.5 px-5 align-middle">
+          <Skeleton className="h-4 bg-[#DCE3DF]/70 rounded w-28" />
         </td>
-        <td className="py-4 px-5 align-middle">
-          <div className="h-5 bg-white/10 rounded-full w-24"></div>
+        <td className="py-3.5 px-5 align-middle">
+          <Skeleton className="h-5 bg-[#DCE3DF]/70 rounded-full w-24" />
         </td>
-        <td className="py-4 px-5 align-middle">
-          <div className="h-3.5 bg-white/10 rounded w-64"></div>
+        <td className="py-3.5 px-5 align-middle">
+          <Skeleton className="h-4 bg-[#DCE3DF]/70 rounded w-64" />
         </td>
-        <td className="py-4 px-5 align-middle">
-          <div className="h-6 bg-white/10 rounded-xl w-28"></div>
+        <td className="py-3.5 px-5 align-middle">
+          <Skeleton className="h-6 bg-[#DCE3DF]/70 rounded-[6px] w-28" />
         </td>
-        <td className="py-4 px-5 align-middle text-right">
-          <div className="h-4 bg-white/10 rounded-md w-16 ml-auto"></div>
+        <td className="py-3.5 px-5 align-middle text-right">
+          <Skeleton className="h-4 bg-[#DCE3DF]/70 rounded w-16 ml-auto" />
         </td>
       </tr>
     ));
@@ -219,8 +224,8 @@ const ActivityLog = () => {
     const end = Math.min(page * pageSize, total);
     return (
       <>
-        Showing <span className="text-white font-bold">{start}-{end}</span> of{" "}
-        <span className="text-white font-bold">{total}</span> events
+        Showing <span className="text-[#152131] font-bold">{start}–{end}</span> of{" "}
+        <span className="text-[#152131] font-bold">{total}</span> events
       </>
     );
   };
@@ -228,13 +233,18 @@ const ActivityLog = () => {
   if (accessDenied) {
     return (
       <AdminLayout>
-        <div className="flex flex-col items-center justify-center py-20 text-center animate-in fade-in duration-300">
-          <div className="w-16 h-16 bg-rose-500/10 text-rose-400 rounded-2xl flex items-center justify-center mb-4 border border-rose-500/20">
-            <Shield size={32} />
+        <div className="flex flex-col items-center justify-center py-20 text-center" style={{ fontFamily: "'Inter', sans-serif" }}>
+          <div className="w-14 h-14 bg-[#F7E4E1] text-[#A93226] rounded-2xl flex items-center justify-center mb-3 border border-[#F0C4B8]">
+            <Shield size={28} />
           </div>
-          <h3 className="text-lg font-bold text-white mb-2">Access Denied</h3>
-          <p className="text-[#89899C] text-xs max-w-sm mb-6">
-            You do not have the required permissions to view the system audit activity logs. Only administrators are allowed.
+          <h3 
+            className="text-[20px] font-medium text-[#152131] mb-1"
+            style={{ fontFamily: "'Fraunces', serif" }}
+          >
+            Access Denied
+          </h3>
+          <p className="text-[#5C6B66] text-[13px] max-w-sm mb-6">
+            You do not have the required permissions to view the system audit activity logs. Only authorized administrators are allowed.
           </p>
         </div>
       </AdminLayout>
@@ -247,195 +257,214 @@ const ActivityLog = () => {
 
   return (
     <AdminLayout>
-      {/* 1. Page Header Area */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between mb-6 gap-4 animate-in fade-in duration-300">
-        <div>
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-[#E55F37]/30 bg-[#E55F37]/10 text-[10px] font-bold uppercase tracking-widest text-[#E55F37] mb-2">
-            <Activity size={11} />
-            <span>Audit Trail</span>
+      <div 
+        className="max-w-[1180px] mx-auto text-[#152131] selection:bg-[#E8532E] selection:text-white"
+        style={{ fontFamily: "'Inter', sans-serif" }}
+      >
+        {/* ── PAGE HEAD ── */}
+        <div className="flex flex-wrap gap-4 justify-between items-end mb-6">
+          <div>
+            <span className="block text-[12px] text-[#8B9893] font-medium mb-1 flex items-center gap-1.5">
+              <Activity size={13} className="text-[#E8532E]" /> Audit trail
+            </span>
+            <h1 
+              className="text-[26px] font-medium tracking-tight text-[#152131] m-0"
+              style={{ fontFamily: "'Fraunces', serif" }}
+            >
+              System activity audit log
+            </h1>
+            <p className="text-[13px] text-[#5C6B66] mt-1.5 max-w-[55ch] leading-[1.5]">
+              Immutable clinical and administrative audit trail of all platform activities and modifications.
+            </p>
           </div>
-          <h2 className="text-2xl lg:text-3xl font-bold text-white tracking-tight leading-tight">
-            Admin Activity Log
-          </h2>
-          <p className="text-[#89899C] text-xs mt-1 font-medium">
-            Immutable clinical and administrative audit trail of all platform activities.
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-slate-300 hover:text-white bg-[#21202E] border border-white/10 hover:border-white/20 rounded-xl transition-colors shadow-sm cursor-pointer">
-            <Download size={14} /> Export Audit CSV
-          </button>
-          <button
-            className="flex items-center gap-1.5 px-5 py-2 text-xs font-bold text-white bg-[#E55F37] hover:bg-[#D4542E] rounded-xl shadow-sm shadow-[#E55F37]/25 transition-all cursor-pointer"
-          >
-            <CheckCircle size={14} /> Mark All as Read
-          </button>
-        </div>
-      </div>
 
-      <div className="bg-[#1A1A1A] rounded-2xl border border-white/10 flex flex-col overflow-hidden animate-in fade-in duration-300">
-        {/* 2. Search & Filter Bar */}
-        <div className="p-4 border-b border-white/10 bg-[#161616]">
-          <div className="flex flex-col md:flex-row gap-3">
-            <div className="relative flex-1">
-              <Search
-                size={14}
-                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none"
-              />
-              <input
-                type="text"
-                placeholder="Search by User ID, keyword, or event..."
-                value={searchQuery}
-                onChange={handleSearchChange}
-                className="w-full pl-9 pr-4 py-2 text-xs border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] transition-all bg-[#1A1A1A] text-white placeholder:text-slate-500"
-              />
-            </div>
-            <div className="flex gap-3">
-              <div className="relative">
-                <select
-                  value={eventTypeFilter}
-                  onChange={handleFilterChange}
-                  className="pl-3 pr-8 py-2 text-xs font-semibold text-white bg-[#1A1A1A] border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] appearance-none cursor-pointer hover:border-white/20 transition-colors"
-                >
-                  <option value="all" className="bg-[#161616]">All Categories</option>
-                  <option value="recipe" className="bg-[#161616]">Recipes</option>
-                  <option value="exercise" className="bg-[#161616]">Exercises</option>
-                  <option value="case" className="bg-[#161616]">Case Reviews</option>
-                  <option value="staff" className="bg-[#161616]">Staff</option>
-                  <option value="feedback" className="bg-[#161616]">Feedback</option>
-                  <option value="broadcast" className="bg-[#161616]">Broadcasts</option>
-                  <option value="user" className="bg-[#161616]">Users</option>
-                  <option value="dataset" className="bg-[#161616]">Datasets</option>
-                </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5">
-                  <ChevronDown size={12} className="text-slate-400" />
+          <div className="flex items-center gap-2.5">
+            <button className="flex items-center gap-1.5 px-3.5 py-2 text-[12.5px] font-semibold text-[#152131] bg-[#FFFFFF] hover:bg-[#EDF1EF] border border-[#DCE3DF] rounded-[8px] transition-colors shadow-2xs cursor-pointer">
+              <Download size={13} /> <span>Export audit CSV</span>
+            </button>
+            <button
+              className="flex items-center gap-1.5 px-4 py-2 text-[12.5px] font-semibold text-white bg-[#E8532E] hover:bg-[#C13E20] rounded-[8px] shadow-2xs transition-colors cursor-pointer"
+            >
+              <CheckCircle size={13} /> <span>Mark all as read</span>
+            </button>
+          </div>
+        </div>
+
+        {/* ── MAIN CARD: AUDIT LOG TABLE ── */}
+        <div className="bg-[#FFFFFF] rounded-[10px] border border-[#DCE3DF] flex flex-col overflow-hidden shadow-2xs">
+          {/* Search & Filter Bar */}
+          <div className="p-4 border-b border-[#DCE3DF] bg-[#FFFFFF]">
+            <div className="flex flex-col md:flex-row gap-3">
+              <div className="relative flex-1">
+                <Search
+                  size={14}
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8B9893] pointer-events-none"
+                />
+                <input
+                  type="text"
+                  placeholder="Search by User ID, keyword, or action…"
+                  value={searchQuery}
+                  onChange={handleSearchChange}
+                  className="w-full pl-9 pr-4 py-2 text-[13px] border border-[#DCE3DF] rounded-[8px] focus:outline-none focus:border-[#152131] transition-colors bg-[#EDF1EF] text-[#152131] placeholder:text-[#8B9893]"
+                />
+              </div>
+              <div className="flex gap-2.5 items-center">
+                <div className="relative">
+                  <select
+                    value={eventTypeFilter}
+                    onChange={handleFilterChange}
+                    className="pl-3 pr-7 py-2 text-[12px] font-semibold text-[#152131] bg-[#FFFFFF] border border-[#DCE3DF] rounded-[8px] focus:outline-none focus:border-[#152131] appearance-none cursor-pointer hover:border-[#8B9893] transition-colors"
+                  >
+                    <option value="all">All Categories</option>
+                    <option value="recipe">Recipes</option>
+                    <option value="exercise">Exercises</option>
+                    <option value="case">Case Reviews</option>
+                    <option value="staff">Staff</option>
+                    <option value="feedback">Feedback</option>
+                    <option value="broadcast">Broadcasts</option>
+                    <option value="user">Users</option>
+                    <option value="dataset">Datasets</option>
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
+                    <ChevronDown size={12} className="text-[#8B9893]" />
+                  </div>
                 </div>
+
+                {isSearchOrFilterApplied && (
+                  <button
+                    onClick={handleClearFilters}
+                    className="text-[11px] text-[#A93226] font-semibold px-3 py-2 rounded-[8px] border border-[#F0C4B8] bg-[#F7E4E1] hover:bg-[#F0C4B8] transition-colors shrink-0 flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <RotateCcw size={12} />
+                    <span>Clear</span>
+                  </button>
+                )}
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Retry Banner on Error */}
-        {fetchError && (
-          <div className="p-3 mx-4 my-3 bg-rose-500/10 border border-rose-500/20 rounded-xl flex items-center justify-between text-rose-400 text-xs font-medium">
-            <span>Unable to load activity history.</span>
-            <button
-              onClick={() => {
-                setFetchError(false);
-                setRetryCount((prev) => prev + 1);
-              }}
-              className="px-3 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded-lg transition-colors font-bold text-[10px] uppercase tracking-wider cursor-pointer"
-            >
-              Retry
-            </button>
-          </div>
-        )}
+          {/* Retry Banner on Error */}
+          {fetchError && (
+            <div className="p-3 mx-4 my-3 bg-[#F7E4E1] border border-[#F0C4B8] rounded-[8px] flex items-center justify-between text-[#A93226] text-[12px] font-medium">
+              <span>Unable to load activity history.</span>
+              <button
+                onClick={() => {
+                  setFetchError(false);
+                  setRetryCount((prev) => prev + 1);
+                }}
+                className="px-3 py-1 bg-[#A93226] hover:bg-[#8A1F1A] text-white rounded-[6px] transition-colors font-bold text-[10.5px] uppercase tracking-wider cursor-pointer"
+              >
+                Retry
+              </button>
+            </div>
+          )}
 
-        {/* 3. The Data Table */}
-        <div className="w-full overflow-x-auto custom-scrollbar">
-          <table className="w-full text-left border-collapse min-w-[900px]">
-            <thead>
-              <tr className="border-b border-white/10">
-                <th className="py-3 px-5 text-[10px] font-bold text-[#89899C] uppercase tracking-[0.15em]">
-                  Timestamp
-                </th>
-                <th className="py-3 px-5 text-[10px] font-bold text-[#89899C] uppercase tracking-[0.15em]">
-                  Event Type
-                </th>
-                <th className="py-3 px-5 text-[10px] font-bold text-[#89899C] uppercase tracking-[0.15em] w-2/5">
-                  Details
-                </th>
-                <th className="py-3 px-5 text-[10px] font-bold text-[#89899C] uppercase tracking-[0.15em]">
-                  Associated User
-                </th>
-                <th className="py-3 px-5 text-[10px] font-bold text-[#89899C] uppercase tracking-[0.15em] text-right">
-                  Status
-                </th>
-              </tr>
-            </thead>
-            <tbody className={`divide-y divide-white/5 transition-opacity duration-200 ${loading && !showSkeleton ? "opacity-60" : "opacity-100"}`}>
-              {showSkeleton && renderSkeletons()}
-
-              {isEmpty && (
-                <tr>
-                  <td colSpan={5} className="py-12 text-center text-xs text-slate-400 font-medium">
-                    {isSearchOrFilterApplied
-                      ? "No activity matches your filters."
-                      : "No administrative activity recorded."}
-                  </td>
+          {/* Table */}
+          <div className="w-full overflow-x-auto">
+            <table className="w-full text-left border-collapse min-w-[900px]">
+              <thead>
+                <tr className="border-b border-[#DCE3DF] bg-[#EDF1EF]/40">
+                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-[0.1em]">
+                    Timestamp
+                  </th>
+                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-[0.1em]">
+                    Event Type
+                  </th>
+                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-[0.1em] w-2/5">
+                    Activity Details
+                  </th>
+                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-[0.1em]">
+                    Associated Admin
+                  </th>
+                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-[0.1em] text-right">
+                    Status
+                  </th>
                 </tr>
-              )}
+              </thead>
+              <tbody className={`divide-y divide-[#DCE3DF] ${loading && !showSkeleton ? "opacity-60" : "opacity-100"}`}>
+                {showSkeleton && renderSkeletons()}
 
-              {!showSkeleton && logs.map((log) => {
-                const badge = getEventBadge(log.target_type);
-                return (
-                  <tr
-                    key={log.id}
-                    className="hover:bg-white/5 transition-colors group cursor-default"
-                  >
-                    <td className="py-4 px-5 align-middle">
-                      <span className="text-xs font-mono font-medium text-[#89899C]">
-                        {formatTimestamp(log.created_at)}
-                      </span>
-                    </td>
-                    <td className="py-4 px-5 align-middle">
-                      <span
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[9px] font-bold tracking-wider uppercase border ${badge.bg}`}
-                      >
-                        {badge.icon} {badge.label}
-                      </span>
-                    </td>
-                    <td className="py-4 px-5 align-middle">
-                      <p className="text-xs text-white leading-relaxed font-semibold">
-                        {formatDetails(log)}
-                      </p>
-                    </td>
-                    <td className="py-4 px-5 align-middle">
-                      <span className="inline-flex items-center gap-1.5 text-xs font-mono font-bold text-slate-300 bg-[#21202E] border border-white/10 px-2.5 py-1 rounded-xl">
-                        <Shield size={11} className="text-[#E55F37]" />
-                        {log.admin_name || log.admin_user_id || "System"}
-                      </span>
-                    </td>
-                    <td className="py-4 px-5 align-middle text-right">
-                      <span className="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-                        Logged
-                      </span>
+                {isEmpty && (
+                  <tr>
+                    <td colSpan={5} className="py-12 text-center text-[13px] text-[#5C6B66] font-medium">
+                      {isSearchOrFilterApplied
+                        ? "No activity matches your filters."
+                        : "No administrative activity recorded."}
                     </td>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                )}
 
-        {/* 4. Pagination */}
-        <div className="p-4 border-t border-white/10 bg-[#161616] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <p className="text-xs text-[#89899C] font-medium">
-            {getPaginationText()}
-          </p>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-              disabled={page <= 1 || loading}
-              className={`flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-xl border border-white/10 bg-[#21202E] transition-all cursor-pointer ${
-                page <= 1 || loading
-                  ? "text-slate-500 cursor-not-allowed opacity-40"
-                  : "text-slate-300 hover:text-white hover:border-white/20 active:scale-95"
-              }`}
-            >
-              <ChevronLeft size={12} /> Previous
-            </button>
-            <button
-              onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
-              disabled={page >= totalPages || loading}
-              className={`flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-xl border border-white/10 bg-[#21202E] transition-all cursor-pointer ${
-                page >= totalPages || loading
-                  ? "text-slate-500 cursor-not-allowed opacity-40"
-                  : "text-slate-300 hover:text-white hover:border-white/20 active:scale-95"
-              }`}
-            >
-              Next <ChevronRight size={12} />
-            </button>
+                {!showSkeleton && logs.map((log) => {
+                  const badge = getEventBadge(log.target_type);
+                  return (
+                    <tr
+                      key={log.id}
+                      className="hover:bg-[#EDF1EF]/60 transition-colors group cursor-default"
+                    >
+                      <td className="py-3.5 px-4 sm:px-5 align-middle">
+                        <span className="text-[12px] font-mono font-medium text-[#5C6B66]">
+                          {formatTimestamp(log.created_at)}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4 sm:px-5 align-middle">
+                        <span
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-[4px] text-[9px] font-bold tracking-wider uppercase border ${badge.bg}`}
+                        >
+                          {badge.icon} {badge.label}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4 sm:px-5 align-middle">
+                        <p className="text-[13px] text-[#152131] leading-relaxed font-semibold">
+                          {formatDetails(log)}
+                        </p>
+                      </td>
+                      <td className="py-3.5 px-4 sm:px-5 align-middle">
+                        <span className="inline-flex items-center gap-1.5 text-[11.5px] font-mono font-bold text-[#152131] bg-[#EDF1EF] border border-[#DCE3DF] px-2 py-0.5 rounded-[5px]">
+                          <Shield size={11} className="text-[#E8532E]" />
+                          {log.admin_name || log.admin_user_id || "System"}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4 sm:px-5 align-middle text-right">
+                        <span className="text-[9px] font-bold text-[#1B6E63] bg-[#E3EFEC] border border-[#C5DFD8] px-2 py-0.5 rounded-[4px] uppercase tracking-wider">
+                          Logged
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination */}
+          <div className="p-3.5 border-t border-[#DCE3DF] bg-[#FFFFFF] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <p className="text-[12px] text-[#5C6B66] font-medium">
+              {getPaginationText()}
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+                disabled={page <= 1 || loading}
+                className={`flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold rounded-[6px] border border-[#DCE3DF] bg-[#EDF1EF] transition-colors cursor-pointer ${
+                  page <= 1 || loading
+                    ? "text-[#8B9893] cursor-not-allowed opacity-40"
+                    : "text-[#152131] hover:bg-[#DCE3DF]"
+                }`}
+              >
+                <ChevronLeft size={13} /> Previous
+              </button>
+              <button
+                onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+                disabled={page >= totalPages || loading}
+                className={`flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold rounded-[6px] border border-[#DCE3DF] bg-[#EDF1EF] transition-colors cursor-pointer ${
+                  page >= totalPages || loading
+                    ? "text-[#8B9893] cursor-not-allowed opacity-40"
+                    : "text-[#152131] hover:bg-[#DCE3DF]"
+                }`}
+              >
+                Next <ChevronRight size={13} />
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -444,4 +473,3 @@ const ActivityLog = () => {
 };
 
 export default ActivityLog;
-

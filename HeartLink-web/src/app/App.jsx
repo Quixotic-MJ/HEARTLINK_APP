@@ -3,6 +3,7 @@ import Settings from "../features/pages/system & support/settings";
 import Broadcasts from "../features/pages/system & support/system_broadcast";
 import Feedbacks from "../features/pages/system & support/feedback_reports";
 import Users from "../features/pages/system & support/user_management";
+import Notifications from "../features/pages/system & support/notifications";
 import Calibrations from "../features/pages/clinical portal/calibration_history";
 import Cases from "../features/pages/clinical portal/case_review";
 import Exercises from "../features/pages/management/exercise";
@@ -54,7 +55,7 @@ export default function App() {
           <Route path="/login" element={<Navigate to="/" replace />} />
           <Route path="/two-factor" element={<Navigate to="/" replace />} />
           
-          {/* Administrative Routes */}
+          {/* Administrative & Shared Routes */}
           <Route path="/dashboard" element={<RoleRoute allowedRoles={ADMIN_ROLES}><Dashboard /></RoleRoute>} />
           <Route path="/analytics" element={<RoleRoute allowedRoles={ADMIN_ROLES}><Analytics /></RoleRoute>} />
           <Route path="/foods" element={<RoleRoute allowedRoles={ADMIN_ROLES}><Foods /></RoleRoute>} />
@@ -63,6 +64,7 @@ export default function App() {
           <Route path="/users/:id" element={<RoleRoute allowedRoles={ADMIN_ROLES}><UserWellnessProfile /></RoleRoute>} />
           <Route path="/feedbacks" element={<RoleRoute allowedRoles={ADMIN_ROLES}><Feedbacks /></RoleRoute>} />
           <Route path="/broadcasts" element={<RoleRoute allowedRoles={ADMIN_ROLES}><Broadcasts /></RoleRoute>} />
+          <Route path="/notifications" element={<RoleRoute allowedRoles={CLINICAL_ROLES}><Notifications /></RoleRoute>} />
           <Route path="/settings" element={<RoleRoute allowedRoles={ADMIN_ROLES}><Settings /></RoleRoute>} />
           <Route path="/activity-log" element={<RoleRoute allowedRoles={ADMIN_ROLES}><ActivityLog /></RoleRoute>} />
           

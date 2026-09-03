@@ -13,13 +13,28 @@
   }
 }
 
-/* Autofill dark mode override */
+/* Light paper autofill override */
 input:-webkit-autofill,
 input:-webkit-autofill:hover, 
 input:-webkit-autofill:focus, 
 input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px #EDF1EF inset !important;
+  -webkit-text-fill-color: #152131 !important;
+  caret-color: #152131 !important;
+  font-family: 'Inter', sans-serif !important;
+  font-size: 14px !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+input:focus:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 1000px #FFFFFF inset !important;
+  -webkit-text-fill-color: #152131 !important;
+}
+
+/* Dark mode modal/dark container autofill override */
+.dark input:-webkit-autofill,
+.dark-theme input:-webkit-autofill {
   -webkit-box-shadow: 0 0 0 1000px #1A1A1A inset !important;
   -webkit-text-fill-color: #ffffff !important;
   caret-color: #ffffff !important;
-  transition: background-color 5000s ease-in-out 0s;
 }

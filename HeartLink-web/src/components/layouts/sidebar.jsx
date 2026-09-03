@@ -7,18 +7,18 @@ import {
   ClipboardList,
   History,
   Activity,
-  UserCog,
+  Users,
   MessageSquare,
   Megaphone,
   Settings,
+  Bell,
   X,
   LogOut,
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 
-// ─── Brand logo ───────────────────────────────────────────────────────────────
-
-function HeartLogoIcon({ size = 18 }) {
+// ─── Brand Logo Emblem ────────────────────────────────────────────────────────
+function HeartLogoIcon({ size = 24 }) {
   return (
     <svg 
       width={size} 
@@ -28,29 +28,23 @@ function HeartLogoIcon({ size = 18 }) {
       xmlns="http://www.w3.org/2000/svg"
       aria-hidden="true"
     >
-      {/* Left facet (Warm Coral Orange-Red #F66127) */}
-      <path d="M50 86 C48.5 84 12 55 12 32 C12 18 23 8 36 8 C43.5 8 48 13 50 18.5 L50 86 Z" fill="#F66127" />
-      {/* Right facet (Deep Vibrant Red #D82A1E) */}
-      <path d="M50 18.5 C52 13 56.5 8 64 8 C77 8 88 18 88 32 C88 55 51.5 84 50 86 L50 18.5 Z" fill="#D82A1E" />
+      <path d="M50 90 C50 90 8 54 8 30 C8 14 21 4 36 4 C44 4 50 11 50 18 L50 90 Z" fill="#E8532E" />
+      <path d="M50 90 C50 90 92 54 92 30 C92 14 79 4 64 4 C56 4 50 11 50 18 L50 90 Z" fill="#8A1F1A" />
     </svg>
   );
 }
 
-// ─── Section label ────────────────────────────────────────────────────────────
-
+// ─── Section Label ────────────────────────────────────────────────────────────
 function SectionLabel({ label, collapsed }) {
   if (collapsed) return null;
   return (
-    <p
-      className="px-3 pt-3 pb-1 text-[8px] font-bold uppercase tracking-[0.2em] text-[#89899C]"
-    >
+    <div className="text-[11px] text-[#8B9893] font-semibold px-2.5 pt-3.5 pb-1.5 select-none">
       {label}
-    </p>
+    </div>
   );
 }
 
-// ─── Nav item ─────────────────────────────────────────────────────────────────
-
+// ─── Nav Item ─────────────────────────────────────────────────────────────────
 function NavItem({ path, icon: Icon, label, collapsed, badge = null, activeOverride = false }) {
   const location = useLocation();
   const active = activeOverride || location.pathname === path;
@@ -59,36 +53,32 @@ function NavItem({ path, icon: Icon, label, collapsed, badge = null, activeOverr
     <Link
       to={path}
       title={collapsed ? label : undefined}
-      className={`group relative flex items-center rounded-xl transition-all duration-150 select-none ${
+      className={`group relative flex items-center gap-2.5 px-2.5 py-2 rounded-[8px] mb-0.5 text-[13px] font-medium transition-colors select-none ${
         active
-          ? "bg-[#E55F37] text-white shadow-sm shadow-[#E55F37]/25 font-semibold"
-          : "text-[#89899C] hover:text-white hover:bg-white/5 font-medium"
+          ? "bg-[#E8532E] text-white font-semibold shadow-2xs"
+          : "text-[#5C6B66] hover:bg-[#EDF1EF] hover:text-[#152131]"
       }`}
       style={{
-        padding: collapsed ? "10px 0" : "10px 12px",
         justifyContent: collapsed ? "center" : "flex-start",
-        gap: collapsed ? 0 : 10,
+        padding: collapsed ? "9px 0" : "8px 10px",
       }}
     >
       <Icon
-        size={16}
-        className={`flex-shrink-0 transition-transform group-hover:scale-105 ${
-          active ? "text-white" : "text-[#89899C] group-hover:text-white"
+        size={15}
+        className={`shrink-0 transition-transform ${
+          active ? "text-white" : "text-[#8B9893] group-hover:text-[#152131]"
         }`}
+        strokeWidth={active ? 2.5 : 2}
       />
 
-      <span
-        className="text-[13px] leading-none whitespace-nowrap overflow-hidden transition-all duration-200"
-        style={{
-          width: collapsed ? 0 : "auto",
-          opacity: collapsed ? 0 : 1,
-        }}
-      >
-        {label}
-      </span>
+      {!collapsed && (
+        <span className="leading-tight whitespace-nowrap overflow-hidden text-ellipsis flex-1">
+          {label}
+        </span>
+      )}
       
       {!collapsed && badge && (
-        <span className="ml-auto px-1.5 py-0.5 rounded-full bg-white/10 text-white text-[10px] font-bold">
+        <span className="ml-auto px-1.5 py-0.5 rounded-full bg-[#FBEAE6] text-[#E8532E] text-[10px] font-bold">
           {badge}
         </span>
       )}
@@ -96,15 +86,23 @@ function NavItem({ path, icon: Icon, label, collapsed, badge = null, activeOverr
   );
 }
 
-// ─── Sidebar ──────────────────────────────────────────────────────────────────
-
+// ─── Main Sidebar Component ───────────────────────────────────────────────────
 const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed, onLogoutClick }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   
   const role = user?.role || "admin";
-  const userName = (user?.first_name || user?.last_name) ? `${user.first_name || ""} ${user.last_name || ""}`.trim() : (user?.email || "Staff User");
-  const userInitials = userName ? userName.substring(0, 1).toUpperCase() : "U";
+  const userName = (user?.first_name || user?.last_name) 
+    ? `${user.first_name || ""} ${user.last_name || ""}`.trim() 
+    : (user?.email || "Staff User");
+  const userInitials = userName ? userName.substring(0, 2).toUpperCase() : "HL";
+
+  const getRoleLabel = (r) => {
+    if (r === "super_admin") return "Super admin";
+    if (r === "admin") return "System admin";
+    if (r === "medical_expert") return "Medical expert";
+    return "Staff user";
+  };
 
   const handleLogout = () => {
     if (onLogoutClick) {
@@ -120,66 +118,59 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed, onLogou
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 z-40 lg:hidden bg-black/60 backdrop-blur-sm"
+          className="fixed inset-0 z-40 lg:hidden bg-black/60 backdrop-blur-xs"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
       {/* Sidebar container */}
       <aside
-        className="fixed lg:static top-0 left-0 h-full overflow-y-auto overflow-x-hidden z-50 flex flex-col flex-shrink-0 transition-all duration-300 bg-[#13121F] border-r border-white/10"
+        className={`fixed lg:sticky top-0 left-0 h-screen z-50 flex flex-col shrink-0 bg-[#FFFFFF] border-r border-[#DCE3DF] transition-all duration-200 select-none ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+        }`}
         style={{
           width: collapsed ? 64 : 240,
-          transform: sidebarOpen ? "translateX(0)" : undefined,
-          msOverflowStyle: "none",
-          scrollbarWidth: "none",
+          fontFamily: "'Inter', sans-serif",
         }}
       >
         {/* Mobile close button */}
         <button
-          className="lg:hidden absolute right-3 top-4 p-1.5 rounded-lg z-10 text-slate-400 hover:text-white"
+          className="lg:hidden absolute right-3 top-3.5 p-1 rounded-lg text-[#5C6B66] hover:text-[#152131] hover:bg-[#EDF1EF]"
           onClick={() => setSidebarOpen(false)}
+          aria-label="Close sidebar"
         >
           <X size={16} />
         </button>
 
-        {/* Logo (Acts as Collapse Toggle) */}
+        {/* Brand Header (Acts as collapse toggle) */}
         <button
           type="button"
           onClick={() => setCollapsed(prev => !prev)}
-          className="flex items-center w-full text-left transition-all duration-300 hover:bg-white/5 rounded-xl cursor-pointer"
-          style={{
-            padding: collapsed ? "16px 0" : "12px 16px",
-            margin: collapsed ? "8px auto" : "8px",
-            justifyContent: collapsed ? "center" : "flex-start",
-            width: collapsed ? "48px" : "calc(100% - 16px)",
-            gap: collapsed ? 0 : 12
-          }}
+          className={`flex items-center gap-2.5 p-[18px_18px_14px] w-full text-left bg-transparent border-none cursor-pointer group ${
+            collapsed ? "justify-center !px-0" : ""
+          }`}
           title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
-          <div className="flex-shrink-0 flex items-center justify-center">
-            <HeartLogoIcon size={22} />
-          </div>
-
-          <div
-            className="overflow-hidden transition-all duration-300 whitespace-nowrap"
-            style={{ width: collapsed ? 0 : 120, opacity: collapsed ? 0 : 1 }}
-          >
-            <span className="text-[17px] leading-none tracking-tight font-semibold flex items-start text-white">
-              <span>HeartLink</span>
-              <span className="text-[9px] text-slate-400 font-normal ml-0.5">™</span>
-            </span>
-            <p className="text-[7px] tracking-[0.22em] uppercase mt-1 text-[#E55F37] font-bold">
-              Portal
-            </p>
-          </div>
+          <HeartLogoIcon size={24} />
+          {!collapsed && (
+            <div className="overflow-hidden whitespace-nowrap">
+              <div 
+                className="text-[16px] font-medium leading-[1.1] text-[#152131]"
+                style={{ fontFamily: "'Fraunces', serif" }}
+              >
+                HeartLink
+              </div>
+              <div className="text-[10px] font-semibold text-[#C13E20] mt-0.5">
+                Admin portal
+              </div>
+            </div>
+          )}
         </button>
 
-        {/* Divider */}
-        <div className="mx-5 mb-2 border-t border-white/10" />
+        <div className="mx-4 mb-2 border-t border-[#DCE3DF]" />
 
         {/* Nav links */}
-        <nav className="flex-1 overflow-y-auto overflow-x-hidden px-3 pb-6 space-y-0.5">
+        <nav className="flex-1 overflow-y-auto overflow-x-hidden px-3 pb-3 space-y-0.5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           <SectionLabel label="Overview" collapsed={collapsed} />
           <NavItem path="/dashboard" icon={LayoutDashboard} label="Dashboard" collapsed={collapsed} />
           
@@ -187,70 +178,73 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed, onLogou
             <NavItem path="/analytics" icon={PieChart} label="Analytics" collapsed={collapsed} />
           )}
 
+          <NavItem path="/notifications" icon={Bell} label="Notifications" collapsed={collapsed} />
+
           {(role === "admin" || role === "super_admin") && (
             <>
               <SectionLabel label="Content" collapsed={collapsed} />
-              <NavItem path="/foods" icon={Utensils} label="Food & Recipe Library" collapsed={collapsed} />
-              <NavItem path="/exercises" icon={Dumbbell} label="Exercise Library" collapsed={collapsed} />
+              <NavItem path="/foods" icon={Utensils} label="Food & recipe library" collapsed={collapsed} />
+              <NavItem path="/exercises" icon={Dumbbell} label="Exercise library" collapsed={collapsed} />
             </>
           )}
 
-          <SectionLabel label="HSS Evaluation" collapsed={collapsed} />
-          <NavItem path="/cases"       icon={ClipboardList} label="Case Review"          collapsed={collapsed} />
-          <NavItem path="/calibration" icon={History}       label="Calibration History"  collapsed={collapsed} />
+          <SectionLabel label="HSS evaluation" collapsed={collapsed} />
+          <NavItem path="/cases" icon={ClipboardList} label="Case review" collapsed={collapsed} />
+          <NavItem path="/calibration" icon={History} label="Calibration history" collapsed={collapsed} />
 
           {(role === "admin" || role === "super_admin") && (
             <>
-              <SectionLabel label="Users & Feedback" collapsed={collapsed} />
-              <NavItem path="/users"      icon={UserCog}       label="Users" collapsed={collapsed} />
-              <NavItem path="/feedbacks"  icon={MessageSquare} label="Feedback"        collapsed={collapsed} />
+              <SectionLabel label="Users & feedback" collapsed={collapsed} />
+              <NavItem path="/users" icon={Users} label="Users" collapsed={collapsed} />
+              <NavItem path="/feedbacks" icon={MessageSquare} label="Feedback" collapsed={collapsed} />
 
               <SectionLabel label="System" collapsed={collapsed} />
-              <NavItem path="/activity-log" icon={Activity}    label="Activity Log" collapsed={collapsed} />
-              <NavItem path="/broadcasts" icon={Megaphone}     label="Announcements"      collapsed={collapsed} />
-              <NavItem path="/settings"   icon={Settings}      label="Settings"        collapsed={collapsed} />
+              <NavItem path="/activity-log" icon={Activity} label="Activity log" collapsed={collapsed} />
+              <NavItem path="/broadcasts" icon={Megaphone} label="Announcements" collapsed={collapsed} />
+              <NavItem path="/settings" icon={Settings} label="Settings" collapsed={collapsed} />
             </>
           )}
         </nav>
 
-        {/* Bottom user strip */}
-        <div className="mx-2 mb-4 flex flex-col items-center gap-2">
+        {/* Bottom User Footer Strip */}
+        <div className="p-3 border-t border-[#DCE3DF] bg-[#FFFFFF]">
           {collapsed ? (
-            <>
+            <div className="flex flex-col items-center gap-2">
               <div
-                className="w-7 h-7 rounded-full flex items-center justify-center text-[#E55F37] bg-[#36272B] text-[11px] font-bold border border-white/5"
-                title={`${userName} (${role === "super_admin" ? "Super Admin" : (role === "admin" ? "System Admin" : "Expert Reviewer")})`}
+                className="w-7 h-7 rounded-full flex items-center justify-center bg-[#FBEAE6] text-[#C13E20] text-[11px] font-bold"
+                title={`${userName} (${getRoleLabel(role)})`}
               >
                 {userInitials}
               </div>
               <button
+                type="button"
                 onClick={handleLogout}
-                className="w-8 h-8 rounded-lg border border-red-500/20 bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:text-red-300 transition-colors flex items-center justify-center cursor-pointer"
-                title="Sign Out"
+                className="p-1 text-[#8B9893] hover:text-[#A93226] transition-colors cursor-pointer"
+                title="Sign out"
               >
-                <LogOut size={14} />
+                <LogOut size={15} />
               </button>
-            </>
+            </div>
           ) : (
-            <div className="w-full p-2.5 rounded-xl border border-white/10 bg-[#1A1A1A] flex flex-col gap-2">
-              <div className="flex items-center gap-2">
-                <div
-                  className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-[#E55F37] bg-[#36272B] text-[11px] font-bold border border-white/5"
-                >
-                  {userInitials}
+            <div className="flex items-center gap-2.5 p-2 rounded-[9px] border border-[#DCE3DF] bg-[#EDF1EF]">
+              <div className="w-7 h-7 rounded-full shrink-0 flex items-center justify-center bg-[#FBEAE6] text-[#C13E20] text-[11px] font-bold">
+                {userInitials}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-[12px] font-semibold text-[#152131] truncate leading-tight">
+                  {userName}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-white truncate">{userName}</p>
-                  <p className="text-[9px] text-[#89899C] font-bold uppercase tracking-wider truncate">
-                    {role === "super_admin" ? "Super Admin" : (role === "admin" ? "System Admin" : "Expert Reviewer")}
-                  </p>
+                <div className="text-[10px] font-medium text-[#5C6B66] truncate mt-0.5">
+                  {getRoleLabel(role)}
                 </div>
               </div>
               <button
+                type="button"
                 onClick={handleLogout}
-                className="w-full py-1.5 px-3 rounded-lg border border-red-500/20 bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 transition-colors text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-1 cursor-pointer"
+                className="p-1 text-[#8B9893] hover:text-[#A93226] transition-colors cursor-pointer shrink-0"
+                title="Sign out"
               >
-                Sign Out
+                <LogOut size={15} />
               </button>
             </div>
           )}
