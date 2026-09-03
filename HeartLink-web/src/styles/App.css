@@ -1,5 +1,50 @@
 @import "tailwindcss";
 
+/* ─── HeartLink Design System Tokens ─── */
+:root {
+  --ink: #152131;
+  --ink-soft: #5C6B66;
+  --ink-faint: #8B9893;
+  --paper: #EDF1EF;
+  --paper-raise: #FFFFFF;
+  --line: #DCE3DF;
+  --coral: #E8532E;
+  --coral-deep: #C13E20;
+  --coral-soft: #FBEAE6;
+  --garnet: #8A1F1A;
+  --teal: #1B6E63;
+  --teal-soft: #E3EFEC;
+  --amber: #A9741B;
+  --amber-soft: #F6EDDD;
+  --red: #A93226;
+  --red-soft: #F7E4E1;
+  --radius: 10px;
+  --font-serif: 'Fraunces', serif;
+  --font-sans: 'Inter', sans-serif;
+}
+
+@theme {
+  --color-ink: #152131;
+  --color-ink-soft: #5C6B66;
+  --color-ink-faint: #8B9893;
+  --color-paper: #EDF1EF;
+  --color-paper-raise: #FFFFFF;
+  --color-line: #DCE3DF;
+  --color-coral: #E8532E;
+  --color-coral-deep: #C13E20;
+  --color-coral-soft: #FBEAE6;
+  --color-garnet: #8A1F1A;
+  --color-teal: #1B6E63;
+  --color-teal-soft: #E3EFEC;
+  --color-amber: #A9741B;
+  --color-amber-soft: #F6EDDD;
+  --color-red: #A93226;
+  --color-red-soft: #F7E4E1;
+  --font-serif: 'Fraunces', serif;
+  --font-sans: 'Inter', sans-serif;
+}
+
+/* ─── Global Shimmer Animation ─── */
 @utility animate-shimmer {
   animation: shimmer 2s infinite linear;
 }
@@ -13,7 +58,7 @@
   }
 }
 
-/* Light paper autofill override */
+/* ─── Global Form Control Autofill Styling ─── */
 input:-webkit-autofill,
 input:-webkit-autofill:hover, 
 input:-webkit-autofill:focus, 
@@ -22,7 +67,7 @@ input:-webkit-autofill:active {
   -webkit-text-fill-color: #152131 !important;
   caret-color: #152131 !important;
   font-family: 'Inter', sans-serif !important;
-  font-size: 14px !important;
+  font-size: 13.5px !important;
   transition: background-color 5000s ease-in-out 0s;
 }
 
@@ -31,10 +76,18 @@ input:focus:-webkit-autofill {
   -webkit-text-fill-color: #152131 !important;
 }
 
-/* Dark mode modal/dark container autofill override */
-.dark input:-webkit-autofill,
-.dark-theme input:-webkit-autofill {
-  -webkit-box-shadow: 0 0 0 1000px #1A1A1A inset !important;
-  -webkit-text-fill-color: #ffffff !important;
-  caret-color: #ffffff !important;
+/* ─── Clean Native Scrollbar ─── */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #EDF1EF;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #DCE3DF;
+  border-radius: 9999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #8B9893;
 }
