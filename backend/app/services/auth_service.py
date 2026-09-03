@@ -382,37 +382,75 @@ class SupabaseAuthService(AuthService):
             if profile.get("account_status") != "active":
                 raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access Denied: Account is disabled or archived")
 
-            # Try authenticating credentials with Supabase
-            credentials = {"password": password}
+            auth_user_id = None
+
+            # --- Method 1: Stateless REST authentication via httpx ---
+            # Bypasses supabase-py gotrue client session state issues in multi-request server environments
+            import httpx
+            supabase_url = os.getenv("SUPABASE_URL", "").strip()
+            anon_key = os.getenv("SUPABASE_ANON_KEY", "").strip()
+            service_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "").strip()
+
+            auth_attempts = []
             if profile.get("email"):
-                credentials["email"] = profile["email"]
-            elif profile.get("phone"):
-                credentials["phone"] = profile["phone"]
-            elif "@" in identifier:
-                credentials["email"] = identifier
-            else:
-                credentials["phone"] = identifier
+                auth_attempts.append({"email": profile["email"].strip().lower()})
+            if "@" in identifier and {"email": identifier.strip().lower()} not in auth_attempts:
+                auth_attempts.append({"email": identifier.strip().lower()})
+            if profile.get("phone"):
+                p = profile["phone"].strip()
+                auth_attempts.append({"phone": p})
+                if p.startswith("63"):
+                    auth_attempts.append({"phone": "+" + p})
+                elif p.startswith("+63"):
+                    auth_attempts.append({"phone": p[1:]})
+                elif p.startswith("09"):
+                    auth_attempts.append({"phone": "+63" + p[1:]})
 
-            res = None
-            try:
-                res = self.client.auth.sign_in_with_password(credentials)
-            except Exception:
-                # If identifier had phone format mismatch, try phone explicitly
-                if profile.get("phone") and profile.get("phone") != credentials.get("phone"):
+            for key_to_use in [anon_key, service_key]:
+                if not key_to_use or auth_user_id:
+                    break
+                for cred in auth_attempts:
                     try:
-                        res = self.client.auth.sign_in_with_password({"phone": profile["phone"], "password": password})
-                    except Exception:
-                        pass
-                if not res and profile.get("email") and profile.get("email") != credentials.get("email"):
-                    try:
-                        res = self.client.auth.sign_in_with_password({"email": profile["email"], "password": password})
-                    except Exception:
-                        pass
+                        headers = {"apikey": key_to_use, "Content-Type": "application/json"}
+                        if key_to_use == service_key:
+                            headers["Authorization"] = f"Bearer {service_key}"
+                        with httpx.Client(timeout=10.0) as http:
+                            resp = http.post(
+                                f"{supabase_url}/auth/v1/token?grant_type=password",
+                                headers=headers,
+                                json={**cred, "password": password}
+                            )
+                        if resp.status_code == 200:
+                            data = resp.json()
+                            user_obj = data.get("user") or {}
+                            if user_obj.get("id"):
+                                auth_user_id = str(user_obj["id"])
+                                break
+                    except Exception as http_err:
+                        print(f"[login] httpx auth attempt error: {http_err}")
 
-            if not res or not hasattr(res, "user") or not res.user:
+            # --- Method 2: Fallback to client.auth.sign_in_with_password ---
+            if not auth_user_id:
+                credentials = {"password": password}
+                if profile.get("email"):
+                    credentials["email"] = profile["email"]
+                elif profile.get("phone"):
+                    credentials["phone"] = profile["phone"]
+                elif "@" in identifier:
+                    credentials["email"] = identifier
+                else:
+                    credentials["phone"] = identifier
+
+                try:
+                    res = self.client.auth.sign_in_with_password(credentials)
+                    if res and hasattr(res, "user") and res.user:
+                        auth_user_id = str(res.user.id)
+                except Exception as client_err:
+                    print(f"[login] client.auth fallback error: {client_err}")
+
+            if not auth_user_id:
                 raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Credentials")
 
-            auth_user_id = str(res.user.id)
             token = create_access_token(data={"user_id": auth_user_id, "role": profile.get("role", "patient")})
             return {
                 "success": True,
@@ -422,7 +460,8 @@ class SupabaseAuthService(AuthService):
             }
         except HTTPException:
             raise
-        except Exception:
+        except Exception as ex:
+            print(f"[login] Unexpected error: {ex}")
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Credentials")
 
     def web_login(self, identifier: str, password: str, remember: bool = False) -> Dict[str, Any]:
