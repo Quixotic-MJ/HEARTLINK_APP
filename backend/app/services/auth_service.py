@@ -373,6 +373,16 @@ class SupabaseAuthService(AuthService):
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Verification failed: {str(e)}")
 
     def login(self, identifier: str, password: str) -> Dict[str, Any]:
+        """
+        Authenticates a user against Supabase GoTrue using a hardened two-tier strategy:
+        1. Tier 1 (Stateless Direct REST): Dispatches HTTPS POST to /auth/v1/token?grant_type=password
+           using httpx with service_key or anon_key. Completely stateless and thread-safe; eliminates
+           in-memory session state corruption across concurrent requests in server environments (e.g. Render).
+           Supports multi-identity accounts with automatic phone normalization (+63, 63, 09).
+        2. Tier 2 (SDK Client Fallback): Falls back to self.client.auth.sign_in_with_password() if REST
+           communication encounters transient network issues.
+        3. Enforces profile account_status == 'active' and returns minted application JWT.
+        """
         try:
             profile_repo = get_profile_repo()
             profile = profile_repo.get_by_identifier(identifier)
@@ -471,7 +481,12 @@ class SupabaseAuthService(AuthService):
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Credentials")
 
     def web_login(self, identifier: str, password: str, remember: bool = False) -> Dict[str, Any]:
-        # Supabase web login verifying role
+        """
+        Specialized web portal authentication endpoint for administrative and clinical staff.
+        Executes credential verification via self.login(), resolves the authenticated profile,
+        and strictly verifies role membership in ['admin', 'medical_expert', 'super_admin'].
+        Rejects patient accounts with HTTP 403 Forbidden.
+        """
         login_res = self.login(identifier, password)
         profile = get_profile_repo().get_by_id(login_res["user_id"])
         if not profile:

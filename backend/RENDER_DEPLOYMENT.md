@@ -158,18 +158,25 @@ curl -X POST "$RENDER_URL/api/upload/" \
 
 ### 4.5 Admin & Medical Expert Workflows
 ```bash
-# 13. Admin Staff Login
-curl -X POST "$RENDER_URL/api/auth/login" \
+# 13. Admin Web Portal Login (Stateless REST GoTrue Authentication)
+curl -X POST "$RENDER_URL/api/auth/web-login" \
   -H "Content-Type: application/json" \
-  -d '{"identifier": "admin@heartlink.ph", "password": "AdminPassword123!"}'
-# Expected: 200 OK (Returns admin token with role="admin")
+  -d '{"identifier": "super.admin@heartlink.ph", "password": "Password123!", "remember": false}'
+# Expected: 200 OK {"success": true, "user_id": "...", "role": "super_admin", "token": "..."}
 
-# 14. Admin Notification Feed
+# 14. Provision New Staff Account (Super Admin only via Supabase Auth Admin REST API)
+curl -X POST "$RENDER_URL/api/admin/staff" \
+  -H "Authorization: Bearer $SUPER_ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Dr. Test Expert", "email": "dr.expert@hospital.ph", "phone": "09170001122", "role": "Authorized Medical Expert", "temporary_password": "TempPass2026!"}'
+# Expected: 200 OK {"status": "success", "message": "...", "staff": {...}}
+
+# 15. Admin Notification Feed (Protected by RLS)
 curl -X GET "$RENDER_URL/api/admin/notifications" \
   -H "Authorization: Bearer $ADMIN_ACCESS_TOKEN"
-# Expected: 200 OK
+# Expected: 200 OK {"items": [], "unread_count": 0, "total": 0}
 
-# 15. Medical Expert Case Review Feed
+# 16. Medical Expert Case Review Feed
 curl -X GET "$RENDER_URL/api/expert/cases" \
   -H "Authorization: Bearer $EXPERT_ACCESS_TOKEN"
 # Expected: 200 OK
