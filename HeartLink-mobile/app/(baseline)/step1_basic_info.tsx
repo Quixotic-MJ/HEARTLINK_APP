@@ -14,10 +14,10 @@ import { Feather } from "@expo/vector-icons";
 import { useToast } from "../../contexts/ToastContext";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { useColorScheme } from "nativewind";
 import { useBaseline } from "../../contexts/BaselineContext";
 import AnimatedButton from "../../components/ui/AnimatedButton";
 import StepProgress from "../../components/ui/StepProgress";
+import HeartLogo from "../../components/ui/HeartLogo";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -39,7 +39,6 @@ interface BaseInputProps {
   keyboardType?: "default" | "numeric" | "decimal-pad";
   maxLength?: number;
   hasError?: boolean;
-  isDark?: boolean;
 }
 
 function FormInput({
@@ -53,7 +52,6 @@ function FormInput({
   keyboardType = "default",
   maxLength,
   hasError = false,
-  isDark = false,
 }: BaseInputProps) {
   const [isFocused, setIsFocused] = useState(false);
   const focusAnim = useSharedValue(0);
@@ -79,29 +77,23 @@ function FormInput({
 
   const animatedContainerStyle = useAnimatedStyle(() => {
     const borderColor = hasError
-      ? "#ef4444"
+      ? "#A93226"
       : isFocused
-      ? isDark
-        ? "#3b82f6"
-        : "#2563eb"
-      : isDark
-      ? "#334155"
-      : "#e2e8f0";
+      ? "#152131"
+      : "#DCE3DF";
 
     return {
       borderColor,
       transform: [{ translateX: shakeAnim.value }],
       shadowColor: hasError
-        ? "#ef4444"
+        ? "#A93226"
         : isFocused
-        ? isDark
-          ? "#3b82f6"
-          : "#2563eb"
+        ? "#152131"
         : "transparent",
-      shadowOpacity: hasError ? 0.2 : focusAnim.value * 0.16,
-      shadowRadius: focusAnim.value * 6,
-      shadowOffset: { width: 0, height: 2 },
-      elevation: hasError ? 2 : focusAnim.value * 2,
+      shadowOpacity: hasError ? 0.15 : focusAnim.value * 0.08,
+      shadowRadius: focusAnim.value * 4,
+      shadowOffset: { width: 0, height: 1 },
+      elevation: hasError ? 1 : focusAnim.value * 1,
     };
   });
 
@@ -109,11 +101,11 @@ function FormInput({
     <View className="mb-4">
       {/* Field Label & Optional Indicator */}
       <View className="flex-row items-center justify-between mb-1.5 ml-0.5">
-        <Text className="text-[13px] font-semibold text-foreground">
+        <Text className="text-[13px] font-semibold text-[#152131]">
           {label}
         </Text>
         {isOptional && (
-          <Text className="text-[12px] font-medium text-muted-foreground">
+          <Text className="text-[12px] font-medium text-[#5C6B66]">
             Optional
           </Text>
         )}
@@ -121,14 +113,14 @@ function FormInput({
 
       <Animated.View
         style={[animatedContainerStyle]}
-        className="h-[52px] rounded-xl border bg-card dark:bg-slate-900 justify-center px-3.5"
+        className="h-[52px] rounded-xl border bg-white justify-center px-3.5"
       >
         <View className="flex-row items-center h-full">
           <TextInput
             value={value}
             onChangeText={onChangeText}
             placeholder={placeholder}
-            placeholderTextColor={isDark ? "#64748b" : "#94a3b8"}
+            placeholderTextColor="#8D9B96"
             onFocus={() => setIsFocused(true)}
             onBlur={() => {
               setIsFocused(false);
@@ -136,10 +128,10 @@ function FormInput({
             }}
             keyboardType={keyboardType}
             maxLength={maxLength}
-            className="flex-1 text-[15px] font-medium text-foreground py-0 h-full"
+            className="flex-1 text-[15px] font-medium text-[#152131] py-0 h-full"
           />
           {unit && (
-            <Text className="text-[13px] text-muted-foreground ml-1 font-semibold">
+            <Text className="text-[13px] text-[#5C6B66] ml-1 font-semibold">
               {unit}
             </Text>
           )}
@@ -157,14 +149,12 @@ function FormDatePicker({
   onPress,
   placeholder = "Select your birth date",
   hasError = false,
-  isDark = false,
 }: {
   label: string;
   value: string;
   onPress: () => void;
   placeholder?: string;
   hasError?: boolean;
-  isDark?: boolean;
 }) {
   const shakeAnim = useSharedValue(0);
 
@@ -181,22 +171,18 @@ function FormDatePicker({
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: shakeAnim.value }],
-    borderColor: hasError
-      ? "#ef4444"
-      : isDark
-      ? "#334155"
-      : "#e2e8f0",
+    borderColor: hasError ? "#A93226" : "#DCE3DF",
   }));
 
   return (
     <View className="mb-4">
-      <Text className="text-[13px] font-semibold text-foreground mb-1.5 ml-0.5">
+      <Text className="text-[13px] font-semibold text-[#152131] mb-1.5 ml-0.5">
         {label}
       </Text>
 
       <Animated.View
         style={animatedStyle}
-        className="h-[52px] rounded-xl border bg-card dark:bg-slate-900 justify-center px-3.5"
+        className="h-[52px] rounded-xl border bg-white justify-center px-3.5"
       >
         <AnimatedButton
           onPress={onPress}
@@ -210,15 +196,15 @@ function FormDatePicker({
             <Feather
               name="calendar"
               size={18}
-              color={hasError ? "#ef4444" : isDark ? "#94a3b8" : "#64748b"}
+              color={hasError ? "#A93226" : "#5C6B66"}
             />
             <Text
               className={`text-[15px] ml-3 ${
                 hasError
-                  ? "text-red-500 font-medium"
+                  ? "text-[#A93226] font-medium"
                   : value
-                  ? "text-foreground font-semibold"
-                  : "text-muted-foreground font-medium"
+                  ? "text-[#152131] font-semibold"
+                  : "text-[#8D9B96] font-medium"
               }`}
             >
               {value
@@ -297,7 +283,7 @@ function SegmentedSexToggle({
   const animatedPressStyle = useAnimatedStyle(() => {
     return {
       transform: [{ scale: pressScale.value }, { translateX: shakeAnim.value }],
-      borderColor: hasError ? "#ef4444" : "rgba(226, 232, 240, 0.6)",
+      borderColor: hasError ? "#A93226" : "#DCE3DF",
     };
   });
 
@@ -311,14 +297,14 @@ function SegmentedSexToggle({
 
   return (
     <View className="mb-4">
-      <Text className="text-[13px] font-semibold text-foreground mb-1.5 ml-0.5">
+      <Text className="text-[13px] font-semibold text-[#152131] mb-1.5 ml-0.5">
         {label}
       </Text>
 
       <Animated.View
         style={animatedPressStyle}
         onLayout={(e) => setContainerWidth(e.nativeEvent.layout.width)}
-        className="h-[52px] p-1 rounded-xl border flex-row relative border-border/60 bg-border/30 dark:bg-slate-800/40"
+        className="h-[52px] p-1 rounded-xl border flex-row relative border-[#DCE3DF] bg-white"
       >
         {/* Sliding Highlight Pill */}
         {pillWidth > 0 && (
@@ -333,7 +319,7 @@ function SegmentedSexToggle({
               },
               animatedSliderStyle,
             ]}
-            className="bg-primary rounded-lg shadow-sm"
+            className="bg-[#E8532E] rounded-lg shadow-xs"
           />
         )}
 
@@ -351,9 +337,7 @@ function SegmentedSexToggle({
         >
           <Text
             className={`text-[14px] font-semibold capitalize ${
-              value === "male"
-                ? "text-white dark:text-white"
-                : "text-muted-foreground"
+              value === "male" ? "text-white" : "text-[#5C6B66]"
             }`}
           >
             Male
@@ -374,9 +358,7 @@ function SegmentedSexToggle({
         >
           <Text
             className={`text-[14px] font-semibold capitalize ${
-              value === "female"
-                ? "text-white dark:text-white"
-                : "text-muted-foreground"
+              value === "female" ? "text-white" : "text-[#5C6B66]"
             }`}
           >
             Female
@@ -390,8 +372,6 @@ function SegmentedSexToggle({
 // ─── Main Step 1 Component ────────────────────────────────────────────────────
 
 export default function Step1BasicInfo() {
-  const { colorScheme } = useColorScheme();
-  const isDark = colorScheme === "dark";
   const router = useRouter();
   const params = useLocalSearchParams();
   const { showToast } = useToast();
@@ -502,8 +482,8 @@ export default function Step1BasicInfo() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
-      <StatusBar style={isDark ? "light" : "dark"} />
+    <SafeAreaView className="flex-1 bg-[#EDF1EF]" edges={["top"]}>
+      <StatusBar style="dark" />
 
       {/* Header */}
       <View className="px-5 pt-4 pb-2.5">
@@ -512,31 +492,27 @@ export default function Step1BasicInfo() {
             onPress={() => router.back()}
             accessibilityRole="button"
             accessibilityLabel="Go back"
-            className="w-9 h-9 rounded-xl bg-card border border-border items-center justify-center mr-3"
+            className="w-10 h-10 rounded-xl bg-white border border-[#DCE3DF] items-center justify-center mr-3 shadow-xs"
           >
             <Feather
               name="arrow-left"
               size={18}
-              color={isDark ? "#f8fafc" : "#0f172a"}
+              color="#152131"
             />
           </AnimatedButton>
           <View className="flex-1">
-            <Text className="text-[11px] font-semibold text-primary uppercase tracking-wider">
+            <Text className="text-[11px] font-semibold text-[#E8532E] uppercase tracking-wider">
               Step 1 of 6
             </Text>
             <Text
-              className="text-xl font-bold text-foreground mt-0.5"
+              className="text-xl font-bold text-[#152131] mt-0.5"
               numberOfLines={1}
             >
               Tell us about yourself
             </Text>
           </View>
-          <View className="w-9 h-9 rounded-full items-center justify-center border border-primary/20 bg-primary/10 ml-2">
-            <Feather
-              name="heart"
-              size={17}
-              color={isDark ? "#60a5fa" : "#2563eb"}
-            />
+          <View className="ml-2">
+            <HeartLogo size={22} />
           </View>
         </View>
         <StepProgress current={1} total={6} />
@@ -559,8 +535,8 @@ export default function Step1BasicInfo() {
         >
           <View className="flex-1">
             {/* Subtitle */}
-            <Text className="text-[14px] text-muted-foreground mb-6 leading-5">
-              Your answers help personalize your health insights.
+            <Text className="text-[14px] text-[#5C6B66] mb-6 leading-relaxed">
+              Your answers help personalize your cardiovascular health insights.
             </Text>
 
             {/* First Name */}
@@ -574,7 +550,6 @@ export default function Step1BasicInfo() {
               onBlur={() => updateData({ first_name: localFirstName.trim() })}
               placeholder="Enter your first name"
               hasError={errorFields.includes("first_name")}
-              isDark={isDark}
             />
 
             {/* Last Name (Optional) */}
@@ -585,7 +560,6 @@ export default function Step1BasicInfo() {
               onChangeText={(t) => setLocalLastName(t)}
               onBlur={() => updateData({ last_name: localLastName.trim() })}
               placeholder="Enter your last name"
-              isDark={isDark}
             />
 
             {/* Date of Birth */}
@@ -600,7 +574,6 @@ export default function Step1BasicInfo() {
                 setShowDatePicker(true);
               }}
               hasError={errorFields.includes("date_of_birth")}
-              isDark={isDark}
             />
 
             {showDatePicker && (
@@ -652,7 +625,6 @@ export default function Step1BasicInfo() {
                   keyboardType="numeric"
                   maxLength={3}
                   hasError={errorFields.includes("height")}
-                  isDark={isDark}
                 />
               </View>
 
@@ -672,7 +644,6 @@ export default function Step1BasicInfo() {
                   keyboardType="numeric"
                   maxLength={3}
                   hasError={errorFields.includes("weight")}
-                  isDark={isDark}
                 />
               </View>
             </View>
@@ -682,9 +653,9 @@ export default function Step1BasicInfo() {
               <Feather
                 name="shield"
                 size={13}
-                color={isDark ? "#64748b" : "#94a3b8"}
+                color="#5C6B66"
               />
-              <Text className="text-[12px] text-muted-foreground ml-1.5">
+              <Text className="text-[12px] text-[#5C6B66] ml-1.5">
                 Your health data is private and securely encrypted
               </Text>
             </View>
@@ -694,14 +665,9 @@ export default function Step1BasicInfo() {
 
       {/* Anchored Bottom CTA */}
       <View
-        className="px-5 pt-3.5 bg-card dark:bg-slate-900 border-t border-border/80 shadow-md"
+        className="px-5 pt-3.5 bg-[#EDF1EF] border-t border-[#DCE3DF]"
         style={{
           paddingBottom: Math.max(insets.bottom + 16, 32),
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: isDark ? 0.2 : 0.05,
-          shadowRadius: 4,
-          elevation: 5,
         }}
       >
         <Animated.View style={animatedButtonStyle}>
@@ -711,9 +677,9 @@ export default function Step1BasicInfo() {
             onPressOut={handleBtnPressOut}
             accessibilityRole="button"
             accessibilityLabel="Proceed to next step"
-            className="h-[52px] rounded-2xl items-center justify-center flex-row shadow-sm bg-primary"
+            className="h-[52px] rounded-2xl items-center justify-center flex-row shadow-sm bg-[#E8532E]"
           >
-            <Text className="text-[16px] font-bold text-primary-foreground">
+            <Text className="text-[16px] font-bold text-white">
               Next Step
             </Text>
             <Feather

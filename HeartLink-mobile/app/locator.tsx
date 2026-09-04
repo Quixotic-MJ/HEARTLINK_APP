@@ -161,16 +161,38 @@ export default function LocatorScreen() {
         const data = await response.json();
         
         const currentHour = new Date().getHours();
-        const isOpen = currentHour >= 8 && currentHour < 17; // Mock hours 8am-5pm
 
         // Calculate distance and map data
         const processedClinics = data.map((clinic: any) => {
           const dist = getDistance(userLat, userLon, clinic.latitude, clinic.longitude);
+          
+          // Major medical institutes & hospital emergency departments operate 24/7
+          const isHospitalOrEmergency = 
+            clinic.name?.toLowerCase().includes("hospital") || 
+            clinic.name?.toLowerCase().includes("institute") ||
+            clinic.specialty?.toLowerCase().includes("emergency") ||
+            clinic.operating_hours === "24/7";
+
+          let isOpen = true;
+          let statusText = "Open now";
+
+          if (isHospitalOrEmergency) {
+            isOpen = true;
+            statusText = "24/7 Emergency";
+          } else if (clinic.operating_hours) {
+            statusText = clinic.operating_hours;
+            isOpen = true;
+          } else {
+            // Standard daytime clinic hours (8:00 AM - 5:00 PM)
+            isOpen = currentHour >= 8 && currentHour < 17;
+            statusText = isOpen ? "Open now" : "Closed";
+          }
+
           return {
             ...clinic,
             distance: dist.toFixed(1) + " km",
             isOpen: isOpen,
-            status: isOpen ? "Open now" : "Closed"
+            status: statusText
           };
         });
 

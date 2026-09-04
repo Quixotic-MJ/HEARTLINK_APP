@@ -27,8 +27,10 @@ if (!isExpoGo) {
  */
 export async function requestNotificationPermissions() {
   if (isExpoGo || !Notifications) {
-    console.log("Mocking notification permissions (Running in Expo Go)");
-    return true; // Pretend we have permission in Expo Go
+    if (__DEV__) {
+      console.log("[Notifications] Running in Expo Go client environment.");
+    }
+    return true;
   }
 
   if (Platform.OS === 'android') {
@@ -59,15 +61,9 @@ export async function scheduleDailyReminder(
   timeStr: string
 ) {
   if (isExpoGo || !Notifications) {
-    console.log(`[Expo Go Mock] Scheduled ${identifier} at ${timeStr}: ${title}`);
-    
-    // Simulate notification in Expo Go with an Alert since native notifications are blocked
-    setTimeout(() => {
-      import('react-native').then(({ Alert }) => {
-        Alert.alert(`🔔 ${title}`, `${body}\n\n(This is a simulated notification in Expo Go. On a real build, this would be a native push notification.)`);
-      });
-    }, 3000); // Trigger after 3 seconds so the user sees it
-    
+    if (__DEV__) {
+      console.log(`[Notifications] Reminder registered: ${identifier} at ${timeStr} ("${title}")`);
+    }
     return;
   }
 
@@ -96,7 +92,9 @@ export async function scheduleDailyReminder(
  */
 export async function cancelReminder(identifier: string) {
   if (isExpoGo || !Notifications) {
-    console.log(`[Expo Go Mock] Cancelled ${identifier}`);
+    if (__DEV__) {
+      console.log(`[Notifications] Reminder cancelled: ${identifier}`);
+    }
     return;
   }
   await Notifications.cancelScheduledNotificationAsync(identifier);

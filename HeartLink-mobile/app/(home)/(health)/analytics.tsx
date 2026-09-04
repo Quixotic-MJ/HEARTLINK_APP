@@ -54,8 +54,14 @@ export default function HealthAnalyticsScreen() {
   }
 
   // Get the latest HSS score from history
-  const history = analytics.history || [];
+  const history = Array.isArray(analytics?.history) ? analytics.history : [];
   const latestHSS = history.length > 0 ? history[history.length - 1].score : null;
+
+  // Take the last 7 points for the trend
+  const recentPoints = history.slice(-7);
+  const oldestScore = recentPoints.length > 1 ? recentPoints[0].score : (latestHSS ?? 0);
+  const newestScore = latestHSS ?? 0;
+  const scoreDelta = newestScore - oldestScore;
 
   return (
     <SafeAreaView className="flex-1 bg-white dark:bg-slate-900" edges={["top"]}>
@@ -81,23 +87,16 @@ export default function HealthAnalyticsScreen() {
 
       <ScrollView contentContainerClassName="px-5 pb-10 pt-4" showsVerticalScrollIndicator={false}>
         
-        {/* Time Filters */}
-        <View className="flex-row items-center bg-slate-50 dark:bg-slate-950 p-1.5 rounded-xl border border-slate-200 dark:border-slate-800 mb-6">
-          <TouchableOpacity className="flex-1 bg-white dark:bg-slate-900 py-2 rounded-lg shadow-sm shadow-slate-200 items-center">
-            <Text className="text-[13px] font-bold text-[#1e4ed8]">7-Day</Text>
-          </TouchableOpacity>
-          <TouchableOpacity className="flex-1 py-2 rounded-lg items-center">
-            <Text className="text-[13px] font-medium text-slate-500 dark:text-slate-400">30-Day</Text>
-          </TouchableOpacity>
-        </View>
-
         {/* Tab Filters */}
         <View className="flex-row mb-6 border-b border-slate-100 dark:border-slate-800">
-          <TouchableOpacity className="pb-3 border-b-2 border-[#1e4ed8] mr-6">
+          <View className="pb-3 border-b-2 border-[#1e4ed8] mr-6">
             <Text className="text-[14px] font-bold text-slate-900 dark:text-white">Overview & HSS</Text>
+          </View>
+          <TouchableOpacity className="pb-3" onPress={() => router.push("/(home)/(meals)/daily-diary" as any)}>
+            <Text className="text-[14px] font-medium text-slate-400">Diet & Meals</Text>
           </TouchableOpacity>
-          <TouchableOpacity className="pb-3" onPress={() => router.push("/(home)/health-history" as any)}>
-            <Text className="text-[14px] font-medium text-slate-400">Diet & Biometrics</Text>
+          <TouchableOpacity className="pb-3 ml-6" onPress={() => router.push("/(home)/(health)/exercise-diary" as any)}>
+            <Text className="text-[14px] font-medium text-slate-400">Activity</Text>
           </TouchableOpacity>
         </View>
 
@@ -107,40 +106,58 @@ export default function HealthAnalyticsScreen() {
             <View>
               <Text className="text-[16px] font-bold text-slate-900 dark:text-white">Cardiac Stability</Text>
               <Text className="text-[16px] font-bold text-slate-900 dark:text-white">Score (HSS)</Text>
-              <Text className="text-[12px] text-slate-500 dark:text-slate-400 mt-1">Last 7 days trend analysis</Text>
+              <Text className="text-[12px] text-slate-500 dark:text-slate-400 mt-1">Recent trend analysis</Text>
             </View>
-            <TouchableOpacity 
-               onPress={() => router.push("/(home)/detailed-analytics" as any)}
+            <View 
                className="bg-white dark:bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 flex-row items-center"
             >
-              <View className="w-2 h-2 rounded-full bg-blue-500 mr-2" />
+              <View className={`w-2 h-2 rounded-full mr-2 ${latestHSS && latestHSS >= 80 ? "bg-emerald-500" : latestHSS && latestHSS >= 60 ? "bg-amber-500" : "bg-red-500"}`} />
               <Text className="text-[18px] font-bold text-[#1e4ed8]">{latestHSS !== null ? latestHSS : "Pending"}</Text>
-            </TouchableOpacity>
+            </View>
           </View>
 
-          {/* Placeholder for Chart */}
-          <View className="h-32 mb-4 justify-end border-b border-slate-200 dark:border-slate-800 relative">
-             {/* Fake Line Chart */}
-             <View className="absolute left-0 right-0 bottom-4 h-16 flex-row items-end justify-between px-2">
-                <View className="w-2 bg-blue-400 rounded-full h-8" />
-                <View className="w-2 bg-blue-400 rounded-full h-10" />
-                <View className="w-2 bg-blue-400 rounded-full h-6" />
-                <View className="w-2 bg-blue-400 rounded-full h-12" />
-                <View className="w-2 bg-blue-400 rounded-full h-16" />
-                <View className="w-2 bg-blue-600 rounded-full h-14" />
-             </View>
+          {/* Dynamic Telemetry Chart */}
+          <View className="h-36 mb-4 justify-end border-b border-slate-200 dark:border-slate-800 relative">
+             {recentPoints.length === 0 ? (
+               <View className="items-center justify-center h-full pb-4">
+                 <Text className="text-[12px] text-slate-400">No telemetry recorded yet.</Text>
+               </View>
+             ) : (
+               <View className="absolute left-0 right-0 bottom-2 h-24 flex-row items-end justify-between px-2">
+                 {recentPoints.map((point: any, idx: number) => {
+                   const score = typeof point.score === "number" ? point.score : 0;
+                   const heightPercent = Math.min(100, Math.max(15, Math.round(score)));
+                   const barColor = score >= 80 ? "#10b981" : score >= 60 ? "#f59e0b" : "#ef4444";
+                   return (
+                     <View key={idx} className="items-center flex-1">
+                       <Text className="text-[9px] text-slate-400 font-bold mb-1">{score}</Text>
+                       <View
+                         style={{ height: `${heightPercent}%`, backgroundColor: barColor }}
+                         className="w-4 rounded-t-md"
+                       />
+                     </View>
+                   );
+                 })}
+               </View>
+             )}
           </View>
 
           {/* X Axis labels */}
-          <View className="flex-row justify-between px-2 mb-6">
-            <Text className="text-[9px] font-bold text-slate-400">MON</Text>
-            <Text className="text-[9px] font-bold text-slate-400">TUE</Text>
-            <Text className="text-[9px] font-bold text-slate-400">WED</Text>
-            <Text className="text-[9px] font-bold text-slate-400">THU</Text>
-            <Text className="text-[9px] font-bold text-slate-400">FRI</Text>
-            <Text className="text-[9px] font-bold text-slate-400">SAT</Text>
-            <Text className="text-[9px] font-bold text-[#1e4ed8]">SUN</Text>
-          </View>
+          {recentPoints.length > 0 && (
+            <View className="flex-row justify-between px-2 mb-6">
+              {recentPoints.map((point: any, idx: number) => {
+                const dateObj = point.computed_at ? new Date(point.computed_at) : new Date();
+                const dayLabel = isNaN(dateObj.getTime())
+                  ? `D${idx + 1}`
+                  : dateObj.toLocaleDateString("en-US", { weekday: "short" }).toUpperCase();
+                return (
+                  <Text key={idx} className="text-[9px] font-bold text-slate-400 text-center flex-1">
+                    {dayLabel}
+                  </Text>
+                );
+              })}
+            </View>
+          )}
 
           {/* Legend */}
           <View className="flex-row justify-between">
@@ -160,15 +177,47 @@ export default function HealthAnalyticsScreen() {
         </View>
 
         {/* ── Smart Insights ── */}
-        <View className="bg-[#1e4ed8] rounded-3xl p-5 shadow-sm shadow-blue-500/30">
+        <View className="bg-[#1e4ed8] rounded-3xl p-5 shadow-sm shadow-blue-500/30 mb-6">
           <View className="flex-row items-center mb-3">
             <MaterialCommunityIcons name="auto-fix" size={18} color="#93c5fd" />
             <Text className="text-[14px] font-bold text-white ml-2">Smart Insights</Text>
           </View>
           <Text className="text-[14px] text-blue-50 leading-relaxed">
-            "Your stability score improved by <Text className="font-bold text-white">5 points</Text> this week. Your consistent medication tracking and mild symptom reports contributed to this."
+            {latestHSS !== null ? (
+              scoreDelta > 0 ? (
+                <>Your stability score improved by <Text className="font-bold text-white">+{scoreDelta} points</Text> across your recent check-in readings.</>
+              ) : scoreDelta < 0 ? (
+                <>Your stability score changed by <Text className="font-bold text-white">{scoreDelta} points</Text>. Review medication and symptoms in your check-in logs.</>
+              ) : (
+                <>Your stability score is holding steady at <Text className="font-bold text-white">{latestHSS}</Text>. Continue consistent daily tracking.</>
+              )
+            ) : (
+              "Log daily symptoms, vitals, and meals to generate tailored cardiac insights and trend analysis."
+            )}
           </Text>
         </View>
+
+        {/* ── Link to 6-Month Heatmap ── */}
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={() => router.push("/(home)/(profile)/analytics" as any)}
+          className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl flex-row items-center justify-between"
+        >
+          <View className="flex-row items-center gap-3">
+            <View className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-slate-800 items-center justify-center">
+              <Feather name="calendar" size={18} color="#2563eb" />
+            </View>
+            <View>
+              <Text className="text-[14px] font-semibold text-slate-900 dark:text-white">
+                Long-Term Heatmap
+              </Text>
+              <Text className="text-[12px] text-slate-500 dark:text-slate-400">
+                View 6-month check-in streaks & telemetry
+              </Text>
+            </View>
+          </View>
+          <Feather name="chevron-right" size={18} color="#94a3b8" />
+        </TouchableOpacity>
         
       </ScrollView>
     </SafeAreaView>

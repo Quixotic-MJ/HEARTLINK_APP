@@ -16,9 +16,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useColorScheme } from "nativewind";
 import Animated, { 
-  FadeIn, 
   FadeInDown, 
   useSharedValue, 
   useAnimatedStyle, 
@@ -28,6 +26,7 @@ import Animated, {
 import "../../global.css";
 import { useUser } from "../../contexts/UserContext";
 import { Button } from "../../components/ui/Button";
+import HeartLogo from "../../components/ui/HeartLogo";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -38,8 +37,6 @@ const verifyOtpSchema = z.object({
 type VerifyOtpFormValues = z.infer<typeof verifyOtpSchema>;
 
 export default function OTPVerificationScreen() {
-  const { colorScheme } = useColorScheme();
-  const isDark = colorScheme === "dark";
   const router = useRouter();
   const { phone } = useLocalSearchParams();
   const { setUserId } = useUser();
@@ -185,24 +182,25 @@ export default function OTPVerificationScreen() {
   const isComplete = otp.join("").length === 6;
 
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
-      <StatusBar style={isDark ? "light" : "dark"} />
+    <SafeAreaView className="flex-1 bg-[#EDF1EF]" edges={["top", "bottom"]}>
+      <StatusBar style="dark" />
 
       {/* ── Top Bar ── */}
-      <View className="px-5 pt-4 pb-3 flex-row items-center justify-between">
+      <View className="px-5 pt-3 pb-2 flex-row items-center justify-between">
         <TouchableOpacity
           onPress={() => router.back()}
-          className="w-9 h-9 rounded-xl bg-card border border-border items-center justify-center"
+          className="w-10 h-10 rounded-xl bg-white border border-[#DCE3DF] items-center justify-center shadow-xs"
           activeOpacity={0.7}
+          accessible={true}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
-          <Feather name="arrow-left" size={18} color={isDark ? "#f8fafc" : "#0f172a"} />
+          <Feather name="arrow-left" size={18} color="#152131" />
         </TouchableOpacity>
-        <View className="flex-row items-center gap-2.5">
-          <View className="w-8 h-8 rounded-full items-center justify-center border border-border bg-card shadow-sm">
-            <Feather name="heart" size={14} color={isDark ? "#f8fafc" : "#0f172a"} />
-          </View>
-          <Text className="text-[15px] text-foreground tracking-tight" style={{ fontWeight: "300" }}>
-            Heart<Text style={{ fontWeight: "600" }}>Link.</Text>
+        <View className="flex-row items-center gap-2">
+          <HeartLogo size={22} />
+          <Text className="text-base text-[#152131] font-semibold tracking-tight">
+            HeartLink
           </Text>
         </View>
       </View>
@@ -217,17 +215,17 @@ export default function OTPVerificationScreen() {
           keyboardShouldPersistTaps="handled"
         >
           {/* ── Card ── */}
-          <Animated.View entering={FadeInDown.delay(200).springify()} className="bg-card rounded-2xl border border-border px-5 py-7 gap-5 shadow-md mt-4">
+          <Animated.View entering={FadeInDown.delay(200).springify().damping(12).stiffness(90)} className="bg-white rounded-2xl border border-[#DCE3DF] px-5 py-7 gap-5 shadow-sm mt-4">
             {/* Icon + heading */}
             <View className="items-center mb-2">
-              <View className="w-14 h-14 rounded-2xl items-center justify-center mb-4 bg-primary/10 border border-primary/20">
-                <Feather name="smartphone" size={24} color={isDark ? "#3b82f6" : "#2563eb"} />
+              <View className="w-14 h-14 rounded-2xl items-center justify-center mb-4 bg-[#E8532E]/15 border border-[#E8532E]/25">
+                <Feather name="smartphone" size={24} color="#E8532E" />
               </View>
-              <Text className="text-2xl font-bold text-foreground tracking-tight mb-2 text-center">
+              <Text className="text-2xl font-semibold text-[#152131] tracking-tight mb-2 text-center">
                 Verify your account
               </Text>
-              <Text className="text-sm text-muted-foreground text-center leading-relaxed px-2">
-                We've sent a 6-digit code to <Text className="font-semibold text-foreground">{(phone as string) || "+63 912 345 6789"}</Text>.
+              <Text className="text-sm text-[#5C6B66] text-center leading-relaxed px-2">
+                We've sent a 6-digit code to <Text className="font-semibold text-[#152131]">{(phone as string) || "+63 912 345 6789"}</Text>.
               </Text>
             </View>
 
@@ -235,12 +233,8 @@ export default function OTPVerificationScreen() {
             <View className="flex-row justify-between gap-2 my-2">
               {otp.map((digit, index) => {
                 const isFilled = digit !== "";
-                const boxBorder = isFilled 
-                  ? (isDark ? "#3b82f6" : "#2563eb") 
-                  : (isDark ? "#334155" : "#e2e8f0");
-                const boxBg = isFilled 
-                  ? (isDark ? "rgba(59, 130, 246, 0.12)" : "rgba(37, 99, 235, 0.06)") 
-                  : (isDark ? "rgba(15, 23, 42, 0.6)" : "rgba(248, 250, 252, 0.9)");
+                const boxBorder = isFilled ? "#152131" : "#DCE3DF";
+                const boxBg = isFilled ? "#FFFFFF" : "#F8FAF9";
 
                 return (
                   <TextInput
@@ -252,7 +246,7 @@ export default function OTPVerificationScreen() {
                     keyboardType="number-pad"
                     maxLength={1}
                     selectTextOnFocus
-                    className="flex-1 aspect-square rounded-xl border text-center text-2xl font-semibold text-foreground p-0"
+                    className="flex-1 aspect-square rounded-xl border text-center text-2xl font-semibold text-[#152131] p-0"
                     style={[
                       { borderColor: boxBorder, backgroundColor: boxBg },
                       Platform.OS === "android" ? { includeFontPadding: false, textAlignVertical: "center" } : { textAlignVertical: "center" }
@@ -266,10 +260,12 @@ export default function OTPVerificationScreen() {
             {(generalError || errors.code) && (
               <Animated.View 
                 style={errorAnimatedStyle}
-                className="bg-destructive/15 border border-destructive/40 rounded-xl p-3.5 flex-row items-center gap-2 mt-1 mb-1"
+                className="bg-[#A93226]/10 border border-[#A93226]/30 rounded-xl p-3.5 flex-row items-center gap-2 mt-1 mb-1"
+                accessible={true}
+                accessibilityRole="alert"
               >
-                <Feather name="alert-triangle" size={16} color="#ef4444" />
-                <Text className="text-destructive text-xs flex-1 font-medium">
+                <Feather name="alert-triangle" size={16} color="#A93226" />
+                <Text className="text-[#A93226] text-xs font-medium flex-1">
                   {generalError || errors.code?.message}
                 </Text>
               </Animated.View>
@@ -288,8 +284,8 @@ export default function OTPVerificationScreen() {
             {/* Resend Code */}
             <View className="items-center mt-3">
               {timer > 0 ? (
-                <Text className="text-sm text-muted-foreground">
-                  Resend code in <Text className="font-semibold text-foreground">{formatTime(timer)}</Text>
+                <Text className="text-sm text-[#5C6B66]">
+                  Resend code in <Text className="font-semibold text-[#152131]">{formatTime(timer)}</Text>
                 </Text>
               ) : (
                 <TouchableOpacity
@@ -297,13 +293,15 @@ export default function OTPVerificationScreen() {
                   disabled={isResending}
                   className="flex-row items-center gap-1.5 py-2 px-4"
                   activeOpacity={0.7}
+                  accessible={true}
+                  accessibilityRole="button"
                 >
                   {isResending ? (
-                    <ActivityIndicator size="small" color={isDark ? "#3b82f6" : "#2563eb"} />
+                    <ActivityIndicator size="small" color="#E8532E" />
                   ) : (
                     <>
-                      <Feather name="refresh-cw" size={14} color={isDark ? "#3b82f6" : "#2563eb"} />
-                      <Text className="text-sm font-semibold text-primary">
+                      <Feather name="refresh-cw" size={14} color="#E8532E" />
+                      <Text className="text-sm font-semibold text-[#E8532E]">
                         Resend code
                       </Text>
                     </>

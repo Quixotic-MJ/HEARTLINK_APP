@@ -45,178 +45,6 @@ export interface Recipe {
   steps: string[];
 }
 
-// ─── User Baseline ────────────────────────────────────────────────────────────
-
-const USER_CONDITIONS = ["Hypertension"];
-
-// ─── Recipe Data ──────────────────────────────────────────────────────────────
-
-const RECIPES: Recipe[] = [
-  {
-    id: "1",
-    title: "Grilled Bangus with Citrus & Garlic",
-    subtitle: "Classic Filipino milkfish, heart-healthy style",
-    prepTime: 35,
-    servings: 2,
-    difficulty: "Medium",
-    image: "https://images.unsplash.com/photo-1580476262798-bddd9f4b7369?w=400&h=300&fit=crop",
-    tags: ["Low Sodium", "High Protein", "Filipino"],
-    heartBenefit: "Calamansi and garlic provide robust flavor without the need for excess salt, making it ideal for blood pressure management.",
-    nutrition: { sodium: 95, fiber: 2, saturatedFat: 2, calories: 280 },
-    ingredients: [
-      { qty: "1 whole", item: "Bangus (milkfish), butterflied" },
-      { qty: "4 cloves", item: "Garlic, minced" },
-      { qty: "2 tbsp", item: "Fresh calamansi juice" },
-      { qty: "1 tbsp", item: "Olive oil" },
-      { qty: "1/2 tsp", item: "Black pepper" },
-      { qty: "1/4 tsp", item: "Sea salt" },
-      { qty: "1 cup", item: "Tomato and onion salsa" },
-    ],
-    steps: [
-      "Butterfly the bangus and remove the bones. Rinse and pat dry with paper towels.",
-      "Combine garlic, calamansi juice, olive oil, salt, and pepper in a bowl. Marinate bangus for 15 minutes.",
-      "Preheat grill to medium-high heat. Brush grates with a light coat of oil.",
-      "Grill bangus skin-side down for 5 minutes, then flip and cook for another 4 minutes until flaky.",
-      "Serve with fresh tomato-onion salsa and a squeeze of calamansi on top.",
-    ],
-  },
-  {
-    id: "2",
-    title: "Malunggay & Corn Soup",
-    subtitle: "Nutrient-packed Filipino moringa soup",
-    prepTime: 20,
-    servings: 4,
-    difficulty: "Easy",
-    image: "https://images.unsplash.com/photo-1547592166-23ac45744acd?w=400&h=300&fit=crop",
-    tags: ["Low Sodium", "High Fiber", "Filipino"],
-    heartBenefit: "Malunggay is packed with antioxidants and essential nutrients that help reduce inflammation and lower blood pressure.",
-    nutrition: { sodium: 65, fiber: 6, saturatedFat: 1, calories: 120 },
-    ingredients: [
-      { qty: "2 cups", item: "Malunggay (moringa) leaves, stripped" },
-      { qty: "2 ears", item: "Sweet corn, cut into rounds" },
-      { qty: "4 cups", item: "Low-sodium chicken broth" },
-      { qty: "1 thumb", item: "Ginger, sliced" },
-      { qty: "1 medium", item: "Onion, quartered" },
-      { qty: "1 tbsp", item: "Fish sauce (low-sodium)" },
-    ],
-    steps: [
-      "Bring low-sodium chicken broth to a boil in a pot. Add ginger and onion.",
-      "Add corn rounds and simmer for 8 minutes until tender.",
-      "Season with low-sodium fish sauce. Taste and adjust.",
-      "Add malunggay leaves in the last 2 minutes of cooking — don't overcook.",
-      "Serve hot as a light main course or hearty side dish.",
-    ],
-  },
-  {
-    id: "3",
-    title: "Oatmeal with Fresh Mango",
-    subtitle: "Fiber-rich breakfast with tropical fruit",
-    prepTime: 10,
-    servings: 1,
-    difficulty: "Easy",
-    image: "https://images.unsplash.com/photo-1517673400267-0251440c45dc?w=400&h=300&fit=crop",
-    tags: ["Low Sodium", "High Fiber", "Breakfast"],
-    heartBenefit: "Oats are rich in soluble fiber which binds to cholesterol and helps clear it from your bloodstream.",
-    nutrition: { sodium: 15, fiber: 8, saturatedFat: 3, calories: 310 },
-    ingredients: [
-      { qty: "1/2 cup", item: "Rolled oats" },
-      { qty: "1 cup", item: "Water or unsweetened almond milk" },
-      { qty: "1/2 cup", item: "Fresh ripe mango, diced" },
-      { qty: "1 tbsp", item: "Chia seeds" },
-      { qty: "1 tsp", item: "Raw honey" },
-      { qty: "Pinch", item: "Cinnamon" },
-    ],
-    steps: [
-      "Combine oats and water (or almond milk) in a pot. Bring to a gentle boil.",
-      "Reduce heat and stir for 3–4 minutes until creamy.",
-      "Transfer to a bowl. Top with diced mango and chia seeds.",
-      "Drizzle with honey and dust with cinnamon. Serve immediately.",
-    ],
-  },
-  {
-    id: "4",
-    title: "Tinolang Manok",
-    subtitle: "Filipino classic with green papaya & chili leaves",
-    prepTime: 40,
-    servings: 4,
-    difficulty: "Easy",
-    image: "https://images.unsplash.com/photo-1604152135912-04a022e23696?w=400&h=300&fit=crop",
-    tags: ["Low Sodium", "High Potassium", "Filipino"],
-    heartBenefit: "Green papaya and ginger support digestion and provide anti-inflammatory benefits without relying on saturated fats.",
-    nutrition: { sodium: 110, fiber: 3, saturatedFat: 4, calories: 220 },
-    ingredients: [
-      { qty: "500g", item: "Chicken thigh, cut into pieces" },
-      { qty: "1 thumb", item: "Ginger, sliced into strips" },
-      { qty: "1 medium", item: "Green papaya, cubed" },
-      { qty: "1 cup", item: "Chili pepper leaves (dahon ng sili)" },
-      { qty: "1 medium", item: "Onion, quartered" },
-      { qty: "1 tbsp", item: "Fish sauce (low-sodium)" },
-      { qty: "6 cups", item: "Water" },
-    ],
-    steps: [
-      "Sauté ginger and onion in a pot with a little oil until fragrant, about 2 minutes.",
-      "Add chicken pieces and cook until lightly browned on all sides.",
-      "Pour in water and bring to a boil. Skim off any foam.",
-      "Add green papaya and simmer for 10 minutes until fork-tender.",
-      "Season with low-sodium fish sauce. Add chili leaves, cook 1 more minute, then serve.",
-    ],
-  },
-  {
-    id: "5",
-    title: "Ensaladang Talong",
-    subtitle: "Smoky grilled eggplant with tomato vinaigrette",
-    prepTime: 15,
-    servings: 2,
-    difficulty: "Easy",
-    image: "https://images.unsplash.com/photo-1615870216519-2f9fa575fa5c?w=400&h=300&fit=crop",
-    tags: ["Low Sodium", "High Fiber", "Filipino"],
-    heartBenefit: "Eggplants contain flavonoids like anthocyanins, which are proven to improve heart health and lower the risk of heart disease.",
-    nutrition: { sodium: 45, fiber: 7, saturatedFat: 0, calories: 90 },
-    ingredients: [
-      { qty: "2 large", item: "Eggplants" },
-      { qty: "2 medium", item: "Tomatoes, diced" },
-      { qty: "1 small", item: "Red onion, sliced thin" },
-      { qty: "2 tbsp", item: "Cane vinegar" },
-      { qty: "1 tsp", item: "Olive oil" },
-      { qty: "Pinch", item: "Salt and pepper" },
-    ],
-    steps: [
-      "Grill whole eggplants over open flame or broiler until charred and soft, about 8 minutes, turning occasionally.",
-      "Peel off the skin under running water. Flatten on a plate with a fork.",
-      "Combine diced tomatoes, red onion, vinegar, and olive oil.",
-      "Spoon the tomato mixture over the eggplant. Season lightly with salt and pepper.",
-      "Serve at room temperature as a side dish.",
-    ],
-  },
-  {
-    id: "6",
-    title: "Baked Salmon with Herbs",
-    subtitle: "Omega-3 rich fillet with lemon-dill topping",
-    prepTime: 25,
-    servings: 2,
-    difficulty: "Easy",
-    image: "https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=400&h=300&fit=crop",
-    tags: ["Low Sodium", "High Protein", "Omega-3"],
-    heartBenefit: "Rich in Omega-3 fatty acids, salmon helps decrease triglycerides, lowers blood pressure, and reduces the risk of arrhythmias.",
-    nutrition: { sodium: 75, fiber: 1, saturatedFat: 2, calories: 350 },
-    ingredients: [
-      { qty: "2 fillets", item: "Salmon (about 150g each)" },
-      { qty: "1 tbsp", item: "Olive oil" },
-      { qty: "1 tbsp", item: "Fresh dill, chopped" },
-      { qty: "1", item: "Lemon, sliced" },
-      { qty: "2 cloves", item: "Garlic, minced" },
-      { qty: "Pinch", item: "Salt and pepper" },
-    ],
-    steps: [
-      "Preheat oven to 200°C (400°F). Line a baking sheet with parchment paper.",
-      "Place salmon fillets on the sheet. Drizzle with olive oil, season with salt and pepper.",
-      "Top with minced garlic, fresh dill, and lemon slices.",
-      "Bake for 12–15 minutes until salmon is opaque and flakes easily.",
-      "Serve with steamed vegetables or brown rice.",
-    ],
-  },
-];
-
 // ─── Difficulty config (no dynamic className) ─────────────────────────────────
 
 const DIFFICULTY_CONFIG = {
@@ -392,10 +220,29 @@ export default function RecipesScreen() {
   const [savedRecipes, setSavedRecipes] = useState<string[]>([]);
   const [timeMessage, setTimeMessage] = useState<string | null>(null);
   
-  const [recipesList, setRecipesList] = useState<Recipe[]>(RECIPES);
-  const [isLoading, setIsLoading] = useState(false);
+  const [recipesList, setRecipesList] = useState<Recipe[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [isOffline, setIsOffline] = useState(false);
+
+  // Dynamically resolve patient conditions from profile and clinical baselines
+  const userConditions = useMemo(() => {
+    const list: string[] = [];
+    if (user?.conditions && Array.isArray(user.conditions)) {
+      list.push(...user.conditions);
+    }
+    const goals = user?.health_goals || [];
+    if (goals.includes("bp") && !list.includes("Hypertension")) {
+      list.push("Hypertension");
+    }
+    if (goals.includes("cholesterol") && !list.includes("High Cholesterol") && !list.includes("Hyperlipidemia")) {
+      list.push("High Cholesterol");
+    }
+    return list;
+  }, [user]);
+
+  const hasHypertension = userConditions.includes("Hypertension");
+  const hasHighCholesterol = userConditions.includes("High Cholesterol") || userConditions.includes("Hyperlipidemia");
 
   const fetchRecipes = useCallback(async (silent = false) => {
     if (!silent) setIsLoading(true);
@@ -450,6 +297,17 @@ export default function RecipesScreen() {
   }, []);
 
   useEffect(() => {
+    // Read local cache first for immediate offline rendering
+    AsyncStorage.getItem("@recipes_cache").then((cached) => {
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setRecipesList(parsed);
+          }
+        } catch {}
+      }
+    });
     fetchRecipes();
   }, [fetchRecipes]);
 
@@ -481,8 +339,9 @@ export default function RecipesScreen() {
       results = results.filter((r) => savedRecipes.includes(r.id));
     } else if (activeFilter === "Tailored For You") {
       results = results.filter((r) => {
-        if (USER_CONDITIONS.includes("Hypertension") && r.nutrition.sodium >= 140) return false;
-        if (USER_CONDITIONS.includes("High Cholesterol") && r.nutrition.fiber < 5) return false;
+        if (hasHypertension && r.nutrition.sodium >= 140) return false;
+        if (hasHighCholesterol && r.nutrition.fiber < 5) return false;
+        if (!hasHypertension && !hasHighCholesterol && r.nutrition.sodium > 400) return false;
         return true;
       });
     } else if (activeFilter !== "All") {
@@ -500,15 +359,16 @@ export default function RecipesScreen() {
     }
 
     return results;
-  }, [activeFilter, searchQuery, savedRecipes, recipesList]);
+  }, [activeFilter, searchQuery, savedRecipes, recipesList, hasHypertension, hasHighCholesterol]);
 
   const tailoredCount = useMemo(() => {
     return recipesList.filter((r) => {
-      if (USER_CONDITIONS.includes("Hypertension") && r.nutrition.sodium >= 140) return false;
-      if (USER_CONDITIONS.includes("High Cholesterol") && r.nutrition.fiber < 5) return false;
+      if (hasHypertension && r.nutrition.sodium >= 140) return false;
+      if (hasHighCholesterol && r.nutrition.fiber < 5) return false;
+      if (!hasHypertension && !hasHighCholesterol && r.nutrition.sodium > 400) return false;
       return true;
     }).length;
-  }, [recipesList]);
+  }, [recipesList, hasHypertension, hasHighCholesterol]);
 
   return (
     <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950" edges={["top"]}>
@@ -599,9 +459,10 @@ export default function RecipesScreen() {
               <Text className="text-[14px] font-medium text-slate-900 dark:text-white mb-0.5">
                 Filtered for your conditions
               </Text>
-              <Text className="text-[13px] text-slate-500 dark:text-slate-400 dark:text-slate-500 leading-relaxed">
-                {USER_CONDITIONS.includes("Hypertension") && "Showing recipes with < 140 mg sodium. "}
-                {USER_CONDITIONS.includes("High Cholesterol") && "Prioritising high-fiber recipes (≥ 5 g). "}
+              <Text className="text-[13px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                {hasHypertension && "Showing recipes with < 140 mg sodium for blood pressure. "}
+                {hasHighCholesterol && "Prioritising high-fiber recipes (≥ 5 g) for cholesterol. "}
+                {!hasHypertension && !hasHighCholesterol && "Curated heart-healthy meals optimized for cardiac stability. "}
                 Based on your health baseline.
               </Text>
             </View>
@@ -667,5 +528,3 @@ export default function RecipesScreen() {
     </SafeAreaView>
   );
 }
-
-export { RECIPES };

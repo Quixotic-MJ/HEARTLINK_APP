@@ -37,6 +37,16 @@ function sanitizeProfileForCache(profile: any): any {
   return sanitized;
 }
 
+function buildEnrichedUserProfile(data: any): any {
+  if (!data || !data.profile) return data?.profile || null;
+  return {
+    ...data.profile,
+    baselines: data.baselines || null,
+    conditions: data.baselines?.clinical?.diagnosed_conditions || [],
+    care_team: data.care_team || [],
+  };
+}
+
 export function UserProvider({ children }: { children: React.ReactNode }) {
   const [userId, setUserIdState] = useState<string | null>(null);
   const [token, setTokenState] = useState<string | null>(null);
@@ -79,7 +89,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             
             if (response.ok) {
               const data = await response.json();
-              const freshProfile = data.profile;
+              const freshProfile = buildEnrichedUserProfile(data);
               setUser(freshProfile);
               await AsyncStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(sanitizeProfileForCache(freshProfile)));
               
@@ -147,7 +157,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           });
           if (response.ok) {
             const data = await response.json();
-            const freshProfile = data.profile;
+            const freshProfile = buildEnrichedUserProfile(data);
             setUser(freshProfile);
             await AsyncStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(sanitizeProfileForCache(freshProfile)));
           } else {
@@ -183,7 +193,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       });
       if (response.ok) {
         const data = await response.json();
-        const freshProfile = data.profile;
+        const freshProfile = buildEnrichedUserProfile(data);
         setUser(freshProfile);
         await AsyncStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(sanitizeProfileForCache(freshProfile)));
       } else {

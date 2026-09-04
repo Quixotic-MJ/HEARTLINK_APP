@@ -21,15 +21,15 @@ import Animated, {
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useColorScheme } from "nativewind";
 import "../../global.css";
 import { Feather } from "@expo/vector-icons";
+import HeartLogo from "../../components/ui/HeartLogo";
 import { InputField } from "../../components/ui/InputField";
 import { Button } from "../../components/ui/Button";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// ─── Validation Schema ────────────────────────────────────────────────────────
 
 const registerSchema = z.object({
   email: z.string().min(1, "Please fill out this field.").email("Enter a valid email address (e.g., name@example.com)."),
@@ -57,8 +57,6 @@ type RegisterFormValues = z.infer<typeof registerSchema>;
 // ─── Register Screen ──────────────────────────────────────────────────────────
 
 export default function RegisterScreen() {
-  const { colorScheme } = useColorScheme();
-  const isDark = colorScheme === "dark";
   const router = useRouter();
 
   const formatPhoneNumber = (value: string) => {
@@ -182,16 +180,16 @@ export default function RegisterScreen() {
       }
     } catch (error) {
       console.log(error);
-      setGeneralError("An error occurred. Please check your connection.");
+      setGeneralError("Unable to connect to the server. Please check your connection.");
     }
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={["top", "bottom"]}>
-      <StatusBar style={isDark ? "light" : "dark"} />
+    <SafeAreaView className="flex-1 bg-[#EDF1EF]" edges={["top", "bottom"]}>
+      <StatusBar style="dark" />
 
       {/* ── Top Bar ── */}
-      <View className="px-5 pt-2 pb-2 flex-row items-center justify-between">
+      <View className="px-5 pt-3 pb-2 flex-row items-center justify-between">
         <TouchableOpacity
           onPress={() => {
             if (router.canGoBack()) {
@@ -200,17 +198,18 @@ export default function RegisterScreen() {
               router.replace("/onboarding");
             }
           }}
-          className="w-9 h-9 rounded-xl bg-card border border-border items-center justify-center"
+          className="w-10 h-10 rounded-xl bg-white border border-[#DCE3DF] items-center justify-center shadow-xs"
           activeOpacity={0.7}
+          accessible={true}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
-          <Feather name="arrow-left" size={18} color={isDark ? "#f8fafc" : "#0f172a"} />
+          <Feather name="arrow-left" size={18} color="#152131" />
         </TouchableOpacity>
-        <View className="flex-row items-center gap-2.5">
-          <View className="w-8 h-8 rounded-full items-center justify-center border border-border bg-card shadow-sm">
-            <Feather name="heart" size={14} color={isDark ? "#f8fafc" : "#0f172a"} />
-          </View>
-          <Text className="text-[15px] text-foreground tracking-tight" style={{ fontWeight: "300" }}>
-            Heart<Text style={{ fontWeight: "600" }}>Link.</Text>
+        <View className="flex-row items-center gap-2">
+          <HeartLogo size={22} />
+          <Text className="text-base text-[#152131] font-semibold tracking-tight">
+            HeartLink
           </Text>
         </View>
       </View>
@@ -230,25 +229,30 @@ export default function RegisterScreen() {
           keyboardShouldPersistTaps="handled"
         >
           {/* ── Heading ── */}
-          <Animated.View entering={FadeIn.delay(100)} className="mb-5 px-1">
-            <Text className="text-3xl font-bold text-foreground tracking-tight leading-tight mb-1.5">
-              Create your account
+          <Animated.View entering={FadeIn.delay(100)} className="mb-6 px-1">
+            <Text className="text-3xl sm:text-4xl font-semibold text-[#152131] tracking-tight leading-tight mb-2">
+              Create your account.
             </Text>
-            <Text className="text-[14px] text-muted-foreground leading-relaxed">
-              Securely monitor your cardiovascular well-being.
+            <Text className="text-sm sm:text-base text-[#5C6B66] leading-relaxed">
+              Securely track and nurture your cardiovascular wellness.
             </Text>
           </Animated.View>
 
           {/* ── Card ── */}
-          <Animated.View entering={FadeInDown.delay(200).springify()} className="bg-card rounded-2xl border border-border px-5 py-6 gap-3.5 shadow-md">
+          <Animated.View 
+            entering={FadeInDown.delay(200).springify().damping(12).stiffness(90)} 
+            className="bg-white rounded-2xl border border-[#DCE3DF] px-5 py-6 gap-3.5 shadow-sm"
+          >
             {/* General Error Banner */}
             {generalError && (
               <Animated.View 
                 style={errorAnimatedStyle}
-                className="bg-destructive/15 border border-destructive/40 rounded-xl p-3.5 flex-row items-center gap-2"
+                className="bg-[#A93226]/10 border border-[#A93226]/30 rounded-xl p-3.5 flex-row items-center gap-2.5"
+                accessible={true}
+                accessibilityRole="alert"
               >
-                <Feather name="alert-triangle" size={16} color="#ef4444" />
-                <Text className="text-destructive text-xs flex-1 font-medium">
+                <Feather name="alert-triangle" size={16} color="#A93226" />
+                <Text className="text-[#A93226] text-xs sm:text-sm font-medium flex-1 leading-snug">
                   {generalError}
                 </Text>
               </Animated.View>
@@ -264,6 +268,7 @@ export default function RegisterScreen() {
               keyboardType="email-address"
               autoComplete="email"
               textContentType="emailAddress"
+              autoCapitalize="none"
               editable={!isSubmitting}
               onChangeText={(text) => {
                 setValue("email", text, { shouldValidate: false, shouldDirty: true });
@@ -292,8 +297,8 @@ export default function RegisterScreen() {
                 }
               }}
               leftElement={
-                <View className="flex-row items-center border-r border-border pr-3 ml-2 mr-0 self-stretch py-2 my-2">
-                  <Text className="text-base font-semibold text-foreground">
+                <View className="flex-row items-center border-r border-[#DCE3DF] pr-2.5 mr-2 self-stretch py-2 my-1">
+                  <Text className="text-sm sm:text-base font-semibold text-[#152131]">
                     +63
                   </Text>
                 </View>
@@ -308,6 +313,7 @@ export default function RegisterScreen() {
               icon="lock"
               placeholder="Create a password"
               secureTextEntry={!showPassword}
+              autoCapitalize="none"
               editable={!isSubmitting}
               onChangeText={(text) => {
                 setValue("password", text, { shouldValidate: false, shouldDirty: true });
@@ -321,12 +327,15 @@ export default function RegisterScreen() {
                   className="p-2 -mr-2"
                   disabled={isSubmitting}
                   activeOpacity={0.7}
+                  accessible={true}
+                  accessibilityRole="button"
+                  accessibilityLabel={showPassword ? "Hide password" : "Show password"}
                 >
                   <Animated.View style={eyeAnimatedStyle}>
                     <Feather
                       name={showPassword ? "eye" : "eye-off"}
                       size={18}
-                      color={isDark ? (isSubmitting ? "#475569" : "#94a3b8") : (isSubmitting ? "#cbd5e1" : "#64748b")}
+                      color="#5C6B66"
                     />
                   </Animated.View>
                 </TouchableOpacity>
@@ -341,6 +350,7 @@ export default function RegisterScreen() {
               icon="shield"
               placeholder="Confirm your password"
               secureTextEntry={!showConfirmPassword}
+              autoCapitalize="none"
               editable={!isSubmitting}
               onChangeText={(text) => {
                 setValue("confirmPassword", text, { shouldValidate: false, shouldDirty: true });
@@ -354,12 +364,15 @@ export default function RegisterScreen() {
                   className="p-2 -mr-2"
                   disabled={isSubmitting}
                   activeOpacity={0.7}
+                  accessible={true}
+                  accessibilityRole="button"
+                  accessibilityLabel={showConfirmPassword ? "Hide password" : "Show password"}
                 >
                   <Animated.View style={confirmEyeAnimatedStyle}>
                     <Feather
                       name={showConfirmPassword ? "eye" : "eye-off"}
                       size={18}
-                      color={isDark ? (isSubmitting ? "#475569" : "#94a3b8") : (isSubmitting ? "#cbd5e1" : "#64748b")}
+                      color="#5C6B66"
                     />
                   </Animated.View>
                 </TouchableOpacity>
@@ -367,34 +380,34 @@ export default function RegisterScreen() {
             />
 
             {/* Password Validation Hints */}
-            <View className="mb-1 ml-1">
-              <View className="flex-row items-center gap-2 mb-1.5">
+            <View className="mb-1 ml-1 pt-1 gap-2">
+              <View className="flex-row items-center gap-2">
                 <Feather 
                   name={passwordValue.length >= 8 ? "check-circle" : "circle"} 
                   size={14} 
-                  color={passwordValue.length >= 8 ? "#10b981" : (isDark ? "#64748b" : "#94a3b8")} 
+                  color={passwordValue.length >= 8 ? "#1B6E63" : "#8D9B96"} 
                 />
-                <Text className={`text-[13px] ${passwordValue.length >= 8 ? "text-foreground font-medium" : "text-muted-foreground"}`}>
+                <Text className={`text-xs sm:text-[13px] ${passwordValue.length >= 8 ? "text-[#152131] font-medium" : "text-[#5C6B66]"}`}>
                   At least 8 characters
                 </Text>
               </View>
-              <View className="flex-row items-center gap-2 mb-1.5">
+              <View className="flex-row items-center gap-2">
                 <Feather 
                   name={/(?=.*[A-Z])/.test(passwordValue) && /(?=.*[a-z])/.test(passwordValue) ? "check-circle" : "circle"} 
                   size={14} 
-                  color={/(?=.*[A-Z])/.test(passwordValue) && /(?=.*[a-z])/.test(passwordValue) ? "#10b981" : (isDark ? "#64748b" : "#94a3b8")} 
+                  color={/(?=.*[A-Z])/.test(passwordValue) && /(?=.*[a-z])/.test(passwordValue) ? "#1B6E63" : "#8D9B96"} 
                 />
-                <Text className={`text-[13px] ${/(?=.*[A-Z])/.test(passwordValue) && /(?=.*[a-z])/.test(passwordValue) ? "text-foreground font-medium" : "text-muted-foreground"}`}>
-                  Uppercase & lowercase letter
+                <Text className={`text-xs sm:text-[13px] ${/(?=.*[A-Z])/.test(passwordValue) && /(?=.*[a-z])/.test(passwordValue) ? "text-[#152131] font-medium" : "text-[#5C6B66]"}`}>
+                  Uppercase &amp; lowercase letter
                 </Text>
               </View>
               <View className="flex-row items-center gap-2">
                 <Feather 
                   name={/(?=.*\d)/.test(passwordValue) ? "check-circle" : "circle"} 
                   size={14} 
-                  color={/(?=.*\d)/.test(passwordValue) ? "#10b981" : (isDark ? "#64748b" : "#94a3b8")} 
+                  color={/(?=.*\d)/.test(passwordValue) ? "#1B6E63" : "#8D9B96"} 
                 />
-                <Text className={`text-[13px] ${/(?=.*\d)/.test(passwordValue) ? "text-foreground font-medium" : "text-muted-foreground"}`}>
+                <Text className={`text-xs sm:text-[13px] ${/(?=.*\d)/.test(passwordValue) ? "text-[#152131] font-medium" : "text-[#5C6B66]"}`}>
                   At least one number
                 </Text>
               </View>
@@ -413,16 +426,18 @@ export default function RegisterScreen() {
           </Animated.View>
 
           {/* ── Mode toggle ── */}
-          <Animated.View entering={FadeInDown.delay(300).springify()}>
+          <Animated.View entering={FadeInDown.delay(300).springify().damping(12).stiffness(90)}>
             <TouchableOpacity
               activeOpacity={0.65}
               onPress={() => router.replace("/(auth)/login")}
-              className="flex-row justify-center items-center py-4 gap-1.5 mt-5"
+              className="flex-row justify-center items-center py-5 gap-1.5 mt-4"
+              accessible={true}
+              accessibilityRole="button"
             >
-              <Text className="text-sm text-muted-foreground">
+              <Text className="text-sm text-[#5C6B66]">
                 Already have an account?
               </Text>
-              <Text className="text-sm font-bold text-primary">
+              <Text className="text-sm font-semibold text-[#152131]">
                 Log in
               </Text>
             </TouchableOpacity>

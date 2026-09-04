@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, field_validator, model_validator
-from typing import Optional, List, Literal
+from typing import Optional, List, Literal, Any
 from datetime import date
 import re
 
@@ -58,6 +58,31 @@ class BaselineOnboardingRequest(BaseModel):
     # Health Background (Non-ML features)
     allergies: List[str] = []
     dietary_practice: str = "None"
+
+    @model_validator(mode="before")
+    @classmethod
+    def sanitize_conditional_fields(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            # Clean physical activity when false or falsy/zero
+            if not data.get("vigorous_activity"):
+                data["vigorous_days"] = None
+                data["vigorous_minutes"] = None
+            if not data.get("moderate_activity"):
+                data["moderate_days"] = None
+                data["moderate_minutes"] = None
+            if not data.get("walk_bike_transport"):
+                data["walk_bike_days"] = None
+                data["walk_bike_minutes"] = None
+            # Clean smoking when false
+            if not data.get("ever_smoked"):
+                data["smoke_now"] = None
+            # Clean drinking
+            if not data.get("ever_drank") or data.get("drink_frequency") == "Never":
+                data["drinks_per_occasion"] = None
+                data["binge_drinking_freq"] = None
+            elif str(data.get("drinks_per_occasion", "")).strip() in ("0", ""):
+                data["drinks_per_occasion"] = None
+        return data
 
     @model_validator(mode="after")
     def validate_conditional_fields(self):

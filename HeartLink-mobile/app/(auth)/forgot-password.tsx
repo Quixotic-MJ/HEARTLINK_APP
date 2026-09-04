@@ -1,4 +1,3 @@
-import { useColorScheme } from "nativewind";
 import React, { useState } from "react";
 import {
   View,
@@ -12,12 +11,13 @@ import {
 import { useToast } from "../../contexts/ToastContext";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
-import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { InputField } from "../../components/ui/InputField";
+import HeartLogo from "../../components/ui/HeartLogo";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -27,12 +27,7 @@ const forgotPasswordSchema = z.object({
 
 type ForgotPasswordFormValues = z.infer<typeof forgotPasswordSchema>;
 
-// Removed local InputField component in favor of centralized InputField component.
-
-
 export default function ForgotPasswordScreen() {
-  const { colorScheme } = useColorScheme();
-  const isDark = colorScheme === "dark";
   const router = useRouter();
   const { showToast } = useToast();
 
@@ -71,13 +66,13 @@ export default function ForgotPasswordScreen() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ identifier: finalIdentifier }),
       });
-      const data = await response.json();
+      const resData = await response.json();
 
       if (response.ok) {
         showToast({ title: "Link Sent", message: "If this account is registered, you will receive reset instructions shortly.", type: "success" });
         setTimeout(() => router.back(), 1500);
       } else {
-        setGeneralError(data.detail || "Account not found.");
+        setGeneralError(resData.detail || "Account not found.");
       }
     } catch (err) {
       console.log(err);
@@ -88,26 +83,24 @@ export default function ForgotPasswordScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={["top", "bottom"]}>
-      <StatusBar style="auto" />
+    <SafeAreaView className="flex-1 bg-[#EDF1EF]" edges={["top", "bottom"]}>
+      <StatusBar style="dark" />
 
       {/* Header */}
-      <View className="flex-row items-center px-6 pt-4 pb-2">
+      <View className="flex-row items-center justify-between px-5 pt-3 pb-2">
         <TouchableOpacity
           onPress={() => router.back()}
-          className="p-2 -ml-2 mr-4"
+          className="w-10 h-10 rounded-xl bg-white border border-[#DCE3DF] items-center justify-center shadow-xs"
           accessible={true}
           accessibilityRole="button"
           accessibilityLabel="Go back"
         >
-          <Feather name="arrow-left" size={24} className="text-foreground" />
+          <Feather name="arrow-left" size={18} color="#152131" />
         </TouchableOpacity>
         <View className="flex-row items-center gap-2">
-          <View className="w-8 h-8 rounded-full items-center justify-center border border-border bg-card">
-            <Feather name="heart" size={14} className="text-foreground" />
-          </View>
-          <Text className="text-base text-foreground tracking-tight" style={{ fontWeight: "300" }}>
-            Heart<Text style={{ fontWeight: "600" }}>Link.</Text>
+          <HeartLogo size={22} />
+          <Text className="text-base text-[#152131] font-semibold tracking-tight">
+            HeartLink
           </Text>
         </View>
       </View>
@@ -116,27 +109,34 @@ export default function ForgotPasswordScreen() {
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag"
-          contentContainerClassName="flex-grow px-6 pt-4 pb-12"
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          contentContainerStyle={{
+            flexGrow: 1,
+            justifyContent: "center",
+            paddingHorizontal: 20,
+            paddingVertical: 16,
+          }}
           showsVerticalScrollIndicator={false}
           bounces={false}
         >
           {/* ── Heading ── */}
-          <View className="mb-8 mt-2">
-            <Text className="text-3xl font-semibold text-foreground tracking-tight leading-tight mb-2" accessibilityRole="header">
+          <View className="mb-6 px-1">
+            <Text className="text-3xl sm:text-4xl font-semibold text-[#152131] tracking-tight leading-tight mb-2" accessibilityRole="header">
               Forgot password?
             </Text>
-            <Text className="text-sm text-muted-foreground leading-relaxed">
-              Enter your email or phone number to receive a temporary password.
+            <Text className="text-sm sm:text-base text-[#5C6B66] leading-relaxed">
+              Enter your email or phone number to receive instructions for recovering your account.
             </Text>
           </View>
 
           {/* ── Card ── */}
-          <View className="bg-card rounded-3xl border border-border px-5 py-7 gap-5">
+          <View className="bg-white rounded-2xl border border-[#DCE3DF] px-5 py-6 gap-4 shadow-sm">
             {generalError && (
-              <View className="bg-destructive/10 border border-destructive/30 rounded-2xl p-3.5 flex-row items-center gap-2 mt-1" accessible={true} accessibilityRole="alert">
-                <Feather name="alert-triangle" size={16} className="text-destructive" />
-                <Text className="text-destructive text-sm flex-1 font-medium">
+              <View className="bg-[#A93226]/10 border border-[#A93226]/30 rounded-xl p-3.5 flex-row items-center gap-2.5" accessible={true} accessibilityRole="alert">
+                <Feather name="alert-triangle" size={16} color="#A93226" />
+                <Text className="text-[#A93226] text-xs sm:text-sm flex-1 font-medium leading-snug">
                   {generalError}
                 </Text>
               </View>
@@ -147,10 +147,11 @@ export default function ForgotPasswordScreen() {
               <InputField
                 control={control}
                 name="identifier"
-                label="Email or Phone number"
+                label="Email or Phone Number"
                 icon="user"
                 placeholder="Enter your email or phone number"
                 keyboardType="default"
+                autoCapitalize="none"
               />
             </View>
 
@@ -159,14 +160,22 @@ export default function ForgotPasswordScreen() {
               activeOpacity={0.85}
               onPress={handleSubmit(onSubmit)}
               disabled={isSubmitting}
-              className={`w-full bg-primary rounded-2xl py-4 flex-row justify-center items-center gap-2 ${isSubmitting ? 'opacity-80' : ''}`}
+              className={`w-full bg-[#E8532E] rounded-2xl py-4 flex-row justify-center items-center gap-2 mt-1 shadow-sm ${isSubmitting ? 'opacity-80' : ''}`}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel="Reset Password"
             >
               {isSubmitting ? (
-                <ActivityIndicator size="small" color="#fff" />
+                <>
+                  <ActivityIndicator size="small" color="#fff" />
+                  <Text className="text-white text-sm font-semibold tracking-wide">
+                    Sending request...
+                  </Text>
+                </>
               ) : (
                 <>
-                  <Feather name="unlock" size={16} className="text-primary-foreground" />
-                  <Text className="text-primary-foreground text-sm font-semibold">
+                  <Feather name="unlock" size={16} color="#ffffff" />
+                  <Text className="text-white text-sm font-semibold tracking-wide">
                     Reset Password
                   </Text>
                 </>

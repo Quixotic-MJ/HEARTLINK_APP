@@ -48,18 +48,16 @@ export function Button({
   const isDestructive = variant === "destructive";
 
   const buttonBg = isDestructive
-    ? "w-full rounded-2xl py-4 flex-row justify-center items-center gap-2 bg-destructive shadow-sm"
+    ? "w-full rounded-2xl py-4 flex-row justify-center items-center gap-2 bg-[#A93226] shadow-sm"
     : isPrimary
-    ? "w-full rounded-2xl py-4 flex-row justify-center items-center gap-2 bg-primary shadow-sm"
-    : "w-full rounded-2xl py-4 flex-row justify-center items-center gap-2 bg-transparent border border-border";
+    ? "w-full rounded-2xl py-4 flex-row justify-center items-center gap-2 bg-[#E8532E] shadow-sm"
+    : "w-full rounded-2xl py-4 flex-row justify-center items-center gap-2 bg-transparent border border-[#DCE3DF]";
 
-  const textColor = isDestructive
-    ? "text-sm font-semibold text-destructive-foreground"
-    : isPrimary
-    ? "text-sm font-semibold text-primary-foreground"
-    : "text-sm font-semibold text-foreground";
+  const textColor = isDestructive || isPrimary
+    ? "text-sm font-semibold text-white tracking-wide"
+    : "text-sm font-semibold text-[#152131] dark:text-foreground";
 
-  const iconColor = isDestructive || isPrimary ? "#ffffff" : "#0f172a";
+  const iconColor = isDestructive || isPrimary ? "#ffffff" : "#152131";
 
   return (
     <AnimatedPressable
