@@ -24,6 +24,7 @@ export default function CalculatingScreen() {
 
   const [step, setStep] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
+  const isMounted = useRef(true);
 
   const steps = [
     "Analyzing biometrics & lifestyle...",
@@ -36,6 +37,7 @@ export default function CalculatingScreen() {
       Animated.timing(textOpacity, { toValue: 0, duration: 200, useNativeDriver: true }),
       Animated.timing(textTranslateY, { toValue: -8, duration: 200, useNativeDriver: true }),
     ]).start(() => {
+      if (!isMounted.current) return;
       setStep(nextStep);
       textTranslateY.setValue(8);
       Animated.parallel([
@@ -46,6 +48,10 @@ export default function CalculatingScreen() {
   };
 
   useEffect(() => {
+    isMounted.current = true;
+    let timer1: any = null;
+    let timer2: any = null;
+
     // Pulse animation
     const pulseLoop = Animated.loop(
       Animated.sequence([
@@ -58,6 +64,7 @@ export default function CalculatingScreen() {
     // Rotate text every 1.2s
     let currentStep = 0;
     const interval = setInterval(() => {
+      if (!isMounted.current) return;
       if (currentStep < steps.length - 1) {
         currentStep += 1;
         animateStepChange(currentStep);
@@ -155,20 +162,24 @@ export default function CalculatingScreen() {
         }
 
         // Ensure transition display feels natural and rewarding
-        setTimeout(async () => {
+        timer1 = setTimeout(async () => {
+          if (!isMounted.current) return;
           clearInterval(interval);
           pulseLoop.stop();
           setIsComplete(true);
           
           await refreshUser();
+          if (!isMounted.current) return;
           resetData(); // Clean up context
 
-          setTimeout(() => {
+          timer2 = setTimeout(() => {
+            if (!isMounted.current) return;
             router.replace("/(home)/(tabs)/dashboard");
           }, 800);
         }, 3000);
 
       } catch (err: any) {
+        if (!isMounted.current) return;
         clearInterval(interval);
         pulseLoop.stop();
         console.error("Baseline calculation failed:", err);
@@ -184,8 +195,11 @@ export default function CalculatingScreen() {
     submitData();
 
     return () => {
+      isMounted.current = false;
       clearInterval(interval);
       pulseLoop.stop();
+      if (timer1) clearTimeout(timer1);
+      if (timer2) clearTimeout(timer2);
     };
   }, []);
 

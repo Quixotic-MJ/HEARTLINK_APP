@@ -18,8 +18,8 @@ function getScoreTheme(score: number, isDark: boolean): ScoreTheme {
   if (!score || score <= 0) {
     return {
       label: "Score unavailable",
-      ringColor: isDark ? "#475569" : "#cbd5e1",
-      trackColor: isDark ? "#1e293b" : "#f1f5f9",
+      ringColor: isDark ? "#475569" : "#A3B1AC",
+      trackColor: isDark ? "#1e293b" : "#DCE3DF",
       glowColor: "transparent",
       innerGuideColor: isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)",
     };
@@ -27,33 +27,33 @@ function getScoreTheme(score: number, isDark: boolean): ScoreTheme {
   if (score >= 80)
     return {
       label: "Stable",
-      ringColor: isDark ? "#34D399" : "#10B981",
-      trackColor: isDark ? "rgba(16, 185, 129, 0.15)" : "#D1FAE5",
-      glowColor: "#10B981",
-      innerGuideColor: isDark ? "rgba(52, 211, 153, 0.12)" : "rgba(16, 185, 129, 0.1)",
+      ringColor: isDark ? "#2DD4BF" : "#1B6E63",
+      trackColor: isDark ? "rgba(27, 110, 99, 0.25)" : "#E2F1ED",
+      glowColor: "#1B6E63",
+      innerGuideColor: isDark ? "rgba(45, 212, 191, 0.15)" : "rgba(27, 110, 99, 0.12)",
     };
   if (score >= 60)
     return {
       label: "Moderate",
-      ringColor: isDark ? "#FACC15" : "#EAB308",
-      trackColor: isDark ? "rgba(234, 179, 8, 0.15)" : "#FEF9C3",
-      glowColor: "#EAB308",
-      innerGuideColor: isDark ? "rgba(250, 204, 21, 0.12)" : "rgba(234, 179, 8, 0.1)",
+      ringColor: isDark ? "#FBBF24" : "#D97706",
+      trackColor: isDark ? "rgba(217, 119, 6, 0.25)" : "#FEF3C7",
+      glowColor: "#D97706",
+      innerGuideColor: isDark ? "rgba(251, 191, 36, 0.15)" : "rgba(217, 119, 6, 0.12)",
     };
   if (score >= 50)
     return {
       label: "Elevated Risk",
-      ringColor: isDark ? "#FB923C" : "#F97316",
-      trackColor: isDark ? "rgba(249, 115, 22, 0.15)" : "#FFEDD5",
-      glowColor: "#F97316",
-      innerGuideColor: isDark ? "rgba(251, 146, 60, 0.12)" : "rgba(249, 115, 22, 0.1)",
+      ringColor: isDark ? "#FB923C" : "#E8532E",
+      trackColor: isDark ? "rgba(232, 83, 46, 0.25)" : "#FDEEE9",
+      glowColor: "#E8532E",
+      innerGuideColor: isDark ? "rgba(251, 146, 60, 0.15)" : "rgba(232, 83, 46, 0.12)",
     };
   return {
     label: "Critical",
-    ringColor: isDark ? "#F87171" : "#EF4444",
-    trackColor: isDark ? "rgba(239, 68, 68, 0.15)" : "#FEE2E2",
-    glowColor: "#EF4444",
-    innerGuideColor: isDark ? "rgba(248, 113, 113, 0.12)" : "rgba(239, 68, 68, 0.1)",
+    ringColor: isDark ? "#F87171" : "#8A1F1A",
+    trackColor: isDark ? "rgba(138, 31, 26, 0.25)" : "#FBEAE9",
+    glowColor: "#8A1F1A",
+    innerGuideColor: isDark ? "rgba(248, 113, 113, 0.15)" : "rgba(138, 31, 26, 0.12)",
   };
 }
 

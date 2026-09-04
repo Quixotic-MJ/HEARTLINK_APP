@@ -261,15 +261,12 @@ function RecordBottomSheet({
 // ─── Tab Config ───────────────────────────────────────────────────────────────
 
 const TABS = [
-  { name: "dashboard", label: "Home",      icon: "home",                  type: "feather"   },
-  { name: "recipes",   label: "Recipes",   icon: "silverware-fork-knife", type: "material"  },
-  { name: "record",    label: "Record",    icon: "plus",                  type: "feather", isFab: true },
-  { name: "exercises", label: "Exercises", icon: "activity",              type: "feather"   },
-  { name: "wrap-up",   label: "Wrap-Up",   icon: "calendar",              type: "feather"   },
+  { name: "dashboard", label: "Today",   icon: "sun",         type: "feather" },
+  { name: "trends",    label: "Trends",  icon: "trending-up", type: "feather" },
+  { name: "record",    label: "Record",  icon: "plus",        type: "feather", isFab: true },
+  { name: "explore",   label: "Explore", icon: "compass",     type: "feather" },
+  { name: "profile",   label: "Profile", icon: "user",        type: "feather" },
 ] as const;
-
-const ACTIVE_COLOR   = "#2563eb";
-const INACTIVE_COLOR = "#cbd5e1";
 
 // ─── Custom Tab Bar ───────────────────────────────────────────────────────────
 
@@ -278,8 +275,8 @@ function CustomTabBar({ state, navigation, onFabPress }: any) {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
   
-  const ACTIVE_COLOR = isDark ? "#fff" : "#2563eb";
-  const INACTIVE_COLOR = isDark ? "#64748b" : "#cbd5e1";
+  const ACTIVE_COLOR = isDark ? "#fff" : "#E8532E";
+  const INACTIVE_COLOR = isDark ? "#64748b" : "#94a3b8";
 
   return (
     <View
@@ -330,25 +327,25 @@ function CustomTabBar({ state, navigation, onFabPress }: any) {
               <TouchableOpacity
                 onPress={onPress}
                 activeOpacity={0.8}
-                className="bg-primary"
                 style={{
                   position: "absolute",
                   top: -24,
                   width: 56,
                   height: 56,
                   borderRadius: 28,
+                  backgroundColor: "#E8532E",
                   alignItems: "center",
                   justifyContent: "center",
                   borderWidth: 4,
                   borderColor: isDark ? "#0f172a" : "#fff",
                   ...Platform.select({
                     ios: {
-                      shadowColor: "#0f172a",
+                      shadowColor: "#E8532E",
                       shadowOffset: { width: 0, height: 4 },
-                      shadowOpacity: 0.2,
+                      shadowOpacity: 0.35,
                       shadowRadius: 8,
                     },
-                    android: { elevation: 0 },
+                    android: { elevation: 6 },
                   }),
                 }}
               >
@@ -374,16 +371,15 @@ function CustomTabBar({ state, navigation, onFabPress }: any) {
             }}
           >
             {tab.type === "feather" ? (
-              <Feather name={tab.icon as any} size={21} color={color} />
+              <Feather name={tab.icon as any} size={20} color={color} />
             ) : (
-              <MaterialCommunityIcons name={tab.icon as any} size={21} color={color} />
+              <MaterialCommunityIcons name={tab.icon as any} size={20} color={color} />
             )}
             <Text
               style={{
-                fontSize: 9,
+                fontSize: 9.5,
                 color,
-                // Dynamic fontWeight via style — no dynamic className
-                fontWeight: isFocused ? "600" : "400",
+                fontWeight: isFocused ? "700" : "500",
                 letterSpacing: 0.2,
               }}
             >
@@ -415,13 +411,16 @@ export default function TabsLayout() {
         )}
         screenOptions={{ 
           headerShown: false,
-          swipeEnabled: true,
+          swipeEnabled: false,
         }}
       >
         <SwipeableTabs.Screen name="dashboard" />
+        <SwipeableTabs.Screen name="trends" />
+        <SwipeableTabs.Screen name="explore" />
+        <SwipeableTabs.Screen name="profile" />
+        <SwipeableTabs.Screen name="wrap-up" />
         <SwipeableTabs.Screen name="recipes" />
         <SwipeableTabs.Screen name="exercises" />
-        <SwipeableTabs.Screen name="wrap-up" />
       </SwipeableTabs>
 
       <RecordBottomSheet

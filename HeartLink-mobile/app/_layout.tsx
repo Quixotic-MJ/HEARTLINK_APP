@@ -1,5 +1,6 @@
 import { Stack, useRouter, useSegments } from "expo-router";
 import { useEffect } from "react";
+import { LogBox } from "react-native";
 import { useColorScheme } from "nativewind";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import OfflineBanner from "../components/OfflineBanner";
@@ -13,10 +14,16 @@ import {
   ReanimatedLogLevel,
 } from "react-native-reanimated";
 import { useBroadcastListener } from "../hooks/useBroadcastListener";
+
 configureReanimatedLogger({
   level: ReanimatedLogLevel.warn,
   strict: false,
 });
+
+// Suppress known upstream React 19 / Expo Router deep link resolution warning
+LogBox.ignoreLogs([
+  "Can't perform a React state update on a component that hasn't mounted yet",
+]);
 
 function RootLayoutNav() {
   const { userId, user, isLoading } = useUser();
@@ -30,12 +37,22 @@ function RootLayoutNav() {
     if (isLoading) return;
 
     const firstSegment = segments[0] as string | undefined;
-    const inAuthGroup = firstSegment === "(auth)";
-    // segments.length === 0 means we are at the root index.tsx
-    const inOnboarding =
+    const secondSegment = segments[1] as string | undefined;
+
+    // 1. Splash screen: let splash.tsx finish its animations and navigate
+    const isSplash =
       (segments as string[]).length === 0 ||
-      firstSegment === "onboarding" ||
-      firstSegment === "index";
+      firstSegment === "index" ||
+      firstSegment === "splash";
+    if (isSplash) return;
+
+    // 2. Calculating screen: let calculating.tsx complete celebration and navigate
+    const isCalculating =
+      firstSegment === "(baseline)" && secondSegment === "calculating";
+    if (isCalculating) return;
+
+    const inAuthGroup = firstSegment === "(auth)";
+    const inOnboarding = firstSegment === "onboarding";
     const inBaseline = firstSegment === "(baseline)";
 
     if (!userId && !inAuthGroup && !inOnboarding) {

@@ -1,7 +1,12 @@
 # HeartLink Mobile App 🫀
 
 ## App Purpose
-The application aims to monitor and track users' dietary and lifestyle habits and provide personalized recommendations, including food recipes and exercise routines, based on the user's Health Stability Score to support cardiovascular health improvement.
+The application aims to monitor and track users' dietary and lifestyle habits and provide personalized recommendations, including food recipes and exercise routines, based on the user's Health Stability Score (HSS) to support cardiovascular health improvement.
+
+HeartLink is designed to track and prevent heart disease from worsening, notice early warning signs, and remind users to get a timely in-person checkup from a nearby clinic.
+
+> **Academic Capstone & Scope Note:**  
+> HeartLink is an applied undergraduate Capstone Research Project (**Capstone 2 at Cebu Technological University - Main Campus / CTU Main**) developed with a scalable startup vision. The clinics listed in the app are part of a curated public directory to help users locate nearby healthcare facilities and encourage in-person medical checkups; HeartLink has no direct commercial affiliations with these clinics. Independent medical experts and faculty advisors assist the platform solely to audit and calibrate the safety and accuracy of recipes, exercises, and algorithmic scoring. HeartLink is a supportive wellness tool (not a diagnostic medical device) and encourages professional doctor consultations whenever warning indicators arise.
 
 ## Developer Setup Guide
 

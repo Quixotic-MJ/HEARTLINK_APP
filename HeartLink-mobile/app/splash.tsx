@@ -30,7 +30,7 @@ function GlowBlob({ color, size }: { color: string; size: number }) {
 
 export default function SplashScreen() {
   const router = useRouter();
-  const { userId, isLoading } = useUser();
+  const { userId, user, isLoading } = useUser();
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const iconFade = useRef(new Animated.Value(0)).current;
@@ -103,12 +103,19 @@ export default function SplashScreen() {
   useEffect(() => {
     if (animationFinished && !isLoading) {
       if (userId) {
-        router.replace("/(home)/(tabs)/dashboard");
+        if (user && user.onboarding_status === "complete") {
+          router.replace("/(home)/(tabs)/dashboard");
+        } else {
+          router.replace({
+            pathname: "/(baseline)/step1_basic_info",
+            params: { user_id: userId },
+          });
+        }
       } else {
         router.replace("/onboarding");
       }
     }
-  }, [animationFinished, isLoading, userId]);
+  }, [animationFinished, isLoading, userId, user]);
 
   const beatScale = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.1] });
   const glowScale = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.22] });
