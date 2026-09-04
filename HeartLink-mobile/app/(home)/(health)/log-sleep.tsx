@@ -3,9 +3,9 @@ import { View, Text, TouchableOpacity, ScrollView, Alert, ActivityIndicator } fr
 import { useRouter } from "expo-router";
 import { useColorScheme } from "nativewind";
 import { Feather } from "@expo/vector-icons";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { StatusBar } from "expo-status-bar";
 import { useUser } from "../../../contexts/UserContext";
-import { ScreenWrapper } from "../../../components/ui/ScreenWrapper";
-import { Header } from "../../../components/Header";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -60,18 +60,25 @@ export default function LogSleepScreen() {
   };
 
   return (
-    <ScreenWrapper edges={["top"]} withScrollView={false} safeAreaClassName="flex-1 bg-slate-50 dark:bg-slate-950">
-      <Header />
-      <ScrollView contentContainerClassName="p-5 pb-24 md:max-w-2xl lg:max-w-4xl mx-auto w-full">
+    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950" edges={["top"]}>
+      <StatusBar style={isDark ? "light" : "dark"} />
+
+      {/* ── Top Bar ── */}
+      <View className="flex-row items-center px-5 pt-4 pb-3 border-b border-slate-200 dark:border-slate-800/60 bg-white dark:bg-slate-900">
         <TouchableOpacity 
           onPress={() => router.back()}
-          className="w-10 h-10 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full items-center justify-center mb-6"
+          className="w-9 h-9 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 items-center justify-center mr-3"
+          activeOpacity={0.7}
         >
-          <Feather name="arrow-left" size={20} color={isDark ? "#f8fafc" : "#0f172a"} />
+          <Feather name="arrow-left" size={18} color={isDark ? "#f8fafc" : "#0f172a"} />
         </TouchableOpacity>
+        <Text className="flex-1 text-[17px] font-semibold text-slate-900 dark:text-white">
+          Log Sleep
+        </Text>
+      </View>
 
-        <Text className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Log Sleep</Text>
-        <Text className="text-[14px] text-slate-500 mb-8">Record your sleep duration and quality for better insights.</Text>
+      <ScrollView contentContainerClassName="p-5 pb-24 md:max-w-2xl lg:max-w-4xl mx-auto w-full">
+        <Text className="text-[14px] text-slate-500 mb-6">Record your sleep duration and quality for better insights.</Text>
 
         {/* Duration Selection */}
         <View className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 mb-6">
@@ -127,6 +134,6 @@ export default function LogSleepScreen() {
           )}
         </TouchableOpacity>
       </ScrollView>
-    </ScreenWrapper>
+    </SafeAreaView>
   );
 }

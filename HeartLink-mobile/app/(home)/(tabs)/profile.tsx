@@ -1,3 +1,6 @@
+import React from "react";
 import ProfileScreen from "../(profile)/profile";
 
-export default ProfileScreen;
+export default function ProfileTabScreen() {
+  return <ProfileScreen isTab={true} />;
+}

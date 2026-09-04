@@ -87,7 +87,11 @@ export default function ExploreTabScreen() {
 
       {/* Sub-View Render */}
       <View className="flex-1">
-        {activeSegment === "recipes" ? <RecipesScreen /> : <ExercisesScreen />}
+        {activeSegment === "recipes" ? (
+          <RecipesScreen hideHeader isEmbedded />
+        ) : (
+          <ExercisesScreen hideHeader isEmbedded />
+        )}
       </View>
     </SafeAreaView>
   );

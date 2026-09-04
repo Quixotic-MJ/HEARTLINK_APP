@@ -313,7 +313,7 @@ function EditProfileModal({
 
 // ─── Profile Screen ───────────────────────────────────────────────────────────
 
-export default function ProfileScreen() {
+export default function ProfileScreen({ isTab = false }: { isTab?: boolean } = {}) {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
   const router = useRouter();
@@ -541,12 +541,14 @@ export default function ProfileScreen() {
 
       {/* Header */}
       <View className="flex-row items-center px-5 pt-4 pb-3 border-b border-slate-200 dark:border-slate-800/50">
-        <TouchableOpacity
-          onPress={() => router.back()}
-          className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 items-center justify-center mr-3"
-        >
-          <Feather name="arrow-left" size={18} color={isDark ? "#f8fafc" : "#0f172a"} />
-        </TouchableOpacity>
+        {!isTab && (
+          <TouchableOpacity
+            onPress={() => router.back()}
+            className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 items-center justify-center mr-3"
+          >
+            <Feather name="arrow-left" size={18} color={isDark ? "#f8fafc" : "#0f172a"} />
+          </TouchableOpacity>
+        )}
         <Text className="flex-1 text-[17px] font-medium text-slate-900 dark:text-white">
           My profile
         </Text>

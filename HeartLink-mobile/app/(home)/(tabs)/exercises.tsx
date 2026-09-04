@@ -178,7 +178,13 @@ function RoutineCard({
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
-export default function ExercisesScreen() {
+export default function ExercisesScreen({
+  hideHeader = false,
+  isEmbedded = false,
+}: {
+  hideHeader?: boolean;
+  isEmbedded?: boolean;
+} = {}) {
   const router = useRouter();
   const params = useLocalSearchParams<{ completedId?: string; durationSeconds?: string }>();
   const { userId, token } = useUser();
@@ -398,9 +404,14 @@ export default function ExercisesScreen() {
     });
   };
 
+  const Container = isEmbedded ? View : SafeAreaView;
+  const containerProps = isEmbedded
+    ? { className: "flex-1 bg-[#fafaf9]" }
+    : { className: "flex-1 bg-[#fafaf9]", edges: ["top"] as const };
+
   return (
-    <SafeAreaView className="flex-1 bg-[#fafaf9]" edges={["top"]}>
-      <StatusBar style="dark" />
+    <Container {...containerProps}>
+      {!isEmbedded && <StatusBar style="dark" />}
 
       {/* Toast */}
       {toastMessage && (
@@ -425,7 +436,7 @@ export default function ExercisesScreen() {
       )}
 
       {/* ── Top bar ── */}
-      <Header />
+      {!hideHeader && <Header />}
 
       {isLoading && !refreshing ? (
         <View className="px-6 mt-6">
@@ -466,21 +477,36 @@ export default function ExercisesScreen() {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#f43f5e" />
           }
         >
-          <View className="mb-6">
-            <Text className="text-[28px] font-semibold text-slate-900 tracking-tight mb-1">
-              Today's Movement
-            </Text>
-            <Text className="text-[16px] text-slate-500 mb-4">
-              Move safely. Build consistency.
-            </Text>
-            <TouchableOpacity
-              onPress={() => router.push("/(home)/(health)/exercise-diary")}
-              className="bg-white border border-slate-200 px-4 py-2.5 rounded-xl shadow-sm shadow-slate-100 flex-row items-center gap-2 self-start"
-            >
-              <Feather name="calendar" size={16} color="#64748b" />
-              <Text className="text-[13px] font-semibold text-slate-700">History</Text>
-            </TouchableOpacity>
-          </View>
+          {hideHeader ? (
+            <View className="flex-row items-center justify-between mb-4">
+              <Text className="text-[13px] font-semibold text-slate-500">
+                Cardio routines suited for your stability
+              </Text>
+              <TouchableOpacity
+                onPress={() => router.push("/(home)/(health)/exercise-diary")}
+                className="bg-white border border-slate-200 px-3 py-1.5 rounded-xl shadow-xs flex-row items-center gap-1.5"
+              >
+                <Feather name="calendar" size={13} color="#64748b" />
+                <Text className="text-[12px] font-semibold text-slate-700">History</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View className="mb-6">
+              <Text className="text-[28px] font-semibold text-slate-900 tracking-tight mb-1">
+                Today's Movement
+              </Text>
+              <Text className="text-[16px] text-slate-500 mb-4">
+                Move safely. Build consistency.
+              </Text>
+              <TouchableOpacity
+                onPress={() => router.push("/(home)/(health)/exercise-diary")}
+                className="bg-white border border-slate-200 px-4 py-2.5 rounded-xl shadow-sm shadow-slate-100 flex-row items-center gap-2 self-start"
+              >
+                <Feather name="calendar" size={16} color="#64748b" />
+                <Text className="text-[13px] font-semibold text-slate-700">History</Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
           {hssStatus === "Elevated Risk" && (
             <Reanimated.View entering={FadeInDown.springify()} className="bg-rose-50 p-4 rounded-2xl border border-rose-100 flex-row gap-3 mb-8">
@@ -589,6 +615,6 @@ export default function ExercisesScreen() {
           </Reanimated.View>
         </ScrollView>
       )}
-    </SafeAreaView>
+    </Container>
   );
 }
