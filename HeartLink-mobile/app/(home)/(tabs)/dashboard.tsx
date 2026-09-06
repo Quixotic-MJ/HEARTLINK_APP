@@ -22,6 +22,10 @@ import { getCompanionGreeting, CompanionGreetingResult } from "../../../services
 
 import Svg, { Path } from "react-native-svg";
 
+const AnimatedPath = Animated.createAnimatedComponent(Path);
+// Total estimated length of the ECG path (viewBox 300×20)
+const ECG_PATH_LENGTH = 390;
+
 // Import extracted UI components
 import { ScoreRing } from "../../../components/dashboard/ScoreRing";
 import { RecommendationCard } from "../../../components/dashboard/RecommendationCard";
@@ -174,9 +178,9 @@ function getScoreTheme(score: number, isDark: boolean): ScoreTheme {
 
 function getGreeting(name?: string): string {
   const hour = new Date().getHours();
-  let timeStr = "Good morning";
-  if (hour >= 12 && hour < 17) timeStr = "Good afternoon";
-  else if (hour >= 17) timeStr = "Good evening";
+  let timeStr = "Good Morning";
+  if (hour >= 12 && hour < 17) timeStr = "Good Afternoon";
+  else if (hour >= 17) timeStr = "Good Evening";
   return name ? `${timeStr}, ${name}` : timeStr;
 }
 
@@ -258,6 +262,7 @@ export default function DashboardScreen() {
   const isFetchingRef = useRef(false);
   const isNavigatingRef = useRef(false);
   const pulseAnim = useRef(new Animated.Value(1)).current;
+  const ecgAnim = useRef(new Animated.Value(ECG_PATH_LENGTH)).current;
 
   const [isCachedData, setIsCachedData] = useState(false);
 
@@ -413,6 +418,28 @@ export default function DashboardScreen() {
     setData(null);
   }, [userId]);
 
+  // ECG pulse scan animation — loops every 2.5 s
+  useEffect(() => {
+    if (reduceMotion) return;
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(ecgAnim, {
+          toValue: 0,
+          duration: 1800,
+          useNativeDriver: false,
+        }),
+        Animated.delay(700),
+        Animated.timing(ecgAnim, {
+          toValue: ECG_PATH_LENGTH,
+          duration: 0,
+          useNativeDriver: false,
+        }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [reduceMotion]);
+
   const glowOpacity = pulseAnim.interpolate({
     inputRange: [1, 1.03],
     outputRange: [0.2, 0.6],
@@ -511,37 +538,27 @@ export default function DashboardScreen() {
   if (isLoading && !data) {
     return (
       <ScreenWrapper edges={["top"]} withScrollView={false} safeAreaClassName="flex-1 bg-[#EDF1EF] dark:bg-[#101923]">
-        <Header />
+        <Header showProfile={false} />
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerClassName="px-5 pt-3 pb-28 md:max-w-2xl lg:max-w-4xl mx-auto w-full"
         >
-          {/* Greeting + Coach Skeleton */}
-          <View className="mb-3.5">
-            <View className="flex-row items-baseline justify-between mb-2">
-              <Skeleton className="w-48 h-7 rounded-xl bg-[#DCE3DF] dark:bg-slate-800" />
-              <Skeleton className="w-20 h-4 rounded-md bg-[#DCE3DF] dark:bg-slate-800" />
-            </View>
-            <Skeleton className="w-full h-11 rounded-xl bg-[#DCE3DF] dark:bg-slate-800" />
+          {/* Greeting Skeleton */}
+          <View className="mb-4 pt-1">
+            <Skeleton className="w-36 h-4 rounded-md mb-1.5 bg-[#DCE3DF] dark:bg-slate-800" />
+            <Skeleton className="w-48 h-8 rounded-xl bg-[#DCE3DF] dark:bg-slate-800" />
           </View>
 
-          {/* Unified Side-by-Side Hero Card Skeleton */}
-          <View className="bg-white dark:bg-[#1A2634] rounded-2xl border border-[#DCE3DF] dark:border-slate-800 p-5 mb-4 shadow-xs">
-            <View className="flex-row items-center justify-between mb-4 pb-3 border-b border-[#DCE3DF]/60 dark:border-slate-800">
-              <Skeleton className="w-36 h-4 rounded-md bg-[#DCE3DF] dark:bg-slate-800" />
-              <Skeleton className="w-16 h-5 rounded-full bg-[#DCE3DF] dark:bg-slate-800" />
+          {/* Score Ring Hero Card Skeleton */}
+          <View className="bg-white dark:bg-[#1A2634] rounded-3xl border border-[#DCE3DF] dark:border-slate-800 p-5 mb-4 shadow-xs items-center">
+            <Skeleton className="w-40 h-4 rounded-md mb-4 bg-[#DCE3DF] dark:bg-slate-800" />
+            <Skeleton className="w-36 h-36 rounded-full mb-5 bg-[#DCE3DF] dark:bg-slate-800" />
+            <View className="w-full h-4 mb-4 items-center justify-center">
+              <View className="w-full h-[1.5px] bg-[#DCE3DF] dark:bg-slate-800" />
             </View>
-            <View className="flex-row items-center gap-4">
-              {/* Left Circle Ring */}
-              <View className="items-center justify-center">
-                <Skeleton className="w-28 h-28 rounded-full bg-[#DCE3DF] dark:bg-slate-800" />
-                <Skeleton className="w-24 h-4 rounded-md mt-2 bg-[#DCE3DF] dark:bg-slate-800" />
-              </View>
-              {/* Right Stacked Vitals Chips */}
-              <View className="flex-1 gap-2.5">
-                <Skeleton className="w-full h-14 rounded-xl bg-[#DCE3DF] dark:bg-slate-800" />
-                <Skeleton className="w-full h-14 rounded-xl bg-[#DCE3DF] dark:bg-slate-800" />
-              </View>
+            <View className="flex-row gap-3 w-full">
+              <Skeleton className="flex-1 h-28 rounded-2xl bg-[#DCE3DF] dark:bg-slate-800" />
+              <Skeleton className="flex-1 h-28 rounded-2xl bg-[#DCE3DF] dark:bg-slate-800" />
             </View>
           </View>
 
@@ -574,7 +591,7 @@ export default function DashboardScreen() {
   if (error && !data) {
     return (
       <ScreenWrapper edges={["top"]} withScrollView={false} safeAreaClassName="flex-1 bg-[#EDF1EF] dark:bg-[#101923]">
-        <Header />
+        <Header showProfile={false} />
         <View className="flex-1 justify-center items-center px-5">
           <View className="bg-white dark:bg-[#1A2634] rounded-2xl border border-[#DCE3DF] dark:border-slate-800 p-8 items-center w-full max-w-sm shadow-xs">
             <View className="w-14 h-14 rounded-2xl bg-[#8A1F1A]/10 border border-[#8A1F1A]/20 items-center justify-center mb-4">
@@ -641,7 +658,7 @@ export default function DashboardScreen() {
       )}
 
       {/* ── Top bar ── */}
-      <Header unreadCount={data?.unread_notifications_count} />
+      <Header unreadCount={data?.unread_notifications_count} showProfile={false} />
 
       <ScrollView
         contentContainerClassName="pb-28 md:max-w-2xl lg:max-w-4xl mx-auto w-full"
@@ -708,33 +725,14 @@ export default function DashboardScreen() {
           </TactileCard>
         )}
 
-        {/* ── Streamlined Greeting & Tactile Coach Pill ── */}
-        <Reanimated.View entering={FadeIn.duration(240)} className="px-5 pt-2 pb-0.5">
-          <View className="flex-row items-baseline justify-between">
-            <Text className="text-2xl sm:text-3xl font-extrabold text-[#152131] dark:text-white tracking-tight leading-tight flex-1 mr-2" numberOfLines={1} adjustsFontSizeToFit>
-              {getGreeting(data?.user?.first_name || user?.first_name)}
-            </Text>
-            <View className="px-2.5 py-1 rounded-full bg-white/70 dark:bg-slate-800/80 border border-[#DCE3DF] dark:border-slate-700/60 shadow-xs">
-              <Text className="text-[11px] text-[#5C6B66] dark:text-slate-300 font-bold uppercase tracking-wider">
-                {new Date().toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
-              </Text>
-            </View>
-          </View>
-
-          {/* Compact Inline Coach Guidance */}
-          <View className="mt-2.5 bg-white dark:bg-[#1A2634] rounded-xl border border-[#DCE3DF] dark:border-slate-800/80 py-2.5 px-3.5 flex-row items-center gap-2.5 shadow-xs">
-            <View
-              className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${companion?.tone === "caution"
-                  ? "bg-[#A9741B]"
-                  : companion?.tone === "warning"
-                    ? "bg-[#8A1F1A]"
-                    : "bg-[#1B6E63]"
-                }`}
-            />
-            <Text className="text-[12.5px] text-[#152131] dark:text-slate-200 font-medium leading-snug flex-1" numberOfLines={2}>
-              {cleanCoachMessage(companion?.greeting)}
-            </Text>
-          </View>
+        {/* ── Clean 2-Line Greeting ── */}
+        <Reanimated.View entering={FadeIn.duration(240)} className="px-5 pt-3 pb-1">
+          <Text className="text-[13px] sm:text-sm font-medium text-[#5C6B66] dark:text-slate-400 mb-0.5">
+            {getGreeting(data?.user?.first_name || user?.first_name)}
+          </Text>
+          <Text className="text-2xl sm:text-3xl font-bold text-[#152131] dark:text-white tracking-tight">
+            Start your day
+          </Text>
         </Reanimated.View>
 
         {/* ============================================================== */}
@@ -745,143 +743,130 @@ export default function DashboardScreen() {
           className="mx-5 mt-3.5 bg-white dark:bg-[#1A2634] rounded-3xl border border-[#DCE3DF] dark:border-slate-800/80 p-4 sm:p-5"
           style={cardShadowStyle}
         >
-          {/* Card Header & Status Tier Badge */}
-          <View className="flex-row items-center justify-between mb-3.5 pb-3 border-b border-[#DCE3DF]/70 dark:border-slate-800">
-            <View className="flex-row items-center gap-2">
-              <View className="w-6 h-6 rounded-lg bg-[#1B6E63]/10 border border-[#1B6E63]/20 items-center justify-center">
-                <Feather name="shield" size={12} color="#1B6E63" />
-              </View>
-              <Text className="text-[13px] font-bold text-[#152131] dark:text-white tracking-tight">
-                Heart Health Status
-              </Text>
-            </View>
+          {/* Header: • HEART HEALTH · STABLE */}
+          <View className="flex-row items-center justify-center gap-2 pt-1 mb-3">
             <View
-              className="flex-row items-center px-2.5 py-1 rounded-full gap-1.5 border"
-              style={{ backgroundColor: theme.badgeBg, borderColor: theme.badgeBorder }}
-            >
-              <View
-                className="w-1.5 h-1.5 rounded-full"
-                style={{ backgroundColor: theme.dotColor }}
-              />
-              <Text
-                className="text-[11px] font-bold"
-                style={{ color: theme.badgeText }}
-              >
-                {theme.label}
-              </Text>
-            </View>
+              className="w-2 h-2 rounded-full"
+              style={{ backgroundColor: theme.dotColor }}
+            />
+            <Text className="text-[11.5px] font-bold uppercase tracking-widest text-[#2D554D] dark:text-slate-200">
+              HEART HEALTH · {theme.label.toUpperCase()}
+            </Text>
           </View>
 
-          <View className="flex-row items-center gap-4">
-            {/* Left: Compact Score Ring */}
-            <View className="items-center justify-center">
-              <Animated.View
-                style={{
-                  alignItems: "center",
-                  justifyContent: "center",
-                  transform: [{ scale: pulseAnim }],
-                }}
-              >
-                {isCritical && (
-                  <Animated.View
-                    style={{
-                      position: "absolute",
-                      width: 125,
-                      height: 125,
-                      borderRadius: 62.5,
-                      backgroundColor: "rgba(138, 31, 26, 0.15)",
-                      opacity: glowOpacity,
-                    }}
-                  />
-                )}
-                <ScoreRing score={hssScore} size={118} strokeWidth={9} />
-              </Animated.View>
-              <View className="mt-1.5 px-2.5 py-0.5 rounded-full bg-[#152131]/5 dark:bg-white/10 self-center">
-                <Text className="text-[11px] font-bold text-[#1B6E63] dark:text-teal-400 text-center" numberOfLines={1}>
-                  {getScoreDrivers(data, hssScore)}
+          {/* Centered Score Ring */}
+          <View className="items-center justify-center my-2">
+            <Animated.View
+              style={{
+                alignItems: "center",
+                justifyContent: "center",
+                transform: [{ scale: pulseAnim }],
+              }}
+            >
+              {isCritical && (
+                <Animated.View
+                  style={{
+                    position: "absolute",
+                    width: 155,
+                    height: 155,
+                    borderRadius: 77.5,
+                    backgroundColor: "rgba(138, 31, 26, 0.15)",
+                    opacity: glowOpacity,
+                  }}
+                />
+              )}
+              <ScoreRing
+                score={hssScore}
+                size={148}
+                strokeWidth={10}
+                driverText={getScoreDrivers(data, hssScore)}
+              />
+            </Animated.View>
+          </View>
+
+          {/* ECG Pulse Divider — animated traveling scan */}
+          <View className="w-full items-center justify-center px-1" style={{ marginVertical: 12 }}>
+            <Svg width="100%" height={20} viewBox="0 0 300 20" preserveAspectRatio="none">
+              {/* Static dim baseline track */}
+              <Path
+                d="M 0 10 L 68 10 L 72 3 L 77 18 L 82 6 L 86 10 L 214 10 L 218 3 L 223 18 L 228 6 L 232 10 L 300 10"
+                fill="none"
+                stroke={isDark ? "#1E2F3E" : "#E0E7E4"}
+                strokeWidth={1.5}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              {/* Animated glow sweep — travels left to right */}
+              <AnimatedPath
+                d="M 0 10 L 68 10 L 72 3 L 77 18 L 82 6 L 86 10 L 214 10 L 218 3 L 223 18 L 228 6 L 232 10 L 300 10"
+                fill="none"
+                stroke={theme.dotColor}
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeDasharray={`${ECG_PATH_LENGTH} ${ECG_PATH_LENGTH}`}
+                strokeDashoffset={ecgAnim}
+              />
+            </Svg>
+          </View>
+
+          {/* Bottom Dual Metric Cards (Side-by-Side) */}
+          <View className="flex-row gap-3 w-full">
+            {/* Heart Rate Card */}
+            <TactileCard
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel={
+                data?.latest_vitals?.bpm
+                  ? `Heart Rate: ${data.latest_vitals.bpm} BPM. Tap to view or log vitals.`
+                  : "Heart Rate: Not recorded today. Tap to log vitals."
+              }
+              onPress={() => {
+                safeNavigate("/(home)/(health)/log-symptoms");
+              }}
+              className="flex-1 bg-[#F6F8F7] dark:bg-slate-800/60 rounded-2xl p-3.5 items-center"
+            >
+              <View className="w-10 h-10 rounded-full bg-[#FCE8E8] dark:bg-rose-950/50 mb-3" />
+              <Text className="text-[11.5px] font-medium text-[#6B7A75] dark:text-slate-400 mb-1 text-center">
+                Heart rate
+              </Text>
+              <View className="flex-row items-baseline gap-0.5">
+                <Text className="text-[20px] font-extrabold text-[#152131] dark:text-white" style={{ letterSpacing: -0.5 }}>
+                  {data?.latest_vitals?.bpm || "--"}
+                </Text>
+                <Text className="text-[11px] font-semibold text-[#8D9B96] dark:text-slate-500 ml-0.5">
+                  BPM
                 </Text>
               </View>
-              <Text
-                className="text-[10.5px] text-[#5C6B66] dark:text-slate-400 mt-1 font-medium tracking-tight text-center"
-                numberOfLines={1}
-              >
-                {formatFreshness(data?.last_sync, isCachedData)}
+            </TactileCard>
+
+            {/* Blood Pressure Card */}
+            <TactileCard
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel={
+                data?.latest_vitals?.bp
+                  ? `Blood Pressure: ${data.latest_vitals.bp} mmHg. Tap to view or log vitals.`
+                  : "Blood Pressure: Not recorded today. Tap to log vitals."
+              }
+              onPress={() => {
+                safeNavigate("/(home)/(health)/log-symptoms");
+              }}
+              className="flex-1 bg-[#F6F8F7] dark:bg-slate-800/60 rounded-2xl p-3.5 items-center"
+            >
+              <View className="w-10 h-10 rounded-full bg-[#E6F0FA] dark:bg-sky-950/50 mb-3" />
+              <Text className="text-[11.5px] font-medium text-[#6B7A75] dark:text-slate-400 mb-1 text-center">
+                Blood pressure
               </Text>
-            </View>
-
-            {/* Right: Stacked Vitals Metrics */}
-            <View className="flex-1 gap-2.5">
-              {/* Heart Rate Chip */}
-              <TactileCard
-                accessible={true}
-                accessibilityRole="button"
-                accessibilityLabel={
-                  data?.latest_vitals?.bpm
-                    ? `Heart Rate: ${data.latest_vitals.bpm} BPM. Tap to view or log vitals.`
-                    : "Heart Rate: Not recorded today. Tap to log vitals."
-                }
-                onPress={() => {
-                  safeNavigate("/(home)/(health)/log-symptoms");
-                }}
-                className="bg-[#EDF1EF]/60 dark:bg-slate-900/60 rounded-2xl p-2.5 border border-[#DCE3DF] dark:border-slate-800 flex-row items-center justify-between"
-              >
-                <View className="flex-row items-center gap-2.5 flex-1">
-                  <View className="w-8 h-8 rounded-xl bg-[#E8532E]/10 items-center justify-center border border-[#E8532E]/20">
-                    <Feather name="heart" size={14} color="#E8532E" />
-                  </View>
-                  <View className="flex-1">
-                    <Text className="text-[10.5px] font-bold text-[#5C6B66] dark:text-slate-400 uppercase tracking-wider" numberOfLines={1}>
-                      Heart Rate
-                    </Text>
-                    <View className="flex-row items-baseline gap-1">
-                      <Text className="text-[17px] font-extrabold text-[#152131] dark:text-white" numberOfLines={1}>
-                        {data?.latest_vitals?.bpm || "--"}
-                      </Text>
-                      <Text className="text-[10px] font-bold text-[#5C6B66] dark:text-slate-400">BPM</Text>
-                    </View>
-                  </View>
-                </View>
-                <Feather name="chevron-right" size={13} color={isDark ? "#64748b" : "#8D9B96"} />
-              </TactileCard>
-
-              {/* Blood Pressure Chip */}
-              <TactileCard
-                accessible={true}
-                accessibilityRole="button"
-                accessibilityLabel={
-                  data?.latest_vitals?.bp
-                    ? `Blood Pressure: ${data.latest_vitals.bp} mmHg. Tap to view or log vitals.`
-                    : "Blood Pressure: Not recorded today. Tap to log vitals."
-                }
-                onPress={() => {
-                  safeNavigate("/(home)/(health)/log-symptoms");
-                }}
-                className="bg-[#EDF1EF]/60 dark:bg-slate-900/60 rounded-2xl p-2.5 border border-[#DCE3DF] dark:border-slate-800 flex-row items-center justify-between"
-              >
-                <View className="flex-row items-center gap-2.5 flex-1">
-                  <View className="w-8 h-8 rounded-xl bg-[#1B6E63]/10 items-center justify-center border border-[#1B6E63]/20">
-                    <Feather name="trending-up" size={14} color="#1B6E63" />
-                  </View>
-                  <View className="flex-1">
-                    <View className="flex-row items-center justify-between pr-1">
-                      <Text className="text-[10.5px] font-bold text-[#5C6B66] dark:text-slate-400 uppercase tracking-wider" numberOfLines={1}>
-                        Blood Pressure
-                      </Text>
-                      {data?.latest_vitals?.bp && data?.latest_vitals?.bp !== "--/--" && (
-                        <MiniSparkline color={isDark ? "#4FA79A" : "#1B6E63"} />
-                      )}
-                    </View>
-                    <View className="flex-row items-baseline gap-1">
-                      <Text className="text-[17px] font-extrabold text-[#152131] dark:text-white" numberOfLines={1}>
-                        {data?.latest_vitals?.bp === "--/--" ? "--/--" : data?.latest_vitals?.bp || "--/--"}
-                      </Text>
-                      <Text className="text-[10px] font-bold text-[#5C6B66] dark:text-slate-400">mmHg</Text>
-                    </View>
-                  </View>
-                </View>
-                <Feather name="chevron-right" size={13} color={isDark ? "#64748b" : "#8D9B96"} />
-              </TactileCard>
-            </View>
+              <View className="flex-row items-baseline gap-0.5">
+                <Text className="text-[20px] font-extrabold text-[#152131] dark:text-white" style={{ letterSpacing: -0.5 }}>
+                  {data?.latest_vitals?.bp === "--/--" || !data?.latest_vitals?.bp ? "--/--" : data.latest_vitals.bp}
+                </Text>
+                <Text className="text-[11px] font-semibold text-[#8D9B96] dark:text-slate-500 ml-0.5">
+                  mmHg
+                </Text>
+              </View>
+            </TactileCard>
           </View>
         </Reanimated.View>
 

@@ -19,6 +19,7 @@ interface InputFieldProps<T extends FieldValues> extends TextInputProps {
   icon?: keyof typeof Feather.glyphMap;
   rightElement?: React.ReactNode;
   leftElement?: React.ReactNode;
+  forceLight?: boolean;
 }
 
 export function InputField<T extends FieldValues>({
@@ -28,10 +29,11 @@ export function InputField<T extends FieldValues>({
   icon,
   rightElement,
   leftElement,
+  forceLight = true,
   ...textInputProps
 }: InputFieldProps<T>) {
   const { colorScheme } = useColorScheme();
-  const isDark = colorScheme === "dark";
+  const isDark = !forceLight && colorScheme === "dark";
   const { field, fieldState } = useController({ name, control });
   const hasError = !!fieldState.error;
   const [isFocused, setIsFocused] = useState(false);
@@ -73,7 +75,7 @@ export function InputField<T extends FieldValues>({
   return (
     <View className="mb-1">
       {label && (
-        <Text className="text-xs sm:text-sm font-semibold text-[#152131] dark:text-foreground mb-1.5 ml-1">
+        <Text className={`text-xs sm:text-sm font-semibold ${isDark ? "text-foreground" : "text-[#152131]"} mb-1.5 ml-1`}>
           {label}
         </Text>
       )}
@@ -84,15 +86,16 @@ export function InputField<T extends FieldValues>({
           { 
             borderColor, 
             backgroundColor: inputBg,
+            borderWidth: isFocused ? 1.5 : 1,
             opacity: !textInputProps.editable && textInputProps.editable !== undefined ? 0.6 : 1,
             shadowColor: isFocused ? (isDark ? "#FFFFFF" : "#152131") : "transparent",
             shadowOffset: { width: 0, height: 1 },
-            shadowOpacity: isFocused ? 0.08 : 0,
+            shadowOpacity: isFocused ? 0.06 : 0,
             shadowRadius: 3,
             elevation: isFocused ? 1 : 0
           }
         ]}
-        className="w-full rounded-xl flex-row items-center px-4 min-h-[52px] border"
+        className="w-full rounded-xl flex-row items-center px-4 min-h-[52px]"
       >
         {icon && (
           <Feather
@@ -122,7 +125,7 @@ export function InputField<T extends FieldValues>({
             textInputProps.onFocus?.(e);
           }}
           placeholderTextColor={isDark ? "#64748B" : "#8D9B96"}
-          className="flex-1 ml-3 text-sm sm:text-base text-[#152131] dark:text-foreground py-3.5"
+          className={`flex-1 ml-3 text-sm sm:text-base ${isDark ? "text-foreground" : "text-[#152131]"} py-3.5`}
           aria-invalid={hasError}
           aria-describedby={hasError ? `${name}-error` : undefined}
           {...textInputProps}

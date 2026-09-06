@@ -1,7 +1,8 @@
 import { Stack, useRouter, useSegments } from "expo-router";
 import { useEffect } from "react";
-import { LogBox } from "react-native";
+import { LogBox, Platform } from "react-native";
 import { useColorScheme } from "nativewind";
+import * as SystemUI from "expo-system-ui";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import OfflineBanner from "../components/OfflineBanner";
 import "../global.css";
@@ -109,11 +110,18 @@ export default function RootLayout() {
   useEffect(() => {
     let mounted = true;
 
+    if (Platform.OS === "android") {
+      SystemUI.setBackgroundColorAsync("#EDF1EF").catch(() => {});
+    }
+
     AsyncStorage.getItem("theme_preference").then((pref) => {
       if (!mounted) return;
       if (pref === "light" || pref === "dark" || pref === "system") {
         setTimeout(() => {
           setColorScheme(pref);
+          if (Platform.OS === "android") {
+            SystemUI.setBackgroundColorAsync(pref === "dark" ? "#101923" : "#EDF1EF").catch(() => {});
+          }
         }, 0);
       }
     });

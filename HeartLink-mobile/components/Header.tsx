@@ -6,7 +6,13 @@ import { Feather } from "@expo/vector-icons";
 import { useUser } from "../contexts/UserContext";
 import HeartLogo from "./ui/HeartLogo";
 
-export function Header({ unreadCount }: { unreadCount?: number } = {}) {
+export function Header({
+  unreadCount,
+  showProfile = true,
+}: {
+  unreadCount?: number;
+  showProfile?: boolean;
+} = {}) {
   const router = useRouter();
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
@@ -79,23 +85,25 @@ export function Header({ unreadCount }: { unreadCount?: number } = {}) {
           <Feather name="settings" size={16} color={isDark ? "#cbd5e1" : "#5C6B66"} />
         </TouchableOpacity>
         
-        <TouchableOpacity 
-          onPress={() => router.push("/(home)/(profile)/profile")} 
-          activeOpacity={0.8}
-          accessible={true}
-          accessibilityRole="button"
-          accessibilityLabel="My Profile" 
-          className="ml-0.5"
-        >
-          <View className="w-9 h-9 rounded-full bg-white dark:bg-[#1A2634] border border-[#DCE3DF] dark:border-slate-800 overflow-hidden shadow-xs">
-            <Image 
-              source={{ uri: user?.avatar_url || "https://ui-avatars.com/api/?name=" + (user?.first_name || "U") + "&background=EDF1EF&color=152131&bold=true" }} 
-              className="w-full h-full" 
-              resizeMode="cover" 
-            />
-          </View>
-          <View style={{ position: "absolute", bottom: -1, right: -1 }} className="w-2.5 h-2.5 bg-[#1B6E63] rounded-full border-2 border-white dark:border-[#101923]" />
-        </TouchableOpacity>
+        {showProfile && (
+          <TouchableOpacity 
+            onPress={() => router.push("/(home)/(profile)/profile")} 
+            activeOpacity={0.8}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel="My Profile" 
+            className="ml-0.5"
+          >
+            <View className="w-9 h-9 rounded-full bg-white dark:bg-[#1A2634] border border-[#DCE3DF] dark:border-slate-800 overflow-hidden shadow-xs">
+              <Image 
+                source={{ uri: user?.avatar_url || "https://ui-avatars.com/api/?name=" + (user?.first_name || "U") + "&background=EDF1EF&color=152131&bold=true" }} 
+                className="w-full h-full" 
+                resizeMode="cover" 
+              />
+            </View>
+            <View style={{ position: "absolute", bottom: -1, right: -1 }} className="w-2.5 h-2.5 bg-[#1B6E63] rounded-full border-2 border-white dark:border-[#101923]" />
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );

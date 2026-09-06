@@ -10,6 +10,7 @@ type ScoreTheme = {
   label: string;
   ringColor: string;
   trackColor: string;
+  innerBg: string;
   glowColor: string;
   innerGuideColor: string;
 };
@@ -19,7 +20,8 @@ function getScoreTheme(score: number, isDark: boolean): ScoreTheme {
     return {
       label: "Score unavailable",
       ringColor: isDark ? "#475569" : "#A3B1AC",
-      trackColor: isDark ? "#1e293b" : "#DCE3DF",
+      trackColor: isDark ? "#1e293b" : "#E5EBE8",
+      innerBg: isDark ? "rgba(30, 41, 59, 0.45)" : "#EAF4F8",
       glowColor: "transparent",
       innerGuideColor: isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)",
     };
@@ -28,7 +30,8 @@ function getScoreTheme(score: number, isDark: boolean): ScoreTheme {
     return {
       label: "Stable",
       ringColor: isDark ? "#4FA79A" : "#1B6E63",
-      trackColor: isDark ? "rgba(27, 110, 99, 0.25)" : "#E3EFEC",
+      trackColor: isDark ? "rgba(27, 110, 99, 0.25)" : "#E5EBE8",
+      innerBg: isDark ? "rgba(30, 41, 59, 0.45)" : "#EAF4F8",
       glowColor: "#1B6E63",
       innerGuideColor: isDark ? "rgba(79, 167, 154, 0.15)" : "rgba(27, 110, 99, 0.12)",
     };
@@ -37,6 +40,7 @@ function getScoreTheme(score: number, isDark: boolean): ScoreTheme {
       label: "Moderate",
       ringColor: isDark ? "#C99A3E" : "#A9741B",
       trackColor: isDark ? "rgba(169, 116, 27, 0.25)" : "#F6EDDD",
+      innerBg: isDark ? "rgba(45, 35, 20, 0.45)" : "#FDF8F0",
       glowColor: "#A9741B",
       innerGuideColor: isDark ? "rgba(201, 154, 62, 0.15)" : "rgba(169, 116, 27, 0.12)",
     };
@@ -45,6 +49,7 @@ function getScoreTheme(score: number, isDark: boolean): ScoreTheme {
       label: "Elevated Risk",
       ringColor: isDark ? "#F0693E" : "#E8532E",
       trackColor: isDark ? "rgba(232, 83, 46, 0.25)" : "#FBEAE6",
+      innerBg: isDark ? "rgba(50, 25, 20, 0.45)" : "#FDF2F0",
       glowColor: "#E8532E",
       innerGuideColor: isDark ? "rgba(240, 105, 68, 0.15)" : "rgba(232, 83, 46, 0.12)",
     };
@@ -52,6 +57,7 @@ function getScoreTheme(score: number, isDark: boolean): ScoreTheme {
     label: "Critical",
     ringColor: isDark ? "#D15C4E" : "#8A1F1A",
     trackColor: isDark ? "rgba(138, 31, 26, 0.25)" : "#FBEAE9",
+    innerBg: isDark ? "rgba(50, 20, 20, 0.45)" : "#FDF1F0",
     glowColor: "#8A1F1A",
     innerGuideColor: isDark ? "rgba(248, 113, 113, 0.15)" : "rgba(138, 31, 26, 0.12)",
   };
@@ -59,12 +65,14 @@ function getScoreTheme(score: number, isDark: boolean): ScoreTheme {
 
 export function ScoreRing({
   score,
-  size = 180,
-  strokeWidth = 12,
+  size = 148,
+  strokeWidth = 10,
+  driverText,
 }: {
   score: number;
   size?: number;
   strokeWidth?: number;
+  driverText?: string;
 }) {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
@@ -201,6 +209,14 @@ export function ScoreRing({
           />
         )}
 
+        {/* Soft Inner Background Circle */}
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius - strokeWidth / 2}
+          fill={theme.innerBg}
+        />
+
         {/* Main background track */}
         <Circle
           cx={size / 2}
@@ -228,51 +244,47 @@ export function ScoreRing({
       </Svg>
 
       {/* Interior Metric Stack */}
-      <View className="items-center justify-center">
-        {/* Pulsing mini heart indicator */}
-        <Animated.View
-          style={{ transform: [{ scale: heartPulse }] }}
-          className="items-center justify-center mb-0.5"
-        >
-          <Feather
-            name="heart"
-            size={Math.max(10, Math.round(size * 0.08))}
-            color={theme.ringColor}
-          />
-        </Animated.View>
-
-        {/* Tabular Score */}
-        <Text
-          className="font-bold text-foreground tracking-tight"
-          numberOfLines={1}
-          adjustsFontSizeToFit
-          style={{
-            fontSize: Math.round(size * 0.25),
-            fontVariant: ["tabular-nums"],
-            includeFontPadding: false,
-            lineHeight: Math.round(size * 0.27),
-            textAlignVertical: "center",
-          }}
-        >
-          {hasScore ? displayScore : "--"}
-        </Text>
-
-        {/* Compact Subtitle Pill */}
-        {size >= 140 ? (
-          <View className="px-2 py-0.5 rounded-full bg-muted/20 mt-0.5">
-            <Text
-              className="text-[8px] font-semibold text-muted-foreground tracking-wider uppercase"
-              numberOfLines={1}
-              adjustsFontSizeToFit
-            >
-              Health Score
-            </Text>
-          </View>
-        ) : (
-          <Text className="text-[9px] font-medium text-muted-foreground">
-            HSS
+      <View className="items-center justify-center" style={{ paddingHorizontal: 4 }}>
+        {/* Score Number + /100 superscript */}
+        <View className="flex-row items-end justify-center" style={{ gap: 1 }}>
+          <Text
+            className="font-extrabold text-[#152131] dark:text-white"
+            style={{
+              fontSize: Math.round(size * 0.30),
+              fontVariant: ["tabular-nums"],
+              includeFontPadding: false,
+              lineHeight: Math.round(size * 0.33),
+              letterSpacing: -1,
+            }}
+          >
+            {hasScore ? displayScore : "--"}
           </Text>
-        )}
+          <Text
+            className="font-semibold text-[#8D9B96] dark:text-slate-500"
+            style={{
+              fontSize: Math.round(size * 0.079),
+              marginBottom: Math.round(size * 0.045),
+              includeFontPadding: false,
+            }}
+          >
+            /100
+          </Text>
+        </View>
+
+        {/* Subtitle Driver Text (e.g. Optimal vitals) */}
+        {driverText ? (
+          <Text
+            className="font-semibold text-center"
+            style={{
+              color: theme.ringColor,
+              fontSize: Math.max(10, Math.round(size * 0.075)),
+              marginTop: 2,
+            }}
+            numberOfLines={1}
+          >
+            {driverText}
+          </Text>
+        ) : null}
       </View>
     </Animated.View>
   );

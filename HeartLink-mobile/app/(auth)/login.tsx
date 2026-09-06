@@ -6,9 +6,12 @@ import {
   Platform,
   KeyboardAvoidingView,
   ScrollView,
+  StatusBar as RNStatusBar,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
+import * as SystemUI from "expo-system-ui";
+import { NavigationBar } from "expo-navigation-bar";
 import { useRouter } from "expo-router";
 import Animated, { 
   FadeIn, 
@@ -66,6 +69,16 @@ export default function AuthScreen() {
     defaultValues: { identifier: "", password: "" },
     mode: "onTouched",
   });
+
+  // Configure Android system bars to seamlessly match HeartLink paper background
+  useEffect(() => {
+    if (Platform.OS === "android") {
+      SystemUI.setBackgroundColorAsync("#EDF1EF").catch(() => {});
+      NavigationBar.setStyle("light");
+      RNStatusBar.setBackgroundColor("transparent");
+      RNStatusBar.setTranslucent(true);
+    }
+  }, []);
 
   // Trigger error shake animation when globalError updates
   useEffect(() => {
@@ -160,6 +173,7 @@ export default function AuthScreen() {
   return (
     <SafeAreaView className="flex-1 bg-[#EDF1EF]" edges={["top", "bottom"]}>
       <StatusBar style="dark" />
+      <NavigationBar style="light" />
       
       {/* ── Top Bar ── */}
       <View className="px-5 pt-3 pb-2 flex-row items-center justify-between">
@@ -229,6 +243,7 @@ export default function AuthScreen() {
                 autoComplete="username"
                 textContentType="username"
                 autoCapitalize="none"
+                forceLight={true}
                 onChangeText={(text) => {
                   setValue("identifier", formatIdentifier(text), { shouldValidate: true });
                 }}
@@ -244,6 +259,7 @@ export default function AuthScreen() {
                   placeholder="Enter your password"
                   secureTextEntry={!showPassword}
                   autoCapitalize="none"
+                  forceLight={true}
                   rightElement={
                     <TouchableOpacity
                       onPress={togglePasswordVisibility}
@@ -257,7 +273,7 @@ export default function AuthScreen() {
                         <Feather
                           name={showPassword ? "eye" : "eye-off"}
                           size={18}
-                          color="#5C6B66"
+                          color={showPassword ? "#152131" : "#5C6B66"}
                         />
                       </Animated.View>
                     </TouchableOpacity>
