@@ -232,6 +232,12 @@ def get_dashboard_data(user_id: str) -> Dict[str, Any]:
         dietary_entry.get("dietary_practice", "") if dietary_entry else ""
     )
 
+    # ── Today's activity summary & nutrition budget ────────────────────────────
+    today_activity = _get_today_activity(canonical_id)
+    threshold = baseline_repo.get_thresholds(canonical_id)
+    sodium_limit = threshold.get("sodium_limit_mg", None) if threshold else None
+    calorie_limit = threshold.get("daily_calories", None) if threshold else None
+
     # ── Recommendations: filter by HSS tier AND dietary preference ─────────────
     content_repo = get_content_repo()
     recipes = content_repo.list_recipes()
@@ -245,6 +251,16 @@ def get_dashboard_data(user_id: str) -> Dict[str, Any]:
         and (r.get("hss_tier") == tier or r.get("hss_tier") == "Stable")
         and _recipe_matches_diet(r, dietary_practice)
     ]
+
+    # Dynamic budget prioritization (HL-ENG-21 / Pillar D):
+    # If remaining sodium budget is < 500 mg, prioritize low-sodium expert-reviewed recipes
+    effective_sodium_limit = sodium_limit if sodium_limit is not None else 2000
+    remaining_sodium = effective_sodium_limit - today_activity["total_sodium_mg"]
+    if remaining_sodium < 500:
+        reco_recipes.sort(key=lambda r: (not bool(r.get("expert_validated", False)), r.get("sodium_mg") or 0))
+    else:
+        reco_recipes.sort(key=lambda r: not bool(r.get("expert_validated", False)))
+
     reco_exercises = [
         e
         for e in exercise_routines
@@ -254,11 +270,12 @@ def get_dashboard_data(user_id: str) -> Dict[str, Any]:
 
     recommendations = []
     for r in reco_recipes[:2]:
+        is_expert = bool(r.get("expert_validated", False))
         recommendations.append(
             {
                 "id": r["id"],
                 "type": "recipe",
-                "tag": "Heart-healthy",
+                "tag": "Expert Verified" if is_expert else "Heart-healthy",
                 "title": r["name"],
                 "subtitle": f"Sodium: {r.get('sodium_mg', 0)}mg",
                 "icon": "bowl-mix-outline",
@@ -272,6 +289,7 @@ def get_dashboard_data(user_id: str) -> Dict[str, Any]:
                 "sodium_mg": r.get("sodium_mg", 0),
                 "image_url": r.get("image_url", ""),
                 "hss_tier": r.get("hss_tier", "Stable"),
+                "expert_validated": is_expert,
             }
         )
     for e in reco_exercises[:2]:
@@ -297,13 +315,7 @@ def get_dashboard_data(user_id: str) -> Dict[str, Any]:
     # ── Generate dynamic smart insight ─────────────────────────────────────────
     insight = _generate_insight(user_hss, latest_log)
 
-    # ── Today's activity summary ───────────────────────────────────────────────
-    today_activity = _get_today_activity(canonical_id)
 
-    # ── Nutrition budget ──────────────────────────────────────────────────────────
-    threshold = baseline_repo.get_thresholds(canonical_id)
-    sodium_limit = threshold.get("sodium_limit_mg", None) if threshold else None
-    calorie_limit = threshold.get("daily_calories", None) if threshold else None
 
     # ── Unread notifications ───────────────────────────────────────────────────
     notif_repo = get_notification_repo()

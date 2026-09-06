@@ -30,7 +30,7 @@ export function RecommendationCard({
       accessible={true}
       accessibilityRole="button"
       accessibilityLabel={`${tag} recommendation: ${title}. ${subtitle}. Tap to view details.`}
-      className="w-[230px] h-[154px] rounded-2xl overflow-hidden bg-white dark:bg-[#1A2634] border border-[#DCE3DF] dark:border-slate-800 shadow-xs"
+      className="w-[245px] h-[162px] rounded-2xl overflow-hidden bg-card border border-border shadow-xs"
     >
       <View
         style={{
@@ -42,33 +42,35 @@ export function RecommendationCard({
       >
         <MaterialCommunityIcons name={icon as any} size={115} color="#152131" />
       </View>
-      <View className="p-4 flex-1 justify-between">
+      <View className="p-3.5 flex-1 justify-between">
         <View
-          className="self-start px-2.5 py-1 rounded-lg"
+          className="self-start px-2 py-0.5 rounded-md"
           style={{ backgroundColor: tagBg || "rgba(232, 83, 46, 0.1)" }}
         >
-          <Text 
-            className="text-[10px] font-bold uppercase tracking-wider"
+          <Text
+            className="text-[9.5px] font-bold uppercase tracking-wider"
             style={{ color: tagText || "#E8532E" }}
           >
             {tag}
           </Text>
         </View>
-        <View>
+        <View className="my-0.5">
           <Text
-            className="text-[14px] font-bold text-[#152131] dark:text-white leading-snug mb-1"
+            className="text-[13.5px] font-bold text-foreground leading-snug"
             numberOfLines={2}
           >
             {title}
           </Text>
-          <View className="flex-row items-center justify-between mt-1">
-            <Text className="text-[11px] text-[#5C6B66] dark:text-slate-400 flex-1 pr-1 font-medium" numberOfLines={1}>
+        </View>
+        <View className="flex-row items-center justify-between pt-1 border-t border-border/40">
+          <View className="px-2 py-0.5 rounded-md bg-muted/15 max-w-[135px]">
+            <Text className="text-[10.5px] text-muted-foreground font-semibold" numberOfLines={1}>
               {subtitle}
             </Text>
-            <View className="flex-row items-center gap-0.5">
-              <Text className="text-[11px] font-bold text-[#E8532E]">Explore</Text>
-              <Feather name="chevron-right" size={12} color="#E8532E" />
-            </View>
+          </View>
+          <View className="flex-row items-center gap-0.5">
+            <Text className="text-[11px] font-bold text-[#E8532E]">Explore</Text>
+            <Feather name="chevron-right" size={12} color="#E8532E" />
           </View>
         </View>
       </View>

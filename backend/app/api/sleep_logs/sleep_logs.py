@@ -1,23 +1,18 @@
 from fastapi import APIRouter, HTTPException, Depends, status
 from typing import List, Dict, Any
 from app.services.sleep_logs import get_sleep_logs, create_sleep_log, delete_sleep_log
-from app.utils.security import get_current_user
+from app.utils.security import get_current_user, verify_user_access
 
 router = APIRouter(prefix="/api/sleep-logs", tags=["Sleep Logs"])
 
 @router.get("/{user_id}", response_model=List[Dict[str, Any]])
 def read_sleep_logs(user_id: str, current_user: dict = Depends(get_current_user)):
-    caller_id = current_user.get("user_id")
-    caller_role = current_user.get("role")
-    if caller_role == "patient" and caller_id != user_id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You may only access your own sleep data.",
-        )
+    verify_user_access(current_user, user_id)
     return get_sleep_logs(user_id)
 
 @router.post("/{user_id}", response_model=Dict[str, Any])
 def add_sleep_log(user_id: str, data: Dict[str, Any], current_user: dict = Depends(get_current_user)):
+    verify_user_access(current_user, user_id)
     caller_id = current_user.get("user_id")
     caller_role = current_user.get("role")
     if caller_role == "patient" and caller_id != user_id:
@@ -54,6 +49,7 @@ def add_sleep_log(user_id: str, data: Dict[str, Any], current_user: dict = Depen
 
 @router.delete("/{user_id}/{log_id}", response_model=Dict[str, Any])
 def remove_sleep_log(user_id: str, log_id: str, current_user: dict = Depends(get_current_user)):
+    verify_user_access(current_user, user_id)
     caller_id = current_user.get("user_id")
     caller_role = current_user.get("role")
     if caller_role == "patient" and caller_id != user_id:
@@ -65,3 +61,4 @@ def remove_sleep_log(user_id: str, log_id: str, current_user: dict = Depends(get
     if not success:
         raise HTTPException(status_code=404, detail="Sleep log not found")
     return {"success": True, "message": "Sleep log deleted"}
+

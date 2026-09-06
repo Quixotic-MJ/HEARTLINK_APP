@@ -27,30 +27,30 @@ function getScoreTheme(score: number, isDark: boolean): ScoreTheme {
   if (score >= 80)
     return {
       label: "Stable",
-      ringColor: isDark ? "#2DD4BF" : "#1B6E63",
-      trackColor: isDark ? "rgba(27, 110, 99, 0.25)" : "#E2F1ED",
+      ringColor: isDark ? "#4FA79A" : "#1B6E63",
+      trackColor: isDark ? "rgba(27, 110, 99, 0.25)" : "#E3EFEC",
       glowColor: "#1B6E63",
-      innerGuideColor: isDark ? "rgba(45, 212, 191, 0.15)" : "rgba(27, 110, 99, 0.12)",
+      innerGuideColor: isDark ? "rgba(79, 167, 154, 0.15)" : "rgba(27, 110, 99, 0.12)",
     };
   if (score >= 60)
     return {
       label: "Moderate",
-      ringColor: isDark ? "#FBBF24" : "#D97706",
-      trackColor: isDark ? "rgba(217, 119, 6, 0.25)" : "#FEF3C7",
-      glowColor: "#D97706",
-      innerGuideColor: isDark ? "rgba(251, 191, 36, 0.15)" : "rgba(217, 119, 6, 0.12)",
+      ringColor: isDark ? "#C99A3E" : "#A9741B",
+      trackColor: isDark ? "rgba(169, 116, 27, 0.25)" : "#F6EDDD",
+      glowColor: "#A9741B",
+      innerGuideColor: isDark ? "rgba(201, 154, 62, 0.15)" : "rgba(169, 116, 27, 0.12)",
     };
   if (score >= 50)
     return {
       label: "Elevated Risk",
-      ringColor: isDark ? "#FB923C" : "#E8532E",
-      trackColor: isDark ? "rgba(232, 83, 46, 0.25)" : "#FDEEE9",
+      ringColor: isDark ? "#F0693E" : "#E8532E",
+      trackColor: isDark ? "rgba(232, 83, 46, 0.25)" : "#FBEAE6",
       glowColor: "#E8532E",
-      innerGuideColor: isDark ? "rgba(251, 146, 60, 0.15)" : "rgba(232, 83, 46, 0.12)",
+      innerGuideColor: isDark ? "rgba(240, 105, 68, 0.15)" : "rgba(232, 83, 46, 0.12)",
     };
   return {
     label: "Critical",
-    ringColor: isDark ? "#F87171" : "#8A1F1A",
+    ringColor: isDark ? "#D15C4E" : "#8A1F1A",
     trackColor: isDark ? "rgba(138, 31, 26, 0.25)" : "#FBEAE9",
     glowColor: "#8A1F1A",
     innerGuideColor: isDark ? "rgba(248, 113, 113, 0.15)" : "rgba(138, 31, 26, 0.12)",

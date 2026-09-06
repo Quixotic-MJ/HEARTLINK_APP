@@ -7,7 +7,12 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from app.db.repositories import get_profile_repo
 
-SECRET_KEY = os.getenv("SECRET_KEY", "heartlink-super-secret-jwt-key")
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY or SECRET_KEY == "heartlink-super-secret-jwt-key":
+    if os.getenv("DATABASE_MODE") == "supabase" or os.getenv("ENVIRONMENT") == "production":
+        raise RuntimeError("FATAL SECURITY CONFIGURATION: Insecure or missing SECRET_KEY environment variable.")
+    SECRET_KEY = SECRET_KEY or "heartlink-dev-jwt-key-not-for-production"
+
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_HOURS = 24
 
@@ -148,3 +153,51 @@ def get_current_super_admin(current_user: dict = Depends(get_current_admin_user)
             detail="Access Denied: Super Admin only",
         )
     return current_user
+
+def verify_user_access(current_user: dict, target_user_id: str) -> None:
+    caller_id = current_user.get("user_id")
+    caller_role = current_user.get("role")
+    
+    # 1. Super admin and admin have system audit access
+    if caller_role in ["super_admin", "admin"]:
+        return
+
+    # 2. Patient access: Strictly self only
+    if caller_role == "patient":
+        if caller_id != target_user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access Denied: You may only access your own health data.",
+            )
+        return
+
+    # 3. Medical expert / Clinician: Allowed if self, assigned care team member, or active clinical reviewer
+    if caller_role in ["doctor", "clinician", "medical_expert"]:
+        if caller_id == target_user_id:
+            return
+        try:
+            from app.db.repositories import get_baseline_repo
+            assigned_contacts = get_baseline_repo().list_care_team(target_user_id)
+            is_assigned = any(
+                c.get("contact_user_id") == caller_id or c.get("user_id") == caller_id
+                for c in assigned_contacts
+            )
+            if not is_assigned:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Access Denied: You are not assigned to this patient's care team.",
+                )
+        except HTTPException:
+            raise
+        except Exception:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access Denied: Care team assignment verification failed.",
+            )
+        return
+
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Access Denied: Unrecognized clinical role.",
+    )
+

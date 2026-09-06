@@ -155,3 +155,12 @@ class ThresholdsUpdateRequest(BaseModel):
     systolic_threshold: int = Field(..., ge=80, le=200)
     diastolic_threshold: int = Field(..., ge=40, le=130)
 
+    @model_validator(mode="after")
+    def validate_blood_pressure_thresholds(self):
+        if self.systolic_threshold <= self.diastolic_threshold:
+            raise ValueError("systolic_threshold must be strictly greater than diastolic_threshold")
+        if (self.systolic_threshold - self.diastolic_threshold) < 15:
+            raise ValueError("Pulse pressure threshold (systolic - diastolic) must be at least 15 mmHg")
+        return self
+
+

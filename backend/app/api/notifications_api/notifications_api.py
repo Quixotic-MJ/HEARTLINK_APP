@@ -15,13 +15,8 @@ def read_notifications(
     user_id: str,
     current_user: dict = Depends(get_current_user),
 ):
-    caller_id = current_user.get("user_id")
-    caller_role = current_user.get("role")
-    if caller_role == "patient" and caller_id != user_id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You may only access your own notifications.",
-        )
+    from app.utils.security import verify_user_access
+    verify_user_access(current_user, user_id)
     return get_notifications(user_id)
 
 @router.put("/{notification_id}/read")
@@ -31,7 +26,7 @@ def mark_read(
 ):
     caller_id = current_user.get("user_id")
     caller_role = current_user.get("role")
-    user_filter = caller_id if caller_role == "patient" else None
+    user_filter = caller_id if caller_role != "super_admin" else None
     success = mark_notification_read(notification_id, user_id=user_filter)
     return {"success": True, "message": "Notification marked as read"}
 
@@ -42,7 +37,7 @@ def mark_all(
 ):
     caller_id = current_user.get("user_id")
     caller_role = current_user.get("role")
-    if caller_role == "patient" and caller_id != user_id:
+    if caller_id != user_id and caller_role != "super_admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You may only modify your own notifications.",

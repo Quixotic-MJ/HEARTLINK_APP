@@ -193,10 +193,34 @@ export default function WrapUpScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [data, setData] = useState<any>(null);
+  const [isOfflineData, setIsOfflineData] = useState(false);
+
+  const wrapupCacheKey = userId ? `@wrapup_cache_${userId}` : null;
 
   const fetchData = useCallback(async (silent = false) => {
     if (!userId) return;
-    if (!silent) setIsLoading(true);
+
+    // HL-ENG-27: Hydrate from scoped cache for instant offline rendering
+    if (!silent) {
+      try {
+        if (wrapupCacheKey) {
+          const cached = await AsyncStorage.getItem(wrapupCacheKey);
+          if (cached) {
+            const parsed = JSON.parse(cached);
+            setData(parsed);
+            setIsOfflineData(true);
+            setIsLoading(false);
+          } else {
+            setIsLoading(true);
+          }
+        } else {
+          setIsLoading(true);
+        }
+      } catch (cacheErr) {
+        console.warn("Failed to load wrapup cache:", cacheErr);
+        setIsLoading(true);
+      }
+    }
     
     try {
       const d = new Date();
@@ -208,6 +232,10 @@ export default function WrapUpScreen() {
       if (response.ok) {
         const result = await response.json();
         setData(result);
+        setIsOfflineData(false);
+        if (wrapupCacheKey) {
+          await AsyncStorage.setItem(wrapupCacheKey, JSON.stringify(result));
+        }
       }
     } catch (error) {
       console.error("Wrap-up fetch error:", error);
@@ -215,7 +243,7 @@ export default function WrapUpScreen() {
       setIsLoading(false);
       setRefreshing(false);
     }
-  }, [userId]);
+  }, [userId, wrapupCacheKey, token]);
 
   useFocusEffect(
     useCallback(() => {
@@ -228,9 +256,21 @@ export default function WrapUpScreen() {
     fetchData(true);
   }, [fetchData]);
 
+function escapeHtml(unsafe: any): string {
+  if (unsafe === null || unsafe === undefined) return "";
+  return String(unsafe)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
   const exportReport = async () => {
     if (!data) return;
     try {
+      const patientName = `${escapeHtml(user?.first_name || 'User')} ${escapeHtml(user?.last_name || '')}`.trim();
+      const periodDisplay = escapeHtml(data.date_range.display);
       const html = `
         <html>
           <head>
@@ -253,30 +293,30 @@ export default function WrapUpScreen() {
           <body>
             <h1>HEARTLINK WEEKLY HEALTH RECORD</h1>
             <div class="details">
-              <strong>Patient:</strong> ${user?.first_name || 'User'} ${user?.last_name || ''}<br>
-              <strong>Period:</strong> ${data.date_range.display}
+              <strong>Patient:</strong> ${patientName}<br>
+              <strong>Period:</strong> ${periodDisplay}
             </div>
             
             <h2>WEEKLY SUMMARY</h2>
             <table>
-              <tr><td>Average recorded stability score</td><td class="highlight">${data.overview.hss_average ?? 'Not recorded'}</td></tr>
-              <tr><td>Movement</td><td class="highlight">${data.overview.movement_minutes} min</td></tr>
-              <tr><td>Meals</td><td class="highlight">${data.overview.meal_days} days recorded</td></tr>
-              <tr><td>Sleep</td><td class="highlight">${data.overview.sleep_average_hours ? data.overview.sleep_average_hours + ' hr average' : 'Not recorded'}</td></tr>
-              <tr><td>Vitals</td><td class="highlight">${data.overview.vital_days} readings</td></tr>
-              <tr><td>Symptoms</td><td class="highlight">${data.overview.symptom_count} recorded</td></tr>
+              <tr><td>Average recorded stability score</td><td class="highlight">${escapeHtml(data.overview.hss_average ?? 'Not recorded')}</td></tr>
+              <tr><td>Movement</td><td class="highlight">${Number(data.overview.movement_minutes || 0)} min</td></tr>
+              <tr><td>Meals</td><td class="highlight">${Number(data.overview.meal_days || 0)} days recorded</td></tr>
+              <tr><td>Sleep</td><td class="highlight">${data.overview.sleep_average_hours ? Number(data.overview.sleep_average_hours) + ' hr average' : 'Not recorded'}</td></tr>
+              <tr><td>Vitals</td><td class="highlight">${Number(data.overview.vital_days || 0)} readings</td></tr>
+              <tr><td>Symptoms</td><td class="highlight">${Number(data.overview.symptom_count || 0)} recorded</td></tr>
             </table>
 
             <h2>DAILY RECORD</h2>
             ${data.daily_records.map((r: any) => `
               <div class="record-card">
-                <h3>${r.date}</h3>
+                <h3>${escapeHtml(r.date)}</h3>
                 ${!r.has_records ? `<p style="color:#94a3b8; font-size: 13px;">No records</p>` : `
-                  ${r.movement.length ? `<p><strong>Movement:</strong><br>${r.movement.map((m: any) => `${m.name} — ${m.duration} min`).join('<br>')}</p>` : ''}
-                  ${r.nutrition.length ? `<p><strong>Meals:</strong><br>${r.nutrition.map((m: any) => `${m.meal_name} — ${m.calories} kcal, ${m.sodium_mg}mg sodium`).join('<br>')}</p>` : ''}
-                  ${r.vitals.length ? `<p><strong>Vitals:</strong><br>${r.vitals.map((v: any) => `${v.systolic}/${v.diastolic} mmHg — ${v.bpm} BPM`).join('<br>')}</p>` : ''}
-                  ${r.sleep.length ? `<p><strong>Sleep:</strong><br>${r.sleep.map((s: any) => `${s.hours} hours (Quality: ${s.quality})`).join('<br>')}</p>` : ''}
-                  ${r.symptoms.length ? `<p><strong>Symptoms:</strong><br>${r.symptoms.map((s: any) => `${s.name} (Severity: ${s.severity}/10)`).join('<br>')}</p>` : ''}
+                  ${r.movement.length ? `<p><strong>Movement:</strong><br>${r.movement.map((m: any) => `${escapeHtml(m.name)} — ${Number(m.duration || 0)} min`).join('<br>')}</p>` : ''}
+                  ${r.nutrition.length ? `<p><strong>Meals:</strong><br>${r.nutrition.map((m: any) => `${escapeHtml(m.meal_name)} — ${Number(m.calories || 0)} kcal, ${Number(m.sodium_mg || 0)}mg sodium`).join('<br>')}</p>` : ''}
+                  ${r.vitals.length ? `<p><strong>Vitals:</strong><br>${r.vitals.map((v: any) => `${Number(v.systolic || 0)}/${Number(v.diastolic || 0)} mmHg — ${Number(v.bpm || 0)} BPM`).join('<br>')}</p>` : ''}
+                  ${r.sleep.length ? `<p><strong>Sleep:</strong><br>${r.sleep.map((s: any) => `${Number(s.hours || 0)} hours (Quality: ${escapeHtml(s.quality)})`).join('<br>')}</p>` : ''}
+                  ${r.symptoms.length ? `<p><strong>Symptoms:</strong><br>${r.symptoms.map((s: any) => `${escapeHtml(s.name)} (Severity: ${Number(s.severity || 0)}/10)`).join('<br>')}</p>` : ''}
                 `}
               </div>
             `).join('')}
@@ -284,62 +324,62 @@ export default function WrapUpScreen() {
             <h2>VITAL TIMELINE</h2>
             ${data.vitals.records.length ? data.vitals.records.map((r: any) => `
               <div style="margin-bottom: 12px; font-size: 13px;">
-                <strong style="color: #64748b; font-size: 12px; text-transform: uppercase;">${r.date} · ${r.time}</strong><br>
-                Blood Pressure: <strong>${r.systolic} / ${r.diastolic} mmHg</strong><br>
-                Heart Rate: <strong>${r.bpm} BPM</strong>
-                ${r.weight_kg ? `<br>Weight: <strong>${r.weight_kg} kg</strong>` : ''}
+                <strong style="color: #64748b; font-size: 12px; text-transform: uppercase;">${escapeHtml(r.date)} · ${escapeHtml(r.time)}</strong><br>
+                Blood Pressure: <strong>${Number(r.systolic || 0)} / ${Number(r.diastolic || 0)} mmHg</strong><br>
+                Heart Rate: <strong>${Number(r.bpm || 0)} BPM</strong>
+                ${r.weight_kg ? `<br>Weight: <strong>${Number(r.weight_kg).toFixed(1)} kg</strong>` : ''}
               </div>
             `).join('') : '<p style="color:#94a3b8;">Not recorded</p>'}
 
             <h2>SLEEP TIMELINE</h2>
             ${data.sleep.records.length ? data.sleep.records.map((r: any) => `
               <div style="margin-bottom: 12px; font-size: 13px;">
-                <strong style="color: #64748b; font-size: 12px; text-transform: uppercase;">${r.date}</strong><br>
-                Duration: <strong>${r.hours}h</strong><br>
-                Quality: <strong>${r.quality}</strong>
+                <strong style="color: #64748b; font-size: 12px; text-transform: uppercase;">${escapeHtml(r.date)}</strong><br>
+                Duration: <strong>${Number(r.hours || 0)}h</strong><br>
+                Quality: <strong>${escapeHtml(r.quality)}</strong>
               </div>
             `).join('') : '<p style="color:#94a3b8;">No sleep records were logged during this period.</p>'}
 
             <h2>SYMPTOM TIMELINE</h2>
             ${data.symptoms.records.length ? data.symptoms.records.map((r: any) => `
               <div style="margin-bottom: 12px; font-size: 13px;">
-                <strong style="color: #64748b; font-size: 12px; text-transform: uppercase;">${r.date} · ${r.time}</strong><br>
-                <strong>${r.name}</strong><br>
-                Severity: <strong>${r.severity}/10</strong><br>
-                Context: <strong>${r.context || 'Not specified'}</strong>
+                <strong style="color: #64748b; font-size: 12px; text-transform: uppercase;">${escapeHtml(r.date)} · ${escapeHtml(r.time)}</strong><br>
+                <strong>${escapeHtml(r.name)}</strong><br>
+                Severity: <strong>${Number(r.severity || 0)}/10</strong><br>
+                Context: <strong>${escapeHtml(r.context || 'Not specified')}</strong>
               </div>
             `).join('') : '<p style="color:#94a3b8;">Not recorded</p>'}
 
             <h2>EXERCISE TIMELINE</h2>
             ${data.movement.records.length ? data.movement.records.map((r: any) => `
               <div style="margin-bottom: 16px; font-size: 13px;">
-                <strong style="color: #64748b; font-size: 12px; text-transform: uppercase;">${r.date} · ${r.time}</strong><br>
-                <strong>${r.name}</strong><br>
-                Duration: ${r.duration} min<br>
-                Type: ${r.type}<br>
-                Intensity: ${r.intensity}<br>
-                Goal: ${r.goal}<br>
-                Status: ${r.status}<br>
-                ${r.instructions.length ? `<div style="margin-top: 4px; color: #475569;"><em>How it was performed:</em><br> ${r.instructions.map((ins: string, i: number) => `${i+1}. ${ins}`).join('<br>')}</div>` : ''}
+                <strong style="color: #64748b; font-size: 12px; text-transform: uppercase;">${escapeHtml(r.date)} · ${escapeHtml(r.time)}</strong><br>
+                <strong>${escapeHtml(r.name)}</strong><br>
+                Duration: ${Number(r.duration || 0)} min<br>
+                Type: ${escapeHtml(r.type)}<br>
+                Intensity: ${escapeHtml(r.intensity)}<br>
+                Goal: ${escapeHtml(r.goal)}<br>
+                Status: ${escapeHtml(r.status)}<br>
+                ${r.instructions && r.instructions.length ? `<div style="margin-top: 4px; color: #475569;"><em>How it was performed:</em><br> ${r.instructions.map((ins: string, i: number) => `${i+1}. ${escapeHtml(ins)}`).join('<br>')}</div>` : ''}
               </div>
             `).join('') : '<p style="color:#94a3b8;">Not recorded</p>'}
 
             <h2>MEAL TIMELINE</h2>
             ${data.nutrition.records.length ? data.nutrition.records.map((r: any) => `
               <div style="margin-bottom: 12px; font-size: 13px;">
-                <strong style="color: #64748b; font-size: 12px; text-transform: uppercase;">${r.date} · ${r.time}</strong><br>
-                <strong>${r.meal_name}</strong><br>
-                ${r.calories} kcal<br>
-                ${r.sodium_mg} mg sodium
+                <strong style="color: #64748b; font-size: 12px; text-transform: uppercase;">${escapeHtml(r.date)} · ${escapeHtml(r.time)}</strong><br>
+                <strong>${escapeHtml(r.meal_name)}</strong><br>
+                ${Number(r.calories || 0)} kcal<br>
+                ${Number(r.sodium_mg || 0)} mg sodium
               </div>
             `).join('') : '<p style="color:#94a3b8;">Not recorded</p>'}
 
             <h2>HSS / STABILITY</h2>
-            <p>Weekly Average: <strong>${data.stability.average ?? 'Not recorded'}</strong></p>
+            <p>Weekly Average: <strong>${escapeHtml(data.stability.average ?? 'Not recorded')}</strong></p>
             ${data.stability.records.length ? `
               <p>Daily Recorded Scores:</p>
               <ul>
-                ${data.stability.records.map((r: any) => `<li>${r.date} — ${r.score}</li>`).join('')}
+                ${data.stability.records.map((r: any) => `<li>${escapeHtml(r.date)} — ${escapeHtml(r.score)}</li>`).join('')}
               </ul>
             ` : ''}
           </body>
@@ -383,6 +423,15 @@ export default function WrapUpScreen() {
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={activeTint} />}
       >
+        {isOfflineData && (
+          <View className="bg-amber-500/10 border border-amber-500/30 rounded-xl px-4 py-2.5 mb-4 flex-row items-center gap-2">
+            <Feather name="wifi-off" size={16} color="#d97706" />
+            <Text className="text-xs font-semibold text-amber-700 dark:text-amber-400 flex-1">
+              Showing cached consultation report. Connect to the internet to update latest telemetry.
+            </Text>
+          </View>
+        )}
+
         {/* HERO / WEEK HEADER */}
         <View className="mb-8 pt-2">
           <Text className="text-[12px] font-bold text-slate-400 dark:text-slate-500 tracking-[0.1em] uppercase mb-1">

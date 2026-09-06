@@ -2,7 +2,8 @@ from fastapi import APIRouter, HTTPException, Query, Depends, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from typing import List, Dict, Any, Optional
 from app.services.exercises import get_routines, get_exercise_logs, create_exercise_log, delete_exercise_log, create_routine, update_routine, delete_routine
-from app.utils.security import get_current_admin_user, get_current_user, verify_token
+from app.services.hss_service import compute_lifestyle_composite_hss
+from app.utils.security import get_current_admin_user, get_current_user, verify_token, verify_user_access
 from app.utils.activity_helper import record_admin_activity
 
 router = APIRouter(prefix="/api/exercises", tags=["Exercises"])
@@ -111,20 +112,7 @@ def read_exercise_logs(
             detail="Invalid user ID format.",
         )
 
-    caller_id = current_user.get("user_id")
-    caller_role = current_user.get("role")
-    caller_uuid = resolve_uuid(caller_id) if caller_id else None
-
-    # Clinical roles have read oversight; patients are restricted to self
-    if caller_role in ["admin", "super_admin", "medical_expert"]:
-        pass
-    elif caller_role == "patient" and caller_uuid and caller_uuid == target_uuid:
-        pass
-    else:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You may only access your own exercise logs.",
-        )
+    verify_user_access(current_user, user_id)
     return get_exercise_logs(user_id, limit=limit, offset=offset)
 
 @router.post("/logs/{user_id}", response_model=Dict[str, Any])
@@ -176,6 +164,14 @@ def add_exercise_log(user_id: str, data: Dict[str, Any], current_user: dict = De
             )
 
     log = create_exercise_log(user_id, data)
+
+    # Recalculate dynamic lifestyle composite HSS (Pillar B)
+    try:
+        compute_lifestyle_composite_hss(user_id, trigger="exercise_log")
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning("Failed to update lifestyle composite HSS after exercise log: %s", e)
+
     return {"success": True, "message": "Exercise log saved", "data": log}
 
 @router.delete("/logs/{user_id}/{log_id}", response_model=Dict[str, Any])
@@ -200,5 +196,14 @@ def delete_log(user_id: str, log_id: str, current_user: dict = Depends(get_curre
     success, message, status_code = delete_exercise_log(user_id, log_id)
     if not success:
         raise HTTPException(status_code=status_code, detail=message)
+
+    # Recalculate lifestyle composite HSS after exercise log deletion (HL-ENG-29)
+    try:
+        from app.services.hss_service import compute_lifestyle_composite_hss
+        compute_lifestyle_composite_hss(user_id, trigger="exercise_delete")
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning(f"Failed to recalculate composite HSS after exercise deletion for {user_id}: {e}")
+
     return {"success": True, "message": message}
 

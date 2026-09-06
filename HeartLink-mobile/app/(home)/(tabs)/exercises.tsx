@@ -13,6 +13,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Feather } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useUser } from "../../../contexts/UserContext";
 import { Header } from "../../../components/Header";
 import { Skeleton } from "../../../components/ui/Skeleton";
@@ -45,32 +46,35 @@ function resolveMediaUrl(url: string) {
 
 function getTypeConfig(type: string) {
   if (type === "Breathing")
-    return { icon: "wind" as const, color: "#be185d", bg: "#fce7f3" }; // Pink theme for Breathing
+    return { icon: "wind" as const, color: "#BE185D", bg: "#FDF2F8" };
   if (type === "Stationary")
-    return { icon: "anchor" as const, color: "#0369a1", bg: "#e0f2fe" }; // Soft blue
-  return { icon: "activity" as const, color: "#15803d", bg: "#dcfce3" }; // Soft green for Cardio
+    return { icon: "anchor" as const, color: "#0369A1", bg: "#E0F2FE" };
+  return { icon: "activity" as const, color: "#15803D", bg: "#DCFCE7" };
 }
 
 const STATUS_CONFIG = {
   Stable: {
-    badgeBg: "#f0fdf4",
+    badgeBg: "#F0FDF4",
     badgeText: "#166534",
   },
   Moderate: {
-    badgeBg: "#fffbeb",
-    badgeText: "#b45309",
+    badgeBg: "#FFFBEB",
+    badgeText: "#B45309",
   },
   "Elevated Risk": {
-    badgeBg: "#fff7ed",
-    badgeText: "#c2410c",
+    badgeBg: "#FFF7ED",
+    badgeText: "#C2410C",
   },
   Critical: {
-    badgeBg: "#fef2f2",
-    badgeText: "#b91c1c",
+    badgeBg: "#FEF2F2",
+    badgeText: "#B91C1C",
   },
 } as const;
 
-// ─── Routine Card ─────────────────────────────────────────────────────────────
+// ─── Day Labels ───────────────────────────────────────────────────────────────
+const DAY_LABELS = ["M", "T", "W", "T", "F", "S", "S"];
+
+// ─── Routine Card (Premium Apple Fitness Style) ───────────────────────────────
 
 function RoutineCard({
   routine,
@@ -89,26 +93,54 @@ function RoutineCard({
 
   return (
     <TouchableOpacity
-      activeOpacity={0.8}
+      activeOpacity={0.92}
       onPress={onPress}
-      className={`bg-white rounded-3xl border border-slate-100 mb-5 overflow-hidden ${
-        isFeatured ? "shadow-sm shadow-pink-100/50" : "shadow-sm shadow-slate-100/50"
-      }`}
+      className="rounded-3xl overflow-hidden mb-5"
+      style={{
+        backgroundColor: "#FFFFFF",
+        borderWidth: 1,
+        borderColor: "rgba(232,236,234,0.6)",
+        ...Platform.select({
+          ios: {
+            shadowColor: isFeatured ? "#E8532E" : "#000",
+            shadowOffset: { width: 0, height: isFeatured ? 6 : 4 },
+            shadowRadius: isFeatured ? 20 : 16,
+            shadowOpacity: isFeatured ? 0.1 : 0.08,
+          },
+          android: {
+            elevation: isFeatured ? 6 : 4,
+          },
+        }),
+      }}
     >
       {/* Thumbnail */}
-      <View className={`${isFeatured ? "h-48" : "h-36"} bg-slate-50 relative items-center justify-center`}>
+      <View className={`${isFeatured ? "h-48" : "h-36"} bg-[#F1F5F3] relative items-center justify-center`}>
         {routine.image ? (
           <Image source={{ uri: routine.image }} className="absolute inset-0 w-full h-full" resizeMode="cover" />
         ) : (
-          <Feather name="image" size={32} color="#cbd5e1" />
+          <Feather name="image" size={32} color="#D1D9D5" />
         )}
         
         {/* Soft overlay */}
         <View className="absolute inset-0 bg-slate-900/10" />
 
-        <View className="absolute top-4 left-4 flex-row items-center gap-1.5 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-full">
+        <View
+          className="absolute top-4 left-4 flex-row items-center gap-1.5 px-3 py-1.5 rounded-full"
+          style={{
+            backgroundColor: "rgba(255,255,255,0.92)",
+            ...Platform.select({
+              ios: {
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 1 },
+                shadowRadius: 4,
+                shadowOpacity: 0.08,
+              },
+              android: { elevation: 2 },
+            }),
+          }}
+        >
           <Feather name="clock" size={12} color="#334155" />
-          <Text className="text-[12px] font-medium text-slate-700">
+          <Text className="text-[12px] font-semibold text-[#334155]">
             {routine.duration} min
           </Text>
         </View>
@@ -128,7 +160,7 @@ function RoutineCard({
         {isCompleted && (
           <View className="absolute inset-0 bg-white/80 backdrop-blur-sm items-center justify-center">
             <View className="w-14 h-14 rounded-full bg-green-100 items-center justify-center border border-green-200">
-              <Feather name="check" size={26} color="#16a34a" />
+              <Feather name="check" size={26} color="#16A34A" />
             </View>
             <Text className="text-green-700 font-bold mt-2 text-[15px]">Completed</Text>
           </View>
@@ -137,7 +169,7 @@ function RoutineCard({
         {isPartial && !isCompleted && (
           <View className="absolute inset-0 bg-white/80 backdrop-blur-sm items-center justify-center">
             <View className="w-14 h-14 rounded-full bg-amber-100 items-center justify-center border border-amber-200">
-              <Feather name="activity" size={26} color="#d97706" />
+              <Feather name="activity" size={26} color="#D97706" />
             </View>
             <Text className="text-amber-700 font-bold mt-2 text-[15px]">Partial Activity</Text>
           </View>
@@ -145,13 +177,13 @@ function RoutineCard({
       </View>
 
       {/* Content */}
-      <View className={`p-5 ${isFeatured ? "bg-rose-50/30" : "bg-white"}`}>
+      <View className={`p-5 ${isFeatured ? "bg-rose-50/20" : "bg-white"}`}>
         <View className="flex-row items-start justify-between mb-3">
           <View className="flex-1 pr-4">
-            <Text className="text-[18px] font-semibold text-slate-800 leading-snug mb-1.5">
+            <Text className="text-[18px] font-bold text-[#152131] leading-snug mb-1.5">
               {routine.title}
             </Text>
-            <Text className="text-[14px] text-slate-500 leading-relaxed" numberOfLines={2}>
+            <Text className="text-[14px] text-[#64748B] leading-relaxed" numberOfLines={2}>
               {routine.goal}
             </Text>
           </View>
@@ -159,16 +191,24 @@ function RoutineCard({
 
         <View className="flex-row items-center justify-between mt-2">
           <View className="flex-row items-center gap-2">
-            <View className="flex-row items-center gap-1.5 bg-slate-50 px-2.5 py-1.5 rounded-lg border border-slate-100">
-              <Feather name="activity" size={12} color="#64748b" />
-              <Text className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                {routine.intensity} INTENSITY
+            <View
+              className="flex-row items-center gap-1.5 px-2.5 py-1.5 rounded-lg"
+              style={{ backgroundColor: "#F4F7F5" }}
+            >
+              <Feather name="activity" size={12} color="#64748B" />
+              <Text className="text-[11px] font-bold text-[#5C6B66] uppercase tracking-wider">
+                {routine.intensity} Intensity
               </Text>
             </View>
           </View>
           
-          <View className={`w-10 h-10 rounded-full items-center justify-center ${isFeatured ? "bg-primary" : "bg-slate-100"}`}>
-            <Feather name="arrow-right" size={18} color={isFeatured ? "#fff" : "#475569"} />
+          <View
+            className="w-10 h-10 rounded-full items-center justify-center"
+            style={{
+              backgroundColor: isFeatured ? "#1B6E63" : "#F1F5F3",
+            }}
+          >
+            <Feather name="arrow-right" size={18} color={isFeatured ? "#FFFFFF" : "#475569"} />
           </View>
         </View>
       </View>
@@ -193,16 +233,24 @@ export default function ExercisesScreen({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [isOffline, setIsOffline] = useState(false);
+  const [dashboardFailed, setDashboardFailed] = useState(false);
   
   const [hssScore, setHssScore] = useState<number>(0);
   const [completedExercises, setCompletedExercises] = useState<string[]>([]);
   const [partialExercises, setPartialExercises] = useState<string[]>([]);
-  const [weeklyConsistency, setWeeklyConsistency] = useState<{ count: number; days: boolean[] }>({ count: 0, days: Array(7).fill(false) });
+  const [weeklyConsistency, setWeeklyConsistency] = useState<{ count: number; days: boolean[]; labels: string[] }>({
+    count: 0,
+    days: Array(7).fill(false),
+    labels: ["M", "T", "W", "T", "F", "S", "S"],
+  });
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const [selectedType, setSelectedType] = useState<string>("All");
 
   const slideAnim = useRef(new Animated.Value(-100)).current;
+  const exercisesCacheKey = userId ? `@exercises_cache_${userId}` : "@exercises_cache";
+  const hssCacheKey = userId ? `@exercises_cache_hss_${userId}` : "@exercises_cache_hss";
 
   const fetchData = useCallback(async () => {
     if (!userId) return;
@@ -222,7 +270,7 @@ export default function ExercisesScreen({
 
       if (routinesRes && routinesRes.ok) {
         const data = await routinesRes.json();
-        const mapped = data.map((r: any) => ({
+        const mapped: Routine[] = data.map((r: any) => ({
           id: r.id,
           title: r.name || "",
           duration: r.duration_minutes || 0,
@@ -233,15 +281,42 @@ export default function ExercisesScreen({
           image: resolveMediaUrl(r.media_url || r.image_url || ""),
         }));
         setRoutinesList(mapped);
+        setIsOffline(false);
+        await AsyncStorage.setItem(exercisesCacheKey, JSON.stringify(mapped)).catch(() => {});
       } else {
-        setError(true);
+        throw new Error("Failed to fetch fresh routines from network");
       }
       
       if (dashboardRes && dashboardRes.ok) {
+        setDashboardFailed(false);
         const dash = await dashboardRes.json();
-        if (dash.hss_score !== undefined) {
+        if (dash.hss_score !== undefined && dash.hss_score !== null) {
           setHssScore(dash.hss_score);
+          await AsyncStorage.setItem(
+            hssCacheKey,
+            JSON.stringify({ score: dash.hss_score, tier: dash.hss_tier || null })
+          ).catch(() => {});
         }
+      } else {
+        setDashboardFailed(true);
+        // Defensive fallback hydration when dashboard endpoint fails or times out (HL-ENG-13)
+        try {
+          const cachedHssStr = await AsyncStorage.getItem(hssCacheKey);
+          if (cachedHssStr) {
+            const parsedHss = JSON.parse(cachedHssStr);
+            if (parsedHss && typeof parsedHss.score === "number") {
+              setHssScore(parsedHss.score);
+            }
+          } else if (userId) {
+            const dashCache = await AsyncStorage.getItem(`@dashboard_cache_${userId}`);
+            if (dashCache) {
+              const parsedDash = JSON.parse(dashCache);
+              if (parsedDash && typeof parsedDash.hss_score === "number") {
+                setHssScore(parsedDash.hss_score);
+              }
+            }
+          }
+        } catch {}
       }
       
       if (logsRes && logsRes.ok) {
@@ -265,11 +340,13 @@ export default function ExercisesScreen({
         startOfWeek.setHours(0, 0, 0, 0);
         
         const days = Array(7).fill(false);
+        const labels: string[] = [];
         let count = 0;
         
         for (let i = 0; i < 7; i++) {
           const targetDate = new Date(startOfWeek.getTime() + i * oneDay);
           const targetDateStr = targetDate.toDateString();
+          labels.push(targetDate.toLocaleDateString("en-US", { weekday: "narrow" }));
           const hasMeaningful = data.some((log: any) => 
             new Date(log.logged_at).toDateString() === targetDateStr &&
             log.status !== "abandoned" &&
@@ -278,23 +355,83 @@ export default function ExercisesScreen({
           days[i] = hasMeaningful;
           if (hasMeaningful) count++;
         }
-        setWeeklyConsistency({ count, days });
+        setWeeklyConsistency({ count, days, labels });
       }
     } catch (error) {
-      console.error(error);
+      if (__DEV__) {
+        console.log("Network error loading routines, checking offline cache...", error);
+      }
+      try {
+        const cachedHssStr = await AsyncStorage.getItem(hssCacheKey);
+        if (cachedHssStr) {
+          const parsedHss = JSON.parse(cachedHssStr);
+          if (parsedHss && typeof parsedHss.score === "number") {
+            setHssScore(parsedHss.score);
+          }
+        } else if (userId) {
+          const dashCache = await AsyncStorage.getItem(`@dashboard_cache_${userId}`);
+          if (dashCache) {
+            const parsedDash = JSON.parse(dashCache);
+            if (parsedDash && typeof parsedDash.hss_score === "number") {
+              setHssScore(parsedDash.hss_score);
+            }
+          }
+        }
+
+        const cached = await AsyncStorage.getItem(exercisesCacheKey);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setRoutinesList(parsed);
+            setIsOffline(true);
+            setError(false);
+            return;
+          }
+        }
+      } catch (cacheErr) {
+        if (__DEV__) {
+          console.error("Failed to read exercise offline cache:", cacheErr);
+        }
+      }
       setError(true);
     }
-  }, [userId, token]);
+  }, [userId, token, exercisesCacheKey, hssCacheKey]);
 
   useFocusEffect(
     useCallback(() => {
       async function initialLoad() {
+        // Read local offline cache first for instant UI availability
+        try {
+          const cachedHssStr = await AsyncStorage.getItem(hssCacheKey);
+          if (cachedHssStr) {
+            const parsedHss = JSON.parse(cachedHssStr);
+            if (parsedHss && typeof parsedHss.score === "number") {
+              setHssScore(parsedHss.score);
+            }
+          } else if (userId) {
+            const dashCache = await AsyncStorage.getItem(`@dashboard_cache_${userId}`);
+            if (dashCache) {
+              const parsedDash = JSON.parse(dashCache);
+              if (parsedDash && typeof parsedDash.hss_score === "number") {
+                setHssScore(parsedDash.hss_score);
+              }
+            }
+          }
+
+          const cached = await AsyncStorage.getItem(exercisesCacheKey);
+          if (cached) {
+            const parsed = JSON.parse(cached);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              setRoutinesList(parsed);
+            }
+          }
+        } catch {}
         if (!routinesList) setIsLoading(true);
         await fetchData();
         setIsLoading(false);
       }
       initialLoad();
-    }, [fetchData])
+    }, [fetchData, exercisesCacheKey, hssCacheKey, userId])
   );
 
   const onRefresh = useCallback(async () => {
@@ -340,12 +477,17 @@ export default function ExercisesScreen({
     ]).start(() => setToastMessage(null));
   };
 
+  // Safe boundary handling: if user is uncalibrated (hssScore <= 0):
+  // Online & telemetry verified -> default to "Stable" (baseline safe for onboarding)
+  // Offline or unverified partial API failure -> default to "Elevated Risk" (fail-safe protection against unverified acute strain)
+  const isCalibrated = hssScore > 0;
   const hssStatus = useMemo<"Stable" | "Moderate" | "Elevated Risk" | "Critical">(() => {
+    if (!isCalibrated) return (isOffline || dashboardFailed) ? "Elevated Risk" : "Stable";
     if (hssScore >= 80) return "Stable";
     if (hssScore >= 60) return "Moderate";
     if (hssScore >= 50) return "Elevated Risk";
     return "Critical";
-  }, [hssScore]);
+  }, [hssScore, isCalibrated, isOffline, dashboardFailed]);
 
   // Determine allowed tiers
   const allowedTiers = useMemo(() => {
@@ -370,8 +512,16 @@ export default function ExercisesScreen({
     const allowed = routinesList.find(r => allowedTiers.includes(r.category) && !completedExercises.includes(r.id) && !partialExercises.includes(r.id));
     if (allowed) return allowed;
 
-    // Finally, just return the first allowed one even if completed
-    return routinesList.find(r => allowedTiers.includes(r.category)) || routinesList[0];
+    // Return the first allowed one even if completed
+    const firstAllowed = routinesList.find(r => allowedTiers.includes(r.category));
+    if (firstAllowed) return firstAllowed;
+
+    // CLINICAL SAFETY GUARD (HL-ENG-08): Under Critical or Elevated Risk, NEVER fall back to routinesList[0]
+    if (hssStatus === "Critical" || hssStatus === "Elevated Risk") {
+      return null;
+    }
+
+    return routinesList[0];
   }, [routinesList, hssStatus, allowedTiers, completedExercises]);
 
   // All other active routines
@@ -406,8 +556,8 @@ export default function ExercisesScreen({
 
   const Container = isEmbedded ? View : SafeAreaView;
   const containerProps = isEmbedded
-    ? { className: "flex-1 bg-[#fafaf9]" }
-    : { className: "flex-1 bg-[#fafaf9]", edges: ["top"] as const };
+    ? { className: "flex-1 bg-[#F8FAF9]" }
+    : { className: "flex-1 bg-[#F8FAF9]", edges: ["top"] as const };
 
   return (
     <Container {...containerProps}>
@@ -424,11 +574,25 @@ export default function ExercisesScreen({
             zIndex: 100,
           }}
         >
-          <View className="flex-row items-center gap-3 px-5 py-4 rounded-2xl bg-slate-900 shadow-lg shadow-slate-900/20">
+          <View
+            className="flex-row items-center gap-3 px-5 py-4 rounded-2xl"
+            style={{
+              backgroundColor: "#152131",
+              ...Platform.select({
+                ios: {
+                  shadowColor: "#152131",
+                  shadowOffset: { width: 0, height: 8 },
+                  shadowRadius: 24,
+                  shadowOpacity: 0.3,
+                },
+                android: { elevation: 12 },
+              }),
+            }}
+          >
             <View className="w-8 h-8 rounded-full bg-green-500/20 items-center justify-center">
-              <Feather name="check" size={16} color="#4ade80" />
+              <Feather name="check" size={16} color="#4ADE80" />
             </View>
-            <Text className="flex-1 text-[15px] font-medium text-white">
+            <Text className="flex-1 text-[15px] font-semibold text-white">
               {toastMessage}
             </Text>
           </View>
@@ -452,76 +616,164 @@ export default function ExercisesScreen({
       ) : error || !routinesList || routinesList.length === 0 ? (
         <ScrollView
           contentContainerClassName="flex-1 items-center justify-center px-6"
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#f43f5e" />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1B6E63" />}
         >
           <View className="w-20 h-20 bg-rose-50 rounded-full items-center justify-center mb-6">
-            <Feather name="wifi-off" size={32} color="#f43f5e" />
+            <Feather name="wifi-off" size={32} color="#F43F5E" />
           </View>
-          <Text className="text-[20px] font-semibold text-slate-800 mb-2">Movements unavailable</Text>
-          <Text className="text-[15px] text-slate-500 text-center mb-8 px-4 leading-relaxed">
+          <Text className="text-[20px] font-bold text-[#152131] mb-2">Movements unavailable</Text>
+          <Text className="text-[15px] text-[#64748B] text-center mb-8 px-4 leading-relaxed">
             We couldn't connect to the server to retrieve your safe training routines. Please check your connection.
           </Text>
           <TouchableOpacity 
             onPress={fetchData}
             activeOpacity={0.8}
-            className="bg-primary px-8 py-3.5 rounded-full"
+            className="px-8 py-3.5 rounded-full"
+            style={{
+              backgroundColor: "#1B6E63",
+              ...Platform.select({
+                ios: {
+                  shadowColor: "#1B6E63",
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowRadius: 12,
+                  shadowOpacity: 0.3,
+                },
+                android: { elevation: 6 },
+              }),
+            }}
           >
             <Text className="text-white font-bold text-[16px]">Try Again</Text>
           </TouchableOpacity>
         </ScrollView>
       ) : (
         <ScrollView
-          contentContainerClassName="px-6 pb-28 md:max-w-2xl lg:max-w-4xl mx-auto w-full pt-4"
+          contentContainerClassName="px-6 pb-28 md:max-w-2xl lg:max-w-4xl mx-auto w-full pt-3"
           showsVerticalScrollIndicator={false}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#f43f5e" />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1B6E63" />
           }
         >
           {hideHeader ? (
             <View className="flex-row items-center justify-between mb-4">
-              <Text className="text-[13px] font-semibold text-slate-500">
-                Cardio routines suited for your stability
-              </Text>
+              <View className="flex-row items-center gap-1.5 flex-1 pr-2">
+                <View className="w-[5px] h-[5px] rounded-full bg-[#2563EB] flex-shrink-0" />
+                <Text className="text-[13px] font-semibold text-[#5C6B66] dark:text-slate-400 flex-1" numberOfLines={1}>
+                  Cardio routines for your stability
+                </Text>
+              </View>
               <TouchableOpacity
                 onPress={() => router.push("/(home)/(health)/exercise-diary")}
-                className="bg-white border border-slate-200 px-3 py-1.5 rounded-xl shadow-xs flex-row items-center gap-1.5"
+                className="flex-row items-center gap-1.5 px-3 py-1.5 rounded-xl flex-shrink-0"
+                style={{
+                  backgroundColor: "#FFFFFF",
+                  borderWidth: 1,
+                  borderColor: "rgba(232,236,234,0.7)",
+                  ...Platform.select({
+                    ios: {
+                      shadowColor: "#000",
+                      shadowOffset: { width: 0, height: 1 },
+                      shadowRadius: 3,
+                      shadowOpacity: 0.06,
+                    },
+                    android: { elevation: 1 },
+                  }),
+                }}
               >
-                <Feather name="calendar" size={13} color="#64748b" />
-                <Text className="text-[12px] font-semibold text-slate-700">History</Text>
+                <Feather name="calendar" size={13} color="#2563EB" />
+                <Text className="text-[12px] font-bold text-[#2563EB]">History</Text>
               </TouchableOpacity>
             </View>
           ) : (
             <View className="mb-6">
-              <Text className="text-[28px] font-semibold text-slate-900 tracking-tight mb-1">
+              <Text
+                className="text-[28px] font-bold text-[#152131] mb-1"
+                style={{ letterSpacing: -0.5 }}
+              >
                 Today's Movement
               </Text>
-              <Text className="text-[16px] text-slate-500 mb-4">
+              <Text className="text-[16px] text-[#64748B] mb-4">
                 Move safely. Build consistency.
               </Text>
               <TouchableOpacity
                 onPress={() => router.push("/(home)/(health)/exercise-diary")}
-                className="bg-white border border-slate-200 px-4 py-2.5 rounded-xl shadow-sm shadow-slate-100 flex-row items-center gap-2 self-start"
+                className="flex-row items-center gap-2 self-start px-4 py-2.5 rounded-xl"
+                style={{
+                  backgroundColor: "#FFFFFF",
+                  borderWidth: 1,
+                  borderColor: "rgba(232,236,234,0.7)",
+                  ...Platform.select({
+                    ios: {
+                      shadowColor: "#000",
+                      shadowOffset: { width: 0, height: 2 },
+                      shadowRadius: 6,
+                      shadowOpacity: 0.06,
+                    },
+                    android: { elevation: 2 },
+                  }),
+                }}
               >
-                <Feather name="calendar" size={16} color="#64748b" />
-                <Text className="text-[13px] font-semibold text-slate-700">History</Text>
+                <Feather name="calendar" size={16} color="#64748B" />
+                <Text className="text-[13px] font-semibold text-[#5C6B66]">History</Text>
               </TouchableOpacity>
             </View>
           )}
 
-          {hssStatus === "Elevated Risk" && (
-            <Reanimated.View entering={FadeInDown.springify()} className="bg-rose-50 p-4 rounded-2xl border border-rose-100 flex-row gap-3 mb-8">
-              <Feather name="alert-triangle" size={20} color="#e11d48" className="mt-0.5" />
-              <Text className="flex-1 text-[14px] leading-relaxed text-rose-900 font-medium">
-                Your heart stability is currently elevated. Please consult your physician before engaging in physical activity. Only breathing exercises are shown.
+          {/* Offline Banner */}
+          {isOffline && (
+            <View className="flex-row items-center gap-2 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/50 px-4 py-2.5 rounded-2xl mb-4">
+              <Feather name="wifi-off" size={14} color="#D97706" />
+              <Text className="text-[12px] font-medium text-amber-800 dark:text-amber-300 flex-1">
+                Offline Mode — Showing saved movement routines
               </Text>
+            </View>
+          )}
+
+          {/* ── Clinical Stability Warning Callout (HL-ENG-01) ── */}
+          {(hssStatus === "Elevated Risk" || hssStatus === "Critical") && (
+            <Reanimated.View
+              entering={FadeInDown.springify()}
+              className="p-4 rounded-2xl flex-row gap-3 mb-6"
+              style={{
+                backgroundColor: hssStatus === "Critical" ? "#FEF2F2" : "#FFFBEB",
+                borderWidth: 1,
+                borderColor: hssStatus === "Critical" ? "#FECACA" : "#FDE68A",
+              }}
+            >
+              <Feather
+                name="alert-triangle"
+                size={20}
+                color={hssStatus === "Critical" ? "#DC2626" : "#D97706"}
+                style={{ marginTop: 2 }}
+              />
+              <View className="flex-1">
+                <Text
+                  className="text-[14px] font-bold mb-0.5"
+                  style={{ color: hssStatus === "Critical" ? "#991B1B" : "#92400E" }}
+                >
+                  {hssStatus === "Critical"
+                    ? "Critical Cardiac Strain Detected"
+                    : "Elevated Heart Stability Risk"}
+                </Text>
+                <Text
+                  className="text-[13px] leading-relaxed font-medium"
+                  style={{ color: hssStatus === "Critical" ? "#B91C1C" : "#B45309" }}
+                >
+                  {hssStatus === "Critical"
+                    ? "Active cardiovascular workouts are paused to protect your heart. Please rest seated or lying down comfortably and contact your attending care team or emergency services immediately."
+                    : "Your heart stability is currently elevated. Please consult your physician before engaging in physical activity. Only gentle breathing exercises are shown."}
+                </Text>
+              </View>
             </Reanimated.View>
           )}
 
           {/* Recommended Routine */}
           {recommendedRoutine && selectedType === "All" && (
-            <Reanimated.View entering={FadeInDown.delay(100).springify()} className="mb-10">
-              <View className="flex-row items-center justify-between mb-4">
-                <Text className="text-[18px] font-semibold text-slate-900 tracking-tight">
+            <Reanimated.View entering={FadeInDown.delay(100).springify()} className="mb-8">
+              <View className="flex-row items-center justify-between mb-3">
+                <Text
+                  className="text-[18px] font-bold text-[#152131]"
+                  style={{ letterSpacing: -0.3 }}
+                >
                   Recommended Movement
                 </Text>
               </View>
@@ -535,36 +787,87 @@ export default function ExercisesScreen({
             </Reanimated.View>
           )}
 
-          {/* Consistency Section */}
-          <Reanimated.View entering={FadeInDown.delay(200).springify()} className="mb-10 bg-white p-5 rounded-3xl border border-slate-100 shadow-sm shadow-slate-100/50">
-            <Text className="text-[18px] font-semibold text-slate-900 tracking-tight mb-4">
-              Your Consistency
-            </Text>
+          {/* ── Enhanced Consistency Tracker (HL-ENG-05) ── */}
+          <Reanimated.View
+            entering={FadeInDown.delay(200).springify()}
+            className="mb-8 p-5 rounded-3xl"
+            style={{
+              backgroundColor: "#FFFFFF",
+              borderWidth: 1,
+              borderColor: "rgba(232,236,234,0.6)",
+              ...Platform.select({
+                ios: {
+                  shadowColor: "#000",
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowRadius: 16,
+                  shadowOpacity: 0.06,
+                },
+                android: { elevation: 3 },
+              }),
+            }}
+          >
             <View className="flex-row items-center justify-between mb-4">
+              <Text
+                className="text-[18px] font-bold text-[#152131]"
+                style={{ letterSpacing: -0.3 }}
+              >
+                Your Consistency
+              </Text>
+              <View className="flex-row items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#F0FDF4]">
+                <View className="w-1.5 h-1.5 rounded-full bg-[#16A34A]" />
+                <Text className="text-[12px] font-bold text-[#166534]">
+                  {weeklyConsistency.count}/7
+                </Text>
+              </View>
+            </View>
+            <View className="flex-row items-center justify-between mb-2">
               {weeklyConsistency.days.map((isActiveDay, index) => (
-                <View key={index} className={`w-8 h-8 rounded-full items-center justify-center ${isActiveDay ? "bg-green-100" : "bg-slate-100"}`}>
-                  <View className={`w-3 h-3 rounded-full ${isActiveDay ? "bg-green-500" : "bg-slate-300"}`} />
+                <View key={index} className="items-center gap-1.5">
+                  <View
+                    className="w-9 h-9 rounded-full items-center justify-center"
+                    style={{
+                      backgroundColor: isActiveDay ? "#F0FDF4" : "#F4F7F5",
+                      borderWidth: isActiveDay ? 2 : 1,
+                      borderColor: isActiveDay ? "#86EFAC" : "#E8ECEA",
+                    }}
+                  >
+                    <View
+                      className="w-3 h-3 rounded-full"
+                      style={{
+                        backgroundColor: isActiveDay ? "#16A34A" : "#D1D9D5",
+                      }}
+                    />
+                  </View>
+                  <Text
+                    className="text-[10px] font-semibold"
+                    style={{ color: isActiveDay ? "#166534" : "#94A3B8" }}
+                  >
+                    {weeklyConsistency.labels[index] || DAY_LABELS[index]}
+                  </Text>
                 </View>
               ))}
             </View>
-            <Text className="text-[15px] text-slate-600 font-medium">
+            <Text className="text-[14px] text-[#5C6B66] font-medium mt-1">
               {weeklyConsistency.count} active {weeklyConsistency.count === 1 ? "day" : "days"} in the last 7 days
             </Text>
           </Reanimated.View>
 
-          {/* Discover Section */}
+          {/* ── Available Training ── */}
           <Reanimated.View entering={FadeInDown.delay(200).springify()}>
-            <Text className="text-[18px] font-semibold text-slate-900 tracking-tight mb-4">
+            <Text
+              className="text-[18px] font-bold text-[#152131] mb-4"
+              style={{ letterSpacing: -0.3 }}
+            >
               Available Training
             </Text>
 
-            {/* Type Filter */}
+            {/* Type Filter — Dark/Light Chips */}
             {exerciseTypes.length > 2 && (
               <ScrollView 
                 horizontal 
                 showsHorizontalScrollIndicator={false} 
                 className="mb-6"
-                contentContainerStyle={{ gap: 10, paddingRight: 20 }}
+                contentContainerStyle={{ gap: 8, paddingRight: 20 }}
               >
                 {exerciseTypes.map((type) => {
                   const isSelected = selectedType === type;
@@ -573,18 +876,26 @@ export default function ExercisesScreen({
                       key={type}
                       activeOpacity={0.8}
                       onPress={() => setSelectedType(type)}
-                      className={`px-5 py-2.5 rounded-full border ${
-                        isSelected 
-                          ? "bg-slate-800 border-slate-800" 
-                          : "bg-white border-slate-200"
-                      }`}
+                      className="min-h-[40px] rounded-full flex-row items-center justify-center"
+                      style={{
+                        paddingHorizontal: 16,
+                        paddingVertical: 8,
+                        backgroundColor: isSelected ? "#152131" : "#F1F5F3",
+                        ...isSelected ? Platform.select({
+                          ios: {
+                            shadowColor: "#152131",
+                            shadowOffset: { width: 0, height: 2 },
+                            shadowRadius: 6,
+                            shadowOpacity: 0.2,
+                          },
+                          android: { elevation: 3 },
+                        }) : {},
+                      }}
                     >
-                      <Text 
-                        className={`text-[14px] font-medium ${
-                          isSelected 
-                            ? "text-white" 
-                            : "text-slate-600"
-                        }`}
+                      <Text
+                        numberOfLines={1}
+                        className="text-[13px] font-semibold"
+                        style={{ color: isSelected ? "#FFFFFF" : "#5C6B66" }}
                       >
                         {type}
                       </Text>
@@ -596,7 +907,7 @@ export default function ExercisesScreen({
 
             {availableRoutines.length === 0 ? (
               <View className="py-10 items-center justify-center">
-                <Text className="text-slate-500 text-[15px]">No routines found in this category.</Text>
+                <Text className="text-[#64748B] text-[15px]">No routines found in this category.</Text>
               </View>
             ) : (
               <View className="flex-col pb-10">

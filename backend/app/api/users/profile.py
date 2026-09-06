@@ -26,7 +26,8 @@ router = APIRouter(prefix="/users", tags=["Users"])
 @router.get("/", status_code=status.HTTP_200_OK)
 async def read_all_users(current_user: dict = Depends(get_current_user)):
     caller_role = current_user.get("role")
-    if caller_role not in ["admin", "super_admin", "medical_expert"]:
+    caller_id = current_user.get("user_id")
+    if caller_role not in ["admin", "super_admin", "medical_expert", "doctor", "clinician"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access Denied: Admins/Experts only",
@@ -42,9 +43,22 @@ async def read_all_users(current_user: dict = Depends(get_current_user)):
         get_exercises_repo,
         get_sleep_repo,
         get_case_review_repo,
+        get_baseline_repo,
     )
     
     all_profiles = get_profile_repo().list_all()
+
+    # Medical experts and doctors may only list patients assigned to their care team (TKT-SEC-01)
+    if caller_role in ["medical_expert", "doctor", "clinician"]:
+        assigned_user_ids = set()
+        for p in all_profiles:
+            pid = p.get("id")
+            if pid:
+                care_team = get_baseline_repo().list_care_team(pid)
+                if any(c.get("contact_user_id") == caller_id or c.get("user_id") == caller_id for c in care_team):
+                    assigned_user_ids.add(pid)
+        all_profiles = [p for p in all_profiles if p.get("id") in assigned_user_ids]
+
     
     # --- BULK AGGREGATION TO PREVENT N+1 QUERY ---
     import logging
@@ -187,15 +201,8 @@ async def read_user_profile(
     user_id: str,
     current_user: dict = Depends(get_current_user),
 ):
-    caller_id = current_user.get("user_id")
-    caller_role = current_user.get("role")
-    
-    # Ownership rule: users can only access their own profile unless they are admin/medical_expert
-    if caller_id != user_id and caller_role not in ["admin", "super_admin", "medical_expert"]:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You may only access your own profile.",
-        )
+    from app.utils.security import verify_user_access
+    verify_user_access(current_user, user_id)
         
     user_profile = get_full_profile(user_id)
     if not user_profile:
@@ -326,13 +333,8 @@ async def read_user_reminders(
     user_id: str,
     current_user: dict = Depends(get_current_user),
 ):
-    caller_id = current_user.get("user_id")
-    caller_role = current_user.get("role")
-    if caller_role == "patient" and caller_id != user_id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You may only access your own reminders.",
-        )
+    from app.utils.security import verify_user_access
+    verify_user_access(current_user, user_id)
     return get_reminders(user_id)
 
 
@@ -344,7 +346,7 @@ async def update_user_reminders_route(
 ):
     caller_id = current_user.get("user_id")
     caller_role = current_user.get("role")
-    if caller_role == "patient" and caller_id != user_id:
+    if caller_id != user_id and caller_role != "super_admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You may only update your own reminders.",
@@ -424,7 +426,7 @@ async def add_care_team_member(
 ):
     caller_id = current_user.get("user_id")
     caller_role = current_user.get("role")
-    if caller_role == "patient" and caller_id != user_id:
+    if caller_id != user_id and caller_role != "super_admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You may only modify your own care team.",
@@ -441,7 +443,7 @@ async def update_care_team_member(
 ):
     caller_id = current_user.get("user_id")
     caller_role = current_user.get("role")
-    if caller_role == "patient" and caller_id != user_id:
+    if caller_id != user_id and caller_role != "super_admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You may only modify your own care team.",
@@ -459,7 +461,7 @@ async def delete_care_team_member(
 ):
     caller_id = current_user.get("user_id")
     caller_role = current_user.get("role")
-    if caller_role == "patient" and caller_id != user_id:
+    if caller_id != user_id and caller_role != "super_admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You may only modify your own care team.",

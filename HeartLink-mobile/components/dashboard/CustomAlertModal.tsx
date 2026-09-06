@@ -42,7 +42,7 @@ export function CustomAlertModal({
         }}
       >
         <View
-          className="bg-white dark:bg-slate-900 rounded-3xl w-full overflow-hidden border border-transparent dark:border-slate-800"
+          className="bg-card rounded-3xl w-full overflow-hidden border border-transparent"
           style={{ maxWidth: 360 }}
         >
           <View className="items-center pt-7 pb-4 px-6">
@@ -52,22 +52,22 @@ export function CustomAlertModal({
             >
               <Feather name={icon as any} size={26} color={iconColor} />
             </View>
-            <Text className="text-[18px] font-semibold text-slate-900 dark:text-white text-center mb-2">
+            <Text className="text-[18px] font-semibold text-foreground text-center mb-2">
               {title}
             </Text>
-            <Text className="text-[13px] text-slate-500 dark:text-slate-400 text-center leading-relaxed">
+            <Text className="text-[13px] text-muted-foreground text-center leading-relaxed">
               {message}
             </Text>
           </View>
           <View className="px-5 pb-5 gap-2">
             {actions.map((action, i) => {
-              const primaryBg = isDark ? "#2563eb" : "#0f172a";
-              const secondaryBorder = isDark ? "#334155" : "#e2e8f0";
+              const primaryBg = isDark ? "#F0693E" : "#E8532E";
+              const secondaryBorder = isDark ? "#334155" : "#DCE3DF";
               const textColor = action.primary
                 ? "#ffffff"
                 : isDark
-                ? "#cbd5e1"
-                : "#64748b";
+                  ? "#cbd5e1"
+                  : "#5C6B66";
 
               return (
                 <TouchableOpacity

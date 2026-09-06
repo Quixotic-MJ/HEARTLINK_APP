@@ -665,12 +665,23 @@ export default function ProfileScreen({ isTab = false }: { isTab?: boolean } = {
 
             <TouchableOpacity
               activeOpacity={0.85}
+              onPress={() => router.push("/(home)/(tabs)/wrap-up" as any)}
+              className="bg-primary/5 dark:bg-primary/10 rounded-2xl py-3.5 flex-row items-center justify-center gap-2 border border-primary/20 dark:border-primary/30"
+            >
+              <Feather name="file-text" size={15} className="text-primary" />
+              <Text className="text-[15px] font-semibold text-primary">
+                Doctor Consultation Summary
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              activeOpacity={0.85}
               onPress={exportPDF}
               className="bg-primary/5 dark:bg-primary/10 rounded-2xl py-3.5 flex-row items-center justify-center gap-2 border border-primary/20 dark:border-primary/30"
             >
               <Feather name="download" size={15} className="text-primary" />
               <Text className="text-[15px] font-semibold text-primary">
-                Download health report
+                Download Biometrics PDF
               </Text>
             </TouchableOpacity>
           </View>

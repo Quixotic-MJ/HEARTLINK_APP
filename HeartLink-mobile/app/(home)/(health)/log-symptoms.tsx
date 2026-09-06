@@ -10,6 +10,7 @@ import {
   Platform,
   KeyboardAvoidingView,
   PanResponder,
+  Modal,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -27,8 +28,9 @@ import { OfflineSyncService } from "../../../utils/OfflineSyncService";
 import * as Haptics from "expo-haptics";
 import { useToast } from "../../../contexts/ToastContext";
 import { Button } from "../../../components/ui/Button";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const base_url = process.env.EXPO_PUBLIC_API_URL;
+const base_url = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
 
 // ─── Types & Constants ────────────────────────────────────────────────────────
 
@@ -295,20 +297,51 @@ export default function LogSymptomsScreen() {
   const isDark = colorScheme === "dark";
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const params = useLocalSearchParams<{ triggered_by_exercise_id?: string; pending_exercise?: string }>();
+  const params = useLocalSearchParams<{
+    triggered_by_exercise_id?: string;
+    pending_exercise?: string;
+    quick_entry?: string;
+    default_sys?: string;
+    default_dia?: string;
+  }>();
   const { userId, token } = useUser();
   const { showToast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showEmergencyGuidanceModal, setShowEmergencyGuidanceModal] = useState(false);
 
   const [step, setStep] = useState<1 | 2>(params.triggered_by_exercise_id ? 2 : 1);
   const [timestamp, setTimestamp] = useState("");
 
-  // Step 1 State (Vitals)
-  const [systolic, setSystolic] = useState("");
-  const [diastolic, setDiastolic] = useState("");
+  // Step 1 State (Vitals) with fast-entry prefill
+  const [systolic, setSystolic] = useState(params.default_sys || "");
+  const [diastolic, setDiastolic] = useState(params.default_dia || "");
   const [heartRate, setHeartRate] = useState("");
   const [weight, setWeight] = useState("");
   const [medicationTaken, setMedicationTaken] = useState<boolean | null>(null);
+
+  // Stepper adjustments for quick low-dexterity tap input
+  const adjustSystolic = (delta: number) => {
+    Haptics.selectionAsync();
+    const current = parseInt(systolic, 10) || 120;
+    const updated = Math.min(260, Math.max(70, current + delta));
+    setSystolic(String(updated));
+  };
+
+  const adjustDiastolic = (delta: number) => {
+    Haptics.selectionAsync();
+    const current = parseInt(diastolic, 10) || 80;
+    const updated = Math.min(180, Math.max(40, current + delta));
+    setDiastolic(String(updated));
+  };
+
+  // Hemodynamic boundary checks (AHA / Philippine DOH Hypertensive Crisis & Hypotension)
+  const sysVal = parseInt(systolic, 10);
+  const diaVal = parseInt(diastolic, 10);
+  const isHypertensiveCrisis =
+    (!isNaN(sysVal) && sysVal >= 180) || (!isNaN(diaVal) && diaVal >= 120);
+  const isSevereHypotension =
+    (!isNaN(sysVal) && sysVal > 0 && sysVal < 90) ||
+    (!isNaN(diaVal) && diaVal > 0 && diaVal < 60);
 
   // Step 2 State (Symptoms)
   const [selectedSymptoms, setSelectedSymptoms] = useState<SymptomType[]>(["None (Feeling fine)"]);
@@ -347,11 +380,13 @@ export default function LogSymptomsScreen() {
   };
 
   const isEmergency =
-    hasRealSymptoms &&
-    ((selectedSymptoms.includes("Chest Discomfort / Tightness") &&
-      (severities["Chest Discomfort / Tightness"] || 1) >= 7) ||
-      (selectedSymptoms.includes("Shortness of Breath") &&
-        context === "While resting"));
+    (hasRealSymptoms &&
+      ((selectedSymptoms.includes("Chest Discomfort / Tightness") &&
+        (severities["Chest Discomfort / Tightness"] || 1) >= 7) ||
+        (selectedSymptoms.includes("Shortness of Breath") &&
+          context === "While resting"))) ||
+    isHypertensiveCrisis ||
+    isSevereHypotension;
 
   const handleLocateCardiologist = () => {
     Linking.openURL(
@@ -360,36 +395,97 @@ export default function LogSymptomsScreen() {
   };
 
   const handleSubmit = async () => {
+    // 1. Strict numeric parsing (treating 0 as a distinct number, not falsy)
+    const parseIntegerInput = (val: string): number | null => {
+      const trimmed = val.trim();
+      if (!trimmed) return null;
+      const n = Number(trimmed);
+      return !Number.isInteger(n) ? NaN : n;
+    };
+    const parseFloatInput = (val: string): number | null => {
+      const trimmed = val.trim();
+      if (!trimmed) return null;
+      const n = Number(trimmed);
+      return isNaN(n) ? NaN : n;
+    };
+
+    const sys = parseIntegerInput(systolic);
+    const dia = parseIntegerInput(diastolic);
+    const hr = parseIntegerInput(heartRate);
+    const w = parseFloatInput(weight);
+
+    // 2. Boundary validations (treating 0 as an invalid out-of-range number, not falsy null)
+    if (sys !== null) {
+      if (isNaN(sys) || sys < 50 || sys > 300) {
+        showToast({ title: "Validation Error", message: "Systolic blood pressure must be an integer between 50 and 300.", type: "error" });
+        return;
+      }
+    }
+    if (dia !== null) {
+      if (isNaN(dia) || dia < 30 || dia > 200) {
+        showToast({ title: "Validation Error", message: "Diastolic blood pressure must be an integer between 30 and 200.", type: "error" });
+        return;
+      }
+    }
+    if (hr !== null) {
+      if (isNaN(hr) || hr < 30 || hr > 250) {
+        showToast({ title: "Validation Error", message: "Heart rate must be an integer between 30 and 250.", type: "error" });
+        return;
+      }
+    }
+    if (w !== null) {
+      if (isNaN(w) || w <= 0 || w > 500) {
+        showToast({ title: "Validation Error", message: "Weight must be greater than 0 and up to 500 kg.", type: "error" });
+        return;
+      }
+    }
+
+    // 3. Physiological BP Invariants (Pairwise requirement and SBP > DBP)
+    if ((sys !== null && dia === null) || (sys === null && dia !== null)) {
+      showToast({
+        title: "Validation Error",
+        message: "Blood pressure requires both systolic and diastolic values.",
+        type: "error",
+      });
+      return;
+    }
+
+    if (params.quick_entry === "true" && (sys === null || dia === null)) {
+      showToast({
+        title: "Missing Blood Pressure",
+        message: "Please enter your blood pressure before logging vitals.",
+        type: "error",
+      });
+      return;
+    }
+
+    if (sys !== null && dia !== null) {
+      if (sys <= dia) {
+        showToast({
+          title: "Validation Error",
+          message: "Systolic blood pressure must be strictly greater than diastolic blood pressure.",
+          type: "error",
+        });
+        return;
+      }
+      if (sys - dia < 15) {
+        showToast({
+          title: "Validation Error",
+          message: "Pulse pressure (Systolic - Diastolic) must be at least 15 mmHg.",
+          type: "error",
+        });
+        return;
+      }
+    }
+
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    const sys = parseInt(systolic);
-    const dia = parseInt(diastolic);
-    const hr = parseInt(heartRate);
-    const w = parseFloat(weight);
-
-    if (sys && (sys < 50 || sys > 300)) {
-      showToast({ title: "Validation Error", message: "Systolic blood pressure must be between 50 and 300.", type: "error" });
-      return;
-    }
-    if (dia && (dia < 30 || dia > 200)) {
-      showToast({ title: "Validation Error", message: "Diastolic blood pressure must be between 30 and 200.", type: "error" });
-      return;
-    }
-    if (hr && (hr < 30 || hr > 250)) {
-      showToast({ title: "Validation Error", message: "Heart rate must be between 30 and 250.", type: "error" });
-      return;
-    }
-    if (w && (w <= 0 || w > 500)) {
-      showToast({ title: "Validation Error", message: "Weight must be greater than 0.", type: "error" });
-      return;
-    }
-
     setIsSubmitting(true);
     const targetUrl = `${base_url}/api/health-logs/${userId}`;
     const payload = {
-      systolic_bp: sys || null,
-      diastolic_bp: dia || null,
-      heart_rate_bpm: hr || null,
-      weight_kg: w || null,
+      systolic_bp: sys,
+      diastolic_bp: dia,
+      heart_rate_bpm: hr,
+      weight_kg: w,
       medication_taken: medicationTaken || false,
       symptoms: selectedSymptoms,
       severity_map: severities,
@@ -400,13 +496,29 @@ export default function LogSymptomsScreen() {
 
     // Optimistic UI: Feedback & navigation
     if (isEmergency) {
-      showToast({ 
-        title: "Critical log submitted", 
-        message: "Your clinical indicators reflect an elevated risk. Please seek medical attention immediately.", 
-        type: "error",
-        duration: 5000 
-      });
-      router.back();
+      if (isSevereHypotension) {
+        showToast({ 
+          title: "Critical Low Blood Pressure", 
+          message: "Blood pressure reading reflects acute hypotension (<90/60 mmHg). Please sit or lie down safely, hydrate, and seek medical attention.", 
+          type: "error",
+          duration: 8000 
+        });
+      } else if (isHypertensiveCrisis) {
+        showToast({ 
+          title: "Hypertensive Crisis Detected", 
+          message: "Blood pressure reading reflects an acute Hypertensive Crisis (≥180/120 mmHg). Please seek emergency medical care.", 
+          type: "error",
+          duration: 8000 
+        });
+      } else {
+        showToast({ 
+          title: "Critical Clinical Indicators", 
+          message: "Your clinical indicators reflect acute cardiac risk. Emergency medical evaluation is recommended.", 
+          type: "error",
+          duration: 6000 
+        });
+      }
+      setShowEmergencyGuidanceModal(true);
     } else {
       showToast({ 
         title: "Health log submitted", 
@@ -416,7 +528,7 @@ export default function LogSymptomsScreen() {
       router.back();
     }
 
-    // Run the API request silently in the background
+    // Run the API request in background with network vs 4xx discrimination (CLN-01)
     (async () => {
       try {
         if (params.pending_exercise) {
@@ -444,10 +556,36 @@ export default function LogSymptomsScreen() {
           },
           body: JSON.stringify(payload),
         });
-        if (!res.ok) throw new Error("Failed to save log");
-      } catch (err) {
+
+        if (!res.ok) {
+          if (res.status >= 400 && res.status < 500) {
+            console.error(`Health log rejected with client status ${res.status}. Not enqueuing invalid payload.`);
+            showToast({
+              title: "Log Rejected",
+              message: "The server rejected this health log due to invalid data. Please verify your entries.",
+              type: "error",
+              duration: 6000,
+            });
+            return;
+          }
+          throw new Error(`Server returned status ${res.status}`);
+        }
+
+        // Vital-event cache invalidation (TKT-CLN-05)
+        if (userId) {
+          try {
+            const allKeys = await AsyncStorage.getAllKeys();
+            const keysToRemove = allKeys.filter((k) => k.startsWith(`@trends_cache_${userId}`));
+            if (keysToRemove.length > 0) {
+              await AsyncStorage.multiRemove(keysToRemove);
+            }
+          } catch (e) {
+            console.warn("Failed to invalidate trends cache after log", e);
+          }
+        }
+      } catch (err: any) {
         console.warn("Network error during silent submission. Queuing log for offline sync...", err);
-        await OfflineSyncService.queueRequest(targetUrl, "POST", payload);
+        await OfflineSyncService.queueRequest(targetUrl, "POST", payload, undefined, userId || undefined);
       }
     })();
   };
@@ -519,6 +657,45 @@ export default function LogSymptomsScreen() {
           {/* ============================================================== */}
           {step === 1 && (
             <Animated.View entering={FadeInDown.duration(260)} className="gap-4">
+              {/* Acute Hypertensive Crisis In-Line Banner */}
+              {isHypertensiveCrisis && (
+                <View className="bg-red-50 dark:bg-red-950/40 border border-red-500 rounded-2xl p-4 gap-2 shadow-sm">
+                  <View className="flex-row items-center justify-between">
+                    <View className="flex-row items-center gap-2">
+                      <Feather name="alert-triangle" size={16} color="#ef4444" />
+                      <Text className="text-[12.5px] font-extrabold text-red-600 dark:text-red-400 uppercase tracking-wide">
+                        Hypertensive Crisis Alert
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      onPress={handleLocateCardiologist}
+                      activeOpacity={0.8}
+                      className="bg-red-600 px-2.5 py-1 rounded-lg"
+                    >
+                      <Text className="text-[11px] font-bold text-white">Find Doctor</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <Text className="text-[12px] text-red-700 dark:text-red-300 leading-relaxed font-medium">
+                    Entered blood pressure ({systolic || "--"}/{diastolic || "--"} mmHg) meets AHA/DOH Hypertensive Crisis threshold (≥180/120 mmHg). Rest quietly for 5 minutes and re-test. If reading persists or if experiencing chest pressure, shortness of breath, numbness, or vision changes, call 911 immediately.
+                  </Text>
+                </View>
+              )}
+
+              {/* Acute Hypotension In-Line Advisory */}
+              {isSevereHypotension && !isHypertensiveCrisis && (
+                <View className="bg-amber-50 dark:bg-amber-950/40 border border-amber-500 rounded-2xl p-3.5 gap-1.5 shadow-sm">
+                  <View className="flex-row items-center gap-2">
+                    <Feather name="alert-circle" size={15} color="#d97706" />
+                    <Text className="text-[12px] font-bold text-amber-700 dark:text-amber-400 uppercase">
+                      Low Blood Pressure Advisory
+                    </Text>
+                  </View>
+                  <Text className="text-[11.5px] text-amber-800 dark:text-amber-300 leading-snug">
+                    Entered reading is below 90/60 mmHg. Drink water, sit or lie down to prevent dizziness or fainting, and verify cuff placement.
+                  </Text>
+                </View>
+              )}
+
               {/* 1. Core Vitals Card */}
               <View className="bg-card rounded-2xl border border-border px-5 py-6 gap-4 shadow-md">
                 <View className="flex-row items-center gap-2">
@@ -552,6 +729,23 @@ export default function LogSymptomsScreen() {
                         />
                         <Text className="text-[11px] font-medium text-muted-foreground">mmHg</Text>
                       </View>
+                      {/* Steppers */}
+                      <View className="flex-row items-center gap-1 mt-1.5">
+                        <TouchableOpacity
+                          onPress={() => adjustSystolic(-5)}
+                          activeOpacity={0.7}
+                          className="flex-1 py-1 rounded-lg bg-muted/60 border border-border items-center"
+                        >
+                          <Text className="text-[11px] font-bold text-foreground">-5</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          onPress={() => adjustSystolic(5)}
+                          activeOpacity={0.7}
+                          className="flex-1 py-1 rounded-lg bg-muted/60 border border-border items-center"
+                        >
+                          <Text className="text-[11px] font-bold text-foreground">+5</Text>
+                        </TouchableOpacity>
+                      </View>
                     </View>
 
                     <View className="flex-1 gap-1">
@@ -569,6 +763,23 @@ export default function LogSymptomsScreen() {
                           className="flex-1 text-[15px] text-foreground font-medium h-full"
                         />
                         <Text className="text-[11px] font-medium text-muted-foreground">mmHg</Text>
+                      </View>
+                      {/* Steppers */}
+                      <View className="flex-row items-center gap-1 mt-1.5">
+                        <TouchableOpacity
+                          onPress={() => adjustDiastolic(-5)}
+                          activeOpacity={0.7}
+                          className="flex-1 py-1 rounded-lg bg-muted/60 border border-border items-center"
+                        >
+                          <Text className="text-[11px] font-bold text-foreground">-5</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          onPress={() => adjustDiastolic(5)}
+                          activeOpacity={0.7}
+                          className="flex-1 py-1 rounded-lg bg-muted/60 border border-border items-center"
+                        >
+                          <Text className="text-[11px] font-bold text-foreground">+5</Text>
+                        </TouchableOpacity>
                       </View>
                     </View>
                   </View>
@@ -911,7 +1122,11 @@ export default function LogSymptomsScreen() {
                 <View className="flex-row items-center gap-1.5">
                   <Feather name="alert-triangle" size={15} color="#ef4444" />
                   <Text className="text-xs font-bold text-destructive uppercase tracking-wide">
-                    Elevated Risk Detected
+                    {isSevereHypotension
+                      ? "Severe Hypotension (<90/60)"
+                      : isHypertensiveCrisis
+                      ? "Hypertensive Crisis (≥180/120)"
+                      : "Elevated Risk Detected"}
                   </Text>
                 </View>
                 <TouchableOpacity
@@ -926,20 +1141,35 @@ export default function LogSymptomsScreen() {
                 </TouchableOpacity>
               </View>
               <Text className="text-[12px] text-destructive leading-snug font-medium">
-                Clinical indicators suggest acute risk. Please seek medical evaluation immediately.
+                {isSevereHypotension
+                  ? "Entered blood pressure indicates acute hypotension (<90/60 mmHg). Sit or lie down safely, hydrate, and seek medical attention if faint or symptomatic."
+                  : isHypertensiveCrisis
+                  ? "Entered blood pressure indicates an acute Hypertensive Crisis (≥180/120 mmHg). Rest for 5 mins and re-test. If sustained or symptoms worsen, call 911 immediately."
+                  : "Clinical indicators suggest acute risk. Please seek medical evaluation immediately."}
               </Text>
             </Animated.View>
           )}
 
           {step === 1 ? (
-            <Button
-              label="Next: Symptoms"
-              icon="arrow-right"
-              onPress={() => {
-                Haptics.selectionAsync();
-                setStep(2);
-              }}
-            />
+            <View className="gap-2">
+              {params.quick_entry === "true" && (
+                <Button
+                  label="Log Vitals Directly"
+                  icon="check"
+                  variant="outline"
+                  onPress={handleSubmit}
+                  isLoading={isSubmitting}
+                />
+              )}
+              <Button
+                label="Next: Symptoms"
+                icon="arrow-right"
+                onPress={() => {
+                  Haptics.selectionAsync();
+                  setStep(2);
+                }}
+              />
+            </View>
           ) : (
             <Button
               label={isEmergency ? "Submit Critical Log" : "Submit Health Log"}
@@ -952,6 +1182,77 @@ export default function LogSymptomsScreen() {
           )}
         </Animated.View>
       </KeyboardAvoidingView>
+
+      {/* Emergency Guidance Modal for Acute Clinical Crisis (HL-ENG-17) */}
+      <Modal
+        visible={showEmergencyGuidanceModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {
+          setShowEmergencyGuidanceModal(false);
+          router.back();
+        }}
+      >
+        <View className="flex-1 bg-black/70 justify-center items-center px-5">
+          <View className="w-full max-w-sm bg-white dark:bg-slate-900 rounded-3xl p-6 border-2 border-red-500 shadow-2xl">
+            <View className="w-14 h-14 rounded-2xl bg-red-100 dark:bg-red-950/80 items-center justify-center mb-4 self-center">
+              <Feather name="alert-triangle" size={28} color="#dc2626" />
+            </View>
+            <Text className="text-[20px] font-black text-slate-900 dark:text-white text-center mb-2 tracking-tight">
+              Critical Vitals Detected
+            </Text>
+            <Text className="text-[14px] text-slate-600 dark:text-slate-300 text-center leading-relaxed mb-6 font-medium">
+              {isSevereHypotension
+                ? "Your blood pressure reading reflects acute hypotension (<90/60 mmHg). Please sit or lie down, hydrate, and seek medical assistance immediately."
+                : isHypertensiveCrisis
+                ? "Your blood pressure reading reflects an acute Hypertensive Crisis (≥180/120 mmHg). Immediate emergency medical evaluation is strongly advised."
+                : "Your clinical indicators reflect acute cardiac strain. Please seek emergency medical care immediately."}
+            </Text>
+
+            <View className="gap-3 w-full">
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={() => {
+                  setShowEmergencyGuidanceModal(false);
+                  router.replace("/locator" as any);
+                }}
+                className="w-full bg-red-600 py-3.5 px-4 rounded-xl flex-row items-center justify-center gap-2 shadow-sm"
+              >
+                <Feather name="map-pin" size={16} color="#ffffff" />
+                <Text className="text-white text-[14px] font-bold">
+                  Find Nearby Emergency Hospital
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={() => {
+                  Linking.openURL("tel:911").catch(() => {});
+                }}
+                className="w-full bg-slate-900 dark:bg-slate-800 py-3.5 px-4 rounded-xl flex-row items-center justify-center gap-2"
+              >
+                <Feather name="phone-call" size={16} color="#ffffff" />
+                <Text className="text-white text-[14px] font-bold">
+                  Call Emergency Services (911)
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => {
+                  setShowEmergencyGuidanceModal(false);
+                  router.back();
+                }}
+                className="w-full py-2.5 items-center justify-center mt-1"
+              >
+                <Text className="text-slate-400 dark:text-slate-500 text-[13px] font-semibold">
+                  Acknowledge & Return to App
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }

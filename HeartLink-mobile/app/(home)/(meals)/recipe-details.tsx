@@ -74,13 +74,29 @@ export default function RecipeDetailsScreen() {
   const { showToast } = useToast();
   const insets = useSafeAreaInsets();
 
+  const savedRecipesKey = userId ? `@saved_recipes_${userId}` : "@saved_recipes";
+  const recipesCacheKey = userId ? `@recipes_cache_${userId}` : "@recipes_cache";
+
   const [recipe, setRecipe] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [servingsMultiplier, setServingsMultiplier] = useState(1);
+  const [activeTab, setActiveTab] = useState<"Ingredients" | "Instructions">(
+    "Ingredients",
+  );
+  const [isSaved, setIsSaved] = useState(false);
+  const [isLogged, setIsLogged] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     async function fetchRecipe() {
       try {
-        const response = await fetch(`${base_url}/api/recipes/${id}`);
+        const storedToken = await AsyncStorage.getItem("access_token");
+        const effectiveToken = token || storedToken || "";
+        const headers: Record<string, string> = {};
+        if (effectiveToken) {
+          headers["Authorization"] = `Bearer ${effectiveToken}`;
+        }
+        const response = await fetch(`${base_url}/api/recipes/${id}`, { headers });
         if (!response.ok) throw new Error("Failed to fetch recipe");
         const data = await response.json();
         
@@ -95,6 +111,7 @@ export default function RecipeDetailsScreen() {
           image: data.image_url || "https://images.unsplash.com/photo-1587486913049-53fc88980cfc?w=200&q=80",
           tags: data.tags || [],
           heartBenefit: data.heart_benefit || "",
+          expertValidated: !!data.expert_validated,
           nutrition: {
             sodium: data.sodium_mg || 0,
             fiber: data.fiber_g || 0,
@@ -116,12 +133,15 @@ export default function RecipeDetailsScreen() {
       } catch (error) {
         console.log("Network error in recipe details, attempting to load from cache...");
         try {
-          const cached = await AsyncStorage.getItem("@recipes_cache");
+          const cached = (await AsyncStorage.getItem(recipesCacheKey)) || (await AsyncStorage.getItem("@recipes_cache"));
           if (cached) {
             const recipesList = JSON.parse(cached);
-            const cachedRecipe = recipesList.find((r: any) => r.id === id || r.id === Number(id));
+            const cachedRecipe = recipesList.find((r: any) => String(r.id) === String(id));
             if (cachedRecipe) {
-              setRecipe(cachedRecipe);
+              setRecipe({
+                ...cachedRecipe,
+                expertValidated: !!cachedRecipe.expert_validated || !!cachedRecipe.expertValidated,
+              });
               return;
             }
           }
@@ -136,15 +156,86 @@ export default function RecipeDetailsScreen() {
       }
     }
     fetchRecipe();
-  }, [id]);
+  }, [id, token, recipesCacheKey]);
 
-  const [servingsMultiplier, setServingsMultiplier] = useState(1);
-  const [activeTab, setActiveTab] = useState<"Ingredients" | "Instructions">(
-    "Ingredients",
-  );
-  const [isSaved, setIsSaved] = useState(false); // Local toggle for the detail screen
-  const [isLogged, setIsLogged] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  // Hydrate bookmark state from scoped storage and remote API (HL-ENG-22 / SEC-QA-11)
+  useEffect(() => {
+    async function hydrateBookmark() {
+      try {
+        const cached = await AsyncStorage.getItem(savedRecipesKey);
+        if (cached) {
+          const list: string[] = JSON.parse(cached);
+          if (Array.isArray(list) && (list.includes(String(id)) || list.includes(id as string))) {
+            setIsSaved(true);
+          }
+        }
+
+        const storedToken = await AsyncStorage.getItem("access_token");
+        const effectiveToken = token || storedToken || "";
+        if (userId && effectiveToken) {
+          const res = await fetch(`${base_url}/api/recipes/saved/${userId}`, {
+            headers: { "Authorization": `Bearer ${effectiveToken}` },
+          });
+          if (res.ok) {
+            const savedData = await res.json();
+            if (Array.isArray(savedData)) {
+              const remoteIds: string[] = savedData.map((item: any) =>
+                String(item.recipe_id || item.id || item)
+              );
+              setIsSaved(remoteIds.includes(String(id)));
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("Bookmark hydration failed:", err);
+      }
+    }
+    if (id) hydrateBookmark();
+  }, [id, userId, token, savedRecipesKey]);
+
+  // Persist bookmark toggle locally and remotely
+  const handleToggleSave = async () => {
+    const nextSavedState = !isSaved;
+    setIsSaved(nextSavedState);
+
+    try {
+      // 1. Scoped local cache update
+      const cached = await AsyncStorage.getItem(savedRecipesKey);
+      let list: string[] = cached ? JSON.parse(cached) : [];
+      if (!Array.isArray(list)) list = [];
+
+      const recipeIdStr = String(id);
+      if (nextSavedState) {
+        if (!list.includes(recipeIdStr)) list.push(recipeIdStr);
+      } else {
+        list = list.filter((rId) => String(rId) !== recipeIdStr);
+      }
+      await AsyncStorage.setItem(savedRecipesKey, JSON.stringify(list));
+
+      // 2. Synchronize with Backend
+      const storedToken = await AsyncStorage.getItem("access_token");
+      const effectiveToken = token || storedToken || "";
+      if (userId && effectiveToken) {
+        await fetch(`${base_url}/api/recipes/${id}/save/${userId}`, {
+          method: nextSavedState ? "POST" : "DELETE",
+          headers: {
+            "Authorization": `Bearer ${effectiveToken}`,
+            "Content-Type": "application/json",
+          },
+        });
+      }
+
+      showToast({
+        title: nextSavedState ? "Recipe Saved" : "Recipe Removed",
+        message: nextSavedState
+          ? "Added to your personal heart-healthy saved recipes collection."
+          : "Removed from your saved recipes.",
+        type: "success",
+      });
+    } catch (err) {
+      console.error("Failed to toggle recipe bookmark:", err);
+    }
+  };
 
   if (isLoading || !recipe) {
     return (
@@ -228,8 +319,9 @@ export default function RecipeDetailsScreen() {
         </TouchableOpacity>
         
         <TouchableOpacity
-          onPress={() => setIsSaved(!isSaved)}
+          onPress={handleToggleSave}
           className="w-10 h-10 rounded-full bg-white/90 dark:bg-slate-900/90 items-center justify-center shadow-sm"
+          accessibilityLabel={isSaved ? "Remove from saved recipes" : "Save recipe"}
         >
           <Feather
             name="heart"
@@ -282,6 +374,15 @@ export default function RecipeDetailsScreen() {
 
         {/* Title & Tags */}
         <View className="px-5 pt-8 pb-6">
+          {recipe.expertValidated && (
+            <View className="flex-row items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 self-start mb-3">
+              <Feather name="shield" size={13} color="#059669" />
+              <Text className="text-[11px] font-bold text-emerald-800 dark:text-emerald-300">
+                Clinical Nutritionist Verified • Expert Recipe Database
+              </Text>
+            </View>
+          )}
+
           <Text className="text-[32px] font-bold text-slate-900 dark:text-white leading-tight mb-3">
             {recipe.title}
           </Text>

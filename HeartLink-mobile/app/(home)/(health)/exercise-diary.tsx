@@ -7,6 +7,12 @@ import {
   ActivityIndicator,
   Alert,
   RefreshControl,
+  Modal,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Pressable,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -17,6 +23,7 @@ import { Swipeable } from "react-native-gesture-handler";
 import { useUser } from "../../../contexts/UserContext";
 import { EmptyState } from "../../../components/ui/EmptyState";
 import { useToast } from "../../../contexts/ToastContext";
+import { queueExerciseForSync } from "../../../services/SyncService";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -42,6 +49,110 @@ export default function ExerciseDiaryScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [logToDelete, setLogToDelete] = useState<{ id: string; name: string } | null>(null);
+
+  // Quick Log Manual Activity State (HL-ENG-20 / Pillar A)
+  const [showQuickLogModal, setShowQuickLogModal] = useState(false);
+  const [activityName, setActivityName] = useState("Walking");
+  const [durationMinutes, setDurationMinutes] = useState("30");
+  const [isSubmittingQuickLog, setIsSubmittingQuickLog] = useState(false);
+
+  const ACTIVITY_PRESETS = [
+    { label: "Walking 15m", name: "Walking", min: "15" },
+    { label: "Walking 30m", name: "Walking", min: "30" },
+    { label: "Brisk Walk 30m", name: "Brisk Walk", min: "30" },
+    { label: "Gardening 20m", name: "Gardening / Yard Work", min: "20" },
+    { label: "Stretching 15m", name: "Gentle Stretching", min: "15" },
+    { label: "Cycling 20m", name: "Stationary Cycling", min: "20" },
+  ];
+
+  const handleQuickLogSubmit = async () => {
+    const trimmedName = activityName.trim();
+    if (!trimmedName) {
+      showToast({ title: "Name Required", message: "Please enter an activity name.", type: "info" });
+      return;
+    }
+    const mins = parseInt(durationMinutes, 10);
+    if (isNaN(mins) || mins <= 0 || mins > 1440) {
+      showToast({ title: "Invalid Duration", message: "Please specify between 1 and 1440 minutes.", type: "info" });
+      return;
+    }
+
+    if (!userId) return;
+    setIsSubmittingQuickLog(true);
+
+    const payload = {
+      routine_name: trimmedName,
+      duration_minutes: mins,
+      duration_seconds: mins * 60,
+      status: "completed",
+    };
+
+    try {
+      const storedToken = await AsyncStorage.getItem("access_token");
+      const effectiveToken = token || storedToken || "";
+      const res = await fetch(`${base_url}/api/exercises/logs/${userId}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${effectiveToken}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.status === 401) {
+        showToast({ title: "Session Expired", message: "Please log in again.", type: "info" });
+        await logout();
+        return;
+      }
+
+      const json = await res.json();
+      if (res.ok && json.success) {
+        showToast({
+          title: "Activity Logged",
+          message: `${trimmedName} (${mins} min) recorded! Lifestyle composite score updated.`,
+          type: "success",
+        });
+        setShowQuickLogModal(false);
+        await fetchLogs();
+      } else {
+        showToast({
+          title: "Save Failed",
+          message: json.detail || "Could not save activity log.",
+          type: "error",
+        });
+      }
+    } catch (err) {
+      console.error("Failed to log activity, saving offline:", err);
+      if (userId) {
+        await queueExerciseForSync(userId, payload);
+        const offlineLog: ExerciseLog = {
+          id: `offline_${Date.now()}`,
+          user_id: userId,
+          routine_id: "",
+          routine_name: trimmedName,
+          duration_minutes: mins,
+          duration_seconds: mins * 60,
+          status: "completed",
+          logged_at: new Date().toISOString(),
+        };
+        setLogs((prev) => [offlineLog, ...prev]);
+        showToast({
+          title: "Saved Offline",
+          message: `${trimmedName} (${mins} min) saved offline. Will sync when connected.`,
+          type: "info",
+        });
+        setShowQuickLogModal(false);
+      } else {
+        showToast({
+          title: "Network Error",
+          message: "Failed to connect to HeartLink server.",
+          type: "error",
+        });
+      }
+    } finally {
+      setIsSubmittingQuickLog(false);
+    }
+  };
 
   const fetchLogs = useCallback(async () => {
     if (!userId) return;
@@ -200,12 +311,24 @@ export default function ExerciseDiaryScreen() {
           Exercise Log History
         </Text>
 
-        <TouchableOpacity
-          onPress={() => router.push("/(home)/(tabs)/exercises")}
-          className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 items-center justify-center"
-        >
-          <Feather name="plus" size={18} color="#0f172a" />
-        </TouchableOpacity>
+        <View className="flex-row items-center gap-2">
+          <TouchableOpacity
+            onPress={() => router.push("/(home)/(tabs)/exercises")}
+            className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 items-center justify-center"
+            accessibilityLabel="Browse Guided Video Routines"
+          >
+            <Feather name="video" size={16} color="#0f172a" />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => setShowQuickLogModal(true)}
+            className="flex-row items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#1B6E63]"
+            accessibilityLabel="Quick Log Physical Activity"
+          >
+            <Feather name="plus" size={14} color="#ffffff" />
+            <Text className="text-white text-[12px] font-bold">Log</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* ── Summary Banner ── */}
@@ -247,9 +370,9 @@ export default function ExerciseDiaryScreen() {
           icon={<Feather name="activity" size={32} color="#94a3b8" />}
           title="No Exercise Logs"
           subtitle="Complete a rehab routine to track your activity duration and symptoms."
-          actionLabel="Start Routine Now"
-          onAction={() => router.push("/(home)/(tabs)/exercises")}
-          actionIcon={<Feather name="play" size={15} color="#fff" />}
+          actionLabel="Quick Log Activity"
+          onAction={() => setShowQuickLogModal(true)}
+          actionIcon={<Feather name="plus" size={15} color="#fff" />}
         />
       ) : (
         <FlatList
@@ -335,6 +458,149 @@ export default function ExerciseDiaryScreen() {
         mode="bottom-sheet"
         icon="trash-2"
       />
+
+      {/* ── Quick Log Manual Activity Modal (HL-ENG-20 / Pillar A) ── */}
+      <Modal
+        visible={showQuickLogModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowQuickLogModal(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          className="flex-1"
+        >
+          <Pressable
+            className="flex-1 justify-end"
+            style={{ backgroundColor: "rgba(15,23,42,0.5)" }}
+            onPress={() => setShowQuickLogModal(false)}
+          >
+            <Pressable
+              className="bg-white dark:bg-slate-900 rounded-t-3xl px-5 pt-4 pb-8 border-t border-slate-200 dark:border-slate-800/60 max-h-[88%]"
+              onPress={(e) => e.stopPropagation()}
+            >
+              <View className="w-10 h-1 bg-slate-300 dark:bg-slate-700 rounded-full self-center mb-4" />
+
+              <View className="flex-row items-center justify-between mb-4">
+                <View className="flex-1 pr-3">
+                  <Text className="text-[19px] font-bold text-slate-900 dark:text-white">
+                    Quick Log Activity
+                  </Text>
+                  <Text className="text-[12px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    Log everyday physical activity to boost your Heart Stability Score.
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  onPress={() => setShowQuickLogModal(false)}
+                  className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 items-center justify-center"
+                >
+                  <Feather name="x" size={16} color="#64748b" />
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+              >
+                {/* Presets */}
+                <Text className="text-[12px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
+                  Quick Presets
+                </Text>
+                <View className="flex-row flex-wrap gap-2 mb-4">
+                  {ACTIVITY_PRESETS.map((preset, idx) => {
+                    const isSelected =
+                      activityName === preset.name && durationMinutes === preset.min;
+                    return (
+                      <TouchableOpacity
+                        key={idx}
+                        onPress={() => {
+                          setActivityName(preset.name);
+                          setDurationMinutes(preset.min);
+                        }}
+                        className={`px-3 py-2 rounded-xl border ${
+                          isSelected
+                            ? "bg-[#1B6E63] border-[#1B6E63]"
+                            : "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700"
+                        }`}
+                      >
+                        <Text
+                          className={`text-[12px] font-semibold ${
+                            isSelected ? "text-white" : "text-slate-700 dark:text-slate-300"
+                          }`}
+                        >
+                          {preset.label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+
+                {/* Activity Name Input */}
+                <Text className="text-[13px] font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                  Activity Name
+                </Text>
+                <View className="flex-row items-center bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 mb-3.5">
+                  <TextInput
+                    className="flex-1 text-[15px] text-slate-900 dark:text-white font-medium"
+                    placeholder="e.g. Walking, Gardening, Cycling"
+                    placeholderTextColor="#94a3b8"
+                    value={activityName}
+                    onChangeText={setActivityName}
+                  />
+                </View>
+
+                {/* Duration Input */}
+                <Text className="text-[13px] font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                  Duration (Minutes)
+                </Text>
+                <View className="flex-row items-center bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 mb-5">
+                  <TextInput
+                    className="flex-1 text-[15px] text-slate-900 dark:text-white font-medium"
+                    placeholder="30"
+                    placeholderTextColor="#94a3b8"
+                    keyboardType="number-pad"
+                    value={durationMinutes}
+                    onChangeText={setDurationMinutes}
+                  />
+                  <Text className="text-[13px] font-semibold text-slate-400 ml-2">min</Text>
+                </View>
+
+                {/* Submit Button */}
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  onPress={handleQuickLogSubmit}
+                  disabled={isSubmittingQuickLog}
+                  className="bg-[#1B6E63] py-3.5 rounded-xl items-center justify-center flex-row gap-2 mb-3"
+                  style={{ opacity: isSubmittingQuickLog ? 0.7 : 1 }}
+                >
+                  {isSubmittingQuickLog ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <>
+                      <Feather name="check" size={16} color="#fff" />
+                      <Text className="text-white font-bold text-[15px]">Record Activity</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+
+                {/* Guided Routine Option */}
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={() => {
+                    setShowQuickLogModal(false);
+                    router.push("/(home)/(tabs)/exercises");
+                  }}
+                  className="py-2.5 items-center justify-center"
+                >
+                  <Text className="text-[13px] font-semibold text-[#1B6E63]">
+                    Or browse cardiologist-designed video routines →
+                  </Text>
+                </TouchableOpacity>
+              </ScrollView>
+            </Pressable>
+          </Pressable>
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   );
 }

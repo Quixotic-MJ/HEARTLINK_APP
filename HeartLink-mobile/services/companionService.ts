@@ -21,175 +21,169 @@ export interface CompanionGreetingResult {
 }
 
 /**
+ * Helper to safely display blood pressure readings without undefined values.
+ */
+function formatBpDisplay(sbp?: number, dbp?: number): string {
+  if (sbp && dbp) return `${sbp}/${dbp} mmHg`;
+  if (sbp) return `Systolic ${sbp} mmHg`;
+  if (dbp) return `Diastolic ${dbp} mmHg`;
+  return "reading";
+}
+
+/**
  * Deterministic Clinical Template Engine
- * 100% Free, Offline-Ready, and Medically Safe
+ * 100% Free, Offline-Ready, Medically Bounded, and Private
+ * Aligned with AHA/ACC guidelines & DOST-FNRI nutrition thresholds.
  */
 export function getSmartTemplateGreeting(
   firstName: string,
   activity?: CompanionActivityContext,
   hss?: CompanionHSSContext
 ): CompanionGreetingResult {
-  const name = firstName || "there";
   const hour = new Date().getHours();
-  const timeOfDay = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
 
-  const sbp = activity?.latest_sbp;
-  const dbp = activity?.latest_dbp;
-  const sodium = activity?.total_sodium_mg || 0;
-  const exerciseMins = activity?.total_exercise_minutes || 0;
-  const vitalsLogged = activity?.vitals_logged;
-  const score = hss?.score || 0;
+  // Sanitize physiological telemetry inputs to avoid negative/NaN errors
+  const rawSbp = activity?.latest_sbp;
+  const rawDbp = activity?.latest_dbp;
+  const sbp = typeof rawSbp === "number" && !isNaN(rawSbp) && rawSbp > 0 ? rawSbp : undefined;
+  const dbp = typeof rawDbp === "number" && !isNaN(rawDbp) && rawDbp > 0 ? rawDbp : undefined;
+  const sodium = Math.max(0, activity?.total_sodium_mg || 0);
+  const exerciseMins = Math.max(0, activity?.total_exercise_minutes || 0);
+  const vitalsLogged = !!activity?.vitals_logged;
+  const score = Math.max(0, hss?.score || 0);
 
-  // 1. Critical or Elevated Blood Pressure Flag
-  if (sbp && dbp && (sbp >= 140 || dbp >= 90)) {
+  // 1. Critical Hypertensive Crisis (>= 180 SBP or >= 120 DBP)
+  if ((sbp !== undefined && sbp >= 180) || (dbp !== undefined && dbp >= 120)) {
     return {
-      greeting: `Take a gentle breath, ${name}. Your latest blood pressure (${sbp}/${dbp} mmHg) is elevated. Take 10 minutes to sit quietly and stay well-hydrated.`,
-      source: "template",
-      tone: "caution",
-    };
-  }
-
-  // 2. High Sodium Intake Alert
-  if (sodium > 2000) {
-    return {
-      greeting: `${timeOfDay}, ${name}! You've reached your 2,000mg sodium budget for today (${sodium}mg). Let's aim for a light, potassium-rich dinner to help balance it out.`,
+      greeting: `Your blood pressure (${formatBpDisplay(sbp, dbp)}) is critically high. Rest quietly and seek urgent clinical evaluation.`,
       source: "template",
       tone: "warning",
     };
   }
 
-  // 3. Positive Exercise Milestone
+  // 2. Acute Hypotension / Shock (< 90 SBP or < 60 DBP)
+  if ((sbp !== undefined && sbp < 90) || (dbp !== undefined && dbp < 60)) {
+    return {
+      greeting: `Your blood pressure (${formatBpDisplay(sbp, dbp)}) is lower than normal. Rest seated, hydrate, and seek care if dizzy.`,
+      source: "template",
+      tone: "caution",
+    };
+  }
+
+  // 3. Stage 2 / Elevated Blood Pressure Flag (>= 140 SBP or >= 90 DBP)
+  if ((sbp !== undefined && sbp >= 140) || (dbp !== undefined && dbp >= 90)) {
+    return {
+      greeting: `Your latest BP (${formatBpDisplay(sbp, dbp)}) is elevated. Take 10 minutes to sit quietly, breathe deeply, and stay hydrated.`,
+      source: "template",
+      tone: "caution",
+    };
+  }
+
+  // 4. High Sodium Intake Alert (> 2,000mg DOST-FNRI limit)
+  if (sodium > 2000) {
+    return {
+      greeting: `You've reached your 2,000mg sodium limit (${sodium}mg). Aim for a light, potassium-rich dinner to help balance it out.`,
+      source: "template",
+      tone: "warning",
+    };
+  }
+
+  // 5. Positive Cardio Exercise Milestone (>= 15 mins)
   if (exerciseMins >= 15) {
     return {
-      greeting: `Fantastic job, ${name}! You completed ${exerciseMins} minutes of cardio today. Consistent movement is one of the best ways to protect your heart.`,
+      greeting: `Great job completing ${exerciseMins} minutes of cardio today! Regular movement keeps your vascular rhythm resilient.`,
       source: "template",
       tone: "optimal",
     };
   }
 
-  // 4. Missing Morning Vitals Prompt (before noon)
+  // 6. Missing Morning Vitals Prompt (before noon)
   if (!vitalsLogged && hour < 12) {
     return {
-      greeting: `${timeOfDay}, ${name}! When you have a calm moment, remember to take and log your morning blood pressure check.`,
+      greeting: `Take a calm seated moment to record your morning blood pressure and pulse check.`,
       source: "template",
       tone: "neutral",
     };
   }
 
-  // 5. Stable / Optimal Routine
+  // 7. Stable / Optimal Routine (Score >= 70)
   if (score >= 70) {
     return {
-      greeting: `${timeOfDay}, ${name}! Your cardiovascular stability is in a great rhythm today. Keep up the steady, heart-healthy habits!`,
+      greeting: `Your cardiovascular stability is in a great rhythm today. Keep up your steady habits!`,
       source: "template",
       tone: "optimal",
     };
   }
 
-  // 6. Default Encouraging Greeting
+  // 8. Default Encouraging Routine
   return {
-    greeting: `${timeOfDay}, ${name}! HeartLink is tracking by your side today. Remember to drink water and take gentle walking breaks.`,
+    greeting: `HeartLink is monitoring by your side today. Remember to drink water and take gentle movement breaks.`,
     source: "template",
     tone: "neutral",
   };
 }
 
+interface StoredGreetingCache {
+  sig: string;
+  result: CompanionGreetingResult;
+  timestamp: number;
+}
+
 /**
- * Hybrid Companion Greeting Generator
- * Checks local cache -> Calls Free Gemini API (if key present) with 2.5s timeout -> Falls back to Smart Templates
+ * Secure, Telemetry-Aware Companion Greeting Service
+ * - Completely offline-ready and private (Zero client-side API key exposure)
+ * - User-scoped caching to prevent cross-account data leakage on shared devices
+ * - Single daily key with signature verification prevents AsyncStorage key bloat
+ * - Telemetry signature cache invalidation: updates immediately upon new vitals or high sodium
  */
 export async function getCompanionGreeting(
   firstName: string,
   activity?: CompanionActivityContext,
-  hss?: CompanionHSSContext
+  hss?: CompanionHSSContext,
+  userId?: string
 ): Promise<CompanionGreetingResult> {
-  const name = firstName || "friend";
+  const name = firstName || "there";
   const todayStr = new Date().toISOString().split("T")[0];
-  const cacheKey = `@heartlink_daily_greeting_${todayStr}`;
 
-  // Step 1: Check if we already generated and cached today's AI message
+  // Telemetry signature ensures that logging new vitals or sodium invalidates older greetings immediately
+  const telemetrySig = [
+    activity?.latest_sbp || 0,
+    activity?.latest_dbp || 0,
+    activity?.total_sodium_mg || 0,
+    activity?.total_exercise_minutes || 0,
+    activity?.vitals_logged ? 1 : 0,
+    hss?.score || 0,
+  ].join("_");
+
+  const userScope = userId || "default_user";
+  // Single key per user per day prevents unbounded key growth in AsyncStorage
+  const cacheKey = `@heartlink_greeting_${userScope}_${todayStr}`;
+
   try {
     const cached = await AsyncStorage.getItem(cacheKey);
     if (cached) {
-      const parsed = JSON.parse(cached);
-      if (parsed?.greeting) {
-        return parsed;
+      const parsed: StoredGreetingCache = JSON.parse(cached);
+      // Valid if the telemetry signature matches current data
+      if (parsed?.sig === telemetrySig && parsed?.result?.greeting) {
+        return parsed.result;
       }
     }
   } catch {
-    // Cache read failure is non-fatal
+    // Non-blocking cache read failure
   }
 
-  // Fallback template ready in 0ms
-  const defaultTemplate = getSmartTemplateGreeting(name, activity, hss);
+  const result = getSmartTemplateGreeting(name, activity, hss);
 
-  // Step 2: Check for Free Gemini API Key
-  const geminiApiKey = process.env.EXPO_PUBLIC_GEMINI_API_KEY;
-  if (!geminiApiKey) {
-    return defaultTemplate;
-  }
-
-  // Step 3: Attempt Gemini 1.5 Flash Free Tier call with strict 2.5-second timeout
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 2500);
-
-    const bpDesc = activity?.latest_sbp
-      ? `${activity.latest_sbp}/${activity.latest_dbp} mmHg`
-      : activity?.vitals_logged
-      ? "Logged (Normal)"
-      : "Not logged yet";
-    const sodiumDesc = `${activity?.total_sodium_mg || 0} mg (Daily limit 2,000 mg)`;
-    const exerciseDesc = `${activity?.total_exercise_minutes || 0} minutes active`;
-    const hssDesc = hss?.score ? `${hss.score} (${hss.tier || "Stable"})` : "Stable";
-
-    const prompt = `You are HeartLink Coach, a caring, encouraging cardiovascular health companion for a patient named ${name}.
-Current Health Telemetry:
-- Blood Pressure: ${bpDesc}
-- Today's Sodium Intake: ${sodiumDesc}
-- Today's Cardio: ${exerciseDesc}
-- Health Stability Score: ${hssDesc}
-
-Instructions:
-Write a warm, supportive 1-to-2 sentence daily greeting for ${name}'s mobile dashboard.
-Acknowledge their effort or gently remind them of today's heart goal.
-Keep it positive, empathetic, and under 25 words. Do not use hashtags or bullet points.`;
-
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`;
-
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      signal: controller.signal,
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 60,
-        },
-      }),
-    });
-
-    clearTimeout(timeoutId);
-
-    if (response.ok) {
-      const data = await response.json();
-      const aiText = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-
-      if (aiText && aiText.length > 10) {
-        const result: CompanionGreetingResult = {
-          greeting: aiText.replace(/^["']|["']$/g, ""),
-          source: "ai",
-          tone: defaultTemplate.tone,
-        };
-
-        // Cache so we don't repeat API calls today
-        await AsyncStorage.setItem(cacheKey, JSON.stringify(result));
-        return result;
-      }
-    }
+    const cachePayload: StoredGreetingCache = {
+      sig: telemetrySig,
+      result,
+      timestamp: Date.now(),
+    };
+    await AsyncStorage.setItem(cacheKey, JSON.stringify(cachePayload));
   } catch {
-    // Network timeout, rate limit, or offline -> fallback immediately to smart template
+    // Non-blocking cache write failure
   }
 
-  return defaultTemplate;
+  return result;
 }

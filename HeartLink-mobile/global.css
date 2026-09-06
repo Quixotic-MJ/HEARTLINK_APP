@@ -4,76 +4,113 @@
 
 @layer base {
   :root {
-    --color-primary: 37 99 235; /* #2563EB - blue-600 */
+    --color-primary: 232 83 46;
+    /* #E8532E - HeartLink coral */
     --color-primary-foreground: 255 255 255;
 
-    --color-background: 248 250 252; /* #F8FAFC - slate-50 */
-    --color-foreground: 15 23 42; /* #0F172A - slate-900 */
+    --color-background: 237 241 239;
+    /* #EDF1EF - paper */
+    --color-foreground: 21 33 49;
+    /* #152131 - ink */
 
-    --color-card: 255 255 255; /* #FFFFFF */
-    --color-card-foreground: 15 23 42; /* #0F172A */
+    --color-card: 255 255 255;
+    /* #FFFFFF */
+    --color-card-foreground: 21 33 49;
+    /* #152131 */
 
-    --color-border: 226 232 240; /* #E2E8F0 - slate-200 */
-    --color-muted: 148 163 184; /* #94A3B8 - slate-400 */
-    --color-muted-foreground: 100 116 139; /* #64748B - slate-500 */
+    --color-border: 220 227 223;
+    /* #DCE3DF - line */
+    --color-muted: 154 165 161;
+    /* #9AA5A1 - ink-faint */
+    --color-muted-foreground: 92 107 102;
+    /* #5C6B66 - ink-soft */
 
-    --color-destructive: 239 68 68; /* #EF4444 - red-500 */
+    --color-destructive: 138 31 26;
+    /* #8A1F1A - garnet (this app's "critical" red) */
     --color-destructive-foreground: 255 255 255;
 
-    --color-success: 16 185 129; /* #10B981 - emerald-500 */
+    --color-success: 27 110 99;
+    /* #1B6E63 - teal */
     --color-success-foreground: 255 255 255;
 
-    --color-accent: 244 63 94; /* #F43F5E - rose-500 */
+    --color-accent: 70 81 107;
+    /* #46516B - slate (secondary accent, e.g. sleep) */
     --color-accent-foreground: 255 255 255;
 
-    /* Health Score Themes */
-    --color-health-stable: 13 148 136; /* #0D9488 - teal-600 */
-    --color-health-stable-track: 204 251 241; /* #CCFBF1 - teal-100 */
-    
-    --color-health-caution: 217 119 6; /* #D97706 - amber-600 */
-    --color-health-caution-track: 254 243 199; /* #FEF3C7 - amber-100 */
+    /* Health Score Themes — same 4-tier ramp used across the HeartLink product */
+    --color-health-stable: 27 110 99;
+    /* #1B6E63 - teal */
+    --color-health-stable-track: 227 239 236;
+    /* #E3EFEC */
 
-    --color-health-warning: 234 88 12; /* #EA580C - orange-600 */
-    --color-health-warning-track: 255 237 213; /* #FFEDD5 - orange-100 */
+    --color-health-caution: 169 116 27;
+    /* #A9741B - amber */
+    --color-health-caution-track: 246 237 221;
+    /* #F6EDDD */
 
-    --color-health-risk: 225 29 72; /* #E11D48 - rose-600 */
-    --color-health-risk-track: 255 228 230; /* #FFE4E6 - rose-100 */
+    --color-health-warning: 232 83 46;
+    /* #E8532E - coral (Elevated Risk) */
+    --color-health-warning-track: 251 234 230;
+    /* #FBEAE6 */
+
+    --color-health-risk: 138 31 26;
+    /* #8A1F1A - garnet (Critical) */
+    --color-health-risk-track: 251 234 233;
+    /* #FBEAE9 */
   }
 
   .dark {
-    --color-primary: 59 130 246; /* #3B82F6 - blue-500 */
+    --color-primary: 240 105 68;
+    /* #F06944 - lightened coral for dark bg */
     --color-primary-foreground: 255 255 255;
 
-    --color-background: 2 6 23; /* #020617 - slate-950 */
-    --color-foreground: 248 250 252; /* #F8FAFC - slate-50 */
+    --color-background: 16 25 35;
+    /* #101923 - dark ink */
+    --color-foreground: 237 241 239;
+    /* #EDF1EF - paper */
 
-    --color-card: 15 23 42; /* #0F172A - slate-900 */
-    --color-card-foreground: 248 250 252;
+    --color-card: 26 38 52;
+    /* #1A2634 */
+    --color-card-foreground: 237 241 239;
 
-    --color-border: 30 41 59; /* #1E293B - slate-800 */
-    --color-muted: 71 85 105; /* #475569 - slate-600 */
-    --color-muted-foreground: 148 163 184; /* #94A3B8 - slate-400 */
+    --color-border: 30 41 59;
+    /* slate-800, kept neutral for dark-mode dividers */
+    --color-muted: 71 85 105;
+    /* slate-600 */
+    --color-muted-foreground: 148 163 184;
+    /* slate-400 */
 
-    --color-destructive: 248 113 113; /* #F87171 - red-400 */
+    --color-destructive: 209 92 78;
+    /* #D15C4E - lightened garnet for dark bg */
     --color-destructive-foreground: 255 255 255;
 
-    --color-success: 52 211 153; /* #34D399 - emerald-400 */
+    --color-success: 79 167 154;
+    /* #4FA79A - lightened teal for dark bg */
     --color-success-foreground: 2 44 34;
 
-    --color-accent: 251 113 133; /* #FB7185 - rose-400 */
-    --color-accent-foreground: 255 255 255;
+    --color-accent: 124 137 168;
+    /* #7C89A8 - lightened slate for dark bg */
+    --color-accent-foreground: 16 25 35;
 
     /* Dark Mode Health Themes */
-    --color-health-stable: 45 212 191; /* #2DD4BF - teal-400 */
-    --color-health-stable-track: 17 94 89; /* #115E59 - teal-800 */
+    --color-health-stable: 79 167 154;
+    /* #4FA79A */
+    --color-health-stable-track: 22 59 54;
+    /* #163B36 */
 
-    --color-health-caution: 251 191 36; /* #FBBF24 - amber-400 */
-    --color-health-caution-track: 120 53 15; /* #78350F - amber-900 */
+    --color-health-caution: 201 154 62;
+    /* #C99A3E */
+    --color-health-caution-track: 58 45 18;
+    /* #3A2D12 */
 
-    --color-health-warning: 251 146 60; /* #FB923C - orange-400 */
-    --color-health-warning-track: 124 45 18; /* #7C2D12 - orange-900 */
+    --color-health-warning: 240 105 68;
+    /* #F06944 */
+    --color-health-warning-track: 61 33 26;
+    /* #3D211A */
 
-    --color-health-risk: 251 113 133; /* #FB7185 - rose-400 */
-    --color-health-risk-track: 136 19 55; /* #881337 - rose-900 */
+    --color-health-risk: 209 92 78;
+    /* #D15C4E */
+    --color-health-risk-track: 58 26 22;
+    /* #3A1A16 */
   }
 }

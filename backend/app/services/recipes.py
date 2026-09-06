@@ -269,6 +269,9 @@ def delete_recipe(recipe_id: str) -> bool:
 def save_recipe_for_user(user_id: str, recipe_id: str) -> bool:
     return get_content_repo().save_recipe_for_user(user_id, recipe_id)
 
+def unsave_recipe_for_user(user_id: str, recipe_id: str) -> bool:
+    return get_content_repo().unsave_recipe_for_user(user_id, recipe_id)
+
 def get_saved_recipes(user_id: str) -> List[Dict[str, Any]]:
     recipes = get_content_repo().list_saved_recipes(user_id)
     return [normalize_recipe_fields(r) for r in recipes]

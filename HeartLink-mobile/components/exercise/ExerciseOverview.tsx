@@ -10,9 +10,16 @@ export interface ExerciseOverviewProps {
   stepCount: number;
   onStart: () => void;
   onBack: () => void;
+  isLockedCritical?: boolean;
 }
 
-export function ExerciseOverview({ routine, stepCount, onStart, onBack }: ExerciseOverviewProps) {
+export function ExerciseOverview({
+  routine,
+  stepCount,
+  onStart,
+  onBack,
+  isLockedCritical = false,
+}: ExerciseOverviewProps) {
   const insets = useSafeAreaInsets();
 
   return (
@@ -37,6 +44,20 @@ export function ExerciseOverview({ routine, stepCount, onStart, onBack }: Exerci
         </View>
 
         <View className="px-6 pt-6 bg-white flex-1 -mt-6 rounded-t-3xl">
+          {isLockedCritical && (
+            <View className="p-4 rounded-2xl flex-row gap-3 mb-5 bg-red-50 border border-red-200">
+              <Feather name="alert-triangle" size={20} color="#DC2626" style={{ marginTop: 2 }} />
+              <View className="flex-1">
+                <Text className="text-[14px] font-bold text-red-900 mb-1">
+                  Active Workouts Paused: Critical Cardiac Strain
+                </Text>
+                <Text className="text-[13px] leading-relaxed font-medium text-red-700">
+                  Active cardiovascular workouts are paused to protect your heart. Please rest seated or lying down comfortably and contact your attending care team or emergency services immediately.
+                </Text>
+              </View>
+            </View>
+          )}
+
           <Text className="text-[28px] font-bold text-slate-900 leading-tight mb-4">
             {routine.title}
           </Text>
@@ -64,11 +85,18 @@ export function ExerciseOverview({ routine, stepCount, onStart, onBack }: Exerci
 
       <View style={{ paddingBottom: Math.max(insets.bottom, 20) }} className="absolute bottom-0 w-full px-6 pt-4 pb-6 bg-white border-t border-slate-100">
          <TouchableOpacity 
-           activeOpacity={0.8}
+           activeOpacity={isLockedCritical ? 1 : 0.8}
+           disabled={isLockedCritical}
            onPress={onStart}
-           className="w-full py-4 rounded-full items-center justify-center bg-slate-900 shadow-sm"
+           className={`w-full py-4 rounded-full items-center justify-center shadow-sm ${
+             isLockedCritical ? "bg-slate-300" : "bg-slate-900"
+           }`}
          >
-           <Text className="text-white text-[18px] font-bold tracking-wide">START EXERCISE</Text>
+           <Text className={`font-bold tracking-wide ${
+             isLockedCritical ? "text-slate-500 text-[15px]" : "text-white text-[18px]"
+           }`}>
+             {isLockedCritical ? "WORKOUT PAUSED (CRITICAL STRAIN)" : "START EXERCISE"}
+           </Text>
          </TouchableOpacity>
       </View>
     </View>

@@ -35,10 +35,10 @@ export function ScoreGradientBar({ score = 0 }: { score: number }) {
   });
 
   const gradientColors: [string, string, ...string[]] = isDark
-    ? ["#F87171", "#FB923C", "#FACC15", "#34D399"]
-    : ["#EF4444", "#F97316", "#EAB308", "#10B981"];
+    ? ["#D15C4E", "#F0693E", "#C99A3E", "#4FA79A"]
+    : ["#8A1F1A", "#E8532E", "#A9741B", "#1B6E63"];
 
-  const primaryBlue = isDark ? "#60a5fa" : "#2563eb";
+  const thumbColor = isDark ? "#EDF1EF" : "#152131"; // high-contrast neutral marker, not a 5th brand hue
   const tickColor = isDark ? "rgba(255, 255, 255, 0.45)" : "rgba(15, 23, 42, 0.35)";
   const labelColor = isDark ? "#94a3b8" : "#64748b";
 
@@ -72,7 +72,7 @@ export function ScoreGradientBar({ score = 0 }: { score: number }) {
           <Ionicons
             name="heart"
             size={24}
-            color={primaryBlue}
+            color={thumbColor}
             style={{
               shadowColor: "#000",
               shadowOffset: { width: 0, height: 2 },
@@ -98,7 +98,7 @@ export function ScoreGradientBar({ score = 0 }: { score: number }) {
         <Text
           style={[
             styles.labelText,
-            { color: isDark ? "#F87171" : "#EF4444" },
+            { color: isDark ? "#D15C4E" : "#8A1F1A" },
           ]}
         >
           Critical
@@ -106,7 +106,7 @@ export function ScoreGradientBar({ score = 0 }: { score: number }) {
         <Text
           style={[
             styles.labelText,
-            { color: isDark ? "#34D399" : "#10B981" },
+            { color: isDark ? "#4FA79A" : "#1B6E63" },
           ]}
         >
           Stable

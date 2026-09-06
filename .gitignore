@@ -21,3 +21,9 @@ documents/
 Documents/
 documentation/
 scratch/
+
+# Data backups & PII dumps
+*.backup.*
+*.backup.json
+mock_*.json
+backend/app/mock_*.json

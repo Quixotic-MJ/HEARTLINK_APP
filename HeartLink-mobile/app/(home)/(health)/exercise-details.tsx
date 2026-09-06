@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from "react";
-import { View, ActivityIndicator } from "react-native";
+import React, { useState, useEffect, useCallback } from "react";
+import { View, ActivityIndicator, BackHandler } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import { useRouter, useLocalSearchParams } from "expo-router";
+import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useUser } from "../../../contexts/UserContext";
 import { useToast } from "../../../contexts/ToastContext";
@@ -49,6 +49,42 @@ export default function ExerciseDetailsScreen() {
   const [showStopCheck, setShowStopCheck] = useState(false);
   const [showShortSessionCheck, setShowShortSessionCheck] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [hssScore, setHssScore] = useState<number>(0);
+  const [hssTier, setHssTier] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadHss() {
+      try {
+        const hssCacheKey = userId ? `@exercises_cache_hss_${userId}` : "@exercises_cache_hss";
+        const cachedHss = await AsyncStorage.getItem(hssCacheKey);
+        if (cachedHss) {
+          const parsed = JSON.parse(cachedHss);
+          if (parsed && typeof parsed.score === "number") {
+            setHssScore(parsed.score);
+            if (parsed.tier) setHssTier(parsed.tier);
+            return;
+          }
+        }
+        if (userId) {
+          const dashCache = await AsyncStorage.getItem(`@dashboard_cache_${userId}`);
+          if (dashCache) {
+            const parsedDash = JSON.parse(dashCache);
+            if (parsedDash && typeof parsedDash.hss_score === "number") {
+              setHssScore(parsedDash.hss_score);
+              if (parsedDash.hss_tier) setHssTier(parsedDash.hss_tier);
+            }
+          }
+        }
+      } catch {}
+    }
+    loadHss();
+  }, [userId]);
+
+  const isLockedCritical = Boolean(
+    (hssTier === "Critical" || (hssScore > 0 && hssScore < 50)) &&
+    routine?.type !== "Breathing"
+  );
 
   useEffect(() => {
     async function fetchRoutine() {
@@ -145,6 +181,7 @@ export default function ExerciseDetailsScreen() {
   };
 
   const handleStart = () => {
+    if (isLockedCritical) return;
     setSessionStartedAt(Date.now());
     setWorkoutState("active");
   };
@@ -195,6 +232,22 @@ export default function ExerciseDetailsScreen() {
     setSessionDurationSeconds(elapsedSeconds);
     setShowStopCheck(true);
   };
+
+  // Hardware back press safety intercept for Android devices (HL-ENG-23 / SEC-QA-12)
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        if (workoutState === "active") {
+          handleCloseActive();
+          return true;
+        }
+        return false;
+      };
+
+      const sub = BackHandler.addEventListener("hardwareBackPress", onBackPress);
+      return () => sub.remove();
+    }, [workoutState, sessionStartedAt])
+  );
 
   const handleSymptomsPress = () => {
     setShowSafetyCheck(true);
@@ -247,6 +300,7 @@ export default function ExerciseDetailsScreen() {
           stepCount={routine.steps.length}
           onStart={handleStart}
           onBack={() => router.back()}
+          isLockedCritical={isLockedCritical}
         />
       )}
       

@@ -12,12 +12,41 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { StatusBar } from "expo-status-bar";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { useUser } from "../../../contexts/UserContext";
 import { queueMealForSync } from "../../../services/SyncService";
 import { useToast } from "../../../contexts/ToastContext";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
+
+// ─── Filipino Staple Presets ──────────────────────────────────────────────────
+
+const FILIPINO_QUICK_PRESETS: Record<
+  string,
+  { desc: string; sodium: string; calories: string; satFat: string; fiber: string }
+> = {
+  Sinigang: {
+    desc: "Sinigang (1 Bowl)",
+    sodium: "480",
+    calories: "220",
+    satFat: "4.0",
+    fiber: "3.5",
+  },
+  Tinola: {
+    desc: "Chicken Tinola (1 Bowl)",
+    sodium: "390",
+    calories: "190",
+    satFat: "2.5",
+    fiber: "2.0",
+  },
+  Rice: {
+    desc: "Steamed White Rice (1 Cup)",
+    sodium: "5",
+    calories: "206",
+    satFat: "0.1",
+    fiber: "0.6",
+  },
+};
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -96,7 +125,7 @@ function NumericField({
         <TextInput
           value={value}
           onChangeText={(text) => {
-            const sanitized = text.replace(/-/g, "");
+            const sanitized = text.replace(/[^0-9.]/g, "");
             onChange(sanitized);
           }}
           placeholder={placeholder}
@@ -118,46 +147,37 @@ type RiskResult = {
   bg: string;
   border: string;
   desc: string;
-  icon: "check-circle" | "alert-triangle" | "alert-octagon";
+  icon: keyof typeof Feather.glyphMap;
 };
 
 function calcRiskFromValues(sodium: number, calories: number, satFat: number): RiskResult {
-  let score = 0;
-  if (sodium > 800) score += 50;
-  else if (sodium > 500) score += 25;
-  else if (sodium > 300) score += 10;
-
-  if (calories > 600) score += 20;
-  else if (calories > 400) score += 10;
-
-  if (satFat > 15) score += 20;
-  else if (satFat > 10) score += 10;
-
-  if (score < 25)
+  if (sodium > 800 || satFat > 6) {
     return {
-      level: "Low risk",
-      color: "#3b6d11",
-      bg: "#eaf3de",
-      border: "#c0dd97",
-      desc: "This meal is well within a heart-healthy range.",
-      icon: "check-circle",
+      level: "High Sodium",
+      color: "#ef4444",
+      bg: "rgba(239, 68, 68, 0.1)",
+      border: "rgba(239, 68, 68, 0.3)",
+      desc: "Sodium exceeds 800 mg per serving. Frequent consumption increases blood pressure.",
+      icon: "alert-circle",
     };
-  if (score < 55)
+  }
+  if (sodium > 400 || satFat > 3) {
     return {
-      level: "Moderate risk",
-      color: "#854f0b",
-      bg: "#faeeda",
-      border: "#fac775",
-      desc: "Keep an eye on your remaining sodium budget for today.",
-      icon: "alert-triangle",
+      level: "Moderate",
+      color: "#f59e0b",
+      bg: "rgba(245, 158, 11, 0.1)",
+      border: "rgba(245, 158, 11, 0.3)",
+      desc: "Moderate sodium content. Fits within daily budget if other meals are light.",
+      icon: "info",
     };
+  }
   return {
-    level: "High risk",
-    color: "#a32d2d",
-    bg: "#fcebeb",
-    border: "#f7c1c1",
-    desc: "This meal carries a notable sodium or calorie load. Consider a lighter next meal.",
-    icon: "alert-octagon",
+    level: "Heart-Friendly",
+    color: "#10b981",
+    bg: "rgba(16, 185, 129, 0.1)",
+    border: "rgba(16, 185, 129, 0.3)",
+    desc: "Low sodium and saturated fat. Excellent choice for cardiovascular stability.",
+    icon: "check-circle",
   };
 }
 
@@ -167,20 +187,32 @@ export default function ManualMealLogScreen() {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
   const router = useRouter();
+  const params = useLocalSearchParams<{ quick_dish?: string }>();
+  const quickDish = params.quick_dish;
+
   const { userId, token } = useUser();
   const { showToast } = useToast();
 
+  // Contextual time of meal based on current hour
+  const currentHour = new Date().getHours();
+  const defaultMealTime: TimeOfMeal =
+    currentHour < 11 ? "Breakfast" : currentHour < 16 ? "Lunch" : currentHour < 21 ? "Dinner" : "Snack";
+
+  const preset = quickDish ? FILIPINO_QUICK_PRESETS[quickDish] : undefined;
+
   // Shared
-  const [timeOfMeal, setTimeOfMeal] = useState<TimeOfMeal>("Breakfast");
-  const [foodDescription, setFoodDescription] = useState("");
+  const [timeOfMeal, setTimeOfMeal] = useState<TimeOfMeal>(defaultMealTime);
+  const [foodDescription, setFoodDescription] = useState(
+    preset?.desc || (quickDish ? `${quickDish} (1 Serving)` : "")
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Manual Entry fields
   const [servings, setServings] = useState(1);
-  const [sodium, setSodium] = useState("");
-  const [calories, setCalories] = useState("");
-  const [satFat, setSatFat] = useState("");
-  const [fiber, setFiber] = useState("");
+  const [sodium, setSodium] = useState(preset?.sodium || "");
+  const [calories, setCalories] = useState(preset?.calories || "");
+  const [satFat, setSatFat] = useState(preset?.satFat || "");
+  const [fiber, setFiber] = useState(preset?.fiber || "");
   const [cholesterol, setCholesterol] = useState("");
 
   const insets = useSafeAreaInsets();
@@ -193,6 +225,11 @@ export default function ManualMealLogScreen() {
   );
 
   const handleSave = async () => {
+    if (!userId) {
+      showToast({ title: "Authentication required", message: "Please sign in to log meals.", type: "error" });
+      return;
+    }
+
     if (!foodDescription.trim()) {
       showToast({ title: "Missing information", message: "Please enter a brief food description.", type: "error" });
       return;
@@ -340,7 +377,7 @@ export default function ManualMealLogScreen() {
               <Feather name="minus" size={16} color="#0f172a" />
             </TouchableOpacity>
             <Text className="text-[14px] font-medium text-slate-900 dark:text-white w-4 text-center">{servings}</Text>
-            <TouchableOpacity onPress={() => setServings(s => s + 1)} className="p-1">
+            <TouchableOpacity onPress={() => setServings(s => Math.min(20, s + 1))} className="p-1">
               <Feather name="plus" size={16} color="#0f172a" />
             </TouchableOpacity>
           </View>
