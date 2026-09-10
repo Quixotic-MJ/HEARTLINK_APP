@@ -59,7 +59,7 @@ function ReminderToggle({
         <Switch
           value={enabled}
           onValueChange={onToggle}
-          trackColor={{ false: isDark ? "#334155" : "#e2e8f0", true: "#2563eb" }}
+          trackColor={{ false: isDark ? "#334155" : "#e2e8f0", true: "#4A6080" }}
           thumbColor="#ffffff"
           ios_backgroundColor={isDark ? "#334155" : "#e2e8f0"}
           accessibilityLabel={`${title} toggle`}
@@ -252,7 +252,7 @@ export default function DailyRemindersScreen() {
   if (isLoading) {
     return (
       <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950 items-center justify-center">
-        <ActivityIndicator size="large" color="#2563eb" />
+        <ActivityIndicator size="large" color="#4A6080" />
       </SafeAreaView>
     );
   }
@@ -288,7 +288,7 @@ export default function DailyRemindersScreen() {
             description="Start your day with a HeartLink check-in."
             icon="sunrise"
             iconBg="#eff6ff"
-            iconColor="#2563eb"
+            iconColor="#4A6080"
             enabled={reminders.morning.enabled}
             time={reminders.morning.time}
             onToggle={() => toggleReminder("morning")}

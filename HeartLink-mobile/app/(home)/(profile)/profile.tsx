@@ -558,7 +558,7 @@ export default function ProfileScreen({ isTab = false }: { isTab?: boolean } = {
       </View>
 
       <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag"
-        contentContainerClassName="pb-16"
+        contentContainerClassName="pb-40"
         showsVerticalScrollIndicator={false}
       >
         {/* ── Avatar hero ── */}

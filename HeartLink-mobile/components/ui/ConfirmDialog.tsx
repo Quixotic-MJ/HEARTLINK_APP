@@ -68,7 +68,7 @@ const VARIANT_CONFIG = {
   },
   info: {
     iconBg: "#eff6ff",
-    iconColor: "#2563eb",
+    iconColor: "#4A6080",
     defaultIcon: "info" as keyof typeof Feather.glyphMap,
     confirmBg: "#0f172a",
     confirmText: "#ffffff",

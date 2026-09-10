@@ -62,7 +62,7 @@ function ContactCard({
           className="w-12 h-12 rounded-2xl items-center justify-center mr-3.5 border border-slate-200/80 dark:border-slate-800"
           style={{ backgroundColor: isDoctor ? "#eff6ff" : "#fef2f2" }}
         >
-          <Feather name={icon as any} size={20} color={isDoctor ? "#2563eb" : "#dc2626"} />
+          <Feather name={icon as any} size={20} color={isDoctor ? "#4A6080" : "#9E4E5F"} />
         </View>
         <View className="flex-1">
           <Text className="text-[16px] font-bold text-slate-900 dark:text-white mb-0.5">
@@ -269,7 +269,7 @@ export default function CareTeamScreen() {
           accessibilityLabel="Add new contact"
           className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 items-center justify-center"
         >
-          <Feather name="plus" size={18} color="#2563eb" />
+          <Feather name="plus" size={18} color="#4A6080" />
         </TouchableOpacity>
       </View>
 

@@ -246,7 +246,7 @@ export default function DailyDiaryScreen() {
           accessibilityLabel="Add meal options"
           className="w-9 h-9 rounded-full bg-primary/10 border border-primary/20 items-center justify-center"
         >
-          <Feather name="plus" size={18} color={isDark ? "#60a5fa" : "#2563eb"} />
+          <Feather name="plus" size={18} color={isDark ? "#6488B0" : "#4A6080"} />
         </TouchableOpacity>
       </View>
 
@@ -291,7 +291,7 @@ export default function DailyDiaryScreen() {
       {/* ── Content / List ── */}
       {loading ? (
         <View className="flex-1 justify-center items-center">
-          <ActivityIndicator size="large" color={isDark ? "#60a5fa" : "#0f172a"} />
+          <ActivityIndicator size="large" color={isDark ? "#6488B0" : "#0f172a"} />
         </View>
       ) : meals.length === 0 ? (
         <EmptyState

@@ -160,7 +160,7 @@ function SeveritySlider({
   const label = getSeverityLabel(value);
   const percentage = Math.max(0, Math.min(100, ((value - 1) / 9) * 100));
 
-  const primaryColor = isDark ? "#3b82f6" : "#2563eb";
+  const primaryColor = isDark ? "#6488B0" : "#4A6080";
   const inactiveTrackColor = isDark ? "rgba(59, 130, 246, 0.22)" : "rgba(37, 99, 235, 0.18)";
   const activeDotColor = "rgba(255, 255, 255, 0.85)";
   const inactiveDotColor = isDark ? "rgba(59, 130, 246, 0.7)" : "rgba(37, 99, 235, 0.5)";
@@ -700,7 +700,7 @@ export default function LogSymptomsScreen() {
               <View className="bg-card rounded-2xl border border-border px-5 py-6 gap-4 shadow-md">
                 <View className="flex-row items-center gap-2">
                   <View className="w-7 h-7 rounded-lg bg-primary/10 items-center justify-center">
-                    <Feather name="activity" size={15} color={isDark ? "#60a5fa" : "#2563eb"} />
+                    <Feather name="activity" size={15} color={isDark ? "#6488B0" : "#4A6080"} />
                   </View>
                   <Text className="text-[15px] font-semibold text-foreground">
                     Cardiovascular Metrics
@@ -829,7 +829,7 @@ export default function LogSymptomsScreen() {
               <View className="bg-card rounded-2xl border border-border px-5 py-6 gap-3.5 shadow-md">
                 <View className="flex-row items-center gap-2">
                   <View className="w-7 h-7 rounded-lg bg-primary/10 items-center justify-center">
-                    <Feather name="check-circle" size={15} color={isDark ? "#60a5fa" : "#2563eb"} />
+                    <Feather name="check-circle" size={15} color={isDark ? "#6488B0" : "#4A6080"} />
                   </View>
                   <Text className="text-[15px] font-semibold text-foreground">
                     Medication Check
@@ -992,7 +992,7 @@ export default function LogSymptomsScreen() {
                                 isSelected
                                   ? isNone
                                     ? "#10b981"
-                                    : (isDark ? "#60a5fa" : "#2563eb")
+                                    : (isDark ? "#6488B0" : "#4A6080")
                                   : (isDark ? "#94a3b8" : "#64748b")
                               }
                             />
@@ -1072,7 +1072,7 @@ export default function LogSymptomsScreen() {
                             <MaterialCommunityIcons
                               name={CONTEXT_ICONS[ctx] as any}
                               size={16}
-                              color={isSelected ? (isDark ? "#60a5fa" : "#2563eb") : (isDark ? "#94a3b8" : "#64748b")}
+                              color={isSelected ? (isDark ? "#6488B0" : "#4A6080") : (isDark ? "#94a3b8" : "#64748b")}
                             />
                           </View>
 

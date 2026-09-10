@@ -190,7 +190,7 @@ export default function ExploreTabScreen() {
               <Feather
                 name="activity"
                 size={15}
-                color={activeSegment === "exercises" ? "#2563EB" : isDark ? "#64748B" : "#8896A0"}
+                color={activeSegment === "exercises" ? "#4A6080" : isDark ? "#64748B" : "#8896A0"}
               />
             </View>
             <Text

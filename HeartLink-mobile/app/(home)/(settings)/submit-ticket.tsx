@@ -139,7 +139,7 @@ export default function SubmitTicketScreen() {
               <Feather 
                 name={cat.icon as any} 
                 size={14} 
-                color={category === cat.id ? "#2563eb" : isDark ? "#94a3b8" : "#64748b"} 
+                color={category === cat.id ? "#4A6080" : isDark ? "#94a3b8" : "#64748b"} 
               />
               <Text 
                 className={`ml-2 text-[13px] font-semibold ${

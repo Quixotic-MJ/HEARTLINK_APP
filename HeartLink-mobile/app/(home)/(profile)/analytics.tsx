@@ -191,7 +191,7 @@ export default function AnalyticsScreen() {
           <View className="flex-row gap-3 mb-6">
             <View className="flex-1 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm items-center">
               <View className="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-900/30 items-center justify-center mb-2">
-                <Feather name="check-circle" size={18} color="#3b82f6" />
+                <Feather name="check-circle" size={18} color="#6488B0" />
               </View>
               <Text className="text-2xl font-bold text-slate-900 dark:text-white">{totalLogged}</Text>
               <Text className="text-[10px] font-bold text-slate-500 uppercase tracking-wide mt-1 text-center">Days Logged</Text>

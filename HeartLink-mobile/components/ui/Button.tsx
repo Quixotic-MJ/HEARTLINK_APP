@@ -50,7 +50,7 @@ export function Button({
   const buttonBg = isDestructive
     ? "w-full rounded-2xl py-4 flex-row justify-center items-center gap-2 bg-[#A93226] shadow-sm"
     : isPrimary
-    ? "w-full rounded-2xl py-4 flex-row justify-center items-center gap-2 bg-[#E8532E] shadow-sm"
+    ? "w-full rounded-2xl py-4 flex-row justify-center items-center gap-2 bg-[#1B6E63] shadow-sm"
     : "w-full rounded-2xl py-4 flex-row justify-center items-center gap-2 bg-transparent border border-[#DCE3DF]";
 
   const textColor = isDestructive || isPrimary

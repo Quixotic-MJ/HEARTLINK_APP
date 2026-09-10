@@ -89,7 +89,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       case "success": return <Feather name="check-circle" size={22} color="#10b981" />;
       case "error": return <Feather name="alert-circle" size={22} color="#ef4444" />;
       case "info":
-      default: return <Feather name="info" size={22} color="#3b82f6" />;
+      default: return <Feather name="info" size={22} color="#6488B0" />;
     }
   };
 

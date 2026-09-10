@@ -647,7 +647,7 @@ export default function ExercisesScreen({
         </ScrollView>
       ) : (
         <ScrollView
-          contentContainerClassName="px-6 pb-28 md:max-w-2xl lg:max-w-4xl mx-auto w-full pt-3"
+          contentContainerClassName="px-6 pb-40 md:max-w-2xl lg:max-w-4xl mx-auto w-full pt-3"
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1B6E63" />
@@ -656,7 +656,7 @@ export default function ExercisesScreen({
           {hideHeader ? (
             <View className="flex-row items-center justify-between mb-4">
               <View className="flex-row items-center gap-1.5 flex-1 pr-2">
-                <View className="w-[5px] h-[5px] rounded-full bg-[#2563EB] flex-shrink-0" />
+                <View className="w-[5px] h-[5px] rounded-full bg-[#4A6080] flex-shrink-0" />
                 <Text className="text-[13px] font-semibold text-[#5C6B66] dark:text-slate-400 flex-1" numberOfLines={1}>
                   Cardio routines for your stability
                 </Text>
@@ -679,8 +679,8 @@ export default function ExercisesScreen({
                   }),
                 }}
               >
-                <Feather name="calendar" size={13} color="#2563EB" />
-                <Text className="text-[12px] font-bold text-[#2563EB]">History</Text>
+                <Feather name="calendar" size={13} color="#4A6080" />
+                <Text className="text-[12px] font-bold text-[#4A6080]">History</Text>
               </TouchableOpacity>
             </View>
           ) : (

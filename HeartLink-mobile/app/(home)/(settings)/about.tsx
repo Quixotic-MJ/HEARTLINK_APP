@@ -63,7 +63,7 @@ export default function AboutScreen() {
             style={{ transform: [{ scale: scaleAnim }] }}
             className="w-22 h-22 rounded-3xl bg-white dark:bg-slate-900 items-center justify-center border border-slate-200/80 dark:border-slate-800 shadow-sm shadow-slate-200/50 mb-3.5"
           >
-            <Feather name="heart" size={36} color="#2563eb" />
+            <Feather name="heart" size={36} color="#4A6080" />
           </Animated.View>
           <Text className="text-[26px] font-bold text-slate-900 dark:text-white tracking-tight">
             Heart<Text className="text-blue-600 font-light">Link</Text>
@@ -102,7 +102,7 @@ export default function AboutScreen() {
         <View className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800/80 p-5 mb-4 shadow-sm shadow-slate-100 dark:shadow-none">
           <View className="flex-row items-center gap-2 mb-3">
             <View className="w-7 h-7 rounded-xl bg-blue-50 dark:bg-blue-950/50 items-center justify-center">
-              <MaterialCommunityIcons name="shield-check" size={16} color="#2563eb" />
+              <MaterialCommunityIcons name="shield-check" size={16} color="#4A6080" />
             </View>
             <Text className="text-[14px] font-bold text-slate-900 dark:text-white">
               Privacy & Data Transparency

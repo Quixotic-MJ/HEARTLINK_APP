@@ -107,9 +107,9 @@ export default function ExerciseDiaryScreen() {
 
       const json = await res.json();
       if (res.ok && json.success) {
+        const { postLogAck } = await import("../../../services/companionCopy");
         showToast({
-          title: "Activity Logged",
-          message: `${trimmedName} (${mins} min) recorded! Lifestyle composite score updated.`,
+          ...postLogAck("exercise", `${trimmedName} (${mins} min)`),
           type: "success",
         });
         setShowQuickLogModal(false);
@@ -138,7 +138,7 @@ export default function ExerciseDiaryScreen() {
         setLogs((prev) => [offlineLog, ...prev]);
         showToast({
           title: "Saved Offline",
-          message: `${trimmedName} (${mins} min) saved offline. Will sync when connected.`,
+          message: `${trimmedName} (${mins} min) saved on this device. I'll sync it when you're back online.`,
           type: "info",
         });
         setShowQuickLogModal(false);

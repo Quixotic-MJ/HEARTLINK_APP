@@ -1,262 +1,20 @@
-import React, { useState, useRef, useCallback } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
   TouchableOpacity,
   Platform,
-  Modal,
   Animated,
-  Pressable,
-  Dimensions,
-  ScrollView,
+  Easing,
 } from "react-native";
-import { withLayoutContext, useRouter } from "expo-router";
+import { withLayoutContext, usePathname } from "expo-router";
 import { createMaterialTopTabNavigator } from "expo-router/js-top-tabs";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColorScheme } from "nativewind";
-
-const { height: SCREEN_HEIGHT } = Dimensions.get("window");
-
-// ─── Record Options ───────────────────────────────────────────────────────────
-
-const RECORD_OPTIONS = [
-  {
-    icon: "camera" as const,
-    iconType: "feather" as const,
-    label: "Scan food barcode",
-    subtitle: "Use camera to scan product barcodes",
-    iconColor: "#185fa5",
-    iconBg: "#e6f1fb",
-    route: "/(home)/(meals)/barcode-scan",
-  },
-  {
-    icon: "silverware-fork-knife" as const,
-    iconType: "material" as const,
-    label: "Log meal manually",
-    subtitle: "Search and log meals & nutrition",
-    iconColor: "#3b6d11",
-    iconBg: "#eaf3de",
-    route: "/(home)/(meals)/search-meal",
-  },
-  {
-    icon: "activity" as const,
-    iconType: "feather" as const,
-    label: "Log exercise & workouts",
-    subtitle: "Record active minutes and routines",
-    iconColor: "#2563eb",
-    iconBg: "#eff6ff",
-    route: "/(home)/(health)/exercise-diary",
-  },
-  {
-    icon: "moon" as const,
-    iconType: "feather" as const,
-    label: "Log sleep",
-    subtitle: "Track sleep duration and quality",
-    iconColor: "#6366f1",
-    iconBg: "#eef2ff",
-    route: "/(home)/(health)/log-sleep",
-  },
-  {
-    icon: "heart" as const,
-    iconType: "feather" as const,
-    label: "Log vitals & symptoms",
-    subtitle: "Record cardiovascular vitals & how you feel",
-    iconColor: "#e11d48",
-    iconBg: "#ffe4e6",
-    route: "/(home)/(health)/log-symptoms",
-  },
-];
-
-// ─── Bottom Sheet ─────────────────────────────────────────────────────────────
-
-function RecordBottomSheet({
-  visible,
-  onClose,
-}: {
-  visible: boolean;
-  onClose: () => void;
-}) {
-  const insets = useSafeAreaInsets();
-  const router = useRouter();
-  const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
-  const backdropAnim = useRef(new Animated.Value(0)).current;
-  const { colorScheme } = useColorScheme();
-  const isDark = colorScheme === "dark";
-
-  const animateIn = useCallback(() => {
-    Animated.parallel([
-      Animated.timing(backdropAnim, {
-        toValue: 1,
-        duration: 260,
-        useNativeDriver: true,
-      }),
-      Animated.spring(slideAnim, {
-        toValue: 0,
-        damping: 24,
-        stiffness: 280,
-        mass: 0.8,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, [slideAnim, backdropAnim]);
-
-  const animateOut = useCallback(() => {
-    Animated.parallel([
-      Animated.timing(backdropAnim, {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: SCREEN_HEIGHT,
-        duration: 220,
-        useNativeDriver: true,
-      }),
-    ]).start(() => onClose());
-  }, [slideAnim, backdropAnim, onClose]);
-
-  return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="none"
-      statusBarTranslucent
-      onShow={animateIn}
-      onRequestClose={animateOut}
-    >
-      {/* Backdrop */}
-      <Animated.View
-        style={{ flex: 1, backgroundColor: "rgba(15,23,42,0.45)", opacity: backdropAnim }}
-      >
-        <Pressable style={{ flex: 1 }} onPress={animateOut} />
-      </Animated.View>
-
-      {/* Sheet */}
-      <Animated.View
-        style={{
-          position: "absolute",
-          bottom: 0,
-          left: 0,
-          right: 0,
-          maxHeight: SCREEN_HEIGHT * 0.85,
-          backgroundColor: isDark ? "#0f172a" : "#fff",
-          borderTopLeftRadius: 24,
-          borderTopRightRadius: 24,
-          paddingTop: 12,
-          paddingBottom: Platform.OS === "ios" ? 40 : 28 + insets.bottom,
-          paddingHorizontal: 20,
-          transform: [{ translateY: slideAnim }],
-          ...Platform.select({
-            ios: {
-              shadowColor: "#000",
-              shadowOffset: { width: 0, height: -4 },
-              shadowOpacity: 0.1,
-              shadowRadius: 16,
-            },
-            android: { elevation: 20 },
-          }),
-        }}
-      >
-        {/* Drag handle */}
-        <View
-          style={{
-            alignSelf: "center",
-            width: 36,
-            height: 4,
-            backgroundColor: isDark ? "#334155" : "#e2e8f0",
-            borderRadius: 2,
-            marginBottom: 16,
-          }}
-        />
-
-        {/* Title */}
-        <Text style={{ fontSize: 17, fontWeight: "600", color: isDark ? "#f8fafc" : "#0f172a", marginBottom: 3 }}>
-          Quick record
-        </Text>
-        <Text style={{ fontSize: 13, color: isDark ? "#cbd5e1" : "#64748b", marginBottom: 16 }}>
-          What would you like to log?
-        </Text>
-
-        {/* Scrollable Options */}
-        <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
-          {RECORD_OPTIONS.map((option, index) => (
-            <TouchableOpacity
-              key={option.label}
-              activeOpacity={0.7}
-              onPress={() => {
-                if (option.route) {
-                  router.push(option.route as any);
-                }
-                animateOut();
-              }}
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                backgroundColor: isDark ? "#1e293b" : "#fff",
-                borderRadius: 16,
-                padding: 13,
-                marginBottom: index < RECORD_OPTIONS.length - 1 ? 9 : 0,
-                borderWidth: 0.5,
-                borderColor: isDark ? "#334155" : "#e2e8f0",
-              }}
-            >
-              {/* Icon */}
-              <View
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 12,
-                  backgroundColor: option.iconBg,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  marginRight: 13,
-                }}
-              >
-                {option.iconType === "feather" ? (
-                  <Feather name={option.icon as any} size={18} color={option.iconColor} />
-                ) : (
-                  <MaterialCommunityIcons name={option.icon as any} size={18} color={option.iconColor} />
-                )}
-              </View>
-
-              {/* Text */}
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 14, fontWeight: "600", color: isDark ? "#f8fafc" : "#0f172a", marginBottom: 2 }}>
-                  {option.label}
-                </Text>
-                <Text style={{ fontSize: 12, color: isDark ? "#cbd5e1" : "#64748b", lineHeight: 16 }}>
-                  {option.subtitle}
-                </Text>
-              </View>
-
-              <Feather name="chevron-right" size={16} color={isDark ? "#64748b" : "#cbd5e1"} />
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-
-        {/* Cancel */}
-        <TouchableOpacity
-          activeOpacity={0.7}
-          onPress={animateOut}
-          style={{
-            marginTop: 12,
-            alignItems: "center",
-            paddingVertical: 12,
-            backgroundColor: isDark ? "#1e293b" : "#f8fafc",
-            borderRadius: 14,
-            borderWidth: 0.5,
-            borderColor: isDark ? "#334155" : "#e2e8f0",
-          }}
-        >
-          <Text style={{ fontSize: 13, fontWeight: "600", color: "#64748b" }}>
-            Cancel
-          </Text>
-        </TouchableOpacity>
-      </Animated.View>
-    </Modal>
-  );
-}
+import {
+  SplitRecordActions,
+} from "../../../components/tabs/SplitRecordActions";
 
 // ─── Tab Config ───────────────────────────────────────────────────────────────
 
@@ -270,35 +28,165 @@ const TABS = [
 
 // ─── Custom Tab Bar ───────────────────────────────────────────────────────────
 
-function CustomTabBar({ state, navigation, onFabPress }: any) {
+// ─── Pill trigger: icon-only circle, filled + elevated when active ────────────
+
+function PillTab({
+  focused,
+  label,
+  isDark,
+  onPress,
+  onLongPress,
+  children,
+}: {
+  focused: boolean;
+  label: string;
+  isDark: boolean;
+  onPress: () => void;
+  onLongPress: () => void;
+  children: React.ReactNode;
+}) {
+  const spring = useRef(new Animated.Value(focused ? 1 : 0)).current;
+
+  useEffect(() => {
+    Animated.spring(spring, {
+      toValue: focused ? 1 : 0,
+      stiffness: 420,
+      damping: 26,
+      mass: 0.8,
+      useNativeDriver: true,
+    }).start();
+  }, [focused, spring]);
+
+  const scale = spring.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.92, 1.06],
+  });
+  const activeBg = isDark ? "#ffffff" : "#1B6E63";
+
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      onLongPress={onLongPress}
+      delayLongPress={350}
+      activeOpacity={0.8}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ selected: focused }}
+    >
+      <Animated.View
+        style={{
+          width: 44,
+          height: 44,
+          borderRadius: 22,
+          alignItems: "center",
+          justifyContent: "center",
+          transform: [{ scale }],
+          backgroundColor: focused ? activeBg : "transparent",
+          ...(focused
+            ? Platform.select({
+                ios: {
+                  shadowColor: activeBg,
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.4,
+                  shadowRadius: 8,
+                },
+                android: { elevation: 6 },
+              })
+            : {}),
+        }}
+      >
+        {children}
+      </Animated.View>
+    </TouchableOpacity>
+  );
+}
+
+function CustomTabBar({ state, navigation, splitOpen, onFabPress, onCloseSplit }: any) {
   const insets = useSafeAreaInsets();
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
-  
-  const ACTIVE_COLOR = isDark ? "#fff" : "#E8532E";
+
   const INACTIVE_COLOR = isDark ? "#64748b" : "#94a3b8";
+  const ACTIVE_ICON = isDark ? "#0f172a" : "#ffffff";
+
+  // Long-press tooltip bubble (mobile equivalent of the hover tooltip).
+  const [tip, setTip] = useState<string | null>(null);
+  const tipTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const showTip = (label: string) => {
+    if (tipTimer.current) clearTimeout(tipTimer.current);
+    setTip(label);
+    tipTimer.current = setTimeout(() => setTip(null), 1200);
+  };
+  useEffect(() => {
+    return () => {
+      if (tipTimer.current) clearTimeout(tipTimer.current);
+    };
+  }, []);
+  const fabSpin = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(fabSpin, {
+      toValue: splitOpen ? 1 : 0,
+      duration: 200,
+      useNativeDriver: true,
+    }).start();
+  }, [splitOpen, fabSpin]);
+  const fabRotate = fabSpin.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["0deg", "45deg"],
+  });
+
+  const bottomPad = Platform.OS === "ios" ? 14 : insets.bottom + 10;
 
   return (
     <View
       style={{
-        backgroundColor: isDark ? "#0f172a" : "#fff",
+        backgroundColor: isDark ? "#1e293b" : "#EFF4F2",
         flexDirection: "row",
         alignItems: "center",
-        height: Platform.OS === "ios" ? 85 : 65 + insets.bottom,
-        paddingBottom: Platform.OS === "ios" ? 20 : insets.bottom,
-        borderTopWidth: 0.5,
-        borderTopColor: isDark ? "#1e293b" : "#e2e8f0",
+        height: 66,
+        marginHorizontal: 16,
+        marginBottom: bottomPad,
+        paddingHorizontal: 8,
+        borderRadius: 999,
+        borderWidth: 0.5,
+        borderColor: isDark ? "#334155" : "#DCE3DF",
         ...Platform.select({
           ios: {
             shadowColor: "#0f172a",
-            shadowOffset: { width: 0, height: -2 },
-            shadowOpacity: 0.06,
-            shadowRadius: 12,
+            shadowOffset: { width: 0, height: 6 },
+            shadowOpacity: isDark ? 0.4 : 0.12,
+            shadowRadius: 16,
           },
-          android: { elevation: 8 },
+          android: { elevation: 10 },
         }),
       }}
     >
+      {/* Long-press tooltip bubble */}
+      {tip && (
+        <View
+          pointerEvents="none"
+          style={{
+            position: "absolute",
+            top: -36,
+            alignSelf: "center",
+            backgroundColor: isDark ? "#f8fafc" : "#0f172a",
+            paddingHorizontal: 12,
+            paddingVertical: 6,
+            borderRadius: 999,
+          }}
+        >
+          <Text
+            style={{
+              fontSize: 10,
+              fontWeight: "700",
+              letterSpacing: 1.5,
+              color: isDark ? "#0f172a" : "#f8fafc",
+            }}
+          >
+            {tip.toUpperCase()}
+          </Text>
+        </View>
+      )}
       {TABS.map((tab: any) => {
         const routeIndex = state.routes.findIndex((r: any) => r.name === tab.name);
         const isFocused = state.index === routeIndex;
@@ -308,6 +196,8 @@ function CustomTabBar({ state, navigation, onFabPress }: any) {
             onFabPress();
             return;
           }
+          // Tapping any tab while the split options are open dismisses them.
+          if (splitOpen) onCloseSplit?.();
           const route = state.routes[routeIndex];
           if (!route) return;
           const event = navigation.emit({
@@ -320,27 +210,31 @@ function CustomTabBar({ state, navigation, onFabPress }: any) {
           }
         };
 
-        // FAB
+        // FAB (plus → × morph target for the split options)
         if (tab.isFab) {
           return (
             <View key={tab.name} style={{ flex: 1, alignItems: "center" }}>
               <TouchableOpacity
                 onPress={onPress}
+                onLongPress={() => showTip(tab.label)}
+                delayLongPress={350}
                 activeOpacity={0.8}
+                accessibilityRole="button"
+                accessibilityLabel={splitOpen ? "Close quick record" : "Open quick record"}
                 style={{
                   position: "absolute",
-                  top: -24,
+                  top: -30,
                   width: 56,
                   height: 56,
                   borderRadius: 28,
-                  backgroundColor: "#E8532E",
+                  backgroundColor: "#1B6E63",
                   alignItems: "center",
                   justifyContent: "center",
                   borderWidth: 4,
-                  borderColor: isDark ? "#0f172a" : "#fff",
+                  borderColor: isDark ? "#1e293b" : "#EFF4F2",
                   ...Platform.select({
                     ios: {
-                      shadowColor: "#E8532E",
+                      shadowColor: "#1B6E63",
                       shadowOffset: { width: 0, height: 4 },
                       shadowOpacity: 0.35,
                       shadowRadius: 8,
@@ -349,43 +243,33 @@ function CustomTabBar({ state, navigation, onFabPress }: any) {
                   }),
                 }}
               >
-                <Feather name="plus" size={22} color="#fff" />
+                <Animated.View style={{ transform: [{ rotate: fabRotate }] }}>
+                  <Feather name="plus" size={22} color="#fff" />
+                </Animated.View>
               </TouchableOpacity>
             </View>
           );
         }
 
-        // Regular tab
-        const color = isFocused ? ACTIVE_COLOR : INACTIVE_COLOR;
+        // Pill trigger (icon-only circle, tooltip on long-press)
+        const color = isFocused ? ACTIVE_ICON : INACTIVE_COLOR;
 
         return (
-          <TouchableOpacity
-            key={tab.name}
-            onPress={onPress}
-            style={{
-              flex: 1,
-              alignItems: "center",
-              justifyContent: "center",
-              height: "100%",
-              gap: 4,
-            }}
-          >
-            {tab.type === "feather" ? (
-              <Feather name={tab.icon as any} size={20} color={color} />
-            ) : (
-              <MaterialCommunityIcons name={tab.icon as any} size={20} color={color} />
-            )}
-            <Text
-              style={{
-                fontSize: 9.5,
-                color,
-                fontWeight: isFocused ? "700" : "500",
-                letterSpacing: 0.2,
-              }}
+          <View key={tab.name} style={{ flex: 1, alignItems: "center" }}>
+            <PillTab
+              focused={isFocused}
+              label={tab.label}
+              isDark={isDark}
+              onPress={onPress}
+              onLongPress={() => showTip(tab.label)}
             >
-              {tab.label}
-            </Text>
-          </TouchableOpacity>
+              {tab.type === "feather" ? (
+                <Feather name={tab.icon as any} size={21} color={color} />
+              ) : (
+                <MaterialCommunityIcons name={tab.icon as any} size={21} color={color} />
+              )}
+            </PillTab>
+          </View>
         );
       })}
     </View>
@@ -400,18 +284,68 @@ const SwipeableTabs = withLayoutContext(Navigator);
 // ─── Layout ───────────────────────────────────────────────────────────────────
 
 export default function TabsLayout() {
-  const [sheetVisible, setSheetVisible] = useState(false);
+  const [splitOpen, setSplitOpen] = useState(false);
+  const pathname = usePathname();
+
+  // Bridge: the navigator owns tab state, but the bar renders OUTSIDE the
+  // pop-animated container so only screen content zooms. We keep the tab
+  // navigator's navigation object and read fresh state on each render.
+  const tabNavRef = useRef<any>(null);
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const nav = tabNavRef.current;
+    if (!nav) return;
+    setTick((t) => t + 1); // first paint with the bar mounted
+    const unsub = nav.addListener("state", () => setTick((t) => t + 1));
+    return () => unsub();
+  }, []);
+  const tabState = tabNavRef.current?.getState?.();
+  const tabNavigation = tabNavRef.current ?? null;
+
+  // Content zoom-pop on every navigation (mirrors the zoom-in-95 tab content).
+  // Style-only wrapper: never remounts the navigator, just plays scale+fade.
+  const popAnim = useRef(new Animated.Value(1)).current;
+  const isFirstRender = useRef(true);
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    popAnim.setValue(0);
+    Animated.timing(popAnim, {
+      toValue: 1,
+      duration: 280,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [pathname, popAnim]);
+  const popScale = popAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.95, 1],
+  });
+  const popOpacity = popAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.4, 1],
+  });
 
   return (
-    <>
+    <View style={{ flex: 1 }}>
+      {/* Only screen content pops — the tab bar lives outside this wrapper. */}
+      <Animated.View
+        style={{ flex: 1, transform: [{ scale: popScale }], opacity: popOpacity }}
+      >
       <SwipeableTabs
         tabBarPosition="bottom"
-        tabBar={(props: any) => (
-          <CustomTabBar {...props} onFabPress={() => setSheetVisible(true)} />
-        )}
+        tabBar={(props: any) => {
+          tabNavRef.current = props.navigation;
+          return null;
+        }}
         screenOptions={{ 
           headerShown: false,
           swipeEnabled: false,
+          // Kill the pager's horizontal slide (it fought the pop and janked);
+          // tab switches are instant and the zoom-pop wrapper owns the motion.
+          animationEnabled: false,
         }}
       >
         <SwipeableTabs.Screen name="dashboard" />
@@ -422,11 +356,33 @@ export default function TabsLayout() {
         <SwipeableTabs.Screen name="recipes" />
         <SwipeableTabs.Screen name="exercises" />
       </SwipeableTabs>
+      </Animated.View>
 
-      <RecordBottomSheet
-        visible={sheetVisible}
-        onClose={() => setSheetVisible(false)}
+      {/* Floating pill bar: static during screen pops, overlays the bottom. */}
+      {tabNavigation && tabState && (
+        <View
+          pointerEvents="box-none"
+          style={{
+            position: "absolute",
+            left: 0,
+            right: 0,
+            bottom: 0,
+          }}
+        >
+          <CustomTabBar
+            state={tabState}
+            navigation={tabNavigation}
+            splitOpen={splitOpen}
+            onFabPress={() => setSplitOpen((prev) => !prev)}
+            onCloseSplit={() => setSplitOpen(false)}
+          />
+        </View>
+      )}
+
+      <SplitRecordActions
+        open={splitOpen}
+        onClose={() => setSplitOpen(false)}
       />
-    </>
+    </View>
   );
 }

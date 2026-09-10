@@ -219,7 +219,7 @@ export default function OnboardingScreen() {
         {/* Primary CTA */}
         <TouchableOpacity
           activeOpacity={0.85}
-          className={`w-full bg-[#E8532E] rounded-2xl py-4 flex-row justify-center items-center gap-2 mb-3 ${isCheckingServer ? 'opacity-80' : ''}`}
+          className={`w-full bg-[#1B6E63] rounded-2xl py-4 flex-row justify-center items-center gap-2 mb-3 ${isCheckingServer ? 'opacity-80' : ''}`}
           onPress={handleGetStarted}
           disabled={isCheckingServer}
           accessible={true}

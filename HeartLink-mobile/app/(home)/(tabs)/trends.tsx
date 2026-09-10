@@ -150,11 +150,11 @@ function getStatusTheme(score: number | null, isDark: boolean): StatusTheme {
   if (score >= 50) {
     return {
       tier: "Elevated Risk",
-      dotColor: "#E8532E",
+      dotColor: "#C0502E",
       badgeBg: isDark ? "rgba(232, 83, 46, 0.2)" : "#FDEEE9",
       badgeBorder: isDark ? "rgba(232, 83, 46, 0.35)" : "#F9D5CB",
-      badgeText: isDark ? "#F0693E" : "#E8532E",
-      barColor: "#E8532E",
+      badgeText: isDark ? "#D0714E" : "#C0502E",
+      barColor: "#C0502E",
     };
   }
   return {
@@ -373,9 +373,9 @@ export default function TrendsTabScreen() {
       <Header />
 
       <ScrollView
-        contentContainerClassName="px-5 pt-2 pb-24"
+        contentContainerClassName="px-5 pt-2 pb-40"
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#E8532E" />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1B6E63" />}
       >
         {/* ── Screen Header & Category ── */}
         <View className="mb-4">
@@ -412,7 +412,7 @@ export default function TrendsTabScreen() {
                   } as any);
                 }}
                 activeOpacity={0.8}
-                className="flex-row items-center gap-1.5 px-3.5 py-2 rounded-full bg-[#E8532E] shadow-sm shadow-coral-500/20"
+                className="flex-row items-center gap-1.5 px-3.5 py-2 rounded-full bg-[#C0502E] shadow-sm shadow-coral-500/20"
               >
                 <Feather name="plus" size={14} color="#FFFFFF" />
                 <Text className="text-[12px] font-bold text-white">Log BP</Text>
@@ -499,7 +499,7 @@ export default function TrendsTabScreen() {
 
         {isLoading && !analytics ? (
           <View className="py-20 items-center justify-center">
-            <ActivityIndicator size="small" color="#E8532E" />
+            <ActivityIndicator size="small" color="#C0502E" />
             <Text className="text-[13px] text-slate-400 mt-3 font-medium">Analyzing telemetry history...</Text>
           </View>
         ) : (
@@ -573,7 +573,7 @@ export default function TrendsTabScreen() {
                         } as any)
                       }
                       activeOpacity={0.8}
-                      className="px-4 py-2 rounded-full bg-[#E8532E] shadow-sm shadow-coral-500/20"
+                      className="px-4 py-2 rounded-full bg-[#C0502E] shadow-sm shadow-coral-500/20"
                     >
                       <Text className="text-[11px] font-bold text-white tracking-wide">Record First Vitals</Text>
                     </TouchableOpacity>
@@ -663,7 +663,7 @@ export default function TrendsTabScreen() {
                     <Feather
                       name={scoreDelta >= 0 ? "trending-up" : "trending-down"}
                       size={15}
-                      color={scoreDelta >= 0 ? "#1B6E63" : "#E8532E"}
+                      color={scoreDelta >= 0 ? "#1B6E63" : "#C0502E"}
                     />
                     <Text className="text-[13px] font-bold text-[#152131] dark:text-white">
                       {scoreDelta > 0
@@ -737,7 +737,7 @@ export default function TrendsTabScreen() {
                   ? "#121D2B"
                   : "#FFFFFF",
                 borderColor: isCritical
-                  ? "#E8532E"
+                  ? "#C0502E"
                   : isDark
                   ? "rgba(30, 41, 59, 0.8)"
                   : "#DCE3DF",
@@ -759,7 +759,7 @@ export default function TrendsTabScreen() {
                   <MaterialCommunityIcons
                     name={isCritical ? "alert-circle-outline" : "auto-fix"}
                     size={16}
-                    color={isCritical ? "#E8532E" : "#1B6E63"}
+                    color={isCritical ? "#C0502E" : "#1B6E63"}
                   />
                 </View>
                 <Text className="text-[13px] font-bold text-[#152131] dark:text-white">
@@ -802,7 +802,7 @@ export default function TrendsTabScreen() {
                 className="flex-1 bg-white dark:bg-[#121D2B] p-4 rounded-2xl border border-[#DCE3DF] dark:border-slate-800/80"
               >
                 <View className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-950/40 items-center justify-center mb-2.5">
-                  <Feather name="activity" size={17} color="#2563eb" />
+                  <Feather name="activity" size={17} color="#4A6080" />
                 </View>
                 <Text className="text-[14px] font-bold text-[#152131] dark:text-white">Cardio Log</Text>
                 <Text className="text-[11px] text-[#5C6B66] dark:text-slate-400 mt-0.5">Active walking</Text>
@@ -842,7 +842,7 @@ export default function TrendsTabScreen() {
                   ? "#1A2634"
                   : "#EDF1EF",
                 borderColor: isCritical
-                  ? "#E8532E"
+                  ? "#C0502E"
                   : isDark
                   ? "rgba(30, 41, 59, 0.8)"
                   : "#DCE3DF",
@@ -867,7 +867,7 @@ export default function TrendsTabScreen() {
                   className="px-3.5 py-2.5 rounded-xl"
                   style={{
                     backgroundColor: isCritical
-                      ? "#E8532E"
+                      ? "#C0502E"
                       : isDark
                       ? "#FFFFFF"
                       : "#152131",

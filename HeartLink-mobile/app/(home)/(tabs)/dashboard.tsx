@@ -11,28 +11,36 @@ import {
   AccessibilityInfo,
   Platform,
 } from "react-native";
-import Reanimated, { FadeIn, FadeInDown } from "react-native-reanimated";
+import Reanimated, { FadeInDown, LinearTransition, ZoomIn } from "react-native-reanimated";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter, useFocusEffect } from "expo-router";
 import { useColorScheme } from "nativewind";
-import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Feather } from "@expo/vector-icons";
 import { useUser } from "../../../contexts/UserContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Haptics from "expo-haptics";
-import { getCompanionGreeting, CompanionGreetingResult } from "../../../services/companionService";
+import { getCompanionGreeting, getCompanionLine, CompanionGreetingResult } from "../../../services/companionService";
+import { voiceGreeting } from "../../../services/companionCopy";
 
 import Svg, { Path } from "react-native-svg";
 
-const AnimatedPath = Animated.createAnimatedComponent(Path);
-// Total estimated length of the ECG path (viewBox 300×20)
-const ECG_PATH_LENGTH = 390;
+
 
 // Import extracted UI components
 import { ScoreRing } from "../../../components/dashboard/ScoreRing";
+import { MissionList, type MissionId, type MissionItem } from "../../../components/dashboard/MissionList";
+import { MissionLogModal } from "../../../components/dashboard/MissionLogModal";
+import {
+  RecommendationModal,
+  type ActiveRec,
+} from "../../../components/dashboard/RecommendationModal";
+import { FacilityMapModal } from "../../../components/dashboard/FacilityMapModal";
 import { RecommendationCard } from "../../../components/dashboard/RecommendationCard";
 import { CustomAlertModal } from "../../../components/dashboard/CustomAlertModal";
 import { Header } from "../../../components/Header";
 import { Skeleton } from "../../../components/ui/Skeleton";
 import { ScreenWrapper } from "../../../components/ui/ScreenWrapper";
+import { DashboardTutorialModal } from "../../../components/dashboard/DashboardTutorialModal";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -160,11 +168,11 @@ function getScoreTheme(score: number, isDark: boolean): ScoreTheme {
   if (score >= 50)
     return {
       label: "Elevated Risk",
-      barColor: "#E8532E",
-      badgeBg: isDark ? "rgba(232, 83, 46, 0.2)" : "#FDEEE9",
-      badgeBorder: isDark ? "rgba(232, 83, 46, 0.35)" : "#F9D5CB",
-      badgeText: isDark ? "#F0693E" : "#E8532E",
-      dotColor: isDark ? "#F0693E" : "#E8532E",
+      barColor: "#C0502E",
+      badgeBg: isDark ? "rgba(192, 80, 46, 0.2)" : "#FDEEE9",
+      badgeBorder: isDark ? "rgba(192, 80, 46, 0.35)" : "#F9D5CB",
+      badgeText: isDark ? "#D0714E" : "#C0502E",
+      dotColor: isDark ? "#D0714E" : "#C0502E",
     };
   return {
     label: "Critical",
@@ -184,27 +192,11 @@ function getGreeting(name?: string): string {
   return name ? `${timeStr}, ${name}` : timeStr;
 }
 
-// ─── Score Drivers Helper ───────────────────────────────────────────────────
-function getScoreDrivers(data: any, hssScore: number): string {
-  if (!hssScore || hssScore === 0) return "Awaiting inputs";
-  const rawBp = typeof data?.latest_vitals?.bp === "string" ? data.latest_vitals.bp : "";
-  const sodiumConsumed = data?.nutrition_budget?.sodium?.consumed_mg ?? data?.today_activity?.total_sodium_mg ?? 0;
-  const sodiumLimit = data?.nutrition_budget?.sodium?.limit_mg || 2000;
-
-  if (hssScore >= 80) {
-    if (rawBp && rawBp !== "--/--") return "Optimal BP";
-    return "Optimal Vitals";
-  }
-  if (hssScore >= 60) {
-    if (sodiumConsumed > sodiumLimit) return "High Sodium";
-    if (rawBp && rawBp !== "--/--") return "Controlled BP";
-    return "Moderate Rhythm";
-  }
-  if (hssScore >= 50) {
-    if (rawBp && rawBp !== "--/--") return "Elevated BP";
-    return "Elevated Risk";
-  }
-  return "Rest Advised";
+function getDaypartTitle(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Start your day";
+  if (hour < 17) return "Keep the rhythm";
+  return "Wind down tonight";
 }
 
 function cleanCoachMessage(text?: string): string {
@@ -258,11 +250,13 @@ export default function DashboardScreen() {
   const [alertModalVisible, setAlertModalVisible] = useState(false);
   const [reduceMotion, setReduceMotion] = useState(false);
   const [companion, setCompanion] = useState<CompanionGreetingResult | null>(null);
+  // Varnished (LLM) variant of the voiced greeting line, when available.
+  const [companionAi, setCompanionAi] = useState<string | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const isFetchingRef = useRef(false);
   const isNavigatingRef = useRef(false);
   const pulseAnim = useRef(new Animated.Value(1)).current;
-  const ecgAnim = useRef(new Animated.Value(ECG_PATH_LENGTH)).current;
 
   const [isCachedData, setIsCachedData] = useState(false);
 
@@ -317,6 +311,7 @@ export default function DashboardScreen() {
           setData(json);
           setIsCachedData(false);
           setRefreshError(false);
+          setRefreshTrigger((prev) => prev + 1);
           await AsyncStorage.setItem(cacheKey, JSON.stringify(json));
         } else if (response.status === 401 || response.status === 403) {
           // Token expired or invalid session - delegate to centralized auth logout
@@ -362,6 +357,7 @@ export default function DashboardScreen() {
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
+    setRefreshTrigger((prev) => prev + 1);
     fetchData(true);
   }, [fetchData]);
 
@@ -369,6 +365,21 @@ export default function DashboardScreen() {
   const hasHssScore = hssScore > 0;
   const theme = getScoreTheme(hssScore, isDark);
   const isCritical = hasHssScore && hssScore < 50;
+
+  // Latest vitals for the swipe card under the score ring.
+  const rawLatestBp = typeof data?.latest_vitals?.bp === "string" ? data.latest_vitals.bp : "";
+  let latestSbp: number | null = null;
+  let latestDbp: number | null = null;
+  if (rawLatestBp && rawLatestBp !== "--/--") {
+    const parts = rawLatestBp.split("/").map((p: string) => parseInt(p.trim(), 10));
+    if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+      latestSbp = parts[0];
+      latestDbp = parts[1];
+    }
+  }
+  const rawBpm = (data?.latest_vitals as any)?.bpm;
+  const parsedBpm = typeof rawBpm === "number" ? rawBpm : parseInt(rawBpm, 10);
+  const latestBpm = !isNaN(parsedBpm) ? parsedBpm : null;
 
   const mealsLogged = (data?.today_activity?.meals_count || 0) > 0;
   const exerciseLogged = (data?.today_activity?.exercises_count || 0) > 0;
@@ -380,6 +391,111 @@ export default function DashboardScreen() {
   const movementMins = data?.today_activity?.total_exercise_minutes || 0;
   const movementGoal = (data as any)?.thresholds?.active_minutes_goal || 30;
   const streakDays = typeof data?.streak?.current_streak === "number" ? data.streak.current_streak : 0;
+
+  const [tutorialVisible, setTutorialVisible] = useState(false);
+
+  // Mission log modal (replaces the old inline dropdowns).
+  // Exercise keeps its separate screen and never opens the modal.
+  const [logModal, setLogModal] = useState<null | "vitals" | "meals" | "sleep">(null);
+  const handleMissionSaved = useCallback(() => {
+    setLogModal(null);
+    fetchData(true);
+  }, [fetchData]);
+  const handleMissionPress = useCallback(
+    (id: MissionId) => {
+      if (id === "exercise") {
+        safeNavigate("/(home)/(health)/exercise-diary");
+        return;
+      }
+      setLogModal(id);
+    },
+    [safeNavigate]
+  );
+
+  const missionItems: MissionItem[] = [
+    {
+      id: "vitals",
+      title: "Blood Pressure & Pulse",
+      subtitle: vitalsLogged
+        ? `Recorded: ${data?.latest_vitals?.bp || "--/--"} mmHg • ${data?.latest_vitals?.bpm || "--"} BPM`
+        : "Morning check due today",
+      icon: "heart",
+      tileColors: ["#9E4E5F", "#BF7E8C"],
+      done: vitalsLogged,
+    },
+    {
+      id: "meals",
+      title: "Sodium Budget",
+      subtitle: mealsLogged
+        ? `${data?.nutrition_budget?.sodium?.consumed_mg ?? data?.today_activity?.total_sodium_mg ?? 0} mg used`
+        : "0 of 2,000 mg logged today",
+      icon: "silverware-fork-knife",
+      iconType: "material",
+      tileColors: ["#8A6820", "#B08B45"],
+      done: mealsLogged,
+    },
+    {
+      id: "exercise",
+      title: "Cardio Heart Movement",
+      subtitle: `${movementMins} of ${movementGoal} mins completed today`,
+      icon: "activity",
+      tileColors: ["#3D6494", "#6488B0"],
+      done: exerciseLogged,
+    },
+    {
+      id: "sleep",
+      title: "Rest & Circadian Sleep",
+      subtitle: sleepLogged
+        ? `${typeof data?.today_activity?.total_sleep_hours === "number" ? data.today_activity.total_sleep_hours : "Recorded"} hrs logged`
+        : "Target: 7–9 hrs of restful recovery",
+      icon: "moon",
+      tileColors: ["#5A5E96", "#8589BC"],
+      done: sleepLogged,
+    },
+  ];
+
+  // Recommendation detail modal (compiled expandable card).
+  const [activeRec, setActiveRec] = useState<ActiveRec | null>(null);
+  // Facility map modal (compiled map blueprint, Cebu scope).
+  const [mapVisible, setMapVisible] = useState(false);
+  const handleRecLogged = useCallback(() => {
+    setActiveRec(null);
+    fetchData(true);
+  }, [fetchData]);
+  const handleRecOpenFull = useCallback(
+    (rec: ActiveRec) => {
+      setActiveRec(null);
+      if (rec.type === "recipe") {
+        safeNavigate("/(home)/(meals)/recipe-details", { id: rec.id });
+      } else {
+        safeNavigate("/(home)/(health)/exercise-details", { id: rec.id });
+      }
+    },
+    [safeNavigate]
+  );
+
+  // Check if user has already seen the interactive dashboard walkthrough
+  useEffect(() => {
+    const checkTutorial = async () => {
+      try {
+        const tourKey = userId ? `@dashboard_tour_seen_${userId}` : "@dashboard_tour_seen_guest";
+        const seen = await AsyncStorage.getItem(tourKey);
+        if (!seen) {
+          const timer = setTimeout(() => setTutorialVisible(true), 700);
+          return () => clearTimeout(timer);
+        }
+      } catch {}
+    };
+    checkTutorial();
+  }, [userId]);
+
+  const handleFinishTutorial = async () => {
+    setTutorialVisible(false);
+    try {
+      const tourKey = userId ? `@dashboard_tour_seen_${userId}` : "@dashboard_tour_seen_guest";
+      await AsyncStorage.setItem(tourKey, "true");
+    } catch {}
+  };
 
   useEffect(() => {
     if (data) {
@@ -409,36 +525,41 @@ export default function DashboardScreen() {
         tier: theme.label,
       };
 
-      getCompanionGreeting(firstName, activityContext, hssContext, userId || undefined).then(setCompanion);
+      getCompanionGreeting(firstName, activityContext, hssContext, userId || undefined).then((result) => {
+        setCompanion(result);
+        // v2 variety layer: instant cached varnish (or template), warming the
+        // cache for next open. Crisis tones bypass AI entirely.
+        if (result.tone !== "warning" && result.tone !== "caution") {
+          const voiced = voiceGreeting(
+            result,
+            typeof streakDays === "number" ? streakDays : 0
+          );
+          if (voiced.voiced) {
+            getCompanionLine(
+              "greeting",
+              { streak_days: typeof streakDays === "number" ? streakDays : 0 },
+              voiced.text,
+              userId || undefined,
+              token || undefined
+            ).then((line) => {
+              setCompanionAi(line.source === "ai" ? line.text : null);
+            });
+          } else {
+            setCompanionAi(null);
+          }
+        } else {
+          setCompanionAi(null);
+        }
+      });
     }
-  }, [data, user?.first_name, movementMins, hssScore, theme.label, userId]);
+  }, [data, user?.first_name, movementMins, hssScore, theme.label, userId, streakDays, token]);
 
   // Reset in-memory data when userId changes to prevent cross-account display leaks
   useEffect(() => {
     setData(null);
   }, [userId]);
 
-  // ECG pulse scan animation — loops every 2.5 s
-  useEffect(() => {
-    if (reduceMotion) return;
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(ecgAnim, {
-          toValue: 0,
-          duration: 1800,
-          useNativeDriver: false,
-        }),
-        Animated.delay(700),
-        Animated.timing(ecgAnim, {
-          toValue: ECG_PATH_LENGTH,
-          duration: 0,
-          useNativeDriver: false,
-        }),
-      ])
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [reduceMotion]);
+
 
   const glowOpacity = pulseAnim.interpolate({
     inputRange: [1, 1.03],
@@ -541,7 +662,7 @@ export default function DashboardScreen() {
         <Header showProfile={false} />
         <ScrollView
           showsVerticalScrollIndicator={false}
-          contentContainerClassName="px-5 pt-3 pb-28 md:max-w-2xl lg:max-w-4xl mx-auto w-full"
+          contentContainerClassName="px-5 pt-3 pb-40 md:max-w-2xl lg:max-w-4xl mx-auto w-full"
         >
           {/* Greeting Skeleton */}
           <View className="mb-4 pt-1">
@@ -627,6 +748,13 @@ export default function DashboardScreen() {
       withScrollView={false}
       safeAreaClassName="flex-1 bg-[#EDF1EF] dark:bg-[#101923]"
     >
+      {/* ── Interactive First-Time Coachmark Walkthrough Tour ── */}
+      <DashboardTutorialModal
+        visible={tutorialVisible}
+        onClose={handleFinishTutorial}
+        isDark={isDark}
+      />
+
       {/* Custom Alert Modal */}
       {isAlertActive && (
         <CustomAlertModal
@@ -661,13 +789,13 @@ export default function DashboardScreen() {
       <Header unreadCount={data?.unread_notifications_count} showProfile={false} />
 
       <ScrollView
-        contentContainerClassName="pb-28 md:max-w-2xl lg:max-w-4xl mx-auto w-full"
+        contentContainerClassName="pb-40 md:max-w-2xl lg:max-w-4xl mx-auto w-full"
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#E8532E"
+            tintColor="#1B6E63"
           />
         }
       >
@@ -726,25 +854,37 @@ export default function DashboardScreen() {
         )}
 
         {/* ── Clean 2-Line Greeting ── */}
-        <Reanimated.View entering={FadeIn.duration(240)} className="px-5 pt-3 pb-1">
+        <Reanimated.View entering={FadeInDown.duration(280)} className="px-5 pt-3 pb-1">
           <Text className="text-[13px] sm:text-sm font-medium text-[#5C6B66] dark:text-slate-400 mb-0.5">
             {getGreeting(data?.user?.first_name || user?.first_name)}
           </Text>
           <Text className="text-2xl sm:text-3xl font-bold text-[#152131] dark:text-white tracking-tight">
-            Start your day
+            {getDaypartTitle()}
           </Text>
+          {companion && (
+            <Text
+              numberOfLines={3}
+              className="text-[12.5px] text-[#5C6B66] dark:text-slate-300 leading-relaxed font-medium mt-1 pr-2"
+            >
+              {companionAi ??
+                voiceGreeting(
+                  companion,
+                  streakDays
+                ).text}
+            </Text>
+          )}
         </Reanimated.View>
 
         {/* ============================================================== */}
-        {/* 1. UNIFIED HERO CARD (SCORE + VITALS SIDE-BY-SIDE) */}
+        {/* 1. UNIFIED HERO CARD (HEART HEALTH SCORE) - ALWAYS VISIBLE */}
         {/* ============================================================== */}
         <Reanimated.View
           entering={FadeInDown.delay(100).duration(260)}
-          className="mx-5 mt-3.5 bg-white dark:bg-[#1A2634] rounded-3xl border border-[#DCE3DF] dark:border-slate-800/80 p-4 sm:p-5"
+          className="mx-5 mt-3.5 bg-white dark:bg-[#1A2634] rounded-3xl border border-[#DCE3DF] dark:border-slate-800/80 p-5 items-center"
           style={cardShadowStyle}
         >
           {/* Header: • HEART HEALTH · STABLE */}
-          <View className="flex-row items-center justify-center gap-2 pt-1 mb-3">
+          <View className="flex-row items-center justify-center gap-2 mb-4">
             <View
               className="w-2 h-2 rounded-full"
               style={{ backgroundColor: theme.dotColor }}
@@ -767,9 +907,9 @@ export default function DashboardScreen() {
                 <Animated.View
                   style={{
                     position: "absolute",
-                    width: 155,
-                    height: 155,
-                    borderRadius: 77.5,
+                    width: 196,
+                    height: 196,
+                    borderRadius: 98,
                     backgroundColor: "rgba(138, 31, 26, 0.15)",
                     opacity: glowOpacity,
                   }}
@@ -777,96 +917,16 @@ export default function DashboardScreen() {
               )}
               <ScoreRing
                 score={hssScore}
-                size={148}
-                strokeWidth={10}
-                driverText={getScoreDrivers(data, hssScore)}
+                size={210}
+                color={theme.dotColor}
+                refreshTrigger={refreshTrigger}
+                celebrateTrigger={completedCount}
+                systolic={latestSbp}
+                diastolic={latestDbp}
+                bpm={latestBpm}
+                streakDays={streakDays}
               />
             </Animated.View>
-          </View>
-
-          {/* ECG Pulse Divider — animated traveling scan */}
-          <View className="w-full items-center justify-center px-1" style={{ marginVertical: 12 }}>
-            <Svg width="100%" height={20} viewBox="0 0 300 20" preserveAspectRatio="none">
-              {/* Static dim baseline track */}
-              <Path
-                d="M 0 10 L 68 10 L 72 3 L 77 18 L 82 6 L 86 10 L 214 10 L 218 3 L 223 18 L 228 6 L 232 10 L 300 10"
-                fill="none"
-                stroke={isDark ? "#1E2F3E" : "#E0E7E4"}
-                strokeWidth={1.5}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              {/* Animated glow sweep — travels left to right */}
-              <AnimatedPath
-                d="M 0 10 L 68 10 L 72 3 L 77 18 L 82 6 L 86 10 L 214 10 L 218 3 L 223 18 L 228 6 L 232 10 L 300 10"
-                fill="none"
-                stroke={theme.dotColor}
-                strokeWidth={2}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeDasharray={`${ECG_PATH_LENGTH} ${ECG_PATH_LENGTH}`}
-                strokeDashoffset={ecgAnim}
-              />
-            </Svg>
-          </View>
-
-          {/* Bottom Dual Metric Cards (Side-by-Side) */}
-          <View className="flex-row gap-3 w-full">
-            {/* Heart Rate Card */}
-            <TactileCard
-              accessible={true}
-              accessibilityRole="button"
-              accessibilityLabel={
-                data?.latest_vitals?.bpm
-                  ? `Heart Rate: ${data.latest_vitals.bpm} BPM. Tap to view or log vitals.`
-                  : "Heart Rate: Not recorded today. Tap to log vitals."
-              }
-              onPress={() => {
-                safeNavigate("/(home)/(health)/log-symptoms");
-              }}
-              className="flex-1 bg-[#F6F8F7] dark:bg-slate-800/60 rounded-2xl p-3.5 items-center"
-            >
-              <View className="w-10 h-10 rounded-full bg-[#FCE8E8] dark:bg-rose-950/50 mb-3" />
-              <Text className="text-[11.5px] font-medium text-[#6B7A75] dark:text-slate-400 mb-1 text-center">
-                Heart rate
-              </Text>
-              <View className="flex-row items-baseline gap-0.5">
-                <Text className="text-[20px] font-extrabold text-[#152131] dark:text-white" style={{ letterSpacing: -0.5 }}>
-                  {data?.latest_vitals?.bpm || "--"}
-                </Text>
-                <Text className="text-[11px] font-semibold text-[#8D9B96] dark:text-slate-500 ml-0.5">
-                  BPM
-                </Text>
-              </View>
-            </TactileCard>
-
-            {/* Blood Pressure Card */}
-            <TactileCard
-              accessible={true}
-              accessibilityRole="button"
-              accessibilityLabel={
-                data?.latest_vitals?.bp
-                  ? `Blood Pressure: ${data.latest_vitals.bp} mmHg. Tap to view or log vitals.`
-                  : "Blood Pressure: Not recorded today. Tap to log vitals."
-              }
-              onPress={() => {
-                safeNavigate("/(home)/(health)/log-symptoms");
-              }}
-              className="flex-1 bg-[#F6F8F7] dark:bg-slate-800/60 rounded-2xl p-3.5 items-center"
-            >
-              <View className="w-10 h-10 rounded-full bg-[#E6F0FA] dark:bg-sky-950/50 mb-3" />
-              <Text className="text-[11.5px] font-medium text-[#6B7A75] dark:text-slate-400 mb-1 text-center">
-                Blood pressure
-              </Text>
-              <View className="flex-row items-baseline gap-0.5">
-                <Text className="text-[20px] font-extrabold text-[#152131] dark:text-white" style={{ letterSpacing: -0.5 }}>
-                  {data?.latest_vitals?.bp === "--/--" || !data?.latest_vitals?.bp ? "--/--" : data.latest_vitals.bp}
-                </Text>
-                <Text className="text-[11px] font-semibold text-[#8D9B96] dark:text-slate-500 ml-0.5">
-                  mmHg
-                </Text>
-              </View>
-            </TactileCard>
           </View>
         </Reanimated.View>
 
@@ -878,36 +938,65 @@ export default function DashboardScreen() {
           className="mx-5 mt-4 bg-white dark:bg-[#1A2634] rounded-3xl border border-[#DCE3DF] dark:border-slate-800/80 p-4 sm:p-5"
           style={cardShadowStyle}
         >
-          {/* Header & Adherence Counter */}
-          <View className="mb-3.5 pb-3 border-b border-[#DCE3DF]/70 dark:border-slate-800">
-            {/* Top Row: Title and Done Counter */}
-            <View className="flex-row items-center justify-between mb-1.5">
-              <View className="flex-row items-center gap-2">
-                <View className="w-6 h-6 rounded-lg bg-[#1B6E63]/10 border border-[#1B6E63]/20 items-center justify-center">
-                  <Feather name="check-circle" size={13} color="#1B6E63" />
+          {/* Hero progress panel */}
+          <View className="mb-3.5 rounded-2xl overflow-hidden">
+            <LinearGradient
+              colors={["#0C2E29", "#1B6E63"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={{ padding: 14 }}
+            >
+              <View className="flex-row items-center justify-between mb-2">
+                <View className="flex-row items-center gap-2">
+                  <View className="w-6 h-6 rounded-lg bg-white/15 items-center justify-center">
+                    <Feather name="check-circle" size={13} color="#fff" />
+                  </View>
+                  <View>
+                    <Text className="text-[10px] font-bold uppercase tracking-[1.5px] text-white/70">
+                      Today's Ritual
+                    </Text>
+                    <Text className="text-[15px] font-bold text-white tracking-tight">
+                      Heart Missions
+                    </Text>
+                  </View>
                 </View>
-                <Text className="text-[13.5px] font-bold text-[#152131] dark:text-white tracking-tight">
-                  Today's Heart Missions
-                </Text>
+                <View className="px-2.5 py-1 rounded-full bg-white/15 border border-white/20 flex-row items-center gap-1">
+                  <Text className="text-[11px] font-bold text-white">
+                    {streakDays > 0 ? `🔥 ${streakDays}-day streak` : "🌱 Day 1"}
+                  </Text>
+                </View>
               </View>
-              <View className="px-2.5 py-0.5 rounded-full bg-[#1B6E63]/10 dark:bg-[#1B6E63]/25 border border-[#1B6E63]/20">
-                <Text className="text-[11px] font-bold text-[#1B6E63] dark:text-[#4FA79A]">
-                  {completedCount} of 4 Done
-                </Text>
-              </View>
-            </View>
 
-            {/* Bottom Row: Habit Streak Badge & Remaining Indicator */}
-            <View className="flex-row items-center justify-between mt-1">
-              <View className="px-2 py-0.5 rounded-full bg-[#A9741B]/10 dark:bg-[#A9741B]/60 border border-[#A9741B]/20">
-                <Text className="text-[10px] font-bold text-[#7A5714] dark:text-[#C99A3E]">
-                  {streakDays > 0 ? `🔥 ${streakDays}-Day Habit Streak` : "🌱 Day 1 Habit Streak"}
+              <View className="flex-row items-baseline gap-1.5 mb-2">
+                <Text className="text-[26px] font-bold text-white tracking-tight">
+                  {completedCount}
+                  <Text className="text-[15px] font-semibold text-white/60">/4</Text>
+                </Text>
+                <Text className="text-[11px] font-medium text-white/70">
+                  {completedCount === 4 ? "fully protected 🎉" : "habits protected"}
                 </Text>
               </View>
-              <Text className="text-[10.5px] font-medium text-[#5C6B66] dark:text-slate-400">
-                {completedCount === 4 ? "All habits protected today! 🎉" : `${4 - completedCount} remaining today`}
-              </Text>
-            </View>
+
+              {/* Animated mission progress track */}
+              <View className="h-2 rounded-full bg-white/20 overflow-hidden">
+                <Reanimated.View
+                  layout={LinearTransition.duration(400)}
+                  style={{ width: `${progressPercent}%`, height: "100%" }}
+                >
+                  <LinearGradient
+                    colors={["#5EEAD4", "#A7F3D0"]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={{ flex: 1, borderRadius: 999 }}
+                  />
+                </Reanimated.View>
+              </View>
+              {completedCount < 4 && (
+                <Text className="text-[10.5px] font-medium text-white/60 mt-1.5">
+                  {4 - completedCount} remaining today — tap a mission to log it
+                </Text>
+              )}
+            </LinearGradient>
           </View>
 
           {/* AI / Clinical Insight banner */}
@@ -932,255 +1021,36 @@ export default function DashboardScreen() {
             </View>
           )}
 
-          {/* 4 Interactive Mission Habit Cards */}
-          <View className="gap-2.5">
-            {/* Mission 1: Blood Pressure & Pulse Check */}
-            <TactileCard
-              accessible={true}
-              accessibilityRole="button"
-              accessibilityLabel={vitalsLogged ? "Blood pressure logged today. Tap to view or log again." : "Log morning blood pressure."}
-              onPress={() => {
-                safeNavigate("/(home)/(health)/log-symptoms");
-              }}
-              className={`p-3 rounded-2xl border flex-row items-center justify-between ${vitalsLogged
-                  ? "bg-[#EDF1EF]/60 dark:bg-slate-900/50 border-[#DCE3DF] dark:border-slate-800"
-                  : "bg-[#A9741B]/5 dark:bg-[#A9741B]/20 border-[#A9741B]/30"
-                }`}
-            >
-              <View className="flex-row items-center gap-3 flex-1 pr-2">
-                <View className={`w-9 h-9 rounded-xl items-center justify-center ${vitalsLogged ? "bg-[#1B6E63]/10 dark:bg-[#1B6E63]/25" : "bg-[#A9741B]/15 dark:bg-[#A9741B]/70"
-                  }`}>
-                  <Feather name="heart" size={17} color={vitalsLogged ? "#1B6E63" : "#A9741B"} />
-                </View>
-                <View className="flex-1">
-                  <View className="flex-row items-center gap-1.5 flex-wrap">
-                    <Text className="text-[12.5px] font-bold text-[#152131] dark:text-white">
-                      1. Blood Pressure & Pulse
-                    </Text>
-                    {new Date().getHours() < 12 && !vitalsLogged && (
-                      <View className="px-1.5 py-0.5 rounded bg-[#A9741B]/20">
-                        <Text className="text-[9px] font-bold text-[#7A5714] dark:text-[#C99A3E] uppercase">Morning Anchor</Text>
-                      </View>
-                    )}
-                  </View>
-                  <Text className="text-[11px] text-[#5C6B66] dark:text-slate-400 font-medium mt-0.5" numberOfLines={2}>
-                    {vitalsLogged
-                      ? `Recorded: ${data?.latest_vitals?.bp || "--/--"} mmHg • ${data?.latest_vitals?.bpm || "--"} BPM`
-                      : "Morning check due today"}
-                  </Text>
-                </View>
-              </View>
-              <View className="flex-row items-center gap-1.5">
-                {vitalsLogged ? (
-                  <View className="w-5 h-5 rounded-full bg-[#1B6E63] items-center justify-center">
-                    <Feather name="check" size={11} color="#ffffff" />
-                  </View>
-                ) : (
-                  <View className="px-2 py-1 rounded-lg bg-[#A9741B]/15">
-                    <Text className="text-[10.5px] font-bold text-[#A9741B]">Log Now</Text>
-                  </View>
-                )}
-                <Feather name="chevron-right" size={13} color="#8D9B96" />
-              </View>
-            </TactileCard>
-
-            {/* Mission 2: DOST-FNRI Salt & Sodium Budget */}
-            <View className="p-3 rounded-2xl border bg-[#EDF1EF]/60 dark:bg-slate-900/50 border-[#DCE3DF] dark:border-slate-800">
-              <TactileCard
-                accessible={true}
-                accessibilityRole="button"
-                accessibilityLabel={mealsLogged ? "Meals logged today. Tap to open food diary." : "Log meals and salt intake."}
-                onPress={() => {
-                  safeNavigate("/(home)/(meals)/daily-diary");
-                }}
-              >
-                <View className="flex-row items-center justify-between mb-1.5">
-                  <View className="flex-row items-center gap-3 flex-1 pr-2">
-                    <View className="w-9 h-9 rounded-xl bg-[#A9741B]/10 dark:bg-[#A9741B]/70 items-center justify-center">
-                      <MaterialCommunityIcons name="silverware-fork-knife" size={18} color="#A9741B" />
-                    </View>
-                    <View className="flex-1">
-                      <View className="flex-row items-center gap-1.5 flex-wrap">
-                        <Text className="text-[12.5px] font-bold text-[#152131] dark:text-white">
-                          2. Sodium Budget
-                        </Text>
-                        {new Date().getHours() >= 12 && new Date().getHours() < 17 && (
-                          <View className="px-1.5 py-0.5 rounded bg-[#A9741B]/20">
-                            <Text className="text-[9px] font-bold text-[#7A5714] dark:text-[#C99A3E] uppercase">Midday Focus</Text>
-                          </View>
-                        )}
-                      </View>
-                      <Text className="text-[11px] text-[#5C6B66] dark:text-slate-400 font-medium mt-0.5" numberOfLines={2}>
-                        {mealsLogged
-                          ? `${data?.nutrition_budget?.sodium?.consumed_mg ?? data?.today_activity?.total_sodium_mg ?? 0} mg used • ${Math.max(0, (data?.nutrition_budget?.sodium?.limit_mg || 2000) - (data?.nutrition_budget?.sodium?.consumed_mg ?? data?.today_activity?.total_sodium_mg ?? 0))} mg left`
-                          : "0 of 2,000 mg logged today"}
-                      </Text>
-                    </View>
-                  </View>
-                  <View className="flex-row items-center gap-1.5">
-                    {mealsLogged && (
-                      <View className="w-5 h-5 rounded-full bg-[#1B6E63] items-center justify-center">
-                        <Feather name="check" size={11} color="#ffffff" />
-                      </View>
-                    )}
-                    <Feather name="chevron-right" size={13} color="#8D9B96" />
-                  </View>
-                </View>
-                {/* Progress bar */}
-                <View className="h-2.5 bg-white dark:bg-slate-800 rounded-full overflow-hidden mt-1 border border-[#DCE3DF]/50 dark:border-slate-700/50">
-                  <View
-                    className="h-full rounded-full"
-                    style={{
-                      width: `${Math.min(
-                        100,
-                        Math.max(
-                          0,
-                          (((data?.nutrition_budget?.sodium?.consumed_mg ?? data?.today_activity?.total_sodium_mg ?? 0) /
-                            Math.max(1, data?.nutrition_budget?.sodium?.limit_mg || 2000)) *
-                            100)
-                        )
-                      )}%`,
-                      backgroundColor:
-                        (data?.nutrition_budget?.sodium?.consumed_mg ?? data?.today_activity?.total_sodium_mg ?? 0) >
-                          (data?.nutrition_budget?.sodium?.limit_mg || 2000)
-                          ? "#8A1F1A"
-                          : "#1B6E63",
-                    }}
-                  />
-                </View>
-              </TactileCard>
-
-              {/* Quick-Add Filipino Staples */}
-              <View className="flex-row items-center gap-1.5 mt-2.5 pt-2 border-t border-[#DCE3DF]/60 dark:border-slate-800 flex-wrap">
-                <Text className="text-[10px] font-semibold text-[#5C6B66] dark:text-slate-400 mr-0.5">Quick Log:</Text>
-                {[
-                  { name: "Sinigang", est: "480mg" },
-                  { name: "Tinola", est: "390mg" },
-                  { name: "Rice", est: "5mg" },
-                ].map((item) => (
-                  <TactileCard
-                    key={item.name}
-                    onPress={() => {
-                      safeNavigate("/(home)/(meals)/estimate-meal", { quick_dish: item.name });
-                    }}
-                    className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800/90 border border-[#DCE3DF] dark:border-slate-700 flex-row items-center gap-1 shadow-2xs"
-                  >
-                    <Feather name="plus" size={10} color="#1B6E63" />
-                    <Text className="text-[10.5px] font-semibold text-[#152131] dark:text-slate-200">
-                      {item.name}
-                    </Text>
-                  </TactileCard>
-                ))}
-              </View>
-            </View>
-
-            {/* Mission 3: Cardio Heart Movement */}
-            <TactileCard
-              accessible={true}
-              accessibilityRole="button"
-              accessibilityLabel={exerciseLogged ? "Exercise logged today. Tap to open exercise diary." : "Log cardio exercise."}
-              onPress={() => {
-                safeNavigate("/(home)/(health)/exercise-diary");
-              }}
-              className="p-3 rounded-2xl border bg-[#EDF1EF]/60 dark:bg-slate-900/50 border-[#DCE3DF] dark:border-slate-800"
-            >
-              <View className="flex-row items-center justify-between mb-1.5">
-                <View className="flex-row items-center gap-3 flex-1 pr-2">
-                  <View className="w-9 h-9 rounded-xl bg-[#1B6E63]/10 dark:bg-[#1B6E63]/25 items-center justify-center">
-                    <Feather name="activity" size={18} color="#1B6E63" />
-                  </View>
-                  <View className="flex-1">
-                    <Text className="text-[12.5px] font-bold text-[#152131] dark:text-white">
-                      3. Cardio Heart Movement
-                    </Text>
-                    <Text className="text-[11px] text-[#5C6B66] dark:text-slate-400 font-medium mt-0.5" numberOfLines={1}>
-                      {movementMins} of {movementGoal} mins completed today
-                    </Text>
-                  </View>
-                </View>
-                <View className="flex-row items-center gap-1.5">
-                  {exerciseLogged && (
-                    <View className="w-5 h-5 rounded-full bg-[#1B6E63] items-center justify-center">
-                      <Feather name="check" size={11} color="#ffffff" />
-                    </View>
-                  )}
-                  <Feather name="chevron-right" size={13} color="#8D9B96" />
-                </View>
-              </View>
-              {/* Progress bar */}
-              <View className="h-2.5 bg-white dark:bg-slate-800 rounded-full overflow-hidden mt-1 border border-[#DCE3DF]/50 dark:border-slate-700/50">
-                <View
-                  className="h-full rounded-full"
-                  style={{
-                    width: `${Math.min(
-                      100,
-                      Math.max(0, (movementMins / Math.max(1, movementGoal)) * 100)
-                    )}%`,
-                    backgroundColor: movementMins >= movementGoal ? "#1B6E63" : "#E8532E",
-                  }}
-                />
-              </View>
-            </TactileCard>
-
-            {/* Mission 4: Rest & Circadian Sleep */}
-            <TactileCard
-              accessible={true}
-              accessibilityRole="button"
-              accessibilityLabel={sleepLogged ? "Sleep logged today. Tap to open sleep log." : "Log sleep duration."}
-              onPress={() => {
-                safeNavigate("/(home)/(health)/log-sleep");
-              }}
-              className="p-3 rounded-2xl border bg-[#EDF1EF]/60 dark:bg-slate-900/50 border-[#DCE3DF] dark:border-slate-800 flex-row items-center justify-between"
-            >
-              <View className="flex-row items-center gap-3 flex-1 pr-2">
-                <View className="w-9 h-9 rounded-xl bg-[#46516B]/10 dark:bg-[#46516B]/25 items-center justify-center">
-                  <Feather name="moon" size={18} color="#46516B" />
-                </View>
-                <View className="flex-1">
-                  <Text className="text-[12.5px] font-bold text-[#152131] dark:text-white">
-                    4. Rest & Circadian Sleep
-                  </Text>
-                  <Text className="text-[11px] text-[#5C6B66] dark:text-slate-400 font-medium mt-0.5" numberOfLines={2}>
-                    {sleepLogged
-                      ? `${typeof data?.today_activity?.total_sleep_hours === "number" ? data.today_activity.total_sleep_hours : "Recorded"} hrs logged • Restful recovery`
-                      : "Target: 7–9 hrs of restful recovery"}
-                  </Text>
-                </View>
-              </View>
-              <View className="flex-row items-center gap-1.5">
-                {sleepLogged ? (
-                  <View className="w-5 h-5 rounded-full bg-[#1B6E63] items-center justify-center">
-                    <Feather name="check" size={11} color="#ffffff" />
-                  </View>
-                ) : (
-                  <View className="px-2 py-1 rounded-lg bg-[#46516B]/10">
-                    <Text className="text-[10.5px] font-bold text-[#46516B]">Log Sleep</Text>
-                  </View>
-                )}
-                <Feather name="chevron-right" size={13} color="#8D9B96" />
-              </View>
-            </TactileCard>
+          {/* Heart missions list (compiled pin-list: done rises with check) */}
+          <MissionList missions={missionItems} onPress={handleMissionPress} />
 
             {/* Completion Celebration Banner */}
             {completedCount === 4 && (
-              <View className="p-3.5 rounded-2xl bg-[#1B6E63]/10 dark:bg-[#1B6E63]/25 border border-[#1B6E63]/25 flex-row items-center gap-3 mt-1 shadow-xs">
-                <View className="w-8 h-8 rounded-full bg-[#1B6E63] items-center justify-center shadow-xs">
-                  <Feather name="award" size={16} color="#ffffff" />
-                </View>
-                <View className="flex-1">
-                  <Text className="text-[12.5px] font-bold text-[#1B6E63] dark:text-[#4FA79A]">
-                    All 4 daily heart habits protected today!
-                  </Text>
-                  <Text className="text-[10.5px] text-[#152131]/80 dark:text-slate-300 font-medium mt-0.5">
-                    Your cardiovascular stability index is fully fortified for the day.
-                  </Text>
-                </View>
-              </View>
+              <Reanimated.View entering={ZoomIn.springify().damping(13)} className="mt-1 rounded-2xl overflow-hidden">
+                <LinearGradient
+                  colors={["#1B6E63", "#0C2E29"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={{ padding: 14, flexDirection: "row", alignItems: "center", gap: 12 }}
+                >
+                  <View className="w-10 h-10 rounded-full bg-white/20 border border-white/30 items-center justify-center">
+                    <Feather name="award" size={18} color="#fff" />
+                  </View>
+                  <View className="flex-1">
+                    <Text className="text-[13px] font-bold text-white">
+                      All 4 daily heart habits protected! 🎉
+                    </Text>
+                    <Text className="text-[11px] text-white/70 font-medium mt-0.5">
+                      Your stability index is fully fortified for the day.
+                    </Text>
+                  </View>
+                </LinearGradient>
+              </Reanimated.View>
             )}
-          </View>
-        </Reanimated.View>
+          </Reanimated.View>
 
         {/* ── Clinical Consultation & Daily Wrap-Up Card (Accessible 24/7) ── */}
+        <Reanimated.View entering={FadeInDown.delay(500).duration(300)}>
         <TactileCard
           onPress={() => safeNavigate("/(home)/(tabs)/wrap-up")}
           className="mx-5 mt-4 bg-white dark:bg-[#1A2634] rounded-3xl p-4 border border-[#DCE3DF] dark:border-slate-800/80 flex-row items-center justify-between"
@@ -1196,13 +1066,14 @@ export default function DashboardScreen() {
               </Text>
               <Text className="text-[11px] text-[#5C6B66] dark:text-slate-400 mt-0.5">
                 {new Date().getHours() >= 19
-                  ? "Reflect on your vitals, salt balance, and sleep habits for tonight."
+                  ? "Let's look back at your vitals, salt balance, and sleep together — and set up a calm night."
                   : "View and present your logged meals, exercise, and vitals summary for clinic visits."}
               </Text>
             </View>
           </View>
           <Feather name="chevron-right" size={16} color="#5C6B66" />
         </TactileCard>
+        </Reanimated.View>
 
         {isCritical ? (
           <View
@@ -1269,13 +1140,14 @@ export default function DashboardScreen() {
           </View>
         ) : (
           <>
-            {/* ── Recommendations ── */}
+            {/* ── Recommendations (hidden when empty) ── */}
+            {data?.recommendations && data.recommendations.length > 0 && (
             <View className="mt-6">
-              <View className="px-5 flex-row items-center justify-between mb-3">
+              <Reanimated.View entering={FadeInDown.delay(540).duration(300)} className="px-5 flex-row items-center justify-between mb-3">
                 <Text className="text-[16px] font-bold text-[#152131] dark:text-white tracking-tight">
                   Recommended for You
                 </Text>
-              </View>
+              </Reanimated.View>
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
@@ -1286,32 +1158,83 @@ export default function DashboardScreen() {
                 {data?.recommendations?.map((r: any, idx: number) => (
                   <RecommendationCard
                     key={idx}
+                    index={idx}
                     tag={r.tag}
                     title={r.title}
                     subtitle={r.subtitle}
                     icon={r.icon}
                     bg={r.bg}
+                    image={r.image_url}
                     tagBg={r.tagBg}
                     tagText={r.tagText}
                     subColor={r.subColor}
                     onPress={() => {
-                      if (r.type === "recipe") {
-                        safeNavigate("/(home)/(meals)/recipe-details", { id: r.id });
-                      } else if (r.type === "exercise") {
-                        safeNavigate("/(home)/(health)/exercise-details", { id: r.id });
+                      if (r.type === "recipe" || r.type === "exercise") {
+                        Haptics.selectionAsync();
+                        setActiveRec({
+                          id: String(r.id),
+                          type: r.type,
+                          tag: r.tag,
+                          title: r.title,
+                          subtitle: r.subtitle,
+                        });
                       }
                     }}
                   />
                 ))}
               </ScrollView>
             </View>
+            )}
+
+            <RecommendationModal
+              visible={activeRec !== null}
+              rec={activeRec}
+              onClose={() => setActiveRec(null)}
+              onLogged={handleRecLogged}
+              onOpenFull={handleRecOpenFull}
+            />
+
+            <MissionLogModal
+              mission={logModal}
+              userId={userId}
+              token={token}
+              initialSys={latestSbp}
+              initialDia={latestDbp}
+              initialBpm={latestBpm}
+              onClose={() => setLogModal(null)}
+              onSaved={handleMissionSaved}
+              onContinueToSymptoms={(sys, dia) => {
+                setLogModal(null);
+                safeNavigate("/(home)/(health)/log-symptoms", {
+                  default_sys: sys,
+                  default_dia: dia,
+                });
+              }}
+              onOpenDiary={() => {
+                setLogModal(null);
+                safeNavigate("/(home)/(meals)/daily-diary");
+              }}
+            />
+
+            <FacilityMapModal
+              visible={mapVisible}
+              onClose={() => setMapVisible(false)}
+              onOpenFull={() => {
+                setMapVisible(false);
+                safeNavigate("/locator");
+              }}
+            />
 
             {/* ── Locator CTA ── */}
+            <Reanimated.View entering={FadeInDown.delay(680).duration(300)}>
             <TactileCard
               accessible={true}
               accessibilityRole="button"
-              accessibilityLabel="Find a healthcare facility. Locate clinics or healthcare providers near you."
-              onPress={() => safeNavigate("/locator")}
+              accessibilityLabel="Find a healthcare facility. Show the closest Cebu clinics on a map."
+              onPress={() => {
+                Haptics.selectionAsync();
+                setMapVisible(true);
+              }}
               className="mx-5 mt-4 bg-white dark:bg-[#1A2634] rounded-3xl p-4 sm:p-5 border border-[#DCE3DF] dark:border-slate-800/80 flex-row items-center justify-between"
               style={cardShadowStyle}
             >
@@ -1330,6 +1253,7 @@ export default function DashboardScreen() {
               </View>
               <Feather name="chevron-right" size={16} color="#5C6B66" />
             </TactileCard>
+            </Reanimated.View>
           </>
         )}
       </ScrollView>

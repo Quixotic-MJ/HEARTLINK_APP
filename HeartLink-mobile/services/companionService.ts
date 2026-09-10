@@ -1,4 +1,99 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { containsBanned } from "./companionCopy";
+
+const base_url = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
+
+export type CompanionLineSlot = "greeting" | "post_log" | "evening";
+
+export interface CompanionLineResult {
+  text: string;
+  source: "ai" | "template";
+}
+
+interface VarnishCache {
+  text: string;
+  at: number;
+}
+
+const VARNISH_TTL_MS = 24 * 60 * 60 * 1000;
+
+function varnishKey(userId: string, slot: CompanionLineSlot, sig: string) {
+  return `@companion_varnish_${userId}_${slot}_${sig}`;
+}
+
+/** Tiny non-crypto signature so the cache keys on exact template+facts. */
+function sigOf(template: string, facts: Record<string, unknown>): string {
+  const s = `${template}::${JSON.stringify(facts || {})}`;
+  let h = 0;
+  for (let i = 0; i < s.length; i++) {
+    h = (Math.imul(31, h) + s.charCodeAt(i)) | 0;
+  }
+  return Math.abs(h).toString(36);
+}
+
+async function refreshVarnishCache(
+  key: string,
+  slot: CompanionLineSlot,
+  template: string,
+  facts: Record<string, unknown>,
+  token?: string
+): Promise<void> {
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 7000);
+    const res = await fetch(`${base_url}/api/companion/varnish`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token || ""}`,
+      },
+      body: JSON.stringify({ slot, template, facts, locale: "tl-en" }),
+      signal: controller.signal,
+    });
+    clearTimeout(timer);
+    if (!res.ok) return;
+    const json = await res.json();
+    if (json?.source === "ai" && typeof json.text === "string" && !containsBanned(json.text)) {
+      await AsyncStorage.setItem(key, JSON.stringify({ text: json.text, at: Date.now() } as VarnishCache));
+    }
+  } catch {
+    // Background-only: any failure keeps the template path.
+  }
+}
+
+/**
+ * Fenced LLM variety layer (client half).
+ * Returns instantly: cached varnish if fresh, else the template — while a
+ * background refresh warms the cache for the NEXT open. Never blocks render,
+ * never breaks offline. The flag lives server-side; with it off the endpoint
+ * returns the template and this is a pure cache lookup.
+ */
+export async function getCompanionLine(
+  slot: CompanionLineSlot,
+  facts: Record<string, unknown>,
+  template: string,
+  userId?: string,
+  token?: string
+): Promise<CompanionLineResult> {
+  const fallback: CompanionLineResult = { text: template, source: "template" };
+  try {
+    const key = varnishKey(userId || "default_user", slot, sigOf(template, facts));
+    const cached = await AsyncStorage.getItem(key);
+    if (cached) {
+      const parsed: VarnishCache = JSON.parse(cached);
+      if (parsed?.text && Date.now() - (parsed.at || 0) < VARNISH_TTL_MS) {
+        // Warm the next day in the background without awaiting.
+        refreshVarnishCache(key, slot, template, facts, token).catch(() => {});
+        return { text: parsed.text, source: "ai" };
+      }
+    }
+    // No fresh cache: serve template now, warm cache for next time.
+    refreshVarnishCache(key, slot, template, facts, token).catch(() => {});
+    return fallback;
+  } catch {
+    return fallback;
+  }
+}
 
 export interface CompanionActivityContext {
   vitals_logged?: boolean;

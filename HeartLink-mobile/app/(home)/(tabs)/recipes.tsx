@@ -710,7 +710,7 @@ export default function RecipesScreen({
             }}
           >
             <Feather name="book-open" size={14} color="#1B6E63" />
-            <Text className="text-[12px] font-bold text-[#1B6E63] dark:text-[#2DD4BF]">Diary</Text>
+            <Text className="text-[12px] font-bold text-[#1B6E63] dark:text-[#4FA79A]">Diary</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -744,7 +744,7 @@ export default function RecipesScreen({
       </View>
 
       <ScrollView
-        contentContainerStyle={{ paddingBottom: 120 }}
+        contentContainerStyle={{ paddingBottom: 160 }}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1B6E63" />
@@ -760,7 +760,7 @@ export default function RecipesScreen({
               borderColor: "rgba(37,99,235,0.12)",
               ...Platform.select({
                 ios: {
-                  shadowColor: "#2563EB",
+                  shadowColor: "#4A6080",
                   shadowOffset: { width: 0, height: 2 },
                   shadowRadius: 8,
                   shadowOpacity: 0.06,
@@ -781,7 +781,7 @@ export default function RecipesScreen({
               }}
             >
               <View className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 items-center justify-center flex-shrink-0">
-                <Feather name="shield" size={18} color="#2563EB" />
+                <Feather name="shield" size={18} color="#4A6080" />
               </View>
               <View className="flex-1">
                 <Text className="text-[14px] font-bold text-[#152131] dark:text-white mb-0.5">
@@ -863,7 +863,7 @@ export default function RecipesScreen({
           </View>
           {activeFilter !== "All" && (
             <TouchableOpacity onPress={() => setActiveFilter("All")} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Text className="text-[12px] font-semibold text-[#1B6E63] dark:text-[#2DD4BF]">Clear filter</Text>
+              <Text className="text-[12px] font-semibold text-[#1B6E63] dark:text-[#4FA79A]">Clear filter</Text>
             </TouchableOpacity>
           )}
         </View>

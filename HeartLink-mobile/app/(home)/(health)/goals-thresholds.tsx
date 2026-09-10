@@ -117,7 +117,7 @@ export default function GoalsThresholdsScreen() {
   if (loading) {
     return (
       <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950 items-center justify-center">
-        <ActivityIndicator size="large" color="#2563eb" />
+        <ActivityIndicator size="large" color="#4A6080" />
       </SafeAreaView>
     );
   }
@@ -200,7 +200,7 @@ export default function GoalsThresholdsScreen() {
                 </Text>
               </View>
               <View className="w-10 h-10 rounded-2xl items-center justify-center bg-blue-50 dark:bg-blue-950/40">
-                <Feather name="droplet" size={18} color="#2563eb" />
+                <Feather name="droplet" size={18} color="#4A6080" />
               </View>
             </View>
             

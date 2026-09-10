@@ -179,7 +179,7 @@ export default function HealthAnalyticsScreen() {
         {/* ── Smart Insights ── */}
         <View className="bg-[#1e4ed8] rounded-3xl p-5 shadow-sm shadow-blue-500/30 mb-6">
           <View className="flex-row items-center mb-3">
-            <MaterialCommunityIcons name="auto-fix" size={18} color="#93c5fd" />
+            <MaterialCommunityIcons name="auto-fix" size={18} color="#8AADCC" />
             <Text className="text-[14px] font-bold text-white ml-2">Smart Insights</Text>
           </View>
           <Text className="text-[14px] text-blue-50 leading-relaxed">
@@ -205,7 +205,7 @@ export default function HealthAnalyticsScreen() {
         >
           <View className="flex-row items-center gap-3">
             <View className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-slate-800 items-center justify-center">
-              <Feather name="calendar" size={18} color="#2563eb" />
+              <Feather name="calendar" size={18} color="#4A6080" />
             </View>
             <View>
               <Text className="text-[14px] font-semibold text-slate-900 dark:text-white">

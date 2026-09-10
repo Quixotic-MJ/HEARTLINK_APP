@@ -147,7 +147,7 @@ export default function SettingsScreen() {
             label="Personal Profile"
             subtitle="View personal details, biometrics & export health PDF"
             iconBg="#eff6ff"
-            iconColor="#2563eb"
+            iconColor="#4A6080"
             onPress={() => router.push("/(home)/(profile)/profile")}
           />
           <SettingsRow
@@ -185,7 +185,7 @@ export default function SettingsScreen() {
             label="My Care Team"
             subtitle="Manage doctors, specialists, and emergency contacts"
             iconBg="#eff6ff"
-            iconColor="#2563eb"
+            iconColor="#4A6080"
             onPress={() => router.push("/(home)/(profile)/care-team")}
             isLast
           />

@@ -199,7 +199,7 @@ export default function SearchMealScreen() {
           activeOpacity={0.8}
           className="bg-primary/10 rounded-2xl py-3.5 px-4 mb-6 flex-row items-center justify-center border border-primary/20"
         >
-          <MaterialCommunityIcons name="barcode-scan" size={18} color="#2563eb" />
+          <MaterialCommunityIcons name="barcode-scan" size={18} color="#4A6080" />
           <Text className="text-[14px] font-medium text-primary ml-2">
             Scan Barcode
           </Text>

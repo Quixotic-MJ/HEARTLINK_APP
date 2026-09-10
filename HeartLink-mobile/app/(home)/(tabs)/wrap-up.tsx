@@ -419,7 +419,7 @@ function escapeHtml(unsafe: any): string {
       <Header />
 
       <ScrollView
-        contentContainerClassName="px-5 pb-8 pt-4 md:max-w-2xl lg:max-w-4xl mx-auto w-full"
+        contentContainerClassName="px-5 pb-40 pt-4 md:max-w-2xl lg:max-w-4xl mx-auto w-full"
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={activeTint} />}
       >
@@ -457,7 +457,7 @@ function escapeHtml(unsafe: any): string {
             <MetricCard 
               title="Movement" 
               value={`${data.overview.movement_minutes} min`} 
-              icon="🏃" color="#2563eb" 
+              icon="🏃" color="#4A6080" 
             />
           </View>
           <View className="flex-row gap-3">
@@ -538,7 +538,7 @@ function escapeHtml(unsafe: any): string {
 
           {/* EXERCISE */}
           <View>
-            <SectionTitle title="Exercise Record" icon="activity" color="#2563eb" />
+            <SectionTitle title="Exercise Record" icon="activity" color="#4A6080" />
             <View className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800">
               {data.movement.records.length > 0 ? data.movement.records.map((r: any, idx: number) => (
                 <View key={idx} className="mb-5 last:mb-0">

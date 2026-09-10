@@ -39,6 +39,7 @@ from app.api.analytics_api import analytics_api
 from app.api.admin_api import admin_api, case_review_api, admin_notifications_api
 from app.api import uploads_api
 from app.api import feedback_api
+from app.api.companion import companion
 
 app = FastAPI(title="Heartlink", description="development phase", version="1.0.0")
 
@@ -86,6 +87,7 @@ app.include_router(case_review_api.router, prefix="/api/admin")
 app.include_router(admin_notifications_api.router)
 app.include_router(uploads_api.router)
 app.include_router(feedback_api.router)
+app.include_router(companion.router)
 
 # Mount static files for uploads
 static_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static")

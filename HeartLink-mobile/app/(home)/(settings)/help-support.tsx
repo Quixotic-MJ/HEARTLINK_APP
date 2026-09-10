@@ -17,7 +17,7 @@ function SupportLink({ icon, title, subtitle, onPress, isDark, isLast = false }:
       className={`flex-row items-center py-4 ${!isLast ? "border-b border-slate-100 dark:border-slate-800/80" : ""}`}
     >
       <View className="w-10 h-10 rounded-2xl bg-slate-50 dark:bg-slate-950 items-center justify-center border border-slate-200/80 dark:border-slate-800 mr-3.5">
-        <Feather name={icon} size={18} color={isDark ? "#93c5fd" : "#2563eb"} />
+        <Feather name={icon} size={18} color={isDark ? "#8AADCC" : "#4A6080"} />
       </View>
       <View className="flex-1 pr-2">
         <Text className="text-[15px] font-semibold text-slate-900 dark:text-white">{title}</Text>
@@ -66,7 +66,7 @@ export default function HelpSupportScreen() {
         
         <View className="items-center py-6 pb-4">
           <View className="w-18 h-18 bg-blue-50 dark:bg-blue-950/40 rounded-3xl items-center justify-center mb-3.5 border border-blue-100 dark:border-blue-900/40">
-            <Feather name="life-buoy" size={32} color="#2563eb" />
+            <Feather name="life-buoy" size={32} color="#4A6080" />
           </View>
           <Text className="text-[22px] font-bold text-slate-900 dark:text-white tracking-tight">
             How can we help?

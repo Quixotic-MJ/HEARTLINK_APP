@@ -158,7 +158,7 @@ export default function AccountSecurityScreen() {
         <View className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800/80 p-5 mb-6 shadow-sm shadow-slate-100 dark:shadow-none">
           <View className="flex-row items-center gap-2.5 mb-4">
             <View className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950/40 items-center justify-center">
-              <Feather name="key" size={16} color="#2563eb" />
+              <Feather name="key" size={16} color="#4A6080" />
             </View>
             <Text className="text-[16px] font-semibold text-slate-900 dark:text-white">
               Change Password
