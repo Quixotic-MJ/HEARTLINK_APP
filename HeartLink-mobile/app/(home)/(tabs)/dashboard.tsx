@@ -917,7 +917,7 @@ export default function DashboardScreen() {
               )}
               <ScoreRing
                 score={hssScore}
-                size={210}
+                size={278}
                 color={theme.dotColor}
                 refreshTrigger={refreshTrigger}
                 celebrateTrigger={completedCount}

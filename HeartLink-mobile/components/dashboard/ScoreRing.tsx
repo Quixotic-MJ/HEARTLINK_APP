@@ -1,107 +1,42 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
-  View,
-  Text,
-  TouchableOpacity,
   Animated,
   Easing,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
   AccessibilityInfo,
 } from "react-native";
 import { useColorScheme } from "nativewind";
-import Reanimated, {
-  useSharedValue,
-  useAnimatedProps,
-  withTiming,
-  withRepeat,
-  FadeInDown,
-  Easing as ReEasing,
-} from "react-native-reanimated";
-import Svg, { Path, Defs, LinearGradient, Rect, ClipPath, Stop, G, Circle } from "react-native-svg";
+import Reanimated, { FadeInDown, FadeOutUp } from "react-native-reanimated";
+import Svg, {
+  Defs,
+  Ellipse,
+  FeGaussianBlur,
+  Filter,
+  LinearGradient,
+  Path,
+  RadialGradient,
+  Stop,
+} from "react-native-svg";
 import * as Haptics from "expo-haptics";
 
 /**
- * ScoreRing (living heart) — the dashboard hero gauge.
- * A heart that fills from the bottom to the score, beats at the user's
- * heart rate, and cycles score → BP → pulse → streak on tap.
+ * ScoreRing — stroke-drawn beating heart gauge (ported template).
+ * Kept in the same component slot/props as the old liquid heart so the
+ * dashboard is untouched: score fill arc, BPM-paced heartbeat, tap-to-cycle
+ * readout (score → BP → pulse → streak), celebration ripple on mission save.
  *
- * - Fill: UI-thread animated SVG rect clipped to the heart path.
- * - Beat: lub-dub loop paced by logged BPM (resting default when unknown).
- * - Tap: cycles the center readout with a flip + haptic.
- * - Celebration ripple fires when celebrateTrigger rises past a baseline.
+ * Porting notes vs the template:
+ * - strokeDashoffset/shimmer run with useNativeDriver:false (SVG attributes
+ *   cannot be natively driven; forcing it only warns and janks).
+ * - Count-up setState is guarded to integer changes (no per-frame renders).
+ * - Tier colors + dark mode replace the hardcoded rose scheme.
+ * - Size, BPM, vitals, and streak come from props, not constants.
  */
 
-const HEART_PATH =
-  "M100 172 C58 132 20 102 20 62 C20 37 40 22 62 22 C78 22 94 32 100 46 " +
-  "C106 32 122 22 138 22 C160 22 180 37 180 62 C180 102 142 132 100 172 Z";
-const HEART_TOP = 22;
-const HEART_BOTTOM = 172;
-const HEART_H = HEART_BOTTOM - HEART_TOP;
-
-const AnimatedRect = Reanimated.createAnimatedComponent(Rect);
-const AnimatedG = Reanimated.createAnimatedComponent(G);
-const AnimatedCircle = Reanimated.createAnimatedComponent(Circle);
-
-/* Wave strip: 400 wide, sine crest (period 100) around local y=0, body below.
-   Scrolling it by exactly one period loops seamlessly. */
-const WAVE_D =
-  "M-100,4 Q-75,-3 -50,4 T0,4 T50,4 T100,4 T150,4 T200,4 T250,4 T300,4 " +
-  "L300,220 L-100,220 Z";
-
-const BUBBLES = [
-  { x: 72,  r: 2.5, travel: 60, phase: 0,    duration: 2800 },
-  { x: 85,  r: 3.5, travel: 78, phase: 0.15, duration: 3400 },
-  { x: 100, r: 4,   travel: 90, phase: 0.3,  duration: 2600 },
-  { x: 115, r: 3,   travel: 68, phase: 0.45, duration: 3100 },
-  { x: 128, r: 2.5, travel: 72, phase: 0.6,  duration: 2900 },
-  { x: 92,  r: 2,   travel: 55, phase: 0.72, duration: 3300 },
-  { x: 140, r: 3.5, travel: 82, phase: 0.85, duration: 2700 },
-  { x: 78,  r: 4,   travel: 95, phase: 0.92, duration: 3600 },
-  { x: 60,  r: 2,   travel: 50, phase: 0.05, duration: 3000 },
-  { x: 120, r: 2.5, travel: 65, phase: 0.38, duration: 2500 },
-];
-const BUBBLE_START_Y = 168;
-
-/**
- * One fizz bubble — owns its own looping animation.
- * Starts at `phase` and animates to `phase + 1` on repeat. Because
- * `t % 1` is the same at both ends the loop is perfectly seamless with
- * no teleport jump.
- */
-function Bubble({
-  x,
-  r,
-  travel,
-  phase,
-  duration,
-}: {
-  x: number;
-  r: number;
-  travel: number;
-  phase: number;
-  duration: number;
-}) {
-  const t = useSharedValue(phase);
-
-  useEffect(() => {
-    t.value = phase;
-    t.value = withRepeat(
-      withTiming(phase + 1, { duration, easing: ReEasing.linear }),
-      -1,
-      false
-    );
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const props = useAnimatedProps(() => {
-    const local = t.value % 1;
-    return {
-      cy: BUBBLE_START_Y - local * travel,
-      opacity: Math.sin(local * Math.PI) * 0.55,
-    };
-  });
-
-  return <AnimatedCircle cx={x} r={r} fill="#FFFFFF" animatedProps={props} />;
-}
+// ─── theme tokens ─────────────────────────────────────────────────────────────
 
 function getHeartTokens(score: number, isDark: boolean) {
   if (!score || score <= 0) {
@@ -130,7 +65,7 @@ function getHeartTokens(score: number, isDark: boolean) {
   }
   if (score >= 50) {
     return {
-      arcColor: isDark ? "#D0714E" : "#C0502E",
+      arcColor: isDark ? "#F06944" : "#E8532E",
       deepColor: "#7c2d12",
       trackColor: isDark ? "#3D211A" : "#FBEAE6",
       label: "Elevated Risk",
@@ -144,6 +79,126 @@ function getHeartTokens(score: number, isDark: boolean) {
   };
 }
 
+// ─── constants ────────────────────────────────────────────────────────────────
+
+const HEART =
+  "M120 195 C120 195 30 140 30 82 C30 52 52 32 80 32 C96 32 110 40 120 52 C130 40 144 32 160 32 C188 32 210 52 210 82 C210 140 120 195 120 195 Z";
+
+const VIEWBOX_SIZE = 240;
+const PATH_LEN = 460; // approximate heart path length in viewBox units
+
+const PARTICLES: { x: number; y: number; delay: number; size: number }[] = [
+  { x: 85,  y: 60,  delay: 100,  size: 5 },
+  { x: 155, y: 60,  delay: 400,  size: 4 },
+  { x: 65,  y: 100, delay: 700,  size: 3 },
+  { x: 175, y: 100, delay: 200,  size: 4 },
+  { x: 120, y: 195, delay: 500,  size: 5 },
+  { x: 100, y: 170, delay: 900,  size: 3 },
+  { x: 140, y: 170, delay: 600,  size: 3 },
+];
+
+// ─── animated path wrapper ────────────────────────────────────────────────────
+
+const AnimatedPath = Animated.createAnimatedComponent(Path);
+
+// ─── particle ─────────────────────────────────────────────────────────────────
+
+function Particle({
+  x,
+  y,
+  delay,
+  size,
+  color,
+  stageSize,
+}: (typeof PARTICLES)[0] & { color: string; stageSize: number }) {
+  const anim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    let loop: Animated.CompositeAnimation | null = null;
+    const timer = setTimeout(() => {
+      loop = Animated.loop(
+        Animated.timing(anim, {
+          toValue: 1,
+          duration: 1600,
+          easing: Easing.out(Easing.quad),
+          useNativeDriver: true,
+        })
+      );
+      loop.start();
+    }, delay);
+    return () => {
+      clearTimeout(timer);
+      loop?.stop();
+    };
+  }, [anim, delay]);
+
+  const translateY = anim.interpolate({ inputRange: [0, 1], outputRange: [0, -60] });
+  const opacity = anim.interpolate({ inputRange: [0, 0.7, 1], outputRange: [0.8, 0.4, 0] });
+  const scale = anim.interpolate({ inputRange: [0, 1], outputRange: [1, 0] });
+
+  const px = (x / VIEWBOX_SIZE) * stageSize;
+  const py = (y / VIEWBOX_SIZE) * stageSize;
+
+  return (
+    <Animated.View
+      style={{
+        position: "absolute",
+        left: px - size / 2,
+        top: py - size / 2,
+        width: size,
+        height: size,
+        borderRadius: size / 2,
+        backgroundColor: color,
+        opacity,
+        transform: [{ translateY }, { scale }],
+      }}
+    />
+  );
+}
+
+// ─── ping ring ────────────────────────────────────────────────────────────────
+
+function PingRing({ delay, color, stageSize }: { delay: number; color: string; stageSize: number }) {
+  const anim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    let loop: Animated.CompositeAnimation | null = null;
+    const timer = setTimeout(() => {
+      loop = Animated.loop(
+        Animated.timing(anim, {
+          toValue: 1,
+          duration: 1400,
+          easing: Easing.out(Easing.quad),
+          useNativeDriver: true,
+        })
+      );
+      loop.start();
+    }, delay);
+    return () => {
+      clearTimeout(timer);
+      loop?.stop();
+    };
+  }, [anim, delay]);
+
+  const scale = anim.interpolate({ inputRange: [0, 1], outputRange: [0.95, 1.4] });
+  const opacity = anim.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0.45, 0.2, 0] });
+
+  return (
+    <Animated.View
+      style={[
+        StyleSheet.absoluteFill,
+        { transform: [{ scale }], opacity },
+      ]}
+    >
+      <Svg width={stageSize} height={stageSize} viewBox={`0 0 ${VIEWBOX_SIZE} ${VIEWBOX_SIZE}`}>
+        <Path d={HEART} fill="none" stroke={color} strokeWidth={3} strokeLinejoin="round" />
+      </Svg>
+    </Animated.View>
+  );
+}
+
+// ─── props ────────────────────────────────────────────────────────────────────
+
 interface ScoreRingProps {
   score: number;
   size?: number;
@@ -156,6 +211,8 @@ interface ScoreRingProps {
   bpm?: number | null;
   streakDays?: number;
 }
+
+// ─── main component ───────────────────────────────────────────────────────────
 
 export function ScoreRing({
   score,
@@ -173,71 +230,139 @@ export function ScoreRing({
 
   const [reduceMotion, setReduceMotion] = useState(false);
   const [cycleIdx, setCycleIdx] = useState(0);
+  const [fillScore, setFillScore] = useState(0);
+  const [done, setDone] = useState(false);
 
   const hasScore = typeof score === "number" && score > 0;
   const clampedScore = hasScore ? Math.min(100, Math.max(0, score)) : 0;
-  const fillTarget = clampedScore / 100;
+  const targetScore = Math.round(clampedScore);
+  const targetDash = PATH_LEN * (1 - targetScore / 100);
+
   const tokens = getHeartTokens(score, isDark);
   const heartColor = color || tokens.arcColor;
+
+  // Beat period from logged BPM (resting default when unknown).
+  const beatPeriod =
+    typeof bpm === "number" && bpm >= 30 && bpm <= 250
+      ? Math.max(500, Math.min(1500, Math.round((60000 / bpm) * 1.06)))
+      : 1060;
+  const beatK = beatPeriod / 1060;
 
   useEffect(() => {
     AccessibilityInfo.isReduceMotionEnabled?.().then(setReduceMotion);
   }, []);
 
-  /* ── Fill + wave (all UI thread, zero re-renders) ── */
-  const fillP = useSharedValue(0);
-  const waveX = useSharedValue(0);
-  // bubT removed — each Bubble owns its own shared value for seamless looping.
+  // stroke dash offsets (SVG attrs: JS driver by necessity)
+  const dashOffset = useRef(new Animated.Value(PATH_LEN)).current;
+  const glowOffset = useRef(new Animated.Value(PATH_LEN)).current;
 
-  useEffect(() => {
-    fillP.value = reduceMotion
-      ? fillTarget
-      : withTiming(fillTarget, { duration: 1400, easing: ReEasing.out(ReEasing.cubic) });
-  }, [fillTarget, reduceMotion, refreshTrigger, fillP]);
+  // heartbeat scale
+  const heartbeat = useRef(new Animated.Value(1)).current;
+  const heartbeatLoop = useRef<Animated.CompositeAnimation | null>(null);
 
-  useEffect(() => {
-    if (reduceMotion || !hasScore) return;
-    // One period (100 units) per loop = seamless wrap.
-    waveX.value = withRepeat(
-      withTiming(-100, { duration: 2200, easing: ReEasing.linear }),
-      -1,
-      false
-    );
-  }, [hasScore, reduceMotion, waveX]);
+  // shimmer position
+  const shimmer = useRef(new Animated.Value(0)).current;
+  const shimmerLoop = useRef<Animated.CompositeAnimation | null>(null);
 
-  const rectProps = useAnimatedProps(() => {
-    const h = HEART_H * fillP.value;
-    return { y: HEART_BOTTOM - h, height: Math.max(0, h) };
-  });
+  // score label entrance
+  const scoreFade = useRef(new Animated.Value(0)).current;
+  const scoreSlide = useRef(new Animated.Value(8)).current;
+  const labelFade = useRef(new Animated.Value(0)).current;
 
-  // Wave crest tracks the fill surface while scrolling sideways.
-  const waveProps = useAnimatedProps(() => ({
-    x: -100 + waveX.value,
-    y: HEART_BOTTOM - HEART_H * fillP.value,
-  }));
-
-  /* ── Beat (lub-dub paced by logged BPM, resting default) ── */
-  const period =
-    typeof bpm === "number" && bpm >= 30 && bpm <= 250
-      ? Math.max(400, Math.min(1500, Math.round(60000 / bpm)))
-      : 940;
-  const beatAnim = useRef(new Animated.Value(0)).current;
-
-  // Beat animation intentionally disabled — heart stays still.
-  useEffect(() => {
-    beatAnim.setValue(0);
-  }, [beatAnim]);
-
-  const beatScale = beatAnim.interpolate({
-    inputRange: [0, 0.7, 1],
-    outputRange: [1, 1.035, 1.07],
-  });
-
-  /* ── Celebration burst (mount + first load + resets never fire) ── */
+  // celebration ripple (mission saves)
   const burstAnim = useRef(new Animated.Value(0)).current;
   const prevCelebrate = useRef<number | undefined>(undefined);
   const burstMounted = useRef(false);
 
+  const lastShown = useRef(-1);
+
+  // ── fill animation (replays on score change + pull-to-refresh) ──
+  useEffect(() => {
+    setDone(false);
+    lastShown.current = -1;
+    heartbeatLoop.current?.stop();
+    shimmerLoop.current?.stop();
+
+    if (reduceMotion || !hasScore) {
+      dashOffset.setValue(hasScore ? targetDash : PATH_LEN);
+      glowOffset.setValue(hasScore ? targetDash : PATH_LEN);
+      setFillScore(hasScore ? targetScore : 0);
+      setDone(hasScore);
+      scoreFade.setValue(hasScore ? 1 : 0);
+      scoreSlide.setValue(0);
+      labelFade.setValue(hasScore ? 1 : 0);
+      return;
+    }
+
+    Animated.parallel([
+      Animated.timing(dashOffset, {
+        toValue: targetDash,
+        duration: 1800,
+        easing: Easing.out((t) => 1 - Math.pow(1 - t, 4)),
+        useNativeDriver: false,
+      }),
+      Animated.timing(glowOffset, {
+        toValue: targetDash,
+        duration: 1800,
+        easing: Easing.out((t) => 1 - Math.pow(1 - t, 4)),
+        useNativeDriver: false,
+      }),
+    ]).start(() => {
+      setDone(true);
+
+      // score label pop
+      Animated.parallel([
+        Animated.spring(scoreFade, { toValue: 1, useNativeDriver: true }),
+        Animated.spring(scoreSlide, { toValue: 0, useNativeDriver: true, damping: 12, stiffness: 200 }),
+        Animated.timing(labelFade, { toValue: 1, duration: 600, delay: 200, useNativeDriver: true }),
+      ]).start();
+
+      // heartbeat loop (BPM-paced)
+      heartbeatLoop.current = Animated.loop(
+        Animated.sequence([
+          Animated.timing(heartbeat, { toValue: 1.07, duration: 100 * beatK, useNativeDriver: true }),
+          Animated.timing(heartbeat, { toValue: 1.0, duration: 100 * beatK, useNativeDriver: true }),
+          Animated.timing(heartbeat, { toValue: 1.04, duration: 80 * beatK, useNativeDriver: true }),
+          Animated.timing(heartbeat, { toValue: 1.0, duration: 100 * beatK, useNativeDriver: true }),
+          Animated.delay(680 * beatK),
+        ])
+      );
+      heartbeatLoop.current.start();
+
+      // shimmer loop
+      shimmerLoop.current = Animated.loop(
+        Animated.timing(shimmer, {
+          toValue: -40,
+          duration: 1200,
+          easing: Easing.linear,
+          useNativeDriver: false,
+        })
+      );
+      shimmerLoop.current.start();
+    });
+
+    return () => {
+      dashOffset.stopAnimation();
+      glowOffset.stopAnimation();
+      heartbeatLoop.current?.stop();
+      shimmerLoop.current?.stop();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [targetScore, hasScore, reduceMotion, refreshTrigger]);
+
+  // count-up display (guarded: re-render only when the integer changes)
+  useEffect(() => {
+    const id = dashOffset.addListener(({ value }) => {
+      const v = Math.min(targetScore, Math.round((1 - value / PATH_LEN) * 100));
+      if (v !== lastShown.current) {
+        lastShown.current = v;
+        setFillScore(v);
+      }
+    });
+    return () => dashOffset.removeListener(id);
+  }, [dashOffset, targetScore]);
+
+  // celebration burst on mission saves (mount + first load + resets never fire)
   useEffect(() => {
     if (!burstMounted.current) {
       burstMounted.current = true;
@@ -274,161 +399,173 @@ export function ScoreRing({
     outputRange: [0, 0.55, 0],
   });
 
-  /* ── Tap-to-cycle readout ── */
-  const bpValue = systolic != null && diastolic != null ? `${systolic}/${diastolic}` : "--/--";
-  const states = [
-    {
-      label: "SCORE",
-      value: hasScore ? String(Math.round(clampedScore)) : "--",
-      unit: tokens.label,
-    },
+  // auto-cycle readout (restarts from any manual tap; parks on reduce motion)
+  useEffect(() => {
+    if (reduceMotion || !hasScore) return;
+    const timer = setTimeout(() => {
+      setCycleIdx((i) => (i + 1) % 4);
+    }, 4000);
+    return () => clearTimeout(timer);
+  }, [cycleIdx, reduceMotion, hasScore]);
+
+  const bpValue =
+    systolic != null && diastolic != null ? `${systolic}/${diastolic}` : "--/--";
+  const cycleStates: { label: string; value: string; unit: string; small?: boolean }[] = [
+    { label: "SCORE", value: hasScore ? String(fillScore) : "--", unit: tokens.label },
     { label: "BP", value: bpValue, unit: "mmHg" },
     { label: "PULSE", value: bpm != null ? String(bpm) : "--", unit: "BPM" },
-    { label: "STREAK", value: `${streakDays} day${streakDays === 1 ? "" : "s"}`, unit: "keep going" },
+    { label: "STREAK", value: `${streakDays} day${streakDays === 1 ? "" : "s"}`, unit: "", small: true },
   ];
-  const current = states[cycleIdx % states.length];
-  const lowFill = fillTarget < 0.35 && !isDark;
-  const inkColor = lowFill ? "#152131" : "#FFFFFF";
-  const subColor = lowFill ? "#5C6B66" : "rgba(255,255,255,0.9)";
+  const current = cycleStates[cycleIdx % cycleStates.length];
 
-  const glowSize = Math.round(size * 1.22);
-  const glowOffset = -Math.round(size * 0.11);
-  // Layered hearts breathe as one soft glow (crisp circles read as "disc", not heart).
-  const haloBreath = beatAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0.55, 1],
-  });
+  const scoreColor = isDark ? "#FFFFFF" : "#0f172a";
 
   return (
     <TouchableOpacity
       activeOpacity={0.9}
       accessible={true}
       accessibilityRole="button"
-      accessibilityLabel={`Heart score ${hasScore ? Math.round(clampedScore) : "unavailable"} of 100, ${tokens.label}. Showing ${current.label}. Tap to cycle views.`}
+      accessibilityLabel={`Heart score ${hasScore ? targetScore : "unavailable"} of 100, ${tokens.label}. Showing ${current.label}. Tap to cycle views.`}
       onPress={() => {
         Haptics.selectionAsync();
-        setCycleIdx((i) => (i + 1) % states.length);
+        setCycleIdx((i) => (i + 1) % cycleStates.length);
       }}
       style={{ width: size, height: size }}
     >
-      <Animated.View style={{ width: size, height: size, transform: [{ scale: beatScale }] }}>
-        {/* Heart-shaped halo (layered silhouettes breathe with the beat) */}
-        {hasScore && !reduceMotion && (
-          <Animated.View
-            pointerEvents="none"
-            style={{
-              position: "absolute",
-              top: glowOffset,
-              left: glowOffset,
-              width: glowSize,
-              height: glowSize,
-              opacity: haloBreath,
-            }}
-          >
-            <Svg viewBox="-25 -25 250 250" style={{ width: glowSize, height: glowSize }}>
-              <G transform="translate(100,100) scale(1.14) translate(-100,-100)">
-                <Path d={HEART_PATH} fill={heartColor} opacity={0.1} />
-              </G>
-              <Path d={HEART_PATH} fill={heartColor} opacity={0.16} />
-            </Svg>
-          </Animated.View>
-        )}
+      <View style={{ width: size, height: size }}>
+        {/* Ping rings */}
+        {done && !reduceMotion && <PingRing delay={0} color={heartColor} stageSize={size} />}
+        {done && !reduceMotion && <PingRing delay={300} color={heartColor} stageSize={size} />}
 
-        {/* Heart gauge */}
-        <Svg viewBox="0 0 200 200" style={{ width: size, height: size }}>
-          <Defs>
-            <LinearGradient id="heartFill" x1="0" y1="1" x2="0" y2="0">
-              <Stop offset="0" stopColor={tokens.deepColor} />
-              <Stop offset="1" stopColor={heartColor} />
-            </LinearGradient>
-            <ClipPath id="heartClip">
-              <Path d={HEART_PATH} />
-            </ClipPath>
-          </Defs>
-          <Path d={HEART_PATH} fill={tokens.trackColor} />
-          {/* Softened liquid body: base fill + scrolling crest + fizz, clipped to the heart */}
-          <G clipPath="url(#heartClip)" opacity={0.92}>
-            <AnimatedRect x="0" width="200" fill="url(#heartFill)" animatedProps={rectProps} />
-            {!reduceMotion && hasScore && (
-              <AnimatedG animatedProps={waveProps}>
-                <Path d={WAVE_D} fill="url(#heartFill)" />
-              </AnimatedG>
-            )}
-            {!reduceMotion &&
-              hasScore &&
-              BUBBLES.map((b, i) => (
-                <Bubble key={i} x={b.x} r={b.r} travel={b.travel} phase={b.phase} duration={b.duration} />
-              ))}
-          </G>
-          <Path d={HEART_PATH} fill="none" stroke={heartColor} strokeWidth={4} />
-        </Svg>
-
-        {/* Center readout (scaled to stage; anchored upper-center where the heart is widest) */}
-        <Reanimated.View
-          key={`${cycleIdx}-${current.value}`}
-          entering={reduceMotion ? undefined : FadeInDown.duration(220)}
-          pointerEvents="none"
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            alignItems: "center",
-            justifyContent: "center",
-            paddingHorizontal: Math.round(size * 0.12),
-          }}
+        {/* Heartbeat wrapper */}
+        <Animated.View
+          style={[StyleSheet.absoluteFill, { transform: [{ scale: heartbeat }] }]}
         >
-          {/* Label */}
-          <Text
-            numberOfLines={1}
-            style={{
-              fontSize: Math.max(8, Math.round(size * 0.042)),
-              fontWeight: "700",
-              letterSpacing: 1.8,
-              color: lowFill ? "#152131" : "rgba(255,255,255,0.95)",
-              textShadowColor: lowFill ? "transparent" : "rgba(0,0,0,0.55)",
-              textShadowOffset: { width: 0, height: 1 },
-              textShadowRadius: 6,
-            }}
+          <Svg
+            width={size}
+            height={size}
+            viewBox={`0 0 ${VIEWBOX_SIZE} ${VIEWBOX_SIZE}`}
           >
-            {current.label}
-          </Text>
-          {/* Main value */}
-          <Text
-            numberOfLines={1}
-            adjustsFontSizeToFit={true}
-            minimumFontScale={0.65}
-            maxFontSizeMultiplier={1}
-            style={{
-              fontSize: Math.round(size * 0.13),
-              fontWeight: "800",
-              color: lowFill ? "#152131" : "#FFFFFF",
-              fontVariant: ["tabular-nums"],
-              textShadowColor: lowFill ? "transparent" : "rgba(0,0,0,0.6)",
-              textShadowOffset: { width: 0, height: 2 },
-              textShadowRadius: 10,
-            }}
-          >
-            {current.value}
-          </Text>
-          {/* Unit / sublabel */}
-          <Text
-            numberOfLines={1}
-            style={{
-              fontSize: Math.max(8, Math.round(size * 0.046)),
-              fontWeight: "600",
-              color: lowFill ? "#5C6B66" : "rgba(255,255,255,0.9)",
-              textShadowColor: lowFill ? "transparent" : "rgba(0,0,0,0.5)",
-              textShadowOffset: { width: 0, height: 1 },
-              textShadowRadius: 5,
-            }}
-          >
-            {current.unit}
-          </Text>
-        </Reanimated.View>
+            <Defs>
+              <RadialGradient id="glow" cx="50%" cy="62%" r="48%">
+                <Stop offset="0%" stopColor={heartColor} stopOpacity="0.25" />
+                <Stop offset="100%" stopColor={heartColor} stopOpacity="0" />
+              </RadialGradient>
+              <LinearGradient id="arc" x1="0" y1="0" x2="1" y2="1">
+                <Stop offset="0%" stopColor={tokens.deepColor} />
+                <Stop offset="55%" stopColor={heartColor} />
+                <Stop offset="100%" stopColor={heartColor} />
+              </LinearGradient>
+              <Filter id="blur">
+                <FeGaussianBlur stdDeviation="3" />
+              </Filter>
+            </Defs>
 
-        {/* Celebration ripple */}
+            {/* Ambient blob */}
+            <Ellipse cx="120" cy="138" rx="88" ry="64" fill="url(#glow)" />
+
+            {/* Blurred glow arc */}
+            <AnimatedPath
+              d={HEART}
+              fill="none"
+              stroke={heartColor}
+              strokeWidth={18}
+              strokeLinejoin="round"
+              strokeLinecap="round"
+              strokeDasharray={PATH_LEN}
+              strokeDashoffset={glowOffset}
+              opacity={0.2}
+            />
+
+            {/* Track */}
+            <Path
+              d={HEART}
+              fill="none"
+              stroke={tokens.trackColor}
+              strokeWidth={10}
+              strokeLinejoin="round"
+            />
+
+            {/* Main filled arc */}
+            <AnimatedPath
+              d={HEART}
+              fill="none"
+              stroke="url(#arc)"
+              strokeWidth={10}
+              strokeLinejoin="round"
+              strokeLinecap="round"
+              strokeDasharray={PATH_LEN}
+              strokeDashoffset={dashOffset}
+            />
+
+            {/* Shimmer sweep */}
+            {done && !reduceMotion && (
+              <AnimatedPath
+                d={HEART}
+                fill="none"
+                stroke="white"
+                strokeWidth={3}
+                strokeLinejoin="round"
+                strokeLinecap="round"
+                strokeDasharray="12 999"
+                strokeDashoffset={shimmer}
+                opacity={0.45}
+              />
+            )}
+          </Svg>
+        </Animated.View>
+
+        {/* Particles */}
+        {done && !reduceMotion && PARTICLES.map((p, i) => (
+          <Particle key={i} {...p} color={heartColor} stageSize={size} />
+        ))}
+
+        {/* Center readout (auto-cycles + tap-to-cycle, crossfades) */}
+        {/* Narrowed to the heart's interior so text can't spill past its edges */}
+        <View
+          style={[
+            styles.labelContainer,
+            { left: Math.round(size * 0.16), right: Math.round(size * 0.16) },
+          ]}
+          pointerEvents="none"
+        >
+          <Reanimated.View
+            key={`${cycleIdx}-${current.value}`}
+            entering={reduceMotion ? undefined : FadeInDown.duration(260)}
+            exiting={FadeOutUp.duration(200)}
+            style={{ alignItems: "center" }}
+          >
+            <Animated.Text
+              numberOfLines={1}
+              adjustsFontSizeToFit={true}
+              minimumFontScale={0.6}
+              style={[
+                styles.scoreText,
+                {
+                  fontSize: current.small ? 20 : 26,
+                  lineHeight: current.small ? 25 : 31,
+                  color: scoreColor,
+                  opacity: scoreFade,
+                  transform: [{ translateY: scoreSlide }],
+                  width: "100%",
+                  textAlign: "center",
+                },
+              ]}
+            >
+              {current.value}
+            </Animated.Text>
+            <Animated.Text
+              numberOfLines={1}
+              adjustsFontSizeToFit={true}
+              minimumFontScale={0.7}
+              style={[styles.scoreLabel, { opacity: labelFade, width: "100%", textAlign: "center" }]}
+            >
+              {cycleIdx === 0 ? "Health Score" : current.unit ? `${current.label} · ${current.unit}` : current.label}
+            </Animated.Text>
+          </Reanimated.View>
+        </View>
+
+        {/* Celebration ripple (mission saves) */}
         <Animated.View
           pointerEvents="none"
           style={{
@@ -444,7 +581,30 @@ export function ScoreRing({
             transform: [{ scale: burstScale }],
           }}
         />
-      </Animated.View>
+      </View>
     </TouchableOpacity>
   );
 }
+
+// ─── styles ───────────────────────────────────────────────────────────────────
+
+const styles = StyleSheet.create({
+  labelContainer: {
+    ...StyleSheet.absoluteFill,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingBottom: 28,
+  },
+  scoreText: {
+    fontWeight: "700",
+    letterSpacing: -2,
+  },
+  scoreLabel: {
+    fontSize: 10,
+    color: "#94a3b8",
+    fontWeight: "500",
+    letterSpacing: 1.5,
+    textTransform: "uppercase",
+    marginTop: 6,
+  },
+});
