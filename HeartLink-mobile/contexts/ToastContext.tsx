@@ -59,7 +59,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       );
     }
 
-    const duration = nextToast.duration || 3000;
+    const duration = nextToast.duration || 4500;
 
     // Hide toast after duration
     setTimeout(() => {

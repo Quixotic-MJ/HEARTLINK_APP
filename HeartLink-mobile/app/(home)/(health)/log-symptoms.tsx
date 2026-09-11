@@ -29,7 +29,7 @@ import * as Haptics from "expo-haptics";
 import { useToast } from "../../../contexts/ToastContext";
 import { Button } from "../../../components/ui/Button";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-
+import { postLogAck } from "../../../services/companionCopy";
 const base_url = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
 
 // ─── Types & Constants ────────────────────────────────────────────────────────
@@ -520,9 +520,34 @@ export default function LogSymptomsScreen() {
       }
       setShowEmergencyGuidanceModal(true);
     } else {
+      let comparisonStr = undefined;
+      if (sys !== null && dia !== null) {
+        try {
+          const res = await fetch(`${base_url}/api/health-logs/${userId}?limit=1`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (res.ok) {
+            const logs = await res.json();
+            if (logs && logs.length > 0 && logs[0].systolic_bp && logs[0].diastolic_bp) {
+              const prevSys = logs[0].systolic_bp;
+              const prevDia = logs[0].diastolic_bp;
+              const dirSys = sys < prevSys ? "down from" : (sys > prevSys ? "up from" : "steady with");
+              
+              const prevDate = new Date(logs[0].recorded_at);
+              const today = new Date();
+              const isYesterday = today.getDate() - prevDate.getDate() === 1 && today.getMonth() === prevDate.getMonth() && today.getFullYear() === prevDate.getFullYear();
+              const timeRef = isYesterday ? "yesterday's" : "your previous";
+              
+              comparisonStr = `that's ${dirSys} ${timeRef} ${prevSys}/${prevDia}. Steady progress.`;
+            }
+          }
+        } catch (e) {
+          // ignore
+        }
+      }
+
       showToast({ 
-        title: "Health log submitted", 
-        message: "Your symptom and vitals log has been saved to your health history.", 
+        ...postLogAck("vitals", `${sys}/${dia} mmHg${hr !== null ? ` • ${hr} BPM` : ""}`, comparisonStr), 
         type: "success" 
       });
       router.back();

@@ -41,6 +41,7 @@ import { Header } from "../../../components/Header";
 import { Skeleton } from "../../../components/ui/Skeleton";
 import { ScreenWrapper } from "../../../components/ui/ScreenWrapper";
 import { DashboardTutorialModal } from "../../../components/dashboard/DashboardTutorialModal";
+import { ScoreExplanationModal } from "../../../components/dashboard/ScoreExplanationModal";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -253,6 +254,7 @@ export default function DashboardScreen() {
   // Varnished (LLM) variant of the voiced greeting line, when available.
   const [companionAi, setCompanionAi] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [scoreModalVisible, setScoreModalVisible] = useState(false);
 
   const isFetchingRef = useRef(false);
   const isNavigatingRef = useRef(false);
@@ -372,14 +374,14 @@ export default function DashboardScreen() {
   let latestDbp: number | null = null;
   if (rawLatestBp && rawLatestBp !== "--/--") {
     const parts = rawLatestBp.split("/").map((p: string) => parseInt(p.trim(), 10));
-    if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+    if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1]) && parts[0] > 0 && parts[1] > 0) {
       latestSbp = parts[0];
       latestDbp = parts[1];
     }
   }
   const rawBpm = (data?.latest_vitals as any)?.bpm;
   const parsedBpm = typeof rawBpm === "number" ? rawBpm : parseInt(rawBpm, 10);
-  const latestBpm = !isNaN(parsedBpm) ? parsedBpm : null;
+  const latestBpm = !isNaN(parsedBpm) && parsedBpm > 0 ? parsedBpm : null;
 
   const mealsLogged = (data?.today_activity?.meals_count || 0) > 0;
   const exerciseLogged = (data?.today_activity?.exercises_count || 0) > 0;
@@ -883,15 +885,46 @@ export default function DashboardScreen() {
           className="mx-5 mt-3.5 bg-white dark:bg-[#1A2634] rounded-3xl border border-[#DCE3DF] dark:border-slate-800/80 p-5 items-center"
           style={cardShadowStyle}
         >
-          {/* Header: • HEART HEALTH · STABLE */}
+          {/* Header Row: Status badge + Distinct Info Button */}
           <View className="flex-row items-center justify-center gap-2 mb-4">
-            <View
-              className="w-2 h-2 rounded-full"
-              style={{ backgroundColor: theme.dotColor }}
-            />
-            <Text className="text-[11.5px] font-bold uppercase tracking-widest text-[#2D554D] dark:text-slate-200">
-              HEART HEALTH · {theme.label.toUpperCase()}
-            </Text>
+            <TouchableOpacity
+              onPress={() => {
+                Haptics.selectionAsync();
+                setScoreModalVisible(true);
+              }}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel={`Heart Health, ${theme.label}. Tap for info on stability score.`}
+              accessibilityHint="Opens explanation of your heart health stability score"
+              className="flex-row items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#F3F7F5] dark:bg-slate-800/80 border border-[#DCE3DF]/70 dark:border-slate-700/60"
+            >
+              <View
+                className="w-2.5 h-2.5 rounded-full"
+                style={{ backgroundColor: theme.dotColor }}
+              />
+              <Text className="text-[12px] font-bold uppercase tracking-widest text-[#2D554D] dark:text-slate-200">
+                HEART HEALTH · {theme.label.toUpperCase()}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => {
+                Haptics.selectionAsync();
+                setScoreModalVisible(true);
+              }}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              accessibilityRole="button"
+              accessibilityLabel="About Heart Health Stability Score"
+              accessibilityHint="Opens explanation sheet for this score"
+              activeOpacity={0.7}
+              className="w-8 h-8 rounded-full items-center justify-center bg-[#F3F7F5] dark:bg-slate-800/80 border border-[#DCE3DF]/70 dark:border-slate-700/60"
+            >
+              <Feather
+                name="info"
+                size={18}
+                color={isDark ? "#94A3B8" : "#2D554D"}
+              />
+            </TouchableOpacity>
           </View>
 
           {/* Centered Score Ring */}
@@ -1192,6 +1225,18 @@ export default function DashboardScreen() {
               onClose={() => setActiveRec(null)}
               onLogged={handleRecLogged}
               onOpenFull={handleRecOpenFull}
+            />
+
+            <ScoreExplanationModal
+              visible={scoreModalVisible}
+              score={hssScore}
+              tierLabel={theme.label}
+              hasLoggedData={hasHssScore}
+              onClose={() => setScoreModalVisible(false)}
+              onNavigateToLogging={() => {
+                setScoreModalVisible(false);
+                setLogModal("vitals");
+              }}
             />
 
             <MissionLogModal

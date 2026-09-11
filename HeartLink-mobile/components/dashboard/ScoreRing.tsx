@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
   Easing,
@@ -399,24 +399,46 @@ export function ScoreRing({
     outputRange: [0, 0.55, 0],
   });
 
-  // auto-cycle readout (restarts from any manual tap; parks on reduce motion)
+  const hasBp =
+    typeof systolic === "number" &&
+    typeof diastolic === "number" &&
+    systolic > 0 &&
+    diastolic > 0;
+  const hasBpm = typeof bpm === "number" && bpm > 0;
+
+  const cycleStates = useMemo(() => {
+    const states: { label: string; value: string; unit: string; small?: boolean }[] = [
+      { label: "SCORE", value: hasScore ? String(fillScore) : "--", unit: tokens.label },
+    ];
+
+    if (hasBp) {
+      states.push({ label: "BP", value: `${systolic}/${diastolic}`, unit: "mmHg" });
+    }
+
+    if (hasBpm) {
+      states.push({ label: "PULSE", value: String(bpm), unit: "BPM" });
+    }
+
+    states.push({
+      label: "STREAK",
+      value: `${streakDays} day${streakDays === 1 ? "" : "s"}`,
+      unit: "",
+      small: true,
+    });
+
+    return states;
+  }, [hasScore, fillScore, tokens.label, hasBp, systolic, diastolic, hasBpm, bpm, streakDays]);
+
+  // auto-cycle readout (restarts from any manual tap; parks on reduce motion or single state)
   useEffect(() => {
-    if (reduceMotion || !hasScore) return;
+    if (reduceMotion || !hasScore || cycleStates.length <= 1) return;
     const timer = setTimeout(() => {
-      setCycleIdx((i) => (i + 1) % 4);
+      setCycleIdx((i) => (i + 1) % cycleStates.length);
     }, 4000);
     return () => clearTimeout(timer);
-  }, [cycleIdx, reduceMotion, hasScore]);
+  }, [cycleIdx, reduceMotion, hasScore, cycleStates.length]);
 
-  const bpValue =
-    systolic != null && diastolic != null ? `${systolic}/${diastolic}` : "--/--";
-  const cycleStates: { label: string; value: string; unit: string; small?: boolean }[] = [
-    { label: "SCORE", value: hasScore ? String(fillScore) : "--", unit: tokens.label },
-    { label: "BP", value: bpValue, unit: "mmHg" },
-    { label: "PULSE", value: bpm != null ? String(bpm) : "--", unit: "BPM" },
-    { label: "STREAK", value: `${streakDays} day${streakDays === 1 ? "" : "s"}`, unit: "", small: true },
-  ];
-  const current = cycleStates[cycleIdx % cycleStates.length];
+  const current = cycleStates[cycleIdx % cycleStates.length] || cycleStates[0];
 
   const scoreColor = isDark ? "#FFFFFF" : "#0f172a";
 
@@ -425,8 +447,9 @@ export function ScoreRing({
       activeOpacity={0.9}
       accessible={true}
       accessibilityRole="button"
-      accessibilityLabel={`Heart score ${hasScore ? targetScore : "unavailable"} of 100, ${tokens.label}. Showing ${current.label}. Tap to cycle views.`}
+      accessibilityLabel={`Heart score ${hasScore ? targetScore : "unavailable"} of 100, ${tokens.label}. Showing ${current.label}.${cycleStates.length > 1 ? " Tap to cycle views." : ""}`}
       onPress={() => {
+        if (cycleStates.length <= 1) return;
         Haptics.selectionAsync();
         setCycleIdx((i) => (i + 1) % cycleStates.length);
       }}
@@ -560,7 +583,7 @@ export function ScoreRing({
               minimumFontScale={0.7}
               style={[styles.scoreLabel, { opacity: labelFade, width: "100%", textAlign: "center" }]}
             >
-              {cycleIdx === 0 ? "Health Score" : current.unit ? `${current.label} · ${current.unit}` : current.label}
+              {current.label === "SCORE" ? "Health Score" : current.unit ? `${current.label} · ${current.unit}` : current.label}
             </Animated.Text>
           </Reanimated.View>
         </View>

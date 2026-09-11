@@ -170,7 +170,31 @@ export default function ScanResultScreen() {
       });
 
       if (!response.ok) throw new Error("Failed to log meal");
-      showToast({ title: "Meal Logged", message: "Successfully added to your daily diary.", type: "success" });
+      let runningTotal = payload.sodium_mg;
+      try {
+        const statsRes = await fetch(`${base_url}/api/meals/${userId}`, {
+          headers: { "Authorization": `Bearer ${token || ""}` }
+        });
+        if (statsRes.ok) {
+          const meals = await statsRes.json();
+          const today = new Date();
+          const todaysMeals = meals.filter((meal: any) => {
+            if (!meal.logged_at) return false;
+            const mealDate = new Date(meal.logged_at);
+            return mealDate.getFullYear() === today.getFullYear() &&
+                   mealDate.getMonth() === today.getMonth() &&
+                   mealDate.getDate() === today.getDate();
+          });
+          runningTotal = todaysMeals.reduce((sum: number, m: any) => sum + (m.sodium_mg || 0), 0);
+        }
+      } catch (e) {}
+
+      const { postLogAck } = await import("../../../services/companionCopy");
+      showToast({ 
+        ...postLogAck("meal", `${Math.round(payload.sodium_mg)}mg sodium. You're at ${Math.round(runningTotal).toLocaleString()} of your 2,000mg budget today.`), 
+        type: "success",
+        duration: 5500,
+      });
       router.navigate("/(home)/(tabs)/dashboard");
     } catch (error) {
       console.log("Network error logging scan result, queueing offline...", error);

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import { View, Text, Animated, Easing } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -32,17 +32,36 @@ export default function SplashScreen() {
   const router = useRouter();
   const { userId, user, isLoading } = useUser();
 
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const iconFade = useRef(new Animated.Value(0)).current;
-  const iconScale = useRef(new Animated.Value(0.7)).current;
-  const tagFade = useRef(new Animated.Value(0)).current;
+  const [fadeAnim] = useState(() => new Animated.Value(0));
+  const [iconFade] = useState(() => new Animated.Value(0));
+  const [iconScale] = useState(() => new Animated.Value(0.7));
+  const [tagFade] = useState(() => new Animated.Value(0));
 
   // Drives the idle heartbeat loop that starts once the entrance finishes.
-  const pulse = useRef(new Animated.Value(0)).current;
+  const [pulse] = useState(() => new Animated.Value(0));
   const pulseLoop = useRef<Animated.CompositeAnimation | null>(null);
 
   const isMounted = useRef(true);
   const [animationFinished, setAnimationFinished] = useState(false);
+  const hasNavigated = useRef(false);
+
+  const handleProceed = useCallback(() => {
+    if (hasNavigated.current) return;
+    hasNavigated.current = true;
+
+    if (userId) {
+      if (user && user.onboarding_status === "complete") {
+        router.replace("/(home)/(tabs)/dashboard");
+      } else {
+        router.replace({
+          pathname: "/(baseline)/step1_basic_info",
+          params: { user_id: userId },
+        });
+      }
+    } else {
+      router.replace("/onboarding");
+    }
+  }, [router, userId, user]);
 
   useEffect(() => {
     isMounted.current = true;
@@ -97,25 +116,14 @@ export default function SplashScreen() {
       isMounted.current = false;
       pulseLoop.current?.stop();
     };
-  }, []);
+  }, [fadeAnim, iconFade, iconScale, pulse, tagFade]);
 
-  // Navigate once both the entrance animation and the user data are ready.
+  // Navigate once both the entrance animation and user data are ready
   useEffect(() => {
     if (animationFinished && !isLoading) {
-      if (userId) {
-        if (user && user.onboarding_status === "complete") {
-          router.replace("/(home)/(tabs)/dashboard");
-        } else {
-          router.replace({
-            pathname: "/(baseline)/step1_basic_info",
-            params: { user_id: userId },
-          });
-        }
-      } else {
-        router.replace("/onboarding");
-      }
+      handleProceed();
     }
-  }, [animationFinished, isLoading, userId, user]);
+  }, [animationFinished, isLoading, handleProceed]);
 
   const beatScale = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.1] });
   const glowScale = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.22] });

@@ -90,23 +90,26 @@ export function eveningNote(firstName: string): string {
 /** Specific, first-person acknowledgment right after a log saves. */
 export function postLogAck(
   kind: "vitals" | "meal" | "sleep" | "exercise",
-  detail: string
-): { title: string; message: string } {
+  detail: string,
+  comparison?: string
+): { title: string; message: string; duration: number } {
   const d = (detail || "").trim();
   switch (kind) {
     case "vitals":
       return {
         title: "Vitals saved",
-        message: d
-          ? `Noted — ${d}. I'm logging this with you, one steady morning at a time.`
-          : "Noted — I've got this one logged with you.",
+        message: comparison 
+          ? `${d} — ${comparison}`
+          : (d ? `Noted — ${d}. I'm logging this with you, one steady morning at a time.` : "Noted — I've got this one logged with you."),
+        duration: 5500,
       };
     case "meal":
       return {
         title: "Meal logged",
         message: d
-          ? `Got it — ${d} is in your sodium budget. I'll keep count with you today.`
+          ? `Got it — ${d}`
           : "Got it — I'll keep count of your sodium with you today.",
+        duration: 5500,
       };
     case "sleep":
       return {
@@ -114,6 +117,7 @@ export function postLogAck(
         message: d
           ? `Rest noted — ${d}. Good recovery sets up a calmer tomorrow.`
           : "Rest noted — good recovery sets up a calmer tomorrow.",
+        duration: 5500,
       };
     case "exercise":
       return {
@@ -121,6 +125,7 @@ export function postLogAck(
         message: d
           ? `Well done — ${d}. I'm proud of that consistency; it matters.`
           : "Well done — I'm proud of that consistency; it matters.",
+        duration: 5500,
       };
   }
 }

@@ -11,12 +11,42 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useColorScheme } from "nativewind";
+import { useRouter } from "expo-router";
 import type { MissionId } from "./MissionList";
 import {
   VitalsQuickForm,
-  MealQuickForm,
   SleepQuickForm,
 } from "./MissionDropdowns";
+
+const FOOD_LOG_OPTIONS = [
+  {
+    icon: "camera" as const,
+    iconType: "feather" as const,
+    label: "Scan food barcode",
+    subtitle: "Use camera to scan product barcodes",
+    iconColor: "#185fa5",
+    iconBg: "#e6f1fb",
+    route: "/(home)/(meals)/barcode-scan",
+  },
+  {
+    icon: "search" as const,
+    iconType: "feather" as const,
+    label: "Search food database",
+    subtitle: "Search verified meals & nutritional facts",
+    iconColor: "#16a34a",
+    iconBg: "#eaf3de",
+    route: "/(home)/(meals)/search-meal",
+  },
+  {
+    icon: "silverware-fork-knife" as const,
+    iconType: "material" as const,
+    label: "Log manually / Estimate",
+    subtitle: "Enter custom food details & nutrients",
+    iconColor: "#d97706",
+    iconBg: "#fef3c7",
+    route: "/(home)/(meals)/estimate-meal",
+  },
+];
 
 /**
  * MissionLogModal — centered pop-up input modal for the heart missions,
@@ -66,6 +96,7 @@ export function MissionLogModal({
 }) {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
+  const router = useRouter();
 
   const popScale = useRef(new Animated.Value(0.9)).current;
   const panelOpacity = useRef(new Animated.Value(0)).current;
@@ -243,19 +274,62 @@ export function MissionLogModal({
               />
             )}
             {mission === "meals" && (
-              <>
-                <MealQuickForm userId={userId} token={token} onSaved={onSaved} />
+              <View style={{ paddingTop: 8 }}>
+                {FOOD_LOG_OPTIONS.map((option, index) => (
+                  <TouchableOpacity
+                    key={option.label}
+                    activeOpacity={0.7}
+                    onPress={() => animateOut(() => router.push(option.route as any))}
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      backgroundColor: isDark ? "#1e293b" : "#fff",
+                      borderRadius: 16,
+                      padding: 14,
+                      marginBottom: index < FOOD_LOG_OPTIONS.length - 1 ? 10 : 0,
+                      borderWidth: 0.5,
+                      borderColor: isDark ? "#334155" : "#e2e8f0",
+                    }}
+                  >
+                    <View
+                      style={{
+                        width: 42,
+                        height: 42,
+                        borderRadius: 12,
+                        backgroundColor: option.iconBg,
+                        alignItems: "center",
+                        justifyContent: "center",
+                        marginRight: 14,
+                      }}
+                    >
+                      {option.iconType === "feather" ? (
+                        <Feather name={option.icon as any} size={18} color={option.iconColor} />
+                      ) : (
+                        <MaterialCommunityIcons name={option.icon as any} size={18} color={option.iconColor} />
+                      )}
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 14, fontWeight: "600", color: isDark ? "#f8fafc" : "#0f172a", marginBottom: 2 }}>
+                        {option.label}
+                      </Text>
+                      <Text style={{ fontSize: 12, color: isDark ? "#cbd5e1" : "#64748b", lineHeight: 16 }}>
+                        {option.subtitle}
+                      </Text>
+                    </View>
+                    <Feather name="chevron-right" size={16} color={isDark ? "#64748b" : "#cbd5e1"} />
+                  </TouchableOpacity>
+                ))}
                 <TouchableOpacity
                   activeOpacity={0.7}
                   onPress={() => animateOut(onOpenDiary)}
-                  style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 12 }}
+                  style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 14, marginTop: 4 }}
                 >
                   <Text style={{ fontSize: 12.5, fontWeight: "700", color: "#A9741B" }}>
                     Open Food Diary
                   </Text>
                   <Feather name="arrow-right" size={13} color="#A9741B" />
                 </TouchableOpacity>
-              </>
+              </View>
             )}
             {mission === "sleep" && (
               <SleepQuickForm userId={userId} token={token} onSaved={onSaved} />
