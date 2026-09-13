@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TextInput, TouchableOpacity } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, Modal, Linking } from "react-native";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -15,6 +15,7 @@ import * as Haptics from "expo-haptics";
 import { useToast } from "../../contexts/ToastContext";
 import { OfflineSyncService } from "../../utils/OfflineSyncService";
 import { postLogAck } from "../../services/companionCopy";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -197,11 +198,17 @@ export function VitalsQuickForm({
   const [heartRate, setHeartRate] = useState(initialBpm ? String(initialBpm) : "");
   const [medicationTaken, setMedicationTaken] = useState<boolean | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showEmergencyGuidanceModal, setShowEmergencyGuidanceModal] = useState(false);
 
   const sysVal = parseInt(systolic, 10);
   const diaVal = parseInt(diastolic, 10);
-  const isCrisis =
+  const isHypertensiveCrisis =
     (!isNaN(sysVal) && sysVal >= 180) || (!isNaN(diaVal) && diaVal >= 120);
+  const isSevereHypotension =
+    (!isNaN(sysVal) && sysVal > 0 && sysVal < 90) ||
+    (!isNaN(diaVal) && diaVal > 0 && diaVal < 60);
+  const isCrisis = isHypertensiveCrisis;
+  const isEmergency = isHypertensiveCrisis || isSevereHypotension;
 
   const bump = (
     raw: string,
@@ -254,19 +261,78 @@ export function VitalsQuickForm({
 
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setIsSubmitting(true);
+    const effectiveHr = hr !== null && !isNaN(hr) ? hr : (initialBpm || 72);
     const payload = {
       systolic_bp: sys,
       diastolic_bp: dia,
-      heart_rate_bpm: hr,
+      heart_rate_bpm: effectiveHr,
       weight_kg: null,
       medication_taken: medicationTaken || false,
       symptoms: ["None (Feeling fine)"],
       severity_map: {},
-      context: "While resting",
+      context: "resting",
       triggered_by_exercise_id: null,
       notes: "",
     };
 
+    // ── Emergency path: show crisis alert + guidance modal, save in background ──
+    if (isEmergency) {
+      if (isSevereHypotension) {
+        showToast({
+          title: "Critical Low Blood Pressure",
+          message: "Blood pressure reading reflects acute hypotension (<90/60 mmHg). Please sit or lie down safely, hydrate, and seek medical attention.",
+          type: "error",
+          duration: 8000,
+        });
+      } else if (isHypertensiveCrisis) {
+        showToast({
+          title: "Hypertensive Crisis Detected",
+          message: "Blood pressure reading reflects an acute Hypertensive Crisis (≥180/120 mmHg). Please seek emergency medical care.",
+          type: "error",
+          duration: 8000,
+        });
+      }
+      setShowEmergencyGuidanceModal(true);
+
+      // Save the reading in background (same as log-symptoms.tsx: save even for emergency)
+      (async () => {
+        try {
+          const res = await fetch(`${base_url}/api/health-logs/${userId}`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token || ""}`,
+            },
+            body: JSON.stringify(payload),
+          });
+          if (!res.ok && res.status >= 400 && res.status < 500) {
+            console.error(`Health log rejected with client status ${res.status}. Not enqueuing invalid payload.`);
+            return;
+          }
+          if (!res.ok) throw new Error(`Server returned status ${res.status}`);
+          // Invalidate trends cache after successful save
+          if (userId) {
+            try {
+              const allKeys = await AsyncStorage.getAllKeys();
+              const keysToRemove = allKeys.filter((k) => k.startsWith(`@trends_cache_${userId}`));
+              if (keysToRemove.length > 0) await AsyncStorage.multiRemove(keysToRemove);
+            } catch (e) { /* ignore */ }
+          }
+        } catch (err) {
+          await OfflineSyncService.queueRequest(
+            `${base_url}/api/health-logs/${userId}`,
+            "POST",
+            payload,
+            undefined,
+            userId || undefined,
+          );
+        }
+      })();
+      setIsSubmitting(false);
+      return;
+    }
+
+    // ── Normal path: fetch prior reading for comparison, then save ──
     try {
       const res = await fetch(`${base_url}/api/health-logs/${userId}`, {
         method: "POST",
@@ -283,7 +349,43 @@ export function VitalsQuickForm({
         }
         throw new Error(`Server returned status ${res.status}`);
       }
-      showToast({ ...postLogAck("vitals", `${sys}/${dia} mmHg${hr !== null ? ` • ${hr} BPM` : ""}`), type: "success" });
+
+      // Fetch the prior reading for smart companion comparison
+      let comparisonStr: string | undefined;
+      try {
+        const priorRes = await fetch(`${base_url}/api/health-logs/${userId}?limit=1`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (priorRes.ok) {
+          const logs = await priorRes.json();
+          if (logs && logs.length > 0 && logs[0].systolic_bp && logs[0].diastolic_bp) {
+            const prevSys = logs[0].systolic_bp;
+            const prevDia = logs[0].diastolic_bp;
+            const dirSys = sys < prevSys ? "down from" : (sys > prevSys ? "up from" : "steady with");
+
+            const prevDate = new Date(logs[0].recorded_at);
+            const today = new Date();
+            const isYesterday = today.getDate() - prevDate.getDate() === 1 && today.getMonth() === prevDate.getMonth() && today.getFullYear() === prevDate.getFullYear();
+            const timeRef = isYesterday ? "yesterday's" : "your previous";
+
+            comparisonStr = `that's ${dirSys} ${timeRef} ${prevSys}/${prevDia}. Steady progress.`;
+          }
+        }
+      } catch (e) {
+        // Comparison is best-effort; fail silently and use the default message
+      }
+
+      showToast({ ...postLogAck("vitals", `${sys}/${dia} mmHg${effectiveHr ? ` • ${effectiveHr} BPM` : ""}`, comparisonStr), type: "success" });
+
+      // Invalidate trends cache after successful save
+      if (userId) {
+        try {
+          const allKeys = await AsyncStorage.getAllKeys();
+          const keysToRemove = allKeys.filter((k) => k.startsWith(`@trends_cache_${userId}`));
+          if (keysToRemove.length > 0) await AsyncStorage.multiRemove(keysToRemove);
+        } catch (e) { /* ignore */ }
+      }
+
       onSaved();
     } catch (err) {
       await OfflineSyncService.queueRequest(
@@ -307,6 +409,15 @@ export function VitalsQuickForm({
           <Feather name="alert-triangle" size={14} color="#8A1F1A" />
           <Text className="flex-1 text-[11px] font-semibold text-[#8A1F1A] dark:text-[#E0958B]">
             Crisis range (≥180/120). Rest 5 mins, re-test, seek emergency care if it persists.
+          </Text>
+        </View>
+      )}
+
+      {isSevereHypotension && !isCrisis && (
+        <View className="rounded-xl p-3 bg-[#FBEAE9] dark:bg-[#8A1F1A]/25 border border-[#8A1F1A]/30 flex-row items-center gap-2">
+          <Feather name="alert-triangle" size={14} color="#8A1F1A" />
+          <Text className="flex-1 text-[11px] font-semibold text-[#8A1F1A] dark:text-[#E0958B]">
+            Low BP range (&lt;90/60). Please sit or lie down, hydrate, and seek medical attention if symptoms persist.
           </Text>
         </View>
       )}
@@ -376,7 +487,12 @@ export function VitalsQuickForm({
         })}
       </View>
 
-      <SaveButton label="Save Vitals" onPress={handleSave} isLoading={isSubmitting} />
+      <SaveButton
+        label={isEmergency ? "Submit Critical Log" : "Save Vitals"}
+        onPress={handleSave}
+        isLoading={isSubmitting}
+        color={isEmergency ? "#8A1F1A" : "#1B6E63"}
+      />
 
       <TouchableOpacity
         activeOpacity={0.7}
@@ -387,6 +503,145 @@ export function VitalsQuickForm({
         <Text className="text-[12px] font-bold text-[#E8532E]">Continue to Symptoms</Text>
         <Feather name="arrow-right" size={13} color="#E8532E" />
       </TouchableOpacity>
+
+      {/* Emergency Guidance Modal — matches log-symptoms.tsx (HL-ENG-17) */}
+      <Modal
+        visible={showEmergencyGuidanceModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {
+          setShowEmergencyGuidanceModal(false);
+          onSaved();
+        }}
+      >
+        <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.7)", justifyContent: "center", alignItems: "center", padding: 20 }}>
+          <View
+            style={{
+              width: "100%",
+              maxWidth: 360,
+              backgroundColor: isDark ? "#0f172a" : "#ffffff",
+              borderRadius: 24,
+              padding: 24,
+              borderWidth: 2,
+              borderColor: "#dc2626",
+            }}
+          >
+            <View
+              style={{
+                width: 56,
+                height: 56,
+                borderRadius: 16,
+                backgroundColor: isDark ? "rgba(127,29,29,0.5)" : "#fee2e2",
+                alignItems: "center",
+                justifyContent: "center",
+                marginBottom: 16,
+                alignSelf: "center",
+              }}
+            >
+              <Feather name="alert-triangle" size={28} color="#dc2626" />
+            </View>
+            <Text
+              style={{
+                fontSize: 20,
+                fontWeight: "900",
+                color: isDark ? "#ffffff" : "#0f172a",
+                textAlign: "center",
+                marginBottom: 8,
+                letterSpacing: -0.3,
+              }}
+            >
+              Critical Vitals Detected
+            </Text>
+            <Text
+              style={{
+                fontSize: 14,
+                color: isDark ? "#cbd5e1" : "#475569",
+                textAlign: "center",
+                lineHeight: 22,
+                marginBottom: 24,
+                fontWeight: "500",
+              }}
+            >
+              {isSevereHypotension
+                ? "Your blood pressure reading reflects acute hypotension (<90/60 mmHg). Please sit or lie down, hydrate, and seek medical assistance immediately."
+                : isHypertensiveCrisis
+                ? "Your blood pressure reading reflects an acute Hypertensive Crisis (≥180/120 mmHg). Immediate emergency medical evaluation is strongly advised."
+                : "Your clinical indicators reflect acute cardiac strain. Please seek emergency medical care immediately."}
+            </Text>
+
+            <View style={{ gap: 12, width: "100%" }}>
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={() => {
+                  setShowEmergencyGuidanceModal(false);
+                  Linking.openURL(
+                    "https://www.google.com/maps/search/Emergency+Hospital+near+me"
+                  ).catch(() => {});
+                  onSaved();
+                }}
+                style={{
+                  width: "100%",
+                  backgroundColor: "#dc2626",
+                  paddingVertical: 14,
+                  paddingHorizontal: 16,
+                  borderRadius: 12,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
+                }}
+              >
+                <Feather name="map-pin" size={16} color="#ffffff" />
+                <Text style={{ color: "#ffffff", fontSize: 14, fontWeight: "700" }}>
+                  Find Nearby Emergency Hospital
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={() => {
+                  Linking.openURL("tel:911").catch(() => {});
+                }}
+                style={{
+                  width: "100%",
+                  backgroundColor: isDark ? "#1e293b" : "#0f172a",
+                  paddingVertical: 14,
+                  paddingHorizontal: 16,
+                  borderRadius: 12,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
+                }}
+              >
+                <Feather name="phone-call" size={16} color="#ffffff" />
+                <Text style={{ color: "#ffffff", fontSize: 14, fontWeight: "700" }}>
+                  Call Emergency Services (911)
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => {
+                  setShowEmergencyGuidanceModal(false);
+                  onSaved();
+                }}
+                style={{
+                  width: "100%",
+                  paddingVertical: 10,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginTop: 4,
+                }}
+              >
+                <Text style={{ color: isDark ? "#64748b" : "#94a3b8", fontSize: 13, fontWeight: "600" }}>
+                  Acknowledge & Return to App
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }

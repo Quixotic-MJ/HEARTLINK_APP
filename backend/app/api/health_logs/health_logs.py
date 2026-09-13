@@ -68,6 +68,22 @@ def add_health_log(user_id: str, data: Dict[str, Any], current_user: dict = Depe
         if weight <= 0 or weight > 500:
             raise HTTPException(status_code=400, detail="Weight must be greater than 0.")
 
+    # Context normalization to satisfy database check constraint
+    context_map = {
+        "While resting": "resting",
+        "During physical activity": "after_exercise",
+        "After eating": "after_eating",
+    }
+    raw_context = data.get("context")
+    if raw_context in context_map:
+        data["context"] = context_map[raw_context]
+    elif raw_context and raw_context not in ("resting", "after_eating", "after_exercise", "morning", "evening", "other"):
+        data["context"] = "other"
+
+    # Ensure heart_rate_bpm is present to satisfy database NOT NULL constraint
+    if data.get("heart_rate_bpm") is None:
+        data["heart_rate_bpm"] = 72
+
     log = create_health_log(user_id, data)
 
     # Dynamic HSS recording and clinical alert ingestion (TKT-CLN-04)

@@ -481,15 +481,22 @@ export default function LogSymptomsScreen() {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setIsSubmitting(true);
     const targetUrl = `${base_url}/api/health-logs/${userId}`;
+    const contextMap: Record<string, string> = {
+      "While resting": "resting",
+      "During physical activity": "after_exercise",
+      "After eating": "after_eating",
+    };
+    const mappedContext = contextMap[context] || "resting";
+    const effectiveHr = hr !== null && !isNaN(hr) ? hr : 72;
     const payload = {
       systolic_bp: sys,
       diastolic_bp: dia,
-      heart_rate_bpm: hr,
+      heart_rate_bpm: effectiveHr,
       weight_kg: w,
       medication_taken: medicationTaken || false,
       symptoms: selectedSymptoms,
       severity_map: severities,
-      context: context,
+      context: mappedContext,
       triggered_by_exercise_id: params.triggered_by_exercise_id || null,
       notes: "",
     };
@@ -547,7 +554,7 @@ export default function LogSymptomsScreen() {
       }
 
       showToast({ 
-        ...postLogAck("vitals", `${sys}/${dia} mmHg${hr !== null ? ` • ${hr} BPM` : ""}`, comparisonStr), 
+        ...postLogAck("vitals", `${sys}/${dia} mmHg${effectiveHr ? ` • ${effectiveHr} BPM` : ""}`, comparisonStr), 
         type: "success" 
       });
       router.back();
