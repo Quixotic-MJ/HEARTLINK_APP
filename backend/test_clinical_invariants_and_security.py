@@ -178,6 +178,48 @@ def test_happy_path_valid_vitals():
             assert res.status_code in [200, 201], f"Expected 200/201, got {res.status_code}: {res.text}"
 
 
+def test_optional_vitals_submission():
+    """Verify that vitals can be omitted (for patients without equipment) and weight boundaries are enforced."""
+    user_id = str(uuid.uuid4())
+    token = make_token(user_id, role="patient")
+    headers = {"Authorization": f"Bearer {token}"}
+
+    with patch("app.utils.security.get_profile_repo", return_value=MockProfileRepo()):
+        with patch("app.api.health_logs.health_logs.create_health_log") as mock_create:
+            mock_create.return_value = {
+                "id": str(uuid.uuid4()),
+                "user_id": user_id,
+                "systolic_bp": None,
+                "diastolic_bp": None,
+                "heart_rate_bpm": None,
+                "symptoms": ["chest_tightness"],
+                "weight_kg": 70.5
+            }
+            # 1. Successful submission with no vitals
+            res = client.post(
+                f"/api/health-logs/{user_id}",
+                json={"symptoms": ["chest_tightness"], "weight_kg": 70.5, "systolic_bp": "", "diastolic_bp": "", "heart_rate_bpm": ""},
+                headers=headers
+            )
+            assert res.status_code in [200, 201], f"Expected 200/201 for optional vitals, got {res.status_code}: {res.text}"
+
+            # 2. Rejection for weight < 20 kg
+            res_under = client.post(
+                f"/api/health-logs/{user_id}",
+                json={"weight_kg": 15},
+                headers=headers
+            )
+            assert res_under.status_code == 400, f"Expected 400 for weight < 20, got {res_under.status_code}"
+
+            # 3. Rejection for weight > 400 kg
+            res_over = client.post(
+                f"/api/health-logs/{user_id}",
+                json={"weight_kg": 450},
+                headers=headers
+            )
+            assert res_over.status_code == 400, f"Expected 400 for weight > 400, got {res_over.status_code}"
+
+
 def test_dynamic_vitals_hss_computation():
     """Verify dynamic HSS scoring for normotensive, hypertensive crisis, and hypotension."""
     from app.services.hss_service import compute_vitals_hss
@@ -388,6 +430,8 @@ if __name__ == "__main__":
     print("[PASS] BOLA Unassigned Doctor Denied (HTTP 403)")
     test_happy_path_valid_vitals()
     print("[PASS] Happy Path Valid Vitals")
+    test_optional_vitals_submission()
+    print("[PASS] Optional Vitals & Weight Limits Validation")
     test_dynamic_vitals_hss_computation()
     print("[PASS] Dynamic Vitals HSS Computation (Normotension, Crisis, Hypotension)")
     test_bola_unassigned_medical_expert_profile_and_exercises()

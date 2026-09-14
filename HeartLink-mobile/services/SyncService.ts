@@ -1,4 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { DeviceEventEmitter } from "react-native";
 
 const DEFAULT_MEAL_QUEUE_KEY = "@offline_meal_queue";
 const DEFAULT_EXERCISE_QUEUE_KEY = "@offline_exercise_queue";
@@ -344,8 +345,23 @@ export async function syncOfflineHealthLogs(baseUrl: string): Promise<void> {
 }
 
 export async function syncOfflineAll(baseUrl: string): Promise<void> {
-  await syncOfflineMeals(baseUrl).catch(e => console.log("Meal sync error:", e));
-  await syncOfflineExercises(baseUrl).catch(e => console.log("Exercise sync error:", e));
-  await syncOfflineSleeps(baseUrl).catch(e => console.log("Sleep sync error:", e));
-  await syncOfflineHealthLogs(baseUrl).catch(e => console.log("Health sync error:", e));
+  let syncedAny = false;
+  
+  const wrapSync = async (syncFn: () => Promise<void>) => {
+    try {
+      await syncFn();
+      syncedAny = true;
+    } catch (e) {
+      console.log("Sync error:", e);
+    }
+  };
+
+  await wrapSync(() => syncOfflineMeals(baseUrl));
+  await wrapSync(() => syncOfflineExercises(baseUrl));
+  await wrapSync(() => syncOfflineSleeps(baseUrl));
+  await wrapSync(() => syncOfflineHealthLogs(baseUrl));
+  
+  // Only emit if we actually attempted a sync, but it's safe to emit unconditionally if we want dashboard to know we checked.
+  // We'll just emit unconditionally so the dashboard knows the check is done.
+  DeviceEventEmitter.emit("sync_complete");
 }

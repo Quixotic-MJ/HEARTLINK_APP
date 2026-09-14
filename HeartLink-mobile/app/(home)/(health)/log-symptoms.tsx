@@ -160,10 +160,12 @@ function SeveritySlider({
   const label = getSeverityLabel(value);
   const percentage = Math.max(0, Math.min(100, ((value - 1) / 9) * 100));
 
-  const primaryColor = isDark ? "#6488B0" : "#4A6080";
-  const inactiveTrackColor = isDark ? "rgba(59, 130, 246, 0.22)" : "rgba(37, 99, 235, 0.18)";
-  const activeDotColor = "rgba(255, 255, 255, 0.85)";
-  const inactiveDotColor = isDark ? "rgba(59, 130, 246, 0.7)" : "rgba(37, 99, 235, 0.5)";
+  // Severity-aware accent: the track itself shifts green → amber → red,
+  // matching the clinical meaning (replaces the off-brand slate blue).
+  const primaryColor = sev.text;
+  const inactiveTrackColor = isDark ? "rgba(148, 163, 184, 0.25)" : "rgba(100, 116, 139, 0.18)";
+  const activeDotColor = "rgba(255, 255, 255, 0.9)";
+  const inactiveDotColor = isDark ? "rgba(148, 163, 184, 0.6)" : "rgba(100, 116, 139, 0.45)";
 
   return (
     <View className="bg-background/80 dark:bg-slate-950/70 rounded-2xl border border-border p-4 gap-3">
@@ -228,6 +230,8 @@ function SeveritySlider({
               position: "absolute",
               left: 14,
               right: 14,
+              top: "50%",
+              marginTop: -3,
               height: 6,
               justifyContent: "center",
             }}
@@ -254,22 +258,24 @@ function SeveritySlider({
           </View>
         )}
 
-        {/* Floating Solid Primary Thumb */}
+        {/* Floating Thumb (white with severity ring, vertically centered on track) */}
         <View
           style={{
             position: "absolute",
-            left: width > 0 ? 14 + (percentage / 100) * (width - 28) - 11 : 0,
-            width: 22,
-            height: 22,
-            borderRadius: 11,
-            backgroundColor: primaryColor,
+            top: "50%",
+            marginTop: -12,
+            left: width > 0 ? 14 + (percentage / 100) * (width - 28) - 12 : 0,
+            width: 24,
+            height: 24,
+            borderRadius: 12,
+            backgroundColor: "#ffffff",
             shadowColor: primaryColor,
             shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.4,
-            shadowRadius: 3,
-            elevation: 4,
-            borderWidth: 2,
-            borderColor: "#ffffff",
+            shadowOpacity: 0.45,
+            shadowRadius: 4,
+            elevation: 5,
+            borderWidth: 4,
+            borderColor: primaryColor,
           }}
         />
       </View>
@@ -295,26 +301,28 @@ function SeveritySlider({
 export default function LogSymptomsScreen() {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
+  const primaryThemeColor = isDark ? "#F06944" : "#E8532E";
+  const successThemeColor = isDark ? "#4FA79A" : "#1B6E63";
+  const destructiveThemeColor = isDark ? "#D15C4E" : "#8A1F1A";
+  const cardThemeBg = isDark ? "#1A2634" : "#FFFFFF";
+  const borderThemeColor = isDark ? "#1E293B" : "#DCE3DF";
+  const fgThemeColor = isDark ? "#EDF1EF" : "#152131";
+  const mutedFgThemeColor = isDark ? "#94A3B8" : "#5C6B66";
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{
     triggered_by_exercise_id?: string;
-    pending_exercise?: string;
-    quick_entry?: string;
-    default_sys?: string;
-    default_dia?: string;
   }>();
   const { userId, token } = useUser();
   const { showToast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showEmergencyGuidanceModal, setShowEmergencyGuidanceModal] = useState(false);
 
-  const [step, setStep] = useState<1 | 2>(params.triggered_by_exercise_id ? 2 : 1);
   const [timestamp, setTimestamp] = useState("");
 
-  // Step 1 State (Vitals) with fast-entry prefill
-  const [systolic, setSystolic] = useState(params.default_sys || "");
-  const [diastolic, setDiastolic] = useState(params.default_dia || "");
+  // Vitals State
+  const [systolic, setSystolic] = useState("");
+  const [diastolic, setDiastolic] = useState("");
   const [heartRate, setHeartRate] = useState("");
   const [weight, setWeight] = useState("");
   const [medicationTaken, setMedicationTaken] = useState<boolean | null>(null);
@@ -343,7 +351,7 @@ export default function LogSymptomsScreen() {
     (!isNaN(sysVal) && sysVal > 0 && sysVal < 90) ||
     (!isNaN(diaVal) && diaVal > 0 && diaVal < 60);
 
-  // Step 2 State (Symptoms)
+  // Symptoms State
   const [selectedSymptoms, setSelectedSymptoms] = useState<SymptomType[]>(["None (Feeling fine)"]);
   const [severities, setSeverities] = useState<Record<string, number>>({});
   const [context, setContext] = useState<ContextType>(
@@ -395,7 +403,6 @@ export default function LogSymptomsScreen() {
   };
 
   const handleSubmit = async () => {
-    // 1. Strict numeric parsing (treating 0 as a distinct number, not falsy)
     const parseIntegerInput = (val: string): number | null => {
       const trimmed = val.trim();
       if (!trimmed) return null;
@@ -414,46 +421,35 @@ export default function LogSymptomsScreen() {
     const hr = parseIntegerInput(heartRate);
     const w = parseFloatInput(weight);
 
-    // 2. Boundary validations (treating 0 as an invalid out-of-range number, not falsy null)
     if (sys !== null) {
       if (isNaN(sys) || sys < 50 || sys > 300) {
-        showToast({ title: "Validation Error", message: "Systolic blood pressure must be an integer between 50 and 300.", type: "error" });
+        showToast({ title: "Unusual Reading", message: "Top blood pressure (systolic) is typically between 50 and 300 mmHg. Please double-check your reading.", type: "error" });
         return;
       }
     }
     if (dia !== null) {
       if (isNaN(dia) || dia < 30 || dia > 200) {
-        showToast({ title: "Validation Error", message: "Diastolic blood pressure must be an integer between 30 and 200.", type: "error" });
+        showToast({ title: "Unusual Reading", message: "Bottom blood pressure (diastolic) is typically between 30 and 200 mmHg. Please double-check your reading.", type: "error" });
         return;
       }
     }
     if (hr !== null) {
       if (isNaN(hr) || hr < 30 || hr > 250) {
-        showToast({ title: "Validation Error", message: "Heart rate must be an integer between 30 and 250.", type: "error" });
+        showToast({ title: "Unusual Pulse Rate", message: "Heart rate is typically between 30 and 250 BPM. Please re-check your pulse reading.", type: "error" });
         return;
       }
     }
     if (w !== null) {
-      if (isNaN(w) || w <= 0 || w > 500) {
-        showToast({ title: "Validation Error", message: "Weight must be greater than 0 and up to 500 kg.", type: "error" });
+      if (isNaN(w) || w < 20 || w > 400) {
+        showToast({ title: "Check Weight", message: "Please enter a realistic body weight between 20 and 400 kg.", type: "error" });
         return;
       }
     }
 
-    // 3. Physiological BP Invariants (Pairwise requirement and SBP > DBP)
     if ((sys !== null && dia === null) || (sys === null && dia !== null)) {
       showToast({
-        title: "Validation Error",
-        message: "Blood pressure requires both systolic and diastolic values.",
-        type: "error",
-      });
-      return;
-    }
-
-    if (params.quick_entry === "true" && (sys === null || dia === null)) {
-      showToast({
-        title: "Missing Blood Pressure",
-        message: "Please enter your blood pressure before logging vitals.",
+        title: "Incomplete Blood Pressure",
+        message: "Please enter both the top (systolic) and bottom (diastolic) numbers for an accurate reading.",
         type: "error",
       });
       return;
@@ -462,24 +458,41 @@ export default function LogSymptomsScreen() {
     if (sys !== null && dia !== null) {
       if (sys <= dia) {
         showToast({
-          title: "Validation Error",
-          message: "Systolic blood pressure must be strictly greater than diastolic blood pressure.",
+          title: "Check Your Numbers",
+          message: "The top number (systolic) should always be higher than the bottom number (diastolic).",
           type: "error",
         });
         return;
       }
       if (sys - dia < 15) {
         showToast({
-          title: "Validation Error",
-          message: "Pulse pressure (Systolic - Diastolic) must be at least 15 mmHg.",
+          title: "Numbers Too Close",
+          message: "The top and bottom numbers are unusually close together. Please verify your blood pressure cuff placement.",
           type: "error",
         });
         return;
       }
     }
 
+    const hasAnyContent =
+      (sys !== null && dia !== null) ||
+      hr !== null ||
+      w !== null ||
+      hasRealSymptoms ||
+      medicationTaken !== null;
+
+    if (!hasAnyContent) {
+      showToast({
+        title: "Ready to Log?",
+        message: "Please enter your vitals, select any symptoms, or check off your medications before saving.",
+        type: "info",
+      });
+      return;
+    }
+
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setIsSubmitting(true);
+
     const targetUrl = `${base_url}/api/health-logs/${userId}`;
     const contextMap: Record<string, string> = {
       "While resting": "resting",
@@ -487,7 +500,7 @@ export default function LogSymptomsScreen() {
       "After eating": "after_eating",
     };
     const mappedContext = contextMap[context] || "resting";
-    const effectiveHr = hr !== null && !isNaN(hr) ? hr : 72;
+    const effectiveHr = hr !== null && !isNaN(hr) ? hr : null;
     const payload = {
       systolic_bp: sys,
       diastolic_bp: dia,
@@ -501,7 +514,56 @@ export default function LogSymptomsScreen() {
       notes: "",
     };
 
-    // Optimistic UI: Feedback & navigation
+    let saveSucceeded = false;
+
+    try {
+      const res = await fetch(targetUrl, {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token || ""}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        if (res.status >= 400 && res.status < 500) {
+          console.error(`Health log rejected with client status ${res.status}. Not enqueuing invalid payload.`);
+          showToast({
+            title: "Couldn't Save Log",
+            message: "Oops, we couldn't save that. Please double-check your numbers and try again!",
+            type: "error",
+            duration: 6000,
+          });
+          setIsSubmitting(false);
+          return;
+        }
+        throw new Error(`Server returned status ${res.status}`);
+      }
+
+      saveSucceeded = true;
+
+      if (userId) {
+        try {
+          const allKeys = await AsyncStorage.getAllKeys();
+          const keysToRemove = allKeys.filter((k) => k.startsWith(`@trends_cache_${userId}`));
+          if (keysToRemove.length > 0) {
+            await AsyncStorage.multiRemove(keysToRemove);
+          }
+        } catch (e) {
+          console.warn("Failed to invalidate trends cache after log", e);
+        }
+      }
+    } catch (err: any) {
+      console.warn("Network error during submission. Queuing log for offline sync...", err);
+      await OfflineSyncService.queueRequest(targetUrl, "POST", payload, undefined, userId || undefined);
+      saveSucceeded = true;
+    } finally {
+      setIsSubmitting(false);
+    }
+
+    if (!saveSucceeded) return;
+
     if (isEmergency) {
       if (isSevereHypotension) {
         showToast({ 
@@ -539,12 +601,10 @@ export default function LogSymptomsScreen() {
               const prevSys = logs[0].systolic_bp;
               const prevDia = logs[0].diastolic_bp;
               const dirSys = sys < prevSys ? "down from" : (sys > prevSys ? "up from" : "steady with");
-              
               const prevDate = new Date(logs[0].recorded_at);
               const today = new Date();
               const isYesterday = today.getDate() - prevDate.getDate() === 1 && today.getMonth() === prevDate.getMonth() && today.getFullYear() === prevDate.getFullYear();
               const timeRef = isYesterday ? "yesterday's" : "your previous";
-              
               comparisonStr = `that's ${dirSys} ${timeRef} ${prevSys}/${prevDia}. Steady progress.`;
             }
           }
@@ -553,73 +613,20 @@ export default function LogSymptomsScreen() {
         }
       }
 
-      showToast({ 
-        ...postLogAck("vitals", `${sys}/${dia} mmHg${effectiveHr ? ` • ${effectiveHr} BPM` : ""}`, comparisonStr), 
-        type: "success" 
-      });
+      if (sys !== null && dia !== null) {
+        showToast({ 
+          ...postLogAck("vitals", `${sys}/${dia} mmHg${effectiveHr ? ` • ${effectiveHr} BPM` : ""}`), 
+          type: "success" 
+        });
+      } else {
+        showToast({ 
+          title: "Health Log Saved",
+          message: "Your symptoms and daily check-in have been recorded.",
+          type: "success" 
+        });
+      }
       router.back();
     }
-
-    // Run the API request in background with network vs 4xx discrimination (CLN-01)
-    (async () => {
-      try {
-        if (params.pending_exercise) {
-          try {
-            const exercisePayload = JSON.parse(decodeURIComponent(params.pending_exercise as string));
-            const exUrl = `${base_url}/api/exercises/logs/${userId}`;
-            await fetch(exUrl, {
-              method: "POST",
-              headers: { 
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${token || ""}`,
-              },
-              body: JSON.stringify(exercisePayload),
-            });
-          } catch (e) {
-            console.warn("Failed to log pending exercise", e);
-          }
-        }
-
-        const res = await fetch(targetUrl, {
-          method: "POST",
-          headers: { 
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token || ""}`,
-          },
-          body: JSON.stringify(payload),
-        });
-
-        if (!res.ok) {
-          if (res.status >= 400 && res.status < 500) {
-            console.error(`Health log rejected with client status ${res.status}. Not enqueuing invalid payload.`);
-            showToast({
-              title: "Log Rejected",
-              message: "The server rejected this health log due to invalid data. Please verify your entries.",
-              type: "error",
-              duration: 6000,
-            });
-            return;
-          }
-          throw new Error(`Server returned status ${res.status}`);
-        }
-
-        // Vital-event cache invalidation (TKT-CLN-05)
-        if (userId) {
-          try {
-            const allKeys = await AsyncStorage.getAllKeys();
-            const keysToRemove = allKeys.filter((k) => k.startsWith(`@trends_cache_${userId}`));
-            if (keysToRemove.length > 0) {
-              await AsyncStorage.multiRemove(keysToRemove);
-            }
-          } catch (e) {
-            console.warn("Failed to invalidate trends cache after log", e);
-          }
-        }
-      } catch (err: any) {
-        console.warn("Network error during silent submission. Queuing log for offline sync...", err);
-        await OfflineSyncService.queueRequest(targetUrl, "POST", payload, undefined, userId || undefined);
-      }
-    })();
   };
 
   const maxSeverity = hasRealSymptoms ? Math.max(...selectedSymptoms.map(s => severities[s] || 1)) : 1;
@@ -629,16 +636,10 @@ export default function LogSymptomsScreen() {
     <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
       <StatusBar style={isDark ? "light" : "dark"} />
 
-      {/* ── Top Bar (Consistent with Auth & App standard) ── */}
+      {/* ── Top Bar ── */}
       <View className="px-5 pt-2 pb-2 flex-row items-center justify-between">
         <TouchableOpacity
-          onPress={() => {
-            if (step === 2 && !params.triggered_by_exercise_id) {
-              setStep(1);
-            } else {
-              router.back();
-            }
-          }}
+          onPress={() => router.back()}
           className="w-9 h-9 rounded-xl bg-card border border-border items-center justify-center"
           activeOpacity={0.7}
           accessible={true}
@@ -650,7 +651,7 @@ export default function LogSymptomsScreen() {
         <View className="flex-row items-center gap-2.5">
           <View className="px-2.5 py-1 rounded-full bg-card border border-border">
             <Text className="text-[11px] font-semibold text-muted-foreground">
-              Step {step} of 2 • {timestamp}
+              {timestamp}
             </Text>
           </View>
           <View className="w-8 h-8 rounded-full items-center justify-center border border-border bg-card shadow-sm">
@@ -664,152 +665,75 @@ export default function LogSymptomsScreen() {
         className="flex-1"
       >
         <ScrollView
-          contentContainerStyle={{
-            paddingHorizontal: 20,
-            paddingTop: 12,
-            paddingBottom: 24,
-          }}
+          contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 24 }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
           {/* ── Heading ── */}
           <Animated.View entering={FadeIn.duration(240)} className="mb-4 mt-1 px-1">
-            <Text className="text-3xl font-bold text-foreground tracking-tight leading-tight mb-1">
-              {step === 1 ? "Daily Vitals" : "Log Symptoms"}
-            </Text>
+            <View className="flex-row items-center gap-3 mb-2">
+              <View
+                className="w-10 h-10 rounded-2xl items-center justify-center"
+                style={{ backgroundColor: `${primaryThemeColor}14`, borderWidth: 1, borderColor: `${primaryThemeColor}30` }}
+              >
+                <Feather name="activity" size={19} color={primaryThemeColor} />
+              </View>
+              <View className="flex-1">
+                <Text className="text-[11px] font-bold uppercase tracking-widest" style={{ color: primaryThemeColor }}>
+                  Daily Check-In
+                </Text>
+                <Text className="text-2xl font-bold text-foreground tracking-tight leading-tight">
+                  Log Health Data
+                </Text>
+              </View>
+            </View>
             <Text className="text-[14px] text-muted-foreground leading-relaxed">
-              {step === 1
-                ? "Record today's cardiovascular vitals and medication status."
-                : "Select any symptoms experienced today and their intensity."}
+              Record today's cardiovascular vitals, medication status, and any symptoms.
             </Text>
           </Animated.View>
 
-          {/* ============================================================== */}
-          {/* STEP 1: VITALS */}
-          {/* ============================================================== */}
-          {step === 1 && (
-            <Animated.View entering={FadeInDown.duration(260)} className="gap-4">
-              {/* Acute Hypertensive Crisis In-Line Banner */}
-              {isHypertensiveCrisis && (
-                <View className="bg-red-50 dark:bg-red-950/40 border border-red-500 rounded-2xl p-4 gap-2 shadow-sm">
-                  <View className="flex-row items-center justify-between">
-                    <View className="flex-row items-center gap-2">
-                      <Feather name="alert-triangle" size={16} color="#ef4444" />
-                      <Text className="text-[12.5px] font-extrabold text-red-600 dark:text-red-400 uppercase tracking-wide">
-                        Hypertensive Crisis Alert
-                      </Text>
-                    </View>
-                    <TouchableOpacity
-                      onPress={handleLocateCardiologist}
-                      activeOpacity={0.8}
-                      className="bg-red-600 px-2.5 py-1 rounded-lg"
-                    >
-                      <Text className="text-[11px] font-bold text-white">Find Doctor</Text>
-                    </TouchableOpacity>
-                  </View>
-                  <Text className="text-[12px] text-red-700 dark:text-red-300 leading-relaxed font-medium">
-                    Entered blood pressure ({systolic || "--"}/{diastolic || "--"} mmHg) meets AHA/DOH Hypertensive Crisis threshold (≥180/120 mmHg). Rest quietly for 5 minutes and re-test. If reading persists or if experiencing chest pressure, shortness of breath, numbness, or vision changes, call 911 immediately.
-                  </Text>
-                </View>
-              )}
-
-              {/* Acute Hypotension In-Line Advisory */}
-              {isSevereHypotension && !isHypertensiveCrisis && (
-                <View className="bg-amber-50 dark:bg-amber-950/40 border border-amber-500 rounded-2xl p-3.5 gap-1.5 shadow-sm">
-                  <View className="flex-row items-center gap-2">
-                    <Feather name="alert-circle" size={15} color="#d97706" />
-                    <Text className="text-[12px] font-bold text-amber-700 dark:text-amber-400 uppercase">
-                      Low Blood Pressure Advisory
-                    </Text>
-                  </View>
-                  <Text className="text-[11.5px] text-amber-800 dark:text-amber-300 leading-snug">
-                    Entered reading is below 90/60 mmHg. Drink water, sit or lie down to prevent dizziness or fainting, and verify cuff placement.
-                  </Text>
-                </View>
-              )}
-
-              {/* 1. Core Vitals Card */}
-              <View className="bg-card rounded-2xl border border-border px-5 py-6 gap-4 shadow-md">
+          <Animated.View entering={FadeInDown.duration(260)} className="gap-4">
+            {/* ── Section 1: Vitals & Measurements ── */}
+            <View className="gap-4">
+              {/* Core Vitals Card */}
+              <View className="bg-card rounded-3xl border border-border px-5 py-6 gap-4 shadow-sm">
                 <View className="flex-row items-center gap-2">
                   <View className="w-7 h-7 rounded-lg bg-primary/10 items-center justify-center">
                     <Feather name="activity" size={15} color={isDark ? "#6488B0" : "#4A6080"} />
                   </View>
-                  <Text className="text-[15px] font-semibold text-foreground">
-                    Cardiovascular Metrics
-                  </Text>
+                  <Text className="text-[15px] font-semibold text-foreground">Cardiovascular Metrics</Text>
                 </View>
 
                 {/* Blood Pressure Row */}
                 <View className="gap-1.5">
-                  <Text className="text-xs font-semibold text-foreground ml-0.5">
-                    Blood Pressure
-                  </Text>
+                  <Text className="text-xs font-semibold text-foreground ml-0.5">Blood Pressure</Text>
                   <View className="flex-row gap-3">
                     <View className="flex-1 gap-1">
-                      <Text className="text-[11px] font-medium text-muted-foreground ml-0.5">
-                        Systolic (SYS)
-                      </Text>
+                      <Text className="text-[11px] font-medium text-muted-foreground ml-0.5">Systolic (SYS)</Text>
                       <View className="h-[50px] bg-background/60 dark:bg-slate-950/60 border border-border rounded-xl flex-row items-center px-3.5">
-                        <TextInput
-                          value={systolic}
-                          onChangeText={setSystolic}
-                          placeholder="120"
-                          placeholderTextColor={isDark ? "#64748b" : "#94a3b8"}
-                          keyboardType="numeric"
-                          maxLength={3}
-                          className="flex-1 text-[15px] text-foreground font-medium h-full"
-                        />
+                        <TextInput value={systolic} onChangeText={setSystolic} placeholder="120" placeholderTextColor={isDark ? "#64748b" : "#94a3b8"} keyboardType="numeric" maxLength={3} className="flex-1 text-[15px] text-foreground font-medium h-full" />
                         <Text className="text-[11px] font-medium text-muted-foreground">mmHg</Text>
                       </View>
-                      {/* Steppers */}
                       <View className="flex-row items-center gap-1 mt-1.5">
-                        <TouchableOpacity
-                          onPress={() => adjustSystolic(-5)}
-                          activeOpacity={0.7}
-                          className="flex-1 py-1 rounded-lg bg-muted/60 border border-border items-center"
-                        >
+                        <TouchableOpacity onPress={() => adjustSystolic(-5)} activeOpacity={0.7} hitSlop={10} className="flex-1 py-2 rounded-lg bg-muted/60 border border-border items-center">
                           <Text className="text-[11px] font-bold text-foreground">-5</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity
-                          onPress={() => adjustSystolic(5)}
-                          activeOpacity={0.7}
-                          className="flex-1 py-1 rounded-lg bg-muted/60 border border-border items-center"
-                        >
+                        <TouchableOpacity onPress={() => adjustSystolic(5)} activeOpacity={0.7} hitSlop={10} className="flex-1 py-2 rounded-lg bg-muted/60 border border-border items-center">
                           <Text className="text-[11px] font-bold text-foreground">+5</Text>
                         </TouchableOpacity>
                       </View>
                     </View>
-
                     <View className="flex-1 gap-1">
-                      <Text className="text-[11px] font-medium text-muted-foreground ml-0.5">
-                        Diastolic (DIA)
-                      </Text>
+                      <Text className="text-[11px] font-medium text-muted-foreground ml-0.5">Diastolic (DIA)</Text>
                       <View className="h-[50px] bg-background/60 dark:bg-slate-950/60 border border-border rounded-xl flex-row items-center px-3.5">
-                        <TextInput
-                          value={diastolic}
-                          onChangeText={setDiastolic}
-                          placeholder="80"
-                          placeholderTextColor={isDark ? "#64748b" : "#94a3b8"}
-                          keyboardType="numeric"
-                          maxLength={3}
-                          className="flex-1 text-[15px] text-foreground font-medium h-full"
-                        />
+                        <TextInput value={diastolic} onChangeText={setDiastolic} placeholder="80" placeholderTextColor={isDark ? "#64748b" : "#94a3b8"} keyboardType="numeric" maxLength={3} className="flex-1 text-[15px] text-foreground font-medium h-full" />
                         <Text className="text-[11px] font-medium text-muted-foreground">mmHg</Text>
                       </View>
-                      {/* Steppers */}
                       <View className="flex-row items-center gap-1 mt-1.5">
-                        <TouchableOpacity
-                          onPress={() => adjustDiastolic(-5)}
-                          activeOpacity={0.7}
-                          className="flex-1 py-1 rounded-lg bg-muted/60 border border-border items-center"
-                        >
+                        <TouchableOpacity onPress={() => adjustDiastolic(-5)} activeOpacity={0.7} hitSlop={10} className="flex-1 py-2 rounded-lg bg-muted/60 border border-border items-center">
                           <Text className="text-[11px] font-bold text-foreground">-5</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity
-                          onPress={() => adjustDiastolic(5)}
-                          activeOpacity={0.7}
-                          className="flex-1 py-1 rounded-lg bg-muted/60 border border-border items-center"
-                        >
+                        <TouchableOpacity onPress={() => adjustDiastolic(5)} activeOpacity={0.7} hitSlop={10} className="flex-1 py-2 rounded-lg bg-muted/60 border border-border items-center">
                           <Text className="text-[11px] font-bold text-foreground">+5</Text>
                         </TouchableOpacity>
                       </View>
@@ -820,248 +744,122 @@ export default function LogSymptomsScreen() {
                 {/* Heart Rate & Weight Row */}
                 <View className="flex-row gap-3">
                   <View className="flex-1 gap-1.5">
-                    <Text className="text-xs font-semibold text-foreground ml-0.5">
-                      Heart Rate
-                    </Text>
+                    <Text className="text-xs font-semibold text-foreground ml-0.5">Heart Rate</Text>
                     <View className="h-[50px] bg-background/60 dark:bg-slate-950/60 border border-border rounded-xl flex-row items-center px-3.5">
-                      <TextInput
-                        value={heartRate}
-                        onChangeText={setHeartRate}
-                        placeholder="72"
-                        placeholderTextColor={isDark ? "#64748b" : "#94a3b8"}
-                        keyboardType="numeric"
-                        maxLength={3}
-                        className="flex-1 text-[15px] text-foreground font-medium h-full"
-                      />
+                      <TextInput value={heartRate} onChangeText={setHeartRate} placeholder="72" placeholderTextColor={isDark ? "#64748b" : "#94a3b8"} keyboardType="numeric" maxLength={3} className="flex-1 text-[15px] text-foreground font-medium h-full" />
                       <Text className="text-[11px] font-medium text-muted-foreground">BPM</Text>
                     </View>
                   </View>
-
                   <View className="flex-1 gap-1.5">
-                    <Text className="text-xs font-semibold text-foreground ml-0.5">
-                      Weight
-                    </Text>
+                    <Text className="text-xs font-semibold text-foreground ml-0.5">Weight</Text>
                     <View className="h-[50px] bg-background/60 dark:bg-slate-950/60 border border-border rounded-xl flex-row items-center px-3.5">
-                      <TextInput
-                        value={weight}
-                        onChangeText={setWeight}
-                        placeholder="70"
-                        placeholderTextColor={isDark ? "#64748b" : "#94a3b8"}
-                        keyboardType="numeric"
-                        maxLength={5}
-                        className="flex-1 text-[15px] text-foreground font-medium h-full"
-                      />
+                      <TextInput value={weight} onChangeText={setWeight} placeholder="70" placeholderTextColor={isDark ? "#64748b" : "#94a3b8"} keyboardType="numeric" maxLength={5} className="flex-1 text-[15px] text-foreground font-medium h-full" />
                       <Text className="text-[11px] font-medium text-muted-foreground">kg</Text>
                     </View>
                   </View>
                 </View>
               </View>
 
-              {/* 2. Medication Status Card */}
-              <View className="bg-card rounded-2xl border border-border px-5 py-6 gap-3.5 shadow-md">
+              {/* Medication Status Card */}
+              <View className="bg-card rounded-3xl border border-border px-5 py-6 gap-3.5 shadow-sm">
                 <View className="flex-row items-center gap-2">
                   <View className="w-7 h-7 rounded-lg bg-primary/10 items-center justify-center">
                     <Feather name="check-circle" size={15} color={isDark ? "#6488B0" : "#4A6080"} />
                   </View>
-                  <Text className="text-[15px] font-semibold text-foreground">
-                    Medication Check
-                  </Text>
+                  <Text className="text-[15px] font-semibold text-foreground">Medication Check</Text>
                 </View>
-
                 <Text className="text-[13px] text-muted-foreground leading-relaxed">
                   Did you take your prescribed maintenance medications today?
                 </Text>
-
                 <View className="flex-row gap-3 mt-1">
                   <TouchableOpacity
                     activeOpacity={0.75}
-                    onPress={() => {
-                      Haptics.selectionAsync();
-                      setMedicationTaken(false);
+                    onPress={() => { Haptics.selectionAsync(); setMedicationTaken(false); }}
+                    className="flex-1 py-3.5 rounded-xl flex-row items-center justify-center gap-2 border"
+                    style={{
+                      backgroundColor: medicationTaken === false ? (isDark ? "rgba(209, 92, 78, 0.15)" : "rgba(138, 31, 26, 0.08)") : (isDark ? "rgba(16, 25, 35, 0.8)" : "rgba(237, 241, 239, 0.8)"),
+                      borderColor: medicationTaken === false ? (isDark ? "rgba(209, 92, 78, 0.4)" : "rgba(138, 31, 26, 0.4)") : borderThemeColor,
                     }}
-                    className={`flex-1 py-3.5 rounded-xl flex-row items-center justify-center gap-2 border ${
-                      medicationTaken === false
-                        ? "bg-destructive/15 border-destructive/40"
-                        : "bg-background/80 border-border"
-                    }`}
                   >
-                    <Feather
-                      name="x-circle"
-                      size={15}
-                      color={medicationTaken === false ? "#ef4444" : (isDark ? "#94a3b8" : "#64748b")}
-                    />
-                    <Text
-                      className={`text-sm font-semibold ${
-                        medicationTaken === false ? "text-destructive" : "text-muted-foreground"
-                      }`}
-                    >
-                      No, missed
-                    </Text>
+                    <Feather name="x-circle" size={15} color={medicationTaken === false ? destructiveThemeColor : mutedFgThemeColor} />
+                    <Text className="text-sm font-semibold" style={{ color: medicationTaken === false ? destructiveThemeColor : mutedFgThemeColor }}>No, missed</Text>
                   </TouchableOpacity>
-
                   <TouchableOpacity
                     activeOpacity={0.75}
-                    onPress={() => {
-                      Haptics.selectionAsync();
-                      setMedicationTaken(true);
+                    onPress={() => { Haptics.selectionAsync(); setMedicationTaken(true); }}
+                    className="flex-1 py-3.5 rounded-xl flex-row items-center justify-center gap-2 border"
+                    style={{
+                      backgroundColor: medicationTaken === true ? (isDark ? "rgba(79, 167, 154, 0.15)" : "rgba(27, 110, 99, 0.1)") : (isDark ? "rgba(16, 25, 35, 0.8)" : "rgba(237, 241, 239, 0.8)"),
+                      borderColor: medicationTaken === true ? (isDark ? "rgba(79, 167, 154, 0.4)" : "rgba(27, 110, 99, 0.4)") : borderThemeColor,
                     }}
-                    className={`flex-1 py-3.5 rounded-xl flex-row items-center justify-center gap-2 border ${
-                      medicationTaken === true
-                        ? "bg-success/15 border-success/40"
-                        : "bg-background/80 border-border"
-                    }`}
                   >
-                    <Feather
-                      name="check-circle"
-                      size={15}
-                      color={medicationTaken === true ? "#10b981" : (isDark ? "#94a3b8" : "#64748b")}
-                    />
-                    <Text
-                      className={`text-sm font-semibold ${
-                        medicationTaken === true ? "text-success font-bold" : "text-muted-foreground"
-                      }`}
-                    >
-                      Yes, taken
-                    </Text>
+                    <Feather name="check-circle" size={15} color={medicationTaken === true ? successThemeColor : mutedFgThemeColor} />
+                    <Text className="text-sm font-semibold" style={{ color: medicationTaken === true ? successThemeColor : mutedFgThemeColor, fontWeight: medicationTaken === true ? "700" : "600" }}>Yes, taken</Text>
                   </TouchableOpacity>
                 </View>
               </View>
-            </Animated.View>
-          )}
+            </View>
 
-          {/* ============================================================== */}
-          {/* STEP 2: SYMPTOMS */}
-          {/* ============================================================== */}
-          {step === 2 && (
-            <Animated.View entering={FadeInDown.duration(260)} layout={LinearTransition.duration(220)} className="gap-4">
-              {/* ── Status Overview Summary ── */}
+            {/* ── Section 2: Symptoms & Feelings ── */}
+            <View className="gap-4 mt-2">
+              {/* Section Divider */}
+              <View className="flex-row items-center gap-3 px-1">
+                <View className="flex-1 h-px bg-border" />
+                <View className="flex-row items-center gap-2">
+                  <View className="w-7 h-7 rounded-lg items-center justify-center" style={{ backgroundColor: `${primaryThemeColor}1A` }}>
+                    <Feather name="heart" size={14} color={primaryThemeColor} />
+                  </View>
+                  <Text className="text-[11px] font-bold uppercase tracking-widest" style={{ color: primaryThemeColor }}>Symptoms & Feelings</Text>
+                </View>
+                <View className="flex-1 h-px bg-border" />
+              </View>
+
+              {/* Status Overview Summary */}
               <Animated.View layout={LinearTransition.duration(220)} className="bg-card rounded-2xl border border-border p-4 shadow-sm flex-row gap-3">
                 <View className="flex-1 bg-background/70 border border-border rounded-xl p-3 items-center">
-                  <Text className="text-2xl font-bold text-foreground">
-                    {hasRealSymptoms ? selectedSymptoms.length : 0}
-                  </Text>
-                  <Text className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mt-0.5">
-                    Symptoms
-                  </Text>
+                  <Text className="text-2xl font-bold text-foreground">{hasRealSymptoms ? selectedSymptoms.length : 0}</Text>
+                  <Text className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mt-0.5">Symptoms</Text>
                 </View>
-
-                <View
-                  className="flex-1 rounded-xl p-3 border items-center justify-center"
-                  style={{
-                    backgroundColor: hasRealSymptoms ? sevColor.bg : (isDark ? "rgba(15, 23, 42, 0.4)" : "#f8fafc"),
-                    borderColor: hasRealSymptoms ? sevColor.border : (isDark ? "#1e293b" : "#e2e8f0"),
-                  }}
-                >
-                  <Text
-                    className="text-2xl font-bold"
-                    style={{ color: hasRealSymptoms ? sevColor.text : (isDark ? "#64748b" : "#94a3b8") }}
-                  >
-                    {hasRealSymptoms ? maxSeverity : "—"}
-                  </Text>
-                  <Text
-                    className="text-[10px] font-bold uppercase tracking-wider mt-0.5"
-                    style={{ color: hasRealSymptoms ? sevColor.text : (isDark ? "#64748b" : "#94a3b8") }}
-                  >
-                    {hasRealSymptoms ? getSeverityLabel(maxSeverity) : "Severity"}
-                  </Text>
+                <View className="flex-1 rounded-xl p-3 border items-center justify-center" style={{ backgroundColor: hasRealSymptoms ? sevColor.bg : (isDark ? "rgba(15, 23, 42, 0.4)" : "#f8fafc"), borderColor: hasRealSymptoms ? sevColor.border : (isDark ? "#1e293b" : "#e2e8f0") }}>
+                  <Text className="text-2xl font-bold" style={{ color: hasRealSymptoms ? sevColor.text : (isDark ? "#64748b" : "#94a3b8") }}>{hasRealSymptoms ? maxSeverity : "—"}</Text>
+                  <Text className="text-[10px] font-bold uppercase tracking-wider mt-0.5" style={{ color: hasRealSymptoms ? sevColor.text : (isDark ? "#64748b" : "#94a3b8") }}>{hasRealSymptoms ? getSeverityLabel(maxSeverity) : "Severity"}</Text>
                 </View>
-
                 <View className="flex-1 bg-background/70 border border-border rounded-xl p-3 items-center justify-center">
-                  <MaterialCommunityIcons
-                    name={CONTEXT_ICONS[context] as any}
-                    size={22}
-                    color={isDark ? "#94a3b8" : "#64748b"}
-                  />
-                  <Text
-                    className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mt-0.5 text-center"
-                    numberOfLines={1}
-                  >
-                    {context.replace("While ", "").replace("During ", "")}
-                  </Text>
+                  <MaterialCommunityIcons name={CONTEXT_ICONS[context] as any} size={22} color={isDark ? "#94a3b8" : "#64748b"} />
+                  <Text className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mt-0.5 text-center" numberOfLines={1}>{context.replace("While ", "").replace("During ", "")}</Text>
                 </View>
               </Animated.View>
 
-              {/* ── Symptom Selection Cards ── */}
-              <Animated.View
-                layout={LinearTransition.duration(220)}
-                className="bg-card rounded-2xl border border-border px-5 py-6 gap-3.5 shadow-md"
-              >
-                <Text className="text-[15px] font-semibold text-foreground mb-1">
-                  What are you feeling?
-                </Text>
-
+              {/* Symptom Selection Cards */}
+              <Animated.View layout={LinearTransition.duration(220)} className="bg-card rounded-3xl border border-border px-5 py-6 gap-3.5 shadow-sm">
+                <Text className="text-[15px] font-semibold text-foreground mb-1">What are you feeling?</Text>
                 <View className="gap-2.5">
                   {SYMPTOMS.map((symp) => {
                     const isSelected = selectedSymptoms.includes(symp);
                     const isNone = symp === "None (Feeling fine)";
-
                     return (
                       <View key={symp} className="gap-2">
                         <TouchableOpacity
                           activeOpacity={0.75}
                           onPress={() => toggleSymptom(symp)}
-                          className={`flex-row items-center px-4 py-3.5 rounded-xl border ${
-                            isSelected
-                              ? isNone
-                                ? "bg-success/15 border-success/40"
-                                : "bg-primary/10 border-primary"
-                              : "bg-background/60 border-border"
-                          }`}
+                          className="flex-row items-center px-4 py-3.5 rounded-xl border"
+                          style={{
+                            backgroundColor: isSelected ? (isNone ? (isDark ? "rgba(79, 167, 154, 0.15)" : "rgba(27, 110, 99, 0.1)") : (isDark ? "rgba(240, 105, 68, 0.12)" : "rgba(232, 83, 46, 0.08)")) : (isDark ? "rgba(16, 25, 35, 0.6)" : "rgba(237, 241, 239, 0.6)"),
+                            borderColor: isSelected ? (isNone ? (isDark ? "rgba(79, 167, 154, 0.4)" : "rgba(27, 110, 99, 0.4)") : primaryThemeColor) : borderThemeColor,
+                          }}
                         >
-                          <View
-                            className={`w-8 h-8 rounded-lg items-center justify-center mr-3 ${
-                              isSelected
-                                ? isNone
-                                  ? "bg-success/20"
-                                  : "bg-primary/20"
-                                : "bg-card border border-border"
-                            }`}
-                          >
-                            <MaterialCommunityIcons
-                              name={SYMPTOM_ICONS[symp] as any}
-                              size={17}
-                              color={
-                                isSelected
-                                  ? isNone
-                                    ? "#10b981"
-                                    : (isDark ? "#6488B0" : "#4A6080")
-                                  : (isDark ? "#94a3b8" : "#64748b")
-                              }
-                            />
+                          <View className="w-8 h-8 rounded-lg items-center justify-center mr-3" style={{ backgroundColor: isSelected ? (isNone ? (isDark ? "rgba(79, 167, 154, 0.25)" : "rgba(27, 110, 99, 0.15)") : (isDark ? "rgba(240, 105, 68, 0.2)" : "rgba(232, 83, 46, 0.15)")) : cardThemeBg, borderWidth: isSelected ? 0 : 1, borderColor: borderThemeColor }}>
+                            <MaterialCommunityIcons name={SYMPTOM_ICONS[symp] as any} size={17} color={isSelected ? (isNone ? successThemeColor : primaryThemeColor) : mutedFgThemeColor} />
                           </View>
-
-                          <Text
-                            className={`flex-1 text-sm font-semibold ${
-                              isSelected
-                                ? isNone
-                                  ? "text-success font-bold"
-                                  : "text-primary font-bold"
-                                : "text-foreground"
-                            }`}
-                          >
-                            {symp}
-                          </Text>
-
+                          <Text className="flex-1 text-sm font-semibold" style={{ color: isSelected ? (isNone ? successThemeColor : primaryThemeColor) : fgThemeColor, fontWeight: isSelected ? "700" : "600" }}>{symp}</Text>
                           {isSelected && (
-                            <View
-                              className={`w-5 h-5 rounded-full items-center justify-center ${
-                                isNone ? "bg-success" : "bg-primary"
-                              }`}
-                            >
+                            <View className="w-5 h-5 rounded-full items-center justify-center" style={{ backgroundColor: isNone ? successThemeColor : primaryThemeColor }}>
                               <Feather name="check" size={12} color="#fff" />
                             </View>
                           )}
                         </TouchableOpacity>
-
-                        {/* Interactive Severity Slider for active symptom */}
                         {isSelected && !isNone && (
-                          <SeveritySlider
-                            value={severities[symp] || 1}
-                            onChange={(val) =>
-                              setSeverities((prev) => ({ ...prev, [symp]: val }))
-                            }
-                            isDark={isDark}
-                          />
+                          <SeveritySlider value={severities[symp] || 1} onChange={(val) => setSeverities((prev) => ({ ...prev, [symp]: val }))} isDark={isDark} />
                         )}
                       </View>
                     );
@@ -1069,61 +867,21 @@ export default function LogSymptomsScreen() {
                 </View>
               </Animated.View>
 
-              {/* ── Context Selector ── */}
+              {/* Context Selector */}
               {hasRealSymptoms && (
-                <Animated.View
-                  layout={LinearTransition.duration(220)}
-                  className="bg-card rounded-2xl border border-border px-5 py-6 gap-3.5 shadow-md"
-                >
-                  <Text className="text-[15px] font-semibold text-foreground">
-                    When did this happen?
-                  </Text>
-
+                <Animated.View layout={LinearTransition.duration(220)} className="bg-card rounded-3xl border border-border px-5 py-6 gap-3.5 shadow-sm">
+                  <Text className="text-[15px] font-semibold text-foreground">When did this happen?</Text>
                   <View className="gap-2.5">
                     {CONTEXTS.map((ctx) => {
                       const isSelected = context === ctx;
                       return (
-                        <TouchableOpacity
-                          key={ctx}
-                          activeOpacity={0.75}
-                          onPress={() => {
-                            Haptics.selectionAsync();
-                            setContext(ctx);
-                          }}
-                          className={`flex-row items-center px-4 py-3.5 rounded-xl border ${
-                            isSelected
-                              ? "bg-primary/10 border-primary"
-                              : "bg-background/60 border-border"
-                          }`}
-                        >
-                          <View
-                            className={`w-8 h-8 rounded-lg items-center justify-center mr-3 ${
-                              isSelected ? "bg-primary/20" : "bg-card border border-border"
-                            }`}
-                          >
-                            <MaterialCommunityIcons
-                              name={CONTEXT_ICONS[ctx] as any}
-                              size={16}
-                              color={isSelected ? (isDark ? "#6488B0" : "#4A6080") : (isDark ? "#94a3b8" : "#64748b")}
-                            />
+                        <TouchableOpacity key={ctx} activeOpacity={0.75} onPress={() => { Haptics.selectionAsync(); setContext(ctx); }} className="flex-row items-center px-4 py-3.5 rounded-xl border" style={{ backgroundColor: isSelected ? (isDark ? "rgba(240, 105, 68, 0.12)" : "rgba(232, 83, 46, 0.08)") : (isDark ? "rgba(16, 25, 35, 0.6)" : "rgba(237, 241, 239, 0.6)"), borderColor: isSelected ? primaryThemeColor : borderThemeColor }}>
+                          <View className="w-8 h-8 rounded-lg items-center justify-center mr-3" style={{ backgroundColor: isSelected ? (isDark ? "rgba(240, 105, 68, 0.2)" : "rgba(232, 83, 46, 0.15)") : cardThemeBg, borderWidth: isSelected ? 0 : 1, borderColor: borderThemeColor }}>
+                            <MaterialCommunityIcons name={CONTEXT_ICONS[ctx] as any} size={16} color={isSelected ? primaryThemeColor : mutedFgThemeColor} />
                           </View>
-
-                          <Text
-                            className={`flex-1 text-sm font-semibold ${
-                              isSelected ? "text-primary font-bold" : "text-foreground"
-                            }`}
-                          >
-                            {ctx}
-                          </Text>
-
-                          <View
-                            className={`w-5 h-5 rounded-full border-2 items-center justify-center ${
-                              isSelected ? "border-primary" : "border-border"
-                            }`}
-                          >
-                            {isSelected && (
-                              <View className="w-2.5 h-2.5 rounded-full bg-primary" />
-                            )}
+                          <Text className="flex-1 text-sm font-semibold" style={{ color: isSelected ? primaryThemeColor : fgThemeColor, fontWeight: isSelected ? "700" : "600" }}>{ctx}</Text>
+                          <View className="w-5 h-5 rounded-full border-2 items-center justify-center" style={{ borderColor: isSelected ? primaryThemeColor : borderThemeColor }}>
+                            {isSelected && <View className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: primaryThemeColor }} />}
                           </View>
                         </TouchableOpacity>
                       );
@@ -1131,108 +889,53 @@ export default function LogSymptomsScreen() {
                   </View>
                 </Animated.View>
               )}
-            </Animated.View>
-          )}
+            </View>
+          </Animated.View>
         </ScrollView>
 
         {/* ── Bottom Action Bar ── */}
-        <Animated.View
-          layout={LinearTransition.duration(220)}
-          className="bg-background/95 border-t border-border px-5 pt-3 gap-2.5"
-          style={{
-            paddingBottom: Math.max(insets.bottom, 16) + (Platform.OS === "android" ? 10 : 4),
-          }}
-        >
-          {/* Docked Emergency Warning Callout */}
-          {step === 2 && isEmergency && (
-            <Animated.View
-              entering={FadeInDown.duration(250)}
-              exiting={FadeOutUp.duration(160)}
-              className="bg-destructive/15 border border-destructive/40 rounded-2xl p-3.5 gap-2"
-            >
-              <View className="flex-row items-center justify-between">
-                <View className="flex-row items-center gap-1.5">
-                  <Feather name="alert-triangle" size={15} color="#ef4444" />
-                  <Text className="text-xs font-bold text-destructive uppercase tracking-wide">
-                    {isSevereHypotension
-                      ? "Severe Hypotension (<90/60)"
-                      : isHypertensiveCrisis
-                      ? "Hypertensive Crisis (≥180/120)"
-                      : "Elevated Risk Detected"}
-                  </Text>
+        <Animated.View layout={LinearTransition.duration(220)} className="bg-background/95 border-t border-border px-5 pt-3 gap-2.5" style={{ paddingBottom: Math.max(insets.bottom, 16) + (Platform.OS === "android" ? 10 : 4) }}>
+          {/* Docked Emergency Warning — fixed-height container prevents jitter */}
+          <View style={{ minHeight: isEmergency ? undefined : 0, overflow: "hidden" }}>
+            {isEmergency && (
+              <Animated.View entering={FadeInDown.duration(250)} exiting={FadeOutUp.duration(160)} className="bg-destructive/15 border border-destructive/40 rounded-2xl p-3.5 gap-2">
+                <View className="flex-row items-center justify-between">
+                  <View className="flex-row items-center gap-1.5">
+                    <Feather name="alert-triangle" size={15} color="#ef4444" />
+                    <Text className="text-xs font-bold text-destructive uppercase tracking-wide">
+                      {isSevereHypotension ? "Severe Hypotension (<90/60)" : isHypertensiveCrisis ? "Hypertensive Crisis (≥180/120)" : "Elevated Risk Detected"}
+                    </Text>
+                  </View>
+                  <TouchableOpacity onPress={handleLocateCardiologist} activeOpacity={0.75} className="bg-card px-2.5 py-1 rounded-lg border border-destructive/30 flex-row items-center gap-1">
+                    <MaterialCommunityIcons name="map-marker-radius" size={13} color="#ef4444" />
+                    <Text className="text-[11px] font-bold text-destructive">Find Cardiologist</Text>
+                  </TouchableOpacity>
                 </View>
-                <TouchableOpacity
-                  onPress={handleLocateCardiologist}
-                  activeOpacity={0.75}
-                  className="bg-card px-2.5 py-1 rounded-lg border border-destructive/30 flex-row items-center gap-1"
-                >
-                  <MaterialCommunityIcons name="map-marker-radius" size={13} color="#ef4444" />
-                  <Text className="text-[11px] font-bold text-destructive">
-                    Find Cardiologist
-                  </Text>
-                </TouchableOpacity>
-              </View>
-              <Text className="text-[12px] text-destructive leading-snug font-medium">
-                {isSevereHypotension
-                  ? "Entered blood pressure indicates acute hypotension (<90/60 mmHg). Sit or lie down safely, hydrate, and seek medical attention if faint or symptomatic."
-                  : isHypertensiveCrisis
-                  ? "Entered blood pressure indicates an acute Hypertensive Crisis (≥180/120 mmHg). Rest for 5 mins and re-test. If sustained or symptoms worsen, call 911 immediately."
-                  : "Clinical indicators suggest acute risk. Please seek medical evaluation immediately."}
-              </Text>
-            </Animated.View>
-          )}
+                <Text className="text-[12px] text-destructive leading-snug font-medium">
+                  {isSevereHypotension
+                    ? "Entered blood pressure indicates acute hypotension (<90/60 mmHg). Sit or lie down safely, hydrate, and seek medical attention if faint or symptomatic."
+                    : isHypertensiveCrisis
+                    ? `Entered blood pressure (${systolic || "--"}/${diastolic || "--"} mmHg) indicates an acute Hypertensive Crisis (≥180/120 mmHg). Rest for 5 mins and re-test. If sustained or symptoms worsen, call 911 immediately.`
+                    : "Clinical indicators suggest acute risk. Please seek medical evaluation immediately."}
+                </Text>
+              </Animated.View>
+            )}
+          </View>
 
-          {step === 1 ? (
-            <View className="gap-2">
-              {params.quick_entry === "true" && (
-                <Button
-                  label="Log Vitals Directly"
-                  icon="check"
-                  variant="outline"
-                  onPress={handleSubmit}
-                  isLoading={isSubmitting}
-                />
-              )}
-              <Button
-                label="Next: Symptoms"
-                icon="arrow-right"
-                onPress={() => {
-                  Haptics.selectionAsync();
-                  setStep(2);
-                }}
-              />
-            </View>
-          ) : (
-            <Button
-              label={isEmergency ? "Submit Critical Log" : "Submit Health Log"}
-              icon={isEmergency ? "alert-triangle" : "check"}
-              onPress={handleSubmit}
-              isLoading={isSubmitting}
-              loadingText="Saving log..."
-              variant={isEmergency ? "destructive" : "primary"}
-            />
-          )}
+          <View className="mt-2 mb-4">
+            <Button label={isEmergency ? "Submit Critical Log" : "Submit Health Log"} icon={isEmergency ? "alert-triangle" : "check"} onPress={handleSubmit} isLoading={isSubmitting} loadingText="Saving log..." variant={isEmergency ? "destructive" : "primary"} />
+          </View>
         </Animated.View>
       </KeyboardAvoidingView>
 
-      {/* Emergency Guidance Modal for Acute Clinical Crisis (HL-ENG-17) */}
-      <Modal
-        visible={showEmergencyGuidanceModal}
-        transparent
-        animationType="fade"
-        onRequestClose={() => {
-          setShowEmergencyGuidanceModal(false);
-          router.back();
-        }}
-      >
+      {/* Emergency Guidance Modal (HL-ENG-17) */}
+      <Modal visible={showEmergencyGuidanceModal} transparent animationType="fade" onRequestClose={() => { setShowEmergencyGuidanceModal(false); router.back(); }}>
         <View className="flex-1 bg-black/70 justify-center items-center px-5">
           <View className="w-full max-w-sm bg-white dark:bg-slate-900 rounded-3xl p-6 border-2 border-red-500 shadow-2xl">
             <View className="w-14 h-14 rounded-2xl bg-red-100 dark:bg-red-950/80 items-center justify-center mb-4 self-center">
               <Feather name="alert-triangle" size={28} color="#dc2626" />
             </View>
-            <Text className="text-[20px] font-black text-slate-900 dark:text-white text-center mb-2 tracking-tight">
-              Critical Vitals Detected
-            </Text>
+            <Text className="text-[20px] font-black text-slate-900 dark:text-white text-center mb-2 tracking-tight">Critical Vitals Detected</Text>
             <Text className="text-[14px] text-slate-600 dark:text-slate-300 text-center leading-relaxed mb-6 font-medium">
               {isSevereHypotension
                 ? "Your blood pressure reading reflects acute hypotension (<90/60 mmHg). Please sit or lie down, hydrate, and seek medical assistance immediately."
@@ -1240,46 +943,17 @@ export default function LogSymptomsScreen() {
                 ? "Your blood pressure reading reflects an acute Hypertensive Crisis (≥180/120 mmHg). Immediate emergency medical evaluation is strongly advised."
                 : "Your clinical indicators reflect acute cardiac strain. Please seek emergency medical care immediately."}
             </Text>
-
             <View className="gap-3 w-full">
-              <TouchableOpacity
-                activeOpacity={0.85}
-                onPress={() => {
-                  setShowEmergencyGuidanceModal(false);
-                  router.replace("/locator" as any);
-                }}
-                className="w-full bg-red-600 py-3.5 px-4 rounded-xl flex-row items-center justify-center gap-2 shadow-sm"
-              >
+              <TouchableOpacity activeOpacity={0.85} onPress={() => { setShowEmergencyGuidanceModal(false); router.replace("/locator" as any); }} className="w-full bg-red-600 py-3.5 px-4 rounded-xl flex-row items-center justify-center gap-2 shadow-sm">
                 <Feather name="map-pin" size={16} color="#ffffff" />
-                <Text className="text-white text-[14px] font-bold">
-                  Find Nearby Emergency Hospital
-                </Text>
+                <Text className="text-white text-[14px] font-bold">Find Nearby Emergency Hospital</Text>
               </TouchableOpacity>
-
-              <TouchableOpacity
-                activeOpacity={0.85}
-                onPress={() => {
-                  Linking.openURL("tel:911").catch(() => {});
-                }}
-                className="w-full bg-slate-900 dark:bg-slate-800 py-3.5 px-4 rounded-xl flex-row items-center justify-center gap-2"
-              >
+              <TouchableOpacity activeOpacity={0.85} onPress={() => { Linking.openURL("tel:911").catch(() => {}); }} className="w-full bg-slate-900 dark:bg-slate-800 py-3.5 px-4 rounded-xl flex-row items-center justify-center gap-2">
                 <Feather name="phone-call" size={16} color="#ffffff" />
-                <Text className="text-white text-[14px] font-bold">
-                  Call Emergency Services (911)
-                </Text>
+                <Text className="text-white text-[14px] font-bold">Call Emergency Services (911)</Text>
               </TouchableOpacity>
-
-              <TouchableOpacity
-                activeOpacity={0.7}
-                onPress={() => {
-                  setShowEmergencyGuidanceModal(false);
-                  router.back();
-                }}
-                className="w-full py-2.5 items-center justify-center mt-1"
-              >
-                <Text className="text-slate-400 dark:text-slate-500 text-[13px] font-semibold">
-                  Acknowledge & Return to App
-                </Text>
+              <TouchableOpacity activeOpacity={0.7} onPress={() => { setShowEmergencyGuidanceModal(false); router.back(); }} className="w-full py-2.5 items-center justify-center mt-1">
+                <Text className="text-slate-400 dark:text-slate-500 text-[13px] font-semibold">Acknowledge & Return to App</Text>
               </TouchableOpacity>
             </View>
           </View>

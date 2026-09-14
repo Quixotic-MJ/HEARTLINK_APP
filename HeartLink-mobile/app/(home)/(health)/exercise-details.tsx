@@ -257,29 +257,19 @@ export default function ExerciseDetailsScreen() {
     setShowSafetyCheck(false);
   };
 
-  const handleSafetySymptoms = () => {
+  const handleSafetySymptoms = async () => {
     setShowSafetyCheck(false);
     setShowCompletionCheck(false);
     setShowShortSessionCheck(false);
     if (!routine) return;
     
     const elapsedSeconds = sessionStartedAt ? Math.floor((Date.now() - sessionStartedAt) / 1000) : 0;
-    const elapsedMinutes = Math.round(elapsedSeconds / 60);
-    const exerciseId = generateExerciseId();
-    
-    const payload = {
-      id: exerciseId,
-      routine_id: routine.id,
-      routine_name: routine.title,
-      duration_seconds: elapsedSeconds,
-      duration_minutes: elapsedMinutes,
-      planned_duration_seconds: routine.duration * 60,
-      planned_duration_minutes: routine.duration,
-      status: "incomplete_due_to_symptoms",
-    };
-    
-    const payloadStr = encodeURIComponent(JSON.stringify(payload));
-    router.push(`/(home)/(health)/log-symptoms?triggered_by_exercise_id=${exerciseId}&pending_exercise=${payloadStr}`);
+
+    // Save the exercise independently (with built-in offline fallback)
+    await logExerciseData("incomplete_due_to_symptoms", elapsedSeconds);
+
+    // Navigate to log-symptoms with only the context flag — no payload passing
+    router.push(`/(home)/(health)/log-symptoms?triggered_by_exercise_id=post-workout`);
   };
 
   if (isLoading || !routine) {

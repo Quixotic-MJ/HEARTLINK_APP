@@ -8,6 +8,7 @@ import { useRouter } from "expo-router";
 import { useUser } from "../../../contexts/UserContext";
 import { Skeleton } from "../../../components/ui/Skeleton";
 import { EmptyState } from "../../../components/ui/EmptyState";
+import { calcRiskFromValues } from "../../../components/meals/SharedMealComponents";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -46,7 +47,7 @@ export default function SearchMealScreen() {
                 saturated_fat_g: log.saturated_fat_g || 0,
                 fiber_g: log.fiber_g || 0,
                 image_url: log.image_url,
-                hss_tier: log.sodium_mg < 400 ? 'Stable' : (log.sodium_mg > 800 ? 'At Risk' : 'Caution')
+                hss_tier: calcRiskFromValues(log.sodium_mg || 0, log.calories || 0, log.saturated_fat_g || 0).level
               });
             }
           });
@@ -104,7 +105,7 @@ export default function SearchMealScreen() {
             const formatted = data.map((item: any) => ({
               ...item,
               type: 'food',
-              hss_tier: item.sodium_mg < 400 ? "Stable" : (item.sodium_mg > 800 ? "At Risk" : "Caution")
+              hss_tier: calcRiskFromValues(item.sodium_mg || 0, item.calories || 0, item.saturated_fat_g || 0).level
             }));
             combined = [...combined, ...formatted];
           }
@@ -132,7 +133,7 @@ export default function SearchMealScreen() {
                   sodium_mg: Math.round(sodium),
                   saturated_fat_g: p.nutriments?.["saturated-fat"] || 0,
                   fiber_g: p.nutriments?.fiber || 0,
-                  hss_tier: sodium < 400 ? "Stable" : (sodium > 800 ? "At Risk" : "Caution")
+                  hss_tier: calcRiskFromValues(Math.round(sodium), Math.round(p.nutriments?.["energy-kcal"] || 0), p.nutriments?.["saturated-fat"] || 0).level
                 };
               }); 
             combined = [...combined, ...offItems];
@@ -271,8 +272,8 @@ export default function SearchMealScreen() {
                 </Text>
                 
                 {/* Tag */}
-                <View className="self-start px-2 py-1 rounded-md" style={{ backgroundColor: item.hss_tier === "Stable" ? "#eaf3de" : "#fcebeb" }}>
-                  <Text className="text-[10px] font-bold uppercase tracking-wider" style={{ color: item.hss_tier === "Stable" ? "#3b6d11" : "#a32d2d" }}>
+                <View className="self-start px-2 py-1 rounded-md" style={{ backgroundColor: item.hss_tier === "Heart-Friendly" ? "#eaf3de" : item.hss_tier === "Moderate" ? "#fef3c7" : "#fcebeb" }}>
+                  <Text className="text-[10px] font-bold uppercase tracking-wider" style={{ color: item.hss_tier === "Heart-Friendly" ? "#3b6d11" : item.hss_tier === "Moderate" ? "#b45309" : "#a32d2d" }}>
                     {item.hss_tier || "Unknown"}
                   </Text>
                 </View>

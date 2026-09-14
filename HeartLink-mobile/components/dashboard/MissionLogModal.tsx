@@ -13,10 +13,7 @@ import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useColorScheme } from "nativewind";
 import { useRouter } from "expo-router";
 import type { MissionId } from "./MissionList";
-import {
-  VitalsQuickForm,
-  SleepQuickForm,
-} from "./MissionDropdowns";
+import { SleepQuickForm } from "./MissionDropdowns";
 
 const FOOD_LOG_OPTIONS = [
   {
@@ -75,23 +72,15 @@ export function MissionLogModal({
   mission,
   userId,
   token,
-  initialSys,
-  initialDia,
-  initialBpm,
   onClose,
   onSaved,
-  onContinueToSymptoms,
   onOpenDiary,
 }: {
   mission: Exclude<MissionId, "exercise"> | null;
   userId?: string | null;
   token?: string | null;
-  initialSys?: number | null;
-  initialDia?: number | null;
-  initialBpm?: number | null;
   onClose: () => void;
   onSaved: () => void;
-  onContinueToSymptoms: (sys: string, dia: string) => void;
   onOpenDiary: () => void;
 }) {
   const { colorScheme } = useColorScheme();
@@ -262,17 +251,6 @@ export function MissionLogModal({
               transform: [{ translateY: contentShift }],
             }}
           >
-            {mission === "vitals" && (
-              <VitalsQuickForm
-                userId={userId}
-                token={token}
-                initialSys={initialSys}
-                initialDia={initialDia}
-                initialBpm={initialBpm}
-                onSaved={onSaved}
-                onContinueToSymptoms={onContinueToSymptoms}
-              />
-            )}
             {mission === "meals" && (
               <View style={{ paddingTop: 8 }}>
                 {FOOD_LOG_OPTIONS.map((option, index) => (

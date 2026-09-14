@@ -16,6 +16,8 @@ import { useUser } from "../../../contexts/UserContext";
 import { queueMealForSync } from "../../../services/SyncService";
 import { Image } from "expo-image";
 import { useToast } from "../../../contexts/ToastContext";
+import { logMealAndGetToast } from "../../../services/MealLoggingService";
+import { ChoiceChip, calcRiskFromValues } from "../../../components/meals/SharedMealComponents";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -78,34 +80,7 @@ function NutritionTile({
   );
 }
 
-function MealTimeChip({
-  label,
-  active,
-  onPress,
-}: {
-  label: string;
-  active: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <TouchableOpacity
-      onPress={onPress}
-      activeOpacity={0.75}
-      className="px-4 py-2 rounded-full border mr-2 mb-2"
-      style={{
-        backgroundColor: active ? "#0f172a" : "#fff",
-        borderColor: active ? "#0f172a" : "#e2e8f0",
-      }}
-    >
-      <Text
-        className="text-[12px] font-medium"
-        style={{ color: active ? "#fff" : "#64748b" }}
-      >
-        {label}
-      </Text>
-    </TouchableOpacity>
-  );
-}
+// Removed local MealTimeChip in favor of SharedMealComponents ChoiceChip
 
 export default function ScanResultScreen() {
   const { colorScheme } = useColorScheme();
@@ -120,8 +95,12 @@ export default function ScanResultScreen() {
     params.product ? JSON.parse(params.product as string) : null
   );
 
+  const currentHour = new Date().getHours();
+  const defaultMealTime: MealTime =
+    currentHour < 11 ? "Breakfast" : currentHour < 16 ? "Lunch" : currentHour < 21 ? "Dinner" : "Snack";
+
   const [servingsStr, setServingsStr] = useState("1");
-  const [mealTime, setMealTime] = useState<MealTime>("Lunch");
+  const [mealTime, setMealTime] = useState<MealTime>(defaultMealTime);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!product) {
@@ -145,7 +124,7 @@ export default function ScanResultScreen() {
     cholesterol: (product.cholesterol_mg || 0) * servings,
   };
 
-  const isHighSodium = calc.sodium > 500;
+  const risk = calcRiskFromValues(calc.sodium, calc.calories, calc.fat);
 
   const handleLogMeal = async () => {
     setIsSubmitting(true);
@@ -159,57 +138,16 @@ export default function ScanResultScreen() {
       image_url: "",
     };
 
-    try {
-      const response = await fetch(`${base_url}/api/meals/${userId}`, {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token || ""}`,
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) throw new Error("Failed to log meal");
-      let runningTotal = payload.sodium_mg;
-      try {
-        const statsRes = await fetch(`${base_url}/api/meals/${userId}`, {
-          headers: { "Authorization": `Bearer ${token || ""}` }
-        });
-        if (statsRes.ok) {
-          const meals = await statsRes.json();
-          const today = new Date();
-          const todaysMeals = meals.filter((meal: any) => {
-            if (!meal.logged_at) return false;
-            const mealDate = new Date(meal.logged_at);
-            return mealDate.getFullYear() === today.getFullYear() &&
-                   mealDate.getMonth() === today.getMonth() &&
-                   mealDate.getDate() === today.getDate();
-          });
-          runningTotal = todaysMeals.reduce((sum: number, m: any) => sum + (m.sodium_mg || 0), 0);
-        }
-      } catch (e) {}
-
-      const { postLogAck } = await import("../../../services/companionCopy");
-      showToast({ 
-        ...postLogAck("meal", `${Math.round(payload.sodium_mg)}mg sodium. You're at ${Math.round(runningTotal).toLocaleString()} of your 2,000mg budget today.`), 
-        type: "success",
-        duration: 5500,
-      });
-      router.navigate("/(home)/(tabs)/dashboard");
-    } catch (error) {
-      console.log("Network error logging scan result, queueing offline...", error);
-      await queueMealForSync(userId!, payload);
-      
-      showToast({ 
-        title: "Saved offline", 
-        message: "Your scanned food was saved locally and will sync when you reconnect.", 
-        type: "info",
-        duration: 4000 
-      });
-      router.navigate("/(home)/(tabs)/dashboard");
-    } finally {
-      setIsSubmitting(false);
-    }
+    await logMealAndGetToast(
+      userId!,
+      token,
+      payload,
+      showToast,
+      () => {
+        setIsSubmitting(false);
+        router.navigate("/(home)/(tabs)/dashboard");
+      }
+    );
   };
 
   return (
@@ -265,17 +203,17 @@ export default function ScanResultScreen() {
           </View>
         </View>
 
-        {/* High sodium warning */}
-        {isHighSodium && (
+        {/* Dynamic Risk warning */}
+        {risk.level !== "Heart-Friendly" && (
           <View className="rounded-2xl p-4 mb-3 border flex-row items-start gap-3"
-            style={{ backgroundColor: "#fcebeb", borderColor: "#f7c1c1" }}>
-            <Feather name="alert-triangle" size={15} color="#a32d2d" style={{ marginTop: 1 }} />
+            style={{ backgroundColor: risk.bg, borderColor: risk.border }}>
+            <Feather name={risk.icon} size={15} color={risk.color} style={{ marginTop: 1 }} />
             <View className="flex-1">
-              <Text className="text-[13px] font-medium mb-0.5" style={{ color: "#a32d2d" }}>
-                High sodium
+              <Text className="text-[13px] font-medium mb-0.5" style={{ color: risk.color }}>
+                {risk.level}
               </Text>
-              <Text className="text-[12px] leading-relaxed" style={{ color: "#791f1f" }}>
-                Consider reducing portion size to keep your cardiovascular score stable.
+              <Text className="text-[12px] leading-relaxed" style={{ color: risk.color, opacity: 0.85 }}>
+                {risk.desc}
               </Text>
             </View>
           </View>
@@ -316,7 +254,7 @@ export default function ScanResultScreen() {
           </Text>
           <View className="flex-row flex-wrap">
             {(["Breakfast", "Lunch", "Dinner", "Snack"] as MealTime[]).map((t) => (
-              <MealTimeChip key={t} label={t} active={mealTime === t} onPress={() => setMealTime(t)} />
+              <ChoiceChip key={t} label={t} selected={mealTime === t} onSelect={setMealTime as any} />
             ))}
           </View>
         </View>
@@ -336,7 +274,7 @@ export default function ScanResultScreen() {
               label="Sodium" 
               value={product.sodium_mg} 
               unit="mg" 
-              highlight={isHighSodium} 
+              highlight={risk.level === "High Sodium"} 
               onChange={(val) => setProduct((p: any) => ({ ...p, sodium_mg: val }))} 
             />
             <NutritionTile 

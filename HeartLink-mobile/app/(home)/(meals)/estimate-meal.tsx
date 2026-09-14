@@ -16,6 +16,8 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import { useUser } from "../../../contexts/UserContext";
 import { queueMealForSync } from "../../../services/SyncService";
 import { useToast } from "../../../contexts/ToastContext";
+import { logMealAndGetToast } from "../../../services/MealLoggingService";
+import { ChoiceChip, SectionHeader, calcRiskFromValues } from "../../../components/meals/SharedMealComponents";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -52,54 +54,7 @@ const FILIPINO_QUICK_PRESETS: Record<
 
 type TimeOfMeal = "Breakfast" | "Lunch" | "Dinner" | "Snack";
 
-// ─── Choice Chip ──────────────────────────────────────────────────────────────
-
-function ChoiceChip<T extends string>({
-  label,
-  selected,
-  onSelect,
-}: {
-  label: T;
-  selected: boolean;
-  onSelect: (val: T) => void;
-}) {
-  return (
-    <TouchableOpacity
-      activeOpacity={0.75}
-      onPress={() => onSelect(label)}
-      className="px-4 py-2 rounded-xl border mr-2 mb-2"
-      style={{
-        backgroundColor: selected ? "#0f172a" : "#fff",
-        borderColor: selected ? "#0f172a" : "#e2e8f0",
-      }}
-    >
-      <Text
-        className="text-[13px] font-medium"
-        style={{ color: selected ? "#fff" : "#64748b" }}
-      >
-        {label}
-      </Text>
-    </TouchableOpacity>
-  );
-}
-
-// ─── Section Header ───────────────────────────────────────────────────────────
-
-function SectionHeader({ title, icon, helperText }: { title: string; icon: string; helperText?: string }) {
-  return (
-    <View className="mb-3 mt-5">
-      <View className="flex-row items-center gap-2">
-        <MaterialCommunityIcons name={icon as any} size={16} color="#94a3b8" />
-        <Text className="text-[13px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide flex-1">
-          {title}
-        </Text>
-      </View>
-      {helperText && (
-        <Text className="text-[11px] text-slate-400 font-medium mt-1 ml-6">{helperText}</Text>
-      )}
-    </View>
-  );
-}
+// Removed ChoiceChip and SectionHeader since they are now in SharedMealComponents
 
 // ─── Numeric Input Field ──────────────────────────────────────────────────────
 
@@ -139,47 +94,7 @@ function NumericField({
   );
 }
 
-// ─── Risk Calculator ──────────────────────────────────────────────────────────
-
-type RiskResult = {
-  level: string;
-  color: string;
-  bg: string;
-  border: string;
-  desc: string;
-  icon: keyof typeof Feather.glyphMap;
-};
-
-function calcRiskFromValues(sodium: number, calories: number, satFat: number): RiskResult {
-  if (sodium > 800 || satFat > 6) {
-    return {
-      level: "High Sodium",
-      color: "#ef4444",
-      bg: "rgba(239, 68, 68, 0.1)",
-      border: "rgba(239, 68, 68, 0.3)",
-      desc: "Sodium exceeds 800 mg per serving. Frequent consumption increases blood pressure.",
-      icon: "alert-circle",
-    };
-  }
-  if (sodium > 400 || satFat > 3) {
-    return {
-      level: "Moderate",
-      color: "#f59e0b",
-      bg: "rgba(245, 158, 11, 0.1)",
-      border: "rgba(245, 158, 11, 0.3)",
-      desc: "Moderate sodium content. Fits within daily budget if other meals are light.",
-      icon: "info",
-    };
-  }
-  return {
-    level: "Heart-Friendly",
-    color: "#10b981",
-    bg: "rgba(16, 185, 129, 0.1)",
-    border: "rgba(16, 185, 129, 0.3)",
-    desc: "Low sodium and saturated fat. Excellent choice for cardiovascular stability.",
-    icon: "check-circle",
-  };
-}
+// Removed calcRiskFromValues since it is now in SharedMealComponents
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
@@ -256,58 +171,16 @@ export default function ManualMealLogScreen() {
       image_url: null,
     };
 
-    try {
-      const response = await fetch(`${base_url}/api/meals/${userId}`, {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token || ""}`,
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) throw new Error("Failed to log meal");
-
-      let runningTotal = payload.sodium_mg;
-      try {
-        const statsRes = await fetch(`${base_url}/api/meals/${userId}`, {
-          headers: { "Authorization": `Bearer ${token || ""}` }
-        });
-        if (statsRes.ok) {
-          const meals = await statsRes.json();
-          const today = new Date();
-          const todaysMeals = meals.filter((meal: any) => {
-            if (!meal.logged_at) return false;
-            const mealDate = new Date(meal.logged_at);
-            return mealDate.getFullYear() === today.getFullYear() &&
-                   mealDate.getMonth() === today.getMonth() &&
-                   mealDate.getDate() === today.getDate();
-          });
-          runningTotal = todaysMeals.reduce((sum: number, m: any) => sum + (m.sodium_mg || 0), 0);
-        }
-      } catch (e) {}
-
-      const { postLogAck } = await import("../../../services/companionCopy");
-      showToast({ 
-        ...postLogAck("meal", `${Math.round(payload.sodium_mg)}mg sodium. You're at ${Math.round(runningTotal).toLocaleString()} of your 2,000mg budget today.`), 
-        type: "success",
-        duration: 5500,
-      });
-      router.back();
-    } catch (error) {
-      console.log("Network error logging meal, queueing offline...", error);
-      await queueMealForSync(userId!, payload);
-      
-      showToast({ 
-        title: "Saved offline", 
-        message: "Your meal was saved locally and will sync when you reconnect.", 
-        type: "info",
-        duration: 4000 
-      });
-      router.back();
-    } finally {
-      setIsSubmitting(false);
-    }
+    await logMealAndGetToast(
+      userId,
+      token,
+      payload,
+      showToast,
+      () => {
+        setIsSubmitting(false);
+        router.back();
+      }
+    );
   };
 
   return (
@@ -397,11 +270,11 @@ export default function ManualMealLogScreen() {
         <View className="flex-row items-center justify-between mb-4 mt-2">
           <Text className="text-[11px] text-slate-400 uppercase tracking-wide">Number of servings</Text>
           <View className="flex-row items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 rounded-xl px-2 py-1.5 gap-4">
-            <TouchableOpacity onPress={() => setServings(s => Math.max(1, s - 1))} className="p-1">
+            <TouchableOpacity onPress={() => setServings(s => Math.max(0.5, s - 0.5))} className="p-1">
               <Feather name="minus" size={16} color="#0f172a" />
             </TouchableOpacity>
-            <Text className="text-[14px] font-medium text-slate-900 dark:text-white w-4 text-center">{servings}</Text>
-            <TouchableOpacity onPress={() => setServings(s => Math.min(20, s + 1))} className="p-1">
+            <Text className="text-[14px] font-medium text-slate-900 dark:text-white w-8 text-center">{servings}</Text>
+            <TouchableOpacity onPress={() => setServings(s => Math.min(20, s + 0.5))} className="p-1">
               <Feather name="plus" size={16} color="#0f172a" />
             </TouchableOpacity>
           </View>

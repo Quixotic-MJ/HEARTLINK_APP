@@ -10,6 +10,7 @@ import {
   Alert,
   AccessibilityInfo,
   Platform,
+  DeviceEventEmitter,
 } from "react-native";
 import Reanimated, { FadeInDown, LinearTransition, ZoomIn } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
@@ -21,6 +22,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Haptics from "expo-haptics";
 import { getCompanionGreeting, getCompanionLine, CompanionGreetingResult } from "../../../services/companionService";
 import { voiceGreeting } from "../../../services/companionCopy";
+import { useNetInfo } from "@react-native-community/netinfo";
 
 import Svg, { Path } from "react-native-svg";
 
@@ -261,6 +263,8 @@ export default function DashboardScreen() {
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
   const [isCachedData, setIsCachedData] = useState(false);
+  const netInfo = useNetInfo();
+  const isOffline = netInfo.isConnected === false || netInfo.isInternetReachable === false;
 
   const dataRef = useRef(data);
   dataRef.current = data;
@@ -357,6 +361,14 @@ export default function DashboardScreen() {
     }, [fetchData])
   );
 
+  useEffect(() => {
+    const sub = DeviceEventEmitter.addListener("sync_complete", () => {
+      console.log("[Dashboard] Background sync complete, refreshing data...");
+      fetchData(true);
+    });
+    return () => sub.remove();
+  }, [fetchData]);
+
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     setRefreshTrigger((prev) => prev + 1);
@@ -386,7 +398,7 @@ export default function DashboardScreen() {
   const mealsLogged = (data?.today_activity?.meals_count || 0) > 0;
   const exerciseLogged = (data?.today_activity?.exercises_count || 0) > 0;
   const sleepLogged = !!data?.today_activity?.sleep_logged;
-  const vitalsLogged = !!data?.today_activity?.vitals_logged || !!data?.latest_vitals?.logged_at;
+  const vitalsLogged = !!data?.today_activity?.vitals_logged;
   const completedCount = [mealsLogged, exerciseLogged, sleepLogged, vitalsLogged].filter(Boolean).length;
   const progressPercent = Math.round((completedCount / 4) * 100);
 
@@ -409,6 +421,10 @@ export default function DashboardScreen() {
         safeNavigate("/(home)/(health)/exercise-diary");
         return;
       }
+      if (id === "vitals") {
+        safeNavigate("/(home)/(health)/log-symptoms");
+        return;
+      }
       setLogModal(id);
     },
     [safeNavigate]
@@ -419,7 +435,9 @@ export default function DashboardScreen() {
       id: "vitals",
       title: "Blood Pressure & Pulse",
       subtitle: vitalsLogged
-        ? `Recorded: ${data?.latest_vitals?.bp || "--/--"} mmHg • ${data?.latest_vitals?.bpm || "--"} BPM`
+        ? data?.latest_vitals?.bp
+          ? `Recorded: ${data.latest_vitals.bp} mmHg${data?.latest_vitals?.bpm ? ` • ${data.latest_vitals.bpm} BPM` : ""}`
+          : "Daily check-in recorded today"
         : "Morning check due today",
       icon: "heart",
       tileColors: ["#9E4E5F", "#BF7E8C"],
@@ -802,7 +820,7 @@ export default function DashboardScreen() {
         }
       >
         {/* ── Background Refresh Error Banner ── */}
-        {refreshError && (
+        {refreshError && !isOffline && (
           <View className="mx-5 mt-3 bg-[#FDEEE9] dark:bg-[#8A1F1A]/25 border border-[#E8532E]/30 px-4 py-2.5 rounded-2xl flex-row items-center justify-between">
             <View className="flex-row items-center gap-2 flex-1 pr-2">
               <Feather name="alert-circle" size={14} color="#8A1F1A" />
@@ -824,7 +842,7 @@ export default function DashboardScreen() {
         )}
 
         {/* ── Offline Banner ── */}
-        {isCachedData && (
+        {isOffline && (
           <View className="mx-5 mt-3 bg-[#FEF3C7] dark:bg-[#A9741B]/40 border border-[#A9741B]/30 px-4 py-2 rounded-xl flex-row items-center justify-center gap-2">
             <Feather name="wifi-off" size={13} color="#A9741B" />
             <Text className="text-[12px] font-medium text-[#7A5714] dark:text-[#C99A3E]">
@@ -1243,18 +1261,8 @@ export default function DashboardScreen() {
               mission={logModal}
               userId={userId}
               token={token}
-              initialSys={latestSbp}
-              initialDia={latestDbp}
-              initialBpm={latestBpm}
               onClose={() => setLogModal(null)}
               onSaved={handleMissionSaved}
-              onContinueToSymptoms={(sys, dia) => {
-                setLogModal(null);
-                safeNavigate("/(home)/(health)/log-symptoms", {
-                  default_sys: sys,
-                  default_dia: dia,
-                });
-              }}
               onOpenDiary={() => {
                 setLogModal(null);
                 safeNavigate("/(home)/(meals)/daily-diary");

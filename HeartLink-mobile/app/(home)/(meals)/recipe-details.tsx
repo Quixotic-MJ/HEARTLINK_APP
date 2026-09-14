@@ -422,23 +422,23 @@ export default function RecipeDetailsScreen() {
                 Adjust to see exact macros
               </Text>
             </View>
-            <View className="flex-row items-center gap-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full px-2 py-1">
+            <View className="flex-row items-center bg-slate-50 dark:bg-[#1A2634] border border-slate-200 dark:border-slate-800/70 rounded-xl px-2 py-1.5 gap-4">
               <TouchableOpacity
                 onPress={() =>
-                  setServingsMultiplier(Math.max(1, servingsMultiplier - 1))
+                  setServingsMultiplier(Math.max(0.5, servingsMultiplier - 0.5))
                 }
-                className="w-8 h-8 items-center justify-center rounded-full bg-slate-50 dark:bg-slate-950"
+                className="p-2"
               >
-                <Feather name="minus" size={16} color="#0f172a" />
+                <Feather name="minus" size={16} color={isDark ? "#f8fafc" : "#0f172a"} />
               </TouchableOpacity>
-              <Text className="text-[16px] font-bold w-4 text-center">
+              <Text className="text-[15px] font-bold text-slate-900 dark:text-white w-7 text-center">
                 {servingsMultiplier}
               </Text>
               <TouchableOpacity
-                onPress={() => setServingsMultiplier(servingsMultiplier + 1)}
-                className="w-8 h-8 items-center justify-center rounded-full bg-slate-50 dark:bg-slate-950"
+                onPress={() => setServingsMultiplier(servingsMultiplier + 0.5)}
+                className="p-2"
               >
-                <Feather name="plus" size={16} color="#0f172a" />
+                <Feather name="plus" size={16} color={isDark ? "#f8fafc" : "#0f172a"} />
               </TouchableOpacity>
             </View>
           </View>

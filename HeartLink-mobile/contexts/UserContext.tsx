@@ -1,6 +1,8 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useRef } from "react";
+import { AppState, AppStateStatus } from "react-native";
+import NetInfo from "@react-native-community/netinfo";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { syncOfflineMeals, syncOfflineExercises, syncOfflineSleeps } from "../services/SyncService";
+import { syncOfflineAll } from "../services/SyncService";
 
 type UserContextType = {
   userId: string | null;
@@ -57,6 +59,37 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [profileError, setProfileError] = useState<boolean>(false);
+  const appState = useRef(AppState.currentState);
+
+  // Background auto-sync trigger
+  const attemptBackgroundSync = async () => {
+    if (!userId) return;
+    const baseUrl = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
+    await syncOfflineAll(baseUrl).catch(e => console.log("Auto-sync error:", e));
+  };
+
+  // Setup listeners for AppState and NetInfo to handle offline queues
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", nextAppState => {
+      if (appState.current.match(/inactive|background/) && nextAppState === "active") {
+        console.log("App has come to the foreground, attempting sync...");
+        attemptBackgroundSync();
+      }
+      appState.current = nextAppState;
+    });
+
+    const unsubscribeNet = NetInfo.addEventListener(state => {
+      if (state.isConnected && state.isInternetReachable) {
+        console.log("Network restored, attempting sync in 3 seconds...");
+        setTimeout(() => attemptBackgroundSync(), 3000);
+      }
+    });
+
+    return () => {
+      subscription.remove();
+      unsubscribeNet();
+    };
+  }, [userId]);
 
   // Sync user profile, token, and state loading on startup
   useEffect(() => {
@@ -100,9 +133,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
               await AsyncStorage.setItem(userCacheKey, JSON.stringify(sanitizeProfileForCache(freshProfile)));
               
               // Trigger foreground auto-sync for any pending offline logs
-              syncOfflineMeals(baseUrl).catch(e => console.log("Background sync error:", e));
-              syncOfflineExercises(baseUrl).catch(e => console.log("Background sync error:", e));
-              syncOfflineSleeps(baseUrl).catch(e => console.log("Background sync error:", e));
+              syncOfflineAll(baseUrl).catch(e => console.log("Startup sync error:", e));
             } else if (response.status === 401 || response.status === 403) {
               console.warn(`[UserContext] Profile fetch returned ${response.status}. Invalidating session.`);
               await AsyncStorage.removeItem("user_id");

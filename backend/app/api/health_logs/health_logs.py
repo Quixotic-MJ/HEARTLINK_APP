@@ -21,6 +21,10 @@ def add_health_log(user_id: str, data: Dict[str, Any], current_user: dict = Depe
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You may only record your own health logs.",
         )
+    for k in ["systolic_bp", "diastolic_bp", "heart_rate_bpm", "weight_kg", "blood_sugar"]:
+        if data.get(k) == "":
+            data[k] = None
+
     sys_bp = data.get("systolic_bp")
     dia_bp = data.get("diastolic_bp")
     hr = data.get("heart_rate_bpm")
@@ -65,8 +69,8 @@ def add_health_log(user_id: str, data: Dict[str, Any], current_user: dict = Depe
     if weight is not None:
         if not isinstance(weight, (int, float)) or isinstance(weight, bool):
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Weight must be a number.")
-        if weight <= 0 or weight > 500:
-            raise HTTPException(status_code=400, detail="Weight must be greater than 0.")
+        if weight < 20 or weight > 400:
+            raise HTTPException(status_code=400, detail="Weight must be between 20 and 400 kg.")
 
     # Context normalization to satisfy database check constraint
     context_map = {
@@ -79,10 +83,6 @@ def add_health_log(user_id: str, data: Dict[str, Any], current_user: dict = Depe
         data["context"] = context_map[raw_context]
     elif raw_context and raw_context not in ("resting", "after_eating", "after_exercise", "morning", "evening", "other"):
         data["context"] = "other"
-
-    # Ensure heart_rate_bpm is present to satisfy database NOT NULL constraint
-    if data.get("heart_rate_bpm") is None:
-        data["heart_rate_bpm"] = 72
 
     log = create_health_log(user_id, data)
 

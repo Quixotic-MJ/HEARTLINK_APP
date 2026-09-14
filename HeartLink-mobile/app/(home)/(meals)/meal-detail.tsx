@@ -8,40 +8,14 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import { useUser } from "../../../contexts/UserContext";
 import { queueMealForSync } from "../../../services/SyncService";
 import { useToast } from "../../../contexts/ToastContext";
+import { logMealAndGetToast } from "../../../services/MealLoggingService";
+import { ChoiceChip, calcRiskFromValues } from "../../../components/meals/SharedMealComponents";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
 type TimeOfMeal = "Breakfast" | "Lunch" | "Dinner" | "Snack";
 
-// Choice chip
-function ChoiceChip({
-  label,
-  selected,
-  onSelect,
-}: {
-  label: string;
-  selected: boolean;
-  onSelect: (val: string) => void;
-}) {
-  return (
-    <TouchableOpacity
-      activeOpacity={0.75}
-      onPress={() => onSelect(label)}
-      className="px-4 py-2 rounded-xl border mr-2 mb-2"
-      style={{
-        backgroundColor: selected ? "#0f172a" : "#fff",
-        borderColor: selected ? "#0f172a" : "#e2e8f0",
-      }}
-    >
-      <Text
-        className="text-[13px] font-medium"
-        style={{ color: selected ? "#fff" : "#64748b" }}
-      >
-        {label}
-      </Text>
-    </TouchableOpacity>
-  );
-}
+// Removed local ChoiceChip in favor of SharedMealComponents ChoiceChip
 
 export default function MealDetailScreen() {
   const { colorScheme } = useColorScheme();
@@ -53,11 +27,15 @@ export default function MealDetailScreen() {
   const { userId, token } = useUser();
   const { showToast } = useToast();
   
+  const currentHour = new Date().getHours();
+  const defaultMealTime: TimeOfMeal =
+    currentHour < 11 ? "Breakfast" : currentHour < 16 ? "Lunch" : currentHour < 21 ? "Dinner" : "Snack";
+
   const [servings, setServings] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [item, setItem] = useState<any>(params.item ? JSON.parse(params.item as string) : null);
   const [isLoadingRecipe, setIsLoadingRecipe] = useState(false);
-  const [timeOfMeal, setTimeOfMeal] = useState<TimeOfMeal>("Lunch");
+  const [timeOfMeal, setTimeOfMeal] = useState<TimeOfMeal>(defaultMealTime);
 
   useEffect(() => {
     async function loadRecipe() {
@@ -115,6 +93,8 @@ export default function MealDetailScreen() {
   const scaledFiber = Math.round(((item.fiber_g || 0) * servings) * 10) / 10;
   const scaledCholesterol = Math.round((item.cholesterol_mg || 0) * servings);
 
+  const risk = calcRiskFromValues(scaledSodium, scaledCalories, scaledSatFat);
+
   const handleLogMeal = async () => {
     setIsSubmitting(true);
     const payload = {
@@ -127,57 +107,17 @@ export default function MealDetailScreen() {
       fiber_g: scaledFiber,
       image_url: item.image_url,
     };
-    try {
-      const response = await fetch(`${base_url}/api/meals/${userId}`, {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token || ""}`,
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) throw new Error("Failed to log meal");
-      let runningTotal = payload.sodium_mg;
-      try {
-        const statsRes = await fetch(`${base_url}/api/meals/${userId}`, {
-          headers: { "Authorization": `Bearer ${token || ""}` }
-        });
-        if (statsRes.ok) {
-          const meals = await statsRes.json();
-          const today = new Date();
-          const todaysMeals = meals.filter((meal: any) => {
-            if (!meal.logged_at) return false;
-            const mealDate = new Date(meal.logged_at);
-            return mealDate.getFullYear() === today.getFullYear() &&
-                   mealDate.getMonth() === today.getMonth() &&
-                   mealDate.getDate() === today.getDate();
-          });
-          runningTotal = todaysMeals.reduce((sum: number, m: any) => sum + (m.sodium_mg || 0), 0);
-        }
-      } catch (e) {}
-
-      const { postLogAck } = await import("../../../services/companionCopy");
-      showToast({ 
-        ...postLogAck("meal", `${Math.round(payload.sodium_mg)}mg sodium. You're at ${Math.round(runningTotal).toLocaleString()} of your 2,000mg budget today.`), 
-        type: "success",
-        duration: 5500,
-      });
-      router.navigate("/(home)/(tabs)/dashboard");
-    } catch (error) {
-      console.log("Network error logging meal, queueing offline...", error);
-      await queueMealForSync(userId!, payload);
-      
-      showToast({ 
-        title: "Saved offline", 
-        message: "Your meal was saved locally and will sync when you reconnect.", 
-        type: "info",
-        duration: 4000 
-      });
-      router.navigate("/(home)/(tabs)/dashboard");
-    } finally {
-      setIsSubmitting(false);
-    }
+    
+    await logMealAndGetToast(
+      userId!,
+      token,
+      payload,
+      showToast,
+      () => {
+        setIsSubmitting(false);
+        router.navigate("/(home)/(tabs)/dashboard");
+      }
+    );
   };
 
   return (
@@ -216,22 +156,20 @@ export default function MealDetailScreen() {
         {/* Impact Alert Card */}
         <View
           className="rounded-2xl p-4 border mb-6"
-          style={{ backgroundColor: item.hss_tier === "Stable" ? "#eaf3de" : "#fcebeb", borderColor: (item.hss_tier === "Stable" ? "#3b6d11" : "#a32d2d") + '40' }}
+          style={{ backgroundColor: risk.bg, borderColor: risk.border }}
         >
           <View className="flex-row items-center gap-2 mb-1.5">
             <Feather 
-              name={item.hss_tier === "Stable" ? "check-circle" : "alert-triangle"} 
+              name={risk.icon} 
               size={16} 
-              color={item.hss_tier === "Stable" ? "#3b6d11" : "#a32d2d"} 
+              color={risk.color} 
             />
-            <Text className="text-[13px] font-bold uppercase tracking-wide" style={{ color: item.hss_tier === "Stable" ? "#3b6d11" : "#a32d2d" }}>
-              {item.hss_tier || "Unknown"}
+            <Text className="text-[13px] font-bold uppercase tracking-wide" style={{ color: risk.color }}>
+              {risk.level}
             </Text>
           </View>
-          <Text className="text-[13px] leading-relaxed" style={{ color: item.hss_tier === "Stable" ? "#3b6d11" : "#a32d2d", opacity: 0.9 }}>
-            {item.hss_tier === "Stable" 
-              ? "Great choice! This item is low in sodium and fits perfectly into a heart-healthy diet." 
-              : "This item consumes a large portion of your daily limit. Proceed with caution."}
+          <Text className="text-[13px] leading-relaxed" style={{ color: risk.color, opacity: 0.9 }}>
+            {risk.desc}
           </Text>
         </View>
 
@@ -242,11 +180,11 @@ export default function MealDetailScreen() {
             <Text className="text-[12px] text-slate-400">Scale the nutrition values</Text>
           </View>
           <View className="flex-row items-center bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/70 rounded-xl px-2 py-1.5 gap-4">
-            <TouchableOpacity onPress={() => setServings(s => Math.max(1, s - 1))} className="p-2">
+            <TouchableOpacity onPress={() => setServings(s => Math.max(0.5, s - 0.5))} className="p-2">
               <Feather name="minus" size={16} color="#0f172a" />
             </TouchableOpacity>
-            <Text className="text-[15px] font-bold text-slate-900 dark:text-white w-5 text-center">{servings}</Text>
-            <TouchableOpacity onPress={() => setServings(s => s + 1)} className="p-2">
+            <Text className="text-[15px] font-bold text-slate-900 dark:text-white w-7 text-center">{servings}</Text>
+            <TouchableOpacity onPress={() => setServings(s => s + 0.5)} className="p-2">
               <Feather name="plus" size={16} color="#0f172a" />
             </TouchableOpacity>
           </View>
