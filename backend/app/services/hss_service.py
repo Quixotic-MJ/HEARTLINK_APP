@@ -125,7 +125,7 @@ def compute_lifestyle_composite_hss(user_id: str, trigger: str = "lifestyle_even
     # 1. Base score from most recent vitals telemetry or baseline onboarding (HL-ENG-25)
     base_score = 75
     if history and len(history) > 0:
-        base_record = next((h for h in history if h.get("source") != "lifestyle_composite"), None)
+        base_record = next((h for h in history if h.get("contributing_factors", {}).get("source") != "lifestyle_composite"), None)
         base_score = int(base_record.get("score") or 75) if base_record else 75
 
     # 2. Get today's lifestyle activity
@@ -165,8 +165,9 @@ def compute_lifestyle_composite_hss(user_id: str, trigger: str = "lifestyle_even
         "score": composite_score,
         "tier": tier,
         "risk_probability": risk_prob,
-        "source": "lifestyle_composite",
+        "source": "telemetry",
         "contributing_factors": {
+            "source": "lifestyle_composite",
             "base_score": base_score,
             "total_sodium_mg": total_sodium,
             "sodium_limit_mg": sodium_limit,
