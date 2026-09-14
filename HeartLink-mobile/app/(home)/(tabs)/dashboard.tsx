@@ -841,15 +841,7 @@ export default function DashboardScreen() {
           </View>
         )}
 
-        {/* ── Offline Banner ── */}
-        {isOffline && (
-          <View className="mx-5 mt-3 bg-[#FEF3C7] dark:bg-[#A9741B]/40 border border-[#A9741B]/30 px-4 py-2 rounded-xl flex-row items-center justify-center gap-2">
-            <Feather name="wifi-off" size={13} color="#A9741B" />
-            <Text className="text-[12px] font-medium text-[#7A5714] dark:text-[#C99A3E]">
-              Offline • Showing last saved data
-            </Text>
-          </View>
-        )}
+
 
         {/* ── Critical Health Alert Banner (Tap to re-open modal) ── */}
         {isAlertActive && (
