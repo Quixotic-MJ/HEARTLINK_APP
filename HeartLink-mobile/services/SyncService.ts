@@ -353,6 +353,7 @@ export async function syncOfflineAll(baseUrl: string): Promise<void> {
   }
   
   isSyncing = true;
+  DeviceEventEmitter.emit("sync_started");
   try {
     let syncedAny = false;
     

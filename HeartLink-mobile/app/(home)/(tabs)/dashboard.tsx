@@ -263,6 +263,7 @@ export default function DashboardScreen() {
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
   const [isCachedData, setIsCachedData] = useState(false);
+  const [isSyncingOffline, setIsSyncingOffline] = useState(false);
   const netInfo = useNetInfo();
   const isOffline = netInfo.isConnected === false || netInfo.isInternetReachable === false;
 
@@ -370,11 +371,18 @@ export default function DashboardScreen() {
   );
 
   useEffect(() => {
-    const sub = DeviceEventEmitter.addListener("sync_complete", () => {
+    const subStart = DeviceEventEmitter.addListener("sync_started", () => {
+      setIsSyncingOffline(true);
+    });
+    const subComplete = DeviceEventEmitter.addListener("sync_complete", () => {
+      setIsSyncingOffline(false);
       console.log("[Dashboard] Background sync complete, refreshing data...");
       fetchData(true);
     });
-    return () => sub.remove();
+    return () => {
+      subStart.remove();
+      subComplete.remove();
+    };
   }, [fetchData]);
 
   const onRefresh = useCallback(() => {
@@ -849,7 +857,15 @@ export default function DashboardScreen() {
           </View>
         )}
 
-
+        {/* ── Syncing Banner ── */}
+        {isSyncingOffline && !isOffline && (
+          <Reanimated.View entering={FadeInDown.duration(200)} className="mx-5 mt-3 bg-[#E2F1ED] dark:bg-[#1B6E63]/20 border border-[#1B6E63]/30 px-4 py-2 rounded-xl flex-row items-center justify-center gap-2">
+            <Feather name="refresh-cw" size={13} color="#1B6E63" />
+            <Text className="text-[12px] font-medium text-[#1B6E63] dark:text-[#4FA79A]">
+              Syncing offline data...
+            </Text>
+          </Reanimated.View>
+        )}
 
         {/* ── Critical Health Alert Banner (Tap to re-open modal) ── */}
         {isAlertActive && (
