@@ -4,7 +4,7 @@ import { LogBox, Platform } from "react-native";
 import { useColorScheme } from "nativewind";
 import * as SystemUI from "expo-system-ui";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import OfflineBanner from "../components/OfflineBanner";
+
 import "../global.css";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { UserProvider, useUser } from "../contexts/UserContext";
@@ -87,7 +87,7 @@ function RootLayoutNav() {
   
   return (
     <>
-      <OfflineBanner />
+
       <Stack
         screenOptions={{
           headerShown: false,
