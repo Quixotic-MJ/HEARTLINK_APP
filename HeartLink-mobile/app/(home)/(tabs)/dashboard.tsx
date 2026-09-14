@@ -273,6 +273,14 @@ export default function DashboardScreen() {
     AccessibilityInfo.isReduceMotionEnabled?.().then(setReduceMotion);
   }, []);
 
+  // Clear any lingering refresh errors the moment we come back online,
+  // so the red banner doesn't flash while waiting for the background sync to finish.
+  useEffect(() => {
+    if (!isOffline && refreshError) {
+      setRefreshError(false);
+    }
+  }, [isOffline]);
+
   const safeNavigate = useCallback((route: string, params?: any) => {
     if (isNavigatingRef.current) return;
     isNavigatingRef.current = true;
