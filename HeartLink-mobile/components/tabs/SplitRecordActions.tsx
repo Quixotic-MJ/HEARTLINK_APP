@@ -27,18 +27,11 @@ export interface SplitAction {
 
 export const SPLIT_ACTIONS: SplitAction[] = [
   {
-    icon: "camera",
-    iconType: "feather",
-    shortLabel: "Scan",
-    route: "/(home)/(meals)/barcode-scan",
-    iconColor: "#185fa5",
-    iconBg: "#e6f1fb",
-  },
-  {
     icon: "silverware-fork-knife",
     iconType: "material",
     shortLabel: "Meal",
-    route: "/(home)/(meals)/search-meal",
+    id: "meal",
+    route: "",
     iconColor: "#3b6d11",
     iconBg: "#eaf3de",
   },
@@ -179,11 +172,13 @@ export function SplitRecordActions({
   onClose,
   onOpenQuickLog,
   onOpenSleepLog,
+  onOpenMealLog,
 }: {
   open: boolean;
   onClose: () => void;
   onOpenQuickLog?: () => void;
   onOpenSleepLog?: () => void;
+  onOpenMealLog?: () => void;
 }) {
   const [visible, setVisible] = useState(open);
   const router = useRouter();
@@ -218,7 +213,7 @@ export function SplitRecordActions({
   const topRow = SPLIT_ACTIONS.slice(0, 2);
   const bottomRow = SPLIT_ACTIONS.slice(2);
   const topDirs: (-1 | 0 | 1)[] = [-1, 1];
-  const bottomDirs: (-1 | 0 | 1)[] = [-1, 0, 1];
+  const bottomDirs: (-1 | 0 | 1)[] = [-1, 1];
 
   const handleSelect = (route: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
@@ -275,6 +270,8 @@ export function SplitRecordActions({
                   onOpenQuickLog();
                 } else if (action.id === "sleep" && onOpenSleepLog) {
                   onOpenSleepLog();
+                } else if (action.id === "meal" && onOpenMealLog) {
+                  onOpenMealLog();
                 } else if (action.route) {
                   router.push(action.route as any);
                 }
@@ -297,6 +294,8 @@ export function SplitRecordActions({
                   onOpenQuickLog();
                 } else if (action.id === "sleep" && onOpenSleepLog) {
                   onOpenSleepLog();
+                } else if (action.id === "meal" && onOpenMealLog) {
+                  onOpenMealLog();
                 } else if (action.route) {
                   router.push(action.route as any);
                 }

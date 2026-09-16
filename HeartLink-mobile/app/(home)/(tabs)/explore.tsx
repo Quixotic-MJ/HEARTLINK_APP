@@ -79,7 +79,7 @@ export default function ExploreTabScreen() {
 
   const openLog = () => {
     if (activeSegment === "recipes") {
-      router.push("/(home)/(meals)/daily-diary");
+      router.push("/(home)/(meals)/food-diary");
     } else {
       router.push("/(home)/(health)/exercise-diary");
     }

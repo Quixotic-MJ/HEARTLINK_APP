@@ -787,7 +787,7 @@ export default function TrendsTabScreen() {
             </Text>
             <View className="flex-row gap-3 mb-4">
               <TactileCard
-                onPress={() => router.push("/(home)/(meals)/daily-diary" as any)}
+                onPress={() => router.push("/(home)/(meals)/food-diary" as any)}
                 className="flex-1 bg-white dark:bg-[#121D2B] p-4 rounded-2xl border border-[#DCE3DF] dark:border-slate-800/80"
               >
                 <View className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 items-center justify-center mb-2.5">

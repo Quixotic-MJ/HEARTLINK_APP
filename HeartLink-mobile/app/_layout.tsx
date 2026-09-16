@@ -104,6 +104,9 @@ function RootLayoutNav() {
   );
 }
 
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
+import { queryClient, asyncStoragePersister } from '../lib/react-query';
+
 export default function RootLayout() {
   const { setColorScheme } = useColorScheme();
 
@@ -132,13 +135,15 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <UserProvider>
-        <BaselineProvider>
-          <ToastProvider>
-            <RootLayoutNav />
-          </ToastProvider>
-        </BaselineProvider>
-      </UserProvider>
+      <PersistQueryClientProvider client={queryClient} persistOptions={{ persister: asyncStoragePersister }}>
+        <UserProvider>
+          <BaselineProvider>
+            <ToastProvider>
+              <RootLayoutNav />
+            </ToastProvider>
+          </BaselineProvider>
+        </UserProvider>
+      </PersistQueryClientProvider>
     </GestureHandlerRootView>
   );
 }

@@ -12,6 +12,7 @@ import { createMaterialTopTabNavigator } from "expo-router/js-top-tabs";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColorScheme } from "nativewind";
+import { LinearGradient } from "expo-linear-gradient";
 import {
   SplitRecordActions,
 } from "../../../components/tabs/SplitRecordActions";
@@ -64,7 +65,7 @@ function PillTab({
     inputRange: [0, 1],
     outputRange: [0.92, 1.06],
   });
-  const activeBg = isDark ? "#ffffff" : "#1B6E63";
+  const activeBg = isDark ? "#10B981" : "#10B981";
 
   return (
     <TouchableOpacity
@@ -110,7 +111,7 @@ function CustomTabBar({ state, navigation, splitOpen, onFabPress, onCloseSplit }
   const isDark = colorScheme === "dark";
 
   const INACTIVE_COLOR = isDark ? "#64748b" : "#94a3b8";
-  const ACTIVE_ICON = isDark ? "#0f172a" : "#ffffff";
+  const ACTIVE_ICON = "#ffffff";
 
   // Long-press tooltip bubble (mobile equivalent of the hover tooltip).
   const [tip, setTip] = useState<string | null>(null);
@@ -143,7 +144,7 @@ function CustomTabBar({ state, navigation, splitOpen, onFabPress, onCloseSplit }
   return (
     <View
       style={{
-        backgroundColor: isDark ? "#1e293b" : "#EFF4F2",
+        backgroundColor: isDark ? "#0f172a" : "#ffffff",
         flexDirection: "row",
         alignItems: "center",
         height: 66,
@@ -151,16 +152,16 @@ function CustomTabBar({ state, navigation, splitOpen, onFabPress, onCloseSplit }
         marginBottom: bottomPad,
         paddingHorizontal: 8,
         borderRadius: 999,
-        borderWidth: 0.5,
-        borderColor: isDark ? "#334155" : "#DCE3DF",
+        borderWidth: 1,
+        borderColor: isDark ? "#1e293b" : "#f1f5f9",
         ...Platform.select({
           ios: {
-            shadowColor: "#0f172a",
-            shadowOffset: { width: 0, height: 6 },
-            shadowOpacity: isDark ? 0.4 : 0.12,
-            shadowRadius: 16,
+            shadowColor: isDark ? "#000000" : "#94a3b8",
+            shadowOffset: { width: 0, height: 12 },
+            shadowOpacity: isDark ? 0.5 : 0.22,
+            shadowRadius: 24,
           },
-          android: { elevation: 10 },
+          android: { elevation: 12 },
         }),
       }}
     >
@@ -230,25 +231,35 @@ function CustomTabBar({ state, navigation, splitOpen, onFabPress, onCloseSplit }
                   width: 56,
                   height: 56,
                   borderRadius: 28,
-                  backgroundColor: "#1B6E63",
-                  alignItems: "center",
-                  justifyContent: "center",
                   borderWidth: 4,
-                  borderColor: isDark ? "#1e293b" : "#EFF4F2",
+                  borderColor: isDark ? "#0f172a" : "#ffffff",
                   ...Platform.select({
                     ios: {
-                      shadowColor: "#1B6E63",
-                      shadowOffset: { width: 0, height: 4 },
-                      shadowOpacity: 0.35,
-                      shadowRadius: 8,
+                      shadowColor: "#10B981",
+                      shadowOffset: { width: 0, height: 6 },
+                      shadowOpacity: 0.4,
+                      shadowRadius: 12,
                     },
                     android: { elevation: 6 },
                   }),
                 }}
               >
-                <Animated.View style={{ transform: [{ rotate: fabRotate }] }}>
-                  <Feather name="plus" size={22} color="#fff" />
-                </Animated.View>
+                <LinearGradient
+                  colors={isDark ? ["#047857", "#064E3B"] : ["#10B981", "#047857"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    borderRadius: 28,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Animated.View style={{ transform: [{ rotate: fabRotate }] }}>
+                    <Feather name="plus" size={22} color="#fff" />
+                  </Animated.View>
+                </LinearGradient>
               </TouchableOpacity>
             </View>
           );
@@ -289,7 +300,7 @@ const SwipeableTabs = withLayoutContext(Navigator);
 export default function TabsLayout() {
   const [splitOpen, setSplitOpen] = useState(false);
   const [showQuickLogModal, setShowQuickLogModal] = useState(false);
-  const [showSleepModal, setShowSleepModal] = useState(false);
+  const [showMissionModal, setShowMissionModal] = useState<null | "sleep" | "meals">(null);
   const pathname = usePathname();
   const { userId, token } = useUser();
 
@@ -389,7 +400,8 @@ export default function TabsLayout() {
         open={splitOpen}
         onClose={() => setSplitOpen(false)}
         onOpenQuickLog={() => setShowQuickLogModal(true)}
-        onOpenSleepLog={() => setShowSleepModal(true)}
+        onOpenSleepLog={() => setShowMissionModal("sleep")}
+        onOpenMealLog={() => setShowMissionModal("meals")}
       />
 
       <QuickLogModal
@@ -398,11 +410,11 @@ export default function TabsLayout() {
       />
 
       <MissionLogModal
-        mission={showSleepModal ? "sleep" : null}
+        mission={showMissionModal}
         userId={userId}
         token={token}
-        onClose={() => setShowSleepModal(false)}
-        onSaved={() => setShowSleepModal(false)}
+        onClose={() => setShowMissionModal(null)}
+        onSaved={() => setShowMissionModal(null)}
         onOpenDiary={() => {}}
       />
     </View>

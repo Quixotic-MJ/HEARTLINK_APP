@@ -52,8 +52,8 @@ export function QuickLogModal({ visible, onClose }: QuickLogModalProps) {
       return;
     }
     const mins = parseInt(durationMinutes, 10);
-    if (isNaN(mins) || mins <= 0 || mins > 1440) {
-      setErrorMsg("Please specify a duration between 1 and 1440 minutes.");
+    if (isNaN(mins) || mins <= 0 || mins > 180) {
+      setErrorMsg("Please specify a realistic duration between 1 and 180 minutes.");
       return;
     }
 

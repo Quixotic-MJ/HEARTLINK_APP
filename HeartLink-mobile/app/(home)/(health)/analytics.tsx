@@ -92,7 +92,7 @@ export default function HealthAnalyticsScreen() {
           <View className="pb-3 border-b-2 border-[#1e4ed8] mr-6">
             <Text className="text-[14px] font-bold text-slate-900 dark:text-white">Overview & HSS</Text>
           </View>
-          <TouchableOpacity className="pb-3" onPress={() => router.push("/(home)/(meals)/daily-diary" as any)}>
+          <TouchableOpacity className="pb-3" onPress={() => router.push("/(home)/(meals)/food-diary" as any)}>
             <Text className="text-[14px] font-medium text-slate-400">Diet & Meals</Text>
           </TouchableOpacity>
           <TouchableOpacity className="pb-3 ml-6" onPress={() => router.push("/(home)/(health)/exercise-diary" as any)}>

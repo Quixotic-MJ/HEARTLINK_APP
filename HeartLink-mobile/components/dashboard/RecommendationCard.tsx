@@ -46,13 +46,19 @@ export function RecommendationCard({
       accessible={true}
       accessibilityRole="button"
       accessibilityLabel={`${tag} recommendation: ${title}. ${subtitle}. Tap to view details.`}
-      className="flex-1 rounded-2xl overflow-hidden border border-border shadow-xs"
+      className="flex-1 rounded-3xl overflow-hidden border border-slate-100 dark:border-slate-800 shadow-xs"
       style={{ backgroundColor: bg || "#14532d" }}
     >
-      {/* Cover: photo when the backend provides one, glyph watermark otherwise */}
+      {/* Cover: photo when the backend provides one, fallback photo for EXERCISE, glyph watermark otherwise */}
       {image ? (
         <Image
           source={{ uri: image }}
+          style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
+          resizeMode="cover"
+        />
+      ) : tag?.toUpperCase() === "EXERCISE" ? (
+        <Image
+          source={require("../../assets/images/placeholder_exercise.jpg")}
           style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
           resizeMode="cover"
         />

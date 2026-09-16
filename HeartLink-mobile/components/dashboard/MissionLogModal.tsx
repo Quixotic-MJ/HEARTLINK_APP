@@ -21,8 +21,6 @@ const FOOD_LOG_OPTIONS = [
     iconType: "feather" as const,
     label: "Scan food barcode",
     subtitle: "Use camera to scan product barcodes",
-    iconColor: "#185fa5",
-    iconBg: "#e6f1fb",
     route: "/(home)/(meals)/barcode-scan",
   },
   {
@@ -30,8 +28,6 @@ const FOOD_LOG_OPTIONS = [
     iconType: "feather" as const,
     label: "Search food database",
     subtitle: "Search verified meals & nutritional facts",
-    iconColor: "#16a34a",
-    iconBg: "#eaf3de",
     route: "/(home)/(meals)/search-meal",
   },
   {
@@ -39,8 +35,6 @@ const FOOD_LOG_OPTIONS = [
     iconType: "material" as const,
     label: "Log manually / Estimate",
     subtitle: "Enter custom food details & nutrients",
-    iconColor: "#d97706",
-    iconBg: "#fef3c7",
     route: "/(home)/(meals)/estimate-meal",
   },
 ];
@@ -258,45 +252,52 @@ export function MissionLogModal({
                 {FOOD_LOG_OPTIONS.map((option, index) => (
                   <TouchableOpacity
                     key={option.label}
-                    activeOpacity={0.7}
-                    onPress={() => animateOut(() => router.push(option.route as any))}
+                    activeOpacity={0.75}
+                    onPress={() => animateOut(() => { onClose(); router.push(option.route as any); })}
                     style={{
                       flexDirection: "row",
                       alignItems: "center",
-                      backgroundColor: isDark ? "#1e293b" : "#fff",
-                      borderRadius: 16,
-                      padding: 14,
-                      marginBottom: index < FOOD_LOG_OPTIONS.length - 1 ? 10 : 0,
-                      borderWidth: 0.5,
-                      borderColor: isDark ? "#334155" : "#e2e8f0",
+                      backgroundColor: isDark ? "#1e293b" : "#ffffff",
+                      borderRadius: 20,
+                      padding: 16,
+                      marginBottom: index < FOOD_LOG_OPTIONS.length - 1 ? 12 : 0,
+                      borderWidth: 1.5,
+                      borderColor: isDark ? "#334155" : "#f1f5f9",
+                      shadowColor: isDark ? "#000" : "#64748b",
+                      shadowOffset: { width: 0, height: 1 },
+                      shadowOpacity: isDark ? 0.3 : 0.05,
+                      shadowRadius: 3,
+                      elevation: 1,
                     }}
                   >
                     <View
                       style={{
-                        width: 42,
-                        height: 42,
-                        borderRadius: 12,
-                        backgroundColor: option.iconBg,
+                        width: 46,
+                        height: 46,
+                        borderRadius: 16,
+                        backgroundColor: isDark ? "#0f172a" : "#f8fafc",
+                        borderWidth: 1,
+                        borderColor: isDark ? "#334155" : "#e2e8f0",
                         alignItems: "center",
                         justifyContent: "center",
-                        marginRight: 14,
+                        marginRight: 16,
                       }}
                     >
                       {option.iconType === "feather" ? (
-                        <Feather name={option.icon as any} size={18} color={option.iconColor} />
+                        <Feather name={option.icon as any} size={20} color={isDark ? "#f8fafc" : "#0f172a"} />
                       ) : (
-                        <MaterialCommunityIcons name={option.icon as any} size={18} color={option.iconColor} />
+                        <MaterialCommunityIcons name={option.icon as any} size={20} color={isDark ? "#f8fafc" : "#0f172a"} />
                       )}
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text style={{ fontSize: 14, fontWeight: "600", color: isDark ? "#f8fafc" : "#0f172a", marginBottom: 2 }}>
+                      <Text style={{ fontSize: 15, fontWeight: "700", color: isDark ? "#f8fafc" : "#1e293b", marginBottom: 3 }}>
                         {option.label}
                       </Text>
-                      <Text style={{ fontSize: 12, color: isDark ? "#cbd5e1" : "#64748b", lineHeight: 16 }}>
+                      <Text style={{ fontSize: 12.5, fontWeight: "500", color: isDark ? "#94a3b8" : "#64748b", lineHeight: 18 }}>
                         {option.subtitle}
                       </Text>
                     </View>
-                    <Feather name="chevron-right" size={16} color={isDark ? "#64748b" : "#cbd5e1"} />
+                    <Feather name="chevron-right" size={18} color={isDark ? "#475569" : "#cbd5e1"} />
                   </TouchableOpacity>
                 ))}
                 <TouchableOpacity

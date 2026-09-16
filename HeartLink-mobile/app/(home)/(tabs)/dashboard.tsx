@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useQuery } from '@tanstack/react-query';
 import {
   View,
   Text,
@@ -16,7 +17,7 @@ import Reanimated, { FadeInDown, LinearTransition, ZoomIn } from "react-native-r
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter, useFocusEffect } from "expo-router";
 import { useColorScheme } from "nativewind";
-import { Feather } from "@expo/vector-icons";
+import { Feather, Ionicons } from "@expo/vector-icons";
 import { useUser } from "../../../contexts/UserContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Haptics from "expo-haptics";
@@ -123,50 +124,51 @@ type ScoreTheme = {
 };
 
 function getScoreTheme(score: number, isDark: boolean): ScoreTheme {
+  const slateTheme = {
+    barColor: isDark ? "#475569" : "#94a3b8",
+    badgeBg: isDark ? "rgba(30, 41, 59, 0.6)" : "#f1f5f9",
+    badgeBorder: isDark ? "#334155" : "#e2e8f0",
+    badgeText: isDark ? "#94a3b8" : "#64748b",
+    dotColor: isDark ? "#94a3b8" : "#64748b",
+  };
+
   if (!score || score === 0) {
-    return {
-      label: "Score unavailable",
-      barColor: isDark ? "#64748B" : "#A3B1AC",
-      badgeBg: isDark ? "rgba(100, 116, 139, 0.15)" : "#E2E8E5",
-      badgeBorder: isDark ? "rgba(100, 116, 139, 0.3)" : "#CCD6D1",
-      badgeText: isDark ? "#94A3B8" : "#5C6B66",
-      dotColor: isDark ? "#94A3B8" : "#5C6B66",
-    };
+    return { label: "Score unavailable", ...slateTheme };
   }
   if (score >= 80)
     return {
       label: "Stable",
-      barColor: "#1B6E63",
-      badgeBg: isDark ? "rgba(27, 110, 99, 0.2)" : "#E2F1ED",
-      badgeBorder: isDark ? "rgba(27, 110, 99, 0.35)" : "#C6E4DC",
-      badgeText: isDark ? "#4FA79A" : "#1B6E63",
-      dotColor: isDark ? "#4FA79A" : "#1B6E63",
+      barColor: "#34d399", // Emerald 400
+      badgeBg: isDark ? "rgba(16, 185, 129, 0.15)" : "#d1fae5",
+      badgeBorder: isDark ? "rgba(16, 185, 129, 0.3)" : "#a7f3d0",
+      badgeText: isDark ? "#34d399" : "#059669",
+      dotColor: isDark ? "#34d399" : "#059669",
     };
   if (score >= 60)
     return {
       label: "Moderate",
-      barColor: "#A9741B",
-      badgeBg: isDark ? "rgba(169, 116, 27, 0.2)" : "#FEF3C7",
-      badgeBorder: isDark ? "rgba(169, 116, 27, 0.35)" : "#FCE4A2",
-      badgeText: isDark ? "#C99A3E" : "#A9741B",
-      dotColor: isDark ? "#C99A3E" : "#A9741B",
+      barColor: "#34d399", // Emerald 400
+      badgeBg: isDark ? "rgba(16, 185, 129, 0.15)" : "#d1fae5",
+      badgeBorder: isDark ? "rgba(16, 185, 129, 0.3)" : "#a7f3d0",
+      badgeText: isDark ? "#34d399" : "#059669",
+      dotColor: isDark ? "#34d399" : "#059669",
     };
   if (score >= 50)
     return {
       label: "Elevated Risk",
-      barColor: "#C0502E",
-      badgeBg: isDark ? "rgba(192, 80, 46, 0.2)" : "#FDEEE9",
-      badgeBorder: isDark ? "rgba(192, 80, 46, 0.35)" : "#F9D5CB",
-      badgeText: isDark ? "#D0714E" : "#C0502E",
-      dotColor: isDark ? "#D0714E" : "#C0502E",
+      barColor: "#34d399", // Emerald 400
+      badgeBg: isDark ? "rgba(16, 185, 129, 0.15)" : "#d1fae5",
+      badgeBorder: isDark ? "rgba(16, 185, 129, 0.3)" : "#a7f3d0",
+      badgeText: isDark ? "#34d399" : "#059669",
+      dotColor: isDark ? "#34d399" : "#059669",
     };
   return {
     label: "Critical",
-    barColor: "#8A1F1A",
-    badgeBg: isDark ? "rgba(138, 31, 26, 0.2)" : "#FBEAE9",
-    badgeBorder: isDark ? "rgba(138, 31, 26, 0.35)" : "#F5C7C5",
-    badgeText: isDark ? "#D15C4E" : "#8A1F1A",
-    dotColor: isDark ? "#D15C4E" : "#8A1F1A",
+    barColor: "#34d399", // Emerald 400
+    badgeBg: isDark ? "rgba(16, 185, 129, 0.15)" : "#d1fae5",
+    badgeBorder: isDark ? "rgba(16, 185, 129, 0.3)" : "#a7f3d0",
+    badgeText: isDark ? "#34d399" : "#059669",
+    dotColor: isDark ? "#34d399" : "#059669",
   };
 }
 
@@ -193,42 +195,22 @@ export default function DashboardScreen() {
   const { userId, token, user, logout } = useUser();
   const { showToast } = useToast();
 
-  const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [data, setData] = useState<any>(null);
-  const [error, setError] = useState(false);
-  const [refreshError, setRefreshError] = useState(false);
   const [alertModalVisible, setAlertModalVisible] = useState(false);
   const [reduceMotion, setReduceMotion] = useState(false);
   const [companion, setCompanion] = useState<CompanionGreetingResult | null>(null);
   // Varnished (LLM) variant of the voiced greeting line, when available.
   const [companionAi, setCompanionAi] = useState<string | null>(null);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [scoreModalVisible, setScoreModalVisible] = useState(false);
 
-  const isFetchingRef = useRef(false);
   const isNavigatingRef = useRef(false);
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
-  const [isCachedData, setIsCachedData] = useState(false);
   const [isSyncingOffline, setIsSyncingOffline] = useState(false);
-  const netInfo = useNetInfo();
-  const isOffline = netInfo.isConnected === false || netInfo.isInternetReachable === false;
-
-  const dataRef = useRef(data);
-  dataRef.current = data;
 
   useEffect(() => {
     AccessibilityInfo.isReduceMotionEnabled?.().then(setReduceMotion);
   }, []);
-
-  // Clear any lingering refresh errors the moment we come back online,
-  // so the red banner doesn't flash while waiting for the background sync to finish.
-  useEffect(() => {
-    if (!isOffline && refreshError) {
-      setRefreshError(false);
-    }
-  }, [isOffline]);
 
   const safeNavigate = useCallback((route: string, params?: any) => {
     if (isNavigatingRef.current) return;
@@ -243,80 +225,37 @@ export default function DashboardScreen() {
     }, 500);
   }, [router]);
 
-  const fetchData = useCallback(
-    async (silent = false) => {
-      if (!userId || isFetchingRef.current) return;
-      isFetchingRef.current = true;
-
-      // Only show full-screen skeleton on initial load when no data exists in memory
-      if (!silent && !dataRef.current) setIsLoading(true);
-      setError(false);
-      setRefreshError(false);
-      const cacheKey = `@dashboard_cache_${userId}`;
-
-      // 10-second timeout controller prevents infinite UI hang if socket/network stalls
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
-
-      try {
-        const storedToken = await AsyncStorage.getItem("access_token");
-        const effectiveToken = token || storedToken || "";
-        const response = await fetch(`${base_url}/api/dashboard/me`, {
-          headers: {
-            "Authorization": `Bearer ${effectiveToken}`
-          },
-          signal: controller.signal,
-        });
-        clearTimeout(timeoutId);
-
-        if (response.ok) {
-          const json = await response.json();
-          setData(json);
-          setIsCachedData(false);
-          setRefreshError(false);
-          setRefreshTrigger((prev) => prev + 1);
-          await AsyncStorage.setItem(cacheKey, JSON.stringify(json));
-        } else if (response.status === 401 || response.status === 403) {
-          // Token expired or invalid session - delegate to centralized auth logout
-          await logout();
-          return;
-        } else {
-          throw new Error(`Dashboard API responded with ${response.status}`);
-        }
-      } catch (err) {
-        clearTimeout(timeoutId);
-        console.error("Dashboard fetch error:", err);
-        if (dataRef.current) {
-          // Keep existing in-memory data visible and show non-blocking banner
-          setRefreshError(true);
-        } else {
-          try {
-            const cachedStr = await AsyncStorage.getItem(cacheKey);
-            if (cachedStr) {
-              setData(JSON.parse(cachedStr));
-              setIsCachedData(true);
-              console.log("[Dashboard] Loaded data from local cache.");
-            } else {
-              setError(true);
-            }
-          } catch {
-            setError(true);
-          }
-        }
-      } finally {
-        setIsLoading(false);
-        setRefreshing(false);
-        isFetchingRef.current = false;
+  const fetchDashboardData = async () => {
+    if (!userId) return null;
+    const storedToken = await AsyncStorage.getItem("access_token");
+    const effectiveToken = token || storedToken || "";
+    
+    const response = await fetch(`${base_url}/api/dashboard/me`, {
+      headers: {
+        "Authorization": `Bearer ${effectiveToken}`
       }
-    },
-    [userId, token, logout]
-  );
+    });
 
-  useFocusEffect(
-    useCallback(() => {
-      fetchData(true);
-    }, [fetchData])
-  );
+    if (response.status === 401 || response.status === 403) {
+      await logout();
+      throw new Error("Unauthorized");
+    }
+    if (!response.ok) {
+      throw new Error("Failed to fetch dashboard");
+    }
+    
+    return response.json();
+  };
+
+  const { data, isLoading, isError: error, refetch, isRefetchError, dataUpdatedAt } = useQuery({
+    queryKey: ['dashboard', userId],
+    queryFn: fetchDashboardData,
+    enabled: !!userId,
+  });
+
+  const refreshError = isRefetchError; // Map React Query state to existing logic
+  const netInfo = useNetInfo();
+  const isOffline = netInfo.isConnected === false || netInfo.isInternetReachable === false;
 
   useEffect(() => {
     const subStart = DeviceEventEmitter.addListener("sync_started", () => {
@@ -325,7 +264,7 @@ export default function DashboardScreen() {
     const subComplete = DeviceEventEmitter.addListener("sync_complete", () => {
       setIsSyncingOffline(false);
       console.log("[Dashboard] Background sync complete, refreshing data...");
-      fetchData(true);
+      refetch();
     });
     const subSuccess = DeviceEventEmitter.addListener("offline_data_synced", (count: number) => {
       showToast({
@@ -339,13 +278,13 @@ export default function DashboardScreen() {
       subComplete.remove();
       subSuccess.remove();
     };
-  }, [fetchData, showToast]);
+  }, [refetch, showToast]);
 
-  const onRefresh = useCallback(() => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    setRefreshTrigger((prev) => prev + 1);
-    fetchData(true);
-  }, [fetchData]);
+    await refetch();
+    setRefreshing(false);
+  }, [refetch]);
 
   const hssScore = typeof data?.hss_score === "number" ? data.hss_score : 0;
   const hasHssScore = hssScore > 0;
@@ -390,33 +329,19 @@ export default function DashboardScreen() {
     setShowQuickLogModal(false);
     if (success) {
       scrollViewRef.current?.scrollTo({ y: 0, animated: true });
-      fetchData(true);
+      refetch();
     }
-  }, [fetchData]);
+  }, [refetch]);
 
   const handleMissionSaved = useCallback(() => {
     setLogModal(null);
-    fetchData(true);
-  }, [fetchData]);
+    refetch();
+  }, [refetch]);
 
   const handleMissionPress = useCallback(
     (id: MissionId) => {
       if (id === "exercise") {
-        Alert.alert(
-          "Log Exercise",
-          "How would you like to log your activity?",
-          [
-            { text: "Cancel", style: "cancel" },
-            { 
-              text: "Quick Log Activity", 
-              onPress: () => setShowQuickLogModal(true)
-            },
-            { 
-              text: "Browse Guided Routines", 
-              onPress: () => safeNavigate("/(home)/(tabs)/explore", { initialSegment: "exercises" }) 
-            }
-          ]
-        );
+        setShowQuickLogModal(true);
         return;
       }
       if (id === "vitals") {
@@ -478,8 +403,8 @@ export default function DashboardScreen() {
   const [mapVisible, setMapVisible] = useState(false);
   const handleRecLogged = useCallback(() => {
     setActiveRec(null);
-    fetchData(true);
-  }, [fetchData]);
+    refetch();
+  }, [refetch]);
   const handleRecOpenFull = useCallback(
     (rec: ActiveRec) => {
       setActiveRec(null);
@@ -572,10 +497,7 @@ export default function DashboardScreen() {
     }
   }, [data, user?.first_name, movementMins, hssScore, theme.label, userId, streakDays, token]);
 
-  // Reset in-memory data when userId changes to prevent cross-account display leaks
-  useEffect(() => {
-    setData(null);
-  }, [userId]);
+  // React Query handles isolation automatically by including userId in the queryKey.
 
 
 
@@ -669,14 +591,14 @@ export default function DashboardScreen() {
   const cardShadowStyle = {
     shadowColor: isDark ? "#000000" : "#10231F",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: isDark ? 0.35 : 0.05,
-    shadowRadius: 8,
+    shadowOpacity: isDark ? 0.35 : 0.04,
+    shadowRadius: 12,
     elevation: 2,
   };
 
   if (isLoading && !data) {
     return (
-      <ScreenWrapper edges={["top"]} withScrollView={false} safeAreaClassName="flex-1 bg-[#F8FAF9] dark:bg-[#0B131E]">
+      <ScreenWrapper edges={["top"]} withScrollView={false} safeAreaClassName="flex-1 bg-[#F3F5F7] dark:bg-[#0b1120]">
         <Header showProfile={false} />
         <ScrollView
           showsVerticalScrollIndicator={false}
@@ -687,12 +609,12 @@ export default function DashboardScreen() {
             <Skeleton className="w-28 h-7 rounded-lg bg-[#DCE3DF] dark:bg-slate-800" />
           </View>
 
-          <View className="bg-white dark:bg-[#1A2634] rounded-2xl border border-[#DCE3DF] dark:border-slate-800 p-4 mb-4 items-center">
+          <View className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 p-4 mb-4 items-center">
             <Skeleton className="w-28 h-6 rounded-full mb-4 bg-[#DCE3DF] dark:bg-slate-800" />
             <Skeleton className="w-44 h-44 rounded-full bg-[#DCE3DF] dark:bg-slate-800" />
           </View>
 
-          <View className="bg-white dark:bg-[#1A2634] rounded-2xl border border-[#DCE3DF] dark:border-slate-800 p-4 mb-4">
+          <View className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 p-4 mb-4">
             <Skeleton className="w-36 h-4 rounded-md mb-3 bg-[#DCE3DF] dark:bg-slate-800" />
             <View className="gap-2.5">
               {[1, 2, 3, 4].map((i) => (
@@ -705,8 +627,8 @@ export default function DashboardScreen() {
           <View className="mt-2">
             <Skeleton className="w-36 h-4 rounded-md mb-3 bg-[#DCE3DF] dark:bg-slate-800" />
             <View className="flex-row gap-3">
-              <Skeleton className="w-52 h-32 rounded-2xl bg-[#DCE3DF] dark:bg-slate-800" />
-              <Skeleton className="w-52 h-32 rounded-2xl bg-[#DCE3DF] dark:bg-slate-800" />
+              <Skeleton className="w-52 h-32 rounded-3xl bg-[#DCE3DF] dark:bg-slate-800" />
+              <Skeleton className="w-52 h-32 rounded-3xl bg-[#DCE3DF] dark:bg-slate-800" />
             </View>
           </View>
         </ScrollView>
@@ -716,21 +638,21 @@ export default function DashboardScreen() {
 
   if (error && !data) {
     return (
-      <ScreenWrapper edges={["top"]} withScrollView={false} safeAreaClassName="flex-1 bg-[#F8FAF9] dark:bg-[#0B131E]">
+      <ScreenWrapper edges={["top"]} withScrollView={false} safeAreaClassName="flex-1 bg-[#F3F5F7] dark:bg-[#0b1120]">
         <Header showProfile={false} />
         <View className="flex-1 justify-center items-center px-5">
-          <View className="bg-white dark:bg-[#1A2634] rounded-2xl border border-[#DCE3DF] dark:border-slate-800 p-8 items-center w-full max-w-sm shadow-xs">
-            <View className="w-14 h-14 rounded-2xl bg-[#8A1F1A]/10 border border-[#8A1F1A]/20 items-center justify-center mb-4">
+          <View className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 p-8 items-center w-full max-w-sm shadow-xs">
+            <View className="w-14 h-14 rounded-3xl bg-[#8A1F1A]/10 border border-[#8A1F1A]/20 items-center justify-center mb-4">
               <Feather name="wifi-off" size={24} color="#8A1F1A" />
             </View>
-            <Text className="text-[18px] font-bold text-[#152131] dark:text-white mb-1 text-center">
+            <Text className="text-[18px] font-bold text-slate-700 dark:text-white mb-1 text-center">
               Unable to load dashboard
             </Text>
-            <Text className="text-[13px] text-[#5C6B66] dark:text-slate-400 text-center mb-6 leading-relaxed">
+            <Text className="text-[13px] text-slate-500 dark:text-slate-400 text-center mb-6 leading-relaxed">
               Check your connection and try again.
             </Text>
             <TactileCard
-              onPress={() => fetchData(false)}
+              onPress={() => refetch()}
               accessible={true}
               accessibilityRole="button"
               accessibilityLabel="Try again to load dashboard"
@@ -751,7 +673,7 @@ export default function DashboardScreen() {
     <ScreenWrapper
       edges={["top"]}
       withScrollView={false}
-      safeAreaClassName="flex-1 bg-[#F8FAF9] dark:bg-[#0B131E]"
+      safeAreaClassName="flex-1 bg-[#F3F5F7] dark:bg-[#0b1120]"
     >
       {/* ── Interactive First-Time Coachmark Walkthrough Tour ── */}
       <DashboardTutorialModal
@@ -807,7 +729,7 @@ export default function DashboardScreen() {
       >
         {/* ── Background Refresh Error Banner ── */}
         {refreshError && !isOffline && (
-          <View className="mx-5 mt-3 bg-[#FDEEE9] dark:bg-[#8A1F1A]/25 border border-[#E8532E]/30 px-4 py-2.5 rounded-2xl flex-row items-center justify-between">
+          <View className="mx-5 mt-3 bg-[#FDEEE9] dark:bg-[#8A1F1A]/25 border border-[#E8532E]/30 px-4 py-2.5 rounded-3xl flex-row items-center justify-between">
             <View className="flex-row items-center gap-2 flex-1 pr-2">
               <Feather name="alert-circle" size={14} color="#8A1F1A" />
               <Text className="text-[12px] text-[#8A1F1A] dark:text-[#E0958B] font-medium">
@@ -815,7 +737,7 @@ export default function DashboardScreen() {
               </Text>
             </View>
             <TouchableOpacity
-              onPress={() => fetchData(true)}
+              onPress={() => refetch()}
               activeOpacity={0.7}
               accessible={true}
               accessibilityRole="button"
@@ -841,7 +763,7 @@ export default function DashboardScreen() {
         {isAlertActive && (
           <TactileCard
             onPress={() => setAlertModalVisible(true)}
-            className="mx-5 mt-3 bg-[#FBEAE9] dark:bg-[#8A1F1A]/25 border border-[#8A1F1A]/30 rounded-2xl p-4 flex-row items-center gap-3"
+            className="mx-5 mt-3 bg-[#FBEAE9] dark:bg-[#8A1F1A]/25 border border-[#8A1F1A]/30 rounded-3xl p-4 flex-row items-center gap-3"
             style={cardShadowStyle}
           >
             <View className="w-10 h-10 rounded-xl bg-[#8A1F1A]/10 dark:bg-[#8A1F1A]/25 items-center justify-center flex-shrink-0">
@@ -851,7 +773,7 @@ export default function DashboardScreen() {
               <Text className="text-[11px] font-bold text-[#8A1F1A] dark:text-[#E0958B] uppercase tracking-wider mb-0.5">
                 Active Health Alert
               </Text>
-              <Text className="text-[13px] text-[#152131] dark:text-white font-medium leading-snug" numberOfLines={2}>
+              <Text className="text-[13px] text-slate-700 dark:text-white font-medium leading-snug" numberOfLines={2}>
                 {data?.latest_alert?.message || "Attention required. Tap to view action items."}
               </Text>
             </View>
@@ -859,25 +781,24 @@ export default function DashboardScreen() {
           </TactileCard>
         )}
 
-        {/* ── Clean 2-Line Greeting ── */}
+        {/* ── Clean Greeting & AI Assistant Pill ── */}
         <Reanimated.View entering={FadeInDown.duration(280)} className="px-5 pt-3 pb-1">
-          <Text className="text-[13px] sm:text-sm font-medium text-[#5C6B66] dark:text-slate-400 mb-0.5">
+          <Text className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
             {getGreeting(data?.user?.first_name || user?.first_name)}
           </Text>
-          <Text className="text-2xl sm:text-3xl font-bold text-[#152131] dark:text-white tracking-tight">
-            {getDaypartTitle()}
-          </Text>
+          
           {companion && (
-            <Text
-              numberOfLines={3}
-              className="text-[12.5px] text-[#5C6B66] dark:text-slate-300 leading-relaxed font-medium mt-1 pr-2"
-            >
-              {companionAi ??
-                voiceGreeting(
-                  companion,
-                  streakDays
-                ).text}
-            </Text>
+            <View className="mt-3 bg-white/60 dark:bg-slate-800/60 rounded-2xl p-3 border border-slate-200/50 dark:border-slate-700/50 flex-row items-center gap-3">
+              <View className="w-8 h-8 rounded-full bg-indigo-500/10 dark:bg-indigo-400/10 items-center justify-center flex-shrink-0">
+                <Ionicons name="sparkles" size={14} color={isDark ? "#818cf8" : "#6366f1"} />
+              </View>
+              <Text
+                numberOfLines={2}
+                className="flex-1 text-[13px] text-slate-700 dark:text-slate-300 leading-relaxed font-medium pr-1"
+              >
+                {companionAi ?? voiceGreeting(companion, streakDays).text}
+              </Text>
+            </View>
           )}
         </Reanimated.View>
 
@@ -886,7 +807,7 @@ export default function DashboardScreen() {
         {/* ============================================================== */}
         <Reanimated.View
           entering={FadeInDown.delay(100).duration(260)}
-          className="mx-5 mt-3.5 bg-white dark:bg-[#1A2634] rounded-3xl border border-[#DCE3DF] dark:border-slate-800/80 p-5 items-center"
+          className="mx-5 mt-3.5 bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 p-6 items-center"
           style={cardShadowStyle}
         >
           {/* Header Row: Status badge + Distinct Info Button */}
@@ -900,7 +821,7 @@ export default function DashboardScreen() {
               accessibilityRole="button"
               accessibilityLabel={`Heart Health, ${theme.label}. Tap for info on stability score.`}
               accessibilityHint="Opens explanation of your heart health stability score"
-              className="flex-row items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#F3F7F5] dark:bg-slate-800/80 border border-[#DCE3DF]/70 dark:border-slate-700/60"
+              className="flex-row items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#F3F7F5] dark:bg-slate-800/80 border border-slate-100/70 dark:border-slate-700/60"
             >
               <View
                 className="w-2.5 h-2.5 rounded-full"
@@ -921,7 +842,7 @@ export default function DashboardScreen() {
               accessibilityLabel="About Heart Health Stability Score"
               accessibilityHint="Opens explanation sheet for this score"
               activeOpacity={0.7}
-              className="w-8 h-8 rounded-full items-center justify-center bg-[#F3F7F5] dark:bg-slate-800/80 border border-[#DCE3DF]/70 dark:border-slate-700/60"
+              className="w-8 h-8 rounded-full items-center justify-center bg-[#F3F7F5] dark:bg-slate-800/80 border border-slate-100/70 dark:border-slate-700/60"
             >
               <Feather
                 name="info"
@@ -956,7 +877,7 @@ export default function DashboardScreen() {
                 score={hssScore}
                 size={278}
                 color={theme.dotColor}
-                refreshTrigger={refreshTrigger}
+                refreshTrigger={dataUpdatedAt}
                 celebrateTrigger={completedCount}
                 systolic={latestSbp}
                 diastolic={latestDbp}
@@ -965,6 +886,28 @@ export default function DashboardScreen() {
               />
             </Animated.View>
           </View>
+
+          {/* AI / Clinical Insight banner */}
+          {data?.insight && (
+            <View className="w-full bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-3.5 border border-slate-100 dark:border-slate-700/50 flex-row items-start gap-3 mt-4">
+              <Feather
+                name={(data.insight.icon || "zap") as any}
+                size={15}
+                color={
+                  data.insight.icon === "trending-down"
+                    ? "#f43f5e" // rose-500
+                    : data.insight.icon === "trending-up"
+                      ? "#10b981" // emerald-500
+                      : "#64748b" // slate-500
+                }
+                style={{ marginTop: 2 }}
+              />
+              <Text className="flex-1 text-[12.5px] text-slate-500 dark:text-slate-300 leading-relaxed font-medium">
+                <Text className="font-bold text-slate-700 dark:text-white">{data.insight?.title || ""}{" "}</Text>
+                {data.insight.body}
+              </Text>
+            </View>
+          )}
         </Reanimated.View>
 
         {/* ============================================================== */}
@@ -972,100 +915,67 @@ export default function DashboardScreen() {
         {/* ============================================================== */}
         <Reanimated.View
           entering={FadeInDown.delay(180).duration(260)}
-          className="mx-5 mt-4 bg-white dark:bg-[#1A2634] rounded-3xl border border-[#DCE3DF] dark:border-slate-800/80 p-4 sm:p-5"
+          className="mx-5 mt-4 bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 p-4 sm:p-6"
           style={cardShadowStyle}
         >
-          {/* Hero progress panel */}
-          <View className="mb-3.5 rounded-2xl overflow-hidden">
-            <LinearGradient
-              colors={["#0C2E29", "#1B6E63"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={{ padding: 14 }}
-            >
-              <View className="flex-row items-center justify-between mb-2">
-                <View className="flex-row items-center gap-2">
-                  <View className="w-6 h-6 rounded-lg bg-white/15 items-center justify-center">
-                    <Feather name="check-circle" size={13} color="#fff" />
-                  </View>
-                  <View>
-                    <Text className="text-[10px] font-bold uppercase tracking-[1.5px] text-white/70">
-                      Today's Ritual
-                    </Text>
-                    <Text className="text-[15px] font-bold text-white tracking-tight">
-                      Heart Missions
-                    </Text>
-                  </View>
+          {/* Hero progress panel (Gamified Gradient) */}
+          <LinearGradient
+            colors={isDark ? ["#047857", "#064E3B"] : ["#10B981", "#047857"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={{ borderRadius: 24, padding: 20, marginBottom: 20 }}
+          >
+            <View className="flex-row items-center justify-between mb-4">
+              <View className="flex-row items-center gap-3">
+                <View className="w-10 h-10 rounded-full bg-white/20 items-center justify-center">
+                  <Feather name="activity" size={18} color="#ffffff" />
                 </View>
-                <View className="px-2.5 py-1 rounded-full bg-white/15 border border-white/20 flex-row items-center gap-1">
-                  <Text className="text-[11px] font-bold text-white">
-                    {streakDays > 0 ? `🔥 ${streakDays}-day streak` : "🌱 Day 1"}
+                <View>
+                  <Text className="text-[11px] font-bold uppercase tracking-[1.2px] text-white/80">
+                    Today's Ritual
+                  </Text>
+                  <Text className="text-[18px] font-bold text-white tracking-tight">
+                    Heart Missions
                   </Text>
                 </View>
               </View>
+              <View className="px-3.5 py-1.5 rounded-full bg-white/20 border border-white/10">
+                <Text className="text-[12px] font-bold text-white">
+                  {streakDays > 0 ? `🔥 ${streakDays} Day Streak` : "🌱 Day 1"}
+                </Text>
+              </View>
+            </View>
 
-              <View className="flex-row items-baseline gap-1.5 mb-2">
-                <Text className="text-[26px] font-bold text-white tracking-tight">
+            <View className="flex-row items-baseline justify-between mb-3">
+              <View className="flex-row items-baseline gap-1">
+                <Text className="text-[36px] font-black text-white tracking-tight">
                   {completedCount}
-                  <Text className="text-[15px] font-semibold text-white/60">/4</Text>
                 </Text>
-                <Text className="text-[11px] font-medium text-white/70">
-                  {completedCount === 4 ? "fully protected 🎉" : "habits protected"}
-                </Text>
+                <Text className="text-[16px] font-bold text-white/70">/4</Text>
               </View>
-
-              {/* Animated mission progress track */}
-              <View className="h-2 rounded-full bg-white/20 overflow-hidden">
-                <Reanimated.View
-                  layout={LinearTransition.duration(400)}
-                  style={{ width: `${progressPercent}%`, height: "100%" }}
-                >
-                  <LinearGradient
-                    colors={["#5EEAD4", "#A7F3D0"]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={{ flex: 1, borderRadius: 999 }}
-                  />
-                </Reanimated.View>
-              </View>
-              {completedCount < 4 && (
-                <Text className="text-[10.5px] font-medium text-white/60 mt-1.5">
-                  {4 - completedCount} remaining today — tap a mission to log it
-                </Text>
-              )}
-            </LinearGradient>
-          </View>
-
-          {/* AI / Clinical Insight banner */}
-          {data?.insight && (
-            <View className="bg-[#EDF1EF] dark:bg-slate-900/60 rounded-xl p-3 border border-[#DCE3DF] dark:border-slate-800 flex-row items-start gap-2.5 mb-3.5">
-              <Feather
-                name={(data.insight.icon || "zap") as any}
-                size={15}
-                color={
-                  data.insight.icon === "trending-down"
-                    ? "#8A1F1A"
-                    : data.insight.icon === "trending-up"
-                      ? "#1B6E63"
-                      : "#E8532E"
-                }
-                style={{ marginTop: 2 }}
-              />
-              <Text className="flex-1 text-[12px] text-[#5C6B66] dark:text-slate-300 leading-relaxed font-medium">
-                <Text className="font-bold text-[#152131] dark:text-white">{data.insight?.title || ""}{" "}</Text>
-                {data.insight.body}
+              <Text className="text-[13px] font-bold text-white/90">
+                {completedCount === 4 ? "Fully Protected 🎉" : "Missions Completed"}
               </Text>
             </View>
-          )}
+
+            {/* Minimal progress bar */}
+            <View className="h-1.5 rounded-full bg-white/30 overflow-hidden mt-1">
+              <Reanimated.View
+                layout={LinearTransition.duration(400)}
+                style={{ width: `${progressPercent}%`, height: "100%", backgroundColor: "#ffffff", borderRadius: 999 }}
+              />
+            </View>
+          </LinearGradient>
+
 
           {/* Heart missions list (compiled pin-list: done rises with check) */}
           <MissionList missions={missionItems} onPress={handleMissionPress} />
 
             {/* Completion Celebration Banner */}
             {completedCount === 4 && (
-              <Reanimated.View entering={ZoomIn.springify().damping(13)} className="mt-1 rounded-2xl overflow-hidden">
+              <Reanimated.View entering={ZoomIn.springify().damping(13)} className="mt-1 rounded-3xl overflow-hidden">
                 <LinearGradient
-                  colors={["#1B6E63", "#0C2E29"]}
+                  colors={["#60A5FA", "#3B82F6"]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                   style={{ padding: 14, flexDirection: "row", alignItems: "center", gap: 12 }}
@@ -1086,71 +996,46 @@ export default function DashboardScreen() {
             )}
           </Reanimated.View>
 
-        {/* ── Clinical Consultation & Daily Wrap-Up Card (Accessible 24/7) ── */}
-        <Reanimated.View entering={FadeInDown.delay(500).duration(300)}>
-        <TactileCard
-          onPress={() => safeNavigate("/(home)/(tabs)/wrap-up")}
-          className="mx-5 mt-4 bg-white dark:bg-[#1A2634] rounded-3xl p-4 border border-[#DCE3DF] dark:border-slate-800/80 flex-row items-center justify-between"
-          style={cardShadowStyle}
-        >
-          <View className="flex-row items-center flex-1 pr-3">
-            <View className="w-10 h-10 rounded-xl bg-[#1E5642]/10 dark:bg-[#1E5642]/20 items-center justify-center mr-3">
-              <Feather name={new Date().getHours() >= 19 ? "moon" : "clipboard"} size={18} color="#1E5642" />
-            </View>
-            <View className="flex-1">
-              <Text className="text-[14px] font-bold text-[#152131] dark:text-white">
-                {new Date().getHours() >= 19 ? "Daily Heart Wrap-Up Ready" : "Doctor Consultation & Daily Summary"}
-              </Text>
-              <Text className="text-[11px] text-[#5C6B66] dark:text-slate-400 mt-0.5">
-                {new Date().getHours() >= 19
-                  ? "Let's look back at your vitals, salt balance, and sleep together — and set up a calm night."
-                  : "View and present your logged meals, exercise, and vitals summary for clinic visits."}
-              </Text>
-            </View>
-          </View>
-          <Feather name="chevron-right" size={16} color="#5C6B66" />
-        </TactileCard>
-        </Reanimated.View>
+
 
         {isCritical ? (
           <View
-            className="mx-5 mt-5 mb-4 bg-[#FBEAE9] dark:bg-[#8A1F1A]/25 rounded-3xl p-4 sm:p-5 border border-[#8A1F1A]/35"
-            style={cardShadowStyle}
+            className="mx-5 mt-5 mb-4 bg-white dark:bg-slate-900 rounded-3xl p-4 sm:p-6 border border-slate-100 dark:border-slate-800 shadow-sm"
           >
-            <View className="flex-row items-center gap-2 mb-2 pb-2 border-b border-[#8A1F1A]/20">
-              <Feather name="shield" size={16} color="#8A1F1A" />
-              <Text className="text-[13px] font-bold text-[#8A1F1A] dark:text-[#E0958B] uppercase tracking-wider">
+            <View className="flex-row items-center gap-2 mb-2 pb-2 border-b border-slate-100 dark:border-slate-800">
+              <Feather name="shield" size={16} color="#f43f5e" />
+              <Text className="text-[13px] font-bold text-rose-500 uppercase tracking-wider">
                 Calm Clinical Guidance • Take a Breather
               </Text>
             </View>
-            <Text className="text-[14px] font-bold text-[#152131] dark:text-white mb-1">
+            <Text className="text-[14px] font-bold text-slate-700 dark:text-white mb-1">
               Elevated indicators detected. Please don't worry.
             </Text>
-            <Text className="text-[12px] text-[#5C6B66] dark:text-slate-300 leading-relaxed font-medium mb-3">
+            <Text className="text-[12px] text-slate-500 dark:text-slate-400 leading-relaxed font-medium mb-3">
               A single high reading can be caused by temporary stress, exertion, or caffeine. Follow these steps:
             </Text>
-            <View className="bg-white/80 dark:bg-slate-900/70 rounded-2xl p-3.5 mb-3.5 gap-2.5 border border-[#8A1F1A]/15 shadow-2xs">
+            <View className="bg-slate-50 dark:bg-slate-800/50 rounded-3xl p-3.5 mb-3.5 gap-2.5 border border-slate-100 dark:border-slate-700/50">
               <View className="flex-row items-center gap-2.5">
-                <View className="w-5 h-5 rounded-full bg-[#8A1F1A]/15 items-center justify-center">
-                  <Text className="text-[10px] font-bold text-[#8A1F1A]">1</Text>
+                <View className="w-5 h-5 rounded-full bg-rose-500/10 items-center justify-center">
+                  <Text className="text-[10px] font-bold text-rose-500">1</Text>
                 </View>
-                <Text className="text-[12px] text-[#152131] dark:text-slate-200 font-medium flex-1">
+                <Text className="text-[12px] text-slate-700 dark:text-slate-300 font-medium flex-1">
                   Sit comfortably with your back supported and feet flat.
                 </Text>
               </View>
               <View className="flex-row items-center gap-2.5">
-                <View className="w-5 h-5 rounded-full bg-[#8A1F1A]/15 items-center justify-center">
-                  <Text className="text-[10px] font-bold text-[#8A1F1A]">2</Text>
+                <View className="w-5 h-5 rounded-full bg-rose-500/10 items-center justify-center">
+                  <Text className="text-[10px] font-bold text-rose-500">2</Text>
                 </View>
-                <Text className="text-[12px] text-[#152131] dark:text-slate-200 font-medium flex-1">
+                <Text className="text-[12px] text-slate-700 dark:text-slate-300 font-medium flex-1">
                   Rest quietly for 5 minutes without talking or using screens.
                 </Text>
               </View>
               <View className="flex-row items-center gap-2.5">
-                <View className="w-5 h-5 rounded-full bg-[#8A1F1A]/15 items-center justify-center">
-                  <Text className="text-[10px] font-bold text-[#8A1F1A]">3</Text>
+                <View className="w-5 h-5 rounded-full bg-rose-500/10 items-center justify-center">
+                  <Text className="text-[10px] font-bold text-rose-500">3</Text>
                 </View>
-                <Text className="text-[12px] text-[#152131] dark:text-slate-200 font-medium flex-1">
+                <Text className="text-[12px] text-slate-700 dark:text-slate-300 font-medium flex-1">
                   Take a second blood pressure measurement.
                 </Text>
               </View>
@@ -1160,7 +1045,7 @@ export default function DashboardScreen() {
                 onPress={() => {
                   safeNavigate("/(home)/(health)/log-symptoms");
                 }}
-                className="flex-1 bg-[#1B6E63] py-3 px-3 rounded-xl items-center justify-center shadow-xs"
+                className="flex-1 bg-slate-800 dark:bg-slate-700 py-3 px-3 rounded-xl items-center justify-center shadow-sm"
               >
                 <Text className="text-white text-[12.5px] font-bold">Re-test Vitals</Text>
               </TactileCard>
@@ -1168,10 +1053,10 @@ export default function DashboardScreen() {
                 onPress={() => {
                   safeNavigate("/locator");
                 }}
-                className="flex-1 bg-[#8A1F1A] py-3 px-3 rounded-xl items-center justify-center flex-row gap-1.5 shadow-xs"
+                className="flex-1 bg-rose-500 py-3 px-3 rounded-xl items-center justify-center flex-row gap-1.5 shadow-sm"
               >
                 <Feather name="map-pin" size={13} color="#ffffff" />
-                <Text className="text-white text-[12.5px] font-bold">Find Nearby Clinic</Text>
+                <Text className="text-white text-[12.5px] font-bold">Find Clinic</Text>
               </TactileCard>
             </View>
           </View>
@@ -1181,7 +1066,7 @@ export default function DashboardScreen() {
             {data?.recommendations && data.recommendations.length > 0 && (
             <View className="mt-6">
               <Reanimated.View entering={FadeInDown.delay(540).duration(300)} className="px-5 flex-row items-center justify-between mb-3">
-                <Text className="text-[16px] font-bold text-[#152131] dark:text-white tracking-tight">
+                <Text className="text-[16px] font-bold text-slate-700 dark:text-white tracking-tight">
                   Recommended for You
                 </Text>
               </Reanimated.View>
@@ -1252,7 +1137,7 @@ export default function DashboardScreen() {
               onSaved={handleMissionSaved}
               onOpenDiary={() => {
                 setLogModal(null);
-                safeNavigate("/(home)/(meals)/daily-diary");
+                safeNavigate("/(home)/(meals)/food-diary");
               }}
             />
 
@@ -1270,34 +1155,65 @@ export default function DashboardScreen() {
               }}
             />
 
-            {/* ── Locator CTA ── */}
-            <Reanimated.View entering={FadeInDown.delay(680).duration(300)}>
-            <TactileCard
-              accessible={true}
-              accessibilityRole="button"
-              accessibilityLabel="Find a healthcare facility. Show the closest Cebu clinics on a map."
-              onPress={() => {
-                Haptics.selectionAsync();
-                setMapVisible(true);
-              }}
-              className="mx-5 mt-4 bg-white dark:bg-[#1A2634] rounded-3xl p-4 sm:p-5 border border-[#DCE3DF] dark:border-slate-800/80 flex-row items-center justify-between"
-              style={cardShadowStyle}
-            >
-              <View className="flex-row items-center flex-1 pr-3">
-                <View className="w-11 h-11 bg-[#E8532E]/10 border border-[#E8532E]/20 rounded-2xl items-center justify-center mr-3.5">
-                  <Feather name="map-pin" size={18} color="#E8532E" />
-                </View>
-                <View className="flex-1">
-                  <Text className="text-[15px] font-bold text-[#152131] dark:text-white mb-0.5 tracking-tight">
-                    Find a Healthcare Facility
-                  </Text>
-                  <Text className="text-[12px] text-[#5C6B66] dark:text-slate-400 font-medium leading-relaxed">
-                    Locate certified cardiac specialists and emergency care.
-                  </Text>
-                </View>
+            {/* ── Unified Care Tools Toolbox ── */}
+            <Reanimated.View entering={FadeInDown.delay(680).duration(300)} className="mx-5 mt-6 mb-8">
+              <Text className="text-[14px] font-bold text-slate-700 dark:text-white tracking-tight mb-3 ml-1">
+                Care Tools & Settings
+              </Text>
+              
+              <View 
+                className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 overflow-hidden"
+                style={cardShadowStyle}
+              >
+                {/* Tool 1: Doctor Consultation */}
+                <TactileCard
+                  onPress={() => safeNavigate("/(home)/(tabs)/wrap-up")}
+                  className="p-4 flex-row items-center justify-between border-b border-slate-50 dark:border-slate-800/50"
+                  activeScale={0.98}
+                >
+                  <View className="flex-row items-center flex-1 pr-3">
+                    <View className="w-10 h-10 rounded-xl bg-[#1E5642]/10 dark:bg-[#1E5642]/20 items-center justify-center mr-3.5">
+                      <Feather name={new Date().getHours() >= 19 ? "moon" : "clipboard"} size={18} color="#1E5642" />
+                    </View>
+                    <View className="flex-1">
+                      <Text className="text-[14px] font-bold text-slate-700 dark:text-white mb-0.5">
+                        {new Date().getHours() >= 19 ? "Daily Heart Wrap-Up Ready" : "Doctor Consultation"}
+                      </Text>
+                      <Text className="text-[11.5px] text-slate-500 dark:text-slate-400 leading-snug">
+                        {new Date().getHours() >= 19
+                          ? "Let's review your vitals and set up a calm night."
+                          : "Present your logged meals and vitals for clinic visits."}
+                      </Text>
+                    </View>
+                  </View>
+                  <Feather name="chevron-right" size={16} color="#94a3b8" />
+                </TactileCard>
+
+                {/* Tool 2: Locator */}
+                <TactileCard
+                  onPress={() => {
+                    Haptics.selectionAsync();
+                    setMapVisible(true);
+                  }}
+                  className="p-4 flex-row items-center justify-between"
+                  activeScale={0.98}
+                >
+                  <View className="flex-row items-center flex-1 pr-3">
+                    <View className="w-10 h-10 rounded-xl bg-[#E8532E]/10 dark:bg-[#E8532E]/20 items-center justify-center mr-3.5">
+                      <Feather name="map-pin" size={18} color="#E8532E" />
+                    </View>
+                    <View className="flex-1">
+                      <Text className="text-[14px] font-bold text-slate-700 dark:text-white mb-0.5">
+                        Healthcare Locator
+                      </Text>
+                      <Text className="text-[11.5px] text-slate-500 dark:text-slate-400 leading-snug">
+                        Find certified cardiac specialists and emergency care.
+                      </Text>
+                    </View>
+                  </View>
+                  <Feather name="chevron-right" size={16} color="#94a3b8" />
+                </TactileCard>
               </View>
-              <Feather name="chevron-right" size={16} color="#5C6B66" />
-            </TactileCard>
             </Reanimated.View>
           </>
         )}

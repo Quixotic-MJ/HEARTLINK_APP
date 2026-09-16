@@ -638,7 +638,7 @@ export default function RecipesScreen({
             </Text>
           </View>
           <TouchableOpacity
-            onPress={() => router.push("/(home)/(meals)/daily-diary")}
+            onPress={() => router.push("/(home)/(meals)/food-diary")}
             className="flex-row items-center gap-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 px-3 py-3 min-h-[44px] rounded-xl mt-2"
           >
             <Feather name="list" size={14} color="#64748b" />

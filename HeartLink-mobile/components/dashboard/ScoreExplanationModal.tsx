@@ -143,41 +143,41 @@ export function ScoreExplanationModal({
       case "Stable":
         return {
           gradient: ["#0C2E29", "#1B6E63"] as [string, string],
-          accent: "#5EEAD4",
-          badgeBg: "rgba(94, 234, 212, 0.2)",
-          badgeText: "#5EEAD4",
+          accent: "#34d399",
+          badgeBg: "rgba(52, 211, 153, 0.2)",
+          badgeText: "#34d399",
           framing: "Awesome job! Your heart is relaxed and doing great. Keep up your healthy daily habits!",
         };
       case "Moderate":
         return {
           gradient: ["#452B05", "#8C5E13"] as [string, string],
-          accent: "#FDE68A",
-          badgeBg: "rgba(253, 230, 138, 0.2)",
-          badgeText: "#FDE68A",
+          accent: "#fbbf24",
+          badgeBg: "rgba(251, 191, 36, 0.2)",
+          badgeText: "#fbbf24",
           framing: "You are doing okay, but your heart could use a little extra love today — like drinking water, taking a walk, or resting.",
         };
       case "Elevated Risk":
         return {
           gradient: ["#4A170A", "#BA3D1D"] as [string, string],
-          accent: "#FDBA74",
-          badgeBg: "rgba(253, 186, 116, 0.2)",
-          badgeText: "#FDBA74",
+          accent: "#fb923c",
+          badgeBg: "rgba(251, 146, 60, 0.2)",
+          badgeText: "#fb923c",
           framing: "Be careful today. Your heart is working harder than it should. Try to take a break, skip salty snacks, and check your blood pressure.",
         };
       case "Critical":
         return {
           gradient: ["#450C0A", "#8A1F1A"] as [string, string],
-          accent: "#FCA5A5",
-          badgeBg: "rgba(252, 165, 165, 0.2)",
-          badgeText: "#FCA5A5",
+          accent: "#f87171",
+          badgeBg: "rgba(248, 113, 113, 0.2)",
+          badgeText: "#f87171",
           framing: "Warning: your heart is under a lot of stress right now. Please sit down, rest, and contact your doctor or family if you feel sick.",
         };
       default:
         return {
           gradient: ["#1E293B", "#334155"] as [string, string],
-          accent: "#94A3B8",
+          accent: "#94a3b8",
           badgeBg: "rgba(148, 163, 184, 0.2)",
-          badgeText: "#94A3B8",
+          badgeText: "#94a3b8",
           framing: "Keep checking your daily numbers so we can show you how your heart is doing.",
         };
     }
@@ -217,10 +217,10 @@ export function ScoreExplanationModal({
             borderTopLeftRadius: 36,
             borderTopRightRadius: 36,
             overflow: "hidden",
-            backgroundColor: isDark ? "#141F2D" : "#FFFFFF",
+            backgroundColor: isDark ? "#0f172a" : "#ffffff",
             borderWidth: 1,
             borderBottomWidth: 0,
-            borderColor: isDark ? "#2A3B4E" : "#E2E8E5",
+            borderColor: isDark ? "#334155" : "#f1f5f9",
             opacity: panelOpacity,
             transform: [{ translateY: Animated.add(panelShift, panY) }],
             paddingBottom: 24,
@@ -229,52 +229,21 @@ export function ScoreExplanationModal({
           {/* Top Drag Handle & Header (Swipe down trigger) */}
           <View {...panResponder.panHandlers}>
             {/* Grab Pill */}
-            <View style={{ alignItems: "center", paddingTop: 12, paddingBottom: 6 }}>
-              <View
-                style={{
-                  width: 40,
-                  height: 4.5,
-                  borderRadius: 3,
-                  backgroundColor: isDark ? "#334155" : "#CBD5E1",
-                }}
-              />
+            <View className="items-center pt-3 pb-2">
+              <View className="w-10 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700" />
             </View>
 
             {/* Header Row */}
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
-                paddingHorizontal: 22,
-                paddingBottom: 14,
-              }}
-            >
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-                <View
-                  style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: 12,
-                    backgroundColor: isDark ? "#1B3B36" : "#E3EFEC",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <Feather name="activity" size={18} color={isDark ? "#5EEAD4" : "#1B6E63"} />
+            <View className="flex-row items-center justify-between px-6 pb-4">
+              <View className="flex-row items-center gap-3">
+                <View className="w-10 h-10 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/20 items-center justify-center">
+                  <Feather name="activity" size={20} color={isDark ? "#34d399" : "#10b981"} />
                 </View>
                 <View>
-                  <Text
-                    style={{
-                      fontSize: 18,
-                      fontWeight: "800",
-                      color: isDark ? "#fff" : "#152131",
-                      letterSpacing: -0.3,
-                    }}
-                  >
+                  <Text className="text-[18px] font-bold text-slate-900 dark:text-white tracking-tight">
                     Your Heart Score
                   </Text>
-                  <Text style={{ fontSize: 12, fontWeight: "500", color: isDark ? "#94A3B8" : "#5C6B66" }}>
+                  <Text className="text-[12px] font-medium text-slate-500 dark:text-slate-400">
                     Daily stability guide
                   </Text>
                 </View>
@@ -288,18 +257,9 @@ export function ScoreExplanationModal({
                 accessibilityRole="button"
                 accessibilityLabel="Close"
                 hitSlop={10}
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 18,
-                  backgroundColor: isDark ? "#1E2A38" : "#F1F5F4",
-                  borderWidth: 1,
-                  borderColor: isDark ? "#2B3C50" : "#E2E8E5",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
+                className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 items-center justify-center"
               >
-                <Feather name="x" size={17} color={isDark ? "#94A3B8" : "#5C6B66"} />
+                <Feather name="x" size={17} color={isDark ? "#94a3b8" : "#64748b"} />
               </TouchableOpacity>
             </View>
           </View>
@@ -307,64 +267,28 @@ export function ScoreExplanationModal({
           {/* Scrollable Content */}
           <ScrollView
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ paddingHorizontal: 22, paddingBottom: 24 }}
+            contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 24 }}
           >
             <Animated.View style={{ opacity: contentOpacity, transform: [{ translateY: contentShift }] }}>
 
               {/* 1. WHAT THIS NUMBER MEANS (Intro Card) */}
-              <View
-                style={{
-                  backgroundColor: isDark ? "#1B2836" : "#F3F8F5",
-                  borderRadius: 20,
-                  padding: 16,
-                  borderWidth: 1,
-                  borderColor: isDark ? "#293A4D" : "#DEEAE3",
-                  marginBottom: 18,
-                }}
-              >
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 7, marginBottom: 8 }}>
-                  <View
-                    style={{
-                      width: 22,
-                      height: 22,
-                      borderRadius: 11,
-                      backgroundColor: isDark ? "#0C2E29" : "#E3EFEC",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <Feather name="info" size={12} color={isDark ? "#5EEAD4" : "#1B6E63"} />
+              <View className="bg-slate-50 dark:bg-slate-800/50 rounded-3xl p-5 border border-slate-100 dark:border-slate-700/50 mb-6">
+                <View className="flex-row items-center gap-2 mb-2.5">
+                  <View className="w-6 h-6 rounded-full bg-emerald-500/10 items-center justify-center">
+                    <Feather name="info" size={13} color={isDark ? "#34d399" : "#10b981"} />
                   </View>
-                  <Text
-                    style={{
-                      fontSize: 11.5,
-                      fontWeight: "800",
-                      color: isDark ? "#5EEAD4" : "#1B6E63",
-                      letterSpacing: 1.1,
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    What this number means
+                  <Text className="text-[12px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">
+                    What this means
                   </Text>
                 </View>
-                <Text style={{ fontSize: 14.5, color: isDark ? "#CBD5E1" : "#334155", lineHeight: 22 }}>
-                  Think of this like a <Text style={{ fontWeight: "700", color: isDark ? "#fff" : "#152131" }}>report card for your heart</Text>. It started from your health baseline questionnaire, and stays up to date as you log your blood pressure, meals, daily movement, and sleep.
+                <Text className="text-[14px] text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
+                  Think of this like a <Text className="font-bold text-slate-900 dark:text-white">report card for your heart</Text>. It started from your health baseline questionnaire, and stays up to date as you log your blood pressure, meals, daily movement, and sleep.
                 </Text>
               </View>
 
               {/* 2. CURRENT STATUS (Dynamic Hero Card) */}
-              <View style={{ marginBottom: 20 }}>
-                <Text
-                  style={{
-                    fontSize: 11.5,
-                    fontWeight: "800",
-                    color: isDark ? "#94A3B8" : "#5C6B66",
-                    letterSpacing: 1.1,
-                    textTransform: "uppercase",
-                    marginBottom: 8,
-                    marginLeft: 2,
-                  }}
-                >
+              <View className="mb-6">
+                <Text className="text-[12px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3 ml-1">
                   How you're doing today
                 </Text>
 
@@ -373,130 +297,84 @@ export function ScoreExplanationModal({
                     colors={tierInfo.gradient}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
-                    style={{ borderRadius: 22, padding: 18, overflow: "hidden" }}
+                    style={{ borderRadius: 24, padding: 20, overflow: "hidden" }}
                   >
                     {/* Ambient glow accent */}
                     <View
                       style={{
                         position: "absolute",
-                        right: -24,
-                        top: -24,
-                        width: 130,
-                        height: 130,
-                        borderRadius: 65,
+                        right: -30,
+                        top: -30,
+                        width: 150,
+                        height: 150,
+                        borderRadius: 75,
                         backgroundColor: "rgba(255,255,255,0.08)",
                       }}
                     />
 
                     {/* Top Score Row */}
-                    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                    <View className="flex-row items-center justify-between">
                       <View>
-                        <Text
-                          style={{
-                            fontSize: 11.5,
-                            fontWeight: "700",
-                            color: "rgba(255,255,255,0.7)",
-                            textTransform: "uppercase",
-                            letterSpacing: 1,
-                          }}
-                        >
+                        <Text className="text-[11px] font-bold text-white/70 uppercase tracking-widest mb-1">
                           Today's Score
                         </Text>
-                        <View style={{ flexDirection: "row", alignItems: "baseline", gap: 4, marginTop: 2 }}>
-                          <Text style={{ fontSize: 36, fontWeight: "900", color: "#fff", letterSpacing: -1 }}>
+                        <View className="flex-row items-baseline gap-1">
+                          <Text className="text-[38px] font-black text-white tracking-tight">
                             {score}
                           </Text>
-                          <Text style={{ fontSize: 15, fontWeight: "600", color: "rgba(255,255,255,0.6)" }}>
+                          <Text className="text-[15px] font-bold text-white/60">
                             / 100
                           </Text>
                         </View>
                       </View>
 
                       <View
-                        style={{
-                          paddingHorizontal: 12,
-                          paddingVertical: 6,
-                          borderRadius: 999,
-                          backgroundColor: "rgba(255,255,255,0.2)",
-                          borderWidth: 1,
-                          borderColor: "rgba(255,255,255,0.3)",
-                          flexDirection: "row",
-                          alignItems: "center",
-                          gap: 6,
-                        }}
+                        style={{ backgroundColor: "rgba(255,255,255,0.15)", borderColor: "rgba(255,255,255,0.2)" }}
+                        className="px-3.5 py-2 rounded-full border flex-row items-center gap-2"
                       >
-                        <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: tierInfo.accent }} />
-                        <Text style={{ fontSize: 12.5, fontWeight: "800", color: "#fff", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                        <View style={{ backgroundColor: tierInfo.accent }} className="w-2.5 h-2.5 rounded-full" />
+                        <Text className="text-[12px] font-bold text-white uppercase tracking-widest">
                           {tierLabel}
                         </Text>
                       </View>
                     </View>
 
                     {/* Score Meter */}
-                    <View style={{ marginTop: 14, marginBottom: 8 }}>
-                      <View style={{ height: 6, borderRadius: 3, backgroundColor: "rgba(255,255,255,0.25)", overflow: "hidden" }}>
+                    <View className="mt-5 mb-2.5">
+                      <View className="h-1.5 rounded-full bg-white/20 overflow-hidden">
                         <View
                           style={{
                             width: `${Math.min(100, Math.max(6, score))}%`,
-                            height: "100%",
                             backgroundColor: tierInfo.accent,
-                            borderRadius: 3,
                           }}
+                          className="h-full rounded-full"
                         />
                       </View>
-                      <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 5 }}>
-                        <Text style={{ fontSize: 10, color: "rgba(255,255,255,0.65)", fontWeight: "600" }}>Needs Care</Text>
-                        <Text style={{ fontSize: 10, color: "rgba(255,255,255,0.65)", fontWeight: "600" }}>50</Text>
-                        <Text style={{ fontSize: 10, color: "rgba(255,255,255,0.65)", fontWeight: "600" }}>80</Text>
-                        <Text style={{ fontSize: 10, color: "rgba(255,255,255,0.65)", fontWeight: "600" }}>Great</Text>
+                      <View className="flex-row justify-between mt-2 px-0.5">
+                        <Text className="text-[10px] font-bold text-white/60 uppercase tracking-wider">Needs Care</Text>
+                        <Text className="text-[10px] font-bold text-white/60 uppercase tracking-wider">50</Text>
+                        <Text className="text-[10px] font-bold text-white/60 uppercase tracking-wider">80</Text>
+                        <Text className="text-[10px] font-bold text-white/60 uppercase tracking-wider">Great</Text>
                       </View>
                     </View>
 
                     {/* Framing Message */}
-                    <View style={{ backgroundColor: "rgba(0,0,0,0.2)", borderRadius: 14, padding: 12, marginTop: 4 }}>
-                      <Text style={{ fontSize: 13.5, color: "#fff", lineHeight: 20, fontWeight: "500" }}>
+                    <View className="bg-black/20 rounded-2xl p-3.5 mt-3">
+                      <Text className="text-[13px] text-white/90 leading-relaxed font-medium">
                         {tierInfo.framing}
                       </Text>
                     </View>
                   </LinearGradient>
                 ) : (
                   /* Rare Fallback: Offline / Network Sync Error */
-                  <View
-                    style={{
-                      backgroundColor: isDark ? "#1B2836" : "#F4F7F5",
-                      borderRadius: 22,
-                      padding: 20,
-                      borderWidth: 1,
-                      borderColor: isDark ? "#293A4D" : "#DCE3DF",
-                      alignItems: "center",
-                    }}
-                  >
-                    <View
-                      style={{
-                        width: 52,
-                        height: 52,
-                        borderRadius: 26,
-                        backgroundColor: isDark ? "rgba(148, 163, 184, 0.15)" : "#E2E8F0",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        marginBottom: 12,
-                      }}
-                    >
-                      <Feather name="refresh-cw" size={22} color={isDark ? "#94A3B8" : "#64748B"} />
+                  <View className="bg-slate-50 dark:bg-slate-800/50 rounded-3xl p-6 border border-slate-100 dark:border-slate-700/50 items-center">
+                    <View className="w-14 h-14 rounded-full bg-slate-200/50 dark:bg-slate-700/50 items-center justify-center mb-4">
+                      <Feather name="refresh-cw" size={24} color={isDark ? "#94a3b8" : "#64748b"} />
                     </View>
-                    <Text style={{ fontSize: 16, fontWeight: "800", color: isDark ? "#fff" : "#152131", textAlign: "center" }}>
+                    <Text className="text-[16px] font-bold text-slate-900 dark:text-white text-center mb-2">
                       Connecting to your Heart Score...
                     </Text>
-                    <Text
-                      style={{
-                        fontSize: 13.5,
-                        color: isDark ? "#CBD5E1" : "#5C6B66",
-                        textAlign: "center",
-                        marginTop: 6,
-                        lineHeight: 20,
-                        paddingHorizontal: 8,
-                      }}
-                    >
+                    <Text className="text-[13px] text-slate-500 dark:text-slate-400 text-center leading-relaxed">
                       Check your connection or pull down to refresh.
                     </Text>
                   </View>
@@ -504,169 +382,56 @@ export function ScoreExplanationModal({
               </View>
 
               {/* 3. HOW TO GET A BETTER SCORE (4 Habit Cards Grid) */}
-              <View>
-                <Text
-                  style={{
-                    fontSize: 11.5,
-                    fontWeight: "800",
-                    color: isDark ? "#94A3B8" : "#5C6B66",
-                    letterSpacing: 1.1,
-                    textTransform: "uppercase",
-                    marginBottom: 10,
-                    marginLeft: 2,
-                  }}
-                >
+              <View className="mb-2">
+                <Text className="text-[12px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3 ml-1">
                   What moves your score
                 </Text>
 
                 {/* 2x2 Grid of Habits */}
-                <View style={{ flexDirection: "row", gap: 10, marginBottom: 10 }}>
+                <View className="flex-row gap-3 mb-3">
                   {/* Salt */}
-                  <View
-                    style={{
-                      flex: 1,
-                      backgroundColor: isDark ? "#1B2836" : "#F8FAF9",
-                      borderRadius: 16,
-                      padding: 12,
-                      borderWidth: 1,
-                      borderColor: isDark ? "#293A4D" : "#E2EBE5",
-                    }}
-                  >
-                    <View
-                      style={{
-                        width: 34,
-                        height: 34,
-                        borderRadius: 10,
-                        backgroundColor: isDark ? "rgba(245, 158, 11, 0.15)" : "#FEF3C7",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        marginBottom: 8,
-                      }}
-                    >
-                      <MaterialCommunityIcons name="shaker-outline" size={18} color="#D97706" />
+                  <View className="flex-1 bg-slate-50 dark:bg-slate-800/50 rounded-3xl p-4 border border-slate-100 dark:border-slate-700/50">
+                    <View className="w-10 h-10 rounded-xl bg-amber-500/10 items-center justify-center mb-3">
+                      <MaterialCommunityIcons name="shaker-outline" size={20} color="#f59e0b" />
                     </View>
-                    <Text style={{ fontSize: 13, fontWeight: "700", color: isDark ? "#fff" : "#152131" }}>
-                      Eat Less Salt
-                    </Text>
-                    <Text style={{ fontSize: 11.5, color: isDark ? "#94A3B8" : "#5C6B66", marginTop: 2, lineHeight: 16 }}>
-                      Keep salty chips, fast food & sauces low
-                    </Text>
+                    <Text className="text-[14px] font-bold text-slate-900 dark:text-white mb-1 tracking-tight">Eat Less Salt</Text>
+                    <Text className="text-[12px] text-slate-500 dark:text-slate-400 leading-snug font-medium">Keep salty chips, fast food & sauces low</Text>
                   </View>
 
                   {/* BP */}
-                  <View
-                    style={{
-                      flex: 1,
-                      backgroundColor: isDark ? "#1B2836" : "#F8FAF9",
-                      borderRadius: 16,
-                      padding: 12,
-                      borderWidth: 1,
-                      borderColor: isDark ? "#293A4D" : "#E2EBE5",
-                    }}
-                  >
-                    <View
-                      style={{
-                        width: 34,
-                        height: 34,
-                        borderRadius: 10,
-                        backgroundColor: isDark ? "rgba(239, 68, 68, 0.15)" : "#FEE2E2",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        marginBottom: 8,
-                      }}
-                    >
-                      <Feather name="heart" size={17} color="#DC2626" />
+                  <View className="flex-1 bg-slate-50 dark:bg-slate-800/50 rounded-3xl p-4 border border-slate-100 dark:border-slate-700/50">
+                    <View className="w-10 h-10 rounded-xl bg-rose-500/10 items-center justify-center mb-3">
+                      <Feather name="heart" size={18} color="#ef4444" />
                     </View>
-                    <Text style={{ fontSize: 13, fontWeight: "700", color: isDark ? "#fff" : "#152131" }}>
-                      Daily BP
-                    </Text>
-                    <Text style={{ fontSize: 11.5, color: isDark ? "#94A3B8" : "#5C6B66", marginTop: 2, lineHeight: 16 }}>
-                      Keeps your baseline score accurate & up to date
-                    </Text>
+                    <Text className="text-[14px] font-bold text-slate-900 dark:text-white mb-1 tracking-tight">Daily BP</Text>
+                    <Text className="text-[12px] text-slate-500 dark:text-slate-400 leading-snug font-medium">Keeps your baseline score accurate</Text>
                   </View>
                 </View>
 
-                <View style={{ flexDirection: "row", gap: 10, marginBottom: 12 }}>
+                <View className="flex-row gap-3 mb-4">
                   {/* Walk */}
-                  <View
-                    style={{
-                      flex: 1,
-                      backgroundColor: isDark ? "#1B2836" : "#F8FAF9",
-                      borderRadius: 16,
-                      padding: 12,
-                      borderWidth: 1,
-                      borderColor: isDark ? "#293A4D" : "#E2EBE5",
-                    }}
-                  >
-                    <View
-                      style={{
-                        width: 34,
-                        height: 34,
-                        borderRadius: 10,
-                        backgroundColor: isDark ? "rgba(16, 185, 129, 0.15)" : "#D1FAE5",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        marginBottom: 8,
-                      }}
-                    >
-                      <Feather name="activity" size={17} color="#059669" />
+                  <View className="flex-1 bg-slate-50 dark:bg-slate-800/50 rounded-3xl p-4 border border-slate-100 dark:border-slate-700/50">
+                    <View className="w-10 h-10 rounded-xl bg-emerald-500/10 items-center justify-center mb-3">
+                      <Feather name="activity" size={18} color="#10b981" />
                     </View>
-                    <Text style={{ fontSize: 13, fontWeight: "700", color: isDark ? "#fff" : "#152131" }}>
-                      Daily Walk
-                    </Text>
-                    <Text style={{ fontSize: 11.5, color: isDark ? "#94A3B8" : "#5C6B66", marginTop: 2, lineHeight: 16 }}>
-                      A 15–20 min stroll keeps blood flowing
-                    </Text>
+                    <Text className="text-[14px] font-bold text-slate-900 dark:text-white mb-1 tracking-tight">Daily Walk</Text>
+                    <Text className="text-[12px] text-slate-500 dark:text-slate-400 leading-snug font-medium">A 15–20 min stroll keeps blood flowing</Text>
                   </View>
 
                   {/* Sleep */}
-                  <View
-                    style={{
-                      flex: 1,
-                      backgroundColor: isDark ? "#1B2836" : "#F8FAF9",
-                      borderRadius: 16,
-                      padding: 12,
-                      borderWidth: 1,
-                      borderColor: isDark ? "#293A4D" : "#E2EBE5",
-                    }}
-                  >
-                    <View
-                      style={{
-                        width: 34,
-                        height: 34,
-                        borderRadius: 10,
-                        backgroundColor: isDark ? "rgba(99, 102, 241, 0.15)" : "#E0E7FF",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        marginBottom: 8,
-                      }}
-                    >
-                      <Feather name="moon" size={17} color="#4F46E5" />
+                  <View className="flex-1 bg-slate-50 dark:bg-slate-800/50 rounded-3xl p-4 border border-slate-100 dark:border-slate-700/50">
+                    <View className="w-10 h-10 rounded-xl bg-indigo-500/10 items-center justify-center mb-3">
+                      <Feather name="moon" size={18} color="#6366f1" />
                     </View>
-                    <Text style={{ fontSize: 13, fontWeight: "700", color: isDark ? "#fff" : "#152131" }}>
-                      Good Sleep
-                    </Text>
-                    <Text style={{ fontSize: 11.5, color: isDark ? "#94A3B8" : "#5C6B66", marginTop: 2, lineHeight: 16 }}>
-                      7–8 hours lets your heart recharge
-                    </Text>
+                    <Text className="text-[14px] font-bold text-slate-900 dark:text-white mb-1 tracking-tight">Good Sleep</Text>
+                    <Text className="text-[12px] text-slate-500 dark:text-slate-400 leading-snug font-medium">7–8 hours lets your heart recharge</Text>
                   </View>
                 </View>
 
                 {/* Helpful Takeaway Pill */}
-                <View
-                  style={{
-                    backgroundColor: isDark ? "#162230" : "#EDF3F0",
-                    borderRadius: 14,
-                    padding: 12,
-                    borderWidth: 1,
-                    borderColor: isDark ? "#253648" : "#DFEBE4",
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: 8,
-                  }}
-                >
-                  <Text style={{ fontSize: 15 }}>💡</Text>
-                  <Text style={{ fontSize: 12, color: isDark ? "#94A3B8" : "#5C6B66", flex: 1, lineHeight: 17, fontWeight: "500" }}>
+                <View className="bg-emerald-500/10 dark:bg-emerald-500/10 rounded-3xl p-4 border border-emerald-500/20 flex-row items-center gap-3">
+                  <Text className="text-[20px]">💡</Text>
+                  <Text className="text-[12.5px] text-slate-700 dark:text-slate-300 flex-1 leading-relaxed font-medium">
                     Your baseline gave your heart its starting score. Checking your blood pressure and daily habits keeps your score fine-tuned and protected!
                   </Text>
                 </View>

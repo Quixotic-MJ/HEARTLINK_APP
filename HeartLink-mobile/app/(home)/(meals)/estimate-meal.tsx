@@ -7,6 +7,7 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
+  Modal,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
@@ -16,7 +17,7 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import { useUser } from "../../../contexts/UserContext";
 import { queueMealForSync } from "../../../services/SyncService";
 import { useToast } from "../../../contexts/ToastContext";
-import { logMealAndGetToast } from "../../../services/MealLoggingService";
+import { useLogMeal } from "../../../hooks/useLogMeal";
 import { ChoiceChip, SectionHeader, calcRiskFromValues } from "../../../components/meals/SharedMealComponents";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
@@ -73,10 +74,10 @@ function NumericField({
 }) {
   return (
     <View className="flex-1">
-      <Text className="text-[11px] text-slate-400 uppercase tracking-wide mb-1.5">
+      <Text className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 ml-1">
         {label}
       </Text>
-      <View className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800/70 flex-row items-center px-3 py-2.5">
+      <View className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700/50 flex-row items-center px-4 py-3">
         <TextInput
           value={value}
           onChangeText={(text) => {
@@ -84,11 +85,11 @@ function NumericField({
             onChange(sanitized);
           }}
           placeholder={placeholder}
-          placeholderTextColor="#cbd5e1"
+          placeholderTextColor="#94a3b8"
           keyboardType="decimal-pad"
-          className="flex-1 text-[14px] text-slate-900 dark:text-white"
+          className="flex-1 text-[15px] font-medium text-slate-900 dark:text-white"
         />
-        <Text className="text-[12px] text-slate-400 ml-1">{unit}</Text>
+        <Text className="text-[13px] font-bold text-slate-400 ml-1">{unit}</Text>
       </View>
     </View>
   );
@@ -121,6 +122,7 @@ export default function ManualMealLogScreen() {
     preset?.desc || (quickDish ? `${quickDish} (1 Serving)` : "")
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
 
   // Manual Entry fields
   const [servings, setServings] = useState(1);
@@ -139,7 +141,9 @@ export default function ManualMealLogScreen() {
     (parseFloat(satFat) || 0) * servings
   );
 
-  const handleSave = async () => {
+  const { mutate: logMeal } = useLogMeal(userId, token);
+
+  const handleSave = () => {
     if (!userId) {
       showToast({ title: "Authentication required", message: "Please sign in to log meals.", type: "error" });
       return;
@@ -158,51 +162,49 @@ export default function ManualMealLogScreen() {
       return;
     }
 
-    setIsSubmitting(true);
+    try {
+      setIsSubmitting(true);
+      
+      const payload = {
+        meal_name: foodDescription.trim(),
+        portion: servings,
+        calories: totalCalories,
+        sodium_mg: totalSodium,
+        saturated_fat_g: parseFloat(((parseFloat(satFat) || 0) * servings).toFixed(1)),
+        fiber_g: parseFloat(((parseFloat(fiber) || 0) * servings).toFixed(1)),
+        source: "manual_entry",
+        image_url: null,
+      };
 
-    const payload = {
-      meal_name: foodDescription.trim(),
-      portion: servings,
-      calories: totalCalories,
-      sodium_mg: totalSodium,
-      saturated_fat_g: parseFloat(((parseFloat(satFat) || 0) * servings).toFixed(1)),
-      fiber_g: parseFloat(((parseFloat(fiber) || 0) * servings).toFixed(1)),
-      source: "manual_entry",
-      image_url: null,
-    };
-
-    await logMealAndGetToast(
-      userId,
-      token,
-      payload,
-      showToast,
-      () => {
+      logMeal(payload);
+      // Show success modal on the next tick
+      setTimeout(() => {
         setIsSubmitting(false);
-        router.back();
-      }
-    );
+        setShowSuccessDialog(true);
+      }, 50);
+    } catch (e) {
+      console.error("Failed to enqueue meal:", e);
+      setIsSubmitting(false);
+      showToast({ title: "Error", message: "Failed to queue meal", type: "error" });
+    }
   };
 
   return (
     <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950" edges={["top"]}>
       <StatusBar style="dark" />
 
-      {/* Header */}
-      <View className="flex-row items-center px-5 pt-4 pb-3 border-b border-slate-200 dark:border-slate-800/50">
+      {/* ── Header Bar ── */}
+      <View className="flex-row items-center justify-between px-5 py-3">
         <TouchableOpacity
           onPress={() => router.back()}
-          className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 items-center justify-center mr-3"
+          className="w-9 h-9 rounded-full bg-slate-200/50 dark:bg-slate-800 items-center justify-center z-10"
         >
           <Feather name="arrow-left" size={18} color={isDark ? "#f8fafc" : "#0f172a"} />
         </TouchableOpacity>
-        <View>
-          <Text className="text-[17px] font-medium text-slate-900 dark:text-white">
-            Log local food
-          </Text>
-          <Text className="text-[12px] text-slate-400">
-            Manual nutrition entry
-          </Text>
-        </View>
+        <Text className="text-[22px] font-bold text-slate-900 dark:text-white absolute left-0 right-0 text-center pointer-events-none">
+          Log Food
+        </Text>
+        <View className="w-9" />
       </View>
 
       <KeyboardAwareScrollView
@@ -213,127 +215,131 @@ export default function ManualMealLogScreen() {
       >
 
         {/* Mode description pill */}
-        <View className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800/70 px-3.5 py-2.5 mb-2 flex-row items-start gap-2.5">
+        <View className="bg-slate-200/50 dark:bg-slate-800/50 rounded-2xl px-4 py-3.5 mb-6 flex-row items-start gap-3">
           <Feather
             name="database"
-            size={14}
-            color="#94a3b8"
-            style={{ marginTop: 1 }}
+            size={16}
+            color={isDark ? "#94a3b8" : "#64748b"}
+            style={{ marginTop: 2 }}
           />
-          <Text className="flex-1 text-[12px] text-slate-400 leading-relaxed">
-            Enter nutrition values from a food label, nutrition database, or packaging. Used for packaged, restaurant, or local meals with known macros.
+          <Text className="flex-1 text-[13px] text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
+            Enter nutrition values from a food label, nutrition database, or packaging. Used for packaged or restaurant meals.
           </Text>
         </View>
 
-        {/* ── Risk Banner ── */}
-        {((parseFloat(sodium) || 0) > 0 || (parseFloat(calories) || 0) > 0) && (
-          <View
-            className="rounded-2xl p-4 border mt-2"
-            style={{ backgroundColor: risk.bg, borderColor: risk.border }}
-          >
-            <View className="flex-row items-center gap-2 mb-1.5">
-              <Feather name={risk.icon} size={15} color={risk.color} />
-              <Text className="text-[12px] font-medium uppercase tracking-wide" style={{ color: risk.color }}>
-                Impact estimate · {risk.level}
+        <View className="bg-white dark:bg-slate-900 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-800 mb-6">
+          {/* ── Risk Banner ── */}
+          {((parseFloat(sodium) || 0) > 0 || (parseFloat(calories) || 0) > 0) && (
+            <View
+              className="rounded-2xl p-4 border mb-4"
+              style={{ backgroundColor: risk.bg, borderColor: risk.border }}
+            >
+              <View className="flex-row items-center gap-2 mb-1.5">
+                <Feather name={risk.icon} size={15} color={risk.color} />
+                <Text className="text-[12px] font-bold uppercase tracking-wide" style={{ color: risk.color }}>
+                  Impact estimate · {risk.level}
+                </Text>
+              </View>
+              <Text className="text-[13px] font-medium leading-relaxed" style={{ color: risk.color, opacity: 0.9 }}>
+                {risk.desc}
               </Text>
             </View>
-            <Text className="text-[13px] leading-relaxed" style={{ color: risk.color, opacity: 0.85 }}>
-              {risk.desc}
+          )}
+
+          {/* ── Time of Meal ── */}
+          <SectionHeader title="Time of meal" icon="clock-outline" />
+          <View className="flex-row flex-wrap mb-2">
+            {(["Breakfast", "Lunch", "Dinner", "Snack"] as TimeOfMeal[]).map((opt) => (
+              <ChoiceChip key={opt} label={opt} selected={timeOfMeal === opt} onSelect={setTimeOfMeal} />
+            ))}
+          </View>
+
+          {/* ── Food Description ── */}
+          <SectionHeader title="Food description" icon="food-apple-outline" />
+          <View className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700/50 px-4 py-3.5">
+            <TextInput
+              value={foodDescription}
+              onChangeText={setFoodDescription}
+              placeholder="e.g. Pork sinigang, lechon, mango"
+              placeholderTextColor="#94a3b8"
+              className="text-[15px] font-medium text-slate-900 dark:text-white"
+            />
+          </View>
+        </View>
+
+        <View className="bg-white dark:bg-slate-900 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-800 mb-6">
+          {/* ── Nutrition Values ── */}
+          <SectionHeader title="Nutrition values" icon="nutrition" />
+
+          {/* NUMBER OF SERVINGS stepper */}
+          <View className="flex-row items-center justify-between mb-5 mt-2 bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-3 border border-slate-200 dark:border-slate-700/50">
+            <Text className="text-[12px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide ml-2">Number of servings</Text>
+            <View className="flex-row items-center bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-2 py-1.5 gap-4 shadow-sm">
+              <TouchableOpacity onPress={() => setServings(s => Math.max(0.5, s - 0.5))} className="p-1">
+                <Feather name="minus" size={16} color={isDark ? "#f8fafc" : "#0f172a"} />
+              </TouchableOpacity>
+              <Text className="text-[15px] font-bold text-slate-900 dark:text-white w-8 text-center">{servings}</Text>
+              <TouchableOpacity onPress={() => setServings(s => Math.min(20, s + 0.5))} className="p-1">
+                <Feather name="plus" size={16} color={isDark ? "#f8fafc" : "#0f172a"} />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Row 1: Sodium + Calories */}
+          <View className="flex-row gap-3 mb-4">
+            <NumericField
+              label="Sodium"
+              value={sodium}
+              unit="mg"
+              onChange={setSodium}
+              placeholder="0"
+            />
+            <NumericField
+              label="Calories"
+              value={calories}
+              unit="kcal"
+              onChange={setCalories}
+              placeholder="0"
+            />
+          </View>
+
+          {/* Row 2: Sat. Fat + Fiber */}
+          <View className="flex-row gap-3 mb-4">
+            <NumericField
+              label="Sat. Fat"
+              value={satFat}
+              unit="g"
+              onChange={setSatFat}
+              placeholder="0"
+            />
+            <NumericField
+              label="Fiber"
+              value={fiber}
+              unit="g"
+              onChange={setFiber}
+              placeholder="0"
+            />
+          </View>
+
+          {/* Row 3: Cholesterol */}
+          <View className="flex-row gap-3 mb-2">
+            <NumericField
+              label="Cholesterol"
+              value={cholesterol}
+              unit="mg"
+              onChange={setCholesterol}
+              placeholder="0"
+            />
+            <View className="flex-1" />
+          </View>
+
+          {/* Helper note */}
+          <View className="flex-row items-start gap-2 mt-3 mb-1 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-2xl border border-slate-100 dark:border-slate-800">
+            <Feather name="info" size={14} color={isDark ? "#64748b" : "#94a3b8"} style={{ marginTop: 2 }} />
+            <Text className="flex-1 text-[12px] font-medium text-slate-500 dark:text-slate-400 leading-relaxed">
+              Values are per serving. Check the food label or use a nutrition database for accurate figures.
             </Text>
           </View>
-        )}
-
-        {/* ── Time of Meal ── */}
-        <SectionHeader title="Time of meal" icon="clock-outline" />
-        <View className="flex-row flex-wrap">
-          {(["Breakfast", "Lunch", "Dinner", "Snack"] as TimeOfMeal[]).map((opt) => (
-            <ChoiceChip key={opt} label={opt} selected={timeOfMeal === opt} onSelect={setTimeOfMeal} />
-          ))}
-        </View>
-
-        {/* ── Food Description ── */}
-        <SectionHeader title="Food description" icon="food-apple-outline" />
-        <View className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800/70 px-3.5 py-2.5">
-          <TextInput
-            value={foodDescription}
-            onChangeText={setFoodDescription}
-            placeholder="e.g. Pork sinigang, lechon, mango"
-            placeholderTextColor="#cbd5e1"
-            className="text-[14px] text-slate-900 dark:text-white"
-          />
-        </View>
-
-        {/* ── Nutrition Values ── */}
-        <SectionHeader title="Nutrition values" icon="nutrition" />
-
-        {/* NUMBER OF SERVINGS stepper */}
-        <View className="flex-row items-center justify-between mb-4 mt-2">
-          <Text className="text-[11px] text-slate-400 uppercase tracking-wide">Number of servings</Text>
-          <View className="flex-row items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 rounded-xl px-2 py-1.5 gap-4">
-            <TouchableOpacity onPress={() => setServings(s => Math.max(0.5, s - 0.5))} className="p-1">
-              <Feather name="minus" size={16} color="#0f172a" />
-            </TouchableOpacity>
-            <Text className="text-[14px] font-medium text-slate-900 dark:text-white w-8 text-center">{servings}</Text>
-            <TouchableOpacity onPress={() => setServings(s => Math.min(20, s + 0.5))} className="p-1">
-              <Feather name="plus" size={16} color="#0f172a" />
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Row 1: Sodium + Calories */}
-        <View className="flex-row gap-3 mb-3">
-          <NumericField
-            label="Sodium"
-            value={sodium}
-            unit="mg"
-            onChange={setSodium}
-            placeholder="0"
-          />
-          <NumericField
-            label="Calories"
-            value={calories}
-            unit="kcal"
-            onChange={setCalories}
-            placeholder="0"
-          />
-        </View>
-
-        {/* Row 2: Sat. Fat + Fiber */}
-        <View className="flex-row gap-3 mb-3">
-          <NumericField
-            label="Sat. Fat"
-            value={satFat}
-            unit="g"
-            onChange={setSatFat}
-            placeholder="0"
-          />
-          <NumericField
-            label="Fiber"
-            value={fiber}
-            unit="g"
-            onChange={setFiber}
-            placeholder="0"
-          />
-        </View>
-
-        {/* Row 3: Cholesterol */}
-        <View className="flex-row gap-3 mb-2">
-          <NumericField
-            label="Cholesterol"
-            value={cholesterol}
-            unit="mg"
-            onChange={setCholesterol}
-            placeholder="0"
-          />
-          <View className="flex-1" />
-        </View>
-
-        {/* Helper note */}
-        <View className="flex-row items-start gap-2 mt-1 mb-1">
-          <Feather name="info" size={12} color="#cbd5e1" style={{ marginTop: 1 }} />
-          <Text className="flex-1 text-[11px] text-slate-300 leading-relaxed">
-            Values are per serving. Check the food label or use a nutrition database for accurate figures.
-          </Text>
         </View>
 
       </KeyboardAwareScrollView>
@@ -360,6 +366,31 @@ export default function ManualMealLogScreen() {
           </Text>
         </TouchableOpacity>
       </View>
+
+      <Modal visible={showSuccessDialog} transparent animationType="fade">
+        <View className="flex-1 bg-black/50 justify-center items-center px-6">
+          <View className="bg-white dark:bg-slate-900 rounded-3xl p-6 w-full items-center">
+            <View className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full items-center justify-center mb-4">
+              <Feather name="check-circle" size={32} color="#16a34a" />
+            </View>
+            <Text className="text-xl font-bold text-slate-900 dark:text-white text-center mb-2">
+              Meal Logged Successfully!
+            </Text>
+            <Text className="text-center text-slate-500 dark:text-slate-400 mb-6">
+              Great job keeping track of your nutrition. Every step counts toward a healthier heart!
+            </Text>
+            <TouchableOpacity
+              onPress={() => {
+                setShowSuccessDialog(false);
+                router.back();
+              }}
+              className="bg-green-600 w-full py-3.5 rounded-xl items-center"
+            >
+              <Text className="text-white font-bold text-[15px]">Awesome</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }

@@ -1,31 +1,14 @@
 import React from "react";
-import { View, Text, TouchableOpacity } from "react-native";
+import { View, Text, TouchableOpacity, Dimensions } from "react-native";
 import Animated, {
   FadeIn,
   FadeInDown,
   FadeOut,
   LinearTransition,
 } from "react-native-reanimated";
-import { LinearGradient } from "expo-linear-gradient";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useColorScheme } from "nativewind";
 import * as Haptics from "expo-haptics";
-
-/**
- * MissionList — pure React Native port of the PinItemComponent web blueprint
- * for the 4 heart missions.
- *
- * Blueprint mechanics preserved:
- * - Done missions rise into a top "Done" group; the rest stay under "To Log".
- * - Single flat list so rows glide to their new slot with a layout spring
- *   (this template ships stiffness 400, damping 40).
- * - Pin button swapped for a check button: filled emerald when done,
- *   muted outline when pending. Tapping a row opens its log modal
- *   (exercise navigates to its own screen instead).
- *
- * div -> View, text -> Text (+numberOfLines), onClick -> TouchableOpacity.
- * Icons from @expo/vector-icons (app standard) instead of lucide-react-native.
- */
 
 export type MissionId = "vitals" | "meals" | "exercise" | "sleep";
 
@@ -39,31 +22,9 @@ export interface MissionItem {
   done: boolean;
 }
 
-function SectionLabel({ text }: { text: string }) {
-  const { colorScheme } = useColorScheme();
-  const isDark = colorScheme === "dark";
-  return (
-    <Animated.View
-      layout={LinearTransition.springify().stiffness(400).damping(40)}
-      entering={FadeIn.duration(200)}
-      exiting={FadeOut.duration(150)}
-    >
-      <Text
-        style={{
-          marginLeft: 4,
-          fontSize: 12,
-          fontWeight: "600",
-          letterSpacing: 1.2,
-          color: isDark ? "#64748b" : "#ADACB8",
-        }}
-      >
-        {text.toUpperCase()}
-      </Text>
-    </Animated.View>
-  );
-}
+const CARD_WIDTH = "48%";
 
-function MissionRow({
+function MissionCard({
   item,
   index,
   onPress,
@@ -78,8 +39,9 @@ function MissionRow({
   return (
     <Animated.View
       layout={LinearTransition.springify().stiffness(400).damping(40)}
-      entering={FadeInDown.delay(250 + index * 70).duration(300)}
+      entering={FadeInDown.delay(150 + index * 70).duration(300)}
       exiting={FadeOut.duration(160)}
+      style={{ width: CARD_WIDTH }}
     >
       <TouchableOpacity
         activeOpacity={0.75}
@@ -91,91 +53,104 @@ function MissionRow({
           onPress(item.id);
         }}
         style={{
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 10,
-          borderRadius: 16,
-          borderWidth: 1,
-          padding: 10,
-          backgroundColor: item.done
-            ? isDark
-              ? "rgba(27,110,99,0.14)"
-              : "#EFF7F4"
-            : isDark
-            ? "rgba(30,41,59,0.6)"
-            : "#FFFFFF",
+          borderRadius: 24,
+          padding: 14,
+          backgroundColor: item.done 
+            ? (isDark ? "rgba(16,185,129,0.05)" : "#f0fdf4")
+            : (isDark ? "#0f172a" : "#ffffff"),
+          borderWidth: 1.5,
           borderColor: item.done
-            ? "rgba(27,110,99,0.35)"
-            : isDark
-            ? "#1e293b"
-            : "#E2E8E5",
+            ? (isDark ? "rgba(16,185,129,0.3)" : "#86efac")
+            : (isDark ? "#1e293b" : "#f1f5f9"),
+          shadowColor: isDark ? "#000" : "#64748b",
+          shadowOffset: { width: 0, height: 1 },
+          shadowOpacity: isDark ? 0.3 : 0.05,
+          shadowRadius: 3,
+          elevation: 1,
+          height: 152, // Increased height to accommodate wrapped 2-line text
+          justifyContent: "space-between",
         }}
       >
-        <View style={{ flexDirection: "row", alignItems: "center", flex: 1, minWidth: 0 }}>
-          <LinearGradient
-            colors={item.done ? ["#1B6E63", "#4FA79A"] : item.tileColors}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
+        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
+          {/* Main Icon */}
+          <View 
             style={{
-              width: 40,
-              height: 40,
-              borderRadius: 13,
+              width: 42,
+              height: 42,
+              borderRadius: 21,
               alignItems: "center",
               justifyContent: "center",
+              backgroundColor: item.done 
+                ? (isDark ? "rgba(16,185,129,0.15)" : "#d1fae5") 
+                : (isDark ? "#1e293b" : "#f8fafc"),
+              borderWidth: item.done ? 0 : 1.5,
+              borderColor: isDark ? "#334155" : "#e2e8f0",
             }}
           >
             {item.iconType === "material" ? (
-              <MaterialCommunityIcons name={item.icon as any} size={19} color="#fff" />
+              <MaterialCommunityIcons 
+                name={item.icon as any} 
+                size={22} 
+                color={item.done ? "#10b981" : item.tileColors[0]} 
+              />
             ) : (
-              <Feather name={item.icon as any} size={18} color="#fff" />
+              <Feather 
+                name={item.icon as any} 
+                size={20} 
+                color={item.done ? "#10b981" : item.tileColors[0]} 
+              />
             )}
-          </LinearGradient>
+          </View>
 
-          <View style={{ flex: 1, minWidth: 0, marginLeft: 12 }}>
-            <Text
-              numberOfLines={1}
-              style={{
-                fontSize: 14,
-                fontWeight: "700",
-                color: isDark ? "#f8fafc" : "#27272B",
-              }}
-            >
-              {item.title}
-            </Text>
-            <Text
-              numberOfLines={1}
-              style={{
-                marginTop: 2,
-                fontSize: 12,
-                fontWeight: "500",
-                color: isDark ? "#94A3B8" : "#87868D",
-              }}
-            >
-              {item.subtitle}
-            </Text>
+          {/* Status Badge */}
+          <View
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: 14,
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: item.done 
+                ? (isDark ? "rgba(16,185,129,0.2)" : "#10b981") 
+                : (isDark ? "#1e293b" : "#f1f5f9"),
+            }}
+          >
+            <Feather
+              name={item.done ? "check" : "plus"}
+              size={14}
+              color={item.done ? (isDark ? "#34d399" : "#fff") : (isDark ? "#94a3b8" : "#64748b")}
+              strokeWidth={3}
+            />
           </View>
         </View>
 
-        {/* Check button (blueprint pin swapped for check) */}
-        <View
-          style={{
-            width: 32,
-            height: 32,
-            borderRadius: 16,
-            alignItems: "center",
-            justifyContent: "center",
-            backgroundColor: item.done ? "#1B6E63" : "transparent",
-            borderWidth: item.done ? 0 : 1.5,
-            borderColor: isDark ? "#334155" : "#CDCCD5",
-          }}
-        >
-          <Feather
-            name="check"
-            size={16}
-            color={item.done ? "#fff" : isDark ? "#475569" : "#A9A9AB"}
-            strokeWidth={3}
-          />
+        <View style={{ marginTop: "auto" }}>
+          <Text
+            numberOfLines={1}
+            adjustsFontSizeToFit={true}
+            minimumFontScale={0.75}
+            style={{
+              fontSize: 16,
+              fontWeight: "700",
+              color: isDark ? "#f8fafc" : "#1e293b",
+            }}
+          >
+            {item.title}
+          </Text>
+          <Text
+            numberOfLines={2}
+            adjustsFontSizeToFit={true}
+            minimumFontScale={0.75}
+            style={{
+              marginTop: 4,
+              fontSize: 12,
+              fontWeight: "500",
+              color: isDark ? "#94a3b8" : "#64748b",
+              lineHeight: 16,
+            }}
+          >
+            {item.subtitle}
+          </Text>
         </View>
       </TouchableOpacity>
     </Animated.View>
@@ -189,18 +164,10 @@ export function MissionList({
   missions: MissionItem[];
   onPress: (id: MissionId) => void;
 }) {
-  const done = missions.filter((m) => m.done);
-  const pending = missions.filter((m) => !m.done);
-
   return (
-    <View style={{ gap: 10 }}>
-      {done.length > 0 && <SectionLabel text={`Done • ${done.length}`} />}
-      {done.map((item, i) => (
-        <MissionRow key={item.id} item={item} index={i} onPress={onPress} />
-      ))}
-      {pending.length > 0 && <SectionLabel text="To Log" />}
-      {pending.map((item, i) => (
-        <MissionRow key={item.id} item={item} index={done.length + i} onPress={onPress} />
+    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12, justifyContent: "space-between" }}>
+      {missions.map((item, i) => (
+        <MissionCard key={item.id} item={item} index={i} onPress={onPress} />
       ))}
     </View>
   );

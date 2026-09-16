@@ -39,42 +39,43 @@ import * as Haptics from "expo-haptics";
 // ─── theme tokens ─────────────────────────────────────────────────────────────
 
 function getHeartTokens(score: number, isDark: boolean) {
+  const cleanTrack = isDark ? "#1E293B" : "#F1F5F9"; // slate-800 or slate-100
   if (!score || score <= 0) {
     return {
       arcColor: isDark ? "#64748B" : "#94A3B8",
       deepColor: isDark ? "#334155" : "#9AA5B1",
-      trackColor: isDark ? "#1E293B" : "#E2E8E5",
+      trackColor: cleanTrack,
       label: "Score unavailable",
     };
   }
   if (score >= 80) {
     return {
-      arcColor: isDark ? "#4FA79A" : "#1B6E63",
+      arcColor: "#34D399", // Emerald 400
       deepColor: isDark ? "#0C2E29" : "#0E3B33",
-      trackColor: isDark ? "#163B36" : "#E3EFEC",
+      trackColor: cleanTrack,
       label: "Stable",
     };
   }
   if (score >= 60) {
     return {
-      arcColor: isDark ? "#C99A3E" : "#A9741B",
+      arcColor: "#34D399", // Emerald 400
       deepColor: "#5f430f",
-      trackColor: isDark ? "#3A2D12" : "#F6EDDD",
+      trackColor: cleanTrack,
       label: "Moderate",
     };
   }
   if (score >= 50) {
     return {
-      arcColor: isDark ? "#F06944" : "#E8532E",
+      arcColor: "#34D399", // Emerald 400
       deepColor: "#7c2d12",
-      trackColor: isDark ? "#3D211A" : "#FBEAE6",
+      trackColor: cleanTrack,
       label: "Elevated Risk",
     };
   }
   return {
-    arcColor: isDark ? "#D15C4E" : "#8A1F1A",
+    arcColor: "#34D399", // Emerald 400
     deepColor: "#4a100d",
-    trackColor: isDark ? "#3A1A16" : "#FBEAE9",
+    trackColor: cleanTrack,
     label: "Critical",
   };
 }
@@ -474,11 +475,6 @@ export function ScoreRing({
                 <Stop offset="0%" stopColor={heartColor} stopOpacity="0.25" />
                 <Stop offset="100%" stopColor={heartColor} stopOpacity="0" />
               </RadialGradient>
-              <LinearGradient id="arc" x1="0" y1="0" x2="1" y2="1">
-                <Stop offset="0%" stopColor={tokens.deepColor} />
-                <Stop offset="55%" stopColor={heartColor} />
-                <Stop offset="100%" stopColor={heartColor} />
-              </LinearGradient>
               <Filter id="blur">
                 <FeGaussianBlur stdDeviation="3" />
               </Filter>
@@ -513,7 +509,7 @@ export function ScoreRing({
             <AnimatedPath
               d={HEART}
               fill="none"
-              stroke="url(#arc)"
+              stroke={heartColor}
               strokeWidth={10}
               strokeLinejoin="round"
               strokeLinecap="round"
