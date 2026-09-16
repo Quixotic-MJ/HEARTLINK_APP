@@ -15,6 +15,9 @@ import { useColorScheme } from "nativewind";
 import {
   SplitRecordActions,
 } from "../../../components/tabs/SplitRecordActions";
+import { QuickLogModal } from "../../../components/exercise/QuickLogModal";
+import { MissionLogModal } from "../../../components/dashboard/MissionLogModal";
+import { useUser } from "../../../contexts/UserContext";
 
 // ─── Tab Config ───────────────────────────────────────────────────────────────
 
@@ -285,7 +288,10 @@ const SwipeableTabs = withLayoutContext(Navigator);
 
 export default function TabsLayout() {
   const [splitOpen, setSplitOpen] = useState(false);
+  const [showQuickLogModal, setShowQuickLogModal] = useState(false);
+  const [showSleepModal, setShowSleepModal] = useState(false);
   const pathname = usePathname();
+  const { userId, token } = useUser();
 
   // Bridge: the navigator owns tab state, but the bar renders OUTSIDE the
   // pop-animated container so only screen content zooms. We keep the tab
@@ -382,6 +388,22 @@ export default function TabsLayout() {
       <SplitRecordActions
         open={splitOpen}
         onClose={() => setSplitOpen(false)}
+        onOpenQuickLog={() => setShowQuickLogModal(true)}
+        onOpenSleepLog={() => setShowSleepModal(true)}
+      />
+
+      <QuickLogModal
+        visible={showQuickLogModal}
+        onClose={() => setShowQuickLogModal(false)}
+      />
+
+      <MissionLogModal
+        mission={showSleepModal ? "sleep" : null}
+        userId={userId}
+        token={token}
+        onClose={() => setShowSleepModal(false)}
+        onSaved={() => setShowSleepModal(false)}
+        onOpenDiary={() => {}}
       />
     </View>
   );

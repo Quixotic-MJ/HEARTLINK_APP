@@ -95,7 +95,7 @@ function RoutineCard({
     <TouchableOpacity
       activeOpacity={0.92}
       onPress={onPress}
-      className="rounded-3xl overflow-hidden mb-5"
+      className="rounded-2xl overflow-hidden mb-3.5"
       style={{
         backgroundColor: "#FFFFFF",
         borderWidth: 1,
@@ -114,7 +114,7 @@ function RoutineCard({
       }}
     >
       {/* Thumbnail */}
-      <View className={`${isFeatured ? "h-48" : "h-36"} bg-[#F1F5F3] relative items-center justify-center`}>
+      <View className={`${isFeatured ? "h-40" : "h-28"} bg-[#F1F5F3] relative items-center justify-center`}>
         {routine.image ? (
           <Image source={{ uri: routine.image }} className="absolute inset-0 w-full h-full" resizeMode="cover" />
         ) : (
@@ -177,19 +177,15 @@ function RoutineCard({
       </View>
 
       {/* Content */}
-      <View className={`p-5 ${isFeatured ? "bg-rose-50/20" : "bg-white"}`}>
-        <View className="flex-row items-start justify-between mb-3">
-          <View className="flex-1 pr-4">
-            <Text className="text-[18px] font-bold text-[#152131] leading-snug mb-1.5">
-              {routine.title}
-            </Text>
-            <Text className="text-[14px] text-[#64748B] leading-relaxed" numberOfLines={2}>
-              {routine.goal}
-            </Text>
-          </View>
-        </View>
+      <View className={`px-4 py-3.5 ${isFeatured ? "bg-rose-50/20" : "bg-white"}`}>
+        <Text className="text-[16px] font-bold text-[#152131] leading-snug mb-1" numberOfLines={1}>
+          {routine.title}
+        </Text>
+        <Text className="text-[13px] text-[#64748B] leading-relaxed mb-3" numberOfLines={2}>
+          {routine.goal}
+        </Text>
 
-        <View className="flex-row items-center justify-between mt-2">
+        <View className="flex-row items-center justify-between">
           <View className="flex-row items-center gap-2">
             <View
               className="flex-row items-center gap-1.5 px-2.5 py-1.5 rounded-lg"
@@ -647,43 +643,13 @@ export default function ExercisesScreen({
         </ScrollView>
       ) : (
         <ScrollView
-          contentContainerClassName="px-6 pb-40 md:max-w-2xl lg:max-w-4xl mx-auto w-full pt-3"
+          contentContainerClassName="px-5 pb-40 md:max-w-2xl lg:max-w-4xl mx-auto w-full pt-1"
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1B6E63" />
           }
         >
-          {hideHeader ? (
-            <View className="flex-row items-center justify-between mb-4">
-              <View className="flex-row items-center gap-1.5 flex-1 pr-2">
-                <View className="w-[5px] h-[5px] rounded-full bg-[#4A6080] flex-shrink-0" />
-                <Text className="text-[13px] font-semibold text-[#5C6B66] dark:text-slate-400 flex-1" numberOfLines={1}>
-                  Cardio routines for your stability
-                </Text>
-              </View>
-              <TouchableOpacity
-                onPress={() => router.push("/(home)/(health)/exercise-diary")}
-                className="flex-row items-center gap-1.5 px-3 py-1.5 rounded-xl flex-shrink-0"
-                style={{
-                  backgroundColor: "#FFFFFF",
-                  borderWidth: 1,
-                  borderColor: "rgba(232,236,234,0.7)",
-                  ...Platform.select({
-                    ios: {
-                      shadowColor: "#000",
-                      shadowOffset: { width: 0, height: 1 },
-                      shadowRadius: 3,
-                      shadowOpacity: 0.06,
-                    },
-                    android: { elevation: 1 },
-                  }),
-                }}
-              >
-                <Feather name="calendar" size={13} color="#4A6080" />
-                <Text className="text-[12px] font-bold text-[#4A6080]">History</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
+          {!hideHeader && (
             <View className="mb-6">
               <Text
                 className="text-[28px] font-bold text-[#152131] mb-1"
@@ -768,15 +734,10 @@ export default function ExercisesScreen({
 
           {/* Recommended Routine */}
           {recommendedRoutine && selectedType === "All" && (
-            <Reanimated.View entering={FadeInDown.delay(100).springify()} className="mb-8">
-              <View className="flex-row items-center justify-between mb-3">
-                <Text
-                  className="text-[18px] font-bold text-[#152131]"
-                  style={{ letterSpacing: -0.3 }}
-                >
-                  Recommended Movement
-                </Text>
-              </View>
+            <Reanimated.View entering={FadeInDown.delay(100).springify()} className="mb-5">
+              <Text className="text-[15px] font-bold text-[#152131] mb-2.5">
+                Recommended
+              </Text>
               <RoutineCard
                 routine={recommendedRoutine}
                 isCompleted={completedExercises.includes(recommendedRoutine.id)}
@@ -790,56 +751,50 @@ export default function ExercisesScreen({
           {/* ── Enhanced Consistency Tracker (HL-ENG-05) ── */}
           <Reanimated.View
             entering={FadeInDown.delay(200).springify()}
-            className="mb-8 p-5 rounded-3xl"
-            style={{
-              backgroundColor: "#FFFFFF",
-              borderWidth: 1,
-              borderColor: "rgba(232,236,234,0.6)",
-              ...Platform.select({
-                ios: {
-                  shadowColor: "#000",
-                  shadowOffset: { width: 0, height: 4 },
-                  shadowRadius: 16,
-                  shadowOpacity: 0.06,
-                },
-                android: { elevation: 3 },
-              }),
-            }}
+            className={isEmbedded ? "mb-5 px-1 py-3" : "mb-8 p-5 rounded-3xl"}
+            style={
+              isEmbedded
+                ? undefined
+                : {
+                    backgroundColor: "#FFFFFF",
+                    borderWidth: 1,
+                    borderColor: "rgba(232,236,234,0.6)",
+                    ...Platform.select({
+                      ios: {
+                        shadowColor: "#000",
+                        shadowOffset: { width: 0, height: 4 },
+                        shadowRadius: 16,
+                        shadowOpacity: 0.06,
+                      },
+                      android: { elevation: 3 },
+                    }),
+                  }
+            }
           >
-            <View className="flex-row items-center justify-between mb-4">
-              <Text
-                className="text-[18px] font-bold text-[#152131]"
-                style={{ letterSpacing: -0.3 }}
-              >
-                Your Consistency
+            <View className="flex-row items-center justify-between mb-3">
+              <Text className="text-[15px] font-bold text-[#152131]">This week</Text>
+              <Text className="text-[12px] font-semibold text-[#5C6B66]">
+                {weeklyConsistency.count}/7 days
               </Text>
-              <View className="flex-row items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#F0FDF4]">
-                <View className="w-1.5 h-1.5 rounded-full bg-[#16A34A]" />
-                <Text className="text-[12px] font-bold text-[#166534]">
-                  {weeklyConsistency.count}/7
-                </Text>
-              </View>
             </View>
-            <View className="flex-row items-center justify-between mb-2">
+            <View className="flex-row items-center justify-between">
               {weeklyConsistency.days.map((isActiveDay, index) => (
-                <View key={index} className="items-center gap-1.5">
+                <View key={index} className="items-center gap-1">
                   <View
-                    className="w-9 h-9 rounded-full items-center justify-center"
+                    className="w-7 h-7 rounded-full items-center justify-center"
                     style={{
-                      backgroundColor: isActiveDay ? "#F0FDF4" : "#F4F7F5",
-                      borderWidth: isActiveDay ? 2 : 1,
-                      borderColor: isActiveDay ? "#86EFAC" : "#E8ECEA",
+                      backgroundColor: isActiveDay ? "#DCFCE7" : "#F4F7F5",
                     }}
                   >
                     <View
-                      className="w-3 h-3 rounded-full"
+                      className="w-2.5 h-2.5 rounded-full"
                       style={{
                         backgroundColor: isActiveDay ? "#16A34A" : "#D1D9D5",
                       }}
                     />
                   </View>
                   <Text
-                    className="text-[10px] font-semibold"
+                    className="text-[10px] font-medium"
                     style={{ color: isActiveDay ? "#166534" : "#94A3B8" }}
                   >
                     {weeklyConsistency.labels[index] || DAY_LABELS[index]}
@@ -847,18 +802,12 @@ export default function ExercisesScreen({
                 </View>
               ))}
             </View>
-            <Text className="text-[14px] text-[#5C6B66] font-medium mt-1">
-              {weeklyConsistency.count} active {weeklyConsistency.count === 1 ? "day" : "days"} in the last 7 days
-            </Text>
           </Reanimated.View>
 
           {/* ── Available Training ── */}
           <Reanimated.View entering={FadeInDown.delay(200).springify()}>
-            <Text
-              className="text-[18px] font-bold text-[#152131] mb-4"
-              style={{ letterSpacing: -0.3 }}
-            >
-              Available Training
+            <Text className="text-[15px] font-bold text-[#152131] mb-3">
+              More workouts
             </Text>
 
             {/* Type Filter — Dark/Light Chips */}

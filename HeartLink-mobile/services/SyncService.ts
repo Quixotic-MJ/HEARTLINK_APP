@@ -95,8 +95,10 @@ export async function syncOfflineMeals(baseUrl: string): Promise<void> {
       await AsyncStorage.setItem(queueKey, JSON.stringify(newQueue));
       console.log(`[SyncService] Meal sync complete. ${queue.length - newQueue.length} meals uploaded.`);
     }
+    return queue.length - newQueue.length;
   } catch (error) {
     console.error("[SyncService] Failed during offline meal sync", error);
+    return 0;
   }
 }
 
@@ -177,8 +179,10 @@ export async function syncOfflineExercises(baseUrl: string): Promise<void> {
       await AsyncStorage.setItem(queueKey, JSON.stringify(newQueue));
       console.log(`[SyncService] Exercise sync complete. ${queue.length - newQueue.length} exercises uploaded.`);
     }
+    return queue.length - newQueue.length;
   } catch (error) {
     console.error("[SyncService] Failed during offline exercise sync", error);
+    return 0;
   }
 }
 
@@ -257,10 +261,12 @@ export async function syncOfflineSleeps(baseUrl: string): Promise<void> {
 
     if (newQueue.length !== queue.length) {
       await AsyncStorage.setItem(queueKey, JSON.stringify(newQueue));
-      console.log(`[SyncService] Sleep sync complete. ${queue.length - newQueue.length} sleep logs uploaded.`);
+      console.log(`[SyncService] Sleep sync complete. ${queue.length - newQueue.length} sleeps uploaded.`);
     }
+    return queue.length - newQueue.length;
   } catch (error) {
     console.error("[SyncService] Failed during offline sleep sync", error);
+    return 0;
   }
 }
 
@@ -341,8 +347,10 @@ export async function syncOfflineHealthLogs(baseUrl: string): Promise<void> {
       await AsyncStorage.setItem(queueKey, JSON.stringify(newQueue));
       console.log(`[SyncService] Health log sync complete. ${queue.length - newQueue.length} health logs uploaded.`);
     }
+    return queue.length - newQueue.length;
   } catch (error) {
     console.error("[SyncService] Failed during offline health logs sync", error);
+    return 0;
   }
 }
 
@@ -355,12 +363,12 @@ export async function syncOfflineAll(baseUrl: string): Promise<void> {
   isSyncing = true;
   DeviceEventEmitter.emit("sync_started");
   try {
-    let syncedAny = false;
+    let syncedCount = 0;
     
-    const wrapSync = async (syncFn: () => Promise<void>) => {
+    const wrapSync = async (syncFn: () => Promise<number>) => {
       try {
-        await syncFn();
-        syncedAny = true;
+        const count = await syncFn();
+        syncedCount += count;
       } catch (e) {
         console.log("Sync error:", e);
       }
@@ -370,6 +378,10 @@ export async function syncOfflineAll(baseUrl: string): Promise<void> {
     await wrapSync(() => syncOfflineExercises(baseUrl));
     await wrapSync(() => syncOfflineSleeps(baseUrl));
     await wrapSync(() => syncOfflineHealthLogs(baseUrl));
+    
+    if (syncedCount > 0) {
+      DeviceEventEmitter.emit("offline_data_synced", syncedCount);
+    }
     
     // Only emit if we actually attempted a sync, but it's safe to emit unconditionally if we want dashboard to know we checked.
     // We'll just emit unconditionally so the dashboard knows the check is done.

@@ -23,15 +23,13 @@ import * as Haptics from "expo-haptics";
 import { getCompanionGreeting, getCompanionLine, CompanionGreetingResult } from "../../../services/companionService";
 import { voiceGreeting } from "../../../services/companionCopy";
 import { useNetInfo } from "@react-native-community/netinfo";
-
-import Svg, { Path } from "react-native-svg";
-
-
+import { useToast } from "../../../contexts/ToastContext";
 
 // Import extracted UI components
 import { ScoreRing } from "../../../components/dashboard/ScoreRing";
 import { MissionList, type MissionId, type MissionItem } from "../../../components/dashboard/MissionList";
 import { MissionLogModal } from "../../../components/dashboard/MissionLogModal";
+import { QuickLogModal } from "../../../components/exercise/QuickLogModal";
 import {
   RecommendationModal,
   type ActiveRec,
@@ -114,21 +112,6 @@ function TactileCard({
   );
 }
 
-// ─── Mini Sparkline Component ─────────────────────────────────────────────────
-function MiniSparkline({ color = "#1B6E63" }: { color?: string }) {
-  return (
-    <Svg width={38} height={14} viewBox="0 0 38 14" fill="none">
-      <Path
-        d="M1 9C5 9 8 12 12 10C16 8 20 4 25 5C29 6 33 2 37 2"
-        stroke={color}
-        strokeWidth={1.8}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
-}
-
 // ─── Score theme ──────────────────────────────────────────────────────────────
 type ScoreTheme = {
   label: string;
@@ -202,48 +185,13 @@ function getDaypartTitle(): string {
   return "Wind down tonight";
 }
 
-function cleanCoachMessage(text?: string): string {
-  if (!text) return "Stay consistent with your vitals and heart-healthy habits today.";
-  const cleaned = text.replace(/^(Good (morning|afternoon|evening)[^!.]*[!.])\s*/i, "").trim();
-  return cleaned || "Stay consistent with your vitals and heart-healthy habits today.";
-}
-
-// ─── Freshness Helper ─────────────────────────────────────────────────────────
-function formatFreshness(lastSync: string | null | undefined, isOffline: boolean): string {
-  if (!lastSync) {
-    return isOffline ? "Offline • Update time unavailable" : "Update time unavailable";
-  }
-  const date = new Date(lastSync);
-  if (isNaN(date.getTime())) {
-    return isOffline ? "Offline • Update time unavailable" : "Update time unavailable";
-  }
-
-  const now = new Date();
-  const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
-
-  let timeStr = "";
-  if (diffInMinutes < 1) {
-    timeStr = "Just now";
-  } else if (diffInMinutes < 60) {
-    timeStr = `${diffInMinutes}m ago`;
-  } else if (now.toDateString() === date.toDateString()) {
-    const timeFormatted = date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-    timeStr = `Today, ${timeFormatted}`;
-  } else {
-    const dateFormatted = date.toLocaleDateString([], { month: "short", day: "numeric" });
-    const timeFormatted = date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-    timeStr = `${dateFormatted}, ${timeFormatted}`;
-  }
-
-  return isOffline ? `Offline • Last updated ${timeStr}` : `Updated ${timeStr}`;
-}
-
 // ─── Dashboard Screen ─────────────────────────────────────────────────────────
 export default function DashboardScreen() {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
   const router = useRouter();
   const { userId, token, user, logout } = useUser();
+  const { showToast } = useToast();
 
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -379,11 +327,19 @@ export default function DashboardScreen() {
       console.log("[Dashboard] Background sync complete, refreshing data...");
       fetchData(true);
     });
+    const subSuccess = DeviceEventEmitter.addListener("offline_data_synced", (count: number) => {
+      showToast({
+        title: "Sync Successful",
+        message: `${count} offline ${count === 1 ? 'activity' : 'activities'} synced.`,
+        type: "success"
+      });
+    });
     return () => {
       subStart.remove();
       subComplete.remove();
+      subSuccess.remove();
     };
-  }, [fetchData]);
+  }, [fetchData, showToast]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -423,18 +379,44 @@ export default function DashboardScreen() {
   const streakDays = typeof data?.streak?.current_streak === "number" ? data.streak.current_streak : 0;
 
   const [tutorialVisible, setTutorialVisible] = useState(false);
+  const [showQuickLogModal, setShowQuickLogModal] = useState(false);
+  const scrollViewRef = useRef<ScrollView>(null);
 
   // Mission log modal (replaces the old inline dropdowns).
   // Exercise keeps its separate screen and never opens the modal.
   const [logModal, setLogModal] = useState<null | "vitals" | "meals" | "sleep">(null);
+  
+  const handleQuickLogClose = useCallback((success?: boolean) => {
+    setShowQuickLogModal(false);
+    if (success) {
+      scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+      fetchData(true);
+    }
+  }, [fetchData]);
+
   const handleMissionSaved = useCallback(() => {
     setLogModal(null);
     fetchData(true);
   }, [fetchData]);
+
   const handleMissionPress = useCallback(
     (id: MissionId) => {
       if (id === "exercise") {
-        safeNavigate("/(home)/(health)/exercise-diary");
+        Alert.alert(
+          "Log Exercise",
+          "How would you like to log your activity?",
+          [
+            { text: "Cancel", style: "cancel" },
+            { 
+              text: "Quick Log Activity", 
+              onPress: () => setShowQuickLogModal(true)
+            },
+            { 
+              text: "Browse Guided Routines", 
+              onPress: () => safeNavigate("/(home)/(tabs)/explore", { initialSegment: "exercises" }) 
+            }
+          ]
+        );
         return;
       }
       if (id === "vitals") {
@@ -449,7 +431,7 @@ export default function DashboardScreen() {
   const missionItems: MissionItem[] = [
     {
       id: "vitals",
-      title: "Blood Pressure & Pulse",
+      title: "Blood pressure",
       subtitle: vitalsLogged
         ? data?.latest_vitals?.bp
           ? `Recorded: ${data.latest_vitals.bp} mmHg${data?.latest_vitals?.bpm ? ` • ${data.latest_vitals.bpm} BPM` : ""}`
@@ -461,7 +443,7 @@ export default function DashboardScreen() {
     },
     {
       id: "meals",
-      title: "Sodium Budget",
+      title: "Meals",
       subtitle: mealsLogged
         ? `${data?.nutrition_budget?.sodium?.consumed_mg ?? data?.today_activity?.total_sodium_mg ?? 0} mg used`
         : "0 of 2,000 mg logged today",
@@ -472,7 +454,7 @@ export default function DashboardScreen() {
     },
     {
       id: "exercise",
-      title: "Cardio Heart Movement",
+      title: "Movement",
       subtitle: `${movementMins} of ${movementGoal} mins completed today`,
       icon: "activity",
       tileColors: ["#3D6494", "#6488B0"],
@@ -480,7 +462,7 @@ export default function DashboardScreen() {
     },
     {
       id: "sleep",
-      title: "Rest & Circadian Sleep",
+      title: "Sleep",
       subtitle: sleepLogged
         ? `${typeof data?.today_activity?.total_sleep_hours === "number" ? data.today_activity.total_sleep_hours : "Recorded"} hrs logged`
         : "Target: 7–9 hrs of restful recovery",
@@ -694,40 +676,27 @@ export default function DashboardScreen() {
 
   if (isLoading && !data) {
     return (
-      <ScreenWrapper edges={["top"]} withScrollView={false} safeAreaClassName="flex-1 bg-[#EDF1EF] dark:bg-[#101923]">
+      <ScreenWrapper edges={["top"]} withScrollView={false} safeAreaClassName="flex-1 bg-[#F8FAF9] dark:bg-[#0B131E]">
         <Header showProfile={false} />
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerClassName="px-5 pt-3 pb-40 md:max-w-2xl lg:max-w-4xl mx-auto w-full"
         >
-          {/* Greeting Skeleton */}
           <View className="mb-4 pt-1">
-            <Skeleton className="w-36 h-4 rounded-md mb-1.5 bg-[#DCE3DF] dark:bg-slate-800" />
-            <Skeleton className="w-48 h-8 rounded-xl bg-[#DCE3DF] dark:bg-slate-800" />
+            <Skeleton className="w-40 h-4 rounded-md mb-2 bg-[#DCE3DF] dark:bg-slate-800" />
+            <Skeleton className="w-28 h-7 rounded-lg bg-[#DCE3DF] dark:bg-slate-800" />
           </View>
 
-          {/* Score Ring Hero Card Skeleton */}
-          <View className="bg-white dark:bg-[#1A2634] rounded-3xl border border-[#DCE3DF] dark:border-slate-800 p-5 mb-4 shadow-xs items-center">
-            <Skeleton className="w-40 h-4 rounded-md mb-4 bg-[#DCE3DF] dark:bg-slate-800" />
-            <Skeleton className="w-36 h-36 rounded-full mb-5 bg-[#DCE3DF] dark:bg-slate-800" />
-            <View className="w-full h-4 mb-4 items-center justify-center">
-              <View className="w-full h-[1.5px] bg-[#DCE3DF] dark:bg-slate-800" />
-            </View>
-            <View className="flex-row gap-3 w-full">
-              <Skeleton className="flex-1 h-28 rounded-2xl bg-[#DCE3DF] dark:bg-slate-800" />
-              <Skeleton className="flex-1 h-28 rounded-2xl bg-[#DCE3DF] dark:bg-slate-800" />
-            </View>
+          <View className="bg-white dark:bg-[#1A2634] rounded-2xl border border-[#DCE3DF] dark:border-slate-800 p-4 mb-4 items-center">
+            <Skeleton className="w-28 h-6 rounded-full mb-4 bg-[#DCE3DF] dark:bg-slate-800" />
+            <Skeleton className="w-44 h-44 rounded-full bg-[#DCE3DF] dark:bg-slate-800" />
           </View>
 
-          {/* 4-Mission Habit Cards Skeleton */}
-          <View className="bg-white dark:bg-[#1A2634] rounded-2xl border border-[#DCE3DF] dark:border-slate-800 p-4 mb-4 shadow-xs">
-            <View className="flex-row items-center justify-between mb-3 pb-2.5 border-b border-[#DCE3DF]/60 dark:border-slate-800">
-              <Skeleton className="w-44 h-4 rounded-md bg-[#DCE3DF] dark:bg-slate-800" />
-              <Skeleton className="w-24 h-5 rounded-full bg-[#DCE3DF] dark:bg-slate-800" />
-            </View>
+          <View className="bg-white dark:bg-[#1A2634] rounded-2xl border border-[#DCE3DF] dark:border-slate-800 p-4 mb-4">
+            <Skeleton className="w-36 h-4 rounded-md mb-3 bg-[#DCE3DF] dark:bg-slate-800" />
             <View className="gap-2.5">
               {[1, 2, 3, 4].map((i) => (
-                <Skeleton key={i} className="w-full h-16 rounded-xl bg-[#DCE3DF] dark:bg-slate-800" />
+                <Skeleton key={i} className="w-full h-14 rounded-xl bg-[#DCE3DF] dark:bg-slate-800" />
               ))}
             </View>
           </View>
@@ -747,7 +716,7 @@ export default function DashboardScreen() {
 
   if (error && !data) {
     return (
-      <ScreenWrapper edges={["top"]} withScrollView={false} safeAreaClassName="flex-1 bg-[#EDF1EF] dark:bg-[#101923]">
+      <ScreenWrapper edges={["top"]} withScrollView={false} safeAreaClassName="flex-1 bg-[#F8FAF9] dark:bg-[#0B131E]">
         <Header showProfile={false} />
         <View className="flex-1 justify-center items-center px-5">
           <View className="bg-white dark:bg-[#1A2634] rounded-2xl border border-[#DCE3DF] dark:border-slate-800 p-8 items-center w-full max-w-sm shadow-xs">
@@ -782,7 +751,7 @@ export default function DashboardScreen() {
     <ScreenWrapper
       edges={["top"]}
       withScrollView={false}
-      safeAreaClassName="flex-1 bg-[#EDF1EF] dark:bg-[#101923]"
+      safeAreaClassName="flex-1 bg-[#F8FAF9] dark:bg-[#0B131E]"
     >
       {/* ── Interactive First-Time Coachmark Walkthrough Tour ── */}
       <DashboardTutorialModal
@@ -825,6 +794,7 @@ export default function DashboardScreen() {
       <Header unreadCount={data?.unread_notifications_count} showProfile={false} />
 
       <ScrollView
+        ref={scrollViewRef}
         contentContainerClassName="pb-40 md:max-w-2xl lg:max-w-4xl mx-auto w-full"
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -1277,12 +1247,18 @@ export default function DashboardScreen() {
               mission={logModal}
               userId={userId}
               token={token}
+              initialSleepHours={data?.today_activity?.total_sleep_hours}
               onClose={() => setLogModal(null)}
               onSaved={handleMissionSaved}
               onOpenDiary={() => {
                 setLogModal(null);
                 safeNavigate("/(home)/(meals)/daily-diary");
               }}
+            />
+
+            <QuickLogModal
+              visible={showQuickLogModal}
+              onClose={handleQuickLogClose}
             />
 
             <FacilityMapModal

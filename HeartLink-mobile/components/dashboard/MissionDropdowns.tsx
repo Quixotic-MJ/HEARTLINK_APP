@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TextInput, TouchableOpacity, Modal, Linking } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, Modal, Linking, Platform } from "react-native";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -188,65 +189,57 @@ const SLEEP_QUALITIES = ["Poor", "Fair", "Good", "Excellent"];
 export function SleepQuickForm({
   userId,
   token,
+  initialSleepHours,
   onSaved,
 }: {
   userId?: string | null;
   token?: string | null;
+  initialSleepHours?: number;
   onSaved: () => void;
 }) {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
   const { showToast } = useToast();
 
-  const [hours, setHours] = useState(7);
-  const [minutes, setMinutes] = useState(30);
+  const defaultWake = new Date();
+
+  const defaultBed = new Date(defaultWake);
+  const backHours = initialSleepHours || 7.5;
+  defaultBed.setMinutes(defaultBed.getMinutes() - backHours * 60);
+
+  const [bedTime, setBedTime] = useState<Date>(defaultBed);
+  const [wakeTime, setWakeTime] = useState<Date>(defaultWake);
+  
+  const [showBedPicker, setShowBedPicker] = useState(false);
+  const [showWakePicker, setShowWakePicker] = useState(false);
+
   const [quality, setQuality] = useState("Good");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const stepper = (
-    val: number,
-    set: (v: number) => void,
-    step: number,
-    min: number,
-    max: number,
-    suffix: string
-  ) => (
-    <View className="flex-1 flex-row items-center justify-between rounded-xl px-2 py-1.5 bg-white dark:bg-slate-950/60 border border-[#DCE3DF] dark:border-slate-800">
-      <TouchableOpacity
-        hitSlop={8}
-        onPress={() => {
-          Haptics.selectionAsync();
-          set(Math.max(min, val - step));
-        }}
-        className="w-8 h-8 rounded-full bg-[#EDF1EF]/80 dark:bg-slate-800 items-center justify-center"
-      >
-        <Feather name="minus" size={13} color={isDark ? "#cbd5e1" : "#475569"} />
-      </TouchableOpacity>
-      <Text className="text-[17px] font-bold text-[#152131] dark:text-white">
-        {val}
-        <Text className="text-[11px] font-semibold text-[#8D9B96] dark:text-slate-500">{suffix}</Text>
-      </Text>
-      <TouchableOpacity
-        hitSlop={8}
-        onPress={() => {
-          Haptics.selectionAsync();
-          set(Math.min(max, val + step));
-        }}
-        className="w-8 h-8 rounded-full bg-[#EDF1EF]/80 dark:bg-slate-800 items-center justify-center"
-      >
-        <Feather name="plus" size={13} color={isDark ? "#cbd5e1" : "#475569"} />
-      </TouchableOpacity>
-    </View>
-  );
+  // Calculate duration in hours
+  let diffMs = wakeTime.getTime() - bedTime.getTime();
+  if (diffMs < 0) diffMs += 24 * 60 * 60 * 1000;
+  const durationHours = diffMs / (1000 * 60 * 60);
+  const displayHours = Math.floor(durationHours);
+  const displayMins = Math.round((durationHours % 1) * 60);
 
   const handleSave = async () => {
     if (!userId) {
       showToast({ title: "Not signed in", message: "Please sign in to log sleep.", type: "error" });
       return;
     }
+    if (durationHours < 1 || durationHours > 14) {
+      showToast({ title: "Invalid Duration", message: "Please check your AM/PM times. Sleep must be between 1 and 14 hours.", type: "error" });
+      return;
+    }
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setIsSubmitting(true);
-    const payload = { duration_hours: hours + minutes / 60, quality };
+    const payload = { 
+      duration_hours: durationHours, 
+      quality,
+      bedtime: bedTime.toISOString(),
+      wake_time: wakeTime.toISOString()
+    };
     try {
       const res = await fetch(`${base_url}/api/sleep-logs/${userId}`, {
         method: "POST",
@@ -269,13 +262,88 @@ export function SleepQuickForm({
     }
   };
 
+  const formatTime = (d: Date) => {
+    return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  };
+
   return (
     <View className="gap-2.5 pt-3 mt-1 border-t border-[#DCE3DF]/60 dark:border-slate-800">
-      <View className="flex-row gap-2">
-        {stepper(hours, setHours, 1, 0, 14, "h")}
-        {stepper(minutes, setMinutes, 15, 0, 45, "m")}
+      
+      <View className="flex-row items-center justify-between rounded-xl px-4 py-3 bg-white dark:bg-slate-950/60 border border-[#DCE3DF] dark:border-slate-800">
+        <Text className="text-[14px] font-semibold text-[#152131] dark:text-white">Bedtime</Text>
+        {Platform.OS === 'ios' ? (
+          <DateTimePicker
+            value={bedTime}
+            mode="time"
+            display="default"
+            onValueChange={(e, date) => date && setBedTime(date)}
+            themeVariant={isDark ? "dark" : "light"}
+          />
+        ) : (
+          <>
+            <TouchableOpacity 
+              onPress={() => setShowBedPicker(true)}
+              className="flex-row items-center gap-1.5 bg-slate-50 dark:bg-slate-900 border border-[#DCE3DF] dark:border-slate-700 px-3 py-2 rounded-lg"
+            >
+              <Text className="text-[15px] font-bold text-[#1B6E63] dark:text-[#5EEAD4]">{formatTime(bedTime)}</Text>
+              <Feather name="chevron-down" size={14} color={isDark ? "#94a3b8" : "#8D9B96"} />
+            </TouchableOpacity>
+            {showBedPicker && (
+              <DateTimePicker
+                value={bedTime}
+                mode="time"
+                display="default"
+                onValueChange={(e, date) => {
+                  setShowBedPicker(false);
+                  if (date) setBedTime(date);
+                }}
+                onDismiss={() => setShowBedPicker(false)}
+              />
+            )}
+          </>
+        )}
       </View>
-      <View className="flex-row flex-wrap gap-1.5">
+
+      <View className="flex-row items-center justify-between rounded-xl px-4 py-3 bg-white dark:bg-slate-950/60 border border-[#DCE3DF] dark:border-slate-800">
+        <Text className="text-[14px] font-semibold text-[#152131] dark:text-white">Wake Up</Text>
+        {Platform.OS === 'ios' ? (
+          <DateTimePicker
+            value={wakeTime}
+            mode="time"
+            display="default"
+            onValueChange={(e, date) => date && setWakeTime(date)}
+            themeVariant={isDark ? "dark" : "light"}
+          />
+        ) : (
+          <>
+            <TouchableOpacity 
+              onPress={() => setShowWakePicker(true)}
+              className="flex-row items-center gap-1.5 bg-slate-50 dark:bg-slate-900 border border-[#DCE3DF] dark:border-slate-700 px-3 py-2 rounded-lg"
+            >
+              <Text className="text-[15px] font-bold text-[#1B6E63] dark:text-[#5EEAD4]">{formatTime(wakeTime)}</Text>
+              <Feather name="chevron-down" size={14} color={isDark ? "#94a3b8" : "#8D9B96"} />
+            </TouchableOpacity>
+            {showWakePicker && (
+              <DateTimePicker
+                value={wakeTime}
+                mode="time"
+                display="default"
+                onValueChange={(e, date) => {
+                  setShowWakePicker(false);
+                  if (date) setWakeTime(date);
+                }}
+                onDismiss={() => setShowWakePicker(false)}
+              />
+            )}
+          </>
+        )}
+      </View>
+
+      <Text className="text-[12px] text-center font-medium text-[#5C6B66] dark:text-slate-400 my-1">
+        Total sleep: {displayHours} hr {displayMins} min
+      </Text>
+
+      <View className="flex-row flex-wrap gap-1.5 justify-center mt-1">
         {SLEEP_QUALITIES.map((q) => {
           const selected = quality === q;
           return (

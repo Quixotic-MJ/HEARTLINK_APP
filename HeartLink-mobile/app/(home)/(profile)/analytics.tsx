@@ -24,9 +24,6 @@ function generateHeatmapCalendar(loggedDates: Set<string>) {
   currentDate.setDate(currentDate.getDate() - (26 * 7) + 1); // Go back 26 weeks (to a Monday)
 
   let totalLogged = 0;
-  let currentStreak = 0;
-  let maxStreak = 0;
-  let tempStreak = 0;
 
   for (let w = 0; w < 26; w++) {
     const week = [];
@@ -43,13 +40,6 @@ function generateHeatmapCalendar(loggedDates: Set<string>) {
 
       if (isLogged) {
         totalLogged++;
-        tempStreak++;
-        if (tempStreak > maxStreak) {
-          maxStreak = tempStreak;
-        }
-      } else if (!isFuture) {
-        // Only break streak if it's not a future date
-        tempStreak = 0;
       }
 
       currentDate.setDate(currentDate.getDate() + 1);
@@ -57,48 +47,30 @@ function generateHeatmapCalendar(loggedDates: Set<string>) {
     weeks.push(week);
   }
 
-  // Calculate current streak backwards from today
-  let checkDate = new Date(today);
-  let streak = 0;
-  while (true) {
-    const dStr = checkDate.toISOString().split("T")[0];
-    if (loggedDates.has(dStr)) {
-      streak++;
-      checkDate.setDate(checkDate.getDate() - 1);
-    } else {
-      // If today is missed, maybe they haven't logged yet, so check yesterday
-      if (streak === 0 && checkDate.toDateString() === today.toDateString()) {
-        checkDate.setDate(checkDate.getDate() - 1);
-        continue;
-      }
-      break;
-    }
-  }
-
-  return { weeks, totalLogged, maxStreak, currentStreak: streak };
+  return { weeks, totalLogged };
 }
 
 export default function AnalyticsScreen() {
   const router = useRouter();
   const { userId, token } = useUser();
   const [isLoading, setIsLoading] = useState(true);
-  const [logs, setLogs] = useState<any[]>([]);
+  const [streakData, setStreakData] = useState<any>(null);
 
   const fetchData = useCallback(async () => {
     if (!userId) return;
     setIsLoading(true);
     try {
-      const response = await fetch(`${base_url}/api/health-logs/${userId}`, {
+      const response = await fetch(`${base_url}/api/dashboard/me`, {
         headers: {
           "Authorization": `Bearer ${token || ""}`,
         },
       });
       if (response.ok) {
         const data = await response.json();
-        setLogs(data);
+        setStreakData(data.streak || null);
       }
     } catch (e) {
-      console.error("Failed to fetch health logs:", e);
+      console.error("Failed to fetch dashboard data:", e);
     } finally {
       setIsLoading(false);
     }
@@ -110,13 +82,13 @@ export default function AnalyticsScreen() {
     }, [fetchData])
   );
 
-  const { weeks, totalLogged, maxStreak, currentStreak } = useMemo(() => {
-    const loggedDates = new Set(logs.map(l => {
-        const dateStr = l.logged_at || l.created_at;
-        return dateStr ? dateStr.split("T")[0] : "";
-    }).filter(d => d !== ""));
+  const { weeks, totalLogged } = useMemo(() => {
+    const loggedDates = new Set<string>(streakData?.history || []);
     return generateHeatmapCalendar(loggedDates);
-  }, [logs]);
+  }, [streakData]);
+
+  const currentStreak = streakData?.current_streak || 0;
+  const maxStreak = streakData?.best_streak || 0;
 
   return (
     <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950" edges={["top"]}>

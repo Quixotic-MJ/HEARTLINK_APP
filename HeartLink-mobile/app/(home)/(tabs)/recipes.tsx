@@ -157,7 +157,7 @@ function RecipeCard({
     <TouchableOpacity
       activeOpacity={0.92}
       onPress={onPress}
-      className="rounded-3xl overflow-hidden mb-5"
+      className="rounded-2xl overflow-hidden mb-3.5"
       style={{
         backgroundColor: "#FFFFFF",
         borderWidth: 1,
@@ -176,7 +176,7 @@ function RecipeCard({
       }}
     >
       {/* Image with Gradient Overlay */}
-      <View className="h-[180px] bg-[#F1F5F3] relative items-center justify-center">
+      <View className="h-[148px] bg-[#F1F5F3] relative items-center justify-center">
         {/* Fallback Icon */}
         <MaterialCommunityIcons name="silverware-fork-knife" size={32} color="#D1D9D5" style={{ position: "absolute" }} />
         {!!recipe.image && (
@@ -240,40 +240,33 @@ function RecipeCard({
 
       {/* Content */}
       <View className="px-4 pt-3.5 pb-4">
-        {/* Tags — Compact with dot indicators */}
-        <View className="flex-row flex-wrap gap-1.5 mb-2">
-          {recipe.tags.map((tag) => {
-            const isLowSodium = tag === "Low Sodium";
-            return (
-              <View
-                key={tag}
-                className="flex-row items-center gap-1 px-2 py-0.5 rounded-md"
-                style={{
-                  backgroundColor: isLowSodium ? "#E8F5E1" : "#F4F7F5",
-                }}
+        <View className="flex-row items-start justify-between gap-3 mb-2">
+          <Text className="flex-1 text-[16px] font-bold text-[#152131] dark:text-white leading-snug" numberOfLines={2}>
+            {recipe.title}
+          </Text>
+          {recipe.tags[0] ? (
+            <View
+              className="px-2 py-0.5 rounded-md mt-0.5"
+              style={{
+                backgroundColor: recipe.tags.includes("Low Sodium") ? "#E8F5E1" : "#F4F7F5",
+              }}
+            >
+              <Text
+                className="text-[10px] font-semibold"
+                style={{ color: recipe.tags.includes("Low Sodium") ? "#2D6A10" : "#8896A0" }}
               >
-                {isLowSodium && (
-                  <View className="w-1 h-1 rounded-full bg-[#2D6A10]" />
-                )}
-                <Text
-                  className="text-[10px] font-semibold uppercase tracking-wide"
-                  style={{ color: isLowSodium ? "#2D6A10" : "#8896A0" }}
-                >
-                  {tag}
-                </Text>
-              </View>
-            );
-          })}
+                {recipe.tags.includes("Low Sodium") ? "Low sodium" : recipe.tags[0]}
+              </Text>
+            </View>
+          ) : null}
         </View>
 
-        <Text className="text-[16px] font-bold text-[#152131] dark:text-white mb-0.5 leading-snug">
-          {recipe.title}
-        </Text>
-        <Text className="text-[13px] text-[#64748B] dark:text-slate-400 mb-3 leading-relaxed" numberOfLines={2}>
-          {recipe.subtitle}
-        </Text>
+        {!!recipe.subtitle && (
+          <Text className="text-[13px] text-[#64748B] dark:text-slate-400 mb-2.5 leading-relaxed" numberOfLines={1}>
+            {recipe.subtitle}
+          </Text>
+        )}
 
-        {/* Compact Nutrition Row */}
         <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 6 }}>
           <NutritionBadge
             label="Sodium"
@@ -282,9 +275,7 @@ function RecipeCard({
             highlight={isSodiumSafe}
             warning={isSodiumElevated}
           />
-          <NutritionBadge label="Fiber" value={recipe.nutrition.fiber} unit="g" />
-          <NutritionBadge label="Sat. Fat" value={recipe.nutrition.saturatedFat || 0} unit="g" />
-          <NutritionBadge label="Calories" value={recipe.nutrition.calories} unit="cal" />
+          <NutritionBadge label="Cal" value={recipe.nutrition.calories} unit="" />
         </View>
       </View>
     </TouchableOpacity>
@@ -535,17 +526,25 @@ export default function RecipesScreen({
     }
   }, [fetchRecipes, savedRecipesKey, userId, token]);
 
-  const filters = ["All", "Tailored For You", "Saved", "Low Sodium", "High Fiber", "Filipino", "Breakfast"];
+  const filters = [
+    { key: "All", label: "All" },
+    { key: "Tailored For You", label: "For you" },
+    { key: "Saved", label: "Saved" },
+    { key: "Low Sodium", label: "Low sodium" },
+    { key: "High Fiber", label: "High fiber" },
+    { key: "Filipino", label: "Filipino" },
+    { key: "Breakfast", label: "Breakfast" },
+  ];
 
   useEffect(() => {
+    if (isEmbedded) return;
     const hour = new Date().getHours();
     if (hour >= 5 && hour < 10) {
-      setActiveFilter("Breakfast");
-      setTimeMessage("Good morning! Here are some heart-healthy breakfast ideas.");
+      setTimeMessage("Breakfast ideas for a heart-healthy start.");
     } else if (hour >= 17 && hour <= 21) {
-      setTimeMessage("Good evening! Time for a light, heart-healthy dinner.");
+      setTimeMessage("Keep dinner light and heart-healthy.");
     }
-  }, []);
+  }, [isEmbedded]);
 
   // Scoped Bookmark Handler with Bi-directional Backend Synchronization (HL-ENG-09)
   const toggleSave = async (id: string) => {
@@ -689,30 +688,6 @@ export default function RecipesScreen({
           )}
         </View>
 
-        {hideHeader && (
-          <TouchableOpacity
-            onPress={() => router.push("/(home)/(meals)/daily-diary")}
-            activeOpacity={0.8}
-            className="flex-row items-center gap-1.5 px-3.5 py-2.5 rounded-full"
-            style={{
-              backgroundColor: isDark ? "#162232" : "#FFFFFF",
-              borderWidth: 1,
-              borderColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(232,236,234,0.9)",
-              ...Platform.select({
-                ios: {
-                  shadowColor: "#000",
-                  shadowOffset: { width: 0, height: 1 },
-                  shadowRadius: 3,
-                  shadowOpacity: 0.06,
-                },
-                android: { elevation: 1 },
-              }),
-            }}
-          >
-            <Feather name="book-open" size={14} color="#1B6E63" />
-            <Text className="text-[12px] font-bold text-[#1B6E63] dark:text-[#4FA79A]">Diary</Text>
-          </TouchableOpacity>
-        )}
       </View>
 
       {/* Offline Banner */}
@@ -734,10 +709,10 @@ export default function RecipesScreen({
         >
           {filters.map((f) => (
             <FilterChip
-              key={f}
-              label={f === "Tailored For You" ? `Tailored (${tailoredCount})` : f}
-              active={activeFilter === f}
-              onPress={() => setActiveFilter(f)}
+              key={f.key}
+              label={f.key === "Tailored For You" ? `For you (${tailoredCount})` : f.label}
+              active={activeFilter === f.key}
+              onPress={() => setActiveFilter(f.key)}
             />
           ))}
         </ScrollView>
@@ -750,8 +725,7 @@ export default function RecipesScreen({
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1B6E63" />
         }
       >
-        {/* Tailored banner */}
-        {activeFilter === "Tailored For You" && (
+        {activeFilter === "Tailored For You" && !isEmbedded && (
           <Reanimated.View
             entering={FadeInDown.delay(100).springify()}
             className="mx-5 mt-3 mb-2 rounded-2xl overflow-hidden"
@@ -799,8 +773,7 @@ export default function RecipesScreen({
           </Reanimated.View>
         )}
 
-        {/* Time Message Banner */}
-        {timeMessage && activeFilter !== "Tailored For You" && activeFilter !== "Saved" && (
+        {timeMessage && !isEmbedded && activeFilter !== "Tailored For You" && activeFilter !== "Saved" && (
           <Reanimated.View
             entering={FadeInDown.delay(100).springify()}
             style={{

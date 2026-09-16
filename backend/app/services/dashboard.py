@@ -147,6 +147,65 @@ def _generate_insight(user_hss: list, latest_log: dict | None) -> dict:
 
     return {"title": title, "body": body, "icon": icon}
 
+def _calculate_streak_data(meal_logs, exercise_logs, daily_health_logs, sleep_logs) -> Dict[str, Any]:
+    now = datetime.now()
+    
+    meal_dates = set()
+    for item in meal_logs:
+        if not item.get("deleted_at"):
+            dt = _safe_date(item.get("logged_at"))
+            if dt: meal_dates.add(dt)
+            
+    exercise_dates = set()
+    for item in exercise_logs:
+        if not item.get("deleted_at"):
+            dt = _safe_date(item.get("logged_at"))
+            if dt: exercise_dates.add(dt)
+            
+    vitals_dates = set()
+    for item in daily_health_logs:
+        if not item.get("deleted_at"):
+            dt = _safe_date(item.get("logged_at"))
+            if dt: vitals_dates.add(dt)
+            
+    sleep_dates = set()
+    for item in sleep_logs:
+        if not item.get("deleted_at") and not item.get("is_deleted", False):
+            dt = _safe_date(item.get("logged_at"))
+            if dt: sleep_dates.add(dt)
+            
+    all_logged_dates = meal_dates.intersection(exercise_dates).intersection(vitals_dates).intersection(sleep_dates)
+    
+    current_streak = 0
+    check_date = now.date()
+    
+    # 1-day grace period: if today is not logged yet, check yesterday
+    if check_date not in all_logged_dates:
+        check_date -= timedelta(days=1)
+        
+    while check_date in all_logged_dates:
+        current_streak += 1
+        check_date -= timedelta(days=1)
+        
+    best_streak = 0
+    temp_streak = 0
+    sorted_dates = sorted(list(all_logged_dates))
+    if sorted_dates:
+        temp_streak = 1
+        best_streak = 1
+        for i in range(1, len(sorted_dates)):
+            if (sorted_dates[i] - sorted_dates[i-1]).days == 1:
+                temp_streak += 1
+                best_streak = max(best_streak, temp_streak)
+            else:
+                temp_streak = 1
+
+    return {
+        "current_streak": current_streak,
+        "best_streak": best_streak,
+        "history": [d.isoformat() for d in sorted_dates]
+    }
+
 
 def _get_today_activity(user_id: str) -> dict:
     """Summarize today's logged activity."""
@@ -199,6 +258,7 @@ def _get_today_activity(user_id: str) -> dict:
         "total_calories": total_calories,
         "total_exercise_minutes": total_exercise_min,
         "total_sleep_hours": total_sleep_hours,
+        "streak_data": _calculate_streak_data(meal_logs, exercise_logs, daily_health_logs, sleep_logs),
     }
 
 
@@ -360,6 +420,7 @@ def get_dashboard_data(user_id: str) -> Dict[str, Any]:
                 "limit": calorie_limit,
             },
         },
+        "streak": today_activity["streak_data"],
     }
 
 
@@ -434,43 +495,7 @@ def get_7_day_wrap_up_data(user_id: str, local_date_str: str = None) -> Dict[str
     daily_records = []
     days_logged = 0
     
-    # Calculate streak from all historical data up to today
-    all_logged_dates = set()
-    for item in meal_logs:
-        if not item.get("deleted_at"):
-            dt = _safe_date(item.get("logged_at"))
-            if dt: all_logged_dates.add(dt)
-    for item in exercise_logs:
-        if not item.get("deleted_at"):
-            dt = _safe_date(item.get("logged_at"))
-            if dt: all_logged_dates.add(dt)
-    for item in daily_health_logs:
-        if not item.get("deleted_at"):
-            dt = _safe_date(item.get("logged_at"))
-            if dt: all_logged_dates.add(dt)
-    for item in sleep_logs:
-        if not item.get("deleted_at") and not item.get("is_deleted", False):
-            dt = _safe_date(item.get("logged_at"))
-            if dt: all_logged_dates.add(dt)
-    
-    current_streak = 0
-    check_date = now.date()
-    while check_date in all_logged_dates:
-        current_streak += 1
-        check_date -= timedelta(days=1)
-        
-    best_streak = 0
-    temp_streak = 0
-    sorted_dates = sorted(list(all_logged_dates))
-    if sorted_dates:
-        temp_streak = 1
-        best_streak = 1
-        for i in range(1, len(sorted_dates)):
-            if (sorted_dates[i] - sorted_dates[i-1]).days == 1:
-                temp_streak += 1
-                best_streak = max(best_streak, temp_streak)
-            else:
-                temp_streak = 1
+    streak_data = _calculate_streak_data(meal_logs, exercise_logs, daily_health_logs, sleep_logs)
 
     for i in range(7):
         target_date = seven_days_ago.date() + timedelta(days=i)
@@ -669,7 +694,8 @@ def get_7_day_wrap_up_data(user_id: str, local_date_str: str = None) -> Dict[str
         },
         "consistency": {
             "days_logged": days_logged,
-            "current_streak": current_streak,
-            "best_streak": best_streak
+            "current_streak": streak_data["current_streak"],
+            "best_streak": streak_data["best_streak"],
+            "history": streak_data["history"]
         }
     }

@@ -22,6 +22,7 @@ export interface SplitAction {
   route: string;
   iconColor: string;
   iconBg: string;
+  id?: string;
 }
 
 export const SPLIT_ACTIONS: SplitAction[] = [
@@ -45,7 +46,8 @@ export const SPLIT_ACTIONS: SplitAction[] = [
     icon: "activity",
     iconType: "feather",
     shortLabel: "Exercise",
-    route: "/(home)/(health)/exercise-diary",
+    id: "exercise",
+    route: "",
     iconColor: "#4A6080",
     iconBg: "#eff6ff",
   },
@@ -53,7 +55,8 @@ export const SPLIT_ACTIONS: SplitAction[] = [
     icon: "moon",
     iconType: "feather",
     shortLabel: "Sleep",
-    route: "/(home)/(health)/log-sleep",
+    id: "sleep",
+    route: "",
     iconColor: "#6366f1",
     iconBg: "#eef2ff",
   },
@@ -174,9 +177,13 @@ function SplitPill({
 export function SplitRecordActions({
   open,
   onClose,
+  onOpenQuickLog,
+  onOpenSleepLog,
 }: {
   open: boolean;
   onClose: () => void;
+  onOpenQuickLog?: () => void;
+  onOpenSleepLog?: () => void;
 }) {
   const [visible, setVisible] = useState(open);
   const router = useRouter();
@@ -262,7 +269,16 @@ export function SplitRecordActions({
               dir={topDirs[i]}
               open={open}
               isDark={isDark}
-              onPress={() => handleSelect(action.route)}
+              onPress={() => {
+                onClose();
+                if (action.id === "exercise" && onOpenQuickLog) {
+                  onOpenQuickLog();
+                } else if (action.id === "sleep" && onOpenSleepLog) {
+                  onOpenSleepLog();
+                } else if (action.route) {
+                  router.push(action.route as any);
+                }
+              }}
             />
           ))}
         </View>
@@ -275,7 +291,16 @@ export function SplitRecordActions({
               dir={bottomDirs[i]}
               open={open}
               isDark={isDark}
-              onPress={() => handleSelect(action.route)}
+              onPress={() => {
+                onClose();
+                if (action.id === "exercise" && onOpenQuickLog) {
+                  onOpenQuickLog();
+                } else if (action.id === "sleep" && onOpenSleepLog) {
+                  onOpenSleepLog();
+                } else if (action.route) {
+                  router.push(action.route as any);
+                }
+              }}
             />
           ))}
         </View>

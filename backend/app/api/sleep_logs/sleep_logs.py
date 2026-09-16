@@ -31,6 +31,11 @@ def add_sleep_log(user_id: str, data: Dict[str, Any], current_user: dict = Depen
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Sleep duration must be greater than 0.")
     data["duration_hours"] = duration
 
+    if "bedtime" in data and not isinstance(data["bedtime"], str):
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="bedtime must be a string")
+    if "wake_time" in data and not isinstance(data["wake_time"], str):
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="wake_time must be a string")
+
     # Normalize quality to canonical TitleCase ('Poor', 'Fair', 'Good', 'Excellent')
     raw_quality = data.get("quality")
     if raw_quality:

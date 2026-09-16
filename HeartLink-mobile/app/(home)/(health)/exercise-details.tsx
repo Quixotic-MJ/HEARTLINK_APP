@@ -307,7 +307,7 @@ export default function ExerciseDetailsScreen() {
         <ExerciseResult
           routine={routine}
           sessionDurationSeconds={sessionDurationSeconds}
-          onDone={() => router.push({ pathname: "/(home)/(tabs)/exercises", params: { completedId: routine.id, durationSeconds: sessionDurationSeconds.toString() } })}
+          onDone={() => router.push("/(home)/(tabs)/dashboard")}
         />
       )}
 

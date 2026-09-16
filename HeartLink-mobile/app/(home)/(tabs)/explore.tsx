@@ -10,41 +10,51 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
-import { useRouter, useFocusEffect } from "expo-router";
+import { useRouter, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useColorScheme } from "nativewind";
 import * as Haptics from "expo-haptics";
 import { Header } from "../../../components/Header";
-import { MaterialCommunityIcons, Feather } from "@expo/vector-icons";
+import { Feather } from "@expo/vector-icons";
 import RecipesScreen from "./recipes";
 import ExercisesScreen from "./exercises";
 
+const SEGMENTS = [
+  { key: "recipes" as const, label: "Recipes", icon: "coffee" as const },
+  { key: "exercises" as const, label: "Workouts", icon: "activity" as const },
+];
+
 export default function ExploreTabScreen() {
   const router = useRouter();
+  const { initialSegment } = useLocalSearchParams<{ initialSegment?: "recipes" | "exercises" }>();
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
-  const [activeSegment, setActiveSegment] = useState<"recipes" | "exercises">("recipes");
+  const [activeSegment, setActiveSegment] = useState<"recipes" | "exercises">(
+    initialSegment === "exercises" ? "exercises" : "recipes"
+  );
 
-  // ─── Sliding Indicator Animation ──────────────────────────────────────────
-  const slideAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(activeSegment === "recipes" ? 0 : 1)).current;
   const [pillWidth, setPillWidth] = useState(0);
+
+  useEffect(() => {
+    if (initialSegment === "recipes" || initialSegment === "exercises") {
+      setActiveSegment(initialSegment);
+    }
+  }, [initialSegment]);
 
   const onTrayLayout = (e: LayoutChangeEvent) => {
     const totalWidth = e.nativeEvent.layout.width;
-    // Account for tray padding (6px each side = 12 total)
-    setPillWidth((totalWidth - 12) / 2);
+    setPillWidth((totalWidth - 8) / 2);
   };
 
   useEffect(() => {
-    const toValue = activeSegment === "recipes" ? 0 : 1;
     Animated.spring(slideAnim, {
-      toValue,
+      toValue: activeSegment === "recipes" ? 0 : 1,
       useNativeDriver: true,
       speed: 28,
-      bounciness: 3,
+      bounciness: 2,
     }).start();
-  }, [activeSegment]);
+  }, [activeSegment, slideAnim]);
 
-  // Android Hardware Back Navigation back to Today Dashboard
   useFocusEffect(
     useCallback(() => {
       const onBackPress = () => {
@@ -67,146 +77,115 @@ export default function ExploreTabScreen() {
     outputRange: [0, pillWidth],
   });
 
+  const openLog = () => {
+    if (activeSegment === "recipes") {
+      router.push("/(home)/(meals)/daily-diary");
+    } else {
+      router.push("/(home)/(health)/exercise-diary");
+    }
+  };
+
   return (
     <SafeAreaView className="flex-1 bg-[#F8FAF9] dark:bg-[#0B131E]" edges={["top"]}>
       <StatusBar style={isDark ? "light" : "dark"} />
       <Header />
 
-      {/* ── Zone 1: Header + Segmented Toggle ── */}
-      <View className="px-5 pt-1 pb-3">
-        {/* Title Block */}
-        <View className="mb-3">
-          <View className="flex-row items-center gap-1.5 mb-1">
-            <Feather name="heart" size={12} color="#E8532E" />
-            <Text className="text-[11px] font-bold text-[#5C6B66] dark:text-slate-400 uppercase tracking-wider">
-              Cardiovascular Lifestyle
-            </Text>
-          </View>
+      <View className="px-5 pt-1 pb-2">
+        <View className="flex-row items-center justify-between mb-3">
           <Text
-            className="text-[26px] font-bold text-[#152131] dark:text-white"
-            style={{ letterSpacing: -0.5 }}
+            className="text-[22px] font-bold text-[#152131] dark:text-white"
+            style={{ letterSpacing: -0.4 }}
           >
-            Explore & Habits
+            Explore
           </Text>
-          <Text className="text-[13px] text-[#64748B] dark:text-slate-400 mt-0.5">
-            {activeSegment === "recipes"
-              ? "Heart-healthy meals curated for cardiovascular wellness"
-              : "Safe cardio movements & routines for cardiovascular stability"}
-          </Text>
+          <TouchableOpacity
+            onPress={openLog}
+            activeOpacity={0.8}
+            accessible
+            accessibilityRole="button"
+            accessibilityLabel={activeSegment === "recipes" ? "Open meal diary" : "Open workout history"}
+            className="flex-row items-center gap-1.5 px-3 py-2 rounded-full min-h-[36px]"
+            style={{
+              backgroundColor: isDark ? "#162232" : "#FFFFFF",
+              borderWidth: 1,
+              borderColor: isDark ? "rgba(255,255,255,0.08)" : "#E8ECEA",
+            }}
+          >
+            <Feather
+              name={activeSegment === "recipes" ? "book-open" : "calendar"}
+              size={14}
+              color={isDark ? "#94A3B8" : "#5C6B66"}
+            />
+            <Text className="text-[13px] font-semibold text-[#5C6B66] dark:text-slate-300">
+              {activeSegment === "recipes" ? "Diary" : "History"}
+            </Text>
+          </TouchableOpacity>
         </View>
 
-        {/* ── Premium Segmented Toggle ── */}
         <View
-          accessible={true}
+          accessible
           accessibilityRole="tablist"
           onLayout={onTrayLayout}
-          className="flex-row p-1.5 rounded-2xl"
-          style={{
-            backgroundColor: isDark ? "#121D2B" : "#EAEFEC",
-          }}
+          className="flex-row p-1 rounded-full"
+          style={{ backgroundColor: isDark ? "#121D2B" : "#E8EEEB" }}
         >
-          {/* Sliding Active Indicator */}
           {pillWidth > 0 && (
             <Animated.View
               style={{
                 position: "absolute",
-                top: 6,
-                bottom: 6,
-                left: 6,
+                top: 4,
+                bottom: 4,
+                left: 4,
                 width: pillWidth,
-                borderRadius: 12,
+                borderRadius: 999,
                 backgroundColor: isDark ? "#1A2634" : "#FFFFFF",
                 transform: [{ translateX }],
                 ...Platform.select({
                   ios: {
                     shadowColor: "#000",
-                    shadowOffset: { width: 0, height: 2 },
-                    shadowRadius: 8,
-                    shadowOpacity: 0.1,
+                    shadowOffset: { width: 0, height: 1 },
+                    shadowRadius: 4,
+                    shadowOpacity: 0.08,
                   },
-                  android: {
-                    elevation: 4,
-                  },
+                  android: { elevation: 2 },
                 }),
               }}
             />
           )}
 
-          {/* Recipes Tab */}
-          <TouchableOpacity
-            onPress={() => handleSwitchSegment("recipes")}
-            activeOpacity={0.85}
-            accessible={true}
-            accessibilityRole="tab"
-            accessibilityState={{ selected: activeSegment === "recipes" }}
-            accessibilityLabel="Recipes and meals tab, heart-healthy nutrition"
-            className="flex-1 flex-row items-center justify-center min-h-[46px] py-2.5 px-3 rounded-[14px] z-10"
-          >
-            <View
-              className="w-7 h-7 rounded-lg items-center justify-center mr-2"
-              style={{
-                backgroundColor:
-                  activeSegment === "recipes"
-                    ? isDark ? "rgba(27,110,99,0.2)" : "rgba(27,110,99,0.1)"
-                    : "transparent",
-              }}
-            >
-              <MaterialCommunityIcons
-                name="silverware-fork-knife"
-                size={15}
-                color={activeSegment === "recipes" ? "#1B6E63" : isDark ? "#64748B" : "#8896A0"}
-              />
-            </View>
-            <Text
-              className={`text-[14px] ${
-                activeSegment === "recipes"
-                  ? "font-bold text-[#152131] dark:text-white"
-                  : "font-medium text-[#8896A0] dark:text-slate-500"
-              }`}
-            >
-              Recipes & Meals
-            </Text>
-          </TouchableOpacity>
-
-          {/* Exercises Tab */}
-          <TouchableOpacity
-            onPress={() => handleSwitchSegment("exercises")}
-            activeOpacity={0.85}
-            accessible={true}
-            accessibilityRole="tab"
-            accessibilityState={{ selected: activeSegment === "exercises" }}
-            accessibilityLabel="Cardio workouts tab, cardiovascular movement and breathwork"
-            className="flex-1 flex-row items-center justify-center min-h-[46px] py-2.5 px-3 rounded-[14px] z-10"
-          >
-            <View
-              className="w-7 h-7 rounded-lg items-center justify-center mr-2"
-              style={{
-                backgroundColor:
-                  activeSegment === "exercises"
-                    ? isDark ? "rgba(37,99,235,0.2)" : "rgba(37,99,235,0.1)"
-                    : "transparent",
-              }}
-            >
-              <Feather
-                name="activity"
-                size={15}
-                color={activeSegment === "exercises" ? "#4A6080" : isDark ? "#64748B" : "#8896A0"}
-              />
-            </View>
-            <Text
-              className={`text-[14px] ${
-                activeSegment === "exercises"
-                  ? "font-bold text-[#152131] dark:text-white"
-                  : "font-medium text-[#8896A0] dark:text-slate-500"
-              }`}
-            >
-              Cardio Workouts
-            </Text>
-          </TouchableOpacity>
+          {SEGMENTS.map((segment) => {
+            const selected = activeSegment === segment.key;
+            return (
+              <TouchableOpacity
+                key={segment.key}
+                onPress={() => handleSwitchSegment(segment.key)}
+                activeOpacity={0.85}
+                accessible
+                accessibilityRole="tab"
+                accessibilityState={{ selected }}
+                accessibilityLabel={segment.label}
+                className="flex-1 flex-row items-center justify-center min-h-[40px] py-2 z-10"
+              >
+                <Feather
+                  name={segment.icon}
+                  size={15}
+                  color={selected ? "#1B6E63" : isDark ? "#64748B" : "#8896A0"}
+                />
+                <Text
+                  className={`ml-1.5 text-[14px] ${
+                    selected
+                      ? "font-bold text-[#152131] dark:text-white"
+                      : "font-medium text-[#8896A0] dark:text-slate-500"
+                  }`}
+                >
+                  {segment.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
       </View>
 
-      {/* Sub-View Render */}
       <View className="flex-1">
         {activeSegment === "recipes" ? (
           <RecipesScreen hideHeader isEmbedded />

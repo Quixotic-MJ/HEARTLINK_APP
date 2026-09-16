@@ -72,6 +72,7 @@ export function MissionLogModal({
   mission,
   userId,
   token,
+  initialSleepHours,
   onClose,
   onSaved,
   onOpenDiary,
@@ -79,6 +80,7 @@ export function MissionLogModal({
   mission: Exclude<MissionId, "exercise"> | null;
   userId?: string | null;
   token?: string | null;
+  initialSleepHours?: number;
   onClose: () => void;
   onSaved: () => void;
   onOpenDiary: () => void;
@@ -310,7 +312,12 @@ export function MissionLogModal({
               </View>
             )}
             {mission === "sleep" && (
-              <SleepQuickForm userId={userId} token={token} onSaved={onSaved} />
+              <SleepQuickForm
+                userId={userId}
+                token={token}
+                initialSleepHours={initialSleepHours}
+                onSaved={onSaved}
+              />
             )}
           </Animated.View>
           </ScrollView>
