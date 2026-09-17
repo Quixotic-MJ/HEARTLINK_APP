@@ -52,6 +52,7 @@ export default function BarcodeScanScreen() {
   const [manualBarcode, setManualBarcode] = useState("");
 
   const scanLineAnim = React.useRef(new Animated.Value(0)).current;
+  const scanLock = React.useRef(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -86,19 +87,41 @@ export default function BarcodeScanScreen() {
   }, [permission, requestPermission]);
 
   const handleBarcodeScanned = async ({ type, data }: { type: string; data: string }) => {
-    if (scanned || loading) return;
+    if (scanned || loading || scanLock.current) return;
+    scanLock.current = true;
     setScanned(true);
     setLoading(true);
 
     try {
-      const response = await fetch(`https://world.openfoodfacts.org/api/v0/product/${data}.json`);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      
+      const response = await fetch(`https://world.openfoodfacts.org/api/v0/product/${data}.json`, {
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      
       const result = await response.json();
 
       if (result.status === 1 && result.product) {
         const prod = result.product;
         const n = prod.nutriments || {};
         
+        // 1. Check if the database actually has "per serving" nutritional data
+        const hasServingData = n["energy-kcal_serving"] !== undefined || n["energy_serving"] !== undefined || n["sodium_serving"] !== undefined;
+        
+        // 2. If serving data is completely missing, we are forced to fall back to 100g data.
+        // We MUST explicitly label the serving size as "100g" so the user knows what they are multiplying.
+        const finalServingSize = hasServingData ? (prod.serving_size || "1 serving") : "100g";
+
         const extractNutrient = (baseKey: string) => {
+          // If we don't have serving data, forcefully extract the 100g data so the math aligns with our new label
+          if (!hasServingData) {
+             return n[`${baseKey}_100g`] ?? 
+                    n[`${baseKey}_value`] ?? 
+                    n[baseKey] ?? 0;
+          }
+          
           return n[`${baseKey}_serving`] ?? 
                  n[`${baseKey}_100g`] ?? 
                  n[`${baseKey}_value`] ?? 
@@ -106,16 +129,28 @@ export default function BarcodeScanScreen() {
                  n[`${baseKey}_prepared_100g`] ?? 
                  n[baseKey] ?? 0;
         };
+
+        const getUnitMultiplier = (baseKey: string) => {
+          const unit = n[`${baseKey}_unit`];
+          if (unit) {
+            const lowerUnit = unit.toLowerCase().trim();
+            if (lowerUnit === "mg" || lowerUnit === "milligram" || lowerUnit === "milligrams") return 1;
+            if (lowerUnit === "µg" || lowerUnit === "mcg" || lowerUnit === "microgram") return 0.001;
+            if (lowerUnit === "g" || lowerUnit === "gram" || lowerUnit === "grams") return 1000;
+          }
+          // Default OpenFoodFacts normalization is usually grams, so we cautiously multiply by 1000 if the unit field is missing
+          return 1000;
+        };
         
         const parsedProduct: ProductData = {
           product_name: prod.product_name || "Unknown product",
           brands: prod.brands || "Unknown brand",
-          serving_size: prod.serving_size || "1 serving",
-          sodium_mg: extractNutrient("sodium") * 1000,
+          serving_size: finalServingSize,
+          sodium_mg: extractNutrient("sodium") * getUnitMultiplier("sodium"),
           saturated_fat_g: extractNutrient("saturated-fat"),
           energy_kcal: extractNutrient("energy-kcal") || extractNutrient("energy"), // sometimes it's just 'energy'
           fiber_g: extractNutrient("fiber"),
-          cholesterol_mg: extractNutrient("cholesterol") * 1000,
+          cholesterol_mg: extractNutrient("cholesterol") * getUnitMultiplier("cholesterol"),
           image_url: prod.image_front_url || prod.image_url || undefined,
         };
         
@@ -125,14 +160,43 @@ export default function BarcodeScanScreen() {
         });
         
         // Reset scanner after a short delay so they can scan again if they go back
-        setTimeout(() => setScanned(false), 1000);
+        setTimeout(() => { scanLock.current = false; setScanned(false); }, 1000);
       } else {
-        showToast({ title: "Product not found", message: "Could not find nutritional data for this barcode.", type: "error" });
-        setTimeout(() => setScanned(false), 2000);
+        Alert.alert(
+          "Barcode Not Found",
+          "This product isn't in our global database yet. Would you like to estimate its nutrition instead?",
+          [
+            {
+              text: "Try Again",
+              style: "cancel",
+              onPress: () => { scanLock.current = false; setScanned(false); }
+            },
+            {
+              text: "Estimate",
+              style: "default",
+              onPress: () => {
+                scanLock.current = false;
+                setScanned(false);
+                router.push("/(home)/(meals)/estimate-meal");
+              }
+            }
+          ]
+        );
       }
-    } catch {
-      showToast({ title: "Error", message: "An error occurred while fetching product data.", type: "error" });
-      setTimeout(() => setScanned(false), 2000);
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        Alert.alert(
+          "Connection Too Slow",
+          "It's taking a little too long to find this item. Would you like to estimate it instead?",
+          [
+            { text: "Try Again", style: "cancel", onPress: () => { scanLock.current = false; setScanned(false); } },
+            { text: "Estimate", style: "default", onPress: () => { scanLock.current = false; setScanned(false); router.push("/(home)/(meals)/estimate-meal"); } }
+          ]
+        );
+      } else {
+        showToast({ title: "Error", message: "An error occurred while fetching product data.", type: "error" });
+        setTimeout(() => { scanLock.current = false; setScanned(false); }, 2000);
+      }
     } finally {
       setLoading(false);
     }

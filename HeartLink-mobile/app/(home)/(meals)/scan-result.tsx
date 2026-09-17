@@ -126,7 +126,7 @@ export default function ScanResultScreen() {
 
   const risk = calcRiskFromValues(calc.sodium, calc.calories, calc.fat);
 
-  const handleLogMeal = async () => {
+  const executeLogMeal = async () => {
     setIsSubmitting(true);
     const payload = {
       meal_name: product.product_name,
@@ -147,6 +147,17 @@ export default function ScanResultScreen() {
         setIsSubmitting(false);
         router.navigate("/(home)/(tabs)/dashboard");
       }
+    );
+  };
+
+  const handleLogMeal = () => {
+    Alert.alert(
+      "Confirm Log",
+      "Have you reviewed the nutritional values to ensure they are accurate?",
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Log Meal", style: "default", onPress: executeLogMeal }
+      ]
     );
   };
 
@@ -257,6 +268,14 @@ export default function ScanResultScreen() {
               <ChoiceChip key={t} label={t} selected={mealTime === t} onSelect={setMealTime as any} />
             ))}
           </View>
+        </View>
+
+        {/* Crowd-sourced data disclaimer */}
+        <View className="flex-row items-start gap-2 bg-slate-100 dark:bg-slate-800/50 rounded-xl px-3 py-2.5 mb-3">
+          <Feather name="info" size={14} color="#64748b" style={{ marginTop: 2 }} />
+          <Text className="text-[11px] text-slate-500 leading-relaxed flex-1">
+            Nutritional data is crowd-sourced and may occasionally differ from the physical package. Please double-check the values below and tap to edit if needed.
+          </Text>
         </View>
 
         {/* Nutrition grid */}

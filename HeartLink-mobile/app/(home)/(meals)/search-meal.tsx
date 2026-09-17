@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, ScrollView, TextInput, Image } from "react-native";
+import { View, Text, TouchableOpacity, ScrollView, TextInput, Image, RefreshControl } from "react-native";
 import { useColorScheme } from "nativewind";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -20,6 +20,9 @@ export default function SearchMealScreen() {
   const [searchQuery, setSearchQuery] = useState("");
   const [items, setItems] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [errorMsg, setErrorMsg] = useState("");
   const [recentLogs, setRecentLogs] = useState<any[]>([]);
   const { userId, token } = useUser();
 
@@ -58,30 +61,52 @@ export default function SearchMealScreen() {
       }
     }
     loadRecentLogs();
-  }, [userId]);
+  }, [userId, refreshTrigger]);
 
   useEffect(() => {
     async function fetchMeals() {
       setIsLoading(true);
+      setErrorMsg("");
       try {
         const query = searchQuery.trim();
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
         let combined: any[] = [];
         
         if (query.length === 0) {
-          // 0. Include recent logs and tailored recommendations
+          // 0. Include recent logs
           combined = [...recentLogs];
           
-          const res = await fetch(`${base_url}/api/dashboard/me`, {
-            headers: { Authorization: `Bearer ${token || ""}` }
-          }).catch(() => null);
+          let recoIds = new Set();
+          // 1. Fetch tailored recommendations
+          const dashRes = await fetch(`${base_url}/api/dashboard/me`, {
+            headers: { Authorization: `Bearer ${token || ""}` },
+            signal: controller.signal
+          });
           
-          if (res && res.ok) {
-            const data = await res.json();
+          if (dashRes.ok) {
+            const data = await dashRes.json();
             const recommendations = data.recommendations || [];
             const formatted = recommendations
               .filter((item: any) => item.type === 'recipe')
-              .map((item: any) => ({ ...item, type: 'recipe' }));
+              .map((item: any) => {
+                recoIds.add(item.id);
+                return { ...item, type: 'recipe', isRecommended: true };
+              });
             combined = [...combined, ...formatted];
+          }
+
+          // 2. Fetch all other internal recipes
+          const allRes = await fetch(`${base_url}/api/meals/search?q=`, {
+            signal: controller.signal
+          });
+          
+          if (allRes.ok) {
+            const allData = await allRes.json();
+            const formattedAll = allData
+              .filter((item: any) => !recoIds.has(item.id))
+              .map((item: any) => ({ ...item, type: 'recipe' }));
+            combined = [...combined, ...formattedAll];
           }
         } else {
           // 0. Add filtered recent logs immediately
@@ -89,8 +114,10 @@ export default function SearchMealScreen() {
           combined = [...filteredRecents];
 
           // 1. Fetch backend recipes matching query
-          const backendRes = await fetch(`${base_url}/api/meals/search?q=${query}`).catch(() => null);
-          if (backendRes && backendRes.ok) {
+          const backendRes = await fetch(`${base_url}/api/meals/search?q=${query}`, {
+            signal: controller.signal
+          });
+          if (backendRes.ok) {
             const data = await backendRes.json();
             const formatted = data.map((item: any) => ({ ...item, type: 'recipe' }));
             combined = [...combined, ...formatted];
@@ -98,32 +125,49 @@ export default function SearchMealScreen() {
         }
 
         if (query.length > 0) {
-          // 2. Fetch Filipino Foods DB
-          const filipinoRes = await fetch(`${base_url}/api/meals/filipino-foods?q=${query}`).catch(() => null);
-          if (filipinoRes && filipinoRes.ok) {
-            const data = await filipinoRes.json();
-            const formatted = data.map((item: any) => ({
-              ...item,
-              type: 'food',
-              hss_tier: calcRiskFromValues(item.sodium_mg || 0, item.calories || 0, item.saturated_fat_g || 0).level
-            }));
-            combined = [...combined, ...formatted];
-          }
-
-          // 3. Fetch OpenFoodFacts API
-          const offRes = await fetch(`https://world.openfoodfacts.org/cgi/search.pl?search_terms=${query}&search_simple=1&action=process&json=1&page_size=15`).catch(() => null);
-          if (offRes && offRes.ok) {
+          // 2. Fetch OpenFoodFacts API
+          const offRes = await fetch(`https://world.openfoodfacts.org/cgi/search.pl?search_terms=${query}&search_simple=1&action=process&json=1&page_size=15`, {
+            signal: controller.signal
+          });
+          if (offRes.ok) {
             const offData = await offRes.json();
             const offItems = (offData.products || [])
               .filter((p: any) => {
-                const name = p.product_name || "";
+                const name = (p.product_name || "").trim();
+                if (name.length < 3) return false;
+
+                // 1. Keyboard Smash Filter
+                const hasVowel = /[aeiouy]/i.test(name);
+                if (name.length >= 4 && !hasVowel) return false;
+                
+                const hasTooManyConsonants = /[bcdfghjklmnpqrstvwxz]{5,}/i.test(name);
+                if (hasTooManyConsonants) return false;
+
+                // 2. Minimum Effort Filter
+                const hasBrand = p.brands && p.brands.trim().length > 0;
+                const hasImage = !!(p.image_url || p.image_front_url);
+                if (!hasBrand && !hasImage) return false;
+
                 const isOnlyNumbers = /^\d+$/.test(name);
                 const hasCalories = p.nutriments && "energy-kcal" in p.nutriments;
                 const hasSodium = p.nutriments && "sodium" in p.nutriments;
-                return name.trim().length > 0 && !isOnlyNumbers && hasCalories && hasSodium;
+                
+                return !isOnlyNumbers && hasCalories && hasSodium;
               })
               .map((p: any) => {
-                const sodium = (p.nutriments?.sodium || 0) * 1000;
+                const getUnitMultiplier = (baseKey: string) => {
+                  const n = p.nutriments || {};
+                  const unit = n[`${baseKey}_unit`];
+                  if (unit) {
+                    const lowerUnit = unit.toLowerCase().trim();
+                    if (lowerUnit === "mg" || lowerUnit === "milligram" || lowerUnit === "milligrams") return 1;
+                    if (lowerUnit === "µg" || lowerUnit === "mcg" || lowerUnit === "microgram") return 0.001;
+                    if (lowerUnit === "g" || lowerUnit === "gram" || lowerUnit === "grams") return 1000;
+                  }
+                  return 1000;
+                };
+
+                const sodium = (p.nutriments?.sodium || 0) * getUnitMultiplier("sodium");
                 return {
                   id: p.id || p.code || Math.random().toString(),
                   type: 'food',
@@ -140,57 +184,71 @@ export default function SearchMealScreen() {
           }
         }
         
+        clearTimeout(timeoutId);
         // Remove duplicates
         const uniqueItems = Array.from(new Map(combined.map(item => [item.id, item])).values());
         setItems(uniqueItems);
-      } catch (error) {
+      } catch (error: any) {
         console.error("Search meal fetch error:", error);
+        if (error.name === 'AbortError') {
+          setErrorMsg("Connection timed out. Please check your internet and try again.");
+        } else {
+          setErrorMsg("Network Error: We couldn't connect to the databases. Please try again.");
+        }
+        setItems([]);
       } finally {
         setIsLoading(false);
+        setRefreshing(false);
       }
     }
     const timeoutId = setTimeout(() => fetchMeals(), 500);
     return () => clearTimeout(timeoutId);
-  }, [searchQuery]);
+  }, [searchQuery, refreshTrigger]);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    setRefreshTrigger(prev => prev + 1);
+  };
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950" edges={["top"]}>
-      <StatusBar style="dark" />
+    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-[#0b1120]" edges={["top"]}>
+      <StatusBar style={isDark ? "light" : "dark"} />
 
       {/* Header */}
-      <View className="flex-row items-center px-5 pt-4 pb-3 border-b border-slate-200 dark:border-slate-800/50">
+      <View className="flex-row items-center justify-between px-5 py-3 mb-2">
         <TouchableOpacity
           onPress={() => router.back()}
-          className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 items-center justify-center mr-3"
+          className="w-9 h-9 rounded-full bg-slate-200/50 dark:bg-slate-800 items-center justify-center z-10"
         >
           <Feather name="arrow-left" size={18} color={isDark ? "#f8fafc" : "#0f172a"} />
         </TouchableOpacity>
-        <View>
-          <Text className="text-[17px] font-medium text-slate-900 dark:text-white">
-            Search & Log Meal
-          </Text>
-          <Text className="text-[12px] text-slate-500">
-            Find food, recipes, and brands
-          </Text>
-        </View>
+        <Text className="text-[22px] font-bold text-slate-900 dark:text-white absolute left-0 right-0 text-center pointer-events-none">
+          Search Food
+        </Text>
+        <View className="w-9" />
       </View>
 
       <ScrollView
-        contentContainerClassName="px-5 pt-5 pb-8"
+        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 32 }}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={isDark ? "#94a3b8" : "#64748b"} />
+        }
       >
         {/* Search Bar */}
-        <View className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/70 flex-row items-center px-4 py-3 mb-4">
+        <View className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm flex-row items-center px-4 py-3 mb-4">
           <Feather name="search" size={18} color="#94a3b8" />
           <TextInput
             value={searchQuery}
             onChangeText={setSearchQuery}
-            placeholder="Search food, recipes, or brands..."
-            placeholderTextColor="#94a3b8"
-            className="flex-1 ml-3 text-[15px] text-slate-900 dark:text-white"
+            placeholder="Search recipes, groceries, or fast food..."
+            placeholderTextColor={isDark ? "#64748b" : "#94a3b8"}
+            className="flex-1 text-[16px] text-slate-900 dark:text-white ml-2"
             autoCapitalize="none"
+            autoCorrect={false}
+            returnKeyType="search"
           />
         </View>
 
@@ -206,27 +264,52 @@ export default function SearchMealScreen() {
           </Text>
         </TouchableOpacity>
 
-        {/* List Header */}
-        <Text className="text-[14px] font-semibold text-slate-900 dark:text-white mb-3 ml-1">
-          {searchQuery.trim().length === 0 ? "Recently Logged & Recommended" : "Search Results"}
-        </Text>
-
-        {/* Items List */}
-        <View className="gap-3">
+        {/* Results Container */}
+        <View className="bg-white dark:bg-slate-900 rounded-3xl p-5 mb-4 shadow-sm border border-slate-100 dark:border-slate-800">
+          <View className="flex-row items-center gap-4 mb-4">
+            <View className="relative">
+              <View className="absolute inset-0 rounded-full border-4 opacity-20 border-primary" />
+              <View className="w-12 h-12 rounded-full items-center justify-center bg-slate-50 dark:bg-slate-800">
+                <Feather 
+                  name={searchQuery.trim().length === 0 ? "clock" : "list"} 
+                  size={20} 
+                  color={isDark ? "#cbd5e1" : "#475569"} 
+                />
+              </View>
+            </View>
+            <View>
+              <Text className="text-[16px] font-bold text-slate-800 dark:text-white mb-0.5">
+                {searchQuery.trim().length === 0 ? "Recently Logged" : "Search Results"}
+              </Text>
+              <Text className="text-[13px] text-slate-500">
+                {isLoading ? "Searching..." : `${items.length} items found`}
+              </Text>
+            </View>
+          </View>
+          
+          <View className="border-t border-slate-100 dark:border-slate-800/60 pt-3 mt-1">
           {isLoading ? (
-            <>
+            <View className="gap-2">
               {[1, 2, 3, 4, 5].map((key) => (
-                <View key={key} className="bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-200 dark:border-slate-800/70 flex-row items-center justify-between">
-                  <Skeleton className="w-16 h-16 rounded-xl mr-3" />
-                  <View className="flex-1 mr-3">
-                    <Skeleton className="w-2/3 h-5 mb-1.5" />
-                    <Skeleton className="w-1/2 h-3.5 mb-2.5" />
-                    <Skeleton className="w-16 h-4 rounded-md" />
+                <View key={key} className="flex-row items-center justify-between py-2 mb-1 px-2">
+                  <View className="flex-row items-center flex-1 gap-3">
+                    <Skeleton className="w-10 h-10 rounded-lg mr-1" />
+                    <View className="flex-1">
+                      <Skeleton className="w-2/3 h-4 mb-1.5" />
+                      <Skeleton className="w-1/3 h-3" />
+                    </View>
                   </View>
-                  <Skeleton className="w-5 h-5 rounded-full" />
+                  <Skeleton className="w-10 h-8 rounded-md" />
                 </View>
               ))}
-            </>
+            </View>
+          ) : errorMsg ? (
+            <EmptyState
+              icon={<Feather name="wifi-off" size={32} color="#ef4444" />}
+              title="Network Error"
+              subtitle={errorMsg}
+              className="py-6"
+            />
           ) : items.length === 0 ? (
             <EmptyState
               icon={<Feather name="search" size={32} color="#94a3b8" />}
@@ -257,36 +340,70 @@ export default function SearchMealScreen() {
                   });
                 }
               }}
-              className="bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-200 dark:border-slate-800/70 flex-row items-center justify-between"
+              className="flex-row items-center justify-between py-2 mb-1 bg-white dark:bg-slate-900 rounded-xl px-2"
             >
-              <Image 
-                source={{ uri: item.image_url || "https://images.unsplash.com/photo-1587486913049-53fc88980cfc?w=200&q=80" }} 
-                className="w-16 h-16 rounded-xl mr-3 bg-slate-100 dark:bg-slate-800" 
-              />
-              <View className="flex-1 mr-3">
-                <Text className="text-[15px] font-medium text-slate-900 dark:text-white mb-0.5">
-                  {item.name}
-                </Text>
-                <Text className="text-[13px] text-slate-500 dark:text-slate-400 mb-2">
-                  1 serving · {item.calories || 0} kcal · {item.sodium_mg || 0}mg Sodium
-                </Text>
-                
-                {/* Tag */}
-                <View className="self-start px-2 py-1 rounded-md" style={{ backgroundColor: item.hss_tier === "Heart-Friendly" ? "#eaf3de" : item.hss_tier === "Moderate" ? "#fef3c7" : "#fcebeb" }}>
-                  <Text className="text-[10px] font-bold uppercase tracking-wider" style={{ color: item.hss_tier === "Heart-Friendly" ? "#3b6d11" : item.hss_tier === "Moderate" ? "#b45309" : "#a32d2d" }}>
-                    {item.hss_tier || "Unknown"}
-                  </Text>
+              <View className="flex-row items-center flex-1 gap-3">
+                <View className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-800 items-center justify-center overflow-hidden">
+                  <MaterialCommunityIcons name="silverware-fork-knife" size={16} className="text-slate-300 dark:text-slate-700 absolute" />
+                  {!!item.image_url && (
+                    <Image source={{ uri: item.image_url }} className="w-full h-full absolute" resizeMode="cover" />
+                  )}
+                </View>
+                <View className="flex-1 pr-2">
+                  <View className="flex-row items-center gap-1.5 mb-0.5">
+                    <Text className="text-[14px] font-medium text-slate-800 dark:text-slate-200" numberOfLines={1} style={{ flexShrink: 1 }}>
+                      {item.name}
+                    </Text>
+                    {item.isRecommended && (
+                      <MaterialCommunityIcons name="star-circle" size={14} color="#f59e0b" />
+                    )}
+                  </View>
+                  <View className="flex-row items-center gap-1.5 flex-wrap">
+                    <Text className="text-[11px] text-slate-400 mt-0.5">
+                      1 serving
+                    </Text>
+                    <View className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600 mt-0.5" />
+                    <View 
+                      className="mt-0.5 px-1.5 py-0.5 rounded" 
+                      style={{ 
+                        backgroundColor: item.hss_tier === "Stable" ? "#eaf3de" 
+                                       : item.hss_tier === "Moderate" ? "#fef3c7" 
+                                       : item.hss_tier === "Elevated Risk" ? "#ffedd5" 
+                                       : "#fcebeb" 
+                      }}
+                    >
+                      <Text 
+                        className="text-[8px] font-bold uppercase tracking-wider" 
+                        style={{ 
+                          color: item.hss_tier === "Stable" ? "#3b6d11" 
+                               : item.hss_tier === "Moderate" ? "#b45309" 
+                               : item.hss_tier === "Elevated Risk" ? "#c2410c"
+                               : "#a32d2d" 
+                        }}
+                      >
+                        {item.hss_tier || "Unknown"}
+                      </Text>
+                    </View>
+                  </View>
                 </View>
               </View>
-              <Feather name="plus-circle" size={20} color="#cbd5e1" />
+              <View className="items-end pl-2">
+                <Text className="text-[14px] font-bold text-slate-700 dark:text-slate-300">
+                  {item.calories || 0} <Text className="text-[10px] font-normal text-slate-400">kcal</Text>
+                </Text>
+                <Text className="text-[11px] font-medium text-rose-500 mt-0.5">
+                  {item.sodium_mg || 0} mg
+                </Text>
+              </View>
             </TouchableOpacity>
           ))}
+          </View>
         </View>
       </ScrollView>
 
       {/* Sticky Fallback Button */}
       <View 
-        className="px-5 pt-3 bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800/50"
+        className="px-5 pt-3 bg-slate-50 dark:bg-[#0b1120] border-t border-slate-200 dark:border-slate-800/50"
         style={{ paddingBottom: Math.max(insets.bottom, 16) }}
       >
         <TouchableOpacity

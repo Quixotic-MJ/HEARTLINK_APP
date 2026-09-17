@@ -1,14 +1,9 @@
 from fastapi import APIRouter, Query, HTTPException, Depends, status
 from typing import List, Dict, Any
 from app.services.meals import get_meal_logs, create_meal_log, search_meals, delete_meal_log
-from app.services.filipino_food_db import search_filipino_foods
 from app.utils.security import get_current_user, verify_user_access
 
 router = APIRouter(prefix="/api/meals", tags=["Meals"])
-
-@router.get("/filipino-foods", response_model=List[Dict[str, Any]])
-def search_filipino(q: str = Query("")):
-    return search_filipino_foods(q)
 
 @router.get("/search", response_model=List[Dict[str, Any]])
 def search(q: str = Query("")):
