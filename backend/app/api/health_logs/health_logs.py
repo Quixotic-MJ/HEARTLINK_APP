@@ -125,6 +125,94 @@ def add_health_log(user_id: str, data: Dict[str, Any], current_user: dict = Depe
             import logging
             logging.getLogger(__name__).warning(f"Failed to record dynamic HSS for {user_id}: {e}")
 
+    # Heart Rate Alerts
+    if hr is not None:
+        try:
+            from datetime import datetime
+            from app.db.repositories import get_health_logs_repo
+            if hr > 120 or hr < 50:
+                hr_alert = "Severe Tachycardia" if hr > 120 else "Severe Bradycardia"
+                get_health_logs_repo().create_alert({
+                    "user_id": user_id,
+                    "alert_type": hr_alert,
+                    "severity": "critical",
+                    "status": "active",
+                    "details": f"Critical heart rate logged: {hr} BPM",
+                    "created_at": datetime.utcnow().isoformat()
+                })
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(f"Failed to record HR alert for {user_id}: {e}")
+
+    # Symptom-driven clinical alert ingestion
+    symptoms = data.get("symptoms", [])
+    severity_map = data.get("severity_map", {})
+    context_val = data.get("context")
+
+    is_chest_pain = "Chest Discomfort / Tightness" in symptoms and severity_map.get("Chest Discomfort / Tightness", 1) >= 7
+    is_sob_rest = "Shortness of Breath" in symptoms and context_val == "resting"
+
+    if is_chest_pain or is_sob_rest:
+        try:
+            from datetime import datetime
+            from app.db.repositories import get_health_logs_repo
+            
+            details_list = []
+            if is_chest_pain:
+                lvl = severity_map.get("Chest Discomfort / Tightness", 1)
+                details_list.append(f"Severe Chest Discomfort (Level {lvl}/10)")
+            if is_sob_rest:
+                details_list.append("Shortness of Breath at rest")
+                
+            get_health_logs_repo().create_alert({
+                "user_id": user_id,
+                "alert_type": "Severe Symptoms",
+                "severity": "critical",
+                "status": "active",
+                "details": " and ".join(details_list),
+                "created_at": log.get("logged_at") or datetime.utcnow().isoformat()
+            })
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(f"Failed to record symptom alert for {user_id}: {e}")
+
+    # Weight Fluctuation Alerts
+    if weight is not None:
+        try:
+            from datetime import datetime
+            from app.db.repositories import get_health_logs_repo
+            repo = get_health_logs_repo()
+            user_logs = repo.list_user_logs(user_id)
+            
+            now_utc = datetime.utcnow()
+            current_log_id = log.get("id")
+            
+            for prior_log in user_logs:
+                if prior_log.get("id") == current_log_id:
+                    continue
+                    
+                prior_weight = prior_log.get("weight_kg")
+                if prior_weight is not None:
+                    prior_time_str = prior_log.get("logged_at")
+                    if prior_time_str:
+                        prior_time = datetime.fromisoformat(prior_time_str.replace("Z", "+00:00")).replace(tzinfo=None)
+                        if (now_utc - prior_time).total_seconds() <= 3 * 24 * 3600:
+                            delta = weight - prior_weight
+                            if delta >= 1.36:
+                                repo.create_alert({
+                                    "user_id": user_id,
+                                    "alert_type": "Rapid Weight Gain",
+                                    "severity": "critical",
+                                    "status": "active",
+                                    "details": f"Rapid weight gain detected: +{delta:.2f} kg since {prior_time.strftime('%Y-%m-%d')}",
+                                    "created_at": log.get("logged_at") or datetime.utcnow().isoformat()
+                                })
+                    # Stop at the first prior weight found
+                    break
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(f"Failed to check weight alert for {user_id}: {e}")
+
     return {"success": True, "message": "Health log saved", "data": log}
 
 @router.delete("/{user_id}/{log_id}", response_model=Dict[str, Any])
@@ -141,4 +229,23 @@ def remove_health_log(user_id: str, log_id: str, current_user: dict = Depends(ge
     if not success:
         raise HTTPException(status_code=status_code, detail=msg)
     return {"success": True, "message": msg}
+
+@router.post("/{user_id}/clear-symptom-lock", response_model=Dict[str, Any])
+def clear_symptom_lock(user_id: str, current_user: dict = Depends(get_current_user)):
+    verify_user_access(current_user, user_id)
+    
+    caller_id = current_user.get("user_id")
+    caller_role = current_user.get("role")
+    if caller_role == "patient" and caller_id != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You may only clear your own symptom lock.",
+        )
+        
+    data = {
+        "context": "symptom_lock_cleared",
+        "symptoms": ["Cleared by Doctor / Fully Resolved"]
+    }
+    log = create_health_log(user_id, data)
+    return {"success": True, "message": "Symptom lock cleared", "data": log}
 

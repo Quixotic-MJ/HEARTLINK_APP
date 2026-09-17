@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { View, ActivityIndicator, BackHandler } from "react-native";
+import { View, ActivityIndicator, BackHandler, Alert } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -52,6 +52,7 @@ export default function ExerciseDetailsScreen() {
 
   const [hssScore, setHssScore] = useState<number>(0);
   const [hssTier, setHssTier] = useState<string | null>(null);
+  const [hasRecentSevereSymptom, setHasRecentSevereSymptom] = useState<boolean>(false);
 
   useEffect(() => {
     async function loadHss() {
@@ -63,7 +64,7 @@ export default function ExerciseDetailsScreen() {
           if (parsed && typeof parsed.score === "number") {
             setHssScore(parsed.score);
             if (parsed.tier) setHssTier(parsed.tier);
-            return;
+            // We still need dashboard cache for has_recent_severe_symptom
           }
         }
         if (userId) {
@@ -74,6 +75,9 @@ export default function ExerciseDetailsScreen() {
               setHssScore(parsedDash.hss_score);
               if (parsedDash.hss_tier) setHssTier(parsedDash.hss_tier);
             }
+            if (parsedDash && parsedDash.has_recent_severe_symptom) {
+              setHasRecentSevereSymptom(true);
+            }
           }
         }
       } catch {}
@@ -82,7 +86,7 @@ export default function ExerciseDetailsScreen() {
   }, [userId]);
 
   const isLockedCritical = Boolean(
-    (hssTier === "Critical" || (hssScore > 0 && hssScore < 50)) &&
+    (hssTier === "Critical" || (hssScore > 0 && hssScore < 50) || hasRecentSevereSymptom) &&
     routine?.type !== "Breathing"
   );
 
@@ -272,6 +276,45 @@ export default function ExerciseDetailsScreen() {
     router.push(`/(home)/(health)/log-symptoms?triggered_by_exercise_id=post-workout`);
   };
 
+  const handleClearSymptomLock = () => {
+    Alert.alert(
+      "Unlock Exercises?",
+      "By unlocking, you explicitly certify that you have been evaluated by a doctor, or that your severe symptoms have completely resolved.",
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "I Certify & Unlock", 
+          style: "destructive",
+          onPress: async () => {
+            if (!userId) return;
+            try {
+              const storedToken = await AsyncStorage.getItem("access_token");
+              const effectiveToken = token || storedToken || "";
+              const response = await fetch(`${base_url}/api/health-logs/${userId}/clear-symptom-lock`, {
+                method: "POST",
+                headers: effectiveToken ? { "Authorization": `Bearer ${effectiveToken}` } : {}
+              });
+              
+              if (response.ok) {
+                setHasRecentSevereSymptom(false);
+                await AsyncStorage.removeItem(`@dashboard_cache_${userId}`);
+                showToast({
+                  title: "Exercises Unlocked",
+                  message: "Your symptom lock has been cleared.",
+                  type: "success"
+                });
+              } else {
+                showToast({ title: "Error", message: "Failed to clear lock.", type: "error" });
+              }
+            } catch (err) {
+              showToast({ title: "Error", message: "Network error while clearing lock.", type: "error" });
+            }
+          }
+        }
+      ]
+    );
+  };
+
   if (isLoading || !routine) {
     return (
       <View className="flex-1 bg-slate-50 justify-center items-center">
@@ -291,6 +334,8 @@ export default function ExerciseDetailsScreen() {
           onStart={handleStart}
           onBack={() => router.back()}
           isLockedCritical={isLockedCritical}
+          hasRecentSevereSymptom={hasRecentSevereSymptom}
+          onClearSymptomLock={handleClearSymptomLock}
         />
       )}
       

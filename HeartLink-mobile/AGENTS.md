@@ -108,6 +108,7 @@ doesn't apply.
 - SVG components (e.g. ScoreRing)
 - Platform-specific styles
 - Dynamic styles calculated at runtime
+- **Important**: NEVER use dynamic `className` strings with template literals or ternaries on `TouchableOpacity` or `Pressable` components. `react-native-css-interop` can crash when resolving these during state changes. Keep `className` for static classes only, and use the `style` prop for dynamic overrides.
 
 Everywhere else, use NativeWind.
 
@@ -176,6 +177,8 @@ data-aware messages, not just the generic fallback line.
 **Forms:** `react-hook-form` + `zod` for validation. Follow this pattern 
 for any new form rather than building manual validation logic.
 
+**Modals vs Native Alerts:** Do NOT use the native `Alert.alert()` for user prompts or selections; it breaks the app's premium design aesthetic. Always use custom UI components (like `ConfirmDialog` for warnings/confirmations, or dedicated custom modals like `QuickLogModal`) to maintain a cohesive, cross-platform experience.
+
 **Multiple entry points to one feature:** This app frequently has several 
 buttons/screens that all lead to the same underlying action (e.g. multiple 
 ways to reach vitals logging). When asked to fix or modify one of these, 
@@ -193,6 +196,8 @@ message. If you touch any vitals-entry form, verify this check exists
 before considering the task done — do not assume it's present just because 
 a similar form elsewhere has it.
 
+**Soft Nudges for Incomplete Data:** If a user attempts to save a health log while leaving core fields (like Blood Pressure or Medications) blank, they should be intercepted with a soft warning (e.g., using `ConfirmDialog`) asking them to confirm the partial log. Do not silently accept incomplete critical data without a nudge, but do not hard-block the user if they genuinely want to save it as-is.
+
 ---
 
 ## Secrets
@@ -209,6 +214,20 @@ do not hardcode or log tokens.
 - If a task is ambiguous or could be done two reasonable ways, state your 
   assumption and proceed — don't block on it — but flag the assumption 
   clearly so it can be corrected if wrong.
+
+---
+
+Testing Rules
+
+Never suppress a test error/warning without first identifying its root cause. If a test shows a warning or error (e.g. "can't access X on unmounted component," an act() warning, a leaked async task), the default response is to find and fix what's causing it — not to add a suppression, mock, or workaround that makes the message disappear without addressing why it's happening. If you genuinely believe suppression is the right call (e.g. a known, harmless library quirk), say so explicitly and explain why, rather than silently adding a fix that just hides the symptom.
+
+Any data-fetching library used in the app (react-query or otherwise) must be properly mocked or given a test-specific configuration in tests — disabled retries, disabled background refetching, and no real network calls. A shared test wrapper/render helper should provide this consistently rather than each test file configuring it differently.
+
+Global test setup files (jest-setup, test-utils, etc.) affect every test in the suite. Before changing one, run the FULL test suite afterward, not just the test you were originally trying to fix — a fix for one test can silently break or unmask issues in others.
+
+When a UI test fails because "the component thinks the input is empty" or state didn't update as expected, check for these common causes before assuming the test itself is wrong: (1) a leftover custom patch to the test renderer or React internals, (2) missing act() wrapping around state updates, (3) an un-mocked async dependency (data fetching, timers) still running in the background from a previous test.
+
+Keep AGENTS.md's Tech Stack section in sync with what's actually tested/mocked. If a testing fix reveals a library is used in a place the Tech Stack section doesn't mention, flag it and update that section rather than leaving the documentation out of date.
 
 ---
 

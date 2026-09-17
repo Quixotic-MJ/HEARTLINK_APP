@@ -43,6 +43,7 @@ import { Skeleton } from "../../../components/ui/Skeleton";
 import { ScreenWrapper } from "../../../components/ui/ScreenWrapper";
 import { DashboardTutorialModal } from "../../../components/dashboard/DashboardTutorialModal";
 import { ScoreExplanationModal } from "../../../components/dashboard/ScoreExplanationModal";
+import { RitualProgress } from "../../../components/dashboard/RitualProgress";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -229,7 +230,7 @@ export default function DashboardScreen() {
     if (!userId) return null;
     const storedToken = await AsyncStorage.getItem("access_token");
     const effectiveToken = token || storedToken || "";
-    
+
     const response = await fetch(`${base_url}/api/dashboard/me`, {
       headers: {
         "Authorization": `Bearer ${effectiveToken}`
@@ -243,7 +244,7 @@ export default function DashboardScreen() {
     if (!response.ok) {
       throw new Error("Failed to fetch dashboard");
     }
-    
+
     return response.json();
   };
 
@@ -324,7 +325,7 @@ export default function DashboardScreen() {
   // Mission log modal (replaces the old inline dropdowns).
   // Exercise keeps its separate screen and never opens the modal.
   const [logModal, setLogModal] = useState<null | "vitals" | "meals" | "sleep">(null);
-  
+
   const handleQuickLogClose = useCallback((success?: boolean) => {
     setShowQuickLogModal(false);
     if (success) {
@@ -427,7 +428,7 @@ export default function DashboardScreen() {
           const timer = setTimeout(() => setTutorialVisible(true), 700);
           return () => clearTimeout(timer);
         }
-      } catch {}
+      } catch { }
     };
     checkTutorial();
   }, [userId]);
@@ -437,7 +438,7 @@ export default function DashboardScreen() {
     try {
       const tourKey = userId ? `@dashboard_tour_seen_${userId}` : "@dashboard_tour_seen_guest";
       await AsyncStorage.setItem(tourKey, "true");
-    } catch {}
+    } catch { }
   };
 
   useEffect(() => {
@@ -724,6 +725,7 @@ export default function DashboardScreen() {
             refreshing={refreshing}
             onRefresh={onRefresh}
             tintColor="#1B6E63"
+            progressViewOffset={50}
           />
         }
       >
@@ -781,25 +783,11 @@ export default function DashboardScreen() {
           </TactileCard>
         )}
 
-        {/* ── Clean Greeting & AI Assistant Pill ── */}
+        {/* ── Clean Greeting ── */}
         <Reanimated.View entering={FadeInDown.duration(280)} className="px-5 pt-3 pb-1">
           <Text className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
             {getGreeting(data?.user?.first_name || user?.first_name)}
           </Text>
-          
-          {companion && (
-            <View className="mt-3 bg-white/60 dark:bg-slate-800/60 rounded-2xl p-3 border border-slate-200/50 dark:border-slate-700/50 flex-row items-center gap-3">
-              <View className="w-8 h-8 rounded-full bg-indigo-500/10 dark:bg-indigo-400/10 items-center justify-center flex-shrink-0">
-                <Ionicons name="sparkles" size={14} color={isDark ? "#818cf8" : "#6366f1"} />
-              </View>
-              <Text
-                numberOfLines={2}
-                className="flex-1 text-[13px] text-slate-700 dark:text-slate-300 leading-relaxed font-medium pr-1"
-              >
-                {companionAi ?? voiceGreeting(companion, streakDays).text}
-              </Text>
-            </View>
-          )}
         </Reanimated.View>
 
         {/* ============================================================== */}
@@ -807,11 +795,11 @@ export default function DashboardScreen() {
         {/* ============================================================== */}
         <Reanimated.View
           entering={FadeInDown.delay(100).duration(260)}
-          className="mx-5 mt-3.5 bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 p-6 items-center"
+          className="mx-5 mt-2 bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 p-4 items-center"
           style={cardShadowStyle}
         >
           {/* Header Row: Status badge + Distinct Info Button */}
-          <View className="flex-row items-center justify-center gap-2 mb-4">
+          <View className="flex-row items-center justify-center gap-2 mb-2">
             <TouchableOpacity
               onPress={() => {
                 Haptics.selectionAsync();
@@ -853,7 +841,7 @@ export default function DashboardScreen() {
           </View>
 
           {/* Centered Score Ring */}
-          <View className="items-center justify-center my-2">
+          <View className="items-center justify-center my-0">
             <Animated.View
               style={{
                 alignItems: "center",
@@ -865,9 +853,9 @@ export default function DashboardScreen() {
                 <Animated.View
                   style={{
                     position: "absolute",
-                    width: 196,
-                    height: 196,
-                    borderRadius: 98,
+                    width: 140,
+                    height: 140,
+                    borderRadius: 70,
                     backgroundColor: "rgba(138, 31, 26, 0.15)",
                     opacity: glowOpacity,
                   }}
@@ -875,7 +863,7 @@ export default function DashboardScreen() {
               )}
               <ScoreRing
                 score={hssScore}
-                size={278}
+                size={240}
                 color={theme.dotColor}
                 refreshTrigger={dataUpdatedAt}
                 celebrateTrigger={completedCount}
@@ -889,7 +877,7 @@ export default function DashboardScreen() {
 
           {/* AI / Clinical Insight banner */}
           {data?.insight && (
-            <View className="w-full bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-3.5 border border-slate-100 dark:border-slate-700/50 flex-row items-start gap-3 mt-4">
+            <View className="w-full bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-3.5 border border-slate-100 dark:border-slate-700/50 flex-row items-start gap-3 mt-2">
               <Feather
                 name={(data.insight.icon || "zap") as any}
                 size={15}
@@ -915,86 +903,18 @@ export default function DashboardScreen() {
         {/* ============================================================== */}
         <Reanimated.View
           entering={FadeInDown.delay(180).duration(260)}
-          className="mx-5 mt-4 bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 p-4 sm:p-6"
-          style={cardShadowStyle}
+          className="mx-5 mt-4"
         >
-          {/* Hero progress panel (Gamified Gradient) */}
-          <LinearGradient
-            colors={isDark ? ["#047857", "#064E3B"] : ["#10B981", "#047857"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={{ borderRadius: 24, padding: 20, marginBottom: 20 }}
-          >
-            <View className="flex-row items-center justify-between mb-4">
-              <View className="flex-row items-center gap-3">
-                <View className="w-10 h-10 rounded-full bg-white/20 items-center justify-center">
-                  <Feather name="activity" size={18} color="#ffffff" />
-                </View>
-                <View>
-                  <Text className="text-[11px] font-bold uppercase tracking-[1.2px] text-white/80">
-                    Today's Ritual
-                  </Text>
-                  <Text className="text-[18px] font-bold text-white tracking-tight">
-                    Heart Missions
-                  </Text>
-                </View>
-              </View>
-              <View className="px-3.5 py-1.5 rounded-full bg-white/20 border border-white/10">
-                <Text className="text-[12px] font-bold text-white">
-                  {streakDays > 0 ? `🔥 ${streakDays} Day Streak` : "🌱 Day 1"}
-                </Text>
-              </View>
-            </View>
-
-            <View className="flex-row items-baseline justify-between mb-3">
-              <View className="flex-row items-baseline gap-1">
-                <Text className="text-[36px] font-black text-white tracking-tight">
-                  {completedCount}
-                </Text>
-                <Text className="text-[16px] font-bold text-white/70">/4</Text>
-              </View>
-              <Text className="text-[13px] font-bold text-white/90">
-                {completedCount === 4 ? "Fully Protected 🎉" : "Missions Completed"}
-              </Text>
-            </View>
-
-            {/* Minimal progress bar */}
-            <View className="h-1.5 rounded-full bg-white/30 overflow-hidden mt-1">
-              <Reanimated.View
-                layout={LinearTransition.duration(400)}
-                style={{ width: `${progressPercent}%`, height: "100%", backgroundColor: "#ffffff", borderRadius: 999 }}
-              />
-            </View>
-          </LinearGradient>
-
-
-          {/* Heart missions list (compiled pin-list: done rises with check) */}
+          <RitualProgress
+            completedCount={completedCount}
+            missedCount={Math.max(0, 4 - completedCount)}
+            totalSod={data?.nutrition_budget?.sodium?.consumed_mg ?? data?.today_activity?.total_sodium_mg ?? 0}
+            satFat={data?.nutrition_budget?.sat_fat?.consumed_g ?? 0}
+            movementMins={movementMins}
+            movementGoal={movementGoal}
+          />
           <MissionList missions={missionItems} onPress={handleMissionPress} />
-
-            {/* Completion Celebration Banner */}
-            {completedCount === 4 && (
-              <Reanimated.View entering={ZoomIn.springify().damping(13)} className="mt-1 rounded-3xl overflow-hidden">
-                <LinearGradient
-                  colors={["#60A5FA", "#3B82F6"]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={{ padding: 14, flexDirection: "row", alignItems: "center", gap: 12 }}
-                >
-                  <View className="w-10 h-10 rounded-full bg-white/20 border border-white/30 items-center justify-center">
-                    <Feather name="award" size={18} color="#fff" />
-                  </View>
-                  <View className="flex-1">
-                    <Text className="text-[13px] font-bold text-white">
-                      All 4 daily heart habits protected! 🎉
-                    </Text>
-                    <Text className="text-[11px] text-white/70 font-medium mt-0.5">
-                      Your stability index is fully fortified for the day.
-                    </Text>
-                  </View>
-                </LinearGradient>
-              </Reanimated.View>
-            )}
-          </Reanimated.View>
+        </Reanimated.View>
 
 
 
@@ -1064,48 +984,48 @@ export default function DashboardScreen() {
           <>
             {/* ── Recommendations (hidden when empty) ── */}
             {data?.recommendations && data.recommendations.length > 0 && (
-            <View className="mt-6">
-              <Reanimated.View entering={FadeInDown.delay(540).duration(300)} className="px-5 flex-row items-center justify-between mb-3">
-                <Text className="text-[16px] font-bold text-slate-700 dark:text-white tracking-tight">
-                  Recommended for You
-                </Text>
-              </Reanimated.View>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                nestedScrollEnabled={true}
-                directionalLockEnabled={true}
-                contentContainerClassName="px-5 gap-3"
-              >
-                {data?.recommendations?.map((r: any, idx: number) => (
-                  <RecommendationCard
-                    key={idx}
-                    index={idx}
-                    tag={r.tag}
-                    title={r.title}
-                    subtitle={r.subtitle}
-                    icon={r.icon}
-                    bg={r.bg}
-                    image={r.image_url}
-                    tagBg={r.tagBg}
-                    tagText={r.tagText}
-                    subColor={r.subColor}
-                    onPress={() => {
-                      if (r.type === "recipe" || r.type === "exercise") {
-                        Haptics.selectionAsync();
-                        setActiveRec({
-                          id: String(r.id),
-                          type: r.type,
-                          tag: r.tag,
-                          title: r.title,
-                          subtitle: r.subtitle,
-                        });
-                      }
-                    }}
-                  />
-                ))}
-              </ScrollView>
-            </View>
+              <View className="mt-6">
+                <Reanimated.View entering={FadeInDown.delay(540).duration(300)} className="px-5 flex-row items-center justify-between mb-3">
+                  <Text className="text-[16px] font-bold text-slate-700 dark:text-white tracking-tight">
+                    Recommended for You
+                  </Text>
+                </Reanimated.View>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  nestedScrollEnabled={true}
+                  directionalLockEnabled={true}
+                  contentContainerClassName="px-5 gap-3"
+                >
+                  {data?.recommendations?.map((r: any, idx: number) => (
+                    <RecommendationCard
+                      key={idx}
+                      index={idx}
+                      tag={r.tag}
+                      title={r.title}
+                      subtitle={r.subtitle}
+                      icon={r.icon}
+                      bg={r.bg}
+                      image={r.image_url}
+                      tagBg={r.tagBg}
+                      tagText={r.tagText}
+                      subColor={r.subColor}
+                      onPress={() => {
+                        if (r.type === "recipe" || r.type === "exercise") {
+                          Haptics.selectionAsync();
+                          setActiveRec({
+                            id: String(r.id),
+                            type: r.type,
+                            tag: r.tag,
+                            title: r.title,
+                            subtitle: r.subtitle,
+                          });
+                        }
+                      }}
+                    />
+                  ))}
+                </ScrollView>
+              </View>
             )}
 
             <RecommendationModal
@@ -1160,8 +1080,8 @@ export default function DashboardScreen() {
               <Text className="text-[14px] font-bold text-slate-700 dark:text-white tracking-tight mb-3 ml-1">
                 Care Tools & Settings
               </Text>
-              
-              <View 
+
+              <View
                 className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 overflow-hidden"
                 style={cardShadowStyle}
               >

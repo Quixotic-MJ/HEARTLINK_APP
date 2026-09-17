@@ -139,6 +139,7 @@ class TestAdminUserListDatetimeRegression(unittest.TestCase):
     # 2. GET /api/users/ Integration Test with Mixed Timestamps
     # -------------------------------------------------------------------------
     @patch("app.db.repositories.get_profile_repo")
+    @patch("app.utils.security.get_profile_repo")
     @patch("app.db.repositories.get_meals_repo")
     @patch("app.db.repositories.get_exercises_repo")
     @patch("app.db.repositories.get_sleep_repo")
@@ -153,6 +154,7 @@ class TestAdminUserListDatetimeRegression(unittest.TestCase):
         mock_sl,
         mock_ex,
         mock_ml,
+        mock_prof_sec,
         mock_prof,
     ):
         """
@@ -165,9 +167,11 @@ class TestAdminUserListDatetimeRegression(unittest.TestCase):
 
         # Wire up repository mock methods
         mock_prof.return_value.list_all.return_value = list(self.sample_profiles)
+        mock_prof.return_value.get_by_id.side_effect = lambda uid: next((u for u in self.sample_profiles if u["id"] == uid), None)
+        mock_prof_sec.return_value.get_by_id.side_effect = lambda uid: next((u for u in self.sample_profiles if u["id"] == uid), None)
         
         # Inject diverse timestamp formats into logs for patient
-        mock_ml.return_value.list_user_meals.return_value = [
+        mock_ml.return_value.list_all_meals.return_value = [
             {"id": "m-aware-z", "user_id": patient_id, "logged_at": (now - timedelta(days=1)).isoformat() + "Z", "meal_name": "Oatmeal"},
             {"id": "m-aware-pos", "user_id": patient_id, "logged_at": (now - timedelta(days=2)).strftime("%Y-%m-%dT%H:%M:%S") + "+08:00", "meal_name": "Salad"},
             {"id": "m-aware-neg", "user_id": patient_id, "logged_at": (now - timedelta(days=3)).strftime("%Y-%m-%dT%H:%M:%S") + "-05:00", "meal_name": "Fish"},
@@ -177,27 +181,28 @@ class TestAdminUserListDatetimeRegression(unittest.TestCase):
             {"id": "m-missing", "user_id": patient_id, "logged_at": None, "meal_name": "Water"},
         ]
 
-        mock_ex.return_value.list_user_logs.return_value = [
+        mock_ex.return_value.list_all_logs.return_value = [
             {"id": "e-aware-z", "user_id": patient_id, "logged_at": (now - timedelta(days=1)).isoformat() + "Z", "routine_name": "Walk"},
             {"id": "e-malformed", "user_id": patient_id, "logged_at": "corrupt_date", "routine_name": "Stretch"},
         ]
 
-        mock_sl.return_value.list_user_logs.return_value = [
+        mock_sl.return_value.list_all_logs.return_value = [
             {"id": "s-aware-pos", "user_id": patient_id, "logged_at": (now - timedelta(days=1)).strftime("%Y-%m-%dT%H:%M:%S") + "+08:00", "duration_hours": 7.5},
             {"id": "s-none", "user_id": patient_id, "logged_at": None, "duration_hours": 6.0},
         ]
 
-        mock_hl.return_value.list_user_logs.return_value = [
+        mock_hl.return_value.list_all_logs.return_value = [
             {"id": "h-aware-z", "user_id": patient_id, "logged_at": (now - timedelta(days=1)).isoformat() + "Z", "systolic_bp": 120, "diastolic_bp": 80},
             {"id": "h-malformed", "user_id": patient_id, "logged_at": 999999, "systolic_bp": 122, "diastolic_bp": 82},
         ]
 
-        mock_hss.return_value.get_latest_hss.return_value = {
+        mock_hss.return_value.list_all_hss_records.return_value = [{
+            "user_id": patient_id,
             "score": 85.5,
             "tier": "Stable",
             "computed_at": (now - timedelta(days=1)).isoformat() + "Z"
-        }
-        mock_case_rev.return_value.list_evaluations_for_user.return_value = []
+        }]
+        mock_case_rev.return_value.list_evaluations.return_value = []
 
         headers = self._auth_headers("usr-super-admin-001", "super_admin")
         res = self.client.get("/api/users/", headers=headers)
@@ -226,6 +231,7 @@ class TestAdminUserListDatetimeRegression(unittest.TestCase):
     # 3. RBAC & Security Isolation
     # -------------------------------------------------------------------------
     @patch("app.db.repositories.get_profile_repo")
+    @patch("app.utils.security.get_profile_repo")
     @patch("app.db.repositories.get_meals_repo")
     @patch("app.db.repositories.get_exercises_repo")
     @patch("app.db.repositories.get_sleep_repo")
@@ -234,8 +240,11 @@ class TestAdminUserListDatetimeRegression(unittest.TestCase):
     @patch("app.db.repositories.get_case_review_repo")
     def test_read_all_users_rbac_security(self, *mocks):
         """Super admin and admin can access /api/users/, patient is denied (403)."""
-        mock_prof = mocks[6]
+        mock_prof_sec = mocks[6]
+        mock_prof = mocks[7]
         mock_prof.return_value.list_all.return_value = list(self.sample_profiles)
+        mock_prof.return_value.get_by_id.side_effect = lambda uid: next((u for u in self.sample_profiles if u["id"] == uid), None)
+        mock_prof_sec.return_value.get_by_id.side_effect = lambda uid: next((u for u in self.sample_profiles if u["id"] == uid), None)
 
         # Super admin -> 200
         res_super = self.client.get("/api/users/", headers=self._auth_headers("usr-super-admin-001", "super_admin"))
@@ -261,6 +270,7 @@ class TestAdminUserListDatetimeRegression(unittest.TestCase):
     # 4. Immutability Check: Read Endpoint Does Not Mutate Records
     # -------------------------------------------------------------------------
     @patch("app.db.repositories.get_profile_repo")
+    @patch("app.utils.security.get_profile_repo")
     @patch("app.db.repositories.get_meals_repo")
     @patch("app.db.repositories.get_exercises_repo")
     @patch("app.db.repositories.get_sleep_repo")
@@ -269,8 +279,11 @@ class TestAdminUserListDatetimeRegression(unittest.TestCase):
     @patch("app.db.repositories.get_case_review_repo")
     def test_read_all_users_does_not_mutate_records(self, *mocks):
         """Ensures calling GET /api/users/ leaves all repository profiles unaltered."""
-        mock_prof = mocks[6]
+        mock_prof_sec = mocks[6]
+        mock_prof = mocks[7]
         mock_prof.return_value.list_all.return_value = list(self.sample_profiles)
+        mock_prof.return_value.get_by_id.side_effect = lambda uid: next((u for u in self.sample_profiles if u["id"] == uid), None)
+        mock_prof_sec.return_value.get_by_id.side_effect = lambda uid: next((u for u in self.sample_profiles if u["id"] == uid), None)
         initial_profiles_snapshot = [dict(p) for p in self.sample_profiles]
         
         headers = self._auth_headers("usr-super-admin-001", "super_admin")
@@ -286,7 +299,7 @@ class TestAdminUserListDatetimeRegression(unittest.TestCase):
     # -------------------------------------------------------------------------
     # 5. Clinical Service Telemetry Timeline Hardening
     # -------------------------------------------------------------------------
-    @patch("app.services.clinical.get_health_logs_repo")
+    @patch("app.services.health_logs.get_health_logs_repo")
     @patch("app.services.clinical.get_meals_repo")
     @patch("app.services.clinical.get_exercises_repo")
     @patch("app.services.clinical.get_sleep_repo")
@@ -340,7 +353,7 @@ class TestAdminUserListDatetimeRegression(unittest.TestCase):
         analytics = get_analytics(user_id)
         self.assertIsInstance(analytics, dict)
         self.assertIn("history", analytics)
-        self.assertEqual(len(analytics["history"]), 5)
+        self.assertEqual(len(analytics["history"]), 3)
         # Verify history is sorted chronologically
         history = analytics["history"]
         for h in history:

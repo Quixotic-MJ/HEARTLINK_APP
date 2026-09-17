@@ -11,6 +11,8 @@ export interface ExerciseOverviewProps {
   onStart: () => void;
   onBack: () => void;
   isLockedCritical?: boolean;
+  hasRecentSevereSymptom?: boolean;
+  onClearSymptomLock?: () => void;
 }
 
 export function ExerciseOverview({
@@ -19,6 +21,8 @@ export function ExerciseOverview({
   onStart,
   onBack,
   isLockedCritical = false,
+  hasRecentSevereSymptom = false,
+  onClearSymptomLock,
 }: ExerciseOverviewProps) {
   const insets = useSafeAreaInsets();
 
@@ -45,16 +49,26 @@ export function ExerciseOverview({
 
         <View className="px-6 pt-6 bg-white flex-1 -mt-6 rounded-t-3xl">
           {isLockedCritical && (
-            <View className="p-4 rounded-2xl flex-row gap-3 mb-5 bg-red-50 border border-red-200">
-              <Feather name="alert-triangle" size={20} color="#DC2626" style={{ marginTop: 2 }} />
-              <View className="flex-1">
-                <Text className="text-[14px] font-bold text-red-900 mb-1">
-                  Active Workouts Paused: Critical Cardiac Strain
-                </Text>
-                <Text className="text-[13px] leading-relaxed font-medium text-red-700">
-                  Active cardiovascular workouts are paused to protect your heart. Please rest seated or lying down comfortably and contact your attending care team or emergency services immediately.
-                </Text>
+            <View className="p-4 rounded-2xl flex-col mb-5 bg-red-50 border border-red-200">
+              <View className="flex-row gap-3 mb-2">
+                <Feather name="alert-triangle" size={20} color="#DC2626" style={{ marginTop: 2 }} />
+                <View className="flex-1">
+                  <Text className="text-[14px] font-bold text-red-900 mb-1">
+                    Active Workouts Paused: Critical Cardiac Strain
+                  </Text>
+                  <Text className="text-[13px] leading-relaxed font-medium text-red-700">
+                    Active cardiovascular workouts are paused to protect your heart. Please rest seated or lying down comfortably and contact your attending care team or emergency services immediately.
+                  </Text>
+                </View>
               </View>
+              {hasRecentSevereSymptom && onClearSymptomLock && (
+                <TouchableOpacity
+                  onPress={onClearSymptomLock}
+                  className="mt-2 w-full py-3 bg-red-100 rounded-xl items-center justify-center border border-red-300"
+                >
+                  <Text className="text-red-800 font-bold text-[14px]">I've been cleared to exercise</Text>
+                </TouchableOpacity>
+              )}
             </View>
           )}
 

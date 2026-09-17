@@ -18,6 +18,7 @@ import { useUser } from "../../../contexts/UserContext";
 import { Header } from "../../../components/Header";
 import { Skeleton } from "../../../components/ui/Skeleton";
 import Reanimated, { FadeInDown, FadeIn } from "react-native-reanimated";
+import { Alert } from "react-native";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -233,6 +234,7 @@ export default function ExercisesScreen({
   const [dashboardFailed, setDashboardFailed] = useState(false);
   
   const [hssScore, setHssScore] = useState<number>(0);
+  const [hasRecentSevereSymptom, setHasRecentSevereSymptom] = useState<boolean>(false);
   const [completedExercises, setCompletedExercises] = useState<string[]>([]);
   const [partialExercises, setPartialExercises] = useState<string[]>([]);
   const [weeklyConsistency, setWeeklyConsistency] = useState<{ count: number; days: boolean[]; labels: string[] }>({
@@ -288,6 +290,7 @@ export default function ExercisesScreen({
         const dash = await dashboardRes.json();
         if (dash.hss_score !== undefined && dash.hss_score !== null) {
           setHssScore(dash.hss_score);
+          if (dash.has_recent_severe_symptom) setHasRecentSevereSymptom(true);
           await AsyncStorage.setItem(
             hssCacheKey,
             JSON.stringify({ score: dash.hss_score, tier: dash.hss_tier || null })
@@ -309,6 +312,9 @@ export default function ExercisesScreen({
               const parsedDash = JSON.parse(dashCache);
               if (parsedDash && typeof parsedDash.hss_score === "number") {
                 setHssScore(parsedDash.hss_score);
+              }
+              if (parsedDash && parsedDash.has_recent_severe_symptom) {
+                setHasRecentSevereSymptom(true);
               }
             }
           }
@@ -371,6 +377,9 @@ export default function ExercisesScreen({
             if (parsedDash && typeof parsedDash.hss_score === "number") {
               setHssScore(parsedDash.hss_score);
             }
+            if (parsedDash && parsedDash.has_recent_severe_symptom) {
+              setHasRecentSevereSymptom(true);
+            }
           }
         }
 
@@ -410,6 +419,9 @@ export default function ExercisesScreen({
               const parsedDash = JSON.parse(dashCache);
               if (parsedDash && typeof parsedDash.hss_score === "number") {
                 setHssScore(parsedDash.hss_score);
+              }
+              if (parsedDash && parsedDash.has_recent_severe_symptom) {
+                setHasRecentSevereSymptom(true);
               }
             }
           }
@@ -473,17 +485,54 @@ export default function ExercisesScreen({
     ]).start(() => setToastMessage(null));
   };
 
+  const handleClearSymptomLock = () => {
+    Alert.alert(
+      "Unlock Exercises?",
+      "By unlocking, you explicitly certify that you have been evaluated by a doctor, or that your severe symptoms have completely resolved.",
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "I Certify & Unlock", 
+          style: "destructive",
+          onPress: async () => {
+            if (!userId) return;
+            try {
+              const storedToken = await AsyncStorage.getItem("access_token");
+              const effectiveToken = token || storedToken || "";
+              const response = await fetch(`${base_url}/api/health-logs/${userId}/clear-symptom-lock`, {
+                method: "POST",
+                headers: effectiveToken ? { "Authorization": `Bearer ${effectiveToken}` } : {}
+              });
+              
+              if (response.ok) {
+                setHasRecentSevereSymptom(false);
+                await AsyncStorage.removeItem(`@dashboard_cache_${userId}`);
+                showToast("Your symptom lock has been cleared.");
+                await fetchData();
+              } else {
+                showToast("Failed to clear lock.");
+              }
+            } catch (err) {
+              showToast("Network error while clearing lock.");
+            }
+          }
+        }
+      ]
+    );
+  };
+
   // Safe boundary handling: if user is uncalibrated (hssScore <= 0):
   // Online & telemetry verified -> default to "Stable" (baseline safe for onboarding)
   // Offline or unverified partial API failure -> default to "Elevated Risk" (fail-safe protection against unverified acute strain)
   const isCalibrated = hssScore > 0;
   const hssStatus = useMemo<"Stable" | "Moderate" | "Elevated Risk" | "Critical">(() => {
+    if (hasRecentSevereSymptom) return "Critical";
     if (!isCalibrated) return (isOffline || dashboardFailed) ? "Elevated Risk" : "Stable";
     if (hssScore >= 80) return "Stable";
     if (hssScore >= 60) return "Moderate";
     if (hssScore >= 50) return "Elevated Risk";
     return "Critical";
-  }, [hssScore, isCalibrated, isOffline, dashboardFailed]);
+  }, [hssScore, isCalibrated, isOffline, dashboardFailed, hasRecentSevereSymptom]);
 
   // Determine allowed tiers
   const allowedTiers = useMemo(() => {
@@ -728,6 +777,14 @@ export default function ExercisesScreen({
                     ? "Active cardiovascular workouts are paused to protect your heart. Please rest seated or lying down comfortably and contact your attending care team or emergency services immediately."
                     : "Your heart stability is currently elevated. Please consult your physician before engaging in physical activity. Only gentle breathing exercises are shown."}
                 </Text>
+                {hssStatus === "Critical" && hasRecentSevereSymptom && (
+                  <TouchableOpacity
+                    onPress={handleClearSymptomLock}
+                    className="mt-3 w-full py-3 bg-red-100 rounded-xl items-center justify-center border border-red-300"
+                  >
+                    <Text className="text-red-800 font-bold text-[14px]">I've been cleared to exercise</Text>
+                  </TouchableOpacity>
+                )}
               </View>
             </Reanimated.View>
           )}

@@ -211,7 +211,8 @@ def _get_today_activity(user_id: str) -> dict:
     """Summarize today's logged activity."""
     today = datetime.now().date()
 
-    daily_health_logs = get_health_logs_repo().list_user_logs(user_id)
+    from app.services.health_logs import get_health_logs
+    daily_health_logs = get_health_logs(user_id)
     meal_logs = get_meals_repo().list_user_meals(user_id)
     exercise_logs = get_exercises_repo().list_user_logs(user_id)
     sleep_logs = get_sleep_repo().list_user_logs(user_id)
@@ -284,6 +285,35 @@ def get_dashboard_data(user_id: str) -> Dict[str, Any]:
 
     user_alerts = health_repo.list_alerts(user_id=canonical_id)
     latest_alert = user_alerts[0] if user_alerts else None
+
+    # Symptom-based 24-hour safety lock check
+    has_recent_severe_symptom = False
+    from datetime import datetime
+    now_utc = datetime.utcnow()
+    for log in user_logs:
+        log_time_str = log.get("logged_at")
+        if not log_time_str:
+            continue
+        try:
+            log_time = datetime.fromisoformat(log_time_str.replace("Z", "+00:00")).replace(tzinfo=None)
+            if (now_utc - log_time).total_seconds() > 24 * 3600:
+                break
+            
+            if log.get("context") == "symptom_lock_cleared":
+                # User manually cleared the lock after their most recent severe symptom!
+                break
+            
+            symptoms = log.get("symptoms", [])
+            severity_map = log.get("severity_map", {})
+            context_val = log.get("context")
+            is_chest_pain = "Chest Discomfort / Tightness" in symptoms and severity_map.get("Chest Discomfort / Tightness", 1) >= 7
+            is_sob_rest = "Shortness of Breath" in symptoms and context_val == "resting"
+            
+            if is_chest_pain or is_sob_rest:
+                has_recent_severe_symptom = True
+                break
+        except Exception:
+            pass
 
     # ── Dietary preference filtering ───────────────────────────────────────────
     baseline_repo = get_baseline_repo()
@@ -421,6 +451,7 @@ def get_dashboard_data(user_id: str) -> Dict[str, Any]:
             },
         },
         "streak": today_activity["streak_data"],
+        "has_recent_severe_symptom": has_recent_severe_symptom,
     }
 
 
@@ -451,7 +482,8 @@ def get_7_day_wrap_up_data(user_id: str, local_date_str: str = None) -> Dict[str
     # Domain Repositories
     meal_logs = get_meals_repo().list_user_meals(canonical_id)
     exercise_logs = get_exercises_repo().list_user_logs(canonical_id)
-    daily_health_logs = get_health_logs_repo().list_user_logs(canonical_id)
+    from app.services.health_logs import get_health_logs
+    daily_health_logs = get_health_logs(canonical_id)
     sleep_logs = get_sleep_repo().list_user_logs(canonical_id)
     user_hss = sorted(get_hss_repo().list_hss_history(canonical_id), key=lambda x: _safe_datetime(x.get("computed_at")))
     exercise_routines = get_content_repo().list_routines()

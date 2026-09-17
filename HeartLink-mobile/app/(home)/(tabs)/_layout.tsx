@@ -34,19 +34,17 @@ const TABS = [
 
 // ─── Pill trigger: icon-only circle, filled + elevated when active ────────────
 
-function PillTab({
+function TabBarItem({
   focused,
   label,
   isDark,
   onPress,
-  onLongPress,
   children,
 }: {
   focused: boolean;
   label: string;
   isDark: boolean;
   onPress: () => void;
-  onLongPress: () => void;
   children: React.ReactNode;
 }) {
   const spring = useRef(new Animated.Value(focused ? 1 : 0)).current;
@@ -63,43 +61,39 @@ function PillTab({
 
   const scale = spring.interpolate({
     inputRange: [0, 1],
-    outputRange: [0.92, 1.06],
+    outputRange: [0.95, 1.05],
   });
-  const activeBg = isDark ? "#10B981" : "#10B981";
+  
+  const activeColor = "#10B981"; // Primary green
+  const inactiveColor = isDark ? "#94a3b8" : "#64748b";
 
   return (
     <TouchableOpacity
       onPress={onPress}
-      onLongPress={onLongPress}
-      delayLongPress={350}
       activeOpacity={0.8}
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityState={{ selected: focused }}
+      style={{ alignItems: "center", justifyContent: "center", flex: 1, paddingVertical: 8 }}
     >
       <Animated.View
         style={{
-          width: 44,
-          height: 44,
-          borderRadius: 22,
           alignItems: "center",
           justifyContent: "center",
           transform: [{ scale }],
-          backgroundColor: focused ? activeBg : "transparent",
-          ...(focused
-            ? Platform.select({
-                ios: {
-                  shadowColor: activeBg,
-                  shadowOffset: { width: 0, height: 4 },
-                  shadowOpacity: 0.4,
-                  shadowRadius: 8,
-                },
-                android: { elevation: 6 },
-              })
-            : {}),
         }}
       >
         {children}
+        <Text
+          style={{
+            fontSize: 11,
+            fontWeight: focused ? "600" : "500",
+            color: focused ? activeColor : inactiveColor,
+            marginTop: 4,
+          }}
+        >
+          {label}
+        </Text>
       </Animated.View>
     </TouchableOpacity>
   );
@@ -110,22 +104,9 @@ function CustomTabBar({ state, navigation, splitOpen, onFabPress, onCloseSplit }
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
 
-  const INACTIVE_COLOR = isDark ? "#64748b" : "#94a3b8";
-  const ACTIVE_ICON = "#ffffff";
+  const INACTIVE_COLOR = isDark ? "#94a3b8" : "#64748b";
+  const ACTIVE_COLOR = "#10B981"; // Primary green
 
-  // Long-press tooltip bubble (mobile equivalent of the hover tooltip).
-  const [tip, setTip] = useState<string | null>(null);
-  const tipTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const showTip = (label: string) => {
-    if (tipTimer.current) clearTimeout(tipTimer.current);
-    setTip(label);
-    tipTimer.current = setTimeout(() => setTip(null), 1200);
-  };
-  useEffect(() => {
-    return () => {
-      if (tipTimer.current) clearTimeout(tipTimer.current);
-    };
-  }, []);
   const fabSpin = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     Animated.timing(fabSpin, {
@@ -139,7 +120,7 @@ function CustomTabBar({ state, navigation, splitOpen, onFabPress, onCloseSplit }
     outputRange: ["0deg", "45deg"],
   });
 
-  const bottomPad = Platform.OS === "ios" ? 14 : insets.bottom + 10;
+  const bottomPad = Platform.OS === "ios" ? (insets.bottom > 0 ? insets.bottom : 20) : insets.bottom + 20;
 
   return (
     <View
@@ -147,50 +128,23 @@ function CustomTabBar({ state, navigation, splitOpen, onFabPress, onCloseSplit }
         backgroundColor: isDark ? "#0f172a" : "#ffffff",
         flexDirection: "row",
         alignItems: "center",
-        height: 66,
-        marginHorizontal: 16,
-        marginBottom: bottomPad,
+        height: 60 + bottomPad,
+        paddingBottom: bottomPad,
+        paddingTop: 4,
         paddingHorizontal: 8,
-        borderRadius: 999,
-        borderWidth: 1,
-        borderColor: isDark ? "#1e293b" : "#f1f5f9",
+        borderTopWidth: 1,
+        borderTopColor: isDark ? "#1e293b" : "#f1f5f9",
         ...Platform.select({
           ios: {
             shadowColor: isDark ? "#000000" : "#94a3b8",
-            shadowOffset: { width: 0, height: 12 },
-            shadowOpacity: isDark ? 0.5 : 0.22,
-            shadowRadius: 24,
+            shadowOffset: { width: 0, height: -4 },
+            shadowOpacity: isDark ? 0.3 : 0.1,
+            shadowRadius: 8,
           },
-          android: { elevation: 12 },
+          android: { elevation: 16 },
         }),
       }}
     >
-      {/* Long-press tooltip bubble */}
-      {tip && (
-        <View
-          pointerEvents="none"
-          style={{
-            position: "absolute",
-            top: -36,
-            alignSelf: "center",
-            backgroundColor: isDark ? "#f8fafc" : "#0f172a",
-            paddingHorizontal: 12,
-            paddingVertical: 6,
-            borderRadius: 999,
-          }}
-        >
-          <Text
-            style={{
-              fontSize: 10,
-              fontWeight: "700",
-              letterSpacing: 1.5,
-              color: isDark ? "#0f172a" : "#f8fafc",
-            }}
-          >
-            {tip.toUpperCase()}
-          </Text>
-        </View>
-      )}
       {TABS.map((tab: any) => {
         const routeIndex = state.routes.findIndex((r: any) => r.name === tab.name);
         const isFocused = state.index === routeIndex;
@@ -217,22 +171,21 @@ function CustomTabBar({ state, navigation, splitOpen, onFabPress, onCloseSplit }
         // FAB (plus → × morph target for the split options)
         if (tab.isFab) {
           return (
-            <View key={tab.name} style={{ flex: 1, alignItems: "center" }}>
+            <View key={tab.name} style={{ flex: 1, alignItems: "center", justifyContent: "flex-start" }}>
               <TouchableOpacity
                 onPress={onPress}
-                onLongPress={() => showTip(tab.label)}
-                delayLongPress={350}
                 activeOpacity={0.8}
                 accessibilityRole="button"
                 accessibilityLabel={splitOpen ? "Close quick record" : "Open quick record"}
                 style={{
                   position: "absolute",
-                  top: -30,
+                  top: -24, // Positioned slightly overlapping the bar
                   width: 56,
                   height: 56,
                   borderRadius: 28,
-                  borderWidth: 4,
-                  borderColor: isDark ? "#0f172a" : "#ffffff",
+                  backgroundColor: "#10B981", // Primary green
+                  alignItems: "center",
+                  justifyContent: "center",
                   ...Platform.select({
                     ios: {
                       shadowColor: "#10B981",
@@ -240,49 +193,35 @@ function CustomTabBar({ state, navigation, splitOpen, onFabPress, onCloseSplit }
                       shadowOpacity: 0.4,
                       shadowRadius: 12,
                     },
-                    android: { elevation: 6 },
+                    android: { elevation: 8, shadowColor: "#10B981" },
                   }),
                 }}
               >
-                <LinearGradient
-                  colors={isDark ? ["#047857", "#064E3B"] : ["#10B981", "#047857"]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    borderRadius: 28,
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <Animated.View style={{ transform: [{ rotate: fabRotate }] }}>
-                    <Feather name="plus" size={22} color="#fff" />
-                  </Animated.View>
-                </LinearGradient>
+                <Animated.View style={{ transform: [{ rotate: fabRotate }] }}>
+                  <Feather name="plus" size={26} color="#ffffff" />
+                </Animated.View>
               </TouchableOpacity>
             </View>
           );
         }
 
-        // Pill trigger (icon-only circle, tooltip on long-press)
-        const color = isFocused ? ACTIVE_ICON : INACTIVE_COLOR;
+        // Tab item with label
+        const color = isFocused ? ACTIVE_COLOR : INACTIVE_COLOR;
 
         return (
           <View key={tab.name} style={{ flex: 1, alignItems: "center" }}>
-            <PillTab
+            <TabBarItem
               focused={isFocused}
               label={tab.label}
               isDark={isDark}
               onPress={onPress}
-              onLongPress={() => showTip(tab.label)}
             >
               {tab.type === "feather" ? (
-                <Feather name={tab.icon as any} size={21} color={color} />
+                <Feather name={tab.icon as any} size={22} color={color} />
               ) : (
-                <MaterialCommunityIcons name={tab.icon as any} size={21} color={color} />
+                <MaterialCommunityIcons name={tab.icon as any} size={22} color={color} />
               )}
-            </PillTab>
+            </TabBarItem>
           </View>
         );
       })}

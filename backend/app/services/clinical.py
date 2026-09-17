@@ -59,7 +59,8 @@ def get_clinical_baseline_data(user_id: str) -> dict:
             conditions.append("Hyperlipidemia")
             
     # 2. Query daily health logs for BP and HR
-    user_logs = get_health_logs_repo().list_user_logs(user_id)
+    from app.services.health_logs import get_health_logs
+    user_logs = get_health_logs(user_id)
     latest_log = {}
     if user_logs:
         latest_log = sorted(user_logs, key=lambda x: str(x.get("logged_at") or ""), reverse=True)[0]
@@ -112,7 +113,8 @@ def get_recent_telemetry_timeline(user_id: str, limit_days: int = 30) -> list:
         return datetime.min
 
     # daily health logs (Vitals & Symptoms)
-    for log in get_health_logs_repo().list_user_logs(user_id):
+    from app.services.health_logs import get_health_logs
+    for log in get_health_logs(user_id):
         dt = parse_dt(log)
         if dt >= cutoff_date:
             logs.append({

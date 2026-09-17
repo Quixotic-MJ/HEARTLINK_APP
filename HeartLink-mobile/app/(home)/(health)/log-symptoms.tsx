@@ -22,6 +22,9 @@ import Animated, {
   FadeOutUp,
   LinearTransition,
   Easing,
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
 } from "react-native-reanimated";
 import { useUser } from "../../../contexts/UserContext";
 import { OfflineSyncService } from "../../../utils/OfflineSyncService";
@@ -127,12 +130,18 @@ function SeveritySlider({
   const widthRef = useRef(width);
   widthRef.current = width;
 
+  const isDragging = useRef(false);
+
   const updateFromPosition = (x: number) => {
     if (widthRef.current <= 0) return;
     const padding = 14;
     const usableWidth = widthRef.current - padding * 2;
     const clampedX = Math.max(0, Math.min(usableWidth, x - padding));
     const ratio = clampedX / usableWidth;
+    
+    // Update visual position continuously without delay for perfectly smooth drag
+    animatedPercentage.value = ratio * 100;
+
     const stepVal = Math.round(1 + ratio * 9);
     const clampedVal = Math.max(1, Math.min(10, stepVal));
     if (clampedVal !== valueRef.current) {
@@ -151,10 +160,25 @@ function SeveritySlider({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
       onPanResponderGrant: (evt) => {
+        isDragging.current = true;
         updateFromPosition(evt.nativeEvent.locationX);
       },
       onPanResponderMove: (evt) => {
         updateFromPosition(evt.nativeEvent.locationX);
+      },
+      onPanResponderRelease: () => {
+        isDragging.current = false;
+        animatedPercentage.value = withTiming(((valueRef.current - 1) / 9) * 100, {
+          duration: 200,
+          easing: Easing.out(Easing.ease),
+        });
+      },
+      onPanResponderTerminate: () => {
+        isDragging.current = false;
+        animatedPercentage.value = withTiming(((valueRef.current - 1) / 9) * 100, {
+          duration: 200,
+          easing: Easing.out(Easing.ease),
+        });
       },
     })
   ).current;
@@ -162,6 +186,30 @@ function SeveritySlider({
   const sev = getSeverityColor(value, isDark);
   const label = getSeverityLabel(value);
   const percentage = Math.max(0, Math.min(100, ((value - 1) / 9) * 100));
+
+  const animatedPercentage = useSharedValue(percentage);
+
+  useEffect(() => {
+    if (!isDragging.current) {
+      animatedPercentage.value = withTiming(percentage, {
+        duration: 150,
+        easing: Easing.out(Easing.ease),
+      });
+    }
+  }, [percentage]);
+
+  const activeTrackStyle = useAnimatedStyle(() => {
+    return {
+      width: `${animatedPercentage.value}%`,
+    };
+  });
+
+  const thumbStyle = useAnimatedStyle(() => {
+    const trackWidth = width > 0 ? width - 28 : 0;
+    return {
+      left: (animatedPercentage.value / 100) * trackWidth - 14,
+    };
+  });
 
   // Severity-aware accent: the track itself shifts green → amber → red,
   // matching the clinical meaning (replaces the off-brand slate blue).
@@ -171,16 +219,16 @@ function SeveritySlider({
   const inactiveDotColor = isDark ? "rgba(148, 163, 184, 0.6)" : "rgba(100, 116, 139, 0.45)";
 
   return (
-    <View className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-4 gap-3">
+    <View className="gap-3 mt-1">
       {/* Top Header Row */}
-      <View className="flex-row items-center justify-between">
+      <View className="flex-row items-center justify-between px-1">
         <View className="flex-row items-center gap-1.5">
-          <Text className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+          <Text className="text-[13px] font-semibold text-slate-500 dark:text-slate-400">
             Intensity:
           </Text>
-          <Text className="text-sm font-bold text-slate-800 dark:text-white">
+          <Text className="text-[15px] font-extrabold text-slate-800 dark:text-white">
             Level {value}
-            <Text className="text-xs font-normal text-slate-400 dark:text-slate-500">/10</Text>
+            <Text className="text-[13px] font-semibold text-slate-400 dark:text-slate-500"> /10</Text>
           </Text>
         </View>
 
@@ -203,87 +251,62 @@ function SeveritySlider({
         {...panResponder.panHandlers}
         className="py-3 px-3.5 justify-center"
       >
-        {/* Inactive Track */}
-        <View
-          style={{
-            height: 6,
-            width: "100%",
-            backgroundColor: inactiveTrackColor,
-            borderRadius: 3,
-            overflow: "hidden",
-            justifyContent: "center",
-          }}
-        >
-          {/* Active Primary Track */}
+        <View style={{ height: 28, justifyContent: "center" }}>
+          {/* Inactive Track */}
           <View
             style={{
-              height: "100%",
-              width: `${percentage}%`,
-              backgroundColor: primaryColor,
-              borderRadius: 3,
-            }}
-          />
-        </View>
-
-        {/* Discrete Step Dots */}
-        {width > 0 && (
-          <View
-            pointerEvents="none"
-            style={{
-              position: "absolute",
-              left: 14,
-              right: 14,
-              top: "50%",
-              marginTop: -3,
-              height: 6,
-              justifyContent: "center",
+              height: 8,
+              width: "100%",
+              backgroundColor: inactiveTrackColor,
+              borderRadius: 4,
+              overflow: "hidden",
             }}
           >
-            {Array.from({ length: 10 }).map((_, idx) => {
-              const dotValue = idx + 1;
-              const dotPos = (idx / 9) * 100;
-              const isPast = dotValue <= value;
-              return (
-                <View
-                  key={idx}
-                  style={{
-                    position: "absolute",
-                    left: `${dotPos}%`,
-                    marginLeft: -1.5,
-                    width: 3,
-                    height: 3,
-                    borderRadius: 1.5,
-                    backgroundColor: isPast ? activeDotColor : inactiveDotColor,
-                  }}
-                />
-              );
-            })}
+            {/* Active Primary Track */}
+            <Animated.View
+              style={[{
+                height: "100%",
+                backgroundColor: primaryColor,
+                borderRadius: 4,
+                position: "absolute",
+              }, activeTrackStyle]}
+            />
+            
+            {/* Tick Marks */}
+            {width > 0 && (
+              <View style={{ position: "absolute", width: "100%", height: "100%", flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 4 }} pointerEvents="none">
+                {Array.from({ length: 10 }).map((_, i) => (
+                  <View key={i} style={{ width: 2, height: 4, backgroundColor: isDark ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.1)", borderRadius: 1 }} />
+                ))}
+              </View>
+            )}
           </View>
-        )}
 
-        {/* Floating Thumb (white with severity ring, vertically centered on track) */}
-        <View
-          style={{
-            position: "absolute",
-            top: "50%",
-            marginTop: -12,
-            left: width > 0 ? 14 + (percentage / 100) * (width - 28) - 12 : 0,
-            width: 24,
-            height: 24,
-            borderRadius: 12,
-            backgroundColor: "#ffffff",
-            shadowColor: primaryColor,
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.45,
-            shadowRadius: 4,
-            elevation: 5,
-            borderWidth: isTouched === false ? 2 : 4,
-            borderColor: isTouched === false ? "#ef4444" : primaryColor,
-          }}
-        >
-          {isTouched === false && (
-            <View style={{ position: "absolute", top: -4, right: -4, width: 8, height: 8, borderRadius: 4, backgroundColor: "#ef4444", borderWidth: 1, borderColor: "#fff" }} />
-          )}
+          {/* Floating Thumb (white with inner severity dot) */}
+          <Animated.View
+            style={[{
+              position: "absolute",
+              width: 28,
+              height: 28,
+              borderRadius: 14,
+              backgroundColor: "#ffffff",
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 3 },
+              shadowOpacity: 0.12,
+              shadowRadius: 5,
+              elevation: 4,
+              borderWidth: 1,
+              borderColor: "#e2e8f0",
+              alignItems: "center",
+              justifyContent: "center",
+            }, thumbStyle]}
+          >
+            <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: isTouched === false ? "#ef4444" : primaryColor }} />
+            
+            {isTouched === false && (
+              <View style={{ position: "absolute", top: -2, right: -2, width: 8, height: 8, borderRadius: 4, backgroundColor: "#ef4444", borderWidth: 1, borderColor: "#fff" }} />
+            )}
+          </Animated.View>
         </View>
       </View>
 
@@ -308,13 +331,13 @@ function SeveritySlider({
 export default function LogSymptomsScreen() {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
-  const primaryThemeColor = isDark ? "#F06944" : "#E8532E";
-  const successThemeColor = isDark ? "#4FA79A" : "#1B6E63";
+  const primaryThemeColor = isDark ? "#22c55e" : "#1BA382"; // New Teal/Green
+  const successThemeColor = isDark ? "#22c55e" : "#1BA382";
   const destructiveThemeColor = isDark ? "#D15C4E" : "#8A1F1A";
-  const cardThemeBg = isDark ? "#1A2634" : "#FFFFFF";
-  const borderThemeColor = isDark ? "#1E293B" : "#DCE3DF";
+  const cardThemeBg = isDark ? "#1e293b" : "#FFFFFF";
+  const borderThemeColor = isDark ? "#334155" : "#E2E8F0";
   const fgThemeColor = isDark ? "#EDF1EF" : "#152131";
-  const mutedFgThemeColor = isDark ? "#94A3B8" : "#5C6B66";
+  const mutedFgThemeColor = isDark ? "#94A3B8" : "#64748B";
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{
@@ -335,21 +358,6 @@ export default function LogSymptomsScreen() {
   const [heartRate, setHeartRate] = useState("");
   const [weight, setWeight] = useState("");
   const [medicationTaken, setMedicationTaken] = useState<boolean | null>(null);
-
-  // Stepper adjustments for quick low-dexterity tap input
-  const adjustSystolic = (delta: number) => {
-    Haptics.selectionAsync();
-    const current = parseInt(systolic, 10) || 120;
-    const updated = Math.min(260, Math.max(70, current + delta));
-    setSystolic(String(updated));
-  };
-
-  const adjustDiastolic = (delta: number) => {
-    Haptics.selectionAsync();
-    const current = parseInt(diastolic, 10) || 80;
-    const updated = Math.min(180, Math.max(40, current + delta));
-    setDiastolic(String(updated));
-  };
 
   // Hemodynamic boundary checks (AHA / Philippine DOH Hypertensive Crisis & Hypotension)
   const sysVal = parseInt(systolic, 10);
@@ -661,27 +669,14 @@ export default function LogSymptomsScreen() {
       <StatusBar style={isDark ? "light" : "dark"} />
 
       {/* ── Top Bar ── */}
-      <View className="flex-row items-center justify-between px-5 py-3">
+      <View className="flex-row items-center px-5 pt-3 pb-1">
         <TouchableOpacity
           onPress={() => router.back()}
-          className="w-9 h-9 rounded-full bg-slate-200/50 dark:bg-slate-800 items-center justify-center z-10"
+          className="w-9 h-9 rounded-full bg-slate-200/60 dark:bg-slate-800 items-center justify-center z-10"
           activeOpacity={0.7}
-          accessible={true}
-          accessibilityLabel="Go back"
         >
-          <Feather name="arrow-left" size={18} color={isDark ? "#f8fafc" : "#0f172a"} />
+          <Feather name="arrow-left" size={18} color={isDark ? "#f8fafc" : "#475569"} />
         </TouchableOpacity>
-
-        <View className="flex-row items-center gap-2.5">
-          <View className="px-2.5 py-1 rounded-full bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800">
-            <Text className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-              {timestamp}
-            </Text>
-          </View>
-          <View className="w-8 h-8 rounded-full items-center justify-center border border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
-            <Feather name="heart" size={14} color={isDark ? "#f8fafc" : "#0f172a"} />
-          </View>
-        </View>
       </View>
 
       <KeyboardAvoidingView
@@ -689,29 +684,24 @@ export default function LogSymptomsScreen() {
         className="flex-1"
       >
         <ScrollView
-          contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 24 }}
+          contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 24 }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
           {/* ── Heading ── */}
-          <Animated.View entering={FadeIn.duration(240)} className="mb-4 mt-1 px-1">
-            <View className="flex-row items-center gap-3 mb-2">
-              <View
-                className="w-10 h-10 rounded-2xl items-center justify-center"
-                style={{ backgroundColor: `${primaryThemeColor}14`, borderWidth: 1, borderColor: `${primaryThemeColor}30` }}
-              >
-                <Feather name="activity" size={19} color={primaryThemeColor} />
-              </View>
-              <View className="flex-1">
-                <Text className="text-[11px] font-bold uppercase tracking-widest" style={{ color: primaryThemeColor }}>
-                  Daily Check-In
-                </Text>
-                <Text className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight leading-tight">
-                  Log Health Data
+          <Animated.View entering={FadeIn.duration(240)} className="mb-5 px-2">
+            <View className="flex-row items-center mb-1">
+              <View className="flex-row items-center gap-1.5 px-3 py-1.5 rounded-full mb-1">
+                <Feather name="plus" size={11} color={primaryThemeColor} strokeWidth={3} />
+                <Text className="text-[11px] font-bold uppercase tracking-[1.5px]" style={{ color: primaryThemeColor }}>
+                  DAILY CHECK-IN
                 </Text>
               </View>
             </View>
-            <Text className="text-[14px] text-slate-500 dark:text-slate-400 leading-relaxed">
+            <Text className="text-[26px] font-extrabold text-slate-800 dark:text-white tracking-tight leading-tight mb-2">
+              Log Health Data
+            </Text>
+            <Text className="text-[13.5px] font-medium text-slate-500 dark:text-slate-400 leading-relaxed pr-6">
               Record today's cardiovascular vitals, medication status, and any symptoms.
             </Text>
           </Animated.View>
@@ -751,18 +741,10 @@ export default function LogSymptomsScreen() {
                         />
                         <Text className="text-[11px] font-medium text-slate-400 dark:text-slate-500">mmHg</Text>
                       </View>
-                      <View className="flex-row items-center gap-1 mt-1.5">
-                        <TouchableOpacity onPress={() => adjustSystolic(-5)} activeOpacity={0.7} hitSlop={10} className="flex-1 py-2 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 items-center">
-                          <Text className="text-[11px] font-bold text-slate-700 dark:text-slate-300">-5</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity onPress={() => adjustSystolic(5)} activeOpacity={0.7} hitSlop={10} className="flex-1 py-2 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 items-center">
-                          <Text className="text-[11px] font-bold text-slate-700 dark:text-slate-300">+5</Text>
-                        </TouchableOpacity>
-                      </View>
                     </View>
                     <View className="flex-1 gap-1">
                       <Text className="text-[11px] font-medium text-slate-500 dark:text-slate-400 ml-0.5">Diastolic (DIA)</Text>
-                      <View className="h-[50px] bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl flex-row items-center px-3.5">
+                      <View className="h-[50px] bg-slate-100 dark:bg-slate-800 rounded-xl flex-row items-center px-3.5">
                         <TextInput 
                           ref={diastolicRef}
                           value={diastolic} 
@@ -775,14 +757,6 @@ export default function LogSymptomsScreen() {
                         />
                         <Text className="text-[11px] font-medium text-slate-400 dark:text-slate-500">mmHg</Text>
                       </View>
-                      <View className="flex-row items-center gap-1 mt-1.5">
-                        <TouchableOpacity onPress={() => adjustDiastolic(-5)} activeOpacity={0.7} hitSlop={10} className="flex-1 py-2 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 items-center">
-                          <Text className="text-[11px] font-bold text-slate-700 dark:text-slate-300">-5</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity onPress={() => adjustDiastolic(5)} activeOpacity={0.7} hitSlop={10} className="flex-1 py-2 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 items-center">
-                          <Text className="text-[11px] font-bold text-slate-700 dark:text-slate-300">+5</Text>
-                        </TouchableOpacity>
-                      </View>
                     </View>
                   </View>
                 </View>
@@ -791,14 +765,14 @@ export default function LogSymptomsScreen() {
                 <View className="flex-row gap-3">
                   <View className="flex-1 gap-1.5">
                     <Text className="text-xs font-semibold text-slate-700 dark:text-slate-300 ml-0.5">Heart Rate</Text>
-                    <View className="h-[50px] bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl flex-row items-center px-3.5">
+                    <View className="h-[50px] bg-slate-100 dark:bg-slate-800 rounded-xl flex-row items-center px-3.5">
                       <TextInput value={heartRate} onChangeText={setHeartRate} placeholder="72" placeholderTextColor={isDark ? "#64748b" : "#94a3b8"} keyboardType="numeric" maxLength={3} className="flex-1 text-[15px] text-slate-900 dark:text-white font-medium h-full" />
                       <Text className="text-[11px] font-medium text-slate-400 dark:text-slate-500">BPM</Text>
                     </View>
                   </View>
                   <View className="flex-1 gap-1.5">
                     <Text className="text-xs font-semibold text-slate-700 dark:text-slate-300 ml-0.5">Weight</Text>
-                    <View className="h-[50px] bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl flex-row items-center px-3.5">
+                    <View className="h-[50px] bg-slate-100 dark:bg-slate-800 rounded-xl flex-row items-center px-3.5">
                       <TextInput value={weight} onChangeText={setWeight} placeholder="70" placeholderTextColor={isDark ? "#64748b" : "#94a3b8"} keyboardType="numeric" maxLength={5} className="flex-1 text-[15px] text-slate-900 dark:text-white font-medium h-full" />
                       <Text className="text-[11px] font-medium text-slate-400 dark:text-slate-500">kg</Text>
                     </View>
@@ -821,26 +795,28 @@ export default function LogSymptomsScreen() {
                   <TouchableOpacity
                     activeOpacity={0.75}
                     onPress={() => { Haptics.selectionAsync(); setMedicationTaken(false); }}
-                    className="flex-1 py-3.5 rounded-xl flex-row items-center justify-center gap-2 border"
+                    className="flex-1 py-3.5 rounded-xl flex-row items-center justify-center gap-2"
                     style={{
-                      backgroundColor: medicationTaken === false ? (isDark ? "rgba(209, 92, 78, 0.15)" : "rgba(138, 31, 26, 0.08)") : (isDark ? "rgba(16, 25, 35, 0.8)" : "rgba(237, 241, 239, 0.8)"),
-                      borderColor: medicationTaken === false ? (isDark ? "rgba(209, 92, 78, 0.4)" : "rgba(138, 31, 26, 0.4)") : borderThemeColor,
+                      backgroundColor: medicationTaken === false ? (isDark ? "#7f1d1d" : "#fee2e2") : (isDark ? "#1e293b" : "#F1F5F9"),
+                      borderWidth: 1,
+                      borderColor: medicationTaken === false ? (isDark ? "#ef4444" : "#fca5a5") : "transparent",
                     }}
                   >
-                    <Feather name="x-circle" size={15} color={medicationTaken === false ? destructiveThemeColor : mutedFgThemeColor} />
-                    <Text className="text-sm font-semibold" style={{ color: medicationTaken === false ? destructiveThemeColor : mutedFgThemeColor }}>No, missed</Text>
+                    <Feather name="x-circle" size={15} color={medicationTaken === false ? (isDark ? "#fca5a5" : "#ef4444") : "#94A3B8"} />
+                    <Text className="text-sm font-semibold" style={{ color: medicationTaken === false ? (isDark ? "#fca5a5" : "#ef4444") : "#94A3B8" }}>No, missed</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     activeOpacity={0.75}
                     onPress={() => { Haptics.selectionAsync(); setMedicationTaken(true); }}
-                    className="flex-1 py-3.5 rounded-xl flex-row items-center justify-center gap-2 border"
+                    className="flex-1 py-3.5 rounded-xl flex-row items-center justify-center gap-2 shadow-sm"
                     style={{
-                      backgroundColor: medicationTaken === true ? (isDark ? "rgba(79, 167, 154, 0.15)" : "rgba(27, 110, 99, 0.1)") : (isDark ? "rgba(16, 25, 35, 0.8)" : "rgba(237, 241, 239, 0.8)"),
-                      borderColor: medicationTaken === true ? (isDark ? "rgba(79, 167, 154, 0.4)" : "rgba(27, 110, 99, 0.4)") : borderThemeColor,
+                      backgroundColor: medicationTaken === true ? primaryThemeColor : (isDark ? "#1e293b" : "#F1F5F9"),
+                      borderWidth: 1,
+                      borderColor: medicationTaken === true ? primaryThemeColor : "transparent",
                     }}
                   >
-                    <Feather name="check-circle" size={15} color={medicationTaken === true ? successThemeColor : mutedFgThemeColor} />
-                    <Text className="text-sm font-semibold" style={{ color: medicationTaken === true ? successThemeColor : mutedFgThemeColor, fontWeight: medicationTaken === true ? "700" : "600" }}>Yes, taken</Text>
+                    <Feather name="check-circle" size={15} color={medicationTaken === true ? "#ffffff" : "#94A3B8"} />
+                    <Text className="text-sm" style={{ color: medicationTaken === true ? "#ffffff" : "#94A3B8", fontWeight: medicationTaken === true ? "800" : "600" }}>Yes, taken</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -861,59 +837,66 @@ export default function LogSymptomsScreen() {
               </View>
 
               {/* Status Overview Summary */}
-              <Animated.View layout={LinearTransition.duration(220)} className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 p-4 shadow-sm flex-row gap-3">
-                <View className="flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-3 items-center">
-                  <Text className="text-2xl font-bold text-slate-900 dark:text-white">{hasRealSymptoms ? selectedSymptoms.length : 0}</Text>
-                  <Text className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-0.5">Symptoms</Text>
+              <Animated.View layout={LinearTransition.duration(220)} className="flex-row gap-3 mt-2">
+                <View className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 items-center shadow-sm">
+                  <Text className="text-[22px] font-extrabold text-slate-900 dark:text-white">{hasRealSymptoms ? selectedSymptoms.length : 0}</Text>
+                  <Text className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-1">Symptoms</Text>
                 </View>
-                <View className="flex-1 rounded-xl p-3 border items-center justify-center" style={{ backgroundColor: hasRealSymptoms ? sevColor.bg : (isDark ? "rgba(15, 23, 42, 0.4)" : "#f8fafc"), borderColor: hasRealSymptoms ? sevColor.border : (isDark ? "#1e293b" : "#e2e8f0") }}>
-                  <Text className="text-2xl font-bold" style={{ color: hasRealSymptoms ? sevColor.text : (isDark ? "#64748b" : "#94a3b8") }}>{hasRealSymptoms ? maxSeverity : "—"}</Text>
-                  <Text className="text-[10px] font-bold uppercase tracking-wider mt-0.5" style={{ color: hasRealSymptoms ? sevColor.text : (isDark ? "#64748b" : "#94a3b8") }}>{hasRealSymptoms ? getSeverityLabel(maxSeverity) : "Severity"}</Text>
+                <View className="flex-1 rounded-2xl p-4 border items-center justify-center shadow-sm" style={{ backgroundColor: hasRealSymptoms ? (isDark ? "rgba(34, 197, 94, 0.1)" : "#ecfdf5") : (isDark ? "#0f172a" : "#ffffff"), borderColor: hasRealSymptoms ? primaryThemeColor : (isDark ? "#1e293b" : "#e2e8f0") }}>
+                  <Text className="text-[22px] font-extrabold" style={{ color: hasRealSymptoms ? primaryThemeColor : (isDark ? "#64748b" : "#94a3b8") }}>{hasRealSymptoms ? maxSeverity : "—"}</Text>
+                  <Text className="text-[10px] font-bold uppercase tracking-wider mt-1" style={{ color: hasRealSymptoms ? primaryThemeColor : (isDark ? "#64748b" : "#94a3b8") }}>{hasRealSymptoms ? getSeverityLabel(maxSeverity) : "Severity"}</Text>
                 </View>
-                <View className="flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-3 items-center justify-center">
-                  <MaterialCommunityIcons name={CONTEXT_ICONS[context] as any} size={22} color={isDark ? "#94a3b8" : "#64748b"} />
-                  <Text className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-0.5 text-center" numberOfLines={1}>{context.replace("While ", "").replace("During ", "")}</Text>
+                <View className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 items-center justify-center shadow-sm">
+                  <MaterialCommunityIcons name={CONTEXT_ICONS[context] as any} size={24} color={isDark ? "#94a3b8" : "#64748b"} style={{ marginBottom: 2 }} />
+                  <Text className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-0.5 text-center" numberOfLines={1}>{context.replace("While ", "").replace("During ", "")}</Text>
                 </View>
               </Animated.View>
 
               {/* Symptom Selection Cards */}
-              <Animated.View layout={LinearTransition.duration(220)} className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 px-5 py-6 gap-3.5 shadow-sm">
-                <Text className="text-[16px] font-bold text-slate-800 dark:text-white mb-1">What are you feeling?</Text>
+              <Animated.View layout={LinearTransition.duration(220)} className="gap-3.5 mt-2">
+                <Text className="text-[16px] font-bold text-slate-800 dark:text-white mt-1">What are you feeling?</Text>
                 <View className="gap-2.5">
                   {SYMPTOMS.map((symp) => {
                     const isSelected = selectedSymptoms.includes(symp);
                     const isNone = symp === "None (Feeling fine)";
                     return (
-                      <View key={symp} className="gap-2">
+                      <View 
+                        key={symp} 
+                        className="rounded-2xl border" 
+                        style={{ 
+                          backgroundColor: isSelected ? (isDark ? "#1e293b" : "#ffffff") : (isDark ? "#0f172a" : "#F1F5F9"),
+                          borderColor: isSelected ? primaryThemeColor : "transparent",
+                          shadowColor: isSelected ? (isDark ? "#000" : "#64748b") : "transparent",
+                          shadowOffset: isSelected ? { width: 0, height: 2 } : { width: 0, height: 0 },
+                          shadowOpacity: isSelected ? (isDark ? 0.3 : 0.05) : 0,
+                          shadowRadius: isSelected ? 4 : 0,
+                          elevation: isSelected ? 2 : 0,
+                        }}
+                      >
                         <TouchableOpacity
                           activeOpacity={0.75}
                           onPress={() => toggleSymptom(symp)}
-                          className="flex-row items-center px-4 py-3.5 rounded-xl border"
-                          style={{
-                            backgroundColor: isSelected ? (isNone ? (isDark ? "rgba(79, 167, 154, 0.15)" : "rgba(27, 110, 99, 0.1)") : (isDark ? "rgba(240, 105, 68, 0.12)" : "rgba(232, 83, 46, 0.08)")) : (isDark ? "rgba(16, 25, 35, 0.6)" : "rgba(237, 241, 239, 0.6)"),
-                            borderColor: isSelected ? (isNone ? (isDark ? "rgba(79, 167, 154, 0.4)" : "rgba(27, 110, 99, 0.4)") : primaryThemeColor) : borderThemeColor,
-                          }}
+                          className="flex-row items-center px-4 py-4"
                         >
-                          <View className="w-8 h-8 rounded-lg items-center justify-center mr-3" style={{ backgroundColor: isSelected ? (isNone ? (isDark ? "rgba(79, 167, 154, 0.25)" : "rgba(27, 110, 99, 0.15)") : (isDark ? "rgba(240, 105, 68, 0.2)" : "rgba(232, 83, 46, 0.15)")) : cardThemeBg, borderWidth: isSelected ? 0 : 1, borderColor: borderThemeColor }}>
-                            <MaterialCommunityIcons name={SYMPTOM_ICONS[symp] as any} size={17} color={isSelected ? (isNone ? successThemeColor : primaryThemeColor) : mutedFgThemeColor} />
+                          <MaterialCommunityIcons name={SYMPTOM_ICONS[symp] as any} size={18} color={isSelected ? primaryThemeColor : "#94A3B8"} style={{ marginRight: 12 }} />
+                          <Text className="flex-1 text-[13.5px] font-semibold" style={{ color: isSelected ? (isDark ? "#f8fafc" : "#1e293b") : "#64748b" }}>{symp}</Text>
+                          <View className="w-[18px] h-[18px] rounded-full border-2 items-center justify-center" style={{ borderColor: isSelected ? primaryThemeColor : "#cbd5e1" }}>
+                            {isSelected && <View className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: primaryThemeColor }} />}
                           </View>
-                          <Text className="flex-1 text-sm font-semibold" style={{ color: isSelected ? (isNone ? successThemeColor : primaryThemeColor) : fgThemeColor, fontWeight: isSelected ? "700" : "600" }}>{symp}</Text>
-                          {isSelected && (
-                            <View className="w-5 h-5 rounded-full items-center justify-center" style={{ backgroundColor: isNone ? successThemeColor : primaryThemeColor }}>
-                              <Feather name="check" size={12} color="#fff" />
-                            </View>
-                          )}
                         </TouchableOpacity>
+                        
                         {isSelected && !isNone && (
-                          <SeveritySlider 
-                            value={severities[symp] || 1} 
-                            onChange={(val) => {
-                              setSeverities((prev) => ({ ...prev, [symp]: val }));
-                              setTouchedSeverities((prev) => ({ ...prev, [symp]: true }));
-                            }} 
-                            isDark={isDark} 
-                            isTouched={touchedSeverities[symp]}
-                          />
+                          <View className="px-4 pb-4">
+                            <SeveritySlider 
+                              value={severities[symp] || 1} 
+                              onChange={(val) => {
+                                setSeverities((prev) => ({ ...prev, [symp]: val }));
+                                setTouchedSeverities((prev) => ({ ...prev, [symp]: true }));
+                              }} 
+                              isDark={isDark} 
+                              isTouched={touchedSeverities[symp]}
+                            />
+                          </View>
                         )}
                       </View>
                     );
@@ -923,18 +906,25 @@ export default function LogSymptomsScreen() {
 
               {/* Context Selector */}
               {hasRealSymptoms && (
-                <Animated.View layout={LinearTransition.duration(220)} className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 px-5 py-6 gap-3.5 shadow-sm">
+                <Animated.View layout={LinearTransition.duration(220)} className="gap-3.5 mt-2">
                   <Text className="text-[16px] font-bold text-slate-800 dark:text-white">When did this happen?</Text>
                   <View className="gap-2.5">
                     {CONTEXTS.map((ctx) => {
                       const isSelected = context === ctx;
                       return (
-                        <TouchableOpacity key={ctx} activeOpacity={0.75} onPress={() => { Haptics.selectionAsync(); setContext(ctx); }} className="flex-row items-center px-4 py-3.5 rounded-xl border" style={{ backgroundColor: isSelected ? (isDark ? "rgba(240, 105, 68, 0.12)" : "rgba(232, 83, 46, 0.08)") : (isDark ? "rgba(16, 25, 35, 0.6)" : "rgba(237, 241, 239, 0.6)"), borderColor: isSelected ? primaryThemeColor : borderThemeColor }}>
-                          <View className="w-8 h-8 rounded-lg items-center justify-center mr-3" style={{ backgroundColor: isSelected ? (isDark ? "rgba(240, 105, 68, 0.2)" : "rgba(232, 83, 46, 0.15)") : cardThemeBg, borderWidth: isSelected ? 0 : 1, borderColor: borderThemeColor }}>
-                            <MaterialCommunityIcons name={CONTEXT_ICONS[ctx] as any} size={16} color={isSelected ? primaryThemeColor : mutedFgThemeColor} />
-                          </View>
-                          <Text className="flex-1 text-sm font-semibold" style={{ color: isSelected ? primaryThemeColor : fgThemeColor, fontWeight: isSelected ? "700" : "600" }}>{ctx}</Text>
-                          <View className="w-5 h-5 rounded-full border-2 items-center justify-center" style={{ borderColor: isSelected ? primaryThemeColor : borderThemeColor }}>
+                        <TouchableOpacity 
+                          key={ctx} 
+                          activeOpacity={0.75} 
+                          onPress={() => { Haptics.selectionAsync(); setContext(ctx); }} 
+                          className="flex-row items-center px-4 py-4 rounded-2xl border" 
+                          style={{ 
+                            backgroundColor: isSelected ? (isDark ? "#1e293b" : "#ffffff") : (isDark ? "#0f172a" : "#F1F5F9"),
+                            borderColor: isSelected ? primaryThemeColor : "transparent",
+                          }}
+                        >
+                          <MaterialCommunityIcons name={CONTEXT_ICONS[ctx] as any} size={18} color={isSelected ? primaryThemeColor : "#94A3B8"} style={{ marginRight: 12 }} />
+                          <Text className="flex-1 text-[13.5px] font-semibold" style={{ color: isSelected ? (isDark ? "#f8fafc" : "#1e293b") : "#64748b" }}>{ctx}</Text>
+                          <View className="w-[18px] h-[18px] rounded-full border-2 items-center justify-center" style={{ borderColor: isSelected ? primaryThemeColor : "#cbd5e1" }}>
                             {isSelected && <View className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: primaryThemeColor }} />}
                           </View>
                         </TouchableOpacity>

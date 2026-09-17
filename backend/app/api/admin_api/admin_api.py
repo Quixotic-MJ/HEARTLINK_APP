@@ -853,7 +853,8 @@ def delete_user_or_staff(user_id: str, current_user: dict = Depends(get_current_
 def get_user_timeline(user_id: str, current_user: dict = Depends(get_current_admin_user)):
     logs = []
     
-    daily_health_logs = get_health_logs_repo().list_user_logs(user_id)
+    from app.services.health_logs import get_health_logs
+    daily_health_logs = get_health_logs(user_id)
     for log in daily_health_logs:
         logs.append({
             "type": "Vitals",

@@ -40,8 +40,9 @@ def get_analytics(user_id: str, days: int = 30) -> Dict[str, Any]:
             h["computed_at"] = h["computed_at"].isoformat()
 
     # Retrieve and filter real daily vitals (TKT-CLN-04)
-    health_logs_repo = get_health_logs_repo()
-    raw_vitals = health_logs_repo.list_user_logs(user_id, limit=limit)
+    from app.services.health_logs import get_health_logs
+    raw_vitals_all = get_health_logs(user_id)
+    raw_vitals = raw_vitals_all[:limit] if limit else raw_vitals_all
     vitals = []
     for v in raw_vitals:
         dt_v = parse_dt(v)

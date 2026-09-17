@@ -89,13 +89,13 @@ const VIEWBOX_SIZE = 240;
 const PATH_LEN = 460; // approximate heart path length in viewBox units
 
 const PARTICLES: { x: number; y: number; delay: number; size: number }[] = [
-  { x: 85,  y: 60,  delay: 100,  size: 5 },
-  { x: 155, y: 60,  delay: 400,  size: 4 },
-  { x: 65,  y: 100, delay: 700,  size: 3 },
-  { x: 175, y: 100, delay: 200,  size: 4 },
-  { x: 120, y: 195, delay: 500,  size: 5 },
-  { x: 100, y: 170, delay: 900,  size: 3 },
-  { x: 140, y: 170, delay: 600,  size: 3 },
+  { x: 85, y: 60, delay: 100, size: 5 },
+  { x: 155, y: 60, delay: 400, size: 4 },
+  { x: 65, y: 100, delay: 700, size: 3 },
+  { x: 175, y: 100, delay: 200, size: 4 },
+  { x: 120, y: 195, delay: 500, size: 5 },
+  { x: 100, y: 170, delay: 900, size: 3 },
+  { x: 140, y: 170, delay: 600, size: 3 },
 ];
 
 // ─── animated path wrapper ────────────────────────────────────────────────────
@@ -388,7 +388,7 @@ export function ScoreRing({
       easing: Easing.out(Easing.cubic),
       useNativeDriver: true,
     }).start();
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => { });
   }, [celebrateTrigger, reduceMotion, burstAnim]);
 
   const burstScale = burstAnim.interpolate({
@@ -544,7 +544,11 @@ export function ScoreRing({
         <View
           style={[
             styles.labelContainer,
-            { left: Math.round(size * 0.16), right: Math.round(size * 0.16) },
+            {
+              left: Math.round(size * 0.16),
+              right: Math.round(size * 0.16),
+              paddingBottom: Math.round(size * 0.13)
+            },
           ]}
           pointerEvents="none"
         >
@@ -561,8 +565,8 @@ export function ScoreRing({
               style={[
                 styles.scoreText,
                 {
-                  fontSize: current.small ? 20 : 26,
-                  lineHeight: current.small ? 25 : 31,
+                  fontSize: current.small ? Math.round(size * 0.08) : Math.round(size * 0.12),
+                  lineHeight: current.small ? Math.round(size * 0.09) : Math.round(size * 0.13),
                   color: scoreColor,
                   opacity: scoreFade,
                   transform: [{ translateY: scoreSlide }],
@@ -577,7 +581,15 @@ export function ScoreRing({
               numberOfLines={1}
               adjustsFontSizeToFit={true}
               minimumFontScale={0.7}
-              style={[styles.scoreLabel, { opacity: labelFade, width: "100%", textAlign: "center" }]}
+              style={[
+                styles.scoreLabel,
+                {
+                  opacity: labelFade,
+                  width: "100%",
+                  textAlign: "center",
+                  fontSize: Math.max(8, Math.round(size * 0.030))
+                }
+              ]}
             >
               {current.label === "SCORE" ? "Health Score" : current.unit ? `${current.label} · ${current.unit}` : current.label}
             </Animated.Text>
@@ -612,14 +624,12 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFill,
     alignItems: "center",
     justifyContent: "center",
-    paddingBottom: 28,
   },
   scoreText: {
     fontWeight: "700",
     letterSpacing: -2,
   },
   scoreLabel: {
-    fontSize: 10,
     color: "#94a3b8",
     fontWeight: "500",
     letterSpacing: 1.5,
