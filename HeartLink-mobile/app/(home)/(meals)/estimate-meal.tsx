@@ -8,6 +8,7 @@ import {
   Alert,
   ActivityIndicator,
   Modal,
+  ScrollView,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
@@ -17,7 +18,7 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import { useUser } from "../../../contexts/UserContext";
 import { queueMealForSync } from "../../../services/SyncService";
 import { useToast } from "../../../contexts/ToastContext";
-import { useLogMeal } from "../../../hooks/useLogMeal";
+import { logMealAndGetToast } from "../../../services/MealLoggingService";
 import { ChoiceChip, SectionHeader, calcRiskFromValues } from "../../../components/meals/SharedMealComponents";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
@@ -122,7 +123,7 @@ export default function ManualMealLogScreen() {
     preset?.desc || (quickDish ? `${quickDish} (1 Serving)` : "")
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [showEstimateGuide, setShowEstimateGuide] = useState(false);
 
   // Manual Entry fields
   const [servings, setServings] = useState(1);
@@ -141,9 +142,7 @@ export default function ManualMealLogScreen() {
     (parseFloat(satFat) || 0) * servings
   );
 
-  const { mutate: logMeal } = useLogMeal(userId, token);
-
-  const handleSave = () => {
+  const executeSave = async () => {
     if (!userId) {
       showToast({ title: "Authentication required", message: "Please sign in to log meals.", type: "error" });
       return;
@@ -162,31 +161,31 @@ export default function ManualMealLogScreen() {
       return;
     }
 
-    try {
-      setIsSubmitting(true);
-      
-      const payload = {
-        meal_name: foodDescription.trim(),
-        portion: servings,
-        calories: totalCalories,
-        sodium_mg: totalSodium,
-        saturated_fat_g: parseFloat(((parseFloat(satFat) || 0) * servings).toFixed(1)),
-        fiber_g: parseFloat(((parseFloat(fiber) || 0) * servings).toFixed(1)),
-        source: "manual_entry",
-        image_url: null,
-      };
+    setIsSubmitting(true);
+    
+    const payload = {
+      meal_name: foodDescription.trim(),
+      portion: servings,
+      calories: totalCalories,
+      sodium_mg: totalSodium,
+      saturated_fat_g: parseFloat(((parseFloat(satFat) || 0) * servings).toFixed(1)),
+      fiber_g: parseFloat(((parseFloat(fiber) || 0) * servings).toFixed(1)),
+      cholesterol_mg: Math.round((parseFloat(cholesterol) || 0) * servings),
+      source: "manual_entry",
+      image_url: null,
+      time_of_meal: timeOfMeal,
+    };
 
-      logMeal(payload);
-      // Show success modal on the next tick
-      setTimeout(() => {
+    await logMealAndGetToast(
+      userId,
+      token,
+      payload,
+      showToast,
+      () => {
         setIsSubmitting(false);
-        setShowSuccessDialog(true);
-      }, 50);
-    } catch (e) {
-      console.error("Failed to enqueue meal:", e);
-      setIsSubmitting(false);
-      showToast({ title: "Error", message: "Failed to queue meal", type: "error" });
-    }
+        router.back();
+      }
+    );
   };
 
   return (
@@ -214,17 +213,27 @@ export default function ManualMealLogScreen() {
         extraScrollHeight={20}
       >
 
-        {/* Mode description pill */}
-        <View className="bg-slate-200/50 dark:bg-slate-800/50 rounded-2xl px-4 py-3.5 mb-6 flex-row items-start gap-3">
-          <Feather
-            name="database"
-            size={16}
-            color={isDark ? "#94a3b8" : "#64748b"}
-            style={{ marginTop: 2 }}
-          />
-          <Text className="flex-1 text-[13px] text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
-            Enter nutrition values from a food label, nutrition database, or packaging. Used for packaged or restaurant meals.
-          </Text>
+        {/* Mode description & Guide button */}
+        <View className="bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl p-4 mb-6 border border-emerald-100 dark:border-emerald-800/30">
+          <View className="flex-row items-start gap-3 mb-3">
+            <Feather
+              name="database"
+              size={16}
+              color="#10b981"
+              style={{ marginTop: 2 }}
+            />
+            <Text className="flex-1 text-[13px] text-emerald-800 dark:text-emerald-200 leading-relaxed font-medium">
+              Enter nutrition values from a food label. No label? You can estimate the values instead.
+            </Text>
+          </View>
+          <TouchableOpacity 
+            onPress={() => setShowEstimateGuide(true)}
+            activeOpacity={0.7}
+            className="bg-white dark:bg-emerald-800/50 rounded-xl py-2.5 px-3 flex-row items-center justify-center border border-emerald-200 dark:border-emerald-700/50"
+          >
+            <Feather name="help-circle" size={15} color="#059669" />
+            <Text className="text-emerald-700 dark:text-emerald-300 font-medium text-[13px] ml-2">How to estimate carinderia / home-cooked food?</Text>
+          </TouchableOpacity>
         </View>
 
         <View className="bg-white dark:bg-slate-900 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-800 mb-6">
@@ -350,43 +359,64 @@ export default function ManualMealLogScreen() {
         style={{ paddingBottom: Math.max(insets.bottom, 16) }}
       >
         <TouchableOpacity
-          onPress={handleSave}
+          onPress={executeSave}
           disabled={isSubmitting}
-          className="bg-slate-900 w-full rounded-2xl py-3.5 items-center justify-center flex-row gap-2"
+          className="bg-emerald-600 w-full rounded-2xl py-3.5 items-center justify-center flex-row gap-2"
           activeOpacity={0.85}
           style={{ opacity: isSubmitting ? 0.7 : 1 }}
         >
           {isSubmitting ? (
             <ActivityIndicator size="small" color="#fff" />
           ) : (
-            <Feather name="check" size={16} color="#fff" />
+            <Feather name="check-circle" size={16} color="#fff" />
           )}
-          <Text className="text-white text-[14px] font-medium">
+          <Text className="text-white text-[15px] font-bold">
             {isSubmitting ? "Saving..." : "Save meal"}
           </Text>
         </TouchableOpacity>
       </View>
 
-      <Modal visible={showSuccessDialog} transparent animationType="fade">
-        <View className="flex-1 bg-black/50 justify-center items-center px-6">
-          <View className="bg-white dark:bg-slate-900 rounded-3xl p-6 w-full items-center">
-            <View className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full items-center justify-center mb-4">
-              <Feather name="check-circle" size={32} color="#16a34a" />
+      {/* Estimation Guide Modal */}
+      <Modal visible={showEstimateGuide} transparent animationType="fade">
+        <View className="flex-1 bg-black/60 justify-center items-center px-5">
+          <View className="bg-white dark:bg-slate-900 rounded-3xl p-6 w-full max-w-md border border-slate-100 dark:border-slate-800 shadow-xl">
+            <View className="flex-row items-center gap-3 mb-5 border-b border-slate-100 dark:border-slate-800/50 pb-4">
+              <View className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-full items-center justify-center">
+                <Feather name="help-circle" size={20} color="#3b82f6" />
+              </View>
+              <Text className="text-[18px] font-bold text-slate-900 dark:text-white flex-1">
+                Estimation Guide
+              </Text>
             </View>
-            <Text className="text-xl font-bold text-slate-900 dark:text-white text-center mb-2">
-              Meal Logged Successfully!
-            </Text>
-            <Text className="text-center text-slate-500 dark:text-slate-400 mb-6">
-              Great job keeping track of your nutrition. Every step counts toward a healthier heart!
-            </Text>
+
+            <ScrollView className="max-h-[60vh] mb-6" showsVerticalScrollIndicator={false}>
+              <View className="mb-4">
+                <Text className="text-[15px] font-bold text-slate-900 dark:text-white mb-1">1. Ask Google</Text>
+                <Text className="text-[13px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                  Search "calories in 1 cup pork adobo" or "sodium in pancit canton". Online fitness databases usually have rough averages you can copy.
+                </Text>
+              </View>
+              
+              <View className="mb-4">
+                <Text className="text-[15px] font-bold text-slate-900 dark:text-white mb-1">2. Beware Hidden Sodium</Text>
+                <Text className="text-[13px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                  Carinderia and street foods rely heavily on sauces. Remember: just 1 tablespoon of soy sauce or patis has nearly 900mg of sodium!
+                </Text>
+              </View>
+
+              <View className="mb-2">
+                <Text className="text-[15px] font-bold text-slate-900 dark:text-white mb-1">3. Rough is better than blank</Text>
+                <Text className="text-[13px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                  Don't skip logging a meal just because you don't know the exact numbers. A rough guess keeps you accountable and makes your daily charts useful.
+                </Text>
+              </View>
+            </ScrollView>
+
             <TouchableOpacity
-              onPress={() => {
-                setShowSuccessDialog(false);
-                router.back();
-              }}
-              className="bg-green-600 w-full py-3.5 rounded-xl items-center"
+              onPress={() => setShowEstimateGuide(false)}
+              className="bg-emerald-600 w-full py-3.5 rounded-xl items-center"
             >
-              <Text className="text-white font-bold text-[15px]">Awesome</Text>
+              <Text className="text-white font-bold text-[15px]">Got it</Text>
             </TouchableOpacity>
           </View>
         </View>
