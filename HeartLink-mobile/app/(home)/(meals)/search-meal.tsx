@@ -44,6 +44,7 @@ export default function SearchMealScreen() {
               uniqueMap.set(log.meal_name, {
                 id: log.id,
                 type: 'food',
+                source: 'recent',
                 name: log.meal_name,
                 calories: log.calories,
                 sodium_mg: log.sodium_mg,
@@ -136,41 +137,28 @@ export default function SearchMealScreen() {
                 const name = (p.product_name || "").trim();
                 if (name.length < 3) return false;
 
-                // 1. Keyboard Smash Filter
-                const hasVowel = /[aeiouy]/i.test(name);
-                if (name.length >= 4 && !hasVowel) return false;
-                
-                const hasTooManyConsonants = /[bcdfghjklmnpqrstvwxz]{5,}/i.test(name);
-                if (hasTooManyConsonants) return false;
-
-                // 2. Minimum Effort Filter
+                // Require at least a brand or an image to filter out completely barren entries
                 const hasBrand = p.brands && p.brands.trim().length > 0;
                 const hasImage = !!(p.image_url || p.image_front_url);
                 if (!hasBrand && !hasImage) return false;
 
                 const isOnlyNumbers = /^\d+$/.test(name);
-                const hasCalories = p.nutriments && "energy-kcal" in p.nutriments;
-                const hasSodium = p.nutriments && "sodium" in p.nutriments;
+                const hasCalories = p.nutriments && typeof p.nutriments["energy-kcal"] === "number";
                 
-                return !isOnlyNumbers && hasCalories && hasSodium;
+                // Ensure sodium is a strict number and not insanely high (max 10g = 10,000mg)
+                const sodiumGrams = p.nutriments?.sodium;
+                const hasValidSodium = typeof sodiumGrams === "number" && sodiumGrams >= 0 && sodiumGrams <= 10;
+                
+                return !isOnlyNumbers && hasCalories && hasValidSodium;
               })
               .map((p: any) => {
-                const getUnitMultiplier = (baseKey: string) => {
-                  const n = p.nutriments || {};
-                  const unit = n[`${baseKey}_unit`];
-                  if (unit) {
-                    const lowerUnit = unit.toLowerCase().trim();
-                    if (lowerUnit === "mg" || lowerUnit === "milligram" || lowerUnit === "milligrams") return 1;
-                    if (lowerUnit === "µg" || lowerUnit === "mcg" || lowerUnit === "microgram") return 0.001;
-                    if (lowerUnit === "g" || lowerUnit === "gram" || lowerUnit === "grams") return 1000;
-                  }
-                  return 1000;
-                };
-
-                const sodium = (p.nutriments?.sodium || 0) * getUnitMultiplier("sodium");
+                // OpenFoodFacts normalizes 'sodium' to grams per 100g. 
+                // We simply multiply by 1000 to convert to milligrams.
+                const sodium = (p.nutriments?.sodium || 0) * 1000;
                 return {
                   id: p.id || p.code || Math.random().toString(),
                   type: 'food',
+                  source: 'search',
                   name: p.product_name,
                   image_url: p.image_front_url || p.image_url,
                   calories: Math.round(p.nutriments?.["energy-kcal"] || 0),
@@ -190,12 +178,16 @@ export default function SearchMealScreen() {
         setItems(uniqueItems);
       } catch (error: any) {
         console.error("Search meal fetch error:", error);
-        if (error.name === 'AbortError') {
-          setErrorMsg("Connection timed out. Please check your internet and try again.");
+        // Silent Fallback: swallow the error and fall back to local recent logs
+        setErrorMsg("");
+        
+        const query = searchQuery.trim();
+        if (query.length === 0) {
+          setItems([...recentLogs]);
         } else {
-          setErrorMsg("Network Error: We couldn't connect to the databases. Please try again.");
+          const filteredRecents = recentLogs.filter(log => log.name.toLowerCase().includes(query.toLowerCase()));
+          setItems([...filteredRecents]);
         }
-        setItems([]);
       } finally {
         setIsLoading(false);
         setRefreshing(false);
@@ -336,7 +328,7 @@ export default function SearchMealScreen() {
                   };
                   router.push({
                     pathname: "/(home)/(meals)/scan-result",
-                    params: { product: JSON.stringify(productData) }
+                    params: { product: JSON.stringify(productData), source: item.source || "search" }
                   });
                 }
               }}

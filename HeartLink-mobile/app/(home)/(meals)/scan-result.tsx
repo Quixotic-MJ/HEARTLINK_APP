@@ -178,7 +178,7 @@ export default function ScanResultScreen() {
             {product.product_name}
           </Text>
           <Text className="text-[12px] text-slate-400">
-            Scan result
+            {params.source === 'recent' ? 'Recent log' : params.source === 'search' ? 'Search result' : 'Scan result'}
           </Text>
         </View>
       </View>
