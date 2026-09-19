@@ -23,7 +23,7 @@ export function ScreenWrapper({
   className = "",
   contentContainerClassName = "flex-grow px-6 pt-4 pb-8",
   scrollBounces = false,
-  safeAreaClassName = "flex-1 bg-background",
+  safeAreaClassName = "flex-1 bg-surface-background",
   ...props
 }: ScreenWrapperProps) {
   const { colorScheme } = useColorScheme();

@@ -45,74 +45,9 @@ import { DashboardTutorialModal } from "../../../components/dashboard/DashboardT
 import { ScoreExplanationModal } from "../../../components/dashboard/ScoreExplanationModal";
 import { RitualProgress } from "../../../components/dashboard/RitualProgress";
 
+
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
-// ─── Reusable Tactile Spring Pressable Component ─────────────────────────────
-// Delivers the physical, responsive weight of Apple Health and Strava card interactions
-function TactileCard({
-  onPress,
-  children,
-  className = "",
-  style,
-  activeScale = 0.978,
-  accessible = true,
-  accessibilityRole = "button",
-  accessibilityLabel,
-  disabled = false,
-  hapticFeedback = true,
-}: {
-  onPress?: () => void;
-  children: React.ReactNode;
-  className?: string;
-  style?: any;
-  activeScale?: number;
-  accessible?: boolean;
-  accessibilityRole?: any;
-  accessibilityLabel?: string;
-  disabled?: boolean;
-  hapticFeedback?: boolean;
-}) {
-  const scale = useRef(new Animated.Value(1)).current;
-
-  const handlePressIn = () => {
-    if (disabled) return;
-    if (hapticFeedback) {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }
-    Animated.spring(scale, {
-      toValue: activeScale,
-      useNativeDriver: true,
-      speed: 40,
-      bounciness: 4,
-    }).start();
-  };
-
-  const handlePressOut = () => {
-    Animated.spring(scale, {
-      toValue: 1,
-      useNativeDriver: true,
-      speed: 30,
-      bounciness: 6,
-    }).start();
-  };
-
-  return (
-    <TouchableOpacity
-      activeOpacity={0.94}
-      onPress={onPress}
-      onPressIn={handlePressIn}
-      onPressOut={handlePressOut}
-      disabled={disabled}
-      accessible={accessible}
-      accessibilityRole={accessibilityRole}
-      accessibilityLabel={accessibilityLabel}
-    >
-      <Animated.View style={[{ transform: [{ scale }] }, style]} className={className}>
-        {children}
-      </Animated.View>
-    </TouchableOpacity>
-  );
-}
 
 // ─── Score theme ──────────────────────────────────────────────────────────────
 type ScoreTheme = {
@@ -603,23 +538,23 @@ export default function DashboardScreen() {
         <Header showProfile={false} />
         <ScrollView
           showsVerticalScrollIndicator={false}
-          contentContainerClassName="px-5 pt-3 pb-40 md:max-w-2xl lg:max-w-4xl mx-auto w-full"
+          contentContainerClassName="px-5 pt-3 pb-40 md:max-w-2xl lg:max-w-4xl mx-auto w-full gap-5"
         >
-          <View className="mb-4 pt-1">
+          <View className="pt-1">
             <Skeleton className="w-40 h-4 rounded-md mb-2 bg-[#DCE3DF] dark:bg-slate-800" />
             <Skeleton className="w-28 h-7 rounded-lg bg-[#DCE3DF] dark:bg-slate-800" />
           </View>
 
-          <View className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 p-4 mb-4 items-center">
-            <Skeleton className="w-28 h-6 rounded-full mb-4 bg-[#DCE3DF] dark:bg-slate-800" />
-            <Skeleton className="w-44 h-44 rounded-full bg-[#DCE3DF] dark:bg-slate-800" />
+          <View className="bg-surface-card rounded-3xl p-5 items-center shadow-sm shadow-slate-200/50 dark:shadow-none">
+            <Skeleton className="w-28 h-6 rounded-full mb-4 bg-slate-200 dark:bg-slate-700" />
+            <Skeleton className="w-44 h-44 rounded-full bg-slate-200 dark:bg-slate-700" />
           </View>
 
-          <View className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 p-4 mb-4">
-            <Skeleton className="w-36 h-4 rounded-md mb-3 bg-[#DCE3DF] dark:bg-slate-800" />
+          <View className="bg-surface-card rounded-3xl p-5 shadow-sm shadow-slate-200/50 dark:shadow-none">
+            <Skeleton className="w-36 h-4 rounded-md mb-3 bg-slate-200 dark:bg-slate-700" />
             <View className="gap-2.5">
               {[1, 2, 3, 4].map((i) => (
-                <Skeleton key={i} className="w-full h-14 rounded-xl bg-[#DCE3DF] dark:bg-slate-800" />
+                <Skeleton key={i} className="w-full h-14 rounded-xl bg-slate-200 dark:bg-slate-700" />
               ))}
             </View>
           </View>
@@ -642,8 +577,8 @@ export default function DashboardScreen() {
       <ScreenWrapper edges={["top"]} withScrollView={false} safeAreaClassName="flex-1 bg-[#F3F5F7] dark:bg-[#0b1120]">
         <Header showProfile={false} />
         <View className="flex-1 justify-center items-center px-5">
-          <View className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 p-8 items-center w-full max-w-sm shadow-xs">
-            <View className="w-14 h-14 rounded-3xl bg-[#8A1F1A]/10 border border-[#8A1F1A]/20 items-center justify-center mb-4">
+          <View className="bg-surface-card rounded-3xl p-8 items-center w-full max-w-sm shadow-sm shadow-slate-200/50 dark:shadow-none">
+            <View className="w-14 h-14 rounded-3xl bg-[#8A1F1A]/10 items-center justify-center mb-4">
               <Feather name="wifi-off" size={24} color="#8A1F1A" />
             </View>
             <Text className="text-[18px] font-bold text-slate-700 dark:text-white mb-1 text-center">
@@ -652,7 +587,7 @@ export default function DashboardScreen() {
             <Text className="text-[13px] text-slate-500 dark:text-slate-400 text-center mb-6 leading-relaxed">
               Check your connection and try again.
             </Text>
-            <TactileCard
+            <TouchableOpacity activeOpacity={0.8}
               onPress={() => refetch()}
               accessible={true}
               accessibilityRole="button"
@@ -661,7 +596,7 @@ export default function DashboardScreen() {
             >
               <Feather name="refresh-cw" size={14} color="#ffffff" />
               <Text className="text-white font-bold text-[14px]">Try again</Text>
-            </TactileCard>
+            </TouchableOpacity>
           </View>
         </View>
       </ScreenWrapper>
@@ -674,7 +609,6 @@ export default function DashboardScreen() {
     <ScreenWrapper
       edges={["top"]}
       withScrollView={false}
-      safeAreaClassName="flex-1 bg-[#F3F5F7] dark:bg-[#0b1120]"
     >
       {/* ── Interactive First-Time Coachmark Walkthrough Tour ── */}
       <DashboardTutorialModal
@@ -718,7 +652,7 @@ export default function DashboardScreen() {
 
       <ScrollView
         ref={scrollViewRef}
-        contentContainerClassName="pb-40 md:max-w-2xl lg:max-w-4xl mx-auto w-full"
+        contentContainerClassName="px-5 pb-40 md:max-w-2xl lg:max-w-4xl mx-auto w-full gap-5"
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -763,7 +697,7 @@ export default function DashboardScreen() {
 
         {/* ── Critical Health Alert Banner (Tap to re-open modal) ── */}
         {isAlertActive && (
-          <TactileCard
+          <TouchableOpacity activeOpacity={0.8}
             onPress={() => setAlertModalVisible(true)}
             className="mx-5 mt-3 bg-[#FBEAE9] dark:bg-[#8A1F1A]/25 border border-[#8A1F1A]/30 rounded-3xl p-4 flex-row items-center gap-3"
             style={cardShadowStyle}
@@ -780,11 +714,11 @@ export default function DashboardScreen() {
               </Text>
             </View>
             <Feather name="chevron-right" size={18} color="#8A1F1A" />
-          </TactileCard>
+          </TouchableOpacity>
         )}
 
         {/* ── Clean Greeting ── */}
-        <Reanimated.View entering={FadeInDown.duration(280)} className="px-5 pt-3 pb-1">
+        <Reanimated.View entering={FadeInDown.duration(280)} className="pt-3 pb-1">
           <Text className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
             {getGreeting(data?.user?.first_name || user?.first_name)}
           </Text>
@@ -795,8 +729,7 @@ export default function DashboardScreen() {
         {/* ============================================================== */}
         <Reanimated.View
           entering={FadeInDown.delay(100).duration(260)}
-          className="mx-5 mt-2 bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 p-4 items-center"
-          style={cardShadowStyle}
+          className="bg-surface-card rounded-3xl p-5 items-center shadow-sm shadow-slate-200/50 dark:shadow-none"
         >
           {/* Header Row: Status badge + Distinct Info Button */}
           <View className="flex-row items-center justify-center gap-2 mb-2">
@@ -903,7 +836,7 @@ export default function DashboardScreen() {
         {/* ============================================================== */}
         <Reanimated.View
           entering={FadeInDown.delay(180).duration(260)}
-          className="mx-5 mt-4"
+          className="mt-4"
         >
           <RitualProgress
             completedCount={completedCount}
@@ -920,7 +853,7 @@ export default function DashboardScreen() {
 
         {isCritical ? (
           <View
-            className="mx-5 mt-5 mb-4 bg-white dark:bg-slate-900 rounded-3xl p-4 sm:p-6 border border-slate-100 dark:border-slate-800 shadow-sm"
+            className="mt-5 mb-4 bg-surface-card rounded-3xl p-5 border-0 shadow-sm shadow-slate-200/50 dark:shadow-none"
           >
             <View className="flex-row items-center gap-2 mb-2 pb-2 border-b border-slate-100 dark:border-slate-800">
               <Feather name="shield" size={16} color="#f43f5e" />
@@ -961,15 +894,15 @@ export default function DashboardScreen() {
               </View>
             </View>
             <View className="flex-row gap-2.5">
-              <TactileCard
+              <TouchableOpacity activeOpacity={0.8}
                 onPress={() => {
                   safeNavigate("/(home)/(health)/log-symptoms");
                 }}
                 className="flex-1 bg-slate-800 dark:bg-slate-700 py-3 px-3 rounded-xl items-center justify-center shadow-sm"
               >
                 <Text className="text-white text-[12.5px] font-bold">Re-test Vitals</Text>
-              </TactileCard>
-              <TactileCard
+              </TouchableOpacity>
+              <TouchableOpacity activeOpacity={0.8}
                 onPress={() => {
                   safeNavigate("/locator");
                 }}
@@ -977,7 +910,7 @@ export default function DashboardScreen() {
               >
                 <Feather name="map-pin" size={13} color="#ffffff" />
                 <Text className="text-white text-[12.5px] font-bold">Find Clinic</Text>
-              </TactileCard>
+              </TouchableOpacity>
             </View>
           </View>
         ) : (
@@ -985,7 +918,7 @@ export default function DashboardScreen() {
             {/* ── Recommendations (hidden when empty) ── */}
             {data?.recommendations && data.recommendations.length > 0 && (
               <View className="mt-6">
-                <Reanimated.View entering={FadeInDown.delay(540).duration(300)} className="px-5 flex-row items-center justify-between mb-3">
+                <Reanimated.View entering={FadeInDown.delay(540).duration(300)} className="flex-row items-center justify-between mb-3">
                   <Text className="text-[16px] font-bold text-slate-700 dark:text-white tracking-tight">
                     Recommended for You
                   </Text>
@@ -995,7 +928,7 @@ export default function DashboardScreen() {
                   showsHorizontalScrollIndicator={false}
                   nestedScrollEnabled={true}
                   directionalLockEnabled={true}
-                  contentContainerClassName="px-5 gap-3"
+                  contentContainerClassName="gap-3"
                 >
                   {data?.recommendations?.map((r: any, idx: number) => (
                     <RecommendationCard
@@ -1076,63 +1009,70 @@ export default function DashboardScreen() {
             />
 
             {/* ── Unified Care Tools Toolbox ── */}
-            <Reanimated.View entering={FadeInDown.delay(680).duration(300)} className="mx-5 mt-6 mb-8">
+            <Reanimated.View entering={FadeInDown.delay(680).duration(300)} className="mt-6 mb-8">
               <Text className="text-[14px] font-bold text-slate-700 dark:text-white tracking-tight mb-3 ml-1">
                 Care Tools & Settings
               </Text>
 
-              <View
-                className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 overflow-hidden"
-                style={cardShadowStyle}
-              >
+              <View className="gap-3">
                 {/* Tool 1: Doctor Consultation */}
-                <TactileCard
+                <TouchableOpacity activeOpacity={0.75}
                   onPress={() => safeNavigate("/(home)/(tabs)/wrap-up")}
-                  className="p-4 flex-row items-center justify-between border-b border-slate-50 dark:border-slate-800/50"
-                  activeScale={0.98}
+                  className="flex-row items-center bg-surface-card rounded-3xl p-5 shadow-sm shadow-slate-200/50 dark:shadow-none"
                 >
-                  <View className="flex-row items-center flex-1 pr-3">
-                    <View className="w-10 h-10 rounded-xl bg-[#1E5642]/10 dark:bg-[#1E5642]/20 items-center justify-center mr-3.5">
-                      <Feather name={new Date().getHours() >= 19 ? "moon" : "clipboard"} size={18} color="#1E5642" />
-                    </View>
-                    <View className="flex-1">
-                      <Text className="text-[14px] font-bold text-slate-700 dark:text-white mb-0.5">
-                        {new Date().getHours() >= 19 ? "Daily Heart Wrap-Up Ready" : "Doctor Consultation"}
-                      </Text>
-                      <Text className="text-[11.5px] text-slate-500 dark:text-slate-400 leading-snug">
-                        {new Date().getHours() >= 19
-                          ? "Let's review your vitals and set up a calm night."
-                          : "Present your logged meals and vitals for clinic visits."}
-                      </Text>
-                    </View>
+                  <View className="w-10 h-10 rounded-full bg-slate-200/50 dark:bg-slate-700/50 items-center justify-center mr-4">
+                    <Feather name={new Date().getHours() >= 19 ? "moon" : "clipboard"} size={20} color={isDark ? "#94a3b8" : "#64748b"} />
                   </View>
-                  <Feather name="chevron-right" size={16} color="#94a3b8" />
-                </TactileCard>
+                  <View className="flex-1 justify-center">
+                    <Text
+                      numberOfLines={1}
+                      className="text-[16px] font-bold text-slate-900 dark:text-slate-50 mb-1"
+                    >
+                      {new Date().getHours() >= 19 ? "Daily Heart Wrap-Up" : "Doctor Consultation"}
+                    </Text>
+                    <Text
+                      numberOfLines={1}
+                      className="text-[13px] font-medium text-slate-500 dark:text-slate-400"
+                    >
+                      {new Date().getHours() >= 19
+                        ? "Review your vitals for a calm night"
+                        : "Prepare data for clinic visits"}
+                    </Text>
+                  </View>
+                  <View className="w-8 h-8 rounded-full items-center justify-center ml-3 bg-slate-100 dark:bg-slate-800">
+                    <Feather name="chevron-right" size={16} color={isDark ? "#94a3b8" : "#64748b"} />
+                  </View>
+                </TouchableOpacity>
 
                 {/* Tool 2: Locator */}
-                <TactileCard
+                <TouchableOpacity activeOpacity={0.75}
                   onPress={() => {
                     Haptics.selectionAsync();
                     setMapVisible(true);
                   }}
-                  className="p-4 flex-row items-center justify-between"
-                  activeScale={0.98}
+                  className="flex-row items-center bg-surface-card rounded-3xl p-5 shadow-sm shadow-slate-200/50 dark:shadow-none"
                 >
-                  <View className="flex-row items-center flex-1 pr-3">
-                    <View className="w-10 h-10 rounded-xl bg-[#E8532E]/10 dark:bg-[#E8532E]/20 items-center justify-center mr-3.5">
-                      <Feather name="map-pin" size={18} color="#E8532E" />
-                    </View>
-                    <View className="flex-1">
-                      <Text className="text-[14px] font-bold text-slate-700 dark:text-white mb-0.5">
-                        Healthcare Locator
-                      </Text>
-                      <Text className="text-[11.5px] text-slate-500 dark:text-slate-400 leading-snug">
-                        Find certified cardiac specialists and emergency care.
-                      </Text>
-                    </View>
+                  <View className="w-10 h-10 rounded-full bg-slate-200/50 dark:bg-slate-700/50 items-center justify-center mr-4">
+                    <Feather name="map-pin" size={20} color={isDark ? "#94a3b8" : "#64748b"} />
                   </View>
-                  <Feather name="chevron-right" size={16} color="#94a3b8" />
-                </TactileCard>
+                  <View className="flex-1 justify-center">
+                    <Text
+                      numberOfLines={1}
+                      className="text-[16px] font-bold text-slate-900 dark:text-slate-50 mb-1"
+                    >
+                      Healthcare Locator
+                    </Text>
+                    <Text
+                      numberOfLines={1}
+                      className="text-[13px] font-medium text-slate-500 dark:text-slate-400"
+                    >
+                      Find certified cardiac specialists
+                    </Text>
+                  </View>
+                  <View className="w-8 h-8 rounded-full items-center justify-center ml-3 bg-slate-100 dark:bg-slate-800">
+                    <Feather name="chevron-right" size={16} color={isDark ? "#94a3b8" : "#64748b"} />
+                  </View>
+                </TouchableOpacity>
               </View>
             </Reanimated.View>
           </>

@@ -351,6 +351,9 @@ export default function LogSymptomsScreen() {
 
   const [timestamp, setTimestamp] = useState("");
   const diastolicRef = useRef<TextInput>(null);
+  
+  const scrollViewRef = useRef<ScrollView>(null);
+  const [symptomsY, setSymptomsY] = useState(0);
 
   // Vitals State
   const [systolic, setSystolic] = useState("");
@@ -385,6 +388,14 @@ export default function LogSymptomsScreen() {
       })
     );
   }, []);
+
+  useEffect(() => {
+    if (params.triggered_by_exercise_id && symptomsY > 0) {
+      setTimeout(() => {
+        scrollViewRef.current?.scrollTo({ y: symptomsY, animated: true });
+      }, 300);
+    }
+  }, [params.triggered_by_exercise_id, symptomsY]);
 
   const hasRealSymptoms =
     !selectedSymptoms.includes("None (Feeling fine)") &&
@@ -684,6 +695,7 @@ export default function LogSymptomsScreen() {
         className="flex-1"
       >
         <ScrollView
+          ref={scrollViewRef}
           contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 24 }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
@@ -823,7 +835,7 @@ export default function LogSymptomsScreen() {
             </View>
 
             {/* ── Section 2: Symptoms & Feelings ── */}
-            <View className="gap-4 mt-2">
+            <View className="gap-4 mt-2" onLayout={(e) => setSymptomsY(e.nativeEvent.layout.y)}>
               {/* Section Divider */}
               <View className="flex-row items-center gap-3 px-1">
                 <View className="flex-1 h-px bg-border" />

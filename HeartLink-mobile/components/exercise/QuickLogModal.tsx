@@ -15,8 +15,7 @@ import { useRouter } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 import { useUser } from "../../contexts/UserContext";
 import { useToast } from "../../contexts/ToastContext";
-import { queueExerciseForSync } from "../../services/SyncService";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useLogExercise } from "../../hooks/useLogExercise";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -29,11 +28,14 @@ export function QuickLogModal({ visible, onClose }: QuickLogModalProps) {
   const router = useRouter();
   const { userId, token, logout } = useUser();
   const { showToast } = useToast();
+  
+  const logExerciseMutation = useLogExercise(userId, token);
 
   const [activityName, setActivityName] = useState("");
   const [durationMinutes, setDurationMinutes] = useState("");
-  const [isSubmittingQuickLog, setIsSubmittingQuickLog] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  
+  const scrollViewRef = React.useRef<ScrollView>(null);
 
   const ACTIVITY_PRESETS = [
     { label: "Walking 15m", name: "Walking", min: "15" },
@@ -61,7 +63,6 @@ export function QuickLogModal({ visible, onClose }: QuickLogModalProps) {
       setErrorMsg("User session not found. Please try restarting the app.");
       return;
     }
-    setIsSubmittingQuickLog(true);
 
     const payload = {
       routine_name: trimmedName,
@@ -70,59 +71,21 @@ export function QuickLogModal({ visible, onClose }: QuickLogModalProps) {
       status: "completed",
     };
 
-    try {
-      const storedToken = await AsyncStorage.getItem("access_token");
-      const effectiveToken = token || storedToken || "";
-      const res = await fetch(`${base_url}/api/exercises/logs/${userId}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${effectiveToken}`,
-        },
-        body: JSON.stringify(payload),
-      });
+    logExerciseMutation.mutate(payload, {
+      onError: async (error: any) => {
+        if (error.status === 401) {
+          await logout();
+        } else {
+          setErrorMsg(error.message || "Could not save activity log.");
+        }
+      }
+    });
 
-      if (res.status === 401) {
-        showToast({ title: "Session Expired", message: "Please log in again.", type: "info" });
-        await logout();
-        return;
-      }
-
-      const json = await res.json();
-      if (res.ok && json.success) {
-        const { postLogAck } = await import("../../services/companionCopy");
-        showToast({
-          ...postLogAck("exercise", `${trimmedName} (${mins} min)`),
-          type: "success",
-        });
-        
-        setActivityName("");
-        setDurationMinutes("");
-        setErrorMsg("");
-        onClose(true);
-      } else {
-        setErrorMsg(json.detail || "Could not save activity log.");
-      }
-    } catch (err) {
-      console.error("Failed to log activity, saving offline:", err);
-      if (userId) {
-        await queueExerciseForSync(userId, payload);
-        showToast({
-          title: "Saved Offline",
-          message: `${trimmedName} (${mins} min) saved on this device. I'll sync it when you're back online.`,
-          type: "info",
-        });
-        
-        setActivityName("");
-        setDurationMinutes("");
-        setErrorMsg("");
-        onClose(true);
-      } else {
-        setErrorMsg("Failed to connect to HeartLink server.");
-      }
-    } finally {
-      setIsSubmittingQuickLog(false);
-    }
+    // Close immediately to reflect optimistic update
+    setActivityName("");
+    setDurationMinutes("");
+    setErrorMsg("");
+    onClose(true);
   };
 
   return (
@@ -165,6 +128,7 @@ export function QuickLogModal({ visible, onClose }: QuickLogModalProps) {
             </View>
 
             <ScrollView
+              ref={scrollViewRef}
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
             >
@@ -181,6 +145,9 @@ export function QuickLogModal({ visible, onClose }: QuickLogModalProps) {
                       onPress={() => {
                         setActivityName(preset.name);
                         setDurationMinutes(preset.min);
+                        setTimeout(() => {
+                          scrollViewRef.current?.scrollToEnd({ animated: true });
+                        }, 50);
                       }}
                       className={`px-3 py-2 rounded-xl border ${
                         isSelected
@@ -231,11 +198,11 @@ export function QuickLogModal({ visible, onClose }: QuickLogModalProps) {
               <TouchableOpacity
                 activeOpacity={0.85}
                 onPress={handleQuickLogSubmit}
-                disabled={isSubmittingQuickLog}
+                disabled={logExerciseMutation.isPending}
                 className="bg-[#1B6E63] py-3.5 rounded-xl items-center justify-center flex-row gap-2 mb-3"
-                style={{ opacity: isSubmittingQuickLog ? 0.7 : 1 }}
+                style={{ opacity: logExerciseMutation.isPending ? 0.7 : 1 }}
               >
-                {isSubmittingQuickLog ? (
+                {logExerciseMutation.isPending ? (
                   <ActivityIndicator size="small" color="#fff" />
                 ) : (
                   <>
@@ -261,7 +228,7 @@ export function QuickLogModal({ visible, onClose }: QuickLogModalProps) {
                   className="py-2.5 items-center justify-center flex-1"
                 >
                   <Text className="text-[13px] font-semibold text-[#1B6E63] text-center">
-                    Browse video routines
+                    Browse guided activities
                   </Text>
                 </TouchableOpacity>
 
@@ -276,7 +243,7 @@ export function QuickLogModal({ visible, onClose }: QuickLogModalProps) {
                   className="py-2.5 items-center justify-center flex-1"
                 >
                   <Text className="text-[13px] font-semibold text-[#1B6E63] text-center">
-                    View exercise diary
+                    View activity log
                   </Text>
                 </TouchableOpacity>
               </View>

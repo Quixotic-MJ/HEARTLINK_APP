@@ -224,7 +224,7 @@ export function ExerciseActive({
             style={{ backgroundColor: activeBg }}
           >
             <Text className="text-[16px] font-bold text-white tracking-wide">
-              FINISH EXERCISE
+              FINISH ACTIVITY
             </Text>
           </TouchableOpacity>
 

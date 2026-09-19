@@ -8,7 +8,7 @@ import HeartLogo from "./ui/HeartLogo";
 
 export function Header({
   unreadCount,
-  showProfile = true,
+  showProfile = false,
 }: {
   unreadCount?: number;
   showProfile?: boolean;
@@ -60,48 +60,48 @@ export function Header({
         </Text>
       </View>
       <View className="flex-row items-center gap-2">
-        <TouchableOpacity 
-          onPress={() => router.push("/(home)/(profile)/notifications")} 
+        <TouchableOpacity
+          onPress={() => router.push("/(home)/(profile)/notifications")}
           accessible={true}
           accessibilityRole="button"
           accessibilityLabel={hasUnread ? "Notifications, unread items available" : "Notifications"}
-          className="w-9 h-9 rounded-xl bg-white dark:bg-[#1A2634] border border-[#DCE3DF] dark:border-slate-800 items-center justify-center shadow-xs"
+          className="w-10 h-10 rounded-full bg-surface-card border-0 items-center justify-center shadow-sm shadow-slate-200/50 dark:shadow-none"
           activeOpacity={0.7}
         >
-          <Feather name="bell" size={16} color={isDark ? "#cbd5e1" : "#5C6B66"} />
+          <Feather name="bell" size={18} color={isDark ? "#94a3b8" : "#64748b"} />
           {hasUnread && (
-            <View style={{ position: "absolute", top: 8, right: 8 }} className="w-2 h-2 bg-[#E8532E] rounded-full" />
+            <View style={{ position: "absolute", top: 8, right: 10 }} className="w-2.5 h-2.5 bg-[#E8532E] rounded-full border-2 border-white dark:border-[#1A2634]" />
           )}
         </TouchableOpacity>
-        
-        <TouchableOpacity 
-          onPress={() => router.push("/(home)/(settings)/settings")} 
+
+        <TouchableOpacity
+          onPress={() => router.push("/(home)/(settings)/settings")}
           accessible={true}
           accessibilityRole="button"
           accessibilityLabel="Settings"
-          className="w-9 h-9 rounded-xl bg-white dark:bg-[#1A2634] border border-[#DCE3DF] dark:border-slate-800 items-center justify-center shadow-xs"
+          className="w-10 h-10 rounded-full bg-surface-card border-0 items-center justify-center shadow-sm shadow-slate-200/50 dark:shadow-none"
           activeOpacity={0.7}
         >
-          <Feather name="settings" size={16} color={isDark ? "#cbd5e1" : "#5C6B66"} />
+          <Feather name="settings" size={18} color={isDark ? "#94a3b8" : "#64748b"} />
         </TouchableOpacity>
-        
+
         {showProfile && (
-          <TouchableOpacity 
-            onPress={() => router.push("/(home)/(profile)/profile")} 
+          <TouchableOpacity
+            onPress={() => router.push("/(home)/(profile)/profile")}
             activeOpacity={0.8}
             accessible={true}
             accessibilityRole="button"
-            accessibilityLabel="My Profile" 
+            accessibilityLabel="My Profile"
             className="ml-0.5"
           >
-            <View className="w-9 h-9 rounded-full bg-white dark:bg-[#1A2634] border border-[#DCE3DF] dark:border-slate-800 overflow-hidden shadow-xs">
-              <Image 
-                source={{ uri: user?.avatar_url || "https://ui-avatars.com/api/?name=" + (user?.first_name || "U") + "&background=EDF1EF&color=152131&bold=true" }} 
-                className="w-full h-full" 
-                resizeMode="cover" 
+            <View className="w-10 h-10 rounded-full bg-surface-card border-0 overflow-hidden shadow-sm shadow-slate-200/50 dark:shadow-none">
+              <Image
+                source={{ uri: user?.avatar_url || "https://ui-avatars.com/api/?name=" + (user?.first_name || "U") + "&background=E2E8F0&color=152131&bold=true" }}
+                className="w-full h-full"
+                resizeMode="cover"
               />
             </View>
-            <View style={{ position: "absolute", bottom: -1, right: -1 }} className="w-2.5 h-2.5 bg-[#1B6E63] rounded-full border-2 border-white dark:border-[#101923]" />
+            <View style={{ position: "absolute", bottom: 0, right: 0 }} className="w-3 h-3 bg-[#10B981] rounded-full border-2 border-white dark:border-[#1E293B]" />
           </TouchableOpacity>
         )}
       </View>

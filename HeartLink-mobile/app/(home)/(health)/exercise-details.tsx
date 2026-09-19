@@ -9,7 +9,7 @@ import { SafetyCheckSheet } from "../../../components/ui/SafetyCheckSheet";
 import { CompletionCheckSheet } from "../../../components/ui/CompletionCheckSheet";
 import { StopExerciseSheet } from "../../../components/ui/StopExerciseSheet";
 import { ShortSessionSheet } from "../../../components/ui/ShortSessionSheet";
-import { queueExerciseForSync } from "../../../services/SyncService";
+import { useLogExercise } from "../../../hooks/useLogExercise";
 
 // Components
 import { ExerciseOverview } from "../../../components/exercise/ExerciseOverview";
@@ -39,6 +39,8 @@ export default function ExerciseDetailsScreen() {
   const [routine, setRoutine] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   
+  const logExerciseMutation = useLogExercise(userId, token);
+  
   const [workoutState, setWorkoutState] = useState<"overview" | "active" | "result">("overview");
   
   const [sessionStartedAt, setSessionStartedAt] = useState<number | null>(null);
@@ -48,7 +50,6 @@ export default function ExerciseDetailsScreen() {
   const [showCompletionCheck, setShowCompletionCheck] = useState(false);
   const [showStopCheck, setShowStopCheck] = useState(false);
   const [showShortSessionCheck, setShowShortSessionCheck] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [hssScore, setHssScore] = useState<number>(0);
   const [hssTier, setHssTier] = useState<string | null>(null);
@@ -125,7 +126,7 @@ export default function ExerciseDetailsScreen() {
     fetchRoutine();
   }, [id, token]);
 
-  const logExerciseData = async (status: string, overrideSeconds?: number) => {
+  const logExerciseData = (status: string, overrideSeconds?: number) => {
     if (!routine || !userId) return;
     const finalSeconds = overrideSeconds !== undefined ? overrideSeconds : sessionDurationSeconds;
     const finalMinutes = Math.round(finalSeconds / 60);
@@ -142,44 +143,18 @@ export default function ExerciseDetailsScreen() {
       status: status,
     };
 
-    const storedToken = await AsyncStorage.getItem("access_token");
-    const effectiveToken = token || storedToken || "";
-
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
-
-      const response = await fetch(`${base_url}/api/exercises/logs/${userId}`, {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${effectiveToken}`
-        },
-        body: JSON.stringify(payload),
-        signal: controller.signal,
-      });
-      clearTimeout(timeoutId);
-
-      if (response.status === 401) {
-        // Preserve completed exercise payload offline before prompting re-login
-        await queueExerciseForSync(userId, payload);
-        showToast({
-          title: "Session Expired",
-          message: "Your workout is preserved offline. Please log in again to sync.",
-          type: "info"
-        });
-        await logout();
-        return payload;
+    logExerciseMutation.mutate(payload, {
+      onError: async (error: any) => {
+        if (error.status === 401) {
+          showToast({
+            title: "Session Expired",
+            message: "Your workout is preserved offline. Please log in again to sync.",
+            type: "info"
+          });
+          await logout();
+        }
       }
-
-      if (!response.ok) {
-        throw new Error(`HTTP error ${response.status}`);
-      }
-    } catch (err) {
-      if (userId) {
-        await queueExerciseForSync(userId, payload);
-      }
-    }
+    });
     
     return payload; 
   };
@@ -223,11 +198,9 @@ export default function ExerciseDetailsScreen() {
   };
 
   // Called when user selects "I FEEL OK" from the completion check
-  const handleConfirmFinish = async () => {
+  const handleConfirmFinish = () => {
     setShowCompletionCheck(false);
-    setIsSubmitting(true);
-    await logExerciseData("completed", sessionDurationSeconds);
-    setIsSubmitting(false);
+    logExerciseData("completed", sessionDurationSeconds);
     setWorkoutState("result");
   };
 
@@ -261,7 +234,7 @@ export default function ExerciseDetailsScreen() {
     setShowSafetyCheck(false);
   };
 
-  const handleSafetySymptoms = async () => {
+  const handleSafetySymptoms = () => {
     setShowSafetyCheck(false);
     setShowCompletionCheck(false);
     setShowShortSessionCheck(false);
@@ -270,7 +243,7 @@ export default function ExerciseDetailsScreen() {
     const elapsedSeconds = sessionStartedAt ? Math.floor((Date.now() - sessionStartedAt) / 1000) : 0;
 
     // Save the exercise independently (with built-in offline fallback)
-    await logExerciseData("incomplete_due_to_symptoms", elapsedSeconds);
+    logExerciseData("incomplete_due_to_symptoms", elapsedSeconds);
 
     // Navigate to log-symptoms with only the context flag — no payload passing
     router.push(`/(home)/(health)/log-symptoms?triggered_by_exercise_id=post-workout`);
@@ -371,7 +344,7 @@ export default function ExerciseDetailsScreen() {
         onSafe={handleSafetySafe}
         onSymptoms={handleSafetySymptoms}
         onBack={() => setShowSafetyCheck(false)}
-        isSubmitting={isSubmitting}
+        isSubmitting={logExerciseMutation.isPending}
       />
 
       {/* Stop Check Sheet */}
