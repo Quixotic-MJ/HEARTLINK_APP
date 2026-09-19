@@ -90,16 +90,14 @@ export default function SearchMealScreen() {
           
           let recoIds = new Set();
           // 1. Fetch tailored recommendations
-          const dashRes = await fetch(`${base_url}/api/dashboard/me`, {
+          const recoRes = await fetch(`${base_url}/api/meals/recommendations/me`, {
             headers: { Authorization: `Bearer ${token || ""}` },
             signal: controller.signal
           });
           
-          if (dashRes.ok) {
-            const data = await dashRes.json();
-            const recommendations = data.recommendations || [];
+          if (recoRes.ok) {
+            const recommendations = await recoRes.json();
             const formatted = recommendations
-              .filter((item: any) => item.type === 'recipe')
               .map((item: any) => {
                 recoIds.add(item.id);
                 return { ...item, type: 'recipe', isRecommended: true };

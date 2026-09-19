@@ -9,6 +9,21 @@ router = APIRouter(prefix="/api/meals", tags=["Meals"])
 def search(q: str = Query("")):
     return search_meals(q)
 
+@router.get("/recommendations/me", response_model=List[Dict[str, Any]])
+def get_meal_recos(current_user: dict = Depends(get_current_user)):
+    user_id = current_user.get("user_id")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    from app.services.dashboard import get_dashboard_data
+    try:
+        dash_data = get_dashboard_data(user_id, recipe_limit=15, exercise_limit=0)
+        # Return only the recipes from the tailored dashboard recommendations
+        return [r for r in dash_data.get("recommendations", []) if r.get("type") == "recipe"]
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"Failed to fetch meal recommendations: {e}")
+        return []
+
 @router.get("/{user_id}", response_model=List[Dict[str, Any]])
 def read_meal_logs(user_id: str, current_user: dict = Depends(get_current_user)):
     verify_user_access(current_user, user_id)

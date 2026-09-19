@@ -82,27 +82,39 @@ export function useLogExercise(userId: string | null | undefined, token: string 
       });
 
       const isOffline = netInfo.isConnected === false || netInfo.isInternetReachable === false;
+
+      // Calculate running total for data-aware feedback
+      let runningTotal = newExercise.duration_minutes;
+      if (previousDashboard) {
+        const prevData = previousDashboard as any;
+        const prevTotal = prevData.today_activity?.total_exercise_minutes || 0;
+        runningTotal = prevTotal + newExercise.duration_minutes;
+      }
       
       if (isOffline) {
         showToast({
-          title: "Saved Offline",
-          message: `${newExercise.routine_name} (${newExercise.duration_minutes} min) saved on this device. I'll sync it when you're back online.`,
+          ...postLogAck(
+            "exercise",
+            `${newExercise.routine_name} — ${newExercise.duration_minutes} min saved offline. You're at ${runningTotal} min of activity today.`
+          ),
           type: "info",
+          duration: 5500,
         });
       } else {
         showToast({
           ...postLogAck(
             "exercise",
-            `${newExercise.routine_name} (${newExercise.duration_minutes} min)`
+            `${newExercise.routine_name} — ${newExercise.duration_minutes} min logged. You're at ${runningTotal} min of activity today.`
           ),
           type: "success",
+          duration: 5500,
         });
       }
 
-      return { previousDashboard };
+      return { previousDashboard, offlineToastShown: isOffline };
     },
     onError: (err: any, newExercise, context) => {
-      const isQueued = err.status === 401 || err.status >= 500 || err.isNetworkError;
+      const isQueued = err.status >= 500 || err.isNetworkError;
 
       if (!isQueued && context?.previousDashboard) {
         queryClient.setQueryData(['dashboard', userId], context.previousDashboard);
@@ -114,7 +126,8 @@ export function useLogExercise(userId: string | null | undefined, token: string 
             queueExerciseForSync(userId, newExercise);
           });
         }
-        if (err.status !== 401) {
+        // Only show the offline toast if onMutate didn't already show one
+        if (err.status !== 401 && !context?.offlineToastShown) {
           showToast({
             title: "Saved offline",
             message: "Network unstable. Your activity was saved offline.",
@@ -130,7 +143,7 @@ export function useLogExercise(userId: string | null | undefined, token: string 
       }
     },
     onSettled: (data, err: any) => {
-      const isQueued = err && (err.status === 401 || err.status >= 500 || err.isNetworkError);
+      const isQueued = err && (err.status >= 500 || err.isNetworkError);
       if (!isQueued) {
         queryClient.invalidateQueries({ queryKey: ['dashboard', userId] });
       }

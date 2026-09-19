@@ -368,7 +368,7 @@ export default function TrendsTabScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-[#F8FAF9] dark:bg-[#0B131E]" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-surface-background" edges={["top"]}>
       <StatusBar style={isDark ? "light" : "dark"} />
       <Header />
 
@@ -456,7 +456,7 @@ export default function TrendsTabScreen() {
         )}
 
         {/* ── Time Interval Segmented Control ── */}
-        <View className="flex-row p-1 bg-[#EDF1EF] dark:bg-[#121D2B] rounded-2xl border border-[#DCE3DF] dark:border-slate-800/80 mb-5">
+        <View className="flex-row p-1 bg-surface-card rounded-2xl border-0 mb-5 shadow-sm shadow-slate-200/50 dark:shadow-none">
           {([7, 14, 30] as const).map((days) => {
             const isActive = intervalDays === days;
             return (
@@ -505,7 +505,7 @@ export default function TrendsTabScreen() {
         ) : (
           <>
             {/* ── 1. Primary Hero Stability Progression Card ── */}
-            <View className="bg-white dark:bg-[#121D2B] rounded-[28px] p-5 border border-[#DCE3DF] dark:border-slate-800/80 mb-4 shadow-sm shadow-slate-200/50">
+            <View className="bg-surface-card rounded-3xl p-5 border-0 mb-4 shadow-sm shadow-slate-200/50 dark:shadow-none">
               
               {/* Card Header: Score, Status Pill & Target */}
               <View className="flex-row items-start justify-between mb-4">
@@ -539,7 +539,7 @@ export default function TrendsTabScreen() {
 
               {/* Dynamic Interactive Tooltip (Active Bar Inspection) */}
               {recentPoints.length > 0 && activeInspectPoint && (
-                <View className="flex-row items-center justify-between px-3 py-2 rounded-xl bg-[#F8FAF9] dark:bg-[#0B131E] border border-[#DCE3DF] dark:border-slate-800 mb-3">
+                <View className="flex-row items-center justify-between px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800/50 border-0 mb-3">
                   <View className="flex-row items-center gap-1.5">
                     <Feather name="calendar" size={12} color="#5C6B66" />
                     <Text className="text-[11px] font-bold text-[#152131] dark:text-white">
@@ -691,7 +691,7 @@ export default function TrendsTabScreen() {
             {/* ── 2. Secondary Telemetry Glance Metrics (2-Column Grid) ── */}
             <View className="flex-row gap-3 mb-4">
               {/* Window Average Stability Tile */}
-              <View className="flex-1 bg-white dark:bg-[#121D2B] p-4 rounded-2xl border border-[#DCE3DF] dark:border-slate-800/80">
+              <View className="flex-1 bg-surface-card p-4 rounded-3xl border-0 shadow-sm shadow-slate-200/50 dark:shadow-none">
                 <Text className="text-[11px] font-bold text-[#5C6B66] dark:text-slate-400 uppercase tracking-wider mb-1">
                   {intervalDays}D Mean HSS
                 </Text>
@@ -707,7 +707,7 @@ export default function TrendsTabScreen() {
               </View>
 
               {/* Consistency Check-in Rate Tile */}
-              <View className="flex-1 bg-white dark:bg-[#121D2B] p-4 rounded-2xl border border-[#DCE3DF] dark:border-slate-800/80">
+              <View className="flex-1 bg-surface-card p-4 rounded-3xl border-0 shadow-sm shadow-slate-200/50 dark:shadow-none">
                 <Text className="text-[11px] font-bold text-[#5C6B66] dark:text-slate-400 uppercase tracking-wider mb-1">
                   Consistency
                 </Text>
@@ -727,7 +727,7 @@ export default function TrendsTabScreen() {
 
             {/* ── 3. Smart Clinical Progress Insight Card ── */}
             <View
-              className="p-4 rounded-2xl border mb-4"
+              className="p-4 rounded-3xl border-0 mb-4 shadow-sm shadow-slate-200/50 dark:shadow-none"
               style={{
                 backgroundColor: isCritical
                   ? isDark
@@ -736,11 +736,7 @@ export default function TrendsTabScreen() {
                   : isDark
                   ? "#121D2B"
                   : "#FFFFFF",
-                borderColor: isCritical
-                  ? "#C0502E"
-                  : isDark
-                  ? "rgba(30, 41, 59, 0.8)"
-                  : "#DCE3DF",
+                borderColor: "transparent",
               }}
             >
               <View className="flex-row items-center gap-2 mb-2">
@@ -788,7 +784,7 @@ export default function TrendsTabScreen() {
             <View className="flex-row gap-3 mb-4">
               <TactileCard
                 onPress={() => router.push("/(home)/(meals)/food-diary" as any)}
-                className="flex-1 bg-white dark:bg-[#121D2B] p-4 rounded-2xl border border-[#DCE3DF] dark:border-slate-800/80"
+                className="flex-1 bg-surface-card p-4 rounded-3xl border-0 shadow-sm shadow-slate-200/50 dark:shadow-none"
               >
                 <View className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 items-center justify-center mb-2.5">
                   <MaterialCommunityIcons name="silverware-fork-knife" size={17} color="#1B6E63" />
@@ -799,7 +795,7 @@ export default function TrendsTabScreen() {
 
               <TactileCard
                 onPress={() => router.push("/(home)/(health)/exercise-diary" as any)}
-                className="flex-1 bg-white dark:bg-[#121D2B] p-4 rounded-2xl border border-[#DCE3DF] dark:border-slate-800/80"
+                className="flex-1 bg-surface-card p-4 rounded-3xl border-0 shadow-sm shadow-slate-200/50 dark:shadow-none"
               >
                 <View className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-950/40 items-center justify-center mb-2.5">
                   <Feather name="activity" size={17} color="#4A6080" />
@@ -812,7 +808,7 @@ export default function TrendsTabScreen() {
             {/* ── 5. Long-Term Heatmap Gateway Link ── */}
             <TactileCard
               onPress={() => router.push("/(home)/(profile)/analytics" as any)}
-              className="bg-white dark:bg-[#121D2B] p-4 rounded-2xl border border-[#DCE3DF] dark:border-slate-800/80 mb-4 flex-row items-center justify-between"
+              className="bg-surface-card p-4 rounded-3xl border-0 mb-4 flex-row items-center justify-between shadow-sm shadow-slate-200/50 dark:shadow-none"
             >
               <View className="flex-row items-center gap-3">
                 <View className="w-9 h-9 rounded-xl bg-purple-50 dark:bg-purple-950/40 items-center justify-center">
@@ -832,7 +828,7 @@ export default function TrendsTabScreen() {
 
             {/* ── 6. Doctor Consultation or Critical Escalation Banner ── */}
             <View
-              className="p-4 rounded-2xl border"
+              className="p-4 rounded-3xl border-0 shadow-sm shadow-slate-200/50 dark:shadow-none"
               style={{
                 backgroundColor: isCritical
                   ? isDark
@@ -841,11 +837,7 @@ export default function TrendsTabScreen() {
                   : isDark
                   ? "#1A2634"
                   : "#EDF1EF",
-                borderColor: isCritical
-                  ? "#C0502E"
-                  : isDark
-                  ? "rgba(30, 41, 59, 0.8)"
-                  : "#DCE3DF",
+                borderColor: "transparent",
               }}
             >
               <View className="flex-row items-center justify-between">

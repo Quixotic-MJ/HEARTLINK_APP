@@ -180,8 +180,8 @@ def _generate_insight(user_hss: list, latest_log: dict | None, first_name: str |
     if groq_api_key and first_name:
         try:
             import groq
-            # Strict 1.5s timeout to ensure dashboard never hangs
-            client = groq.Groq(api_key=groq_api_key, timeout=1.5)
+            # Increased timeout to 4.0s to accommodate the larger 120b model
+            client = groq.Groq(api_key=groq_api_key, timeout=4.0)
             
             factors = user_hss[0].get("contributing_factors", {})
             context_str = ""
@@ -221,7 +221,7 @@ def _generate_insight(user_hss: list, latest_log: dict | None, first_name: str |
                         "content": prompt,
                     }
                 ],
-                model="openai/gpt-oss-120b",
+                model="qwen/qwen3.8-27b",
                 temperature=0.7,
                 max_tokens=60,
             )

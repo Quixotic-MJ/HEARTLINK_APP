@@ -75,9 +75,9 @@ export function QuickLogModal({ visible, onClose }: QuickLogModalProps) {
       onError: async (error: any) => {
         if (error.status === 401) {
           await logout();
-        } else {
-          setErrorMsg(error.message || "Could not save activity log.");
         }
+        // Non-401 errors are handled by useLogExercise's global error toast.
+        // Do NOT call setErrorMsg here — the modal is already unmounted.
       }
     });
 

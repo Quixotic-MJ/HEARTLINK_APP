@@ -78,13 +78,11 @@ function MissionCard({
         {/* Middle Content */}
         <View className="flex-1 justify-center">
           <Text
-            numberOfLines={1}
             className="text-[16px] font-bold text-slate-900 dark:text-slate-50 mb-1"
           >
             {item.title}
           </Text>
           <Text
-            numberOfLines={1}
             className="text-[13px] font-medium text-slate-500 dark:text-slate-400"
           >
             {item.subtitle}

@@ -117,7 +117,7 @@ export function useLogMeal(userId: string | null | undefined, token: string | nu
     },
     // If the mutation fails, use the context returned from onMutate to roll back
     onError: (err: any, newMeal, context) => {
-      const isQueued = err.status === 401 || err.status >= 500 || err.isNetworkError;
+      const isQueued = err.status >= 500 || err.isNetworkError;
 
       if (!isQueued && context?.previousDashboard) {
         queryClient.setQueryData(['dashboard', userId], context.previousDashboard);
@@ -146,7 +146,7 @@ export function useLogMeal(userId: string | null | undefined, token: string | nu
     },
     // Always refetch after error or success to make sure we're in sync
     onSettled: (data, err: any) => {
-      const isQueued = err && (err.status === 401 || err.status >= 500 || err.isNetworkError);
+      const isQueued = err && (err.status >= 500 || err.isNetworkError);
       if (!isQueued) {
         queryClient.invalidateQueries({ queryKey: ['dashboard', userId] });
       }

@@ -18,7 +18,7 @@ import * as Haptics from "expo-haptics";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useUser } from "../../contexts/UserContext";
 import { useToast } from "../../contexts/ToastContext";
-import { queueMealForSync } from "../../services/SyncService";
+import { useLogMeal } from "../../hooks/useLogMeal";
 
 /**
  * RecommendationModal — pure React Native port of the ExpandableProfileCard
@@ -60,12 +60,16 @@ const FALLBACK_RECIPE_IMG =
 export function RecommendationModal({
   visible,
   rec,
+  budgetLimit,
+  currentSodium,
   onClose,
   onLogged,
   onOpenFull,
 }: {
   visible: boolean;
   rec: ActiveRec | null;
+  budgetLimit?: number;
+  currentSodium?: number;
   onClose: () => void;
   onLogged: () => void;
   onOpenFull: (rec: ActiveRec) => void;
@@ -78,7 +82,10 @@ export function RecommendationModal({
   const [detail, setDetail] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [servings, setServings] = useState(1);
-  const [isLogging, setIsLogging] = useState(false);
+  const [fetchError, setFetchError] = useState(false);
+  const lastRecIdRef = useRef<string | null>(null);
+
+  const logMealMutation = useLogMeal(userId, token);
 
   // Panel motion uses RN Animated (Reanimated entering animations swallow
   // touches inside RN Modals on Android, which deadened the X button).
@@ -146,102 +153,88 @@ export function RecommendationModal({
   };
 
   // Fetch the same detail endpoints as the full screens.
+  const fetchDetail = useCallback(async (targetRec: ActiveRec) => {
+    setIsLoading(true);
+    setFetchError(false);
+    try {
+      const storedToken = await AsyncStorage.getItem("access_token");
+      const effectiveToken = token || storedToken || "";
+      const headers: Record<string, string> = {};
+      if (effectiveToken) headers["Authorization"] = `Bearer ${effectiveToken}`;
+
+      if (targetRec.type === "recipe") {
+        const res = await fetch(`${base_url}/api/recipes/${targetRec.id}`, { headers });
+        if (!res.ok) throw new Error("Failed to fetch recipe");
+        const data = await res.json();
+        setDetail({
+          image: data.image_url || FALLBACK_RECIPE_IMG,
+          sodium: data.sodium_mg || 0,
+          calories: data.calories || 0,
+          heartBenefit: data.heart_benefit || "",
+          servings: data.servings || 1,
+          ingredients: Array.isArray(data.ingredients)
+            ? data.ingredients.map((ing: any) =>
+                typeof ing === "string" ? ing : ing.name || ""
+              )
+            : [],
+          stepsCount: Array.isArray(data.steps) ? data.steps.length : 0,
+        });
+      } else {
+        const res = await fetch(`${base_url}/api/exercises/${targetRec.id}`, { headers });
+        if (!res.ok) throw new Error("Failed to fetch routine");
+        const data = await res.json();
+        setDetail({
+          image: resolveMediaUrl(data.media_url || ""),
+          duration: data.duration_minutes || 0,
+          type: data.type || "Light Cardio",
+          intensity: data.intensity || "Low",
+          goal: data.goal || data.description || "",
+          stepsCount: Array.isArray(data.steps) ? data.steps.length : 0,
+        });
+      }
+    } catch {
+      setFetchError(true);
+      showToast({ title: "Couldn't load details", message: "Check your connection and try again.", type: "error" });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [token, showToast]);
+
   useEffect(() => {
     if (!visible || !rec) return;
-    let cancelled = false;
-    setDetail(null);
-    setServings(1);
 
-    (async () => {
-      setIsLoading(true);
-      try {
-        const storedToken = await AsyncStorage.getItem("access_token");
-        const effectiveToken = token || storedToken || "";
-        const headers: Record<string, string> = {};
-        if (effectiveToken) headers["Authorization"] = `Bearer ${effectiveToken}`;
+    // Only clear detail + servings if this is a different card than before
+    if (lastRecIdRef.current !== rec.id) {
+      setDetail(null);
+      setServings(1);
+      lastRecIdRef.current = rec.id;
+    }
 
-        if (rec.type === "recipe") {
-          const res = await fetch(`${base_url}/api/recipes/${rec.id}`, { headers });
-          if (!res.ok) throw new Error("Failed to fetch recipe");
-          const data = await res.json();
-          if (!cancelled) {
-            setDetail({
-              image: data.image_url || FALLBACK_RECIPE_IMG,
-              sodium: data.sodium_mg || 0,
-              calories: data.calories || 0,
-              heartBenefit: data.heart_benefit || "",
-              servings: data.servings || 1,
-              ingredients: Array.isArray(data.ingredients)
-                ? data.ingredients.map((ing: any) =>
-                    typeof ing === "string" ? ing : ing.name || ""
-                  )
-                : [],
-              stepsCount: Array.isArray(data.steps) ? data.steps.length : 0,
-            });
-          }
-        } else {
-          const res = await fetch(`${base_url}/api/exercises/${rec.id}`, { headers });
-          if (!res.ok) throw new Error("Failed to fetch routine");
-          const data = await res.json();
-          if (!cancelled) {
-            setDetail({
-              image: resolveMediaUrl(data.media_url || ""),
-              duration: data.duration_minutes || 0,
-              type: data.type || "Light Cardio",
-              intensity: data.intensity || "Low",
-              goal: data.goal || data.description || "",
-              stepsCount: Array.isArray(data.steps) ? data.steps.length : 0,
-            });
-          }
-        }
-      } catch {
-        if (!cancelled) {
-          showToast({ title: "Couldn't load details", message: "Check your connection and try again.", type: "error" });
-        }
-      } finally {
-        if (!cancelled) setIsLoading(false);
-      }
-    })();
+    fetchDetail(rec);
+  }, [visible, rec, fetchDetail]);
 
-    return () => {
-      cancelled = true;
-    };
-  }, [visible, rec, token]);
-
-  const handleLogRecipe = async () => {
+  const handleLogRecipe = () => {
     if (!rec || !detail) return;
     if (!userId) {
       showToast({ title: "Not signed in", message: "Please sign in to log meals.", type: "error" });
       return;
     }
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    setIsLogging(true);
-    const payload = {
+
+    logMealMutation.mutate({
       recipe_id: rec.id,
       meal_name: rec.title,
       portion: servings,
       calories: Math.round((detail.calories || 0) * servings),
       sodium_mg: Math.round((detail.sodium || 0) * servings),
-    };
-    try {
-      const res = await fetch(`${base_url}/api/meals/${userId}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token || ""}`,
-        },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) throw new Error("Failed to log meal");
-      showToast({ title: "Meal logged!", message: "Your nutrition budget has been updated.", type: "success" });
-      animateOut(onLogged);
-    } catch {
-      await queueMealForSync(userId, payload);
-      showToast({ title: "Saved offline", message: "Meal will sync when you reconnect.", type: "info" });
-      animateOut(onLogged);
-    } finally {
-      setIsLogging(false);
-    }
+      saturated_fat_g: 0,
+      fiber_g: 0,
+      image_url: detail.image || null,
+      source: "recommendation",
+    });
+
+    // Close immediately for optimistic UI
+    animateOut(onLogged);
   };
 
   if (!rec) return null;
@@ -390,6 +383,31 @@ export function RecommendationModal({
                 <View style={{ paddingVertical: 24, alignItems: "center" }}>
                   <ActivityIndicator size="small" color="#E8532E" />
                 </View>
+              ) : fetchError && !detail ? (
+                <View style={{ paddingVertical: 24, alignItems: "center", gap: 12 }}>
+                  <Feather name="wifi-off" size={28} color={isDark ? "#64748b" : "#94a3b8"} />
+                  <Text style={{ fontSize: 13, color: isDark ? "#94a3b8" : "#64748b", textAlign: "center" }}>
+                    Couldn't load details.
+                  </Text>
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={() => rec && fetchDetail(rec)}
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 6,
+                      borderRadius: 10,
+                      paddingVertical: 8,
+                      paddingHorizontal: 16,
+                      backgroundColor: isDark ? "#1E293B" : "#EDF1EF",
+                    }}
+                  >
+                    <Feather name="refresh-cw" size={13} color={isDark ? "#cbd5e1" : "#475569"} />
+                    <Text style={{ fontSize: 13, fontWeight: "600", color: isDark ? "#cbd5e1" : "#475569" }}>
+                      Retry
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               ) : detail ? (
                 <View style={{ marginTop: 14, gap: 10 }}>
                   {isRecipe ? (
@@ -431,6 +449,27 @@ export function RecommendationModal({
                         </Text>
                       )}
 
+                      {/* Budget Warning UI */}
+                      {budgetLimit !== undefined && currentSodium !== undefined && (
+                        (() => {
+                          const projectedSodium = Math.round(detail.sodium * servings) + currentSodium;
+                          const isOver = projectedSodium > budgetLimit;
+                          const overAmount = projectedSodium - budgetLimit;
+                          
+                          if (isOver) {
+                            return (
+                              <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: isDark ? "#450a0a" : "#FEF2F2", padding: 10, borderRadius: 8, marginTop: 4 }}>
+                                <Feather name="alert-triangle" size={16} color="#DC2626" />
+                                <Text style={{ marginLeft: 8, fontSize: 13, color: isDark ? "#fca5a5" : "#991B1B", fontWeight: "500", flex: 1 }}>
+                                  Logging this meal will put you {overAmount}mg over your daily sodium limit.
+                                </Text>
+                              </View>
+                            );
+                          }
+                          return null;
+                        })()
+                      )}
+
                       {detail.ingredients?.length > 0 && (
                         <View>
                           <Text style={{ fontSize: 13, fontWeight: "700", color: isDark ? "#fff" : "#152131", marginBottom: 6 }}>
@@ -444,6 +483,11 @@ export function RecommendationModal({
                               </Text>
                             </View>
                           ))}
+                          {servings > 1 && (
+                            <Text style={{ fontSize: 11, fontStyle: "italic", color: isDark ? "#64748b" : "#94a3b8", marginTop: 4 }}>
+                              Ingredients shown for 1 serving
+                            </Text>
+                          )}
                         </View>
                       )}
 
@@ -489,7 +533,7 @@ export function RecommendationModal({
                           { icon: "list", label: `${detail.stepsCount} steps` },
                         ].map((chip) => (
                           <View
-                            key={chip.label}
+                            key={chip.icon}
                             style={{
                               flexDirection: "row",
                               alignItems: "center",
@@ -524,7 +568,7 @@ export function RecommendationModal({
               <View style={{ marginTop: 18, gap: 10 }}>
                 <TouchableOpacity
                   activeOpacity={0.85}
-                  disabled={isLogging || (isRecipe && !detail)}
+                  disabled={logMealMutation.isPending || (isRecipe && !detail)}
                   onPress={() => {
                     if (isRecipe) {
                       handleLogRecipe();
@@ -541,12 +585,12 @@ export function RecommendationModal({
                     justifyContent: "center",
                     gap: 8,
                     backgroundColor: isRecipe ? "#1B6E63" : "#4A6080",
-                    opacity: isLogging || (isRecipe && !detail) ? 0.7 : 1,
+                    opacity: logMealMutation.isPending || (isRecipe && !detail) ? 0.7 : 1,
                   }}
                 >
                   <Feather name={isRecipe ? "check" : "play"} size={15} color="#fff" />
                   <Text style={{ fontSize: 14, fontWeight: "700", color: "#fff" }}>
-                    {isLogging ? "Saving…" : isRecipe ? "Log This Recipe" : "Do This Exercise"}
+                    {logMealMutation.isPending ? "Saving…" : isRecipe ? "Log This Recipe" : "Do This Exercise"}
                   </Text>
                 </TouchableOpacity>
 
