@@ -221,7 +221,7 @@ def _generate_insight(user_hss: list, latest_log: dict | None, first_name: str |
                         "content": prompt,
                     }
                 ],
-                model="openai/gpt-oss-20b",
+                model="openai/gpt-oss-120b",
                 temperature=0.7,
                 max_tokens=60,
             )
