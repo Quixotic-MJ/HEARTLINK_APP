@@ -189,6 +189,14 @@ export default function DashboardScreen() {
     enabled: !!userId,
   });
 
+  useFocusEffect(
+    useCallback(() => {
+      if (userId) {
+        refetch();
+      }
+    }, [userId, refetch])
+  );
+
   const refreshError = isRefetchError; // Map React Query state to existing logic
   const netInfo = useNetInfo();
   const isOffline = netInfo.isConnected === false || netInfo.isInternetReachable === false;
@@ -732,7 +740,7 @@ export default function DashboardScreen() {
           className="bg-surface-card rounded-3xl p-5 items-center shadow-sm shadow-slate-200/50 dark:shadow-none"
         >
           {/* Header Row: Status badge + Distinct Info Button */}
-          <View className="flex-row items-center justify-center gap-2 mb-2">
+          <View className="flex-row items-center justify-center gap-2">
             <TouchableOpacity
               onPress={() => {
                 Haptics.selectionAsync();
@@ -804,6 +812,7 @@ export default function DashboardScreen() {
                 diastolic={latestDbp}
                 bpm={latestBpm}
                 streakDays={streakDays}
+                trend={data?.latest_vitals?.trend}
               />
             </Animated.View>
           </View>
@@ -932,7 +941,7 @@ export default function DashboardScreen() {
                 >
                   {data?.recommendations?.map((r: any, idx: number) => (
                     <RecommendationCard
-                      key={idx}
+                      key={`${r.type}-${r.id}`}
                       index={idx}
                       tag={r.tag}
                       title={r.title}
@@ -964,6 +973,8 @@ export default function DashboardScreen() {
             <RecommendationModal
               visible={activeRec !== null}
               rec={activeRec}
+              budgetLimit={data?.nutrition_budget?.sodium?.limit_mg}
+              currentSodium={data?.nutrition_budget?.sodium?.consumed_mg}
               onClose={() => setActiveRec(null)}
               onLogged={handleRecLogged}
               onOpenFull={handleRecOpenFull}
@@ -974,6 +985,7 @@ export default function DashboardScreen() {
               score={hssScore}
               tierLabel={theme.label}
               hasLoggedData={hasHssScore}
+              factors={data?.hss_factors}
               onClose={() => setScoreModalVisible(false)}
               onNavigateToLogging={() => {
                 setScoreModalVisible(false);

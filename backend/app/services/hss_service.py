@@ -72,16 +72,11 @@ def compute_vitals_hss(
     systolic: int,
     diastolic: int,
     heart_rate: int = None,
+    context: str = None
 ) -> Tuple[int, str, float]:
     """
     Computes real-time Cardiovascular Health Stability Score (1-100) from logged vitals.
-    Aligned with AHA/ACC 2017 & ESC 2024 hemodynamic guidelines:
-    - Hypertensive Crisis (SBP >= 180 or DBP >= 120): Critical tier (15-35)
-    - Acute Hypotension (SBP < 90 or DBP < 60): Critical tier (25-45)
-    - Stage 2 Hypertension (SBP >= 140 or DBP >= 90): Elevated Risk tier (45-59)
-    - Stage 1 Hypertension (SBP >= 130 or DBP >= 80): Moderate tier (60-74)
-    - Elevated Blood Pressure (SBP >= 120 and DBP < 80): Moderate/Borderline (75-79)
-    - Normal / Optimal Stability (SBP < 120 and DBP < 80): Stable tier (85-95)
+    Aligned with AHA/ACC 2017 & ESC 2024 hemodynamic guidelines.
     """
     if systolic >= 180 or diastolic >= 120:
         score = 25
@@ -98,10 +93,20 @@ def compute_vitals_hss(
 
     # Adjust for tachycardia or severe bradycardia if heart rate is provided
     if heart_rate is not None and isinstance(heart_rate, (int, float)):
-        if heart_rate > 110 or heart_rate < 50:
-            score -= 8
-        elif heart_rate > 100:
-            score -= 4
+        # Waive high heart rate penalty if context is after exercise
+        if context == "after_exercise" and heart_rate > 100:
+            pass # Healthy cardiovascular response to exercise
+        else:
+            if heart_rate > 110 or heart_rate < 50:
+                score -= 8
+            elif heart_rate > 100:
+                score -= 4
+
+    # Pulse Pressure Anomaly Penalty
+    if isinstance(systolic, (int, float)) and isinstance(diastolic, (int, float)):
+        pulse_pressure = systolic - diastolic
+        if pulse_pressure > 60 or pulse_pressure < 25:
+            score -= 5
 
     score = max(1, min(100, score))
     tier = determine_tier(score)
@@ -112,70 +117,156 @@ def compute_vitals_hss(
 def compute_lifestyle_composite_hss(user_id: str, trigger: str = "lifestyle_event"):
     """
     Dynamically recalculates Cardiovascular Health Stability Score (1-100)
-    incorporating real-time daily lifestyle telemetry (meals, sodium load, exercise duration).
-    (HL-ENG-18)
+    incorporating real-time daily lifestyle telemetry with itemized scoring.
     """
-    from datetime import datetime
-    from app.db.repositories import get_hss_repo, get_baseline_repo
-    from app.services.dashboard import _get_today_activity
+    from datetime import datetime, timedelta
+    from app.db.repositories import get_hss_repo, get_baseline_repo, get_meals_repo, get_exercises_repo, get_sleep_repo
+    from app.services.health_logs import get_health_logs
+    from app.services.dashboard import _safe_date, _calculate_streak_data
 
     hss_repo = get_hss_repo()
     history = hss_repo.list_hss_history(user_id)
     
-    # 1. Base score from most recent vitals telemetry or baseline onboarding (HL-ENG-25)
+    # 1. Base score from most recent vitals telemetry or baseline onboarding
     base_score = 75
+    last_vital_date = None
     if history and len(history) > 0:
         base_record = next((h for h in history if h.get("contributing_factors", {}).get("source") != "lifestyle_composite"), None)
         base_score = int(base_record.get("score") or 75) if base_record else 75
+        if base_record:
+            try:
+                last_vital_date = datetime.fromisoformat(base_record.get("computed_at")).date()
+            except:
+                pass
 
-    # 2. Get today's lifestyle activity
-    activity = _get_today_activity(user_id)
-    total_sodium = activity.get("total_sodium_mg", 0)
-    total_exercise_min = activity.get("total_exercise_minutes", 0)
+    today = datetime.utcnow().date()
+    
+    # Fetch today's raw logs
+    meal_logs = get_meals_repo().list_user_meals(user_id)
+    exercise_logs = get_exercises_repo().list_user_logs(user_id)
+    sleep_logs = get_sleep_repo().list_user_logs(user_id)
+    health_logs = get_health_logs(user_id)
 
-    # 3. Get user thresholds / limits
-    baseline_repo = get_baseline_repo()
-    thresholds = baseline_repo.get_thresholds(user_id)
-    sodium_limit = thresholds.get("sodium_limit_mg", 2000) if thresholds else 2000
-    if not sodium_limit or sodium_limit <= 0:
-        sodium_limit = 2000
+    meals_today = [m for m in meal_logs if _safe_date(m.get("logged_at")) == today and m.get("deleted_at") is None]
+    exercises_today = [e for e in exercise_logs if _safe_date(e.get("logged_at")) == today and e.get("deleted_at") is None and e.get("status", "completed") != "abandoned"]
+    sleeps_today = [s for s in sleep_logs if _safe_date(s.get("logged_at")) == today and s.get("deleted_at") is None and not s.get("is_deleted", False)]
+    vitals_today = [l for l in health_logs if _safe_date(l.get("logged_at")) == today]
 
-    # 4. Calculate habit deltas
-    sodium_penalty = 0
-    if total_sodium > sodium_limit:
-        excess = total_sodium - sodium_limit
-        sodium_penalty = min(15, int(excess // 200) + 1)
+    # Initialize points
+    lifestyle_points = 0
+    factors = {"source": "lifestyle_composite", "trigger": trigger}
 
-    exercise_bonus = 0
-    if total_exercise_min >= 30:
-        exercise_bonus = 5
-    elif total_exercise_min >= 15:
-        exercise_bonus = 3
-    elif total_exercise_min > 0:
-        exercise_bonus = 1
+    # 2. Meal Points (Itemized)
+    meal_pts = 0
+    for m in meals_today:
+        sod = m.get("sodium_mg") or 0
+        fat = m.get("saturated_fat_g") or 0
+        fib = m.get("fiber_g") or 0
+        if sod > 800: meal_pts -= 3
+        elif sod < 140: meal_pts += 2
+        
+        if fat > 5: meal_pts -= 2
+        elif fat < 1: meal_pts += 1
+        
+        if fib > 5: meal_pts += 2
+    lifestyle_points += meal_pts
+    factors["meal_points"] = meal_pts
 
-    # 5. Composite score
-    composite_score = base_score - sodium_penalty + exercise_bonus
+    # 3. Exercise Points (Itemized)
+    ex_pts = 0
+    for e in exercises_today:
+        dur = e.get("duration_minutes") or 0
+        intensity = e.get("intensity") or "light"
+        multiplier = 1
+        if intensity == "moderate": multiplier = 2
+        elif intensity in ("vigorous", "high"): multiplier = 3
+        ex_pts += int(dur // 10) * multiplier
+    lifestyle_points += ex_pts
+    factors["exercise_points"] = ex_pts
+
+    # 4. Sleep Points
+    sleep_pts = 0
+    total_sleep_hours = sum((s.get("duration_hours") or 0) for s in sleeps_today)
+    if total_sleep_hours > 0:
+        if 7 <= total_sleep_hours <= 9: sleep_pts = 3
+        elif total_sleep_hours == 6 or total_sleep_hours == 10: sleep_pts = 1
+        elif total_sleep_hours < 5 or total_sleep_hours > 11: sleep_pts = -2
+    lifestyle_points += sleep_pts
+    factors["sleep_points"] = sleep_pts
+
+    # 5. Adherence & Safety Points
+    med_pts = 0
+    if any(l.get("medication_taken") for l in vitals_today):
+        med_pts = 2
+    lifestyle_points += med_pts
+    factors["medication_points"] = med_pts
+
+    symptom_pts = 0
+    if any(any(s in l.get("symptoms", []) for s in ["Chest Discomfort / Tightness", "Shortness of Breath"]) for l in vitals_today):
+        symptom_pts = -10
+    lifestyle_points += symptom_pts
+    factors["symptom_points"] = symptom_pts
+
+    sugar_pts = 0
+    if vitals_today and vitals_today[0].get("blood_sugar"):
+        sugar = vitals_today[0].get("blood_sugar")
+        if sugar < 70 or sugar > 180:
+            sugar_pts = -3
+        else:
+            sugar_pts = 2
+    lifestyle_points += sugar_pts
+    factors["blood_sugar_points"] = sugar_pts
+
+    weight_pts = 0
+    if vitals_today and vitals_today[0].get("weight_kg"):
+        current_weight = vitals_today[0].get("weight_kg")
+        past_vitals = [l for l in health_logs if _safe_date(l.get("logged_at")) < today and l.get("weight_kg")]
+        if past_vitals:
+            past_weight = past_vitals[0].get("weight_kg")
+            if current_weight - past_weight >= 1.5:
+                weight_pts = -15
+    lifestyle_points += weight_pts
+    factors["weight_gain_points"] = weight_pts
+
+    streak_pts = 0
+    streak_data = _calculate_streak_data(meal_logs, exercise_logs, health_logs, sleep_logs)
+    streak_days = streak_data.get("current_streak", 0)
+    if streak_days > 0:
+        streak_pts = min(5, streak_days * 1)
+    lifestyle_points += streak_pts
+    factors["streak_points"] = streak_pts
+
+    # 6. Data Staleness Penalty
+    staleness_pts = 0
+    has_recent_logs = False
+    forty_eight_hours_ago = today - timedelta(days=2)
+    if last_vital_date and last_vital_date >= forty_eight_hours_ago:
+        has_recent_logs = True
+    elif any(_safe_date(m.get("logged_at")) >= forty_eight_hours_ago for m in meal_logs):
+        has_recent_logs = True
+    
+    if not has_recent_logs:
+        staleness_pts = -5
+    lifestyle_points += staleness_pts
+    factors["staleness_points"] = staleness_pts
+
+    # 7. Apply Daily Variance Cap
+    lifestyle_points = max(-20, min(20, lifestyle_points))
+    factors["total_lifestyle_adjustment"] = lifestyle_points
+
+    # 8. Composite Score
+    composite_score = base_score + lifestyle_points
     composite_score = max(1, min(100, composite_score))
     tier = determine_tier(composite_score)
     risk_prob = round((100 - composite_score) / 100.0, 3)
 
-    # 6. Persist to hss_history
+    # 9. Persist to hss_history
     record = hss_repo.create_hss_record(user_id, {
         "score": composite_score,
         "tier": tier,
         "risk_probability": risk_prob,
         "source": "telemetry",
-        "contributing_factors": {
-            "source": "lifestyle_composite",
-            "base_score": base_score,
-            "total_sodium_mg": total_sodium,
-            "sodium_limit_mg": sodium_limit,
-            "sodium_penalty": sodium_penalty,
-            "total_exercise_minutes": total_exercise_min,
-            "exercise_bonus": exercise_bonus,
-            "trigger": trigger
-        },
+        "contributing_factors": factors,
         "computed_at": datetime.utcnow().isoformat()
     })
 
