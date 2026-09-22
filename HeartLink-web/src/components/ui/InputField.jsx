@@ -25,7 +25,7 @@ export const InputField = React.forwardRef(({
           {label && (
             <label 
               htmlFor={id} 
-              className={`text-[11px] font-semibold uppercase tracking-wider ${hasError ? 'text-[#A93226]' : 'text-[#5C6B66]'}`}
+              className={`text-[11px] font-semibold uppercase tracking-wider ${hasError ? 'text-[#A93226]' : 'text-[#64748B]'}`}
             >
               {label}
             </label>
@@ -34,7 +34,7 @@ export const InputField = React.forwardRef(({
             <a 
               href={hintHref || "#"} 
               onClick={onHintClick}
-              className="text-[11px] text-[#E8532E] hover:text-[#C13E20] transition-colors cursor-pointer font-medium"
+              className="text-[11px] text-[#2E9AE8] hover:text-[#1C7AC8] transition-colors cursor-pointer font-medium"
             >
               {hint}
             </a>
@@ -45,7 +45,7 @@ export const InputField = React.forwardRef(({
       {/* Input Container */}
       <div className="relative">
         {left && (
-          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#8B9893]">
+          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#94A3B8]">
             {left}
           </div>
         )}
@@ -56,11 +56,11 @@ export const InputField = React.forwardRef(({
           type={type}
           aria-invalid={hasError}
           aria-describedby={hasError ? `${id}-error` : undefined}
-          className={`w-full bg-[#EDF1EF] border ${
+          className={`w-full bg-[#F8FAFC] border ${
             hasError 
               ? 'border-[#A93226] focus:border-[#A93226] text-[#A93226]' 
-              : 'border-[#DCE3DF] focus:border-[#152131] text-[#152131]'
-          } rounded-[8px] text-[13px] placeholder:text-[#8B9893] outline-none transition-colors ${inputClassName}`}
+              : 'border-[#E2E8F0] focus:border-[#0F172A] text-[#0F172A]'
+          } rounded-[8px] text-[13px] placeholder:text-[#94A3B8] outline-none transition-colors ${inputClassName}`}
           style={{ 
             paddingTop: 8, 
             paddingBottom: 8, 

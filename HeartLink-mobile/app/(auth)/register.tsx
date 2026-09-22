@@ -10,20 +10,19 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
-import Animated, { 
-  FadeIn, 
-  FadeInDown, 
-  useSharedValue, 
-  useAnimatedStyle, 
-  withSequence, 
-  withTiming 
+import Animated, {
+  FadeIn,
+  FadeInDown,
+  useSharedValue,
+  useAnimatedStyle,
+  withSequence,
+  withTiming
 } from "react-native-reanimated";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import "../../global.css";
 import { Feather } from "@expo/vector-icons";
-import HeartLogo from "../../components/ui/HeartLogo";
 import { InputField } from "../../components/ui/InputField";
 import { Button } from "../../components/ui/Button";
 
@@ -189,30 +188,7 @@ export default function RegisterScreen() {
       <StatusBar style="dark" />
 
       {/* ── Top Bar ── */}
-      <View className="px-5 pt-3 pb-2 flex-row items-center justify-between">
-        <TouchableOpacity
-          onPress={() => {
-            if (router.canGoBack()) {
-              router.back();
-            } else {
-              router.replace("/onboarding");
-            }
-          }}
-          className="w-10 h-10 rounded-xl bg-white border border-[#DCE3DF] items-center justify-center shadow-xs"
-          activeOpacity={0.7}
-          accessible={true}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-        >
-          <Feather name="arrow-left" size={18} color="#152131" />
-        </TouchableOpacity>
-        <View className="flex-row items-center gap-2">
-          <HeartLogo size={22} />
-          <Text className="text-base text-[#152131] font-semibold tracking-tight">
-            HeartLink
-          </Text>
-        </View>
-      </View>
+      <SimpleHeader />
 
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -239,13 +215,13 @@ export default function RegisterScreen() {
           </Animated.View>
 
           {/* ── Card ── */}
-          <Animated.View 
-            entering={FadeInDown.delay(200).springify().damping(12).stiffness(90)} 
+          <Animated.View
+            entering={FadeInDown.delay(200).springify().damping(12).stiffness(90)}
             className="bg-white rounded-2xl border border-[#DCE3DF] px-5 py-6 gap-3.5 shadow-sm"
           >
             {/* General Error Banner */}
             {generalError && (
-              <Animated.View 
+              <Animated.View
                 style={errorAnimatedStyle}
                 className="bg-[#A93226]/10 border border-[#A93226]/30 rounded-xl p-3.5 flex-row items-center gap-2.5"
                 accessible={true}
@@ -382,30 +358,30 @@ export default function RegisterScreen() {
             {/* Password Validation Hints */}
             <View className="mb-1 ml-1 pt-1 gap-2">
               <View className="flex-row items-center gap-2">
-                <Feather 
-                  name={passwordValue.length >= 8 ? "check-circle" : "circle"} 
-                  size={14} 
-                  color={passwordValue.length >= 8 ? "#1B6E63" : "#8D9B96"} 
+                <Feather
+                  name={passwordValue.length >= 8 ? "check-circle" : "circle"}
+                  size={14}
+                  color={passwordValue.length >= 8 ? "#1B6E63" : "#8D9B96"}
                 />
                 <Text className={`text-xs sm:text-[13px] ${passwordValue.length >= 8 ? "text-[#152131] font-medium" : "text-[#5C6B66]"}`}>
                   At least 8 characters
                 </Text>
               </View>
               <View className="flex-row items-center gap-2">
-                <Feather 
-                  name={/(?=.*[A-Z])/.test(passwordValue) && /(?=.*[a-z])/.test(passwordValue) ? "check-circle" : "circle"} 
-                  size={14} 
-                  color={/(?=.*[A-Z])/.test(passwordValue) && /(?=.*[a-z])/.test(passwordValue) ? "#1B6E63" : "#8D9B96"} 
+                <Feather
+                  name={/(?=.*[A-Z])/.test(passwordValue) && /(?=.*[a-z])/.test(passwordValue) ? "check-circle" : "circle"}
+                  size={14}
+                  color={/(?=.*[A-Z])/.test(passwordValue) && /(?=.*[a-z])/.test(passwordValue) ? "#1B6E63" : "#8D9B96"}
                 />
                 <Text className={`text-xs sm:text-[13px] ${/(?=.*[A-Z])/.test(passwordValue) && /(?=.*[a-z])/.test(passwordValue) ? "text-[#152131] font-medium" : "text-[#5C6B66]"}`}>
                   Uppercase &amp; lowercase letter
                 </Text>
               </View>
               <View className="flex-row items-center gap-2">
-                <Feather 
-                  name={/(?=.*\d)/.test(passwordValue) ? "check-circle" : "circle"} 
-                  size={14} 
-                  color={/(?=.*\d)/.test(passwordValue) ? "#1B6E63" : "#8D9B96"} 
+                <Feather
+                  name={/(?=.*\d)/.test(passwordValue) ? "check-circle" : "circle"}
+                  size={14}
+                  color={/(?=.*\d)/.test(passwordValue) ? "#1B6E63" : "#8D9B96"}
                 />
                 <Text className={`text-xs sm:text-[13px] ${/(?=.*\d)/.test(passwordValue) ? "text-[#152131] font-medium" : "text-[#5C6B66]"}`}>
                   At least one number

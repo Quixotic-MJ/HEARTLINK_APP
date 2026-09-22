@@ -31,7 +31,7 @@ const LogoutConfirmModal = ({ isOpen, onClose }) => {
     if (r === "super_admin") return "bg-purple-100 text-purple-700 border border-purple-200";
     if (r === "admin") return "bg-blue-100 text-blue-700 border border-blue-200";
     if (r === "medical_expert") return "bg-emerald-100 text-emerald-700 border border-emerald-200";
-    return "bg-[#EDF1EF] text-[#5C6B66] border border-[#DCE3DF]";
+    return "bg-[#F8FAFC] text-[#64748B] border border-[#E2E8F0]";
   };
 
   const handleConfirmLogout = async () => {
@@ -57,14 +57,14 @@ const LogoutConfirmModal = ({ isOpen, onClose }) => {
 
       {/* Modal Dialog */}
       <div 
-        className="relative w-full max-w-md bg-[#FFFFFF] rounded-2xl shadow-2xl border border-[#DCE3DF] overflow-hidden text-[#152131] animate-in fade-in zoom-in-95 duration-200 z-10 p-6 sm:p-7 text-center"
+        className="relative w-full max-w-md bg-[#FFFFFF] rounded-2xl shadow-2xl border border-[#E2E8F0] overflow-hidden text-[#0F172A] animate-in fade-in zoom-in-95 duration-200 z-10 p-6 sm:p-7 text-center"
         style={{ fontFamily: "'Inter', sans-serif" }}
       >
         {/* Close Button */}
         <button
           onClick={onClose}
           disabled={isLoggingOut}
-          className="absolute top-4 right-4 p-2 text-[#5C6B66] hover:text-[#152131] hover:bg-[#EDF1EF] rounded-xl transition-all cursor-pointer disabled:opacity-40"
+          className="absolute top-4 right-4 p-2 text-[#64748B] hover:text-[#0F172A] hover:bg-[#F8FAFC] rounded-xl transition-all cursor-pointer disabled:opacity-40"
           aria-label="Close modal"
         >
           <X size={16} />
@@ -76,23 +76,23 @@ const LogoutConfirmModal = ({ isOpen, onClose }) => {
         </div>
 
         <h3 
-          className="text-xl font-medium text-[#152131] tracking-tight"
+          className="text-xl font-medium text-[#0F172A] tracking-tight"
           style={{ fontFamily: "'Fraunces', serif" }}
         >
           Sign Out of HeartLink
         </h3>
-        <p className="text-xs text-[#5C6B66] mt-1.5 leading-relaxed max-w-xs mx-auto">
+        <p className="text-xs text-[#64748B] mt-1.5 leading-relaxed max-w-xs mx-auto">
           Are you sure you want to end your current session? You will be redirected to the login portal.
         </p>
 
         {/* User Session Profile Card */}
-        <div className="p-3.5 rounded-xl bg-[#EDF1EF] border border-[#DCE3DF] flex items-center gap-3 my-5 text-left">
-          <div className="w-9 h-9 rounded-full bg-[#FBEAE6] text-[#C13E20] font-bold text-xs flex items-center justify-center shrink-0">
+        <div className="p-3.5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] flex items-center gap-3 my-5 text-left">
+          <div className="w-9 h-9 rounded-full bg-[#EAF5FC] text-[#1C7AC8] font-bold text-xs flex items-center justify-center shrink-0">
             {userInitials}
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <p className="text-xs font-bold text-[#152131] truncate">
+              <p className="text-xs font-bold text-[#0F172A] truncate">
                 {userName}
               </p>
               <span
@@ -103,14 +103,14 @@ const LogoutConfirmModal = ({ isOpen, onClose }) => {
                 {getRoleLabel(role)}
               </span>
             </div>
-            <p className="text-[11px] text-[#5C6B66] truncate font-mono mt-0.5">
+            <p className="text-[11px] text-[#64748B] truncate font-mono mt-0.5">
               {user?.email || "Authenticated Staff"}
             </p>
           </div>
         </div>
 
         {/* Session Expiry Hint */}
-        <div className="flex items-center gap-2 p-2.5 rounded-lg bg-[#E3EFEC] border border-[#DCE3DF] text-[11px] text-[#1B6E63] mb-6 text-left">
+        <div className="flex items-center gap-2 p-2.5 rounded-lg bg-[#E3EFEC] border border-[#E2E8F0] text-[11px] text-[#1B6E63] mb-6 text-left">
           <Lock size={12} className="shrink-0" />
           <span>Your authentication session will be revoked upon signout.</span>
         </div>
@@ -121,7 +121,7 @@ const LogoutConfirmModal = ({ isOpen, onClose }) => {
             type="button"
             onClick={onClose}
             disabled={isLoggingOut}
-            className="w-1/2 py-2.5 px-4 rounded-lg border border-[#DCE3DF] bg-[#EDF1EF] hover:bg-[#DCE3DF] text-xs font-semibold text-[#152131] transition-colors cursor-pointer disabled:opacity-40"
+            className="w-1/2 py-2.5 px-4 rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] hover:bg-[#E2E8F0] text-xs font-semibold text-[#0F172A] transition-colors cursor-pointer disabled:opacity-40"
           >
             Cancel
           </button>

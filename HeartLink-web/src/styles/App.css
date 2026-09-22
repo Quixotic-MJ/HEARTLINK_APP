@@ -2,31 +2,49 @@
 
 /* HeartLink Clinical Design System Tokens */
 :root {
-  --ink-black: #000000;
   --ink: #0F172A;
-  --ink-soft: #475569;
+  --ink-soft: #64748B;
   --ink-faint: #94A3B8;
   --paper: #F8FAFC;
   --paper-raise: #FFFFFF;
   --line: #E2E8F0;
-  
-  --coral: #E8532E;
-  --coral-deep: #C13E20;
-  --coral-soft: #FBEAE6;
-  
-  --teal: #0F766E;
-  --teal-soft: #CCFBF1;
-  --amber: #B45309;
-  --amber-soft: #FEF3C7;
-  --red: #B91C1C;
-  --red-soft: #FEE2E2;
-  
-  --radius: 12px;
+  --coral: #2E9AE8;
+  --coral-deep: #1C7AC8;
+  --coral-soft: #EAF5FC;
+  --garnet: #8A1F1A;
+  --teal: #1B6E63;
+  --teal-soft: #E3EFEC;
+  --amber: #A9741B;
+  --amber-soft: #F6EDDD;
+  --red: #A93226;
+  --red-soft: #F7E4E1;
+  --radius: 10px;
   --font-serif: 'Fraunces', serif;
   --font-sans: 'Inter', sans-serif;
 }
 
-/* Global Shimmer Animation */
+@theme {
+  --color-ink: #0F172A;
+  --color-ink-soft: #64748B;
+  --color-ink-faint: #94A3B8;
+  --color-paper: #F8FAFC;
+  --color-paper-raise: #FFFFFF;
+  --color-line: #E2E8F0;
+  --color-coral: #2E9AE8;
+  --color-coral-deep: #1C7AC8;
+  --color-coral-soft: #EAF5FC;
+  --color-garnet: #8A1F1A;
+  --color-teal: #1B6E63;
+  --color-teal-soft: #E3EFEC;
+  --color-amber: #A9741B;
+  --color-amber-soft: #F6EDDD;
+  --color-red: #A93226;
+  --color-red-soft: #F7E4E1;
+  --font-serif: 'Fraunces', serif;
+  --font-sans: 'Inter', sans-serif;
+}
+
+/* ─── Global Shimmer Animation ─── */
 @utility animate-shimmer {
   animation: shimmer 2s infinite linear;
 }
@@ -35,20 +53,22 @@
   100% { transform: translateX(100%); }
 }
 
-/* Global Form Control Autofill Styling */
-input:-webkit-autofill, input:-webkit-autofill:hover, 
-input:-webkit-autofill:focus, input:-webkit-autofill:active {
-  -webkit-box-shadow: 0 0 0 1000px var(--paper) inset !important;
-  -webkit-text-fill-color: var(--ink) !important;
-  caret-color: var(--ink) !important;
-  font-family: var(--font-sans) !important;
-  font-size: 14px !important;
+/* ─── Global Form Control Autofill Styling ─── */
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus, 
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px #F8FAFC inset !important;
+  -webkit-text-fill-color: #0F172A !important;
+  caret-color: #0F172A !important;
+  font-family: 'Inter', sans-serif !important;
+  font-size: 13.5px !important;
   transition: background-color 5000s ease-in-out 0s;
 }
 
 input:focus:-webkit-autofill {
-  -webkit-box-shadow: 0 0 0 1000px var(--paper-raise) inset !important;
-  -webkit-text-fill-color: var(--ink) !important;
+  -webkit-box-shadow: 0 0 0 1000px #FFFFFF inset !important;
+  -webkit-text-fill-color: #0F172A !important;
 }
 
 /* Clean Native Scrollbar */
@@ -57,12 +77,12 @@ input:focus:-webkit-autofill {
   height: 6px;
 }
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
+  background: #F8FAFC;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: var(--line);
+  background: #E2E8F0;
   border-radius: 9999px;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: var(--ink-faint);
+  background: #94A3B8;
 }

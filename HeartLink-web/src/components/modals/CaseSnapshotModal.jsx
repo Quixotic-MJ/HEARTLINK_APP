@@ -19,32 +19,32 @@ const CaseSnapshotModal = ({ isOpen, onClose, snapshotData }) => {
       />
 
       {/* Modal Panel - Centered */}
-      <div className="relative w-full max-w-2xl bg-[#FFFFFF] max-h-full rounded-2xl shadow-2xl border border-[#DCE3DF] flex flex-col animate-in fade-in zoom-in-95 duration-200 overflow-hidden text-[#152131]">
+      <div className="relative w-full max-w-2xl bg-[#FFFFFF] max-h-full rounded-2xl shadow-2xl border border-[#E2E8F0] flex flex-col animate-in fade-in zoom-in-95 duration-200 overflow-hidden text-[#0F172A]">
         {/* Modal Header */}
-        <div className="flex items-center justify-between px-6 py-4.5 border-b border-[#DCE3DF] bg-[#FFFFFF] z-10">
+        <div className="flex items-center justify-between px-6 py-4.5 border-b border-[#E2E8F0] bg-[#FFFFFF] z-10">
           <div className="flex items-center gap-3.5">
-            <div className="w-10 h-10 rounded-[8px] bg-[#FBEAE6] flex items-center justify-center text-[#E8532E] border border-[#DCE3DF] shrink-0">
+            <div className="w-10 h-10 rounded-[8px] bg-[#EAF5FC] flex items-center justify-center text-[#2E9AE8] border border-[#E2E8F0] shrink-0">
               <Lock size={18} />
             </div>
             <div>
               <h3 
-                className="text-[17px] font-medium text-[#152131] flex items-center gap-2 tracking-tight"
+                className="text-[17px] font-medium text-[#0F172A] flex items-center gap-2 tracking-tight"
                 style={{ fontFamily: "'Fraunces', serif" }}
               >
                 Original Health Log Snapshot
-                <span className="text-[9.5px] px-2 py-0.5 rounded-full border border-[#DCE3DF] bg-[#EDF1EF] text-[#5C6B66] tracking-wider uppercase font-semibold">
+                <span className="text-[9.5px] px-2 py-0.5 rounded-full border border-[#E2E8F0] bg-[#F8FAFC] text-[#64748B] tracking-wider uppercase font-semibold">
                   READ-ONLY
                 </span>
               </h3>
-              <p className="text-[11px] text-[#8B9893] mt-0.5 font-mono flex items-center gap-1 font-medium">
-                <Lock size={11} className="text-[#8B9893]" /> {snapshotData.caseId} • Flagged:{" "}
+              <p className="text-[11px] text-[#94A3B8] mt-0.5 font-mono flex items-center gap-1 font-medium">
+                <Lock size={11} className="text-[#94A3B8]" /> {snapshotData.caseId} • Flagged:{" "}
                 {snapshotData.flaggedDate}
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="text-[#5C6B66] hover:text-[#152131] p-1.5 rounded-lg hover:bg-[#EDF1EF] transition-colors cursor-pointer"
+            className="text-[#64748B] hover:text-[#0F172A] p-1.5 rounded-lg hover:bg-[#F8FAFC] transition-colors cursor-pointer"
           >
             <X size={16} />
           </button>
@@ -66,31 +66,31 @@ const CaseSnapshotModal = ({ isOpen, onClose, snapshotData }) => {
           </div>
 
           {/* Panel A (Patient Context) */}
-          <div className="bg-[#EDF1EF]/50 rounded-[10px] border border-[#DCE3DF] overflow-hidden">
-            <div className="px-4 py-2.5 border-b border-[#DCE3DF] bg-[#FFFFFF]">
-              <h4 className="text-[11px] font-semibold text-[#8B9893] uppercase tracking-wider flex items-center gap-1.5">
-                <User size={12} className="text-[#E8532E]" /> User Context
+          <div className="bg-[#F8FAFC]/50 rounded-[10px] border border-[#E2E8F0] overflow-hidden">
+            <div className="px-4 py-2.5 border-b border-[#E2E8F0] bg-[#FFFFFF]">
+              <h4 className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider flex items-center gap-1.5">
+                <User size={12} className="text-[#2E9AE8]" /> User Context
               </h4>
             </div>
             <div className="p-4 space-y-4">
               <div className="grid grid-cols-2 gap-3">
-                <div className="bg-[#FFFFFF] p-3 rounded-[8px] border border-[#DCE3DF]">
-                  <p className="text-[10px] font-semibold text-[#8B9893] uppercase tracking-wider mb-1">
+                <div className="bg-[#FFFFFF] p-3 rounded-[8px] border border-[#E2E8F0]">
+                  <p className="text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wider mb-1">
                     BASELINE PROFILE
                   </p>
-                  <p className="text-[13px] font-bold text-[#152131]">
+                  <p className="text-[13px] font-bold text-[#0F172A]">
                     {snapshotData.patientContext?.age} yrs • {snapshotData.patientContext?.sex}
                   </p>
                 </div>
-                <div className="bg-[#FFFFFF] p-3 rounded-[8px] border border-[#DCE3DF]">
-                  <p className="text-[10px] font-semibold text-[#8B9893] uppercase tracking-wider mb-1">
+                <div className="bg-[#FFFFFF] p-3 rounded-[8px] border border-[#E2E8F0]">
+                  <p className="text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wider mb-1">
                     REPORTED CONDITIONS
                   </p>
                   <div className="flex flex-wrap gap-1.5 mt-0.5">
                     {snapshotData.patientContext?.conditions?.map((cond, i) => (
                       <span
                         key={i}
-                        className="text-[10.5px] font-medium text-[#152131] bg-[#EDF1EF] border border-[#DCE3DF] px-2 py-0.5 rounded-[5px]"
+                        className="text-[10.5px] font-medium text-[#0F172A] bg-[#F8FAFC] border border-[#E2E8F0] px-2 py-0.5 rounded-[5px]"
                       >
                         {cond}
                       </span>
@@ -99,38 +99,38 @@ const CaseSnapshotModal = ({ isOpen, onClose, snapshotData }) => {
                 </div>
               </div>
 
-              <div className="pt-2 border-t border-[#DCE3DF]">
-                <p className="text-[11px] font-semibold text-[#8B9893] uppercase tracking-wider mb-2.5">
+              <div className="pt-2 border-t border-[#E2E8F0]">
+                <p className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider mb-2.5">
                   Telemetry: System output vs. user action
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {/* Left Column: Algorithm Recommended */}
-                  <div className="bg-[#FFFFFF] border border-[#DCE3DF] rounded-[8px] overflow-hidden">
-                    <div className="px-3 py-1.5 border-b border-[#DCE3DF] bg-[#EDF1EF]/40">
-                      <p className="text-[10px] font-semibold text-[#5C6B66] uppercase tracking-wider">
+                  <div className="bg-[#FFFFFF] border border-[#E2E8F0] rounded-[8px] overflow-hidden">
+                    <div className="px-3 py-1.5 border-b border-[#E2E8F0] bg-[#F8FAFC]/40">
+                      <p className="text-[10px] font-semibold text-[#64748B] uppercase tracking-wider">
                         Algorithm Recommended
                       </p>
                     </div>
                     <div className="p-3 space-y-2 text-[12px]">
                       <div>
-                        <p className="text-[10px] font-semibold text-[#8B9893] uppercase tracking-wider">Target HSS Tier:</p>
-                        <p className="font-bold text-[#152131]">{snapshotData.patientContext?.telemetry?.recommended?.targetTier}</p>
+                        <p className="text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wider">Target HSS Tier:</p>
+                        <p className="font-bold text-[#0F172A]">{snapshotData.patientContext?.telemetry?.recommended?.targetTier}</p>
                       </div>
                       <div>
-                        <p className="text-[10px] font-semibold text-[#8B9893] uppercase tracking-wider">Suggested Meal:</p>
-                        <p className="font-medium text-[#5C6B66]">{snapshotData.patientContext?.telemetry?.recommended?.suggestedMeal}</p>
+                        <p className="text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wider">Suggested Meal:</p>
+                        <p className="font-medium text-[#64748B]">{snapshotData.patientContext?.telemetry?.recommended?.suggestedMeal}</p>
                       </div>
                       <div>
-                        <p className="text-[10px] font-semibold text-[#8B9893] uppercase tracking-wider">Suggested Activity:</p>
-                        <p className="font-medium text-[#5C6B66]">{snapshotData.patientContext?.telemetry?.recommended?.suggestedActivity}</p>
+                        <p className="text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wider">Suggested Activity:</p>
+                        <p className="font-medium text-[#64748B]">{snapshotData.patientContext?.telemetry?.recommended?.suggestedActivity}</p>
                       </div>
                     </div>
                   </div>
 
                   {/* Right Column: User Actually Logged */}
-                  <div className="bg-[#FFFFFF] border border-[#DCE3DF] rounded-[8px] overflow-hidden">
-                    <div className="px-3 py-1.5 border-b border-[#DCE3DF] bg-[#EDF1EF]/40 flex justify-between items-center">
-                      <p className="text-[10px] font-semibold text-[#5C6B66] uppercase tracking-wider">
+                  <div className="bg-[#FFFFFF] border border-[#E2E8F0] rounded-[8px] overflow-hidden">
+                    <div className="px-3 py-1.5 border-b border-[#E2E8F0] bg-[#F8FAFC]/40 flex justify-between items-center">
+                      <p className="text-[10px] font-semibold text-[#64748B] uppercase tracking-wider">
                         User Actually Logged
                       </p>
                       {snapshotData.patientContext?.telemetry?.actual?.conflict && (
@@ -139,18 +139,18 @@ const CaseSnapshotModal = ({ isOpen, onClose, snapshotData }) => {
                     </div>
                     <div className="p-3 space-y-2 text-[12px]">
                       <div>
-                        <p className="text-[10px] font-semibold text-[#8B9893] uppercase tracking-wider">
+                        <p className="text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wider">
                           Reported Vitals:
                         </p>
-                        <p className="font-bold text-[#152131]">{snapshotData.patientContext?.telemetry?.actual?.vitals}</p>
+                        <p className="font-bold text-[#0F172A]">{snapshotData.patientContext?.telemetry?.actual?.vitals}</p>
                       </div>
                       <div>
-                        <p className="text-[10px] font-semibold text-[#8B9893] uppercase tracking-wider">Logged Meal:</p>
-                        <p className="font-medium text-[#5C6B66]">{snapshotData.patientContext?.telemetry?.actual?.loggedMeal}</p>
+                        <p className="text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wider">Logged Meal:</p>
+                        <p className="font-medium text-[#64748B]">{snapshotData.patientContext?.telemetry?.actual?.loggedMeal}</p>
                       </div>
                       <div>
-                        <p className="text-[10px] font-semibold text-[#8B9893] uppercase tracking-wider">Logged Activity:</p>
-                        <p className="font-medium text-[#5C6B66]">{snapshotData.patientContext?.telemetry?.actual?.loggedActivity}</p>
+                        <p className="text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wider">Logged Activity:</p>
+                        <p className="font-medium text-[#64748B]">{snapshotData.patientContext?.telemetry?.actual?.loggedActivity}</p>
                       </div>
                     </div>
                   </div>
@@ -161,10 +161,10 @@ const CaseSnapshotModal = ({ isOpen, onClose, snapshotData }) => {
         </div>
 
         {/* Modal Footer */}
-        <div className="px-6 py-3.5 border-t border-[#DCE3DF] bg-[#FFFFFF] flex justify-end gap-2 shrink-0">
+        <div className="px-6 py-3.5 border-t border-[#E2E8F0] bg-[#FFFFFF] flex justify-end gap-2 shrink-0">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-[12px] font-semibold text-[#152131] bg-[#EDF1EF] hover:bg-[#DCE3DF] border border-[#DCE3DF] rounded-[8px] transition-colors cursor-pointer"
+            className="px-4 py-2 text-[12px] font-semibold text-[#0F172A] bg-[#F8FAFC] hover:bg-[#E2E8F0] border border-[#E2E8F0] rounded-[8px] transition-colors cursor-pointer"
           >
             Close
           </button>

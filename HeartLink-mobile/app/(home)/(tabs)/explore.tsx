@@ -8,7 +8,7 @@ import {
   LayoutChangeEvent,
   Platform,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { ScreenWrapper } from "../../../components/ui/ScreenWrapper";
 import { StatusBar } from "expo-status-bar";
 import { useRouter, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useColorScheme } from "nativewind";
@@ -86,7 +86,10 @@ export default function ExploreTabScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-[#F8FAF9] dark:bg-[#0B131E]" edges={["top"]}>
+    <ScreenWrapper
+      edges={["top"]}
+      withScrollView={false}
+    >
       <StatusBar style={isDark ? "light" : "dark"} />
       <Header />
 
@@ -193,6 +196,6 @@ export default function ExploreTabScreen() {
           <ExercisesScreen hideHeader isEmbedded />
         )}
       </View>
-    </SafeAreaView>
+    </ScreenWrapper>
   );
 }

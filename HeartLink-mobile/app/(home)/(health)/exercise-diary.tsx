@@ -45,6 +45,7 @@ export type ExerciseLog = {
 export default function ExerciseDiaryScreen() {
   const router = useRouter();
   const { userId, token, logout } = useUser();
+  const { showToast } = useToast();
   // Quick Log Manual Activity State (HL-ENG-20 / Pillar A)
   const [showQuickLogModal, setShowQuickLogModal] = useState(false);
   const [logs, setLogs] = useState<ExerciseLog[]>([]);
@@ -206,7 +207,7 @@ export default function ExerciseDiaryScreen() {
         </TouchableOpacity>
 
         <Text className="text-[17px] font-semibold text-slate-900 dark:text-white">
-          Exercise Log History
+          Activity Log History
         </Text>
 
         <View className="flex-row items-center gap-2">
@@ -266,8 +267,8 @@ export default function ExerciseDiaryScreen() {
       ) : logs.length === 0 ? (
         <EmptyState
           icon={<Feather name="activity" size={32} color="#94a3b8" />}
-          title="No Exercise Logs"
-          subtitle="Complete a rehab routine to track your activity duration and symptoms."
+          title="No Activity Logs"
+          subtitle="You haven't logged any movement yet. Start a quick log or a guided routine to see it here!"
           actionLabel="Quick Log Activity"
           onAction={() => setShowQuickLogModal(true)}
           actionIcon={<Feather name="plus" size={15} color="#fff" />}
@@ -349,8 +350,8 @@ export default function ExerciseDiaryScreen() {
         visible={!!logToDelete}
         onCancel={() => setLogToDelete(null)}
         onConfirm={confirmDeleteLog}
-        title="Delete Exercise Log?"
-        message={`Are you sure you want to remove "${logToDelete?.name}" from your exercise history?`}
+        title="Delete Activity Log?"
+        message={`Are you sure you want to remove "${logToDelete?.name}" from your activity history?`}
         confirmLabel="Delete"
         variant="destructive"
         mode="bottom-sheet"

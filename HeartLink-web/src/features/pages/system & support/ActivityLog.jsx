@@ -120,7 +120,7 @@ const ActivityLog = () => {
         };
       case "staff":
         return {
-          bg: "bg-[#EDF1EF] text-[#152131] border-[#DCE3DF]",
+          bg: "bg-[#F8FAFC] text-[#0F172A] border-[#E2E8F0]",
           icon: <Shield size={10} />,
           label: "STAFF",
         };
@@ -132,7 +132,7 @@ const ActivityLog = () => {
         };
       case "exercise":
         return {
-          bg: "bg-[#EDF1EF] text-[#152131] border-[#DCE3DF]",
+          bg: "bg-[#F8FAFC] text-[#0F172A] border-[#E2E8F0]",
           icon: <Dumbbell size={10} />,
           label: "EXERCISE",
         };
@@ -144,13 +144,13 @@ const ActivityLog = () => {
         };
       case "broadcast":
         return {
-          bg: "bg-[#FBEAE6] text-[#E8532E] border-[#F5C7BD]",
+          bg: "bg-[#EAF5FC] text-[#2E9AE8] border-[#CDE1F4]",
           icon: <Radio size={10} />,
           label: "BROADCAST",
         };
       case "user":
         return {
-          bg: "bg-[#EDF1EF] text-[#152131] border-[#DCE3DF]",
+          bg: "bg-[#F8FAFC] text-[#0F172A] border-[#E2E8F0]",
           icon: <Shield size={10} />,
           label: "USER",
         };
@@ -162,7 +162,7 @@ const ActivityLog = () => {
         };
       default:
         return {
-          bg: "bg-[#EDF1EF] text-[#5C6B66] border-[#DCE3DF]",
+          bg: "bg-[#F8FAFC] text-[#64748B] border-[#E2E8F0]",
           icon: <Activity size={10} />,
           label: "GENERAL",
         };
@@ -201,19 +201,19 @@ const ActivityLog = () => {
     return Array.from({ length: 6 }).map((_, idx) => (
       <tr key={`sk-${idx}`}>
         <td className="py-3.5 px-5 align-middle">
-          <Skeleton className="h-4 bg-[#DCE3DF]/70 rounded w-28" />
+          <Skeleton className="h-4 bg-[#E2E8F0]/70 rounded w-28" />
         </td>
         <td className="py-3.5 px-5 align-middle">
-          <Skeleton className="h-5 bg-[#DCE3DF]/70 rounded-full w-24" />
+          <Skeleton className="h-5 bg-[#E2E8F0]/70 rounded-full w-24" />
         </td>
         <td className="py-3.5 px-5 align-middle">
-          <Skeleton className="h-4 bg-[#DCE3DF]/70 rounded w-64" />
+          <Skeleton className="h-4 bg-[#E2E8F0]/70 rounded w-64" />
         </td>
         <td className="py-3.5 px-5 align-middle">
-          <Skeleton className="h-6 bg-[#DCE3DF]/70 rounded-[6px] w-28" />
+          <Skeleton className="h-6 bg-[#E2E8F0]/70 rounded-[6px] w-28" />
         </td>
         <td className="py-3.5 px-5 align-middle text-right">
-          <Skeleton className="h-4 bg-[#DCE3DF]/70 rounded w-16 ml-auto" />
+          <Skeleton className="h-4 bg-[#E2E8F0]/70 rounded w-16 ml-auto" />
         </td>
       </tr>
     ));
@@ -225,8 +225,8 @@ const ActivityLog = () => {
     const end = Math.min(page * pageSize, total);
     return (
       <>
-        Showing <span className="text-[#152131] font-bold">{start}–{end}</span> of{" "}
-        <span className="text-[#152131] font-bold">{total}</span> events
+        Showing <span className="text-[#0F172A] font-bold">{start}–{end}</span> of{" "}
+        <span className="text-[#0F172A] font-bold">{total}</span> events
       </>
     );
   };
@@ -239,12 +239,12 @@ const ActivityLog = () => {
             <Shield size={28} />
           </div>
           <h3 
-            className="text-[20px] font-medium text-[#152131] mb-1"
+            className="text-[20px] font-medium text-[#0F172A] mb-1"
             style={{ fontFamily: "'Fraunces', serif" }}
           >
             Access Denied
           </h3>
-          <p className="text-[#5C6B66] text-[13px] max-w-sm mb-6">
+          <p className="text-[#64748B] text-[13px] max-w-sm mb-6">
             You do not have the required permissions to view the system audit activity logs. Only authorized administrators are allowed.
           </p>
         </div>
@@ -278,21 +278,21 @@ const ActivityLog = () => {
         />
 
         {/* ── MAIN CARD: AUDIT LOG TABLE ── */}
-        <div className="bg-[#FFFFFF] rounded-[10px] border border-[#DCE3DF] flex flex-col overflow-hidden shadow-2xs">
+        <div className="bg-[#FFFFFF] rounded-[10px] border border-[#E2E8F0] flex flex-col overflow-hidden shadow-2xs">
           {/* Search & Filter Bar */}
-          <div className="p-4 border-b border-[#DCE3DF] bg-[#FFFFFF]">
+          <div className="p-4 border-b border-[#E2E8F0] bg-[#FFFFFF]">
             <div className="flex flex-col md:flex-row gap-3">
               <div className="relative flex-1">
                 <Search
                   size={14}
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8B9893] pointer-events-none"
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#94A3B8] pointer-events-none"
                 />
                 <input
                   type="text"
                   placeholder="Search by User ID, keyword, or action…"
                   value={searchQuery}
                   onChange={handleSearchChange}
-                  className="w-full pl-9 pr-4 py-2 text-[13px] border border-[#DCE3DF] rounded-[8px] focus:outline-none focus:border-[#152131] transition-colors bg-[#EDF1EF] text-[#152131] placeholder:text-[#8B9893]"
+                  className="w-full pl-9 pr-4 py-2 text-[13px] border border-[#E2E8F0] rounded-[8px] focus:outline-none focus:border-[#0F172A] transition-colors bg-[#F8FAFC] text-[#0F172A] placeholder:text-[#94A3B8]"
                 />
               </div>
               <div className="flex gap-2.5 items-center">
@@ -300,7 +300,7 @@ const ActivityLog = () => {
                   <select
                     value={eventTypeFilter}
                     onChange={handleFilterChange}
-                    className="pl-3 pr-7 py-2 text-[12px] font-semibold text-[#152131] bg-[#FFFFFF] border border-[#DCE3DF] rounded-[8px] focus:outline-none focus:border-[#152131] appearance-none cursor-pointer hover:border-[#8B9893] transition-colors"
+                    className="pl-3 pr-7 py-2 text-[12px] font-semibold text-[#0F172A] bg-[#FFFFFF] border border-[#E2E8F0] rounded-[8px] focus:outline-none focus:border-[#0F172A] appearance-none cursor-pointer hover:border-[#94A3B8] transition-colors"
                   >
                     <option value="all">All Categories</option>
                     <option value="recipe">Recipes</option>
@@ -313,7 +313,7 @@ const ActivityLog = () => {
                     <option value="dataset">Datasets</option>
                   </select>
                   <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
-                    <ChevronDown size={12} className="text-[#8B9893]" />
+                    <ChevronDown size={12} className="text-[#94A3B8]" />
                   </div>
                 </div>
 
@@ -350,30 +350,30 @@ const ActivityLog = () => {
           <div className="w-full overflow-x-auto">
             <table className="w-full text-left border-collapse min-w-[900px]">
               <thead>
-                <tr className="border-b border-[#DCE3DF] bg-[#EDF1EF]/40">
-                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-[0.1em]">
+                <tr className="border-b border-[#E2E8F0] bg-[#F8FAFC]/40">
+                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#94A3B8] uppercase tracking-[0.1em]">
                     Timestamp
                   </th>
-                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-[0.1em]">
+                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#94A3B8] uppercase tracking-[0.1em]">
                     Event Type
                   </th>
-                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-[0.1em] w-2/5">
+                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#94A3B8] uppercase tracking-[0.1em] w-2/5">
                     Activity Details
                   </th>
-                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-[0.1em]">
+                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#94A3B8] uppercase tracking-[0.1em]">
                     Associated Admin
                   </th>
-                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-[0.1em] text-right">
+                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#94A3B8] uppercase tracking-[0.1em] text-right">
                     Status
                   </th>
                 </tr>
               </thead>
-              <tbody className={`divide-y divide-[#DCE3DF] ${loading && !showSkeleton ? "opacity-60" : "opacity-100"}`}>
+              <tbody className={`divide-y divide-[#E2E8F0] ${loading && !showSkeleton ? "opacity-60" : "opacity-100"}`}>
                 {showSkeleton && renderSkeletons()}
 
                 {isEmpty && (
                   <tr>
-                    <td colSpan={5} className="py-12 text-center text-[13px] text-[#5C6B66] font-medium">
+                    <td colSpan={5} className="py-12 text-center text-[13px] text-[#64748B] font-medium">
                       {isSearchOrFilterApplied
                         ? "No activity matches your filters."
                         : "No administrative activity recorded."}
@@ -386,10 +386,10 @@ const ActivityLog = () => {
                   return (
                     <tr
                       key={log.id}
-                      className="hover:bg-[#EDF1EF]/60 transition-colors group cursor-default"
+                      className="hover:bg-[#F8FAFC]/60 transition-colors group cursor-default"
                     >
                       <td className="py-3.5 px-4 sm:px-5 align-middle">
-                        <span className="text-[12px] font-mono font-medium text-[#5C6B66]">
+                        <span className="text-[12px] font-mono font-medium text-[#64748B]">
                           {formatTimestamp(log.created_at)}
                         </span>
                       </td>
@@ -401,13 +401,13 @@ const ActivityLog = () => {
                         </span>
                       </td>
                       <td className="py-3.5 px-4 sm:px-5 align-middle">
-                        <p className="text-[13px] text-[#152131] leading-relaxed font-semibold">
+                        <p className="text-[13px] text-[#0F172A] leading-relaxed font-semibold">
                           {formatDetails(log)}
                         </p>
                       </td>
                       <td className="py-3.5 px-4 sm:px-5 align-middle">
-                        <span className="inline-flex items-center gap-1.5 text-[11.5px] font-mono font-bold text-[#152131] bg-[#EDF1EF] border border-[#DCE3DF] px-2 py-0.5 rounded-[5px]">
-                          <Shield size={11} className="text-[#E8532E]" />
+                        <span className="inline-flex items-center gap-1.5 text-[11.5px] font-mono font-bold text-[#0F172A] bg-[#F8FAFC] border border-[#E2E8F0] px-2 py-0.5 rounded-[5px]">
+                          <Shield size={11} className="text-[#2E9AE8]" />
                           {log.admin_name || log.admin_user_id || "System"}
                         </span>
                       </td>
@@ -424,18 +424,18 @@ const ActivityLog = () => {
           </div>
 
           {/* Pagination */}
-          <div className="p-3.5 border-t border-[#DCE3DF] bg-[#FFFFFF] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <p className="text-[12px] text-[#5C6B66] font-medium">
+          <div className="p-3.5 border-t border-[#E2E8F0] bg-[#FFFFFF] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <p className="text-[12px] text-[#64748B] font-medium">
               {getPaginationText()}
             </p>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setPage((prev) => Math.max(1, prev - 1))}
                 disabled={page <= 1 || loading}
-                className={`flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold rounded-[6px] border border-[#DCE3DF] bg-[#EDF1EF] transition-colors cursor-pointer ${
+                className={`flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold rounded-[6px] border border-[#E2E8F0] bg-[#F8FAFC] transition-colors cursor-pointer ${
                   page <= 1 || loading
-                    ? "text-[#8B9893] cursor-not-allowed opacity-40"
-                    : "text-[#152131] hover:bg-[#DCE3DF]"
+                    ? "text-[#94A3B8] cursor-not-allowed opacity-40"
+                    : "text-[#0F172A] hover:bg-[#E2E8F0]"
                 }`}
               >
                 <ChevronLeft size={13} /> Previous
@@ -443,10 +443,10 @@ const ActivityLog = () => {
               <button
                 onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
                 disabled={page >= totalPages || loading}
-                className={`flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold rounded-[6px] border border-[#DCE3DF] bg-[#EDF1EF] transition-colors cursor-pointer ${
+                className={`flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold rounded-[6px] border border-[#E2E8F0] bg-[#F8FAFC] transition-colors cursor-pointer ${
                   page >= totalPages || loading
-                    ? "text-[#8B9893] cursor-not-allowed opacity-40"
-                    : "text-[#152131] hover:bg-[#DCE3DF]"
+                    ? "text-[#94A3B8] cursor-not-allowed opacity-40"
+                    : "text-[#0F172A] hover:bg-[#E2E8F0]"
                 }`}
               >
                 Next <ChevronRight size={13} />

@@ -17,7 +17,6 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { InputField } from "../../components/ui/InputField";
-import HeartLogo from "../../components/ui/HeartLogo";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 

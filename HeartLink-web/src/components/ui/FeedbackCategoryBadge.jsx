@@ -25,7 +25,7 @@ export const getCategoryConfig = (category) => {
       return {
         label: "Question",
         icon: HelpCircle,
-        className: "bg-[#EDF1EF] text-[#5C6B66] border-[#DCE3DF]",
+        className: "bg-[#F8FAFC] text-[#64748B] border-[#E2E8F0]",
       };
   }
 };

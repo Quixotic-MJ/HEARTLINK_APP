@@ -14,7 +14,7 @@ import {
   Pressable,
   ActivityIndicator,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { ScreenWrapper } from "../../../components/ui/ScreenWrapper";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
@@ -48,11 +48,11 @@ function ProfileField({
   isLast?: boolean;
   onPress?: () => void;
 }) {
-  const Container = onPress ? TouchableOpacity : View;
+  const Container: any = onPress ? TouchableOpacity : View;
   
   return (
     <Container
-      activeOpacity={0.65}
+      activeOpacity={0.8}
       onPress={onPress}
       className="flex-row items-center py-3.5"
       style={!isLast ? { borderBottomWidth: 0.5, borderBottomColor: "#f1f5f9" } : undefined}
@@ -536,8 +536,11 @@ export default function ProfileScreen({ isTab = false }: { isTab?: boolean } = {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950" edges={["top"]}>
-      <StatusBar style="dark" />
+    <ScreenWrapper 
+      edges={["top"]} 
+      withScrollView={false}
+    >
+      <StatusBar style={isDark ? "light" : "dark"} />
 
       {/* Header */}
       <View className="flex-row items-center px-5 pt-4 pb-3 border-b border-slate-200 dark:border-slate-800/50">
@@ -696,6 +699,6 @@ export default function ProfileScreen({ isTab = false }: { isTab?: boolean } = {
         currentData={userData}
         onSave={handleUpdateData}
       />
-    </SafeAreaView>
+    </ScreenWrapper>
   );
 }

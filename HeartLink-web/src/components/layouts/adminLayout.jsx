@@ -37,7 +37,7 @@ const AdminLayout = ({ children }) => {
 
   return (
     <div 
-      className="flex h-screen w-full bg-[#EDF1EF] text-[#152131] selection:bg-[#E8532E] selection:text-white overflow-hidden fixed inset-0"
+      className="flex h-screen w-full bg-[#F8FAFC] text-[#0F172A] selection:bg-[#2E9AE8] selection:text-white overflow-hidden fixed inset-0"
       style={{ fontFamily: "'Inter', sans-serif" }}
     >
       {/* Sidebar Component */}
@@ -50,7 +50,7 @@ const AdminLayout = ({ children }) => {
       />
 
       {/* Main Column Area */}
-      <div className="flex-1 flex flex-col h-full min-w-0 overflow-hidden relative bg-[#EDF1EF]">
+      <div className="flex-1 flex flex-col h-full min-w-0 overflow-hidden relative bg-[#F8FAFC]">
         {/* Header Component */}
         <Header
           setSidebarOpen={setSidebarOpen}
