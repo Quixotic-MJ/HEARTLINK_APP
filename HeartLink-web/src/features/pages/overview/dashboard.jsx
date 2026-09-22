@@ -96,7 +96,8 @@ const Dashboard = () => {
 
   return (
     <AdminLayout>
-      <div className={UI.page.container} style={{ fontFamily: FONTS.sans }}>
+      {/* Expanded container for full-width layout utilization */}
+      <div className="w-full max-w-[1700px] mx-auto px-4 sm:px-6 lg:px-8 py-4" style={{ fontFamily: FONTS.sans }}>
         {/* ── PAGE HEAD ── */}
         <PageHeader
           eyebrow="Operations console"
@@ -202,7 +203,7 @@ const Dashboard = () => {
         </div>
 
         {/* ── PANELS: USERS NEEDING REVIEW & HSS DISTRIBUTION ── */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 mb-5">
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-3.5 mb-5">
           {/* Users needing review */}
           <div className="bg-[#FFFFFF] border border-[#E2E8F0] rounded-[10px] p-5 shadow-2xs flex flex-col justify-between">
             <div>
@@ -407,7 +408,7 @@ const Dashboard = () => {
         </div>
 
         {/* ── CONTENT LIBRARY & RECENT ADMIN ACTIVITY ── */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 mb-0">
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-3.5 mb-0">
           {/* Content Library */}
           <div className="bg-[#FFFFFF] border border-[#E2E8F0] rounded-[10px] p-5 shadow-2xs flex flex-col justify-between">
             <div>

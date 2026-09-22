@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* ─── HeartLink Design System Tokens ─── */
+/* HeartLink Clinical Design System Tokens */
 :root {
   --ink: #0F172A;
   --ink-soft: #64748B;
@@ -48,14 +48,9 @@
 @utility animate-shimmer {
   animation: shimmer 2s infinite linear;
 }
-
 @keyframes shimmer {
-  0% {
-    transform: translateX(-100%);
-  }
-  100% {
-    transform: translateX(100%);
-  }
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
 }
 
 /* ─── Global Form Control Autofill Styling ─── */
@@ -76,7 +71,7 @@ input:focus:-webkit-autofill {
   -webkit-text-fill-color: #0F172A !important;
 }
 
-/* ─── Clean Native Scrollbar ─── */
+/* Clean Native Scrollbar */
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
   height: 6px;
