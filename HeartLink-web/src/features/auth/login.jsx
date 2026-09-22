@@ -351,13 +351,13 @@ export default function HeartLinkAdminLogin() {
         }),
       });
 
-      if (response.success && response.requires_2fa) {
+      if (response.requires_2fa || response.token_2fa) {
         setTemp2faToken(response.token_2fa);
         setStep("2fa");
         toast.info("Two-Factor Verification", {
           description: "Please enter the 6-digit security code sent to your device.",
         });
-      } else if (response.success) {
+      } else if (response.success !== false && (response.token || response.user_id || response.success)) {
         toast.success("Authentication successful", {
           description: "Accessing HeartLink clinical portal...",
         });
@@ -401,7 +401,7 @@ export default function HeartLinkAdminLogin() {
         }),
       });
 
-      if (response.success) {
+      if (response.success !== false && (response.token || response.user_id || response.success)) {
         toast.success("Verification successful", {
           description: "Security credentials confirmed. Launching portal...",
         });
