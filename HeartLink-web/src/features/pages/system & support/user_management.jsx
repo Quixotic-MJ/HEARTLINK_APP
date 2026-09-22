@@ -395,20 +395,20 @@ const Users = () => {
               disabled={loading}
               className={UI.button.secondary}
             >
-              <RefreshCw size={13} className={loading ? "animate-spin text-[#E8532E]" : ""} />
+              <RefreshCw size={13} className={loading ? "animate-spin text-[#2E9AE8]" : ""} />
               <span>Refresh Directory</span>
             </button>
           }
         />
 
         {/* ── SEGMENTED TAB BUTTONS ── */}
-        <div className="bg-[#FFFFFF] p-1 rounded-[10px] inline-flex flex-wrap border border-[#DCE3DF] mb-6 shadow-2xs">
+        <div className="bg-[#FFFFFF] p-1 rounded-[10px] inline-flex flex-wrap border border-[#E2E8F0] mb-6 shadow-2xs">
           <button
             onClick={() => handleTabSwitch("app_users")}
             className={`flex items-center gap-2 px-4 py-2 rounded-[7px] text-[12.5px] font-semibold transition-all cursor-pointer ${
               activeTab === "app_users" 
-                ? "bg-[#E8532E] text-white shadow-2xs" 
-                : "text-[#5C6B66] hover:text-[#152131] hover:bg-[#EDF1EF]"
+                ? "bg-[#2E9AE8] text-white shadow-2xs" 
+                : "text-[#64748B] hover:text-[#0F172A] hover:bg-[#F8FAFC]"
             }`}
           >
             <User size={14} />
@@ -420,8 +420,8 @@ const Users = () => {
               onClick={() => handleTabSwitch("system_staff")}
               className={`flex items-center gap-2 px-4 py-2 rounded-[7px] text-[12.5px] font-semibold transition-all cursor-pointer ${
                 activeTab === "system_staff" 
-                  ? "bg-[#E8532E] text-white shadow-2xs" 
-                  : "text-[#5C6B66] hover:text-[#152131] hover:bg-[#EDF1EF]"
+                  ? "bg-[#2E9AE8] text-white shadow-2xs" 
+                  : "text-[#64748B] hover:text-[#0F172A] hover:bg-[#F8FAFC]"
               }`}
             >
               <ShieldCheck size={14} />

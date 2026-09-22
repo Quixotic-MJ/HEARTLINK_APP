@@ -134,16 +134,16 @@ const Notifications = () => {
         return <MessageSquare size={15} className={severity === "warning" ? "text-[#A9741B]" : "text-[#1B6E63]"} />;
       case "staff":
       case "user":
-        return <UserPlus size={15} className={severity === "warning" ? "text-[#E8532E]" : "text-[#1B6E63]"} />;
+        return <UserPlus size={15} className={severity === "warning" ? "text-[#2E9AE8]" : "text-[#1B6E63]"} />;
       case "case":
       case "clinical":
         return <Activity size={15} className="text-[#A93226]" />;
       case "security":
         return <ShieldAlert size={15} className="text-[#A93226]" />;
       case "system":
-        return <Settings size={15} className="text-[#5C6B66]" />;
+        return <Settings size={15} className="text-[#64748B]" />;
       default:
-        return <Info size={15} className="text-[#8B9893]" />;
+        return <Info size={15} className="text-[#94A3B8]" />;
     }
   };
 
@@ -160,9 +160,9 @@ const Notifications = () => {
       case "security":
         return { label: "Security", cls: "bg-[#F7E4E1] text-[#A93226] border-[#F0C4B8]" };
       case "system":
-        return { label: "System", cls: "bg-[#EDF1EF] text-[#5C6B66] border-[#DCE3DF]" };
+        return { label: "System", cls: "bg-[#F8FAFC] text-[#64748B] border-[#E2E8F0]" };
       default:
-        return { label: "General", cls: "bg-[#EDF1EF] text-[#8B9893] border-[#DCE3DF]" };
+        return { label: "General", cls: "bg-[#F8FAFC] text-[#94A3B8] border-[#E2E8F0]" };
     }
   };
 
@@ -290,10 +290,10 @@ const Notifications = () => {
             label="Unread Items"
             value={loading ? "…" : unreadItemsCount}
             icon={AlertCircle}
-            iconBg="bg-[#FBEAE6]"
-            iconColor="text-[#E8532E]"
-            iconBorder="border-[#F5C7BD]"
-            valueColor="text-[#E8532E]"
+            iconBg="bg-[#EAF5FC]"
+            iconColor="text-[#2E9AE8]"
+            iconBorder="border-[#CDE1F4]"
+            valueColor="text-[#2E9AE8]"
           />
           <KpiCard
             label="Clinical Cases"
@@ -328,14 +328,14 @@ const Notifications = () => {
         )}
 
         {/* ── MAIN CARD: INBOX & FILTERS ── */}
-        <div className="bg-[#FFFFFF] rounded-[10px] border border-[#DCE3DF] flex flex-col overflow-hidden shadow-2xs">
+        <div className="bg-[#FFFFFF] rounded-[10px] border border-[#E2E8F0] flex flex-col overflow-hidden shadow-2xs">
           {/* Filter & Search Header Toolbar */}
-          <div className="p-4 border-b border-[#DCE3DF] bg-[#FFFFFF] flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+          <div className="p-4 border-b border-[#E2E8F0] bg-[#FFFFFF] flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
             {/* Search input */}
             <div className="relative flex-1">
               <Search
                 size={14}
-                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8B9893] pointer-events-none"
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#94A3B8] pointer-events-none"
               />
               <input
                 type="text"
@@ -345,13 +345,13 @@ const Notifications = () => {
                   setSearchQuery(e.target.value);
                   setPage(1);
                 }}
-                className="w-full pl-9 pr-4 py-2 text-[13px] border border-[#DCE3DF] rounded-[8px] focus:outline-none focus:border-[#152131] transition-colors bg-[#EDF1EF] text-[#152131] placeholder:text-[#8B9893]"
+                className="w-full pl-9 pr-4 py-2 text-[13px] border border-[#E2E8F0] rounded-[8px] focus:outline-none focus:border-[#0F172A] transition-colors bg-[#F8FAFC] text-[#0F172A] placeholder:text-[#94A3B8]"
               />
             </div>
 
             {/* Status Pills and Type dropdown */}
             <div className="flex flex-wrap items-center gap-2">
-              <div className="bg-[#EDF1EF] p-0.5 rounded-[8px] border border-[#DCE3DF] inline-flex">
+              <div className="bg-[#F8FAFC] p-0.5 rounded-[8px] border border-[#E2E8F0] inline-flex">
                 <button
                   onClick={() => {
                     setStatusFilter("all");
@@ -359,8 +359,8 @@ const Notifications = () => {
                   }}
                   className={`px-3 py-1 rounded-[6px] text-[11.5px] font-semibold transition-colors cursor-pointer ${
                     statusFilter === "all"
-                      ? "bg-[#FFFFFF] text-[#152131] shadow-2xs"
-                      : "text-[#5C6B66] hover:text-[#152131]"
+                      ? "bg-[#FFFFFF] text-[#0F172A] shadow-2xs"
+                      : "text-[#64748B] hover:text-[#0F172A]"
                   }`}
                 >
                   All ({totalCount})
@@ -372,11 +372,11 @@ const Notifications = () => {
                   }}
                   className={`px-3 py-1 rounded-[6px] text-[11.5px] font-semibold transition-colors cursor-pointer flex items-center gap-1.5 ${
                     statusFilter === "unread"
-                      ? "bg-[#FFFFFF] text-[#E8532E] shadow-2xs"
-                      : "text-[#5C6B66] hover:text-[#152131]"
+                      ? "bg-[#FFFFFF] text-[#2E9AE8] shadow-2xs"
+                      : "text-[#64748B] hover:text-[#0F172A]"
                   }`}
                 >
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#E8532E]" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#2E9AE8]" />
                   Unread ({unreadItemsCount})
                 </button>
                 <button
@@ -386,8 +386,8 @@ const Notifications = () => {
                   }}
                   className={`px-3 py-1 rounded-[6px] text-[11.5px] font-semibold transition-colors cursor-pointer ${
                     statusFilter === "read"
-                      ? "bg-[#FFFFFF] text-[#152131] shadow-2xs"
-                      : "text-[#5C6B66] hover:text-[#152131]"
+                      ? "bg-[#FFFFFF] text-[#0F172A] shadow-2xs"
+                      : "text-[#64748B] hover:text-[#0F172A]"
                   }`}
                 >
                   Read
@@ -400,7 +400,7 @@ const Notifications = () => {
                   setTypeFilter(e.target.value);
                   setPage(1);
                 }}
-                className="px-3 py-1.5 text-[12px] font-semibold bg-[#FFFFFF] border border-[#DCE3DF] text-[#152131] rounded-[8px] focus:outline-none focus:border-[#152131] transition-colors cursor-pointer"
+                className="px-3 py-1.5 text-[12px] font-semibold bg-[#FFFFFF] border border-[#E2E8F0] text-[#0F172A] rounded-[8px] focus:outline-none focus:border-[#0F172A] transition-colors cursor-pointer"
               >
                 <option value="all">All Types</option>
                 <option value="feedback">Feedback</option>
@@ -423,15 +423,15 @@ const Notifications = () => {
           </div>
 
           {/* ── NOTIFICATIONS LIST ── */}
-          <div className="divide-y divide-[#DCE3DF]">
+          <div className="divide-y divide-[#E2E8F0]">
             {loading ? (
               <div className="p-8 space-y-4">
                 {Array.from({ length: 5 }).map((_, i) => (
                   <div key={i} className="flex items-start gap-3.5 animate-pulse">
-                    <Skeleton className="w-9 h-9 rounded-[8px] bg-[#DCE3DF]/70 shrink-0" />
+                    <Skeleton className="w-9 h-9 rounded-[8px] bg-[#E2E8F0]/70 shrink-0" />
                     <div className="flex-1 space-y-2">
-                      <Skeleton className="h-4 bg-[#DCE3DF]/70 rounded w-1/3" />
-                      <Skeleton className="h-3.5 bg-[#DCE3DF]/70 rounded w-3/4" />
+                      <Skeleton className="h-4 bg-[#E2E8F0]/70 rounded w-1/3" />
+                      <Skeleton className="h-3.5 bg-[#E2E8F0]/70 rounded w-3/4" />
                     </div>
                   </div>
                 ))}
@@ -442,33 +442,33 @@ const Notifications = () => {
                   <AlertCircle size={22} />
                 </div>
                 <h4 
-                  className="text-[16px] font-medium text-[#152131] mb-1"
+                  className="text-[16px] font-medium text-[#0F172A] mb-1"
                   style={{ fontFamily: "'Fraunces', serif" }}
                 >
                   Unable to load alerts
                 </h4>
-                <p className="text-[12px] text-[#5C6B66] max-w-sm mx-auto mb-4">
+                <p className="text-[12px] text-[#64748B] max-w-sm mx-auto mb-4">
                   Please verify your network connection or try refreshing again.
                 </p>
                 <button
                   onClick={() => fetchNotifications()}
-                  className="px-4 py-2 text-[12px] font-semibold text-white bg-[#E8532E] hover:bg-[#C13E20] rounded-[8px] transition-colors cursor-pointer"
+                  className="px-4 py-2 text-[12px] font-semibold text-white bg-[#2E9AE8] hover:bg-[#1C7AC8] rounded-[8px] transition-colors cursor-pointer"
                 >
                   Try Again
                 </button>
               </div>
             ) : paginatedNotifications.length === 0 ? (
               <div className="py-16 text-center">
-                <div className="w-12 h-12 bg-[#EDF1EF] text-[#8B9893] rounded-full flex items-center justify-center mx-auto mb-3 border border-[#DCE3DF]">
+                <div className="w-12 h-12 bg-[#F8FAFC] text-[#94A3B8] rounded-full flex items-center justify-center mx-auto mb-3 border border-[#E2E8F0]">
                   <Bell size={20} />
                 </div>
                 <h4 
-                  className="text-[16px] font-medium text-[#152131] mb-1"
+                  className="text-[16px] font-medium text-[#0F172A] mb-1"
                   style={{ fontFamily: "'Fraunces', serif" }}
                 >
                   No notifications found
                 </h4>
-                <p className="text-[12px] text-[#5C6B66] max-w-sm mx-auto mb-3">
+                <p className="text-[12px] text-[#64748B] max-w-sm mx-auto mb-3">
                   {isFilterActive
                     ? "No alerts match your applied filter or search parameters."
                     : "You are completely caught up with all administrative notifications."}
@@ -476,7 +476,7 @@ const Notifications = () => {
                 {isFilterActive && (
                   <button
                     onClick={handleClearFilters}
-                    className="px-3.5 py-1.5 text-[12px] font-semibold text-[#152131] bg-[#EDF1EF] hover:bg-[#DCE3DF] border border-[#DCE3DF] rounded-[6px] transition-colors cursor-pointer"
+                    className="px-3.5 py-1.5 text-[12px] font-semibold text-[#0F172A] bg-[#F8FAFC] hover:bg-[#E2E8F0] border border-[#E2E8F0] rounded-[6px] transition-colors cursor-pointer"
                   >
                     Clear Filters
                   </button>
@@ -492,7 +492,7 @@ const Notifications = () => {
                     key={n.id}
                     onClick={() => handleNavigate(n.id, n.route)}
                     className={`p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-colors group cursor-pointer ${
-                      isRead ? "bg-[#FFFFFF] hover:bg-[#EDF1EF]/50 opacity-80" : "bg-[#FBEAE6]/20 hover:bg-[#FBEAE6]/40"
+                      isRead ? "bg-[#FFFFFF] hover:bg-[#F8FAFC]/50 opacity-80" : "bg-[#EAF5FC]/20 hover:bg-[#EAF5FC]/40"
                     }`}
                   >
                     {/* Left Icon + Content */}
@@ -500,7 +500,7 @@ const Notifications = () => {
                       {/* Unread dot indicator */}
                       <div className="pt-2 flex items-center justify-center shrink-0">
                         {!isRead ? (
-                          <span className="w-2.5 h-2.5 rounded-full bg-[#E8532E] ring-2 ring-white shadow-2xs" />
+                          <span className="w-2.5 h-2.5 rounded-full bg-[#2E9AE8] ring-2 ring-white shadow-2xs" />
                         ) : (
                           <span className="w-2.5 h-2.5 rounded-full bg-transparent" />
                         )}
@@ -510,8 +510,8 @@ const Notifications = () => {
                       <div
                         className={`w-9 h-9 rounded-[8px] flex items-center justify-center shrink-0 border ${
                           isRead
-                            ? "bg-[#EDF1EF] border-[#DCE3DF]"
-                            : "bg-[#FFFFFF] border-[#DCE3DF] shadow-2xs"
+                            ? "bg-[#F8FAFC] border-[#E2E8F0]"
+                            : "bg-[#FFFFFF] border-[#E2E8F0] shadow-2xs"
                         }`}
                       >
                         {getIcon(n.type, n.severity)}
@@ -522,7 +522,7 @@ const Notifications = () => {
                         <div className="flex items-center gap-2 flex-wrap mb-1">
                           <h4
                             className={`text-[13.5px] leading-snug truncate ${
-                              isRead ? "font-semibold text-[#152131]" : "font-bold text-[#152131]"
+                              isRead ? "font-semibold text-[#0F172A]" : "font-bold text-[#0F172A]"
                             }`}
                           >
                             {n.title}
@@ -534,11 +534,11 @@ const Notifications = () => {
                           </span>
                         </div>
 
-                        <p className="text-[12.5px] text-[#5C6B66] leading-relaxed line-clamp-2 font-medium">
+                        <p className="text-[12.5px] text-[#64748B] leading-relaxed line-clamp-2 font-medium">
                           {n.message}
                         </p>
 
-                        <div className="flex items-center gap-3 mt-1.5 text-[11px] text-[#8B9893] font-medium">
+                        <div className="flex items-center gap-3 mt-1.5 text-[11px] text-[#94A3B8] font-medium">
                           <span className="flex items-center gap-1 font-mono">
                             <Clock size={11} /> {formatRelativeTime(n.created_at)}
                           </span>
@@ -550,13 +550,13 @@ const Notifications = () => {
 
                     {/* Right Actions */}
                     <div
-                      className="flex items-center gap-2 sm:self-center shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-[#DCE3DF]"
+                      className="flex items-center gap-2 sm:self-center shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-[#E2E8F0]"
                       onClick={(e) => e.stopPropagation()}
                     >
                       {n.route && (
                         <button
                           onClick={() => handleNavigate(n.id, n.route)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold text-[#152131] bg-[#EDF1EF] hover:bg-[#DCE3DF] border border-[#DCE3DF] rounded-[6px] transition-colors cursor-pointer"
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold text-[#0F172A] bg-[#F8FAFC] hover:bg-[#E2E8F0] border border-[#E2E8F0] rounded-[6px] transition-colors cursor-pointer"
                         >
                           <span>Open</span>
                           <ExternalLink size={12} />
@@ -566,14 +566,14 @@ const Notifications = () => {
                       {!isRead ? (
                         <button
                           onClick={(e) => markAsRead(n.id, e)}
-                          className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-[#E8532E] hover:text-[#C13E20] bg-[#FBEAE6] hover:bg-[#F5C7BD] border border-[#F5C7BD] rounded-[6px] transition-colors cursor-pointer"
+                          className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-[#2E9AE8] hover:text-[#1C7AC8] bg-[#EAF5FC] hover:bg-[#CDE1F4] border border-[#CDE1F4] rounded-[6px] transition-colors cursor-pointer"
                           title="Mark as read"
                         >
                           <Check size={13} />
                           <span>Mark read</span>
                         </button>
                       ) : (
-                        <span className="text-[11px] text-[#8B9893] font-medium px-2 py-1">
+                        <span className="text-[11px] text-[#94A3B8] font-medium px-2 py-1">
                           Read
                         </span>
                       )}
@@ -586,20 +586,20 @@ const Notifications = () => {
 
           {/* ── PAGINATION BAR ── */}
           {filteredNotifications.length > 0 && (
-            <div className="p-3.5 border-t border-[#DCE3DF] bg-[#FFFFFF] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <p className="text-[12px] text-[#5C6B66] font-medium">
-                Showing <span className="text-[#152131] font-bold">{(page - 1) * pageSize + 1}–{Math.min(page * pageSize, filteredNotifications.length)}</span> of{" "}
-                <span className="text-[#152131] font-bold">{filteredNotifications.length}</span> alerts
+            <div className="p-3.5 border-t border-[#E2E8F0] bg-[#FFFFFF] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <p className="text-[12px] text-[#64748B] font-medium">
+                Showing <span className="text-[#0F172A] font-bold">{(page - 1) * pageSize + 1}–{Math.min(page * pageSize, filteredNotifications.length)}</span> of{" "}
+                <span className="text-[#0F172A] font-bold">{filteredNotifications.length}</span> alerts
               </p>
 
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page <= 1 || loading}
-                  className={`flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold rounded-[6px] border border-[#DCE3DF] bg-[#EDF1EF] transition-colors cursor-pointer ${
+                  className={`flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold rounded-[6px] border border-[#E2E8F0] bg-[#F8FAFC] transition-colors cursor-pointer ${
                     page <= 1 || loading
-                      ? "text-[#8B9893] cursor-not-allowed opacity-40"
-                      : "text-[#152131] hover:bg-[#DCE3DF]"
+                      ? "text-[#94A3B8] cursor-not-allowed opacity-40"
+                      : "text-[#0F172A] hover:bg-[#E2E8F0]"
                   }`}
                 >
                   <ChevronLeft size={13} /> Previous
@@ -607,10 +607,10 @@ const Notifications = () => {
                 <button
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={page >= totalPages || loading}
-                  className={`flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold rounded-[6px] border border-[#DCE3DF] bg-[#EDF1EF] transition-colors cursor-pointer ${
+                  className={`flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold rounded-[6px] border border-[#E2E8F0] bg-[#F8FAFC] transition-colors cursor-pointer ${
                     page >= totalPages || loading
-                      ? "text-[#8B9893] cursor-not-allowed opacity-40"
-                      : "text-[#152131] hover:bg-[#DCE3DF]"
+                      ? "text-[#94A3B8] cursor-not-allowed opacity-40"
+                      : "text-[#0F172A] hover:bg-[#E2E8F0]"
                   }`}
                 >
                   Next <ChevronRight size={13} />

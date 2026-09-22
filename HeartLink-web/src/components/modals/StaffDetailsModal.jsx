@@ -41,10 +41,10 @@ const StaffDetailsModal = ({
   };
 
   const getRoleBadge = (role) => {
-    let classes = "bg-[#EDF1EF] text-[#152131] border-[#DCE3DF]";
+    let classes = "bg-[#F8FAFC] text-[#0F172A] border-[#E2E8F0]";
     let icon = <ShieldCheck size={11} />;
     if (role === "Super Admin" || role === "super_admin") {
-      classes = "bg-[#FBEAE6] text-[#E8532E] border-[#F5C7BD]";
+      classes = "bg-[#EAF5FC] text-[#2E9AE8] border-[#CDE1F4]";
       icon = <ShieldCheck size={11} />;
     } else if (role === "Authorized Medical Expert" || role === "medical_expert" || role === "Expert Reviewer") {
       classes = "bg-[#E3EFEC] text-[#1B6E63] border-[#C5DFD8]";
@@ -80,22 +80,22 @@ const StaffDetailsModal = ({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 10 }}
           transition={{ type: "spring", damping: 26, stiffness: 350 }}
-          className="relative w-full max-w-lg bg-[#FFFFFF] max-h-full rounded-2xl shadow-2xl border border-[#DCE3DF] flex flex-col overflow-hidden text-[#152131] z-10"
+          className="relative w-full max-w-lg bg-[#FFFFFF] max-h-full rounded-2xl shadow-2xl border border-[#E2E8F0] flex flex-col overflow-hidden text-[#0F172A] z-10"
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-6 py-4.5 border-b border-[#DCE3DF] bg-[#FFFFFF] z-10">
+          <div className="flex items-center justify-between px-6 py-4.5 border-b border-[#E2E8F0] bg-[#FFFFFF] z-10">
             <div>
               <h3 
-                className="text-[17px] font-medium text-[#152131] leading-tight"
+                className="text-[17px] font-medium text-[#0F172A] leading-tight"
                 style={{ fontFamily: "'Fraunces', serif" }}
               >
                 Administrative Staff Details
               </h3>
-              <p className="text-[11px] text-[#8B9893] mt-0.5 font-medium">{staff.name}</p>
+              <p className="text-[11px] text-[#94A3B8] mt-0.5 font-medium">{staff.name}</p>
             </div>
             <button
               onClick={onClose}
-              className="text-[#5C6B66] hover:text-[#152131] p-1.5 rounded-lg hover:bg-[#EDF1EF] transition-colors cursor-pointer"
+              className="text-[#64748B] hover:text-[#0F172A] p-1.5 rounded-lg hover:bg-[#F8FAFC] transition-colors cursor-pointer"
             >
               <X size={16} />
             </button>
@@ -104,48 +104,48 @@ const StaffDetailsModal = ({
           {/* Content area */}
           <div className="flex-1 overflow-y-auto p-6 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden space-y-4.5">
             {/* Main profile card */}
-            <div className="bg-[#EDF1EF]/60 p-4.5 rounded-[10px] border border-[#DCE3DF] space-y-3">
+            <div className="bg-[#F8FAFC]/60 p-4.5 rounded-[10px] border border-[#E2E8F0] space-y-3">
               <div className="flex justify-between items-start">
                 <div>
                   <h4 
-                    className="text-[17px] font-medium text-[#152131]"
+                    className="text-[17px] font-medium text-[#0F172A]"
                     style={{ fontFamily: "'Fraunces', serif" }}
                   >
                     {staff.name}
                   </h4>
-                  <p className="font-mono text-[10px] text-[#5C6B66] mt-0.5 uppercase tracking-wider font-semibold">ID: {staff.id}</p>
+                  <p className="font-mono text-[10px] text-[#64748B] mt-0.5 uppercase tracking-wider font-semibold">ID: {staff.id}</p>
                 </div>
                 {getStatusBadge(staff.account_status || staff.status)}
               </div>
 
               {isProtected && (
-                <div className="bg-[#FBEAE6] border border-[#F5C7BD] text-[#E8532E] px-3 py-1.5 rounded-[6px] text-[10.5px] font-bold flex items-center gap-1.5 uppercase tracking-wider">
-                  <ShieldAlert size={13} className="text-[#E8532E]" /> Protected Super Admin Account
+                <div className="bg-[#EAF5FC] border border-[#CDE1F4] text-[#2E9AE8] px-3 py-1.5 rounded-[6px] text-[10.5px] font-bold flex items-center gap-1.5 uppercase tracking-wider">
+                  <ShieldAlert size={13} className="text-[#2E9AE8]" /> Protected Super Admin Account
                 </div>
               )}
             </div>
 
             {/* Account Details */}
-            <div className="bg-[#FFFFFF] p-4.5 rounded-[10px] border border-[#DCE3DF] space-y-3.5">
-              <h5 className="text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-wider border-b border-[#DCE3DF] pb-2 flex items-center gap-1.5">
-                <KeyRound size={12} className="text-[#E8532E]" /> Account Parameters
+            <div className="bg-[#FFFFFF] p-4.5 rounded-[10px] border border-[#E2E8F0] space-y-3.5">
+              <h5 className="text-[10.5px] font-semibold text-[#94A3B8] uppercase tracking-wider border-b border-[#E2E8F0] pb-2 flex items-center gap-1.5">
+                <KeyRound size={12} className="text-[#2E9AE8]" /> Account Parameters
               </h5>
               <div className="grid grid-cols-2 gap-3.5 text-[12px]">
                 <div>
-                  <p className="text-[#8B9893] font-semibold text-[10.5px] uppercase tracking-wider">Role Assignment</p>
+                  <p className="text-[#94A3B8] font-semibold text-[10.5px] uppercase tracking-wider">Role Assignment</p>
                   <div className="mt-1">{getRoleBadge(staff.role)}</div>
                 </div>
                 <div>
-                  <p className="text-[#8B9893] font-semibold text-[10.5px] uppercase tracking-wider">Contact Number</p>
-                  <p className="mt-1 font-bold text-[#152131]">{staff.phone || "No Phone"}</p>
+                  <p className="text-[#94A3B8] font-semibold text-[10.5px] uppercase tracking-wider">Contact Number</p>
+                  <p className="mt-1 font-bold text-[#0F172A]">{staff.phone || "No Phone"}</p>
                 </div>
                 <div>
-                  <p className="text-[#8B9893] font-semibold text-[10.5px] uppercase tracking-wider">Email Address</p>
-                  <p className="mt-1 font-bold text-[#152131] truncate">{staff.email || "N/A"}</p>
+                  <p className="text-[#94A3B8] font-semibold text-[10.5px] uppercase tracking-wider">Email Address</p>
+                  <p className="mt-1 font-bold text-[#0F172A] truncate">{staff.email || "N/A"}</p>
                 </div>
                 <div>
-                  <p className="text-[#8B9893] font-semibold text-[10.5px] uppercase tracking-wider">Provision Date</p>
-                  <p className="mt-1 font-bold text-[#152131]">
+                  <p className="text-[#94A3B8] font-semibold text-[10.5px] uppercase tracking-wider">Provision Date</p>
+                  <p className="mt-1 font-bold text-[#0F172A]">
                     {staff.created_at
                       ? new Date(staff.created_at).toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" })
                       : "N/A"}
@@ -156,13 +156,13 @@ const StaffDetailsModal = ({
           </div>
 
           {/* Footer actions */}
-          <div className="px-6 py-4 border-t border-[#DCE3DF] bg-[#FFFFFF] flex flex-wrap justify-between items-center gap-2.5 shrink-0">
+          <div className="px-6 py-4 border-t border-[#E2E8F0] bg-[#FFFFFF] flex flex-wrap justify-between items-center gap-2.5 shrink-0">
             <div className="flex flex-wrap items-center gap-2">
               {!isProtected && (
                 <>
                   <button
                     onClick={() => onChangeRole(staff.id, staff.role, targetRoleLabel, staff)}
-                    className="px-3.5 py-2 text-[12px] font-semibold text-[#152131] bg-[#EDF1EF] hover:bg-[#DCE3DF] border border-[#DCE3DF] rounded-[8px] transition-colors cursor-pointer"
+                    className="px-3.5 py-2 text-[12px] font-semibold text-[#0F172A] bg-[#F8FAFC] hover:bg-[#E2E8F0] border border-[#E2E8F0] rounded-[8px] transition-colors cursor-pointer"
                   >
                     Change Role
                   </button>
@@ -188,7 +188,7 @@ const StaffDetailsModal = ({
             </div>
             <button
               onClick={onClose}
-              className="px-4 py-2 text-[12px] font-semibold text-[#152131] bg-[#EDF1EF] hover:bg-[#DCE3DF] border border-[#DCE3DF] rounded-[8px] transition-colors cursor-pointer"
+              className="px-4 py-2 text-[12px] font-semibold text-[#0F172A] bg-[#F8FAFC] hover:bg-[#E2E8F0] border border-[#E2E8F0] rounded-[8px] transition-colors cursor-pointer"
             >
               Close
             </button>

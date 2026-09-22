@@ -99,9 +99,9 @@ const Cases = () => {
 
   // Badge Color Helper
   const getRiskBadgeColor = (hss) => {
-    if (hss === null || hss === undefined) return "bg-[#EDF1EF] text-[#5C6B66] border border-[#DCE3DF]";
+    if (hss === null || hss === undefined) return "bg-[#F8FAFC] text-[#64748B] border border-[#E2E8F0]";
     if (hss < 50) return "bg-[#F7E4E1] text-[#A93226] border border-[#F0C4B8]";
-    if (hss < 60) return "bg-[#FBEAE6] text-[#E8532E] border border-[#F5C7BD]";
+    if (hss < 60) return "bg-[#EAF5FC] text-[#2E9AE8] border border-[#CDE1F4]";
     if (hss < 80) return "bg-[#F6EDDD] text-[#A9741B] border border-[#EBD7B8]";
     return "bg-[#E3EFEC] text-[#1B6E63] border border-[#C5DFD8]";
   };
@@ -120,23 +120,23 @@ const Cases = () => {
         />
 
         {/* ── MAIN CARD: SEARCH, FILTER & TABLE ── */}
-        <div className="bg-[#FFFFFF] border border-[#DCE3DF] rounded-[10px] shadow-2xs overflow-hidden">
+        <div className="bg-[#FFFFFF] border border-[#E2E8F0] rounded-[10px] shadow-2xs overflow-hidden">
           
           {/* Search & Filter Toolbar */}
-          <div className="p-4 border-b border-[#DCE3DF] bg-[#FFFFFF] space-y-3">
+          <div className="p-4 border-b border-[#E2E8F0] bg-[#FFFFFF] space-y-3">
             <div className="flex flex-col sm:flex-row gap-3">
               {/* Search Box */}
               <div className="relative flex-1">
                 <Search
                   size={14}
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8B9893]"
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#94A3B8]"
                 />
                 <input
                   type="text"
                   placeholder="Search anonymized Case ID or Patient ID…"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-3.5 py-2 text-[13px] border border-[#DCE3DF] rounded-[8px] focus:outline-none focus:border-[#152131] transition-colors bg-[#EDF1EF] text-[#152131] placeholder:text-[#8B9893]"
+                  className="w-full pl-9 pr-3.5 py-2 text-[13px] border border-[#E2E8F0] rounded-[8px] focus:outline-none focus:border-[#0F172A] transition-colors bg-[#F8FAFC] text-[#0F172A] placeholder:text-[#94A3B8]"
                 />
               </div>
 
@@ -147,7 +147,7 @@ const Cases = () => {
                   <select
                     value={filterSeverity}
                     onChange={(e) => setFilterSeverity(e.target.value)}
-                    className="pl-3 pr-7 py-1.5 text-[12px] font-semibold text-[#152131] bg-[#FFFFFF] border border-[#DCE3DF] rounded-[8px] focus:outline-none focus:border-[#152131] appearance-none cursor-pointer hover:border-[#8B9893] transition-colors"
+                    className="pl-3 pr-7 py-1.5 text-[12px] font-semibold text-[#0F172A] bg-[#FFFFFF] border border-[#E2E8F0] rounded-[8px] focus:outline-none focus:border-[#0F172A] appearance-none cursor-pointer hover:border-[#94A3B8] transition-colors"
                   >
                     <option value="all">All Severities</option>
                     <option value="critical">Critical (&lt;50)</option>
@@ -155,7 +155,7 @@ const Cases = () => {
                     <option value="stable">Stable (60-100)</option>
                   </select>
                   <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
-                    <ChevronDown size={12} className="text-[#8B9893]" />
+                    <ChevronDown size={12} className="text-[#94A3B8]" />
                   </div>
                 </div>
 
@@ -164,14 +164,14 @@ const Cases = () => {
                   <select
                     value={filterStatus}
                     onChange={(e) => setFilterStatus(e.target.value)}
-                    className="pl-3 pr-7 py-1.5 text-[12px] font-semibold text-[#152131] bg-[#FFFFFF] border border-[#DCE3DF] rounded-[8px] focus:outline-none focus:border-[#152131] appearance-none cursor-pointer hover:border-[#8B9893] transition-colors"
+                    className="pl-3 pr-7 py-1.5 text-[12px] font-semibold text-[#0F172A] bg-[#FFFFFF] border border-[#E2E8F0] rounded-[8px] focus:outline-none focus:border-[#0F172A] appearance-none cursor-pointer hover:border-[#94A3B8] transition-colors"
                   >
                     <option value="all">All Statuses</option>
                     <option value="pending review">Pending Review</option>
                     <option value="evaluated">Evaluated</option>
                   </select>
                   <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
-                    <ChevronDown size={12} className="text-[#8B9893]" />
+                    <ChevronDown size={12} className="text-[#94A3B8]" />
                   </div>
                 </div>
 
@@ -193,23 +193,23 @@ const Cases = () => {
           <div className="w-full overflow-x-auto">
             <table className="w-full text-left border-collapse min-w-[780px]">
               <thead>
-                <tr className="border-b border-[#DCE3DF] bg-[#EDF1EF]/40">
-                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-[0.1em] w-[26%]">
+                <tr className="border-b border-[#E2E8F0] bg-[#F8FAFC]/40">
+                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#94A3B8] uppercase tracking-[0.1em] w-[26%]">
                     Case profile
                   </th>
-                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-[0.1em] text-center w-[12%]">
+                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#94A3B8] uppercase tracking-[0.1em] text-center w-[12%]">
                     ML HSS
                   </th>
-                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-[0.1em] w-[15%]">
+                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#94A3B8] uppercase tracking-[0.1em] w-[15%]">
                     Risk tier
                   </th>
-                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-[0.1em] w-[18%]">
+                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#94A3B8] uppercase tracking-[0.1em] w-[18%]">
                     Review status
                   </th>
-                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-[0.1em] w-[17%]">
+                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#94A3B8] uppercase tracking-[0.1em] w-[17%]">
                     Model / Expert
                   </th>
-                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-[0.1em] text-right w-[12%]">
+                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#94A3B8] uppercase tracking-[0.1em] text-right w-[12%]">
                     Action
                   </th>
                 </tr>
@@ -218,30 +218,30 @@ const Cases = () => {
               {loading ? (
                 <tbody>
                   {[1, 2, 3, 4, 5].map((item) => (
-                    <tr key={item} className="border-b border-[#DCE3DF]/60">
+                    <tr key={item} className="border-b border-[#E2E8F0]/60">
                       <td className="py-3.5 px-5">
                         <div className="flex items-center gap-3">
-                          <Skeleton className="w-8 h-8 rounded-[8px] bg-[#DCE3DF]/70 shrink-0" />
+                          <Skeleton className="w-8 h-8 rounded-[8px] bg-[#E2E8F0]/70 shrink-0" />
                           <div>
-                            <Skeleton className="w-24 h-4 mb-1 bg-[#DCE3DF]/70 rounded" />
-                            <Skeleton className="w-16 h-3 bg-[#DCE3DF]/70 rounded" />
+                            <Skeleton className="w-24 h-4 mb-1 bg-[#E2E8F0]/70 rounded" />
+                            <Skeleton className="w-16 h-3 bg-[#E2E8F0]/70 rounded" />
                           </div>
                         </div>
                       </td>
                       <td className="py-3.5 px-5 text-center">
-                        <Skeleton className="w-10 h-6 mx-auto bg-[#DCE3DF]/70 rounded-md" />
+                        <Skeleton className="w-10 h-6 mx-auto bg-[#E2E8F0]/70 rounded-md" />
                       </td>
                       <td className="py-3.5 px-5">
-                        <Skeleton className="w-20 h-5 rounded-full bg-[#DCE3DF]/70" />
+                        <Skeleton className="w-20 h-5 rounded-full bg-[#E2E8F0]/70" />
                       </td>
                       <td className="py-3.5 px-5">
-                        <Skeleton className="w-24 h-4 bg-[#DCE3DF]/70 rounded" />
+                        <Skeleton className="w-24 h-4 bg-[#E2E8F0]/70 rounded" />
                       </td>
                       <td className="py-3.5 px-5">
-                        <Skeleton className="w-28 h-4 bg-[#DCE3DF]/70 rounded" />
+                        <Skeleton className="w-28 h-4 bg-[#E2E8F0]/70 rounded" />
                       </td>
                       <td className="py-3.5 px-5 text-right">
-                        <Skeleton className="w-20 h-8 ml-auto rounded-[8px] bg-[#DCE3DF]/70" />
+                        <Skeleton className="w-20 h-8 ml-auto rounded-[8px] bg-[#E2E8F0]/70" />
                       </td>
                     </tr>
                   ))}
@@ -249,15 +249,15 @@ const Cases = () => {
               ) : filteredCases.length === 0 ? (
                 <tbody>
                   <tr>
-                    <td colSpan="6" className="p-12 text-center text-[#5C6B66] text-[13px]">
+                    <td colSpan="6" className="p-12 text-center text-[#64748B] text-[13px]">
                       <div className="flex flex-col items-center justify-center gap-2">
-                        <p className="font-medium text-[#5C6B66]">
+                        <p className="font-medium text-[#64748B]">
                           {cases.length === 0 ? "No cases currently in review queue." : "No cases match your filters."}
                         </p>
                         {cases.length > 0 && (
                           <button
                             onClick={clearFilters}
-                            className="mt-1 px-3.5 py-1.5 text-[12px] font-semibold text-white bg-[#E8532E] hover:bg-[#C13E20] rounded-[8px] transition-colors cursor-pointer"
+                            className="mt-1 px-3.5 py-1.5 text-[12px] font-semibold text-white bg-[#2E9AE8] hover:bg-[#1C7AC8] rounded-[8px] transition-colors cursor-pointer"
                           >
                             Clear filters
                           </button>
@@ -267,7 +267,7 @@ const Cases = () => {
                   </tr>
                 </tbody>
               ) : (
-                <tbody className="divide-y divide-[#DCE3DF]">
+                <tbody className="divide-y divide-[#E2E8F0]">
                   {filteredCases.map((c, idx) => {
                     const isEvaluated = c.status?.toLowerCase() === "evaluated";
                     const riskTier = c.ml_tier || "Stable";
@@ -276,20 +276,20 @@ const Cases = () => {
                     return (
                       <tr
                         key={c.case_id || idx}
-                        className="hover:bg-[#EDF1EF]/60 transition-colors group cursor-pointer"
+                        className="hover:bg-[#F8FAFC]/60 transition-colors group cursor-pointer"
                         onClick={() => openModal(c)}
                       >
                         {/* Case Profile */}
                         <td className="py-3.5 px-4 sm:px-5 align-middle">
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-[8px] bg-[#FBEAE6] border border-[#DCE3DF] flex items-center justify-center shrink-0">
-                              <Lock size={13} className="text-[#E8532E]" />
+                            <div className="w-8 h-8 rounded-[8px] bg-[#EAF5FC] border border-[#E2E8F0] flex items-center justify-center shrink-0">
+                              <Lock size={13} className="text-[#2E9AE8]" />
                             </div>
                             <div className="flex flex-col">
-                              <span className="text-[#152131] font-bold text-[13px] font-mono leading-tight">
+                              <span className="text-[#0F172A] font-bold text-[13px] font-mono leading-tight">
                                 {c.case_id}
                               </span>
-                              <span className="text-[11px] text-[#5C6B66] font-medium mt-0.5">
+                              <span className="text-[11px] text-[#64748B] font-medium mt-0.5">
                                 {c.age} yrs • {c.sex}
                               </span>
                             </div>
@@ -299,7 +299,7 @@ const Cases = () => {
                         {/* ML HSS */}
                         <td className="py-3.5 px-4 sm:px-5 align-middle text-center">
                           <span 
-                            className="text-[16px] font-bold text-[#152131]"
+                            className="text-[16px] font-bold text-[#0F172A]"
                             style={{ fontFamily: "'Fraunces', serif" }}
                           >
                             {c.ml_predicted_hss ?? "--"}
@@ -315,7 +315,7 @@ const Cases = () => {
                               {riskTier}
                             </span>
                           ) : (
-                            <span className="text-[11px] text-[#8B9893] font-medium">None</span>
+                            <span className="text-[11px] text-[#94A3B8] font-medium">None</span>
                           )}
                         </td>
 
@@ -323,7 +323,7 @@ const Cases = () => {
                         <td className="py-3.5 px-4 sm:px-5 align-middle">
                           <span
                             className={`inline-flex items-center gap-1 text-[11px] font-semibold ${
-                              isEvaluated ? "text-[#1B6E63]" : "text-[#E8532E]"
+                              isEvaluated ? "text-[#1B6E63]" : "text-[#2E9AE8]"
                             }`}
                           >
                             {isEvaluated ? (
@@ -339,16 +339,16 @@ const Cases = () => {
                         <td className="py-3.5 px-4 sm:px-5 align-middle text-[12px] font-medium leading-tight">
                           {isEvaluated ? (
                             <div className="flex flex-col gap-0.5">
-                              <span className="text-[#5C6B66]">Model: <strong className="text-[#152131]">{c.ml_predicted_hss}</strong></span>
-                              <span className="text-[#5C6B66]">Expert: <strong className="text-[#1B6E63]">{c.expert_hss_score}</strong></span>
+                              <span className="text-[#64748B]">Model: <strong className="text-[#0F172A]">{c.ml_predicted_hss}</strong></span>
+                              <span className="text-[#64748B]">Expert: <strong className="text-[#1B6E63]">{c.expert_hss_score}</strong></span>
                               {c.absolute_error !== null && (
-                                <span className="text-[10px] text-[#8B9893] font-mono mt-0.5">
+                                <span className="text-[10px] text-[#94A3B8] font-mono mt-0.5">
                                   Diff: {c.absolute_error} pts
                                 </span>
                               )}
                             </div>
                           ) : (
-                            <span className="text-[11px] text-[#8B9893] font-medium italic">Pending evaluation</span>
+                            <span className="text-[11px] text-[#94A3B8] font-medium italic">Pending evaluation</span>
                           )}
                         </td>
 
@@ -360,15 +360,15 @@ const Cases = () => {
                                 e.stopPropagation();
                                 navigate(`/users/${c.user_id}`);
                               }}
-                              className="text-[12px] font-semibold px-2.5 py-1 rounded-[6px] border border-[#DCE3DF] text-[#152131] bg-[#EDF1EF] hover:bg-[#DCE3DF] transition-colors cursor-pointer"
+                              className="text-[12px] font-semibold px-2.5 py-1 rounded-[6px] border border-[#E2E8F0] text-[#0F172A] bg-[#F8FAFC] hover:bg-[#E2E8F0] transition-colors cursor-pointer"
                             >
                               Summary
                             </button>
                             <button
                               className={`text-[12px] font-semibold px-3 py-1 rounded-[6px] transition-colors cursor-pointer ${
                                 isEvaluated
-                                  ? "bg-[#FFFFFF] border border-[#DCE3DF] text-[#152131] hover:bg-[#EDF1EF]"
-                                  : "bg-[#E8532E] hover:bg-[#C13E20] text-white shadow-2xs"
+                                  ? "bg-[#FFFFFF] border border-[#E2E8F0] text-[#0F172A] hover:bg-[#F8FAFC]"
+                                  : "bg-[#2E9AE8] hover:bg-[#1C7AC8] text-white shadow-2xs"
                               }`}
                               onClick={(e) => {
                                 e.stopPropagation();

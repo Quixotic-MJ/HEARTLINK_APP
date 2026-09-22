@@ -2,15 +2,15 @@
 
 /* ─── HeartLink Design System Tokens ─── */
 :root {
-  --ink: #152131;
-  --ink-soft: #5C6B66;
-  --ink-faint: #8B9893;
-  --paper: #EDF1EF;
+  --ink: #0F172A;
+  --ink-soft: #64748B;
+  --ink-faint: #94A3B8;
+  --paper: #F8FAFC;
   --paper-raise: #FFFFFF;
-  --line: #DCE3DF;
-  --coral: #E8532E;
-  --coral-deep: #C13E20;
-  --coral-soft: #FBEAE6;
+  --line: #E2E8F0;
+  --coral: #2E9AE8;
+  --coral-deep: #1C7AC8;
+  --coral-soft: #EAF5FC;
   --garnet: #8A1F1A;
   --teal: #1B6E63;
   --teal-soft: #E3EFEC;
@@ -24,15 +24,15 @@
 }
 
 @theme {
-  --color-ink: #152131;
-  --color-ink-soft: #5C6B66;
-  --color-ink-faint: #8B9893;
-  --color-paper: #EDF1EF;
+  --color-ink: #0F172A;
+  --color-ink-soft: #64748B;
+  --color-ink-faint: #94A3B8;
+  --color-paper: #F8FAFC;
   --color-paper-raise: #FFFFFF;
-  --color-line: #DCE3DF;
-  --color-coral: #E8532E;
-  --color-coral-deep: #C13E20;
-  --color-coral-soft: #FBEAE6;
+  --color-line: #E2E8F0;
+  --color-coral: #2E9AE8;
+  --color-coral-deep: #1C7AC8;
+  --color-coral-soft: #EAF5FC;
   --color-garnet: #8A1F1A;
   --color-teal: #1B6E63;
   --color-teal-soft: #E3EFEC;
@@ -63,9 +63,9 @@ input:-webkit-autofill,
 input:-webkit-autofill:hover, 
 input:-webkit-autofill:focus, 
 input:-webkit-autofill:active {
-  -webkit-box-shadow: 0 0 0 1000px #EDF1EF inset !important;
-  -webkit-text-fill-color: #152131 !important;
-  caret-color: #152131 !important;
+  -webkit-box-shadow: 0 0 0 1000px #F8FAFC inset !important;
+  -webkit-text-fill-color: #0F172A !important;
+  caret-color: #0F172A !important;
   font-family: 'Inter', sans-serif !important;
   font-size: 13.5px !important;
   transition: background-color 5000s ease-in-out 0s;
@@ -73,7 +73,7 @@ input:-webkit-autofill:active {
 
 input:focus:-webkit-autofill {
   -webkit-box-shadow: 0 0 0 1000px #FFFFFF inset !important;
-  -webkit-text-fill-color: #152131 !important;
+  -webkit-text-fill-color: #0F172A !important;
 }
 
 /* ─── Clean Native Scrollbar ─── */
@@ -82,12 +82,12 @@ input:focus:-webkit-autofill {
   height: 6px;
 }
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: #EDF1EF;
+  background: #F8FAFC;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #DCE3DF;
+  background: #E2E8F0;
   border-radius: 9999px;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #8B9893;
+  background: #94A3B8;
 }
