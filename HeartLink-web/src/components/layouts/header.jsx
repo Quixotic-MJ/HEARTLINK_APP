@@ -4,12 +4,11 @@ import {
   Search,
   Zap,
   ChevronDown,
-  LogOut,
-  Bell,
   Megaphone,
   UserPlus,
   LayoutDashboard,
   ClipboardList,
+  Clock,
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
@@ -18,7 +17,6 @@ import AdminNotificationDropdown from "./AdminNotificationDropdown";
 export default function Header({ 
   setSidebarOpen, 
   title: propTitle,
-  onLogoutClick,
 }) {
   const location = useLocation();
   const pathSegment = location.pathname.split("/").filter(Boolean).pop() || "dashboard";
@@ -27,31 +25,33 @@ export default function Header({
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
   const title = propTitle || defaultTitle;
-  
-  const navigate = useNavigate();
-  const { user, userId, logout } = useAuth();
 
+  const navigate = useNavigate();
+  const { user, userId } = useAuth();
   const [quickActionsOpen, setQuickActionsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [currentTime, setCurrentTime] = useState(new Date());
   const qaMenuRef = useRef(null);
 
   const userRole = user?.role;
 
+  // Live Clock Tick
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
   // Keyboard accessibility & click outside for Quick Actions
   useEffect(() => {
     if (!quickActionsOpen) return;
-
     function handleKeyDown(event) {
-      if (event.key === "Escape") {
-        setQuickActionsOpen(false);
-      }
+      if (event.key === "Escape") setQuickActionsOpen(false);
     }
     function handleClickOutside(event) {
       if (qaMenuRef.current && !qaMenuRef.current.contains(event.target)) {
         setQuickActionsOpen(false);
       }
     }
-
     window.addEventListener("keydown", handleKeyDown);
     document.addEventListener("mousedown", handleClickOutside);
     return () => {
@@ -64,7 +64,6 @@ export default function Header({
     if (e.key === "Enter") {
       const trimmedQuery = searchQuery.trim();
       if (!trimmedQuery) return;
-
       if (userRole === "medical_expert") {
         navigate(`/cases?search=${encodeURIComponent(trimmedQuery)}`);
       } else {
@@ -75,66 +74,73 @@ export default function Header({
   };
 
   const searchPlaceholder = userRole === "medical_expert"
-    ? "Search cases by name or ID…"
-    : "Search users by name or ID…";
-
-  const handleLogout = () => {
-    if (onLogoutClick) {
-      onLogoutClick();
-    } else {
-      logout();
-      navigate("/");
-    }
-  };
+    ? "Search user profiles..."
+    : "Search profiles or content...";
 
   return (
     <header
-      className="sticky top-0 z-30 flex items-center justify-between shrink-0 px-5 sm:px-6 bg-[#FFFFFF] border-b border-[#DCE3DF] h-[60px] select-none"
+      className="sticky top-0 z-30 grid grid-cols-[auto_1fr_auto] items-center shrink-0 px-5 sm:px-6 bg-[#FFFFFF] border-b border-[#DCE3DF] h-[60px] select-none gap-4"
       style={{ fontFamily: "'Inter', sans-serif" }}
     >
-      {/* ── Left ── */}
+      {/* ═════════════════════════════════════════════════════════════════════════
+          COLUMN 1: Mobile Toggle & Locked-Width Page Title Area
+      ═════════════════════════════════════════════════════════════════════════ */}
       <div className="flex items-center gap-4">
-        {/* Mobile sidebar toggle button */}
         <button
           aria-label="Open sidebar"
-          className="lg:hidden p-1.5 rounded-[8px] bg-[#EDF1EF] border border-[#DCE3DF] text-[#5C6B66] hover:text-[#152131] transition-colors cursor-pointer"
+          className="lg:hidden p-1.5 rounded-[8px] bg-[#F5F5F4] border border-[#DCE3DF] text-[#57534E] hover:text-[#292524] transition-colors cursor-pointer"
           onClick={() => setSidebarOpen(true)}
         >
           <Menu size={16} />
         </button>
 
-        {/* Page Title */}
-        <span className="hidden sm:block text-[15px] font-semibold text-[#152131]">
-          {title}
-        </span>
+        {/* Fixed minimum width lane so title changes never push the search bar */}
+        <div className="hidden md:flex items-center gap-5 min-w-[210px]">
+          <h1 className="text-[12px] font-bold uppercase tracking-[0.15em] text-[#292524] truncate">
+            {title}
+          </h1>
+          <div className="w-px h-5 bg-[#DCE3DF] ml-auto" />
+        </div>
+      </div>
 
-        {/* Search Bar */}
-        <div className="flex items-center gap-2 bg-[#EDF1EF] border border-[#DCE3DF] rounded-[8px] px-3 h-[36px] w-48 sm:w-[230px] focus-within:border-[#152131] transition-colors">
-          <Search size={14} className="text-[#8B9893] shrink-0" />
+      {/* ═════════════════════════════════════════════════════════════════════════
+          COLUMN 2: Steady, Non-Shifting Search Bar
+      ═════════════════════════════════════════════════════════════════════════ */}
+      <div className="flex items-center">
+        <div className="flex items-center gap-2 bg-[#FAFAF9] border border-[#DCE3DF] rounded-[6px] px-2.5 h-[32px] w-full max-w-[320px] focus-within:bg-[#FFFFFF] focus-within:border-[#E8532E] focus-within:ring-2 focus-within:ring-[#E8532E]/10 transition-all">
+          <Search size={13} className="text-[#78716C] shrink-0" />
           <input
             type="text"
             placeholder={searchPlaceholder}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={handleSearch}
-            className="w-full bg-transparent border-none outline-none text-[13px] text-[#152131] placeholder:text-[#8B9893] h-full font-medium"
+            className="w-full bg-transparent border-none outline-none text-[12.5px] text-[#292524] placeholder:text-[#78716C] h-full font-medium"
           />
         </div>
       </div>
 
-      {/* ── Right ── */}
-      <div className="flex items-center gap-2.5">
+      {/* ═════════════════════════════════════════════════════════════════════════
+          COLUMN 3: Live Clock, Quick Actions & Notifications
+      ═════════════════════════════════════════════════════════════════════════ */}
+      <div className="flex items-center gap-3 justify-end">
         
+        {/* Live Clock Widget */}
+        <div className="hidden xl:flex items-center gap-1.5 text-[11.5px] font-medium text-[#78716C] bg-[#FAFAF9] border border-[#DCE3DF] px-2.5 h-[32px] rounded-[6px]">
+          <Clock size={13} className="text-[#E8532E]" />
+          <span>{currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+        </div>
+
         {/* Quick Actions Dropdown */}
         <div className="relative hidden md:block" ref={qaMenuRef}>
           <button
             onClick={() => setQuickActionsOpen(prev => !prev)}
             aria-expanded={quickActionsOpen}
             aria-label="Quick actions"
-            className="flex items-center gap-1.5 bg-[#152131] hover:bg-[#0d1622] text-white rounded-[8px] px-3.5 h-[36px] text-[12.5px] font-semibold transition-colors cursor-pointer shadow-2xs"
+            className="flex items-center gap-1.5 bg-[#E8532E] hover:bg-[#C13E20] text-white rounded-[6px] px-3 h-[32px] text-[12px] font-bold transition-colors cursor-pointer shadow-sm"
           >
-            <Zap size={14} strokeWidth={2.5} />
-            <span>Quick actions</span>
+            <Zap size={13} strokeWidth={2.5} />
+            <span>Actions</span>
             <ChevronDown
               size={11}
               strokeWidth={2.5}
@@ -146,12 +152,12 @@ export default function Header({
             <div className="absolute right-0 top-[calc(100%+8px)] w-[210px] bg-[#FFFFFF] border border-[#DCE3DF] rounded-[10px] shadow-lg p-1.5 z-50">
               {userRole === "admin" || userRole === "super_admin" ? (
                 <>
-                  <div className="text-[10.5px] font-semibold text-[#8B9893] px-2.5 pt-2 pb-1 uppercase tracking-wider">
+                  <div className="text-[10.5px] font-bold text-[#78716C] px-2.5 pt-2 pb-1.5 uppercase tracking-wider">
                     System actions
                   </div>
                   <button
                     onClick={() => { navigate('/broadcasts'); setQuickActionsOpen(false); }}
-                    className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-[7px] text-[12.5px] font-medium text-[#152131] hover:bg-[#EDF1EF] transition-colors text-left cursor-pointer"
+                    className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-[7px] text-[12.5px] font-medium text-[#292524] hover:bg-[#F5F5F4] transition-colors text-left cursor-pointer"
                   >
                     <Megaphone size={14} className="text-[#E8532E] shrink-0" />
                     <span>Send announcement</span>
@@ -159,7 +165,7 @@ export default function Header({
                   {userRole === "super_admin" && (
                     <button
                       onClick={() => { navigate('/users'); setQuickActionsOpen(false); }}
-                      className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-[7px] text-[12.5px] font-medium text-[#152131] hover:bg-[#EDF1EF] transition-colors text-left cursor-pointer"
+                      className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-[7px] text-[12.5px] font-medium text-[#292524] hover:bg-[#F5F5F4] transition-colors text-left cursor-pointer"
                     >
                       <UserPlus size={14} className="text-[#E8532E] shrink-0" />
                       <span>Provision staff account</span>
@@ -168,22 +174,22 @@ export default function Header({
                 </>
               ) : (
                 <>
-                  <div className="text-[10.5px] font-semibold text-[#8B9893] px-2.5 pt-2 pb-1 uppercase tracking-wider">
+                  <div className="text-[10.5px] font-bold text-[#78716C] px-2.5 pt-2 pb-1.5 uppercase tracking-wider">
                     Evaluation actions
                   </div>
                   <button
                     onClick={() => { navigate('/dashboard'); setQuickActionsOpen(false); }}
-                    className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-[7px] text-[12.5px] font-medium text-[#152131] hover:bg-[#EDF1EF] transition-colors text-left cursor-pointer"
+                    className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-[7px] text-[12.5px] font-medium text-[#292524] hover:bg-[#F5F5F4] transition-colors text-left cursor-pointer"
                   >
                     <LayoutDashboard size={14} className="text-[#E8532E] shrink-0" />
                     <span>View Dashboard</span>
                   </button>
                   <button
                     onClick={() => { navigate('/cases'); setQuickActionsOpen(false); }}
-                    className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-[7px] text-[12.5px] font-medium text-[#152131] hover:bg-[#EDF1EF] transition-colors text-left cursor-pointer"
+                    className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-[7px] text-[12.5px] font-medium text-[#292524] hover:bg-[#F5F5F4] transition-colors text-left cursor-pointer"
                   >
                     <ClipboardList size={14} className="text-[#E8532E] shrink-0" />
-                    <span>Review cases</span>
+                    <span>Review health profiles</span>
                   </button>
                 </>
               )}
@@ -191,32 +197,10 @@ export default function Header({
           )}
         </div>
 
-        {/* Operational Status Chip */}
-        <div className="hidden lg:flex items-center gap-2.5 border border-[#DCE3DF] rounded-[8px] px-3 h-[36px] bg-[#FFFFFF]">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#1B6E63] shrink-0" />
-          <div className="text-left">
-            <div className="text-[11.5px] font-semibold text-[#152131] leading-tight">System status</div>
-            <div className="text-[9.5px] font-bold text-[#1B6E63] tracking-wide uppercase">Operational</div>
-          </div>
-        </div>
-
-        <div className="hidden sm:block w-px h-[22px] bg-[#DCE3DF]" />
-
-        {/* Notifications (Wraps AdminNotificationDropdown) */}
+        {/* Notifications */}
         {(userRole === "admin" || userRole === "super_admin") && (
           <AdminNotificationDropdown userId={userId || user?.id} />
         )}
-
-        {/* Sign Out Button */}
-        <button
-          type="button"
-          onClick={handleLogout}
-          aria-label="Sign out"
-          title="Sign out"
-          className="w-[36px] h-[36px] rounded-[8px] border border-[#DCE3DF] bg-[#FFFFFF] hover:text-[#A93226] hover:border-[#F0C4B8] hover:bg-[#F7E4E1] flex items-center justify-center text-[#5C6B66] transition-colors cursor-pointer"
-        >
-          <LogOut size={15} />
-        </button>
       </div>
     </header>
   );

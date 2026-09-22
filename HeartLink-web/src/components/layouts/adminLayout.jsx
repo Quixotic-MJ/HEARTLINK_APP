@@ -59,7 +59,11 @@ const AdminLayout = ({ children }) => {
 
         {/* Scrollable Content Wrapper */}
         <main className="flex-1 overflow-y-auto overflow-x-hidden p-5 sm:p-6 lg:p-8 bg-[#EDF1EF]">
-          <div className="max-w-[1180px] mx-auto pb-10">{children}</div>
+          {/* 
+            FIX: Removed max-w-[1180px] to allow child components (like the Dashboard) 
+            to utilize fluid, wide-screen grid layouts.
+          */}
+          <div className="w-full mx-auto pb-10">{children}</div>
         </main>
       </div>
 

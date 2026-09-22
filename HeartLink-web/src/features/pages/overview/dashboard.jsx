@@ -56,18 +56,18 @@ const Dashboard = () => {
           </div>
 
           {/* Two-col Panels Skeleton */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 mb-5">
-            <Skeleton className="w-full h-[240px] rounded-[10px] bg-[#DCE3DF]/60" />
-            <Skeleton className="w-full h-[240px] rounded-[10px] bg-[#DCE3DF]/60" />
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-3.5 mb-5">
+            <Skeleton className="xl:col-span-6 w-full h-[240px] rounded-[10px] bg-[#DCE3DF]/60" />
+            <Skeleton className="xl:col-span-6 w-full h-[240px] rounded-[10px] bg-[#DCE3DF]/60" />
           </div>
 
           {/* Activity Skeleton */}
           <Skeleton className="w-full h-[140px] rounded-[10px] mb-5 bg-[#DCE3DF]/60" />
 
           {/* Bottom Grid Skeleton */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-            <Skeleton className="w-full h-[220px] rounded-[10px] bg-[#DCE3DF]/60" />
-            <Skeleton className="w-full h-[220px] rounded-[10px] bg-[#DCE3DF]/60" />
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-3.5">
+            <Skeleton className="xl:col-span-6 w-full h-[220px] rounded-[10px] bg-[#DCE3DF]/60" />
+            <Skeleton className="xl:col-span-6 w-full h-[220px] rounded-[10px] bg-[#DCE3DF]/60" />
           </div>
         </div>
       </AdminLayout>
@@ -96,7 +96,8 @@ const Dashboard = () => {
 
   return (
     <AdminLayout>
-      <div className={UI.page.container} style={{ fontFamily: FONTS.sans }}>
+      {/* Expanded container for full-width layout utilization */}
+      <div className="w-full max-w-[1700px] mx-auto px-4 sm:px-6 lg:px-8 py-4" style={{ fontFamily: FONTS.sans }}>
         {/* ── PAGE HEAD ── */}
         <PageHeader
           eyebrow="Operations console"
@@ -107,7 +108,7 @@ const Dashboard = () => {
         {/* ── QUICK ACTIONS ── */}
         <div className="bg-[#FFFFFF] border border-[#DCE3DF] rounded-[10px] p-5 mb-5 shadow-2xs">
           <div className="text-[13px] font-semibold text-[#152131] mb-0.5">Quick actions</div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 mt-3.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 mt-3.5">
             <button
               onClick={() => navigate("/foods")}
               className="flex items-center gap-3 p-3 rounded-[8px] border border-[#DCE3DF] bg-[#EDF1EF] hover:border-[#E8532E] hover:bg-[#FBEAE6] transition-all cursor-pointer text-left group"
@@ -202,9 +203,9 @@ const Dashboard = () => {
         </div>
 
         {/* ── PANELS: USERS NEEDING REVIEW & HSS DISTRIBUTION ── */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 mb-5">
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-3.5 mb-5">
           {/* Users needing review */}
-          <div className="bg-[#FFFFFF] border border-[#DCE3DF] rounded-[10px] p-5 shadow-2xs flex flex-col justify-between">
+          <div className="xl:col-span-6 bg-[#FFFFFF] border border-[#DCE3DF] rounded-[10px] p-5 shadow-2xs flex flex-col justify-between">
             <div>
               <div className="text-[13px] font-semibold text-[#152131] mb-0.5">Users needing review</div>
               <div className="text-[12px] text-[#5C6B66] mb-4">Clinical items flagged for verification and analysis</div>
@@ -266,7 +267,7 @@ const Dashboard = () => {
           </div>
 
           {/* HSS distribution */}
-          <div className="bg-[#FFFFFF] border border-[#DCE3DF] rounded-[10px] p-5 shadow-2xs">
+          <div className="xl:col-span-6 bg-[#FFFFFF] border border-[#DCE3DF] rounded-[10px] p-5 shadow-2xs">
             <div className="text-[13px] font-semibold text-[#152131] mb-0.5">HSS distribution</div>
             <div className="text-[12px] text-[#5C6B66] mb-4">Health Stability Score cohorts across registered population</div>
 
@@ -343,7 +344,7 @@ const Dashboard = () => {
           <div className="text-[13px] font-semibold text-[#152131] mb-0.5">User activity (last 7 days)</div>
           <div className="text-[12px] text-[#5C6B66] mb-3.5">Clinical telemetry events recorded in the rolling week</div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 mt-3.5">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-2.5 mt-3.5">
             <div className="text-center p-3.5 px-2 border border-[#DCE3DF] rounded-[8px] bg-[#EDF1EF]">
               <span className="text-[10.5px] uppercase tracking-[0.03em] text-[#5C6B66] font-semibold block mb-1">
                 Meals
@@ -392,7 +393,7 @@ const Dashboard = () => {
               </span>
             </div>
 
-            <div className="text-center p-3.5 px-2 border border-[#DCE3DF] rounded-[8px] bg-[#EDF1EF] col-span-2 sm:col-span-1">
+            <div className="text-center p-3.5 px-2 border border-[#DCE3DF] rounded-[8px] bg-[#EDF1EF] col-span-2 md:col-span-1">
               <span className="text-[10.5px] uppercase tracking-[0.03em] text-[#5C6B66] font-semibold block mb-1">
                 Symptoms
               </span>
@@ -407,14 +408,14 @@ const Dashboard = () => {
         </div>
 
         {/* ── CONTENT LIBRARY & RECENT ADMIN ACTIVITY ── */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 mb-0">
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-3.5 mb-0">
           {/* Content Library */}
-          <div className="bg-[#FFFFFF] border border-[#DCE3DF] rounded-[10px] p-5 shadow-2xs flex flex-col justify-between">
+          <div className="xl:col-span-6 bg-[#FFFFFF] border border-[#DCE3DF] rounded-[10px] p-5 shadow-2xs flex flex-col justify-between">
             <div>
               <div className="text-[13px] font-semibold text-[#152131] mb-0.5">Content library</div>
               <div className="text-[12px] text-[#5C6B66] mb-4">Manage application recipes and exercises</div>
 
-              <div className="grid grid-cols-2 gap-2.5 mb-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-4">
                 <div className="flex items-center justify-between p-3.5 border border-[#DCE3DF] rounded-[8px] bg-[#EDF1EF]">
                   <div>
                     <span className="text-[10.5px] uppercase text-[#5C6B66] font-semibold block">Recipes</span>
@@ -464,7 +465,7 @@ const Dashboard = () => {
           </div>
 
           {/* Recent Admin Activity */}
-          <div className="bg-[#FFFFFF] border border-[#DCE3DF] rounded-[10px] p-5 shadow-2xs flex flex-col justify-between">
+          <div className="xl:col-span-6 bg-[#FFFFFF] border border-[#DCE3DF] rounded-[10px] p-5 shadow-2xs flex flex-col justify-between">
             <div>
               <div className="text-[13px] font-semibold text-[#152131] mb-0.5">Recent admin activity</div>
               <div className="text-[12px] text-[#5C6B66] mb-4">Real-time audit log of administrative events</div>
