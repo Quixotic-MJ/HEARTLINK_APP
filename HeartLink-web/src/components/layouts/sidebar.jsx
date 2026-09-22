@@ -1,21 +1,21 @@
-  import { Link, useLocation, useNavigate } from "react-router-dom";
-  import {
-    LayoutDashboard,
-    PieChart,
-    Utensils,
-    Dumbbell,
-    ClipboardList,
-    History,
-    Activity,
-    Users,
-    MessageSquare,
-    Megaphone,
-    Settings,
-    Bell,
-    X,
-    LogOut,
-  } from "lucide-react";
-  import { useAuth } from "../../contexts/AuthContext";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import {
+  LayoutDashboard,
+  PieChart,
+  Utensils,
+  Dumbbell,
+  ClipboardList,
+  History,
+  Activity,
+  Users,
+  MessageSquare,
+  Megaphone,
+  Settings,
+  Bell,
+  X,
+  LogOut,
+} from "lucide-react";
+import { useAuth } from "../../contexts/AuthContext";
 
 // ─── Brand Logo Emblem ────────────────────────────────────────────────────────
 function HeartLogoIcon({ size = 24 }) {
@@ -60,10 +60,10 @@ function SectionLabel({ label, collapsed }) {
   );
 }
 
-  // ─── Nav Item ─────────────────────────────────────────────────────────────────
-  function NavItem({ path, icon: Icon, label, collapsed, badge = null, activeOverride = false }) {
-    const location = useLocation();
-    const active = activeOverride || location.pathname === path;
+// ─── Nav Item ─────────────────────────────────────────────────────────────────
+function NavItem({ path, icon: Icon, label, collapsed, badge = null, activeOverride = false }) {
+  const location = useLocation();
+  const active = activeOverride || location.pathname === path;
 
   return (
     <Link
@@ -102,47 +102,42 @@ function SectionLabel({ label, collapsed }) {
   );
 }
 
-        {!collapsed && (
-          <span className="leading-tight whitespace-nowrap overflow-hidden text-ellipsis flex-1">
-            {label}
-          </span>
-        )}
-        
-        {!collapsed && badge && (
-          <span className="ml-auto px-1.5 py-0.5 rounded-full bg-[#FBEAE6] text-[#E8532E] text-[10px] font-bold">
-            {badge}
-          </span>
-        )}
-      </Link>
-    );
-  }
+// ─── Main Sidebar Component ───────────────────────────────────────────────────
+const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed, onLogoutClick }) => {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  
+  const role = user?.role || "admin";
+  const userName = (user?.first_name || user?.last_name) 
+    ? `${user.first_name || ""} ${user.last_name || ""}`.trim() 
+    : (user?.email || "Staff User");
+  const userInitials = userName ? userName.substring(0, 2).toUpperCase() : "HL";
 
-  // ─── Main Sidebar Component ───────────────────────────────────────────────────
-  const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed, onLogoutClick }) => {
-    const { user, logout } = useAuth();
-    const navigate = useNavigate();
-    
-    const role = user?.role || "admin";
-    const userName = (user?.first_name || user?.last_name) 
-      ? `${user.first_name || ""} ${user.last_name || ""}`.trim() 
-      : (user?.email || "Staff User");
-    const userInitials = userName ? userName.substring(0, 2).toUpperCase() : "HL";
+  const getRoleLabel = (r) => {
+    if (r === "super_admin") return "Super admin";
+    if (r === "admin") return "System admin";
+    if (r === "medical_expert") return "Medical expert";
+    return "Staff user";
+  };
 
-    const getRoleLabel = (r) => {
-      if (r === "super_admin") return "Super admin";
-      if (r === "admin") return "System admin";
-      if (r === "medical_expert") return "Medical expert";
-      return "Staff user";
-    };
+  const handleLogout = () => {
+    if (onLogoutClick) {
+      onLogoutClick();
+    } else {
+      logout();
+      navigate("/");
+    }
+  };
 
-    const handleLogout = () => {
-      if (onLogoutClick) {
-        onLogoutClick();
-      } else {
-        logout();
-        navigate("/");
-      }
-    };
+  return (
+    <>
+      {/* Mobile overlay */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-40 lg:hidden bg-black/60 backdrop-blur-xs"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
 
       {/* Sidebar container */}
       <aside
@@ -163,15 +158,14 @@ function SectionLabel({ label, collapsed }) {
           <X size={16} />
         </button>
 
-        {/* Sidebar container */}
-        <aside
-          className={`fixed lg:sticky top-0 left-0 h-screen z-50 flex flex-col shrink-0 bg-[#FFFFFF] border-r border-[#DCE3DF] transition-all duration-200 select-none ${
-            sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+        {/* Brand Header (Acts as collapse toggle) */}
+        <button
+          type="button"
+          onClick={() => setCollapsed(prev => !prev)}
+          className={`flex items-center gap-2.5 p-[18px_18px_14px] w-full text-left bg-transparent border-none cursor-pointer group ${
+            collapsed ? "justify-center !px-0" : ""
           }`}
-          style={{
-            width: collapsed ? 64 : 240,
-            fontFamily: "'Inter', sans-serif",
-          }}
+          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
           <HeartLogoIcon size={24} />
           {!collapsed && (
@@ -185,47 +179,48 @@ function SectionLabel({ label, collapsed }) {
               <div className="text-[10px] font-semibold text-[#1C7AC8] mt-0.5">
                 Admin portal
               </div>
-            )}
-          </button>
+            </div>
+          )}
+        </button>
 
         <div className="mx-4 mb-2 border-t border-[#E2E8F0]" />
 
-          {/* Nav links */}
-          <nav className="flex-1 overflow-y-auto overflow-x-hidden px-3 pb-3 space-y-0.5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-            <SectionLabel label="Overview" collapsed={collapsed} />
-            <NavItem path="/dashboard" icon={LayoutDashboard} label="Dashboard" collapsed={collapsed} />
-            
-            {(role === "admin" || role === "super_admin") && (
-              <NavItem path="/analytics" icon={PieChart} label="Analytics" collapsed={collapsed} />
-            )}
+        {/* Nav links */}
+        <nav className="flex-1 overflow-y-auto overflow-x-hidden px-3 pb-3 space-y-0.5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+          <SectionLabel label="Overview" collapsed={collapsed} />
+          <NavItem path="/dashboard" icon={LayoutDashboard} label="Dashboard" collapsed={collapsed} />
+          
+          {(role === "admin" || role === "super_admin") && (
+            <NavItem path="/analytics" icon={PieChart} label="Analytics" collapsed={collapsed} />
+          )}
 
-            <NavItem path="/notifications" icon={Bell} label="Notifications" collapsed={collapsed} />
+          <NavItem path="/notifications" icon={Bell} label="Notifications" collapsed={collapsed} />
 
-            {(role === "admin" || role === "super_admin") && (
-              <>
-                <SectionLabel label="Content" collapsed={collapsed} />
-                <NavItem path="/foods" icon={Utensils} label="Food & recipe library" collapsed={collapsed} />
-                <NavItem path="/exercises" icon={Dumbbell} label="Exercise library" collapsed={collapsed} />
-              </>
-            )}
+          {(role === "admin" || role === "super_admin") && (
+            <>
+              <SectionLabel label="Content" collapsed={collapsed} />
+              <NavItem path="/foods" icon={Utensils} label="Food & recipe library" collapsed={collapsed} />
+              <NavItem path="/exercises" icon={Dumbbell} label="Exercise library" collapsed={collapsed} />
+            </>
+          )}
 
-            <SectionLabel label="HSS evaluation" collapsed={collapsed} />
-            <NavItem path="/cases" icon={ClipboardList} label="Case review" collapsed={collapsed} />
-            <NavItem path="/calibration" icon={History} label="Calibration history" collapsed={collapsed} />
+          <SectionLabel label="HSS evaluation" collapsed={collapsed} />
+          <NavItem path="/cases" icon={ClipboardList} label="Case review" collapsed={collapsed} />
+          <NavItem path="/calibration" icon={History} label="Calibration history" collapsed={collapsed} />
 
-            {(role === "admin" || role === "super_admin") && (
-              <>
-                <SectionLabel label="Users & feedback" collapsed={collapsed} />
-                <NavItem path="/users" icon={Users} label="Users" collapsed={collapsed} />
-                <NavItem path="/feedbacks" icon={MessageSquare} label="Feedback" collapsed={collapsed} />
+          {(role === "admin" || role === "super_admin") && (
+            <>
+              <SectionLabel label="Users & feedback" collapsed={collapsed} />
+              <NavItem path="/users" icon={Users} label="Users" collapsed={collapsed} />
+              <NavItem path="/feedbacks" icon={MessageSquare} label="Feedback" collapsed={collapsed} />
 
-                <SectionLabel label="System" collapsed={collapsed} />
-                <NavItem path="/activity-log" icon={Activity} label="Activity log" collapsed={collapsed} />
-                <NavItem path="/broadcasts" icon={Megaphone} label="Announcements" collapsed={collapsed} />
-                <NavItem path="/settings" icon={Settings} label="Settings" collapsed={collapsed} />
-              </>
-            )}
-          </nav>
+              <SectionLabel label="System" collapsed={collapsed} />
+              <NavItem path="/activity-log" icon={Activity} label="Activity log" collapsed={collapsed} />
+              <NavItem path="/broadcasts" icon={Megaphone} label="Announcements" collapsed={collapsed} />
+              <NavItem path="/settings" icon={Settings} label="Settings" collapsed={collapsed} />
+            </>
+          )}
+        </nav>
 
         {/* Bottom User Footer Strip */}
         <div className="p-3 border-t border-[#E2E8F0] bg-[#FFFFFF]">
@@ -258,14 +253,6 @@ function SectionLabel({ label, collapsed }) {
                 <div className="text-[10px] font-medium text-[#64748B] truncate mt-0.5">
                   {getRoleLabel(role)}
                 </div>
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  className="p-1 text-[#8B9893] hover:text-[#A93226] transition-colors cursor-pointer shrink-0"
-                  title="Sign out"
-                >
-                  <LogOut size={15} />
-                </button>
               </div>
               <button
                 type="button"
@@ -283,4 +270,4 @@ function SectionLabel({ label, collapsed }) {
   );
 };
 
-  export default Sidebar;
+export default Sidebar;
