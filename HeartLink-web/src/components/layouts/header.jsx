@@ -88,7 +88,7 @@ export default function Header({
       <div className="flex items-center gap-4">
         <button
           aria-label="Open sidebar"
-          className="lg:hidden p-1.5 rounded-[8px] bg-[#F5F5F4] border border-[#DCE3DF] text-[#57534E] hover:text-[#292524] transition-colors cursor-pointer"
+          className="lg:hidden p-1.5 rounded-[8px] bg-[#F8FAFC] border border-[#E2E8F0] text-[#64748B] hover:text-[#0F172A] transition-colors cursor-pointer"
           onClick={() => setSidebarOpen(true)}
         >
           <Menu size={16} />
@@ -115,7 +115,7 @@ export default function Header({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={handleSearch}
-            className="w-full bg-transparent border-none outline-none text-[12.5px] text-[#292524] placeholder:text-[#78716C] h-full font-medium"
+            className="w-full bg-transparent border-none outline-none text-[13px] text-[#0F172A] placeholder:text-[#94A3B8] h-full font-medium"
           />
         </div>
       </div>
@@ -149,47 +149,47 @@ export default function Header({
           </button>
 
           {quickActionsOpen && (
-            <div className="absolute right-0 top-[calc(100%+8px)] w-[210px] bg-[#FFFFFF] border border-[#DCE3DF] rounded-[10px] shadow-lg p-1.5 z-50">
+            <div className="absolute right-0 top-[calc(100%+8px)] w-[210px] bg-[#FFFFFF] border border-[#E2E8F0] rounded-[10px] shadow-lg p-1.5 z-50">
               {userRole === "admin" || userRole === "super_admin" ? (
                 <>
-                  <div className="text-[10.5px] font-bold text-[#78716C] px-2.5 pt-2 pb-1.5 uppercase tracking-wider">
+                  <div className="text-[10.5px] font-semibold text-[#94A3B8] px-2.5 pt-2 pb-1 uppercase tracking-wider">
                     System actions
                   </div>
                   <button
                     onClick={() => { navigate('/broadcasts'); setQuickActionsOpen(false); }}
-                    className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-[7px] text-[12.5px] font-medium text-[#292524] hover:bg-[#F5F5F4] transition-colors text-left cursor-pointer"
+                    className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-[7px] text-[12.5px] font-medium text-[#0F172A] hover:bg-[#F8FAFC] transition-colors text-left cursor-pointer"
                   >
-                    <Megaphone size={14} className="text-[#E8532E] shrink-0" />
+                    <Megaphone size={14} className="text-[#2E9AE8] shrink-0" />
                     <span>Send announcement</span>
                   </button>
                   {userRole === "super_admin" && (
                     <button
                       onClick={() => { navigate('/users'); setQuickActionsOpen(false); }}
-                      className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-[7px] text-[12.5px] font-medium text-[#292524] hover:bg-[#F5F5F4] transition-colors text-left cursor-pointer"
+                      className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-[7px] text-[12.5px] font-medium text-[#0F172A] hover:bg-[#F8FAFC] transition-colors text-left cursor-pointer"
                     >
-                      <UserPlus size={14} className="text-[#E8532E] shrink-0" />
+                      <UserPlus size={14} className="text-[#2E9AE8] shrink-0" />
                       <span>Provision staff account</span>
                     </button>
                   )}
                 </>
               ) : (
                 <>
-                  <div className="text-[10.5px] font-bold text-[#78716C] px-2.5 pt-2 pb-1.5 uppercase tracking-wider">
+                  <div className="text-[10.5px] font-semibold text-[#94A3B8] px-2.5 pt-2 pb-1 uppercase tracking-wider">
                     Evaluation actions
                   </div>
                   <button
                     onClick={() => { navigate('/dashboard'); setQuickActionsOpen(false); }}
-                    className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-[7px] text-[12.5px] font-medium text-[#292524] hover:bg-[#F5F5F4] transition-colors text-left cursor-pointer"
+                    className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-[7px] text-[12.5px] font-medium text-[#0F172A] hover:bg-[#F8FAFC] transition-colors text-left cursor-pointer"
                   >
-                    <LayoutDashboard size={14} className="text-[#E8532E] shrink-0" />
+                    <LayoutDashboard size={14} className="text-[#2E9AE8] shrink-0" />
                     <span>View Dashboard</span>
                   </button>
                   <button
                     onClick={() => { navigate('/cases'); setQuickActionsOpen(false); }}
-                    className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-[7px] text-[12.5px] font-medium text-[#292524] hover:bg-[#F5F5F4] transition-colors text-left cursor-pointer"
+                    className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-[7px] text-[12.5px] font-medium text-[#0F172A] hover:bg-[#F8FAFC] transition-colors text-left cursor-pointer"
                   >
-                    <ClipboardList size={14} className="text-[#E8532E] shrink-0" />
-                    <span>Review health profiles</span>
+                    <ClipboardList size={14} className="text-[#2E9AE8] shrink-0" />
+                    <span>Review cases</span>
                   </button>
                 </>
               )}

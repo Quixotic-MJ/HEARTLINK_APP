@@ -16,9 +16,11 @@ import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useUser } from "../../../contexts/UserContext";
 import { Header } from "../../../components/Header";
+import { ScreenWrapper } from "../../../components/ui/ScreenWrapper";
 import { Skeleton } from "../../../components/ui/Skeleton";
 import Reanimated, { FadeInDown, FadeIn } from "react-native-reanimated";
 import { Alert } from "react-native";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -93,8 +95,7 @@ function RoutineCard({
   const cfg = getTypeConfig(routine.type);
 
   return (
-    <TouchableOpacity
-      activeOpacity={0.92}
+    <TouchableOpacity activeOpacity={0.8}
       onPress={onPress}
       className="rounded-2xl overflow-hidden mb-3.5"
       style={{
@@ -103,13 +104,13 @@ function RoutineCard({
         borderColor: "rgba(232,236,234,0.6)",
         ...Platform.select({
           ios: {
-            shadowColor: isFeatured ? "#E8532E" : "#000",
-            shadowOffset: { width: 0, height: isFeatured ? 6 : 4 },
-            shadowRadius: isFeatured ? 20 : 16,
-            shadowOpacity: isFeatured ? 0.1 : 0.08,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 1 },
+            shadowRadius: 3,
+            shadowOpacity: 0.05,
           },
           android: {
-            elevation: isFeatured ? 6 : 4,
+            elevation: 2,
           },
         }),
       }}
@@ -226,221 +227,214 @@ export default function ExercisesScreen({
   const params = useLocalSearchParams<{ completedId?: string; durationSeconds?: string }>();
   const { userId, token } = useUser();
 
-  const [routinesList, setRoutinesList] = useState<Routine[] | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
-  const [isOffline, setIsOffline] = useState(false);
-  const [dashboardFailed, setDashboardFailed] = useState(false);
-  
-  const [hssScore, setHssScore] = useState<number>(0);
-  const [hasRecentSevereSymptom, setHasRecentSevereSymptom] = useState<boolean>(false);
-  const [completedExercises, setCompletedExercises] = useState<string[]>([]);
-  const [partialExercises, setPartialExercises] = useState<string[]>([]);
-  const [weeklyConsistency, setWeeklyConsistency] = useState<{ count: number; days: boolean[]; labels: string[] }>({
-    count: 0,
-    days: Array(7).fill(false),
-    labels: ["M", "T", "W", "T", "F", "S", "S"],
-  });
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
-
+  const queryClient = useQueryClient();
   const [selectedType, setSelectedType] = useState<string>("All");
+  const [refreshing, setRefreshing] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const slideAnim = useRef(new Animated.Value(-100)).current;
   const exercisesCacheKey = userId ? `@exercises_cache_${userId}` : "@exercises_cache";
   const hssCacheKey = userId ? `@exercises_cache_hss_${userId}` : "@exercises_cache_hss";
 
-  const fetchData = useCallback(async () => {
-    if (!userId) return;
-    setError(false);
-    try {
-      const [routinesRes, dashboardRes, logsRes] = await Promise.all([
-        fetch(`${base_url}/api/exercises/`, {
-          headers: token ? { "Authorization": `Bearer ${token}` } : {}
-        }).catch(() => null),
-        fetch(`${base_url}/api/dashboard/me`, {
-          headers: { "Authorization": `Bearer ${token || ""}` }
-        }).catch(() => null),
-        fetch(`${base_url}/api/exercises/logs/${userId}`, {
-          headers: { "Authorization": `Bearer ${token || ""}` }
-        }).catch(() => null)
-      ]);
+  const cachedExercises = queryClient.getQueryData<any>(["exercises_data", userId]);
+  const { data, isLoading, isError: error, refetch: fetchData } = useQuery({
+    queryKey: ["exercises_data", userId],
+    initialData: cachedExercises,
+    enabled: !!userId,
+    staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      try {
+        const [routinesRes, dashboardRes, logsRes] = await Promise.all([
+          fetch(`${base_url}/api/exercises/`, {
+            headers: token ? { "Authorization": `Bearer ${token}` } : {}
+          }).catch(() => null),
+          fetch(`${base_url}/api/dashboard/me`, {
+            headers: { "Authorization": `Bearer ${token || ""}` }
+          }).catch(() => null),
+          fetch(`${base_url}/api/exercises/logs/${userId}`, {
+            headers: { "Authorization": `Bearer ${token || ""}` }
+          }).catch(() => null)
+        ]);
 
-      if (routinesRes && routinesRes.ok) {
-        const data = await routinesRes.json();
-        const mapped: Routine[] = data.map((r: any) => ({
-          id: r.id,
-          title: r.name || "",
-          duration: r.duration_minutes || 0,
-          goal: r.goal || r.description || "",
-          type: r.type || "Light Cardio",
-          intensity: r.intensity || "Low",
-          category: r.hss_tier || "Stable",
-          image: resolveMediaUrl(r.media_url || r.image_url || ""),
-        }));
-        setRoutinesList(mapped);
-        setIsOffline(false);
-        await AsyncStorage.setItem(exercisesCacheKey, JSON.stringify(mapped)).catch(() => {});
-      } else {
-        throw new Error("Failed to fetch fresh routines from network");
-      }
-      
-      if (dashboardRes && dashboardRes.ok) {
-        setDashboardFailed(false);
-        const dash = await dashboardRes.json();
-        if (dash.hss_score !== undefined && dash.hss_score !== null) {
-          setHssScore(dash.hss_score);
-          if (dash.has_recent_severe_symptom) setHasRecentSevereSymptom(true);
-          await AsyncStorage.setItem(
-            hssCacheKey,
-            JSON.stringify({ score: dash.hss_score, tier: dash.hss_tier || null })
-          ).catch(() => {});
+        let mappedRoutines: Routine[] = [];
+        if (routinesRes && routinesRes.ok) {
+          const rData = await routinesRes.json();
+          if (!Array.isArray(rData) || rData.length === 0) {
+            throw new Error("Received empty array from API, assuming backend error");
+          }
+          mappedRoutines = rData.map((r: any) => ({
+            id: r.id,
+            title: r.name || "",
+            duration: r.duration_minutes || 0,
+            goal: r.goal || r.description || "",
+            type: r.type || "Light Cardio",
+            intensity: r.intensity || "Low",
+            category: r.hss_tier || "Stable",
+            image: resolveMediaUrl(r.media_url || r.image_url || ""),
+          }));
+          await AsyncStorage.setItem(exercisesCacheKey, JSON.stringify(mappedRoutines)).catch(() => {});
+        } else {
+          throw new Error("Failed to fetch fresh routines from network");
         }
-      } else {
-        setDashboardFailed(true);
-        // Defensive fallback hydration when dashboard endpoint fails or times out (HL-ENG-13)
+
+        let dashScore = 0;
+        let dashHasSymptom = false;
+        let dashFailed = false;
+        if (dashboardRes && dashboardRes.ok) {
+          const dash = await dashboardRes.json();
+          if (dash.hss_score !== undefined && dash.hss_score !== null) {
+            dashScore = dash.hss_score;
+            if (dash.has_recent_severe_symptom) dashHasSymptom = true;
+            await AsyncStorage.setItem(
+              hssCacheKey,
+              JSON.stringify({ score: dash.hss_score, tier: dash.hss_tier || null })
+            ).catch(() => {});
+          }
+        } else {
+          dashFailed = true;
+          try {
+            const cachedHssStr = await AsyncStorage.getItem(hssCacheKey);
+            if (cachedHssStr) {
+              const parsedHss = JSON.parse(cachedHssStr);
+              if (parsedHss && typeof parsedHss.score === "number") {
+                dashScore = parsedHss.score;
+              }
+            }
+          } catch {}
+        }
+
+        let completedIds: string[] = [];
+        let partialIds: string[] = [];
+        let weekly = { count: 0, days: Array(7).fill(false), labels: ["M", "T", "W", "T", "F", "S", "S"] };
+
+        if (logsRes && logsRes.ok) {
+          const lData = await logsRes.json();
+          const todayStr = new Date().toDateString();
+          completedIds = lData
+            .filter((log: any) => new Date(log.logged_at).toDateString() === todayStr && log.status === "completed")
+            .map((log: any) => log.routine_id);
+          partialIds = lData
+            .filter((log: any) => new Date(log.logged_at).toDateString() === todayStr && (log.status === "partial" || log.status === "incomplete_due_to_symptoms"))
+            .map((log: any) => log.routine_id);
+
+          const now = new Date();
+          const oneDay = 24 * 60 * 60 * 1000;
+          const startOfWeek = new Date(now.getTime() - 6 * oneDay);
+          startOfWeek.setHours(0, 0, 0, 0);
+          
+          const days = Array(7).fill(false);
+          const labels: string[] = [];
+          let count = 0;
+          
+          for (let i = 0; i < 7; i++) {
+            const targetDate = new Date(startOfWeek.getTime() + i * oneDay);
+            const targetDateStr = targetDate.toDateString();
+            labels.push(targetDate.toLocaleDateString("en-US", { weekday: "narrow" }));
+            const hasMeaningful = lData.some((log: any) => 
+              new Date(log.logged_at).toDateString() === targetDateStr &&
+              log.status !== "abandoned" &&
+              (log.duration_seconds !== undefined && log.duration_seconds !== null ? log.duration_seconds >= 30 : (log.duration_minutes || 0) >= 1)
+            );
+            days[i] = hasMeaningful;
+            if (hasMeaningful) count++;
+          }
+          weekly = { count, days, labels };
+        }
+
+        return {
+          routinesList: mappedRoutines,
+          hssScore: dashScore,
+          hasRecentSevereSymptom: dashHasSymptom,
+          dashboardFailed: dashFailed,
+          completedExercises: completedIds,
+          partialExercises: partialIds,
+          weeklyConsistency: weekly,
+        };
+      } catch (err) {
+        // Fallback to AsyncStorage on network failure or 500 error
+        let dashScore = 0;
+        let dashHasSymptom = false;
         try {
           const cachedHssStr = await AsyncStorage.getItem(hssCacheKey);
           if (cachedHssStr) {
             const parsedHss = JSON.parse(cachedHssStr);
-            if (parsedHss && typeof parsedHss.score === "number") {
-              setHssScore(parsedHss.score);
-            }
-          } else if (userId) {
-            const dashCache = await AsyncStorage.getItem(`@dashboard_cache_${userId}`);
-            if (dashCache) {
-              const parsedDash = JSON.parse(dashCache);
-              if (parsedDash && typeof parsedDash.hss_score === "number") {
-                setHssScore(parsedDash.hss_score);
-              }
-              if (parsedDash && parsedDash.has_recent_severe_symptom) {
-                setHasRecentSevereSymptom(true);
-              }
-            }
+            if (parsedHss && typeof parsedHss.score === "number") dashScore = parsedHss.score;
           }
         } catch {}
-      }
-      
-      if (logsRes && logsRes.ok) {
-        const data = await logsRes.json();
-        const todayStr = new Date().toDateString();
         
-        const completedIds = data
-          .filter((log: any) => new Date(log.logged_at).toDateString() === todayStr && log.status === "completed")
-          .map((log: any) => log.routine_id);
-          
-        const partialIds = data
-          .filter((log: any) => new Date(log.logged_at).toDateString() === todayStr && (log.status === "partial" || log.status === "incomplete_due_to_symptoms"))
-          .map((log: any) => log.routine_id);
-          
-        setCompletedExercises(completedIds);
-        setPartialExercises(partialIds);
-
-        const now = new Date();
-        const oneDay = 24 * 60 * 60 * 1000;
-        const startOfWeek = new Date(now.getTime() - 6 * oneDay);
-        startOfWeek.setHours(0, 0, 0, 0);
-        
-        const days = Array(7).fill(false);
-        const labels: string[] = [];
-        let count = 0;
-        
-        for (let i = 0; i < 7; i++) {
-          const targetDate = new Date(startOfWeek.getTime() + i * oneDay);
-          const targetDateStr = targetDate.toDateString();
-          labels.push(targetDate.toLocaleDateString("en-US", { weekday: "narrow" }));
-          const hasMeaningful = data.some((log: any) => 
-            new Date(log.logged_at).toDateString() === targetDateStr &&
-            log.status !== "abandoned" &&
-            (log.duration_seconds !== undefined && log.duration_seconds !== null ? log.duration_seconds >= 30 : (log.duration_minutes || 0) >= 1)
-          );
-          days[i] = hasMeaningful;
-          if (hasMeaningful) count++;
-        }
-        setWeeklyConsistency({ count, days, labels });
-      }
-    } catch (error) {
-      if (__DEV__) {
-        console.log("Network error loading routines, checking offline cache...", error);
-      }
-      try {
-        const cachedHssStr = await AsyncStorage.getItem(hssCacheKey);
-        if (cachedHssStr) {
-          const parsedHss = JSON.parse(cachedHssStr);
-          if (parsedHss && typeof parsedHss.score === "number") {
-            setHssScore(parsedHss.score);
-          }
-        } else if (userId) {
-          const dashCache = await AsyncStorage.getItem(`@dashboard_cache_${userId}`);
-          if (dashCache) {
-            const parsedDash = JSON.parse(dashCache);
-            if (parsedDash && typeof parsedDash.hss_score === "number") {
-              setHssScore(parsedDash.hss_score);
-            }
-            if (parsedDash && parsedDash.has_recent_severe_symptom) {
-              setHasRecentSevereSymptom(true);
-            }
-          }
-        }
-
         const cached = await AsyncStorage.getItem(exercisesCacheKey);
         if (cached) {
           const parsed = JSON.parse(cached);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            setRoutinesList(parsed);
-            setIsOffline(true);
-            setError(false);
-            return;
+            return {
+              routinesList: parsed,
+              hssScore: dashScore,
+              hasRecentSevereSymptom: dashHasSymptom,
+              dashboardFailed: true,
+              completedExercises: [],
+              partialExercises: [],
+              weeklyConsistency: { count: 0, days: Array(7).fill(false), labels: ["M", "T", "W", "T", "F", "S", "S"] },
+              isOffline: true,
+            };
           }
         }
-      } catch (cacheErr) {
-        if (__DEV__) {
-          console.error("Failed to read exercise offline cache:", cacheErr);
-        }
+        throw err; // Still fail if no cache exists
       }
-      setError(true);
     }
-  }, [userId, token, exercisesCacheKey, hssCacheKey]);
+  });
 
-  useFocusEffect(
-    useCallback(() => {
-      async function initialLoad() {
-        // Read local offline cache first for instant UI availability
+  const routinesList = data?.routinesList || null;
+  const hssScore = data?.hssScore || 0;
+  const hasRecentSevereSymptom = data?.hasRecentSevereSymptom || false;
+  const dashboardFailed = data?.dashboardFailed || false;
+  const completedExercises = data?.completedExercises || [];
+  const partialExercises = data?.partialExercises || [];
+  const weeklyConsistency = data?.weeklyConsistency || { count: 0, days: Array(7).fill(false), labels: ["M", "T", "W", "T", "F", "S", "S"] };
+
+  // Prevent skeleton flashing on fast cache loads
+  const [showSkeleton, setShowSkeleton] = useState(false);
+  useEffect(() => {
+    if (isLoading && (!routinesList || routinesList.length === 0)) {
+      const timer = setTimeout(() => setShowSkeleton(true), 150);
+      return () => clearTimeout(timer);
+    } else {
+      setShowSkeleton(false);
+    }
+  }, [isLoading, routinesList?.length]);
+
+  const isOffline = !!data?.isOffline;
+
+  useEffect(() => {
+    // Read local cache for immediate offline rendering before query completes
+    if (!data && userId) {
+      (async () => {
         try {
-          const cachedHssStr = await AsyncStorage.getItem(hssCacheKey);
-          if (cachedHssStr) {
-            const parsedHss = JSON.parse(cachedHssStr);
-            if (parsedHss && typeof parsedHss.score === "number") {
-              setHssScore(parsedHss.score);
-            }
-          } else if (userId) {
-            const dashCache = await AsyncStorage.getItem(`@dashboard_cache_${userId}`);
-            if (dashCache) {
-              const parsedDash = JSON.parse(dashCache);
-              if (parsedDash && typeof parsedDash.hss_score === "number") {
-                setHssScore(parsedDash.hss_score);
-              }
-              if (parsedDash && parsedDash.has_recent_severe_symptom) {
-                setHasRecentSevereSymptom(true);
-              }
-            }
-          }
-
           const cached = await AsyncStorage.getItem(exercisesCacheKey);
           if (cached) {
             const parsed = JSON.parse(cached);
             if (Array.isArray(parsed) && parsed.length > 0) {
-              setRoutinesList(parsed);
+              let dashScore = 0;
+              const cachedHssStr = await AsyncStorage.getItem(hssCacheKey);
+              if (cachedHssStr) {
+                const parsedHss = JSON.parse(cachedHssStr);
+                if (parsedHss && typeof parsedHss.score === "number") dashScore = parsedHss.score;
+              }
+              queryClient.setQueryData(["exercises_data", userId], {
+                routinesList: parsed,
+                hssScore: dashScore,
+                hasRecentSevereSymptom: false,
+                dashboardFailed: true,
+                completedExercises: [],
+                partialExercises: [],
+                weeklyConsistency: { count: 0, days: Array(7).fill(false), labels: ["M", "T", "W", "T", "F", "S", "S"] },
+                isOffline: true,
+              });
             }
           }
         } catch {}
-        if (!routinesList) setIsLoading(true);
-        await fetchData();
-        setIsLoading(false);
-      }
-      initialLoad();
-    }, [fetchData, exercisesCacheKey, hssCacheKey, userId])
-  );
+      })();
+    }
+  }, [userId, data]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -505,7 +499,7 @@ export default function ExercisesScreen({
               });
               
               if (response.ok) {
-                setHasRecentSevereSymptom(false);
+                queryClient.setQueryData(["exercises_data", userId], (old: any) => old ? { ...old, hasRecentSevereSymptom: false } : old);
                 await AsyncStorage.removeItem(`@dashboard_cache_${userId}`);
                 showToast("Your symptom lock has been cleared.");
                 await fetchData();
@@ -599,10 +593,10 @@ export default function ExercisesScreen({
     });
   };
 
-  const Container = isEmbedded ? View : SafeAreaView;
-  const containerProps = isEmbedded
-    ? { className: "flex-1 bg-[#F8FAF9]" }
-    : { className: "flex-1 bg-[#F8FAF9]", edges: ["top"] as const };
+  const Container = isEmbedded ? View : ScreenWrapper;
+  const containerProps: any = isEmbedded
+    ? { className: "flex-1" }
+    : { edges: ["top"], withScrollView: false };
 
   return (
     <Container {...containerProps}>
@@ -647,7 +641,7 @@ export default function ExercisesScreen({
       {/* ── Top bar ── */}
       {!hideHeader && <Header />}
 
-      {isLoading && !refreshing ? (
+      {showSkeleton && !refreshing ? (
         <View className="px-6 mt-6">
           <Skeleton className="w-full h-56 rounded-3xl mb-8" />
           <Skeleton className="w-1/3 h-6 mb-4" />
@@ -658,6 +652,8 @@ export default function ExercisesScreen({
           <Skeleton className="w-full h-40 rounded-3xl mb-4" />
           <Skeleton className="w-full h-40 rounded-3xl" />
         </View>
+      ) : isLoading ? (
+        <View /> /* Wait for skeleton delay or data */
       ) : error || !routinesList || routinesList.length === 0 ? (
         <ScrollView
           contentContainerClassName="flex-1 items-center justify-center px-6"
@@ -671,7 +667,7 @@ export default function ExercisesScreen({
             We couldn't connect to the server to retrieve your safe training routines. Please check your connection.
           </Text>
           <TouchableOpacity 
-            onPress={fetchData}
+            onPress={() => fetchData()}
             activeOpacity={0.8}
             className="px-8 py-3.5 rounded-full"
             style={{
@@ -819,11 +815,11 @@ export default function ExercisesScreen({
                     ...Platform.select({
                       ios: {
                         shadowColor: "#000",
-                        shadowOffset: { width: 0, height: 4 },
-                        shadowRadius: 16,
-                        shadowOpacity: 0.06,
+                        shadowOffset: { width: 0, height: 1 },
+                        shadowRadius: 3,
+                        shadowOpacity: 0.05,
                       },
-                      android: { elevation: 3 },
+                      android: { elevation: 2 },
                     }),
                   }
             }
@@ -878,9 +874,8 @@ export default function ExercisesScreen({
                 {exerciseTypes.map((type) => {
                   const isSelected = selectedType === type;
                   return (
-                    <TouchableOpacity
+                    <TouchableOpacity activeOpacity={0.8}
                       key={type}
-                      activeOpacity={0.8}
                       onPress={() => setSelectedType(type)}
                       className="min-h-[40px] rounded-full flex-row items-center justify-center"
                       style={{

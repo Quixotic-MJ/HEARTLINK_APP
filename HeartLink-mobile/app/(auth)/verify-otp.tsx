@@ -16,17 +16,16 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import Animated, { 
-  FadeInDown, 
-  useSharedValue, 
-  useAnimatedStyle, 
-  withSequence, 
-  withTiming 
+import Animated, {
+  FadeInDown,
+  useSharedValue,
+  useAnimatedStyle,
+  withSequence,
+  withTiming
 } from "react-native-reanimated";
 import "../../global.css";
 import { useUser } from "../../contexts/UserContext";
 import { Button } from "../../components/ui/Button";
-import HeartLogo from "../../components/ui/HeartLogo";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -186,24 +185,7 @@ export default function OTPVerificationScreen() {
       <StatusBar style="dark" />
 
       {/* ── Top Bar ── */}
-      <View className="px-5 pt-3 pb-2 flex-row items-center justify-between">
-        <TouchableOpacity
-          onPress={() => router.back()}
-          className="w-10 h-10 rounded-xl bg-white border border-[#DCE3DF] items-center justify-center shadow-xs"
-          activeOpacity={0.7}
-          accessible={true}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-        >
-          <Feather name="arrow-left" size={18} color="#152131" />
-        </TouchableOpacity>
-        <View className="flex-row items-center gap-2">
-          <HeartLogo size={22} />
-          <Text className="text-base text-[#152131] font-semibold tracking-tight">
-            HeartLink
-          </Text>
-        </View>
-      </View>
+      <SimpleHeader />
 
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -258,7 +240,7 @@ export default function OTPVerificationScreen() {
 
             {/* Error Message with Shake Animation */}
             {(generalError || errors.code) && (
-              <Animated.View 
+              <Animated.View
                 style={errorAnimatedStyle}
                 className="bg-[#A93226]/10 border border-[#A93226]/30 rounded-xl p-3.5 flex-row items-center gap-2 mt-1 mb-1"
                 accessible={true}

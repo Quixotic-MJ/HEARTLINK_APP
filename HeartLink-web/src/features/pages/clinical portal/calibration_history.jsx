@@ -19,14 +19,14 @@ const CustomLightTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     return (
       <div 
-        className="bg-[#FFFFFF] border border-[#DCE3DF] rounded-[8px] p-2.5 shadow-xl text-[12px] text-[#152131]"
+        className="bg-[#FFFFFF] border border-[#E2E8F0] rounded-[8px] p-2.5 shadow-xl text-[12px] text-[#0F172A]"
         style={{ fontFamily: "'Inter', sans-serif" }}
       >
-        <p className="font-semibold text-[#152131] mb-1">{label}</p>
+        <p className="font-semibold text-[#0F172A] mb-1">{label}</p>
         <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-[#E8532E]" />
-          <span className="text-[#5C6B66]">Error Margin:</span>
-          <span className="font-bold text-[#152131]">{payload[0].value} pts</span>
+          <span className="w-2 h-2 rounded-full bg-[#2E9AE8]" />
+          <span className="text-[#64748B]">Error Margin:</span>
+          <span className="font-bold text-[#0F172A]">{payload[0].value} pts</span>
         </div>
       </div>
     );
@@ -199,7 +199,7 @@ const Calibration = () => {
     if (log.status === "Archived") {
       return {
         label: "Archived",
-        style: "bg-[#EDF1EF] text-[#5C6B66] border border-[#DCE3DF]",
+        style: "bg-[#F8FAFC] text-[#64748B] border border-[#E2E8F0]",
         tooltip: "Evaluation archived and excluded from dataset compilation.",
       };
     }
@@ -296,17 +296,17 @@ const Calibration = () => {
 
         {/* ── ACCURACY TREND DASHBOARD ── */}
         {chartData.length > 0 && (
-          <div className="bg-[#FFFFFF] rounded-[10px] border border-[#DCE3DF] p-5 mb-6 shadow-2xs flex flex-col md:flex-row gap-6">
-            <div className="w-full md:w-1/3 space-y-3.5 border-b md:border-b-0 md:border-r border-[#DCE3DF] pb-4 md:pb-0 md:pr-6">
+          <div className="bg-[#FFFFFF] rounded-[10px] border border-[#E2E8F0] p-5 mb-6 shadow-2xs flex flex-col md:flex-row gap-6">
+            <div className="w-full md:w-1/3 space-y-3.5 border-b md:border-b-0 md:border-r border-[#E2E8F0] pb-4 md:pb-0 md:pr-6">
               <div>
-                <p className="text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-wider mb-1">Model accuracy trend</p>
+                <p className="text-[10.5px] font-semibold text-[#94A3B8] uppercase tracking-wider mb-1">Model accuracy trend</p>
                 <h3 
-                  className="text-[18px] font-medium text-[#152131]"
+                  className="text-[18px] font-medium text-[#0F172A]"
                   style={{ fontFamily: "'Fraunces', serif" }}
                 >
                   Absolute error margin
                 </h3>
-                <p className="text-[12px] text-[#5C6B66] mt-1 leading-relaxed">
+                <p className="text-[12px] text-[#64748B] mt-1 leading-relaxed">
                   Tracks the absolute difference between ML-predicted HSS and expert ground-truth HSS over time.
                 </p>
               </div>
@@ -321,15 +321,15 @@ const Calibration = () => {
               </div>
 
               {/* Production Model Details */}
-              <div className="bg-[#EDF1EF] border border-[#DCE3DF] p-3 rounded-[8px] space-y-1 text-[11.5px]">
-                <span className="text-[9.5px] font-semibold text-[#8B9893] uppercase tracking-wider block mb-0.5">Production Model</span>
-                <div className="flex justify-between text-[#152131] font-medium">
-                  <span className="text-[#5C6B66]">Identifier:</span>
-                  <code className="text-[#E8532E] font-mono text-[11px]">heartlink_model.pkl</code>
+              <div className="bg-[#F8FAFC] border border-[#E2E8F0] p-3 rounded-[8px] space-y-1 text-[11.5px]">
+                <span className="text-[9.5px] font-semibold text-[#94A3B8] uppercase tracking-wider block mb-0.5">Production Model</span>
+                <div className="flex justify-between text-[#0F172A] font-medium">
+                  <span className="text-[#64748B]">Identifier:</span>
+                  <code className="text-[#2E9AE8] font-mono text-[11px]">heartlink_model.pkl</code>
                 </div>
-                <div className="flex justify-between text-[#152131] font-medium">
-                  <span className="text-[#5C6B66]">Pipeline:</span>
-                  <code className="text-[#152131] font-mono text-[11px]">v1.0 (offline)</code>
+                <div className="flex justify-between text-[#0F172A] font-medium">
+                  <span className="text-[#64748B]">Pipeline:</span>
+                  <code className="text-[#0F172A] font-mono text-[11px]">v1.0 (offline)</code>
                 </div>
               </div>
             </div>
@@ -337,19 +337,19 @@ const Calibration = () => {
             <div className="w-full md:w-2/3 h-56 relative pt-2">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#DCE3DF" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: "#8B9893" }} dy={8} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: "#8B9893" }} />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: "#94A3B8" }} dy={8} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: "#94A3B8" }} />
                   <Tooltip content={<CustomLightTooltip />} />
-                  <ReferenceLine y={0} stroke="#DCE3DF" />
+                  <ReferenceLine y={0} stroke="#E2E8F0" />
                   <Line 
                     type="monotone" 
                     dataKey="error" 
                     name="Error Margin"
-                    stroke="#E8532E" 
+                    stroke="#2E9AE8" 
                     strokeWidth={2.5}
-                    dot={{ r: 3.5, strokeWidth: 1.5, fill: "#FFFFFF", stroke: "#E8532E" }} 
-                    activeDot={{ r: 5.5, fill: "#E8532E", stroke: "#FFFFFF", strokeWidth: 2 }}
+                    dot={{ r: 3.5, strokeWidth: 1.5, fill: "#FFFFFF", stroke: "#2E9AE8" }} 
+                    activeDot={{ r: 5.5, fill: "#2E9AE8", stroke: "#FFFFFF", strokeWidth: 2 }}
                     animationDuration={1000}
                   />
                 </LineChart>
@@ -359,23 +359,23 @@ const Calibration = () => {
         )}
 
         {/* ── MAIN CARD: REFERENCE LOG TABLE ── */}
-        <div className="bg-[#FFFFFF] rounded-[10px] border border-[#DCE3DF] shadow-2xs overflow-hidden">
+        <div className="bg-[#FFFFFF] rounded-[10px] border border-[#E2E8F0] shadow-2xs overflow-hidden">
           
           {/* Search & Filter Bar */}
-          <div className="p-4 border-b border-[#DCE3DF] bg-[#FFFFFF] space-y-3">
+          <div className="p-4 border-b border-[#E2E8F0] bg-[#FFFFFF] space-y-3">
             <div className="flex flex-col sm:flex-row gap-3">
               {/* Search Box */}
               <div className="relative flex-1">
                 <Search
                   size={14}
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8B9893]"
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#94A3B8]"
                 />
                 <input
                   type="text"
                   placeholder="Search by Feedback ID or Case ID…"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-3.5 py-2 text-[13px] border border-[#DCE3DF] rounded-[8px] focus:outline-none focus:border-[#152131] transition-colors bg-[#EDF1EF] text-[#152131] placeholder:text-[#8B9893]"
+                  className="w-full pl-9 pr-3.5 py-2 text-[13px] border border-[#E2E8F0] rounded-[8px] focus:outline-none focus:border-[#0F172A] transition-colors bg-[#F8FAFC] text-[#0F172A] placeholder:text-[#94A3B8]"
                 />
               </div>
 
@@ -386,7 +386,7 @@ const Calibration = () => {
                   <select
                     value={filterType}
                     onChange={(e) => setFilterType(e.target.value)}
-                    className="pl-3 pr-7 py-1.5 text-[12px] font-semibold text-[#152131] bg-[#FFFFFF] border border-[#DCE3DF] rounded-[8px] focus:outline-none focus:border-[#152131] appearance-none cursor-pointer hover:border-[#8B9893] transition-colors"
+                    className="pl-3 pr-7 py-1.5 text-[12px] font-semibold text-[#0F172A] bg-[#FFFFFF] border border-[#E2E8F0] rounded-[8px] focus:outline-none focus:border-[#0F172A] appearance-none cursor-pointer hover:border-[#94A3B8] transition-colors"
                   >
                     <option value="all">All Statuses</option>
                     <option value="eligible">Active / Eligible</option>
@@ -398,7 +398,7 @@ const Calibration = () => {
                     <option value="conf_low">Confidence: Low</option>
                   </select>
                   <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
-                    <ChevronDown size={12} className="text-[#8B9893]" />
+                    <ChevronDown size={12} className="text-[#94A3B8]" />
                   </div>
                 </div>
 
@@ -407,7 +407,7 @@ const Calibration = () => {
                   <select
                     value={selectedReason}
                     onChange={(e) => setSelectedReason(e.target.value)}
-                    className="pl-3 pr-7 py-1.5 text-[12px] font-semibold text-[#152131] bg-[#FFFFFF] border border-[#DCE3DF] rounded-[8px] focus:outline-none focus:border-[#152131] appearance-none cursor-pointer hover:border-[#8B9893] transition-colors max-w-[200px] truncate"
+                    className="pl-3 pr-7 py-1.5 text-[12px] font-semibold text-[#0F172A] bg-[#FFFFFF] border border-[#E2E8F0] rounded-[8px] focus:outline-none focus:border-[#0F172A] appearance-none cursor-pointer hover:border-[#94A3B8] transition-colors max-w-[200px] truncate"
                   >
                     <option value="all">All Adjustment Reasons</option>
                     {reasonKeys.map((r) => (
@@ -415,7 +415,7 @@ const Calibration = () => {
                     ))}
                   </select>
                   <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
-                    <ChevronDown size={12} className="text-[#8B9893]" />
+                    <ChevronDown size={12} className="text-[#94A3B8]" />
                   </div>
                 </div>
 
@@ -424,7 +424,7 @@ const Calibration = () => {
                     <select
                       value={selectedHash}
                       onChange={(e) => setSelectedHash(e.target.value)}
-                      className="pl-3 pr-7 py-1.5 text-[12px] font-semibold text-[#152131] bg-[#FFFFFF] border border-[#DCE3DF] rounded-[8px] focus:outline-none focus:border-[#152131] appearance-none cursor-pointer hover:border-[#8B9893] transition-colors max-w-[150px] truncate"
+                      className="pl-3 pr-7 py-1.5 text-[12px] font-semibold text-[#0F172A] bg-[#FFFFFF] border border-[#E2E8F0] rounded-[8px] focus:outline-none focus:border-[#0F172A] appearance-none cursor-pointer hover:border-[#94A3B8] transition-colors max-w-[150px] truncate"
                     >
                       <option value="all">All Models</option>
                       {uniqueHashes.map((h) => (
@@ -432,7 +432,7 @@ const Calibration = () => {
                       ))}
                     </select>
                     <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
-                      <ChevronDown size={12} className="text-[#8B9893]" />
+                      <ChevronDown size={12} className="text-[#94A3B8]" />
                     </div>
                   </div>
                 )}
@@ -455,35 +455,35 @@ const Calibration = () => {
           <div className="w-full overflow-x-auto">
             <table className="w-full text-left border-collapse min-w-[950px]">
               <thead>
-                <tr className="border-b border-[#DCE3DF] bg-[#EDF1EF]/40">
-                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-[0.1em]">
+                <tr className="border-b border-[#E2E8F0] bg-[#F8FAFC]/40">
+                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#94A3B8] uppercase tracking-[0.1em]">
                     Evaluation ID
                   </th>
-                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-[0.1em]">
+                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#94A3B8] uppercase tracking-[0.1em]">
                     Case
                   </th>
-                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-[0.1em]">
+                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#94A3B8] uppercase tracking-[0.1em]">
                     Model HSS
                   </th>
-                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-[0.1em]">
+                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#94A3B8] uppercase tracking-[0.1em]">
                     Expert HSS
                   </th>
-                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-[0.1em]">
+                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#94A3B8] uppercase tracking-[0.1em]">
                     Error
                   </th>
-                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-[0.1em]">
+                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#94A3B8] uppercase tracking-[0.1em]">
                     Tier agreement
                   </th>
-                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-[0.1em]">
+                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#94A3B8] uppercase tracking-[0.1em]">
                     Confidence
                   </th>
-                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-[0.1em]">
+                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#94A3B8] uppercase tracking-[0.1em]">
                     Model version
                   </th>
-                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-[0.1em]">
+                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#94A3B8] uppercase tracking-[0.1em]">
                     Date
                   </th>
-                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-[0.1em] text-right">
+                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#94A3B8] uppercase tracking-[0.1em] text-right">
                     Action
                   </th>
                 </tr>
@@ -492,32 +492,32 @@ const Calibration = () => {
               {loading ? (
                 <tbody>
                   {[1, 2, 3, 4, 5].map((item) => (
-                    <tr key={item} className="border-b border-[#DCE3DF]/60">
-                      <td className="py-3.5 px-5"><Skeleton className="w-24 h-4 bg-[#DCE3DF]/70 rounded" /></td>
-                      <td className="py-3.5 px-5"><Skeleton className="w-16 h-4 bg-[#DCE3DF]/70 rounded" /></td>
-                      <td className="py-3.5 px-5"><Skeleton className="w-8 h-4 bg-[#DCE3DF]/70 rounded" /></td>
-                      <td className="py-3.5 px-5"><Skeleton className="w-8 h-4 bg-[#DCE3DF]/70 rounded" /></td>
-                      <td className="py-3.5 px-5"><Skeleton className="w-12 h-4 bg-[#DCE3DF]/70 rounded" /></td>
-                      <td className="py-3.5 px-5"><Skeleton className="w-12 h-4 bg-[#DCE3DF]/70 rounded" /></td>
-                      <td className="py-3.5 px-5"><Skeleton className="w-16 h-4 bg-[#DCE3DF]/70 rounded" /></td>
-                      <td className="py-3.5 px-5"><Skeleton className="w-16 h-4 bg-[#DCE3DF]/70 rounded" /></td>
-                      <td className="py-3.5 px-5"><Skeleton className="w-12 h-4 bg-[#DCE3DF]/70 rounded" /></td>
-                      <td className="py-3.5 px-5 text-right"><Skeleton className="w-16 h-7 ml-auto bg-[#DCE3DF]/70 rounded-[6px]" /></td>
+                    <tr key={item} className="border-b border-[#E2E8F0]/60">
+                      <td className="py-3.5 px-5"><Skeleton className="w-24 h-4 bg-[#E2E8F0]/70 rounded" /></td>
+                      <td className="py-3.5 px-5"><Skeleton className="w-16 h-4 bg-[#E2E8F0]/70 rounded" /></td>
+                      <td className="py-3.5 px-5"><Skeleton className="w-8 h-4 bg-[#E2E8F0]/70 rounded" /></td>
+                      <td className="py-3.5 px-5"><Skeleton className="w-8 h-4 bg-[#E2E8F0]/70 rounded" /></td>
+                      <td className="py-3.5 px-5"><Skeleton className="w-12 h-4 bg-[#E2E8F0]/70 rounded" /></td>
+                      <td className="py-3.5 px-5"><Skeleton className="w-12 h-4 bg-[#E2E8F0]/70 rounded" /></td>
+                      <td className="py-3.5 px-5"><Skeleton className="w-16 h-4 bg-[#E2E8F0]/70 rounded" /></td>
+                      <td className="py-3.5 px-5"><Skeleton className="w-16 h-4 bg-[#E2E8F0]/70 rounded" /></td>
+                      <td className="py-3.5 px-5"><Skeleton className="w-12 h-4 bg-[#E2E8F0]/70 rounded" /></td>
+                      <td className="py-3.5 px-5 text-right"><Skeleton className="w-16 h-7 ml-auto bg-[#E2E8F0]/70 rounded-[6px]" /></td>
                     </tr>
                   ))}
                 </tbody>
               ) : filteredLogs.length === 0 ? (
                 <tbody>
                   <tr>
-                    <td colSpan="10" className="p-12 text-center text-[#5C6B66] text-[13px]">
+                    <td colSpan="10" className="p-12 text-center text-[#64748B] text-[13px]">
                       <div className="flex flex-col items-center justify-center gap-2">
-                        <p className="font-medium text-[#5C6B66]">
+                        <p className="font-medium text-[#64748B]">
                           {logs.length === 0 ? "No calibration logs recorded yet." : "No evaluations match your filters."}
                         </p>
                         {logs.length > 0 && (
                           <button
                             onClick={clearFilters}
-                            className="mt-1 px-3.5 py-1.5 text-[12px] font-semibold text-white bg-[#E8532E] hover:bg-[#C13E20] rounded-[8px] transition-colors cursor-pointer"
+                            className="mt-1 px-3.5 py-1.5 text-[12px] font-semibold text-white bg-[#2E9AE8] hover:bg-[#1C7AC8] rounded-[8px] transition-colors cursor-pointer"
                           >
                             Clear filters
                           </button>
@@ -527,15 +527,15 @@ const Calibration = () => {
                   </tr>
                 </tbody>
               ) : (
-                <tbody className="divide-y divide-[#DCE3DF]">
+                <tbody className="divide-y divide-[#E2E8F0]">
                   {filteredLogs.map((log) => (
                     <tr
                       key={log.id}
-                      className={`hover:bg-[#EDF1EF]/60 transition-colors group cursor-pointer ${log.status === "Archived" ? "opacity-60 bg-[#EDF1EF]/30" : ""}`}
+                      className={`hover:bg-[#F8FAFC]/60 transition-colors group cursor-pointer ${log.status === "Archived" ? "opacity-60 bg-[#F8FAFC]/30" : ""}`}
                       onClick={() => openModal(log)}
                     >
                       <td className="py-3.5 px-4 sm:px-5 align-middle">
-                        <p className="text-[#152131] font-bold text-[12.5px] font-mono mb-0.5">
+                        <p className="text-[#0F172A] font-bold text-[12.5px] font-mono mb-0.5">
                           {log.id}
                         </p>
                         {(() => {
@@ -552,12 +552,12 @@ const Calibration = () => {
                       </td>
 
                       <td className="py-3.5 px-4 sm:px-5 align-middle">
-                        <span className="text-[#152131] font-semibold text-[11px] font-mono bg-[#EDF1EF] border border-[#DCE3DF] px-2 py-0.5 rounded-[5px]">
+                        <span className="text-[#0F172A] font-semibold text-[11px] font-mono bg-[#F8FAFC] border border-[#E2E8F0] px-2 py-0.5 rounded-[5px]">
                           {log.case_id}
                         </span>
                       </td>
 
-                      <td className="py-3.5 px-4 sm:px-5 align-middle text-[12.5px] font-bold text-[#152131]">
+                      <td className="py-3.5 px-4 sm:px-5 align-middle text-[12.5px] font-bold text-[#0F172A]">
                         {log.ml_predicted_hss ?? "--"}
                       </td>
 
@@ -565,7 +565,7 @@ const Calibration = () => {
                         {log.expert_hss_score}
                       </td>
 
-                      <td className="py-3.5 px-4 sm:px-5 align-middle text-[12px] font-semibold text-[#5C6B66]">
+                      <td className="py-3.5 px-4 sm:px-5 align-middle text-[12px] font-semibold text-[#64748B]">
                         {log.absolute_error != null ? `${log.absolute_error} pts` : "--"}
                       </td>
 
@@ -578,21 +578,21 @@ const Calibration = () => {
                       </td>
 
                       <td className="py-3.5 px-4 sm:px-5 align-middle text-[12px]">
-                        <span className="capitalize text-[#5C6B66] font-medium">{log.reviewer_confidence || "Not recorded"}</span>
+                        <span className="capitalize text-[#64748B] font-medium">{log.reviewer_confidence || "Not recorded"}</span>
                       </td>
 
-                      <td className="py-3.5 px-4 sm:px-5 align-middle text-[11.5px] font-mono text-[#8B9893] max-w-[100px] truncate" title={log.model_metadata?.model_hash}>
+                      <td className="py-3.5 px-4 sm:px-5 align-middle text-[11.5px] font-mono text-[#94A3B8] max-w-[100px] truncate" title={log.model_metadata?.model_hash}>
                         {log.model_metadata?.model_hash ? `${log.model_metadata.model_hash.substring(0, 8)}…` : "--"}
                       </td>
 
-                      <td className="py-3.5 px-4 sm:px-5 align-middle text-[11.5px] text-[#8B9893] font-medium">
+                      <td className="py-3.5 px-4 sm:px-5 align-middle text-[11.5px] text-[#94A3B8] font-medium">
                         {new Date(log.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
                       </td>
 
                       <td className="py-3.5 px-4 sm:px-5 align-middle text-right" onClick={(e) => e.stopPropagation()}>
                         <button
                           onClick={(e) => { e.stopPropagation(); openModal(log); }}
-                          className="text-[12px] font-semibold px-2.5 py-1 rounded-[6px] border border-[#DCE3DF] bg-[#EDF1EF] text-[#152131] hover:bg-[#DCE3DF] transition-colors cursor-pointer"
+                          className="text-[12px] font-semibold px-2.5 py-1 rounded-[6px] border border-[#E2E8F0] bg-[#F8FAFC] text-[#0F172A] hover:bg-[#E2E8F0] transition-colors cursor-pointer"
                         >
                           View Details
                         </button>

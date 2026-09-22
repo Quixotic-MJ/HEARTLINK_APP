@@ -23,11 +23,11 @@ export const Button = React.forwardRef(({
   };
 
   const variants = {
-    primary: "bg-[#E8532E] hover:bg-[#C13E20] text-white shadow-2xs",
-    secondary: "bg-[#FFFFFF] hover:bg-[#EDF1EF] text-[#152131] border border-[#DCE3DF] shadow-2xs",
+    primary: "bg-[#2E9AE8] hover:bg-[#1C7AC8] text-white shadow-2xs",
+    secondary: "bg-[#FFFFFF] hover:bg-[#F8FAFC] text-[#0F172A] border border-[#E2E8F0] shadow-2xs",
     danger: "bg-[#A93226] hover:bg-[#8A1F1A] text-white shadow-2xs",
     dangerSoft: "bg-[#F7E4E1] hover:bg-[#F0C4B8] text-[#A93226] border border-[#F0C4B8]",
-    ghost: "bg-transparent hover:bg-[#EDF1EF] text-[#5C6B66] hover:text-[#152131]",
+    ghost: "bg-transparent hover:bg-[#F8FAFC] text-[#64748B] hover:text-[#0F172A]",
   };
 
   const baseStyles = "relative inline-flex items-center justify-center gap-1.5 font-semibold rounded-[8px] transition-colors outline-none cursor-pointer";

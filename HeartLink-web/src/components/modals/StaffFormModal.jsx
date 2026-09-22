@@ -66,24 +66,24 @@ const StaffFormModal = ({ isOpen, onClose, staff, onSave }) => {
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 10 }}
           transition={{ type: "spring", damping: 26, stiffness: 350 }}
-          className="relative w-full max-w-lg bg-[#FFFFFF] max-h-full rounded-2xl shadow-2xl border border-[#DCE3DF] flex flex-col overflow-hidden text-[#152131] z-10"
+          className="relative w-full max-w-lg bg-[#FFFFFF] max-h-full rounded-2xl shadow-2xl border border-[#E2E8F0] flex flex-col overflow-hidden text-[#0F172A] z-10"
         >
           {/* Modal Header */}
-          <div className="flex items-center justify-between px-6 py-4.5 border-b border-[#DCE3DF] bg-[#FFFFFF] z-10">
+          <div className="flex items-center justify-between px-6 py-4.5 border-b border-[#E2E8F0] bg-[#FFFFFF] z-10">
             <div>
               <h3 
-                className="text-[17px] font-medium text-[#152131] leading-tight"
+                className="text-[17px] font-medium text-[#0F172A] leading-tight"
                 style={{ fontFamily: "'Fraunces', serif" }}
               >
                 Provision Staff Account
               </h3>
-              <p className="text-[11px] text-[#8B9893] mt-0.5 font-medium">
+              <p className="text-[11px] text-[#94A3B8] mt-0.5 font-medium">
                 Define administrative access controls and role boundaries.
               </p>
             </div>
             <button
               onClick={onClose}
-              className="text-[#5C6B66] hover:text-[#152131] p-1.5 rounded-lg hover:bg-[#EDF1EF] transition-colors cursor-pointer"
+              className="text-[#64748B] hover:text-[#0F172A] p-1.5 rounded-lg hover:bg-[#F8FAFC] transition-colors cursor-pointer"
             >
               <X size={16} />
             </button>
@@ -124,12 +124,12 @@ const StaffFormModal = ({ isOpen, onClose, staff, onSave }) => {
                 </div>
 
                 <div className="col-span-2">
-                  <label className="block text-[11px] font-semibold text-[#8B9893] uppercase tracking-wider mb-1">
+                  <label className="block text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider mb-1">
                     Role Assignment
                   </label>
                   <select
                     {...register("role")}
-                    className={`w-full px-3.5 py-2 text-[13px] font-semibold text-[#152131] bg-[#EDF1EF] border ${errors.role ? 'border-[#A93226]' : 'border-[#DCE3DF] focus:border-[#152131]'} rounded-[8px] focus:outline-none cursor-pointer`}
+                    className={`w-full px-3.5 py-2 text-[13px] font-semibold text-[#0F172A] bg-[#F8FAFC] border ${errors.role ? 'border-[#A93226]' : 'border-[#E2E8F0] focus:border-[#0F172A]'} rounded-[8px] focus:outline-none cursor-pointer`}
                   >
                     <option value="Authorized Medical Expert">Expert Reviewer</option>
                     <option value="System Admin">System Admin</option>
@@ -142,7 +142,7 @@ const StaffFormModal = ({ isOpen, onClose, staff, onSave }) => {
                 <div className="col-span-2 mt-1 bg-[#E3EFEC] p-3.5 rounded-[8px] border border-[#C5DFD8] flex items-start gap-2.5">
                   <Info size={14} className="text-[#1B6E63] mt-0.5 shrink-0" />
                   <p className="text-[11.5px] text-[#1B6E63] font-medium leading-relaxed m-0">
-                    Account will be provisioned with default credentials (<span className="text-[#152131] font-semibold">Password: </span><code className="text-[#E8532E] font-mono bg-[#FFFFFF] px-1.5 py-0.5 rounded border border-[#DCE3DF] font-bold select-all">TempPass2026!</code>) and direct email login.
+                    Account will be provisioned with default credentials (<span className="text-[#0F172A] font-semibold">Password: </span><code className="text-[#2E9AE8] font-mono bg-[#FFFFFF] px-1.5 py-0.5 rounded border border-[#E2E8F0] font-bold select-all">TempPass2026!</code>) and direct email login.
                   </p>
                 </div>
               </div>
@@ -150,11 +150,11 @@ const StaffFormModal = ({ isOpen, onClose, staff, onSave }) => {
           </form>
 
           {/* Modal Footer Actions */}
-          <div className="px-6 py-4 border-t border-[#DCE3DF] bg-[#FFFFFF] flex justify-end gap-2.5 shrink-0">
+          <div className="px-6 py-4 border-t border-[#E2E8F0] bg-[#FFFFFF] flex justify-end gap-2.5 shrink-0">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-[12px] font-semibold text-[#152131] bg-[#EDF1EF] hover:bg-[#DCE3DF] border border-[#DCE3DF] rounded-[8px] transition-colors cursor-pointer"
+              className="px-4 py-2 text-[12px] font-semibold text-[#0F172A] bg-[#F8FAFC] hover:bg-[#E2E8F0] border border-[#E2E8F0] rounded-[8px] transition-colors cursor-pointer"
             >
               Cancel
             </button>
@@ -162,7 +162,7 @@ const StaffFormModal = ({ isOpen, onClose, staff, onSave }) => {
               type="submit"
               form="staff-provision-form"
               disabled={isSubmitting}
-              className="flex items-center gap-1.5 px-4.5 py-2 text-[12px] font-semibold text-white bg-[#E8532E] hover:bg-[#C13E20] rounded-[8px] shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
+              className="flex items-center gap-1.5 px-4.5 py-2 text-[12px] font-semibold text-white bg-[#2E9AE8] hover:bg-[#1C7AC8] rounded-[8px] shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
             >
               <UserPlus size={14} /> <span>{isSubmitting ? "Provisioning…" : "Provision account"}</span>
             </button>

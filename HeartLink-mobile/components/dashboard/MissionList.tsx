@@ -19,10 +19,10 @@ export interface MissionItem {
 
 function getThemeColor(id: MissionId) {
   switch (id) {
-    case "vitals": return "#3B82F6"; // Blue
-    case "meals": return "#F59E0B"; // Orange
-    case "exercise": return "#8B5CF6"; // Purple
-    case "sleep": return "#EC4899"; // Pink
+    case "vitals": return "#38BDF8"; // Blue
+    case "meals": return "#FB923C"; // Orange
+    case "exercise": return "#FB7185"; // Pink
+    case "sleep": return "#818CF8"; // Purple
     default: return "#10B981";
   }
 }
@@ -56,68 +56,34 @@ function MissionCard({
           Haptics.selectionAsync();
           onPress(item.id);
         }}
-        style={{
-          borderRadius: 20,
-          padding: 16,
-          backgroundColor: isDark ? "#0f172a" : "#ffffff",
-          flexDirection: "row",
-          alignItems: "center",
-          borderWidth: 1,
-          borderColor: isDark ? "#1e293b" : "#f1f5f9",
-          shadowColor: isDark ? "#000" : "#64748b",
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: isDark ? 0.3 : 0.05,
-          shadowRadius: 4,
-          elevation: 2,
-        }}
+        className="flex-row items-center bg-surface-card rounded-3xl p-5 shadow-sm shadow-slate-200/50 dark:shadow-none"
       >
         {/* Left Icon */}
-        <View
-          style={{
-            width: 44,
-            height: 44,
-            borderRadius: 22,
-            alignItems: "center",
-            justifyContent: "center",
-            backgroundColor: isDark ? "#1e293b" : "#f1f5f9",
-            marginRight: 16,
-          }}
-        >
+        <View className="w-10 h-10 rounded-full items-center justify-center bg-slate-200/50 dark:bg-slate-700/50 mr-4">
           {item.iconType === "material" ? (
             <MaterialCommunityIcons
               name={item.icon as any}
               size={22}
-              color={isDark ? "#94a3b8" : "#475569"}
+              color={isDark ? "#94a3b8" : "#64748b"}
             />
           ) : (
             <Feather
               name={item.icon as any}
               size={20}
-              color={isDark ? "#94a3b8" : "#475569"}
+              color={isDark ? "#94a3b8" : "#64748b"}
             />
           )}
         </View>
 
         {/* Middle Content */}
-        <View style={{ flex: 1, justifyContent: "center" }}>
+        <View className="flex-1 justify-center">
           <Text
-            numberOfLines={1}
-            style={{
-              fontSize: 16,
-              fontWeight: "600",
-              color: isDark ? "#f8fafc" : "#1e293b",
-              marginBottom: 4,
-            }}
+            className="text-[16px] font-bold text-slate-900 dark:text-slate-50 mb-1"
           >
             {item.title}
           </Text>
           <Text
-            numberOfLines={1}
-            style={{
-              fontSize: 13,
-              fontWeight: "400",
-              color: isDark ? "#94a3b8" : "#64748b",
-            }}
+            className="text-[13px] font-medium text-slate-500 dark:text-slate-400"
           >
             {item.subtitle}
           </Text>
@@ -125,15 +91,8 @@ function MissionCard({
 
         {/* Right Button */}
         <View
-          style={{
-            width: 32,
-            height: 32,
-            borderRadius: 16,
-            alignItems: "center",
-            justifyContent: "center",
-            backgroundColor: item.done ? "#10B981" : themeColor,
-            marginLeft: 12,
-          }}
+          style={{ backgroundColor: item.done ? "#10B981" : themeColor }}
+          className="w-8 h-8 rounded-full items-center justify-center ml-3"
         >
           <Feather
             name={item.done ? "check" : "plus"}

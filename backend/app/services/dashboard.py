@@ -1,3 +1,4 @@
+import os
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
 from app.db.repositories import (
@@ -73,11 +74,16 @@ DIETARY_EXCLUSIONS: Dict[str, List[str]] = {
 }
 
 
-def _recipe_matches_diet(recipe: dict, dietary_practice: str) -> bool:
-    """Return True if the recipe does NOT contain excluded ingredients."""
-    excluded = DIETARY_EXCLUSIONS.get(dietary_practice, [])
+def _recipe_is_safe(recipe: dict, dietary_practice: str, allergies: List[str]) -> bool:
+    """Return True if the recipe does NOT contain excluded ingredients or allergies."""
+    excluded = DIETARY_EXCLUSIONS.get(dietary_practice, []).copy()
+    
+    if allergies:
+        # Add allergies to the exclusion list, ignoring "None"
+        excluded.extend([a.lower() for a in allergies if a.lower() != "none"])
+
     if not excluded:
-        return True  # No restrictions (e.g. "Standard Filipino")
+        return True  # No restrictions
     ingredients = recipe.get("ingredients", [])
     ingredient_keys = [str(item.get("name", "")).lower() for item in ingredients if isinstance(item, dict)]
     recipe_tags = [str(t).lower() for t in recipe.get("tags", [])]
@@ -98,10 +104,21 @@ def _recipe_matches_diet(recipe: dict, dietary_practice: str) -> bool:
 
 
 def _get_comparison_score(user_hss: list) -> int:
-    """Finds the immediately previous score to provide real-time dynamic feedback."""
+    """Finds the most recent score from a previous calendar day to provide a meaningful trend."""
     if len(user_hss) < 2:
         return user_hss[0].get("score", 0) if user_hss else 0
-    return user_hss[1].get("score", 0)
+        
+    latest_dt = _safe_date(user_hss[0].get("computed_at"))
+    if not latest_dt:
+        return user_hss[1].get("score", 0)
+        
+    for hss in user_hss[1:]:
+        dt = _safe_date(hss.get("computed_at"))
+        if dt and dt < latest_dt:
+            return hss.get("score", 0)
+            
+    # If all scores are from today, return the oldest one to show today's progress
+    return user_hss[-1].get("score", 0)
 
 def _get_trend_direction(user_hss: list) -> str:
     """Compute score trend comparing to yesterday (or baseline)."""
@@ -115,7 +132,7 @@ def _get_trend_direction(user_hss: list) -> str:
     return str(diff)  # Already includes minus sign for negatives
 
 
-def _generate_insight(user_hss: list, latest_log: dict | None) -> dict:
+def _generate_insight(user_hss: list, latest_log: dict | None, first_name: str | None = None) -> dict:
     """Generate a dynamic smart insight based on actual data."""
     if len(user_hss) < 2:
         return {
@@ -135,15 +152,88 @@ def _generate_insight(user_hss: list, latest_log: dict | None) -> dict:
     elif diff < 0:
         title = f"Your stability score dropped by {abs(diff)} points."
         if latest_log and latest_log.get("symptoms"):
-            symptom_count = len(latest_log["symptoms"])
-            body = f"You logged {symptom_count} symptom(s) recently. Consider reviewing your diet and consulting your care team."
+            real_symptoms = [s for s in latest_log["symptoms"] if s != "None (Feeling fine)"]
+            if real_symptoms:
+                symptom_count = len(real_symptoms)
+                body = f"You logged {symptom_count} symptom(s) recently. Consider reviewing your diet and consulting your care team."
+            else:
+                body = "Consider reviewing your recent meals and activity levels."
         else:
             body = "Consider reviewing your recent meals and activity levels."
         icon = "trending-down"
     else:
-        title = "Your stability score is holding steady."
-        body = "No change detected. Keep maintaining your current routine."
-        icon = "minus"
+        if latest_score >= 80:
+            title = "Your stability score is holding steady."
+            body = "You're doing great! Keep maintaining your healthy routine."
+            icon = "check-circle"
+        elif latest_score < 50:
+            title = "Your stability score remains critically low."
+            body = "Please consult your care team and strictly monitor your vitals and diet."
+            icon = "alert-circle"
+        else:
+            title = "Your stability score is holding steady."
+            body = "Your score hasn't changed, but there's still room for improvement."
+            icon = "minus"
+
+    # Try to enhance the body with Groq AI if available
+    groq_api_key = os.environ.get("GROQ_API_KEY")
+    if groq_api_key and first_name:
+        try:
+            import groq
+            # Increased timeout to 4.0s to accommodate the larger 120b model
+            client = groq.Groq(api_key=groq_api_key, timeout=4.0)
+            
+            factors = user_hss[0].get("contributing_factors", {})
+            context_str = ""
+            if factors:
+                points = []
+                if factors.get("meal_points"): points.append(f"{factors.get('meal_points', 0):+} pts from meals")
+                if factors.get("exercise_points"): points.append(f"{factors.get('exercise_points', 0):+} pts from exercise")
+                if factors.get("sleep_points"): points.append(f"{factors.get('sleep_points', 0):+} pts from sleep")
+                if factors.get("medication_points"): points.append(f"{factors.get('medication_points', 0):+} pts from medication adherence")
+                if factors.get("blood_sugar_points"): points.append(f"{factors.get('blood_sugar_points', 0):+} pts from blood sugar levels")
+                if factors.get("weight_gain_points"): points.append(f"{factors.get('weight_gain_points', 0):+} pts from rapid weight changes")
+                if factors.get("symptom_points"): points.append(f"{factors.get('symptom_points', 0):+} pts from reported symptoms")
+                if factors.get("staleness_penalty"): points.append(f"{factors.get('staleness_penalty', 0):+} pts penalty for missing data")
+                if points:
+                    context_str = "Today's score was affected by: " + ", ".join(points) + "."
+            
+            prompt = f"""
+            You are HeartLink's empathetic AI health coach. 
+            Write a warm, highly personalized, and encouraging 2-sentence insight for {first_name}.
+            Do NOT give specific medical or dietary advice. Do not use generic phrases. Be conversational and human.
+            
+            Context about their Heart Stability Score today:
+            - General trend: {body}
+            - Itemized changes today: {context_str or "No major activities logged yet."}
+            
+            Write the message directly to {first_name}.
+            """
+            
+            chat_completion = client.chat.completions.create(
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are a warm, empathetic AI health coach. Output only the message, no quotation marks or preamble. Strictly 2 sentences maximum."
+                    },
+                    {
+                        "role": "user",
+                        "content": prompt,
+                    }
+                ],
+                model="qwen/qwen3.8-27b",
+                temperature=0.7,
+                max_tokens=60,
+            )
+            
+            ai_body = chat_completion.choices[0].message.content.strip().strip('"')
+            if ai_body:
+                body = ai_body
+                title = "" # Remove legacy rigid title so the AI coach speaks naturally
+        except Exception as e:
+            print(f"Groq API Error: {str(e)}")
+            # Silently fallback to the deterministic rule-based body if timeout or error
+            pass
 
     return {"title": title, "body": body, "icon": icon}
 
@@ -247,8 +337,20 @@ def _get_today_activity(user_id: str) -> dict:
 
     total_sodium = sum((m.get("sodium_mg") or 0) for m in meals_today)
     total_calories = sum((m.get("calories") or 0) for m in meals_today)
+    total_saturated_fat = sum((m.get("saturated_fat_g") or 0) for m in meals_today)
+    total_fiber = sum((m.get("fiber_g") or 0) for m in meals_today)
+    
     total_exercise_min = sum((e.get("duration_minutes") or 0) for e in exercises_today)
     total_sleep_hours = sum((s.get("duration_hours") or 0) for s in sleeps_today)
+
+    # Meds adherence today
+    meds_taken = any(l.get("medication_taken") for l in vitals_today)
+
+    # Context, Severe Symptoms, Weight Gain, Blood Sugar
+    vitals_context = vitals_today[0].get("context") if vitals_today else None
+    severe_symptom_count = sum(1 for l in vitals_today if any(s in l.get("symptoms", []) for s in ["Chest Discomfort / Tightness", "Shortness of Breath"]))
+    rapid_weight_gain = False # Requires alert fetch, implemented in hss_service
+    blood_sugar = vitals_today[0].get("blood_sugar") if vitals_today else None
 
     return {
         "vitals_logged": len(vitals_today) > 0,
@@ -257,13 +359,19 @@ def _get_today_activity(user_id: str) -> dict:
         "sleep_logged": len(sleeps_today) > 0,
         "total_sodium_mg": total_sodium,
         "total_calories": total_calories,
+        "total_saturated_fat_g": total_saturated_fat,
+        "total_fiber_g": total_fiber,
         "total_exercise_minutes": total_exercise_min,
         "total_sleep_hours": total_sleep_hours,
+        "medication_taken": meds_taken,
+        "vitals_context": vitals_context,
+        "severe_symptom_count": severe_symptom_count,
+        "latest_blood_sugar": blood_sugar,
         "streak_data": _calculate_streak_data(meal_logs, exercise_logs, daily_health_logs, sleep_logs),
     }
 
 
-def get_dashboard_data(user_id: str) -> Dict[str, Any]:
+def get_dashboard_data(user_id: str, recipe_limit: int = 2, exercise_limit: int = 2) -> Dict[str, Any]:
     profile_repo = get_profile_repo()
     profile = profile_repo.get_by_id(user_id)
     if not profile:
@@ -321,9 +429,13 @@ def get_dashboard_data(user_id: str) -> Dict[str, Any]:
     dietary_practice = (
         dietary_entry.get("dietary_practice", "") if dietary_entry else ""
     )
+    allergies = dietary_entry.get("allergies", []) if dietary_entry else []
 
     # ── Today's activity summary & nutrition budget ────────────────────────────
     today_activity = _get_today_activity(canonical_id)
+    
+    today_recipe_ids = {m.get("recipe_id") for m in today_activity.get("recent_meals", []) if m.get("recipe_id")}
+    today_exercise_ids = {e.get("routine_id") for e in today_activity.get("recent_exercises", []) if e.get("routine_id")}
     threshold = baseline_repo.get_thresholds(canonical_id)
     sodium_limit = threshold.get("sodium_limit_mg", None) if threshold else None
     calorie_limit = threshold.get("daily_calories", None) if threshold else None
@@ -339,7 +451,8 @@ def get_dashboard_data(user_id: str) -> Dict[str, Any]:
         for r in recipes
         if r.get("status") == "published"
         and (r.get("hss_tier") == tier or r.get("hss_tier") == "Stable")
-        and _recipe_matches_diet(r, dietary_practice)
+        and r.get("id") not in today_recipe_ids
+        and _recipe_is_safe(r, dietary_practice, allergies)
     ]
 
     # Dynamic budget prioritization (HL-ENG-21 / Pillar D):
@@ -356,10 +469,11 @@ def get_dashboard_data(user_id: str) -> Dict[str, Any]:
         for e in exercise_routines
         if (e.get("hss_tier") == tier or e.get("hss_tier") == "Stable")
         and e.get("status") == "published"
+        and e.get("id") not in today_exercise_ids
     ]
 
     recommendations = []
-    for r in reco_recipes[:2]:
+    for r in reco_recipes[:recipe_limit]:
         is_expert = bool(r.get("expert_validated", False))
         recommendations.append(
             {
@@ -380,9 +494,11 @@ def get_dashboard_data(user_id: str) -> Dict[str, Any]:
                 "image_url": r.get("image_url", ""),
                 "hss_tier": r.get("hss_tier", "Stable"),
                 "expert_validated": is_expert,
+                "dietary_tag": f"{dietary_practice} Safe" if dietary_practice and dietary_practice.lower() != "none" else None,
+                "allergies_filtered": len([a for a in allergies if a.lower() != "none"]) > 0,
             }
         )
-    for e in reco_exercises[:2]:
+    for e in reco_exercises[:exercise_limit]:
         recommendations.append(
             {
                 "id": e["id"],
@@ -403,7 +519,7 @@ def get_dashboard_data(user_id: str) -> Dict[str, Any]:
     trend = _get_trend_direction(user_hss)
 
     # ── Generate dynamic smart insight ─────────────────────────────────────────
-    insight = _generate_insight(user_hss, latest_log)
+    insight = _generate_insight(user_hss, latest_log, profile.get("first_name"))
 
 
 
@@ -420,6 +536,7 @@ def get_dashboard_data(user_id: str) -> Dict[str, Any]:
         },
         "hss_score": latest_hss.get("score", 0),
         "hss_tier": latest_hss.get("tier", "Unknown"),
+        "hss_factors": latest_hss.get("contributing_factors", {}),
         "last_sync": latest_hss.get("computed_at"),
         "unread_notifications_count": unread_count,
         "latest_vitals": {

@@ -194,13 +194,13 @@ const Feedback = () => {
         );
       case "Archived":
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[4px] text-[9px] font-semibold uppercase tracking-wider bg-[#EDF1EF] text-[#5C6B66] border border-[#DCE3DF] whitespace-nowrap">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[4px] text-[9px] font-semibold uppercase tracking-wider bg-[#F8FAFC] text-[#64748B] border border-[#E2E8F0] whitespace-nowrap">
             <Inbox size={10} /> Archived
           </span>
         );
       default:
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[4px] text-[9px] font-bold uppercase tracking-wider bg-[#FBEAE6] text-[#E8532E] border border-[#F5C7BD] whitespace-nowrap">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[4px] text-[9px] font-bold uppercase tracking-wider bg-[#EAF5FC] text-[#2E9AE8] border border-[#CDE1F4] whitespace-nowrap">
             <AlertCircle size={10} /> Open
           </span>
         );
@@ -231,10 +231,10 @@ const Feedback = () => {
             label="Open / In Progress"
             value={openTicketsCount}
             icon={Activity}
-            iconBg="bg-[#FBEAE6]"
-            iconColor="text-[#E8532E]"
-            iconBorder="border-[#F5C7BD]"
-            valueColor="text-[#E8532E]"
+            iconBg="bg-[#EAF5FC]"
+            iconColor="text-[#2E9AE8]"
+            iconBorder="border-[#CDE1F4]"
+            valueColor="text-[#2E9AE8]"
           />
           <KpiCard
             label="Resolved"
@@ -257,21 +257,21 @@ const Feedback = () => {
         </div>
 
         {/* ── FEEDBACK INBOX TABLE CARD ── */}
-        <div className="bg-[#FFFFFF] rounded-[10px] border border-[#DCE3DF] flex flex-col overflow-hidden shadow-2xs">
+        <div className="bg-[#FFFFFF] rounded-[10px] border border-[#E2E8F0] flex flex-col overflow-hidden shadow-2xs">
           {/* Search & Filter Bar */}
-          <div className="p-4 border-b border-[#DCE3DF] bg-[#FFFFFF] space-y-3">
+          <div className="p-4 border-b border-[#E2E8F0] bg-[#FFFFFF] space-y-3">
             <div className="flex flex-col sm:flex-row gap-3">
               <div className="relative flex-1">
                 <Search
                   size={14}
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8B9893] pointer-events-none"
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#94A3B8] pointer-events-none"
                 />
                 <input
                   type="text"
                   placeholder="Search by Ticket ID, keywords, or Account ID…"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 text-[13px] border border-[#DCE3DF] rounded-[8px] focus:outline-none focus:border-[#152131] transition-colors bg-[#EDF1EF] text-[#152131] placeholder:text-[#8B9893]"
+                  className="w-full pl-9 pr-4 py-2 text-[13px] border border-[#E2E8F0] rounded-[8px] focus:outline-none focus:border-[#0F172A] transition-colors bg-[#F8FAFC] text-[#0F172A] placeholder:text-[#94A3B8]"
                 />
               </div>
 
@@ -281,7 +281,7 @@ const Feedback = () => {
                   <select
                     value={filterCategory}
                     onChange={(e) => setFilterCategory(e.target.value)}
-                    className="pl-3 pr-7 py-2 text-[12px] font-semibold text-[#152131] bg-[#FFFFFF] border border-[#DCE3DF] rounded-[8px] focus:outline-none focus:border-[#152131] appearance-none cursor-pointer hover:border-[#8B9893] transition-colors"
+                    className="pl-3 pr-7 py-2 text-[12px] font-semibold text-[#0F172A] bg-[#FFFFFF] border border-[#E2E8F0] rounded-[8px] focus:outline-none focus:border-[#0F172A] appearance-none cursor-pointer hover:border-[#94A3B8] transition-colors"
                   >
                     <option value="all">All Categories</option>
                     <option value="Bug Report">Bug Report</option>
@@ -290,7 +290,7 @@ const Feedback = () => {
                     <option value="Question">Question</option>
                   </select>
                   <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
-                    <ChevronDown size={12} className="text-[#8B9893]" />
+                    <ChevronDown size={12} className="text-[#94A3B8]" />
                   </div>
                 </div>
 
@@ -299,7 +299,7 @@ const Feedback = () => {
                   <select
                     value={filterStatus}
                     onChange={(e) => setFilterStatus(e.target.value)}
-                    className="pl-3 pr-7 py-2 text-[12px] font-semibold text-[#152131] bg-[#FFFFFF] border border-[#DCE3DF] rounded-[8px] focus:outline-none focus:border-[#152131] appearance-none cursor-pointer hover:border-[#8B9893] transition-colors"
+                    className="pl-3 pr-7 py-2 text-[12px] font-semibold text-[#0F172A] bg-[#FFFFFF] border border-[#E2E8F0] rounded-[8px] focus:outline-none focus:border-[#0F172A] appearance-none cursor-pointer hover:border-[#94A3B8] transition-colors"
                   >
                     <option value="active">Active Tickets</option>
                     <option value="all">All Statuses</option>
@@ -309,7 +309,7 @@ const Feedback = () => {
                     <option value="Archived">Archived</option>
                   </select>
                   <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
-                    <ChevronDown size={12} className="text-[#8B9893]" />
+                    <ChevronDown size={12} className="text-[#94A3B8]" />
                   </div>
                 </div>
 
@@ -318,13 +318,13 @@ const Feedback = () => {
                   <select
                     value={sortOrder}
                     onChange={(e) => setSortOrder(e.target.value)}
-                    className="pl-3 pr-7 py-2 text-[12px] font-semibold text-[#152131] bg-[#FFFFFF] border border-[#DCE3DF] rounded-[8px] focus:outline-none focus:border-[#152131] appearance-none cursor-pointer hover:border-[#8B9893] transition-colors"
+                    className="pl-3 pr-7 py-2 text-[12px] font-semibold text-[#0F172A] bg-[#FFFFFF] border border-[#E2E8F0] rounded-[8px] focus:outline-none focus:border-[#0F172A] appearance-none cursor-pointer hover:border-[#94A3B8] transition-colors"
                   >
                     <option value="newest">Newest First</option>
                     <option value="oldest">Oldest First</option>
                   </select>
                   <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
-                    <ChevronDown size={12} className="text-[#8B9893]" />
+                    <ChevronDown size={12} className="text-[#94A3B8]" />
                   </div>
                 </div>
 
@@ -363,47 +363,47 @@ const Feedback = () => {
           <div className="w-full overflow-x-auto flex-1">
             <table className="w-full text-left border-collapse min-w-[900px]">
               <thead>
-                <tr className="border-b border-[#DCE3DF] bg-[#EDF1EF]/40">
-                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-[0.1em]">
+                <tr className="border-b border-[#E2E8F0] bg-[#F8FAFC]/40">
+                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#94A3B8] uppercase tracking-[0.1em]">
                     Ticket ID & Date
                   </th>
-                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-[0.1em]">
+                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#94A3B8] uppercase tracking-[0.1em]">
                     Category
                   </th>
-                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-[0.1em]">
+                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#94A3B8] uppercase tracking-[0.1em]">
                     Account ID
                   </th>
-                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-[0.1em] w-2/5">
+                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#94A3B8] uppercase tracking-[0.1em] w-2/5">
                     User Message Preview
                   </th>
-                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-[0.1em] text-right">
+                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#94A3B8] uppercase tracking-[0.1em] text-right">
                     Status
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#DCE3DF]">
+              <tbody className="divide-y divide-[#E2E8F0]">
                 {loading ? (
                   [1, 2, 3, 4].map((idx) => (
                     <tr key={`skeleton-${idx}`}>
-                      <td className="py-3.5 px-5"><Skeleton className="w-24 h-4 bg-[#DCE3DF]/70 rounded" /></td>
-                      <td className="py-3.5 px-5"><Skeleton className="w-16 h-4 bg-[#DCE3DF]/70 rounded" /></td>
-                      <td className="py-3.5 px-5"><Skeleton className="w-16 h-4 bg-[#DCE3DF]/70 rounded" /></td>
-                      <td className="py-3.5 px-5"><Skeleton className="w-48 h-4 bg-[#DCE3DF]/70 rounded" /></td>
-                      <td className="py-3.5 px-5 text-right"><Skeleton className="w-16 h-4 ml-auto bg-[#DCE3DF]/70 rounded" /></td>
+                      <td className="py-3.5 px-5"><Skeleton className="w-24 h-4 bg-[#E2E8F0]/70 rounded" /></td>
+                      <td className="py-3.5 px-5"><Skeleton className="w-16 h-4 bg-[#E2E8F0]/70 rounded" /></td>
+                      <td className="py-3.5 px-5"><Skeleton className="w-16 h-4 bg-[#E2E8F0]/70 rounded" /></td>
+                      <td className="py-3.5 px-5"><Skeleton className="w-48 h-4 bg-[#E2E8F0]/70 rounded" /></td>
+                      <td className="py-3.5 px-5 text-right"><Skeleton className="w-16 h-4 ml-auto bg-[#E2E8F0]/70 rounded" /></td>
                     </tr>
                   ))
                 ) : paginatedTickets.length > 0 ? (
                   paginatedTickets.map((ticket) => (
                     <tr
                       key={ticket.id}
-                      className={`hover:bg-[#EDF1EF]/60 transition-colors group cursor-pointer ${ticket.status === "Resolved" ? "opacity-75" : ""}`}
+                      className={`hover:bg-[#F8FAFC]/60 transition-colors group cursor-pointer ${ticket.status === "Resolved" ? "opacity-75" : ""}`}
                       onClick={() => openModal(ticket)}
                     >
                       <td className="py-3.5 px-4 sm:px-5 align-middle">
-                        <p className="text-[#152131] font-bold text-[12.5px] font-mono mb-0.5 group-hover:text-[#E8532E] transition-colors">
+                        <p className="text-[#0F172A] font-bold text-[12.5px] font-mono mb-0.5 group-hover:text-[#2E9AE8] transition-colors">
                           {ticket.ticketId}
                         </p>
-                        <p className="text-[#8B9893] text-[11px] font-medium flex items-center gap-1">
+                        <p className="text-[#94A3B8] text-[11px] font-medium flex items-center gap-1">
                           <Clock size={10} /> {ticket.date}
                         </p>
                       </td>
@@ -411,13 +411,13 @@ const Feedback = () => {
                         <FeedbackCategoryBadge category={ticket.category} />
                       </td>
                       <td className="py-3.5 px-4 sm:px-5 align-middle">
-                        <span className="text-[11px] font-semibold text-[#152131] font-mono bg-[#EDF1EF] px-2 py-0.5 rounded-[5px] border border-[#DCE3DF]">
+                        <span className="text-[11px] font-semibold text-[#0F172A] font-mono bg-[#F8FAFC] px-2 py-0.5 rounded-[5px] border border-[#E2E8F0]">
                           {ticket.userId || "N/A"}
                         </span>
                       </td>
 
                       <td className="py-3.5 px-4 sm:px-5 align-middle">
-                        <p className="text-[#5C6B66] text-[12.5px] font-medium truncate max-w-[320px]">
+                        <p className="text-[#64748B] text-[12.5px] font-medium truncate max-w-[320px]">
                           {(ticket.fullMessage || "").length > 60 ? `${ticket.fullMessage.substring(0, 60)}…` : (ticket.fullMessage || "No message provided")}
                         </p>
                       </td>
@@ -430,7 +430,7 @@ const Feedback = () => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="5" className="py-12 text-center text-[#5C6B66] text-[13px] font-medium">
+                    <td colSpan="5" className="py-12 text-center text-[#64748B] text-[13px] font-medium">
                       No feedback tickets found matching your filter criteria.
                     </td>
                   </tr>
@@ -441,25 +441,25 @@ const Feedback = () => {
 
           {/* Pagination Controls */}
           {totalPages > 1 && (
-            <div className="p-3.5 border-t border-[#DCE3DF] bg-[#FFFFFF] flex items-center justify-between">
-              <span className="text-[12px] font-medium text-[#5C6B66]">
+            <div className="p-3.5 border-t border-[#E2E8F0] bg-[#FFFFFF] flex items-center justify-between">
+              <span className="text-[12px] font-medium text-[#64748B]">
                 Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredTickets.length)} of {filteredTickets.length} entries
               </span>
               <div className="flex items-center gap-1.5">
                 <button
                   onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
-                  className="p-1.5 rounded-[6px] border border-[#DCE3DF] bg-[#EDF1EF] text-[#152131] hover:bg-[#DCE3DF] disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                  className="p-1.5 rounded-[6px] border border-[#E2E8F0] bg-[#F8FAFC] text-[#0F172A] hover:bg-[#E2E8F0] disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
                 >
                   <ChevronLeft size={15} />
                 </button>
-                <span className="text-[12px] font-bold text-[#152131] min-w-[32px] text-center">
+                <span className="text-[12px] font-bold text-[#0F172A] min-w-[32px] text-center">
                   {currentPage} / {totalPages}
                 </span>
                 <button
                   onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                   disabled={currentPage === totalPages}
-                  className="p-1.5 rounded-[6px] border border-[#DCE3DF] bg-[#EDF1EF] text-[#152131] hover:bg-[#DCE3DF] disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                  className="p-1.5 rounded-[6px] border border-[#E2E8F0] bg-[#F8FAFC] text-[#0F172A] hover:bg-[#E2E8F0] disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
                 >
                   <ChevronRight size={15} />
                 </button>

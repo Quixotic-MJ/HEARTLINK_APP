@@ -97,29 +97,29 @@ const AccountActionModal = ({ isOpen, onClose, user, onToggleStatus, canDelete, 
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 10 }}
           transition={{ type: "spring", damping: 26, stiffness: 350 }}
-          className="relative w-full max-w-md bg-[#FFFFFF] rounded-2xl shadow-2xl border border-[#DCE3DF] overflow-hidden text-[#152131] z-10"
+          className="relative w-full max-w-md bg-[#FFFFFF] rounded-2xl shadow-2xl border border-[#E2E8F0] overflow-hidden text-[#0F172A] z-10"
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-6 py-4.5 border-b border-[#DCE3DF] bg-[#FFFFFF]">
+          <div className="flex items-center justify-between px-6 py-4.5 border-b border-[#E2E8F0] bg-[#FFFFFF]">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-[8px] bg-[#FBEAE6] flex items-center justify-center text-[#E8532E] border border-[#F5C7BD] shrink-0">
+              <div className="w-9 h-9 rounded-[8px] bg-[#EAF5FC] flex items-center justify-center text-[#2E9AE8] border border-[#CDE1F4] shrink-0">
                 <Shield size={16} />
               </div>
               <div>
                 <h3 
-                  className="text-[16px] font-medium text-[#152131] leading-tight"
+                  className="text-[16px] font-medium text-[#0F172A] leading-tight"
                   style={{ fontFamily: "'Fraunces', serif" }}
                 >
                   Account Governance
                 </h3>
-                <p className="text-[10px] font-semibold text-[#8B9893] uppercase tracking-wider mt-0.5">
+                <p className="text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wider mt-0.5">
                   User access controls
                 </p>
               </div>
             </div>
             <button
               onClick={handleClose}
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-[#5C6B66] hover:text-[#152131] hover:bg-[#EDF1EF] transition-colors cursor-pointer"
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-[#64748B] hover:text-[#0F172A] hover:bg-[#F8FAFC] transition-colors cursor-pointer"
             >
               <X size={16} />
             </button>
@@ -128,23 +128,23 @@ const AccountActionModal = ({ isOpen, onClose, user, onToggleStatus, canDelete, 
           {/* User Info */}
           <div className="px-6 py-5">
             <div className="flex items-center gap-3.5 mb-4.5">
-              <div className="w-11 h-11 rounded-full bg-[#FBEAE6] text-[#E8532E] border border-[#F5C7BD] flex items-center justify-center font-bold text-base shrink-0">
+              <div className="w-11 h-11 rounded-full bg-[#EAF5FC] text-[#2E9AE8] border border-[#CDE1F4] flex items-center justify-center font-bold text-base shrink-0">
                 {user.name?.charAt(0) || "P"}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[15px] font-bold text-[#152131] truncate">
+                <p className="text-[15px] font-bold text-[#0F172A] truncate">
                   {user.name}
                 </p>
-                <p className="text-[11px] font-mono text-[#5C6B66] mt-0.5">
+                <p className="text-[11px] font-mono text-[#64748B] mt-0.5">
                   {formatUserRef(user.id)}
                 </p>
               </div>
             </div>
 
             {/* Details grid */}
-            <div className="grid grid-cols-2 gap-3 p-3.5 rounded-[8px] bg-[#EDF1EF]/60 border border-[#DCE3DF]">
+            <div className="grid grid-cols-2 gap-3 p-3.5 rounded-[8px] bg-[#F8FAFC]/60 border border-[#E2E8F0]">
               <div>
-                <p className="text-[9.5px] font-semibold uppercase tracking-wider text-[#8B9893] mb-1">
+                <p className="text-[9.5px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1">
                   Account Status
                 </p>
                 {isActive ? (
@@ -158,11 +158,11 @@ const AccountActionModal = ({ isOpen, onClose, user, onToggleStatus, canDelete, 
                 )}
               </div>
               <div>
-                <p className="text-[9.5px] font-semibold uppercase tracking-wider text-[#8B9893] mb-1">
+                <p className="text-[9.5px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1">
                   Registered
                 </p>
-                <p className="text-[12px] font-semibold text-[#152131] flex items-center gap-1 mt-0.5">
-                  <Calendar size={11} className="text-[#8B9893]" />
+                <p className="text-[12px] font-semibold text-[#0F172A] flex items-center gap-1 mt-0.5">
+                  <Calendar size={11} className="text-[#94A3B8]" />
                   {user.regDate}
                 </p>
               </div>
@@ -188,12 +188,12 @@ const AccountActionModal = ({ isOpen, onClose, user, onToggleStatus, canDelete, 
           </div>
 
           {/* Action area */}
-          <div className="px-6 py-4 border-t border-[#DCE3DF] bg-[#FFFFFF]">
+          <div className="px-6 py-4 border-t border-[#E2E8F0] bg-[#FFFFFF]">
             {!isConfirming ? (
               <div className="flex flex-wrap gap-2">
                 <button
                   onClick={handleClose}
-                  className="px-3.5 py-2 text-[12px] font-semibold text-[#152131] bg-[#EDF1EF] hover:bg-[#DCE3DF] border border-[#DCE3DF] rounded-[8px] transition-colors cursor-pointer"
+                  className="px-3.5 py-2 text-[12px] font-semibold text-[#0F172A] bg-[#F8FAFC] hover:bg-[#E2E8F0] border border-[#E2E8F0] rounded-[8px] transition-colors cursor-pointer"
                 >
                   Close
                 </button>
@@ -244,14 +244,14 @@ const AccountActionModal = ({ isOpen, onClose, user, onToggleStatus, canDelete, 
                 </div>
 
                 <div>
-                  <label className="text-[10px] font-semibold uppercase tracking-wider text-[#8B9893] mb-1.5 block">
+                  <label className="text-[10px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5 block">
                     Reason for disabling *
                   </label>
                   <div className="relative">
                     <select
                       value={selectedReason}
                       onChange={(e) => setSelectedReason(e.target.value)}
-                      className="w-full pl-3 pr-7 py-2 text-[12.5px] font-medium text-[#152131] bg-[#EDF1EF] border border-[#DCE3DF] rounded-[8px] appearance-none cursor-pointer transition-colors focus:outline-none focus:border-[#152131]"
+                      className="w-full pl-3 pr-7 py-2 text-[12.5px] font-medium text-[#0F172A] bg-[#F8FAFC] border border-[#E2E8F0] rounded-[8px] appearance-none cursor-pointer transition-colors focus:outline-none focus:border-[#0F172A]"
                     >
                       <option value="" disabled>
                         Select a reason…
@@ -264,14 +264,14 @@ const AccountActionModal = ({ isOpen, onClose, user, onToggleStatus, canDelete, 
                     </select>
                     <ChevronDown
                       size={13}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-[#8B9893]"
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-[#94A3B8]"
                     />
                   </div>
                 </div>
 
                 {selectedReason === "Other" && (
                   <div>
-                    <label className="text-[10px] font-semibold uppercase tracking-wider text-[#8B9893] mb-1 block">
+                    <label className="text-[10px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1 block">
                       Custom Reason *
                     </label>
                     <textarea
@@ -279,7 +279,7 @@ const AccountActionModal = ({ isOpen, onClose, user, onToggleStatus, canDelete, 
                       onChange={(e) => setCustomReason(e.target.value)}
                       placeholder="Describe the reason for disabling this account…"
                       rows={2}
-                      className="w-full px-3 py-2 text-[12.5px] rounded-[8px] bg-[#EDF1EF] border border-[#DCE3DF] text-[#152131] placeholder:text-[#8B9893] resize-none focus:outline-none focus:border-[#152131]"
+                      className="w-full px-3 py-2 text-[12.5px] rounded-[8px] bg-[#F8FAFC] border border-[#E2E8F0] text-[#0F172A] placeholder:text-[#94A3B8] resize-none focus:outline-none focus:border-[#0F172A]"
                     />
                   </div>
                 )}
@@ -288,7 +288,7 @@ const AccountActionModal = ({ isOpen, onClose, user, onToggleStatus, canDelete, 
                   <button
                     onClick={() => setIsConfirming(false)}
                     disabled={isSubmitting}
-                    className="flex-1 px-3 py-2 text-[12px] font-semibold text-[#152131] bg-[#EDF1EF] hover:bg-[#DCE3DF] border border-[#DCE3DF] rounded-[8px] transition-colors cursor-pointer disabled:opacity-50"
+                    className="flex-1 px-3 py-2 text-[12px] font-semibold text-[#0F172A] bg-[#F8FAFC] hover:bg-[#E2E8F0] border border-[#E2E8F0] rounded-[8px] transition-colors cursor-pointer disabled:opacity-50"
                   >
                     Cancel
                   </button>

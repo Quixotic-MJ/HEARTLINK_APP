@@ -43,6 +43,16 @@ module.exports = {
           risk: "rgb(var(--color-health-risk) / <alpha-value>)",
           "risk-track": "rgb(var(--color-health-risk-track) / <alpha-value>)",
         },
+        surface: {
+          background: "rgb(var(--color-surface-background) / <alpha-value>)",
+          card: "rgb(var(--color-surface-card) / <alpha-value>)",
+        },
+        category: {
+          blue: "rgb(var(--color-category-blue) / <alpha-value>)",
+          orange: "rgb(var(--color-category-orange) / <alpha-value>)",
+          purple: "rgb(var(--color-category-purple) / <alpha-value>)",
+          pink: "rgb(var(--color-category-pink) / <alpha-value>)",
+        },
       },
     },
   },

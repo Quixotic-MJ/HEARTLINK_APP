@@ -30,20 +30,20 @@ export async function queueMealForSync(userId: string, payload: any): Promise<vo
   }
 }
 
-export async function syncOfflineMeals(baseUrl: string): Promise<void> {
+export async function syncOfflineMeals(baseUrl: string): Promise<number> {
   try {
     const currentUserId = await AsyncStorage.getItem("user_id");
     const queueKey = getMealQueueKey(currentUserId);
     const queueJson = await AsyncStorage.getItem(queueKey);
-    if (!queueJson) return;
+    if (!queueJson) return 0;
 
     const queue = JSON.parse(queueJson);
-    if (queue.length === 0) return;
+    if (queue.length === 0) return 0;
 
     const token = await AsyncStorage.getItem("access_token");
     if (!token) {
       console.warn("[SyncService] No access token found. Skipping meal sync.");
-      return;
+      return 0;
     }
 
     console.log(`[SyncService] Attempting to sync ${queue.length} offline meals for user ${currentUserId || 'default'}...`);
@@ -115,20 +115,20 @@ export async function queueExerciseForSync(userId: string, payload: any): Promis
   }
 }
 
-export async function syncOfflineExercises(baseUrl: string): Promise<void> {
+export async function syncOfflineExercises(baseUrl: string): Promise<number> {
   try {
     const currentUserId = await AsyncStorage.getItem("user_id");
     const queueKey = getExerciseQueueKey(currentUserId);
     const queueJson = await AsyncStorage.getItem(queueKey);
-    if (!queueJson) return;
+    if (!queueJson) return 0;
 
     const queue = JSON.parse(queueJson);
-    if (queue.length === 0) return;
+    if (queue.length === 0) return 0;
 
     const token = await AsyncStorage.getItem("access_token");
     if (!token) {
       console.warn("[SyncService] No access token found. Skipping exercise sync.");
-      return;
+      return 0;
     }
 
     console.log(`[SyncService] Attempting to sync ${queue.length} offline exercises for user ${currentUserId || 'default'}...`);
@@ -199,20 +199,20 @@ export async function queueSleepForSync(userId: string, payload: any): Promise<v
   }
 }
 
-export async function syncOfflineSleeps(baseUrl: string): Promise<void> {
+export async function syncOfflineSleeps(baseUrl: string): Promise<number> {
   try {
     const currentUserId = await AsyncStorage.getItem("user_id");
     const queueKey = getSleepQueueKey(currentUserId);
     const queueJson = await AsyncStorage.getItem(queueKey);
-    if (!queueJson) return;
+    if (!queueJson) return 0;
 
     const queue = JSON.parse(queueJson);
-    if (queue.length === 0) return;
+    if (queue.length === 0) return 0;
 
     const token = await AsyncStorage.getItem("access_token");
     if (!token) {
       console.warn("[SyncService] No access token found. Skipping sleep sync.");
-      return;
+      return 0;
     }
 
     console.log(`[SyncService] Attempting to sync ${queue.length} offline sleeps for user ${currentUserId || 'default'}...`);
@@ -283,20 +283,20 @@ export async function queueHealthLogForSync(userId: string, payload: any): Promi
   }
 }
 
-export async function syncOfflineHealthLogs(baseUrl: string): Promise<void> {
+export async function syncOfflineHealthLogs(baseUrl: string): Promise<number> {
   try {
     const currentUserId = await AsyncStorage.getItem("user_id");
     const queueKey = getHealthQueueKey(currentUserId);
     const queueJson = await AsyncStorage.getItem(queueKey);
-    if (!queueJson) return;
+    if (!queueJson) return 0;
 
     const queue = JSON.parse(queueJson);
-    if (queue.length === 0) return;
+    if (queue.length === 0) return 0;
 
     const token = await AsyncStorage.getItem("access_token");
     if (!token) {
       console.warn("[SyncService] No access token found. Skipping health logs sync.");
-      return;
+      return 0;
     }
 
     console.log(`[SyncService] Attempting to sync ${queue.length} offline health log(s) for user ${currentUserId || 'default'}...`);

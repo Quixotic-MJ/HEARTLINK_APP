@@ -8,7 +8,6 @@ import {
   RefreshControl,
   Animated,
   Pressable,
-  Platform,
   BackHandler,
 } from "react-native";
 import { useColorScheme } from "nativewind";
@@ -22,6 +21,32 @@ import { useUser } from "../../../contexts/UserContext";
 import { Header } from "../../../components/Header";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
+
+// ─── Design tokens ─────────────────────────────────────────────────────────
+const TOKENS = {
+  ink: "#152131",
+  sub: "#5C6B66",
+  subDark: "#94A3B8",
+  line: "#DCE3DF",
+  lineDark: "rgba(148,163,184,0.16)",
+  teal: "#1FAE8E",
+  tealSoft: "#DCEFE9",
+  tealSoftDark: "rgba(31,174,142,0.16)",
+  orange: "#E08A2E",
+  orangeSoft: "#FBF0DD",
+  orangeSoftDark: "rgba(224,138,46,0.16)",
+  pink: "#D94F6E",
+  pinkSoft: "#FBE7EC",
+  pinkSoftDark: "rgba(217,79,110,0.16)",
+  indigo: "#6F6FD1",
+  indigoSoft: "#EFE9FB",
+  indigoSoftDark: "rgba(111,111,209,0.16)",
+  critical: "#B23A3A",
+  criticalSoft: "#F8E3E1",
+  criticalSoftDark: "rgba(178,58,58,0.18)",
+  neutralSoft: "#EDF1EF",
+  neutralSoftDark: "rgba(148,163,184,0.14)",
+};
 
 // ─── Reusable Tactile Spring Card ──────────────────────────────────────────
 function TactileCard({
@@ -80,19 +105,32 @@ function TactileCard({
 }
 
 // ─── Date Formatting Utilities ─────────────────────────────────────────────
+// Smart labeling: weekdays for 7D, dates for 14D/30D with thinning.
 function formatDayLabel(
-  rawDate?: string | null,
-  fallbackIdx?: number,
-  interval: number = 7,
-  totalPoints: number = 7
+  dateKey: string,
+  index: number,
+  arrayLength: number,
+  intervalDays: number
 ): string {
-  if (!rawDate) return `D${(fallbackIdx ?? 0) + 1}`;
-  const d = new Date(rawDate);
-  if (isNaN(d.getTime())) return `D${(fallbackIdx ?? 0) + 1}`;
-  if (interval >= 14 || totalPoints > 7) {
+  const d = new Date(dateKey + "T12:00:00"); // noon to avoid TZ shift
+  if (isNaN(d.getTime())) return "";
+
+  if (intervalDays <= 7) {
+    // 7D: show weekday abbreviation for every bar
+    return d.toLocaleDateString("en-US", { weekday: "short" }).slice(0, 3);
+  }
+  if (intervalDays <= 14) {
+    // 14D: show date every other day + always first and last
+    if (index === 0 || index === arrayLength - 1 || index % 2 === 0) {
+      return `${d.getMonth() + 1}/${d.getDate()}`;
+    }
+    return "";
+  }
+  // 30D: show date every 5th day + always first and last
+  if (index === 0 || index === arrayLength - 1 || index % 5 === 0) {
     return `${d.getMonth() + 1}/${d.getDate()}`;
   }
-  return d.toLocaleDateString("en-US", { weekday: "short" }).toUpperCase();
+  return "";
 }
 
 function formatInspectionDate(rawDate?: string | null): string {
@@ -111,7 +149,6 @@ type StatusTheme = {
   tier: string;
   dotColor: string;
   badgeBg: string;
-  badgeBorder: string;
   badgeText: string;
   barColor: string;
 };
@@ -119,51 +156,76 @@ type StatusTheme = {
 function getStatusTheme(score: number | null, isDark: boolean): StatusTheme {
   if (score === null || score === undefined) {
     return {
-      tier: "Pending Baseline",
-      dotColor: isDark ? "#64748B" : "#94A3B8",
-      badgeBg: isDark ? "rgba(100, 116, 139, 0.15)" : "#EDF1EF",
-      badgeBorder: isDark ? "rgba(100, 116, 139, 0.3)" : "#DCE3DF",
-      badgeText: isDark ? "#94A3B8" : "#5C6B66",
-      barColor: isDark ? "#475569" : "#CBD5E1",
+      tier: "Getting Started",
+      dotColor: isDark ? TOKENS.subDark : "#94A3B8",
+      badgeBg: isDark ? TOKENS.neutralSoftDark : TOKENS.neutralSoft,
+      badgeText: isDark ? TOKENS.subDark : TOKENS.sub,
+      barColor: isDark ? "#475569" : TOKENS.line,
     };
   }
   if (score >= 80) {
     return {
-      tier: "Optimal Stability",
-      dotColor: "#1B6E63",
-      badgeBg: isDark ? "rgba(27, 110, 99, 0.2)" : "#E2F1ED",
-      badgeBorder: isDark ? "rgba(27, 110, 99, 0.35)" : "#C6E4DC",
-      badgeText: isDark ? "#4FA79A" : "#1B6E63",
-      barColor: "#1B6E63",
+      tier: "Looking Great",
+      dotColor: TOKENS.teal,
+      badgeBg: isDark ? TOKENS.tealSoftDark : TOKENS.tealSoft,
+      badgeText: TOKENS.teal,
+      barColor: TOKENS.teal,
     };
   }
   if (score >= 60) {
     return {
-      tier: "Moderate Control",
-      dotColor: "#D97706",
-      badgeBg: isDark ? "rgba(217, 119, 6, 0.2)" : "#FEF3C7",
-      badgeBorder: isDark ? "rgba(217, 119, 6, 0.35)" : "#FDE68A",
-      badgeText: isDark ? "#FBBF24" : "#D97706",
-      barColor: "#D97706",
+      tier: "On Track",
+      dotColor: TOKENS.orange,
+      badgeBg: isDark ? TOKENS.orangeSoftDark : TOKENS.orangeSoft,
+      badgeText: TOKENS.orange,
+      barColor: TOKENS.orange,
     };
   }
   if (score >= 50) {
     return {
-      tier: "Elevated Risk",
-      dotColor: "#C0502E",
-      badgeBg: isDark ? "rgba(232, 83, 46, 0.2)" : "#FDEEE9",
-      badgeBorder: isDark ? "rgba(232, 83, 46, 0.35)" : "#F9D5CB",
-      badgeText: isDark ? "#D0714E" : "#C0502E",
-      barColor: "#C0502E",
+      tier: "Needs Attention",
+      dotColor: TOKENS.pink,
+      badgeBg: isDark ? TOKENS.pinkSoftDark : TOKENS.pinkSoft,
+      badgeText: TOKENS.pink,
+      barColor: TOKENS.pink,
     };
   }
   return {
-    tier: "Critical Disruption",
-    dotColor: "#8A1F1A",
-    badgeBg: isDark ? "rgba(138, 31, 26, 0.2)" : "#FBEAE9",
-    badgeBorder: isDark ? "rgba(138, 31, 26, 0.35)" : "#F5C7C5",
-    badgeText: isDark ? "#D15C4E" : "#8A1F1A",
-    barColor: "#8A1F1A",
+    tier: "Take Action",
+    dotColor: TOKENS.critical,
+    badgeBg: isDark ? TOKENS.criticalSoftDark : TOKENS.criticalSoft,
+    badgeText: TOKENS.critical,
+    barColor: TOKENS.critical,
+  };
+}
+
+// FIX #10: Returns the right insight card colors based on score severity
+function getInsightColors(score: number | null, isDark: boolean) {
+  if (score !== null && score < 50) {
+    return {
+      bg: isDark ? TOKENS.criticalSoftDark : TOKENS.criticalSoft,
+      iconBg: isDark ? "rgba(178,58,58,0.25)" : "rgba(178,58,58,0.15)",
+      iconColor: TOKENS.critical,
+    };
+  }
+  if (score !== null && score < 60) {
+    return {
+      bg: isDark ? TOKENS.pinkSoftDark : TOKENS.pinkSoft,
+      iconBg: isDark ? "rgba(217,79,110,0.25)" : "rgba(217,79,110,0.15)",
+      iconColor: TOKENS.pink,
+    };
+  }
+  if (score !== null && score < 80) {
+    return {
+      bg: isDark ? TOKENS.orangeSoftDark : TOKENS.orangeSoft,
+      iconBg: isDark ? "rgba(224,138,46,0.25)" : "rgba(224,138,46,0.15)",
+      iconColor: TOKENS.orange,
+    };
+  }
+  return {
+    bg: isDark ? TOKENS.tealSoftDark : TOKENS.tealSoft,
+    iconBg: isDark ? "rgba(31,174,142,0.25)" : "rgba(31,174,142,0.2)",
+    iconColor: TOKENS.teal,
   };
 }
 
@@ -180,6 +242,8 @@ export default function TrendsTabScreen() {
   const [selectedPointIdx, setSelectedPointIdx] = useState<number | null>(null);
   const [isOfflineData, setIsOfflineData] = useState<boolean>(false);
   const [cachedTimestamp, setCachedTimestamp] = useState<number | null>(null);
+  const [aiInsight, setAiInsight] = useState<string | null>(null);
+  const [aiInsightLoading, setAiInsightLoading] = useState(false); // FIX #11
 
   const isMountedRef = useRef(true);
   const hasLoadedCacheRef = useRef(false);
@@ -190,6 +254,36 @@ export default function TrendsTabScreen() {
       isMountedRef.current = false;
     };
   }, []);
+
+  // ─── Fetch AI insight from the dashboard endpoint ────────────────────────
+  const fetchAiInsight = useCallback(async () => {
+    if (!userId) return;
+    if (isMountedRef.current) setAiInsightLoading(true); // FIX #11
+    try {
+      const storedToken = await AsyncStorage.getItem("access_token");
+      const effectiveToken = token || storedToken || "";
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
+      try {
+        const response = await fetch(`${base_url}/api/dashboard/me`, {
+          headers: { Authorization: `Bearer ${effectiveToken}` },
+          signal: controller.signal,
+        });
+        if (response.ok) {
+          const data = await response.json();
+          if (data?.insight?.body && isMountedRef.current) {
+            setAiInsight(data.insight.body);
+          }
+        }
+      } finally {
+        clearTimeout(timeoutId); // FIX #4: always clear timeout
+      }
+    } catch {
+      // Silently fail — the fallback text will show
+    } finally {
+      if (isMountedRef.current) setAiInsightLoading(false); // FIX #11
+    }
+  }, [userId, token]);
 
   const fetchAnalytics = useCallback(
     async (silent = false) => {
@@ -230,7 +324,6 @@ export default function TrendsTabScreen() {
           },
           signal: controller.signal,
         });
-        clearTimeout(timeoutId);
 
         if (response.status === 401) {
           await logout();
@@ -259,6 +352,7 @@ export default function TrendsTabScreen() {
           setIsOfflineData(true);
         }
       } finally {
+        clearTimeout(timeoutId); // FIX #4: always clear the timer
         if (isMountedRef.current) {
           setIsLoading(false);
           setRefreshing(false);
@@ -271,18 +365,20 @@ export default function TrendsTabScreen() {
   useFocusEffect(
     useCallback(() => {
       fetchAnalytics();
+      fetchAiInsight();
       const onBackPress = () => {
         router.replace("/(home)/(tabs)/dashboard");
         return true;
       };
       const sub = BackHandler.addEventListener("hardwareBackPress", onBackPress);
       return () => sub.remove();
-    }, [fetchAnalytics, router])
+    }, [fetchAnalytics, fetchAiInsight, router])
   );
 
   const onRefresh = () => {
     setRefreshing(true);
     fetchAnalytics(true);
+    fetchAiInsight();
   };
 
   const handleIntervalChange = (days: 7 | 14 | 30) => {
@@ -293,69 +389,109 @@ export default function TrendsTabScreen() {
     setSelectedPointIdx(null);
   };
 
-  // Telemetry Calculations
+  // ─── Data Processing: Daily Aggregation ──────────────────────────────────
+  // Aggregate raw HSS history into one data point per calendar day,
+  // using the latest score for each day. Then fill in missing days as
+  // empty slots so the chart shows gaps visually.
   const history = Array.isArray(analytics?.history) ? analytics.history : [];
 
-  // Filter history points within the active interval cutoff timestamp (TKT-CLN-06)
-  const cutoffTime = Date.now() - intervalDays * 24 * 60 * 60 * 1000;
-  const recentPoints = history.filter((p: any) => {
-    if (!p || !p.computed_at) return false;
-    const t = new Date(p.computed_at).getTime();
-    return !isNaN(t) && t >= cutoffTime;
-  });
+  const getDayKey = (dateStr: string) => {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return "";
+    return d.toISOString().slice(0, 10); // "2026-09-19"
+  };
 
-  const latestHSS =
-    recentPoints.length > 0
-      ? typeof recentPoints[recentPoints.length - 1]?.score === "number"
-        ? Math.round(recentPoints[recentPoints.length - 1].score)
-        : null
-      : history.length > 0 && typeof history[history.length - 1]?.score === "number"
-      ? Math.round(history[history.length - 1].score)
-      : null;
-
-  const hasSufficientData = recentPoints.length >= 2;
-
-  const oldestScore =
-    hasSufficientData && typeof recentPoints[0]?.score === "number"
-      ? Math.round(recentPoints[0].score)
-      : (latestHSS ?? 0);
-  const newestScore = latestHSS ?? 0;
-  const scoreDelta = hasSufficientData ? newestScore - oldestScore : null;
-
-  // Sync selected index to newest point by default when data arrives
-  useEffect(() => {
-    if (recentPoints.length > 0 && selectedPointIdx === null) {
-      setSelectedPointIdx(recentPoints.length - 1);
+  // Step 1: Group by day, keep the latest score per day
+  const dayMap = new Map<string, { score: number; computed_at: string }>();
+  for (const p of history) {
+    if (!p?.computed_at || typeof p.score !== "number") continue;
+    const key = getDayKey(p.computed_at);
+    if (!key) continue;
+    const existing = dayMap.get(key);
+    if (!existing || new Date(p.computed_at) > new Date(existing.computed_at)) {
+      dayMap.set(key, { score: p.score, computed_at: p.computed_at });
     }
-  }, [recentPoints.length, selectedPointIdx]);
+  }
 
-  // Selected bar details for interactive inspection tooltip
-  const activeInspectPoint =
-    selectedPointIdx !== null && recentPoints[selectedPointIdx]
-      ? recentPoints[selectedPointIdx]
-      : recentPoints.length > 0
-      ? recentPoints[recentPoints.length - 1]
+  // Step 2: Build a full day-by-day array for the selected interval,
+  // including days with no data (score: null).
+  type DaySlot = { dateKey: string; score: number | null; hasData: boolean };
+  const buildDaySlots = (): DaySlot[] => {
+    const slots: DaySlot[] = [];
+    const now = new Date();
+    for (let i = intervalDays - 1; i >= 0; i--) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - i);
+      const key = d.toISOString().slice(0, 10);
+      const entry = dayMap.get(key);
+      slots.push({
+        dateKey: key,
+        score: entry ? Math.round(entry.score) : null,
+        hasData: !!entry,
+      });
+    }
+    return slots;
+  };
+  const daySlots = buildDaySlots();
+
+  // Derived values from the aggregated daily data
+  const slotsWithData = daySlots.filter((s) => s.hasData && s.score !== null);
+  const latestHSS =
+    slotsWithData.length > 0 ? slotsWithData[slotsWithData.length - 1].score : null;
+
+  // Trend delta: compare earliest day with data to the latest day with data
+  let scoreDelta: number | null = null;
+  if (slotsWithData.length >= 2 && latestHSS !== null) {
+    const earliestScore = slotsWithData[0].score!;
+    scoreDelta = latestHSS - earliestScore;
+  }
+
+  // Guard selectedPointIdx for the daySlots array
+  useEffect(() => {
+    if (daySlots.length === 0) {
+      if (selectedPointIdx !== null) setSelectedPointIdx(null);
+      return;
+    }
+    // Auto-select the last day that has data
+    if (selectedPointIdx === null) {
+      const lastDataIdx = daySlots.findLastIndex((s) => s.hasData);
+      setSelectedPointIdx(lastDataIdx >= 0 ? lastDataIdx : daySlots.length - 1);
+    } else if (selectedPointIdx >= daySlots.length) {
+      setSelectedPointIdx(daySlots.length - 1);
+    }
+  }, [daySlots.length, intervalDays]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const selectedSlot =
+    selectedPointIdx !== null && daySlots[selectedPointIdx]
+      ? daySlots[selectedPointIdx]
       : null;
-
   const activeInspectScore =
-    activeInspectPoint && typeof activeInspectPoint.score === "number"
-      ? Math.round(activeInspectPoint.score)
+    selectedSlot?.score !== null && selectedSlot?.score !== undefined
+      ? selectedSlot.score
       : latestHSS;
 
   const activeTheme = getStatusTheme(latestHSS, isDark);
   const inspectTheme = getStatusTheme(activeInspectScore, isDark);
 
-  // Mean Score across selected window with null/undefined filtered (TKT-CLN-03)
-  const validScorePoints = recentPoints.filter((p: any) => typeof p.score === "number" && !isNaN(p.score));
   const meanScore =
-    validScorePoints.length > 0
+    slotsWithData.length > 0
       ? Math.round(
-          validScorePoints.reduce((acc: number, p: any) => acc + p.score, 0) /
-            validScorePoints.length
+          slotsWithData.reduce((acc, s) => acc + (s.score ?? 0), 0) /
+            slotsWithData.length
         )
       : null;
 
-  const isCritical = latestHSS !== null && latestHSS < 60;
+  const peakScore =
+    slotsWithData.length > 0
+      ? Math.max(...slotsWithData.map((s) => s.score ?? 0))
+      : null;
+
+  // FIX #9: Only trigger the critical red banner for scores < 50 ("Take Action"
+  // tier), not the entire < 60 range which includes "Needs Attention".
+  const isCritical = latestHSS !== null && latestHSS < 50;
+
+  // FIX #10: Insight card colors based on score severity
+  const insightColors = getInsightColors(latestHSS, isDark);
 
   const formatCacheTime = (ts: number | null): string => {
     if (!ts) return "offline copy";
@@ -367,286 +503,337 @@ export default function TrendsTabScreen() {
     return new Date(ts).toLocaleDateString([], { month: "short", day: "numeric" });
   };
 
+  // ─── Render ──────────────────────────────────────────────────────────────
   return (
-    <SafeAreaView className="flex-1 bg-[#F8FAF9] dark:bg-[#0B131E]" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-[#0B121C]">
       <StatusBar style={isDark ? "light" : "dark"} />
       <Header />
 
       <ScrollView
         contentContainerClassName="px-5 pt-2 pb-40"
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1B6E63" />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={TOKENS.teal} />
+        }
       >
-        {/* ── Screen Header & Category ── */}
-        <View className="mb-4">
-          <View className="flex-row items-center justify-between">
-            <View className="flex-1 pr-2">
-              <View className="flex-row items-center gap-1.5 mb-1">
-                <View className="w-1.5 h-1.5 rounded-full bg-[#1B6E63]" />
-                <Text className="text-[11px] font-bold text-[#5C6B66] dark:text-slate-400 uppercase tracking-widest">
-                  Health Intelligence
-                </Text>
-              </View>
-              <Text className="text-[26px] font-extrabold text-[#152131] dark:text-white tracking-tight">
-                Heart Trends & Progress
-              </Text>
-            </View>
-            <View className="flex-row items-center gap-2">
-              <TouchableOpacity
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  router.push("/(home)/(tabs)/wrap-up" as any);
-                }}
-                activeOpacity={0.8}
-                className="flex-row items-center gap-1.5 px-3 py-2 rounded-full bg-[#1B6E63] shadow-sm shadow-teal-500/20"
-              >
-                <Feather name="file-text" size={13} color="#FFFFFF" />
-                <Text className="text-[12px] font-bold text-white">Doctor Report</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  router.push({
-                    pathname: "/(home)/(health)/log-symptoms",
-                    params: { quick_entry: "true" },
-                  } as any);
-                }}
-                activeOpacity={0.8}
-                className="flex-row items-center gap-1.5 px-3.5 py-2 rounded-full bg-[#C0502E] shadow-sm shadow-coral-500/20"
-              >
-                <Feather name="plus" size={14} color="#FFFFFF" />
-                <Text className="text-[12px] font-bold text-white">Log BP</Text>
-              </TouchableOpacity>
-            </View>
+        {/* ── 1. Screen Header ── */}
+        <View className="mb-5">
+          <View className="flex-row items-center gap-1.5 mb-1">
+            <View style={{ backgroundColor: TOKENS.teal }} className="w-1.5 h-1.5 rounded-full" />
+            <Text className="text-[11px] font-semibold text-[#5C6B66] dark:text-slate-400 uppercase tracking-widest">
+              Your Progress
+            </Text>
           </View>
-          <Text className="text-[12px] text-[#5C6B66] dark:text-slate-400 mt-1 leading-4">
-            Longitudinal telemetry, stability vectors & doctor-ready charts.
+          <Text className="text-[24px] font-semibold text-[#152131] dark:text-white tracking-tight mb-3">
+            Heart Score
           </Text>
+          <View className="flex-row items-center gap-2">
+            <TouchableOpacity
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                router.push("/(home)/(tabs)/wrap-up" as any);
+              }}
+              activeOpacity={0.8}
+              className="flex-row items-center gap-1.5 px-3 py-2 rounded-full"
+              style={{ backgroundColor: TOKENS.teal }}
+            >
+              <Feather name="file-text" size={13} color="#FFFFFF" />
+              <Text className="text-[12px] font-semibold text-white">Doctor Report</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                router.push({
+                  pathname: "/(home)/(vitals)/add-vital",
+                  params: { type: "bp" },
+                } as any);
+              }}
+              activeOpacity={0.8}
+              className="flex-row items-center gap-1.5 px-3.5 py-2 rounded-full"
+              style={{ backgroundColor: TOKENS.pink }}
+            >
+              <Feather name="plus" size={14} color="#FFFFFF" />
+              <Text className="text-[12px] font-semibold text-white">Log BP</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
-        {/* Offline Cache Status Badge with 4-hour stale warning (TKT-CLN-05) */}
+        {/* Offline Cache Status Badge */}
         {isOfflineData && (
-          <View className={`flex-row items-center gap-2 px-3 py-2 rounded-xl mb-4 border ${
-            cachedTimestamp && Date.now() - cachedTimestamp > 4 * 3600 * 1000
-              ? "bg-red-50 dark:bg-red-950/40 border-red-300 dark:border-red-800/60"
-              : "bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800/60"
-          }`}>
-            <Feather
-              name={cachedTimestamp && Date.now() - cachedTimestamp > 4 * 3600 * 1000 ? "alert-triangle" : "cloud-off"}
-              size={14}
-              color={cachedTimestamp && Date.now() - cachedTimestamp > 4 * 3600 * 1000 ? "#DC2626" : "#D97706"}
-            />
-            <View className="flex-1">
-              <Text className={`text-[11px] font-bold ${
+          <View
+            className="flex-row items-center gap-2 px-3 py-2 rounded-2xl mb-4"
+            style={{
+              backgroundColor:
                 cachedTimestamp && Date.now() - cachedTimestamp > 4 * 3600 * 1000
-                  ? "text-red-800 dark:text-red-300"
-                  : "text-amber-800 dark:text-amber-300"
-              }`}>
-                {cachedTimestamp && Date.now() - cachedTimestamp > 4 * 3600 * 1000
-                  ? `Stale Telemetry (>4h Old) • Snapshot from ${formatCacheTime(cachedTimestamp)}`
-                  : `Offline Mode • Showing cached telemetry (${formatCacheTime(cachedTimestamp)})`}
-              </Text>
-              {cachedTimestamp && Date.now() - cachedTimestamp > 4 * 3600 * 1000 && (
-                <Text className="text-[10px] text-red-700 dark:text-red-400 mt-0.5 leading-3">
-                  Connect to Wi-Fi/cellular to reflect recent vital logs or emergency telemetry.
-                </Text>
-              )}
-            </View>
+                  ? isDark
+                    ? TOKENS.criticalSoftDark
+                    : TOKENS.criticalSoft
+                  : isDark
+                    ? TOKENS.orangeSoftDark
+                    : TOKENS.orangeSoft,
+            }}
+          >
+            <Feather
+              name={
+                cachedTimestamp && Date.now() - cachedTimestamp > 4 * 3600 * 1000
+                  ? "alert-triangle"
+                  : "cloud-off"
+              }
+              size={14}
+              color={
+                cachedTimestamp && Date.now() - cachedTimestamp > 4 * 3600 * 1000
+                  ? TOKENS.critical
+                  : TOKENS.orange
+              }
+            />
+            <Text
+              className="text-[11px] font-semibold flex-1"
+              style={{
+                color:
+                  cachedTimestamp && Date.now() - cachedTimestamp > 4 * 3600 * 1000
+                    ? TOKENS.critical
+                    : TOKENS.orange,
+              }}
+            >
+              {cachedTimestamp && Date.now() - cachedTimestamp > 4 * 3600 * 1000
+                ? `Data may be outdated • Last synced ${formatCacheTime(cachedTimestamp)}`
+                : `Offline • Showing cached data (${formatCacheTime(cachedTimestamp)})`}
+            </Text>
           </View>
         )}
 
-        {/* ── Time Interval Segmented Control ── */}
-        <View className="flex-row p-1 bg-[#EDF1EF] dark:bg-[#121D2B] rounded-2xl border border-[#DCE3DF] dark:border-slate-800/80 mb-5">
-          {([7, 14, 30] as const).map((days) => {
-            const isActive = intervalDays === days;
-            return (
-              <TouchableOpacity
-                key={days}
-                onPress={() => handleIntervalChange(days)}
-                activeOpacity={0.7}
-                className="flex-1 py-2 items-center rounded-xl"
-                style={
-                  isActive
-                    ? {
-                        backgroundColor: isDark ? "#1C2A3A" : "#FFFFFF",
-                        shadowColor: "#000",
-                        shadowOffset: { width: 0, height: 1 },
-                        shadowOpacity: 0.08,
-                        shadowRadius: 2,
-                        elevation: 1,
-                      }
-                    : undefined
-                }
-              >
-                <Text
-                  className="text-[12px] font-bold tracking-tight"
-                  style={{
-                    color: isActive
-                      ? isDark
-                        ? "#FFFFFF"
-                        : "#152131"
-                      : isDark
-                      ? "#94A3B8"
-                      : "#5C6B66",
-                  }}
-                >
-                  {days} Days
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-
         {isLoading && !analytics ? (
           <View className="py-20 items-center justify-center">
-            <ActivityIndicator size="small" color="#C0502E" />
-            <Text className="text-[13px] text-slate-400 mt-3 font-medium">Analyzing telemetry history...</Text>
+            <ActivityIndicator size="small" color={TOKENS.teal} />
+            <Text className="text-[13px] text-slate-400 mt-3 font-medium">
+              Loading your progress...
+            </Text>
           </View>
         ) : (
           <>
-            {/* ── 1. Primary Hero Stability Progression Card ── */}
-            <View className="bg-white dark:bg-[#121D2B] rounded-[28px] p-5 border border-[#DCE3DF] dark:border-slate-800/80 mb-4 shadow-sm shadow-slate-200/50">
-              
-              {/* Card Header: Score, Status Pill & Target */}
+            {/* ── 2. Unified Hero Card ── */}
+            <View className="bg-surface-card rounded-2xl p-5 mb-4">
+              {/* Score + Status Badge */}
               <View className="flex-row items-start justify-between mb-4">
                 <View className="flex-1 mr-3">
-                  <Text className="text-[13px] font-bold text-[#5C6B66] dark:text-slate-400 uppercase tracking-wider">
-                    Cardiovascular Stability
+                  <Text className="text-[12px] font-semibold text-[#5C6B66] dark:text-slate-400 uppercase tracking-wider">
+                    Your Heart Score
                   </Text>
-                  
-                  {/* 3-Second Glanceable Big Metric */}
                   <View className="flex-row items-baseline mt-1">
-                    <Text className="text-[44px] font-black text-[#152131] dark:text-white tracking-tighter leading-none">
+                    <Text className="text-[38px] font-bold text-[#152131] dark:text-white tracking-tight leading-none">
                       {latestHSS !== null ? latestHSS : "—"}
                     </Text>
-                    <Text className="text-[15px] font-semibold text-[#5C6B66] dark:text-slate-400 ml-1.5">
-                      / 100 HSS
+                    <Text className="text-[14px] font-medium text-[#5C6B66] dark:text-slate-400 ml-1.5">
+                      / 100
                     </Text>
                   </View>
                 </View>
 
-                {/* Semantic Status Badge */}
+                {/* Status Badge */}
                 <View
-                  style={{ backgroundColor: activeTheme.badgeBg, borderColor: activeTheme.badgeBorder }}
-                  className="flex-row items-center px-3 py-1.5 rounded-full border"
+                  style={{ backgroundColor: activeTheme.badgeBg }}
+                  className="flex-row items-center px-3 py-1.5 rounded-full"
                 >
-                  <View style={{ backgroundColor: activeTheme.dotColor }} className="w-2 h-2 rounded-full mr-1.5" />
-                  <Text style={{ color: activeTheme.badgeText }} className="text-[12px] font-bold">
+                  <View
+                    style={{ backgroundColor: activeTheme.dotColor }}
+                    className="w-2 h-2 rounded-full mr-1.5"
+                  />
+                  <Text
+                    style={{ color: activeTheme.badgeText }}
+                    className="text-[12px] font-semibold"
+                  >
                     {activeTheme.tier}
                   </Text>
                 </View>
               </View>
 
-              {/* Dynamic Interactive Tooltip (Active Bar Inspection) */}
-              {recentPoints.length > 0 && activeInspectPoint && (
-                <View className="flex-row items-center justify-between px-3 py-2 rounded-xl bg-[#F8FAF9] dark:bg-[#0B131E] border border-[#DCE3DF] dark:border-slate-800 mb-3">
-                  <View className="flex-row items-center gap-1.5">
-                    <Feather name="calendar" size={12} color="#5C6B66" />
-                    <Text className="text-[11px] font-bold text-[#152131] dark:text-white">
-                      {formatInspectionDate(activeInspectPoint.computed_at)}
-                    </Text>
-                  </View>
-                  <View className="flex-row items-center gap-1.5">
-                    <Text className="text-[11px] text-[#5C6B66] dark:text-slate-400">Score:</Text>
-                    <Text style={{ color: inspectTheme.badgeText }} className="text-[12px] font-extrabold">
-                      {activeInspectScore} pts
-                    </Text>
-                  </View>
-                </View>
-              )}
+              {/* Period Selector (inside the card) */}
+              <View
+                className="flex-row p-1 rounded-xl mb-4"
+                style={{
+                  backgroundColor: isDark ? "rgba(148,163,184,0.1)" : TOKENS.neutralSoft,
+                }}
+              >
+                {([7, 14, 30] as const).map((days) => {
+                  const isActive = intervalDays === days;
+                  return (
+                    <TouchableOpacity
+                      key={days}
+                      onPress={() => handleIntervalChange(days)}
+                      activeOpacity={0.7}
+                      className="flex-1 py-2 items-center rounded-lg"
+                      style={
+                        isActive
+                          ? {
+                              backgroundColor: isDark ? "#1C2A3A" : "#FFFFFF",
+                            }
+                          : undefined
+                      }
+                    >
+                      <Text
+                        className="text-[12px] font-semibold tracking-tight"
+                        style={{
+                          color: isActive
+                            ? isDark
+                              ? "#FFFFFF"
+                              : TOKENS.ink
+                            : isDark
+                              ? TOKENS.subDark
+                              : TOKENS.sub,
+                        }}
+                      >
+                        {days}D
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
 
-              {/* Visual Telemetry Bars Canvas */}
-              <View className="h-32 mb-3 justify-end border-b border-[#DCE3DF] dark:border-slate-800 relative">
-                {recentPoints.length === 0 ? (
+              {/* ── Daily Aggregated Bar Chart ── */}
+              <View className="h-44 mb-3 justify-end border-b border-[#DCE3DF] dark:border-slate-800 relative">
+                {slotsWithData.length === 0 ? (
                   <View className="items-center justify-center h-full pb-2 px-3">
-                    <View className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 items-center justify-center mb-2">
-                      <Feather name="activity" size={18} color="#94a3b8" />
+                    <View
+                      className="w-10 h-10 rounded-full items-center justify-center mb-2"
+                      style={{
+                        backgroundColor: isDark
+                          ? "rgba(148,163,184,0.12)"
+                          : TOKENS.neutralSoft,
+                      }}
+                    >
+                      <Feather name="activity" size={18} color={TOKENS.sub} />
                     </View>
                     <Text className="text-[12px] text-slate-400 text-center font-medium mb-2.5">
-                      No vitals recorded yet for this {intervalDays}-day window.
+                      No readings yet for this {intervalDays}-day window.
                     </Text>
                     <TouchableOpacity
                       onPress={() =>
                         router.push({
-                          pathname: "/(home)/(health)/log-symptoms",
-                          params: { quick_entry: "true" },
+                          pathname: "/(home)/(vitals)/add-vital",
+                          params: { type: "bp" },
                         } as any)
                       }
                       activeOpacity={0.8}
-                      className="px-4 py-2 rounded-full bg-[#C0502E] shadow-sm shadow-coral-500/20"
+                      className="px-4 py-2 rounded-full"
+                      style={{ backgroundColor: TOKENS.teal }}
                     >
-                      <Text className="text-[11px] font-bold text-white tracking-wide">Record First Vitals</Text>
+                      <Text className="text-[11px] font-semibold text-white tracking-wide">
+                        Record First Reading
+                      </Text>
                     </TouchableOpacity>
                   </View>
                 ) : (
                   <>
-                    {/* Clinical Target 70 Reference Guideline */}
+                    {/* Target 70 Reference Line */}
                     <View
-                      style={{ bottom: "70%" }}
-                      className="absolute left-0 right-0 border-b border-dashed border-[#1B6E63]/30 dark:border-emerald-500/20 z-0"
+                      style={{
+                        bottom: "70%",
+                        borderColor: isDark
+                          ? "rgba(31,174,142,0.25)"
+                          : "rgba(31,174,142,0.3)",
+                      }}
+                      className="absolute left-0 right-0 border-b border-dashed z-0"
                     />
 
-                    {/* Bar Columns Container */}
-                    <View className="flex-row items-end justify-between px-1 h-28 z-10">
-                      {recentPoints.map((point: any, idx: number) => {
-                        const rawScore = typeof point.score === "number" ? point.score : 0;
-                        const score = Math.round(rawScore);
-                        const heightPercent = Math.min(100, Math.max(16, score));
-                        const pointTheme = getStatusTheme(score, isDark);
+                    {/* Bar Columns */}
+                    <View className="flex-row items-end justify-between px-1 h-40 z-10">
+                      {daySlots.map((slot, idx) => {
                         const isSelected = selectedPointIdx === idx;
+                        const hasData = slot.hasData && slot.score !== null;
+                        const score = slot.score ?? 0;
+                        const heightPercent = hasData
+                          ? Math.min(100, Math.max(4, score))
+                          : 0;
+                        const slotTheme = hasData
+                          ? getStatusTheme(score, isDark)
+                          : getStatusTheme(null, isDark);
+
+                        // Bar width based on interval density
+                        const barWidth =
+                          intervalDays === 30
+                            ? 6
+                            : intervalDays === 14
+                              ? 10
+                              : 20;
 
                         return (
                           <TouchableOpacity
-                            key={idx}
+                            key={slot.dateKey}
                             activeOpacity={0.85}
                             onPress={() => {
-                              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                              setSelectedPointIdx(idx);
+                              if (hasData) {
+                                Haptics.impactAsync(
+                                  Haptics.ImpactFeedbackStyle.Light
+                                );
+                                setSelectedPointIdx(idx);
+                              }
                             }}
-                            className="items-center flex-1 py-1"
+                            className="items-center flex-1"
+                            style={{ paddingTop: 2, paddingBottom: 2 }}
                           >
-                            {/* Selected Point Indicator Pip */}
-                            <View
-                              className="w-1 h-1 rounded-full mb-1"
-                              style={{
-                                backgroundColor: isSelected
-                                  ? isDark
-                                    ? "#FFFFFF"
-                                    : "#152131"
-                                  : "transparent",
-                              }}
-                            />
-
-                            {/* Telemetry Bar */}
-                            <View
-                              style={{
-                                height: `${heightPercent}%`,
-                                width:
-                                  intervalDays === 30 || recentPoints.length > 14
-                                    ? 6
-                                    : intervalDays === 14 || recentPoints.length > 7
-                                    ? 10
-                                    : 16,
-                                backgroundColor: pointTheme.barColor,
-                                opacity: selectedPointIdx !== null && !isSelected ? 0.45 : 1,
-                                borderRadius: 6,
-                              }}
-                            />
-
-                            {/* X-Axis Date/Weekday Label */}
+                            {/* Score label above selected bar */}
                             <Text
-                              className="text-[9px] mt-1.5 font-bold"
+                              className="text-[10px] font-bold mb-1"
                               style={{
-                                color: isSelected
-                                  ? isDark
-                                    ? "#FFFFFF"
-                                    : "#152131"
-                                  : isDark
-                                  ? "#64748B"
-                                  : "#5C6B66",
+                                color:
+                                  isSelected && hasData
+                                    ? slotTheme.barColor
+                                    : "transparent",
                               }}
                             >
-                              {formatDayLabel(point.computed_at, idx, intervalDays, recentPoints.length)}
+                              {hasData ? score : ""}
+                            </Text>
+
+                            {hasData ? (
+                              /* Filled bar for days with data */
+                              <View
+                                style={{
+                                  height: `${heightPercent}%`,
+                                  width: barWidth,
+                                  backgroundColor: slotTheme.barColor,
+                                  opacity:
+                                    selectedPointIdx !== null && !isSelected
+                                      ? 0.4
+                                      : 1,
+                                  borderRadius: barWidth / 2,
+                                }}
+                              />
+                            ) : (
+                              /* Faded dashed outline for missed days */
+                              <View
+                                style={{
+                                  height: 6,
+                                  width: barWidth,
+                                  borderRadius: barWidth / 2,
+                                  borderWidth: 1.5,
+                                  borderStyle: "dashed",
+                                  borderColor: isDark
+                                    ? "rgba(148,163,184,0.25)"
+                                    : "rgba(92,107,102,0.2)",
+                                }}
+                              />
+                            )}
+
+                            {/* X-Axis Label */}
+                            <Text
+                              className="text-[8px] mt-1.5 font-semibold"
+                              style={{
+                                color:
+                                  isSelected && hasData
+                                    ? isDark
+                                      ? "#FFFFFF"
+                                      : TOKENS.ink
+                                    : isDark
+                                      ? "#64748B"
+                                      : TOKENS.sub,
+                              }}
+                            >
+                              {formatDayLabel(
+                                slot.dateKey,
+                                idx,
+                                daySlots.length,
+                                intervalDays
+                              )}
                             </Text>
                           </TouchableOpacity>
                         );
@@ -656,207 +843,188 @@ export default function TrendsTabScreen() {
                 )}
               </View>
 
-              {/* Card Footer: Trajectory Delta & Clinical Target */}
-              <View className="flex-row items-center justify-between pt-1">
+              {/* Trend Delta */}
+              <View className="flex-row items-center justify-between pt-2 mb-3">
                 {scoreDelta !== null ? (
                   <View className="flex-row items-center gap-1.5">
                     <Feather
                       name={scoreDelta >= 0 ? "trending-up" : "trending-down"}
                       size={15}
-                      color={scoreDelta >= 0 ? "#1B6E63" : "#C0502E"}
+                      color={scoreDelta >= 0 ? TOKENS.teal : TOKENS.pink}
                     />
-                    <Text className="text-[13px] font-bold text-[#152131] dark:text-white">
+                    <Text className="text-[13px] font-semibold text-[#152131] dark:text-white">
                       {scoreDelta > 0
                         ? `+${scoreDelta} pts improvement`
                         : scoreDelta < 0
-                        ? `${scoreDelta} pts from baseline`
-                        : "Holding steady (±0 pts)"}
+                          ? `${scoreDelta} pts from baseline`
+                          : "Holding steady (±0 pts)"}
                     </Text>
                   </View>
                 ) : (
                   <Text className="text-[11px] text-[#5C6B66] dark:text-slate-400">
-                    Log ≥ 2 readings to calculate trajectory
+                    {slotsWithData.length < 2
+                      ? "Log 2+ days to see your trend"
+                      : "Holding steady"}
                   </Text>
                 )}
 
-                <View className="flex-row items-center gap-1 px-2 py-0.5 rounded-md bg-[#EDF1EF] dark:bg-slate-800">
-                  <View className="w-1.5 h-1.5 rounded-full bg-[#1B6E63]" />
-                  <Text className="text-[10px] font-bold text-[#5C6B66] dark:text-slate-400">
-                    Target: ≥ 70
-                  </Text>
-                </View>
-              </View>
-            </View>
-
-            {/* ── 2. Secondary Telemetry Glance Metrics (2-Column Grid) ── */}
-            <View className="flex-row gap-3 mb-4">
-              {/* Window Average Stability Tile */}
-              <View className="flex-1 bg-white dark:bg-[#121D2B] p-4 rounded-2xl border border-[#DCE3DF] dark:border-slate-800/80">
-                <Text className="text-[11px] font-bold text-[#5C6B66] dark:text-slate-400 uppercase tracking-wider mb-1">
-                  {intervalDays}D Mean HSS
-                </Text>
-                <View className="flex-row items-baseline">
-                  <Text className="text-[24px] font-black text-[#152131] dark:text-white">
-                    {meanScore !== null ? meanScore : "—"}
-                  </Text>
-                  <Text className="text-[12px] font-bold text-[#5C6B66] dark:text-slate-400 ml-1">pts</Text>
-                </View>
-                <Text className="text-[11px] text-[#5C6B66] dark:text-slate-400 mt-1">
-                  {meanScore && meanScore >= 70 ? "Above target threshold" : "Below recommended target"}
-                </Text>
-              </View>
-
-              {/* Consistency Check-in Rate Tile */}
-              <View className="flex-1 bg-white dark:bg-[#121D2B] p-4 rounded-2xl border border-[#DCE3DF] dark:border-slate-800/80">
-                <Text className="text-[11px] font-bold text-[#5C6B66] dark:text-slate-400 uppercase tracking-wider mb-1">
-                  Consistency
-                </Text>
-                <View className="flex-row items-baseline">
-                  <Text className="text-[24px] font-black text-[#152131] dark:text-white">
-                    {recentPoints.length}
-                  </Text>
-                  <Text className="text-[12px] font-bold text-[#5C6B66] dark:text-slate-400 ml-1">
-                    / {intervalDays} logs
-                  </Text>
-                </View>
-                <Text className="text-[11px] text-[#1B6E63] dark:text-emerald-400 font-medium mt-1">
-                  {recentPoints.length >= intervalDays * 0.7 ? "High compliance" : "Building check-in habit"}
-                </Text>
-              </View>
-            </View>
-
-            {/* ── 3. Smart Clinical Progress Insight Card ── */}
-            <View
-              className="p-4 rounded-2xl border mb-4"
-              style={{
-                backgroundColor: isCritical
-                  ? isDark
-                    ? "rgba(138, 31, 26, 0.15)"
-                    : "#FDF2F0"
-                  : isDark
-                  ? "#121D2B"
-                  : "#FFFFFF",
-                borderColor: isCritical
-                  ? "#C0502E"
-                  : isDark
-                  ? "rgba(30, 41, 59, 0.8)"
-                  : "#DCE3DF",
-              }}
-            >
-              <View className="flex-row items-center gap-2 mb-2">
                 <View
-                  className="w-7 h-7 rounded-lg items-center justify-center"
+                  className="flex-row items-center gap-1 px-2 py-0.5 rounded-md"
                   style={{
-                    backgroundColor: isCritical
-                      ? isDark
-                        ? "rgba(232, 83, 46, 0.2)"
-                        : "#FDEEE9"
-                      : isDark
-                      ? "rgba(27, 110, 99, 0.2)"
-                      : "#E2F1ED",
+                    backgroundColor: isDark
+                      ? "rgba(148,163,184,0.12)"
+                      : TOKENS.neutralSoft,
                   }}
                 >
-                  <MaterialCommunityIcons
-                    name={isCritical ? "alert-circle-outline" : "auto-fix"}
-                    size={16}
-                    color={isCritical ? "#C0502E" : "#1B6E63"}
+                  <View
+                    style={{ backgroundColor: TOKENS.teal }}
+                    className="w-1.5 h-1.5 rounded-full"
                   />
+                  <Text className="text-[10px] font-semibold text-[#5C6B66] dark:text-slate-400">
+                    Goal: 70+
+                  </Text>
                 </View>
-                <Text className="text-[13px] font-bold text-[#152131] dark:text-white">
-                  {isCritical ? "Cardiovascular Risk Flag" : "Clinical Progress Summary"}
-                </Text>
               </View>
-              <Text className="text-[12px] text-[#5C6B66] dark:text-slate-300 leading-relaxed font-normal">
-                {latestHSS !== null ? (
-                  latestHSS >= 80 ? (
-                    "Your cardiovascular stability is optimal. Consistent daily tracking and balanced habits are supporting vascular resilience."
-                  ) : latestHSS >= 60 ? (
-                    "Your telemetry reflects controlled cardiovascular metrics. Continue consistent morning blood pressure logging and low-sodium meal choices."
+
+              {/* ── Inline Stats Row ── */}
+              <View
+                className="flex-row items-center justify-around py-3 rounded-xl"
+                style={{
+                  backgroundColor: isDark ? "rgba(148,163,184,0.08)" : TOKENS.neutralSoft,
+                }}
+              >
+                <View className="items-center">
+                  <Text className="text-[18px] font-bold text-[#152131] dark:text-white">
+                    {meanScore !== null ? meanScore : "—"}
+                  </Text>
+                  <Text className="text-[10px] text-[#5C6B66] dark:text-slate-400 mt-0.5">
+                    Average
+                  </Text>
+                </View>
+                <View
+                  className="w-px h-6"
+                  style={{
+                    backgroundColor: isDark ? "rgba(148,163,184,0.2)" : TOKENS.line,
+                  }}
+                />
+                <View className="items-center">
+                  <Text className="text-[18px] font-bold text-[#152131] dark:text-white">
+                    {slotsWithData.length}
+                  </Text>
+                  <Text className="text-[10px] text-[#5C6B66] dark:text-slate-400 mt-0.5">
+                    {slotsWithData.length === 1 ? "Day" : "Days"}
+                  </Text>
+                </View>
+                <View
+                  className="w-px h-6"
+                  style={{
+                    backgroundColor: isDark ? "rgba(148,163,184,0.2)" : TOKENS.line,
+                  }}
+                />
+                {/* FIX #13: Show peak score instead of the interval number */}
+                <View className="items-center">
+                  <Text className="text-[18px] font-bold text-[#152131] dark:text-white">
+                    {peakScore !== null ? peakScore : "—"}
+                  </Text>
+                  <Text className="text-[10px] text-[#5C6B66] dark:text-slate-400 mt-0.5">
+                    Best
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            {/* ── 3. AI Insight Card ── */}
+            {/* FIX #10: Card color matches score severity */}
+            {/* FIX #11: Shows subtle loading indicator during refresh */}
+            {/* FIX #12: Shows offline hint when insight couldn't be fetched */}
+            <View
+              className="p-4 rounded-2xl mb-4"
+              style={{ backgroundColor: insightColors.bg }}
+            >
+              <View className="flex-row items-start gap-3">
+                <View
+                  className="w-8 h-8 rounded-full items-center justify-center mt-0.5"
+                  style={{ backgroundColor: insightColors.iconBg }}
+                >
+                  {aiInsightLoading ? (
+                    <ActivityIndicator size="small" color={insightColors.iconColor} />
                   ) : (
-                    "Your stability score has dipped below recommended safety boundaries. Review recent blood pressure logs and consult your attending doctor if symptoms persist."
-                  )
-                ) : (
-                  "Log daily vitals and meals to activate personalized cardiovascular insights and predictive trend telemetry."
-                )}
-              </Text>
+                    <MaterialCommunityIcons
+                      name="auto-fix"
+                      size={16}
+                      color={insightColors.iconColor}
+                    />
+                  )}
+                </View>
+                <View className="flex-1">
+                  <Text className="text-[13px] leading-5 text-[#152131] dark:text-white font-normal">
+                    {aiInsight ||
+                      (latestHSS !== null
+                        ? latestHSS >= 80
+                          ? "Your heart score is looking strong! Keep up the consistent tracking and healthy habits."
+                          : latestHSS >= 60
+                            ? "You're on track. Consistent morning check-ins and mindful meals are making a difference."
+                            : "Your score needs a bit of attention. Consider reviewing recent readings with your doctor."
+                        : "Start logging your vitals to get personalized insights about your heart health.")}
+                  </Text>
+                  {/* FIX #12: Hint when showing fallback instead of real AI insight */}
+                  {!aiInsight && !aiInsightLoading && isOfflineData && (
+                    <Text className="text-[10px] text-[#5C6B66] dark:text-slate-500 mt-1.5">
+                      Connect to see your personalized AI insight
+                    </Text>
+                  )}
+                </View>
+              </View>
             </View>
 
-            {/* ── 4. Quick Habit Gateways (Tactile Touchables) ── */}
-            <Text className="text-[12px] font-bold text-[#5C6B66] dark:text-slate-400 uppercase tracking-wider mb-2.5">
-              Associated Journals & Habits
-            </Text>
-            <View className="flex-row gap-3 mb-4">
-              <TactileCard
-                onPress={() => router.push("/(home)/(meals)/food-diary" as any)}
-                className="flex-1 bg-white dark:bg-[#121D2B] p-4 rounded-2xl border border-[#DCE3DF] dark:border-slate-800/80"
-              >
-                <View className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 items-center justify-center mb-2.5">
-                  <MaterialCommunityIcons name="silverware-fork-knife" size={17} color="#1B6E63" />
-                </View>
-                <Text className="text-[14px] font-bold text-[#152131] dark:text-white">Meal Diary</Text>
-                <Text className="text-[11px] text-[#5C6B66] dark:text-slate-400 mt-0.5">Sodium & meals</Text>
-              </TactileCard>
-
-              <TactileCard
-                onPress={() => router.push("/(home)/(health)/exercise-diary" as any)}
-                className="flex-1 bg-white dark:bg-[#121D2B] p-4 rounded-2xl border border-[#DCE3DF] dark:border-slate-800/80"
-              >
-                <View className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-950/40 items-center justify-center mb-2.5">
-                  <Feather name="activity" size={17} color="#4A6080" />
-                </View>
-                <Text className="text-[14px] font-bold text-[#152131] dark:text-white">Cardio Log</Text>
-                <Text className="text-[11px] text-[#5C6B66] dark:text-slate-400 mt-0.5">Active walking</Text>
-              </TactileCard>
-            </View>
-
-            {/* ── 5. Long-Term Heatmap Gateway Link ── */}
+            {/* ── 4. Heatmap Gateway ── */}
             <TactileCard
               onPress={() => router.push("/(home)/(profile)/analytics" as any)}
-              className="bg-white dark:bg-[#121D2B] p-4 rounded-2xl border border-[#DCE3DF] dark:border-slate-800/80 mb-4 flex-row items-center justify-between"
+              className="bg-surface-card p-4 rounded-2xl mb-4 flex-row items-center justify-between"
             >
               <View className="flex-row items-center gap-3">
-                <View className="w-9 h-9 rounded-xl bg-purple-50 dark:bg-purple-950/40 items-center justify-center">
-                  <Feather name="calendar" size={17} color="#9333ea" />
+                <View
+                  className="w-9 h-9 rounded-full items-center justify-center"
+                  style={{
+                    backgroundColor: isDark ? TOKENS.indigoSoftDark : TOKENS.indigoSoft,
+                  }}
+                >
+                  <Feather name="calendar" size={17} color={TOKENS.indigo} />
                 </View>
                 <View>
-                  <Text className="text-[13px] font-bold text-[#152131] dark:text-white">
-                    6-Month Consistency Heatmap
+                  <Text className="text-[13px] font-semibold text-[#152131] dark:text-white">
+                    6-Month Consistency
                   </Text>
                   <Text className="text-[11px] text-[#5C6B66] dark:text-slate-400">
-                    Inspect long-term check-in streaks
+                    View your check-in streaks
                   </Text>
                 </View>
               </View>
-              <Feather name="chevron-right" size={16} color="#94a3b8" />
+              <Feather name="chevron-right" size={16} color={TOKENS.sub} />
             </TactileCard>
 
-            {/* ── 6. Doctor Consultation or Critical Escalation Banner ── */}
+            {/* ── 5. Doctor Banner ── */}
             <View
-              className="p-4 rounded-2xl border"
+              className="p-4 rounded-2xl mb-4"
               style={{
                 backgroundColor: isCritical
                   ? isDark
-                    ? "rgba(138, 31, 26, 0.2)"
-                    : "#FDF2F0"
+                    ? TOKENS.criticalSoftDark
+                    : TOKENS.criticalSoft
                   : isDark
-                  ? "#1A2634"
-                  : "#EDF1EF",
-                borderColor: isCritical
-                  ? "#C0502E"
-                  : isDark
-                  ? "rgba(30, 41, 59, 0.8)"
-                  : "#DCE3DF",
+                    ? "rgba(148,163,184,0.1)"
+                    : TOKENS.neutralSoft,
               }}
             >
               <View className="flex-row items-center justify-between">
                 <View className="flex-1 mr-3">
-                  <Text className="text-[13px] font-bold text-[#152131] dark:text-white">
-                    {isCritical ? "Cardiovascular Warning" : "Preparing for a Checkup?"}
+                  <Text className="text-[13px] font-semibold text-[#152131] dark:text-white">
+                    {isCritical ? "Talk to Your Doctor" : "Preparing for a Checkup?"}
                   </Text>
                   <Text className="text-[11px] text-[#5C6B66] dark:text-slate-400 mt-0.5 leading-4">
                     {isCritical
-                      ? "Recent telemetry indicates cardiovascular risk drift. Contact your care team or visit a nearby clinic."
-                      : "Present your 7-day stability chart to your attending doctor to verify treatment progress."}
+                      ? "Your recent readings suggest you should check in with your care team."
+                      : "Share your progress chart with your doctor at your next visit."}
                   </Text>
                 </View>
                 <TouchableOpacity
@@ -866,34 +1034,21 @@ export default function TrendsTabScreen() {
                   }}
                   className="px-3.5 py-2.5 rounded-xl"
                   style={{
-                    backgroundColor: isCritical
-                      ? "#C0502E"
-                      : isDark
-                      ? "#FFFFFF"
-                      : "#152131",
+                    backgroundColor: isCritical ? TOKENS.critical : TOKENS.teal,
                   }}
                   activeOpacity={0.8}
                 >
-                  <Text
-                    className="text-[11px] font-bold"
-                    style={{
-                      color: isCritical
-                        ? "#FFFFFF"
-                        : isDark
-                        ? "#152131"
-                        : "#FFFFFF",
-                    }}
-                  >
+                  <Text className="text-[11px] font-semibold text-white">
                     {isCritical ? "Call Doctor" : "My Doctor"}
                   </Text>
                 </TouchableOpacity>
               </View>
             </View>
 
-            {/* ── 7. Statutory Non-Diagnostic Regulatory Disclaimer ── */}
-            <View className="mt-6 mb-4 px-2 items-center">
-              <Text className="text-[11px] text-[#5C6B66] dark:text-slate-500 text-center leading-4 font-normal">
-                HeartLink is a personal wellness tracking and longitudinal telemetry tool. It is not a certified diagnostic device and is not intended to diagnose, treat, cure, or prevent any cardiovascular condition or replace professional clinical judgment. Always consult your cardiologist or primary care physician regarding health data or medication regimens. In an acute medical emergency, call 911 or visit the nearest emergency facility immediately.
+            {/* ── 6. One-Line Disclaimer ── */}
+            <View className="mt-2 mb-4 items-center">
+              <Text className="text-[11px] text-[#5C6B66] dark:text-slate-500 text-center font-normal">
+                Not medical advice • Always consult your doctor
               </Text>
             </View>
           </>

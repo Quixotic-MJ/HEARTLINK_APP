@@ -16,6 +16,7 @@ import * as Haptics from "expo-haptics";
 import { useToast } from "../../contexts/ToastContext";
 import { OfflineSyncService } from "../../utils/OfflineSyncService";
 import { postLogAck } from "../../services/companionCopy";
+import { useLogSleep } from "../../hooks/useLogSleep";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
@@ -200,6 +201,8 @@ export function SleepQuickForm({
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
   const { showToast } = useToast();
+  
+  const logSleepMutation = useLogSleep(userId, token);
 
   const defaultWake = new Date();
 
@@ -214,11 +217,12 @@ export function SleepQuickForm({
   const [showWakePicker, setShowWakePicker] = useState(false);
 
   const [quality, setQuality] = useState("Good");
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Calculate duration in hours
   let diffMs = wakeTime.getTime() - bedTime.getTime();
-  if (diffMs < 0) diffMs += 24 * 60 * 60 * 1000;
+  if (diffMs < 0) {
+    diffMs += 24 * 60 * 60 * 1000;
+  }
   const durationHours = diffMs / (1000 * 60 * 60);
   const displayHours = Math.floor(durationHours);
   const displayMins = Math.round((durationHours % 1) * 60);
@@ -232,34 +236,34 @@ export function SleepQuickForm({
       showToast({ title: "Invalid Duration", message: "Please check your AM/PM times. Sleep must be between 1 and 14 hours.", type: "error" });
       return;
     }
+    
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    setIsSubmitting(true);
+    
+    // Fix cross-midnight bug for the payload:
+    // If diffMs was negative initially (before we added 24h), it means bedTime is numerically larger than wakeTime (e.g. 23:00 vs 07:00 on the same date).
+    // In that case, we need to subtract one day from the bedTime object so it represents yesterday chronologically.
+    const actualBedTime = new Date(bedTime);
+    if (wakeTime.getTime() - bedTime.getTime() < 0) {
+      actualBedTime.setDate(actualBedTime.getDate() - 1);
+    }
+    
     const payload = { 
       duration_hours: durationHours, 
       quality,
-      bedtime: bedTime.toISOString(),
+      bedtime: actualBedTime.toISOString(),
       wake_time: wakeTime.toISOString()
     };
-    try {
-      const res = await fetch(`${base_url}/api/sleep-logs/${userId}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token || ""}`,
-        },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) throw new Error("Failed to save sleep log");
-      showToast({ ...postLogAck("sleep", `${payload.duration_hours.toFixed(1)} hrs • ${quality}`), type: "success" });
-      onSaved();
-    } catch {
-      const { queueSleepForSync } = await import("../../services/SyncService");
-      await queueSleepForSync(userId, payload);
-      showToast({ title: "Saved offline", message: "Sleep saved on this device — I'll sync it when you're back online.", type: "success" });
-      onSaved();
-    } finally {
-      setIsSubmitting(false);
-    }
+    
+    logSleepMutation.mutate(payload, {
+      onError: async (error: any) => {
+        if (error.status === 401) {
+           const { useUser } = require("../../contexts/UserContext"); // lazy load to avoid circular deps if any
+           // Since we don't have logout in props, just let global interceptor or user session handle it.
+        }
+      }
+    });
+
+    onSaved(); // Close immediately for optimistic UI
   };
 
   const formatTime = (d: Date) => {
@@ -369,7 +373,7 @@ export function SleepQuickForm({
           );
         })}
       </View>
-      <SaveButton label="Log Sleep" onPress={handleSave} isLoading={isSubmitting} color="#46516B" />
+      <SaveButton label="Log Sleep" onPress={handleSave} isLoading={logSleepMutation.isPending} color="#46516B" />
     </View>
   );
 }

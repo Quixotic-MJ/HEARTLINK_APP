@@ -57,6 +57,21 @@
     /* #8A1F1A - garnet (Critical) */
     --color-health-risk-track: 251 234 233;
     /* #FBEAE9 */
+
+    /* New Clean Aesthetic Tokens */
+    --color-surface-background: 237 238 242;
+    /* #EDEEF2 - visibly grey */
+    --color-surface-card: 255 255 255;
+    /* #FFFFFF - pure white */
+    
+    --color-category-blue: 56 189 248;
+    /* #38BDF8 - sky-400 */
+    --color-category-orange: 251 146 60;
+    /* #FB923C - orange-400 */
+    --color-category-purple: 129 140 248;
+    /* #818CF8 - indigo-400 */
+    --color-category-pink: 251 113 133;
+    /* #FB7185 - rose-400 */
   }
 
   .dark {
@@ -112,5 +127,20 @@
     /* #D15C4E */
     --color-health-risk-track: 58 26 22;
     /* #3A1A16 */
+
+    /* New Clean Aesthetic Tokens (Dark Mode) */
+    --color-surface-background: 15 23 42;
+    /* #0F172A - slate-900 */
+    --color-surface-card: 30 41 59;
+    /* #1E293B - slate-800 */
+    
+    --color-category-blue: 14 165 233;
+    /* #0EA5E9 - sky-500 */
+    --color-category-orange: 249 115 22;
+    /* #F97316 - orange-500 */
+    --color-category-purple: 99 102 241;
+    /* #6366F1 - indigo-500 */
+    --color-category-pink: 244 63 94;
+    /* #F43F5E - rose-500 */
   }
 }

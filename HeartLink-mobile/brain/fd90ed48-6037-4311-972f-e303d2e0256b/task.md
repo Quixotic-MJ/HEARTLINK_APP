@@ -1,0 +1,9 @@
+- [x] Delete `components/ui/TactileCard.tsx`
+- [x] Modify `components/ui/ScreenWrapper.tsx` default background colors
+- [x] Apply `bg-surface-background` to `dashboard.tsx` container
+- [x] Apply `bg-surface-card` and `rounded-3xl p-5` to widgets on `dashboard.tsx` (like `ScoreRing` wrapper, `StatCard`, etc)
+- [x] Update `MissionList.tsx` cards to match the new `bg-surface-card rounded-3xl p-5` style without harsh borders
+- [x] Update `MissionList.tsx` buttons to the solid colored circle styles
+- [x] Update `MissionList.tsx` icon wrappers to the circular badge style
+- [ ] Verify `ScoreRing` remains untouchedableOpacity` and inherit defaults
+- [x] Review and flatten `components/dashboard/RecommendationCard.tsx` and other dashboard components

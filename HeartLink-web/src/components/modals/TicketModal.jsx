@@ -119,25 +119,25 @@ const TicketModal = ({ isOpen, onClose, ticket, onUpdate, onArchive }) => {
       />
 
       {/* Modal Panel */}
-      <div className="relative w-full max-w-lg bg-[#FFFFFF] max-h-full rounded-2xl shadow-2xl border border-[#DCE3DF] flex flex-col animate-in fade-in zoom-in-95 duration-200 overflow-hidden text-[#152131]">
+      <div className="relative w-full max-w-lg bg-[#FFFFFF] max-h-full rounded-2xl shadow-2xl border border-[#E2E8F0] flex flex-col animate-in fade-in zoom-in-95 duration-200 overflow-hidden text-[#0F172A]">
         
         {/* Custom Confirmation Overlays */}
         {showDiscardConfirm && (
           <div className="absolute inset-0 z-20 flex items-center justify-center p-6 bg-black/60 backdrop-blur-xs">
-            <div className="bg-[#FFFFFF] rounded-2xl p-5 max-w-sm shadow-2xl border border-[#DCE3DF] flex flex-col text-left">
+            <div className="bg-[#FFFFFF] rounded-2xl p-5 max-w-sm shadow-2xl border border-[#E2E8F0] flex flex-col text-left">
               <h4 
-                className="text-[16px] font-medium text-[#152131] mb-1.5"
+                className="text-[16px] font-medium text-[#0F172A] mb-1.5"
                 style={{ fontFamily: "'Fraunces', serif" }}
               >
                 Discard unsaved changes?
               </h4>
-              <p className="text-[12px] text-[#5C6B66] mb-5 leading-relaxed">
+              <p className="text-[12px] text-[#64748B] mb-5 leading-relaxed">
                 You have unsaved changes in your notes or status. Are you sure you want to discard them?
               </p>
               <div className="flex justify-end gap-2">
                 <button
                   onClick={() => setShowDiscardConfirm(false)}
-                  className="px-3.5 py-1.5 text-[12px] font-semibold text-[#152131] bg-[#EDF1EF] hover:bg-[#DCE3DF] border border-[#DCE3DF] rounded-[8px] transition-colors cursor-pointer"
+                  className="px-3.5 py-1.5 text-[12px] font-semibold text-[#0F172A] bg-[#F8FAFC] hover:bg-[#E2E8F0] border border-[#E2E8F0] rounded-[8px] transition-colors cursor-pointer"
                 >
                   Keep Editing
                 </button>
@@ -157,26 +157,26 @@ const TicketModal = ({ isOpen, onClose, ticket, onUpdate, onArchive }) => {
 
         {showArchiveConfirm && (
           <div className="absolute inset-0 z-20 flex items-center justify-center p-6 bg-black/60 backdrop-blur-xs">
-            <div className="bg-[#FFFFFF] rounded-2xl p-5 max-w-sm shadow-2xl border border-[#DCE3DF] flex flex-col text-left">
+            <div className="bg-[#FFFFFF] rounded-2xl p-5 max-w-sm shadow-2xl border border-[#E2E8F0] flex flex-col text-left">
               <h4 
-                className="text-[16px] font-medium text-[#152131] mb-1.5"
+                className="text-[16px] font-medium text-[#0F172A] mb-1.5"
                 style={{ fontFamily: "'Fraunces', serif" }}
               >
                 Archive this feedback ticket?
               </h4>
-              <p className="text-[12px] text-[#5C6B66] mb-5 leading-relaxed">
+              <p className="text-[12px] text-[#64748B] mb-5 leading-relaxed">
                 Archived tickets remain accessible and can be restored at any time.
               </p>
               <div className="flex justify-end gap-2">
                 <button
                   onClick={() => setShowArchiveConfirm(false)}
-                  className="px-3.5 py-1.5 text-[12px] font-semibold text-[#152131] bg-[#EDF1EF] hover:bg-[#DCE3DF] border border-[#DCE3DF] rounded-[8px] transition-colors cursor-pointer"
+                  className="px-3.5 py-1.5 text-[12px] font-semibold text-[#0F172A] bg-[#F8FAFC] hover:bg-[#E2E8F0] border border-[#E2E8F0] rounded-[8px] transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleArchiveConfirmAction}
-                  className="px-3.5 py-1.5 text-[12px] font-semibold bg-[#E8532E] text-white rounded-[8px] hover:bg-[#C13E20] shadow-2xs transition-colors cursor-pointer"
+                  className="px-3.5 py-1.5 text-[12px] font-semibold bg-[#2E9AE8] text-white rounded-[8px] hover:bg-[#1C7AC8] shadow-2xs transition-colors cursor-pointer"
                 >
                   Archive Ticket
                 </button>
@@ -187,20 +187,20 @@ const TicketModal = ({ isOpen, onClose, ticket, onUpdate, onArchive }) => {
 
         {conflictError && (
           <div className="absolute inset-0 z-20 flex items-center justify-center p-6 bg-black/60 backdrop-blur-xs">
-            <div className="bg-[#FFFFFF] rounded-2xl p-5 max-w-sm shadow-2xl border border-[#DCE3DF] flex flex-col text-left">
+            <div className="bg-[#FFFFFF] rounded-2xl p-5 max-w-sm shadow-2xl border border-[#E2E8F0] flex flex-col text-left">
               <h4 
                 className="text-[16px] font-medium text-[#A93226] mb-1.5 flex items-center gap-1.5"
                 style={{ fontFamily: "'Fraunces', serif" }}
               >
                 <AlertCircle size={16} /> Conflict Detected
               </h4>
-              <p className="text-[12px] text-[#5C6B66] mb-5 leading-relaxed">
+              <p className="text-[12px] text-[#64748B] mb-5 leading-relaxed">
                 This ticket was updated by another administrator. Reload the latest version before saving.
               </p>
               <div className="flex justify-end gap-2">
                 <button
                   onClick={() => setConflictError(false)}
-                  className="px-3.5 py-1.5 text-[12px] font-semibold text-[#152131] bg-[#EDF1EF] hover:bg-[#DCE3DF] border border-[#DCE3DF] rounded-[8px] transition-colors cursor-pointer"
+                  className="px-3.5 py-1.5 text-[12px] font-semibold text-[#0F172A] bg-[#F8FAFC] hover:bg-[#E2E8F0] border border-[#E2E8F0] rounded-[8px] transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -214,7 +214,7 @@ const TicketModal = ({ isOpen, onClose, ticket, onUpdate, onArchive }) => {
                     }
                     setConflictError(false);
                   }}
-                  className="px-3.5 py-1.5 text-[12px] font-semibold bg-[#E8532E] text-white rounded-[8px] hover:bg-[#C13E20] shadow-2xs transition-colors cursor-pointer"
+                  className="px-3.5 py-1.5 text-[12px] font-semibold bg-[#2E9AE8] text-white rounded-[8px] hover:bg-[#1C7AC8] shadow-2xs transition-colors cursor-pointer"
                 >
                   Reload Latest
                 </button>
@@ -224,21 +224,21 @@ const TicketModal = ({ isOpen, onClose, ticket, onUpdate, onArchive }) => {
         )}
 
         {/* Modal Header */}
-        <div className="flex items-center justify-between px-6 py-4.5 border-b border-[#DCE3DF] bg-[#FFFFFF] z-10">
+        <div className="flex items-center justify-between px-6 py-4.5 border-b border-[#E2E8F0] bg-[#FFFFFF] z-10">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-[8px] bg-[#FBEAE6] flex items-center justify-center text-[#E8532E] border border-[#F5C7BD] shadow-2xs shrink-0">
+            <div className="w-10 h-10 rounded-[8px] bg-[#EAF5FC] flex items-center justify-center text-[#2E9AE8] border border-[#CDE1F4] shadow-2xs shrink-0">
               <MessageSquare size={16} />
             </div>
             <div>
               <h3 
-                className="text-[17px] font-medium text-[#152131] flex items-center gap-2 font-mono tracking-tight"
+                className="text-[17px] font-medium text-[#0F172A] flex items-center gap-2 font-mono tracking-tight"
                 style={{ fontFamily: "'Fraunces', serif" }}
               >
                 {ticket.ticketId}
               </h3>
               <div className="mt-0.5 flex items-center gap-2">
                 <FeedbackCategoryBadge category={ticket.category} />
-                <span className="text-[11px] text-[#8B9893] font-medium flex items-center gap-1">
+                <span className="text-[11px] text-[#94A3B8] font-medium flex items-center gap-1">
                   <Clock size={10} /> {ticket.date}
                 </span>
               </div>
@@ -246,7 +246,7 @@ const TicketModal = ({ isOpen, onClose, ticket, onUpdate, onArchive }) => {
           </div>
           <button
             onClick={handleCloseAttempt}
-            className="text-[#5C6B66] hover:text-[#152131] p-1.5 rounded-lg hover:bg-[#EDF1EF] transition-colors cursor-pointer"
+            className="text-[#64748B] hover:text-[#0F172A] p-1.5 rounded-lg hover:bg-[#F8FAFC] transition-colors cursor-pointer"
           >
             <X size={16} />
           </button>
@@ -255,16 +255,16 @@ const TicketModal = ({ isOpen, onClose, ticket, onUpdate, onArchive }) => {
         {/* Modal Scrollable Content */}
         <div className="flex-1 overflow-y-auto p-6 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden space-y-4.5">
           {/* Account ID Context */}
-          <div className="flex items-center justify-between bg-[#EDF1EF]/60 p-3.5 rounded-[8px] border border-[#DCE3DF]">
+          <div className="flex items-center justify-between bg-[#F8FAFC]/60 p-3.5 rounded-[8px] border border-[#E2E8F0]">
             <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-full flex items-center justify-center bg-[#FBEAE6] text-[#E8532E] border border-[#F5C7BD]">
+              <div className="w-7 h-7 rounded-full flex items-center justify-center bg-[#EAF5FC] text-[#2E9AE8] border border-[#CDE1F4]">
                 <User size={12} />
               </div>
               <div>
-                <p className="text-[10px] font-semibold text-[#8B9893] uppercase tracking-wider">
+                <p className="text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wider">
                   Account Reference ID
                 </p>
-                <p className="text-[12.5px] font-bold text-[#152131] font-mono leading-tight">
+                <p className="text-[12.5px] font-bold text-[#0F172A] font-mono leading-tight">
                   {ticket.userId || "N/A"}
                 </p>
               </div>
@@ -273,11 +273,11 @@ const TicketModal = ({ isOpen, onClose, ticket, onUpdate, onArchive }) => {
           
           {/* Full Issue Description */}
           <div>
-            <h4 className="text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-wider border-b border-[#DCE3DF] pb-1.5 mb-2 flex items-center gap-1.5">
-              <MessageSquare size={12} className="text-[#E8532E]" /> User message
+            <h4 className="text-[10.5px] font-semibold text-[#94A3B8] uppercase tracking-wider border-b border-[#E2E8F0] pb-1.5 mb-2 flex items-center gap-1.5">
+              <MessageSquare size={12} className="text-[#2E9AE8]" /> User message
             </h4>
-            <div className="bg-[#EDF1EF]/50 rounded-[8px] border border-[#DCE3DF] p-3.5">
-              <p className="text-[12.5px] text-[#152131] leading-relaxed whitespace-pre-wrap font-medium">
+            <div className="bg-[#F8FAFC]/50 rounded-[8px] border border-[#E2E8F0] p-3.5">
+              <p className="text-[12.5px] text-[#0F172A] leading-relaxed whitespace-pre-wrap font-medium">
                 "{ticket.fullMessage}"
               </p>
             </div>
@@ -285,31 +285,31 @@ const TicketModal = ({ isOpen, onClose, ticket, onUpdate, onArchive }) => {
 
           {/* Device Metadata */}
           <div>
-            <h4 className="text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-wider border-b border-[#DCE3DF] pb-1.5 mb-2 flex items-center gap-1.5">
+            <h4 className="text-[10.5px] font-semibold text-[#94A3B8] uppercase tracking-wider border-b border-[#E2E8F0] pb-1.5 mb-2 flex items-center gap-1.5">
               <Smartphone size={12} className="text-[#1B6E63]" /> Device metadata
             </h4>
-            <div className="bg-[#FFFFFF] p-3.5 rounded-[8px] border border-[#DCE3DF] grid grid-cols-2 gap-3 text-[12px]">
+            <div className="bg-[#FFFFFF] p-3.5 rounded-[8px] border border-[#E2E8F0] grid grid-cols-2 gap-3 text-[12px]">
               <div>
-                <p className="text-[10px] font-semibold text-[#8B9893] uppercase tracking-wider mb-0.5">
+                <p className="text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wider mb-0.5">
                   Operating System
                 </p>
-                <p className="font-bold text-[#152131]">
+                <p className="font-bold text-[#0F172A]">
                   {ticket.deviceMeta?.os || "N/A"}
                 </p>
               </div>
               <div>
-                <p className="text-[10px] font-semibold text-[#8B9893] uppercase tracking-wider mb-0.5">
+                <p className="text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wider mb-0.5">
                   App Version
                 </p>
-                <p className="font-bold text-[#152131] font-mono">
+                <p className="font-bold text-[#0F172A] font-mono">
                   {ticket.deviceMeta?.appVersion || "N/A"}
                 </p>
               </div>
-              <div className="col-span-2 pt-2 border-t border-[#DCE3DF]">
-                <p className="text-[10px] font-semibold text-[#8B9893] uppercase tracking-wider mb-0.5">
+              <div className="col-span-2 pt-2 border-t border-[#E2E8F0]">
+                <p className="text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wider mb-0.5">
                   Device Model
                 </p>
-                <p className="font-bold text-[#152131]">
+                <p className="font-bold text-[#0F172A]">
                   {ticket.deviceMeta?.model || "N/A"}
                 </p>
               </div>
@@ -318,33 +318,33 @@ const TicketModal = ({ isOpen, onClose, ticket, onUpdate, onArchive }) => {
 
           {/* Admin Resolution Area */}
           <div>
-            <h4 className="text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-wider border-b border-[#DCE3DF] pb-1.5 mb-2 flex items-center gap-1.5">
+            <h4 className="text-[10.5px] font-semibold text-[#94A3B8] uppercase tracking-wider border-b border-[#E2E8F0] pb-1.5 mb-2 flex items-center gap-1.5">
               <Save size={12} className="text-[#1B6E63]" /> Resolution logging
             </h4>
 
             <div className="space-y-3">
               <div>
-                <label className="block text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-wider mb-1">
+                <label className="block text-[10.5px] font-semibold text-[#94A3B8] uppercase tracking-wider mb-1">
                   Admin / Developer Notes
                 </label>
                 <textarea
                   rows="3"
                   value={adminNotes}
                   onChange={(e) => setAdminNotes(e.target.value)}
-                  className="w-full px-3.5 py-2 text-[12.5px] bg-[#EDF1EF] border border-[#DCE3DF] text-[#152131] rounded-[8px] focus:outline-none focus:border-[#152131] transition-colors resize-none leading-relaxed placeholder:text-[#8B9893]"
+                  className="w-full px-3.5 py-2 text-[12.5px] bg-[#F8FAFC] border border-[#E2E8F0] text-[#0F172A] rounded-[8px] focus:outline-none focus:border-[#0F172A] transition-colors resize-none leading-relaxed placeholder:text-[#94A3B8]"
                   placeholder="Log root cause of issue or specific fixes deployed…"
                 />
               </div>
 
               {!isArchived ? (
                 <div>
-                  <label className="block text-[10.5px] font-semibold text-[#8B9893] uppercase tracking-wider mb-1">
+                  <label className="block text-[10.5px] font-semibold text-[#94A3B8] uppercase tracking-wider mb-1">
                     Ticket Status
                   </label>
                   <select
                     value={ticketStatus}
                     onChange={(e) => setTicketStatus(e.target.value)}
-                    className="w-full px-3 py-2 text-[12.5px] font-semibold bg-[#EDF1EF] border border-[#DCE3DF] text-[#152131] rounded-[8px] focus:outline-none focus:border-[#152131] transition-colors cursor-pointer"
+                    className="w-full px-3 py-2 text-[12.5px] font-semibold bg-[#F8FAFC] border border-[#E2E8F0] text-[#0F172A] rounded-[8px] focus:outline-none focus:border-[#0F172A] transition-colors cursor-pointer"
                   >
                     <option value="Open">Open</option>
                     <option value="In Progress">In Progress</option>
@@ -353,14 +353,14 @@ const TicketModal = ({ isOpen, onClose, ticket, onUpdate, onArchive }) => {
                   </select>
                 </div>
               ) : (
-                <div className="p-3 bg-[#EDF1EF]/60 rounded-[8px] border border-[#DCE3DF] flex items-center justify-between">
+                <div className="p-3 bg-[#F8FAFC]/60 rounded-[8px] border border-[#E2E8F0] flex items-center justify-between">
                   <div>
-                    <p className="text-[10px] font-semibold text-[#8B9893] uppercase tracking-wider mb-0.5">
+                    <p className="text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wider mb-0.5">
                       Current Status
                     </p>
-                    <p className="text-[12px] font-bold text-[#5C6B66] uppercase">Archived</p>
+                    <p className="text-[12px] font-bold text-[#64748B] uppercase">Archived</p>
                   </div>
-                  <span className="text-[11px] text-[#5C6B66] italic font-medium">
+                  <span className="text-[11px] text-[#64748B] italic font-medium">
                     Restoring returns ticket to Open
                   </span>
                 </div>
@@ -370,11 +370,11 @@ const TicketModal = ({ isOpen, onClose, ticket, onUpdate, onArchive }) => {
         </div>
 
         {/* Modal Footer / Actions */}
-        <div className="px-6 py-4 border-t border-[#DCE3DF] bg-[#FFFFFF] flex justify-between items-center shrink-0">
+        <div className="px-6 py-4 border-t border-[#E2E8F0] bg-[#FFFFFF] flex justify-between items-center shrink-0">
           {!isArchived ? (
             <button
               onClick={handleArchiveClick}
-              className="flex items-center gap-1.5 px-3.5 py-2 text-[12px] font-semibold text-[#5C6B66] hover:text-[#152131] bg-[#EDF1EF] border border-[#DCE3DF] hover:bg-[#DCE3DF] rounded-[8px] transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 px-3.5 py-2 text-[12px] font-semibold text-[#64748B] hover:text-[#0F172A] bg-[#F8FAFC] border border-[#E2E8F0] hover:bg-[#E2E8F0] rounded-[8px] transition-colors cursor-pointer"
               title="Archive submission"
             >
               <Archive size={13} /> <span>Archive</span>
@@ -392,14 +392,14 @@ const TicketModal = ({ isOpen, onClose, ticket, onUpdate, onArchive }) => {
           <div className="flex items-center gap-2">
             <button
               onClick={handleCloseAttempt}
-              className="px-3.5 py-2 text-[12px] font-semibold text-[#152131] bg-[#EDF1EF] hover:bg-[#DCE3DF] border border-[#DCE3DF] rounded-[8px] transition-colors cursor-pointer"
+              className="px-3.5 py-2 text-[12px] font-semibold text-[#0F172A] bg-[#F8FAFC] hover:bg-[#E2E8F0] border border-[#E2E8F0] rounded-[8px] transition-colors cursor-pointer"
             >
               Cancel
             </button>
             {!isArchived && (
               <button
                 onClick={handleSave}
-                className="flex items-center gap-1.5 px-4 py-2 text-[12px] font-semibold text-white rounded-[8px] shadow-2xs bg-[#E8532E] hover:bg-[#C13E20] transition-colors cursor-pointer"
+                className="flex items-center gap-1.5 px-4 py-2 text-[12px] font-semibold text-white rounded-[8px] shadow-2xs bg-[#2E9AE8] hover:bg-[#1C7AC8] transition-colors cursor-pointer"
               >
                 <Save size={13} /> <span>Update ticket</span>
               </button>

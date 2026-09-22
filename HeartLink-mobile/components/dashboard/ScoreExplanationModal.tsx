@@ -18,6 +18,7 @@ interface ScoreExplanationModalProps {
   score: number;
   tierLabel: string;
   hasLoggedData: boolean;
+  factors?: any; // Dynamic HSS factors from backend
   onClose: () => void;
   onNavigateToLogging: () => void;
 }
@@ -27,6 +28,7 @@ export function ScoreExplanationModal({
   score,
   tierLabel,
   hasLoggedData,
+  factors,
   onClose,
   onNavigateToLogging,
 }: ScoreExplanationModalProps) {
@@ -185,6 +187,12 @@ export function ScoreExplanationModal({
 
   const tierInfo = getTierInfo(tierLabel);
 
+  // Helper to format points with + or -
+  const formatPoints = (pts: number) => {
+    if (!pts || pts === 0) return "+0";
+    return pts > 0 ? `+${pts}` : `${pts}`;
+  };
+
   return (
     <Modal
       visible={visible}
@@ -271,27 +279,8 @@ export function ScoreExplanationModal({
           >
             <Animated.View style={{ opacity: contentOpacity, transform: [{ translateY: contentShift }] }}>
 
-              {/* 1. WHAT THIS NUMBER MEANS (Intro Card) */}
-              <View className="bg-slate-50 dark:bg-slate-800/50 rounded-3xl p-5 border border-slate-100 dark:border-slate-700/50 mb-6">
-                <View className="flex-row items-center gap-2 mb-2.5">
-                  <View className="w-6 h-6 rounded-full bg-emerald-500/10 items-center justify-center">
-                    <Feather name="info" size={13} color={isDark ? "#34d399" : "#10b981"} />
-                  </View>
-                  <Text className="text-[12px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">
-                    What this means
-                  </Text>
-                </View>
-                <Text className="text-[14px] text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
-                  Think of this like a <Text className="font-bold text-slate-900 dark:text-white">report card for your heart</Text>. It started from your health baseline questionnaire, and stays up to date as you log your blood pressure, meals, daily movement, and sleep.
-                </Text>
-              </View>
-
-              {/* 2. CURRENT STATUS (Dynamic Hero Card) */}
+              {/* 1. CURRENT STATUS (Dynamic Hero Card) */}
               <View className="mb-6">
-                <Text className="text-[12px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3 ml-1">
-                  How you're doing today
-                </Text>
-
                 {score > 0 ? (
                   <LinearGradient
                     colors={tierInfo.gradient}
@@ -381,51 +370,73 @@ export function ScoreExplanationModal({
                 )}
               </View>
 
-              {/* 3. HOW TO GET A BETTER SCORE (4 Habit Cards Grid) */}
+              {/* 2. DYNAMIC SCORE BREAKDOWN */}
               <View className="mb-2">
                 <Text className="text-[12px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3 ml-1">
-                  What moves your score
+                  What moved your score today
                 </Text>
 
-                {/* 2x2 Grid of Habits */}
-                <View className="flex-row gap-3 mb-3">
-                  {/* Salt */}
-                  <View className="flex-1 bg-slate-50 dark:bg-slate-800/50 rounded-3xl p-4 border border-slate-100 dark:border-slate-700/50">
-                    <View className="w-10 h-10 rounded-xl bg-amber-500/10 items-center justify-center mb-3">
-                      <MaterialCommunityIcons name="shaker-outline" size={20} color="#f59e0b" />
-                    </View>
-                    <Text className="text-[14px] font-bold text-slate-900 dark:text-white mb-1 tracking-tight">Eat Less Salt</Text>
-                    <Text className="text-[12px] text-slate-500 dark:text-slate-400 leading-snug font-medium">Keep salty chips, fast food & sauces low</Text>
-                  </View>
+                <View className="bg-slate-50 dark:bg-slate-800/50 rounded-3xl border border-slate-100 dark:border-slate-700/50 overflow-hidden mb-4">
+                  {factors ? (
+                    <>
+                      {/* Base & Total Header */}
+                      <View className="flex-row items-center justify-between p-4 bg-slate-100/50 dark:bg-slate-800 border-b border-slate-200/60 dark:border-slate-700">
+                        <Text className="text-[14px] font-bold text-slate-700 dark:text-slate-300">Base Score</Text>
+                        <Text className="text-[14px] font-bold text-slate-900 dark:text-white">{factors.base_score || 0}</Text>
+                      </View>
 
-                  {/* BP */}
-                  <View className="flex-1 bg-slate-50 dark:bg-slate-800/50 rounded-3xl p-4 border border-slate-100 dark:border-slate-700/50">
-                    <View className="w-10 h-10 rounded-xl bg-rose-500/10 items-center justify-center mb-3">
-                      <Feather name="heart" size={18} color="#ef4444" />
-                    </View>
-                    <Text className="text-[14px] font-bold text-slate-900 dark:text-white mb-1 tracking-tight">Daily BP</Text>
-                    <Text className="text-[12px] text-slate-500 dark:text-slate-400 leading-snug font-medium">Keeps your baseline score accurate</Text>
-                  </View>
-                </View>
+                      <View className="px-4 py-2">
+                        {/* Breakdown rows */}
+                        {[
+                          { label: "Meals (Sodium, Fat, Fiber)", val: factors.meal_points, icon: "silverware-fork-knife", type: "material", color: "#f59e0b" },
+                          { label: "Exercise & Movement", val: factors.exercise_points, icon: "activity", type: "feather", color: "#10b981" },
+                          { label: "Sleep (7-9 hrs)", val: factors.sleep_points, icon: "moon", type: "feather", color: "#6366f1" },
+                          { label: "Medication Taken", val: factors.medication_points, icon: "pill", type: "material", color: "#8b5cf6" },
+                          { label: "Blood Sugar Range", val: factors.blood_sugar_points, icon: "water", type: "material", color: "#ef4444" },
+                          { label: "Weight Stability", val: factors.weight_gain_points, icon: "scale", type: "material", color: "#f43f5e" },
+                          { label: "Symptoms", val: factors.symptom_points, icon: "alert-circle", type: "feather", color: "#e11d48" },
+                          { label: "Consistency Streak", val: factors.streak_points, icon: "zap", type: "feather", color: "#f59e0b" },
+                          { label: "Data Staleness", val: factors.staleness_penalty, icon: "clock", type: "feather", color: "#64748b" },
+                        ].map((item, idx) => {
+                          if (item.val === undefined || item.val === 0) return null;
+                          const isPositive = item.val > 0;
+                          return (
+                            <View key={idx} className="flex-row items-center justify-between py-2.5">
+                              <View className="flex-row items-center gap-2">
+                                <View className="w-7 h-7 rounded-full items-center justify-center" style={{ backgroundColor: `${item.color}20` }}>
+                                  {item.type === "feather" ? (
+                                    <Feather name={item.icon as any} size={14} color={item.color} />
+                                  ) : (
+                                    <MaterialCommunityIcons name={item.icon as any} size={14} color={item.color} />
+                                  )}
+                                </View>
+                                <Text className="text-[13px] font-medium text-slate-700 dark:text-slate-300">
+                                  {item.label}
+                                </Text>
+                              </View>
+                              <Text className={`text-[14px] font-bold ${isPositive ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
+                                {formatPoints(item.val)}
+                              </Text>
+                            </View>
+                          );
+                        })}
+                      </View>
 
-                <View className="flex-row gap-3 mb-4">
-                  {/* Walk */}
-                  <View className="flex-1 bg-slate-50 dark:bg-slate-800/50 rounded-3xl p-4 border border-slate-100 dark:border-slate-700/50">
-                    <View className="w-10 h-10 rounded-xl bg-emerald-500/10 items-center justify-center mb-3">
-                      <Feather name="activity" size={18} color="#10b981" />
+                      {/* Total adjustments footer */}
+                      <View className="flex-row items-center justify-between p-4 bg-slate-100/50 dark:bg-slate-800 border-t border-slate-200/60 dark:border-slate-700">
+                        <Text className="text-[13px] font-bold text-slate-700 dark:text-slate-300">Net Adjustments (Capped)</Text>
+                        <Text className="text-[15px] font-black text-slate-900 dark:text-white">
+                          {formatPoints(factors.total_lifestyle_adjustment || 0)}
+                        </Text>
+                      </View>
+                    </>
+                  ) : (
+                    <View className="p-6 items-center">
+                      <Text className="text-[14px] text-slate-500 dark:text-slate-400 font-medium text-center">
+                        Log your meals, exercise, and vitals today to see your score adjustments here.
+                      </Text>
                     </View>
-                    <Text className="text-[14px] font-bold text-slate-900 dark:text-white mb-1 tracking-tight">Daily Walk</Text>
-                    <Text className="text-[12px] text-slate-500 dark:text-slate-400 leading-snug font-medium">A 15–20 min stroll keeps blood flowing</Text>
-                  </View>
-
-                  {/* Sleep */}
-                  <View className="flex-1 bg-slate-50 dark:bg-slate-800/50 rounded-3xl p-4 border border-slate-100 dark:border-slate-700/50">
-                    <View className="w-10 h-10 rounded-xl bg-indigo-500/10 items-center justify-center mb-3">
-                      <Feather name="moon" size={18} color="#6366f1" />
-                    </View>
-                    <Text className="text-[14px] font-bold text-slate-900 dark:text-white mb-1 tracking-tight">Good Sleep</Text>
-                    <Text className="text-[12px] text-slate-500 dark:text-slate-400 leading-snug font-medium">7–8 hours lets your heart recharge</Text>
-                  </View>
+                  )}
                 </View>
 
                 {/* Helpful Takeaway Pill */}
@@ -444,3 +455,4 @@ export function ScoreExplanationModal({
     </Modal>
   );
 }
+

@@ -93,7 +93,7 @@ def add_health_log(user_id: str, data: Dict[str, Any], current_user: dict = Depe
             from app.services.hss_service import compute_vitals_hss
             from app.db.repositories import get_hss_repo, get_health_logs_repo
 
-            score, tier, risk_prob = compute_vitals_hss(int(sys_bp), int(dia_bp), int(hr) if hr else None)
+            score, tier, risk_prob = compute_vitals_hss(int(sys_bp), int(dia_bp), int(hr) if hr else None, data.get("context"))
             get_hss_repo().create_hss_record(user_id, {
                 "score": score,
                 "tier": tier,

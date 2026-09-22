@@ -14,10 +14,12 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
 import { useColorScheme } from "nativewind";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useUser } from "../../../contexts/UserContext";
 import { Header } from "../../../components/Header";
+import { ScreenWrapper } from "../../../components/ui/ScreenWrapper";
 import { Skeleton } from "../../../components/ui/Skeleton";
 import { EmptyState } from "../../../components/ui/EmptyState";
 import Reanimated, { FadeInDown } from "react-native-reanimated";
@@ -154,8 +156,7 @@ function RecipeCard({
   const diffCfg = DIFFICULTY_CONFIG[recipe.difficulty];
 
   return (
-    <TouchableOpacity
-      activeOpacity={0.92}
+    <TouchableOpacity activeOpacity={0.8}
       onPress={onPress}
       className="rounded-2xl overflow-hidden mb-3.5"
       style={{
@@ -165,12 +166,12 @@ function RecipeCard({
         ...Platform.select({
           ios: {
             shadowColor: "#000",
-            shadowOffset: { width: 0, height: 4 },
-            shadowRadius: 16,
-            shadowOpacity: 0.08,
+            shadowOffset: { width: 0, height: 1 },
+            shadowRadius: 3,
+            shadowOpacity: 0.05,
           },
           android: {
-            elevation: 4,
+            elevation: 2,
           },
         }),
       }}
@@ -294,7 +295,7 @@ function FilterChip({
   onPress: () => void;
 }) {
   return (
-    <TouchableOpacity
+    <TouchableOpacity activeOpacity={0.8}
       onPress={onPress}
       activeOpacity={0.75}
       className="min-h-[38px] rounded-full flex-row items-center justify-center"
@@ -337,15 +338,10 @@ export default function RecipesScreen({
   const isDark = colorScheme === "dark";
   const router = useRouter();
   const { user, userId, token } = useUser();
+  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState("All");
-  const [savedRecipes, setSavedRecipes] = useState<string[]>([]);
   const [timeMessage, setTimeMessage] = useState<string | null>(null);
-  
-  const [recipesList, setRecipesList] = useState<Recipe[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [isOffline, setIsOffline] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
 
   // Scoped storage keys ensuring multi-user isolation on shared hardware (Role 5 / HL-ENG-03)
@@ -373,158 +369,97 @@ export default function RecipesScreen({
   const hasHypertension = user ? userConditions.includes("Hypertension") : true;
   const hasHighCholesterol = user ? (userConditions.includes("High Cholesterol") || userConditions.includes("Hyperlipidemia")) : false;
 
-  const fetchRecipes = useCallback(async (silent = false) => {
-    if (!silent) setIsLoading(true);
-    try {
+  const cachedRecipes = queryClient.getQueryData<Recipe[]>(["recipes"]);
+  const { data: recipesList = [], isLoading, isError, refetch: refetchRecipes } = useQuery({
+    queryKey: ["recipes"],
+    initialData: cachedRecipes,
+    staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
       const response = await fetch(`${base_url}/api/recipes/`);
-      if (response.ok) {
-        const data = await response.json();
-        const mapped: Recipe[] = data.map((r: any) => ({
-          id: r.id,
-          title: r.name,
-          subtitle: r.subtitle || "",
-          prepTime: r.prep_time_minutes || 0,
-          servings: r.servings || 1,
-          difficulty: r.difficulty || "Easy",
-          image: r.image_url || "https://images.unsplash.com/photo-1587486913049-53fc88980cfc?w=200&q=80",
-          tags: r.tags || [],
-          heartBenefit: r.heart_benefit || "",
-          nutrition: {
-            sodium: r.sodium_mg || 0,
-            fiber: r.fiber_g || 0,
-            saturatedFat: r.saturated_fat_g || 0,
-            calories: r.calories || 0,
-          },
-          ingredients: Array.isArray(r.ingredients)
-            ? r.ingredients.map((ing: any) => ({ qty: `${ing.amount} ${ing.unit}`.trim(), item: ing.name }))
-            : r.ingredients 
-              ? Object.keys(r.ingredients).map(k => ({ qty: r.ingredients[k], item: k })) 
-              : [],
-          steps: r.steps || [],
-        }));
-        setRecipesList(mapped);
-        setIsOffline(false);
-        await AsyncStorage.setItem(recipesCacheKey, JSON.stringify(mapped)).catch(() => {});
-      } else {
-        throw new Error("Failed to fetch recipes from API");
-      }
-    } catch (error) {
-      if (__DEV__) {
-        console.log("Network request failed, falling back to local AsyncStorage cache...", error);
-      }
-      setIsOffline(true);
-      try {
-        const cached = await AsyncStorage.getItem(recipesCacheKey);
-        if (cached) {
-          setRecipesList(JSON.parse(cached));
-        }
-      } catch (cacheErr) {
-        if (__DEV__) {
-          console.error("Failed to read recipes cache:", cacheErr);
-        }
-      }
-    } finally {
-      setIsLoading(false);
-      setRefreshing(false);
+      if (!response.ok) throw new Error("Failed to fetch recipes from API");
+      const data = await response.json();
+      const mapped: Recipe[] = data.map((r: any) => ({
+        id: r.id,
+        title: r.name,
+        subtitle: r.subtitle || "",
+        prepTime: r.prep_time_minutes || 0,
+        servings: r.servings || 1,
+        difficulty: r.difficulty || "Easy",
+        image: r.image_url || "https://images.unsplash.com/photo-1587486913049-53fc88980cfc?w=200&q=80",
+        tags: r.tags || [],
+        heartBenefit: r.heart_benefit || "",
+        nutrition: {
+          sodium: r.sodium_mg || 0,
+          fiber: r.fiber_g || 0,
+          saturatedFat: r.saturated_fat_g || 0,
+          calories: r.calories || 0,
+        },
+        ingredients: Array.isArray(r.ingredients)
+          ? r.ingredients.map((ing: any) => ({ qty: `${ing.amount} ${ing.unit}`.trim(), item: ing.name }))
+          : r.ingredients 
+            ? Object.keys(r.ingredients).map(k => ({ qty: r.ingredients[k], item: k })) 
+            : [],
+        steps: r.steps || [],
+      }));
+      AsyncStorage.setItem(recipesCacheKey, JSON.stringify(mapped)).catch(() => {});
+      return mapped;
     }
-  }, [recipesCacheKey]);
+  });
+
+  const { data: savedRecipes = [], refetch: refetchSaved } = useQuery({
+    queryKey: ["saved_recipes", userId],
+    enabled: !!userId && !!token,
+    staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      const response = await fetch(`${base_url}/api/recipes/saved/${userId}`, {
+        headers: { "Authorization": `Bearer ${token}` },
+      });
+      if (!response.ok) throw new Error("Failed to fetch saved recipes");
+      const data = await response.json();
+      if (!Array.isArray(data)) return [];
+      const remoteIds = data.map((item: any) => item.recipe_id || item.id || String(item));
+      AsyncStorage.setItem(savedRecipesKey, JSON.stringify(remoteIds)).catch(() => {});
+      return remoteIds;
+    }
+  });
+
+  const isOffline = isError;
 
   useEffect(() => {
-    // 1. Read local cache first for immediate offline rendering
-    AsyncStorage.getItem(recipesCacheKey).then((cached) => {
-      if (cached) {
-        try {
-          const parsed = JSON.parse(cached);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            setRecipesList(parsed);
-          }
-        } catch {}
-      }
-    });
-
-    // 2. Read scoped saved recipes bookmarks
-    AsyncStorage.getItem(savedRecipesKey).then((cachedSaved) => {
-      if (cachedSaved) {
-        try {
-          const parsedSaved = JSON.parse(cachedSaved);
-          if (Array.isArray(parsedSaved)) {
-            setSavedRecipes(parsedSaved);
-          }
-        } catch {}
-      }
-    });
-
-    // 3. Fetch remote recipes
-    fetchRecipes();
-
-    // 4. Fetch remote saved recipes for authenticated user
-    if (userId && token) {
-      fetch(`${base_url}/api/recipes/saved/${userId}`, {
-        headers: { "Authorization": `Bearer ${token}` },
-      })
-        .then((res) => (res.ok ? res.json() : null))
-        .then((savedData) => {
-          if (Array.isArray(savedData)) {
-            const remoteIds: string[] = savedData.map((item: any) => item.recipe_id || item.id || String(item));
-            setSavedRecipes((prev) => {
-              const pendingLocalSaves = prev.filter((id) => !remoteIds.includes(id));
-              const merged = Array.from(new Set([...prev, ...remoteIds]));
-              AsyncStorage.setItem(savedRecipesKey, JSON.stringify(merged)).catch(() => {});
-
-              // Reconcile and push offline bookmarks to backend (HL-ENG-15)
-              if (pendingLocalSaves.length > 0) {
-                pendingLocalSaves.forEach((id) => {
-                  fetch(`${base_url}/api/recipes/${id}/save/${userId}`, {
-                    method: "POST",
-                    headers: {
-                      "Authorization": `Bearer ${token}`,
-                      "Content-Type": "application/json",
-                    },
-                  }).catch(() => {});
-                });
-              }
-              return merged;
-            });
-          }
-        })
-        .catch(() => {});
+    // 1. Read local cache for immediate offline rendering before query completes
+    if (recipesList.length === 0) {
+      AsyncStorage.getItem(recipesCacheKey).then((cached) => {
+        if (cached) {
+          try {
+            const parsed = JSON.parse(cached);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              queryClient.setQueryData(["recipes"], parsed);
+            }
+          } catch {}
+        }
+      });
     }
-  }, [fetchRecipes, recipesCacheKey, savedRecipesKey, userId, token]);
 
-  const onRefresh = useCallback(() => {
+    if (savedRecipes.length === 0) {
+      AsyncStorage.getItem(savedRecipesKey).then((cachedSaved) => {
+        if (cachedSaved) {
+          try {
+            const parsedSaved = JSON.parse(cachedSaved);
+            if (Array.isArray(parsedSaved)) {
+              queryClient.setQueryData(["saved_recipes", userId], parsedSaved);
+            }
+          } catch {}
+        }
+      });
+    }
+  }, []);
+
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    fetchRecipes(true);
-    if (userId && token) {
-      fetch(`${base_url}/api/recipes/saved/${userId}`, {
-        headers: { "Authorization": `Bearer ${token}` },
-      })
-        .then((res) => (res.ok ? res.json() : null))
-        .then((savedData) => {
-          if (Array.isArray(savedData)) {
-            const remoteIds: string[] = savedData.map((item: any) => item.recipe_id || item.id || String(item));
-            setSavedRecipes((prev) => {
-              const pendingLocalSaves = prev.filter((id) => !remoteIds.includes(id));
-              const merged = Array.from(new Set([...prev, ...remoteIds]));
-              AsyncStorage.setItem(savedRecipesKey, JSON.stringify(merged)).catch(() => {});
-
-              if (pendingLocalSaves.length > 0) {
-                pendingLocalSaves.forEach((id) => {
-                  fetch(`${base_url}/api/recipes/${id}/save/${userId}`, {
-                    method: "POST",
-                    headers: {
-                      "Authorization": `Bearer ${token}`,
-                      "Content-Type": "application/json",
-                    },
-                  }).catch(() => {});
-                });
-              }
-              return merged;
-            });
-          }
-        })
-        .catch(() => {});
-    }
-  }, [fetchRecipes, savedRecipesKey, userId, token]);
+    await Promise.all([refetchRecipes(), refetchSaved()]);
+    setRefreshing(false);
+  }, [refetchRecipes, refetchSaved]);
 
   const filters = [
     { key: "All", label: "All" },
@@ -547,32 +482,48 @@ export default function RecipesScreen({
   }, [isEmbedded]);
 
   // Scoped Bookmark Handler with Bi-directional Backend Synchronization (HL-ENG-09)
-  const toggleSave = async (id: string) => {
+  const saveMutation = useMutation({
+    mutationFn: async ({ id, isSaved }: { id: string; isSaved: boolean }) => {
+      if (!userId || !token) return;
+      const response = await fetch(`${base_url}/api/recipes/${id}/save/${userId}`, {
+        method: isSaved ? "DELETE" : "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+      if (!response.ok) throw new Error("Failed to sync save");
+    },
+    onMutate: async ({ id, isSaved }) => {
+      await queryClient.cancelQueries({ queryKey: ["saved_recipes", userId] });
+      const previous = queryClient.getQueryData<string[]>(["saved_recipes", userId]);
+      const updated = isSaved ? (previous || []).filter(rId => rId !== id) : [...(previous || []), id];
+      queryClient.setQueryData(["saved_recipes", userId], updated);
+      AsyncStorage.setItem(savedRecipesKey, JSON.stringify(updated)).catch(() => {});
+      return { previous };
+    },
+    onError: (err, variables, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(["saved_recipes", userId], context.previous);
+        AsyncStorage.setItem(savedRecipesKey, JSON.stringify(context.previous)).catch(() => {});
+      }
+    },
+  });
+
+  // Prevent skeleton flashing on fast cache loads
+  const [showSkeleton, setShowSkeleton] = useState(false);
+  useEffect(() => {
+    if (isLoading && recipesList.length === 0) {
+      const timer = setTimeout(() => setShowSkeleton(true), 150);
+      return () => clearTimeout(timer);
+    } else {
+      setShowSkeleton(false);
+    }
+  }, [isLoading, recipesList.length]);
+
+  const toggleSave = (id: string) => {
     const isSaved = savedRecipes.includes(id);
-    const updated = isSaved ? savedRecipes.filter((rId) => rId !== id) : [...savedRecipes, id];
-    setSavedRecipes(updated);
-    try {
-      await AsyncStorage.setItem(savedRecipesKey, JSON.stringify(updated));
-    } catch (err) {
-      if (__DEV__) {
-        console.warn("Failed to persist saved recipes locally:", err);
-      }
-    }
-    if (userId && token) {
-      try {
-        await fetch(`${base_url}/api/recipes/${id}/save/${userId}`, {
-          method: isSaved ? "DELETE" : "POST",
-          headers: {
-            "Authorization": `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        });
-      } catch (syncErr) {
-        if (__DEV__) {
-          console.warn("Failed to sync saved recipe with backend:", syncErr);
-        }
-      }
-    }
+    saveMutation.mutate({ id, isSaved });
   };
 
   const filteredRecipes = useMemo(() => {
@@ -614,10 +565,10 @@ export default function RecipesScreen({
     }).length;
   }, [recipesList, hasHypertension, hasHighCholesterol]);
 
-  const Container = isEmbedded ? View : SafeAreaView;
-  const containerProps = isEmbedded
-    ? { className: "flex-1 bg-[#F8FAF9] dark:bg-[#0B131E]" }
-    : { className: "flex-1 bg-[#F8FAF9] dark:bg-[#0B131E]", edges: ["top"] as const };
+  const Container = isEmbedded ? View : ScreenWrapper;
+  const containerProps: any = isEmbedded
+    ? { className: "flex-1" }
+    : { edges: ["top"], withScrollView: false };
 
   return (
     <Container {...containerProps}>
@@ -843,7 +794,7 @@ export default function RecipesScreen({
 
         {/* Recipe list */}
         <View className="px-5 mt-2">
-          {isLoading && !refreshing ? (
+          {showSkeleton && !refreshing ? (
             <View className="gap-4">
               {[1, 2, 3].map((key) => (
                 <View
@@ -867,6 +818,8 @@ export default function RecipesScreen({
                 </View>
               ))}
             </View>
+          ) : isLoading ? (
+            <View /> /* Wait for skeleton delay or data */
           ) : filteredRecipes.length === 0 ? (
             <EmptyState
               icon={<Feather name="search" size={26} color="#cbd5e1" />}

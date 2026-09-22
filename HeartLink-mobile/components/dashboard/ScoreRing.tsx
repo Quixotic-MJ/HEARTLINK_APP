@@ -211,6 +211,7 @@ interface ScoreRingProps {
   diastolic?: number | null;
   bpm?: number | null;
   streakDays?: number;
+  trend?: string | null;
 }
 
 // ─── main component ───────────────────────────────────────────────────────────
@@ -225,6 +226,7 @@ export function ScoreRing({
   diastolic,
   bpm,
   streakDays = 0,
+  trend,
 }: ScoreRingProps) {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
@@ -591,7 +593,9 @@ export function ScoreRing({
                 }
               ]}
             >
-              {current.label === "SCORE" ? "Health Score" : current.unit ? `${current.label} · ${current.unit}` : current.label}
+              {current.label === "SCORE" 
+                ? `Health Score${trend && trend !== "0" && trend !== "+0" ? ` ${trend.startsWith('-') ? '↓' : '↑'} ${Math.abs(parseInt(trend))}` : ''}`
+                : current.unit ? `${current.label} · ${current.unit}` : current.label}
             </Animated.Text>
           </Reanimated.View>
         </View>

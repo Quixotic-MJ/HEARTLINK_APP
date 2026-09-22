@@ -13,18 +13,17 @@ import { StatusBar } from "expo-status-bar";
 import * as SystemUI from "expo-system-ui";
 import { NavigationBar } from "expo-navigation-bar";
 import { useRouter } from "expo-router";
-import Animated, { 
-  FadeIn, 
-  FadeInDown, 
-  useSharedValue, 
-  useAnimatedStyle, 
-  withSequence, 
-  withTiming 
+import Animated, {
+  FadeIn,
+  FadeInDown,
+  useSharedValue,
+  useAnimatedStyle,
+  withSequence,
+  withTiming
 } from "react-native-reanimated";
 import "../../global.css";
 import { useUser } from "../../contexts/UserContext";
 import { Feather } from "@expo/vector-icons";
-import HeartLogo from "../../components/ui/HeartLogo";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -73,7 +72,7 @@ export default function AuthScreen() {
   // Configure Android system bars to seamlessly match HeartLink paper background
   useEffect(() => {
     if (Platform.OS === "android") {
-      SystemUI.setBackgroundColorAsync("#EDF1EF").catch(() => {});
+      SystemUI.setBackgroundColorAsync("#EDF1EF").catch(() => { });
       NavigationBar.setStyle("light");
       RNStatusBar.setBackgroundColor("transparent");
       RNStatusBar.setTranslucent(true);
@@ -174,32 +173,9 @@ export default function AuthScreen() {
     <SafeAreaView className="flex-1 bg-[#EDF1EF]" edges={["top", "bottom"]}>
       <StatusBar style="dark" />
       <NavigationBar style="light" />
-      
+
       {/* ── Top Bar ── */}
-      <View className="px-5 pt-3 pb-2 flex-row items-center justify-between">
-        <TouchableOpacity 
-          onPress={() => {
-            if (router.canGoBack()) {
-              router.back();
-            } else {
-              router.replace("/onboarding");
-            }
-          }} 
-          className="w-10 h-10 rounded-xl bg-white border border-[#DCE3DF] items-center justify-center shadow-xs"
-          activeOpacity={0.7}
-          accessible={true}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-        >
-          <Feather name="arrow-left" size={18} color="#152131" />
-        </TouchableOpacity>
-        <View className="flex-row items-center gap-2">
-          <HeartLogo size={22} />
-          <Text className="text-base text-[#152131] font-semibold tracking-tight">
-            HeartLink
-          </Text>
-        </View>
-      </View>
+      <SimpleHeader />
 
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -226,8 +202,8 @@ export default function AuthScreen() {
           </Animated.View>
 
           {/* ── Card ── */}
-          <Animated.View 
-            entering={FadeInDown.delay(200).springify().damping(12).stiffness(90)} 
+          <Animated.View
+            entering={FadeInDown.delay(200).springify().damping(12).stiffness(90)}
             className="bg-white rounded-2xl border border-[#DCE3DF] px-5 py-6 gap-4 shadow-sm"
           >
             {/* Inputs Section */}
@@ -295,7 +271,7 @@ export default function AuthScreen() {
 
             {/* Error Message with Shake Animation */}
             {globalError && (
-              <Animated.View 
+              <Animated.View
                 style={errorAnimatedStyle}
                 className="bg-[#A93226]/10 border border-[#A93226]/30 rounded-xl p-3.5 flex-row items-center gap-2.5 my-1"
                 accessible={true}

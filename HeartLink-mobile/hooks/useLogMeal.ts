@@ -16,19 +16,40 @@ export function useLogMeal(userId: string | null | undefined, token: string | nu
     mutationFn: async (payload: MealPayload) => {
       if (!userId) throw new Error("No user ID");
       
-      const response = await fetch(`${base_url}/api/meals/${userId}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token || ""}`,
-        },
-        body: JSON.stringify(payload),
-      });
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
 
-      if (!response.ok) {
-        throw new Error("Failed to log meal to server");
+      try {
+        const response = await fetch(`${base_url}/api/meals/${userId}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token || ""}`,
+          },
+          body: JSON.stringify(payload),
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          const error: any = new Error(`Server error: ${response.status}`);
+          error.status = response.status;
+          throw error;
+        }
+        return await response.json();
+      } catch (err: any) {
+        clearTimeout(timeoutId);
+        if (err.name === 'AbortError') {
+          const error: any = new Error("Network request timed out");
+          error.isNetworkError = true;
+          throw error;
+        }
+        if (err.name === 'TypeError' || err.message?.includes('Network request failed')) {
+          err.isNetworkError = true;
+        }
+        throw err;
       }
-      return response.json();
     },
     // When mutate is called:
     onMutate: async (newMeal) => {
@@ -95,21 +116,40 @@ export function useLogMeal(userId: string | null | undefined, token: string | nu
       return { previousDashboard };
     },
     // If the mutation fails, use the context returned from onMutate to roll back
-    onError: (err, newMeal, context) => {
-      if (context?.previousDashboard) {
+    onError: (err: any, newMeal, context) => {
+      const isQueued = err.status >= 500 || err.isNetworkError;
+
+      if (!isQueued && context?.previousDashboard) {
         queryClient.setQueryData(['dashboard', userId], context.previousDashboard);
       }
-      // Note: React Query's default offline persister will catch network errors
-      // and queue them. So this onError is truly for SERVER errors (e.g. 500)
-      showToast({
-        title: "Error logging meal",
-        message: "Failed to log meal. Please try again.",
-        type: "error",
-      });
+      
+      if (isQueued) {
+        if (userId) {
+          import('../services/SyncService').then(({ queueMealForSync }) => {
+            queueMealForSync(userId, newMeal);
+          });
+        }
+        if (err.status !== 401) {
+          showToast({
+            title: "Saved offline",
+            message: "Network unstable. Your meal was saved offline.",
+            type: "info",
+          });
+        }
+      } else {
+        showToast({
+          title: "Error logging meal",
+          message: "Failed to log meal. Please try again.",
+          type: "error",
+        });
+      }
     },
     // Always refetch after error or success to make sure we're in sync
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['dashboard', userId] });
+    onSettled: (data, err: any) => {
+      const isQueued = err && (err.status >= 500 || err.isNetworkError);
+      if (!isQueued) {
+        queryClient.invalidateQueries({ queryKey: ['dashboard', userId] });
+      }
     },
   });
 }
