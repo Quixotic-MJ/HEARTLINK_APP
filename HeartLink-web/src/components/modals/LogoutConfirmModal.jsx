@@ -28,9 +28,8 @@ const LogoutConfirmModal = ({ isOpen, onClose }) => {
   };
 
   const getRolePillClass = (r) => {
-    if (r === "super_admin") return "bg-purple-100 text-purple-700 border border-purple-200";
-    if (r === "admin") return "bg-blue-100 text-blue-700 border border-blue-200";
-    if (r === "medical_expert") return "bg-emerald-100 text-emerald-700 border border-emerald-200";
+    if (r === "super_admin" || r === "admin") return "bg-[#EAF5FC] text-[#1C7AC8] border border-[#CDE1F4]";
+    if (r === "medical_expert") return "bg-[#E3EFEC] text-[#1B6E63] border border-[#C5DFD8]";
     return "bg-[#F8FAFC] text-[#64748B] border border-[#E2E8F0]";
   };
 
@@ -70,15 +69,12 @@ const LogoutConfirmModal = ({ isOpen, onClose }) => {
           <X size={16} />
         </button>
 
-        {/* Red / Garnet Icon Avatar */}
-        <div className="w-14 h-14 rounded-2xl bg-[#F7E4E1] border border-[#F0C4B8] flex items-center justify-center text-[#A93226] mx-auto mb-4">
-          <LogOut size={24} className="-ml-0.5" />
+        {/* Simple Icon Avatar */}
+        <div className="w-12 h-12 rounded-full bg-[#F1F5F9] border border-[#E2E8F0] flex items-center justify-center text-[#64748B] mx-auto mb-4">
+          <LogOut size={20} className="ml-0.5" />
         </div>
 
-        <h3 
-          className="text-xl font-medium text-[#0F172A] tracking-tight"
-          style={{ fontFamily: "'Fraunces', serif" }}
-        >
+        <h3 className="text-[17px] font-bold text-[#0F172A] tracking-tight">
           Sign Out of HeartLink
         </h3>
         <p className="text-xs text-[#64748B] mt-1.5 leading-relaxed max-w-xs mx-auto">
@@ -103,16 +99,16 @@ const LogoutConfirmModal = ({ isOpen, onClose }) => {
                 {getRoleLabel(role)}
               </span>
             </div>
-            <p className="text-[11px] text-[#64748B] truncate font-mono mt-0.5">
+            <p className="text-[11px] text-[#64748B] truncate mt-0.5">
               {user?.email || "Authenticated Staff"}
             </p>
           </div>
         </div>
 
         {/* Session Expiry Hint */}
-        <div className="flex items-center gap-2 p-2.5 rounded-lg bg-[#E3EFEC] border border-[#E2E8F0] text-[11px] text-[#1B6E63] mb-6 text-left">
-          <Lock size={12} className="shrink-0" />
-          <span>Your authentication session will be revoked upon signout.</span>
+        <div className="flex items-center gap-2 p-2.5 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] text-[11px] text-[#64748B] mb-6 text-left">
+          <Lock size={12} className="shrink-0 text-[#94A3B8]" />
+          <span>Your authentication session will be revoked upon sign out.</span>
         </div>
 
         {/* Action Buttons */}
@@ -129,7 +125,7 @@ const LogoutConfirmModal = ({ isOpen, onClose }) => {
             type="button"
             onClick={handleConfirmLogout}
             disabled={isLoggingOut}
-            className="w-1/2 py-2.5 px-4 rounded-lg bg-[#A93226] hover:bg-[#8A1F1A] text-white text-xs font-semibold shadow-sm flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-60"
+            className="w-1/2 py-2.5 px-4 rounded-lg bg-[#2E9AE8] hover:bg-[#2083C8] text-white text-xs font-semibold shadow-sm flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-60"
           >
             {isLoggingOut ? (
               <>

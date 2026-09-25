@@ -197,7 +197,7 @@ export function PageHeader({ eyebrow, eyebrowIcon: Icon, title, description, act
             {Icon && <Icon size={13} className="text-[#2E9AE8]" />} {eyebrow}
           </span>
         )}
-        <h1 className={UI.page.title} style={{ fontFamily: FONTS.serif }}>
+        <h1 className={UI.page.title}>
           {title}
         </h1>
         {description && <p className={UI.page.description}>{description}</p>}
@@ -215,7 +215,7 @@ export function KpiCard({ label, value, icon: Icon, iconBg = "bg-[#F8FAFC]", ico
     <div className={`${UI.kpi.card} ${className}`} style={{ fontFamily: FONTS.sans }}>
       <div>
         <p className={UI.kpi.label}>{label}</p>
-        <p className={`${UI.kpi.value} ${valueColor}`} style={{ fontFamily: FONTS.serif }}>
+        <p className={`${UI.kpi.value} ${valueColor}`}>
           {value}
         </p>
       </div>

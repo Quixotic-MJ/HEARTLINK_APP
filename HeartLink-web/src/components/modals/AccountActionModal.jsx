@@ -106,10 +106,7 @@ const AccountActionModal = ({ isOpen, onClose, user, onToggleStatus, canDelete, 
                 <Shield size={16} />
               </div>
               <div>
-                <h3 
-                  className="text-[16px] font-medium text-[#0F172A] leading-tight"
-                  style={{ fontFamily: "'Fraunces', serif" }}
-                >
+                <h3 className="text-[16px] font-bold text-[#0F172A] leading-tight">
                   Account Governance
                 </h3>
                 <p className="text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wider mt-0.5">
@@ -135,7 +132,7 @@ const AccountActionModal = ({ isOpen, onClose, user, onToggleStatus, canDelete, 
                 <p className="text-[15px] font-bold text-[#0F172A] truncate">
                   {user.name}
                 </p>
-                <p className="text-[11px] font-mono text-[#64748B] mt-0.5">
+                <p className="text-[11px] text-[#64748B] mt-0.5">
                   {formatUserRef(user.id)}
                 </p>
               </div>

@@ -126,10 +126,7 @@ const StaffListView = ({
             <p className="text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wider">Total Staff</p>
             <Users size={13} className="text-[#94A3B8]" />
           </div>
-          <p 
-            className="text-[26px] font-medium text-[#0F172A] leading-tight"
-            style={{ fontFamily: "'Fraunces', serif" }}
-          >
+          <p className="text-[26px] font-bold text-[#0F172A] leading-tight">
             {loading ? "…" : totalStaff}
           </p>
         </div>
@@ -139,10 +136,7 @@ const StaffListView = ({
             <p className="text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wider">System Admins</p>
             <Shield size={13} className="text-[#0F172A]" />
           </div>
-          <p 
-            className="text-[26px] font-medium text-[#0F172A] leading-tight"
-            style={{ fontFamily: "'Fraunces', serif" }}
-          >
+          <p className="text-[26px] font-bold text-[#0F172A] leading-tight">
             {loading ? "…" : admins}
           </p>
         </div>
@@ -152,10 +146,7 @@ const StaffListView = ({
             <p className="text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wider">Expert Reviewers</p>
             <Stethoscope size={13} className="text-[#1B6E63]" />
           </div>
-          <p 
-            className="text-[26px] font-medium text-[#1B6E63] leading-tight"
-            style={{ fontFamily: "'Fraunces', serif" }}
-          >
+          <p className="text-[26px] font-bold text-[#1B6E63] leading-tight">
             {loading ? "…" : experts}
           </p>
         </div>
@@ -165,10 +156,7 @@ const StaffListView = ({
             <p className="text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wider">Active Staff</p>
             <CheckCircle2 size={13} className="text-[#1B6E63]" />
           </div>
-          <p 
-            className="text-[26px] font-medium text-[#1B6E63] leading-tight"
-            style={{ fontFamily: "'Fraunces', serif" }}
-          >
+          <p className="text-[26px] font-bold text-[#1B6E63] leading-tight">
             {loading ? "…" : activeStaff}
           </p>
         </div>
@@ -297,7 +285,7 @@ const StaffListView = ({
                           <p className="text-[#0F172A] font-semibold text-[13px] group-hover:text-[#2E9AE8] transition-colors leading-tight">
                             {staff.name}
                           </p>
-                          <span className="font-mono text-[9.5px] font-semibold bg-[#F8FAFC] px-1.5 py-0.5 rounded text-[#64748B] border border-[#E2E8F0] uppercase tracking-wider">
+                          <span className="text-[9.5px] font-bold bg-[#F8FAFC] px-1.5 py-0.5 rounded text-[#64748B] border border-[#E2E8F0] uppercase tracking-wider">
                             {staff.id}
                           </span>
                         </div>

@@ -193,13 +193,10 @@ const Analytics = () => {
                     <Users size={15} />
                   </div>
                 </div>
-                <div 
-                  className="text-[24px] font-medium text-[#0F172A] tracking-tight"
-                  style={{ fontFamily: FONTS.serif }}
-                >
+                <div className="text-[24px] font-bold text-[#0F172A] tracking-tight">
                   {formatNumber(demographics?.total_signups)}
                 </div>
-                <span className="inline-block mt-2 text-[10.5px] font-bold px-2 py-0.5 rounded-[6px] bg-[#E3EFEC] text-[#1B6E63]">
+                <span className="inline-block mt-2 text-[10.5px] font-semibold px-2 py-0.5 rounded-[6px] bg-[#F8FAFC] border border-[#E2E8F0] text-[#64748B]">
                   {demographics?.signups_growth || "+12%"} from previous period
                 </span>
               </div>
@@ -212,13 +209,10 @@ const Analytics = () => {
                     <Activity size={15} />
                   </div>
                 </div>
-                <div 
-                  className="text-[24px] font-medium text-[#0F172A] tracking-tight"
-                  style={{ fontFamily: FONTS.serif }}
-                >
+                <div className="text-[24px] font-bold text-[#0F172A] tracking-tight">
                   {formatNumber(demographics?.total_records)}
                 </div>
-                <span className="inline-block mt-2 text-[10.5px] font-bold px-2 py-0.5 rounded-[6px] bg-[#E3EFEC] text-[#1B6E63]">
+                <span className="inline-block mt-2 text-[10.5px] font-semibold px-2 py-0.5 rounded-[6px] bg-[#F8FAFC] border border-[#E2E8F0] text-[#64748B]">
                   {demographics?.records_growth || "+8%"} vs last period
                 </span>
               </div>
@@ -231,13 +225,10 @@ const Analytics = () => {
                     <Archive size={15} />
                   </div>
                 </div>
-                <div 
-                  className="text-[24px] font-medium text-[#0F172A] tracking-tight"
-                  style={{ fontFamily: FONTS.serif }}
-                >
+                <div className="text-[24px] font-bold text-[#0F172A] tracking-tight">
                   {formatNumber(demographics?.archived_accounts)}
                 </div>
-                <span className="inline-block mt-2 text-[10.5px] font-bold px-2 py-0.5 rounded-[6px] bg-[#F8FAFC] text-[#64748B]">
+                <span className="inline-block mt-2 text-[10.5px] font-semibold px-2 py-0.5 rounded-[6px] bg-[#F8FAFC] border border-[#E2E8F0] text-[#64748B]">
                   {demographics?.churn_rate || "3.1%"} archiving rate
                 </span>
               </div>

@@ -203,7 +203,7 @@ const Dashboard = () => {
         </div>
 
         {/* ── PANELS: USERS NEEDING REVIEW & HSS DISTRIBUTION ── */}
-        <div className="grid grid-cols-1 xl:grid-cols-12 gap-3.5 mb-5">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5 mb-5">
           {/* Users needing review */}
           <div className="bg-[#FFFFFF] border border-[#E2E8F0] rounded-[10px] p-5 shadow-2xs flex flex-col justify-between">
             <div>
@@ -275,7 +275,7 @@ const Dashboard = () => {
               {/* Stable */}
               <div>
                 <div className="flex justify-between items-baseline mb-1.5">
-                  <span className="text-[12.5px] text-[#0F172A] font-medium">Stable (80–100)</span>
+                  <span className="text-[12.5px] text-[#0F172A] font-medium">Stable (Scores 80 to 100)</span>
                   <span className="text-[12px] font-semibold text-[#1B6E63]">
                     {formatNumber(hss_distribution?.stable?.count ?? 0)} users · {hss_distribution?.stable?.percentage ?? hss_distribution?.stable ?? 0}%
                   </span>
@@ -291,7 +291,7 @@ const Dashboard = () => {
               {/* Moderate */}
               <div>
                 <div className="flex justify-between items-baseline mb-1.5">
-                  <span className="text-[12.5px] text-[#0F172A] font-medium">Moderate (60–79)</span>
+                  <span className="text-[12.5px] text-[#0F172A] font-medium">Moderate (Scores 60 to 79)</span>
                   <span className="text-[12px] font-semibold text-[#A9741B]">
                     {formatNumber(hss_distribution?.moderate?.count ?? 0)} users · {hss_distribution?.moderate?.percentage ?? hss_distribution?.moderate ?? 0}%
                   </span>
@@ -307,7 +307,7 @@ const Dashboard = () => {
               {/* Elevated risk */}
               <div>
                 <div className="flex justify-between items-baseline mb-1.5">
-                  <span className="text-[12.5px] text-[#0F172A] font-medium">Elevated risk (50–59)</span>
+                  <span className="text-[12.5px] text-[#0F172A] font-medium">Elevated risk (Scores 50 to 59)</span>
                   <span className="text-[12px] font-semibold text-[#2E9AE8]">
                     {formatNumber(hss_distribution?.elevated_risk?.count ?? 0)} users · {hss_distribution?.elevated_risk?.percentage ?? hss_distribution?.elevated_risk ?? 0}%
                   </span>
@@ -323,7 +323,7 @@ const Dashboard = () => {
               {/* Critical */}
               <div>
                 <div className="flex justify-between items-baseline mb-1.5">
-                  <span className="text-[12.5px] text-[#0F172A] font-medium">Critical (&lt;50)</span>
+                  <span className="text-[12.5px] text-[#0F172A] font-medium">Critical (Under 50)</span>
                   <span className="text-[12px] font-semibold text-[#A93226]">
                     {formatNumber(hss_distribution?.critical?.count ?? 0)} users · {hss_distribution?.critical?.percentage ?? hss_distribution?.critical ?? 0}%
                   </span>
@@ -351,7 +351,6 @@ const Dashboard = () => {
               </span>
               <span 
                 className="text-[19px] text-[#0F172A] font-medium"
-                style={{ fontFamily: FONTS.serif }}
               >
                 {formatNumber(user_activity.meals)}
               </span>
@@ -363,7 +362,6 @@ const Dashboard = () => {
               </span>
               <span 
                 className="text-[19px] text-[#0F172A] font-medium"
-                style={{ fontFamily: FONTS.serif }}
               >
                 {formatNumber(user_activity.exercise)}
               </span>
@@ -375,7 +373,6 @@ const Dashboard = () => {
               </span>
               <span 
                 className="text-[19px] text-[#0F172A] font-medium"
-                style={{ fontFamily: FONTS.serif }}
               >
                 {formatNumber(user_activity.vitals)}
               </span>
@@ -387,7 +384,6 @@ const Dashboard = () => {
               </span>
               <span 
                 className="text-[19px] text-[#0F172A] font-medium"
-                style={{ fontFamily: FONTS.serif }}
               >
                 {formatNumber(user_activity.sleep)}
               </span>
@@ -399,7 +395,6 @@ const Dashboard = () => {
               </span>
               <span 
                 className={`text-[19px] font-medium ${Number(user_activity.symptoms) > 0 ? "text-[#A9741B]" : "text-[#0F172A]"}`}
-                style={{ fontFamily: FONTS.serif }}
               >
                 {formatNumber(user_activity.symptoms)}
               </span>
@@ -408,7 +403,7 @@ const Dashboard = () => {
         </div>
 
         {/* ── CONTENT LIBRARY & RECENT ADMIN ACTIVITY ── */}
-        <div className="grid grid-cols-1 xl:grid-cols-12 gap-3.5 mb-0">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5 mb-0">
           {/* Content Library */}
           <div className="bg-[#FFFFFF] border border-[#E2E8F0] rounded-[10px] p-5 shadow-2xs flex flex-col justify-between">
             <div>
@@ -421,7 +416,6 @@ const Dashboard = () => {
                     <span className="text-[10.5px] uppercase text-[#64748B] font-semibold block">Recipes</span>
                     <span 
                       className="text-[22px] text-[#0F172A] font-medium block mt-0.5"
-                      style={{ fontFamily: FONTS.serif }}
                     >
                       {formatNumber(content_library.recipes)}
                     </span>
@@ -436,7 +430,6 @@ const Dashboard = () => {
                     <span className="text-[10.5px] uppercase text-[#64748B] font-semibold block">Exercises</span>
                     <span 
                       className="text-[22px] text-[#0F172A] font-medium block mt-0.5"
-                      style={{ fontFamily: FONTS.serif }}
                     >
                       {formatNumber(content_library.exercises)}
                     </span>

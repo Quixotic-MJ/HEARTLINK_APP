@@ -194,7 +194,7 @@ function ForgotPasswordModal({ isOpen, onClose }) {
             <HelpCircle size={20} />
           </div>
           <div>
-            <h3 id="forgot-password-title" className="text-lg font-medium text-black" style={{ fontFamily: "'Fraunces', serif" }}>
+            <h3 id="forgot-password-title" className="text-lg font-bold text-black">
               Account Recovery
             </h3>
             <p className="text-xs text-black font-medium">Password Reset Assistance</p>
@@ -260,7 +260,7 @@ function ForgotPasswordModal({ isOpen, onClose }) {
               <div className="w-12 h-12 rounded-full bg-[#E3EFEC] text-[#1B6E63] border border-[#C5DFD8] flex items-center justify-center mx-auto mb-3">
                 <CheckCircle2 size={24} />
               </div>
-              <h4 className="text-base font-medium text-black mb-1" style={{ fontFamily: "'Fraunces', serif" }}>
+              <h4 className="text-base font-bold text-black mb-1">
                 Request Received
               </h4>
               <p className="text-[14px] text-black leading-relaxed max-w-xs mx-auto">
@@ -494,31 +494,39 @@ export default function HeartLinkAdminLogin() {
 
   return (
     <div 
-      className="min-h-screen w-full grid grid-cols-1 lg:grid-cols-[1.05fr_1fr] bg-[#FFFFFF] text-[#152131] selection:bg-[#E8532E] selection:text-white"
+      className="min-h-screen w-full grid grid-cols-1 lg:grid-cols-[1.05fr_1fr] bg-[#FFFFFF] text-[#152131] selection:bg-[#2E9AE8] selection:text-white"
       style={{ fontFamily: "'Inter', sans-serif" }}
     >
       {/* ═════════════════════════════════════════════════════════════════════════
           LEFT: Editorial Hero Showcase (Soft Ambient Background)
       ═════════════════════════════════════════════════════════════════════════ */}
       <aside 
-        className="hidden lg:flex flex-col justify-between p-12 xl:p-16 relative select-none border-r border-[#DCE3DF] overflow-hidden bg-gradient-to-br from-[#FFFFFF] via-[#F8FAFC] to-[#EDF1EF]"
+        className="hidden lg:flex flex-col justify-between p-12 xl:p-16 relative select-none border-r border-[#DCE3DF] overflow-hidden bg-gradient-to-br from-[#FFFFFF] via-[#F8FAFC] to-[#F1F5F9]"
         aria-label="HeartLink Brand Overview"
       >
+        {/* Modern Dot Grid Background */}
+        <div 
+          className="absolute inset-0 z-0 pointer-events-none opacity-[0.3]"
+          style={{
+            backgroundImage: "radial-gradient(#94A3B8 1px, transparent 1px)",
+            backgroundSize: "24px 24px"
+          }}
+        />
+
         {/* Abstract Ambient Shapes */}
-        <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-[#E3EFEC] opacity-40 rounded-full blur-[100px] mix-blend-multiply pointer-events-none" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] bg-[#FBEAE6] opacity-30 rounded-full blur-[100px] mix-blend-multiply pointer-events-none" />
+        <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] bg-[#EAF5FC] opacity-70 rounded-full blur-[120px] mix-blend-multiply pointer-events-none z-0" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] bg-[#E3EFEC] opacity-60 rounded-full blur-[120px] mix-blend-multiply pointer-events-none z-0" />
 
         {/* Top Brand Lockup */}
-        <div className="relative z-10 flex items-center gap-3">
-          <HeartLogoIcon size={26} />
+        <div className="relative z-10 flex items-start gap-3.5">
+          <div className="mt-1.5">
+            <HeartLogoIcon size={34} />
+          </div>
           <div>
-            <div 
-              className="text-[28px] font-medium tracking-tight text-slate-900"
-              style={{ fontFamily: "'Fraunces', serif" }}
-            >
+            <div className="text-[34px] font-bold tracking-tight text-slate-900 leading-none">
               HeartLink
             </div>
-            <div className="text-[14px] font-medium text-slate-500 -mt-1">
+            <div className="text-[15.5px] font-medium text-slate-500 mt-1">
               Admin &amp; clinical portal
             </div>
           </div>
@@ -526,14 +534,11 @@ export default function HeartLinkAdminLogin() {
 
         {/* Hero Headline & Narrative */}
         <div className="relative z-10 max-w-[540px] my-auto py-10">
-          <h1 
-            className="font-medium text-[#152131] tracking-tight leading-[1.2] mb-5 text-[34px] xl:text-[44px]"
-            style={{ fontFamily: "'Fraunces', serif" }}
-          >
+          <h1 className="font-bold text-[#152131] tracking-tight leading-[1.2] mb-5 text-[34px] xl:text-[44px]">
             {/* Perfectly aligned flex container to prevent clipping and baseline issues */}
             <div className="flex flex-wrap items-center gap-x-2.5 mb-1">
               <span>Every</span>
-              <div className="relative h-[1.3em] min-w-[160px] overflow-hidden text-[#E8532E]">
+              <div className="relative h-[1.3em] min-w-[160px] overflow-hidden text-[#2E9AE8]">
                 <AnimatePresence mode="popLayout">
                   <motion.div
                     key={wordIndex}
@@ -556,22 +561,22 @@ export default function HeartLinkAdminLogin() {
 
           {/* Interactive Grow & Glow Pills (2 Rows of 3) */}
           <div className="flex flex-wrap gap-2.5">
-            <span className="text-[11.5px] font-medium text-[#4a5568] border border-[#DCE3DF] bg-[#FFFFFF] rounded-full px-3.5 py-1.5 shadow-sm transition-all duration-300 hover:scale-105 hover:-translate-y-0.5 hover:shadow-[0_4px_14px_rgba(232,83,46,0.15)] hover:border-[#E8532E] hover:text-[#E8532E] cursor-default">
+            <span className="text-[11.5px] font-medium text-[#4a5568] border border-[#DCE3DF] bg-[#FFFFFF] rounded-full px-3.5 py-1.5 shadow-sm transition-all duration-300 hover:scale-105 hover:-translate-y-0.5 hover:shadow-[0_4px_14px_rgba(46,154,232,0.15)] hover:border-[#2E9AE8] hover:text-[#2E9AE8] cursor-default">
               Preventive scoring
             </span>
-            <span className="text-[11.5px] font-medium text-[#4a5568] border border-[#DCE3DF] bg-[#FFFFFF] rounded-full px-3.5 py-1.5 shadow-sm transition-all duration-300 hover:scale-105 hover:-translate-y-0.5 hover:shadow-[0_4px_14px_rgba(232,83,46,0.15)] hover:border-[#E8532E] hover:text-[#E8532E] cursor-default">
+            <span className="text-[11.5px] font-medium text-[#4a5568] border border-[#DCE3DF] bg-[#FFFFFF] rounded-full px-3.5 py-1.5 shadow-sm transition-all duration-300 hover:scale-105 hover:-translate-y-0.5 hover:shadow-[0_4px_14px_rgba(46,154,232,0.15)] hover:border-[#2E9AE8] hover:text-[#2E9AE8] cursor-default">
               Meal &amp; workout curation
             </span>
-            <span className="text-[11.5px] font-medium text-[#4a5568] border border-[#DCE3DF] bg-[#FFFFFF] rounded-full px-3.5 py-1.5 shadow-sm transition-all duration-300 hover:scale-105 hover:-translate-y-0.5 hover:shadow-[0_4px_14px_rgba(232,83,46,0.15)] hover:border-[#E8532E] hover:text-[#E8532E] cursor-default">
+            <span className="text-[11.5px] font-medium text-[#4a5568] border border-[#DCE3DF] bg-[#FFFFFF] rounded-full px-3.5 py-1.5 shadow-sm transition-all duration-300 hover:scale-105 hover:-translate-y-0.5 hover:shadow-[0_4px_14px_rgba(46,154,232,0.15)] hover:border-[#2E9AE8] hover:text-[#2E9AE8] cursor-default">
               Wellness algorithms
             </span>
-            <span className="text-[11.5px] font-medium text-[#4a5568] border border-[#DCE3DF] bg-[#FFFFFF] rounded-full px-3.5 py-1.5 shadow-sm transition-all duration-300 hover:scale-105 hover:-translate-y-0.5 hover:shadow-[0_4px_14px_rgba(232,83,46,0.15)] hover:border-[#E8532E] hover:text-[#E8532E] cursor-default">
+            <span className="text-[11.5px] font-medium text-[#4a5568] border border-[#DCE3DF] bg-[#FFFFFF] rounded-full px-3.5 py-1.5 shadow-sm transition-all duration-300 hover:scale-105 hover:-translate-y-0.5 hover:shadow-[0_4px_14px_rgba(46,154,232,0.15)] hover:border-[#2E9AE8] hover:text-[#2E9AE8] cursor-default">
               Nutrition tracking
             </span>
-            <span className="text-[11.5px] font-medium text-[#4a5568] border border-[#DCE3DF] bg-[#FFFFFF] rounded-full px-3.5 py-1.5 shadow-sm transition-all duration-300 hover:scale-105 hover:-translate-y-0.5 hover:shadow-[0_4px_14px_rgba(232,83,46,0.15)] hover:border-[#E8532E] hover:text-[#E8532E] cursor-default">
+            <span className="text-[11.5px] font-medium text-[#4a5568] border border-[#DCE3DF] bg-[#FFFFFF] rounded-full px-3.5 py-1.5 shadow-sm transition-all duration-300 hover:scale-105 hover:-translate-y-0.5 hover:shadow-[0_4px_14px_rgba(46,154,232,0.15)] hover:border-[#2E9AE8] hover:text-[#2E9AE8] cursor-default">
               Fitness metrics
             </span>
-            <span className="text-[11.5px] font-medium text-[#4a5568] border border-[#DCE3DF] bg-[#FFFFFF] rounded-full px-3.5 py-1.5 shadow-sm transition-all duration-300 hover:scale-105 hover:-translate-y-0.5 hover:shadow-[0_4px_14px_rgba(232,83,46,0.15)] hover:border-[#E8532E] hover:text-[#E8532E] cursor-default">
+            <span className="text-[11.5px] font-medium text-[#4a5568] border border-[#DCE3DF] bg-[#FFFFFF] rounded-full px-3.5 py-1.5 shadow-sm transition-all duration-300 hover:scale-105 hover:-translate-y-0.5 hover:shadow-[0_4px_14px_rgba(46,154,232,0.15)] hover:border-[#2E9AE8] hover:text-[#2E9AE8] cursor-default">
               Habit building
             </span>
           </div>
@@ -597,10 +602,7 @@ export default function HeartLinkAdminLogin() {
           <div className="flex lg:hidden items-center gap-3 mb-8">
             <HeartLogoIcon size={34} />
             <div>
-              <div 
-                className="text-[22px] font-medium tracking-tight text-slate-900"
-                style={{ fontFamily: "'Fraunces', serif" }}
-              >
+              <div className="text-[22px] font-bold tracking-tight text-slate-900">
                 HeartLink
               </div>
               <div className="text-[13px] font-medium text-slate-500 -mt-0.5">
@@ -620,10 +622,7 @@ export default function HeartLinkAdminLogin() {
               >
                 {/* Heading */}
                 <motion.div variants={itemVariants} className="mb-7">
-                  <h2 
-                    className="text-[27px] font-medium tracking-tight text-slate-900 mb-2"
-                    style={{ fontFamily: "'Fraunces', serif" }}
-                  >
+                  <h2 className="text-[27px] font-bold tracking-tight text-slate-900 mb-2">
                     {greeting}
                   </h2>
                   <p className="text-[13.5px] text-slate-500 leading-normal">
@@ -727,7 +726,7 @@ export default function HeartLinkAdminLogin() {
                         type="checkbox"
                         checked={remember}
                         onChange={(e) => setRemember(e.target.checked)}
-                        className="w-4 h-4 rounded border-[#DCE3DF] bg-[#EDF1EF] text-[#E8532E] focus:ring-[#E8532E] cursor-pointer"
+                        className="w-4 h-4 rounded border-[#DCE3DF] bg-[#EDF1EF] text-[#2E9AE8] focus:ring-[#2E9AE8] cursor-pointer"
                       />
                       <span className="text-[13px] text-slate-500">
                         Keep me signed in
@@ -807,10 +806,7 @@ export default function HeartLinkAdminLogin() {
 
                 {/* 2FA Heading */}
                 <motion.div variants={itemVariants} className="mb-7">
-                  <h2 
-                    className="text-[27px] font-medium tracking-tight text-slate-900 mb-2"
-                    style={{ fontFamily: "'Fraunces', serif" }}
-                  >
+                  <h2 className="text-[27px] font-bold tracking-tight text-slate-900 mb-2">
                     Enter your code
                   </h2>
                   <p className="text-[13.5px] text-slate-500 leading-normal">
@@ -842,8 +838,7 @@ export default function HeartLinkAdminLogin() {
                         maxLength={6}
                         placeholder="······"
                         autoComplete="one-time-code"
-                        className="flex-1 bg-transparent border-none outline-none text-[18px] font-semibold tracking-[0.5em] text-slate-900 placeholder:text-slate-400 text-center h-full"
-                        style={{ fontFamily: "'Fraunces', serif" }}
+                        className="flex-1 bg-transparent border-none outline-none text-[18px] font-bold tracking-[0.5em] text-slate-900 placeholder:text-slate-400 text-center h-full"
                         {...register2FA("code")}
                         ref={(e) => {
                           register2FA("code").ref(e);
