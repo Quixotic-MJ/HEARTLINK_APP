@@ -107,7 +107,7 @@ export default function Header({
           COLUMN 2: Steady, Non-Shifting Search Bar
       ═════════════════════════════════════════════════════════════════════════ */}
       <div className="flex items-center">
-        <div className="flex items-center gap-2 bg-[#FAFAF9] border border-[#DCE3DF] rounded-[6px] px-2.5 h-[32px] w-full max-w-[320px] focus-within:bg-[#FFFFFF] focus-within:border-[#E8532E] focus-within:ring-2 focus-within:ring-[#E8532E]/10 transition-all">
+        <div className="flex items-center gap-2 bg-[#FAFAF9] border border-[#DCE3DF] rounded-[6px] px-2.5 h-[32px] w-full max-w-[320px] focus-within:bg-[#FFFFFF] focus-within:border-[#2E9AE8] focus-within:ring-2 focus-within:ring-[#2E9AE8]/10 transition-all">
           <Search size={13} className="text-[#78716C] shrink-0" />
           <input
             type="text"
@@ -127,7 +127,7 @@ export default function Header({
         
         {/* Live Clock Widget */}
         <div className="hidden xl:flex items-center gap-1.5 text-[11.5px] font-medium text-[#78716C] bg-[#FAFAF9] border border-[#DCE3DF] px-2.5 h-[32px] rounded-[6px]">
-          <Clock size={13} className="text-[#E8532E]" />
+          <Clock size={13} className="text-[#2E9AE8]" />
           <span>{currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
         </div>
 
@@ -137,7 +137,7 @@ export default function Header({
             onClick={() => setQuickActionsOpen(prev => !prev)}
             aria-expanded={quickActionsOpen}
             aria-label="Quick actions"
-            className="flex items-center gap-1.5 bg-[#E8532E] hover:bg-[#C13E20] text-white rounded-[6px] px-3 h-[32px] text-[12px] font-bold transition-colors cursor-pointer shadow-sm"
+            className="flex items-center gap-1.5 bg-[#2E9AE8] hover:bg-[#1C7AC8] text-white rounded-[6px] px-3 h-[32px] text-[12px] font-bold transition-colors cursor-pointer shadow-sm"
           >
             <Zap size={13} strokeWidth={2.5} />
             <span>Actions</span>

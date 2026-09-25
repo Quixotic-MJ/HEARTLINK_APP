@@ -441,10 +441,7 @@ const Notifications = () => {
                 <div className="w-12 h-12 bg-[#F7E4E1] text-[#A93226] rounded-full flex items-center justify-center mx-auto mb-3 border border-[#F0C4B8]">
                   <AlertCircle size={22} />
                 </div>
-                <h4 
-                  className="text-[16px] font-medium text-[#0F172A] mb-1"
-                  style={{ fontFamily: "'Fraunces', serif" }}
-                >
+                <h4 className="text-[16px] font-semibold text-[#0F172A] mb-1">
                   Unable to load alerts
                 </h4>
                 <p className="text-[12px] text-[#64748B] max-w-sm mx-auto mb-4">
@@ -462,10 +459,7 @@ const Notifications = () => {
                 <div className="w-12 h-12 bg-[#F8FAFC] text-[#94A3B8] rounded-full flex items-center justify-center mx-auto mb-3 border border-[#E2E8F0]">
                   <Bell size={20} />
                 </div>
-                <h4 
-                  className="text-[16px] font-medium text-[#0F172A] mb-1"
-                  style={{ fontFamily: "'Fraunces', serif" }}
-                >
+                <h4 className="text-[16px] font-semibold text-[#0F172A] mb-1">
                   No notifications found
                 </h4>
                 <p className="text-[12px] text-[#64748B] max-w-sm mx-auto mb-3">
@@ -539,7 +533,7 @@ const Notifications = () => {
                         </p>
 
                         <div className="flex items-center gap-3 mt-1.5 text-[11px] text-[#94A3B8] font-medium">
-                          <span className="flex items-center gap-1 font-mono">
+                          <span className="flex items-center gap-1">
                             <Clock size={11} /> {formatRelativeTime(n.created_at)}
                           </span>
                           <span>•</span>

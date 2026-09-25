@@ -115,10 +115,7 @@ const ConfirmActionModal = ({
 
             {/* Title & Subtitle */}
             <div className="text-center">
-              <h3 
-                className="text-xl font-medium text-[#0F172A] tracking-tight"
-                style={{ fontFamily: "'Fraunces', serif" }}
-              >
+              <h3 className="text-xl font-bold text-[#0F172A] tracking-tight">
                 {title}
               </h3>
               {subtitle && (
@@ -155,12 +152,12 @@ const ConfirmActionModal = ({
                     )}
                   </div>
                   {entityInfo.email && (
-                    <p className="text-[10px] text-[#64748B] font-mono truncate mt-0.5">
+                    <p className="text-[10px] text-[#64748B] truncate mt-0.5">
                       {entityInfo.email}
                     </p>
                   )}
                   {entityInfo.id && (
-                    <p className="text-[9px] text-[#94A3B8] font-mono truncate">
+                    <p className="text-[9px] text-[#94A3B8] truncate">
                       ID: {entityInfo.id}
                     </p>
                   )}

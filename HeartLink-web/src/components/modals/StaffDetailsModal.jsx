@@ -85,10 +85,7 @@ const StaffDetailsModal = ({
           {/* Header */}
           <div className="flex items-center justify-between px-6 py-4.5 border-b border-[#E2E8F0] bg-[#FFFFFF] z-10">
             <div>
-              <h3 
-                className="text-[17px] font-medium text-[#0F172A] leading-tight"
-                style={{ fontFamily: "'Fraunces', serif" }}
-              >
+              <h3 className="text-[17px] font-bold text-[#0F172A] leading-tight">
                 Administrative Staff Details
               </h3>
               <p className="text-[11px] text-[#94A3B8] mt-0.5 font-medium">{staff.name}</p>
@@ -107,13 +104,10 @@ const StaffDetailsModal = ({
             <div className="bg-[#F8FAFC]/60 p-4.5 rounded-[10px] border border-[#E2E8F0] space-y-3">
               <div className="flex justify-between items-start">
                 <div>
-                  <h4 
-                    className="text-[17px] font-medium text-[#0F172A]"
-                    style={{ fontFamily: "'Fraunces', serif" }}
-                  >
+                  <h4 className="text-[17px] font-bold text-[#0F172A]">
                     {staff.name}
                   </h4>
-                  <p className="font-mono text-[10px] text-[#64748B] mt-0.5 uppercase tracking-wider font-semibold">ID: {staff.id}</p>
+                  <p className="text-[10px] text-[#64748B] mt-0.5 uppercase tracking-wider font-semibold">ID: {staff.id}</p>
                 </div>
                 {getStatusBadge(staff.account_status || staff.status)}
               </div>

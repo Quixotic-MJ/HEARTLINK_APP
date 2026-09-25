@@ -125,10 +125,7 @@ const TicketModal = ({ isOpen, onClose, ticket, onUpdate, onArchive }) => {
         {showDiscardConfirm && (
           <div className="absolute inset-0 z-20 flex items-center justify-center p-6 bg-black/60 backdrop-blur-xs">
             <div className="bg-[#FFFFFF] rounded-2xl p-5 max-w-sm shadow-2xl border border-[#E2E8F0] flex flex-col text-left">
-              <h4 
-                className="text-[16px] font-medium text-[#0F172A] mb-1.5"
-                style={{ fontFamily: "'Fraunces', serif" }}
-              >
+              <h4 className="text-[16px] font-bold text-[#0F172A] mb-1.5">
                 Discard unsaved changes?
               </h4>
               <p className="text-[12px] text-[#64748B] mb-5 leading-relaxed">
@@ -158,10 +155,7 @@ const TicketModal = ({ isOpen, onClose, ticket, onUpdate, onArchive }) => {
         {showArchiveConfirm && (
           <div className="absolute inset-0 z-20 flex items-center justify-center p-6 bg-black/60 backdrop-blur-xs">
             <div className="bg-[#FFFFFF] rounded-2xl p-5 max-w-sm shadow-2xl border border-[#E2E8F0] flex flex-col text-left">
-              <h4 
-                className="text-[16px] font-medium text-[#0F172A] mb-1.5"
-                style={{ fontFamily: "'Fraunces', serif" }}
-              >
+              <h4 className="text-[16px] font-bold text-[#0F172A] mb-1.5">
                 Archive this feedback ticket?
               </h4>
               <p className="text-[12px] text-[#64748B] mb-5 leading-relaxed">
@@ -188,10 +182,7 @@ const TicketModal = ({ isOpen, onClose, ticket, onUpdate, onArchive }) => {
         {conflictError && (
           <div className="absolute inset-0 z-20 flex items-center justify-center p-6 bg-black/60 backdrop-blur-xs">
             <div className="bg-[#FFFFFF] rounded-2xl p-5 max-w-sm shadow-2xl border border-[#E2E8F0] flex flex-col text-left">
-              <h4 
-                className="text-[16px] font-medium text-[#A93226] mb-1.5 flex items-center gap-1.5"
-                style={{ fontFamily: "'Fraunces', serif" }}
-              >
+              <h4 className="text-[16px] font-bold text-[#A93226] mb-1.5 flex items-center gap-1.5">
                 <AlertCircle size={16} /> Conflict Detected
               </h4>
               <p className="text-[12px] text-[#64748B] mb-5 leading-relaxed">
@@ -230,10 +221,7 @@ const TicketModal = ({ isOpen, onClose, ticket, onUpdate, onArchive }) => {
               <MessageSquare size={16} />
             </div>
             <div>
-              <h3 
-                className="text-[17px] font-medium text-[#0F172A] flex items-center gap-2 font-mono tracking-tight"
-                style={{ fontFamily: "'Fraunces', serif" }}
-              >
+              <h3 className="text-[17px] font-bold text-[#0F172A] flex items-center gap-2 tracking-tight">
                 {ticket.ticketId}
               </h3>
               <div className="mt-0.5 flex items-center gap-2">
@@ -264,7 +252,7 @@ const TicketModal = ({ isOpen, onClose, ticket, onUpdate, onArchive }) => {
                 <p className="text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wider">
                   Account Reference ID
                 </p>
-                <p className="text-[12.5px] font-bold text-[#0F172A] font-mono leading-tight">
+                <p className="text-[12.5px] font-bold text-[#0F172A] leading-tight">
                   {ticket.userId || "N/A"}
                 </p>
               </div>
@@ -301,7 +289,7 @@ const TicketModal = ({ isOpen, onClose, ticket, onUpdate, onArchive }) => {
                 <p className="text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wider mb-0.5">
                   App Version
                 </p>
-                <p className="font-bold text-[#0F172A] font-mono">
+                <p className="font-bold text-[#0F172A]">
                   {ticket.deviceMeta?.appVersion || "N/A"}
                 </p>
               </div>

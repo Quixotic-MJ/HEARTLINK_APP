@@ -238,10 +238,7 @@ const ActivityLog = () => {
           <div className="w-14 h-14 bg-[#F7E4E1] text-[#A93226] rounded-2xl flex items-center justify-center mb-3 border border-[#F0C4B8]">
             <Shield size={28} />
           </div>
-          <h3 
-            className="text-[20px] font-medium text-[#0F172A] mb-1"
-            style={{ fontFamily: "'Fraunces', serif" }}
-          >
+          <h3 className="text-[20px] font-bold text-[#0F172A] mb-1">
             Access Denied
           </h3>
           <p className="text-[#64748B] text-[13px] max-w-sm mb-6">
@@ -389,7 +386,7 @@ const ActivityLog = () => {
                       className="hover:bg-[#F8FAFC]/60 transition-colors group cursor-default"
                     >
                       <td className="py-3.5 px-4 sm:px-5 align-middle">
-                        <span className="text-[12px] font-mono font-medium text-[#64748B]">
+                        <span className="text-[12px] font-medium text-[#64748B]">
                           {formatTimestamp(log.created_at)}
                         </span>
                       </td>
@@ -406,7 +403,7 @@ const ActivityLog = () => {
                         </p>
                       </td>
                       <td className="py-3.5 px-4 sm:px-5 align-middle">
-                        <span className="inline-flex items-center gap-1.5 text-[11.5px] font-mono font-bold text-[#0F172A] bg-[#F8FAFC] border border-[#E2E8F0] px-2 py-0.5 rounded-[5px]">
+                        <span className="inline-flex items-center gap-1.5 text-[11.5px] font-bold text-[#0F172A] bg-[#F8FAFC] border border-[#E2E8F0] px-2 py-0.5 rounded-[5px]">
                           <Shield size={11} className="text-[#2E9AE8]" />
                           {log.admin_name || log.admin_user_id || "System"}
                         </span>

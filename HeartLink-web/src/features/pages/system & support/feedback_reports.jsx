@@ -34,7 +34,7 @@ const Feedback = () => {
       if (isFetchingRef.current || document.visibilityState === "hidden") return;
       isFetchingRef.current = true;
       
-      apiFetch("/api/feedback")
+      apiFetch("/api/feedback/")
         .then(data => {
           if (Array.isArray(data)) {
             setTickets(data);
@@ -400,7 +400,7 @@ const Feedback = () => {
                       onClick={() => openModal(ticket)}
                     >
                       <td className="py-3.5 px-4 sm:px-5 align-middle">
-                        <p className="text-[#0F172A] font-bold text-[12.5px] font-mono mb-0.5 group-hover:text-[#2E9AE8] transition-colors">
+                        <p className="text-[#0F172A] font-bold text-[12.5px] mb-0.5 group-hover:text-[#2E9AE8] transition-colors">
                           {ticket.ticketId}
                         </p>
                         <p className="text-[#94A3B8] text-[11px] font-medium flex items-center gap-1">
@@ -411,7 +411,7 @@ const Feedback = () => {
                         <FeedbackCategoryBadge category={ticket.category} />
                       </td>
                       <td className="py-3.5 px-4 sm:px-5 align-middle">
-                        <span className="text-[11px] font-semibold text-[#0F172A] font-mono bg-[#F8FAFC] px-2 py-0.5 rounded-[5px] border border-[#E2E8F0]">
+                        <span className="text-[11px] font-bold text-[#0F172A] bg-[#F8FAFC] px-2 py-0.5 rounded-[5px] border border-[#E2E8F0]">
                           {ticket.userId || "N/A"}
                         </span>
                       </td>

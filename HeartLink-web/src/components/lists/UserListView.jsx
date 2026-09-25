@@ -143,10 +143,7 @@ const UserListView = ({
             <p className="text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wider">Total Patients</p>
             <Users size={13} className="text-[#94A3B8]" />
           </div>
-          <p 
-            className="text-[26px] font-medium text-[#0F172A] leading-tight"
-            style={{ fontFamily: "'Fraunces', serif" }}
-          >
+          <p className="text-[26px] font-bold text-[#0F172A] leading-tight">
             {loading ? "…" : totalUsers}
           </p>
         </div>
@@ -156,10 +153,7 @@ const UserListView = ({
             <p className="text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wider">Active Accounts</p>
             <CheckCircle2 size={13} className="text-[#1B6E63]" />
           </div>
-          <p 
-            className="text-[26px] font-medium text-[#1B6E63] leading-tight"
-            style={{ fontFamily: "'Fraunces', serif" }}
-          >
+          <p className="text-[26px] font-bold text-[#1B6E63] leading-tight">
             {loading ? "…" : activeUsers}
           </p>
         </div>
@@ -169,10 +163,7 @@ const UserListView = ({
             <p className="text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wider">Elevated Risk</p>
             <AlertCircle size={13} className="text-[#2E9AE8]" />
           </div>
-          <p 
-            className="text-[26px] font-medium text-[#2E9AE8] leading-tight"
-            style={{ fontFamily: "'Fraunces', serif" }}
-          >
+          <p className="text-[26px] font-bold text-[#2E9AE8] leading-tight">
             {loading ? "…" : elevatedRisk}
           </p>
         </div>
@@ -182,10 +173,7 @@ const UserListView = ({
             <p className="text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wider">Evaluated</p>
             <ShieldCheck size={13} className="text-[#0F172A]" />
           </div>
-          <p 
-            className="text-[26px] font-medium text-[#0F172A] leading-tight"
-            style={{ fontFamily: "'Fraunces', serif" }}
-          >
+          <p className="text-[26px] font-bold text-[#0F172A] leading-tight">
             {loading ? "…" : evaluated}
           </p>
         </div>
@@ -290,7 +278,7 @@ const UserListView = ({
                       </div>
                     </td>
                     <td className="py-3.5 px-4 sm:px-5 align-middle">
-                      <span className="font-mono text-[11px] font-semibold bg-[#F8FAFC] px-2 py-0.5 rounded-[5px] text-[#0F172A] border border-[#E2E8F0] uppercase tracking-wider">
+                      <span className="text-[11px] font-bold bg-[#F8FAFC] px-2 py-0.5 rounded-[5px] text-[#0F172A] border border-[#E2E8F0] uppercase tracking-wider">
                         {formatUserRef(user.id)}
                       </span>
                     </td>

@@ -56,7 +56,7 @@ function InfoRow({ icon: Icon, label, value, mono = false, pill = null }) {
         ) : (
           <p
             className={`text-[12.5px] font-semibold text-[#0F172A] ${
-              mono ? "font-mono text-[#64748B]" : ""
+              mono ? "text-[#64748B]" : ""
             }`}
           >
             {value ?? "—"}
@@ -116,10 +116,7 @@ function Card({ title, subtitle, icon: Icon, action, children, className = "" })
             </div>
           )}
           <div>
-            <h4 
-              className="text-[15px] font-medium text-[#0F172A]"
-              style={{ fontFamily: "'Fraunces', serif" }}
-            >
+            <h4 className="text-[15px] font-bold text-[#0F172A]">
               {title}
             </h4>
             {subtitle && (
@@ -135,14 +132,6 @@ function Card({ title, subtitle, icon: Icon, action, children, className = "" })
     </div>
   );
 }
-
-// ─── Tab definitions ──────────────────────────────────────────────────────────
-
-const TABS = [
-  { id: "account", label: "My Account", icon: User, desc: "Personal credentials and profile" },
-  { id: "system", label: "System Config", icon: Settings2, desc: "Runtime and infrastructure state" },
-  { id: "security", label: "Security & Policies", icon: ShieldCheck, desc: "Authentication and session rules" },
-];
 
 // ─── Role display helpers ─────────────────────────────────────────────────────
 
@@ -293,7 +282,7 @@ function AccountTab({ user, userId }) {
       {/* ── Profile Information ─────────────────────────────────────────── */}
       <Card
         title="Account Profile"
-        subtitle="Active administrative identity and permission tier"
+        subtitle="Your personal details and assigned role"
         icon={User}
       >
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4.5 pb-5 mb-4 border-b border-[#E2E8F0]">
@@ -302,10 +291,7 @@ function AccountTab({ user, userId }) {
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2.5 flex-wrap">
-              <h3 
-                className="text-[18px] font-medium text-[#0F172A] tracking-tight"
-                style={{ fontFamily: "'Fraunces', serif" }}
-              >
+              <h3 className="text-[18px] font-bold text-[#0F172A] tracking-tight">
                 {fullName}
               </h3>
               {getRolePill(role) && (
@@ -317,7 +303,7 @@ function AccountTab({ user, userId }) {
                 </span>
               )}
             </div>
-            <p className="text-[12px] text-[#64748B] mt-0.5 font-mono">
+            <p className="text-[12px] text-[#64748B] mt-0.5">
               {user?.email || "No email on record"}
             </p>
           </div>
@@ -333,7 +319,7 @@ function AccountTab({ user, userId }) {
         <div className="mt-5 p-3 rounded-[8px] bg-[#F8FAFC]/60 border border-[#E2E8F0] flex items-start gap-2.5 text-[#64748B]">
           <Info size={14} className="mt-0.5 flex-shrink-0 text-[#1B6E63]" />
           <p className="text-[11.5px] leading-relaxed">
-            Role assignments and account statuses are centrally governed by Super Administrators in{" "}
+            Roles and account statuses are managed by Super Admins in the{" "}
             <span className="text-[#0F172A] font-semibold">User & Staff Directory</span>.
           </p>
         </div>
@@ -341,8 +327,8 @@ function AccountTab({ user, userId }) {
 
       {/* ── 2FA status ──────────────────────────────────────────────────── */}
       <Card
-        title="Admin Authentication Policy"
-        subtitle="Authentication and credential access controls for staff console"
+        title="Login Settings"
+        subtitle="How you sign in to your administrator account"
         icon={ShieldCheck}
       >
         <div className="flex items-start gap-3.5">
@@ -352,18 +338,18 @@ function AccountTab({ user, userId }) {
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-1 flex-wrap">
               <h4 className="text-[13px] font-bold text-[#0F172A]">
-                Direct Email & Password Authentication
+                Email & Password Login
               </h4>
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[4px] bg-[#E3EFEC] text-[#1B6E63] border border-[#C5DFD8] text-[9.5px] font-bold uppercase tracking-wider">
                 <span className="w-1.5 h-1.5 rounded-full bg-current opacity-80" />
                 Active
               </span>
               <span className="inline-flex items-center px-2 py-0.5 rounded-[4px] bg-[#F8FAFC] text-[#64748B] border border-[#E2E8F0] text-[9.5px] font-semibold uppercase tracking-wider">
-                Phone OTP Bypassed
+                No Phone Code Required
               </span>
             </div>
             <p className="text-[12px] text-[#64748B] leading-relaxed max-w-2xl">
-              Web administration access utilizes direct email and password authentication with salted cryptographic hashing and server-side JWT session invalidation. Phone number OTP is not required for admin login.
+              You can securely log in to the staff portal using just your email and password. A phone verification code is not needed.
             </p>
           </div>
         </div>
@@ -371,8 +357,8 @@ function AccountTab({ user, userId }) {
 
       {/* ── Change password ─────────────────────────────────────────────── */}
       <Card
-        title="Update Security Password"
-        subtitle="Manage your primary login authentication credentials"
+        title="Change Password"
+        subtitle="Update the password you use to sign in"
         icon={KeyRound}
       >
         {pwState === "success" ? (
@@ -404,7 +390,7 @@ function AccountTab({ user, userId }) {
             className="space-y-4"
           >
             <p className="text-[12px] text-[#64748B] leading-relaxed">
-              Passwords must be at least 8 characters. Ensure you use a strong combination of letters, numbers, and symbols.
+              Your new password must be at least 8 characters long. We recommend using a mix of letters, numbers, and symbols to keep your account secure.
             </p>
 
             {pwError && (
@@ -569,194 +555,10 @@ function AccountTab({ user, userId }) {
   );
 }
 
-// ─── Tab: System ─────────────────────────────────────────────────────────────
-
-function SystemTab() {
-  return (
-    <div className="space-y-6 max-w-4xl">
-      <div className="flex items-start gap-3 p-3.5 rounded-[8px] bg-[#F8FAFC]/70 border border-[#E2E8F0] text-[#64748B]">
-        <Info size={16} className="text-[#1B6E63] flex-shrink-0 mt-0.5" />
-        <div>
-          <p className="text-[12.5px] font-bold text-[#0F172A] mb-0.5">
-            Enforced Platform Configuration
-          </p>
-          <p className="text-[11.5px] text-[#64748B] leading-relaxed font-medium">
-            These values represent live environment constraints and backend services currently running for the HeartLink web console. System runtime variables are managed via cloud deployment configuration.
-          </p>
-        </div>
-      </div>
-
-      <Card
-        title="Application State"
-        subtitle="Global platform operation parameters"
-        icon={Settings2}
-      >
-        <div className="divide-y divide-[#E2E8F0]">
-          <SystemConfigRow
-            icon={AlertTriangle}
-            label="Platform Maintenance Mode"
-            value="Disabled (Normal Operation)"
-            statusPill={{
-              label: "Operational",
-              cls: "bg-[#E3EFEC] text-[#1B6E63] border border-[#C5DFD8]",
-              dot: true,
-            }}
-            note="When activated, mobile users and standard staff are restricted to offline caching. Managed via backend deployment environmental variables."
-          />
-          <SystemConfigRow
-            icon={Database}
-            label="Activity Audit Trail Retention"
-            value="Continuous PostgreSQL Repository"
-            statusPill={{
-              label: "Persistent",
-              cls: "bg-[#F8FAFC] text-[#0F172A] border border-[#E2E8F0]",
-              dot: false,
-            }}
-            note="Clinical and administrative activity events are committed to PostgreSQL audit tables with immutable timestamps."
-          />
-          <SystemConfigRow
-            icon={Activity}
-            label="Health Evaluation Engine"
-            value="Automated HeartLink Risk Stratification (HSS v2)"
-            statusPill={{
-              label: "Online",
-              cls: "bg-[#E3EFEC] text-[#1B6E63] border border-[#C5DFD8]",
-              dot: true,
-            }}
-            note="Rule-based heart status scoring computes real-time biometric and symptomatic risk tiers for patient profiles."
-          />
-        </div>
-      </Card>
-
-      <Card
-        title="Runtime Environment"
-        subtitle="Infrastructure connectivity and service mapping"
-        icon={Server}
-      >
-        <div className="divide-y divide-[#E2E8F0]">
-          <SystemConfigRow
-            icon={Server}
-            label="FastAPI Backend Cluster"
-            value="Production API (FastAPI on Render.com)"
-            note="High-performance asynchronous Python FastAPI backend delivering low-latency clinical endpoints and REST services."
-          />
-          <SystemConfigRow
-            icon={Database}
-            label="Database & Storage Engine"
-            value="Supabase PostgreSQL + Secure Storage"
-            note="Primary relational store backed by high-availability PostgreSQL with encrypted Supabase storage for clinical assets."
-          />
-          <SystemConfigRow
-            icon={Lock}
-            label="Authentication Provider"
-            value="JWT Bearer Authentication + Session Cache"
-            note="Stateless cryptographic JSON Web Tokens issued with server-validated cryptographic signing."
-          />
-        </div>
-      </Card>
-    </div>
-  );
-}
-
-// ─── Tab: Security ───────────────────────────────────────────────────────────
-
-function SecurityTab({ role }) {
-  const isSuperAdmin = role === "super_admin";
-
-  return (
-    <div className="space-y-6 max-w-4xl">
-      {!isSuperAdmin ? (
-        <div className="flex items-start gap-3 p-3.5 rounded-[8px] bg-[#F6EDDD] border border-[#EBD7B8] text-[#A9741B]">
-          <Shield size={16} className="text-[#A9741B] flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="text-[12.5px] font-bold text-[#0F172A] mb-0.5">
-              Super Admin Policy Authorization Required
-            </p>
-            <p className="text-[11.5px] text-[#A9741B] leading-relaxed font-medium">
-              Global security policy reconfiguration is restricted to Super Administrator credentials. Your account can inspect current active policies below.
-            </p>
-          </div>
-        </div>
-      ) : (
-        <div className="flex items-start gap-3 p-3.5 rounded-[8px] bg-[#E3EFEC] border border-[#C5DFD8] text-[#1B6E63]">
-          <Sparkles size={16} className="text-[#1B6E63] flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="text-[12.5px] font-bold text-[#0F172A] mb-0.5">
-              Super Admin Governance Privileges Active
-            </p>
-            <p className="text-[11.5px] text-[#1B6E63] leading-relaxed font-medium">
-              You are signed in with Super Admin privileges. Editable security rule overrides (custom session timeouts, rate-limit thresholds, IP restrictions) will be configurable directly from this portal in upcoming releases.
-            </p>
-          </div>
-        </div>
-      )}
-
-      <Card
-        title="Access & Session Policies"
-        subtitle="Enforced session lifespan and account protection rules"
-        icon={ShieldCheck}
-      >
-        <div className="divide-y divide-[#E2E8F0]">
-          <SystemConfigRow
-            icon={Clock}
-            label="Administrative Session Lifetime"
-            value="24 Hours (30 Days with 'Remember Me')"
-            statusPill={{
-              label: "Enforced",
-              cls: "bg-[#F8FAFC] text-[#0F172A] border border-[#E2E8F0]",
-              dot: false,
-            }}
-            note="JWT access tokens automatically expire after 24 hours of inactivity unless 'Remember Me' is selected during login."
-          />
-          <SystemConfigRow
-            icon={ShieldCheck}
-            label="Maximum Failed Login Attempts"
-            value="5 attempts → 15-minute temporary lockout"
-            statusPill={{
-              label: "Active Guard",
-              cls: "bg-[#E3EFEC] text-[#1B6E63] border border-[#C5DFD8]",
-              dot: true,
-            }}
-            note="Prevents credential brute-forcing by locking authentication endpoints for repeated failed password attempts."
-          />
-        </div>
-      </Card>
-
-      <Card
-        title="Authentication & Cryptography"
-        subtitle="Security standards protecting administrative communications"
-        icon={KeyRound}
-      >
-        <div className="divide-y divide-[#E2E8F0]">
-          <SystemConfigRow
-            icon={ShieldCheck}
-            label="Staff Console Authentication"
-            value="Direct Email & Password (Phone OTP Bypassed)"
-            note="Staff authentication uses direct email and password verification without requiring SMS OTP delivery."
-          />
-          <SystemConfigRow
-            icon={Lock}
-            label="Token Revocation Engine"
-            value="Server-Side Blacklist Mechanism"
-            note="Signing out immediately invalidates active tokens to ensure sessions cannot be reused or hijacked."
-          />
-          <SystemConfigRow
-            icon={Database}
-            label="Password Hashing Standard"
-            value="Bcrypt with Cryptographic Salt"
-            note="Zero plain-text password storage. All credentials undergo irreversible salted cryptographic hashing before database persistence."
-          />
-        </div>
-      </Card>
-    </div>
-  );
-}
-
 // ─── Main Settings component ──────────────────────────────────────────────────
 
 const Settings = () => {
   const { user, userId } = useAuth();
-  const [activeTab, setActiveTab] = useState("account");
 
   // Derive role from context
   const role = user?.role || "admin";
@@ -780,14 +582,14 @@ const Settings = () => {
       <div className={UI.page.container} style={{ fontFamily: FONTS.sans }}>
         {/* ── Page Header ─────────────────────────────────────────────────── */}
         <PageHeader
-          eyebrow="System preferences"
-          eyebrowIcon={Sliders}
-          title="Admin Settings & Preferences"
-          description="Manage your administrator profile, security credentials, and review live platform configurations."
+          eyebrow="My Account"
+          eyebrowIcon={User}
+          title="Settings & Preferences"
+          description="Manage your administrator profile and security credentials."
         />
 
         {/* ── Quick KPI / Status Row ───────────────────────────────────────── */}
-        <div className={UI.kpi.grid}>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <KpiCard
             label="Active Role"
             value={getRoleLabel(role)}
@@ -797,7 +599,7 @@ const Settings = () => {
             iconBorder="border-[#CDE1F4]"
           />
           <KpiCard
-            label="2FA Security"
+            label="Login Security"
             value="Active"
             icon={ShieldCheck}
             iconBg="bg-[#E3EFEC]"
@@ -805,44 +607,11 @@ const Settings = () => {
             iconBorder="border-[#C5DFD8]"
             valueColor="text-[#1B6E63]"
           />
-          <KpiCard
-            label="Backend API"
-            value="FastAPI / Online"
-            icon={Server}
-          />
-          <KpiCard
-            label="Session Policy"
-            value="24h Expire"
-            icon={Clock}
-          />
         </div>
 
-        {/* ── Segmented Tab Strip ─────────────────────────────────────────── */}
-        <div className="bg-[#FFFFFF] p-1 rounded-[10px] inline-flex flex-wrap border border-[#E2E8F0] mb-6 w-full sm:w-auto gap-1 shadow-2xs">
-          {TABS.map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              id={`settings-tab-${id}`}
-              onClick={() => setActiveTab(id)}
-              className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-[7px] text-[12.5px] font-semibold transition-all cursor-pointer ${
-                activeTab === id
-                  ? "bg-[#2E9AE8] text-white shadow-2xs"
-                  : "text-[#64748B] hover:text-[#0F172A] hover:bg-[#F8FAFC]"
-              }`}
-            >
-              <Icon size={14} />
-              <span>{label}</span>
-            </button>
-          ))}
-        </div>
-
-        {/* ── Tab Panels ──────────────────────────────────────────────────── */}
-        <div>
-          {activeTab === "account" && (
-            <AccountTab user={profile} userId={userId} />
-          )}
-          {activeTab === "system" && <SystemTab />}
-          {activeTab === "security" && <SecurityTab role={role} />}
+        {/* ── Content ──────────────────────────────────────────────────── */}
+        <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <AccountTab user={profile} userId={userId} />
         </div>
       </div>
     </AdminLayout>
