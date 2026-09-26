@@ -19,6 +19,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useUser } from "../../../contexts/UserContext";
 import { queueMealForSync } from "../../../services/SyncService";
 import { useToast } from "../../../contexts/ToastContext";
+import { useQueryClient } from "@tanstack/react-query";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -39,27 +40,30 @@ function NutritionPill({
   unit: string;
   highlight?: boolean;
 }) {
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === "dark";
+
   return (
     <View
-      className="flex-1 rounded-xl px-2.5 py-2 border"
+      className="flex-1 rounded-2xl px-1 py-3 items-center justify-center border"
       style={{
-        backgroundColor: highlight ? "#eaf3de" : "#f8fafc",
-        borderColor: highlight ? "#c0dd97" : "#e2e8f0",
+        backgroundColor: isDark ? "#162232" : "#F8FAFC",
+        borderColor: isDark ? "#1E293B" : "#E2E8F0",
       }}
     >
       <Text
-        className="text-[13px] font-medium"
-        style={{ color: highlight ? "#3b6d11" : "#0f172a" }}
+        className="text-[14px] font-bold mb-1"
+        style={{ color: highlight ? "#EF4444" : (isDark ? "#FFFFFF" : "#0F172A") }}
       >
         {value}
-        <Text className="text-[11px] font-normal text-slate-400"> {unit}</Text>
       </Text>
       <Text 
-        className="text-[9px] text-slate-400 dark:text-slate-500 uppercase tracking-wide mt-0.5"
+        className="text-[9px] font-bold uppercase tracking-widest text-center"
+        style={{ color: isDark ? "#94A3B8" : "#64748B" }}
         numberOfLines={1}
         adjustsFontSizeToFit
       >
-        {label}
+        {label} {unit}
       </Text>
     </View>
   );
@@ -73,6 +77,7 @@ export default function RecipeDetailsScreen() {
   const { userId, token } = useUser();
   const { showToast } = useToast();
   const insets = useSafeAreaInsets();
+  const queryClient = useQueryClient();
 
   const savedRecipesKey = userId ? `@saved_recipes_${userId}` : "@saved_recipes";
   const recipesCacheKey = userId ? `@recipes_cache_${userId}` : "@recipes_cache";
@@ -211,6 +216,11 @@ export default function RecipeDetailsScreen() {
         list = list.filter((rId) => String(rId) !== recipeIdStr);
       }
       await AsyncStorage.setItem(savedRecipesKey, JSON.stringify(list));
+      
+      // Update global React Query state so parent screens reflect this instantly
+      if (userId) {
+        queryClient.setQueryData(["saved_recipes", userId], list);
+      }
 
       // 2. Synchronize with Backend
       const storedToken = await AsyncStorage.getItem("access_token");
@@ -326,7 +336,7 @@ export default function RecipeDetailsScreen() {
           <Feather
             name="heart"
             size={20}
-            color={isSaved ? "#ef4444" : "#0f172a"}
+            color={isSaved ? "#ef4444" : (isDark ? "#f8fafc" : "#0f172a")}
           />
         </TouchableOpacity>
       </View>
@@ -375,10 +385,10 @@ export default function RecipeDetailsScreen() {
         {/* Title & Tags */}
         <View className="px-5 pt-8 pb-6">
           {recipe.expertValidated && (
-            <View className="flex-row items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 self-start mb-3">
-              <Feather name="shield" size={13} color="#059669" />
-              <Text className="text-[11px] font-bold text-emerald-800 dark:text-emerald-300">
-                Clinical Nutritionist Verified • Expert Recipe Database
+            <View className="flex-row items-center gap-1.5 px-3 py-1.5 rounded-full self-start mb-4" style={{ backgroundColor: isDark ? "#0A2411" : "#DCFCE7" }}>
+              <MaterialCommunityIcons name="check-decagram-outline" size={14} color="#22C55E" />
+              <Text className="text-[11px] font-bold" style={{ color: "#22C55E" }}>
+                Clinical nutritionist verified
               </Text>
             </View>
           )}
@@ -394,16 +404,15 @@ export default function RecipeDetailsScreen() {
             {recipe.tags.map((tag: string) => (
               <View
                 key={tag}
-                className="px-2 py-0.5 rounded-md border"
+                className="px-3 py-1 rounded-full"
                 style={{
-                  backgroundColor: tag === "Low Sodium" ? "#eaf3de" : "#f8fafc",
-                  borderColor: tag === "Low Sodium" ? "#c0dd97" : "#e2e8f0",
+                  backgroundColor: tag === "Low Sodium" ? (isDark ? "#0A2411" : "#DCFCE7") : (isDark ? "#1E293B" : "#F1F5F9"),
                 }}
               >
                 <Text
-                  className="text-[9px] uppercase tracking-wide"
+                  className="text-[10px] font-bold"
                   style={{
-                    color: tag === "Low Sodium" ? "#3b6d11" : "#94a3b8",
+                    color: tag === "Low Sodium" ? "#22C55E" : (isDark ? "#FFFFFF" : "#0F172A"),
                   }}
                 >
                   {tag}
@@ -413,32 +422,32 @@ export default function RecipeDetailsScreen() {
           </View>
 
           {/* Servings Multiplier */}
-          <View className="flex-row items-center justify-between bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 mb-2">
+          <View className="flex-row items-center justify-between p-4 rounded-2xl mb-4" style={{ backgroundColor: isDark ? "#162232" : "#F8FAFC" }}>
             <View>
-              <Text className="text-[14px] font-bold text-slate-900 dark:text-white mb-1">
+              <Text className="text-[14px] font-bold mb-1" style={{ color: isDark ? "#FFFFFF" : "#0F172A" }}>
                 Servings
               </Text>
-              <Text className="text-[12px] text-slate-500 dark:text-slate-400">
+              <Text className="text-[12px]" style={{ color: isDark ? "#94A3B8" : "#64748B" }}>
                 Adjust to see exact macros
               </Text>
             </View>
-            <View className="flex-row items-center bg-slate-50 dark:bg-[#1A2634] border border-slate-200 dark:border-slate-800/70 rounded-xl px-2 py-1.5 gap-4">
+            <View className="flex-row items-center rounded-xl px-2 py-1.5 gap-4" style={{ backgroundColor: isDark ? "#0F172A" : "#F1F5F9" }}>
               <TouchableOpacity
                 onPress={() =>
                   setServingsMultiplier(Math.max(0.5, servingsMultiplier - 0.5))
                 }
                 className="p-2"
               >
-                <Feather name="minus" size={16} color={isDark ? "#f8fafc" : "#0f172a"} />
+                <Feather name="minus" size={16} color={isDark ? "#FFFFFF" : "#0F172A"} />
               </TouchableOpacity>
-              <Text className="text-[15px] font-bold text-slate-900 dark:text-white w-7 text-center">
+              <Text className="text-[15px] font-bold w-7 text-center" style={{ color: isDark ? "#FFFFFF" : "#0F172A" }}>
                 {servingsMultiplier}
               </Text>
               <TouchableOpacity
                 onPress={() => setServingsMultiplier(servingsMultiplier + 0.5)}
                 className="p-2"
               >
-                <Feather name="plus" size={16} color={isDark ? "#f8fafc" : "#0f172a"} />
+                <Feather name="plus" size={16} color={isDark ? "#FFFFFF" : "#0F172A"} />
               </TouchableOpacity>
             </View>
           </View>
@@ -446,18 +455,18 @@ export default function RecipeDetailsScreen() {
 
         {/* ── Heart Benefit ── */}
         <View className="px-5 mb-6">
-          <View className="bg-green-50 rounded-2xl p-4 border border-green-100 flex-row items-start gap-3">
+          <View className="rounded-2xl p-4 flex-row items-start gap-3" style={{ backgroundColor: isDark ? "#0A2411" : "#DCFCE7" }}>
             <Feather
               name="heart"
               size={18}
-              color="#16a34a"
+              color="#22C55E"
               className="mt-0.5"
             />
             <View className="flex-1">
-              <Text className="text-[14px] font-bold text-green-900 mb-1">
+              <Text className="text-[14px] font-bold mb-1" style={{ color: "#22C55E" }}>
                 Why it's good
               </Text>
-              <Text className="text-[13px] text-green-800 leading-tight">
+              <Text className="text-[13px] leading-tight" style={{ color: "#22C55E" }}>
                 {recipe.heartBenefit}
               </Text>
             </View>
@@ -486,18 +495,18 @@ export default function RecipeDetailsScreen() {
           </View>
 
           {isHighSodium && (
-            <View className="mt-4 bg-red-50 p-4 rounded-xl border border-red-100 flex-row items-start gap-3">
+            <View className="mt-4 p-4 rounded-xl flex-row items-start gap-3" style={{ backgroundColor: isDark ? "#450A0A" : "#FEE2E2" }}>
               <Feather
                 name="alert-triangle"
                 size={18}
-                color="#ef4444"
+                color="#EF4444"
                 className="mt-0.5"
               />
               <View className="flex-1">
-                <Text className="text-[14px] font-bold text-red-900 mb-1">
-                  High Sodium Warning
+                <Text className="text-[14px] font-bold mb-1" style={{ color: isDark ? "#FCA5A5" : "#991B1B" }}>
+                  Exceeds your per-meal sodium limit
                 </Text>
-                <Text className="text-[13px] text-red-800 leading-tight">
+                <Text className="text-[13px] leading-tight" style={{ color: isDark ? "#FECACA" : "#7F1D1D" }}>
                   Based on your baseline, this portion exceeds your recommended
                   per-meal sodium limit.
                 </Text>
@@ -508,27 +517,20 @@ export default function RecipeDetailsScreen() {
 
         {/* ── Tabs ── */}
         <View className="px-5 mt-2">
-          <View className="flex-row bg-slate-100 dark:bg-slate-800 p-1 rounded-xl mb-4">
+          <View className="flex-row p-1 rounded-xl mb-4" style={{ backgroundColor: isDark ? "#162232" : "#F1F5F9" }}>
             <TouchableOpacity
               onPress={() => setActiveTab("Ingredients")}
               className="flex-1 py-2.5 items-center rounded-lg"
               style={
                 activeTab === "Ingredients"
-                  ? {
-                      backgroundColor: "#ffffff",
-                      elevation: 1,
-                      shadowColor: "#000",
-                      shadowOpacity: 0.05,
-                      shadowRadius: 2,
-                      shadowOffset: { width: 0, height: 1 },
-                    }
+                  ? { backgroundColor: isDark ? "#1E293B" : "#FFFFFF" }
                   : undefined
               }
             >
               <Text
                 className="text-[13px] font-bold"
                 style={{
-                  color: activeTab === "Ingredients" ? "#0f172a" : "#64748b",
+                  color: activeTab === "Ingredients" ? (isDark ? "#FFFFFF" : "#0F172A") : (isDark ? "#94A3B8" : "#64748B"),
                 }}
               >
                 Ingredients
@@ -539,21 +541,14 @@ export default function RecipeDetailsScreen() {
               className="flex-1 py-2.5 items-center rounded-lg"
               style={
                 activeTab === "Instructions"
-                  ? {
-                      backgroundColor: "#ffffff",
-                      elevation: 1,
-                      shadowColor: "#000",
-                      shadowOpacity: 0.05,
-                      shadowRadius: 2,
-                      shadowOffset: { width: 0, height: 1 },
-                    }
+                  ? { backgroundColor: isDark ? "#1E293B" : "#FFFFFF" }
                   : undefined
               }
             >
               <Text
                 className="text-[13px] font-bold"
                 style={{
-                  color: activeTab === "Instructions" ? "#0f172a" : "#64748b",
+                  color: activeTab === "Instructions" ? (isDark ? "#FFFFFF" : "#0F172A") : (isDark ? "#94A3B8" : "#64748B"),
                 }}
               >
                 Instructions
@@ -562,22 +557,22 @@ export default function RecipeDetailsScreen() {
           </View>
 
           {activeTab === "Ingredients" ? (
-            <View className="bg-slate-50 dark:bg-slate-950 rounded-3xl p-5 border border-slate-100 dark:border-slate-800 mb-6">
+            <View className="mb-6 mt-2">
               {recipe.ingredients.map((ing: any, i: number) => (
                 <View
                   key={i}
                   className="flex-row items-center py-4"
                   style={
                     i !== recipe.ingredients.length - 1
-                      ? { borderBottomWidth: 1, borderBottomColor: "#e2e8f080" }
+                      ? { borderBottomWidth: 1, borderBottomColor: isDark ? "#1E293B" : "#E2E8F0" }
                       : undefined
                   }
                 >
-                  <View className="flex-1 flex-row ml-2">
-                    <Text className="text-[15px] text-slate-900 dark:text-white font-bold w-24">
+                  <View className="flex-1 flex-row">
+                    <Text className="text-[14px] font-bold w-24" style={{ color: isDark ? "#FFFFFF" : "#0F172A" }}>
                       {ing.qty}
                     </Text>
-                    <Text className="text-[15px] text-slate-700 dark:text-slate-300 flex-1 leading-relaxed">
+                    <Text className="text-[14px] flex-1 leading-relaxed" style={{ color: isDark ? "#CBD5E1" : "#475569" }}>
                       {ing.item}
                     </Text>
                   </View>
@@ -585,27 +580,43 @@ export default function RecipeDetailsScreen() {
               ))}
             </View>
           ) : (
-            <View className="bg-slate-50 dark:bg-slate-950 rounded-3xl p-5 border border-slate-100 dark:border-slate-800 mb-6">
-              {recipe.steps.map((step: any, i: number) => (
-                <View
-                  key={i}
-                  className="flex-row py-4"
-                  style={
-                    i !== recipe.steps.length - 1
-                      ? { borderBottomWidth: 1, borderBottomColor: "#e2e8f080" }
-                      : undefined
-                  }
-                >
-                  <View className="w-7 h-7 rounded-full bg-slate-200 dark:bg-slate-800 items-center justify-center mr-4 mt-0.5">
-                    <Text className="text-[13px] font-bold text-slate-700 dark:text-slate-300">
-                      {i + 1}
-                    </Text>
+            <View className="mb-6 mt-4 px-2">
+              {recipe.steps.map((step: any, i: number) => {
+                const isLast = i === recipe.steps.length - 1;
+                return (
+                  <View key={i} className="flex-row mb-6 relative">
+                    {/* Timeline Line */}
+                    {!isLast && (
+                      <View 
+                        className="absolute left-[11px] top-8 bottom-[-24px] w-[2px]" 
+                        style={{ backgroundColor: isDark ? "#1E293B" : "#E2E8F0" }} 
+                      />
+                    )}
+                    
+                    {/* Step Node */}
+                    <View className="mr-4 mt-0.5 relative z-10">
+                      {isLast ? (
+                        <View className="w-6 h-6 rounded-full items-center justify-center" style={{ backgroundColor: isDark ? "#0A2411" : "#DCFCE7" }}>
+                          <Feather name="check" size={14} color="#22C55E" />
+                        </View>
+                      ) : (
+                        <View className="w-6 h-6 rounded-full items-center justify-center" style={{ backgroundColor: isDark ? "#FFFFFF" : "#0F172A" }}>
+                          <Text className="text-[12px] font-bold" style={{ color: isDark ? "#0F172A" : "#FFFFFF" }}>
+                            {i + 1}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+
+                    {/* Step Text */}
+                    <View className="flex-1 pt-1">
+                      <Text className="text-[15px] font-bold leading-relaxed" style={{ color: isDark ? "#FFFFFF" : "#0F172A" }}>
+                        {step}
+                      </Text>
+                    </View>
                   </View>
-                  <Text className="text-[15px] text-slate-700 dark:text-slate-300 flex-1 leading-relaxed">
-                    {step}
-                  </Text>
-                </View>
-              ))}
+                );
+              })}
             </View>
           )}
         </View>
@@ -617,15 +628,15 @@ export default function RecipeDetailsScreen() {
            activeOpacity={0.85}
            onPress={handleLogMeal}
            disabled={isLogged || isSubmitting}
-           className={`w-full py-4 rounded-xl items-center justify-center flex-row gap-2 ${isLogged ? "bg-slate-100 dark:bg-slate-800" : "bg-primary"}`}
+           className={`w-full py-4 rounded-xl items-center justify-center flex-row gap-2 ${isLogged ? "bg-slate-100 dark:bg-slate-800" : "bg-[#38BDF8]"}`}
          >
            {isLogged ? (
              <MaterialCommunityIcons name="check-all" size={18} className="text-slate-400 dark:text-slate-500" />
            ) : (
-             <Feather name="check" size={18} className="text-primary-foreground" />
+             <Feather name="check" size={18} color="#FFFFFF" />
            )}
            <Text 
-             className={`text-[14px] font-semibold ${isLogged ? "text-slate-400 dark:text-slate-500" : "text-primary-foreground"}`}
+             className={`text-[14px] font-semibold ${isLogged ? "text-slate-400 dark:text-slate-500" : "text-white"}`}
            >
              {isLogged ? "Logged Today" : isSubmitting ? "Logging..." : "Log This Meal"}
            </Text>

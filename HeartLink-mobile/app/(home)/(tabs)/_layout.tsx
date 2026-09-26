@@ -64,7 +64,7 @@ function TabBarItem({
     outputRange: [0.95, 1.05],
   });
   
-  const activeColor = "#10B981"; // Primary green
+  const activeColor = "#38bdf8"; // Primary light blue (sky-400)
   const inactiveColor = isDark ? "#94a3b8" : "#64748b";
 
   return (
@@ -105,7 +105,7 @@ function CustomTabBar({ state, navigation, splitOpen, onFabPress, onCloseSplit }
   const isDark = colorScheme === "dark";
 
   const INACTIVE_COLOR = isDark ? "#94a3b8" : "#64748b";
-  const ACTIVE_COLOR = "#10B981"; // Primary green
+  const ACTIVE_COLOR = "#38bdf8"; // Primary light blue
 
   const fabSpin = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -183,17 +183,17 @@ function CustomTabBar({ state, navigation, splitOpen, onFabPress, onCloseSplit }
                   width: 56,
                   height: 56,
                   borderRadius: 28,
-                  backgroundColor: "#10B981", // Primary green
+                  backgroundColor: "#38bdf8", // Primary light blue
                   alignItems: "center",
                   justifyContent: "center",
                   ...Platform.select({
                     ios: {
-                      shadowColor: "#10B981",
+                      shadowColor: "#38bdf8",
                       shadowOffset: { width: 0, height: 6 },
                       shadowOpacity: 0.4,
                       shadowRadius: 12,
                     },
-                    android: { elevation: 8, shadowColor: "#10B981" },
+                    android: { elevation: 8, shadowColor: "#38bdf8" },
                   }),
                 }}
               >

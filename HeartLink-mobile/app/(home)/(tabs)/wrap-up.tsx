@@ -47,15 +47,10 @@ function WrapUpSkeleton() {
 }
 
 // ─── Reusable Components ──────────────────────────────────────────────────────
-function SectionTitle({ title, icon, color }: { title: string, icon?: any, color?: string }) {
+function SectionTitle({ title }: { title: string }) {
   return (
-    <View className="flex-row items-center mb-4">
-      {icon && (
-        <View className="w-6 h-6 rounded-md items-center justify-center mr-2" style={{ backgroundColor: `${color}15` }}>
-          <Feather name={icon} size={14} color={color} />
-        </View>
-      )}
-      <Text className="text-[12px] font-bold text-slate-400 dark:text-slate-500 tracking-[0.08em] uppercase">
+    <View className="mb-2 mt-4">
+      <Text className="text-[12px] font-bold text-slate-500 dark:text-slate-400 tracking-[0.08em] uppercase">
         {title}
       </Text>
     </View>
@@ -64,118 +59,53 @@ function SectionTitle({ title, icon, color }: { title: string, icon?: any, color
 
 function MetricCard({ title, value, icon, color }: { title: string, value: string, icon: any, color: string }) {
   return (
-    <View className="flex-1 bg-white dark:bg-slate-900 rounded-xl p-3.5 border border-slate-200 dark:border-slate-800 flex-row items-center">
-      <View className="w-10 h-10 rounded-lg items-center justify-center mr-3" style={{ backgroundColor: `${color}15` }}>
+    <View className="flex-1 bg-slate-100/50 dark:bg-slate-800/40 rounded-2xl p-4 flex-row items-center border-0">
+      <View className="w-10 h-10 rounded-xl items-center justify-center mr-3" style={{ backgroundColor: `${color}15` }}>
         <Text style={{ fontSize: 18 }}>{icon}</Text>
       </View>
-      <View>
-        <Text className="text-[12px] text-slate-500 dark:text-slate-400 font-medium mb-0.5">{title}</Text>
+      <View className="flex-1">
+        <Text className="text-[11px] text-slate-500 dark:text-slate-400 font-bold mb-0.5 uppercase tracking-wide">{title}</Text>
         <Text className="text-[15px] font-bold text-slate-900 dark:text-white leading-tight">{value}</Text>
       </View>
     </View>
   );
 }
 
-function DailyRecordRow({ dayData, activeTint }: any) {
-  const [expanded, setExpanded] = useState(false);
-
-  const toggleExpand = () => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setExpanded(!expanded);
-  };
+function DailyRecordRowFlat({ dayData, isToday }: any) {
+  const summary = dayData.has_records 
+    ? [
+        dayData.movement.length ? "Exercise" : null,
+        dayData.nutrition.length ? "Meals" : null,
+        dayData.vitals.length ? "Vitals" : null,
+        dayData.sleep.length ? "Sleep" : null,
+        dayData.symptoms.length ? "Symptoms" : null
+      ].filter(Boolean).join(" · ")
+    : "No records";
 
   return (
-    <View className="mb-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-      <TouchableOpacity activeOpacity={0.7} onPress={toggleExpand} className="p-4 flex-row justify-between items-center bg-slate-50 dark:bg-slate-800/50">
-        <View>
-          <Text className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">{dayData.date} · {dayData.day}</Text>
-          <Text className="text-[14px] font-medium text-slate-800 dark:text-slate-200 mt-0.5">
-            {dayData.has_records 
-              ? [
-                  dayData.movement.length ? "Exercise" : null,
-                  dayData.nutrition.length ? "Meals" : null,
-                  dayData.vitals.length ? "Vitals" : null,
-                  dayData.sleep.length ? "Sleep" : null,
-                  dayData.symptoms.length ? "Symptoms" : null
-                ].filter(Boolean).join(" · ")
-              : "No records"}
-          </Text>
+    <View className="flex-row justify-between items-center py-4 border-b border-slate-200 dark:border-slate-800/60 last:border-b-0">
+      <Text className="text-[14px] font-semibold text-slate-900 dark:text-slate-200">
+        {dayData.date} - {dayData.day}
+      </Text>
+      <Text className={`text-[13px] font-medium ${isToday ? "text-blue-500 font-bold" : "text-slate-400 dark:text-slate-500"}`}>
+        {isToday ? "Today" : summary}
+      </Text>
+    </View>
+  );
+}
+
+function LogItemRow({ title, icon, color, onPress }: any) {
+  return (
+    <View className="flex-row items-center justify-between py-4 border-b border-slate-200 dark:border-slate-800/60 last:border-b-0">
+      <View className="flex-row items-center">
+        <View className="w-10 h-10 rounded-xl items-center justify-center mr-3" style={{ backgroundColor: `${color}15` }}>
+          <Feather name={icon} size={18} color={color} />
         </View>
-        <View className="w-8 h-8 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800">
-          <Feather name={expanded ? "chevron-up" : "chevron-down"} size={16} color="#94a3b8" />
-        </View>
+        <Text className="text-[15px] font-semibold text-slate-900 dark:text-white">{title}</Text>
+      </View>
+      <TouchableOpacity onPress={onPress} className="w-7 h-7 rounded-full items-center justify-center" style={{ backgroundColor: color }}>
+        <Feather name="plus" size={16} color="#FFFFFF" />
       </TouchableOpacity>
-
-      {expanded && (
-        <View className="p-4 gap-y-5">
-          {!dayData.has_records && (
-            <Text className="text-[14px] text-slate-400">No health activity recorded on this day.</Text>
-          )}
-          
-          {dayData.movement.length > 0 && (
-             <View>
-               <Text className="text-[11px] font-bold text-slate-400 uppercase mb-2">Movement</Text>
-               {dayData.movement.map((m: any, i: number) => (
-                 <View key={i} className="mb-2">
-                   <Text className="text-[14px] font-semibold text-slate-900 dark:text-white">{m.name} — {m.duration} min</Text>
-                   <Text className="text-[13px] text-slate-500">{m.type} · {m.intensity} Intensity</Text>
-                 </View>
-               ))}
-             </View>
-          )}
-
-          {dayData.nutrition.length > 0 && (
-             <View>
-               <Text className="text-[11px] font-bold text-slate-400 uppercase mb-2">Meals</Text>
-               {dayData.nutrition.map((m: any, i: number) => (
-                 <View key={i} className="mb-2">
-                   <Text className="text-[14px] font-semibold text-slate-900 dark:text-white">{m.meal_name}</Text>
-                   <Text className="text-[13px] text-slate-500">{m.calories} kcal · {m.sodium_mg} mg sodium</Text>
-                 </View>
-               ))}
-             </View>
-          )}
-
-          {dayData.vitals.length > 0 && (
-             <View>
-               <Text className="text-[11px] font-bold text-slate-400 uppercase mb-2">Vitals</Text>
-               {dayData.vitals.map((v: any, i: number) => (
-                 <View key={i} className="mb-2">
-                   <Text className="text-[14px] font-semibold text-slate-900 dark:text-white">{v.time}</Text>
-                   <Text className="text-[13px] text-slate-500">{v.systolic}/{v.diastolic} mmHg · {v.bpm} BPM</Text>
-                   {v.medication !== undefined && v.medication !== null && (
-                     <Text className="text-[12px] text-slate-500 mt-0.5">Medication: {v.medication ? 'Taken' : 'Not taken'}</Text>
-                   )}
-                 </View>
-               ))}
-             </View>
-          )}
-
-          {dayData.sleep.length > 0 && (
-             <View>
-               <Text className="text-[11px] font-bold text-slate-400 uppercase mb-2">Sleep</Text>
-               {dayData.sleep.map((s: any, i: number) => (
-                 <View key={i} className="mb-2">
-                   <Text className="text-[14px] font-semibold text-slate-900 dark:text-white">{s.hours} hours</Text>
-                   <Text className="text-[13px] text-slate-500">Quality: {s.quality}</Text>
-                 </View>
-               ))}
-             </View>
-          )}
-
-          {dayData.symptoms.length > 0 && (
-             <View>
-               <Text className="text-[11px] font-bold text-slate-400 uppercase mb-2">Symptoms</Text>
-               {dayData.symptoms.map((s: any, i: number) => (
-                 <View key={i} className="mb-2">
-                   <Text className="text-[14px] font-semibold text-slate-900 dark:text-white">{s.name}</Text>
-                   <Text className="text-[13px] text-slate-500">Severity: {s.severity}/10 {s.context ? `· ${s.context}` : ''}</Text>
-                 </View>
-               ))}
-             </View>
-          )}
-        </View>
-      )}
     </View>
   );
 }
@@ -433,43 +363,46 @@ function escapeHtml(unsafe: any): string {
         )}
 
         {/* HERO / WEEK HEADER */}
-        <View className="mb-8 pt-2">
-          <Text className="text-[12px] font-bold text-slate-400 dark:text-slate-500 tracking-[0.1em] uppercase mb-1">
+        <View className="mb-6 pt-2">
+          <Text className="text-[12px] font-bold text-slate-500 dark:text-slate-400 tracking-[0.1em] uppercase mb-1">
             Your Week
           </Text>
-          <Text className="text-[32px] font-bold text-slate-900 dark:text-white tracking-tight leading-tight mb-3">
+          <Text className="text-[32px] font-bold text-slate-900 dark:text-white tracking-tight leading-tight mb-2">
             {data.date_range.display}
           </Text>
-          <Text className="text-[16px] text-slate-600 dark:text-slate-400 leading-relaxed max-w-[90%]">
+          <Text className="text-[15px] text-slate-600 dark:text-slate-400 leading-relaxed">
             A chronological record of your health activity this week.
           </Text>
         </View>
 
         {/* GLANCE GRID */}
         <View className="mb-8">
-          <SectionTitle title="Week At A Glance" />
           <View className="flex-row gap-3 mb-3">
             <MetricCard 
-              title="Average recorded stability score" 
-              value={data.overview.hss_average ? `${data.overview.hss_average} avg` : "No data"} 
-              icon="❤️" color="#e11d48" 
+              title="Avg. stability" 
+              value={data.overview.hss_average ?? "No data"} 
+              icon={<Feather name="heart" size={18} color="#e11d48" />} 
+              color="#e11d48" 
             />
             <MetricCard 
               title="Movement" 
-              value={`${data.overview.movement_minutes} min`} 
-              icon="🏃" color="#4A6080" 
+              value={data.overview.movement_minutes ? `${data.overview.movement_minutes} min` : "No data"} 
+              icon={<Feather name="activity" size={18} color="#f97316" />} 
+              color="#f97316" 
             />
           </View>
           <View className="flex-row gap-3">
             <MetricCard 
               title="Sleep" 
               value={data.overview.sleep_average_hours ? `${data.overview.sleep_average_hours} hr` : "No data"} 
-              icon="😴" color="#7c3aed" 
+              icon={<Feather name="moon" size={18} color="#8b5cf6" />} 
+              color="#8b5cf6" 
             />
             <MetricCard 
               title="Vitals" 
               value={`${data.overview.vital_days} days`} 
-              icon="🩺" color="#059669" 
+              icon={<Feather name="droplet" size={18} color="#3b82f6" />} 
+              color="#3b82f6" 
             />
           </View>
         </View>
@@ -477,137 +410,78 @@ function escapeHtml(unsafe: any): string {
         {/* DAILY RECORD TIMELINE */}
         <View className="mb-8">
           <SectionTitle title="Daily Record" />
-          {data.daily_records.map((dayData: any, idx: number) => (
-            <DailyRecordRow key={idx} dayData={dayData} activeTint={activeTint} />
-          ))}
+          <View className="bg-slate-100/50 dark:bg-slate-800/40 rounded-3xl px-5 border-0">
+            {data.daily_records.map((dayData: any, idx: number) => {
+              const isToday = idx === data.daily_records.length - 1;
+              return <DailyRecordRowFlat key={idx} dayData={dayData} isToday={isToday} />;
+            })}
+          </View>
         </View>
 
-        {/* DOMAIN SECTIONS - DETAILED */}
-        <View className="gap-y-8 mb-8">
-          
-          {/* VITALS */}
-          <View>
-            <SectionTitle title="Vital Readings" icon="heart" color="#e11d48" />
-            <View className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800">
-              {data.vitals.records.length > 0 ? data.vitals.records.map((r: any, idx: number) => (
-                <View key={idx} className="mb-4 last:mb-0">
-                  <Text className="text-[11px] font-bold text-slate-400 uppercase mb-1">{r.date} · {r.time}</Text>
-                  <Text className="text-[15px] font-medium text-slate-900 dark:text-white mb-0.5">Blood Pressure: {r.systolic} / {r.diastolic} mmHg</Text>
-                  <Text className="text-[15px] font-medium text-slate-900 dark:text-white mb-0.5">Heart Rate: {r.bpm} BPM</Text>
-                  {r.weight_kg ? <Text className="text-[15px] font-medium text-slate-900 dark:text-white mb-0.5">Weight: {r.weight_kg} kg</Text> : null}
-                  {r.medication !== undefined && r.medication !== null ? <Text className="text-[14px] text-slate-500">Medication: {r.medication ? 'Taken' : 'Not taken'}</Text> : null}
-                </View>
-              )) : (
-                <Text className="text-[15px] text-slate-400">Not recorded</Text>
-              )}
-            </View>
-          </View>
-
-          {/* SLEEP */}
-          <View>
-            <SectionTitle title="Sleep Record" icon="moon" color="#7c3aed" />
-            <View className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800">
-              {data.sleep.records.length > 0 ? data.sleep.records.map((r: any, idx: number) => (
-                <View key={idx} className="mb-4 last:mb-0">
-                  <Text className="text-[11px] font-bold text-slate-400 uppercase mb-1">{r.date}</Text>
-                  <Text className="text-[15px] font-medium text-slate-900 dark:text-white mb-0.5">Duration: {r.hours}h</Text>
-                  <Text className="text-[15px] font-medium text-slate-900 dark:text-white">Quality: {r.quality}</Text>
-                </View>
-              )) : (
-                <Text className="text-[15px] text-slate-400">Not recorded</Text>
-              )}
-            </View>
-          </View>
-
-          {/* SYMPTOMS */}
-          <View>
-            <SectionTitle title="Symptom Record" icon="alert-circle" color="#ea580c" />
-            <View className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800">
-              {data.symptoms.records.length > 0 ? data.symptoms.records.map((r: any, idx: number) => (
-                <View key={idx} className="mb-4 last:mb-0">
-                  <Text className="text-[11px] font-bold text-slate-400 uppercase mb-1">{r.date} · {r.time}</Text>
-                  <Text className="text-[15px] font-medium text-slate-900 dark:text-white mb-0.5">{r.name}</Text>
-                  <Text className="text-[15px] text-slate-600 dark:text-slate-400">Severity: {r.severity}/10</Text>
-                  {r.context ? <Text className="text-[15px] text-slate-600 dark:text-slate-400">Context: {r.context}</Text> : null}
-                </View>
-              )) : (
-                <Text className="text-[15px] text-slate-400">Not recorded</Text>
-              )}
-            </View>
-          </View>
-
-          {/* EXERCISE */}
-          <View>
-            <SectionTitle title="Exercise Record" icon="activity" color="#4A6080" />
-            <View className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800">
-              {data.movement.records.length > 0 ? data.movement.records.map((r: any, idx: number) => (
-                <View key={idx} className="mb-5 last:mb-0">
-                  <Text className="text-[11px] font-bold text-slate-400 uppercase mb-1">{r.date} · {r.time}</Text>
-                  <Text className="text-[16px] font-bold text-slate-900 dark:text-white mb-2">{r.name}</Text>
-                  <Text className="text-[14px] text-slate-600 dark:text-slate-400 mb-0.5">Duration: {r.duration} min</Text>
-                  <Text className="text-[14px] text-slate-600 dark:text-slate-400 mb-0.5">Type: {r.type}</Text>
-                  <Text className="text-[14px] text-slate-600 dark:text-slate-400 mb-0.5">Intensity: {r.intensity}</Text>
-                  <Text className="text-[14px] text-slate-600 dark:text-slate-400 mb-0.5">Goal: {r.goal}</Text>
-                  <Text className="text-[14px] text-slate-600 dark:text-slate-400 mb-2">Status: {r.status}</Text>
-                  {r.instructions && r.instructions.length > 0 && (
-                    <View className="bg-slate-50 dark:bg-slate-800 rounded-xl p-3 mt-1">
-                      <Text className="text-[12px] font-bold text-slate-500 mb-2 uppercase tracking-wide">How it was performed</Text>
-                      {r.instructions.map((ins: string, i: number) => (
-                        <Text key={i} className="text-[13px] text-slate-600 dark:text-slate-300 mb-1">
-                          {i + 1}. {ins}
-                        </Text>
-                      ))}
-                    </View>
-                  )}
-                </View>
-              )) : (
-                <Text className="text-[15px] text-slate-400">Not recorded</Text>
-              )}
-            </View>
-          </View>
-
-          {/* MEALS */}
-          <View>
-            <SectionTitle title="Meal Record" icon="coffee" color="#d97706" />
-            <View className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800">
-              {data.nutrition.records.length > 0 ? data.nutrition.records.map((r: any, idx: number) => (
-                <View key={idx} className="mb-4 last:mb-0">
-                  <Text className="text-[11px] font-bold text-slate-400 uppercase mb-1">{r.date} · {r.time}</Text>
-                  <Text className="text-[15px] font-semibold text-slate-900 dark:text-white mb-0.5">{r.meal_name}</Text>
-                  <Text className="text-[14px] text-slate-600 dark:text-slate-400">{r.calories} kcal · {r.sodium_mg} mg sodium</Text>
-                </View>
-              )) : (
-                <Text className="text-[15px] text-slate-400">Not recorded</Text>
-              )}
-            </View>
+        {/* LOG A RECORD */}
+        <View className="mb-8">
+          <SectionTitle title="Log a Record" />
+          <View className="bg-slate-100/50 dark:bg-slate-800/40 rounded-3xl px-5 border-0">
+            <LogItemRow 
+              title="Vital readings" 
+              icon="activity" 
+              color="#3b82f6" 
+              onPress={() => router.push("/(home)/(health)/log-symptoms")} 
+            />
+            <LogItemRow 
+              title="Sleep" 
+              icon="moon" 
+              color="#8b5cf6" 
+              onPress={() => router.push("/(home)/(health)/log-symptoms")} 
+            />
+            <LogItemRow 
+              title="Symptoms" 
+              icon="alert-circle" 
+              color="#ea580c" 
+              onPress={() => router.push("/(home)/(health)/log-symptoms")} 
+            />
+            <LogItemRow 
+              title="Exercise" 
+              icon="play" 
+              color="#3b82f6" 
+              onPress={() => router.push("/(home)/(health)/exercise-diary")} 
+            />
+            <LogItemRow 
+              title="Meals" 
+              icon="coffee" 
+              color="#d97706" 
+              onPress={() => router.push("/(home)/(meals)/food-diary")} 
+            />
           </View>
         </View>
 
         {/* CONSISTENCY */}
-        <View className="mb-8 bg-orange-50 dark:bg-orange-950/30 rounded-2xl p-5 border border-orange-100 dark:border-orange-900/30">
-          <SectionTitle title="Your Recording Streak" color="#ea580c" />
-          <Text className="text-[20px] font-bold text-slate-900 dark:text-white mb-1">
+        <View className="mb-10 bg-amber-100/80 dark:bg-[#d97706]/20 rounded-3xl p-5 border-0">
+          <Text className="text-[12px] font-bold text-amber-700 dark:text-amber-500 uppercase tracking-widest mb-1">
+            Your Recording Streak
+          </Text>
+          <Text className="text-[22px] font-bold text-amber-900 dark:text-amber-400 mb-2">
             🔥 {data.consistency.current_streak} days
           </Text>
-          <Text className="text-[15px] text-slate-600 dark:text-slate-400">
-            Keep building your health record.
+          <Text className="text-[14px] text-amber-800 dark:text-amber-200">
+            Log something today to start your streak.
           </Text>
         </View>
 
         {/* DOCTOR REPORT ACTION */}
-        <View className="mb-8">
+        <View className="mb-12">
           <AnimatedButton
             onPress={exportReport}
-            className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 flex-row items-center"
+            className="bg-slate-100 dark:bg-slate-800/80 rounded-3xl p-5 border-0 flex-row items-center"
           >
-            <View className="w-12 h-12 rounded-full items-center justify-center mr-4" style={{ backgroundColor: `${activeTint}15` }}>
+            <View className="w-10 h-10 rounded-xl items-center justify-center mr-4" style={{ backgroundColor: `${activeTint}15` }}>
               <Feather name="file-text" size={20} color={activeTint} />
             </View>
             <View className="flex-1">
-              <Text className="text-[16px] font-bold text-slate-900 dark:text-white mb-0.5">
+              <Text className="text-[15px] font-bold text-slate-900 dark:text-white mb-0.5">
                 Export 7-Day Health Report
               </Text>
-              <Text className="text-[14px] text-slate-500">
+              <Text className="text-[13px] text-slate-500 dark:text-slate-400">
                 Share with your doctor
               </Text>
             </View>

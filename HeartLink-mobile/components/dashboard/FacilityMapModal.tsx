@@ -12,7 +12,7 @@ import {
   Dimensions,
   Linking,
 } from "react-native";
-import MapView, { Marker, type Region } from "react-native-maps";
+import MapView, { Marker, type Region, UrlTile } from "react-native-maps";
 import { Feather } from "@expo/vector-icons";
 import { useColorScheme } from "nativewind";
 import * as Haptics from "expo-haptics";
@@ -67,14 +67,14 @@ function getDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number) {
 }
 
 function openDirections(lat: number, lng: number, name: string) {
-  const latLng = `${lat},${lng}`;
+  const destination = `${lat},${lng}`;
   const url = Platform.select({
-    ios: `maps:0,0?q=${encodeURIComponent(name)}@${latLng}`,
-    android: `geo:0,0?q=${latLng}(${encodeURIComponent(name)})`,
+    ios: `http://maps.apple.com/?daddr=${destination}&dirflg=d`,
+    android: `google.navigation:q=${destination}`,
   });
   if (url) {
     Linking.openURL(url).catch(() =>
-      Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${latLng}`)
+      Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${destination}`)
     );
   }
 }
@@ -267,22 +267,28 @@ export function FacilityMapModal({
           }}
         >
           {/* Map (blueprint expanded square) */}
-          <View style={{ height: 300, backgroundColor: isDark ? "#0f172a" : "#E5E4EE" }}>
+          <View style={{ height: 300, backgroundColor: isDark ? "#0f172a" : "#E5E4EE", overflow: "hidden" }}>
             <MapView
               ref={mapRef}
-              style={{ flex: 1 }}
+              style={{ width: "100%", height: "100%", position: "absolute", top: 0, left: 0, bottom: 0, right: 0 }}
+              mapType="none"
               initialRegion={initialRegion}
               showsUserLocation
               showsMyLocationButton={false}
               onMapReady={() => setMapReady(true)}
             >
+              <UrlTile
+                urlTemplate="https://a.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                maximumZ={19}
+                flipY={false}
+              />
               {facilities.map((f) => (
                 <Marker
                   key={f.id}
                   coordinate={{ latitude: f.latitude, longitude: f.longitude }}
                   title={f.name}
                   description={`${f.distance} • ${f.status}`}
-                  pinColor={f.id === selected?.id ? "#E8532E" : "#1B6E63"}
+                  pinColor={f.id === selected?.id ? "#3b82f6" : "#475569"}
                   onPress={() => setSelectedId(f.id)}
                 />
               ))}
@@ -362,65 +368,70 @@ export function FacilityMapModal({
           </View>
 
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 16 }}>
+            <Text style={{ fontSize: 11, fontWeight: "700", color: isDark ? "#94A3B8" : "#64748b", marginBottom: 12, letterSpacing: 0.5, textTransform: "uppercase" }}>
+              Closest to you
+            </Text>
+
             {selected ? (
               <View
                 style={{
                   borderRadius: 16,
                   padding: 14,
-                  backgroundColor: isDark ? "#0f172a" : "#F4F7F5",
+                  backgroundColor: isDark ? "#1E293B" : "#F8FAFC",
                   borderWidth: 1,
-                  borderColor: isDark ? "#1E293B" : "#E2E8E5",
+                  borderColor: isDark ? "#334155" : "#E2E8F0",
+                  marginBottom: 12,
                 }}
               >
-                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" }}>
                   <View style={{ flex: 1, marginRight: 8 }}>
                     <Text
-                      numberOfLines={1}
-                      style={{ fontSize: 15, fontWeight: "700", color: isDark ? "#fff" : "#152131" }}
+                      numberOfLines={2}
+                      style={{ fontSize: 16, fontWeight: "700", color: isDark ? "#fff" : "#0f172a", marginBottom: 4 }}
                     >
-                      Closest: {selected.name}
+                      {selected.name}
                     </Text>
-                    <Text style={{ marginTop: 2, fontSize: 12, color: isDark ? "#94A3B8" : "#5C6B66" }}>
-                      {selected.distance} away • {selected.specialty} • {selected.status}
+                    <Text style={{ fontSize: 13, color: isDark ? "#94A3B8" : "#64748b" }}>
+                      {selected.distance} • {selected.specialty}
                     </Text>
                   </View>
-                  <View
-                    style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 13,
-                      backgroundColor: "rgba(232,83,46,0.12)",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <Feather name="navigation" size={17} color="#E8532E" />
-                  </View>
+                  {selected.status.includes("24/7") && (
+                    <View
+                      style={{
+                        paddingHorizontal: 8,
+                        paddingVertical: 4,
+                        borderRadius: 8,
+                        backgroundColor: "rgba(34,197,94,0.15)",
+                      }}
+                    >
+                      <Text style={{ fontSize: 11, fontWeight: "600", color: "#16a34a" }}>24/7</Text>
+                    </View>
+                  )}
                 </View>
 
-                <View style={{ flexDirection: "row", gap: 8, marginTop: 12 }}>
+                <View style={{ flexDirection: "row", gap: 10, marginTop: 16 }}>
                   <TouchableOpacity
                     activeOpacity={0.85}
                     onPress={() => openDirections(selected.latitude, selected.longitude, selected.name)}
-                    style={{ flex: 1, borderRadius: 12, paddingVertical: 11, backgroundColor: "#E8532E", alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 6 }}
+                    style={{ flex: 1, borderRadius: 10, paddingVertical: 11, backgroundColor: "#3b82f6", alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 6 }}
                   >
-                    <Feather name="navigation" size={14} color="#fff" />
-                    <Text style={{ fontSize: 13, fontWeight: "700", color: "#fff" }}>Directions</Text>
+                    <Feather name="navigation" size={15} color="#fff" />
+                    <Text style={{ fontSize: 14, fontWeight: "700", color: "#fff" }}>Directions</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     activeOpacity={0.85}
                     disabled={!selected.phone}
                     onPress={() => selected.phone && Linking.openURL(`tel:${selected.phone}`)}
-                    style={{ flex: 1, borderRadius: 12, paddingVertical: 11, backgroundColor: isDark ? "#334155" : "#0f172a", opacity: selected.phone ? 1 : 0.5, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 6 }}
+                    style={{ flex: 1, borderRadius: 10, paddingVertical: 11, backgroundColor: isDark ? "#0f172a" : "#1e293b", opacity: selected.phone ? 1 : 0.5, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 6 }}
                   >
-                    <Feather name="phone-call" size={14} color="#fff" />
-                    <Text style={{ fontSize: 13, fontWeight: "700", color: "#fff" }}>Call clinic</Text>
+                    <Feather name="phone-call" size={15} color="#fff" />
+                    <Text style={{ fontSize: 14, fontWeight: "700", color: "#fff" }}>Call</Text>
                   </TouchableOpacity>
                 </View>
               </View>
             ) : (
               !isLoading && (
-                <Text style={{ textAlign: "center", fontSize: 12.5, color: isDark ? "#94A3B8" : "#64748b", paddingVertical: 8 }}>
+                <Text style={{ textAlign: "center", fontSize: 13, color: isDark ? "#94A3B8" : "#64748b", paddingVertical: 8 }}>
                   No Cebu facilities found. Check your connection and try again.
                 </Text>
               )
@@ -428,54 +439,47 @@ export function FacilityMapModal({
 
             {/* Nearby list */}
             {facilities.length > 1 && (
-              <View style={{ marginTop: 12, gap: 8 }}>
-                {facilities.slice(0, 4).map((f) => {
-                  const active = f.id === selected?.id;
-                  return (
-                    <TouchableOpacity
-                      key={f.id}
-                      activeOpacity={0.75}
-                      onPress={() => focusFacility(f)}
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        borderRadius: 12,
-                        paddingVertical: 10,
-                        paddingHorizontal: 12,
-                        backgroundColor: active
-                          ? "rgba(232,83,46,0.08)"
-                          : isDark
-                          ? "#0f172a"
-                          : "#FFFFFF",
-                        borderWidth: 1,
-                        borderColor: active ? "#E8532E" : isDark ? "#1E293B" : "#E2E8E5",
-                      }}
-                    >
-                      <View style={{ flex: 1, marginRight: 8 }}>
-                        <Text numberOfLines={1} style={{ fontSize: 13, fontWeight: "700", color: isDark ? "#fff" : "#152131" }}>
-                          {f.name}
-                        </Text>
-                        <Text style={{ fontSize: 11, color: isDark ? "#94A3B8" : "#5C6B66", marginTop: 1 }}>
-                          {f.distance} • {f.status}
-                        </Text>
-                      </View>
-                      <Feather name="chevron-right" size={15} color={isDark ? "#64748b" : "#94a3b8"} />
-                    </TouchableOpacity>
-                  );
-                })}
+              <View style={{ gap: 8 }}>
+                {facilities.filter(f => f.id !== selected?.id).slice(0, 3).map((f) => (
+                  <TouchableOpacity
+                    key={f.id}
+                    activeOpacity={0.75}
+                    onPress={() => focusFacility(f)}
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      borderRadius: 14,
+                      paddingVertical: 14,
+                      paddingHorizontal: 16,
+                      backgroundColor: isDark ? "#1E293B" : "#FFFFFF",
+                      borderWidth: 1,
+                      borderColor: isDark ? "#334155" : "#E2E8F0",
+                    }}
+                  >
+                    <View style={{ flex: 1, marginRight: 8 }}>
+                      <Text numberOfLines={1} style={{ fontSize: 14, fontWeight: "700", color: isDark ? "#fff" : "#0f172a", marginBottom: 2 }}>
+                        {f.name}
+                      </Text>
+                      <Text style={{ fontSize: 12, color: isDark ? "#94A3B8" : "#64748b" }}>
+                        {f.distance} • {f.status}
+                      </Text>
+                    </View>
+                    <Feather name="chevron-right" size={16} color={isDark ? "#94A3B8" : "#94a3b8"} />
+                  </TouchableOpacity>
+                ))}
               </View>
             )}
 
             <TouchableOpacity
               activeOpacity={0.7}
               onPress={() => animateOut(onOpenFull)}
-              style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 12 }}
+              style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 16, marginTop: 4 }}
             >
-              <Text style={{ fontSize: 12.5, fontWeight: "700", color: "#E8532E" }}>
+              <Text style={{ fontSize: 14, fontWeight: "700", color: "#3b82f6" }}>
                 Open full locator
               </Text>
-              <Feather name="arrow-right" size={13} color="#E8532E" />
+              <Feather name="arrow-right" size={15} color="#3b82f6" />
             </TouchableOpacity>
           </ScrollView>
         </Animated.View>
