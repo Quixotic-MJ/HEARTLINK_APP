@@ -19,131 +19,90 @@ import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useUser } from "../../../contexts/UserContext";
-
-const base_url = process.env.EXPO_PUBLIC_API_URL;
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
 import { useToast } from "../../../contexts/ToastContext";
 
-// ─── Profile Field Row ────────────────────────────────────────────────────────
+const base_url = process.env.EXPO_PUBLIC_API_URL;
 
-function ProfileField({
-  label,
-  value,
-  icon,
-  iconType = "feather",
-  iconBg = "#f8fafc",
-  iconColor = "#94a3b8",
-  unit,
-  isLast = false,
-  onPress,
-}: {
-  label: string;
-  value: string;
-  icon: string;
-  iconType?: "feather" | "material";
-  iconBg?: string;
-  iconColor?: string;
-  unit?: string;
-  isLast?: boolean;
-  onPress?: () => void;
-}) {
-  const Container: any = onPress ? TouchableOpacity : View;
-  
+// ─── Helper Components ────────────────────────────────────────────────────────
+
+function StatCard({ icon, iconColor, value, label }: { icon: any, iconColor: string, value: string, label: string }) {
   return (
-    <Container
-      activeOpacity={0.8}
-      onPress={onPress}
-      className="flex-row items-center py-3.5"
-      style={!isLast ? { borderBottomWidth: 0.5, borderBottomColor: "#f1f5f9" } : undefined}
-    >
-      <View
-        className="w-9 h-9 rounded-xl items-center justify-center mr-3.5 border border-slate-200 dark:border-slate-800/70 flex-shrink-0"
-        style={{ backgroundColor: iconBg }}
-      >
-        {iconType === "material" ? (
-          <MaterialCommunityIcons name={icon as any} size={17} color={iconColor} />
-        ) : (
-          <Feather name={icon as any} size={15} color={iconColor} />
-        )}
-      </View>
-      <View className="flex-1">
-        <Text className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-0.5">
-          {label}
-        </Text>
-        <Text className="text-[14px] font-medium text-slate-900 dark:text-white">
-          {value}
-          {unit && (
-            <Text className="text-[13px] font-medium text-slate-500"> {unit}</Text>
-          )}
-        </Text>
-      </View>
-      {onPress && <Feather name="chevron-right" size={15} color="#94a3b8" />}
-    </Container>
-  );
-}
-
-// ─── Section Label ────────────────────────────────────────────────────────────
-
-function SectionLabel({ title }: { title: string }) {
-  return (
-    <Text className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2 mt-1">
-      {title}
-    </Text>
-  );
-}
-
-// ─── Field Group card ─────────────────────────────────────────────────────────
-
-function FieldGroup({ children }: { children: React.ReactNode }) {
-  return (
-    <View className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/70 px-4 mb-3">
-      {children}
+    <View className="flex-1 rounded-2xl p-3 border bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800/70">
+      <Feather name={icon} size={14} color={iconColor} style={{ marginBottom: 6 }} />
+      <Text className="text-[16px] font-bold mb-0.5 text-slate-900 dark:text-white">{value}</Text>
+      <Text className="text-[10px] text-slate-500 dark:text-slate-400">{label}</Text>
     </View>
   );
 }
 
-// ─── Quick Stat ───────────────────────────────────────────────────────────────
-
-function QuickStat({
-  value,
-  label,
-  iconBg,
-  iconColor,
-  icon,
-  style,
-}: {
-  value: string;
-  label: string;
-  iconBg: string;
-  iconColor: string;
-  icon: string;
-  style?: any;
-}) {
+function PersonalRow({ icon, value, isLast = false }: { icon: any, value: string, isLast?: boolean }) {
   return (
-    <View
-      className="bg-white dark:bg-slate-900 rounded-2xl p-3.5 border border-slate-200 dark:border-slate-800/70 flex-row items-center gap-3"
-      style={style}
-    >
-      <View
-        className="w-9 h-9 rounded-xl items-center justify-center flex-shrink-0"
-        style={{ backgroundColor: iconBg }}
-      >
-        <Feather name={icon as any} size={15} color={iconColor} />
+    <View className={`flex-row items-center py-3.5 ${!isLast ? 'border-b border-slate-200 dark:border-slate-800/70' : ''}`}>
+      <View className="w-6 items-center mr-2">
+        <Feather name={icon} size={14} className="text-slate-500 dark:text-slate-400" />
       </View>
-      <View>
-        <Text className="text-[18px] font-medium text-slate-900 dark:text-white leading-tight">
-          {value}
-        </Text>
-        <Text className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide mt-0.5">
-          {label}
-        </Text>
-      </View>
+      <Text className="text-[14px] font-bold flex-1 text-slate-900 dark:text-white">{value}</Text>
     </View>
+  );
+}
+
+function BiometricCard({ label, value, unit }: { label: string, value: string, unit: string }) {
+  return (
+    <View className="rounded-2xl p-3.5 border mb-3 w-[48%] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800/70">
+      <Text className="text-[10px] font-bold mb-1 text-slate-500 dark:text-slate-400">{label}</Text>
+      <Text className="text-[16px] font-bold text-slate-900 dark:text-white">
+        {value} <Text className="text-[12px] font-normal text-slate-500 dark:text-slate-400">{unit}</Text>
+      </Text>
+    </View>
+  );
+}
+
+function MoreRow({ icon, label, onPress, isLast = false }: { icon: any, label: string, onPress: () => void, isLast?: boolean }) {
+  return (
+    <TouchableOpacity activeOpacity={0.7} onPress={onPress} className={`flex-row items-center py-4 ${!isLast ? 'border-b border-slate-200 dark:border-slate-800/70' : ''}`}>
+      <View className="w-6 items-center mr-2">
+        <Feather name={icon} size={15} className="text-slate-900 dark:text-white" />
+      </View>
+      <Text className="flex-1 text-[14px] font-bold text-slate-900 dark:text-white">{label}</Text>
+      <Feather name="chevron-right" size={16} className="text-slate-400 dark:text-slate-500" />
+    </TouchableOpacity>
   );
 }
 
 // ─── Edit Profile Modal ───────────────────────────────────────────────────────
+
+function EditField({ 
+  label, 
+  value, 
+  onChangeText, 
+  rightIcon, 
+  editable = true, 
+  keyboardType = "default", 
+  hasBorder = true,
+  rightText = ""
+}: any) {
+  return (
+    <View className={`px-4 py-3 ${hasBorder ? 'border-b border-slate-200 dark:border-slate-800/70' : ''} flex-row items-center justify-between`}>
+      <View className="flex-1">
+        <Text className="text-[11px] font-bold mb-1 text-slate-500 dark:text-slate-400">{label}</Text>
+        <TextInput
+           value={value}
+           onChangeText={onChangeText}
+           editable={editable}
+           keyboardType={keyboardType}
+           className="text-[15px] font-bold p-0 m-0 text-slate-900 dark:text-white"
+           style={{ opacity: editable ? 1 : 0.5 }}
+        />
+      </View>
+      {rightText ? (
+        <Text className="text-[12px] text-slate-500 dark:text-slate-400 ml-2 font-normal">{rightText}</Text>
+      ) : null}
+      {rightIcon && <Feather name={rightIcon} size={14} className="text-slate-400 dark:text-slate-500" />}
+    </View>
+  );
+}
 
 function EditProfileModal({
   visible,
@@ -164,6 +123,8 @@ function EditProfileModal({
   const [height, setHeight] = useState(currentData.height);
   const [weight, setWeight] = useState(currentData.weight);
   const [isSaving, setIsSaving] = useState(false);
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === "dark";
 
   React.useEffect(() => {
     if (visible) {
@@ -197,115 +158,70 @@ function EditProfileModal({
     setIsSaving(false);
   };
 
+  const getInitials = (nameStr: string) => {
+    if (!nameStr) return "JM";
+    const parts = nameStr.trim().split(" ");
+    if (parts.length > 1) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    return nameStr.substring(0, 2).toUpperCase();
+  };
+
   return (
-    <Modal visible={visible} transparent animationType="fade">
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} className="flex-1">
-        <Pressable
-          className="flex-1 justify-end"
-          style={{ backgroundColor: "rgba(15,23,42,0.5)" }}
-          onPress={onClose}
-        >
-          <Pressable className="bg-white dark:bg-slate-900 rounded-t-3xl px-5 pt-3 pb-8 border-t border-slate-200 dark:border-slate-800/50 max-h-[85%]">
-            <View className="w-10 h-1 bg-slate-200 rounded-full self-center mb-5" />
+    <Modal visible={visible} transparent animationType="slide">
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} className="flex-1 bg-slate-50 dark:bg-slate-950">
+        {/* Header */}
+        <View className="flex-row justify-between items-center px-5 pt-14 pb-4">
+          <TouchableOpacity onPress={onClose} className="p-2 -ml-2">
+            <Text className="text-slate-500 dark:text-slate-400 text-[15px]">Cancel</Text>
+          </TouchableOpacity>
+          <Text className="text-slate-900 dark:text-white font-bold text-[17px]">Edit profile</Text>
+          <TouchableOpacity onPress={handleSave} className="p-2 -mr-2">
+            <Text className="text-blue-500 text-[15px] font-semibold">Save</Text>
+          </TouchableOpacity>
+        </View>
 
-            <View className="flex-row items-center justify-between mb-6">
-              <Text className="text-[20px] font-medium text-slate-900 dark:text-white">
-                Edit profile
-              </Text>
-              <TouchableOpacity onPress={onClose} className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 items-center justify-center">
-                <Feather name="x" size={16} color="#64748b" />
-              </TouchableOpacity>
+        <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}>
+          {/* PERSONAL */}
+          <Text className="text-[11px] font-bold mx-5 mb-2 mt-4 uppercase tracking-widest text-slate-500 dark:text-slate-400">Personal</Text>
+          <View className="rounded-2xl border border-slate-200 dark:border-slate-800/70 bg-white dark:bg-slate-900 mx-5 overflow-hidden mb-6">
+            <EditField label="Full name" value={name} onChangeText={setName} />
+            <EditField label="Email" value={email} onChangeText={setEmail} editable={false} rightIcon="lock" />
+            <EditField label="Phone" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
+            <EditField label="Date of birth" value={birthdate} onChangeText={setBirthdate} rightIcon="calendar" />
+            <EditField label="Gender" value={gender} onChangeText={setGender} rightIcon="chevron-down" hasBorder={false} />
+          </View>
+
+          {/* BIOMETRICS */}
+          <Text className="text-[11px] font-bold mx-5 mb-2 uppercase tracking-widest text-slate-500 dark:text-slate-400">Biometrics</Text>
+          <View className="rounded-2xl border border-slate-200 dark:border-slate-800/70 bg-white dark:bg-slate-900 mx-5 overflow-hidden mb-2">
+            <View className="flex-row border-b border-slate-200 dark:border-slate-800/70">
+              <View className="flex-1 border-r border-slate-200 dark:border-slate-800/70">
+                <EditField label="Height (cm)" value={height} onChangeText={setHeight} keyboardType="numeric" hasBorder={false} />
+              </View>
+              <View className="flex-1">
+                <EditField label="Weight (kg)" value={weight} onChangeText={setWeight} keyboardType="numeric" hasBorder={false} />
+              </View>
             </View>
+            <EditField label="Blood pressure" value={`${currentData.systolicBP} / ${currentData.diastolicBP}`} editable={false} rightText="mmHg" />
+            <EditField label="Resting heart rate" value={currentData.restingHR} editable={false} rightText="bpm" hasBorder={false} />
+          </View>
+          <Text className="text-[11px] text-slate-500 mx-5 mb-8">BMI updates automatically from height and weight.</Text>
 
-            <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}>
-              <Text className="text-[13px] font-medium text-slate-700 dark:text-slate-300 mb-2">Name</Text>
-              <View className="flex-row items-center bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/70 rounded-xl px-4 py-3 mb-4">
-                <TextInput
-                  className="flex-1 text-[15px] text-slate-900 dark:text-white font-medium"
-                  value={name}
-                  onChangeText={setName}
-                />
-              </View>
-
-              <Text className="text-[13px] font-medium text-slate-700 dark:text-slate-300 mb-2">Email</Text>
-              <View className="flex-row items-center bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/70 rounded-xl px-4 py-3 mb-4">
-                <TextInput
-                  className="flex-1 text-[15px] text-slate-900 dark:text-white font-medium"
-                  keyboardType="email-address"
-                  value={email}
-                  onChangeText={setEmail}
-                />
-              </View>
-
-              <Text className="text-[13px] font-medium text-slate-700 dark:text-slate-300 mb-2">Phone</Text>
-              <View className="flex-row items-center bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/70 rounded-xl px-4 py-3 mb-4">
-                <TextInput
-                  className="flex-1 text-[15px] text-slate-900 dark:text-white font-medium"
-                  keyboardType="phone-pad"
-                  value={phone}
-                  onChangeText={setPhone}
-                />
-              </View>
-
-              <Text className="text-[13px] font-medium text-slate-700 dark:text-slate-300 mb-2">Date of Birth</Text>
-              <View className="flex-row items-center bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/70 rounded-xl px-4 py-3 mb-4">
-                <TextInput
-                  className="flex-1 text-[15px] text-slate-900 dark:text-white font-medium"
-                  placeholder="YYYY-MM-DD"
-                  placeholderTextColor="#94a3b8"
-                  value={birthdate}
-                  onChangeText={setBirthdate}
-                />
-              </View>
-
-              <Text className="text-[13px] font-medium text-slate-700 dark:text-slate-300 mb-2">Gender</Text>
-              <View className="flex-row items-center bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/70 rounded-xl px-4 py-3 mb-4">
-                <TextInput
-                  className="flex-1 text-[15px] text-slate-900 dark:text-white font-medium"
-                  value={gender}
-                  onChangeText={setGender}
-                />
-              </View>
-
-              <Text className="text-[13px] font-medium text-slate-700 dark:text-slate-300 mb-2">Height (cm)</Text>
-              <View className="flex-row items-center bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/70 rounded-xl px-4 py-3 mb-4">
-                <TextInput
-                  className="flex-1 text-[15px] text-slate-900 dark:text-white font-medium"
-                  keyboardType="numeric"
-                  value={height}
-                  onChangeText={setHeight}
-                />
-              </View>
-
-              <Text className="text-[13px] font-medium text-slate-700 dark:text-slate-300 mb-2">Weight (kg)</Text>
-              <View className="flex-row items-center bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/70 rounded-xl px-4 py-3 mb-6">
-                <TextInput
-                  className="flex-1 text-[15px] text-slate-900 dark:text-white font-medium"
-                  keyboardType="numeric"
-                  value={weight}
-                  onChangeText={setWeight}
-                />
-              </View>
-
-              <TouchableOpacity
-                activeOpacity={0.85}
-                onPress={handleSave}
-                disabled={isSaving}
-                className="bg-[#0f172a] py-3.5 rounded-xl items-center justify-center flex-row gap-2 border border-[#0f172a]"
-                style={{ opacity: isSaving ? 0.8 : 1 }}
-              >
-                {isSaving ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <>
-                    <Feather name="check" size={16} color="#fff" />
-                    <Text className="text-white font-medium text-[14px]">Save Changes</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            </ScrollView>
-          </Pressable>
-        </Pressable>
+          <View className="px-5 pb-12">
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={handleSave}
+              disabled={isSaving}
+              className="bg-slate-900 dark:bg-slate-100 py-4 rounded-xl items-center justify-center flex-row gap-2"
+              style={{ opacity: isSaving ? 0.8 : 1 }}
+            >
+              {isSaving ? (
+                <ActivityIndicator size="small" color={isDark ? "#0F172A" : "#FFFFFF"} />
+              ) : (
+                <Text className="text-white dark:text-slate-900 font-bold text-[16px]">Save changes</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </Modal>
   );
@@ -317,7 +233,7 @@ export default function ProfileScreen({ isTab = false }: { isTab?: boolean } = {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
   const router = useRouter();
-  const { userId, token, user, logout, refreshUser } = useUser();
+  const { userId, token, user, refreshUser } = useUser();
   const { showToast } = useToast();
 
   const [showUpdateModal, setShowUpdateModal] = useState(false);
@@ -366,7 +282,7 @@ export default function ProfileScreen({ isTab = false }: { isTab?: boolean } = {
         if (logsRes && logsRes.ok) {
           const logsData = await logsRes.json();
           if (logsData && logsData.length > 0) {
-            const latest = logsData[logsData.length - 1]; // Assuming the last is the latest, or sort by date
+            const latest = logsData[logsData.length - 1]; 
             latestVitals.restingHR = latest.heart_rate_bpm ? latest.heart_rate_bpm.toString() : "--";
             latestVitals.systolicBP = latest.systolic_bp ? latest.systolic_bp.toString() : "--";
             latestVitals.diastolicBP = latest.diastolic_bp ? latest.diastolic_bp.toString() : "--";
@@ -379,9 +295,7 @@ export default function ProfileScreen({ isTab = false }: { isTab?: boolean } = {
         
         if (profile) {
           let meds = "None reported";
-          if (baselines.clinical?.on_medication) {
-            meds = "Yes";
-          }
+          if (baselines.clinical?.on_medication) meds = "Yes";
           
           let allergies = "None reported";
           if (baselines.dietary?.allergies && baselines.dietary.allergies.length > 0) {
@@ -435,7 +349,7 @@ export default function ProfileScreen({ isTab = false }: { isTab?: boolean } = {
         sex: newData.gender || userData.gender,
         height_cm: parseFloat(newData.height),
         weight_kg: parseFloat(newData.weight),
-        health_goals: [] // default
+        health_goals: [] 
       };
       
       const effectiveToken = token || "";
@@ -450,29 +364,17 @@ export default function ProfileScreen({ isTab = false }: { isTab?: boolean } = {
       
       const resData = await response.json();
       if (!response.ok) {
-        showToast({
-          title: "Update Failed",
-          message: resData.detail || "Failed to update profile.",
-          type: "error",
-        });
+        showToast({ title: "Update Failed", message: resData.detail || "Failed to update profile.", type: "error" });
         return;
       }
       
       setUserData((prev) => ({ ...prev, ...newData }));
-      showToast({
-        title: "Profile Updated",
-        message: "Your profile details have been saved.",
-        type: "success",
-      });
+      showToast({ title: "Profile Updated", message: "Your profile details have been saved.", type: "success" });
       setShowUpdateModal(false);
       await refreshUser();
     } catch (err) {
       console.error(err);
-      showToast({
-        title: "Error",
-        message: "An unexpected error occurred while saving.",
-        type: "error",
-      });
+      showToast({ title: "Error", message: "An unexpected error occurred while saving.", type: "error" });
     }
   };
 
@@ -497,12 +399,10 @@ export default function ProfileScreen({ isTab = false }: { isTab?: boolean } = {
           <body>
             <h1>Patient Health Profile</h1>
             <p>Generated by HeartLink</p>
-            
             <div class="details">
               <strong>Patient:</strong> ${userData.name}<br><br>
               <strong>Date of Birth:</strong> ${userData.birthdate}
             </div>
-            
             <h2>Personal Information</h2>
             <table>
               <tr><th>Attribute</th><th>Value</th></tr>
@@ -510,7 +410,6 @@ export default function ProfileScreen({ isTab = false }: { isTab?: boolean } = {
               <tr><td>Phone</td><td class="highlight">${userData.phone}</td></tr>
               <tr><td>Gender</td><td class="highlight">${userData.gender}</td></tr>
             </table>
-
             <h2>Biometrics</h2>
             <table>
               <tr><th>Attribute</th><th>Value</th></tr>
@@ -535,161 +434,95 @@ export default function ProfileScreen({ isTab = false }: { isTab?: boolean } = {
     }
   };
 
+  const getInitials = (name: string) => {
+    if (!name) return "JM";
+    const parts = name.trim().split(" ");
+    if (parts.length > 1) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    return name.substring(0, 2).toUpperCase();
+  };
+
   return (
-    <ScreenWrapper 
-      edges={["top"]} 
-      withScrollView={false}
-    >
+    <ScreenWrapper edges={["top"]} withScrollView={false}>
       <StatusBar style={isDark ? "light" : "dark"} />
 
       {/* Header */}
-      <View className="flex-row items-center px-5 pt-4 pb-3 border-b border-slate-200 dark:border-slate-800/50">
-        {!isTab && (
-          <TouchableOpacity
-            onPress={() => router.back()}
-            className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 items-center justify-center mr-3"
-          >
-            <Feather name="arrow-left" size={18} color={isDark ? "#f8fafc" : "#0f172a"} />
-          </TouchableOpacity>
-        )}
-        <Text className="flex-1 text-[17px] font-medium text-slate-900 dark:text-white">
-          My profile
-        </Text>
-        <TouchableOpacity onPress={() => setShowUpdateModal(true)} className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 items-center justify-center">
-          <Feather name="edit-2" size={15} color="#64748b" />
+      <View className="flex-row items-center justify-between px-5 pt-4 pb-4">
+        <View className="flex-row items-center">
+          {!isTab && (
+            <TouchableOpacity onPress={() => router.back()} className="mr-3">
+              <Feather name="arrow-left" size={20} className="text-slate-900 dark:text-white" />
+            </TouchableOpacity>
+          )}
+          <Text className="text-[20px] font-bold text-slate-900 dark:text-white">
+            My profile
+          </Text>
+        </View>
+        <TouchableOpacity 
+          onPress={() => setShowUpdateModal(true)} 
+          className="w-8 h-8 rounded-full items-center justify-center bg-slate-100 dark:bg-slate-800"
+        >
+          <Feather name="edit-2" size={14} className="text-slate-900 dark:text-white" />
         </TouchableOpacity>
       </View>
 
-      <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag"
-        contentContainerClassName="pb-40"
+      <ScrollView 
+        keyboardShouldPersistTaps="handled" 
+        keyboardDismissMode="on-drag"
+        contentContainerClassName="pb-40 px-5 pt-2"
         showsVerticalScrollIndicator={false}
       >
-        {/* ── Avatar hero ── */}
-        <View className="items-center pt-6 pb-5 px-5">
-          <View className="relative mb-4">
-            <View className="w-24 h-24 rounded-full bg-slate-200 overflow-hidden border-4 border-white"
-              style={{ shadowColor: "#0f172a", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 12, elevation: 6 }}
-            >
-              <Image
-                source={{ uri: user?.avatar_url || "https://ui-avatars.com/api/?name=" + (user?.first_name || "U") + "&background=e2e8f0&color=475569&bold=true" }}
-                className="w-full h-full"
-                resizeMode="cover"
-              />
+        {/* User Card */}
+        <View className="rounded-2xl p-4 flex-row items-center border bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800/70">
+          <View className="relative mr-4">
+            <View className="w-[52px] h-[52px] rounded-full items-center justify-center bg-blue-100 dark:bg-blue-900/40 border border-blue-200 dark:border-blue-800">
+              <Text className="text-blue-700 dark:text-blue-300 font-bold text-[16px] tracking-widest">{getInitials(userData.name)}</Text>
             </View>
+            <View className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-white dark:border-slate-900" />
           </View>
-
-          <Text className="text-[20px] font-medium text-slate-900 dark:text-white tracking-tight">
-            {userData.name}
-          </Text>
-          <Text className="text-[14px] font-medium text-slate-500 dark:text-slate-400 mt-1">{userData.email}</Text>
-
-          {/* Clinical History Tags */}
-          {userData.conditions && userData.conditions.length > 0 && (
-            <View className="flex-row flex-wrap justify-center gap-2 mt-3 w-full">
-              {userData.conditions.map((condition, index) => (
-                <View key={index} className="bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-800/70 px-3 py-1.5 rounded-full">
-                  <Text className="text-[12px] text-slate-600 font-medium">{condition}</Text>
-                </View>
-              ))}
-            </View>
-          )}
-
-          {/* Quick stats */}
-          <View className="gap-2.5 mt-5 w-full">
-            <QuickStat value={`${userData.systolicBP}/${userData.diastolicBP}`} label="Blood pressure" icon="trending-up" iconBg="#eaf3de" iconColor="#3b6d11" style={{ width: "100%" }} />
-            <View className="flex-row justify-between w-full">
-              <QuickStat value={userData.bmi} label="BMI" icon="activity" iconBg="#e6f1fb" iconColor="#185fa5" style={{ width: "48.5%" }} />
-              <QuickStat value={userData.restingHR} label="Resting HR" icon="heart" iconBg="#faeeda" iconColor="#854f0b" style={{ width: "48.5%" }} />
-            </View>
+          <View className="flex-1">
+            <Text className="text-[16px] font-bold mb-0.5 text-slate-900 dark:text-white">
+              {userData.name || "Loading..."}
+            </Text>
+            <Text className="text-[12px] font-medium text-slate-500 dark:text-slate-400">
+              {userData.email}
+            </Text>
           </View>
         </View>
 
-        <View className="px-5">
-
-          {/* ── Personal ── */}
-          <SectionLabel title="Personal" />
-          <FieldGroup>
-            <ProfileField label="Full name" value={userData.name} icon="user" />
-            <ProfileField label="Email" value={userData.email} icon="mail" />
-            <ProfileField label="Phone" value={userData.phone} icon="phone" />
-            <ProfileField label="Date of birth" value={userData.birthdate} icon="calendar" />
-            <ProfileField label="Gender" value={userData.gender ? userData.gender.charAt(0).toUpperCase() + userData.gender.slice(1).toLowerCase() : ""} icon="users" isLast />
-          </FieldGroup>
-
-          {/* ── Biometrics ── */}
-          <SectionLabel title="Biometrics" />
-          <FieldGroup>
-            <ProfileField label="Height" value={userData.height} unit="cm" icon="maximize-2" iconBg="#e6f1fb" iconColor="#185fa5" />
-            <ProfileField label="Weight" value={userData.weight} unit="kg" icon="target" iconBg="#e6f1fb" iconColor="#185fa5" />
-            {/* These vitals should be fetched from the user's latest daily vitals log, not edited here */}
-            <ProfileField
-              label="Blood pressure"
-              value={`${userData.systolicBP}/${userData.diastolicBP}`}
-              unit="mmHg"
-              icon="heart-pulse"
-              iconType="material"
-              iconBg="#fcebeb"
-              iconColor="#a32d2d"
-            />
-            <ProfileField
-              label="Resting heart rate"
-              value={userData.restingHR}
-              unit="bpm"
-              icon="heart"
-              iconBg="#fcebeb"
-              iconColor="#a32d2d"
-              isLast
-            />
-          </FieldGroup>
-
-          {/* ── Actions ── */}
-          <View className="gap-2.5 mt-2">
-            <TouchableOpacity
-              activeOpacity={0.85}
-              onPress={() => router.push("/(home)/(profile)/analytics" as any)}
-              className="bg-primary/5 dark:bg-primary/10 rounded-2xl py-3.5 flex-row items-center justify-center gap-2 border border-primary/20 dark:border-primary/30"
-            >
-              <Feather name="bar-chart-2" size={15} className="text-primary" />
-              <Text className="text-[15px] font-semibold text-primary">
-                Long-Term Analytics
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              activeOpacity={0.85}
-              onPress={() => router.push("/(home)/(profile)/care-team")}
-              className="bg-primary/5 dark:bg-primary/10 rounded-2xl py-3.5 flex-row items-center justify-center gap-2 border border-primary/20 dark:border-primary/30"
-            >
-              <Feather name="users" size={15} className="text-primary" />
-              <Text className="text-[15px] font-semibold text-primary">
-                My Care Team
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              activeOpacity={0.85}
-              onPress={() => router.push("/(home)/(tabs)/wrap-up" as any)}
-              className="bg-primary/5 dark:bg-primary/10 rounded-2xl py-3.5 flex-row items-center justify-center gap-2 border border-primary/20 dark:border-primary/30"
-            >
-              <Feather name="file-text" size={15} className="text-primary" />
-              <Text className="text-[15px] font-semibold text-primary">
-                Doctor Consultation Summary
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              activeOpacity={0.85}
-              onPress={exportPDF}
-              className="bg-primary/5 dark:bg-primary/10 rounded-2xl py-3.5 flex-row items-center justify-center gap-2 border border-primary/20 dark:border-primary/30"
-            >
-              <Feather name="download" size={15} className="text-primary" />
-              <Text className="text-[15px] font-semibold text-primary">
-                Download Biometrics PDF
-              </Text>
-            </TouchableOpacity>
-          </View>
-
+        {/* Stats Row */}
+        <View className="flex-row justify-between mt-3 gap-3">
+          <StatCard icon="activity" iconColor="#4ADE80" value={`${userData.systolicBP}/${userData.diastolicBP}`} label="Blood pressure" />
+          <StatCard icon="activity" iconColor="#60A5FA" value={userData.bmi} label="BMI" />
+          <StatCard icon="heart" iconColor="#F87171" value={userData.restingHR} label="Resting HR" />
         </View>
+
+        {/* PERSONAL */}
+        <Text className="text-[11px] font-bold mt-6 mb-2 uppercase tracking-widest text-slate-500 dark:text-slate-400">Personal</Text>
+        <View className="rounded-3xl px-4 border bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800/70">
+          <PersonalRow icon="mail" value={userData.email || "Not provided"} />
+          <PersonalRow icon="phone" value={userData.phone || "Not provided"} />
+          <PersonalRow icon="calendar" value={userData.birthdate || "Not provided"} />
+          <PersonalRow icon="user" value={userData.gender ? userData.gender.charAt(0).toUpperCase() + userData.gender.slice(1).toLowerCase() : "Not provided"} isLast />
+        </View>
+
+        {/* BIOMETRICS */}
+        <Text className="text-[11px] font-bold mt-6 mb-2 uppercase tracking-widest text-slate-500 dark:text-slate-400">Biometrics</Text>
+        <View className="flex-row flex-wrap justify-between">
+          <BiometricCard label="Height" value={userData.height || "--"} unit="cm" />
+          <BiometricCard label="Weight" value={userData.weight || "--"} unit="kg" />
+          <BiometricCard label="Blood pressure" value={`${userData.systolicBP}/${userData.diastolicBP}`} unit="" />
+          <BiometricCard label="Resting HR" value={userData.restingHR} unit="bpm" />
+        </View>
+
+        {/* MORE */}
+        <Text className="text-[11px] font-bold mt-3 mb-2 uppercase tracking-widest text-slate-500 dark:text-slate-400">More</Text>
+        <View className="rounded-3xl px-4 border mb-8 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800/70">
+          <MoreRow icon="bar-chart-2" label="Long-term analytics" onPress={() => router.push("/(home)/(profile)/analytics")} />
+          <MoreRow icon="users" label="My care team" onPress={() => router.push("/(home)/(profile)/care-team")} />
+          <MoreRow icon="file-text" label="Doctor consultation summary" onPress={() => router.push("/(home)/(tabs)/wrap-up" as any)} />
+          <MoreRow icon="download" label="Download biometrics PDF" onPress={exportPDF} isLast />
+        </View>
+
       </ScrollView>
 
       {/* Edit Profile Modal */}

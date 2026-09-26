@@ -972,6 +972,348 @@
       "longitude": 123.8966,
       "phone": "1122334455",
       "specialty": "Cardiac Rehabilitation"
+    },
+    {
+      "id": "4",
+      "name": "Mambaling Health Center",
+      "doctor": "Unassigned",
+      "latitude": 10.2921362,
+      "longitude": 123.87649,
+      "phone": "",
+      "specialty": "General Medicine"
+    },
+    {
+      "id": "5",
+      "name": "Cebu Skin Clinic",
+      "doctor": "Unassigned",
+      "latitude": 10.3090599,
+      "longitude": 123.907792,
+      "phone": "",
+      "specialty": "General Medicine"
+    },
+    {
+      "id": "6",
+      "name": "Metro Cebu Kidney Dialysis Center",
+      "doctor": "Unassigned",
+      "latitude": 10.3175148,
+      "longitude": 123.8851477,
+      "phone": "",
+      "specialty": "General Medicine"
+    },
+    {
+      "id": "7",
+      "name": "Fortune Care Clinic",
+      "doctor": "Unassigned",
+      "latitude": 10.2989044,
+      "longitude": 123.8972113,
+      "phone": "",
+      "specialty": "General Medicine"
+    },
+    {
+      "id": "8",
+      "name": "Dr. Jojo Cortes Clinic",
+      "doctor": "Unassigned",
+      "latitude": 10.3300298,
+      "longitude": 123.9436116,
+      "phone": "",
+      "specialty": "General Medicine"
+    },
+    {
+      "id": "9",
+      "name": "Marie Stopes",
+      "doctor": "Unassigned",
+      "latitude": 10.3316948,
+      "longitude": 123.9455445,
+      "phone": "",
+      "specialty": "General Medicine"
+    },
+    {
+      "id": "10",
+      "name": "Alaska Mambaling Barangay Health Center",
+      "doctor": "Unassigned",
+      "latitude": 10.2895124,
+      "longitude": 123.8818025,
+      "phone": "",
+      "specialty": "General Medicine"
+    },
+    {
+      "id": "11",
+      "name": "HearthHub Clinic",
+      "doctor": "Unassigned",
+      "latitude": 10.3265841,
+      "longitude": 123.9334485,
+      "phone": "",
+      "specialty": "General Medicine"
+    },
+    {
+      "id": "12",
+      "name": "Camp Lapu-Lapu Army Station Hospital",
+      "doctor": "Unassigned",
+      "latitude": 10.3374922,
+      "longitude": 123.9033159,
+      "phone": "",
+      "specialty": "General Medicine"
+    },
+    {
+      "id": "13",
+      "name": "Community clinic",
+      "doctor": "Unassigned",
+      "latitude": 10.329083,
+      "longitude": 123.9315776,
+      "phone": "",
+      "specialty": "General Medicine"
+    },
+    {
+      "id": "14",
+      "name": "Barangay Luz Health Center",
+      "doctor": "Unassigned",
+      "latitude": 10.3236716,
+      "longitude": 123.9062045,
+      "phone": "",
+      "specialty": "General Medicine"
+    },
+    {
+      "id": "15",
+      "name": "Babag Health Center",
+      "doctor": "Unassigned",
+      "latitude": 10.2802455,
+      "longitude": 123.9454867,
+      "phone": "",
+      "specialty": "General Medicine"
+    },
+    {
+      "id": "16",
+      "name": "Chiropractic Clinic",
+      "doctor": "Unassigned",
+      "latitude": 10.3181901,
+      "longitude": 123.9051556,
+      "phone": "",
+      "specialty": "General Medicine"
+    },
+    {
+      "id": "17",
+      "name": "Kaiser Mecial Clinic",
+      "doctor": "Unassigned",
+      "latitude": 10.2804974,
+      "longitude": 123.8807426,
+      "phone": "",
+      "specialty": "General Medicine"
+    },
+    {
+      "id": "18",
+      "name": "The One Family Clinic & Laboratory",
+      "doctor": "Unassigned",
+      "latitude": 10.3150927,
+      "longitude": 123.8843725,
+      "phone": "",
+      "specialty": "General Medicine"
+    },
+    {
+      "id": "19",
+      "name": "Dr. Alicia Yuipco- Delfin Clinic",
+      "doctor": "Unassigned",
+      "latitude": 10.2854585,
+      "longitude": 123.8714657,
+      "phone": "",
+      "specialty": "General Medicine"
+    },
+    {
+      "id": "20",
+      "name": "Cebu Dog and Cat",
+      "doctor": "Unassigned",
+      "latitude": 10.2964483,
+      "longitude": 123.8852785,
+      "phone": "",
+      "specialty": "General Medicine"
+    },
+    {
+      "id": "21",
+      "name": "Mental hospital",
+      "doctor": "Unassigned",
+      "latitude": 10.3238134,
+      "longitude": 123.9271891,
+      "phone": "",
+      "specialty": "General Medicine"
+    },
+    {
+      "id": "22",
+      "name": "Serenety Wellness Clinic (Healthcare Center)",
+      "doctor": "Unassigned",
+      "latitude": 10.2603372,
+      "longitude": 123.8405344,
+      "phone": "",
+      "specialty": "General Medicine"
+    },
+    {
+      "id": "23",
+      "name": "Cebu City Social Hygiene Clinic",
+      "doctor": "Unassigned",
+      "latitude": 10.3081492,
+      "longitude": 123.9089799,
+      "phone": "",
+      "specialty": "General Medicine"
+    },
+    {
+      "id": "24",
+      "name": "Cebu Sagrada Corazon Health Services, Inc.",
+      "doctor": "Unassigned",
+      "latitude": 10.294511,
+      "longitude": 123.9030777,
+      "phone": "",
+      "specialty": "General Medicine"
+    },
+    {
+      "id": "25",
+      "name": "Nuclear Medicine - Perpetual Soccur Hospital",
+      "doctor": "Unassigned",
+      "latitude": 10.3148458,
+      "longitude": 123.9005112,
+      "phone": "",
+      "specialty": "General Medicine"
+    },
+    {
+      "id": "26",
+      "name": "Cebu Urologic Institute - Perpetual Succour Hospital",
+      "doctor": "Unassigned",
+      "latitude": 10.3148173,
+      "longitude": 123.9005891,
+      "phone": "",
+      "specialty": "General Medicine"
+    },
+    {
+      "id": "27",
+      "name": "Bayanihan Cebu Field Center - SHS",
+      "doctor": "Unassigned",
+      "latitude": 10.3100161,
+      "longitude": 123.9047573,
+      "phone": "",
+      "specialty": "General Medicine"
+    },
+    {
+      "id": "28",
+      "name": "Glory Reborn Birthing Center",
+      "doctor": "Unassigned",
+      "latitude": 10.287983,
+      "longitude": 123.8703078,
+      "phone": "",
+      "specialty": "General Medicine"
+    },
+    {
+      "id": "29",
+      "name": "St Peter - Paul Medical Clinic",
+      "doctor": "Unassigned",
+      "latitude": 10.297792,
+      "longitude": 123.9025495,
+      "phone": "",
+      "specialty": "General Medicine"
+    },
+    {
+      "id": "30",
+      "name": "Minglanilla District Hospital",
+      "doctor": "Unassigned",
+      "latitude": 10.2490162,
+      "longitude": 123.8041193,
+      "phone": "",
+      "specialty": "General Medicine"
+    },
+    {
+      "id": "31",
+      "name": "Supercare Cebu",
+      "doctor": "Unassigned",
+      "latitude": 10.3166661,
+      "longitude": 123.8883113,
+      "phone": "",
+      "specialty": "General Medicine"
+    },
+    {
+      "id": "32",
+      "name": "Supercare Cebu",
+      "doctor": "Unassigned",
+      "latitude": 10.3166507,
+      "longitude": 123.888146,
+      "phone": "",
+      "specialty": "General Medicine"
+    },
+    {
+      "id": "33",
+      "name": "Tapang Medical Clinic",
+      "doctor": "Unassigned",
+      "latitude": 10.3030502,
+      "longitude": 123.9470043,
+      "phone": "",
+      "specialty": "General Medicine"
+    },
+    {
+      "id": "34",
+      "name": "Coremed",
+      "doctor": "Unassigned",
+      "latitude": 10.2641776,
+      "longitude": 123.9465648,
+      "phone": "",
+      "specialty": "General Medicine"
+    },
+    {
+      "id": "35",
+      "name": "Women\u2019s and Children\u2019s Community Hospital",
+      "doctor": "Unassigned",
+      "latitude": 10.3414165,
+      "longitude": 123.9292989,
+      "phone": "",
+      "specialty": "General Medicine"
+    },
+    {
+      "id": "36",
+      "name": "City Doctors Med Clinic And Pharmacy",
+      "doctor": "Unassigned",
+      "latitude": 10.2975699,
+      "longitude": 123.8795033,
+      "phone": "",
+      "specialty": "General Medicine"
+    },
+    {
+      "id": "37",
+      "name": "Kevlo Skin Clinic",
+      "doctor": "Unassigned",
+      "latitude": 10.3009639,
+      "longitude": 123.878107,
+      "phone": "",
+      "specialty": "General Medicine"
+    },
+    {
+      "id": "38",
+      "name": "Int'l Acupuncture and medical Clinic",
+      "doctor": "Unassigned",
+      "latitude": 10.3441351,
+      "longitude": 123.9121982,
+      "phone": "",
+      "specialty": "General Medicine"
+    },
+    {
+      "id": "39",
+      "name": "Alpha diagnostic center",
+      "doctor": "Unassigned",
+      "latitude": 10.3048701,
+      "longitude": 123.8984341,
+      "phone": "",
+      "specialty": "General Medicine"
+    },
+    {
+      "id": "40",
+      "name": "Skin Doctors",
+      "doctor": "Unassigned",
+      "latitude": 10.3508875,
+      "longitude": 123.9140751,
+      "phone": "",
+      "specialty": "General Medicine"
+    },
+    {
+      "id": "41",
+      "name": "Zanicare Animal Bite Center",
+      "doctor": "Unassigned",
+      "latitude": 10.3272313,
+      "longitude": 123.9438285,
+      "phone": "",
+      "specialty": "General Medicine"
     }
   ]
 }

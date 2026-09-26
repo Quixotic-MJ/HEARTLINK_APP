@@ -13,6 +13,7 @@ import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Location from 'expo-location';
+import MapView, { Marker, UrlTile } from "react-native-maps";
 import { EmptyState } from "../components/ui/EmptyState";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -51,78 +52,67 @@ function ClinicCard({ clinic, onDirections, onCall }: {
   onDirections: () => void;
   onCall: () => void;
 }) {
+  const isEmergency = clinic.status.includes("24/7");
+
   return (
-    <View className="bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4 mb-3">
+    <View className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-5 mb-4 shadow-sm">
       {/* Top row */}
-      <View className="flex-row items-start mb-3">
+      <View className="flex-row items-start mb-4">
         {/* Icon */}
-        <View className="w-10 h-10 rounded-xl bg-red-50 border border-red-100 items-center justify-center mr-3 flex-shrink-0">
-          <MaterialCommunityIcons name="heart-pulse" size={18} color="#a32d2d" />
+        <View 
+          className="w-11 h-11 rounded-xl items-center justify-center mr-4 flex-shrink-0"
+          style={{ backgroundColor: isEmergency ? 'rgba(239,68,68,0.1)' : 'rgba(56,189,248,0.1)' }}
+        >
+          <MaterialCommunityIcons 
+            name="hospital-building" 
+            size={22} 
+            color={isEmergency ? "#ef4444" : "#38bdf8"} 
+          />
         </View>
 
-        <View className="flex-1">
-          <Text className="text-[14px] font-medium text-slate-900 dark:text-white dark:text-slate-900 leading-snug mb-0.5">
+        <View className="flex-1 pr-2">
+          <Text className="text-[16px] font-bold text-slate-900 dark:text-white leading-snug mb-1">
             {clinic.name}
           </Text>
-          <Text className="text-[12px] text-slate-400">{clinic.doctor}</Text>
+          <Text className="text-[13px] text-slate-500 dark:text-slate-400 font-medium">{clinic.doctor}</Text>
         </View>
+        
+        {/* Status Badge */}
+        {isEmergency ? (
+          <Text className="text-[12px] font-bold text-green-500">24/7</Text>
+        ) : (
+          <Text className="text-[12px] font-bold text-slate-400">Business hrs</Text>
+        )}
       </View>
 
-      {/* Meta row */}
-      <View className="flex-row items-center justify-between mb-3 gap-2">
-        <View className="flex-row items-center gap-2 flex-shrink flex-wrap">
-          <View className="flex-row items-center gap-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/70 px-2.5 py-1 rounded-lg">
-            <MaterialCommunityIcons name="map-marker-outline" size={12} color="#94a3b8" />
-            <Text className="text-[11px] text-slate-500 dark:text-slate-400">{clinic.distance}</Text>
-          </View>
-          <View className="flex-row items-center gap-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/70 px-2.5 py-1 rounded-lg">
-            <MaterialCommunityIcons name="stethoscope" size={12} color="#94a3b8" />
-            <Text className="text-[11px] text-slate-500 dark:text-slate-400" numberOfLines={1}>{clinic.specialty}</Text>
-          </View>
+      {/* Meta row with pills */}
+      <View className="flex-row items-center mb-5 gap-2">
+        <View className="bg-slate-50 dark:bg-slate-800 px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700">
+          <Text className="text-[12px] font-bold text-slate-600 dark:text-slate-300">{clinic.distance}</Text>
         </View>
-
-        <View
-          className="flex-row items-center gap-1 px-2.5 py-1 rounded-lg border flex-shrink-0"
-          style={{
-            backgroundColor: clinic.isOpen ? "#eaf3de" : "#f8fafc",
-            borderColor: clinic.isOpen ? "#c0dd97" : "#e2e8f0",
-          }}
-        >
-          <View
-            className="w-1.5 h-1.5 rounded-full"
-            style={{ backgroundColor: clinic.isOpen ? "#639922" : "#cbd5e1" }}
-          />
-          <Text
-            className="text-[11px] font-medium"
-            style={{ color: clinic.isOpen ? "#3b6d11" : "#94a3b8" }}
-          >
-            {clinic.status}
-          </Text>
+        <View className="bg-slate-50 dark:bg-slate-800 px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700">
+          <Text className="text-[12px] font-bold text-slate-600 dark:text-slate-300">{clinic.specialty}</Text>
         </View>
       </View>
-
-      {/* Divider */}
-      <View className="h-px bg-slate-100 dark:bg-slate-800 mb-3" />
 
       {/* Action buttons */}
-      <View className="flex-row gap-2">
+      <View className="flex-row gap-3">
         <TouchableOpacity
           activeOpacity={0.8}
           onPress={onDirections}
-          className="flex-1 flex-row items-center justify-center py-2.5 rounded-xl border border-slate-200 dark:border-slate-800/70 bg-slate-50 dark:bg-slate-950 gap-1.5"
+          className="flex-1 flex-row items-center justify-center py-3.5 rounded-2xl bg-sky-400 dark:bg-sky-500 gap-2"
         >
-          <Feather name="navigation" size={14} color="#475569" />
-          <Text className="text-[13px] font-medium text-slate-600 dark:text-slate-300">Directions</Text>
+          <Feather name="navigation" size={15} color="#ffffff" />
+          <Text className="text-[15px] font-bold text-white">Directions</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           activeOpacity={0.8}
           onPress={onCall}
-          className="flex-1 flex-row items-center justify-center py-2.5 rounded-xl gap-1.5"
-          style={{ backgroundColor: "#0f172a" }}
+          className="flex-1 flex-row items-center justify-center py-3.5 rounded-2xl bg-slate-900 dark:bg-slate-800 gap-2"
         >
-          <Feather name="phone-call" size={14} color="#fff" />
-          <Text className="text-[13px] font-medium text-white">Call clinic</Text>
+          <Feather name="phone-call" size={15} color="#ffffff" />
+          <Text className="text-[15px] font-bold text-white">Call</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -137,8 +127,9 @@ export default function LocatorScreen() {
   const [clinics, setClinics] = useState<Clinic[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [locationError, setLocationError] = useState<string | null>(null);
+  const [userLocation, setUserLocation] = useState({ latitude: 10.3157, longitude: 123.8854 });
+  const mapRef = React.useRef<MapView>(null);
 
-  
   React.useEffect(() => {
     (async () => {
       try {
@@ -152,7 +143,7 @@ export default function LocatorScreen() {
           let location = await Location.getCurrentPositionAsync({});
           userLat = location.coords.latitude;
           userLon = location.coords.longitude;
-
+          setUserLocation({ latitude: userLat, longitude: userLon });
         }
 
         // Fetch Clinics from Backend
@@ -163,38 +154,52 @@ export default function LocatorScreen() {
         const currentHour = new Date().getHours();
 
         // Calculate distance and map data
-        const processedClinics = data.map((clinic: any) => {
-          const dist = getDistance(userLat, userLon, clinic.latitude, clinic.longitude);
-          
-          // Major medical institutes & hospital emergency departments operate 24/7
-          const isHospitalOrEmergency = 
-            clinic.name?.toLowerCase().includes("hospital") || 
-            clinic.name?.toLowerCase().includes("institute") ||
-            clinic.specialty?.toLowerCase().includes("emergency") ||
-            clinic.operating_hours === "24/7";
+        const processedClinics = data
+          .filter((clinic: any) => {
+            const lat = Number(clinic.latitude);
+            const lon = Number(clinic.longitude);
+            return !isNaN(lat) && !isNaN(lon);
+          })
+          .map((clinic: any) => {
+            const lat = Number(clinic.latitude);
+            const lon = Number(clinic.longitude);
+            const dist = getDistance(userLat, userLon, lat, lon);
+            
+            // Major medical institutes & hospital emergency departments operate 24/7
+            const isHospitalOrEmergency = 
+              clinic.name?.toLowerCase().includes("hospital") || 
+              clinic.name?.toLowerCase().includes("institute") ||
+              clinic.specialty?.toLowerCase().includes("emergency") ||
+              clinic.operating_hours === "24/7";
 
-          let isOpen = true;
-          let statusText = "Open now";
+            let isOpen = true;
+            let statusText = "Open now";
 
-          if (isHospitalOrEmergency) {
-            isOpen = true;
-            statusText = "24/7 Emergency";
-          } else if (clinic.operating_hours) {
-            statusText = clinic.operating_hours;
-            isOpen = true;
-          } else {
-            // Standard daytime clinic hours (8:00 AM - 5:00 PM)
-            isOpen = currentHour >= 8 && currentHour < 17;
-            statusText = isOpen ? "Open now" : "Closed";
-          }
+            if (isHospitalOrEmergency) {
+              isOpen = true;
+              statusText = "24/7 Emergency";
+            } else if (clinic.operating_hours) {
+              statusText = clinic.operating_hours;
+              isOpen = true;
+            } else {
+              // Standard daytime clinic hours (8:00 AM - 5:00 PM)
+              isOpen = currentHour >= 8 && currentHour < 17;
+              statusText = isOpen ? "Open now" : "Closed";
+            }
 
-          return {
-            ...clinic,
-            distance: dist.toFixed(1) + " km",
-            isOpen: isOpen,
-            status: statusText
-          };
-        });
+            return {
+              ...clinic,
+              id: clinic.id ? String(clinic.id) : clinic.name,
+              doctor: clinic.doctor || "Medical Staff",
+              specialty: clinic.specialty || "General",
+              phone: clinic.phone || "",
+              latitude: lat,
+              longitude: lon,
+              distance: dist.toFixed(1) + " km",
+              isOpen: isOpen,
+              status: statusText
+            };
+          });
 
         // Sort by closest distance
         processedClinics.sort((a: any, b: any) => parseFloat(a.distance) - parseFloat(b.distance));
@@ -221,14 +226,21 @@ export default function LocatorScreen() {
 
 
   const handleGetDirections = (lat: number, lng: number, name: string) => {
-    const latLng = `${lat},${lng}`;
+    // The "dir/?api=1&destination=" format tells Google Maps to automatically calculate 
+    // a route from the user's current location to the destination.
+    const destination = `${lat},${lng}`;
+    
     const url = Platform.select({
-      ios: `maps:0,0?q=${name}@${latLng}`,
-      android: `geo:0,0?q=${latLng}(${name})`,
+      // Apple Maps directions
+      ios: `http://maps.apple.com/?daddr=${destination}&dirflg=d`,
+      // Google Maps navigation intent
+      android: `google.navigation:q=${destination}`,
     });
+
     if (url) {
       Linking.openURL(url).catch(() =>
-        Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${latLng}`)
+        // Fallback to Google Maps web directions (works on all devices)
+        Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${destination}`)
       );
     }
   };
@@ -244,62 +256,54 @@ export default function LocatorScreen() {
       <StatusBar style="dark" />
 
       {/* ── Header ── */}
-      <View className="px-5 pt-4 pb-3 bg-white dark:bg-slate-900 dark:bg-slate-100 border-b border-slate-200 dark:border-slate-800/50">
-        <View className="flex-row items-center mb-3">
+      <View className="px-5 pt-4 pb-2">
+        <View className="flex-row items-center mb-4">
           <TouchableOpacity
             onPress={() => router.back()}
-            className="w-9 h-9 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/70 items-center justify-center mr-3"
+            className="w-10 h-10 items-center justify-center mr-2 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800"
           >
-            <Feather name="arrow-left" size={18} color="#0f172a" />
+            <Feather name="arrow-left" size={20} color="#64748b" />
           </TouchableOpacity>
-          <View className="flex-1">
-            <Text className="text-[16px] font-medium text-slate-900 dark:text-white dark:text-slate-900" numberOfLines={1}>
-              Emergency Locator
+          <View className="flex-1 ml-1">
+            <Text className="text-[20px] font-bold text-slate-900 dark:text-white" numberOfLines={1}>
+              Emergency locator
             </Text>
-            <Text className="text-[12px] text-slate-400">Nearby Cardiovascular Centers</Text>
+            <Text className="text-[13px] text-slate-500 dark:text-slate-400 font-medium">Nearby cardiovascular centers</Text>
           </View>
-          <View className="w-9 h-9 rounded-xl bg-red-50 border border-red-100 items-center justify-center">
-            <MaterialCommunityIcons name="heart-pulse" size={18} color="#a32d2d" />
+          <View className="w-10 h-10 rounded-full items-center justify-center" style={{ backgroundColor: 'rgba(239,68,68,0.1)' }}>
+            <MaterialCommunityIcons name="heart-pulse" size={20} color="#ef4444" />
           </View>
         </View>
-
-        {/* Alert Banner */}
-        <View className="flex-row items-center bg-red-50 border border-red-200 rounded-xl px-3.5 py-2.5 gap-2.5">
-          <Feather name="alert-triangle" size={16} color="#dc2626" />
-          <Text className="flex-1 text-[13px] font-medium text-red-700 leading-snug">
-            Critical HSS Score: Immediate medical consultation recommended.
-          </Text>
-        </View>
+        
         {locationError && (
-          <View className="flex-row items-center bg-orange-50 border border-orange-200 rounded-xl px-3.5 py-2.5 gap-2.5 mt-2">
-            <Feather name="info" size={16} color="#c2410c" />
-            <Text className="flex-1 text-[13px] font-medium text-orange-700 leading-snug">
+          <View className="flex-row items-center bg-orange-50 dark:bg-orange-950 border border-orange-200 dark:border-orange-900/50 rounded-2xl px-4 py-3 gap-3 mb-2">
+            <Feather name="info" size={18} color="#f97316" />
+            <Text className="flex-1 text-[13px] font-medium text-orange-800 dark:text-orange-200 leading-snug">
               {locationError}
             </Text>
           </View>
         )}
       </View>
 
-      
       {/* ── Clinic list ── */}
-      <View className="flex-1">
+      <View className="flex-1 px-5">
         {/* List header */}
-        <View className="px-5 py-3 flex-row items-center justify-between border-b border-slate-200 dark:border-slate-800/50 bg-white dark:bg-slate-900 dark:bg-slate-100">
-          <Text className="text-[13px] font-medium text-slate-900 dark:text-white dark:text-slate-900">
+        <View className="py-4 flex-row items-center justify-between">
+          <Text className="text-[16px] font-bold text-slate-900 dark:text-white">
             Nearby specialists
           </Text>
-          <Text className="text-[12px] text-slate-400">
+          <Text className="text-[14px] font-bold text-sky-500">
             {filtered.length} found
           </Text>
         </View>
 
         <ScrollView
-          contentContainerClassName="p-5 gap-3"
+          contentContainerClassName="pb-10 pt-2 gap-4"
           showsVerticalScrollIndicator={false}
         >
           {filtered.length === 0 ? (
             <EmptyState
-              icon={<Feather name="search" size={26} color="#cbd5e1" />}
+              icon={<Feather name="search" size={26} color="#94a3b8" />}
               title="No results found"
               subtitle="Try a different name or specialty."
               className="pt-12"

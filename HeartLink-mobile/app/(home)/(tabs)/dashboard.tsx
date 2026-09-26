@@ -74,37 +74,37 @@ function getScoreTheme(score: number, isDark: boolean): ScoreTheme {
   if (score >= 80)
     return {
       label: "Stable",
-      barColor: "#34d399", // Emerald 400
-      badgeBg: isDark ? "rgba(16, 185, 129, 0.15)" : "#d1fae5",
-      badgeBorder: isDark ? "rgba(16, 185, 129, 0.3)" : "#a7f3d0",
-      badgeText: isDark ? "#34d399" : "#059669",
-      dotColor: isDark ? "#34d399" : "#059669",
+      barColor: "#38bdf8", // Sky 400
+      badgeBg: isDark ? "rgba(56, 189, 248, 0.15)" : "#e0f2fe",
+      badgeBorder: isDark ? "rgba(56, 189, 248, 0.3)" : "#bae6fd",
+      badgeText: isDark ? "#38bdf8" : "#0284c7",
+      dotColor: isDark ? "#38bdf8" : "#0284c7",
     };
   if (score >= 60)
     return {
       label: "Moderate",
-      barColor: "#34d399", // Emerald 400
-      badgeBg: isDark ? "rgba(16, 185, 129, 0.15)" : "#d1fae5",
-      badgeBorder: isDark ? "rgba(16, 185, 129, 0.3)" : "#a7f3d0",
-      badgeText: isDark ? "#34d399" : "#059669",
-      dotColor: isDark ? "#34d399" : "#059669",
+      barColor: "#38bdf8", // Sky 400
+      badgeBg: isDark ? "rgba(56, 189, 248, 0.15)" : "#e0f2fe",
+      badgeBorder: isDark ? "rgba(56, 189, 248, 0.3)" : "#bae6fd",
+      badgeText: isDark ? "#38bdf8" : "#0284c7",
+      dotColor: isDark ? "#38bdf8" : "#0284c7",
     };
   if (score >= 50)
     return {
       label: "Elevated Risk",
-      barColor: "#34d399", // Emerald 400
-      badgeBg: isDark ? "rgba(16, 185, 129, 0.15)" : "#d1fae5",
-      badgeBorder: isDark ? "rgba(16, 185, 129, 0.3)" : "#a7f3d0",
-      badgeText: isDark ? "#34d399" : "#059669",
-      dotColor: isDark ? "#34d399" : "#059669",
+      barColor: "#38bdf8", // Sky 400
+      badgeBg: isDark ? "rgba(56, 189, 248, 0.15)" : "#e0f2fe",
+      badgeBorder: isDark ? "rgba(56, 189, 248, 0.3)" : "#bae6fd",
+      badgeText: isDark ? "#38bdf8" : "#0284c7",
+      dotColor: isDark ? "#38bdf8" : "#0284c7",
     };
   return {
     label: "Critical",
-    barColor: "#34d399", // Emerald 400
-    badgeBg: isDark ? "rgba(16, 185, 129, 0.15)" : "#d1fae5",
-    badgeBorder: isDark ? "rgba(16, 185, 129, 0.3)" : "#a7f3d0",
-    badgeText: isDark ? "#34d399" : "#059669",
-    dotColor: isDark ? "#34d399" : "#059669",
+    barColor: "#38bdf8", // Sky 400
+    badgeBg: isDark ? "rgba(56, 189, 248, 0.15)" : "#e0f2fe",
+    badgeBorder: isDark ? "rgba(56, 189, 248, 0.3)" : "#bae6fd",
+    badgeText: isDark ? "#38bdf8" : "#0284c7",
+    dotColor: isDark ? "#38bdf8" : "#0284c7",
   };
 }
 
@@ -733,119 +733,106 @@ export default function DashboardScreen() {
         </Reanimated.View>
 
         {/* ============================================================== */}
-        {/* 1. UNIFIED HERO CARD (HEART HEALTH SCORE) - ALWAYS VISIBLE */}
+        {/* 1. TIER 1 - STATUS */}
+        {/* ============================================================== */}
+        <Reanimated.View entering={FadeInDown.delay(100).duration(260)}>
+          <View className="bg-surface-card rounded-3xl p-5 items-center shadow-sm shadow-slate-200/50 dark:shadow-none">
+            {/* Header Row: Status badge + Distinct Info Button */}
+            <View className="flex-row items-center justify-center gap-2">
+              <TouchableOpacity
+                onPress={() => {
+                  Haptics.selectionAsync();
+                  setScoreModalVisible(true);
+                }}
+                activeOpacity={0.7}
+                className="flex-row items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#F3F7F5] dark:bg-slate-800/80 border border-slate-100/70 dark:border-slate-700/60"
+              >
+                <View
+                  className="w-2.5 h-2.5 rounded-full"
+                  style={{ backgroundColor: theme.dotColor }}
+                />
+                <Text className="text-[12px] font-bold uppercase tracking-widest text-[#2D554D] dark:text-slate-200">
+                  HEART HEALTH - {theme.label.toUpperCase()}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Centered Score Ring */}
+            <View className="items-center justify-center my-0">
+              <Animated.View
+                style={{
+                  alignItems: "center",
+                  justifyContent: "center",
+                  transform: [{ scale: pulseAnim }],
+                }}
+              >
+                {isCritical && (
+                  <Animated.View
+                    style={{
+                      position: "absolute",
+                      width: 140,
+                      height: 140,
+                      borderRadius: 70,
+                      backgroundColor: "rgba(138, 31, 26, 0.15)",
+                      opacity: glowOpacity,
+                    }}
+                  />
+                )}
+                <ScoreRing
+                  score={hssScore}
+                  size={240}
+                  color={theme.barColor}
+                  refreshTrigger={dataUpdatedAt}
+                  celebrateTrigger={completedCount}
+                  systolic={latestSbp}
+                  diastolic={latestDbp}
+                  bpm={latestBpm}
+                  streakDays={streakDays}
+                />
+              </Animated.View>
+            </View>
+
+            {/* Trend Label */}
+            {data?.latest_vitals?.trend && data.latest_vitals.trend !== "0" && data.latest_vitals.trend !== "+0" && (
+              <View className="mt-1">
+                <Text className={`font-bold text-[13px] ${data.latest_vitals.trend.startsWith('-') ? 'text-orange-500 dark:text-orange-400' : 'text-emerald-500 dark:text-emerald-400'}`}>
+                  {data.latest_vitals.trend.startsWith('-') ? '↓ Down' : '↑ Up'} {Math.abs(parseInt(data.latest_vitals.trend))} points this week
+                </Text>
+              </View>
+            )}
+          </View>
+        </Reanimated.View>
+
+        {/* ============================================================== */}
+        {/* 2. TIER 2 - PROTECT YOUR SCORE TODAY */}
         {/* ============================================================== */}
         <Reanimated.View
-          entering={FadeInDown.delay(100).duration(260)}
-          className="bg-surface-card rounded-3xl p-5 items-center shadow-sm shadow-slate-200/50 dark:shadow-none"
+          entering={FadeInDown.delay(180).duration(260)}
         >
-          {/* Header Row: Status badge + Distinct Info Button */}
-          <View className="flex-row items-center justify-center gap-2">
-            <TouchableOpacity
-              onPress={() => {
-                Haptics.selectionAsync();
-                setScoreModalVisible(true);
-              }}
-              activeOpacity={0.7}
-              accessibilityRole="button"
-              accessibilityLabel={`Heart Health, ${theme.label}. Tap for info on stability score.`}
-              accessibilityHint="Opens explanation of your heart health stability score"
-              className="flex-row items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#F3F7F5] dark:bg-slate-800/80 border border-slate-100/70 dark:border-slate-700/60"
-            >
-              <View
-                className="w-2.5 h-2.5 rounded-full"
-                style={{ backgroundColor: theme.dotColor }}
-              />
-              <Text className="text-[12px] font-bold uppercase tracking-widest text-[#2D554D] dark:text-slate-200">
-                HEART HEALTH · {theme.label.toUpperCase()}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={() => {
-                Haptics.selectionAsync();
-                setScoreModalVisible(true);
-              }}
-              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-              accessibilityRole="button"
-              accessibilityLabel="About Heart Health Stability Score"
-              accessibilityHint="Opens explanation sheet for this score"
-              activeOpacity={0.7}
-              className="w-8 h-8 rounded-full items-center justify-center bg-[#F3F7F5] dark:bg-slate-800/80 border border-slate-100/70 dark:border-slate-700/60"
-            >
-              <Feather
-                name="info"
-                size={18}
-                color={isDark ? "#94A3B8" : "#2D554D"}
-              />
-            </TouchableOpacity>
-          </View>
-
-          {/* Centered Score Ring */}
-          <View className="items-center justify-center my-0">
-            <Animated.View
-              style={{
-                alignItems: "center",
-                justifyContent: "center",
-                transform: [{ scale: pulseAnim }],
-              }}
-            >
-              {isCritical && (
-                <Animated.View
-                  style={{
-                    position: "absolute",
-                    width: 140,
-                    height: 140,
-                    borderRadius: 70,
-                    backgroundColor: "rgba(138, 31, 26, 0.15)",
-                    opacity: glowOpacity,
-                  }}
-                />
-              )}
-              <ScoreRing
-                score={hssScore}
-                size={240}
-                color={theme.dotColor}
-                refreshTrigger={dataUpdatedAt}
-                celebrateTrigger={completedCount}
-                systolic={latestSbp}
-                diastolic={latestDbp}
-                bpm={latestBpm}
-                streakDays={streakDays}
-                trend={data?.latest_vitals?.trend}
-              />
-            </Animated.View>
-          </View>
 
           {/* AI / Clinical Insight banner */}
           {data?.insight && (
-            <View className="w-full bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-3.5 border border-slate-100 dark:border-slate-700/50 flex-row items-start gap-3 mt-2">
+            <View className="w-full bg-red-50 dark:bg-red-950/40 rounded-2xl p-4 border border-red-100 dark:border-red-900/50 flex-row items-start gap-3 mb-3">
               <Feather
-                name={(data.insight.icon || "zap") as any}
-                size={15}
-                color={
-                  data.insight.icon === "trending-down"
-                    ? "#f43f5e" // rose-500
-                    : data.insight.icon === "trending-up"
-                      ? "#10b981" // emerald-500
-                      : "#64748b" // slate-500
-                }
+                name="activity"
+                size={16}
+                color="#ef4444"
                 style={{ marginTop: 2 }}
               />
-              <Text className="flex-1 text-[12.5px] text-slate-500 dark:text-slate-300 leading-relaxed font-medium">
-                <Text className="font-bold text-slate-700 dark:text-white">{data.insight?.title || ""}{" "}</Text>
+              <Text className="flex-1 text-[13px] text-red-700 dark:text-red-200 leading-relaxed font-bold">
                 {data.insight.body}
               </Text>
             </View>
           )}
+
+          <MissionList missions={missionItems} onPress={handleMissionPress} />
         </Reanimated.View>
 
         {/* ============================================================== */}
-        {/* 2. TODAY'S 4 HEART MISSIONS & HABIT CENTER (UNIFIED HUB) */}
+        {/* 3. TIER 3 - TODAY'S PROGRESS */}
         {/* ============================================================== */}
         <Reanimated.View
-          entering={FadeInDown.delay(180).duration(260)}
-          className="mt-4"
+          entering={FadeInDown.delay(260).duration(260)}
         >
           <RitualProgress
             completedCount={completedCount}
@@ -855,7 +842,6 @@ export default function DashboardScreen() {
             movementMins={movementMins}
             movementGoal={movementGoal}
           />
-          <MissionList missions={missionItems} onPress={handleMissionPress} />
         </Reanimated.View>
 
 
@@ -926,11 +912,14 @@ export default function DashboardScreen() {
           <>
             {/* ── Recommendations (hidden when empty) ── */}
             {data?.recommendations && data.recommendations.length > 0 && (
-              <View className="mt-6">
-                <Reanimated.View entering={FadeInDown.delay(540).duration(300)} className="flex-row items-center justify-between mb-3">
-                  <Text className="text-[16px] font-bold text-slate-700 dark:text-white tracking-tight">
-                    Recommended for You
+              <View>
+                <Reanimated.View entering={FadeInDown.delay(340).duration(300)} className="flex-row items-center justify-between mb-3 mx-1">
+                  <Text className="text-[16px] font-bold text-slate-900 dark:text-white tracking-tight">
+                    Recommended for you
                   </Text>
+                  <TouchableOpacity>
+                    <Text className="text-[13px] font-bold text-blue-500 dark:text-blue-400">See all</Text>
+                  </TouchableOpacity>
                 </Reanimated.View>
                 <ScrollView
                   horizontal
@@ -1020,72 +1009,24 @@ export default function DashboardScreen() {
               }}
             />
 
-            {/* ── Unified Care Tools Toolbox ── */}
-            <Reanimated.View entering={FadeInDown.delay(680).duration(300)} className="mt-6 mb-8">
-              <Text className="text-[14px] font-bold text-slate-700 dark:text-white tracking-tight mb-3 ml-1">
-                Care Tools & Settings
-              </Text>
-
-              <View className="gap-3">
-                {/* Tool 1: Doctor Consultation */}
-                <TouchableOpacity activeOpacity={0.75}
-                  onPress={() => safeNavigate("/(home)/(tabs)/wrap-up")}
-                  className="flex-row items-center bg-surface-card rounded-3xl p-5 shadow-sm shadow-slate-200/50 dark:shadow-none"
-                >
-                  <View className="w-10 h-10 rounded-full bg-slate-200/50 dark:bg-slate-700/50 items-center justify-center mr-4">
-                    <Feather name={new Date().getHours() >= 19 ? "moon" : "clipboard"} size={20} color={isDark ? "#94a3b8" : "#64748b"} />
-                  </View>
-                  <View className="flex-1 justify-center">
-                    <Text
-                      numberOfLines={1}
-                      className="text-[16px] font-bold text-slate-900 dark:text-slate-50 mb-1"
-                    >
-                      {new Date().getHours() >= 19 ? "Daily Heart Wrap-Up" : "Doctor Consultation"}
-                    </Text>
-                    <Text
-                      numberOfLines={1}
-                      className="text-[13px] font-medium text-slate-500 dark:text-slate-400"
-                    >
-                      {new Date().getHours() >= 19
-                        ? "Review your vitals for a calm night"
-                        : "Prepare data for clinic visits"}
-                    </Text>
-                  </View>
-                  <View className="w-8 h-8 rounded-full items-center justify-center ml-3 bg-slate-100 dark:bg-slate-800">
-                    <Feather name="chevron-right" size={16} color={isDark ? "#94a3b8" : "#64748b"} />
-                  </View>
-                </TouchableOpacity>
-
-                {/* Tool 2: Locator */}
-                <TouchableOpacity activeOpacity={0.75}
-                  onPress={() => {
-                    Haptics.selectionAsync();
-                    setMapVisible(true);
-                  }}
-                  className="flex-row items-center bg-surface-card rounded-3xl p-5 shadow-sm shadow-slate-200/50 dark:shadow-none"
-                >
-                  <View className="w-10 h-10 rounded-full bg-slate-200/50 dark:bg-slate-700/50 items-center justify-center mr-4">
-                    <Feather name="map-pin" size={20} color={isDark ? "#94a3b8" : "#64748b"} />
-                  </View>
-                  <View className="flex-1 justify-center">
-                    <Text
-                      numberOfLines={1}
-                      className="text-[16px] font-bold text-slate-900 dark:text-slate-50 mb-1"
-                    >
-                      Healthcare Locator
-                    </Text>
-                    <Text
-                      numberOfLines={1}
-                      className="text-[13px] font-medium text-slate-500 dark:text-slate-400"
-                    >
-                      Find certified cardiac specialists
-                    </Text>
-                  </View>
-                  <View className="w-8 h-8 rounded-full items-center justify-center ml-3 bg-slate-100 dark:bg-slate-800">
-                    <Feather name="chevron-right" size={16} color={isDark ? "#94a3b8" : "#64748b"} />
-                  </View>
-                </TouchableOpacity>
-              </View>
+            {/* ── Action Links ── */}
+            <Reanimated.View entering={FadeInDown.delay(420).duration(300)} className="bg-surface-card rounded-3xl overflow-hidden shadow-sm shadow-slate-200/50 dark:shadow-none mb-8">
+              <TouchableOpacity activeOpacity={0.75} onPress={() => safeNavigate("/(home)/(tabs)/wrap-up")} className="flex-row items-center justify-between p-5 border-b border-slate-100 dark:border-slate-800">
+                <View className="flex-row items-center gap-3">
+                  <Feather name={new Date().getHours() >= 19 ? "moon" : "clipboard"} size={16} color={isDark ? "#cbd5e1" : "#475569"} />
+                  <Text className="text-[14px] font-bold text-slate-900 dark:text-white">
+                    {new Date().getHours() >= 19 ? "Daily Heart Wrap-Up" : "Doctor consultation"}
+                  </Text>
+                </View>
+                <Feather name="chevron-right" size={16} color={isDark ? "#64748b" : "#94a3b8"} />
+              </TouchableOpacity>
+              <TouchableOpacity activeOpacity={0.75} onPress={() => { setMapVisible(true); Haptics.selectionAsync(); }} className="flex-row items-center justify-between p-5">
+                <View className="flex-row items-center gap-3">
+                  <Feather name="map-pin" size={16} color={isDark ? "#cbd5e1" : "#475569"} />
+                  <Text className="text-[14px] font-bold text-slate-900 dark:text-white">Nearest clinic</Text>
+                </View>
+                <Feather name="chevron-right" size={16} color={isDark ? "#64748b" : "#94a3b8"} />
+              </TouchableOpacity>
             </Reanimated.View>
           </>
         )}

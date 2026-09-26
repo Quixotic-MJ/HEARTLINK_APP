@@ -1,16 +1,14 @@
-import React, { useState, useMemo, useEffect, useCallback } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import {
   View,
   Text,
   TouchableOpacity,
   ScrollView,
-  Image,
-  TextInput,
   RefreshControl,
-  ActivityIndicator,
   Platform,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { Image } from "expo-image";
+import { ScreenWrapper } from "../../../components/ui/ScreenWrapper";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
 import { useColorScheme } from "nativewind";
@@ -18,16 +16,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useUser } from "../../../contexts/UserContext";
-import { Header } from "../../../components/Header";
-import { ScreenWrapper } from "../../../components/ui/ScreenWrapper";
-import { Skeleton } from "../../../components/ui/Skeleton";
-import { EmptyState } from "../../../components/ui/EmptyState";
-import Reanimated, { FadeInDown } from "react-native-reanimated";
-import { LinearGradient } from "expo-linear-gradient";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
-
-// ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface Recipe {
   id: string;
@@ -49,334 +39,86 @@ export interface Recipe {
   steps: string[];
 }
 
-// ─── Difficulty config ─────────────────────────────────────────────────────────
-
-const DIFFICULTY_CONFIG = {
-  Easy:   { bg: "#E8F5E1", text: "#2D6A10", label: "Easy" },
-  Medium: { bg: "#FFF3E0", text: "#A85D00", label: "Medium" },
-  Hard:   { bg: "#FFEBEE", text: "#B71C3B", label: "Hard" },
-} as const;
-
-// ─── Compact Nutrition Badge ──────────────────────────────────────────────────
-
-function NutritionBadge({
-  label,
-  value,
-  unit,
-  highlight = false,
-  warning = false,
-}: {
-  label: string;
-  value: number;
-  unit: string;
-  highlight?: boolean;
-  warning?: boolean;
-}) {
-  const badgeBg = highlight ? "#E8F5E1" : warning ? "#FEF3C7" : "#F1F5F3";
-  const labelColor = highlight ? "#3F7F24" : warning ? "#B45309" : "#64748B";
-  const valueColor = highlight ? "#2D6A10" : warning ? "#92400E" : "#1E293B";
-  const unitColor = highlight ? "#4A8A2A" : warning ? "#B45309" : "#94A3B8";
-
-  return (
-    <View
-      style={{
-        flexDirection: "row",
-        alignItems: "center",
-        paddingHorizontal: 7,
-        paddingVertical: 3.5,
-        borderRadius: 8,
-        backgroundColor: badgeBg,
-      }}
-    >
-      {highlight && (
-        <View
-          style={{
-            width: 5,
-            height: 5,
-            borderRadius: 2.5,
-            backgroundColor: "#2D6A10",
-            marginRight: 4,
-          }}
-        />
-      )}
-      {warning && (
-        <View
-          style={{
-            width: 5,
-            height: 5,
-            borderRadius: 2.5,
-            backgroundColor: "#D97706",
-            marginRight: 4,
-          }}
-        />
-      )}
-      <Text
-        style={{
-          fontSize: 10.5,
-          fontWeight: "500",
-          color: labelColor,
-          marginRight: 2,
-        }}
-      >
-        {label}:
-      </Text>
-      <Text
-        style={{
-          fontSize: 11,
-          fontWeight: "700",
-          color: valueColor,
-        }}
-      >
-        {value}
-        <Text style={{ fontSize: 9.5, fontWeight: "500", color: unitColor }}>
-          {unit}
-        </Text>
-      </Text>
-    </View>
-  );
-}
-
-// ─── Recipe Card (Premium Apple Health Style) ─────────────────────────────────
-
 function RecipeCard({
   recipe,
   onPress,
   isSaved,
   onSave,
-  hasHypertension = false,
 }: {
   recipe: Recipe;
   onPress: () => void;
   isSaved: boolean;
   onSave: () => void;
-  hasHypertension?: boolean;
 }) {
-  const isSodiumSafe = recipe.nutrition.sodium < 140;
-  const isSodiumElevated = Boolean(hasHypertension && recipe.nutrition.sodium >= 300);
-  const diffCfg = DIFFICULTY_CONFIG[recipe.difficulty];
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === "dark";
+  
+  const colors = ["#C6E1AC", "#F6CA84", "#F2C0B8", "#BED9FA", "#DDD6FE", "#FBCFE8"];
+  const charCode = (recipe.title || "").charCodeAt(0) || 0;
+  const color = colors[charCode % colors.length];
+
+  const getIcon = (title: string) => {
+     const t = title.toLowerCase();
+     if (t.includes("bowl")) return "bowl";
+     if (t.includes("soup")) return "pot-steam";
+     if (t.includes("toast")) return "bread-slice";
+     if (t.includes("salmon") || t.includes("fish")) return "fish";
+     if (t.includes("pasta")) return "noodles";
+     if (t.includes("smoothie")) return "blender";
+     return "food-apple";
+  };
 
   return (
-    <TouchableOpacity activeOpacity={0.8}
-      onPress={onPress}
-      className="rounded-2xl overflow-hidden mb-3.5"
-      style={{
-        backgroundColor: "#FFFFFF",
-        borderWidth: 1,
-        borderColor: "rgba(232,236,234,0.6)",
-        ...Platform.select({
-          ios: {
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: 1 },
-            shadowRadius: 3,
-            shadowOpacity: 0.05,
-          },
-          android: {
-            elevation: 2,
-          },
-        }),
-      }}
+    <TouchableOpacity 
+      activeOpacity={0.8} 
+      onPress={onPress} 
+      className="rounded-2xl overflow-hidden mb-4 relative" 
+      style={{ width: '48%', backgroundColor: isDark ? "#162232" : "#FFFFFF", borderColor: isDark ? "#1E293B" : "#F1F5F9", borderWidth: 1 }}
     >
-      {/* Image with Gradient Overlay */}
-      <View className="h-[148px] bg-[#F1F5F3] relative items-center justify-center">
-        {/* Fallback Icon */}
-        <MaterialCommunityIcons name="silverware-fork-knife" size={32} color="#D1D9D5" style={{ position: "absolute" }} />
-        {!!recipe.image && (
-          <Image
-            source={{ uri: recipe.image }}
-            className="w-full h-full absolute"
-            resizeMode="cover"
-          />
-        )}
-        {/* Subtle bottom gradient for badge contrast */}
-        <LinearGradient
-          colors={["transparent", "rgba(0,0,0,0.15)"]}
-          locations={[0.4, 1]}
-          className="absolute inset-0 w-full h-full"
+      <View className="h-[105px] w-full bg-slate-200 dark:bg-slate-800 items-center justify-center">
+        <Feather name="image" size={24} color={isDark ? "#475569" : "#CBD5E1"} className="absolute" />
+        <Image
+          source={{ uri: recipe.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&q=80" }}
+          style={{ width: "100%", height: "100%", position: 'absolute' }}
+          contentFit="cover"
+          transition={200}
         />
-
-        {/* Save Button — Frosted Glass */}
-        <TouchableOpacity
-          activeOpacity={0.8}
-          onPress={(e) => { e.stopPropagation(); onSave(); }}
-          className="absolute top-3 right-3 w-9 h-9 rounded-full items-center justify-center"
-          style={{
-            backgroundColor: isSaved ? "rgba(239,68,68,0.12)" : "rgba(255,255,255,0.92)",
-            ...Platform.select({
-              ios: {
-                shadowColor: "#000",
-                shadowOffset: { width: 0, height: 1 },
-                shadowRadius: 4,
-                shadowOpacity: 0.1,
-              },
-              android: { elevation: 2 },
-            }),
-          }}
-        >
-          <Feather
-            name="heart"
-            size={16}
-            color={isSaved ? "#EF4444" : "#64748B"}
-          />
-        </TouchableOpacity>
-
-        {/* Prep time pill */}
-        <View
-          className="absolute bottom-3 left-3 flex-row items-center gap-1.5 px-3 py-1.5 rounded-full"
-          style={{ backgroundColor: "rgba(0,0,0,0.6)" }}
-        >
-          <Feather name="clock" size={11} color="rgba(255,255,255,0.9)" />
-          <Text className="text-white text-[11px] font-semibold">{recipe.prepTime} min</Text>
-        </View>
-
-        {/* Difficulty badge */}
-        <View
-          className="absolute bottom-3 right-3 px-3 py-1.5 rounded-full"
-          style={{ backgroundColor: diffCfg.bg }}
-        >
-          <Text className="text-[10px] font-bold uppercase tracking-wide" style={{ color: diffCfg.text }}>
-            {recipe.difficulty}
-          </Text>
-        </View>
+        <View className="absolute inset-0 bg-black/10" />
       </View>
-
-      {/* Content */}
-      <View className="px-4 pt-3.5 pb-4">
-        <View className="flex-row items-start justify-between gap-3 mb-2">
-          <Text className="flex-1 text-[16px] font-bold text-[#152131] dark:text-white leading-snug" numberOfLines={2}>
-            {recipe.title}
-          </Text>
-          {recipe.tags[0] ? (
-            <View
-              className="px-2 py-0.5 rounded-md mt-0.5"
-              style={{
-                backgroundColor: recipe.tags.includes("Low Sodium") ? "#E8F5E1" : "#F4F7F5",
-              }}
-            >
-              <Text
-                className="text-[10px] font-semibold"
-                style={{ color: recipe.tags.includes("Low Sodium") ? "#2D6A10" : "#8896A0" }}
-              >
-                {recipe.tags.includes("Low Sodium") ? "Low sodium" : recipe.tags[0]}
-              </Text>
-            </View>
-          ) : null}
-        </View>
-
-        {!!recipe.subtitle && (
-          <Text className="text-[13px] text-[#64748B] dark:text-slate-400 mb-2.5 leading-relaxed" numberOfLines={1}>
-            {recipe.subtitle}
-          </Text>
-        )}
-
-        <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 6 }}>
-          <NutritionBadge
-            label="Sodium"
-            value={recipe.nutrition.sodium}
-            unit="mg"
-            highlight={isSodiumSafe}
-            warning={isSodiumElevated}
-          />
-          <NutritionBadge label="Cal" value={recipe.nutrition.calories} unit="" />
-        </View>
+      <TouchableOpacity onPress={onSave} className="absolute top-2 right-2 p-1.5 rounded-full bg-white/80 dark:bg-black/40 backdrop-blur-sm">
+        <Feather name="heart" size={15} color={isSaved ? "#EF4444" : (isDark ? "#FFFFFF" : "#152131")} />
+      </TouchableOpacity>
+      <View className="p-3 pb-4">
+        <Text className="text-[14px] font-bold leading-tight mb-1" style={{ color: isDark ? "#FFFFFF" : "#0F172A" }} numberOfLines={1}>{recipe.title}</Text>
+        <Text className="text-[11px]" style={{ color: isDark ? "#94A3B8" : "#64748B" }}>{recipe.nutrition?.calories || 0} cal - {recipe.prepTime || 0} min</Text>
       </View>
     </TouchableOpacity>
   );
 }
-
-// ─── Filter Chip (Dark Active / Light Inactive) ──────────────────────────────
-
-function FilterChip({
-  label,
-  active,
-  onPress,
-}: {
-  label: string;
-  active: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <TouchableOpacity activeOpacity={0.8}
-      onPress={onPress}
-      activeOpacity={0.75}
-      className="min-h-[38px] rounded-full flex-row items-center justify-center"
-      style={{
-        paddingHorizontal: 16,
-        paddingVertical: 7,
-        backgroundColor: active ? "#152131" : "#F1F5F3",
-        ...active ? Platform.select({
-          ios: {
-            shadowColor: "#152131",
-            shadowOffset: { width: 0, height: 2 },
-            shadowRadius: 6,
-            shadowOpacity: 0.2,
-          },
-          android: { elevation: 3 },
-        }) : {},
-      }}
-    >
-      <Text
-        numberOfLines={1}
-        className="text-[13px] font-semibold"
-        style={{ color: active ? "#FFFFFF" : "#5C6B66" }}
-      >
-        {label}
-      </Text>
-    </TouchableOpacity>
-  );
-}
-
-// ─── Recipes Screen ───────────────────────────────────────────────────────────
 
 export default function RecipesScreen({
-  hideHeader = false,
   isEmbedded = false,
 }: {
-  hideHeader?: boolean;
   isEmbedded?: boolean;
 } = {}) {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
   const router = useRouter();
-  const { user, userId, token } = useUser();
+  const { userId, token } = useUser();
   const queryClient = useQueryClient();
-  const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState("All");
-  const [timeMessage, setTimeMessage] = useState<string | null>(null);
-  const [searchFocused, setSearchFocused] = useState(false);
 
-  // Scoped storage keys ensuring multi-user isolation on shared hardware (Role 5 / HL-ENG-03)
   const savedRecipesKey = userId ? `@saved_recipes_${userId}` : "@saved_recipes";
   const recipesCacheKey = userId ? `@recipes_cache_${userId}` : "@recipes_cache";
 
-  // Dynamically resolve patient conditions from profile and clinical baselines
-  const userConditions = useMemo(() => {
-    const list: string[] = [];
-    if (user?.conditions && Array.isArray(user.conditions)) {
-      list.push(...user.conditions);
-    }
-    const goals = user?.health_goals || [];
-    if (goals.includes("bp") && !list.includes("Hypertension")) {
-      list.push("Hypertension");
-    }
-    if (goals.includes("cholesterol") && !list.includes("High Cholesterol") && !list.includes("Hyperlipidemia")) {
-      list.push("High Cholesterol");
-    }
-    return list;
-  }, [user]);
-
-  // Defensive clinical guard (HL-ENG-04): if profile is unhydrated, default to true for hypertension
-  // to protect cardiovascular patients from high-sodium exposure (< 140 mg)
-  const hasHypertension = user ? userConditions.includes("Hypertension") : true;
-  const hasHighCholesterol = user ? (userConditions.includes("High Cholesterol") || userConditions.includes("Hyperlipidemia")) : false;
-
   const cachedRecipes = queryClient.getQueryData<Recipe[]>(["recipes"]);
-  const { data: recipesList = [], isLoading, isError, refetch: refetchRecipes } = useQuery({
+  const { data: recipesList = [], refetch: refetchRecipes } = useQuery({
     queryKey: ["recipes"],
     initialData: cachedRecipes,
     staleTime: 5 * 60 * 1000,
     queryFn: async () => {
       const response = await fetch(`${base_url}/api/recipes/`);
-      if (!response.ok) throw new Error("Failed to fetch recipes from API");
+      if (!response.ok) throw new Error("Failed to fetch recipes");
       const data = await response.json();
       const mapped: Recipe[] = data.map((r: any) => ({
         id: r.id,
@@ -385,7 +127,7 @@ export default function RecipesScreen({
         prepTime: r.prep_time_minutes || 0,
         servings: r.servings || 1,
         difficulty: r.difficulty || "Easy",
-        image: r.image_url || "https://images.unsplash.com/photo-1587486913049-53fc88980cfc?w=200&q=80",
+        image: r.image_url || "",
         tags: r.tags || [],
         heartBenefit: r.heart_benefit || "",
         nutrition: {
@@ -394,11 +136,7 @@ export default function RecipesScreen({
           saturatedFat: r.saturated_fat_g || 0,
           calories: r.calories || 0,
         },
-        ingredients: Array.isArray(r.ingredients)
-          ? r.ingredients.map((ing: any) => ({ qty: `${ing.amount} ${ing.unit}`.trim(), item: ing.name }))
-          : r.ingredients 
-            ? Object.keys(r.ingredients).map(k => ({ qty: r.ingredients[k], item: k })) 
-            : [],
+        ingredients: [],
         steps: r.steps || [],
       }));
       AsyncStorage.setItem(recipesCacheKey, JSON.stringify(mapped)).catch(() => {});
@@ -423,37 +161,6 @@ export default function RecipesScreen({
     }
   });
 
-  const isOffline = isError;
-
-  useEffect(() => {
-    // 1. Read local cache for immediate offline rendering before query completes
-    if (recipesList.length === 0) {
-      AsyncStorage.getItem(recipesCacheKey).then((cached) => {
-        if (cached) {
-          try {
-            const parsed = JSON.parse(cached);
-            if (Array.isArray(parsed) && parsed.length > 0) {
-              queryClient.setQueryData(["recipes"], parsed);
-            }
-          } catch {}
-        }
-      });
-    }
-
-    if (savedRecipes.length === 0) {
-      AsyncStorage.getItem(savedRecipesKey).then((cachedSaved) => {
-        if (cachedSaved) {
-          try {
-            const parsedSaved = JSON.parse(cachedSaved);
-            if (Array.isArray(parsedSaved)) {
-              queryClient.setQueryData(["saved_recipes", userId], parsedSaved);
-            }
-          } catch {}
-        }
-      });
-    }
-  }, []);
-
   const [refreshing, setRefreshing] = useState(false);
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -461,27 +168,8 @@ export default function RecipesScreen({
     setRefreshing(false);
   }, [refetchRecipes, refetchSaved]);
 
-  const filters = [
-    { key: "All", label: "All" },
-    { key: "Tailored For You", label: "For you" },
-    { key: "Saved", label: "Saved" },
-    { key: "Low Sodium", label: "Low sodium" },
-    { key: "High Fiber", label: "High fiber" },
-    { key: "Filipino", label: "Filipino" },
-    { key: "Breakfast", label: "Breakfast" },
-  ];
+  const filters = ["All", "Breakfast", "Lunch", "Dinner"];
 
-  useEffect(() => {
-    if (isEmbedded) return;
-    const hour = new Date().getHours();
-    if (hour >= 5 && hour < 10) {
-      setTimeMessage("Breakfast ideas for a heart-healthy start.");
-    } else if (hour >= 17 && hour <= 21) {
-      setTimeMessage("Keep dinner light and heart-healthy.");
-    }
-  }, [isEmbedded]);
-
-  // Scoped Bookmark Handler with Bi-directional Backend Synchronization (HL-ENG-09)
   const saveMutation = useMutation({
     mutationFn: async ({ id, isSaved }: { id: string; isSaved: boolean }) => {
       if (!userId || !token) return;
@@ -502,24 +190,7 @@ export default function RecipesScreen({
       AsyncStorage.setItem(savedRecipesKey, JSON.stringify(updated)).catch(() => {});
       return { previous };
     },
-    onError: (err, variables, context) => {
-      if (context?.previous) {
-        queryClient.setQueryData(["saved_recipes", userId], context.previous);
-        AsyncStorage.setItem(savedRecipesKey, JSON.stringify(context.previous)).catch(() => {});
-      }
-    },
   });
-
-  // Prevent skeleton flashing on fast cache loads
-  const [showSkeleton, setShowSkeleton] = useState(false);
-  useEffect(() => {
-    if (isLoading && recipesList.length === 0) {
-      const timer = setTimeout(() => setShowSkeleton(true), 150);
-      return () => clearTimeout(timer);
-    } else {
-      setShowSkeleton(false);
-    }
-  }, [isLoading, recipesList.length]);
 
   const toggleSave = (id: string) => {
     const isSaved = savedRecipes.includes(id);
@@ -528,42 +199,11 @@ export default function RecipesScreen({
 
   const filteredRecipes = useMemo(() => {
     let results = recipesList;
-
-    if (activeFilter === "Saved") {
-      results = results.filter((r) => savedRecipes.includes(r.id));
-    } else if (activeFilter === "Tailored For You") {
-      results = results.filter((r) => {
-        // Strict boundary: hypertensive or unverified baseline enforces < 140 mg sodium
-        if (hasHypertension && r.nutrition.sodium >= 140) return false;
-        if (hasHighCholesterol && r.nutrition.fiber < 5) return false;
-        if (!hasHypertension && !hasHighCholesterol && r.nutrition.sodium > 400) return false;
-        return true;
-      });
-    } else if (activeFilter !== "All") {
-      results = results.filter((r) => r.tags.includes(activeFilter));
+    if (activeFilter !== "All") {
+      results = results.filter((r) => (r.tags || []).includes(activeFilter));
     }
-
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      results = results.filter(
-        (r) =>
-          r.title.toLowerCase().includes(q) ||
-          r.subtitle.toLowerCase().includes(q) ||
-          r.tags.some((t) => t.toLowerCase().includes(q))
-      );
-    }
-
     return results;
-  }, [activeFilter, searchQuery, savedRecipes, recipesList, hasHypertension, hasHighCholesterol]);
-
-  const tailoredCount = useMemo(() => {
-    return recipesList.filter((r) => {
-      if (hasHypertension && r.nutrition.sodium >= 140) return false;
-      if (hasHighCholesterol && r.nutrition.fiber < 5) return false;
-      if (!hasHypertension && !hasHighCholesterol && r.nutrition.sodium > 400) return false;
-      return true;
-    }).length;
-  }, [recipesList, hasHypertension, hasHighCholesterol]);
+  }, [activeFilter, recipesList]);
 
   const Container = isEmbedded ? View : ScreenWrapper;
   const containerProps: any = isEmbedded
@@ -572,281 +212,69 @@ export default function RecipesScreen({
 
   return (
     <Container {...containerProps}>
-      {!isEmbedded && <StatusBar style="dark" />}
-
-      {/* ── Top bar ── */}
-      {!hideHeader && <Header />}
-
-      {/* ── Top bar for Standalone Screen ── */}
-      {!hideHeader && (
-        <View className="flex-row items-center justify-between px-5 pt-4">
-          <View className="flex-1 pr-2">
-            <Text className="text-[26px] font-medium text-slate-900 dark:text-white tracking-tight">
-              Recipes
-            </Text>
-            <Text className="text-[14px] text-slate-500 dark:text-slate-400 mt-0.5" numberOfLines={1} adjustsFontSizeToFit>
-              Heart-healthy meals for you
-            </Text>
-          </View>
-          <TouchableOpacity
-            onPress={() => router.push("/(home)/(meals)/food-diary")}
-            className="flex-row items-center gap-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 px-3 py-3 min-h-[44px] rounded-xl mt-2"
-          >
-            <Feather name="list" size={14} color="#64748b" />
-            <Text className="text-[12px] font-medium text-slate-600 dark:text-slate-300">History</Text>
+      {!isEmbedded && <StatusBar style={isDark ? "light" : "dark"} />}
+      
+      {/* Top Bar matching the "See All" design */}
+      {!isEmbedded && (
+        <View className="flex-row items-center justify-between px-5 pt-3 pb-4">
+          <TouchableOpacity onPress={() => router.back()} className="w-10 h-10 items-center justify-center -ml-2 rounded-full" style={{ backgroundColor: isDark ? "#162232" : "#F1F5F9" }}>
+            <Feather name="arrow-left" size={20} color={isDark ? "#FFFFFF" : "#0F172A"} />
+          </TouchableOpacity>
+          <Text className="text-[18px] font-bold" style={{ color: isDark ? "#FFFFFF" : "#0F172A" }}>
+            Recipes
+          </Text>
+          <TouchableOpacity className="w-10 h-10 items-center justify-center -mr-2 rounded-full" style={{ backgroundColor: isDark ? "#162232" : "#F1F5F9" }}>
+            <Feather name="sliders" size={18} color={isDark ? "#FFFFFF" : "#0F172A"} />
           </TouchableOpacity>
         </View>
       )}
 
-      {/* ── Unified Search Bar + Diary Action Row ── */}
-      <View className="px-5 pt-2 pb-1.5 flex-row items-center gap-2.5">
-        <View
-          className="flex-1 flex-row items-center rounded-full px-3.5 py-2.5 gap-2.5"
-          style={{
-            backgroundColor: searchFocused ? "#FFFFFF" : isDark ? "#162232" : "#EEF2F0",
-            borderWidth: searchFocused ? 1.5 : 1,
-            borderColor: searchFocused ? "#1B6E63" : isDark ? "rgba(255,255,255,0.06)" : "transparent",
-            ...searchFocused ? Platform.select({
-              ios: {
-                shadowColor: "#1B6E63",
-                shadowOffset: { width: 0, height: 0 },
-                shadowRadius: 8,
-                shadowOpacity: 0.1,
-              },
-              android: { elevation: 2 },
-            }) : {},
-          }}
-        >
-          <Feather name="search" size={18} color={searchFocused ? "#1B6E63" : "#94A3B8"} />
-          <TextInput
-            placeholder="Search recipes, ingredients…"
-            placeholderTextColor="#94A3B8"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            onFocus={() => setSearchFocused(true)}
-            onBlur={() => setSearchFocused(false)}
-            style={{
-              flex: 1,
-              fontSize: 14,
-              color: isDark ? "#FFFFFF" : "#152131",
-              paddingVertical: Platform.OS === "ios" ? 4 : 2,
-            }}
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery("")} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Feather name="x-circle" size={16} color="#94A3B8" />
-            </TouchableOpacity>
-          )}
-        </View>
-
-      </View>
-
-      {/* Offline Banner */}
-      {isOffline && (
-        <View className="mx-5 mb-2 flex-row items-center gap-2 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/50 px-4 py-2 rounded-xl">
-          <Feather name="wifi-off" size={14} color="#D97706" />
-          <Text className="text-[12px] font-medium text-amber-800 dark:text-amber-300 flex-1">
-            Offline Mode — Showing saved recipes
-          </Text>
-        </View>
-      )}
-
-      {/* ── Dark/Light Filter Chips ── */}
-      <View className="mt-1 mb-1">
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 20, gap: 8, paddingVertical: 4 }}
-        >
-          {filters.map((f) => (
-            <FilterChip
-              key={f.key}
-              label={f.key === "Tailored For You" ? `For you (${tailoredCount})` : f.label}
-              active={activeFilter === f.key}
-              onPress={() => setActiveFilter(f.key)}
-            />
-          ))}
+      {/* Filters */}
+      <View className="mb-4">
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="pl-5 max-h-[40px]" contentContainerStyle={{ paddingRight: 40 }}>
+          {filters.map((filter) => {
+            const isActive = activeFilter === filter;
+            return (
+              <TouchableOpacity
+                key={filter}
+                onPress={() => setActiveFilter(filter)}
+                activeOpacity={0.7}
+                className="px-5 py-2 rounded-full mr-3 border"
+                style={{ 
+                  backgroundColor: isActive ? (isDark ? "#F8F9FA" : "#152131") : (isDark ? "#162232" : "#FFFFFF"),
+                  borderColor: isActive ? "transparent" : (isDark ? "#1E293B" : "#E2E8F0")
+                }}
+              >
+                <Text className="text-[14px] font-semibold" style={{ color: isActive ? (isDark ? "#152131" : "#FFFFFF") : (isDark ? "#94A3B8" : "#64748B") }}>
+                  {filter}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </ScrollView>
       </View>
 
       <ScrollView
-        contentContainerStyle={{ paddingBottom: 160 }}
+        contentContainerStyle={{ paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1B6E63" />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1B6E63" />}
       >
-        {activeFilter === "Tailored For You" && !isEmbedded && (
-          <Reanimated.View
-            entering={FadeInDown.delay(100).springify()}
-            className="mx-5 mt-3 mb-2 rounded-2xl overflow-hidden"
-            style={{
-              borderWidth: 1,
-              borderColor: "rgba(37,99,235,0.12)",
-              ...Platform.select({
-                ios: {
-                  shadowColor: "#4A6080",
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowRadius: 8,
-                  shadowOpacity: 0.06,
-                },
-                android: { elevation: 2 },
-              }),
-            }}
-          >
-            <LinearGradient
-              colors={["#EFF6FF", "#FFFFFF"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={{
-                padding: 14,
-                flexDirection: "row",
-                alignItems: "flex-start",
-                gap: 12,
-              }}
-            >
-              <View className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 items-center justify-center flex-shrink-0">
-                <Feather name="shield" size={18} color="#4A6080" />
-              </View>
-              <View className="flex-1">
-                <Text className="text-[14px] font-bold text-[#152131] dark:text-white mb-0.5">
-                  Filtered for your conditions
-                </Text>
-                <Text className="text-[13px] text-[#64748B] dark:text-slate-400 leading-relaxed">
-                  {!user && "Showing heart-safe recipes (< 140 mg sodium) while your clinical baseline connects. "}
-                  {user && hasHypertension && "Showing recipes with < 140 mg sodium for blood pressure. "}
-                  {user && hasHighCholesterol && "Prioritising high-fiber recipes (≥ 5 g) for cholesterol. "}
-                  {user && !hasHypertension && !hasHighCholesterol && "Curated heart-healthy meals optimized for cardiac stability. "}
-                  Based on your health baseline.
-                </Text>
-              </View>
-            </LinearGradient>
-          </Reanimated.View>
-        )}
-
-        {timeMessage && !isEmbedded && activeFilter !== "Tailored For You" && activeFilter !== "Saved" && (
-          <Reanimated.View
-            entering={FadeInDown.delay(100).springify()}
-            style={{
-              marginHorizontal: 20,
-              marginTop: 10,
-              marginBottom: 4,
-              borderRadius: 16,
-              backgroundColor: isDark ? "#142520" : "#F4FAF7",
-              borderWidth: 1,
-              borderColor: isDark ? "#1B4D42" : "#D2ECE3",
-              padding: 13,
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 12,
-              ...Platform.select({
-                ios: {
-                  shadowColor: "#1B6E63",
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowRadius: 6,
-                  shadowOpacity: 0.05,
-                },
-                android: { elevation: 2 },
-              }),
-            }}
-          >
-            <View
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 12,
-                backgroundColor: isDark ? "rgba(245,158,11,0.2)" : "#FEF3C7",
-                alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
-              }}
-            >
-              <Feather name="sun" size={18} color="#D97706" />
-            </View>
-            <Text
-              style={{
-                flex: 1,
-                fontSize: 13.5,
-                fontWeight: "600",
-                color: isDark ? "#A7F3D0" : "#135249",
-                lineHeight: 19,
-              }}
-            >
-              {timeMessage}
-            </Text>
-          </Reanimated.View>
-        )}
-
-        {/* Results Info & Count */}
-        <View className="flex-row items-center justify-between px-5 mt-3 mb-1">
-          <View className="flex-row items-center gap-1.5">
-            <View className="w-1.5 h-1.5 rounded-full bg-[#1B6E63]" />
-            <Text className="text-[13px] font-semibold text-[#5C6B66] dark:text-slate-400">
-              {filteredRecipes.length} {filteredRecipes.length === 1 ? "recipe" : "recipes"} available
-            </Text>
-          </View>
-          {activeFilter !== "All" && (
-            <TouchableOpacity onPress={() => setActiveFilter("All")} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Text className="text-[12px] font-semibold text-[#1B6E63] dark:text-[#4FA79A]">Clear filter</Text>
-            </TouchableOpacity>
-          )}
+        <View className="px-5 mb-4">
+          <Text className="text-[13px] font-semibold" style={{ color: isDark ? "#F6CA84" : "#B45309" }}>
+            {filteredRecipes.length} recipes
+          </Text>
         </View>
 
-        {/* Recipe list */}
-        <View className="px-5 mt-2">
-          {showSkeleton && !refreshing ? (
-            <View className="gap-4">
-              {[1, 2, 3].map((key) => (
-                <View
-                  key={key}
-                  className="rounded-3xl p-4 flex-row"
-                  style={{
-                    backgroundColor: "#FFFFFF",
-                    borderWidth: 1,
-                    borderColor: "rgba(232,236,234,0.6)",
-                  }}
-                >
-                  <Skeleton className="w-24 h-24 rounded-2xl mr-4" />
-                  <View className="flex-1 justify-center">
-                    <Skeleton className="w-3/4 h-5 mb-2.5" />
-                    <Skeleton className="w-full h-4 mb-3" />
-                    <View className="flex-row gap-2">
-                      <Skeleton className="w-16 h-5 rounded-md" />
-                      <Skeleton className="w-16 h-5 rounded-md" />
-                    </View>
-                  </View>
-                </View>
-              ))}
-            </View>
-          ) : isLoading ? (
-            <View /> /* Wait for skeleton delay or data */
-          ) : filteredRecipes.length === 0 ? (
-            <EmptyState
-              icon={<Feather name="search" size={26} color="#cbd5e1" />}
-              title="No recipes found"
-              subtitle="Try a different search or filter."
-              className="pt-16"
+        <View className="px-5 flex-row flex-wrap justify-between">
+          {filteredRecipes.map((recipe) => (
+            <RecipeCard
+              key={recipe.id}
+              recipe={recipe}
+              isSaved={savedRecipes.includes(recipe.id)}
+              onSave={() => toggleSave(recipe.id)}
+              onPress={() => router.push(`/(home)/(meals)/recipe-details?id=${recipe.id}` as any)}
             />
-          ) : (
-            <View className="flex-row flex-wrap justify-between">
-              {filteredRecipes.map((recipe, index) => (
-                <Reanimated.View key={recipe.id} entering={FadeInDown.delay(150 + index * 80).springify()} className="w-full md:w-[48%] lg:w-[31%] mb-1">
-                  <RecipeCard
-                    recipe={recipe}
-                    isSaved={savedRecipes.includes(recipe.id)}
-                    onSave={() => toggleSave(recipe.id)}
-                    hasHypertension={hasHypertension}
-                    onPress={() =>
-                      router.push({
-                        pathname: "/(home)/(meals)/recipe-details",
-                        params: { id: recipe.id },
-                      })
-                    }
-                  />
-                </Reanimated.View>
-              ))}
-            </View>
-          )}
+          ))}
         </View>
       </ScrollView>
     </Container>

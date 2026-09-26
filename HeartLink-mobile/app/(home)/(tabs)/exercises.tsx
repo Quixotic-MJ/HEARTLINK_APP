@@ -1,26 +1,20 @@
-import React, { useState, useMemo, useRef, useEffect, useCallback } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import {
   View,
   Text,
   TouchableOpacity,
   ScrollView,
-  Animated,
-  Image,
   RefreshControl,
   Platform,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { ScreenWrapper } from "../../../components/ui/ScreenWrapper";
 import { StatusBar } from "expo-status-bar";
+import { useRouter } from "expo-router";
+import { useColorScheme } from "nativewind";
+import { useQuery } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
-import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useUser } from "../../../contexts/UserContext";
-import { Header } from "../../../components/Header";
-import { ScreenWrapper } from "../../../components/ui/ScreenWrapper";
-import { Skeleton } from "../../../components/ui/Skeleton";
-import Reanimated, { FadeInDown, FadeIn } from "react-native-reanimated";
-import { Alert } from "react-native";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -32,566 +26,111 @@ export interface Routine {
   type: string;
   intensity: string;
   category: string;
-  image?: string;
+  calories?: number;
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function resolveMediaUrl(url: string) {
-  if (!url) return "";
-  if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:")) {
-    return url;
-  }
-  const cleanBase = base_url?.endsWith("/") ? base_url.slice(0, -1) : base_url;
-  const cleanPath = url.startsWith("/") ? url : `/${url}`;
-  return `${cleanBase || "http://localhost:8000"}${cleanPath}`;
-}
-
-function getTypeConfig(type: string) {
-  if (type === "Breathing")
-    return { icon: "wind" as const, color: "#BE185D", bg: "#FDF2F8" };
-  if (type === "Stationary")
-    return { icon: "anchor" as const, color: "#0369A1", bg: "#E0F2FE" };
-  return { icon: "activity" as const, color: "#15803D", bg: "#DCFCE7" };
-}
-
-const STATUS_CONFIG = {
-  Stable: {
-    badgeBg: "#F0FDF4",
-    badgeText: "#166534",
-  },
-  Moderate: {
-    badgeBg: "#FFFBEB",
-    badgeText: "#B45309",
-  },
-  "Elevated Risk": {
-    badgeBg: "#FFF7ED",
-    badgeText: "#C2410C",
-  },
-  Critical: {
-    badgeBg: "#FEF2F2",
-    badgeText: "#B91C1C",
-  },
-} as const;
-
-// ─── Day Labels ───────────────────────────────────────────────────────────────
-const DAY_LABELS = ["M", "T", "W", "T", "F", "S", "S"];
-
-// ─── Routine Card (Premium Apple Fitness Style) ───────────────────────────────
-
-function RoutineCard({
+function ExerciseCard({
   routine,
   onPress,
-  isCompleted,
-  isPartial,
-  isFeatured = false,
 }: {
   routine: Routine;
   onPress: () => void;
-  isCompleted: boolean;
-  isPartial?: boolean;
-  isFeatured?: boolean;
 }) {
-  const cfg = getTypeConfig(routine.type);
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === "dark";
+
+  const getTypeProps = (type: string, title: string) => {
+    const t = (type + " " + title).toLowerCase();
+    if (t.includes("cardio") || t.includes("run") || t.includes("cycle")) {
+       return { color: "#BED9FA", icon: "activity", iconColor: "#1D4ED8" };
+    }
+    if (t.includes("strength") || t.includes("leg")) {
+       return { color: "#FBCFE8", icon: "target", iconColor: "#BE185D" };
+    }
+    return { color: "#DDD6FE", icon: "user", iconColor: "#6D28D9" };
+  };
+  
+  const { color, icon, iconColor } = getTypeProps(routine.type, routine.title);
+  const calories = routine.calories || Math.floor(routine.duration * 7.5); // Fallback mock calories
 
   return (
-    <TouchableOpacity activeOpacity={0.8}
-      onPress={onPress}
-      className="rounded-2xl overflow-hidden mb-3.5"
-      style={{
-        backgroundColor: "#FFFFFF",
-        borderWidth: 1,
-        borderColor: "rgba(232,236,234,0.6)",
-        ...Platform.select({
-          ios: {
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: 1 },
-            shadowRadius: 3,
-            shadowOpacity: 0.05,
-          },
-          android: {
-            elevation: 2,
-          },
-        }),
-      }}
+    <TouchableOpacity 
+      activeOpacity={0.8} 
+      onPress={onPress} 
+      className="flex-row items-center p-3 mb-3 rounded-2xl border" 
+      style={{ backgroundColor: isDark ? "#162232" : "#FFFFFF", borderColor: isDark ? "#1E293B" : "#F1F5F9" }}
     >
-      {/* Thumbnail */}
-      <View className={`${isFeatured ? "h-40" : "h-28"} bg-[#F1F5F3] relative items-center justify-center`}>
-        {routine.image ? (
-          <Image source={{ uri: routine.image }} className="absolute inset-0 w-full h-full" resizeMode="cover" />
-        ) : (
-          <Feather name="image" size={32} color="#D1D9D5" />
-        )}
-        
-        {/* Soft overlay */}
-        <View className="absolute inset-0 bg-slate-900/10" />
-
-        <View
-          className="absolute top-4 left-4 flex-row items-center gap-1.5 px-3 py-1.5 rounded-full"
-          style={{
-            backgroundColor: "rgba(255,255,255,0.92)",
-            ...Platform.select({
-              ios: {
-                shadowColor: "#000",
-                shadowOffset: { width: 0, height: 1 },
-                shadowRadius: 4,
-                shadowOpacity: 0.08,
-              },
-              android: { elevation: 2 },
-            }),
-          }}
-        >
-          <Feather name="clock" size={12} color="#334155" />
-          <Text className="text-[12px] font-semibold text-[#334155]">
-            {routine.duration} min
-          </Text>
-        </View>
-
-        <View
-          className="absolute top-4 right-4 px-3 py-1.5 rounded-full"
-          style={{ backgroundColor: cfg.bg }}
-        >
-          <Text
-            className="text-[11px] font-bold uppercase tracking-wider"
-            style={{ color: cfg.color }}
-          >
-            {routine.type}
-          </Text>
-        </View>
-
-        {isCompleted && (
-          <View className="absolute inset-0 bg-white/80 backdrop-blur-sm items-center justify-center">
-            <View className="w-14 h-14 rounded-full bg-green-100 items-center justify-center border border-green-200">
-              <Feather name="check" size={26} color="#16A34A" />
-            </View>
-            <Text className="text-green-700 font-bold mt-2 text-[15px]">Completed</Text>
-          </View>
-        )}
-        
-        {isPartial && !isCompleted && (
-          <View className="absolute inset-0 bg-white/80 backdrop-blur-sm items-center justify-center">
-            <View className="w-14 h-14 rounded-full bg-amber-100 items-center justify-center border border-amber-200">
-              <Feather name="activity" size={26} color="#D97706" />
-            </View>
-            <Text className="text-amber-700 font-bold mt-2 text-[15px]">Partial Activity</Text>
-          </View>
-        )}
+      <View className="w-14 h-14 rounded-xl items-center justify-center mr-4" style={{ backgroundColor: color }}>
+        <Feather name={icon as any} size={22} color={iconColor} />
       </View>
-
-      {/* Content */}
-      <View className={`px-4 py-3.5 ${isFeatured ? "bg-rose-50/20" : "bg-white"}`}>
-        <Text className="text-[16px] font-bold text-[#152131] leading-snug mb-1" numberOfLines={1}>
-          {routine.title}
-        </Text>
-        <Text className="text-[13px] text-[#64748B] leading-relaxed mb-3" numberOfLines={2}>
-          {routine.goal}
-        </Text>
-
-        <View className="flex-row items-center justify-between">
-          <View className="flex-row items-center gap-2">
-            <View
-              className="flex-row items-center gap-1.5 px-2.5 py-1.5 rounded-lg"
-              style={{ backgroundColor: "#F4F7F5" }}
-            >
-              <Feather name="activity" size={12} color="#64748B" />
-              <Text className="text-[11px] font-bold text-[#5C6B66] uppercase tracking-wider">
-                {routine.intensity} Intensity
-              </Text>
-            </View>
-          </View>
-          
-          <View
-            className="w-10 h-10 rounded-full items-center justify-center"
-            style={{
-              backgroundColor: isFeatured ? "#1B6E63" : "#F1F5F3",
-            }}
-          >
-            <Feather name="arrow-right" size={18} color={isFeatured ? "#FFFFFF" : "#475569"} />
-          </View>
-        </View>
+      <View className="flex-1 justify-center">
+        <Text className="text-[15px] font-bold mb-1" style={{ color: isDark ? "#FFFFFF" : "#0F172A" }}>{routine.title}</Text>
+        <Text className="text-[12px]" style={{ color: isDark ? "#94A3B8" : "#64748B" }}>{routine.type} - {routine.duration} min - {calories} cal</Text>
       </View>
+      <Feather name="chevron-right" size={18} color={isDark ? "#64748B" : "#94A3B8"} />
     </TouchableOpacity>
   );
 }
 
-// ─── Main Screen ──────────────────────────────────────────────────────────────
-
 export default function ExercisesScreen({
-  hideHeader = false,
   isEmbedded = false,
 }: {
-  hideHeader?: boolean;
   isEmbedded?: boolean;
 } = {}) {
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === "dark";
   const router = useRouter();
-  const params = useLocalSearchParams<{ completedId?: string; durationSeconds?: string }>();
   const { userId, token } = useUser();
+  const [activeFilter, setActiveFilter] = useState("All");
 
-  const queryClient = useQueryClient();
-  const [selectedType, setSelectedType] = useState<string>("All");
-  const [refreshing, setRefreshing] = useState(false);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const exercisesCacheKey = userId ? `@exercises_list_cache_${userId}` : "@exercises_list_cache";
 
-  const slideAnim = useRef(new Animated.Value(-100)).current;
-  const exercisesCacheKey = userId ? `@exercises_cache_${userId}` : "@exercises_cache";
-  const hssCacheKey = userId ? `@exercises_cache_hss_${userId}` : "@exercises_cache_hss";
-
-  const cachedExercises = queryClient.getQueryData<any>(["exercises_data", userId]);
-  const { data, isLoading, isError: error, refetch: fetchData } = useQuery({
-    queryKey: ["exercises_data", userId],
-    initialData: cachedExercises,
-    enabled: !!userId,
+  const { data: routinesList = [], refetch, isLoading } = useQuery({
+    queryKey: ["exercises_list", userId],
     staleTime: 5 * 60 * 1000,
     queryFn: async () => {
-      try {
-        const [routinesRes, dashboardRes, logsRes] = await Promise.all([
-          fetch(`${base_url}/api/exercises/`, {
-            headers: token ? { "Authorization": `Bearer ${token}` } : {}
-          }).catch(() => null),
-          fetch(`${base_url}/api/dashboard/me`, {
-            headers: { "Authorization": `Bearer ${token || ""}` }
-          }).catch(() => null),
-          fetch(`${base_url}/api/exercises/logs/${userId}`, {
-            headers: { "Authorization": `Bearer ${token || ""}` }
-          }).catch(() => null)
-        ]);
+      const res = await fetch(`${base_url}/api/exercises/`, {
+        headers: token ? { "Authorization": `Bearer ${token}` } : {}
+      });
+      if (!res.ok) throw new Error("Failed to fetch exercises");
+      const rData = await res.json();
+      
+      if (!Array.isArray(rData)) return [];
 
-        let mappedRoutines: Routine[] = [];
-        if (routinesRes && routinesRes.ok) {
-          const rData = await routinesRes.json();
-          if (!Array.isArray(rData) || rData.length === 0) {
-            throw new Error("Received empty array from API, assuming backend error");
-          }
-          mappedRoutines = rData.map((r: any) => ({
-            id: r.id,
-            title: r.name || "",
-            duration: r.duration_minutes || 0,
-            goal: r.goal || r.description || "",
-            type: r.type || "Light Cardio",
-            intensity: r.intensity || "Low",
-            category: r.hss_tier || "Stable",
-            image: resolveMediaUrl(r.media_url || r.image_url || ""),
-          }));
-          await AsyncStorage.setItem(exercisesCacheKey, JSON.stringify(mappedRoutines)).catch(() => {});
-        } else {
-          throw new Error("Failed to fetch fresh routines from network");
-        }
-
-        let dashScore = 0;
-        let dashHasSymptom = false;
-        let dashFailed = false;
-        if (dashboardRes && dashboardRes.ok) {
-          const dash = await dashboardRes.json();
-          if (dash.hss_score !== undefined && dash.hss_score !== null) {
-            dashScore = dash.hss_score;
-            if (dash.has_recent_severe_symptom) dashHasSymptom = true;
-            await AsyncStorage.setItem(
-              hssCacheKey,
-              JSON.stringify({ score: dash.hss_score, tier: dash.hss_tier || null })
-            ).catch(() => {});
-          }
-        } else {
-          dashFailed = true;
-          try {
-            const cachedHssStr = await AsyncStorage.getItem(hssCacheKey);
-            if (cachedHssStr) {
-              const parsedHss = JSON.parse(cachedHssStr);
-              if (parsedHss && typeof parsedHss.score === "number") {
-                dashScore = parsedHss.score;
-              }
-            }
-          } catch {}
-        }
-
-        let completedIds: string[] = [];
-        let partialIds: string[] = [];
-        let weekly = { count: 0, days: Array(7).fill(false), labels: ["M", "T", "W", "T", "F", "S", "S"] };
-
-        if (logsRes && logsRes.ok) {
-          const lData = await logsRes.json();
-          const todayStr = new Date().toDateString();
-          completedIds = lData
-            .filter((log: any) => new Date(log.logged_at).toDateString() === todayStr && log.status === "completed")
-            .map((log: any) => log.routine_id);
-          partialIds = lData
-            .filter((log: any) => new Date(log.logged_at).toDateString() === todayStr && (log.status === "partial" || log.status === "incomplete_due_to_symptoms"))
-            .map((log: any) => log.routine_id);
-
-          const now = new Date();
-          const oneDay = 24 * 60 * 60 * 1000;
-          const startOfWeek = new Date(now.getTime() - 6 * oneDay);
-          startOfWeek.setHours(0, 0, 0, 0);
-          
-          const days = Array(7).fill(false);
-          const labels: string[] = [];
-          let count = 0;
-          
-          for (let i = 0; i < 7; i++) {
-            const targetDate = new Date(startOfWeek.getTime() + i * oneDay);
-            const targetDateStr = targetDate.toDateString();
-            labels.push(targetDate.toLocaleDateString("en-US", { weekday: "narrow" }));
-            const hasMeaningful = lData.some((log: any) => 
-              new Date(log.logged_at).toDateString() === targetDateStr &&
-              log.status !== "abandoned" &&
-              (log.duration_seconds !== undefined && log.duration_seconds !== null ? log.duration_seconds >= 30 : (log.duration_minutes || 0) >= 1)
-            );
-            days[i] = hasMeaningful;
-            if (hasMeaningful) count++;
-          }
-          weekly = { count, days, labels };
-        }
-
-        return {
-          routinesList: mappedRoutines,
-          hssScore: dashScore,
-          hasRecentSevereSymptom: dashHasSymptom,
-          dashboardFailed: dashFailed,
-          completedExercises: completedIds,
-          partialExercises: partialIds,
-          weeklyConsistency: weekly,
-        };
-      } catch (err) {
-        // Fallback to AsyncStorage on network failure or 500 error
-        let dashScore = 0;
-        let dashHasSymptom = false;
-        try {
-          const cachedHssStr = await AsyncStorage.getItem(hssCacheKey);
-          if (cachedHssStr) {
-            const parsedHss = JSON.parse(cachedHssStr);
-            if (parsedHss && typeof parsedHss.score === "number") dashScore = parsedHss.score;
-          }
-        } catch {}
-        
-        const cached = await AsyncStorage.getItem(exercisesCacheKey);
-        if (cached) {
-          const parsed = JSON.parse(cached);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            return {
-              routinesList: parsed,
-              hssScore: dashScore,
-              hasRecentSevereSymptom: dashHasSymptom,
-              dashboardFailed: true,
-              completedExercises: [],
-              partialExercises: [],
-              weeklyConsistency: { count: 0, days: Array(7).fill(false), labels: ["M", "T", "W", "T", "F", "S", "S"] },
-              isOffline: true,
-            };
-          }
-        }
-        throw err; // Still fail if no cache exists
-      }
+      const mapped: Routine[] = rData.map((r: any) => ({
+        id: r.id,
+        title: r.name || "",
+        duration: r.duration_minutes || 0,
+        goal: r.goal || r.description || "",
+        type: r.type || "Cardio",
+        intensity: r.intensity || "Low",
+        category: r.hss_tier || "Stable",
+        calories: r.calories || 0,
+      }));
+      AsyncStorage.setItem(exercisesCacheKey, JSON.stringify(mapped)).catch(() => {});
+      return mapped;
     }
   });
 
-  const routinesList = data?.routinesList || null;
-  const hssScore = data?.hssScore || 0;
-  const hasRecentSevereSymptom = data?.hasRecentSevereSymptom || false;
-  const dashboardFailed = data?.dashboardFailed || false;
-  const completedExercises = data?.completedExercises || [];
-  const partialExercises = data?.partialExercises || [];
-  const weeklyConsistency = data?.weeklyConsistency || { count: 0, days: Array(7).fill(false), labels: ["M", "T", "W", "T", "F", "S", "S"] };
-
-  // Prevent skeleton flashing on fast cache loads
-  const [showSkeleton, setShowSkeleton] = useState(false);
-  useEffect(() => {
-    if (isLoading && (!routinesList || routinesList.length === 0)) {
-      const timer = setTimeout(() => setShowSkeleton(true), 150);
-      return () => clearTimeout(timer);
-    } else {
-      setShowSkeleton(false);
-    }
-  }, [isLoading, routinesList?.length]);
-
-  const isOffline = !!data?.isOffline;
-
-  useEffect(() => {
-    // Read local cache for immediate offline rendering before query completes
-    if (!data && userId) {
-      (async () => {
-        try {
-          const cached = await AsyncStorage.getItem(exercisesCacheKey);
-          if (cached) {
-            const parsed = JSON.parse(cached);
-            if (Array.isArray(parsed) && parsed.length > 0) {
-              let dashScore = 0;
-              const cachedHssStr = await AsyncStorage.getItem(hssCacheKey);
-              if (cachedHssStr) {
-                const parsedHss = JSON.parse(cachedHssStr);
-                if (parsedHss && typeof parsedHss.score === "number") dashScore = parsedHss.score;
-              }
-              queryClient.setQueryData(["exercises_data", userId], {
-                routinesList: parsed,
-                hssScore: dashScore,
-                hasRecentSevereSymptom: false,
-                dashboardFailed: true,
-                completedExercises: [],
-                partialExercises: [],
-                weeklyConsistency: { count: 0, days: Array(7).fill(false), labels: ["M", "T", "W", "T", "F", "S", "S"] },
-                isOffline: true,
-              });
-            }
-          }
-        } catch {}
-      })();
-    }
-  }, [userId, data]);
-
+  const [refreshing, setRefreshing] = useState(false);
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await fetchData();
+    await refetch();
     setRefreshing(false);
-  }, [fetchData]);
+  }, [refetch]);
 
-  useEffect(() => {
-    if (params.completedId && routinesList) {
-      const routine = routinesList.find((r) => r.id === params.completedId);
-      if (routine) {
-        if (!completedExercises.includes(routine.id)) {
-          const actualSeconds = params.durationSeconds ? parseInt(params.durationSeconds as string, 10) : routine.duration * 60;
-          let timeText = "";
-          if (actualSeconds < 60) {
-            timeText = `${actualSeconds} second${actualSeconds === 1 ? "" : "s"}`;
-          } else {
-            const mins = Math.round(actualSeconds / 60);
-            timeText = `${mins} minute${mins === 1 ? "" : "s"}`;
-          }
-          showToast(`Great job! ${timeText} recorded.`);
-        }
-        router.setParams({ completedId: "", durationSeconds: "" });
-      }
+  const filters = ["All", "Cardio", "Strength", "Flexibility"];
+
+  const filteredRoutines = useMemo(() => {
+    let results = Array.isArray(routinesList) ? routinesList : [];
+    if (activeFilter !== "All") {
+      results = results.filter((r) => 
+        (r.type || "").toLowerCase().includes(activeFilter.toLowerCase()) || 
+        (r.title || "").toLowerCase().includes(activeFilter.toLowerCase())
+      );
     }
-  }, [params.completedId, params.durationSeconds, routinesList, completedExercises]);
-
-  const showToast = (message: string) => {
-    setToastMessage(message);
-    Animated.sequence([
-      Animated.timing(slideAnim, {
-        toValue: Platform.OS === 'ios' ? 60 : 40,
-        duration: 400,
-        useNativeDriver: true,
-      }),
-      Animated.delay(3500),
-      Animated.timing(slideAnim, {
-        toValue: -150,
-        duration: 300,
-        useNativeDriver: true,
-      }),
-    ]).start(() => setToastMessage(null));
-  };
-
-  const handleClearSymptomLock = () => {
-    Alert.alert(
-      "Unlock Exercises?",
-      "By unlocking, you explicitly certify that you have been evaluated by a doctor, or that your severe symptoms have completely resolved.",
-      [
-        { text: "Cancel", style: "cancel" },
-        { 
-          text: "I Certify & Unlock", 
-          style: "destructive",
-          onPress: async () => {
-            if (!userId) return;
-            try {
-              const storedToken = await AsyncStorage.getItem("access_token");
-              const effectiveToken = token || storedToken || "";
-              const response = await fetch(`${base_url}/api/health-logs/${userId}/clear-symptom-lock`, {
-                method: "POST",
-                headers: effectiveToken ? { "Authorization": `Bearer ${effectiveToken}` } : {}
-              });
-              
-              if (response.ok) {
-                queryClient.setQueryData(["exercises_data", userId], (old: any) => old ? { ...old, hasRecentSevereSymptom: false } : old);
-                await AsyncStorage.removeItem(`@dashboard_cache_${userId}`);
-                showToast("Your symptom lock has been cleared.");
-                await fetchData();
-              } else {
-                showToast("Failed to clear lock.");
-              }
-            } catch (err) {
-              showToast("Network error while clearing lock.");
-            }
-          }
-        }
-      ]
-    );
-  };
-
-  // Safe boundary handling: if user is uncalibrated (hssScore <= 0):
-  // Online & telemetry verified -> default to "Stable" (baseline safe for onboarding)
-  // Offline or unverified partial API failure -> default to "Elevated Risk" (fail-safe protection against unverified acute strain)
-  const isCalibrated = hssScore > 0;
-  const hssStatus = useMemo<"Stable" | "Moderate" | "Elevated Risk" | "Critical">(() => {
-    if (hasRecentSevereSymptom) return "Critical";
-    if (!isCalibrated) return (isOffline || dashboardFailed) ? "Elevated Risk" : "Stable";
-    if (hssScore >= 80) return "Stable";
-    if (hssScore >= 60) return "Moderate";
-    if (hssScore >= 50) return "Elevated Risk";
-    return "Critical";
-  }, [hssScore, isCalibrated, isOffline, dashboardFailed, hasRecentSevereSymptom]);
-
-  // Determine allowed tiers
-  const allowedTiers = useMemo(() => {
-    const TIER_HIERARCHY: Record<string, string[]> = {
-      "Stable": ["Stable", "Moderate", "Elevated Risk", "Critical"],
-      "Moderate": ["Moderate", "Elevated Risk", "Critical"],
-      "Elevated Risk": ["Elevated Risk", "Critical"],
-      "Critical": ["Critical"]
-    };
-    return TIER_HIERARCHY[hssStatus] || [hssStatus];
-  }, [hssStatus]);
-
-  // Recommended routine: the first incomplete routine matching the user's exact tier, or just the first allowed one
-  const recommendedRoutine = useMemo(() => {
-    if (!routinesList || routinesList.length === 0) return null;
-    
-    // Prioritize exactly matching tier and not completed
-    const exactMatch = routinesList.find(r => r.category === hssStatus && !completedExercises.includes(r.id) && !partialExercises.includes(r.id));
-    if (exactMatch) return exactMatch;
-    
-    // Otherwise fallback to first allowed and not completed/partial
-    const allowed = routinesList.find(r => allowedTiers.includes(r.category) && !completedExercises.includes(r.id) && !partialExercises.includes(r.id));
-    if (allowed) return allowed;
-
-    // Return the first allowed one even if completed
-    const firstAllowed = routinesList.find(r => allowedTiers.includes(r.category));
-    if (firstAllowed) return firstAllowed;
-
-    // CLINICAL SAFETY GUARD (HL-ENG-08): Under Critical or Elevated Risk, NEVER fall back to routinesList[0]
-    if (hssStatus === "Critical" || hssStatus === "Elevated Risk") {
-      return null;
-    }
-
-    return routinesList[0];
-  }, [routinesList, hssStatus, allowedTiers, completedExercises]);
-
-  // All other active routines
-  const availableRoutines = useMemo(() => {
-    if (!routinesList) return [];
-    return routinesList.filter((r) => {
-      // Don't show the recommended one twice in the 'All' list unless filtered
-      const matchesTier = allowedTiers.includes(r.category);
-      const matchesType = selectedType === "All" || r.type === selectedType;
-      return matchesTier && matchesType && r.id !== recommendedRoutine?.id;
-    });
-  }, [routinesList, allowedTiers, selectedType, recommendedRoutine]);
-
-  // Available types for filters based on what actually exists in backend data
-  const exerciseTypes = useMemo(() => {
-    if (!routinesList) return ["All"];
-    const types = new Set<string>();
-    routinesList.forEach(r => {
-      if (allowedTiers.includes(r.category)) {
-        types.add(r.type);
-      }
-    });
-    return ["All", ...Array.from(types).sort()];
-  }, [routinesList, allowedTiers]);
-
-  const handleRoutinePress = (id: string) => {
-    router.push({
-      pathname: "/(home)/(health)/exercise-details",
-      params: { id },
-    });
-  };
+    return results;
+  }, [activeFilter, routinesList]);
 
   const Container = isEmbedded ? View : ScreenWrapper;
   const containerProps: any = isEmbedded
@@ -600,333 +139,69 @@ export default function ExercisesScreen({
 
   return (
     <Container {...containerProps}>
-      {!isEmbedded && <StatusBar style="dark" />}
-
-      {/* Toast */}
-      {toastMessage && (
-        <Animated.View
-          style={{
-            transform: [{ translateY: slideAnim }],
-            position: "absolute",
-            left: 20,
-            right: 20,
-            zIndex: 100,
-          }}
-        >
-          <View
-            className="flex-row items-center gap-3 px-5 py-4 rounded-2xl"
-            style={{
-              backgroundColor: "#152131",
-              ...Platform.select({
-                ios: {
-                  shadowColor: "#152131",
-                  shadowOffset: { width: 0, height: 8 },
-                  shadowRadius: 24,
-                  shadowOpacity: 0.3,
-                },
-                android: { elevation: 12 },
-              }),
-            }}
-          >
-            <View className="w-8 h-8 rounded-full bg-green-500/20 items-center justify-center">
-              <Feather name="check" size={16} color="#4ADE80" />
-            </View>
-            <Text className="flex-1 text-[15px] font-semibold text-white">
-              {toastMessage}
-            </Text>
-          </View>
-        </Animated.View>
+      {!isEmbedded && <StatusBar style={isDark ? "light" : "dark"} />}
+      
+      {/* Top Bar matching the "See All" design */}
+      {!isEmbedded && (
+        <View className="flex-row items-center justify-between px-5 pt-3 pb-4">
+          <TouchableOpacity onPress={() => router.back()} className="w-10 h-10 items-center justify-center -ml-2 rounded-full" style={{ backgroundColor: isDark ? "#162232" : "#F1F5F9" }}>
+            <Feather name="arrow-left" size={20} color={isDark ? "#FFFFFF" : "#0F172A"} />
+          </TouchableOpacity>
+          <Text className="text-[18px] font-bold" style={{ color: isDark ? "#FFFFFF" : "#0F172A" }}>
+            Exercises
+          </Text>
+          <TouchableOpacity className="w-10 h-10 items-center justify-center -mr-2 rounded-full" style={{ backgroundColor: isDark ? "#162232" : "#F1F5F9" }}>
+            <Feather name="sliders" size={18} color={isDark ? "#FFFFFF" : "#0F172A"} />
+          </TouchableOpacity>
+        </View>
       )}
 
-      {/* ── Top bar ── */}
-      {!hideHeader && <Header />}
-
-      {showSkeleton && !refreshing ? (
-        <View className="px-6 mt-6">
-          <Skeleton className="w-full h-56 rounded-3xl mb-8" />
-          <Skeleton className="w-1/3 h-6 mb-4" />
-          <View className="flex-row gap-3 mb-6">
-            <Skeleton className="w-24 h-10 rounded-full" />
-            <Skeleton className="w-24 h-10 rounded-full" />
-          </View>
-          <Skeleton className="w-full h-40 rounded-3xl mb-4" />
-          <Skeleton className="w-full h-40 rounded-3xl" />
-        </View>
-      ) : isLoading ? (
-        <View /> /* Wait for skeleton delay or data */
-      ) : error || !routinesList || routinesList.length === 0 ? (
-        <ScrollView
-          contentContainerClassName="flex-1 items-center justify-center px-6"
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1B6E63" />}
-        >
-          <View className="w-20 h-20 bg-rose-50 rounded-full items-center justify-center mb-6">
-            <Feather name="wifi-off" size={32} color="#F43F5E" />
-          </View>
-          <Text className="text-[20px] font-bold text-[#152131] mb-2">Movements unavailable</Text>
-          <Text className="text-[15px] text-[#64748B] text-center mb-8 px-4 leading-relaxed">
-            We couldn't connect to the server to retrieve your safe training routines. Please check your connection.
-          </Text>
-          <TouchableOpacity 
-            onPress={() => fetchData()}
-            activeOpacity={0.8}
-            className="px-8 py-3.5 rounded-full"
-            style={{
-              backgroundColor: "#1B6E63",
-              ...Platform.select({
-                ios: {
-                  shadowColor: "#1B6E63",
-                  shadowOffset: { width: 0, height: 4 },
-                  shadowRadius: 12,
-                  shadowOpacity: 0.3,
-                },
-                android: { elevation: 6 },
-              }),
-            }}
-          >
-            <Text className="text-white font-bold text-[16px]">Try Again</Text>
-          </TouchableOpacity>
-        </ScrollView>
-      ) : (
-        <ScrollView
-          contentContainerClassName="px-5 pb-40 md:max-w-2xl lg:max-w-4xl mx-auto w-full pt-1"
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1B6E63" />
-          }
-        >
-          {!hideHeader && (
-            <View className="mb-6">
-              <Text
-                className="text-[28px] font-bold text-[#152131] mb-1"
-                style={{ letterSpacing: -0.5 }}
-              >
-                Today's Movement
-              </Text>
-              <Text className="text-[16px] text-[#64748B] mb-4">
-                Move safely. Build consistency.
-              </Text>
+      {/* Filters */}
+      <View className="mb-4">
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="pl-5 max-h-[40px]" contentContainerStyle={{ paddingRight: 40 }}>
+          {filters.map((filter) => {
+            const isActive = activeFilter === filter;
+            return (
               <TouchableOpacity
-                onPress={() => router.push("/(home)/(health)/exercise-diary")}
-                className="flex-row items-center gap-2 self-start px-4 py-2.5 rounded-xl"
-                style={{
-                  backgroundColor: "#FFFFFF",
-                  borderWidth: 1,
-                  borderColor: "rgba(232,236,234,0.7)",
-                  ...Platform.select({
-                    ios: {
-                      shadowColor: "#000",
-                      shadowOffset: { width: 0, height: 2 },
-                      shadowRadius: 6,
-                      shadowOpacity: 0.06,
-                    },
-                    android: { elevation: 2 },
-                  }),
+                key={filter}
+                onPress={() => setActiveFilter(filter)}
+                activeOpacity={0.7}
+                className="px-5 py-2 rounded-full mr-3 border"
+                style={{ 
+                  backgroundColor: isActive ? (isDark ? "#F8F9FA" : "#152131") : (isDark ? "#162232" : "#FFFFFF"),
+                  borderColor: isActive ? "transparent" : (isDark ? "#1E293B" : "#E2E8F0")
                 }}
               >
-                <Feather name="calendar" size={16} color="#64748B" />
-                <Text className="text-[13px] font-semibold text-[#5C6B66]">History</Text>
+                <Text className="text-[14px] font-semibold" style={{ color: isActive ? (isDark ? "#152131" : "#FFFFFF") : (isDark ? "#94A3B8" : "#64748B") }}>
+                  {filter}
+                </Text>
               </TouchableOpacity>
-            </View>
-          )}
-
-          {/* Offline Banner */}
-          {isOffline && (
-            <View className="flex-row items-center gap-2 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/50 px-4 py-2.5 rounded-2xl mb-4">
-              <Feather name="wifi-off" size={14} color="#D97706" />
-              <Text className="text-[12px] font-medium text-amber-800 dark:text-amber-300 flex-1">
-                Offline Mode — Showing saved movement routines
-              </Text>
-            </View>
-          )}
-
-          {/* ── Clinical Stability Warning Callout (HL-ENG-01) ── */}
-          {(hssStatus === "Elevated Risk" || hssStatus === "Critical") && (
-            <Reanimated.View
-              entering={FadeInDown.springify()}
-              className="p-4 rounded-2xl flex-row gap-3 mb-6"
-              style={{
-                backgroundColor: hssStatus === "Critical" ? "#FEF2F2" : "#FFFBEB",
-                borderWidth: 1,
-                borderColor: hssStatus === "Critical" ? "#FECACA" : "#FDE68A",
-              }}
-            >
-              <Feather
-                name="alert-triangle"
-                size={20}
-                color={hssStatus === "Critical" ? "#DC2626" : "#D97706"}
-                style={{ marginTop: 2 }}
-              />
-              <View className="flex-1">
-                <Text
-                  className="text-[14px] font-bold mb-0.5"
-                  style={{ color: hssStatus === "Critical" ? "#991B1B" : "#92400E" }}
-                >
-                  {hssStatus === "Critical"
-                    ? "Critical Cardiac Strain Detected"
-                    : "Elevated Heart Stability Risk"}
-                </Text>
-                <Text
-                  className="text-[13px] leading-relaxed font-medium"
-                  style={{ color: hssStatus === "Critical" ? "#B91C1C" : "#B45309" }}
-                >
-                  {hssStatus === "Critical"
-                    ? "Active cardiovascular workouts are paused to protect your heart. Please rest seated or lying down comfortably and contact your attending care team or emergency services immediately."
-                    : "Your heart stability is currently elevated. Please consult your physician before engaging in physical activity. Only gentle breathing exercises are shown."}
-                </Text>
-                {hssStatus === "Critical" && hasRecentSevereSymptom && (
-                  <TouchableOpacity
-                    onPress={handleClearSymptomLock}
-                    className="mt-3 w-full py-3 bg-red-100 rounded-xl items-center justify-center border border-red-300"
-                  >
-                    <Text className="text-red-800 font-bold text-[14px]">I've been cleared to exercise</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            </Reanimated.View>
-          )}
-
-          {/* Recommended Routine */}
-          {recommendedRoutine && selectedType === "All" && (
-            <Reanimated.View entering={FadeInDown.delay(100).springify()} className="mb-5">
-              <Text className="text-[15px] font-bold text-[#152131] mb-2.5">
-                Recommended
-              </Text>
-              <RoutineCard
-                routine={recommendedRoutine}
-                isCompleted={completedExercises.includes(recommendedRoutine.id)}
-                isPartial={partialExercises.includes(recommendedRoutine.id)}
-                onPress={() => handleRoutinePress(recommendedRoutine.id)}
-                isFeatured={true}
-              />
-            </Reanimated.View>
-          )}
-
-          {/* ── Enhanced Consistency Tracker (HL-ENG-05) ── */}
-          <Reanimated.View
-            entering={FadeInDown.delay(200).springify()}
-            className={isEmbedded ? "mb-5 px-1 py-3" : "mb-8 p-5 rounded-3xl"}
-            style={
-              isEmbedded
-                ? undefined
-                : {
-                    backgroundColor: "#FFFFFF",
-                    borderWidth: 1,
-                    borderColor: "rgba(232,236,234,0.6)",
-                    ...Platform.select({
-                      ios: {
-                        shadowColor: "#000",
-                        shadowOffset: { width: 0, height: 1 },
-                        shadowRadius: 3,
-                        shadowOpacity: 0.05,
-                      },
-                      android: { elevation: 2 },
-                    }),
-                  }
-            }
-          >
-            <View className="flex-row items-center justify-between mb-3">
-              <Text className="text-[15px] font-bold text-[#152131]">This week</Text>
-              <Text className="text-[12px] font-semibold text-[#5C6B66]">
-                {weeklyConsistency.count}/7 days
-              </Text>
-            </View>
-            <View className="flex-row items-center justify-between">
-              {weeklyConsistency.days.map((isActiveDay, index) => (
-                <View key={index} className="items-center gap-1">
-                  <View
-                    className="w-7 h-7 rounded-full items-center justify-center"
-                    style={{
-                      backgroundColor: isActiveDay ? "#DCFCE7" : "#F4F7F5",
-                    }}
-                  >
-                    <View
-                      className="w-2.5 h-2.5 rounded-full"
-                      style={{
-                        backgroundColor: isActiveDay ? "#16A34A" : "#D1D9D5",
-                      }}
-                    />
-                  </View>
-                  <Text
-                    className="text-[10px] font-medium"
-                    style={{ color: isActiveDay ? "#166534" : "#94A3B8" }}
-                  >
-                    {weeklyConsistency.labels[index] || DAY_LABELS[index]}
-                  </Text>
-                </View>
-              ))}
-            </View>
-          </Reanimated.View>
-
-          {/* ── Available Training ── */}
-          <Reanimated.View entering={FadeInDown.delay(200).springify()}>
-            <Text className="text-[15px] font-bold text-[#152131] mb-3">
-              More workouts
-            </Text>
-
-            {/* Type Filter — Dark/Light Chips */}
-            {exerciseTypes.length > 2 && (
-              <ScrollView 
-                horizontal 
-                showsHorizontalScrollIndicator={false} 
-                className="mb-6"
-                contentContainerStyle={{ gap: 8, paddingRight: 20 }}
-              >
-                {exerciseTypes.map((type) => {
-                  const isSelected = selectedType === type;
-                  return (
-                    <TouchableOpacity activeOpacity={0.8}
-                      key={type}
-                      onPress={() => setSelectedType(type)}
-                      className="min-h-[40px] rounded-full flex-row items-center justify-center"
-                      style={{
-                        paddingHorizontal: 16,
-                        paddingVertical: 8,
-                        backgroundColor: isSelected ? "#152131" : "#F1F5F3",
-                        ...isSelected ? Platform.select({
-                          ios: {
-                            shadowColor: "#152131",
-                            shadowOffset: { width: 0, height: 2 },
-                            shadowRadius: 6,
-                            shadowOpacity: 0.2,
-                          },
-                          android: { elevation: 3 },
-                        }) : {},
-                      }}
-                    >
-                      <Text
-                        numberOfLines={1}
-                        className="text-[13px] font-semibold"
-                        style={{ color: isSelected ? "#FFFFFF" : "#5C6B66" }}
-                      >
-                        {type}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
-            )}
-
-            {availableRoutines.length === 0 ? (
-              <View className="py-10 items-center justify-center">
-                <Text className="text-[#64748B] text-[15px]">No routines found in this category.</Text>
-              </View>
-            ) : (
-              <View className="flex-col pb-10">
-                {availableRoutines.map((routine, index) => (
-                  <Reanimated.View key={routine.id} entering={FadeIn.delay(100 + index * 50)}>
-                    <RoutineCard
-                      routine={routine}
-                      isCompleted={completedExercises.includes(routine.id)}
-                      isPartial={partialExercises.includes(routine.id)}
-                      onPress={() => handleRoutinePress(routine.id)}
-                    />
-                  </Reanimated.View>
-                ))}
-              </View>
-            )}
-          </Reanimated.View>
+            );
+          })}
         </ScrollView>
-      )}
+      </View>
+
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: 100 }}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1B6E63" />}
+      >
+        <View className="px-5 mb-4">
+          <Text className="text-[13px] font-semibold" style={{ color: isDark ? "#F6CA84" : "#B45309" }}>
+            {filteredRoutines.length} exercises
+          </Text>
+        </View>
+
+        <View className="px-5">
+          {filteredRoutines.map((routine) => (
+            <ExerciseCard
+              key={routine.id}
+              routine={routine}
+              onPress={() => router.push(`/(home)/(health)/exercise-details?id=${routine.id}` as any)}
+            />
+          ))}
+        </View>
+      </ScrollView>
     </Container>
   );
 }

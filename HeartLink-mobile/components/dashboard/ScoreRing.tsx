@@ -50,15 +50,15 @@ function getHeartTokens(score: number, isDark: boolean) {
   }
   if (score >= 80) {
     return {
-      arcColor: "#34D399", // Emerald 400
-      deepColor: isDark ? "#0C2E29" : "#0E3B33",
+      arcColor: "#38bdf8", // Sky 400
+      deepColor: isDark ? "#0c4a6e" : "#0369a1",
       trackColor: cleanTrack,
       label: "Stable",
     };
   }
   if (score >= 60) {
     return {
-      arcColor: "#34D399", // Emerald 400
+      arcColor: "#38bdf8", // Sky 400
       deepColor: "#5f430f",
       trackColor: cleanTrack,
       label: "Moderate",
@@ -66,14 +66,14 @@ function getHeartTokens(score: number, isDark: boolean) {
   }
   if (score >= 50) {
     return {
-      arcColor: "#34D399", // Emerald 400
+      arcColor: "#38bdf8", // Sky 400
       deepColor: "#7c2d12",
       trackColor: cleanTrack,
       label: "Elevated Risk",
     };
   }
   return {
-    arcColor: "#34D399", // Emerald 400
+    arcColor: "#38bdf8", // Sky 400
     deepColor: "#4a100d",
     trackColor: cleanTrack,
     label: "Critical",
