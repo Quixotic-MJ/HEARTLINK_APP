@@ -6,7 +6,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  ActivityIndicator,
 } from "react-native";
 import { useToast } from "../../contexts/ToastContext";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -17,6 +16,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { InputField } from "../../components/ui/InputField";
+import { SimpleHeader } from "../../components/ui/SimpleHeader";
+import { Button } from "../../components/ui/Button";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -82,27 +83,11 @@ export default function ForgotPasswordScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-[#EDF1EF]" edges={["top", "bottom"]}>
-      <StatusBar style="dark" />
+    <SafeAreaView className="flex-1 bg-[#EDF1EF] dark:bg-[#0A0F0E]" edges={["top", "bottom"]}>
+      <StatusBar style="auto" />
 
       {/* Header */}
-      <View className="flex-row items-center justify-between px-5 pt-3 pb-2">
-        <TouchableOpacity
-          onPress={() => router.back()}
-          className="w-10 h-10 rounded-xl bg-white border border-[#DCE3DF] items-center justify-center shadow-xs"
-          accessible={true}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-        >
-          <Feather name="arrow-left" size={18} color="#152131" />
-        </TouchableOpacity>
-        <View className="flex-row items-center gap-2">
-          <HeartLogo size={22} />
-          <Text className="text-base text-[#152131] font-semibold tracking-tight">
-            HeartLink
-          </Text>
-        </View>
-      </View>
+      <SimpleHeader />
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
@@ -122,20 +107,20 @@ export default function ForgotPasswordScreen() {
         >
           {/* ── Heading ── */}
           <View className="mb-6 px-1">
-            <Text className="text-3xl sm:text-4xl font-semibold text-[#152131] tracking-tight leading-tight mb-2" accessibilityRole="header">
+            <Text className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white tracking-tight leading-tight mb-2" accessibilityRole="header">
               Forgot password?
             </Text>
-            <Text className="text-sm sm:text-base text-[#5C6B66] leading-relaxed">
+            <Text className="text-sm sm:text-base text-slate-600 dark:text-slate-400 leading-relaxed font-medium">
               Enter your email or phone number to receive instructions for recovering your account.
             </Text>
           </View>
 
           {/* ── Card ── */}
-          <View className="bg-white rounded-2xl border border-[#DCE3DF] px-5 py-6 gap-4 shadow-sm">
+          <View className="bg-white dark:bg-[#101615] rounded-2xl border border-slate-200 dark:border-slate-800 px-5 py-6 gap-4 shadow-sm shadow-slate-100 dark:shadow-none">
             {generalError && (
-              <View className="bg-[#A93226]/10 border border-[#A93226]/30 rounded-xl p-3.5 flex-row items-center gap-2.5" accessible={true} accessibilityRole="alert">
-                <Feather name="alert-triangle" size={16} color="#A93226" />
-                <Text className="text-[#A93226] text-xs sm:text-sm flex-1 font-medium leading-snug">
+              <View className="bg-red-100 dark:bg-red-900/20 border border-red-200 dark:border-red-900/40 rounded-xl p-3.5 flex-row items-center gap-2.5" accessible={true} accessibilityRole="alert">
+                <Feather name="alert-triangle" size={16} className="text-red-600 dark:text-red-400" />
+                <Text className="text-red-600 dark:text-red-400 text-xs sm:text-sm flex-1 font-medium leading-snug">
                   {generalError}
                 </Text>
               </View>
@@ -155,31 +140,15 @@ export default function ForgotPasswordScreen() {
             </View>
 
             {/* Submit */}
-            <TouchableOpacity
-              activeOpacity={0.85}
-              onPress={handleSubmit(onSubmit)}
-              disabled={isSubmitting}
-              className={`w-full bg-[#E8532E] rounded-2xl py-4 flex-row justify-center items-center gap-2 mt-1 shadow-sm ${isSubmitting ? 'opacity-80' : ''}`}
-              accessible={true}
-              accessibilityRole="button"
-              accessibilityLabel="Reset Password"
-            >
-              {isSubmitting ? (
-                <>
-                  <ActivityIndicator size="small" color="#fff" />
-                  <Text className="text-white text-sm font-semibold tracking-wide">
-                    Sending request...
-                  </Text>
-                </>
-              ) : (
-                <>
-                  <Feather name="unlock" size={16} color="#ffffff" />
-                  <Text className="text-white text-sm font-semibold tracking-wide">
-                    Reset Password
-                  </Text>
-                </>
-              )}
-            </TouchableOpacity>
+            <View className="mt-1">
+              <Button
+                onPress={handleSubmit(onSubmit)}
+                isLoading={isSubmitting}
+                loadingText="Sending request..."
+                label="Reset Password"
+                icon="unlock"
+              />
+            </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

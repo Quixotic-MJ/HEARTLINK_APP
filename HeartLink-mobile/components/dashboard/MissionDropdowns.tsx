@@ -202,7 +202,7 @@ export function SleepQuickForm({
   const isDark = colorScheme === "dark";
   const { showToast } = useToast();
   
-  const logSleepMutation = useLogSleep(userId, token);
+  const logSleepMutation = useLogSleep(userId ?? null, token ?? null);
 
   const defaultWake = new Date();
 

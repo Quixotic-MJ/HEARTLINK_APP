@@ -264,6 +264,16 @@ export default function DashboardScreen() {
   const [tutorialVisible, setTutorialVisible] = useState(false);
   const [showQuickLogModal, setShowQuickLogModal] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
+  const scrollOffsetRef = useRef(0);
+
+  // Track content-relative layout positions for tutorial spotlight
+  const sectionLayoutsRef = useRef<Record<string, { x: number; y: number; width: number; height: number }>>({
+    score: { x: 0, y: 0, width: 0, height: 0 },
+    missions: { x: 0, y: 0, width: 0, height: 0 },
+    vitals: { x: 0, y: 0, width: 0, height: 0 },
+    summary: { x: 0, y: 0, width: 0, height: 0 },
+  });
+  const [tutorialLayouts, setTutorialLayouts] = useState<Record<string, { x: number; y: number; width: number; height: number }> | undefined>(undefined);
 
   // Mission log modal (replaces the old inline dropdowns).
   // Exercise keeps its separate screen and never opens the modal.
@@ -355,7 +365,7 @@ export default function DashboardScreen() {
       if (rec.type === "recipe") {
         safeNavigate("/(home)/(meals)/recipe-details", { id: rec.id });
       } else {
-        safeNavigate("/(home)/(health)/exercise-details", { id: rec.id });
+        safeNavigate("/(home)/(health)/exercise-session", { id: rec.id });
       }
     },
     [safeNavigate]
@@ -368,7 +378,26 @@ export default function DashboardScreen() {
         const tourKey = userId ? `@dashboard_tour_seen_${userId}` : "@dashboard_tour_seen_guest";
         const seen = await AsyncStorage.getItem(tourKey);
         if (!seen) {
-          const timer = setTimeout(() => setTutorialVisible(true), 700);
+          const timer = setTimeout(() => {
+            scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+            setTutorialVisible(true);
+            // Wait for onLayout to fire and then compute screen-relative positions
+            setTimeout(() => {
+              (scrollViewRef.current as any)?.measureInWindow?.((sx: number, sy: number) => {
+                const headerOffset = sy || 100;
+                const updated: Record<string, { x: number; y: number; width: number; height: number }> = {};
+                for (const [k, v] of Object.entries(sectionLayoutsRef.current)) {
+                  updated[k] = {
+                    x: v.x,
+                    y: v.y + headerOffset, // No scroll offset since we scrolled to 0
+                    width: v.width,
+                    height: v.height,
+                  };
+                }
+                setTutorialLayouts(updated);
+              });
+            }, 500);
+          }, 700);
           return () => clearTimeout(timer);
         }
       } catch { }
@@ -378,6 +407,7 @@ export default function DashboardScreen() {
 
   const handleFinishTutorial = async () => {
     setTutorialVisible(false);
+    setTutorialLayouts(undefined);
     try {
       const tourKey = userId ? `@dashboard_tour_seen_${userId}` : "@dashboard_tour_seen_guest";
       await AsyncStorage.setItem(tourKey, "true");
@@ -623,6 +653,37 @@ export default function DashboardScreen() {
         visible={tutorialVisible}
         onClose={handleFinishTutorial}
         isDark={isDark}
+        targetLayouts={tutorialLayouts}
+        onStepChange={(stepIndex) => {
+          // Map step index to which section to scroll to
+          const sectionKeys = ['score', 'missions', 'vitals', 'summary'];
+          const key = sectionKeys[stepIndex];
+          const layout = sectionLayoutsRef.current[key];
+          if (!layout || layout.height === 0) return;
+
+          // Scroll so the section appears near top of screen (with some padding)
+          const targetScroll = Math.max(0, layout.y - 80);
+          scrollViewRef.current?.scrollTo({ y: targetScroll, animated: true });
+
+          // After scroll animation settles, recalculate screen-relative positions
+          setTimeout(() => {
+            const currentOffset = targetScroll;
+            const updated: Record<string, { x: number; y: number; width: number; height: number }> = {};
+            // Measure the ScrollView's screen position to get the header offset
+            (scrollViewRef.current as any)?.measureInWindow?.((sx: number, sy: number) => {
+              const headerOffset = sy || 100; // fallback ~100px for safe area + header
+              for (const [k, v] of Object.entries(sectionLayoutsRef.current)) {
+                updated[k] = {
+                  x: v.x,
+                  y: v.y - currentOffset + headerOffset,
+                  width: v.width,
+                  height: v.height,
+                };
+              }
+              setTutorialLayouts(updated);
+            });
+          }, 400);
+        }}
       />
 
       {/* Custom Alert Modal */}
@@ -662,6 +723,10 @@ export default function DashboardScreen() {
         ref={scrollViewRef}
         contentContainerClassName="px-5 pb-40 md:max-w-2xl lg:max-w-4xl mx-auto w-full gap-5"
         showsVerticalScrollIndicator={false}
+        scrollEventThrottle={16}
+        onScroll={(e) => {
+          scrollOffsetRef.current = e.nativeEvent.contentOffset.y;
+        }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -735,7 +800,12 @@ export default function DashboardScreen() {
         {/* ============================================================== */}
         {/* 1. TIER 1 - STATUS */}
         {/* ============================================================== */}
-        <Reanimated.View entering={FadeInDown.delay(100).duration(260)}>
+        <Reanimated.View entering={FadeInDown.delay(100).duration(260)}
+          onLayout={(e) => {
+            const { x, y, width, height } = e.nativeEvent.layout;
+            sectionLayoutsRef.current.score = { x, y, width, height };
+          }}
+        >
           <View className="bg-surface-card rounded-3xl p-5 items-center shadow-sm shadow-slate-200/50 dark:shadow-none">
             {/* Header Row: Status badge + Distinct Info Button */}
             <View className="flex-row items-center justify-center gap-2">
@@ -808,18 +878,22 @@ export default function DashboardScreen() {
         {/* ============================================================== */}
         <Reanimated.View
           entering={FadeInDown.delay(180).duration(260)}
+          onLayout={(e) => {
+            const { x, y, width, height } = e.nativeEvent.layout;
+            sectionLayoutsRef.current.missions = { x, y, width, height };
+          }}
         >
 
           {/* AI / Clinical Insight banner */}
           {data?.insight && (
-            <View className="w-full bg-red-50 dark:bg-red-950/40 rounded-2xl p-4 border border-red-100 dark:border-red-900/50 flex-row items-start gap-3 mb-3">
+            <View className="w-full bg-blue-50 dark:bg-blue-950/40 rounded-2xl p-4 border border-blue-100 dark:border-blue-900/50 flex-row items-start gap-3 mb-3">
               <Feather
                 name="activity"
                 size={16}
-                color="#ef4444"
+                color="#3b82f6" // blue-500
                 style={{ marginTop: 2 }}
               />
-              <Text className="flex-1 text-[13px] text-red-700 dark:text-red-200 leading-relaxed font-bold">
+              <Text className="flex-1 text-[13px] text-blue-700 dark:text-blue-200 leading-relaxed font-bold">
                 {data.insight.body}
               </Text>
             </View>
@@ -833,6 +907,10 @@ export default function DashboardScreen() {
         {/* ============================================================== */}
         <Reanimated.View
           entering={FadeInDown.delay(260).duration(260)}
+          onLayout={(e) => {
+            const { x, y, width, height } = e.nativeEvent.layout;
+            sectionLayoutsRef.current.vitals = { x, y, width, height };
+          }}
         >
           <RitualProgress
             completedCount={completedCount}
@@ -912,7 +990,12 @@ export default function DashboardScreen() {
           <>
             {/* ── Recommendations (hidden when empty) ── */}
             {data?.recommendations && data.recommendations.length > 0 && (
-              <View>
+              <View
+                onLayout={(e) => {
+                  const { x, y, width, height } = e.nativeEvent.layout;
+                  sectionLayoutsRef.current.summary = { x, y, width, height };
+                }}
+              >
                 <Reanimated.View entering={FadeInDown.delay(340).duration(300)} className="flex-row items-center justify-between mb-3 mx-1">
                   <Text className="text-[16px] font-bold text-slate-900 dark:text-white tracking-tight">
                     Recommended for you

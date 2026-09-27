@@ -29,6 +29,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { InputField } from "../../components/ui/InputField";
 import { Button } from "../../components/ui/Button";
+import { SimpleHeader } from "../../components/ui/SimpleHeader";
 
 const loginSchema = z.object({
   identifier: z.string().min(1, "Please enter your email or phone number."),
@@ -170,9 +171,9 @@ export default function AuthScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-[#EDF1EF]" edges={["top", "bottom"]}>
-      <StatusBar style="dark" />
-      <NavigationBar style="light" />
+    <SafeAreaView className="flex-1 bg-[#EDF1EF] dark:bg-[#0A0F0E]" edges={["top", "bottom"]}>
+      <StatusBar style="auto" />
+      <NavigationBar style="auto" />
 
       {/* ── Top Bar ── */}
       <SimpleHeader />
@@ -193,10 +194,10 @@ export default function AuthScreen() {
         >
           {/* ── Heading ── */}
           <Animated.View entering={FadeIn.delay(100)} className="mb-6 px-1">
-            <Text className="text-3xl sm:text-4xl font-semibold text-[#152131] tracking-tight leading-tight mb-2">
+            <Text className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white tracking-tight leading-tight mb-2">
               Welcome back.
             </Text>
-            <Text className="text-sm sm:text-base text-[#5C6B66] leading-relaxed">
+            <Text className="text-sm sm:text-base text-slate-600 dark:text-slate-400 leading-relaxed font-medium">
               Sign in to check your daily health stability score and routine.
             </Text>
           </Animated.View>
@@ -204,7 +205,7 @@ export default function AuthScreen() {
           {/* ── Card ── */}
           <Animated.View
             entering={FadeInDown.delay(200).springify().damping(12).stiffness(90)}
-            className="bg-white rounded-2xl border border-[#DCE3DF] px-5 py-6 gap-4 shadow-sm"
+            className="bg-white dark:bg-[#101615] rounded-2xl border border-slate-200 dark:border-slate-800 px-5 py-6 gap-4 shadow-sm shadow-slate-100 dark:shadow-none"
           >
             {/* Inputs Section */}
             <View className="gap-3">
@@ -219,7 +220,7 @@ export default function AuthScreen() {
                 autoComplete="username"
                 textContentType="username"
                 autoCapitalize="none"
-                forceLight={true}
+                forceLight={false}
                 onChangeText={(text) => {
                   setValue("identifier", formatIdentifier(text), { shouldValidate: true });
                 }}
@@ -235,7 +236,7 @@ export default function AuthScreen() {
                   placeholder="Enter your password"
                   secureTextEntry={!showPassword}
                   autoCapitalize="none"
-                  forceLight={true}
+                  forceLight={false}
                   rightElement={
                     <TouchableOpacity
                       onPress={togglePasswordVisibility}
@@ -249,7 +250,7 @@ export default function AuthScreen() {
                         <Feather
                           name={showPassword ? "eye" : "eye-off"}
                           size={18}
-                          color={showPassword ? "#152131" : "#5C6B66"}
+                          color={showPassword ? "#2E9AE8" : "#94a3b8"} // slate-400 when off
                         />
                       </Animated.View>
                     </TouchableOpacity>
@@ -262,7 +263,7 @@ export default function AuthScreen() {
                   accessible={true}
                   accessibilityRole="link"
                 >
-                  <Text className="text-xs font-semibold text-[#E8532E]">
+                  <Text className="text-xs font-bold text-[#2E9AE8] dark:text-[#6EC1F5]">
                     Forgot your password?
                   </Text>
                 </TouchableOpacity>
@@ -273,12 +274,12 @@ export default function AuthScreen() {
             {globalError && (
               <Animated.View
                 style={errorAnimatedStyle}
-                className="bg-[#A93226]/10 border border-[#A93226]/30 rounded-xl p-3.5 flex-row items-center gap-2.5 my-1"
+                className="bg-red-100 dark:bg-red-900/20 border border-red-200 dark:border-red-900/40 rounded-xl p-3.5 flex-row items-center gap-2.5 my-1"
                 accessible={true}
                 accessibilityRole="alert"
               >
-                <Feather name="alert-triangle" size={16} color="#A93226" />
-                <Text className="text-[#A93226] text-xs sm:text-sm font-medium flex-1 leading-snug">
+                <Feather name="alert-triangle" size={16} className="text-red-600 dark:text-red-400" />
+                <Text className="text-red-600 dark:text-red-400 text-xs sm:text-sm font-medium flex-1 leading-snug">
                   {globalError}
                 </Text>
               </Animated.View>
@@ -305,10 +306,10 @@ export default function AuthScreen() {
               accessible={true}
               accessibilityRole="button"
             >
-              <Text className="text-sm text-[#5C6B66]">
+              <Text className="text-sm font-medium text-slate-500 dark:text-slate-400">
                 Don't have an account?
               </Text>
-              <Text className="text-sm font-semibold text-[#152131]">
+              <Text className="text-sm font-bold text-slate-900 dark:text-white">
                 Sign up
               </Text>
             </TouchableOpacity>

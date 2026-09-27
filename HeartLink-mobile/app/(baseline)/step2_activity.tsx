@@ -1,3 +1,4 @@
+import { Appearance } from "react-native";
 import React, { useState, useRef } from "react";
 import {
   View,
@@ -7,6 +8,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  useColorScheme
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -63,17 +65,17 @@ function ActivitySubInput({
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: shakeAnim.value }],
-    borderColor: hasError ? "#A93226" : "#DCE3DF",
+    borderColor: hasError ? Appearance.getColorScheme() === "dark" ? "#F87171" : "#DC2626" : Appearance.getColorScheme() === "dark" ? "#1E293B" : "#DCE3DF",
   }));
 
   return (
     <View className="flex-1">
-      <Text className="text-[12px] font-semibold text-[#5C6B66] mb-1.5 ml-0.5">
+      <Text className="text-[12px] font-semibold text-slate-500 dark:text-slate-400 mb-1.5 ml-0.5">
         {label}
       </Text>
       <Animated.View
         style={animatedStyle}
-        className="h-[50px] bg-white rounded-xl px-3.5 border flex-row items-center"
+        className="h-[50px] bg-white dark:bg-[#101615] rounded-xl px-3.5 border flex-row items-center"
       >
         <TextInput
           value={value}
@@ -82,9 +84,9 @@ function ActivitySubInput({
           placeholderTextColor="#8D9B96"
           keyboardType="numeric"
           maxLength={maxLength}
-          className="flex-1 text-[15px] font-semibold text-[#152131] h-full py-0"
+          className="flex-1 text-[15px] font-semibold text-slate-900 dark:text-white h-full py-0"
         />
-        <Text className="text-[13px] text-[#5C6B66] ml-1 font-semibold">
+        <Text className="text-[13px] text-slate-500 dark:text-slate-400 ml-1 font-semibold">
           {unit}
         </Text>
       </Animated.View>
@@ -126,7 +128,7 @@ function ActivityCard({
   return (
     <Animated.View
       layout={LinearTransition}
-      className="bg-white rounded-2xl p-4 sm:p-5 mb-4 border border-[#DCE3DF] shadow-xs"
+      className="bg-white dark:bg-[#101615] rounded-2xl p-4 sm:p-5 mb-4 border border-slate-200 dark:border-slate-800 shadow-xs"
     >
       <View className="flex-row items-start mb-3.5">
         <View
@@ -135,17 +137,17 @@ function ActivityCard({
           <Feather name={icon} size={18} color={iconColor} />
         </View>
         <View className="flex-1 pr-1">
-          <Text className="text-[15px] font-bold text-[#152131] tracking-tight leading-snug">
+          <Text className="text-[15px] font-bold text-slate-900 dark:text-white tracking-tight leading-snug">
             {title}
           </Text>
-          <Text className="text-[13px] text-[#5C6B66] mt-0.5 leading-4">
+          <Text className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5 leading-4">
             {subtitle}
           </Text>
         </View>
       </View>
 
       {/* Yes / No Segmented Control */}
-      <View className="flex-row bg-[#EDF1EF] p-1 rounded-xl h-[46px]">
+      <View className="flex-row bg-[#EDF1EF] dark:bg-[#0A0F0E] p-1 rounded-xl h-[46px]">
         <AnimatedButton
           onPress={() => onToggle(true)}
           accessibilityRole="radio"
@@ -155,12 +157,12 @@ function ActivityCard({
         >
           <View
             className={`absolute inset-0 ${
-              value ? "bg-[#E8532E] shadow-xs" : "bg-transparent"
+              value ? "bg-[#2E9AE8] dark:bg-[#6EC1F5] shadow-xs" : "bg-transparent"
             }`}
           />
           <Text
             className={`text-[14px] font-semibold relative z-10 ${
-              value ? "text-white" : "text-[#5C6B66]"
+              value ? "text-white" : "text-slate-500 dark:text-slate-400"
             }`}
           >
             Yes
@@ -175,12 +177,12 @@ function ActivityCard({
         >
           <View
             className={`absolute inset-0 ${
-              !value ? "bg-[#E8532E] shadow-xs" : "bg-transparent"
+              !value ? "bg-[#2E9AE8] dark:bg-[#6EC1F5] shadow-xs" : "bg-transparent"
             }`}
           />
           <Text
             className={`text-[14px] font-semibold relative z-10 ${
-              !value ? "text-white" : "text-[#5C6B66]"
+              !value ? "text-white" : "text-slate-500 dark:text-slate-400"
             }`}
           >
             No
@@ -193,7 +195,7 @@ function ActivityCard({
         <Animated.View
           entering={FadeInUp.duration(200)}
           exiting={FadeOutUp.duration(150)}
-          className="flex-row gap-3 mt-3.5 pt-3.5 border-t border-[#DCE3DF]"
+          className="flex-row gap-3 mt-3.5 pt-3.5 border-t border-slate-200 dark:border-slate-800"
         >
           <ActivitySubInput
             label="Days per week"
@@ -324,7 +326,7 @@ export default function Step2Activity() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-[#EDF1EF]" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-[#EDF1EF] dark:bg-[#0A0F0E]" edges={["top"]}>
       <StatusBar style="dark" />
 
       {/* Header */}
@@ -334,12 +336,12 @@ export default function Step2Activity() {
             onPress={handleBack}
             accessibilityRole="button"
             accessibilityLabel="Go back"
-            className="w-10 h-10 rounded-xl bg-white border border-[#DCE3DF] items-center justify-center mr-3 shadow-xs"
+            className="w-10 h-10 rounded-xl bg-white dark:bg-[#101615] border border-slate-200 dark:border-slate-800 items-center justify-center mr-3 shadow-xs"
           >
             <Feather
               name="arrow-left"
               size={18}
-              color="#152131"
+              color={Appearance.getColorScheme() === "dark" ? "#FFFFFF" : "#152131"}
             />
           </AnimatedButton>
           <View className="flex-1">
@@ -347,7 +349,7 @@ export default function Step2Activity() {
               Step 2 of 6
             </Text>
             <Text
-              className="text-xl font-bold text-[#152131] mt-0.5"
+              className="text-xl font-bold text-slate-900 dark:text-white mt-0.5"
               numberOfLines={1}
             >
               Physical Activity
@@ -389,7 +391,7 @@ export default function Step2Activity() {
                 </Text>
               </View>
 
-              <Text className="text-[14px] text-[#5C6B66] mb-5 leading-relaxed">
+              <Text className="text-[14px] text-slate-500 dark:text-slate-400 mb-5 leading-relaxed">
                 Tell us about your active physical movement throughout a typical week.
               </Text>
 
@@ -433,8 +435,8 @@ export default function Step2Activity() {
               {/* Question 2: Moderate Activity */}
               <ActivityCard
                 icon="activity"
-                iconBg="bg-[#1B6E63]/15"
-                iconColor="#1B6E63"
+                iconBg="bg-blue-500 dark:bg-blue-400/15"
+                iconColor={Appearance.getColorScheme() === "dark" ? "#6EC1F5" : "#2E9AE8"}
                 title="Do you do moderate activities that slightly increase your heart rate?"
                 subtitle="Examples: Brisk walking, light cycling, yard work, swimming (10+ mins)"
                 value={data.moderate_activity}
@@ -470,7 +472,7 @@ export default function Step2Activity() {
               {/* Question 3: Walking or Cycling Transport */}
               <ActivityCard
                 icon="navigation"
-                iconBg="bg-[#E8532E]/15"
+                iconBg="bg-[#2E9AE8] dark:bg-[#6EC1F5]/15"
                 iconColor="#E8532E"
                 title="Do you walk or bike to travel to places for at least 10 minutes?"
                 subtitle="Examples: Walking or cycling to work, school, errands, or transit"
@@ -518,10 +520,10 @@ export default function Step2Activity() {
               </View>
 
               <View className="mb-6">
-                <Text className="text-[16px] font-bold text-[#152131] tracking-tight leading-snug mb-1">
+                <Text className="text-[16px] font-bold text-slate-900 dark:text-white tracking-tight leading-snug mb-1">
                   On a typical day, how much total time do you spend sitting or resting?
                 </Text>
-                <Text className="text-[13px] text-[#5C6B66] leading-5 mb-5">
+                <Text className="text-[13px] text-slate-500 dark:text-slate-400 leading-5 mb-5">
                   Includes desk work, driving, screen time, studying, and relaxing (excluding sleep).
                 </Text>
 
@@ -559,13 +561,13 @@ export default function Step2Activity() {
                         <View
                           className={`absolute inset-0 border rounded-xl ${
                             isActive
-                              ? "bg-[#E8532E] border-[#E8532E] shadow-xs"
-                              : "bg-white border-[#DCE3DF]"
+                              ? "bg-[#2E9AE8] dark:bg-[#6EC1F5] border-[#E8532E] shadow-xs"
+                              : "bg-white dark:bg-[#101615] border-slate-200 dark:border-slate-800"
                           }`}
                         />
                         <Text
                           className={`font-semibold text-[15px] relative z-10 ${
-                            isActive ? "text-white" : "text-[#152131]"
+                            isActive ? "text-white" : "text-slate-900 dark:text-white"
                           }`}
                         >
                           {opt.label}
@@ -591,9 +593,9 @@ export default function Step2Activity() {
             <Feather
               name="shield"
               size={13}
-              color="#5C6B66"
+              color={Appearance.getColorScheme() === "dark" ? "#94A3B8" : "#5C6B66"}
             />
-            <Text className="text-[12px] text-[#5C6B66] ml-1.5">
+            <Text className="text-[12px] text-slate-500 dark:text-slate-400 ml-1.5">
               Your activity data helps calibrate your heart score
             </Text>
           </View>
@@ -602,7 +604,7 @@ export default function Step2Activity() {
 
       {/* Anchored Bottom CTA */}
       <View
-        className="px-5 pt-3.5 bg-[#EDF1EF] border-t border-[#DCE3DF]"
+        className="px-5 pt-3.5 bg-[#EDF1EF] dark:bg-[#0A0F0E] border-t border-slate-200 dark:border-slate-800"
         style={{
           paddingBottom: Math.max(insets.bottom + 16, 32),
         }}
@@ -616,7 +618,7 @@ export default function Step2Activity() {
             accessibilityLabel={
               subStep === 1 ? "Continue to part 2" : "Proceed to step 3"
             }
-            className="h-[52px] rounded-2xl items-center justify-center flex-row shadow-sm bg-[#E8532E]"
+            className="h-[52px] rounded-2xl items-center justify-center flex-row shadow-sm bg-[#2E9AE8] dark:bg-[#6EC1F5]"
           >
             <Text className="text-[16px] font-bold text-white">
               {subStep === 1 ? "Continue" : "Next Step"}

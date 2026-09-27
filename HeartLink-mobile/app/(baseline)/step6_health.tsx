@@ -1,3 +1,4 @@
+import { Appearance } from "react-native";
 import React, { useState, useRef } from "react";
 import {
   View,
@@ -6,6 +7,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  useColorScheme
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -32,15 +34,15 @@ const HEALTH_GOALS = [
     desc: "Track, manage, and stabilize blood pressure",
     icon: "heart-pulse",
     color: "#E8532E",
-    bg: "bg-[#E8532E]/15",
+    bg: "bg-[#2E9AE8] dark:bg-[#6EC1F5]/15",
   },
   {
     id: "cholesterol",
     label: "Cholesterol & Lipids",
     desc: "Monitor and optimize blood lipid levels",
     icon: "water",
-    color: "#1B6E63",
-    bg: "bg-[#1B6E63]/15",
+    color: Appearance.getColorScheme() === "dark" ? "#6EC1F5" : "#2E9AE8",
+    bg: "bg-blue-500 dark:bg-blue-400/15",
   },
   {
     id: "recovery",
@@ -55,8 +57,8 @@ const HEALTH_GOALS = [
     label: "Preventive Longevity",
     desc: "General cardiovascular wellness and fitness",
     icon: "shield-check",
-    color: "#1B6E63",
-    bg: "bg-[#1B6E63]/15",
+    color: Appearance.getColorScheme() === "dark" ? "#6EC1F5" : "#2E9AE8",
+    bg: "bg-blue-500 dark:bg-blue-400/15",
   },
 ];
 
@@ -162,7 +164,7 @@ export default function Step6Health() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-[#EDF1EF]" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-[#EDF1EF] dark:bg-[#0A0F0E]" edges={["top"]}>
       <StatusBar style="dark" />
 
       {/* Header */}
@@ -172,12 +174,12 @@ export default function Step6Health() {
             onPress={handleBack}
             accessibilityRole="button"
             accessibilityLabel="Go back"
-            className="w-10 h-10 rounded-xl bg-white border border-[#DCE3DF] items-center justify-center mr-3 shadow-xs"
+            className="w-10 h-10 rounded-xl bg-white dark:bg-[#101615] border border-slate-200 dark:border-slate-800 items-center justify-center mr-3 shadow-xs"
           >
             <Feather
               name="arrow-left"
               size={18}
-              color="#152131"
+              color={Appearance.getColorScheme() === "dark" ? "#FFFFFF" : "#152131"}
             />
           </AnimatedButton>
           <View className="flex-1">
@@ -185,7 +187,7 @@ export default function Step6Health() {
               Step 6 of 6
             </Text>
             <Text
-              className="text-xl font-bold text-[#152131] mt-0.5"
+              className="text-xl font-bold text-slate-900 dark:text-white mt-0.5"
               numberOfLines={1}
             >
               Health Goals
@@ -227,7 +229,7 @@ export default function Step6Health() {
                 </Text>
               </View>
 
-              <Text className="text-[14px] text-[#5C6B66] mb-5 leading-relaxed">
+              <Text className="text-[14px] text-slate-500 dark:text-slate-400 mb-5 leading-relaxed">
                 Choose one or more areas you want HeartLink to focus on for your heart care pathway.
               </Text>
 
@@ -255,14 +257,14 @@ export default function Step6Health() {
                       <View
                         className={`absolute inset-0 border rounded-2xl ${
                           isSelected
-                            ? "bg-[#E8532E] border-[#E8532E] shadow-xs"
-                            : "bg-white border-[#DCE3DF]"
+                            ? "bg-[#2E9AE8] dark:bg-[#6EC1F5] border-[#E8532E] shadow-xs"
+                            : "bg-white dark:bg-[#101615] border-slate-200 dark:border-slate-800"
                         }`}
                       />
                       <View
                         className={`w-10 h-10 rounded-xl items-center justify-center mr-3.5 relative z-10 ${
                           isSelected
-                            ? "bg-white/20"
+                            ? "bg-white dark:bg-[#101615]/20"
                             : `${goal.bg}`
                         }`}
                       >
@@ -281,7 +283,7 @@ export default function Step6Health() {
                           className={`font-semibold text-[15px] ${
                             isSelected
                               ? "text-white"
-                              : "text-[#152131]"
+                              : "text-slate-900 dark:text-white"
                           }`}
                         >
                           {goal.label}
@@ -290,7 +292,7 @@ export default function Step6Health() {
                           className={`text-[12px] mt-0.5 ${
                             isSelected
                               ? "text-white/85"
-                              : "text-[#5C6B66]"
+                              : "text-slate-500 dark:text-slate-400"
                           }`}
                         >
                           {goal.desc}
@@ -324,14 +326,14 @@ export default function Step6Health() {
                 </Text>
               </View>
 
-              <Text className="text-[14px] text-[#5C6B66] mb-5 leading-relaxed">
+              <Text className="text-[14px] text-slate-500 dark:text-slate-400 mb-5 leading-relaxed">
                 Ensure meal suggestions and nutrient alerts align safely with your dietary habits.
               </Text>
 
               {/* Card 1: Food Allergies */}
               <Animated.View
                 layout={LinearTransition}
-                className="bg-white rounded-2xl p-4 sm:p-5 mb-4 border border-[#DCE3DF] shadow-xs"
+                className="bg-white dark:bg-[#101615] rounded-2xl p-4 sm:p-5 mb-4 border border-slate-200 dark:border-slate-800 shadow-xs"
               >
                 <View className="flex-row items-start mb-3.5">
                   <View
@@ -344,10 +346,10 @@ export default function Step6Health() {
                     />
                   </View>
                   <View className="flex-1 pr-1">
-                    <Text className="text-[15px] font-bold text-[#152131] tracking-tight leading-snug">
+                    <Text className="text-[15px] font-bold text-slate-900 dark:text-white tracking-tight leading-snug">
                       Do you have any food allergies?
                     </Text>
-                    <Text className="text-[13px] text-[#5C6B66] mt-0.5 leading-5">
+                    <Text className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5 leading-5">
                       Select all ingredients you avoid or are allergic to
                     </Text>
                   </View>
@@ -370,15 +372,15 @@ export default function Step6Health() {
                         <View
                           className={`absolute inset-0 border rounded-full ${
                             isSelected
-                              ? "bg-[#E8532E] border-[#E8532E] shadow-xs"
-                              : "bg-white border-[#DCE3DF]"
+                              ? "bg-[#2E9AE8] dark:bg-[#6EC1F5] border-[#E8532E] shadow-xs"
+                              : "bg-white dark:bg-[#101615] border-slate-200 dark:border-slate-800"
                           }`}
                         />
                         <Text
                           className={`text-[13px] font-semibold relative z-10 ${
                             isSelected
                               ? "text-white"
-                              : "text-[#152131]"
+                              : "text-slate-900 dark:text-white"
                           }`}
                         >
                           {a}
@@ -392,23 +394,23 @@ export default function Step6Health() {
               {/* Card 2: Dietary Preferences */}
               <Animated.View
                 layout={LinearTransition}
-                className="bg-white rounded-2xl p-4 sm:p-5 mb-4 border border-[#DCE3DF] shadow-xs"
+                className="bg-white dark:bg-[#101615] rounded-2xl p-4 sm:p-5 mb-4 border border-slate-200 dark:border-slate-800 shadow-xs"
               >
                 <View className="flex-row items-start mb-3.5">
                   <View
-                    className="w-9 h-9 rounded-xl items-center justify-center mr-3 mt-0.5 bg-[#1B6E63]/15"
+                    className="w-9 h-9 rounded-xl items-center justify-center mr-3 mt-0.5 bg-blue-500 dark:bg-blue-400/15"
                   >
                     <Feather
                       name="check-circle"
                       size={18}
-                      color="#1B6E63"
+                      color={Appearance.getColorScheme() === "dark" ? "#6EC1F5" : "#2E9AE8"}
                     />
                   </View>
                   <View className="flex-1 pr-1">
-                    <Text className="text-[15px] font-bold text-[#152131] tracking-tight leading-snug">
+                    <Text className="text-[15px] font-bold text-slate-900 dark:text-white tracking-tight leading-snug">
                       Do you follow any dietary preferences?
                     </Text>
-                    <Text className="text-[13px] text-[#5C6B66] mt-0.5 leading-5">
+                    <Text className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5 leading-5">
                       Select your primary nutritional lifestyle
                     </Text>
                   </View>
@@ -442,15 +444,15 @@ export default function Step6Health() {
                         <View
                           className={`absolute inset-0 border rounded-full ${
                             isSelected
-                              ? "bg-[#E8532E] border-[#E8532E] shadow-xs"
-                              : "bg-white border-[#DCE3DF]"
+                              ? "bg-[#2E9AE8] dark:bg-[#6EC1F5] border-[#E8532E] shadow-xs"
+                              : "bg-white dark:bg-[#101615] border-slate-200 dark:border-slate-800"
                           }`}
                         />
                         <Text
                           className={`text-[13px] font-semibold relative z-10 ${
                             isSelected
                               ? "text-white"
-                              : "text-[#152131]"
+                              : "text-slate-900 dark:text-white"
                           }`}
                         >
                           {dp}
@@ -468,9 +470,9 @@ export default function Step6Health() {
             <Feather
               name="shield"
               size={13}
-              color="#5C6B66"
+              color={Appearance.getColorScheme() === "dark" ? "#94A3B8" : "#5C6B66"}
             />
-            <Text className="text-[12px] text-[#5C6B66] ml-1.5">
+            <Text className="text-[12px] text-slate-500 dark:text-slate-400 ml-1.5">
               Your profile enables personalized heart risk score calculation
             </Text>
           </View>
@@ -479,7 +481,7 @@ export default function Step6Health() {
 
       {/* Anchored Bottom CTA */}
       <View
-        className="px-5 pt-3.5 bg-[#EDF1EF] border-t border-[#DCE3DF]"
+        className="px-5 pt-3.5 bg-[#EDF1EF] dark:bg-[#0A0F0E] border-t border-slate-200 dark:border-slate-800"
         style={{
           paddingBottom: Math.max(insets.bottom + 16, 32),
         }}
@@ -493,7 +495,7 @@ export default function Step6Health() {
             accessibilityLabel={
               subStep === 1 ? "Continue to part 2" : "Complete assessment"
             }
-            className="h-[52px] rounded-2xl items-center justify-center flex-row shadow-sm bg-[#E8532E]"
+            className="h-[52px] rounded-2xl items-center justify-center flex-row shadow-sm bg-[#2E9AE8] dark:bg-[#6EC1F5]"
           >
             <Text className="text-[16px] font-bold text-white">
               {subStep === 1 ? "Continue" : "Complete Assessment"}

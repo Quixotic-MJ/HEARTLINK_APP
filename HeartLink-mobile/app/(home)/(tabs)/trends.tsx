@@ -285,16 +285,17 @@ export default function TrendsTabScreen() {
       ].map((tab) => {
         const isActive = activeTab === tab.id;
         return (
-          <TouchableOpacity
-            key={tab.id}
-            onPress={() => setActiveTab(tab.id as any)}
-            className={`px-4 py-2 rounded-full mr-2 border ${isActive ? "border-transparent" : (isDark ? "border-slate-800" : "border-slate-200")}`}
-            style={{ backgroundColor: isActive ? (isDark ? TOKENS.teal : TOKENS.teal) : (isDark ? "#1C2A3A" : "#FFFFFF") }}
-          >
-            <Text className={`text-[13px] font-semibold ${isActive ? "text-white" : (isDark ? "text-slate-300" : "text-slate-600")}`}>
-              {tab.label}
-            </Text>
-          </TouchableOpacity>
+          <View key={tab.id} className={`rounded-full mr-2 border ${isActive ? "border-transparent" : (isDark ? "border-slate-800" : "border-slate-200")}`}>
+            <TouchableOpacity
+              onPress={() => setActiveTab(tab.id as any)}
+              className="px-4 py-2 rounded-full"
+              style={{ backgroundColor: isActive ? (isDark ? TOKENS.teal : TOKENS.teal) : (isDark ? "#1C2A3A" : "#FFFFFF") }}
+            >
+              <Text className={`text-[13px] font-semibold ${isActive ? "text-white" : (isDark ? "text-slate-300" : "text-slate-600")}`}>
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          </View>
         );
       })}
     </ScrollView>

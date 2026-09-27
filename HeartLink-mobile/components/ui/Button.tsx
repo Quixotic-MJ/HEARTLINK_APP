@@ -48,16 +48,18 @@ export function Button({
   const isDestructive = variant === "destructive";
 
   const buttonBg = isDestructive
-    ? "w-full rounded-2xl py-4 flex-row justify-center items-center gap-2 bg-[#A93226] shadow-sm"
+    ? "w-full rounded-2xl py-4 flex-row justify-center items-center gap-2 bg-red-600 shadow-sm"
     : isPrimary
-    ? "w-full rounded-2xl py-4 flex-row justify-center items-center gap-2 bg-[#1BA382] shadow-sm"
-    : "w-full rounded-2xl py-4 flex-row justify-center items-center gap-2 bg-transparent border border-[#DCE3DF]";
+    ? "w-full rounded-2xl py-4 flex-row justify-center items-center gap-2 bg-[#2E9AE8] dark:bg-[#6EC1F5] shadow-sm shadow-blue-500/20 dark:shadow-none"
+    : "w-full rounded-2xl py-4 flex-row justify-center items-center gap-2 bg-transparent border border-slate-200 dark:border-slate-800";
 
   const textColor = isDestructive || isPrimary
-    ? "text-sm font-semibold text-white tracking-wide"
-    : "text-sm font-semibold text-[#152131] dark:text-foreground";
+    ? "text-sm font-bold text-white dark:text-slate-900 tracking-wide"
+    : "text-sm font-bold text-slate-900 dark:text-white";
 
-  const iconColor = isDestructive || isPrimary ? "#ffffff" : "#152131";
+  // Use a hack to allow dynamic icon coloring for dark mode by providing the string color
+  // In a real app we might use a hook to get the color scheme.
+  const iconColor = isDestructive || isPrimary ? "#ffffff" : undefined;
 
   return (
     <AnimatedPressable

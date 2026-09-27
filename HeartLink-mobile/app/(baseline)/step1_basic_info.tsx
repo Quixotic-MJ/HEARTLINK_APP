@@ -1,3 +1,4 @@
+import { Appearance } from "react-native";
 import React, { useState, useEffect } from "react";
 import {
   View,
@@ -7,6 +8,7 @@ import {
   ScrollView,
   Platform,
   Pressable,
+  useColorScheme
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -77,18 +79,18 @@ function FormInput({
 
   const animatedContainerStyle = useAnimatedStyle(() => {
     const borderColor = hasError
-      ? "#A93226"
+      ? Appearance.getColorScheme() === "dark" ? "#F87171" : "#DC2626"
       : isFocused
-      ? "#152131"
-      : "#DCE3DF";
+      ? Appearance.getColorScheme() === "dark" ? "#FFFFFF" : "#152131"
+      : Appearance.getColorScheme() === "dark" ? "#1E293B" : "#DCE3DF";
 
     return {
       borderColor,
       transform: [{ translateX: shakeAnim.value }],
       shadowColor: hasError
-        ? "#A93226"
+        ? Appearance.getColorScheme() === "dark" ? "#F87171" : "#DC2626"
         : isFocused
-        ? "#152131"
+        ? Appearance.getColorScheme() === "dark" ? "#FFFFFF" : "#152131"
         : "transparent",
       shadowOpacity: hasError ? 0.15 : focusAnim.value * 0.08,
       shadowRadius: focusAnim.value * 4,
@@ -101,11 +103,11 @@ function FormInput({
     <View className="mb-4">
       {/* Field Label & Optional Indicator */}
       <View className="flex-row items-center justify-between mb-1.5 ml-0.5">
-        <Text className="text-[13px] font-semibold text-[#152131]">
+        <Text className="text-[13px] font-semibold text-slate-900 dark:text-white">
           {label}
         </Text>
         {isOptional && (
-          <Text className="text-[12px] font-medium text-[#5C6B66]">
+          <Text className="text-[12px] font-medium text-slate-500 dark:text-slate-400">
             Optional
           </Text>
         )}
@@ -113,7 +115,7 @@ function FormInput({
 
       <Animated.View
         style={[animatedContainerStyle]}
-        className="h-[52px] rounded-xl border bg-white justify-center px-3.5"
+        className="h-[52px] rounded-xl border bg-white dark:bg-[#101615] justify-center px-3.5"
       >
         <View className="flex-row items-center h-full">
           <TextInput
@@ -128,10 +130,10 @@ function FormInput({
             }}
             keyboardType={keyboardType}
             maxLength={maxLength}
-            className="flex-1 text-[15px] font-medium text-[#152131] py-0 h-full"
+            className="flex-1 text-[15px] font-medium text-slate-900 dark:text-white py-0 h-full"
           />
           {unit && (
-            <Text className="text-[13px] text-[#5C6B66] ml-1 font-semibold">
+            <Text className="text-[13px] text-slate-500 dark:text-slate-400 ml-1 font-semibold">
               {unit}
             </Text>
           )}
@@ -171,18 +173,18 @@ function FormDatePicker({
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: shakeAnim.value }],
-    borderColor: hasError ? "#A93226" : "#DCE3DF",
+    borderColor: hasError ? Appearance.getColorScheme() === "dark" ? "#F87171" : "#DC2626" : Appearance.getColorScheme() === "dark" ? "#1E293B" : "#DCE3DF",
   }));
 
   return (
     <View className="mb-4">
-      <Text className="text-[13px] font-semibold text-[#152131] mb-1.5 ml-0.5">
+      <Text className="text-[13px] font-semibold text-slate-900 dark:text-white mb-1.5 ml-0.5">
         {label}
       </Text>
 
       <Animated.View
         style={animatedStyle}
-        className="h-[52px] rounded-xl border bg-white justify-center px-3.5"
+        className="h-[52px] rounded-xl border bg-white dark:bg-[#101615] justify-center px-3.5"
       >
         <AnimatedButton
           onPress={onPress}
@@ -196,14 +198,14 @@ function FormDatePicker({
             <Feather
               name="calendar"
               size={18}
-              color={hasError ? "#A93226" : "#5C6B66"}
+              color={hasError ? Appearance.getColorScheme() === "dark" ? "#F87171" : "#DC2626" : Appearance.getColorScheme() === "dark" ? "#94A3B8" : "#5C6B66"}
             />
             <Text
               className={`text-[15px] ml-3 ${
                 hasError
-                  ? "text-[#A93226] font-medium"
+                  ? "text-red-600 dark:text-red-400 font-medium"
                   : value
-                  ? "text-[#152131] font-semibold"
+                  ? "text-slate-900 dark:text-white font-semibold"
                   : "text-[#8D9B96] font-medium"
               }`}
             >
@@ -283,7 +285,7 @@ function SegmentedSexToggle({
   const animatedPressStyle = useAnimatedStyle(() => {
     return {
       transform: [{ scale: pressScale.value }, { translateX: shakeAnim.value }],
-      borderColor: hasError ? "#A93226" : "#DCE3DF",
+      borderColor: hasError ? Appearance.getColorScheme() === "dark" ? "#F87171" : "#DC2626" : Appearance.getColorScheme() === "dark" ? "#1E293B" : "#DCE3DF",
     };
   });
 
@@ -297,14 +299,14 @@ function SegmentedSexToggle({
 
   return (
     <View className="mb-4">
-      <Text className="text-[13px] font-semibold text-[#152131] mb-1.5 ml-0.5">
+      <Text className="text-[13px] font-semibold text-slate-900 dark:text-white mb-1.5 ml-0.5">
         {label}
       </Text>
 
       <Animated.View
         style={animatedPressStyle}
         onLayout={(e) => setContainerWidth(e.nativeEvent.layout.width)}
-        className="h-[52px] p-1 rounded-xl border flex-row relative border-[#DCE3DF] bg-white"
+        className="h-[52px] p-1 rounded-xl border flex-row relative border-slate-200 dark:border-slate-800 bg-white dark:bg-[#101615]"
       >
         {/* Sliding Highlight Pill */}
         {pillWidth > 0 && (
@@ -319,7 +321,7 @@ function SegmentedSexToggle({
               },
               animatedSliderStyle,
             ]}
-            className="bg-[#E8532E] rounded-lg shadow-xs"
+            className="bg-[#2E9AE8] dark:bg-[#6EC1F5] rounded-lg shadow-xs"
           />
         )}
 
@@ -337,7 +339,7 @@ function SegmentedSexToggle({
         >
           <Text
             className={`text-[14px] font-semibold capitalize ${
-              value === "male" ? "text-white" : "text-[#5C6B66]"
+              value === "male" ? "text-white" : "text-slate-500 dark:text-slate-400"
             }`}
           >
             Male
@@ -358,7 +360,7 @@ function SegmentedSexToggle({
         >
           <Text
             className={`text-[14px] font-semibold capitalize ${
-              value === "female" ? "text-white" : "text-[#5C6B66]"
+              value === "female" ? "text-white" : "text-slate-500 dark:text-slate-400"
             }`}
           >
             Female
@@ -482,7 +484,7 @@ export default function Step1BasicInfo() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-[#EDF1EF]" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-[#EDF1EF] dark:bg-[#0A0F0E]" edges={["top"]}>
       <StatusBar style="dark" />
 
       {/* Header */}
@@ -492,12 +494,12 @@ export default function Step1BasicInfo() {
             onPress={() => router.back()}
             accessibilityRole="button"
             accessibilityLabel="Go back"
-            className="w-10 h-10 rounded-xl bg-white border border-[#DCE3DF] items-center justify-center mr-3 shadow-xs"
+            className="w-10 h-10 rounded-xl bg-white dark:bg-[#101615] border border-slate-200 dark:border-slate-800 items-center justify-center mr-3 shadow-xs"
           >
             <Feather
               name="arrow-left"
               size={18}
-              color="#152131"
+              color={Appearance.getColorScheme() === "dark" ? "#FFFFFF" : "#152131"}
             />
           </AnimatedButton>
           <View className="flex-1">
@@ -505,7 +507,7 @@ export default function Step1BasicInfo() {
               Step 1 of 6
             </Text>
             <Text
-              className="text-xl font-bold text-[#152131] mt-0.5"
+              className="text-xl font-bold text-slate-900 dark:text-white mt-0.5"
               numberOfLines={1}
             >
               Tell us about yourself
@@ -535,7 +537,7 @@ export default function Step1BasicInfo() {
         >
           <View className="flex-1">
             {/* Subtitle */}
-            <Text className="text-[14px] text-[#5C6B66] mb-6 leading-relaxed">
+            <Text className="text-[14px] text-slate-500 dark:text-slate-400 mb-6 leading-relaxed">
               Your answers help personalize your cardiovascular health insights.
             </Text>
 
@@ -653,9 +655,9 @@ export default function Step1BasicInfo() {
               <Feather
                 name="shield"
                 size={13}
-                color="#5C6B66"
+                color={Appearance.getColorScheme() === "dark" ? "#94A3B8" : "#5C6B66"}
               />
-              <Text className="text-[12px] text-[#5C6B66] ml-1.5">
+              <Text className="text-[12px] text-slate-500 dark:text-slate-400 ml-1.5">
                 Your health data is private and securely encrypted
               </Text>
             </View>
@@ -665,7 +667,7 @@ export default function Step1BasicInfo() {
 
       {/* Anchored Bottom CTA */}
       <View
-        className="px-5 pt-3.5 bg-[#EDF1EF] border-t border-[#DCE3DF]"
+        className="px-5 pt-3.5 bg-[#EDF1EF] dark:bg-[#0A0F0E] border-t border-slate-200 dark:border-slate-800"
         style={{
           paddingBottom: Math.max(insets.bottom + 16, 32),
         }}
@@ -677,7 +679,7 @@ export default function Step1BasicInfo() {
             onPressOut={handleBtnPressOut}
             accessibilityRole="button"
             accessibilityLabel="Proceed to next step"
-            className="h-[52px] rounded-2xl items-center justify-center flex-row shadow-sm bg-[#E8532E]"
+            className="h-[52px] rounded-2xl items-center justify-center flex-row shadow-sm bg-[#2E9AE8] dark:bg-[#6EC1F5]"
           >
             <Text className="text-[16px] font-bold text-white">
               Next Step

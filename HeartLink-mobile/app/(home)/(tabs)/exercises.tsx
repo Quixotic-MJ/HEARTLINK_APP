@@ -197,7 +197,7 @@ export default function ExercisesScreen({
             <ExerciseCard
               key={routine.id}
               routine={routine}
-              onPress={() => router.push(`/(home)/(health)/exercise-details?id=${routine.id}` as any)}
+              onPress={() => router.push(`/(home)/(health)/exercise-session?id=${routine.id}` as any)}
             />
           ))}
         </View>

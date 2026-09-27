@@ -370,22 +370,26 @@ export default function CareTeamScreen() {
             <ScrollView showsVerticalScrollIndicator={false}>
               {/* Type Toggle */}
               <View className="flex-row bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl mb-4">
-                <TouchableOpacity 
-                  onPress={() => setForm(prev => ({ ...prev, contact_type: "doctor", role_title: "Cardiologist" }))}
-                  className={`flex-1 py-2.5 rounded-xl items-center ${form.contact_type === "doctor" ? "bg-white dark:bg-slate-900 shadow-sm" : ""}`}
-                >
-                  <Text className={`text-[14px] font-semibold ${form.contact_type === "doctor" ? "text-blue-600 dark:text-blue-400" : "text-slate-500"}`}>
-                    Doctor / Specialist
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  onPress={() => setForm(prev => ({ ...prev, contact_type: "emergency", role_title: "Spouse / Partner" }))}
-                  className={`flex-1 py-2.5 rounded-xl items-center ${form.contact_type === "emergency" ? "bg-white dark:bg-slate-900 shadow-sm" : ""}`}
-                >
-                  <Text className={`text-[14px] font-semibold ${form.contact_type === "emergency" ? "text-red-600 dark:text-red-400" : "text-slate-500"}`}>
-                    Emergency Contact
-                  </Text>
-                </TouchableOpacity>
+                <View className={`flex-1 rounded-xl ${form.contact_type === "doctor" ? "bg-white dark:bg-slate-900 shadow-sm" : ""}`}>
+                  <TouchableOpacity 
+                    onPress={() => setForm(prev => ({ ...prev, contact_type: "doctor", role_title: "Cardiologist" }))}
+                    className="py-2.5 items-center rounded-xl"
+                  >
+                    <Text className={`text-[14px] font-semibold ${form.contact_type === "doctor" ? "text-blue-600 dark:text-blue-400" : "text-slate-500"}`}>
+                      Doctor / Specialist
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+                <View className={`flex-1 rounded-xl ${form.contact_type === "emergency" ? "bg-white dark:bg-slate-900 shadow-sm" : ""}`}>
+                  <TouchableOpacity 
+                    onPress={() => setForm(prev => ({ ...prev, contact_type: "emergency", role_title: "Spouse / Partner" }))}
+                    className="py-2.5 items-center rounded-xl"
+                  >
+                    <Text className={`text-[14px] font-semibold ${form.contact_type === "emergency" ? "text-red-600 dark:text-red-400" : "text-slate-500"}`}>
+                      Emergency Contact
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               </View>
 
               {/* Full Name */}
