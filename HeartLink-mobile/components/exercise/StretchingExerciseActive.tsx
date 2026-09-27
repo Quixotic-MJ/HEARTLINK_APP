@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { View, Text, TouchableOpacity, ScrollView, Image } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
@@ -18,11 +18,51 @@ export function StretchingExerciseActive({
 }: StretchingExerciseActiveProps) {
   const insets = useSafeAreaInsets();
   const [isPlaying, setIsPlaying] = useState(true);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
-  // Default step logic for mock purposes
-  const currentStepIndex = 3; 
-  const totalSteps = routine?.steps?.length || 4;
-  const currentStep = routine?.steps?.[currentStepIndex] || null;
+  const steps = routine?.steps || [];
+  const totalSeconds = steps.length > 0 
+    ? steps.reduce((acc: number, s: any) => acc + (s.duration_seconds || 30), 0)
+    : (routine?.duration_minutes || routine?.duration || 10) * 60;
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isPlaying && elapsedSeconds < totalSeconds) {
+      interval = setInterval(() => {
+        setElapsedSeconds(prev => prev + 1);
+      }, 1000);
+    } else if (elapsedSeconds >= totalSeconds) {
+      setIsPlaying(false);
+      onFinish();
+    }
+    return () => clearInterval(interval);
+  }, [isPlaying, elapsedSeconds, totalSeconds, onFinish]);
+
+  let currentStepIndex = 0;
+  let currentStepElapsed = 0;
+  
+  if (steps.length > 0) {
+    let acc = 0;
+    for (let i = 0; i < steps.length; i++) {
+      const d = steps[i].duration_seconds || 30;
+      if (elapsedSeconds < acc + d) {
+        currentStepIndex = i;
+        currentStepElapsed = elapsedSeconds - acc;
+        break;
+      }
+      acc += d;
+      // Handle edge case where we are at the very end
+      if (i === steps.length - 1) {
+        currentStepIndex = i;
+      }
+    }
+  }
+
+  const totalSteps = steps.length || 1;
+  const currentStep = steps[currentStepIndex] || null;
+  const stepDuration = currentStep?.duration_seconds || 30;
+  const timeRemainingInStep = Math.max(0, stepDuration - currentStepElapsed);
+  
   const stepTitle = currentStep 
     ? (typeof currentStep === 'string' ? "Stretch Pose" : currentStep.instruction || "Standing calf stretch")
     : "Standing calf stretch";
@@ -30,6 +70,8 @@ export function StretchingExerciseActive({
   const stepHint = currentStep && typeof currentStep === 'object' && currentStep.details
     ? currentStep.details
     : "Keep your back heel flat on the floor. Lean forward slightly.";
+    
+  const progressPercent = Math.min(100, (elapsedSeconds / totalSeconds) * 100);
 
   return (
     <View className="flex-1 bg-white">
@@ -65,7 +107,7 @@ export function StretchingExerciseActive({
         
         {/* Progress Bar */}
         <View className="w-full h-1 bg-slate-200">
-          <View className="h-full bg-sky-500 rounded-r-full" style={{ width: '80%' }} />
+          <View className="h-full bg-sky-500 rounded-r-full" style={{ width: `${progressPercent}%` }} />
         </View>
       </View>
 
@@ -92,7 +134,7 @@ export function StretchingExerciseActive({
           <Text className="text-slate-900 text-[22px] font-bold text-center mb-4">{stepTitle}</Text>
           
           <View className="flex-row items-baseline justify-center mb-8 gap-2">
-            <Text className="text-sky-500 text-[48px] font-medium tracking-tight">22</Text>
+            <Text className="text-sky-500 text-[48px] font-medium tracking-tight">{timeRemainingInStep}</Text>
             <Text className="text-slate-600 font-bold text-[14px]">sec hold</Text>
           </View>
 
@@ -137,11 +179,6 @@ export function StretchingExerciseActive({
           <Text className="text-[14px] font-medium text-slate-500 underline">
             Feeling unwell? End session
           </Text>
-        </TouchableOpacity>
-
-        {/* Hidden but functional finish trigger */}
-        <TouchableOpacity onPress={onFinish} className="absolute right-6 bottom-8 w-12 h-12 bg-slate-100 rounded-full items-center justify-center">
-          <Feather name="check" color="#64748b" size={24} />
         </TouchableOpacity>
       </View>
     </View>

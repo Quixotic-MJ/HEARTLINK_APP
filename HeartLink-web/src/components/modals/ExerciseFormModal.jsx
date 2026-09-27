@@ -42,7 +42,13 @@ const exerciseSchema = z.object({
   goal: z.string().optional(),
   status: z.string().default("draft"),
   expertValidated: z.boolean().default(false),
-  steps: z.array(z.object({ value: z.string().min(1, "Step cannot be empty") })).optional(),
+  calories: z.coerce.number().min(0).default(0),
+  requirements: z.array(z.object({ value: z.string().min(1, "Requirement cannot be empty") })).optional(),
+  steps: z.array(z.object({ 
+    instruction: z.string().min(1, "Instruction cannot be empty"),
+    details: z.string().optional(),
+    duration_seconds: z.coerce.number().min(1).default(5)
+  })).optional(),
   guideImages: z.array(z.object({ url: z.string().min(1, "URL cannot be empty") })).optional(),
 });
 
@@ -69,7 +75,9 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
       goal: "",
       status: "draft",
       expertValidated: false,
-      steps: [{ value: "" }],
+      calories: 0,
+      requirements: [],
+      steps: [{ instruction: "", details: "", duration_seconds: 5 }],
       guideImages: [],
     },
     mode: "onTouched",
@@ -97,6 +105,11 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
     name: "guideImages",
   });
 
+  const { fields: requirementsFields, append: appendRequirement, remove: removeRequirement } = useFieldArray({
+    control,
+    name: "requirements",
+  });
+
   const expertValidated = watch("expertValidated");
   const mediaUrl = watch("mediaUrl");
   const status = watch("status");
@@ -112,16 +125,24 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
         type: exercise.type || "General",
         intensity: exercise.intensity || "Low",
         goal: exercise.goal || "",
+        calories: exercise.calories || 0,
+        requirements: Array.isArray(exercise.requirements) 
+          ? exercise.requirements.map(req => ({ value: typeof req === 'string' ? req : (req.name || req.value || "") })) 
+          : [],
         steps: exercise.steps 
           ? exercise.steps.map(step => {
               if (typeof step === 'string') {
-                return { value: step };
+                return { instruction: step, details: "", duration_seconds: 5 };
               } else if (step && typeof step === 'object') {
-                return { value: step.instruction || "" };
+                return { 
+                  instruction: step.instruction || step.value || "", 
+                  details: step.details || "", 
+                  duration_seconds: step.duration_seconds || 5 
+                };
               }
-              return { value: "" };
+              return { instruction: "", details: "", duration_seconds: 5 };
             })
-          : [{ value: "" }],
+          : [{ instruction: "", details: "", duration_seconds: 5 }],
         guideImages: exercise.guideImages
           ? exercise.guideImages.map(img => {
               if (typeof img === 'string') {
@@ -146,7 +167,9 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
         goal: "",
         status: "draft",
         expertValidated: false,
-        steps: [{ value: "" }],
+        calories: 0,
+        requirements: [],
+        steps: [{ instruction: "", details: "", duration_seconds: 5 }],
         guideImages: [],
       });
     }
@@ -155,8 +178,16 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
   const onSubmit = (data) => {
     if (onSave) {
       const cleanSteps = (data.steps || [])
-        .map(s => (s.value || "").trim())
-        .filter(s => s.length > 0);
+        .map(s => ({
+          instruction: (s.instruction || "").trim(),
+          details: (s.details || "").trim(),
+          duration_seconds: parseInt(s.duration_seconds || 5, 10)
+        }))
+        .filter(s => s.instruction.length > 0);
+
+      const cleanRequirements = (data.requirements || [])
+        .map(r => (r.value || "").trim())
+        .filter(r => r.length > 0);
 
       const cleanGuides = (data.guideImages || [])
         .map(g => (g.url || "").trim())
@@ -164,6 +195,8 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
 
       onSave({
         ...data,
+        calories: parseInt(data.calories || 0, 10),
+        requirements: cleanRequirements,
         steps: cleanSteps,
         guideImages: cleanGuides,
       });
@@ -304,6 +337,62 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
                     className="w-full px-3 py-2 text-[12.5px] bg-[#F8FAFC] border border-[#E2E8F0] rounded-[8px] focus:outline-none focus:border-[#0F172A] text-[#0F172A] placeholder:text-[#94A3B8] transition-colors"
                     placeholder="e.g. Builds gentle aerobic endurance…"
                   />
+                </div>
+              </div>
+              </div>
+            </div>
+          </div>
+
+          {/* ── TRACKING & REQUIREMENTS ── */}
+          <div>
+            <h4 className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider border-b border-[#E2E8F0] pb-2 mb-3.5">
+              Tracking & Requirements
+            </h4>
+            <div className="space-y-4">
+              <div>
+                <InputField
+                  id="calories"
+                  type="number"
+                  label="Estimated Calories Burned"
+                  left={<Activity size={13} />}
+                  error={errors.calories}
+                  {...register("calories")}
+                  min="0"
+                  placeholder="e.g. 150"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-[#64748B] uppercase tracking-wider mb-1">
+                  Required Equipment
+                </label>
+                <div className="space-y-2">
+                  {requirementsFields.map((field, index) => (
+                    <div key={field.id} className="flex gap-2">
+                      <input
+                        {...register(`requirements.${index}.value`)}
+                        className={`flex-1 px-3 py-2 text-[12.5px] bg-[#F8FAFC] border ${
+                          errors.requirements?.[index]?.value ? 'border-[#A93226]' : 'border-[#E2E8F0] focus:border-[#0F172A]'
+                        } rounded-[8px] focus:outline-none text-[#0F172A] transition-colors`}
+                        placeholder="e.g. Yoga Mat"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeRequirement(index)}
+                        className="p-2 text-[#64748B] hover:text-[#A93226] bg-[#F8FAFC] hover:bg-[#F7E4E1] border border-[#E2E8F0] rounded-[8px] transition-colors cursor-pointer"
+                        title="Remove"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => appendRequirement({ value: "" })}
+                    className="flex items-center gap-1.5 text-[11px] font-semibold text-[#2E9AE8] hover:text-[#1C7AC8] transition-colors mt-1 cursor-pointer"
+                  >
+                    <PlusCircle size={13} /> <span>Add equipment</span>
+                  </button>
                 </div>
               </div>
             </div>
@@ -532,20 +621,41 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
                   <div className="mt-1 text-[10px] font-bold text-[#94A3B8] bg-[#FFFFFF] border border-[#E2E8F0] w-5 h-5 flex items-center justify-center rounded-full shrink-0">
                     {index + 1}
                   </div>
-                  <div className="flex-1">
-                    <textarea
-                      rows="2"
-                      {...register(`steps.${index}.value`)}
-                      className={`w-full px-3 py-2 text-[12.5px] bg-[#FFFFFF] border ${
-                        errors.steps?.[index]?.value ? 'border-[#A93226]' : 'border-[#E2E8F0] focus:border-[#0F172A]'
-                      } rounded-[6px] focus:outline-none text-[#0F172A] placeholder:text-[#94A3B8] transition-colors resize-none leading-relaxed`}
-                      placeholder="Describe this instruction step…"
-                    />
-                    {errors.steps?.[index]?.value && (
-                      <span className="text-[10px] text-[#A93226] mt-1 block font-medium">
-                        {errors.steps[index].value.message}
-                      </span>
-                    )}
+                  <div className="flex-1 space-y-2">
+                    <div>
+                      <input
+                        {...register(`steps.${index}.instruction`)}
+                        className={`w-full px-3 py-1.5 text-[12.5px] font-semibold bg-[#FFFFFF] border ${
+                          errors.steps?.[index]?.instruction ? 'border-[#A93226]' : 'border-[#E2E8F0] focus:border-[#0F172A]'
+                        } rounded-[6px] focus:outline-none text-[#0F172A] placeholder:text-[#94A3B8] transition-colors`}
+                        placeholder="Step instruction (e.g. Inhale deeply)"
+                      />
+                      {errors.steps?.[index]?.instruction && (
+                        <span className="text-[10px] text-[#A93226] mt-0.5 block font-medium">
+                          {errors.steps[index].instruction.message}
+                        </span>
+                      )}
+                    </div>
+                    
+                    <div className="flex gap-2">
+                      <div className="flex-1">
+                        <input
+                          {...register(`steps.${index}.details`)}
+                          className="w-full px-3 py-1.5 text-[11px] bg-[#FFFFFF] border border-[#E2E8F0] focus:border-[#0F172A] rounded-[6px] focus:outline-none text-[#64748B] placeholder:text-[#94A3B8] transition-colors"
+                          placeholder="Optional details..."
+                        />
+                      </div>
+                      <div className="w-24">
+                        <input
+                          type="number"
+                          {...register(`steps.${index}.duration_seconds`)}
+                          className="w-full px-3 py-1.5 text-[11px] bg-[#FFFFFF] border border-[#E2E8F0] focus:border-[#0F172A] rounded-[6px] focus:outline-none text-[#0F172A] transition-colors"
+                          placeholder="Secs"
+                          min="0"
+                          title="Duration in seconds"
+                        />
+                      </div>
+                    </div>
                   </div>
                   <div className="flex items-center gap-1 mt-1 shrink-0">
                     <button
@@ -580,7 +690,7 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
             </div>
             <button
               type="button"
-              onClick={() => append({ value: "" })}
+              onClick={() => append({ instruction: "", details: "", duration_seconds: 5 })}
               className="flex items-center gap-1.5 text-[12px] font-semibold text-[#2E9AE8] hover:text-[#1C7AC8] transition-colors mt-2 cursor-pointer"
             >
               <PlusCircle size={14} /> <span>Add step</span>

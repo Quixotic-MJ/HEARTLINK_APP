@@ -111,6 +111,7 @@ export default function ExerciseSessionScreen() {
           title: data.name || "",
           description: data.description || "",
           duration: data.duration_minutes || 0,
+          duration_minutes: data.duration_minutes || 0,
           goal: data.goal || data.description || "",
           type: data.type || "Light Cardio",
           intensity: data.intensity || "Low",
@@ -331,21 +332,21 @@ export default function ExerciseSessionScreen() {
       )}
       
       {workoutState === "active" && (
-        routine?.type === "Breathing" || routine?.title?.toLowerCase().includes("breathing") ? (
+        (routine?.type === "Breathing" || routine?.title?.toLowerCase().includes("breathing")) ? (
           <BreathingExerciseActive
             routine={routine}
             onFinish={handleRequestFinish}
             onClose={handleCloseActive}
             onSymptoms={handleSymptomsPress}
           />
-        ) : routine?.type === "Stretching" || routine?.title?.toLowerCase().includes("stretch") ? (
+        ) : (routine?.type === "Stretching" || routine?.title?.toLowerCase().includes("stretch")) ? (
           <StretchingExerciseActive
             routine={routine}
             onFinish={handleRequestFinish}
             onClose={handleCloseActive}
             onSymptoms={handleSymptomsPress}
           />
-        ) : routine?.type?.toLowerCase().includes("cardio") || routine?.title?.toLowerCase().includes("walk") || routine?.title?.toLowerCase().includes("jog") ? (
+        ) : (routine?.type?.toLowerCase().includes("cardio") || routine?.title?.toLowerCase().includes("walk") || routine?.title?.toLowerCase().includes("jog")) ? (
           <CardioExerciseActive
             routine={routine}
             onFinish={handleRequestFinish}
@@ -405,7 +406,6 @@ export default function ExerciseSessionScreen() {
         }}
         onJustChecking={() => {
           setShowStopCheck(false);
-          router.back();
         }}
         onBack={() => setShowStopCheck(false)}
       />
