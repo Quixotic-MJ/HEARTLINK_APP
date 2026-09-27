@@ -60,6 +60,8 @@ def bootstrap_supabase_content():
                     "media_url": r.get("image_url") or r.get("media_url") or "",
                     "video_url": r.get("video_url") or "",
                     "guide_images": r.get("guide_images") or [],
+                    "requirements": r.get("requirements") or [],
+                    "calories": r.get("calories") or 0,
                     "status": r.get("status") or "published",
                     "expert_validated": r.get("expert_validated", True)
                 })

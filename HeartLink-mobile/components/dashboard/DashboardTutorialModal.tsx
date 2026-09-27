@@ -12,6 +12,8 @@ import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+import Svg, { Defs, Mask, Rect, Path, G } from "react-native-svg";
+
 interface TutorialStep {
   id: string;
   title: string;
@@ -26,37 +28,37 @@ const TUTORIAL_STEPS: TutorialStep[] = [
     id: "step-1",
     title: "Your Heart Health Score",
     description:
-      "This is your real-time cardiovascular stability score (0–100). It dynamically adapts based on your blood pressure, salt intake, exercise, and sleep.",
+      "Your daily cardiovascular snapshot. Keep this in the 'Stable' zone by completing your daily tasks.",
     icon: "activity",
     targetArea: "score",
     badgeText: "Step 1 of 4 • Core Metric",
   },
   {
     id: "step-2",
-    title: "Live Vitals & Blood Pressure",
+    title: "Daily Heart Missions",
     description:
-      "Track your latest blood pressure and pulse rate. Tap either card anytime to log a new reading with our calm medical guidance.",
-    icon: "heart",
-    targetArea: "vitals",
-    badgeText: "Step 2 of 4 • Daily Check",
+      "Your personalized goals. We break down exactly what you need to do today, like checking your blood pressure or taking a walk.",
+    icon: "target",
+    targetArea: "missions",
+    badgeText: "Step 2 of 4 • What to do",
   },
   {
     id: "step-3",
-    title: "Today's 4 Heart Missions",
+    title: "The Quick Log Cards",
     description:
-      "Protect your heart with 4 daily pillars: Morning blood pressure check, DOST-FNRI salt budget (2,000 mg), 30 mins cardio, and restful sleep.",
-    icon: "check-circle",
-    targetArea: "missions",
-    badgeText: "Step 3 of 4 • Habit Hub",
+      "Tap the blue or orange '+' buttons on these cards anytime to instantly log your meals or vitals. This powers your Heart Score.",
+    icon: "plus-circle",
+    targetArea: "vitals",
+    badgeText: "Step 3 of 4 • How to use",
   },
   {
     id: "step-4",
-    title: "Doctor Consultation Summary",
+    title: "AI Insights & Trends",
     description:
-      "When visiting your cardiologist or clinic, tap this card to generate a clean 1-page PDF summary of your 30-day vitals and salt balance.",
-    icon: "file-text",
+      "As you log, our AI will generate clinical insights and spot trends to help you understand your heart better.",
+    icon: "trending-up",
     targetArea: "summary",
-    badgeText: "Step 4 of 4 • Clinical Export",
+    badgeText: "Step 4 of 4 • The Value",
   },
 ];
 
@@ -64,31 +66,72 @@ interface DashboardTutorialModalProps {
   visible: boolean;
   onClose: () => void;
   isDark?: boolean;
+  targetLayouts?: Record<string, { x: number; y: number; width: number; height: number }>;
+  onStepChange?: (stepIndex: number) => void;
 }
 
 export function DashboardTutorialModal({
   visible,
   onClose,
   isDark = false,
+  targetLayouts,
+  onStepChange,
 }: DashboardTutorialModalProps) {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 
   const step = TUTORIAL_STEPS[currentStepIndex];
   const isLastStep = currentStepIndex === TUTORIAL_STEPS.length - 1;
+
+  const currentLayout = targetLayouts?.[step.targetArea];
+
+  // Hardcoded fallback for Score Ring if layouts aren't passed
+  const isFirstStep = currentStepIndex === 0;
+
+  let fallbackTx = 16;
+  let fallbackTy = 0;
+  let fallbackTw = screenWidth - 32;
+  let fallbackTh = 0;
+
+  if (currentStepIndex === 0) { // Score
+    fallbackTy = 130;
+    fallbackTh = 350;
+  } else if (currentStepIndex === 1) { // Missions
+    fallbackTy = 150; // Adjusted for scrolling
+    fallbackTh = 140;
+  } else if (currentStepIndex === 2) { // Quick Log
+    fallbackTy = 150; // Adjusted for scrolling
+    fallbackTh = 160;
+  } else { // Insights
+    fallbackTy = 150; // Adjusted for scrolling
+    fallbackTh = 80;
+  }
+
+  const tx = currentLayout?.x ?? fallbackTx;
+  const ty = currentLayout?.y ?? fallbackTy;
+  const tw = currentLayout?.width ?? fallbackTw;
+  const th = currentLayout?.height ?? fallbackTh;
+
+  const arrowSpace = (screenHeight - 280) - (ty + th);
+  const showArrow = arrowSpace > 20;
 
   const handleNext = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (isLastStep) {
       handleComplete();
     } else {
-      setCurrentStepIndex((prev) => prev + 1);
+      const nextStep = currentStepIndex + 1;
+      setCurrentStepIndex(nextStep);
+      onStepChange?.(nextStep);
     }
   };
 
   const handleBack = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (currentStepIndex > 0) {
-      setCurrentStepIndex((prev) => prev - 1);
+      const prevStep = currentStepIndex - 1;
+      setCurrentStepIndex(prevStep);
+      onStepChange?.(prevStep);
     }
   };
 
@@ -107,95 +150,132 @@ export function DashboardTutorialModal({
       onRequestClose={onClose}
       statusBarTranslucent
     >
-      {/* ── Dimmed Dark Backdrop ── */}
-      <View className="flex-1 bg-black/65 justify-center items-center px-6">
-        {/* ── Floating Tooltip Card ── */}
-        <Reanimated.View
-          entering={FadeIn.duration(240)}
-          key={step.id}
-          className="w-full max-w-sm bg-white dark:bg-[#1A2634] rounded-3xl p-6 border border-white/20 dark:border-slate-700 shadow-2xl"
-          style={{
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: 10 },
-            shadowOpacity: 0.35,
-            shadowRadius: 20,
-            elevation: 10,
-          }}
-        >
-          {/* Header Row: Badge & Skip Button */}
-          <View className="flex-row items-center justify-between mb-3.5">
-            <View className="flex-row items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#1B6E63]/10 dark:bg-[#1B6E63]/25 border border-[#1B6E63]/20">
-              <Feather name={step.icon} size={11} color={isDark ? "#4FA79A" : "#1B6E63"} />
-              <Text className="text-[10.5px] font-bold text-[#1B6E63] dark:text-[#4FA79A] uppercase tracking-wider">
-                {step.badgeText}
-              </Text>
-            </View>
+      <View style={{ flex: 1 }}>
+        {/* ── Spotlight SVG Mask ── */}
+        <Svg style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }} width="100%" height="100%">
+          <Defs>
+            <Mask id="spotlightMask">
+              <Rect x="0" y="0" width="100%" height="100%" fill="white" />
+              <Rect x={tx} y={ty} width={tw} height={th} rx={24} fill="black" />
+            </Mask>
+          </Defs>
+          <Rect x="0" y="0" width="100%" height="100%" fill="rgba(0,0,0,0.75)" mask="url(#spotlightMask)" />
 
-            <TouchableOpacity
-              onPress={handleComplete}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              className="py-1 px-2"
-            >
-              <Text className="text-[12px] font-semibold text-[#5C6B66] dark:text-slate-400">
-                Skip Tour
-              </Text>
-            </TouchableOpacity>
-          </View>
+          {/* Connective Line / Pointer */}
+          {showArrow && (
+            <G>
+              <Path
+                d={`M ${screenWidth / 2} ${ty + th + Math.min(arrowSpace, 60)} L ${screenWidth / 2} ${ty + th + 15}`}
+                stroke="white"
+                strokeWidth="2"
+                strokeDasharray="6, 6"
+                fill="none"
+                opacity={0.9}
+              />
+              {/* Arrowhead */}
+              <Path
+                d={`M ${screenWidth / 2 - 8} ${ty + th + 25} L ${screenWidth / 2} ${ty + th + 15} L ${screenWidth / 2 + 8} ${ty + th + 25}`}
+                stroke="white"
+                strokeWidth="2.5"
+                fill="none"
+              />
+            </G>
+          )}
+        </Svg>
 
-          {/* Title & Description */}
-          <Text className="text-[19px] font-bold text-[#152131] dark:text-white tracking-tight mb-2">
-            {step.title}
-          </Text>
-          <Text className="text-[13.5px] text-[#5C6B66] dark:text-slate-300 leading-relaxed mb-6 font-medium">
-            {step.description}
-          </Text>
-
-          {/* Bottom Bar: Dots Pagination & Navigation Actions */}
-          <View className="flex-row items-center justify-between pt-2 border-t border-[#DCE3DF]/70 dark:border-slate-800">
-            {/* Step Dots (Active dot is elongated pill) */}
-            <View className="flex-row items-center gap-1.5">
-              {TUTORIAL_STEPS.map((_, idx) => {
-                const isActive = idx === currentStepIndex;
-                return (
-                  <View
-                    key={idx}
-                    className={`h-2 rounded-full transition-all ${
-                      isActive
-                        ? "w-6 bg-[#1B6E63] dark:bg-[#4FA79A]"
-                        : "w-2 bg-[#DCE3DF] dark:bg-slate-700"
-                    }`}
-                  />
-                );
-              })}
-            </View>
-
-            {/* Back & Next Buttons */}
-            <View className="flex-row items-center gap-2">
-              {currentStepIndex > 0 && (
-                <TouchableOpacity
-                  activeOpacity={0.7}
-                  onPress={handleBack}
-                  className="px-3 py-2 rounded-xl bg-[#EDF1EF] dark:bg-slate-800"
+        {/* ── UI Layer ── */}
+        <View className="flex-1 justify-end" pointerEvents="box-none">
+          {/* ── Floating Tooltip Card ── */}
+          <Reanimated.View
+            entering={FadeIn.duration(240)}
+            key={step.id}
+            className="w-full bg-white dark:bg-[#1A2634] border-t border-white/20 dark:border-slate-700 shadow-2xl rounded-t-[32px] px-6 pt-6 pb-12"
+            style={{
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 10 },
+              shadowOpacity: 0.35,
+              shadowRadius: 20,
+              elevation: 10,
+            }}
+          >
+            {/* Header Row: Badge & Skip Button */}
+            <View className="flex-row items-center justify-between mb-3.5 w-full">
+              <View className="flex-row items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#0284c7]/10 dark:bg-[#38bdf8]/20 border border-[#0284c7]/20 dark:border-[#38bdf8]/20 flex-shrink mr-2">
+                <Feather name={step.icon} size={11} color={isDark ? "#38bdf8" : "#0284c7"} />
+                <Text
+                  className="text-[10.5px] font-bold text-[#0284c7] dark:text-[#38bdf8] uppercase tracking-wider flex-shrink"
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
                 >
-                  <Text className="text-[12px] font-bold text-[#5C6B66] dark:text-slate-300">
-                    Back
-                  </Text>
-                </TouchableOpacity>
-              )}
+                  {step.badgeText}
+                </Text>
+              </View>
 
               <TouchableOpacity
-                activeOpacity={0.85}
-                onPress={handleNext}
-                className="px-5 py-2.5 rounded-xl bg-[#1B6E63] flex-row items-center gap-1.5 shadow-xs"
+                onPress={handleComplete}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                className="py-1 flex-shrink-0"
               >
-                <Text className="text-[13px] font-bold text-white">
-                  {isLastStep ? "Got it! 🎉" : "Next"}
+                <Text className="text-[12px] font-semibold text-[#5C6B66] dark:text-slate-400">
+                  Skip Tour
                 </Text>
-                {!isLastStep && <Feather name="chevron-right" size={14} color="#ffffff" />}
               </TouchableOpacity>
             </View>
-          </View>
-        </Reanimated.View>
+
+            {/* Title & Description */}
+            <Text className="text-[19px] font-bold text-[#152131] dark:text-white tracking-tight mb-2">
+              {step.title}
+            </Text>
+            <Text className="text-[13.5px] text-[#5C6B66] dark:text-slate-300 leading-relaxed mb-6 font-medium">
+              {step.description}
+            </Text>
+
+            {/* Bottom Bar: Dots Pagination & Navigation Actions */}
+            <View className="flex-row items-center justify-between pt-2 border-t border-[#DCE3DF]/70 dark:border-slate-800">
+              {/* Step Dots (Active dot is elongated pill) */}
+              <View className="flex-row items-center gap-1.5">
+                {TUTORIAL_STEPS.map((_, idx) => {
+                  const isActive = idx === currentStepIndex;
+                  return (
+                    <View
+                      key={idx}
+                      className={`h-2 rounded-full transition-all ${isActive
+                          ? "w-6 bg-[#0ea5e9] dark:bg-[#38bdf8]"
+                          : "w-2 bg-[#DCE3DF] dark:bg-slate-700"
+                        }`}
+                    />
+                  );
+                })}
+              </View>
+
+              {/* Back & Next Buttons */}
+              <View className="flex-row items-center gap-2">
+                {currentStepIndex > 0 && (
+                  <TouchableOpacity
+                    activeOpacity={0.7}
+                    onPress={handleBack}
+                    className="px-3 py-2 mr-2"
+                  >
+                    <Text className="text-[14px] font-bold text-[#5C6B66] dark:text-slate-300">
+                      &lt; Back
+                    </Text>
+                  </TouchableOpacity>
+                )}
+
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  onPress={handleNext}
+                  className="px-5 py-2.5 rounded-xl bg-[#0ea5e9] flex-row items-center gap-1.5 shadow-xs"
+                >
+                  <Text className="text-[13px] font-bold text-white">
+                    {isLastStep ? "Got it!" : "Next"}
+                  </Text>
+                  {!isLastStep && <Feather name="chevron-right" size={14} color="#ffffff" />}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Reanimated.View>
+        </View>
       </View>
     </Modal>
   );

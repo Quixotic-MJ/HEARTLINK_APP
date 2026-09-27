@@ -1,3 +1,4 @@
+import { Appearance } from "react-native";
 import { Stack } from "expo-router";
 import "../../global.css";
 

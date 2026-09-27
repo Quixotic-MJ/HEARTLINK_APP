@@ -624,23 +624,25 @@ export default function RecipeDetailsScreen() {
 
       {/* ── Sticky Bottom Button ── */}
       <View style={{ paddingBottom: Math.max(insets.bottom, 20) }} className="absolute bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 px-5 pt-4 pb-6 shadow-[0_-10px_20px_rgba(0,0,0,0.05)]">
-         <TouchableOpacity 
-           activeOpacity={0.85}
-           onPress={handleLogMeal}
-           disabled={isLogged || isSubmitting}
-           className={`w-full py-4 rounded-xl items-center justify-center flex-row gap-2 ${isLogged ? "bg-slate-100 dark:bg-slate-800" : "bg-[#38BDF8]"}`}
-         >
-           {isLogged ? (
-             <MaterialCommunityIcons name="check-all" size={18} className="text-slate-400 dark:text-slate-500" />
-           ) : (
-             <Feather name="check" size={18} color="#FFFFFF" />
-           )}
-           <Text 
-             className={`text-[14px] font-semibold ${isLogged ? "text-slate-400 dark:text-slate-500" : "text-white"}`}
+         <View className={`w-full rounded-xl ${isLogged ? "bg-slate-100 dark:bg-slate-800" : "bg-[#38BDF8]"}`}>
+           <TouchableOpacity 
+             activeOpacity={0.85}
+             onPress={handleLogMeal}
+             disabled={isLogged || isSubmitting}
+             className="w-full py-4 rounded-xl items-center justify-center flex-row gap-2"
            >
-             {isLogged ? "Logged Today" : isSubmitting ? "Logging..." : "Log This Meal"}
-           </Text>
-         </TouchableOpacity>
+             {isLogged ? (
+               <MaterialCommunityIcons name="check-all" size={18} className="text-slate-400 dark:text-slate-500" />
+             ) : (
+               <Feather name="check" size={18} color="#FFFFFF" />
+             )}
+             <Text 
+               className={`text-[14px] font-semibold ${isLogged ? "text-slate-400 dark:text-slate-500" : "text-white"}`}
+             >
+               {isLogged ? "Logged Today" : isSubmitting ? "Logging..." : "Log This Meal"}
+             </Text>
+           </TouchableOpacity>
+         </View>
       </View>
     </View>
   );

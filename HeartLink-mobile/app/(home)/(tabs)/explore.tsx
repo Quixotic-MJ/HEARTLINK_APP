@@ -213,7 +213,7 @@ export default function ExploreTabScreen() {
                 <Text className="text-[12px] font-bold tracking-widest mb-3 uppercase" style={{ color: isDark ? "#94A3B8" : "#64748B" }}>Exercise</Text>
                 {filteredSearchExercises.length > 0 ? (
                   filteredSearchExercises.map((exercise: any) => (
-                    <TouchableOpacity key={exercise.id} onPress={() => router.push(`/(home)/(health)/exercise-details?id=${exercise.id}` as any)} activeOpacity={0.8} className="flex-row items-center p-3 mb-3 rounded-2xl border" style={{ backgroundColor: isDark ? "#162232" : "#FFFFFF", borderColor: isDark ? "#1E293B" : "#F1F5F9" }}>
+                    <TouchableOpacity key={exercise.id} onPress={() => router.push(`/(home)/(health)/exercise-session?id=${exercise.id}` as any)} activeOpacity={0.8} className="flex-row items-center p-3 mb-3 rounded-2xl border" style={{ backgroundColor: isDark ? "#162232" : "#FFFFFF", borderColor: isDark ? "#1E293B" : "#F1F5F9" }}>
                       <View className="w-12 h-12 rounded-xl items-center justify-center mr-4" style={{ backgroundColor: exercise.color }}>
                         <Feather name={exercise.icon as any} size={20} color={exercise.iconColor} />
                       </View>
@@ -279,7 +279,7 @@ export default function ExploreTabScreen() {
 
               <View className="px-5">
                 {exercises.slice(0, 3).map((exercise: any) => (
-                  <TouchableOpacity key={exercise.id} onPress={() => router.push(`/(home)/(health)/exercise-details?id=${exercise.id}` as any)} activeOpacity={0.8} className="flex-row items-center p-3 mb-3 rounded-2xl border" style={{ backgroundColor: isDark ? "#162232" : "#FFFFFF", borderColor: isDark ? "#1E293B" : "#F1F5F9" }}>
+                  <TouchableOpacity key={exercise.id} onPress={() => router.push(`/(home)/(health)/exercise-session?id=${exercise.id}` as any)} activeOpacity={0.8} className="flex-row items-center p-3 mb-3 rounded-2xl border" style={{ backgroundColor: isDark ? "#162232" : "#FFFFFF", borderColor: isDark ? "#1E293B" : "#F1F5F9" }}>
                     <View className="w-14 h-14 rounded-xl items-center justify-center mr-4" style={{ backgroundColor: exercise.color }}>
                       <Feather name={exercise.icon as any} size={22} color={exercise.iconColor} />
                     </View>
@@ -323,7 +323,7 @@ export default function ExploreTabScreen() {
               {exercises.length} exercises
             </Text>
             {exercises.map((exercise: any) => (
-              <TouchableOpacity key={exercise.id} onPress={() => router.push(`/(home)/(health)/exercise-details?id=${exercise.id}` as any)} activeOpacity={0.8} className="flex-row items-center p-3 mb-3 rounded-2xl border" style={{ backgroundColor: isDark ? "#162232" : "#FFFFFF", borderColor: isDark ? "#1E293B" : "#F1F5F9" }}>
+              <TouchableOpacity key={exercise.id} onPress={() => router.push(`/(home)/(health)/exercise-session?id=${exercise.id}` as any)} activeOpacity={0.8} className="flex-row items-center p-3 mb-3 rounded-2xl border" style={{ backgroundColor: isDark ? "#162232" : "#FFFFFF", borderColor: isDark ? "#1E293B" : "#F1F5F9" }}>
                 <View className="w-14 h-14 rounded-xl items-center justify-center mr-4" style={{ backgroundColor: exercise.color }}>
                   <Feather name={exercise.icon as any} size={22} color={exercise.iconColor} />
                 </View>

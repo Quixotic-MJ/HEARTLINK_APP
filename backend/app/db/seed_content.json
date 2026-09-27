@@ -15,7 +15,8 @@
           "instruction": "Sit comfortably in upright position.",
           "duration_seconds": 10,
           "type": "instruction",
-          "voice_cue": "Sit upright."
+          "voice_cue": "Sit upright.",
+          "details": "Keep your spine straight and shoulders relaxed. Place hands on your knees."
         },
         {
           "id": "breath-1",
@@ -23,7 +24,8 @@
           "duration_seconds": 4,
           "type": "breathing",
           "phase": "inhale",
-          "voice_cue": "Inhale."
+          "voice_cue": "Inhale.",
+          "details": "Breathe deep into your belly."
         },
         {
           "id": "breath-2",
@@ -31,7 +33,8 @@
           "duration_seconds": 2,
           "type": "breathing",
           "phase": "hold",
-          "voice_cue": "Hold."
+          "voice_cue": "Hold.",
+          "details": "Do not clamp your throat."
         },
         {
           "id": "breath-3",
@@ -39,7 +42,8 @@
           "duration_seconds": 6,
           "type": "breathing",
           "phase": "exhale",
-          "voice_cue": "Exhale."
+          "voice_cue": "Exhale.",
+          "details": "Release the air slowly."
         }
       ],
       "media_url": "https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=600&h=400&fit=crop",
@@ -47,7 +51,12 @@
       "status": "published",
       "expert_validated": true,
       "created_by": "usr-admin-002",
-      "created_at": "2026-05-01 11:00:00"
+      "created_at": "2026-05-01 11:00:00",
+      "requirements": [
+        "Comfortable seated position",
+        "Quiet environment"
+      ],
+      "calories": 15
     },
     {
       "id": "rout-602",
@@ -64,21 +73,24 @@
           "instruction": "Warm up with light stretching.",
           "duration_seconds": 120,
           "type": "instruction",
-          "voice_cue": "Warm up."
+          "voice_cue": "Warm up.",
+          "details": "Loosen calves, hamstrings and shoulders for 1-2 minutes."
         },
         {
           "id": "step-2",
           "instruction": "Walk at a comfortable, conversational pace.",
           "duration_seconds": 900,
           "type": "instruction",
-          "voice_cue": "Walk at a comfortable pace."
+          "voice_cue": "Walk at a comfortable pace.",
+          "details": "You should be able to talk without getting out of breath."
         },
         {
           "id": "step-3",
           "instruction": "Cool down with a slower pace.",
           "duration_seconds": 180,
           "type": "instruction",
-          "voice_cue": "Cool down."
+          "voice_cue": "Cool down.",
+          "details": "Gradually slow your steps over the final 2-3 minutes."
         }
       ],
       "media_url": "https://images.unsplash.com/photo-1522898467493-49726bf28798?w=600&h=400&fit=crop",
@@ -86,7 +98,12 @@
       "status": "published",
       "expert_validated": true,
       "created_by": "usr-admin-002",
-      "created_at": "2026-06-01 08:00:00"
+      "created_at": "2026-06-01 08:00:00",
+      "requirements": [
+        "Comfortable walking shoes",
+        "Water bottle"
+      ],
+      "calories": 90
     },
     {
       "id": "rout-603",
@@ -103,21 +120,24 @@
           "instruction": "Reach arms overhead and hold.",
           "duration_seconds": 15,
           "type": "instruction",
-          "voice_cue": "Reach arms overhead."
+          "voice_cue": "Reach arms overhead.",
+          "details": "Stretch your spine upward."
         },
         {
           "id": "step-2",
           "instruction": "Gently rotate shoulders backward 10 times.",
           "duration_seconds": 30,
           "type": "instruction",
-          "voice_cue": "Rotate shoulders."
+          "voice_cue": "Rotate shoulders.",
+          "details": "Keep your neck relaxed."
         },
         {
           "id": "step-3",
           "instruction": "Perform side bends holding each side.",
           "duration_seconds": 20,
           "type": "instruction",
-          "voice_cue": "Perform side bends."
+          "voice_cue": "Perform side bends.",
+          "details": "Feel the stretch along your torso."
         }
       ],
       "media_url": "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=600&h=400&fit=crop",
@@ -130,7 +150,12 @@
       "status": "published",
       "expert_validated": true,
       "created_by": "usr-admin-002",
-      "created_at": "2026-06-05 09:00:00"
+      "created_at": "2026-06-05 09:00:00",
+      "requirements": [
+        "Space to stand",
+        "Comfortable clothing"
+      ],
+      "calories": 30
     },
     {
       "id": "rout-604",
@@ -147,21 +172,24 @@
           "instruction": "Sit comfortably in a chair.",
           "duration_seconds": 10,
           "type": "instruction",
-          "voice_cue": "Sit in a chair."
+          "voice_cue": "Sit in a chair.",
+          "details": "Keep your feet flat on the ground."
         },
         {
           "id": "step-2",
           "instruction": "Perform seated cat-cow stretches.",
           "duration_seconds": 60,
           "type": "instruction",
-          "voice_cue": "Perform cat-cow stretches."
+          "voice_cue": "Perform cat-cow stretches.",
+          "details": "Inhale as you arch your back, exhale as you round."
         },
         {
           "id": "step-3",
           "instruction": "Gently twist torso to each side.",
           "duration_seconds": 60,
           "type": "instruction",
-          "voice_cue": "Twist torso to each side."
+          "voice_cue": "Twist torso to each side.",
+          "details": "Use the chair back for support if needed."
         }
       ],
       "media_url": "https://images.unsplash.com/photo-1599447421416-3414500d18a5?w=600&h=400&fit=crop",
@@ -173,7 +201,11 @@
       "status": "published",
       "expert_validated": true,
       "created_by": "usr-admin-002",
-      "created_at": "2026-06-10 09:00:00"
+      "created_at": "2026-06-10 09:00:00",
+      "requirements": [
+        "Sturdy chair without wheels"
+      ],
+      "calories": 45
     },
     {
       "id": "rout-605",
@@ -190,28 +222,32 @@
           "instruction": "Sit with feet flat on the floor.",
           "duration_seconds": 10,
           "type": "instruction",
-          "voice_cue": "Sit with feet flat."
+          "voice_cue": "Sit with feet flat.",
+          "details": "Sit up tall."
         },
         {
           "id": "step-2",
           "instruction": "Slowly extend one leg straight out.",
           "duration_seconds": 15,
           "type": "instruction",
-          "voice_cue": "Extend one leg."
+          "voice_cue": "Extend one leg.",
+          "details": "Engage your thigh muscles."
         },
         {
           "id": "step-3",
           "instruction": "Hold for 3 seconds, then lower.",
           "duration_seconds": 10,
           "type": "instruction",
-          "voice_cue": "Hold and lower."
+          "voice_cue": "Hold and lower.",
+          "details": "Keep the movement controlled."
         },
         {
           "id": "step-4",
           "instruction": "Repeat for the other leg.",
           "duration_seconds": 25,
           "type": "instruction",
-          "voice_cue": "Repeat for the other leg."
+          "voice_cue": "Repeat for the other leg.",
+          "details": "Maintain good posture."
         }
       ],
       "media_url": "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=600&h=400&fit=crop",
@@ -224,7 +260,11 @@
       "status": "published",
       "expert_validated": true,
       "created_by": "usr-admin-002",
-      "created_at": "2026-06-12 09:00:00"
+      "created_at": "2026-06-12 09:00:00",
+      "requirements": [
+        "Sturdy chair"
+      ],
+      "calories": 25
     },
     {
       "id": "rout-606",
@@ -242,7 +282,8 @@
           "duration_seconds": 4,
           "type": "breathing",
           "phase": "inhale",
-          "voice_cue": "Inhale."
+          "voice_cue": "Inhale.",
+          "details": "Breathe deep into your diaphragm."
         },
         {
           "id": "step-2",
@@ -250,7 +291,8 @@
           "duration_seconds": 7,
           "type": "breathing",
           "phase": "hold",
-          "voice_cue": "Hold."
+          "voice_cue": "Hold.",
+          "details": "Hold steady."
         },
         {
           "id": "step-3",
@@ -258,7 +300,8 @@
           "duration_seconds": 8,
           "type": "breathing",
           "phase": "exhale",
-          "voice_cue": "Exhale."
+          "voice_cue": "Exhale.",
+          "details": "Make a whooshing sound."
         }
       ],
       "media_url": "https://images.unsplash.com/photo-1545389336-cf090694435e?w=600&h=400&fit=crop",
@@ -266,7 +309,11 @@
       "status": "published",
       "expert_validated": true,
       "created_by": "usr-admin-002",
-      "created_at": "2026-06-14 09:00:00"
+      "created_at": "2026-06-14 09:00:00",
+      "requirements": [
+        "Quiet space"
+      ],
+      "calories": 10
     },
     {
       "id": "rout-607",
@@ -284,21 +331,24 @@
           "duration_seconds": 60,
           "type": "breathing",
           "phase": "rest",
-          "voice_cue": "Close your eyes."
+          "voice_cue": "Close your eyes.",
+          "details": "Let your breathing return to normal."
         },
         {
           "id": "step-2",
           "instruction": "Progressively relax muscles from head to toe.",
           "duration_seconds": 120,
           "type": "instruction",
-          "voice_cue": "Relax your muscles."
+          "voice_cue": "Relax your muscles.",
+          "details": "Scan your body for tension."
         },
         {
           "id": "step-3",
           "instruction": "Remain still and observe thoughts without engaging.",
           "duration_seconds": 120,
           "type": "instruction",
-          "voice_cue": "Remain still."
+          "voice_cue": "Remain still.",
+          "details": "Let thoughts pass like clouds."
         }
       ],
       "media_url": "https://images.unsplash.com/photo-1520333789090-1afc82db536a?w=600&h=400&fit=crop",
@@ -306,7 +356,11 @@
       "status": "published",
       "expert_validated": true,
       "created_by": "usr-admin-002",
-      "created_at": "2026-06-15 09:00:00"
+      "created_at": "2026-06-15 09:00:00",
+      "requirements": [
+        "Comfortable chair or mat"
+      ],
+      "calories": 10
     },
     {
       "id": "rout-608",
@@ -323,28 +377,32 @@
           "instruction": "Sit comfortably with feet flat on the floor.",
           "duration_seconds": 10,
           "type": "instruction",
-          "voice_cue": "Sit with feet flat."
+          "voice_cue": "Sit with feet flat.",
+          "details": "Follow the instructions carefully."
         },
         {
           "id": "step-2",
           "instruction": "Lift your heels while keeping your toes on the floor, then lower.",
           "duration_seconds": 60,
           "type": "instruction",
-          "voice_cue": "Lift your heels."
+          "voice_cue": "Lift your heels.",
+          "details": "Follow the instructions carefully."
         },
         {
           "id": "step-3",
           "instruction": "Lift your toes while keeping your heels on the floor, then lower.",
           "duration_seconds": 60,
           "type": "instruction",
-          "voice_cue": "Lift your toes."
+          "voice_cue": "Lift your toes.",
+          "details": "Follow the instructions carefully."
         },
         {
           "id": "step-4",
           "instruction": "Repeat for 5 minutes continuously.",
           "duration_seconds": 300,
           "type": "instruction",
-          "voice_cue": "Continue for five minutes."
+          "voice_cue": "Continue for five minutes.",
+          "details": "Follow the instructions carefully."
         }
       ],
       "media_url": "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=600&h=400&fit=crop",
@@ -352,7 +410,9 @@
       "status": "published",
       "expert_validated": true,
       "created_by": "usr-admin-002",
-      "created_at": "2026-06-20 09:00:00"
+      "created_at": "2026-06-20 09:00:00",
+      "requirements": [],
+      "calories": 0
     },
     {
       "id": "rout-609",
@@ -369,14 +429,16 @@
           "instruction": "Lie flat on your back with a pillow under your knees.",
           "duration_seconds": 10,
           "type": "instruction",
-          "voice_cue": "Lie flat on your back."
+          "voice_cue": "Lie flat on your back.",
+          "details": "Follow the instructions carefully."
         },
         {
           "id": "step-2",
           "instruction": "Place one hand on your upper chest and the other just below your rib cage.",
           "duration_seconds": 10,
           "type": "instruction",
-          "voice_cue": "Place your hands."
+          "voice_cue": "Place your hands.",
+          "details": "Follow the instructions carefully."
         },
         {
           "id": "breath-1",
@@ -384,7 +446,8 @@
           "duration_seconds": 4,
           "type": "breathing",
           "phase": "inhale",
-          "voice_cue": "Inhale."
+          "voice_cue": "Inhale.",
+          "details": "Follow the instructions carefully."
         },
         {
           "id": "breath-2",
@@ -392,7 +455,8 @@
           "duration_seconds": 6,
           "type": "breathing",
           "phase": "exhale",
-          "voice_cue": "Exhale."
+          "voice_cue": "Exhale.",
+          "details": "Follow the instructions carefully."
         }
       ],
       "media_url": "https://images.unsplash.com/photo-1518611012118-696072aa579a?w=600&h=400&fit=crop",
@@ -400,7 +464,9 @@
       "status": "published",
       "expert_validated": true,
       "created_by": "usr-admin-002",
-      "created_at": "2026-06-21 09:00:00"
+      "created_at": "2026-06-21 09:00:00",
+      "requirements": [],
+      "calories": 0
     },
     {
       "id": "rout-610",
@@ -417,14 +483,16 @@
           "instruction": "Sit comfortably in a sturdy chair with your feet flat on the floor.",
           "duration_seconds": 10,
           "type": "instruction",
-          "voice_cue": "Sit upright."
+          "voice_cue": "Sit upright.",
+          "details": "Follow the instructions carefully."
         },
         {
           "id": "step-2",
           "instruction": "Slowly roll your shoulders backward in small circles.",
           "duration_seconds": 15,
           "type": "instruction",
-          "voice_cue": "Roll your shoulders."
+          "voice_cue": "Roll your shoulders.",
+          "details": "Follow the instructions carefully."
         },
         {
           "id": "breath-1",
@@ -432,7 +500,8 @@
           "duration_seconds": 5,
           "type": "breathing",
           "phase": "inhale",
-          "voice_cue": "Inhale deeply."
+          "voice_cue": "Inhale deeply.",
+          "details": "Follow the instructions carefully."
         }
       ],
       "media_url": "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=600&h=400&fit=crop",
@@ -440,7 +509,9 @@
       "status": "published",
       "expert_validated": true,
       "created_by": "usr-chief-admin-001",
-      "created_at": "2026-07-27 21:09:33.753649"
+      "created_at": "2026-07-27 21:09:33.753649",
+      "requirements": [],
+      "calories": 0
     }
   ],
   "recipes": [

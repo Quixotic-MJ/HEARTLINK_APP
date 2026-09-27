@@ -1,5 +1,7 @@
+import { Appearance } from "react-native";
 import React, { useEffect, useState, useRef } from "react";
-import { View, Text, Animated, Easing } from "react-native";
+import { View, Text, Animated, Easing, useColorScheme
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Feather } from "@expo/vector-icons";
@@ -204,31 +206,31 @@ export default function CalculatingScreen() {
   }, []);
 
   return (
-    <SafeAreaView className="flex-1 bg-[#EDF1EF] justify-center items-center px-6">
+    <SafeAreaView className="flex-1 bg-[#EDF1EF] dark:bg-[#0A0F0E] justify-center items-center px-6">
       <StatusBar style="dark" />
 
       {/* Pulse / Status Icon */}
       <Animated.View
         style={{ transform: [{ scale: pulseAnim }] }}
         className={`w-24 h-24 rounded-full items-center justify-center mb-8 border ${
-          isComplete ? "bg-[#1B6E63]/15 border-[#1B6E63]/30" : "bg-white border-[#DCE3DF] shadow-xs"
+          isComplete ? "bg-blue-500 dark:bg-blue-400/15 border-blue-500 dark:border-blue-400/30" : "bg-white dark:bg-[#101615] border-slate-200 dark:border-slate-800 shadow-xs"
         }`}
       >
         {isComplete ? (
-          <Feather name="check" size={38} color="#1B6E63" />
+          <Feather name="check" size={38} color={Appearance.getColorScheme() === "dark" ? "#6EC1F5" : "#2E9AE8"} />
         ) : (
           <HeartLogo size={42} />
         )}
       </Animated.View>
 
       {/* Title Header */}
-      <Text className="text-[24px] font-semibold text-[#152131] mb-2 tracking-tight text-center">
+      <Text className="text-[24px] font-semibold text-slate-900 dark:text-white mb-2 tracking-tight text-center">
         {isComplete ? "HSS Calibrated!" : "Computing Health Score"}
       </Text>
 
       {/* Dynamic Subtitle Step Text */}
       <Animated.View style={{ opacity: textOpacity, transform: [{ translateY: textTranslateY }] }}>
-        <Text className="text-[14px] text-[#5C6B66] font-medium text-center">
+        <Text className="text-[14px] text-slate-500 dark:text-slate-400 font-medium text-center">
           {isComplete ? "Redirecting to your dashboard..." : steps[step]}
         </Text>
       </Animated.View>

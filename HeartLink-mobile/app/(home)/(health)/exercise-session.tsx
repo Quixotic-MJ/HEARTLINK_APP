@@ -13,7 +13,11 @@ import { useLogExercise } from "../../../hooks/useLogExercise";
 
 // Components
 import { ExerciseOverview } from "../../../components/exercise/ExerciseOverview";
+import { ExerciseReady } from "../../../components/exercise/ExerciseReady";
 import { ExerciseActive } from "../../../components/exercise/ExerciseActive";
+import { BreathingExerciseActive } from "../../../components/exercise/BreathingExerciseActive";
+import { CardioExerciseActive } from "../../../components/exercise/CardioExerciseActive";
+import { StretchingExerciseActive } from "../../../components/exercise/StretchingExerciseActive";
 import { ExerciseResult } from "../../../components/exercise/ExerciseResult";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
@@ -30,7 +34,7 @@ function resolveMediaUrl(url: string) {
 
 const generateExerciseId = () => `ex-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
 
-export default function ExerciseDetailsScreen() {
+export default function ExerciseSessionScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { userId, token, logout } = useUser();
@@ -41,7 +45,7 @@ export default function ExerciseDetailsScreen() {
   
   const logExerciseMutation = useLogExercise(userId, token);
   
-  const [workoutState, setWorkoutState] = useState<"overview" | "active" | "result">("overview");
+  const [workoutState, setWorkoutState] = useState<"overview" | "ready" | "active" | "result">("overview");
   
   const [sessionStartedAt, setSessionStartedAt] = useState<number | null>(null);
   const [sessionDurationSeconds, setSessionDurationSeconds] = useState(0);
@@ -105,6 +109,7 @@ export default function ExerciseDetailsScreen() {
         const r = {
           id: data.id,
           title: data.name || "",
+          description: data.description || "",
           duration: data.duration_minutes || 0,
           goal: data.goal || data.description || "",
           type: data.type || "Light Cardio",
@@ -114,6 +119,8 @@ export default function ExerciseDetailsScreen() {
           videoUrl: data.video_url || "",
           image: resolveMediaUrl(data.media_url || ""),
           guideImages: (data.guide_images || []).map((img: string) => resolveMediaUrl(img)),
+          requirements: data.requirements || data.equipment || [],
+          calories: data.calories || 0,
         };
         
         setRoutine(r);
@@ -161,6 +168,10 @@ export default function ExerciseDetailsScreen() {
 
   const handleStart = () => {
     if (isLockedCritical) return;
+    setWorkoutState("ready");
+  };
+
+  const handleReadyComplete = () => {
     setSessionStartedAt(Date.now());
     setWorkoutState("active");
   };
@@ -298,7 +309,7 @@ export default function ExerciseDetailsScreen() {
 
   return (
     <View className="flex-1 bg-white">
-      <StatusBar style={workoutState === "active" ? "light" : "dark"} />
+      <StatusBar style={workoutState === "active" || workoutState === "ready" ? "light" : "dark"} />
       
       {workoutState === "overview" && (
         <ExerciseOverview 
@@ -312,13 +323,43 @@ export default function ExerciseDetailsScreen() {
         />
       )}
       
-      {workoutState === "active" && (
-        <ExerciseActive
+      {workoutState === "ready" && (
+        <ExerciseReady
           routine={routine}
-          onFinish={handleRequestFinish}
-          onClose={handleCloseActive}
-          onSymptoms={handleSymptomsPress}
+          onComplete={handleReadyComplete}
         />
+      )}
+      
+      {workoutState === "active" && (
+        routine?.type === "Breathing" || routine?.title?.toLowerCase().includes("breathing") ? (
+          <BreathingExerciseActive
+            routine={routine}
+            onFinish={handleRequestFinish}
+            onClose={handleCloseActive}
+            onSymptoms={handleSymptomsPress}
+          />
+        ) : routine?.type === "Stretching" || routine?.title?.toLowerCase().includes("stretch") ? (
+          <StretchingExerciseActive
+            routine={routine}
+            onFinish={handleRequestFinish}
+            onClose={handleCloseActive}
+            onSymptoms={handleSymptomsPress}
+          />
+        ) : routine?.type?.toLowerCase().includes("cardio") || routine?.title?.toLowerCase().includes("walk") || routine?.title?.toLowerCase().includes("jog") ? (
+          <CardioExerciseActive
+            routine={routine}
+            onFinish={handleRequestFinish}
+            onClose={handleCloseActive}
+            onSymptoms={handleSymptomsPress}
+          />
+        ) : (
+          <ExerciseActive
+            routine={routine}
+            onFinish={handleRequestFinish}
+            onClose={handleCloseActive}
+            onSymptoms={handleSymptomsPress}
+          />
+        )
       )}
       
       {workoutState === "result" && (

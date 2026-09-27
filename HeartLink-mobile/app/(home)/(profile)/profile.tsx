@@ -61,13 +61,15 @@ function BiometricCard({ label, value, unit }: { label: string, value: string, u
 
 function MoreRow({ icon, label, onPress, isLast = false }: { icon: any, label: string, onPress: () => void, isLast?: boolean }) {
   return (
-    <TouchableOpacity activeOpacity={0.7} onPress={onPress} className={`flex-row items-center py-4 ${!isLast ? 'border-b border-slate-200 dark:border-slate-800/70' : ''}`}>
-      <View className="w-6 items-center mr-2">
-        <Feather name={icon} size={15} className="text-slate-900 dark:text-white" />
-      </View>
-      <Text className="flex-1 text-[14px] font-bold text-slate-900 dark:text-white">{label}</Text>
-      <Feather name="chevron-right" size={16} className="text-slate-400 dark:text-slate-500" />
-    </TouchableOpacity>
+    <View className={`${!isLast ? 'border-b border-slate-200 dark:border-slate-800/70' : ''}`}>
+      <TouchableOpacity activeOpacity={0.7} onPress={onPress} className="flex-row items-center py-4">
+        <View className="w-6 items-center mr-2">
+          <Feather name={icon} size={15} className="text-slate-900 dark:text-white" />
+        </View>
+        <Text className="flex-1 text-[14px] font-bold text-slate-900 dark:text-white">{label}</Text>
+        <Feather name="chevron-right" size={16} className="text-slate-400 dark:text-slate-500" />
+      </TouchableOpacity>
+    </View>
   );
 }
 
