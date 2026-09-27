@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { View, Text, TouchableOpacity, ScrollView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
@@ -19,6 +19,32 @@ export function CardioExerciseActive({
   const insets = useSafeAreaInsets();
   const [isPlaying, setIsPlaying] = useState(true);
   const [showInstructions, setShowInstructions] = useState(true);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+
+  const totalSeconds = (routine?.duration_minutes || routine?.duration || 20) * 60;
+  const calPerHour = routine?.calories ? (routine.calories / (totalSeconds / 3600)) : 300; // rough est
+  
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isPlaying && elapsedSeconds < totalSeconds) {
+      interval = setInterval(() => {
+        setElapsedSeconds(prev => prev + 1);
+      }, 1000);
+    } else if (elapsedSeconds >= totalSeconds) {
+      setIsPlaying(false);
+      onFinish();
+    }
+    return () => clearInterval(interval);
+  }, [isPlaying, elapsedSeconds, totalSeconds, onFinish]);
+
+  const formatTime = (secs: number) => {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
+
+  const currentCalories = Math.floor((calPerHour / 3600) * elapsedSeconds);
+  const distanceKm = ((1 / 12.5) * (elapsedSeconds / 60)).toFixed(2); // assuming 12.5 min/km pace
 
   return (
     <View className="flex-1 bg-white">
@@ -60,8 +86,8 @@ export function CardioExerciseActive({
             {/* Mock progress indicator on the top */}
             <View className="absolute -top-[6px] w-3 h-3 rounded-full bg-sky-500" />
             
-            <Text className="text-slate-900 text-[48px] font-bold tracking-wider">00:10</Text>
-            <Text className="text-slate-500 text-[14px]">of {routine?.duration || 20}:00 goal</Text>
+            <Text className="text-slate-900 text-[48px] font-bold tracking-wider">{formatTime(elapsedSeconds)}</Text>
+            <Text className="text-slate-500 text-[14px]">of {routine?.duration_minutes || routine?.duration || 20}:00 goal</Text>
           </View>
         </View>
 
@@ -72,11 +98,11 @@ export function CardioExerciseActive({
             <Text className="text-slate-400 text-[11px] uppercase tracking-wider">Pace /km</Text>
           </View>
           <View className="flex-1 bg-slate-50 border border-slate-100 rounded-2xl py-4 items-center justify-center shadow-sm shadow-slate-100">
-            <Text className="text-slate-900 text-[18px] font-bold mb-1">0.01</Text>
+            <Text className="text-slate-900 text-[18px] font-bold mb-1">{distanceKm}</Text>
             <Text className="text-slate-400 text-[11px] uppercase tracking-wider">km</Text>
           </View>
           <View className="flex-1 bg-slate-50 border border-slate-100 rounded-2xl py-4 items-center justify-center shadow-sm shadow-slate-100">
-            <Text className="text-slate-900 text-[18px] font-bold mb-1">1</Text>
+            <Text className="text-slate-900 text-[18px] font-bold mb-1">{currentCalories}</Text>
             <Text className="text-slate-400 text-[11px] uppercase tracking-wider">kcal est.</Text>
           </View>
         </View>
@@ -119,9 +145,9 @@ export function CardioExerciseActive({
               <View className="px-5 pb-5">
                 {routine?.steps && routine.steps.length > 0 ? (
                   routine.steps.map((step: any, idx: number) => (
-                    <View key={idx} className="flex-row mb-4">
-                      <Text className="text-sky-500 font-bold mr-3">{idx + 1}.</Text>
-                      <Text className="flex-1 text-slate-600 text-[14px] leading-relaxed">
+                    <View key={idx} style={{ flexDirection: 'row', marginBottom: 16 }}>
+                      <Text style={{ color: '#0ea5e9', fontWeight: 'bold', marginRight: 12 }}>{idx + 1}.</Text>
+                      <Text style={{ flex: 1, color: '#475569', fontSize: 14, lineHeight: 22 }}>
                         {typeof step === 'string' ? step.trim() : (step.instruction || '').trim()}
                       </Text>
                     </View>

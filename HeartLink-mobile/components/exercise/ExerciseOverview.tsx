@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity, ScrollView, Image, Dimensions } from "react-native";
+import { View, Text, TouchableOpacity, ScrollView, Image, Dimensions, Linking } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather, FontAwesome5 } from "@expo/vector-icons";
 
@@ -192,10 +192,18 @@ export function ExerciseOverview({
                     
                     return (
                       <View key={idx} className="mb-2 shadow-sm shadow-slate-100">
-                        {/* Media Placeholder */}
-                        <View className={`w-full h-40 ${bgColors[colorIdx]} rounded-t-2xl items-center justify-center border-t border-l border-r border-slate-100`}>
-                           <IconComponent name={iconName} size={36} color={iconColors[colorIdx]} />
-                        </View>
+                        {/* Media Placeholder or Actual Image */}
+                        {routine.guideImages && routine.guideImages[idx] ? (
+                           <Image 
+                             source={{ uri: routine.guideImages[idx] }} 
+                             className="w-full h-40 rounded-t-2xl border-t border-l border-r border-slate-100"
+                             resizeMode="cover"
+                           />
+                        ) : (
+                           <View className={`w-full h-40 ${bgColors[colorIdx]} rounded-t-2xl items-center justify-center border-t border-l border-r border-slate-100`}>
+                             <IconComponent name={iconName} size={36} color={iconColors[colorIdx]} />
+                           </View>
+                        )}
                         
                         {/* Step Details */}
                         <View className="bg-white rounded-b-2xl p-4 flex-row items-start border-b border-l border-r border-slate-100">
@@ -228,41 +236,45 @@ export function ExerciseOverview({
             </>
           ) : (
             <View className="flex-1 pb-4">
-              {/* Video Player Placeholder */}
-              <View className="w-full aspect-video bg-slate-900 rounded-2xl p-4 justify-between mb-4 border border-slate-800 relative overflow-hidden shadow-md">
-                <View className="flex-row justify-end z-10">
-                  <View className="bg-black/60 px-2 py-1 rounded">
-                    <Text className="text-white text-[11px] font-bold">3:42</Text>
-                  </View>
-                </View>
+              {/* Video Player (Click to open) */}
+              <TouchableOpacity 
+                activeOpacity={0.9}
+                onPress={() => {
+                  if (routine.videoUrl) {
+                    Linking.openURL(routine.videoUrl).catch(() => {
+                      alert("Could not open video URL");
+                    });
+                  }
+                }}
+                className="w-full aspect-video bg-slate-900 rounded-2xl mb-4 border border-slate-800 relative overflow-hidden shadow-md items-center justify-center"
+              >
+                {routine.image ? (
+                  <Image 
+                    source={{ uri: routine.image }}
+                    className="absolute inset-0 w-full h-full opacity-60"
+                    resizeMode="cover"
+                  />
+                ) : null}
                 
-                <View className="absolute inset-0 items-center justify-center z-10 pointer-events-none">
-                  <View className="w-16 h-16 bg-white/90 rounded-full items-center justify-center shadow-lg" />
+                <View className="w-16 h-16 bg-white/90 rounded-full items-center justify-center shadow-lg pl-1 z-10">
+                  <FontAwesome5 name="play" size={24} color="#0ea5e9" />
                 </View>
-                
-                <View className="z-10">
-                  <View className="w-full h-[3px] bg-slate-600 rounded-full mb-3">
-                    <View className="w-0 h-full bg-sky-500 rounded-full" />
+
+                {routine.videoUrl ? null : (
+                  <View className="absolute bottom-4 left-4 bg-black/60 px-2 py-1 rounded z-10">
+                    <Text className="text-white text-[11px] font-bold">No Video Available</Text>
                   </View>
-                  <View className="flex-row justify-between items-center">
-                    <Text className="text-white text-[12px] font-bold">0:00 / 3:42</Text>
-                    <Feather name="maximize" size={16} color="#fff" />
-                  </View>
-                </View>
-              </View>
+                )}
+              </TouchableOpacity>
 
               {/* Video Pills */}
-              <View className="flex-row gap-2 mb-8">
-                <View className="bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
-                  <Text className="text-slate-700 text-[12px] font-bold">1x</Text>
+              {routine.videoUrl ? (
+                <View className="flex-row gap-2 mb-8">
+                  <View className="bg-sky-50 px-3 py-1.5 rounded-lg border border-sky-200">
+                    <Text className="text-sky-700 text-[12px] font-bold">Watch on YouTube</Text>
+                  </View>
                 </View>
-                <View className="bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
-                  <Text className="text-slate-700 text-[12px] font-bold">CC: English</Text>
-                </View>
-                <View className="bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
-                  <Text className="text-slate-700 text-[12px] font-bold">Instructor: Dr. Reyes</Text>
-                </View>
-              </View>
+              ) : null}
 
               <Text className="text-slate-900 font-bold text-[18px] mb-4">Jump to</Text>
               

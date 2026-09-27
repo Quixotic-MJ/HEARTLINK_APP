@@ -115,6 +115,8 @@ const Exercises = () => {
           type: r.type || "General",
           intensity: r.intensity || "Low",
           goal: r.goal || "",
+          calories: r.calories || 0,
+          requirements: r.requirements || [],
         };
       });
       setExercises(mapped);
@@ -164,6 +166,8 @@ const Exercises = () => {
         expertValidated: exercise.expertValidated,
         steps: exercise.steps,
         guideImages: exercise.guideImages,
+        calories: exercise.calories,
+        requirements: exercise.requirements,
       };
 
       await apiFetch(`/api/exercises/${exercise.id}`, {
