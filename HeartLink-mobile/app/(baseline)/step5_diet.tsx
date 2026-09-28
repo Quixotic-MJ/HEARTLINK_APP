@@ -26,6 +26,7 @@ import Animated, {
   useAnimatedStyle,
   withTiming,
 } from "react-native-reanimated";
+import { theme } from "../../constants/theme";
 
 // ─── 2x2 Grid Component for Dietary Frequency ─────────────────────────────────
 
@@ -72,12 +73,12 @@ function FrequencyGrid({
                 className={`absolute inset-0 border rounded-xl ${
                   isActive
                     ? "bg-[#2E9AE8] dark:bg-[#6EC1F5] border-[#E8532E] shadow-xs"
-                    : "bg-white dark:bg-[#101615] border-slate-200 dark:border-slate-800"
+                    : "bg-surface dark:bg-[#101615] border-border"
                 }`}
               />
               <Text
                 className={`font-semibold text-[14px] relative z-10 ${
-                  isActive ? "text-white" : "text-slate-900 dark:text-white"
+                  isActive ? "text-white" : "text-text"
                 }`}
               >
                 {opt.label}
@@ -106,12 +107,12 @@ function FrequencyGrid({
                 className={`absolute inset-0 border rounded-xl ${
                   isActive
                     ? "bg-[#2E9AE8] dark:bg-[#6EC1F5] border-[#E8532E] shadow-xs"
-                    : "bg-white dark:bg-[#101615] border-slate-200 dark:border-slate-800"
+                    : "bg-surface dark:bg-[#101615] border-border"
                 }`}
               />
               <Text
                 className={`font-semibold text-[14px] relative z-10 ${
-                  isActive ? "text-white" : "text-slate-900 dark:text-white"
+                  isActive ? "text-white" : "text-text"
                 }`}
               >
                 {opt.label}
@@ -227,7 +228,7 @@ export default function Step5Diet() {
             onPress={handleBack}
             accessibilityRole="button"
             accessibilityLabel="Go back"
-            className="w-10 h-10 rounded-xl bg-white dark:bg-[#101615] border border-slate-200 dark:border-slate-800 items-center justify-center mr-3 shadow-xs"
+            className="w-10 h-10 rounded-xl bg-surface dark:bg-[#101615] border border-border items-center justify-center mr-3 shadow-xs"
           >
             <Feather
               name="arrow-left"
@@ -236,11 +237,11 @@ export default function Step5Diet() {
             />
           </AnimatedButton>
           <View className="flex-1">
-            <Text className="text-[11px] font-semibold text-[#E8532E] uppercase tracking-wider">
+            <Text className="text-[11px] font-semibold text-primary uppercase tracking-wider">
               Step 5 of 6
             </Text>
             <Text
-              className="text-xl font-bold text-slate-900 dark:text-white mt-0.5"
+              className="text-xl font-bold text-text mt-0.5"
               numberOfLines={1}
             >
               Eating Habits
@@ -277,23 +278,23 @@ export default function Step5Diet() {
             >
               {/* Section Subtitle */}
               <View className="flex-row items-center justify-between mb-2">
-                <Text className="text-[13px] font-bold text-[#E8532E] uppercase tracking-wide">
+                <Text className="text-[13px] font-bold text-primary uppercase tracking-wide">
                   Part 1 of 2: Meal Portions & Produce
                 </Text>
               </View>
 
-              <Text className="text-[14px] text-slate-500 dark:text-slate-400 mb-5 leading-relaxed">
+              <Text className="text-[14px] text-text-soft mb-5 leading-relaxed">
                 Your typical meal size and produce consumption inform your nutritional baseline.
               </Text>
 
               {/* Card 1: Meal Portions */}
               <Animated.View
                 layout={LinearTransition}
-                className="bg-white dark:bg-[#101615] rounded-2xl p-4 sm:p-5 mb-4 border border-slate-200 dark:border-slate-800 shadow-xs"
+                className="bg-surface dark:bg-[#101615] rounded-2xl p-4 sm:p-5 mb-4 border border-border shadow-xs"
               >
                 <View className="flex-row items-start mb-3.5">
                   <View
-                    className="w-9 h-9 rounded-xl items-center justify-center mr-3 mt-0.5 bg-blue-500 dark:bg-blue-400/15"
+                    className="w-9 h-9 rounded-xl items-center justify-center mr-3 mt-0.5 bg-blue-tint0 dark:bg-blue-400/15"
                   >
                     <Feather
                       name="disc"
@@ -302,10 +303,10 @@ export default function Step5Diet() {
                     />
                   </View>
                   <View className="flex-1 pr-1">
-                    <Text className="text-[15px] font-bold text-slate-900 dark:text-white tracking-tight leading-snug">
+                    <Text className="text-[15px] font-bold text-text tracking-tight leading-snug">
                       How would you describe your usual meal portions?
                     </Text>
-                    <Text className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5 leading-4">
+                    <Text className="text-[13px] text-text-soft mt-0.5 leading-4">
                       Your typical daily meal volume
                     </Text>
                   </View>
@@ -345,7 +346,7 @@ export default function Step5Diet() {
                           className={`absolute inset-0 border rounded-xl ${
                             isActive
                               ? "bg-[#2E9AE8] dark:bg-[#6EC1F5] border-[#E8532E] shadow-xs"
-                              : "bg-white dark:bg-[#101615] border-slate-200 dark:border-slate-800"
+                              : "bg-surface dark:bg-[#101615] border-border"
                           }`}
                         />
                         <View className="flex-1 pr-3 relative z-10">
@@ -353,7 +354,7 @@ export default function Step5Diet() {
                             className={`font-semibold text-[15px] ${
                               isActive
                                 ? "text-white"
-                                : "text-slate-900 dark:text-white"
+                                : "text-text"
                             }`}
                           >
                             {opt.label}
@@ -362,7 +363,7 @@ export default function Step5Diet() {
                             className={`text-[12px] mt-0.5 ${
                               isActive
                                 ? "text-white/85"
-                                : "text-slate-500 dark:text-slate-400"
+                                : "text-text-soft"
                             }`}
                           >
                             {opt.desc}
@@ -372,7 +373,7 @@ export default function Step5Diet() {
                           <Feather
                             name="check"
                             size={18}
-                            color="#ffffff"
+                            color={theme.onPrimary}
                             className="relative z-10"
                           />
                         )}
@@ -385,7 +386,7 @@ export default function Step5Diet() {
               {/* Card 2: Fruits & Vegetables */}
               <Animated.View
                 layout={LinearTransition}
-                className="bg-white dark:bg-[#101615] rounded-2xl p-4 sm:p-5 mb-4 border border-slate-200 dark:border-slate-800 shadow-xs"
+                className="bg-surface dark:bg-[#101615] rounded-2xl p-4 sm:p-5 mb-4 border border-border shadow-xs"
               >
                 <View className="flex-row items-start mb-3.5">
                   <View
@@ -394,14 +395,14 @@ export default function Step5Diet() {
                     <Feather
                       name="sun"
                       size={18}
-                      color="#A9741B"
+                      color={theme.warningText}
                     />
                   </View>
                   <View className="flex-1 pr-1">
-                    <Text className="text-[15px] font-bold text-slate-900 dark:text-white tracking-tight leading-snug">
+                    <Text className="text-[15px] font-bold text-text tracking-tight leading-snug">
                       Daily servings of fruits & vegetables?
                     </Text>
-                    <Text className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5 leading-4">
+                    <Text className="text-[13px] text-text-soft mt-0.5 leading-4">
                       1 serving ≈ 1 whole fruit or 1 cup of vegetables
                     </Text>
                   </View>
@@ -436,14 +437,14 @@ export default function Step5Diet() {
                           className={`absolute inset-0 border rounded-xl ${
                             isActive
                               ? "bg-[#2E9AE8] dark:bg-[#6EC1F5] border-[#E8532E] shadow-xs"
-                              : "bg-white dark:bg-[#101615] border-slate-200 dark:border-slate-800"
+                              : "bg-surface dark:bg-[#101615] border-border"
                           }`}
                         />
                         <Text
                           className={`font-bold text-[15px] relative z-10 ${
                             isActive
                               ? "text-white"
-                              : "text-slate-900 dark:text-white"
+                              : "text-text"
                           }`}
                         >
                           {opt.label}
@@ -464,19 +465,19 @@ export default function Step5Diet() {
             >
               {/* Section Subtitle */}
               <View className="flex-row items-center justify-between mb-2">
-                <Text className="text-[13px] font-bold text-[#E8532E] uppercase tracking-wide">
+                <Text className="text-[13px] font-bold text-primary uppercase tracking-wide">
                   Part 2 of 2: Dietary Composition
                 </Text>
               </View>
 
-              <Text className="text-[14px] text-slate-500 dark:text-slate-400 mb-5 leading-relaxed">
+              <Text className="text-[14px] text-text-soft mb-5 leading-relaxed">
                 Frequency of high-fat and processed foods helps gauge cardiovascular nutrition risk.
               </Text>
 
               {/* Card 1: High-Fat & Fried Foods */}
               <Animated.View
                 layout={LinearTransition}
-                className="bg-white dark:bg-[#101615] rounded-2xl p-4 sm:p-5 mb-4 border border-slate-200 dark:border-slate-800 shadow-xs"
+                className="bg-surface dark:bg-[#101615] rounded-2xl p-4 sm:p-5 mb-4 border border-border shadow-xs"
               >
                 <View className="flex-row items-start mb-3.5">
                   <View
@@ -485,14 +486,14 @@ export default function Step5Diet() {
                     <Feather
                       name="zap"
                       size={18}
-                      color="#A9741B"
+                      color={theme.warningText}
                     />
                   </View>
                   <View className="flex-1 pr-1">
-                    <Text className="text-[15px] font-bold text-slate-900 dark:text-white tracking-tight leading-snug">
+                    <Text className="text-[15px] font-bold text-text tracking-tight leading-snug">
                       How often do you eat fried or high-fat foods?
                     </Text>
-                    <Text className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5 leading-4">
+                    <Text className="text-[13px] text-text-soft mt-0.5 leading-4">
                       Fast food, fried dishes, and fatty meats
                     </Text>
                   </View>
@@ -513,11 +514,11 @@ export default function Step5Diet() {
               {/* Card 2: Salty / Processed Foods */}
               <Animated.View
                 layout={LinearTransition}
-                className="bg-white dark:bg-[#101615] rounded-2xl p-4 sm:p-5 mb-4 border border-slate-200 dark:border-slate-800 shadow-xs"
+                className="bg-surface dark:bg-[#101615] rounded-2xl p-4 sm:p-5 mb-4 border border-border shadow-xs"
               >
                 <View className="flex-row items-start mb-3.5">
                   <View
-                    className="w-9 h-9 rounded-xl items-center justify-center mr-3 mt-0.5 bg-blue-500 dark:bg-blue-400/15"
+                    className="w-9 h-9 rounded-xl items-center justify-center mr-3 mt-0.5 bg-blue-tint0 dark:bg-blue-400/15"
                   >
                     <Feather
                       name="package"
@@ -526,10 +527,10 @@ export default function Step5Diet() {
                     />
                   </View>
                   <View className="flex-1 pr-1">
-                    <Text className="text-[15px] font-bold text-slate-900 dark:text-white tracking-tight leading-snug">
+                    <Text className="text-[15px] font-bold text-text tracking-tight leading-snug">
                       How often do you eat salty or processed foods?
                     </Text>
-                    <Text className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5 leading-4">
+                    <Text className="text-[13px] text-text-soft mt-0.5 leading-4">
                       Chips, instant noodles, canned and cured foods
                     </Text>
                   </View>
@@ -556,7 +557,7 @@ export default function Step5Diet() {
               size={13}
               color={Appearance.getColorScheme() === "dark" ? "#94A3B8" : "#5C6B66"}
             />
-            <Text className="text-[12px] text-slate-500 dark:text-slate-400 ml-1.5">
+            <Text className="text-[12px] text-text-soft ml-1.5">
               Your nutritional baseline helps customize your health recommendations
             </Text>
           </View>
@@ -565,10 +566,7 @@ export default function Step5Diet() {
 
       {/* Anchored Bottom CTA */}
       <View
-        className="px-5 pt-3.5 bg-[#EDF1EF] dark:bg-[#0A0F0E] border-t border-slate-200 dark:border-slate-800"
-        style={{
-          paddingBottom: Math.max(insets.bottom + 16, 32),
-        }}
+        className="px-5 pt-3.5 bg-[#EDF1EF] dark:bg-[#0A0F0E] border-t border-border"
       >
         <Animated.View style={animatedButtonStyle}>
           <Pressable
@@ -587,7 +585,7 @@ export default function Step5Diet() {
             <Feather
               name="arrow-right"
               size={18}
-              color="#ffffff"
+              color={theme.onPrimary}
               className="ml-2"
             />
           </Pressable>

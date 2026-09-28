@@ -23,7 +23,6 @@ export function StatCard({
     >
       <View
         className="w-10 h-10 rounded-xl items-center justify-center mb-2"
-        style={{ backgroundColor: iconBg }}
       >
         <Feather name={icon as any} size={16} color={iconColor} />
       </View>

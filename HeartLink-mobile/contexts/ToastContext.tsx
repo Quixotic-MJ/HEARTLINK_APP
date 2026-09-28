@@ -116,7 +116,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
           ]}
         >
           <View 
-            className="bg-white dark:bg-slate-900 rounded-2xl flex-row items-center p-4 shadow-xl border border-slate-200 dark:border-slate-800"
+            className="bg-surface rounded-2xl flex-row items-center p-4 shadow-xl border border-border"
             style={{
               shadowColor: "#000",
               shadowOffset: { width: 0, height: 4 },
@@ -127,11 +127,11 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
           >
             <View className="mr-3">{getIcon()}</View>
             <View className="flex-1">
-              <Text className="text-[15px] font-semibold text-slate-900 dark:text-white">
+              <Text className="text-[15px] font-semibold text-text">
                 {toast.title}
               </Text>
               {toast.message && (
-                <Text className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5 leading-snug">
+                <Text className="text-[13px] text-text-soft mt-0.5 leading-snug">
                   {toast.message}
                 </Text>
               )}

@@ -55,8 +55,8 @@ export function Header({
     <View className="flex-row justify-between items-center px-5 pt-3 pb-2 bg-transparent">
       <View className="flex-row items-center gap-2">
         <HeartLogo size={22} />
-        <Text className="text-[18px] text-[#152131] dark:text-white tracking-tight font-bold">
-          HeartLink<Text className="text-[11px] text-[#5C6B66] dark:text-slate-400 font-medium">™</Text>
+        <Text className="text-[18px] text-text dark:text-white tracking-tight font-bold">
+          HeartLink<Text className="text-[11px] text-text-soft dark:text-text-muted font-medium">™</Text>
         </Text>
       </View>
       <View className="flex-row items-center gap-2">
@@ -65,12 +65,12 @@ export function Header({
           accessible={true}
           accessibilityRole="button"
           accessibilityLabel={hasUnread ? "Notifications, unread items available" : "Notifications"}
-          className="w-10 h-10 rounded-full bg-surface-card border-0 items-center justify-center shadow-sm shadow-slate-200/50 dark:shadow-none"
+          className="w-10 h-10 rounded-full bg-surface border-0 items-center justify-center shadow-sm shadow-slate-200/50 dark:shadow-none"
           activeOpacity={0.7}
         >
           <Feather name="bell" size={18} color={isDark ? "#94a3b8" : "#64748b"} />
           {hasUnread && (
-            <View style={{ position: "absolute", top: 8, right: 10 }} className="w-2.5 h-2.5 bg-[#E8532E] rounded-full border-2 border-white dark:border-[#1A2634]" />
+            <View style={{ position: "absolute", top: 8, right: 10 }} className="w-2.5 h-2.5 bg-primary rounded-full border-2 border-white dark:border-surface-alt" />
           )}
         </TouchableOpacity>
 
@@ -79,7 +79,7 @@ export function Header({
           accessible={true}
           accessibilityRole="button"
           accessibilityLabel="Settings"
-          className="w-10 h-10 rounded-full bg-surface-card border-0 items-center justify-center shadow-sm shadow-slate-200/50 dark:shadow-none"
+          className="w-10 h-10 rounded-full bg-surface border-0 items-center justify-center shadow-sm shadow-slate-200/50 dark:shadow-none"
           activeOpacity={0.7}
         >
           <Feather name="settings" size={18} color={isDark ? "#94a3b8" : "#64748b"} />
@@ -94,14 +94,14 @@ export function Header({
             accessibilityLabel="My Profile"
             className="ml-0.5"
           >
-            <View className="w-10 h-10 rounded-full bg-surface-card border-0 overflow-hidden shadow-sm shadow-slate-200/50 dark:shadow-none">
+            <View className="w-10 h-10 rounded-full bg-surface border-0 overflow-hidden shadow-sm shadow-slate-200/50 dark:shadow-none">
               <Image
                 source={{ uri: user?.avatar_url || "https://ui-avatars.com/api/?name=" + (user?.first_name || "U") + "&background=E2E8F0&color=152131&bold=true" }}
                 className="w-full h-full"
                 resizeMode="cover"
               />
             </View>
-            <View style={{ position: "absolute", bottom: 0, right: 0 }} className="w-3 h-3 bg-[#10B981] rounded-full border-2 border-white dark:border-[#1E293B]" />
+            <View style={{ position: "absolute", bottom: 0, right: 0 }} className="w-3 h-3 bg-success rounded-full border-2 border-white dark:border-surface-alt" />
           </TouchableOpacity>
         )}
       </View>

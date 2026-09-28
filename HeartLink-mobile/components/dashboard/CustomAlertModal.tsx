@@ -43,12 +43,10 @@ export function CustomAlertModal({
       >
         <View
           className="bg-card rounded-3xl w-full overflow-hidden border border-transparent"
-          style={{ maxWidth: 360 }}
         >
           <View className="items-center pt-7 pb-4 px-6">
             <View
               className="w-14 h-14 rounded-2xl items-center justify-center mb-4"
-              style={{ backgroundColor: iconBg }}
             >
               <Feather name={icon as any} size={26} color={iconColor} />
             </View>
@@ -75,15 +73,9 @@ export function CustomAlertModal({
                   onPress={action.onPress}
                   activeOpacity={0.8}
                   className="w-full py-3.5 rounded-xl items-center"
-                  style={{
-                    backgroundColor: action.primary ? primaryBg : "transparent",
-                    borderWidth: action.primary ? 0 : 1,
-                    borderColor: action.primary ? "transparent" : secondaryBorder,
-                  }}
                 >
                   <Text
                     className="text-[14px] font-medium"
-                    style={{ color: textColor }}
                   >
                     {action.label}
                   </Text>

@@ -22,6 +22,7 @@ import { useUser } from "../../../contexts/UserContext";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
 import { useToast } from "../../../contexts/ToastContext";
+import { theme } from "../../../constants/theme";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -29,31 +30,31 @@ const base_url = process.env.EXPO_PUBLIC_API_URL;
 
 function StatCard({ icon, iconColor, value, label }: { icon: any, iconColor: string, value: string, label: string }) {
   return (
-    <View className="flex-1 rounded-2xl p-3 border bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800/70">
+    <View className="flex-1 rounded-2xl p-3 border bg-surface border-border/70">
       <Feather name={icon} size={14} color={iconColor} style={{ marginBottom: 6 }} />
-      <Text className="text-[16px] font-bold mb-0.5 text-slate-900 dark:text-white">{value}</Text>
-      <Text className="text-[10px] text-slate-500 dark:text-slate-400">{label}</Text>
+      <Text className="text-[16px] font-bold mb-0.5 text-text">{value}</Text>
+      <Text className="text-[10px] text-text-soft">{label}</Text>
     </View>
   );
 }
 
 function PersonalRow({ icon, value, isLast = false }: { icon: any, value: string, isLast?: boolean }) {
   return (
-    <View className={`flex-row items-center py-3.5 ${!isLast ? 'border-b border-slate-200 dark:border-slate-800/70' : ''}`}>
+    <View className={`flex-row items-center py-3.5 ${!isLast ? 'border-b border-border/70' : ''}`}>
       <View className="w-6 items-center mr-2">
-        <Feather name={icon} size={14} className="text-slate-500 dark:text-slate-400" />
+        <Feather name={icon} size={14} color={theme.textSoft} />
       </View>
-      <Text className="text-[14px] font-bold flex-1 text-slate-900 dark:text-white">{value}</Text>
+      <Text className="text-[14px] font-bold flex-1 text-text">{value}</Text>
     </View>
   );
 }
 
 function BiometricCard({ label, value, unit }: { label: string, value: string, unit: string }) {
   return (
-    <View className="rounded-2xl p-3.5 border mb-3 w-[48%] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800/70">
-      <Text className="text-[10px] font-bold mb-1 text-slate-500 dark:text-slate-400">{label}</Text>
-      <Text className="text-[16px] font-bold text-slate-900 dark:text-white">
-        {value} <Text className="text-[12px] font-normal text-slate-500 dark:text-slate-400">{unit}</Text>
+    <View className="rounded-2xl p-3.5 border mb-3 w-[48%] bg-surface border-border/70">
+      <Text className="text-[10px] font-bold mb-1 text-text-soft">{label}</Text>
+      <Text className="text-[16px] font-bold text-text">
+        {value} <Text className="text-[12px] font-normal text-text-soft">{unit}</Text>
       </Text>
     </View>
   );
@@ -61,13 +62,13 @@ function BiometricCard({ label, value, unit }: { label: string, value: string, u
 
 function MoreRow({ icon, label, onPress, isLast = false }: { icon: any, label: string, onPress: () => void, isLast?: boolean }) {
   return (
-    <View className={`${!isLast ? 'border-b border-slate-200 dark:border-slate-800/70' : ''}`}>
+    <View className={`${!isLast ? 'border-b border-border/70' : ''}`}>
       <TouchableOpacity activeOpacity={0.7} onPress={onPress} className="flex-row items-center py-4">
         <View className="w-6 items-center mr-2">
-          <Feather name={icon} size={15} className="text-slate-900 dark:text-white" />
+          <Feather name={icon} size={15} color={theme.text} />
         </View>
-        <Text className="flex-1 text-[14px] font-bold text-slate-900 dark:text-white">{label}</Text>
-        <Feather name="chevron-right" size={16} className="text-slate-400 dark:text-slate-500" />
+        <Text className="flex-1 text-[14px] font-bold text-text">{label}</Text>
+        <Feather name="chevron-right" size={16} color={theme.textMuted} />
       </TouchableOpacity>
     </View>
   );
@@ -86,22 +87,21 @@ function EditField({
   rightText = ""
 }: any) {
   return (
-    <View className={`px-4 py-3 ${hasBorder ? 'border-b border-slate-200 dark:border-slate-800/70' : ''} flex-row items-center justify-between`}>
+    <View className={`px-4 py-3 ${hasBorder ? 'border-b border-border/70' : ''} flex-row items-center justify-between`}>
       <View className="flex-1">
-        <Text className="text-[11px] font-bold mb-1 text-slate-500 dark:text-slate-400">{label}</Text>
+        <Text className="text-[11px] font-bold mb-1 text-text-soft">{label}</Text>
         <TextInput
            value={value}
            onChangeText={onChangeText}
            editable={editable}
            keyboardType={keyboardType}
-           className="text-[15px] font-bold p-0 m-0 text-slate-900 dark:text-white"
-           style={{ opacity: editable ? 1 : 0.5 }}
+           className="text-[15px] font-bold p-0 m-0 text-text"
         />
       </View>
       {rightText ? (
-        <Text className="text-[12px] text-slate-500 dark:text-slate-400 ml-2 font-normal">{rightText}</Text>
+        <Text className="text-[12px] text-text-soft ml-2 font-normal">{rightText}</Text>
       ) : null}
-      {rightIcon && <Feather name={rightIcon} size={14} className="text-slate-400 dark:text-slate-500" />}
+      {rightIcon && <Feather name={rightIcon} size={14} color={theme.textMuted} />}
     </View>
   );
 }
@@ -169,22 +169,22 @@ function EditProfileModal({
 
   return (
     <Modal visible={visible} transparent animationType="slide">
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} className="flex-1 bg-slate-50 dark:bg-slate-950">
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} className="flex-1 bg-surface-alt">
         {/* Header */}
         <View className="flex-row justify-between items-center px-5 pt-14 pb-4">
           <TouchableOpacity onPress={onClose} className="p-2 -ml-2">
-            <Text className="text-slate-500 dark:text-slate-400 text-[15px]">Cancel</Text>
+            <Text className="text-text-soft text-[15px]">Cancel</Text>
           </TouchableOpacity>
-          <Text className="text-slate-900 dark:text-white font-bold text-[17px]">Edit profile</Text>
+          <Text className="text-text font-bold text-[17px]">Edit profile</Text>
           <TouchableOpacity onPress={handleSave} className="p-2 -mr-2">
-            <Text className="text-blue-500 text-[15px] font-semibold">Save</Text>
+            <Text className="text-primary text-[15px] font-semibold">Save</Text>
           </TouchableOpacity>
         </View>
 
         <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}>
           {/* PERSONAL */}
-          <Text className="text-[11px] font-bold mx-5 mb-2 mt-4 uppercase tracking-widest text-slate-500 dark:text-slate-400">Personal</Text>
-          <View className="rounded-2xl border border-slate-200 dark:border-slate-800/70 bg-white dark:bg-slate-900 mx-5 overflow-hidden mb-6">
+          <Text className="text-[11px] font-bold mx-5 mb-2 mt-4 uppercase tracking-widest text-text-soft">Personal</Text>
+          <View className="rounded-2xl border border-border/70 bg-surface mx-5 overflow-hidden mb-6">
             <EditField label="Full name" value={name} onChangeText={setName} />
             <EditField label="Email" value={email} onChangeText={setEmail} editable={false} rightIcon="lock" />
             <EditField label="Phone" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
@@ -193,10 +193,10 @@ function EditProfileModal({
           </View>
 
           {/* BIOMETRICS */}
-          <Text className="text-[11px] font-bold mx-5 mb-2 uppercase tracking-widest text-slate-500 dark:text-slate-400">Biometrics</Text>
-          <View className="rounded-2xl border border-slate-200 dark:border-slate-800/70 bg-white dark:bg-slate-900 mx-5 overflow-hidden mb-2">
-            <View className="flex-row border-b border-slate-200 dark:border-slate-800/70">
-              <View className="flex-1 border-r border-slate-200 dark:border-slate-800/70">
+          <Text className="text-[11px] font-bold mx-5 mb-2 uppercase tracking-widest text-text-soft">Biometrics</Text>
+          <View className="rounded-2xl border border-border/70 bg-surface mx-5 overflow-hidden mb-2">
+            <View className="flex-row border-b border-border/70">
+              <View className="flex-1 border-r border-border/70">
                 <EditField label="Height (cm)" value={height} onChangeText={setHeight} keyboardType="numeric" hasBorder={false} />
               </View>
               <View className="flex-1">
@@ -206,20 +206,19 @@ function EditProfileModal({
             <EditField label="Blood pressure" value={`${currentData.systolicBP} / ${currentData.diastolicBP}`} editable={false} rightText="mmHg" />
             <EditField label="Resting heart rate" value={currentData.restingHR} editable={false} rightText="bpm" hasBorder={false} />
           </View>
-          <Text className="text-[11px] text-slate-500 mx-5 mb-8">BMI updates automatically from height and weight.</Text>
+          <Text className="text-[11px] text-text-soft mx-5 mb-8">BMI updates automatically from height and weight.</Text>
 
           <View className="px-5 pb-12">
             <TouchableOpacity
               activeOpacity={0.85}
               onPress={handleSave}
               disabled={isSaving}
-              className="bg-slate-900 dark:bg-slate-100 py-4 rounded-xl items-center justify-center flex-row gap-2"
-              style={{ opacity: isSaving ? 0.8 : 1 }}
+              className="bg-slate-900 dark:bg-surface-alt py-4 rounded-xl items-center justify-center flex-row gap-2"
             >
               {isSaving ? (
                 <ActivityIndicator size="small" color={isDark ? "#0F172A" : "#FFFFFF"} />
               ) : (
-                <Text className="text-white dark:text-slate-900 font-bold text-[16px]">Save changes</Text>
+                <Text className="text-white dark:text-ink font-bold text-[16px]">Save changes</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -388,11 +387,11 @@ export default function ProfileScreen({ isTab = false }: { isTab?: boolean } = {
             <style>
               body { font-family: 'Helvetica', sans-serif; padding: 40px; color: #0f172a; line-height: 1.5; }
               h1 { font-size: 28px; font-weight: bold; margin-bottom: 8px; color: #0f172a; }
-              p { margin: 0 0 30px 0; color: #64748b; font-size: 16px; }
+              p { margin: 0 0 30px 0; color: #5C6B66; font-size: 16px; }
               .details { margin-bottom: 30px; font-size: 16px; background-color: #f8fafc; padding: 20px; border-radius: 12px; }
               table { width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 40px; }
               th, td { text-align: left; padding: 14px 16px; border-bottom: 1px solid #e2e8f0; }
-              th { background-color: #f1f5f9; font-weight: bold; color: #475569; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; }
+              th { background-color: #f1f5f9; font-weight: bold; color: #5C6B66; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; }
               td { font-size: 15px; color: #334155; }
               .highlight { font-weight: bold; color: #0f172a; }
               h2 { font-size: 20px; color: #0f172a; margin-bottom: 8px; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; }
@@ -452,18 +451,18 @@ export default function ProfileScreen({ isTab = false }: { isTab?: boolean } = {
         <View className="flex-row items-center">
           {!isTab && (
             <TouchableOpacity onPress={() => router.back()} className="mr-3">
-              <Feather name="arrow-left" size={20} className="text-slate-900 dark:text-white" />
+              <Feather name="arrow-left" size={20} color={theme.text} />
             </TouchableOpacity>
           )}
-          <Text className="text-[20px] font-bold text-slate-900 dark:text-white">
+          <Text className="text-[20px] font-bold text-text">
             My profile
           </Text>
         </View>
         <TouchableOpacity 
           onPress={() => setShowUpdateModal(true)} 
-          className="w-8 h-8 rounded-full items-center justify-center bg-slate-100 dark:bg-slate-800"
+          className="w-8 h-8 rounded-full items-center justify-center bg-surface-alt"
         >
-          <Feather name="edit-2" size={14} className="text-slate-900 dark:text-white" />
+          <Feather name="edit-2" size={14} color={theme.text} />
         </TouchableOpacity>
       </View>
 
@@ -474,18 +473,18 @@ export default function ProfileScreen({ isTab = false }: { isTab?: boolean } = {
         showsVerticalScrollIndicator={false}
       >
         {/* User Card */}
-        <View className="rounded-2xl p-4 flex-row items-center border bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800/70">
+        <View className="rounded-2xl p-4 flex-row items-center border bg-surface border-border/70">
           <View className="relative mr-4">
-            <View className="w-[52px] h-[52px] rounded-full items-center justify-center bg-blue-100 dark:bg-blue-900/40 border border-blue-200 dark:border-blue-800">
+            <View className="w-[52px] h-[52px] rounded-full items-center justify-center bg-blue-100 dark:bg-blue-900/40 border border-blue-tint">
               <Text className="text-blue-700 dark:text-blue-300 font-bold text-[16px] tracking-widest">{getInitials(userData.name)}</Text>
             </View>
             <View className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-white dark:border-slate-900" />
           </View>
           <View className="flex-1">
-            <Text className="text-[16px] font-bold mb-0.5 text-slate-900 dark:text-white">
+            <Text className="text-[16px] font-bold mb-0.5 text-text">
               {userData.name || "Loading..."}
             </Text>
-            <Text className="text-[12px] font-medium text-slate-500 dark:text-slate-400">
+            <Text className="text-[12px] font-medium text-text-soft">
               {userData.email}
             </Text>
           </View>
@@ -499,8 +498,8 @@ export default function ProfileScreen({ isTab = false }: { isTab?: boolean } = {
         </View>
 
         {/* PERSONAL */}
-        <Text className="text-[11px] font-bold mt-6 mb-2 uppercase tracking-widest text-slate-500 dark:text-slate-400">Personal</Text>
-        <View className="rounded-3xl px-4 border bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800/70">
+        <Text className="text-[11px] font-bold mt-6 mb-2 uppercase tracking-widest text-text-soft">Personal</Text>
+        <View className="rounded-3xl px-4 border bg-surface border-border/70">
           <PersonalRow icon="mail" value={userData.email || "Not provided"} />
           <PersonalRow icon="phone" value={userData.phone || "Not provided"} />
           <PersonalRow icon="calendar" value={userData.birthdate || "Not provided"} />
@@ -508,7 +507,7 @@ export default function ProfileScreen({ isTab = false }: { isTab?: boolean } = {
         </View>
 
         {/* BIOMETRICS */}
-        <Text className="text-[11px] font-bold mt-6 mb-2 uppercase tracking-widest text-slate-500 dark:text-slate-400">Biometrics</Text>
+        <Text className="text-[11px] font-bold mt-6 mb-2 uppercase tracking-widest text-text-soft">Biometrics</Text>
         <View className="flex-row flex-wrap justify-between">
           <BiometricCard label="Height" value={userData.height || "--"} unit="cm" />
           <BiometricCard label="Weight" value={userData.weight || "--"} unit="kg" />
@@ -517,8 +516,8 @@ export default function ProfileScreen({ isTab = false }: { isTab?: boolean } = {
         </View>
 
         {/* MORE */}
-        <Text className="text-[11px] font-bold mt-3 mb-2 uppercase tracking-widest text-slate-500 dark:text-slate-400">More</Text>
-        <View className="rounded-3xl px-4 border mb-8 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800/70">
+        <Text className="text-[11px] font-bold mt-3 mb-2 uppercase tracking-widest text-text-soft">More</Text>
+        <View className="rounded-3xl px-4 border mb-8 bg-surface border-border/70">
           <MoreRow icon="bar-chart-2" label="Long-term analytics" onPress={() => router.push("/(home)/(profile)/analytics")} />
           <MoreRow icon="users" label="My care team" onPress={() => router.push("/(home)/(profile)/care-team")} />
           <MoreRow icon="file-text" label="Doctor consultation summary" onPress={() => router.push("/(home)/(tabs)/wrap-up" as any)} />

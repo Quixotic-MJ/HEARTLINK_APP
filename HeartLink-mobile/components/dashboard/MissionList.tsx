@@ -4,6 +4,7 @@ import Animated, { FadeInDown, FadeOut, LinearTransition } from "react-native-re
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useColorScheme } from "nativewind";
 import * as Haptics from "expo-haptics";
+import { theme } from "../../constants/theme";
 
 export type MissionId = "vitals" | "meals" | "exercise" | "sleep";
 
@@ -56,10 +57,10 @@ function MissionCard({
           Haptics.selectionAsync();
           onPress(item.id);
         }}
-        className="flex-row items-center bg-surface-card rounded-3xl p-5 shadow-sm shadow-slate-200/50 dark:shadow-none"
+        className="flex-row items-center bg-surface rounded-3xl p-5 shadow-sm shadow-slate-200/50 dark:shadow-none"
       >
         {/* Left Icon */}
-        <View className="w-10 h-10 rounded-full items-center justify-center bg-slate-200/50 dark:bg-slate-700/50 mr-4">
+        <View className="w-10 h-10 rounded-full items-center justify-center bg-border/50 dark:bg-slate-700/50 mr-4">
           {item.iconType === "material" ? (
             <MaterialCommunityIcons
               name={item.icon as any}
@@ -78,12 +79,12 @@ function MissionCard({
         {/* Middle Content */}
         <View className="flex-1 justify-center">
           <Text
-            className="text-[16px] font-bold text-slate-900 dark:text-slate-50 mb-1"
+            className="text-[16px] font-bold text-ink dark:text-slate-50 mb-1"
           >
             {item.title}
           </Text>
           <Text
-            className="text-[13px] font-medium text-slate-500 dark:text-slate-400"
+            className="text-[13px] font-medium text-text-soft"
           >
             {item.subtitle}
           </Text>
@@ -97,7 +98,7 @@ function MissionCard({
           <Feather
             name={item.done ? "check" : "plus"}
             size={16}
-            color="#ffffff"
+            color={theme.onPrimary}
             strokeWidth={3}
           />
         </View>

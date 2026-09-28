@@ -106,6 +106,7 @@ function RootLayoutNav() {
 
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { queryClient, asyncStoragePersister } from '../lib/react-query';
+import { Colors } from '../constants/theme';
 
 export default function RootLayout() {
   const { setColorScheme } = useColorScheme();
@@ -114,7 +115,7 @@ export default function RootLayout() {
     let mounted = true;
 
     if (Platform.OS === "android") {
-      SystemUI.setBackgroundColorAsync("#EDF1EF").catch(() => {});
+      SystemUI.setBackgroundColorAsync(Colors.light.background).catch(() => {});
     }
 
     AsyncStorage.getItem("theme_preference").then((pref) => {
@@ -123,7 +124,7 @@ export default function RootLayout() {
         setTimeout(() => {
           setColorScheme(pref);
           if (Platform.OS === "android") {
-            SystemUI.setBackgroundColorAsync(pref === "dark" ? "#101923" : "#EDF1EF").catch(() => {});
+            SystemUI.setBackgroundColorAsync(pref === "dark" ? Colors.dark.background : Colors.light.background).catch(() => {});
           }
         }, 0);
       }

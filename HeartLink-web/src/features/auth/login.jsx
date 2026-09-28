@@ -81,30 +81,38 @@ function HeartLogoIcon({ size = 26, className = "" }) {
     <svg 
       width={size} 
       height={size} 
-      viewBox="0 0 512 512" 
+      viewBox="-132 -132 264 264" 
       fill="none" 
       xmlns="http://www.w3.org/2000/svg"
       className={className}
       aria-hidden="true"
+      role="img"
+      aria-label="HeartLink icon"
     >
       <defs>
-        <linearGradient id="heartGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stopColor="#6EC1F5" />
-          <stop offset="100%" stopColor="#2E9AE8" />
+        <linearGradient id="hl-topright" gradientUnits="userSpaceOnUse" x1="0" y1="-122" x2="0" y2="30">
+          <stop offset="0" stopColor="#2B84FF"/><stop offset="0.30" stopColor="#2E8DF5"/>
+          <stop offset="0.52" stopColor="#38B3B5"/><stop offset="0.68" stopColor="#5CC974"/>
+          <stop offset="0.81" stopColor="#B2D65A"/><stop offset="0.91" stopColor="#F7A63C"/>
+          <stop offset="1" stopColor="#FF9A2E"/>
+        </linearGradient>
+        <linearGradient id="hl-bottomleft" gradientUnits="userSpaceOnUse" x1="0" y1="-30" x2="0" y2="122">
+          <stop offset="0" stopColor="#2B87FF"/><stop offset="0.45" stopColor="#2A86F5"/>
+          <stop offset="0.62" stopColor="#2D9BE0"/><stop offset="0.78" stopColor="#30BE9C"/>
+          <stop offset="1" stopColor="#33CC82"/>
+        </linearGradient>
+        <linearGradient id="hl-bottomright" gradientUnits="userSpaceOnUse" x1="122" y1="0" x2="-32" y2="0">
+          <stop offset="0" stopColor="#3FC98A"/><stop offset="0.30" stopColor="#7ACD68"/>
+          <stop offset="0.50" stopColor="#B6D85A"/><stop offset="0.70" stopColor="#C2D857"/>
+          <stop offset="0.85" stopColor="#F2A93C"/><stop offset="1" stopColor="#FF9A2E"/>
         </linearGradient>
       </defs>
-      <path
-        d="M256,410 C256,410 108,308 108,202 C108,148 150,106 204,106 C230,106 254,120 256,138 C258,120 282,106 308,106 C362,106 404,148 404,202 C404,308 256,410 256,410 Z"
-        fill="url(#heartGrad)"
-      />
-      <path
-        d="M150,246 L196,246 L216,196 L246,296 L276,216 L302,246 L362,246"
-        fill="none"
-        stroke="#FFFFFF"
-        strokeWidth="14"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+      <g fill="none" strokeWidth="30" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M -79.20,-25.46 L -96.17,-42.43 A 38 38 0 0 1 -42.43,-96.17 L 28.28,-25.46" stroke="#FF4B4B"/>
+        <path d="M 25.46,-79.20 L 42.43,-96.17 A 38 38 0 0 1 96.17,-42.43 L 25.46,28.28" stroke="url(#hl-topright)"/>
+        <path d="M -25.46,79.20 L -42.43,96.17 A 38 38 0 0 1 -96.17,42.43 L -25.46,-28.28" stroke="url(#hl-bottomleft)"/>
+        <path d="M 79.20,25.46 L 96.17,42.43 A 38 38 0 0 1 42.43,96.17 L -28.28,25.46" stroke="url(#hl-bottomright)"/>
+      </g>
     </svg>
   );
 }

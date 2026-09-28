@@ -18,6 +18,7 @@ import * as z from "zod";
 import { InputField } from "../../components/ui/InputField";
 import { SimpleHeader } from "../../components/ui/SimpleHeader";
 import { Button } from "../../components/ui/Button";
+import { theme } from "../../constants/theme";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -107,19 +108,19 @@ export default function ForgotPasswordScreen() {
         >
           {/* ── Heading ── */}
           <View className="mb-6 px-1">
-            <Text className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white tracking-tight leading-tight mb-2" accessibilityRole="header">
+            <Text className="text-3xl sm:text-4xl font-bold text-text tracking-tight leading-tight mb-2" accessibilityRole="header">
               Forgot password?
             </Text>
-            <Text className="text-sm sm:text-base text-slate-600 dark:text-slate-400 leading-relaxed font-medium">
+            <Text className="text-sm sm:text-base text-text-soft leading-relaxed font-medium">
               Enter your email or phone number to receive instructions for recovering your account.
             </Text>
           </View>
 
           {/* ── Card ── */}
-          <View className="bg-white dark:bg-[#101615] rounded-2xl border border-slate-200 dark:border-slate-800 px-5 py-6 gap-4 shadow-sm shadow-slate-100 dark:shadow-none">
+          <View className="bg-surface dark:bg-[#101615] rounded-2xl border border-border px-5 py-6 gap-4 shadow-sm shadow-slate-100 dark:shadow-none">
             {generalError && (
               <View className="bg-red-100 dark:bg-red-900/20 border border-red-200 dark:border-red-900/40 rounded-xl p-3.5 flex-row items-center gap-2.5" accessible={true} accessibilityRole="alert">
-                <Feather name="alert-triangle" size={16} className="text-red-600 dark:text-red-400" />
+                <Feather name="alert-triangle" size={16} color={theme.danger} />
                 <Text className="text-red-600 dark:text-red-400 text-xs sm:text-sm flex-1 font-medium leading-snug">
                   {generalError}
                 </Text>

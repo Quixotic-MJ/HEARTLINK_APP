@@ -15,6 +15,7 @@ import { useRouter } from "expo-router";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useUser } from "../../../contexts/UserContext";
 import { useToast } from "../../../contexts/ToastContext";
+import { theme } from "../../../constants/theme";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -56,7 +57,7 @@ type NotifTheme = {
 const NOTIF_THEME: Record<NotificationType, NotifTheme> = {
   alert: {
     icon: "alert-triangle",
-    color: "#dc2626",
+    color: theme.danger,
     iconBg: "#fef2f2",
     iconBorder: "#fecaca",
     dotColor: "#dc2626",
@@ -66,7 +67,7 @@ const NOTIF_THEME: Record<NotificationType, NotifTheme> = {
   },
   insight: {
     icon: "trending-up",
-    color: "#4A6080",
+    color: theme.textSoft,
     iconBg: "#eff6ff",
     iconBorder: "#bfdbfe",
     dotColor: "#4A6080",
@@ -76,7 +77,7 @@ const NOTIF_THEME: Record<NotificationType, NotifTheme> = {
   },
   reminder: {
     icon: "clock",
-    color: "#d97706",
+    color: theme.warningText,
     iconBg: "#fffbeb",
     iconBorder: "#fde68a",
     dotColor: "#d97706",
@@ -86,7 +87,7 @@ const NOTIF_THEME: Record<NotificationType, NotifTheme> = {
   },
   achievement: {
     icon: "award",
-    color: "#16a34a",
+    color: theme.success,
     iconBg: "#f0fdf4",
     iconBorder: "#bbf7d0",
     dotColor: "#16a34a",
@@ -96,7 +97,7 @@ const NOTIF_THEME: Record<NotificationType, NotifTheme> = {
   },
   system: {
     icon: "info",
-    color: "#6366f1",
+    color: "#4FB6E6",
     iconBg: "#eef2ff",
     iconBorder: "#c7d2fe",
     dotColor: "#6366f1",

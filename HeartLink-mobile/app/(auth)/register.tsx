@@ -26,6 +26,7 @@ import { Feather } from "@expo/vector-icons";
 import { InputField } from "../../components/ui/InputField";
 import { Button } from "../../components/ui/Button";
 import { SimpleHeader } from "../../components/ui/SimpleHeader";
+import { theme } from "../../constants/theme";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -207,10 +208,10 @@ export default function RegisterScreen() {
         >
           {/* ── Heading ── */}
           <Animated.View entering={FadeIn.delay(100)} className="mb-6 px-1">
-            <Text className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white tracking-tight leading-tight mb-2">
+            <Text className="text-3xl sm:text-4xl font-bold text-text tracking-tight leading-tight mb-2">
               Create your account.
             </Text>
-            <Text className="text-sm sm:text-base text-slate-600 dark:text-slate-400 leading-relaxed font-medium">
+            <Text className="text-sm sm:text-base text-text-soft leading-relaxed font-medium">
               Securely track and nurture your cardiovascular wellness.
             </Text>
           </Animated.View>
@@ -218,7 +219,7 @@ export default function RegisterScreen() {
           {/* ── Card ── */}
           <Animated.View
             entering={FadeInDown.delay(200).springify().damping(12).stiffness(90)}
-            className="bg-white dark:bg-[#101615] rounded-2xl border border-slate-200 dark:border-slate-800 px-5 py-6 gap-3.5 shadow-sm shadow-slate-100 dark:shadow-none"
+            className="bg-surface dark:bg-[#101615] rounded-2xl border border-border px-5 py-6 gap-3.5 shadow-sm shadow-slate-100 dark:shadow-none"
           >
             {/* General Error Banner */}
             {generalError && (
@@ -228,7 +229,7 @@ export default function RegisterScreen() {
                 accessible={true}
                 accessibilityRole="alert"
               >
-                <Feather name="alert-triangle" size={16} className="text-red-600 dark:text-red-400" />
+                <Feather name="alert-triangle" size={16} color={theme.danger} />
                 <Text className="text-red-600 dark:text-red-400 text-xs sm:text-sm font-medium flex-1 leading-snug">
                   {generalError}
                 </Text>
@@ -274,8 +275,8 @@ export default function RegisterScreen() {
                 }
               }}
               leftElement={
-                <View className="flex-row items-center border-r border-slate-200 dark:border-slate-700 pr-2.5 mr-2 self-stretch py-2 my-1">
-                  <Text className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
+                <View className="flex-row items-center border-r border-border pr-2.5 mr-2 self-stretch py-2 my-1">
+                  <Text className="text-sm sm:text-base font-bold text-text">
                     +63
                   </Text>
                 </View>
@@ -362,9 +363,9 @@ export default function RegisterScreen() {
                 <Feather
                   name={passwordValue.length >= 8 ? "check-circle" : "circle"}
                   size={14}
-                  className={passwordValue.length >= 8 ? "text-blue-500 dark:text-blue-400" : "text-slate-400 dark:text-slate-600"}
+                  className={passwordValue.length >= 8 ? "text-primary" : "text-text-muted dark:text-text-soft"}
                 />
-                <Text className={`text-xs sm:text-[13px] ${passwordValue.length >= 8 ? "text-slate-900 dark:text-white font-bold" : "text-slate-500 dark:text-slate-400 font-medium"}`}>
+                <Text className={`text-xs sm:text-[13px] ${passwordValue.length >= 8 ? "text-text font-bold" : "text-text-soft font-medium"}`}>
                   At least 8 characters
                 </Text>
               </View>
@@ -372,9 +373,9 @@ export default function RegisterScreen() {
                 <Feather
                   name={/(?=.*[A-Z])/.test(passwordValue) && /(?=.*[a-z])/.test(passwordValue) ? "check-circle" : "circle"}
                   size={14}
-                  className={/(?=.*[A-Z])/.test(passwordValue) && /(?=.*[a-z])/.test(passwordValue) ? "text-blue-500 dark:text-blue-400" : "text-slate-400 dark:text-slate-600"}
+                  className={/(?=.*[A-Z])/.test(passwordValue) && /(?=.*[a-z])/.test(passwordValue) ? "text-primary" : "text-text-muted dark:text-text-soft"}
                 />
-                <Text className={`text-xs sm:text-[13px] ${/(?=.*[A-Z])/.test(passwordValue) && /(?=.*[a-z])/.test(passwordValue) ? "text-slate-900 dark:text-white font-bold" : "text-slate-500 dark:text-slate-400 font-medium"}`}>
+                <Text className={`text-xs sm:text-[13px] ${/(?=.*[A-Z])/.test(passwordValue) && /(?=.*[a-z])/.test(passwordValue) ? "text-text font-bold" : "text-text-soft font-medium"}`}>
                   Uppercase &amp; lowercase letter
                 </Text>
               </View>
@@ -382,9 +383,9 @@ export default function RegisterScreen() {
                 <Feather
                   name={/(?=.*\d)/.test(passwordValue) ? "check-circle" : "circle"}
                   size={14}
-                  className={/(?=.*\d)/.test(passwordValue) ? "text-blue-500 dark:text-blue-400" : "text-slate-400 dark:text-slate-600"}
+                  className={/(?=.*\d)/.test(passwordValue) ? "text-primary" : "text-text-muted dark:text-text-soft"}
                 />
-                <Text className={`text-xs sm:text-[13px] ${/(?=.*\d)/.test(passwordValue) ? "text-slate-900 dark:text-white font-bold" : "text-slate-500 dark:text-slate-400 font-medium"}`}>
+                <Text className={`text-xs sm:text-[13px] ${/(?=.*\d)/.test(passwordValue) ? "text-text font-bold" : "text-text-soft font-medium"}`}>
                   At least one number
                 </Text>
               </View>
@@ -411,10 +412,10 @@ export default function RegisterScreen() {
               accessible={true}
               accessibilityRole="button"
             >
-              <Text className="text-sm font-medium text-slate-500 dark:text-slate-400">
+              <Text className="text-sm font-medium text-text-soft">
                 Already have an account?
               </Text>
-              <Text className="text-sm font-bold text-slate-900 dark:text-white">
+              <Text className="text-sm font-bold text-text">
                 Log in
               </Text>
             </TouchableOpacity>

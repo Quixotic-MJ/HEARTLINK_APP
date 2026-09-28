@@ -12,6 +12,7 @@ import Animated, {
   Easing,
 } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
+import { theme } from "../../constants/theme";
 
 // ─── Action config (mirrors the RecordBottomSheet options) ───────────────────
 
@@ -237,7 +238,7 @@ export function SplitRecordActions({
       >
         <Animated.View
           style={[
-            { flex: 1, backgroundColor: "#0f172a" },
+            { flex: 1, backgroundColor: theme.ink },
             backdropStyle,
           ]}
         />

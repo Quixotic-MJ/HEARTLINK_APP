@@ -213,7 +213,7 @@ export default function CalculatingScreen() {
       <Animated.View
         style={{ transform: [{ scale: pulseAnim }] }}
         className={`w-24 h-24 rounded-full items-center justify-center mb-8 border ${
-          isComplete ? "bg-blue-500 dark:bg-blue-400/15 border-blue-500 dark:border-blue-400/30" : "bg-white dark:bg-[#101615] border-slate-200 dark:border-slate-800 shadow-xs"
+          isComplete ? "bg-blue-tint0 dark:bg-blue-400/15 border-blue-500 dark:border-blue-400/30" : "bg-surface dark:bg-[#101615] border-border shadow-xs"
         }`}
       >
         {isComplete ? (
@@ -224,13 +224,13 @@ export default function CalculatingScreen() {
       </Animated.View>
 
       {/* Title Header */}
-      <Text className="text-[24px] font-semibold text-slate-900 dark:text-white mb-2 tracking-tight text-center">
+      <Text className="text-[24px] font-semibold text-text mb-2 tracking-tight text-center">
         {isComplete ? "HSS Calibrated!" : "Computing Health Score"}
       </Text>
 
       {/* Dynamic Subtitle Step Text */}
       <Animated.View style={{ opacity: textOpacity, transform: [{ translateY: textTranslateY }] }}>
-        <Text className="text-[14px] text-slate-500 dark:text-slate-400 font-medium text-center">
+        <Text className="text-[14px] text-text-soft font-medium text-center">
           {isComplete ? "Redirecting to your dashboard..." : steps[step]}
         </Text>
       </Animated.View>

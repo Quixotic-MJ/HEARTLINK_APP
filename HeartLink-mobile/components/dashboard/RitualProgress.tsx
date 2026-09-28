@@ -28,7 +28,7 @@ export function RitualProgress({
 
   return (
     <View
-      className="bg-surface-card rounded-3xl p-5 mb-0 shadow-sm shadow-slate-200/50 dark:shadow-none"
+      className="bg-surface rounded-3xl p-5 mb-0 shadow-sm shadow-slate-200/50 dark:shadow-none"
     >
       <View className="flex-row justify-between gap-4">
         <MiniTracker label="Sat fat" current={satFat} target={20} unit="g" isDark={isDark} color={primaryColor} trackColor={trackColor} />
@@ -60,13 +60,13 @@ function MiniTracker({
   
   return (
     <View className="flex-1">
-      <Text className="text-[12px] font-bold mb-2" style={{ color: isDark ? "#cbd5e1" : "#1e293b" }}>
+      <Text className="text-[12px] font-bold mb-2">
         {label}
       </Text>
-      <View className="h-[2px] w-full rounded-full overflow-hidden mb-2" style={{ backgroundColor: trackColor }}>
+      <View className="h-[2px] w-full rounded-full overflow-hidden mb-2">
         <View className="h-full rounded-full" style={{ width: `${percent}%`, backgroundColor: color }} />
       </View>
-      <Text className="text-[13px] font-bold" style={{ color: isDark ? "#f8fafc" : "#1e293b" }}>
+      <Text className="text-[13px] font-bold">
         {current}<Text style={{ color: isDark ? "#94a3b8" : "#64748b", fontWeight: "600" }}>/{target}{unit}</Text>
       </Text>
     </View>

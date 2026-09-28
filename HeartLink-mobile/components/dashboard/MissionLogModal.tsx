@@ -14,6 +14,7 @@ import { useColorScheme } from "nativewind";
 import { useRouter } from "expo-router";
 import type { MissionId } from "./MissionList";
 import { SleepQuickForm } from "./MissionDropdowns";
+import { theme } from "../../constants/theme";
 
 const FOOD_LOG_OPTIONS = [
   {
@@ -209,9 +210,9 @@ export function MissionLogModal({
                 style={{ width: 36, height: 36, borderRadius: 12, alignItems: "center", justifyContent: "center" }}
               >
                 {meta.iconType === "material" ? (
-                  <MaterialCommunityIcons name={meta.icon as any} size={17} color="#fff" />
+                  <MaterialCommunityIcons name={meta.icon as any} size={17} color={theme.onPrimary} />
                 ) : (
-                  <Feather name={meta.icon as any} size={16} color="#fff" />
+                  <Feather name={meta.icon as any} size={16} color={theme.onPrimary} />
                 )}
               </LinearGradient>
               <Text style={{ fontSize: 16, fontWeight: "700", color: isDark ? "#fff" : "#152131" }}>
@@ -305,10 +306,10 @@ export function MissionLogModal({
                   onPress={() => animateOut(onOpenDiary)}
                   style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 14, marginTop: 4 }}
                 >
-                  <Text style={{ fontSize: 12.5, fontWeight: "700", color: "#A9741B" }}>
+                  <Text style={{ fontSize: 12.5, fontWeight: "700", color: theme.warningText }}>
                     Open Food Diary
                   </Text>
-                  <Feather name="arrow-right" size={13} color="#A9741B" />
+                  <Feather name="arrow-right" size={13} color={theme.warningText} />
                 </TouchableOpacity>
               </View>
             )}

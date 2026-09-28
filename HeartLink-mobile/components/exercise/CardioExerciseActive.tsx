@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { View, Text, TouchableOpacity, ScrollView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
+import { theme } from "../../constants/theme";
 
 export interface CardioExerciseActiveProps {
   routine: any;
@@ -25,7 +26,7 @@ export function CardioExerciseActive({
   const calPerHour = routine?.calories ? (routine.calories / (totalSeconds / 3600)) : 300; // rough est
   
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: ReturnType<typeof setInterval>;
     if (isPlaying && elapsedSeconds < totalSeconds) {
       interval = setInterval(() => {
         setElapsedSeconds(prev => prev + 1);
@@ -59,7 +60,7 @@ export function CardioExerciseActive({
              onPress={onClose} 
              className="w-10 h-10 rounded-full bg-slate-200 items-center justify-center"
            >
-             <Feather name="x" size={20} color="#0f172a" />
+             <Feather name="x" size={20} color={theme.ink} />
            </TouchableOpacity>
            
            {/* Title */}
@@ -74,7 +75,7 @@ export function CardioExerciseActive({
            
            {/* Sound Toggle */}
            <TouchableOpacity className="w-10 h-10 rounded-full bg-slate-200 items-center justify-center">
-             <Feather name="volume-2" size={18} color="#0f172a" />
+             <Feather name="volume-2" size={18} color={theme.ink} />
            </TouchableOpacity>
         </View>
       </View>
@@ -110,7 +111,7 @@ export function CardioExerciseActive({
         {/* Controls */}
         <View className="flex-row items-center justify-center gap-6 mb-10">
           <TouchableOpacity className="w-12 h-12 rounded-full bg-slate-100 items-center justify-center">
-            <Feather name="flag" size={20} color="#64748b" />
+            <Feather name="flag" size={20} color={theme.textSoft} />
           </TouchableOpacity>
           <TouchableOpacity 
             onPress={() => setIsPlaying(!isPlaying)}
@@ -126,7 +127,7 @@ export function CardioExerciseActive({
             )}
           </TouchableOpacity>
           <TouchableOpacity className="w-12 h-12 rounded-full bg-slate-100 items-center justify-center">
-            <Feather name="map-pin" size={20} color="#64748b" />
+            <Feather name="map-pin" size={20} color={theme.textSoft} />
           </TouchableOpacity>
         </View>
 
@@ -138,7 +139,7 @@ export function CardioExerciseActive({
               className="flex-row justify-between items-center p-5"
             >
               <Text className="text-slate-900 font-bold text-[15px]">How to perform</Text>
-              <Feather name={showInstructions ? "chevron-up" : "chevron-down"} size={20} color="#0f172a" />
+              <Feather name={showInstructions ? "chevron-up" : "chevron-down"} size={20} color={theme.ink} />
             </TouchableOpacity>
             
             {showInstructions && (
@@ -146,7 +147,7 @@ export function CardioExerciseActive({
                 {routine?.steps && routine.steps.length > 0 ? (
                   routine.steps.map((step: any, idx: number) => (
                     <View key={idx} style={{ flexDirection: 'row', marginBottom: 16 }}>
-                      <Text style={{ color: '#0ea5e9', fontWeight: 'bold', marginRight: 12 }}>{idx + 1}.</Text>
+                      <Text style={{ color: theme.sky, fontWeight: 'bold', marginRight: 12 }}>{idx + 1}.</Text>
                       <Text style={{ flex: 1, color: '#475569', fontSize: 14, lineHeight: 22 }}>
                         {typeof step === 'string' ? step.trim() : (step.instruction || '').trim()}
                       </Text>

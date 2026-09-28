@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { View, Text, TouchableOpacity, ScrollView, Image, Dimensions, Linking } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather, FontAwesome5 } from "@expo/vector-icons";
+import { theme } from "../../constants/theme";
 
 const { width } = Dimensions.get("window");
 
@@ -37,14 +38,14 @@ export function ExerciseOverview({
             className="absolute z-10 w-10 h-10 rounded-full bg-white/80 backdrop-blur-md items-center justify-center shadow-sm"
             style={{ top: 15, left: 15 }}
           >
-            <Feather name="arrow-left" size={20} color="#0f172a" />
+            <Feather name="arrow-left" size={20} color={theme.ink} />
           </TouchableOpacity>
           
           {routine.image ? (
             <Image source={{ uri: routine.image }} className="absolute inset-0 w-full h-full" resizeMode="cover" />
           ) : (
             <View className="flex-1 items-center justify-center opacity-50">
-              <Feather name="activity" size={48} color="#94a3b8" />
+              <Feather name="activity" size={48} color={theme.textMuted} />
             </View>
           )}
         </View>
@@ -53,7 +54,7 @@ export function ExerciseOverview({
           {isLockedCritical && (
             <View className="p-4 rounded-2xl flex-col mb-5 bg-red-50 border border-red-200">
               <View className="flex-row gap-3 mb-2">
-                <Feather name="alert-triangle" size={20} color="#dc2626" style={{ marginTop: 2 }} />
+                <Feather name="alert-triangle" size={20} color={theme.dangerMid} style={{ marginTop: 2 }} />
                 <View className="flex-1">
                   <Text className="text-[14px] font-bold text-red-900 mb-1">
                     Active Workouts Paused: Critical Cardiac Strain
@@ -150,7 +151,7 @@ export function ExerciseOverview({
                       
                       return (
                         <View key={idx} className="flex-1 min-w-[30%] bg-slate-50 border border-slate-100 rounded-xl p-4 items-center justify-center">
-                          <Feather name={iconName} size={24} color="#64748b" className="mb-2" />
+                          <Feather name={iconName} size={24} color={theme.textSoft} className="mb-2" />
                           <Text className="text-[12px] font-medium text-slate-600 text-center mt-2">{label}</Text>
                         </View>
                       );
@@ -257,7 +258,7 @@ export function ExerciseOverview({
                 ) : null}
                 
                 <View className="w-16 h-16 bg-white/90 rounded-full items-center justify-center shadow-lg pl-1 z-10">
-                  <FontAwesome5 name="play" size={24} color="#0ea5e9" />
+                  <FontAwesome5 name="play" size={24} color={theme.sky} />
                 </View>
 
                 {routine.videoUrl ? null : (

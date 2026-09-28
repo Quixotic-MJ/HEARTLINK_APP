@@ -20,6 +20,7 @@ import { Skeleton } from "../../../components/ui/Skeleton";
 import { EmptyState } from "../../../components/ui/EmptyState";
 import { useToast } from "../../../contexts/ToastContext";
 import { ConfirmDialog } from "../../../components/ui/ConfirmDialog";
+import { theme } from "../../../constants/theme";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -38,11 +39,11 @@ function ContactCard({
   const icon = isDoctor ? "user" : "heart";
 
   return (
-    <View className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800/80 p-5 mb-4 shadow-sm shadow-slate-100 dark:shadow-none">
+    <View className="bg-surface rounded-3xl border border-border/80 dark:border-slate-800/80 p-5 mb-4 shadow-sm shadow-slate-100 dark:shadow-none">
       <View className="flex-row justify-between items-center mb-3">
         <View className="flex-row items-center gap-1.5">
-          <View className={`w-2 h-2 rounded-full ${isDoctor ? "bg-blue-500" : "bg-red-500"}`} />
-          <Text className="text-[12px] font-bold text-slate-400 uppercase tracking-wider">
+          <View className={`w-2 h-2 rounded-full ${isDoctor ? "bg-blue-tint0" : "bg-red-500"}`} />
+          <Text className="text-[12px] font-bold text-text-muted uppercase tracking-wider">
             {title}
           </Text>
         </View>
@@ -51,24 +52,23 @@ function ContactCard({
           accessible={true}
           accessibilityRole="button"
           accessibilityLabel={`Edit contact ${contact.name}`}
-          className="px-2.5 py-1 rounded-lg bg-slate-50 dark:bg-slate-800"
+          className="px-2.5 py-1 rounded-lg bg-surface-alt dark:bg-slate-800"
         >
-          <Text className="text-[12px] font-semibold text-blue-600 dark:text-blue-400">Edit</Text>
+          <Text className="text-[12px] font-semibold text-primary">Edit</Text>
         </TouchableOpacity>
       </View>
 
       <View className="flex-row items-center mb-4">
         <View 
-          className="w-12 h-12 rounded-2xl items-center justify-center mr-3.5 border border-slate-200/80 dark:border-slate-800"
-          style={{ backgroundColor: isDoctor ? "#eff6ff" : "#fef2f2" }}
+          className="w-12 h-12 rounded-2xl items-center justify-center mr-3.5 border border-border/80 dark:border-slate-800"
         >
           <Feather name={icon as any} size={20} color={isDoctor ? "#4A6080" : "#9E4E5F"} />
         </View>
         <View className="flex-1">
-          <Text className="text-[16px] font-bold text-slate-900 dark:text-white mb-0.5">
+          <Text className="text-[16px] font-bold text-text mb-0.5">
             {contact.name}
           </Text>
-          <Text className="text-[13px] text-slate-500 dark:text-slate-400">
+          <Text className="text-[13px] text-text-soft">
             {contact.role_title || (isDoctor ? "Specialist" : "Emergency Link")}
           </Text>
         </View>
@@ -83,7 +83,7 @@ function ContactCard({
           accessibilityLabel={`Call ${contact.name} at ${contact.phone}`}
           className="flex-1 flex-row items-center justify-center py-3 rounded-2xl gap-2 bg-slate-900 dark:bg-blue-600"
         >
-          <Feather name="phone" size={15} color="#fff" />
+          <Feather name="phone" size={15} color={theme.onPrimary} />
           <Text className="text-[14px] font-semibold text-white">Call</Text>
         </TouchableOpacity>
         
@@ -93,10 +93,10 @@ function ContactCard({
           accessible={true}
           accessibilityRole="button"
           accessibilityLabel={`Message ${contact.name} at ${contact.phone}`}
-          className="flex-1 flex-row items-center justify-center py-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 gap-2"
+          className="flex-1 flex-row items-center justify-center py-3 rounded-2xl border border-border bg-surface-alt gap-2"
         >
-          <Feather name="message-circle" size={15} color="#64748b" />
-          <Text className="text-[14px] font-semibold text-slate-700 dark:text-slate-300">Message</Text>
+          <Feather name="message-circle" size={15} color={theme.textSoft} />
+          <Text className="text-[14px] font-semibold text-text">Message</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -242,22 +242,22 @@ export default function CareTeamScreen() {
   const currentPresets = form.contact_type === "doctor" ? DOCTOR_PRESETS : EMERGENCY_PRESETS;
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-surface-alt" edges={["top"]}>
       <StatusBar style="dark" />
 
       {/* Header */}
-      <View className="px-5 pt-4 pb-3 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800/60 flex-row items-center justify-between">
+      <View className="px-5 pt-4 pb-3 bg-surface border-b border-border flex-row items-center justify-between">
         <View className="flex-row items-center">
           <TouchableOpacity
             onPress={() => router.back()}
             accessible={true}
             accessibilityRole="button"
             accessibilityLabel="Go back"
-            className="w-9 h-9 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 items-center justify-center mr-3"
+            className="w-9 h-9 rounded-xl bg-surface-alt border border-border items-center justify-center mr-3"
           >
             <Feather name="arrow-left" size={18} color={isDark ? "#f8fafc" : "#0f172a"} />
           </TouchableOpacity>
-          <Text className="text-[18px] font-semibold text-slate-900 dark:text-white tracking-tight">
+          <Text className="text-[18px] font-semibold text-text tracking-tight">
             My Care Team
           </Text>
         </View>
@@ -267,9 +267,9 @@ export default function CareTeamScreen() {
           accessible={true}
           accessibilityRole="button"
           accessibilityLabel="Add new contact"
-          className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 items-center justify-center"
+          className="w-9 h-9 rounded-xl bg-blue-tint dark:bg-blue-950/50 border border-blue-tint items-center justify-center"
         >
-          <Feather name="plus" size={18} color="#4A6080" />
+          <Feather name="plus" size={18} color={theme.textSoft} />
         </TouchableOpacity>
       </View>
 
@@ -290,14 +290,14 @@ export default function CareTeamScreen() {
         </TouchableOpacity>
 
         {/* Contacts Section */}
-        <Text className="text-[12px] font-bold text-slate-500 dark:text-slate-400 mb-3 px-1 uppercase tracking-wider">
+        <Text className="text-[12px] font-bold text-text-soft mb-3 px-1 uppercase tracking-wider">
           Saved Providers & Contacts
         </Text>
 
         {isLoading ? (
           <View className="gap-3">
             {[1, 2].map((key) => (
-              <View key={key} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 p-5 rounded-3xl">
+              <View key={key} className="bg-surface border border-border/70 p-5 rounded-3xl">
                 <View className="flex-row items-center mb-3">
                   <Skeleton className="w-12 h-12 rounded-2xl mr-3" />
                   <View className="flex-1">
@@ -322,7 +322,7 @@ export default function CareTeamScreen() {
           ))
         ) : (
           <EmptyState
-            icon={<Feather name="users" size={32} color="#94a3b8" />}
+            icon={<Feather name="users" size={32} color={theme.textSoft} />}
             title="No care team contacts"
             subtitle="Add your cardiologists, primary care doctors, or family emergency contacts here."
           />
@@ -334,12 +334,12 @@ export default function CareTeamScreen() {
           accessible={true}
           accessibilityRole="button"
           accessibilityLabel="Add care team contact"
-          className="bg-white dark:bg-slate-900 rounded-3xl border border-dashed border-slate-300 dark:border-slate-700 p-5 items-center justify-center py-6 mt-2"
+          className="bg-surface rounded-3xl border border-dashed border-border-strong dark:border-slate-700 p-5 items-center justify-center py-6 mt-2"
         >
-          <View className="w-10 h-10 rounded-2xl bg-slate-100 dark:bg-slate-800 items-center justify-center mb-2">
-            <Feather name="user-plus" size={18} color="#64748b" />
+          <View className="w-10 h-10 rounded-2xl bg-surface-alt items-center justify-center mb-2">
+            <Feather name="user-plus" size={18} color={theme.textSoft} />
           </View>
-          <Text className="text-[14px] font-semibold text-slate-700 dark:text-slate-300">
+          <Text className="text-[14px] font-semibold text-text">
             Add Another Contact
           </Text>
         </TouchableOpacity>
@@ -353,39 +353,39 @@ export default function CareTeamScreen() {
         onRequestClose={() => setModalVisible(false)}
       >
         <Pressable className="flex-1 justify-end bg-black/50" onPress={() => setModalVisible(false)}>
-          <Pressable className="bg-white dark:bg-slate-900 rounded-t-3xl pt-6 px-6" style={{ paddingBottom: Math.max(insets.bottom, 20) }}>
+          <Pressable className="bg-surface rounded-t-3xl pt-6 px-6">
             
             <View className="flex-row justify-between items-center mb-5">
-              <Text className="text-[20px] font-bold text-slate-900 dark:text-white">
+              <Text className="text-[20px] font-bold text-text">
                 {editingContact ? "Edit Contact" : "Add Care Team Contact"}
               </Text>
               <TouchableOpacity 
                 onPress={() => setModalVisible(false)} 
-                className="w-8 h-8 items-center justify-center bg-slate-100 dark:bg-slate-800 rounded-full"
+                className="w-8 h-8 items-center justify-center bg-surface-alt rounded-full"
               >
-                <Feather name="x" size={18} color="#64748b" />
+                <Feather name="x" size={18} color={theme.textSoft} />
               </TouchableOpacity>
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false}>
               {/* Type Toggle */}
-              <View className="flex-row bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl mb-4">
-                <View className={`flex-1 rounded-xl ${form.contact_type === "doctor" ? "bg-white dark:bg-slate-900 shadow-sm" : ""}`}>
+              <View className="flex-row bg-surface-alt p-1 rounded-2xl mb-4">
+                <View className={`flex-1 rounded-xl ${form.contact_type === "doctor" ? "bg-surface shadow-sm" : ""}`}>
                   <TouchableOpacity 
                     onPress={() => setForm(prev => ({ ...prev, contact_type: "doctor", role_title: "Cardiologist" }))}
                     className="py-2.5 items-center rounded-xl"
                   >
-                    <Text className={`text-[14px] font-semibold ${form.contact_type === "doctor" ? "text-blue-600 dark:text-blue-400" : "text-slate-500"}`}>
+                    <Text className={`text-[14px] font-semibold ${form.contact_type === "doctor" ? "text-primary" : "text-text-soft"}`}>
                       Doctor / Specialist
                     </Text>
                   </TouchableOpacity>
                 </View>
-                <View className={`flex-1 rounded-xl ${form.contact_type === "emergency" ? "bg-white dark:bg-slate-900 shadow-sm" : ""}`}>
+                <View className={`flex-1 rounded-xl ${form.contact_type === "emergency" ? "bg-surface shadow-sm" : ""}`}>
                   <TouchableOpacity 
                     onPress={() => setForm(prev => ({ ...prev, contact_type: "emergency", role_title: "Spouse / Partner" }))}
                     className="py-2.5 items-center rounded-xl"
                   >
-                    <Text className={`text-[14px] font-semibold ${form.contact_type === "emergency" ? "text-red-600 dark:text-red-400" : "text-slate-500"}`}>
+                    <Text className={`text-[14px] font-semibold ${form.contact_type === "emergency" ? "text-red-600 dark:text-red-400" : "text-text-soft"}`}>
                       Emergency Contact
                     </Text>
                   </TouchableOpacity>
@@ -393,11 +393,11 @@ export default function CareTeamScreen() {
               </View>
 
               {/* Full Name */}
-              <Text className="text-[12px] font-bold text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wider">
+              <Text className="text-[12px] font-bold text-text-soft mb-1.5 uppercase tracking-wider">
                 Full Name
               </Text>
               <TextInput
-                className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl px-4 py-3.5 text-[15px] text-slate-900 dark:text-white mb-4"
+                className="bg-surface-alt border border-border rounded-2xl px-4 py-3.5 text-[15px] text-text mb-4"
                 placeholder={form.contact_type === "doctor" ? "Dr. Jane Smith" : "John Smith"}
                 placeholderTextColor="#94a3b8"
                 value={form.name}
@@ -405,7 +405,7 @@ export default function CareTeamScreen() {
               />
 
               {/* Role / Relationship Presets */}
-              <Text className="text-[12px] font-bold text-slate-500 dark:text-slate-400 mb-2 uppercase tracking-wider">
+              <Text className="text-[12px] font-bold text-text-soft mb-2 uppercase tracking-wider">
                 Role / Relationship
               </Text>
               <View className="flex-row flex-wrap gap-2 mb-2.5">
@@ -417,11 +417,11 @@ export default function CareTeamScreen() {
                       onPress={() => selectPreset(preset)}
                       className={`px-3 py-1.5 rounded-xl border ${
                         isSelected 
-                          ? "bg-blue-50 dark:bg-blue-950/60 border-blue-300 dark:border-blue-700" 
-                          : "bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800"
+                          ? "bg-blue-tint dark:bg-blue-950/60 border-blue-300 dark:border-blue-700" 
+                          : "bg-surface-alt border-border"
                       }`}
                     >
-                      <Text className={`text-[12px] font-semibold ${isSelected ? "text-blue-600 dark:text-blue-400" : "text-slate-600 dark:text-slate-400"}`}>
+                      <Text className={`text-[12px] font-semibold ${isSelected ? "text-primary" : "text-text-soft"}`}>
                         {preset}
                       </Text>
                     </TouchableOpacity>
@@ -430,7 +430,7 @@ export default function CareTeamScreen() {
               </View>
 
               <TextInput
-                className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl px-4 py-3 text-[14px] text-slate-900 dark:text-white mb-4"
+                className="bg-surface-alt border border-border rounded-2xl px-4 py-3 text-[14px] text-text mb-4"
                 placeholder="Specific title or relationship"
                 placeholderTextColor="#94a3b8"
                 value={form.role_title}
@@ -438,18 +438,18 @@ export default function CareTeamScreen() {
               />
 
               {/* Phone Number */}
-              <Text className="text-[12px] font-bold text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wider">
+              <Text className="text-[12px] font-bold text-text-soft mb-1.5 uppercase tracking-wider">
                 Phone Number
               </Text>
               <TextInput
-                className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl px-4 py-3.5 text-[15px] text-slate-900 dark:text-white mb-2"
+                className="bg-surface-alt border border-border rounded-2xl px-4 py-3.5 text-[15px] text-text mb-2"
                 placeholder="+1 555-0100"
                 placeholderTextColor="#94a3b8"
                 keyboardType="phone-pad"
                 value={form.phone}
                 onChangeText={(t) => setForm({ ...form, phone: t })}
               />
-              <Text className="text-[11px] text-slate-400 mb-6 px-1">
+              <Text className="text-[11px] text-text-muted mb-6 px-1">
                 Enter phone number for direct one-tap calling and SMS messaging.
               </Text>
 
@@ -461,7 +461,7 @@ export default function CareTeamScreen() {
                 className="bg-slate-900 dark:bg-blue-600 rounded-2xl py-4 items-center mb-3"
               >
                 {isSaving ? (
-                  <ActivityIndicator color="#fff" />
+                  <ActivityIndicator color={theme.onPrimary} />
                 ) : (
                   <Text className="text-white font-semibold text-[15px]">Save Contact</Text>
                 )}

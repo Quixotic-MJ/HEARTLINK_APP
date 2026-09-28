@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { View, Text, TouchableOpacity, ScrollView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
+import { theme } from "../../constants/theme";
 
 export interface BreathingExerciseActiveProps {
   routine: any;
@@ -22,7 +23,7 @@ export function BreathingExerciseActive({
   const totalSeconds = (routine?.duration_minutes || routine?.duration || 10) * 60;
 
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: ReturnType<typeof setInterval>;
     if (isPlaying && elapsedSeconds < totalSeconds) {
       interval = setInterval(() => {
         setElapsedSeconds(prev => prev + 1);
@@ -79,7 +80,7 @@ export function BreathingExerciseActive({
              onPress={onClose} 
              className="w-10 h-10 rounded-full bg-slate-200 items-center justify-center"
            >
-             <Feather name="x" size={20} color="#0f172a" />
+             <Feather name="x" size={20} color={theme.ink} />
            </TouchableOpacity>
            
            {/* Title */}
@@ -94,7 +95,7 @@ export function BreathingExerciseActive({
            
            {/* Sound Toggle */}
            <TouchableOpacity className="w-10 h-10 rounded-full bg-slate-200 items-center justify-center">
-             <Feather name="volume-2" size={18} color="#0f172a" />
+             <Feather name="volume-2" size={18} color={theme.ink} />
            </TouchableOpacity>
         </View>
         
@@ -124,7 +125,7 @@ export function BreathingExerciseActive({
         {/* Controls */}
         <View className="flex-row items-center justify-center gap-8 mb-12">
           <TouchableOpacity className="w-12 h-12 rounded-full bg-slate-100 items-center justify-center">
-            <Feather name="rewind" size={20} color="#64748b" />
+            <Feather name="rewind" size={20} color={theme.textSoft} />
           </TouchableOpacity>
           <TouchableOpacity 
             onPress={() => setIsPlaying(!isPlaying)}
@@ -140,7 +141,7 @@ export function BreathingExerciseActive({
             )}
           </TouchableOpacity>
           <TouchableOpacity className="w-12 h-12 rounded-full bg-slate-100 items-center justify-center">
-            <Feather name="fast-forward" size={20} color="#64748b" />
+            <Feather name="fast-forward" size={20} color={theme.textSoft} />
           </TouchableOpacity>
         </View>
 
@@ -157,13 +158,13 @@ export function BreathingExerciseActive({
             if (isActive) {
               return (
                 <View key={idx} style={{ backgroundColor: '#f0f9ff', borderColor: '#bae6fd', borderWidth: 1, borderRadius: 16, padding: 16, marginBottom: 12, flexDirection: 'row', alignItems: 'center' }}>
-                  <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: '#0ea5e9', alignItems: 'center', justifyContent: 'center', marginRight: 16 }}>
+                  <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: theme.sky, alignItems: 'center', justifyContent: 'center', marginRight: 16 }}>
                     <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>{idx + 1}</Text>
                   </View>
-                  <Text style={{ flex: 1, fontSize: 14, fontWeight: 'bold', color: '#0369a1' }}>
+                  <Text style={{ flex: 1, fontSize: 14, fontWeight: 'bold', color: theme.skyText }}>
                     {step.instruction || `Step ${idx + 1}`}
                   </Text>
-                  <Text style={{ fontSize: 12, fontWeight: 'bold', color: '#0284c7' }}>
+                  <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.skyMid }}>
                     {step.duration_seconds || 5}s
                   </Text>
                 </View>
@@ -172,11 +173,11 @@ export function BreathingExerciseActive({
             
             if (isCompleted) {
               return (
-                <View key={idx} style={{ backgroundColor: 'white', borderColor: '#f1f5f9', borderWidth: 1, borderRadius: 16, padding: 16, marginBottom: 12, flexDirection: 'row', alignItems: 'center', opacity: 0.6 }}>
-                  <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: '#0ea5e9', alignItems: 'center', justifyContent: 'center', marginRight: 16 }}>
+                <View key={idx} style={{ backgroundColor: 'white', borderColor: theme.surfaceAlt, borderWidth: 1, borderRadius: 16, padding: 16, marginBottom: 12, flexDirection: 'row', alignItems: 'center', opacity: 0.6 }}>
+                  <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: theme.sky, alignItems: 'center', justifyContent: 'center', marginRight: 16 }}>
                     <Feather name="check" size={14} color="#fff" />
                   </View>
-                  <Text style={{ flex: 1, fontSize: 14, fontWeight: '500', color: '#64748b' }}>
+                  <Text style={{ flex: 1, fontSize: 14, fontWeight: '500', color: theme.textSoft }}>
                     {step.instruction || `Step ${idx + 1}`}
                   </Text>
                 </View>
@@ -184,14 +185,14 @@ export function BreathingExerciseActive({
             }
             
             return (
-              <View key={idx} style={{ backgroundColor: 'white', borderColor: '#f1f5f9', borderWidth: 1, borderRadius: 16, padding: 16, marginBottom: 12, flexDirection: 'row', alignItems: 'center' }}>
-                <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: '#e2e8f0', alignItems: 'center', justifyContent: 'center', marginRight: 16 }}>
+              <View key={idx} style={{ backgroundColor: 'white', borderColor: theme.surfaceAlt, borderWidth: 1, borderRadius: 16, padding: 16, marginBottom: 12, flexDirection: 'row', alignItems: 'center' }}>
+                <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: theme.border, alignItems: 'center', justifyContent: 'center', marginRight: 16 }}>
                   <Text style={{ color: '#475569', fontSize: 12, fontWeight: 'bold' }}>{idx + 1}</Text>
                 </View>
                 <Text style={{ flex: 1, fontSize: 14, fontWeight: '500', color: '#475569' }}>
                   {step.instruction || `Step ${idx + 1}`}
                 </Text>
-                <Text style={{ fontSize: 12, fontWeight: '500', color: '#94a3b8' }}>
+                <Text style={{ fontSize: 12, fontWeight: '500', color: theme.textMuted }}>
                   {step.duration_seconds || 5}s
                 </Text>
               </View>

@@ -9,6 +9,7 @@ import { useUser } from "../../../contexts/UserContext";
 import { Skeleton } from "../../../components/ui/Skeleton";
 import { EmptyState } from "../../../components/ui/EmptyState";
 import { calcRiskFromValues } from "../../../components/meals/SharedMealComponents";
+import { theme } from "../../../constants/theme";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -211,18 +212,18 @@ export default function SearchMealScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-[#0b1120]" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-surface-alt dark:bg-background" edges={["top"]}>
       <StatusBar style={isDark ? "light" : "dark"} />
 
       {/* Header */}
       <View className="flex-row items-center justify-between px-5 py-3 mb-2">
         <TouchableOpacity
           onPress={() => router.back()}
-          className="w-9 h-9 rounded-full bg-slate-200/50 dark:bg-slate-800 items-center justify-center z-10"
+          className="w-9 h-9 rounded-full bg-border/50 dark:bg-slate-800 items-center justify-center z-10"
         >
           <Feather name="arrow-left" size={18} color={isDark ? "#f8fafc" : "#0f172a"} />
         </TouchableOpacity>
-        <Text className="text-[22px] font-bold text-slate-900 dark:text-white absolute left-0 right-0 text-center pointer-events-none">
+        <Text className="text-[22px] font-bold text-text absolute left-0 right-0 text-center pointer-events-none">
           Search Food
         </Text>
         <View className="w-9" />
@@ -238,14 +239,14 @@ export default function SearchMealScreen() {
         }
       >
         {/* Search Bar */}
-        <View className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm flex-row items-center px-4 py-3 mb-4">
-          <Feather name="search" size={18} color="#94a3b8" />
+        <View className="bg-surface rounded-3xl border border-border dark:border-slate-800 shadow-sm flex-row items-center px-4 py-3 mb-4">
+          <Feather name="search" size={18} color={theme.textSoft} />
           <TextInput
             value={searchQuery}
             onChangeText={setSearchQuery}
             placeholder="Search recipes, groceries, or fast food..."
             placeholderTextColor={isDark ? "#64748b" : "#94a3b8"}
-            className="flex-1 text-[16px] text-slate-900 dark:text-white ml-2"
+            className="flex-1 text-[16px] text-text ml-2"
             autoCapitalize="none"
             autoCorrect={false}
             returnKeyType="search"
@@ -256,20 +257,20 @@ export default function SearchMealScreen() {
         <TouchableOpacity
           onPress={() => router.push("/(home)/(meals)/barcode-scan")}
           activeOpacity={0.8}
-          className="bg-emerald-500/10 rounded-2xl py-3.5 px-4 mb-6 flex-row items-center justify-center border border-emerald-500/20"
+          className="bg-success-tint0/10 rounded-2xl py-3.5 px-4 mb-6 flex-row items-center justify-center border border-emerald-500/20"
         >
-          <MaterialCommunityIcons name="barcode-scan" size={18} color="#10b981" />
-          <Text className="text-[14px] font-medium text-emerald-600 dark:text-emerald-400 ml-2">
+          <MaterialCommunityIcons name="barcode-scan" size={18} color={theme.success} />
+          <Text className="text-[14px] font-medium text-success-text ml-2">
             Scan Barcode
           </Text>
         </TouchableOpacity>
 
         {/* Results Container */}
-        <View className="bg-white dark:bg-slate-900 rounded-3xl p-5 mb-4 shadow-sm border border-slate-100 dark:border-slate-800">
+        <View className="bg-surface rounded-3xl p-5 mb-4 shadow-sm border border-border dark:border-slate-800">
           <View className="flex-row items-center gap-4 mb-4">
             <View className="relative">
               <View className="absolute inset-0 rounded-full border-4 opacity-20 border-emerald-500" />
-              <View className="w-12 h-12 rounded-full items-center justify-center bg-slate-50 dark:bg-slate-800">
+              <View className="w-12 h-12 rounded-full items-center justify-center bg-surface-alt dark:bg-slate-800">
                 <Feather 
                   name={searchQuery.trim().length === 0 ? "clock" : "list"} 
                   size={20} 
@@ -278,16 +279,16 @@ export default function SearchMealScreen() {
               </View>
             </View>
             <View>
-              <Text className="text-[16px] font-bold text-slate-800 dark:text-white mb-0.5">
+              <Text className="text-[16px] font-bold text-text mb-0.5">
                 {searchQuery.trim().length === 0 ? "Recently Logged" : "Search Results"}
               </Text>
-              <Text className="text-[13px] text-slate-500">
+              <Text className="text-[13px] text-text-soft">
                 {isLoading ? "Searching..." : `${items.length} items found`}
               </Text>
             </View>
           </View>
           
-          <View className="border-t border-slate-100 dark:border-slate-800/60 pt-3 mt-1">
+          <View className="border-t border-border dark:border-slate-800/60 pt-3 mt-1">
           {isLoading ? (
             <View className="gap-2">
               {[1, 2, 3, 4, 5].map((key) => (
@@ -305,14 +306,14 @@ export default function SearchMealScreen() {
             </View>
           ) : errorMsg ? (
             <EmptyState
-              icon={<Feather name="wifi-off" size={32} color="#ef4444" />}
+              icon={<Feather name="wifi-off" size={32} color={theme.danger} />}
               title="Network Error"
               subtitle={errorMsg}
               className="py-6"
             />
           ) : items.length === 0 ? (
             <EmptyState
-              icon={<Feather name="search" size={32} color="#94a3b8" />}
+              icon={<Feather name="search" size={32} color={theme.textSoft} />}
               title="No results found"
               subtitle="Try a different search term or use the 'Estimate a Meal' feature."
               className="py-6"
@@ -323,10 +324,6 @@ export default function SearchMealScreen() {
             <View
               key={item.id}
               className="flex-row items-center justify-between py-2 mb-1 rounded-xl px-2 border"
-              style={{
-                backgroundColor: inBasket ? (isDark ? "rgba(6, 78, 59, 0.2)" : "#ecfdf5") : (isDark ? "#0f172a" : "#ffffff"),
-                borderColor: inBasket ? (isDark ? "rgba(6, 78, 59, 0.3)" : "#d1fae5") : "transparent"
-              }}
             >
               <TouchableOpacity
                 activeOpacity={0.7}
@@ -351,43 +348,31 @@ export default function SearchMealScreen() {
                 className="flex-row items-center flex-1"
               >
                 <View className="flex-row items-center flex-1 gap-3">
-                  <View className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-800 items-center justify-center overflow-hidden">
-                    <MaterialCommunityIcons name="silverware-fork-knife" size={16} className="text-slate-300 dark:text-slate-700 absolute" />
+                  <View className="w-10 h-10 rounded-lg bg-surface-alt items-center justify-center overflow-hidden">
+                    <MaterialCommunityIcons name="silverware-fork-knife" size={16} color={theme.borderStrong} />
                     {!!item.image_url && (
                       <Image source={{ uri: item.image_url }} className="w-full h-full absolute" resizeMode="cover" />
                     )}
                   </View>
                   <View className="flex-1 pr-2">
                     <View className="flex-row items-center gap-1.5 mb-0.5">
-                      <Text className="text-[14px] font-medium text-slate-800 dark:text-slate-200" numberOfLines={1} style={{ flexShrink: 1 }}>
+                      <Text className="text-[14px] font-medium text-text" numberOfLines={1} style={{ flexShrink: 1 }}>
                         {item.name}
                       </Text>
                       {item.isRecommended && (
-                        <MaterialCommunityIcons name="star-circle" size={14} color="#f59e0b" />
+                        <MaterialCommunityIcons name="star-circle" size={14} color={theme.warning} />
                       )}
                     </View>
                     <View className="flex-row items-center gap-1.5 flex-wrap">
-                      <Text className="text-[11px] text-slate-400 mt-0.5">
+                      <Text className="text-[11px] text-text-muted mt-0.5">
                         1 serving
                       </Text>
                       <View className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600 mt-0.5" />
                       <View 
-                        className="mt-0.5 px-1.5 py-0.5 rounded" 
-                        style={{ 
-                          backgroundColor: item.hss_tier === "Stable" ? "#eaf3de" 
-                                         : item.hss_tier === "Moderate" ? "#fef3c7" 
-                                         : item.hss_tier === "Elevated Risk" ? "#ffedd5" 
-                                         : "#fcebeb" 
-                        }}
+                        className="mt-0.5 px-1.5 py-0.5 rounded"
                       >
                         <Text 
-                          className="text-[8px] font-bold uppercase tracking-wider" 
-                          style={{ 
-                            color: item.hss_tier === "Stable" ? "#3b6d11" 
-                                 : item.hss_tier === "Moderate" ? "#b45309" 
-                                 : item.hss_tier === "Elevated Risk" ? "#c2410c"
-                                 : "#a32d2d" 
-                          }}
+                          className="text-[8px] font-bold uppercase tracking-wider"
                         >
                           {item.hss_tier || "Unknown"}
                         </Text>
@@ -396,10 +381,10 @@ export default function SearchMealScreen() {
                   </View>
                 </View>
                 <View className="items-end px-2">
-                  <Text className="text-[14px] font-bold text-slate-700 dark:text-slate-300">
-                    {item.calories || 0} <Text className="text-[10px] font-normal text-slate-400">kcal</Text>
+                  <Text className="text-[14px] font-bold text-text">
+                    {item.calories || 0} <Text className="text-[10px] font-normal text-text-muted">kcal</Text>
                   </Text>
-                  <Text className="text-[11px] font-medium text-rose-500 mt-0.5">
+                  <Text className="text-[11px] font-medium text-danger-text mt-0.5">
                     {item.sodium_mg || 0} mg
                   </Text>
                 </View>
@@ -407,13 +392,13 @@ export default function SearchMealScreen() {
               
               <TouchableOpacity 
                 onPress={() => toggleBasket(item)} 
-                className="pl-2 py-2 border-l border-slate-100 dark:border-slate-800"
+                className="pl-2 py-2 border-l border-border dark:border-slate-800"
                 activeOpacity={0.6}
               >
                 {inBasket ? (
-                  <Feather name="check-circle" size={24} color="#10b981" />
+                  <Feather name="check-circle" size={24} color={theme.success} />
                 ) : (
-                  <Feather name="plus-circle" size={24} color="#94a3b8" />
+                  <Feather name="plus-circle" size={24} color={theme.textSoft} />
                 )}
               </TouchableOpacity>
             </View>
@@ -424,8 +409,7 @@ export default function SearchMealScreen() {
 
       {/* Sticky Fallback Button */}
       <View 
-        className="px-5 pt-3 bg-slate-50 dark:bg-[#0b1120] border-t border-slate-200 dark:border-slate-800/50 gap-3"
-        style={{ paddingBottom: Math.max(insets.bottom, 16) }}
+        className="px-5 pt-3 bg-surface-alt dark:bg-background border-t border-border gap-3"
       >
         {basket.length > 0 && (
           <TouchableOpacity
@@ -433,7 +417,7 @@ export default function SearchMealScreen() {
             className="bg-emerald-600 w-full rounded-2xl py-3.5 items-center justify-center flex-row gap-2 shadow-sm"
             activeOpacity={0.85}
           >
-            <Feather name="shopping-bag" size={16} color="#fff" />
+            <Feather name="shopping-bag" size={16} color={theme.onPrimary} />
             <Text className="text-white text-[15px] font-bold">
               Review & Log ({basket.length} {basket.length === 1 ? 'item' : 'items'})
             </Text>
@@ -442,10 +426,10 @@ export default function SearchMealScreen() {
         
         <TouchableOpacity
           onPress={() => router.push("/(home)/(meals)/estimate-meal")}
-          className="bg-emerald-500 w-full rounded-2xl py-3.5 items-center justify-center flex-row gap-2"
+          className="bg-success-tint0 w-full rounded-2xl py-3.5 items-center justify-center flex-row gap-2"
           activeOpacity={0.85}
         >
-          <Feather name="edit-3" size={16} color="#fff" />
+          <Feather name="edit-3" size={16} color={theme.onPrimary} />
           <Text className="text-white text-[14px] font-medium">
             Can't find it? Estimate local food
           </Text>

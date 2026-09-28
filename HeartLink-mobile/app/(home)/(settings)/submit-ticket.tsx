@@ -85,21 +85,21 @@ export default function SubmitTicketScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-surface-alt" edges={["top"]}>
       <StatusBar style="dark" />
 
       {/* Header */}
-      <View className="flex-row items-center px-5 pt-4 pb-3 border-b border-slate-200 dark:border-slate-800/60 bg-white dark:bg-slate-900">
+      <View className="flex-row items-center px-5 pt-4 pb-3 border-b border-border bg-surface">
         <TouchableOpacity
           onPress={() => router.back()}
           accessible={true}
           accessibilityRole="button"
           accessibilityLabel="Go back"
-          className="w-9 h-9 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 items-center justify-center mr-3"
+          className="w-9 h-9 rounded-xl bg-surface-alt border border-border items-center justify-center mr-3"
         >
           <Feather name="arrow-left" size={18} color={isDark ? "#f8fafc" : "#0f172a"} />
         </TouchableOpacity>
-        <Text className="text-[18px] font-semibold text-slate-900 dark:text-white tracking-tight">
+        <Text className="text-[18px] font-semibold text-text tracking-tight">
           Send Feedback
         </Text>
       </View>
@@ -111,15 +111,15 @@ export default function SubmitTicketScreen() {
         enableOnAndroid={true}
         extraScrollHeight={20}
       >
-        <Text className="text-[20px] font-bold text-slate-900 dark:text-white mb-1.5 tracking-tight">
+        <Text className="text-[20px] font-bold text-text mb-1.5 tracking-tight">
           Share your experience
         </Text>
-        <Text className="text-[14px] text-slate-500 dark:text-slate-400 mb-6 leading-relaxed">
+        <Text className="text-[14px] text-text-soft mb-6 leading-relaxed">
           Select a feedback category and describe your suggestion or the issue you encountered.
         </Text>
 
         {/* Category Selection */}
-        <Text className="text-[12px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2.5 px-1">
+        <Text className="text-[12px] font-bold text-text-soft uppercase tracking-wider mb-2.5 px-1">
           Topic / Category
         </Text>
         <View className="flex-row flex-wrap gap-2 mb-6">
@@ -132,8 +132,8 @@ export default function SubmitTicketScreen() {
               accessibilityLabel={`Category ${cat.label}`}
               className={`flex-row items-center px-4 py-2.5 rounded-2xl border ${
                 category === cat.id 
-                  ? "bg-blue-50 dark:bg-blue-950/60 border-blue-300 dark:border-blue-700" 
-                  : "bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800"
+                  ? "bg-blue-tint dark:bg-blue-950/60 border-blue-300 dark:border-blue-700" 
+                  : "bg-surface border-border/80 dark:border-slate-800"
               }`}
             >
               <Feather 
@@ -143,7 +143,7 @@ export default function SubmitTicketScreen() {
               />
               <Text 
                 className={`ml-2 text-[13px] font-semibold ${
-                  category === cat.id ? "text-blue-600 dark:text-blue-400" : "text-slate-700 dark:text-slate-300"
+                  category === cat.id ? "text-primary" : "text-text"
                 }`}
               >
                 {cat.label}
@@ -153,12 +153,12 @@ export default function SubmitTicketScreen() {
         </View>
 
         {/* Description Input */}
-        <Text className="text-[12px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 px-1">
+        <Text className="text-[12px] font-bold text-text-soft uppercase tracking-wider mb-2 px-1">
           Details
         </Text>
-        <View className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl overflow-hidden shadow-sm shadow-slate-100 dark:shadow-none p-4 mb-2">
+        <View className="bg-surface border border-border/80 dark:border-slate-800 rounded-3xl overflow-hidden shadow-sm shadow-slate-100 dark:shadow-none p-4 mb-2">
           <TextInput
-            className="min-h-[160px] text-[15px] text-slate-900 dark:text-white"
+            className="min-h-[160px] text-[15px] text-text"
             placeholder="Please describe the issue or your suggestion in detail..."
             placeholderTextColor={isDark ? "#64748b" : "#94a3b8"}
             multiline
@@ -167,7 +167,7 @@ export default function SubmitTicketScreen() {
             onChangeText={setDescription}
           />
         </View>
-        <Text className="text-[11px] text-slate-400 px-1 mb-8">
+        <Text className="text-[11px] text-text-muted px-1 mb-8">
           Basic device metadata (OS platform, version) is automatically attached to assist troubleshooting.
         </Text>
 

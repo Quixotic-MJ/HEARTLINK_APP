@@ -16,6 +16,7 @@ import { useRouter } from "expo-router";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useUser } from "../../../contexts/UserContext";
 import { useToast } from "../../../contexts/ToastContext";
+import { theme } from "../../../constants/theme";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -135,7 +136,7 @@ export default function GoalsThresholdsScreen() {
           accessibilityLabel="Go back"
           className="w-9 h-9 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 items-center justify-center mr-3"
         >
-          <Feather name="arrow-left" size={18} color={isDark ? "#f8fafc" : "#0f172a"} />
+          <Feather name="arrow-left" size={18} color={theme.ink} />
         </TouchableOpacity>
         <Text className="text-[18px] font-semibold text-slate-900 dark:text-white tracking-tight">
           Health Targets & Limits
@@ -164,7 +165,7 @@ export default function GoalsThresholdsScreen() {
                 </Text>
               </View>
               <View className="w-10 h-10 rounded-2xl items-center justify-center bg-emerald-50 dark:bg-emerald-950/40">
-                <MaterialCommunityIcons name="silverware-fork-knife" size={18} color="#059669" />
+                <MaterialCommunityIcons name="silverware-fork-knife" size={18} color={theme.successMid} />
               </View>
             </View>
             
@@ -181,7 +182,7 @@ export default function GoalsThresholdsScreen() {
             </View>
             
             <View className="flex-row items-start pr-2">
-              <Feather name="info" size={13} color="#64748b" style={{ marginTop: 2, marginRight: 6 }} />
+              <Feather name="info" size={13} color={theme.textSoft} style={{ marginTop: 2, marginRight: 6 }} />
               <Text className="text-[12px] text-slate-500 dark:text-slate-400 leading-relaxed flex-1">
                 The American Heart Association recommends staying under 1,500mg daily for optimal blood pressure management.
               </Text>
@@ -217,7 +218,7 @@ export default function GoalsThresholdsScreen() {
             </View>
 
             <View className="flex-row items-start pr-2">
-              <Feather name="info" size={13} color="#64748b" style={{ marginTop: 2, marginRight: 6 }} />
+              <Feather name="info" size={13} color={theme.textSoft} style={{ marginTop: 2, marginRight: 6 }} />
               <Text className="text-[12px] text-slate-500 dark:text-slate-400 leading-relaxed flex-1">
                 Fluid restriction helps prevent fluid buildup and manages symptoms in cardiovascular care.
               </Text>
@@ -253,7 +254,7 @@ export default function GoalsThresholdsScreen() {
             </View>
 
             <View className="flex-row items-start pr-2">
-              <Feather name="info" size={13} color="#64748b" style={{ marginTop: 2, marginRight: 6 }} />
+              <Feather name="info" size={13} color={theme.textSoft} style={{ marginTop: 2, marginRight: 6 }} />
               <Text className="text-[12px] text-slate-500 dark:text-slate-400 leading-relaxed flex-1">
                 Target minutes of daily activity including walking, light exercise, and heart-safe rehab routines.
               </Text>
@@ -272,7 +273,7 @@ export default function GoalsThresholdsScreen() {
                 </Text>
               </View>
               <View className="w-10 h-10 rounded-2xl items-center justify-center bg-red-50 dark:bg-red-950/40">
-                <MaterialCommunityIcons name="heart-pulse" size={20} color="#dc2626" />
+                <MaterialCommunityIcons name="heart-pulse" size={20} color={theme.dangerMid} />
               </View>
             </View>
             
@@ -307,7 +308,7 @@ export default function GoalsThresholdsScreen() {
             </View>
 
             <View className="flex-row items-start pr-2">
-              <Feather name="info" size={13} color="#64748b" style={{ marginTop: 2, marginRight: 6 }} />
+              <Feather name="info" size={13} color={theme.textSoft} style={{ marginTop: 2, marginRight: 6 }} />
               <Text className="text-[12px] text-slate-500 dark:text-slate-400 leading-relaxed flex-1">
                 Set the target recommended by your doctor or care provider. Typical healthy resting blood pressure is around 120/80 mmHg.
               </Text>

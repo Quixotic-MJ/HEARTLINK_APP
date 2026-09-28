@@ -23,14 +23,14 @@ export function EmptyState({
   return (
     <View className={`flex-1 justify-center items-center px-8 py-10 ${className || ""}`} {...props}>
       {icon && (
-        <View className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800 items-center justify-center mb-4 border border-slate-200 dark:border-slate-800/70">
+        <View className="w-16 h-16 rounded-2xl bg-surface-alt items-center justify-center mb-4 border border-border">
           {icon}
         </View>
       )}
-      <Text className="text-[17px] font-medium text-slate-900 dark:text-white text-center mb-1">
+      <Text className="text-[17px] font-medium text-text text-center mb-1">
         {title}
       </Text>
-      <Text className="text-[13px] text-slate-500 text-center mb-6 leading-relaxed">
+      <Text className="text-[13px] text-text-soft text-center mb-6 leading-relaxed">
         {subtitle}
       </Text>
       
@@ -41,7 +41,7 @@ export function EmptyState({
           activeOpacity={0.8}
         >
           {actionIcon}
-          <Text className="text-white font-semibold text-[13px]">
+          <Text className="text-on-primary font-semibold text-[13px]">
             {actionLabel}
           </Text>
         </TouchableOpacity>

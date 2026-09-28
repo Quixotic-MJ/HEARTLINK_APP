@@ -5,6 +5,7 @@ import { Feather } from "@expo/vector-icons";
 import { useColorScheme } from "nativewind";
 import YoutubePlayer from "react-native-youtube-iframe";
 import { Colors } from "../../constants/theme";
+import { theme } from "../../constants/theme";
 
 const { width } = Dimensions.get("window");
 
@@ -56,7 +57,7 @@ export function ExerciseActive({
       if (videoId) {
         return (
           <View 
-            style={{ width: containerWidth, aspectRatio: 16 / 9, backgroundColor: "#0f172a" }}
+            style={{ width: containerWidth, aspectRatio: 16 / 9, backgroundColor: theme.ink }}
             onLayout={(e) => setContainerWidth(e.nativeEvent.layout.width)}
           >
             <YoutubePlayer
@@ -115,7 +116,7 @@ export function ExerciseActive({
 
     return (
       <View className="w-full items-center justify-center bg-slate-100 dark:bg-slate-800" style={{ aspectRatio: 16 / 9 }}>
-        <Feather name="image" size={32} color={isDark ? "#475569" : "#cbd5e1"} className="mb-2" />
+        <Feather name="image" size={32} color={theme.borderStrong} className="mb-2" />
         <Text className="text-slate-400 font-medium text-[13px] tracking-wide uppercase">Visuals Unavailable</Text>
       </View>
     );

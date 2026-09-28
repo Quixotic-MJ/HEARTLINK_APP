@@ -42,14 +42,14 @@ export default function ExerciseSessionScreen() {
 
   const [routine, setRoutine] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
-  
+
   const logExerciseMutation = useLogExercise(userId, token);
-  
+
   const [workoutState, setWorkoutState] = useState<"overview" | "ready" | "active" | "result">("overview");
-  
+
   const [sessionStartedAt, setSessionStartedAt] = useState<number | null>(null);
   const [sessionDurationSeconds, setSessionDurationSeconds] = useState(0);
-  
+
   const [showSafetyCheck, setShowSafetyCheck] = useState(false);
   const [showCompletionCheck, setShowCompletionCheck] = useState(false);
   const [showStopCheck, setShowStopCheck] = useState(false);
@@ -85,7 +85,7 @@ export default function ExerciseSessionScreen() {
             }
           }
         }
-      } catch {}
+      } catch { }
     }
     loadHss();
   }, [userId]);
@@ -105,7 +105,7 @@ export default function ExerciseSessionScreen() {
         });
         if (!response.ok) throw new Error("Failed to fetch routine");
         const data = await response.json();
-        
+
         const r = {
           id: data.id,
           title: data.name || "",
@@ -123,7 +123,7 @@ export default function ExerciseSessionScreen() {
           requirements: data.requirements || data.equipment || [],
           calories: data.calories || 0,
         };
-        
+
         setRoutine(r);
       } catch (error) {
         console.error("Failed to load routine:", error);
@@ -138,7 +138,7 @@ export default function ExerciseSessionScreen() {
     if (!routine || !userId) return;
     const finalSeconds = overrideSeconds !== undefined ? overrideSeconds : sessionDurationSeconds;
     const finalMinutes = Math.round(finalSeconds / 60);
-    
+
     const exerciseId = generateExerciseId();
     const payload = {
       id: exerciseId,
@@ -163,8 +163,8 @@ export default function ExerciseSessionScreen() {
         }
       }
     });
-    
-    return payload; 
+
+    return payload;
   };
 
   const handleStart = () => {
@@ -181,7 +181,7 @@ export default function ExerciseSessionScreen() {
   const handleRequestFinish = () => {
     const elapsedSeconds = sessionStartedAt ? Math.floor((Date.now() - sessionStartedAt) / 1000) : 0;
     setSessionDurationSeconds(elapsedSeconds);
-    
+
     // Evaluate 30s threshold
     if (elapsedSeconds < 30) {
       setShowShortSessionCheck(true);
@@ -251,7 +251,7 @@ export default function ExerciseSessionScreen() {
     setShowCompletionCheck(false);
     setShowShortSessionCheck(false);
     if (!routine) return;
-    
+
     const elapsedSeconds = sessionStartedAt ? Math.floor((Date.now() - sessionStartedAt) / 1000) : 0;
 
     // Save the exercise independently (with built-in offline fallback)
@@ -267,8 +267,8 @@ export default function ExerciseSessionScreen() {
       "By unlocking, you explicitly certify that you have been evaluated by a doctor, or that your severe symptoms have completely resolved.",
       [
         { text: "Cancel", style: "cancel" },
-        { 
-          text: "I Certify & Unlock", 
+        {
+          text: "I Certify & Unlock",
           style: "destructive",
           onPress: async () => {
             if (!userId) return;
@@ -279,7 +279,7 @@ export default function ExerciseSessionScreen() {
                 method: "POST",
                 headers: effectiveToken ? { "Authorization": `Bearer ${effectiveToken}` } : {}
               });
-              
+
               if (response.ok) {
                 setHasRecentSevereSymptom(false);
                 await AsyncStorage.removeItem(`@dashboard_cache_${userId}`);
@@ -311,10 +311,10 @@ export default function ExerciseSessionScreen() {
   return (
     <View className="flex-1 bg-white">
       <StatusBar style={workoutState === "active" || workoutState === "ready" ? "light" : "dark"} />
-      
+
       {workoutState === "overview" && (
-        <ExerciseOverview 
-          routine={routine} 
+        <ExerciseOverview
+          routine={routine}
           stepCount={routine.steps.length}
           onStart={handleStart}
           onBack={() => router.back()}
@@ -323,14 +323,14 @@ export default function ExerciseSessionScreen() {
           onClearSymptomLock={handleClearSymptomLock}
         />
       )}
-      
+
       {workoutState === "ready" && (
         <ExerciseReady
           routine={routine}
           onComplete={handleReadyComplete}
         />
       )}
-      
+
       {workoutState === "active" && (
         (routine?.type === "Breathing" || routine?.title?.toLowerCase().includes("breathing")) ? (
           <BreathingExerciseActive
@@ -362,7 +362,7 @@ export default function ExerciseSessionScreen() {
           />
         )
       )}
-      
+
       {workoutState === "result" && (
         <ExerciseResult
           routine={routine}

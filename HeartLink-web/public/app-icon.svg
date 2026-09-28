@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="-132 -132 264 264" width="512" height="512" role="img" aria-label="HeartLink icon">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024" role="img" aria-label="HeartLink app icon">
   <defs>
     <linearGradient id="hl-topright" gradientUnits="userSpaceOnUse" x1="0" y1="-122" x2="0" y2="30">
       <stop offset="0" stop-color="#2B84FF"/><stop offset="0.30" stop-color="#2E8DF5"/>
@@ -17,7 +17,8 @@
       <stop offset="0.85" stop-color="#F2A93C"/><stop offset="1" stop-color="#FF9A2E"/>
     </linearGradient>
   </defs>
-  <g fill="none" stroke-width="30" stroke-linecap="round" stroke-linejoin="round">
+  <rect width="1024" height="1024" fill="#FFFFFF"/>
+  <g transform="translate(512,512) scale(2.55)" fill="none" stroke-width="30" stroke-linecap="round" stroke-linejoin="round">
     <path d="M -79.20,-25.46 L -96.17,-42.43 A 38 38 0 0 1 -42.43,-96.17 L 28.28,-25.46" stroke="#FF4B4B"/>
     <path d="M 25.46,-79.20 L 42.43,-96.17 A 38 38 0 0 1 96.17,-42.43 L 25.46,28.28" stroke="url(#hl-topright)"/>
     <path d="M -25.46,79.20 L -42.43,96.17 A 38 38 0 0 1 -96.17,42.43 L -25.46,-28.28" stroke="url(#hl-bottomleft)"/>

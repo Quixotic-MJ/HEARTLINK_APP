@@ -11,6 +11,8 @@ import Animated, {
   FadeInDown,
   FadeOutDown,
 } from "react-native-reanimated";
+import { Colors } from "../../constants/theme";
+import { theme } from "../../constants/theme";
 
 interface InputFieldProps<T extends FieldValues> extends TextInputProps {
   name: Path<T>;
@@ -54,28 +56,32 @@ export function InputField<T extends FieldValues>({
     transform: [{ translateX: shake.value }],
   }));
 
+  const theme = isDark ? Colors.dark : Colors.light;
+
   const borderColor = hasError
-    ? "#A93226"
+    ? theme.dangerMid
     : isFocused
-    ? (isDark ? "#F8FAFC" : "#152131")
-    : (isDark ? "#334155" : "#DCE3DF");
+    ? theme.ink
+    : theme.borderStrong;
 
   const iconColor = hasError
-    ? "#A93226"
+    ? theme.dangerMid
     : isFocused
-    ? (isDark ? "#F8FAFC" : "#152131")
-    : (isDark ? "#94A3B8" : "#5C6B66");
+    ? theme.ink
+    : theme.textMuted;
 
   const inputBg = hasError
-    ? "rgba(169, 50, 38, 0.04)"
+    ? theme.dangerTint
     : isFocused
-    ? (isDark ? "#1E293B" : "#FFFFFF")
-    : (isDark ? "rgba(15, 23, 42, 0.6)" : "#F8FAF9");
+    ? theme.surface
+    : theme.surfaceAlt;
+
+  const shadowColor = isFocused ? theme.shadow : "transparent";
 
   return (
     <View className="mb-1">
       {label && (
-        <Text className={`text-xs sm:text-sm font-semibold ${isDark ? "text-foreground" : "text-[#152131]"} mb-1.5 ml-1`}>
+        <Text className="text-xs sm:text-sm font-semibold text-text mb-1.5 ml-1">
           {label}
         </Text>
       )}
@@ -88,7 +94,7 @@ export function InputField<T extends FieldValues>({
             backgroundColor: inputBg,
             borderWidth: isFocused ? 1.5 : 1,
             opacity: !textInputProps.editable && textInputProps.editable !== undefined ? 0.6 : 1,
-            shadowColor: isFocused ? (isDark ? "#FFFFFF" : "#152131") : "transparent",
+            shadowColor,
             shadowOffset: { width: 0, height: 1 },
             shadowOpacity: isFocused ? 0.06 : 0,
             shadowRadius: 3,
@@ -124,8 +130,8 @@ export function InputField<T extends FieldValues>({
             setIsFocused(true);
             textInputProps.onFocus?.(e);
           }}
-          placeholderTextColor={isDark ? "#64748B" : "#8D9B96"}
-          className={`flex-1 ml-3 text-sm sm:text-base ${isDark ? "text-foreground" : "text-[#152131]"} py-3.5`}
+          placeholderTextColor={theme.textMuted}
+          className="flex-1 ml-3 text-sm sm:text-base text-text py-3.5"
           aria-invalid={hasError}
           aria-describedby={hasError ? `${name}-error` : undefined}
           {...textInputProps}
@@ -142,8 +148,8 @@ export function InputField<T extends FieldValues>({
           accessibilityRole="alert"
           nativeID={`${name}-error`}
         >
-          <Feather name="alert-circle" size={12} color="#A93226" />
-          <Text className="text-xs text-[#A93226] font-medium">
+          <Feather name="alert-circle" size={12} color={theme.dangerMid} />
+          <Text className="text-xs text-danger-text font-medium">
             {fieldState.error?.message}
           </Text>
         </Animated.View>

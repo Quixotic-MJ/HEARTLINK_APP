@@ -4,143 +4,108 @@
 
 @layer base {
   :root {
-    --color-primary: 232 83 46;
-    /* #E8532E - HeartLink coral */
-    --color-primary-foreground: 255 255 255;
-
-    --color-background: 237 241 239;
-    /* #EDF1EF - paper */
-    --color-foreground: 21 33 49;
-    /* #152131 - ink */
-
-    --color-card: 255 255 255;
-    /* #FFFFFF */
-    --color-card-foreground: 21 33 49;
-    /* #152131 */
-
-    --color-border: 220 227 223;
-    /* #DCE3DF - line */
-    --color-muted: 154 165 161;
-    /* #9AA5A1 - ink-faint */
-    --color-muted-foreground: 92 107 102;
-    /* #5C6B66 - ink-soft */
-
-    --color-destructive: 138 31 26;
-    /* #8A1F1A - garnet (this app's "critical" red) */
-    --color-destructive-foreground: 255 255 255;
-
-    --color-success: 27 110 99;
-    /* #1B6E63 - teal */
-    --color-success-foreground: 255 255 255;
-
-    --color-accent: 70 81 107;
-    /* #46516B - slate (secondary accent, e.g. sleep) */
-    --color-accent-foreground: 255 255 255;
-
-    /* Health Score Themes — same 4-tier ramp used across the HeartLink product */
-    --color-health-stable: 27 110 99;
-    /* #1B6E63 - teal */
-    --color-health-stable-track: 227 239 236;
-    /* #E3EFEC */
-
-    --color-health-caution: 169 116 27;
-    /* #A9741B - amber */
-    --color-health-caution-track: 246 237 221;
-    /* #F6EDDD */
-
-    --color-health-warning: 232 83 46;
-    /* #E8532E - coral (Elevated Risk) */
-    --color-health-warning-track: 251 234 230;
-    /* #FBEAE6 */
-
-    --color-health-risk: 138 31 26;
-    /* #8A1F1A - garnet (Critical) */
-    --color-health-risk-track: 251 234 233;
-    /* #FBEAE9 */
-
-    /* New Clean Aesthetic Tokens */
-    --color-surface-background: 237 238 242;
-    /* #EDEEF2 - visibly grey */
-    --color-surface-card: 255 255 255;
-    /* #FFFFFF - pure white */
-    
-    --color-category-blue: 56 189 248;
-    /* #38BDF8 - sky-400 */
-    --color-category-orange: 251 146 60;
-    /* #FB923C - orange-400 */
-    --color-category-purple: 129 140 248;
-    /* #818CF8 - indigo-400 */
-    --color-category-pink: 251 113 133;
-    /* #FB7185 - rose-400 */
+    --color-background: 242 246 250;
+    --color-surface: 255 255 255;
+    --color-surface-alt: 238 243 248;
+    --color-border: 226 232 240;
+    --color-border-strong: 203 213 225;
+    --color-text: 21 33 49;
+    --color-text-soft: 92 107 102;
+    --color-text-muted: 103 111 120;
+    --color-disabled-fill: 217 224 232;
+    --color-disabled-text: 126 139 152;
+    --color-ink: 21 33 49;
+    --color-on-ink: 255 255 255;
+    --color-focus-ring: 43 132 255;
+    --color-primary: 36 115 220;
+    --color-primary-pressed: 31 99 189;
+    --color-on-primary: 255 255 255;
+    --color-blue: 43 132 255;
+    --color-blue-mid: 43 132 255;
+    --color-blue-text: 32 107 204;
+    --color-blue-tint: 232 241 253;
+    --color-sky: 79 182 230;
+    --color-sky-mid: 66 147 184;
+    --color-sky-text: 55 117 148;
+    --color-sky-tint: 230 245 252;
+    --color-teal: 56 179 181;
+    --color-teal-mid: 48 154 155;
+    --color-teal-text: 36 120 120;
+    --color-teal-tint: 227 245 245;
+    --color-lime: 178 214 90;
+    --color-lime-mid: 121 147 63;
+    --color-lime-text: 99 117 52;
+    --color-lime-tint: 241 247 223;
+    --color-success: 51 204 130;
+    --color-success-mid: 38 157 102;
+    --color-success-text: 27 124 80;
+    --color-success-tint: 230 247 238;
+    --color-warning: 255 154 46;
+    --color-warning-mid: 200 120 34;
+    --color-warning-text: 157 96 24;
+    --color-warning-tint: 255 241 220;
+    --color-danger: 255 75 75;
+    --color-danger-mid: 250 74 74;
+    --color-danger-text: 192 61 61;
+    --color-danger-tint: 253 236 236;
+    --color-success-solid: 30 133 86;
+    --color-on-success: 255 255 255;
+    --color-danger-solid: 212 66 66;
+    --color-on-danger: 255 255 255;
+    --color-warning-solid: 255 154 46;
+    --color-on-warning: 21 33 49;
   }
 
   .dark {
-    --color-primary: 240 105 68;
-    /* #F06944 - lightened coral for dark bg */
-    --color-primary-foreground: 255 255 255;
-
-    --color-background: 16 25 35;
-    /* #101923 - dark ink */
-    --color-foreground: 237 241 239;
-    /* #EDF1EF - paper */
-
-    --color-card: 26 38 52;
-    /* #1A2634 */
-    --color-card-foreground: 237 241 239;
-
-    --color-border: 30 41 59;
-    /* slate-800, kept neutral for dark-mode dividers */
-    --color-muted: 71 85 105;
-    /* slate-600 */
-    --color-muted-foreground: 148 163 184;
-    /* slate-400 */
-
-    --color-destructive: 209 92 78;
-    /* #D15C4E - lightened garnet for dark bg */
-    --color-destructive-foreground: 255 255 255;
-
-    --color-success: 79 167 154;
-    /* #4FA79A - lightened teal for dark bg */
-    --color-success-foreground: 2 44 34;
-
-    --color-accent: 124 137 168;
-    /* #7C89A8 - lightened slate for dark bg */
-    --color-accent-foreground: 16 25 35;
-
-    /* Dark Mode Health Themes */
-    --color-health-stable: 79 167 154;
-    /* #4FA79A */
-    --color-health-stable-track: 22 59 54;
-    /* #163B36 */
-
-    --color-health-caution: 201 154 62;
-    /* #C99A3E */
-    --color-health-caution-track: 58 45 18;
-    /* #3A2D12 */
-
-    --color-health-warning: 240 105 68;
-    /* #F06944 */
-    --color-health-warning-track: 61 33 26;
-    /* #3D211A */
-
-    --color-health-risk: 209 92 78;
-    /* #D15C4E */
-    --color-health-risk-track: 58 26 22;
-    /* #3A1A16 */
-
-    /* New Clean Aesthetic Tokens (Dark Mode) */
-    --color-surface-background: 15 23 42;
-    /* #0F172A - slate-900 */
-    --color-surface-card: 30 41 59;
-    /* #1E293B - slate-800 */
-    
-    --color-category-blue: 14 165 233;
-    /* #0EA5E9 - sky-500 */
-    --color-category-orange: 249 115 22;
-    /* #F97316 - orange-500 */
-    --color-category-purple: 99 102 241;
-    /* #6366F1 - indigo-500 */
-    --color-category-pink: 244 63 94;
-    /* #F43F5E - rose-500 */
+    --color-background: 15 23 32;
+    --color-surface: 23 33 43;
+    --color-surface-alt: 31 43 55;
+    --color-border: 42 55 69;
+    --color-border-strong: 58 72 87;
+    --color-text: 238 243 248;
+    --color-text-soft: 169 182 194;
+    --color-text-muted: 134 146 160;
+    --color-disabled-fill: 38 51 65;
+    --color-disabled-text: 95 110 125;
+    --color-ink: 10 17 24;
+    --color-on-ink: 255 255 255;
+    --color-focus-ring: 43 132 255;
+    --color-primary: 83 152 255;
+    --color-primary-pressed: 73 134 224;
+    --color-on-primary: 15 23 32;
+    --color-blue: 43 132 255;
+    --color-blue-mid: 43 132 255;
+    --color-blue-text: 83 152 255;
+    --color-blue-tint: 26 49 77;
+    --color-sky: 79 182 230;
+    --color-sky-mid: 79 182 230;
+    --color-sky-text: 79 182 230;
+    --color-sky-tint: 32 57 73;
+    --color-teal: 56 179 181;
+    --color-teal-mid: 56 179 181;
+    --color-teal-text: 56 179 181;
+    --color-teal-tint: 28 56 65;
+    --color-lime: 178 214 90;
+    --color-lime-mid: 178 214 90;
+    --color-lime-text: 178 214 90;
+    --color-lime-tint: 48 62 51;
+    --color-success: 51 204 130;
+    --color-success-mid: 51 204 130;
+    --color-success-text: 51 204 130;
+    --color-success-tint: 27 60 57;
+    --color-warning: 255 154 46;
+    --color-warning-mid: 255 154 46;
+    --color-warning-text: 255 154 46;
+    --color-warning-tint: 60 52 43;
+    --color-danger: 255 75 75;
+    --color-danger-mid: 255 75 75;
+    --color-danger-text: 255 92 92;
+    --color-danger-tint: 60 40 48;
+    --color-success-solid: 51 204 130;
+    --color-on-success: 15 23 32;
+    --color-danger-solid: 255 92 92;
+    --color-on-danger: 15 23 32;
+    --color-warning-solid: 255 154 46;
+    --color-on-warning: 21 33 49;
   }
 }

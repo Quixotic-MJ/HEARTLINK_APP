@@ -47,12 +47,12 @@ function AnimatedStepSegment({
   return (
     <Animated.View
       style={animatedStyle}
-      className="h-1.5 rounded-full overflow-hidden relative bg-[#DCE3DF] dark:bg-slate-800/80"
+      className="h-1.5 rounded-full overflow-hidden relative bg-border"
     >
       {/* Animated Fill Bar */}
       <Animated.View
         style={animatedFillStyle}
-        className="absolute inset-0 bg-[#1B6E63] rounded-full"
+        className="absolute inset-0 bg-success-solid rounded-full"
       />
     </Animated.View>
   );

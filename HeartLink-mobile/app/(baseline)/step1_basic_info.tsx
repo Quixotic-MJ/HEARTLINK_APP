@@ -27,6 +27,7 @@ import Animated, {
   withSequence,
   Easing,
 } from "react-native-reanimated";
+import { theme } from "../../constants/theme";
 
 // ─── Clean Form Input with Focus Glow & Error Shake ───────────────────────────
 
@@ -103,11 +104,11 @@ function FormInput({
     <View className="mb-4">
       {/* Field Label & Optional Indicator */}
       <View className="flex-row items-center justify-between mb-1.5 ml-0.5">
-        <Text className="text-[13px] font-semibold text-slate-900 dark:text-white">
+        <Text className="text-[13px] font-semibold text-text">
           {label}
         </Text>
         {isOptional && (
-          <Text className="text-[12px] font-medium text-slate-500 dark:text-slate-400">
+          <Text className="text-[12px] font-medium text-text-soft">
             Optional
           </Text>
         )}
@@ -115,7 +116,7 @@ function FormInput({
 
       <Animated.View
         style={[animatedContainerStyle]}
-        className="h-[52px] rounded-xl border bg-white dark:bg-[#101615] justify-center px-3.5"
+        className="h-[52px] rounded-xl border bg-surface dark:bg-[#101615] justify-center px-3.5"
       >
         <View className="flex-row items-center h-full">
           <TextInput
@@ -130,10 +131,10 @@ function FormInput({
             }}
             keyboardType={keyboardType}
             maxLength={maxLength}
-            className="flex-1 text-[15px] font-medium text-slate-900 dark:text-white py-0 h-full"
+            className="flex-1 text-[15px] font-medium text-text py-0 h-full"
           />
           {unit && (
-            <Text className="text-[13px] text-slate-500 dark:text-slate-400 ml-1 font-semibold">
+            <Text className="text-[13px] text-text-soft ml-1 font-semibold">
               {unit}
             </Text>
           )}
@@ -178,13 +179,13 @@ function FormDatePicker({
 
   return (
     <View className="mb-4">
-      <Text className="text-[13px] font-semibold text-slate-900 dark:text-white mb-1.5 ml-0.5">
+      <Text className="text-[13px] font-semibold text-text mb-1.5 ml-0.5">
         {label}
       </Text>
 
       <Animated.View
         style={animatedStyle}
-        className="h-[52px] rounded-xl border bg-white dark:bg-[#101615] justify-center px-3.5"
+        className="h-[52px] rounded-xl border bg-surface dark:bg-[#101615] justify-center px-3.5"
       >
         <AnimatedButton
           onPress={onPress}
@@ -205,8 +206,8 @@ function FormDatePicker({
                 hasError
                   ? "text-red-600 dark:text-red-400 font-medium"
                   : value
-                  ? "text-slate-900 dark:text-white font-semibold"
-                  : "text-[#8D9B96] font-medium"
+                  ? "text-text font-semibold"
+                  : "text-text-soft font-medium"
               }`}
             >
               {value
@@ -299,14 +300,14 @@ function SegmentedSexToggle({
 
   return (
     <View className="mb-4">
-      <Text className="text-[13px] font-semibold text-slate-900 dark:text-white mb-1.5 ml-0.5">
+      <Text className="text-[13px] font-semibold text-text mb-1.5 ml-0.5">
         {label}
       </Text>
 
       <Animated.View
         style={animatedPressStyle}
         onLayout={(e) => setContainerWidth(e.nativeEvent.layout.width)}
-        className="h-[52px] p-1 rounded-xl border flex-row relative border-slate-200 dark:border-slate-800 bg-white dark:bg-[#101615]"
+        className="h-[52px] p-1 rounded-xl border flex-row relative border-border bg-surface dark:bg-[#101615]"
       >
         {/* Sliding Highlight Pill */}
         {pillWidth > 0 && (
@@ -339,7 +340,7 @@ function SegmentedSexToggle({
         >
           <Text
             className={`text-[14px] font-semibold capitalize ${
-              value === "male" ? "text-white" : "text-slate-500 dark:text-slate-400"
+              value === "male" ? "text-white" : "text-text-soft"
             }`}
           >
             Male
@@ -360,7 +361,7 @@ function SegmentedSexToggle({
         >
           <Text
             className={`text-[14px] font-semibold capitalize ${
-              value === "female" ? "text-white" : "text-slate-500 dark:text-slate-400"
+              value === "female" ? "text-white" : "text-text-soft"
             }`}
           >
             Female
@@ -494,7 +495,7 @@ export default function Step1BasicInfo() {
             onPress={() => router.back()}
             accessibilityRole="button"
             accessibilityLabel="Go back"
-            className="w-10 h-10 rounded-xl bg-white dark:bg-[#101615] border border-slate-200 dark:border-slate-800 items-center justify-center mr-3 shadow-xs"
+            className="w-10 h-10 rounded-xl bg-surface dark:bg-[#101615] border border-border items-center justify-center mr-3 shadow-xs"
           >
             <Feather
               name="arrow-left"
@@ -503,11 +504,11 @@ export default function Step1BasicInfo() {
             />
           </AnimatedButton>
           <View className="flex-1">
-            <Text className="text-[11px] font-semibold text-[#E8532E] uppercase tracking-wider">
+            <Text className="text-[11px] font-semibold text-primary uppercase tracking-wider">
               Step 1 of 6
             </Text>
             <Text
-              className="text-xl font-bold text-slate-900 dark:text-white mt-0.5"
+              className="text-xl font-bold text-text mt-0.5"
               numberOfLines={1}
             >
               Tell us about yourself
@@ -537,7 +538,7 @@ export default function Step1BasicInfo() {
         >
           <View className="flex-1">
             {/* Subtitle */}
-            <Text className="text-[14px] text-slate-500 dark:text-slate-400 mb-6 leading-relaxed">
+            <Text className="text-[14px] text-text-soft mb-6 leading-relaxed">
               Your answers help personalize your cardiovascular health insights.
             </Text>
 
@@ -657,7 +658,7 @@ export default function Step1BasicInfo() {
                 size={13}
                 color={Appearance.getColorScheme() === "dark" ? "#94A3B8" : "#5C6B66"}
               />
-              <Text className="text-[12px] text-slate-500 dark:text-slate-400 ml-1.5">
+              <Text className="text-[12px] text-text-soft ml-1.5">
                 Your health data is private and securely encrypted
               </Text>
             </View>
@@ -667,10 +668,7 @@ export default function Step1BasicInfo() {
 
       {/* Anchored Bottom CTA */}
       <View
-        className="px-5 pt-3.5 bg-[#EDF1EF] dark:bg-[#0A0F0E] border-t border-slate-200 dark:border-slate-800"
-        style={{
-          paddingBottom: Math.max(insets.bottom + 16, 32),
-        }}
+        className="px-5 pt-3.5 bg-[#EDF1EF] dark:bg-[#0A0F0E] border-t border-border"
       >
         <Animated.View style={animatedButtonStyle}>
           <Pressable
@@ -687,7 +685,7 @@ export default function Step1BasicInfo() {
             <Feather
               name="arrow-right"
               size={18}
-              color="#ffffff"
+              color={theme.onPrimary}
               className="ml-2"
             />
           </Pressable>

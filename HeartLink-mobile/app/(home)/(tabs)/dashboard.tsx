@@ -44,6 +44,7 @@ import { ScreenWrapper } from "../../../components/ui/ScreenWrapper";
 import { DashboardTutorialModal } from "../../../components/dashboard/DashboardTutorialModal";
 import { ScoreExplanationModal } from "../../../components/dashboard/ScoreExplanationModal";
 import { RitualProgress } from "../../../components/dashboard/RitualProgress";
+import { theme as colors } from "../../../constants/theme";
 
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
@@ -572,37 +573,37 @@ export default function DashboardScreen() {
 
   if (isLoading && !data) {
     return (
-      <ScreenWrapper edges={["top"]} withScrollView={false} safeAreaClassName="flex-1 bg-[#F3F5F7] dark:bg-[#0b1120]">
+      <ScreenWrapper edges={["top"]} withScrollView={false} safeAreaClassName="flex-1 bg-background">
         <Header showProfile={false} />
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerClassName="px-5 pt-3 pb-40 md:max-w-2xl lg:max-w-4xl mx-auto w-full gap-5"
         >
           <View className="pt-1">
-            <Skeleton className="w-40 h-4 rounded-md mb-2 bg-[#DCE3DF] dark:bg-slate-800" />
-            <Skeleton className="w-28 h-7 rounded-lg bg-[#DCE3DF] dark:bg-slate-800" />
+            <Skeleton className="w-40 h-4 rounded-md mb-2 bg-border" />
+            <Skeleton className="w-28 h-7 rounded-lg bg-border" />
           </View>
 
-          <View className="bg-surface-card rounded-3xl p-5 items-center shadow-sm shadow-slate-200/50 dark:shadow-none">
-            <Skeleton className="w-28 h-6 rounded-full mb-4 bg-slate-200 dark:bg-slate-700" />
-            <Skeleton className="w-44 h-44 rounded-full bg-slate-200 dark:bg-slate-700" />
+          <View className="bg-surface rounded-3xl p-5 items-center shadow-sm shadow-slate-200/50 dark:shadow-none">
+            <Skeleton className="w-28 h-6 rounded-full mb-4 bg-border" />
+            <Skeleton className="w-44 h-44 rounded-full bg-border" />
           </View>
 
-          <View className="bg-surface-card rounded-3xl p-5 shadow-sm shadow-slate-200/50 dark:shadow-none">
-            <Skeleton className="w-36 h-4 rounded-md mb-3 bg-slate-200 dark:bg-slate-700" />
+          <View className="bg-surface rounded-3xl p-5 shadow-sm shadow-slate-200/50 dark:shadow-none">
+            <Skeleton className="w-36 h-4 rounded-md mb-3 bg-border" />
             <View className="gap-2.5">
               {[1, 2, 3, 4].map((i) => (
-                <Skeleton key={i} className="w-full h-14 rounded-xl bg-slate-200 dark:bg-slate-700" />
+                <Skeleton key={i} className="w-full h-14 rounded-xl bg-border" />
               ))}
             </View>
           </View>
 
           {/* Recommendations Skeleton */}
           <View className="mt-2">
-            <Skeleton className="w-36 h-4 rounded-md mb-3 bg-[#DCE3DF] dark:bg-slate-800" />
+            <Skeleton className="w-36 h-4 rounded-md mb-3 bg-border" />
             <View className="flex-row gap-3">
-              <Skeleton className="w-52 h-32 rounded-3xl bg-[#DCE3DF] dark:bg-slate-800" />
-              <Skeleton className="w-52 h-32 rounded-3xl bg-[#DCE3DF] dark:bg-slate-800" />
+              <Skeleton className="w-52 h-32 rounded-3xl bg-border" />
+              <Skeleton className="w-52 h-32 rounded-3xl bg-border" />
             </View>
           </View>
         </ScrollView>
@@ -612,17 +613,17 @@ export default function DashboardScreen() {
 
   if (error && !data) {
     return (
-      <ScreenWrapper edges={["top"]} withScrollView={false} safeAreaClassName="flex-1 bg-[#F3F5F7] dark:bg-[#0b1120]">
+      <ScreenWrapper edges={["top"]} withScrollView={false} safeAreaClassName="flex-1 bg-background">
         <Header showProfile={false} />
         <View className="flex-1 justify-center items-center px-5">
-          <View className="bg-surface-card rounded-3xl p-8 items-center w-full max-w-sm shadow-sm shadow-slate-200/50 dark:shadow-none">
-            <View className="w-14 h-14 rounded-3xl bg-[#8A1F1A]/10 items-center justify-center mb-4">
-              <Feather name="wifi-off" size={24} color="#8A1F1A" />
+          <View className="bg-surface rounded-3xl p-8 items-center w-full max-w-sm shadow-sm shadow-slate-200/50 dark:shadow-none">
+            <View className="w-14 h-14 rounded-3xl bg-danger-tint items-center justify-center mb-4">
+              <Feather name="wifi-off" size={24} color={colors.danger} />
             </View>
-            <Text className="text-[18px] font-bold text-slate-700 dark:text-white mb-1 text-center">
+            <Text className="text-[18px] font-bold text-text mb-1 text-center">
               Unable to load dashboard
             </Text>
-            <Text className="text-[13px] text-slate-500 dark:text-slate-400 text-center mb-6 leading-relaxed">
+            <Text className="text-[13px] text-text-soft text-center mb-6 leading-relaxed">
               Check your connection and try again.
             </Text>
             <TouchableOpacity activeOpacity={0.8}
@@ -630,10 +631,10 @@ export default function DashboardScreen() {
               accessible={true}
               accessibilityRole="button"
               accessibilityLabel="Try again to load dashboard"
-              className="bg-[#E8532E] px-6 py-3 rounded-xl flex-row items-center gap-2 shadow-xs"
+              className="bg-primary px-6 py-3 rounded-xl flex-row items-center gap-2 shadow-xs"
             >
-              <Feather name="refresh-cw" size={14} color="#ffffff" />
-              <Text className="text-white font-bold text-[14px]">Try again</Text>
+              <Feather name="refresh-cw" size={14} color={colors.onPrimary} />
+              <Text className="text-on-primary font-bold text-[14px]">Try again</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -731,17 +732,17 @@ export default function DashboardScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#1B6E63"
+            tintColor="#33CC82"
             progressViewOffset={50}
           />
         }
       >
         {/* ── Background Refresh Error Banner ── */}
         {refreshError && !isOffline && (
-          <View className="mx-5 mt-3 bg-[#FDEEE9] dark:bg-[#8A1F1A]/25 border border-[#E8532E]/30 px-4 py-2.5 rounded-3xl flex-row items-center justify-between">
+          <View className="mx-5 mt-3 bg-danger-tint border border-danger/30 px-4 py-2.5 rounded-3xl flex-row items-center justify-between">
             <View className="flex-row items-center gap-2 flex-1 pr-2">
-              <Feather name="alert-circle" size={14} color="#8A1F1A" />
-              <Text className="text-[12px] text-[#8A1F1A] dark:text-[#E0958B] font-medium">
+              <Feather name="alert-circle" size={14} color={colors.dangerText} />
+              <Text className="text-[12px] text-danger-text font-medium">
                 Couldn't refresh your latest data.
               </Text>
             </View>
@@ -751,18 +752,18 @@ export default function DashboardScreen() {
               accessible={true}
               accessibilityRole="button"
               accessibilityLabel="Retry refreshing dashboard"
-              className="bg-[#E8532E]/10 dark:bg-[#8A1F1A]/35 px-2.5 py-1 rounded-lg"
+              className="bg-danger-tint px-2.5 py-1 rounded-lg"
             >
-              <Text className="text-[11px] font-bold text-[#E8532E] dark:text-[#F2CFC9]">Try again</Text>
+              <Text className="text-[11px] font-bold text-primary dark:text-danger-tint">Try again</Text>
             </TouchableOpacity>
           </View>
         )}
 
         {/* ── Syncing Banner ── */}
         {isSyncingOffline && !isOffline && (
-          <Reanimated.View entering={FadeInDown.duration(200)} className="mx-5 mt-3 bg-[#E2F1ED] dark:bg-[#1B6E63]/20 border border-[#1B6E63]/30 px-4 py-2 rounded-xl flex-row items-center justify-center gap-2">
-            <Feather name="refresh-cw" size={13} color="#1B6E63" />
-            <Text className="text-[12px] font-medium text-[#1B6E63] dark:text-[#4FA79A]">
+          <Reanimated.View entering={FadeInDown.duration(200)} className="mx-5 mt-3 bg-success-tint border border-success/30 px-4 py-2 rounded-xl flex-row items-center justify-center gap-2">
+            <Feather name="refresh-cw" size={13} color={colors.successMid} />
+            <Text className="text-[12px] font-medium text-success-text">
               Syncing offline data...
             </Text>
           </Reanimated.View>
@@ -772,27 +773,27 @@ export default function DashboardScreen() {
         {isAlertActive && (
           <TouchableOpacity activeOpacity={0.8}
             onPress={() => setAlertModalVisible(true)}
-            className="mx-5 mt-3 bg-[#FBEAE9] dark:bg-[#8A1F1A]/25 border border-[#8A1F1A]/30 rounded-3xl p-4 flex-row items-center gap-3"
+            className="mx-5 mt-3 bg-danger-tint border border-danger/30 rounded-3xl p-4 flex-row items-center gap-3"
             style={cardShadowStyle}
           >
-            <View className="w-10 h-10 rounded-xl bg-[#8A1F1A]/10 dark:bg-[#8A1F1A]/25 items-center justify-center flex-shrink-0">
-              <Feather name="alert-triangle" size={20} color="#8A1F1A" />
+            <View className="w-10 h-10 rounded-xl bg-danger-tint items-center justify-center flex-shrink-0">
+              <Feather name="alert-triangle" size={20} color={colors.dangerText} />
             </View>
             <View className="flex-1">
-              <Text className="text-[11px] font-bold text-[#8A1F1A] dark:text-[#E0958B] uppercase tracking-wider mb-0.5">
+              <Text className="text-[11px] font-bold text-danger-text uppercase tracking-wider mb-0.5">
                 Active Health Alert
               </Text>
-              <Text className="text-[13px] text-slate-700 dark:text-white font-medium leading-snug" numberOfLines={2}>
+              <Text className="text-[13px] text-text font-medium leading-snug" numberOfLines={2}>
                 {data?.latest_alert?.message || "Attention required. Tap to view action items."}
               </Text>
             </View>
-            <Feather name="chevron-right" size={18} color="#8A1F1A" />
+            <Feather name="chevron-right" size={18} color={colors.dangerText} />
           </TouchableOpacity>
         )}
 
         {/* ── Clean Greeting ── */}
         <Reanimated.View entering={FadeInDown.duration(280)} className="pt-3 pb-1">
-          <Text className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
+          <Text className="text-2xl sm:text-3xl font-bold text-text tracking-tight">
             {getGreeting(data?.user?.first_name || user?.first_name)}
           </Text>
         </Reanimated.View>
@@ -806,7 +807,7 @@ export default function DashboardScreen() {
             sectionLayoutsRef.current.score = { x, y, width, height };
           }}
         >
-          <View className="bg-surface-card rounded-3xl p-5 items-center shadow-sm shadow-slate-200/50 dark:shadow-none">
+          <View className="bg-surface rounded-3xl p-5 items-center shadow-sm shadow-slate-200/50 dark:shadow-none">
             {/* Header Row: Status badge + Distinct Info Button */}
             <View className="flex-row items-center justify-center gap-2">
               <TouchableOpacity
@@ -815,13 +816,12 @@ export default function DashboardScreen() {
                   setScoreModalVisible(true);
                 }}
                 activeOpacity={0.7}
-                className="flex-row items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#F3F7F5] dark:bg-slate-800/80 border border-slate-100/70 dark:border-slate-700/60"
+                className="flex-row items-center gap-2 px-3.5 py-1.5 rounded-full bg-surface-alt border border-border"
               >
                 <View
                   className="w-2.5 h-2.5 rounded-full"
-                  style={{ backgroundColor: theme.dotColor }}
                 />
-                <Text className="text-[12px] font-bold uppercase tracking-widest text-[#2D554D] dark:text-slate-200">
+                <Text className="text-[12px] font-bold uppercase tracking-widest text-tealText dark:text-text">
                   HEART HEALTH - {theme.label.toUpperCase()}
                 </Text>
               </TouchableOpacity>
@@ -830,22 +830,13 @@ export default function DashboardScreen() {
             {/* Centered Score Ring */}
             <View className="items-center justify-center my-0">
               <Animated.View
-                style={{
-                  alignItems: "center",
-                  justifyContent: "center",
-                  transform: [{ scale: pulseAnim }],
-                }}
+                className="items-center justify-center"
+                style={{ transform: [{ scale: pulseAnim }] }}
               >
                 {isCritical && (
                   <Animated.View
-                    style={{
-                      position: "absolute",
-                      width: 140,
-                      height: 140,
-                      borderRadius: 70,
-                      backgroundColor: "rgba(138, 31, 26, 0.15)",
-                      opacity: glowOpacity,
-                    }}
+                    className="absolute w-[140px] h-[140px] rounded-full bg-danger-tint"
+                    style={{ opacity: glowOpacity }}
                   />
                 )}
                 <ScoreRing
@@ -865,7 +856,10 @@ export default function DashboardScreen() {
             {/* Trend Label */}
             {data?.latest_vitals?.trend && data.latest_vitals.trend !== "0" && data.latest_vitals.trend !== "+0" && (
               <View className="mt-1">
-                <Text className={`font-bold text-[13px] ${data.latest_vitals.trend.startsWith('-') ? 'text-orange-500 dark:text-orange-400' : 'text-emerald-500 dark:text-emerald-400'}`}>
+                <Text 
+                  className="font-bold text-[13px]"
+                  style={{ color: data.latest_vitals.trend.startsWith('-') ? colors.warningText : colors.successText }}
+                >
                   {data.latest_vitals.trend.startsWith('-') ? '↓ Down' : '↑ Up'} {Math.abs(parseInt(data.latest_vitals.trend))} points this week
                 </Text>
               </View>
@@ -886,14 +880,13 @@ export default function DashboardScreen() {
 
           {/* AI / Clinical Insight banner */}
           {data?.insight && (
-            <View className="w-full bg-blue-50 dark:bg-blue-950/40 rounded-2xl p-4 border border-blue-100 dark:border-blue-900/50 flex-row items-start gap-3 mb-3">
+            <View className="w-full bg-info-tint rounded-2xl p-4 border border-border flex-row items-start gap-3 mb-3">
               <Feather
                 name="activity"
                 size={16}
-                color="#3b82f6" // blue-500
-                style={{ marginTop: 2 }}
+                className="mt-[2px] text-info"
               />
-              <Text className="flex-1 text-[13px] text-blue-700 dark:text-blue-200 leading-relaxed font-bold">
+              <Text className="flex-1 text-[13px] text-info-text leading-relaxed font-bold">
                 {data.insight.body}
               </Text>
             </View>
@@ -926,42 +919,42 @@ export default function DashboardScreen() {
 
         {isCritical ? (
           <View
-            className="mt-5 mb-4 bg-surface-card rounded-3xl p-5 border-0 shadow-sm shadow-slate-200/50 dark:shadow-none"
+            className="mt-5 mb-4 bg-surface rounded-3xl p-5 border-0 shadow-sm shadow-slate-200/50 dark:shadow-none"
           >
-            <View className="flex-row items-center gap-2 mb-2 pb-2 border-b border-slate-100 dark:border-slate-800">
-              <Feather name="shield" size={16} color="#f43f5e" />
-              <Text className="text-[13px] font-bold text-rose-500 uppercase tracking-wider">
+            <View className="flex-row items-center gap-2 mb-2 pb-2 border-b border-border dark:border-borderStrong">
+              <Feather name="shield" size={16} color={colors.danger} />
+              <Text className="text-[13px] font-bold text-danger-text uppercase tracking-wider">
                 Calm Clinical Guidance • Take a Breather
               </Text>
             </View>
-            <Text className="text-[14px] font-bold text-slate-700 dark:text-white mb-1">
+            <Text className="text-[14px] font-bold text-text mb-1">
               Elevated indicators detected. Please don't worry.
             </Text>
-            <Text className="text-[12px] text-slate-500 dark:text-slate-400 leading-relaxed font-medium mb-3">
+            <Text className="text-[12px] text-text-soft leading-relaxed font-medium mb-3">
               A single high reading can be caused by temporary stress, exertion, or caffeine. Follow these steps:
             </Text>
-            <View className="bg-slate-50 dark:bg-slate-800/50 rounded-3xl p-3.5 mb-3.5 gap-2.5 border border-slate-100 dark:border-slate-700/50">
+            <View className="bg-surface-alt dark:bg-surface-alt/50 rounded-3xl p-3.5 mb-3.5 gap-2.5 border border-border dark:border-border">
               <View className="flex-row items-center gap-2.5">
-                <View className="w-5 h-5 rounded-full bg-rose-500/10 items-center justify-center">
-                  <Text className="text-[10px] font-bold text-rose-500">1</Text>
+                <View className="w-5 h-5 rounded-full bg-danger-tint/10 items-center justify-center">
+                  <Text className="text-[10px] font-bold text-danger-text">1</Text>
                 </View>
-                <Text className="text-[12px] text-slate-700 dark:text-slate-300 font-medium flex-1">
+                <Text className="text-[12px] text-text font-medium flex-1">
                   Sit comfortably with your back supported and feet flat.
                 </Text>
               </View>
               <View className="flex-row items-center gap-2.5">
-                <View className="w-5 h-5 rounded-full bg-rose-500/10 items-center justify-center">
-                  <Text className="text-[10px] font-bold text-rose-500">2</Text>
+                <View className="w-5 h-5 rounded-full bg-danger-tint/10 items-center justify-center">
+                  <Text className="text-[10px] font-bold text-danger-text">2</Text>
                 </View>
-                <Text className="text-[12px] text-slate-700 dark:text-slate-300 font-medium flex-1">
+                <Text className="text-[12px] text-text font-medium flex-1">
                   Rest quietly for 5 minutes without talking or using screens.
                 </Text>
               </View>
               <View className="flex-row items-center gap-2.5">
-                <View className="w-5 h-5 rounded-full bg-rose-500/10 items-center justify-center">
-                  <Text className="text-[10px] font-bold text-rose-500">3</Text>
+                <View className="w-5 h-5 rounded-full bg-danger-tint/10 items-center justify-center">
+                  <Text className="text-[10px] font-bold text-danger-text">3</Text>
                 </View>
-                <Text className="text-[12px] text-slate-700 dark:text-slate-300 font-medium flex-1">
+                <Text className="text-[12px] text-text font-medium flex-1">
                   Take a second blood pressure measurement.
                 </Text>
               </View>
@@ -971,18 +964,18 @@ export default function DashboardScreen() {
                 onPress={() => {
                   safeNavigate("/(home)/(health)/log-symptoms");
                 }}
-                className="flex-1 bg-slate-800 dark:bg-slate-700 py-3 px-3 rounded-xl items-center justify-center shadow-sm"
+                className="flex-1 bg-slate-800 dark:bg-surface py-3 px-3 rounded-xl items-center justify-center shadow-sm"
               >
-                <Text className="text-white text-[12.5px] font-bold">Re-test Vitals</Text>
+                <Text className="text-onPrimary text-[12.5px] font-bold">Re-test Vitals</Text>
               </TouchableOpacity>
               <TouchableOpacity activeOpacity={0.8}
                 onPress={() => {
                   safeNavigate("/locator");
                 }}
-                className="flex-1 bg-rose-500 py-3 px-3 rounded-xl items-center justify-center flex-row gap-1.5 shadow-sm"
+                className="flex-1 bg-danger-tint py-3 px-3 rounded-xl items-center justify-center flex-row gap-1.5 shadow-sm"
               >
-                <Feather name="map-pin" size={13} color="#ffffff" />
-                <Text className="text-white text-[12.5px] font-bold">Find Clinic</Text>
+                <Feather name="map-pin" size={13} color={colors.onPrimary} />
+                <Text className="text-onPrimary text-[12.5px] font-bold">Find Clinic</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -997,11 +990,11 @@ export default function DashboardScreen() {
                 }}
               >
                 <Reanimated.View entering={FadeInDown.delay(340).duration(300)} className="flex-row items-center justify-between mb-3 mx-1">
-                  <Text className="text-[16px] font-bold text-slate-900 dark:text-white tracking-tight">
+                  <Text className="text-[16px] font-bold text-text tracking-tight">
                     Recommended for you
                   </Text>
                   <TouchableOpacity>
-                    <Text className="text-[13px] font-bold text-blue-500 dark:text-blue-400">See all</Text>
+                    <Text className="text-[13px] font-bold text-primary">See all</Text>
                   </TouchableOpacity>
                 </Reanimated.View>
                 <ScrollView
@@ -1093,11 +1086,11 @@ export default function DashboardScreen() {
             />
 
             {/* ── Action Links ── */}
-            <Reanimated.View entering={FadeInDown.delay(420).duration(300)} className="bg-surface-card rounded-3xl overflow-hidden shadow-sm shadow-slate-200/50 dark:shadow-none mb-8">
-              <TouchableOpacity activeOpacity={0.75} onPress={() => safeNavigate("/(home)/(tabs)/wrap-up")} className="flex-row items-center justify-between p-5 border-b border-slate-100 dark:border-slate-800">
+            <Reanimated.View entering={FadeInDown.delay(420).duration(300)} className="bg-surface rounded-3xl overflow-hidden shadow-sm shadow-slate-200/50 dark:shadow-none mb-8">
+              <TouchableOpacity activeOpacity={0.75} onPress={() => safeNavigate("/(home)/(tabs)/wrap-up")} className="flex-row items-center justify-between p-5 border-b border-border dark:border-borderStrong">
                 <View className="flex-row items-center gap-3">
                   <Feather name={new Date().getHours() >= 19 ? "moon" : "clipboard"} size={16} color={isDark ? "#cbd5e1" : "#475569"} />
-                  <Text className="text-[14px] font-bold text-slate-900 dark:text-white">
+                  <Text className="text-[14px] font-bold text-text">
                     {new Date().getHours() >= 19 ? "Daily Heart Wrap-Up" : "Doctor consultation"}
                   </Text>
                 </View>
@@ -1106,7 +1099,7 @@ export default function DashboardScreen() {
               <TouchableOpacity activeOpacity={0.75} onPress={() => { setMapVisible(true); Haptics.selectionAsync(); }} className="flex-row items-center justify-between p-5">
                 <View className="flex-row items-center gap-3">
                   <Feather name="map-pin" size={16} color={isDark ? "#cbd5e1" : "#475569"} />
-                  <Text className="text-[14px] font-bold text-slate-900 dark:text-white">Nearest clinic</Text>
+                  <Text className="text-[14px] font-bold text-text">Nearest clinic</Text>
                 </View>
                 <Feather name="chevron-right" size={16} color={isDark ? "#64748b" : "#94a3b8"} />
               </TouchableOpacity>
