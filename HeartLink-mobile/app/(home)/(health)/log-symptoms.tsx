@@ -34,6 +34,7 @@ import { Button } from "../../../components/ui/Button";
 import { ConfirmDialog } from "../../../components/ui/ConfirmDialog";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { postLogAck } from "../../../services/companionCopy";
+import { theme } from "../../../constants/theme";
 const base_url = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
 
 // ─── Types & Constants ────────────────────────────────────────────────────────
@@ -289,14 +290,14 @@ function SeveritySlider({
               width: 28,
               height: 28,
               borderRadius: 14,
-              backgroundColor: "#ffffff",
+              backgroundColor: theme.surface,
               shadowColor: "#000",
               shadowOffset: { width: 0, height: 3 },
               shadowOpacity: 0.12,
               shadowRadius: 5,
               elevation: 4,
               borderWidth: 1,
-              borderColor: "#e2e8f0",
+              borderColor: theme.border,
               alignItems: "center",
               justifyContent: "center",
             }, thumbStyle]}
@@ -304,7 +305,7 @@ function SeveritySlider({
             <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: isTouched === false ? "#ef4444" : primaryColor }} />
             
             {isTouched === false && (
-              <View style={{ position: "absolute", top: -2, right: -2, width: 8, height: 8, borderRadius: 4, backgroundColor: "#ef4444", borderWidth: 1, borderColor: "#fff" }} />
+              <View style={{ position: "absolute", top: -2, right: -2, width: 8, height: 8, borderRadius: 4, backgroundColor: theme.danger, borderWidth: 1, borderColor: "#fff" }} />
             )}
           </Animated.View>
         </View>
@@ -859,7 +860,7 @@ export default function LogSymptomsScreen() {
                   <Text className="text-[10px] font-bold uppercase tracking-wider mt-1" style={{ color: hasRealSymptoms ? primaryThemeColor : (isDark ? "#64748b" : "#94a3b8") }}>{hasRealSymptoms ? getSeverityLabel(maxSeverity) : "Severity"}</Text>
                 </View>
                 <View className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 items-center justify-center shadow-sm">
-                  <MaterialCommunityIcons name={CONTEXT_ICONS[context] as any} size={24} color={isDark ? "#94a3b8" : "#64748b"} style={{ marginBottom: 2 }} />
+                  <MaterialCommunityIcons name={CONTEXT_ICONS[context] as any} size={24} color={theme.textSoft} style={{ marginBottom: 2 }} />
                   <Text className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-0.5 text-center" numberOfLines={1}>{context.replace("While ", "").replace("During ", "")}</Text>
                 </View>
               </Animated.View>
@@ -957,13 +958,13 @@ export default function LogSymptomsScreen() {
               <Animated.View entering={FadeInDown.duration(250)} exiting={FadeOutUp.duration(160)} className="bg-destructive/15 border border-destructive/40 rounded-2xl p-3.5 gap-2">
                 <View className="flex-row items-center justify-between">
                   <View className="flex-row items-center gap-1.5">
-                    <Feather name="alert-triangle" size={15} color="#ef4444" />
+                    <Feather name="alert-triangle" size={15} color={theme.danger} />
                     <Text className="text-xs font-bold text-destructive uppercase tracking-wide">
                       {isSevereHypotension ? "Severe Hypotension (<90/60)" : isHypertensiveCrisis ? "Hypertensive Crisis (≥180/120)" : "Elevated Risk Detected"}
                     </Text>
                   </View>
                   <TouchableOpacity onPress={handleLocateCardiologist} activeOpacity={0.75} className="bg-white dark:bg-slate-900 px-2.5 py-1 rounded-lg border border-destructive/30 flex-row items-center gap-1">
-                    <MaterialCommunityIcons name="map-marker-radius" size={13} color="#ef4444" />
+                    <MaterialCommunityIcons name="map-marker-radius" size={13} color={theme.danger} />
                     <Text className="text-[11px] font-bold text-destructive">Find Cardiologist</Text>
                   </TouchableOpacity>
                 </View>
@@ -989,7 +990,7 @@ export default function LogSymptomsScreen() {
         <View className="flex-1 bg-black/70 justify-center items-center px-5">
           <View className="w-full max-w-sm bg-white dark:bg-slate-900 rounded-3xl p-6 border-2 border-red-500 shadow-2xl">
             <View className="w-14 h-14 rounded-2xl bg-red-100 dark:bg-red-950/80 items-center justify-center mb-4 self-center">
-              <Feather name="alert-triangle" size={28} color="#dc2626" />
+              <Feather name="alert-triangle" size={28} color={theme.dangerMid} />
             </View>
             <Text className="text-[20px] font-black text-slate-900 dark:text-white text-center mb-2 tracking-tight">Critical Vitals Detected</Text>
             <Text className="text-[14px] text-slate-600 dark:text-slate-300 text-center leading-relaxed mb-6 font-medium">
@@ -1001,11 +1002,11 @@ export default function LogSymptomsScreen() {
             </Text>
             <View className="gap-3 w-full">
               <TouchableOpacity activeOpacity={0.85} onPress={() => { setShowEmergencyGuidanceModal(false); router.replace("/locator" as any); }} className="w-full bg-red-600 py-3.5 px-4 rounded-xl flex-row items-center justify-center gap-2 shadow-sm">
-                <Feather name="map-pin" size={16} color="#ffffff" />
+                <Feather name="map-pin" size={16} color={theme.surface} />
                 <Text className="text-white text-[14px] font-bold">Find Nearby Emergency Hospital</Text>
               </TouchableOpacity>
               <TouchableOpacity activeOpacity={0.85} onPress={() => { Linking.openURL("tel:911").catch(() => {}); }} className="w-full bg-slate-900 dark:bg-slate-800 py-3.5 px-4 rounded-xl flex-row items-center justify-center gap-2">
-                <Feather name="phone-call" size={16} color="#ffffff" />
+                <Feather name="phone-call" size={16} color={theme.surface} />
                 <Text className="text-white text-[14px] font-bold">Call Emergency Services (911)</Text>
               </TouchableOpacity>
               <TouchableOpacity activeOpacity={0.7} onPress={() => { setShowEmergencyGuidanceModal(false); router.back(); }} className="w-full py-2.5 items-center justify-center mt-1">

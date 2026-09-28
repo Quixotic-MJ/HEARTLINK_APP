@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { View, Text, TouchableOpacity, ScrollView, Image } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
+import { theme } from "../../constants/theme";
 
 export interface StretchingExerciseActiveProps {
   routine: any;
@@ -26,7 +27,7 @@ export function StretchingExerciseActive({
     : (routine?.duration_minutes || routine?.duration || 10) * 60;
 
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: ReturnType<typeof setInterval>;
     if (isPlaying && elapsedSeconds < totalSeconds) {
       interval = setInterval(() => {
         setElapsedSeconds(prev => prev + 1);
@@ -86,7 +87,7 @@ export function StretchingExerciseActive({
              onPress={onClose} 
              className="w-10 h-10 rounded-full bg-slate-200 items-center justify-center"
            >
-             <Feather name="x" size={20} color="#0f172a" />
+             <Feather name="x" size={20} color={theme.ink} />
            </TouchableOpacity>
            
            {/* Title */}
@@ -101,7 +102,7 @@ export function StretchingExerciseActive({
            
            {/* Info Toggle */}
            <TouchableOpacity className="w-10 h-10 rounded-full bg-slate-200 items-center justify-center">
-             <Feather name="info" size={18} color="#0f172a" />
+             <Feather name="info" size={18} color={theme.ink} />
            </TouchableOpacity>
         </View>
         
@@ -123,7 +124,7 @@ export function StretchingExerciseActive({
                 />
              ) : (
                 <View className="items-center justify-center opacity-70">
-                   <Feather name="activity" size={48} color="#0284c7" />
+                   <Feather name="activity" size={48} color={theme.skyMid} />
                 </View>
              )}
           </View>
@@ -149,7 +150,7 @@ export function StretchingExerciseActive({
         {/* Controls */}
         <View className="flex-row items-center justify-center gap-8 mb-12">
           <TouchableOpacity className="w-12 h-12 rounded-full bg-slate-100 items-center justify-center">
-            <Feather name="rewind" size={20} color="#64748b" />
+            <Feather name="rewind" size={20} color={theme.textSoft} />
           </TouchableOpacity>
           <TouchableOpacity 
             onPress={() => setIsPlaying(!isPlaying)}
@@ -165,7 +166,7 @@ export function StretchingExerciseActive({
             )}
           </TouchableOpacity>
           <TouchableOpacity className="w-12 h-12 rounded-full bg-slate-100 items-center justify-center">
-            <Feather name="fast-forward" size={20} color="#64748b" />
+            <Feather name="fast-forward" size={20} color={theme.textSoft} />
           </TouchableOpacity>
         </View>
       </ScrollView>

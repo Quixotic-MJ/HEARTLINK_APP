@@ -30,6 +30,7 @@ import * as z from "zod";
 import { InputField } from "../../components/ui/InputField";
 import { Button } from "../../components/ui/Button";
 import { SimpleHeader } from "../../components/ui/SimpleHeader";
+import { theme } from "../../constants/theme";
 
 const loginSchema = z.object({
   identifier: z.string().min(1, "Please enter your email or phone number."),
@@ -194,10 +195,10 @@ export default function AuthScreen() {
         >
           {/* ── Heading ── */}
           <Animated.View entering={FadeIn.delay(100)} className="mb-6 px-1">
-            <Text className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white tracking-tight leading-tight mb-2">
+            <Text className="text-3xl sm:text-4xl font-bold text-text tracking-tight leading-tight mb-2">
               Welcome back.
             </Text>
-            <Text className="text-sm sm:text-base text-slate-600 dark:text-slate-400 leading-relaxed font-medium">
+            <Text className="text-sm sm:text-base text-text-soft leading-relaxed font-medium">
               Sign in to check your daily health stability score and routine.
             </Text>
           </Animated.View>
@@ -205,7 +206,7 @@ export default function AuthScreen() {
           {/* ── Card ── */}
           <Animated.View
             entering={FadeInDown.delay(200).springify().damping(12).stiffness(90)}
-            className="bg-white dark:bg-[#101615] rounded-2xl border border-slate-200 dark:border-slate-800 px-5 py-6 gap-4 shadow-sm shadow-slate-100 dark:shadow-none"
+            className="bg-surface dark:bg-[#101615] rounded-2xl border border-border px-5 py-6 gap-4 shadow-sm shadow-slate-100 dark:shadow-none"
           >
             {/* Inputs Section */}
             <View className="gap-3">
@@ -278,7 +279,7 @@ export default function AuthScreen() {
                 accessible={true}
                 accessibilityRole="alert"
               >
-                <Feather name="alert-triangle" size={16} className="text-red-600 dark:text-red-400" />
+                <Feather name="alert-triangle" size={16} color={theme.danger} />
                 <Text className="text-red-600 dark:text-red-400 text-xs sm:text-sm font-medium flex-1 leading-snug">
                   {globalError}
                 </Text>
@@ -306,10 +307,10 @@ export default function AuthScreen() {
               accessible={true}
               accessibilityRole="button"
             >
-              <Text className="text-sm font-medium text-slate-500 dark:text-slate-400">
+              <Text className="text-sm font-medium text-text-soft">
                 Don't have an account?
               </Text>
-              <Text className="text-sm font-bold text-slate-900 dark:text-white">
+              <Text className="text-sm font-bold text-text">
                 Sign up
               </Text>
             </TouchableOpacity>

@@ -13,6 +13,7 @@ import * as Haptics from "expo-haptics";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import Svg, { Defs, Mask, Rect, Path, G } from "react-native-svg";
+import { theme } from "../../constants/theme";
 
 interface TutorialStep {
   id: string;
@@ -189,7 +190,7 @@ export function DashboardTutorialModal({
           <Reanimated.View
             entering={FadeIn.duration(240)}
             key={step.id}
-            className="w-full bg-white dark:bg-[#1A2634] border-t border-white/20 dark:border-slate-700 shadow-2xl rounded-t-[32px] px-6 pt-6 pb-12"
+            className="w-full bg-surface dark:bg-surface-alt border-t border-white/20 dark:border-slate-700 shadow-2xl rounded-t-[32px] px-6 pt-6 pb-12"
             style={{
               shadowColor: "#000",
               shadowOffset: { width: 0, height: 10 },
@@ -200,10 +201,10 @@ export function DashboardTutorialModal({
           >
             {/* Header Row: Badge & Skip Button */}
             <View className="flex-row items-center justify-between mb-3.5 w-full">
-              <View className="flex-row items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#0284c7]/10 dark:bg-[#38bdf8]/20 border border-[#0284c7]/20 dark:border-[#38bdf8]/20 flex-shrink mr-2">
+              <View className="flex-row items-center gap-1.5 px-2.5 py-1 rounded-full bg-sky-mid/10 dark:bg-sky/20 border border-sky-mid/20 dark:border-sky/20 flex-shrink mr-2">
                 <Feather name={step.icon} size={11} color={isDark ? "#38bdf8" : "#0284c7"} />
                 <Text
-                  className="text-[10.5px] font-bold text-[#0284c7] dark:text-[#38bdf8] uppercase tracking-wider flex-shrink"
+                  className="text-[10.5px] font-bold text-sky-mid dark:text-sky uppercase tracking-wider flex-shrink"
                   numberOfLines={1}
                   adjustsFontSizeToFit
                 >
@@ -216,22 +217,22 @@ export function DashboardTutorialModal({
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 className="py-1 flex-shrink-0"
               >
-                <Text className="text-[12px] font-semibold text-[#5C6B66] dark:text-slate-400">
+                <Text className="text-[12px] font-semibold text-text-soft dark:text-text-muted">
                   Skip Tour
                 </Text>
               </TouchableOpacity>
             </View>
 
             {/* Title & Description */}
-            <Text className="text-[19px] font-bold text-[#152131] dark:text-white tracking-tight mb-2">
+            <Text className="text-[19px] font-bold text-text dark:text-white tracking-tight mb-2">
               {step.title}
             </Text>
-            <Text className="text-[13.5px] text-[#5C6B66] dark:text-slate-300 leading-relaxed mb-6 font-medium">
+            <Text className="text-[13.5px] text-text-soft dark:text-slate-300 leading-relaxed mb-6 font-medium">
               {step.description}
             </Text>
 
             {/* Bottom Bar: Dots Pagination & Navigation Actions */}
-            <View className="flex-row items-center justify-between pt-2 border-t border-[#DCE3DF]/70 dark:border-slate-800">
+            <View className="flex-row items-center justify-between pt-2 border-t border-border/70 dark:border-slate-800">
               {/* Step Dots (Active dot is elongated pill) */}
               <View className="flex-row items-center gap-1.5">
                 {TUTORIAL_STEPS.map((_, idx) => {
@@ -240,8 +241,8 @@ export function DashboardTutorialModal({
                     <View
                       key={idx}
                       className={`h-2 rounded-full transition-all ${isActive
-                          ? "w-6 bg-[#0ea5e9] dark:bg-[#38bdf8]"
-                          : "w-2 bg-[#DCE3DF] dark:bg-slate-700"
+                          ? "w-6 bg-sky dark:bg-sky"
+                          : "w-2 bg-border dark:bg-slate-700"
                         }`}
                     />
                   );
@@ -256,7 +257,7 @@ export function DashboardTutorialModal({
                     onPress={handleBack}
                     className="px-3 py-2 mr-2"
                   >
-                    <Text className="text-[14px] font-bold text-[#5C6B66] dark:text-slate-300">
+                    <Text className="text-[14px] font-bold text-text-soft dark:text-slate-300">
                       &lt; Back
                     </Text>
                   </TouchableOpacity>
@@ -265,12 +266,12 @@ export function DashboardTutorialModal({
                 <TouchableOpacity
                   activeOpacity={0.85}
                   onPress={handleNext}
-                  className="px-5 py-2.5 rounded-xl bg-[#0ea5e9] flex-row items-center gap-1.5 shadow-xs"
+                  className="px-5 py-2.5 rounded-xl bg-sky flex-row items-center gap-1.5 shadow-xs"
                 >
                   <Text className="text-[13px] font-bold text-white">
                     {isLastStep ? "Got it!" : "Next"}
                   </Text>
-                  {!isLastStep && <Feather name="chevron-right" size={14} color="#ffffff" />}
+                  {!isLastStep && <Feather name="chevron-right" size={14} color={theme.onPrimary} />}
                 </TouchableOpacity>
               </View>
             </View>

@@ -47,12 +47,11 @@ function SettingsRow({
       accessible={true}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel || label}
-      className={`flex-row items-center py-4 ${!isLast ? "border-b border-slate-100 dark:border-slate-800/60" : ""}`}
+      className={`flex-row items-center py-4 ${!isLast ? "border-b border-border dark:border-slate-800/60" : ""}`}
     >
       {/* Icon bubble */}
       <View
-        className="w-10 h-10 rounded-2xl items-center justify-center mr-3.5 border border-slate-200/80 dark:border-slate-800/60"
-        style={{ backgroundColor: iconBg }}
+        className="w-10 h-10 rounded-2xl items-center justify-center mr-3.5 border border-border/80 dark:border-slate-800/60"
       >
         {iconType === "material" ? (
           <MaterialCommunityIcons name={icon as any} size={20} color={iconColor} />
@@ -65,13 +64,13 @@ function SettingsRow({
       <View className="flex-1 pr-3">
         <Text
           className={`text-[15px] font-bold tracking-tight ${
-            danger ? "text-red-600 dark:text-red-400" : "text-slate-900 dark:text-white"
+            danger ? "text-red-600 dark:text-red-400" : "text-text"
           }`}
         >
           {label}
         </Text>
         {subtitle && (
-          <Text className={`text-[12px] mt-0.5 leading-snug ${danger ? "text-red-500 dark:text-red-400/80" : "text-slate-500 dark:text-slate-400"}`}>
+          <Text className={`text-[12px] mt-0.5 leading-snug ${danger ? "text-red-500 dark:text-red-400/80" : "text-text-soft"}`}>
             {subtitle}
           </Text>
         )}
@@ -86,7 +85,7 @@ function SettingsRow({
 
 function SectionLabel({ title }: { title: string }) {
   return (
-    <Text className="text-[11px] text-slate-500 dark:text-slate-400 uppercase font-bold tracking-widest mb-2 mt-5 px-1">
+    <Text className="text-[11px] text-text-soft uppercase font-bold tracking-widest mb-2 mt-5 px-1">
       {title}
     </Text>
   );
@@ -96,7 +95,7 @@ function SectionLabel({ title }: { title: string }) {
 
 function SettingsGroup({ children, className }: { children: React.ReactNode, className?: string }) {
   return (
-    <View className={`bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800/60 px-4 shadow-sm shadow-slate-100 dark:shadow-none ${className || ""}`}>
+    <View className={`bg-surface rounded-3xl border border-border/80 dark:border-slate-800/60 px-4 shadow-sm shadow-slate-100 dark:shadow-none ${className || ""}`}>
       {children}
     </View>
   );
@@ -118,21 +117,21 @@ export default function SettingsScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-surface-alt" edges={["top"]}>
       <StatusBar style="dark" />
 
       {/* Header */}
-      <View className="flex-row items-center px-5 pt-4 pb-3 border-b border-slate-200 dark:border-slate-800/60 bg-white dark:bg-slate-900">
+      <View className="flex-row items-center px-5 pt-4 pb-3 border-b border-border bg-surface">
         <TouchableOpacity
           onPress={() => router.back()}
           accessible={true}
           accessibilityRole="button"
           accessibilityLabel="Go back"
-          className="w-9 h-9 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 items-center justify-center mr-3"
+          className="w-9 h-9 rounded-xl bg-surface-alt border border-border items-center justify-center mr-3"
         >
           <Feather name="arrow-left" size={18} color={isDark ? "#f8fafc" : "#0f172a"} />
         </TouchableOpacity>
-        <Text className="text-[18px] font-semibold text-slate-900 dark:text-white tracking-tight">
+        <Text className="text-[18px] font-semibold text-text tracking-tight">
           Settings
         </Text>
       </View>

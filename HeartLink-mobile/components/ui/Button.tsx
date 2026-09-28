@@ -3,6 +3,9 @@ import { Text, ActivityIndicator, Pressable, PressableProps, Platform } from "re
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, Easing } from "react-native-reanimated";
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import { useColorScheme } from "nativewind";
+import { Colors } from "../../constants/theme";
+import { theme } from "../../constants/theme";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -43,23 +46,31 @@ export function Button({
     if (props.onPressOut) props.onPressOut(e);
   };
 
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === "dark";
+  const theme = isDark ? Colors.dark : Colors.light;
+
   const isDisabled = props.disabled || isLoading;
   const isPrimary = variant === "primary";
   const isDestructive = variant === "destructive";
 
   const buttonBg = isDestructive
-    ? "w-full rounded-2xl py-4 flex-row justify-center items-center gap-2 bg-red-600 shadow-sm"
+    ? "w-full rounded-2xl py-4 flex-row justify-center items-center gap-2 bg-danger-solid shadow-sm"
     : isPrimary
-    ? "w-full rounded-2xl py-4 flex-row justify-center items-center gap-2 bg-[#2E9AE8] dark:bg-[#6EC1F5] shadow-sm shadow-blue-500/20 dark:shadow-none"
-    : "w-full rounded-2xl py-4 flex-row justify-center items-center gap-2 bg-transparent border border-slate-200 dark:border-slate-800";
+    ? "w-full rounded-2xl py-4 flex-row justify-center items-center gap-2 bg-primary shadow-sm shadow-blue-500/20 dark:shadow-none"
+    : "w-full rounded-2xl py-4 flex-row justify-center items-center gap-2 bg-transparent border border-border";
 
-  const textColor = isDestructive || isPrimary
-    ? "text-sm font-bold text-white dark:text-slate-900 tracking-wide"
-    : "text-sm font-bold text-slate-900 dark:text-white";
+  const textColor = isDestructive
+    ? "text-sm font-bold text-on-danger tracking-wide"
+    : isPrimary
+    ? "text-sm font-bold text-on-primary tracking-wide"
+    : "text-sm font-bold text-text";
 
-  // Use a hack to allow dynamic icon coloring for dark mode by providing the string color
-  // In a real app we might use a hook to get the color scheme.
-  const iconColor = isDestructive || isPrimary ? "#ffffff" : undefined;
+  const iconColor = isDestructive
+    ? theme.onDanger
+    : isPrimary
+    ? theme.onPrimary
+    : theme.text;
 
   return (
     <AnimatedPressable
@@ -75,7 +86,7 @@ export function Button({
     >
       {isLoading ? (
         <>
-          <ActivityIndicator size="small" color="#fff" />
+          <ActivityIndicator size="small" color={iconColor} />
           <Text className={textColor}>
             {loadingText || label}
           </Text>

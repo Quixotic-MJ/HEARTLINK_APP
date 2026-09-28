@@ -20,6 +20,7 @@ import { useUser } from "../../../contexts/UserContext";
 import { queueMealForSync } from "../../../services/SyncService";
 import { useToast } from "../../../contexts/ToastContext";
 import { useQueryClient } from "@tanstack/react-query";
+import { theme } from "../../../constants/theme";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -46,20 +47,14 @@ function NutritionPill({
   return (
     <View
       className="flex-1 rounded-2xl px-1 py-3 items-center justify-center border"
-      style={{
-        backgroundColor: isDark ? "#162232" : "#F8FAFC",
-        borderColor: isDark ? "#1E293B" : "#E2E8F0",
-      }}
     >
       <Text
         className="text-[14px] font-bold mb-1"
-        style={{ color: highlight ? "#EF4444" : (isDark ? "#FFFFFF" : "#0F172A") }}
       >
         {value}
       </Text>
       <Text 
-        className="text-[9px] font-bold uppercase tracking-widest text-center"
-        style={{ color: isDark ? "#94A3B8" : "#64748B" }}
+        className="text-[9px] font-bold uppercase tracking-widest text-center text-text-soft"
         numberOfLines={1}
         adjustsFontSizeToFit
       >
@@ -249,7 +244,7 @@ export default function RecipeDetailsScreen() {
 
   if (isLoading || !recipe) {
     return (
-      <View className="flex-1 bg-white dark:bg-slate-900 justify-center items-center">
+      <View className="flex-1 bg-surface justify-center items-center">
         <Text>Loading...</Text>
       </View>
     );
@@ -313,7 +308,7 @@ export default function RecipeDetailsScreen() {
   };
 
   return (
-    <View className="flex-1 bg-white dark:bg-slate-900">
+    <View className="flex-1 bg-surface">
       <StatusBar style="dark" />
 
       {/* Header (Absolute position over scrollview) */}
@@ -323,14 +318,14 @@ export default function RecipeDetailsScreen() {
       >
         <TouchableOpacity
           onPress={() => router.back()}
-          className="w-10 h-10 rounded-full bg-white/90 dark:bg-slate-900/90 items-center justify-center shadow-sm"
+          className="w-10 h-10 rounded-full bg-surface/90 dark:bg-slate-900/90 items-center justify-center shadow-sm"
         >
           <Feather name="arrow-left" size={20} color={isDark ? "#f8fafc" : "#0f172a"} />
         </TouchableOpacity>
         
         <TouchableOpacity
           onPress={handleToggleSave}
-          className="w-10 h-10 rounded-full bg-white/90 dark:bg-slate-900/90 items-center justify-center shadow-sm"
+          className="w-10 h-10 rounded-full bg-surface/90 dark:bg-slate-900/90 items-center justify-center shadow-sm"
           accessibilityLabel={isSaved ? "Remove from saved recipes" : "Save recipe"}
         >
           <Feather
@@ -348,8 +343,8 @@ export default function RecipeDetailsScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Hero Image */}
-        <View className="w-full h-80 bg-slate-100 dark:bg-slate-800 relative items-center justify-center">
-          <MaterialCommunityIcons name="silverware-fork-knife" size={48} className="text-slate-300 dark:text-slate-700 absolute" />
+        <View className="w-full h-80 bg-surface-alt relative items-center justify-center">
+          <MaterialCommunityIcons name="silverware-fork-knife" size={48} color={theme.borderStrong} />
           {!!recipe.image && (
             <Image
               source={{ uri: recipe.image }}
@@ -362,7 +357,6 @@ export default function RecipeDetailsScreen() {
           
           <View
             className="absolute bottom-4 left-5 flex-row items-center gap-1 px-2.5 py-1 rounded-lg"
-            style={{ backgroundColor: "rgba(0,0,0,0.55)" }}
           >
             <Feather name="clock" size={11} color="rgba(255,255,255,0.9)" />
             <Text className="text-white text-[11px]">
@@ -371,11 +365,9 @@ export default function RecipeDetailsScreen() {
           </View>
           <View
             className="absolute bottom-4 right-5 px-2.5 py-1 rounded-lg"
-            style={{ backgroundColor: (DIFFICULTY_CONFIG as any)[recipe.difficulty]?.bg || "#eaf3de" }}
           >
             <Text
               className="text-[10px] font-medium uppercase tracking-wide"
-              style={{ color: (DIFFICULTY_CONFIG as any)[recipe.difficulty]?.text || "#3b6d11" }}
             >
               {recipe.difficulty}
             </Text>
@@ -385,18 +377,18 @@ export default function RecipeDetailsScreen() {
         {/* Title & Tags */}
         <View className="px-5 pt-8 pb-6">
           {recipe.expertValidated && (
-            <View className="flex-row items-center gap-1.5 px-3 py-1.5 rounded-full self-start mb-4" style={{ backgroundColor: isDark ? "#0A2411" : "#DCFCE7" }}>
-              <MaterialCommunityIcons name="check-decagram-outline" size={14} color="#22C55E" />
-              <Text className="text-[11px] font-bold" style={{ color: "#22C55E" }}>
+            <View className="flex-row items-center gap-1.5 px-3 py-1.5 rounded-full self-start mb-4">
+              <MaterialCommunityIcons name="check-decagram-outline" size={14} color={theme.success} />
+              <Text className="text-[11px] font-bold">
                 Clinical nutritionist verified
               </Text>
             </View>
           )}
 
-          <Text className="text-[32px] font-bold text-slate-900 dark:text-white leading-tight mb-3">
+          <Text className="text-[32px] font-bold text-text leading-tight mb-3">
             {recipe.title}
           </Text>
-          <Text className="text-[16px] text-slate-500 dark:text-slate-400 mb-6 leading-relaxed">
+          <Text className="text-[16px] text-text-soft mb-6 leading-relaxed">
             {recipe.subtitle}
           </Text>
 
@@ -405,15 +397,9 @@ export default function RecipeDetailsScreen() {
               <View
                 key={tag}
                 className="px-3 py-1 rounded-full"
-                style={{
-                  backgroundColor: tag === "Low Sodium" ? (isDark ? "#0A2411" : "#DCFCE7") : (isDark ? "#1E293B" : "#F1F5F9"),
-                }}
               >
                 <Text
                   className="text-[10px] font-bold"
-                  style={{
-                    color: tag === "Low Sodium" ? "#22C55E" : (isDark ? "#FFFFFF" : "#0F172A"),
-                  }}
                 >
                   {tag}
                 </Text>
@@ -422,16 +408,16 @@ export default function RecipeDetailsScreen() {
           </View>
 
           {/* Servings Multiplier */}
-          <View className="flex-row items-center justify-between p-4 rounded-2xl mb-4" style={{ backgroundColor: isDark ? "#162232" : "#F8FAFC" }}>
+          <View className="flex-row items-center justify-between p-4 rounded-2xl mb-4">
             <View>
-              <Text className="text-[14px] font-bold mb-1" style={{ color: isDark ? "#FFFFFF" : "#0F172A" }}>
+              <Text className="text-[14px] font-bold mb-1 text-text">
                 Servings
               </Text>
-              <Text className="text-[12px]" style={{ color: isDark ? "#94A3B8" : "#64748B" }}>
+              <Text className="text-[12px] text-text-soft">
                 Adjust to see exact macros
               </Text>
             </View>
-            <View className="flex-row items-center rounded-xl px-2 py-1.5 gap-4" style={{ backgroundColor: isDark ? "#0F172A" : "#F1F5F9" }}>
+            <View className="flex-row items-center rounded-xl px-2 py-1.5 gap-4">
               <TouchableOpacity
                 onPress={() =>
                   setServingsMultiplier(Math.max(0.5, servingsMultiplier - 0.5))
@@ -440,7 +426,7 @@ export default function RecipeDetailsScreen() {
               >
                 <Feather name="minus" size={16} color={isDark ? "#FFFFFF" : "#0F172A"} />
               </TouchableOpacity>
-              <Text className="text-[15px] font-bold w-7 text-center" style={{ color: isDark ? "#FFFFFF" : "#0F172A" }}>
+              <Text className="text-[15px] font-bold w-7 text-center text-text">
                 {servingsMultiplier}
               </Text>
               <TouchableOpacity
@@ -455,18 +441,18 @@ export default function RecipeDetailsScreen() {
 
         {/* ── Heart Benefit ── */}
         <View className="px-5 mb-6">
-          <View className="rounded-2xl p-4 flex-row items-start gap-3" style={{ backgroundColor: isDark ? "#0A2411" : "#DCFCE7" }}>
+          <View className="rounded-2xl p-4 flex-row items-start gap-3">
             <Feather
               name="heart"
               size={18}
-              color="#22C55E"
+              color={theme.success}
               className="mt-0.5"
             />
             <View className="flex-1">
-              <Text className="text-[14px] font-bold mb-1" style={{ color: "#22C55E" }}>
+              <Text className="text-[14px] font-bold mb-1">
                 Why it's good
               </Text>
-              <Text className="text-[13px] leading-tight" style={{ color: "#22C55E" }}>
+              <Text className="text-[13px] leading-tight">
                 {recipe.heartBenefit}
               </Text>
             </View>
@@ -475,7 +461,7 @@ export default function RecipeDetailsScreen() {
 
         {/* ── Macros ── */}
         <View className="px-5 mb-6">
-          <Text className="text-[18px] font-bold text-slate-900 dark:text-white mb-4">
+          <Text className="text-[18px] font-bold text-text mb-4">
             Nutrition Breakdown
           </Text>
           <View className="flex-row gap-2">
@@ -495,18 +481,18 @@ export default function RecipeDetailsScreen() {
           </View>
 
           {isHighSodium && (
-            <View className="mt-4 p-4 rounded-xl flex-row items-start gap-3" style={{ backgroundColor: isDark ? "#450A0A" : "#FEE2E2" }}>
+            <View className="mt-4 p-4 rounded-xl flex-row items-start gap-3">
               <Feather
                 name="alert-triangle"
                 size={18}
-                color="#EF4444"
+                color={theme.danger}
                 className="mt-0.5"
               />
               <View className="flex-1">
-                <Text className="text-[14px] font-bold mb-1" style={{ color: isDark ? "#FCA5A5" : "#991B1B" }}>
+                <Text className="text-[14px] font-bold mb-1">
                   Exceeds your per-meal sodium limit
                 </Text>
-                <Text className="text-[13px] leading-tight" style={{ color: isDark ? "#FECACA" : "#7F1D1D" }}>
+                <Text className="text-[13px] leading-tight">
                   Based on your baseline, this portion exceeds your recommended
                   per-meal sodium limit.
                 </Text>
@@ -517,7 +503,7 @@ export default function RecipeDetailsScreen() {
 
         {/* ── Tabs ── */}
         <View className="px-5 mt-2">
-          <View className="flex-row p-1 rounded-xl mb-4" style={{ backgroundColor: isDark ? "#162232" : "#F1F5F9" }}>
+          <View className="flex-row p-1 rounded-xl mb-4 bg-surface-alt">
             <TouchableOpacity
               onPress={() => setActiveTab("Ingredients")}
               className="flex-1 py-2.5 items-center rounded-lg"
@@ -529,9 +515,6 @@ export default function RecipeDetailsScreen() {
             >
               <Text
                 className="text-[13px] font-bold"
-                style={{
-                  color: activeTab === "Ingredients" ? (isDark ? "#FFFFFF" : "#0F172A") : (isDark ? "#94A3B8" : "#64748B"),
-                }}
               >
                 Ingredients
               </Text>
@@ -547,9 +530,6 @@ export default function RecipeDetailsScreen() {
             >
               <Text
                 className="text-[13px] font-bold"
-                style={{
-                  color: activeTab === "Instructions" ? (isDark ? "#FFFFFF" : "#0F172A") : (isDark ? "#94A3B8" : "#64748B"),
-                }}
               >
                 Instructions
               </Text>
@@ -569,10 +549,10 @@ export default function RecipeDetailsScreen() {
                   }
                 >
                   <View className="flex-1 flex-row">
-                    <Text className="text-[14px] font-bold w-24" style={{ color: isDark ? "#FFFFFF" : "#0F172A" }}>
+                    <Text className="text-[14px] font-bold w-24 text-text">
                       {ing.qty}
                     </Text>
-                    <Text className="text-[14px] flex-1 leading-relaxed" style={{ color: isDark ? "#CBD5E1" : "#475569" }}>
+                    <Text className="text-[14px] flex-1 leading-relaxed">
                       {ing.item}
                     </Text>
                   </View>
@@ -589,19 +569,18 @@ export default function RecipeDetailsScreen() {
                     {!isLast && (
                       <View 
                         className="absolute left-[11px] top-8 bottom-[-24px] w-[2px]" 
-                        style={{ backgroundColor: isDark ? "#1E293B" : "#E2E8F0" }} 
                       />
                     )}
                     
                     {/* Step Node */}
                     <View className="mr-4 mt-0.5 relative z-10">
                       {isLast ? (
-                        <View className="w-6 h-6 rounded-full items-center justify-center" style={{ backgroundColor: isDark ? "#0A2411" : "#DCFCE7" }}>
-                          <Feather name="check" size={14} color="#22C55E" />
+                        <View className="w-6 h-6 rounded-full items-center justify-center">
+                          <Feather name="check" size={14} color={theme.success} />
                         </View>
                       ) : (
-                        <View className="w-6 h-6 rounded-full items-center justify-center" style={{ backgroundColor: isDark ? "#FFFFFF" : "#0F172A" }}>
-                          <Text className="text-[12px] font-bold" style={{ color: isDark ? "#0F172A" : "#FFFFFF" }}>
+                        <View className="w-6 h-6 rounded-full items-center justify-center">
+                          <Text className="text-[12px] font-bold">
                             {i + 1}
                           </Text>
                         </View>
@@ -610,7 +589,7 @@ export default function RecipeDetailsScreen() {
 
                     {/* Step Text */}
                     <View className="flex-1 pt-1">
-                      <Text className="text-[15px] font-bold leading-relaxed" style={{ color: isDark ? "#FFFFFF" : "#0F172A" }}>
+                      <Text className="text-[15px] font-bold leading-relaxed text-text">
                         {step}
                       </Text>
                     </View>
@@ -623,8 +602,8 @@ export default function RecipeDetailsScreen() {
       </ScrollView>
 
       {/* ── Sticky Bottom Button ── */}
-      <View style={{ paddingBottom: Math.max(insets.bottom, 20) }} className="absolute bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 px-5 pt-4 pb-6 shadow-[0_-10px_20px_rgba(0,0,0,0.05)]">
-         <View className={`w-full rounded-xl ${isLogged ? "bg-slate-100 dark:bg-slate-800" : "bg-[#38BDF8]"}`}>
+      <View style={{ paddingBottom: Math.max(insets.bottom, 20) }} className="absolute bottom-0 left-0 right-0 bg-surface border-t border-border dark:border-slate-800 px-5 pt-4 pb-6 shadow-[0_-10px_20px_rgba(0,0,0,0.05)]">
+         <View className={`w-full rounded-xl ${isLogged ? "bg-surface-alt" : "bg-blue"}`}>
            <TouchableOpacity 
              activeOpacity={0.85}
              onPress={handleLogMeal}
@@ -632,12 +611,12 @@ export default function RecipeDetailsScreen() {
              className="w-full py-4 rounded-xl items-center justify-center flex-row gap-2"
            >
              {isLogged ? (
-               <MaterialCommunityIcons name="check-all" size={18} className="text-slate-400 dark:text-slate-500" />
+               <MaterialCommunityIcons name="check-all" size={18} color={theme.textMuted} />
              ) : (
-               <Feather name="check" size={18} color="#FFFFFF" />
+               <Feather name="check" size={18} color={theme.onPrimary} />
              )}
              <Text 
-               className={`text-[14px] font-semibold ${isLogged ? "text-slate-400 dark:text-slate-500" : "text-white"}`}
+               className={`text-[14px] font-semibold ${isLogged ? "text-text-muted dark:text-text-soft" : "text-white"}`}
              >
                {isLogged ? "Logged Today" : isSubmitting ? "Logging..." : "Log This Meal"}
              </Text>

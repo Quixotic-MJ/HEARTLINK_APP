@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, Image } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons, Feather } from "@expo/vector-icons";
+import { theme } from "../../constants/theme";
 
 /**
  * RecommendationCard — collapsed state of the ExpandableProfileCard blueprint:
@@ -46,8 +47,7 @@ export function RecommendationCard({
       accessible={true}
       accessibilityRole="button"
       accessibilityLabel={`${tag} recommendation: ${title}. ${subtitle}. Tap to view details.`}
-      className="flex-1 rounded-3xl overflow-hidden border border-slate-100 dark:border-slate-800 shadow-xs"
-      style={{ backgroundColor: bg || "#14532d" }}
+      className="flex-1 rounded-3xl overflow-hidden border border-border dark:border-slate-800 shadow-xs"
     >
       {/* Cover: photo when the backend provides one, fallback photo for EXERCISE, glyph watermark otherwise */}
       {image ? (
@@ -71,7 +71,7 @@ export function RecommendationCard({
             opacity: 0.22,
           }}
         >
-          <MaterialCommunityIcons name={icon as any} size={130} color="#ffffff" />
+          <MaterialCommunityIcons name={icon as any} size={130} color={theme.onPrimary} />
         </View>
       )}
 
@@ -86,11 +86,9 @@ export function RecommendationCard({
       <View className="flex-1 justify-end p-3.5">
         <View
           className="self-start px-2 py-0.5 rounded-md mb-1.5"
-          style={{ backgroundColor: tagBg || "rgba(255,255,255,0.14)" }}
         >
           <Text
             className="text-[10px] font-bold uppercase tracking-wider"
-            style={{ color: tagText || "rgba(255,255,255,0.85)" }}
             numberOfLines={1}
           >
             {tag}
@@ -105,13 +103,12 @@ export function RecommendationCard({
         <View className="flex-row items-center justify-between mt-1">
           <Text
             className="text-[11px] font-semibold flex-1 mr-2"
-            style={{ color: subColor || "rgba(255,255,255,0.75)" }}
             numberOfLines={1}
           >
             {subtitle}
           </Text>
-          <View className="w-6 h-6 rounded-full bg-white/20 border border-white/30 items-center justify-center">
-            <Feather name="arrow-up-right" size={12} color="#fff" />
+          <View className="w-6 h-6 rounded-full bg-surface/20 border border-white/30 items-center justify-center">
+            <Feather name="arrow-up-right" size={12} color={theme.onPrimary} />
           </View>
         </View>
       </View>

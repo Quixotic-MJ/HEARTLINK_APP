@@ -12,6 +12,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useColorScheme } from "nativewind";
 import * as Haptics from "expo-haptics";
+import { theme } from "../../constants/theme";
 
 interface ScoreExplanationModalProps {
   visible: boolean;
@@ -238,20 +239,20 @@ export function ScoreExplanationModal({
           <View {...panResponder.panHandlers}>
             {/* Grab Pill */}
             <View className="items-center pt-3 pb-2">
-              <View className="w-10 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700" />
+              <View className="w-10 h-1.5 rounded-full bg-border-strong" />
             </View>
 
             {/* Header Row */}
             <View className="flex-row items-center justify-between px-6 pb-4">
               <View className="flex-row items-center gap-3">
-                <View className="w-10 h-10 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/20 items-center justify-center">
+                <View className="w-10 h-10 rounded-xl bg-success-tint0/10 dark:bg-success-tint0/20 items-center justify-center">
                   <Feather name="activity" size={20} color={isDark ? "#34d399" : "#10b981"} />
                 </View>
                 <View>
-                  <Text className="text-[18px] font-bold text-slate-900 dark:text-white tracking-tight">
+                  <Text className="text-[18px] font-bold text-text tracking-tight">
                     Your Heart Score
                   </Text>
-                  <Text className="text-[12px] font-medium text-slate-500 dark:text-slate-400">
+                  <Text className="text-[12px] font-medium text-text-soft">
                     Daily stability guide
                   </Text>
                 </View>
@@ -265,7 +266,7 @@ export function ScoreExplanationModal({
                 accessibilityRole="button"
                 accessibilityLabel="Close"
                 hitSlop={10}
-                className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 items-center justify-center"
+                className="w-9 h-9 rounded-full bg-surface-alt border border-border items-center justify-center"
               >
                 <Feather name="x" size={17} color={isDark ? "#94a3b8" : "#64748b"} />
               </TouchableOpacity>
@@ -330,7 +331,7 @@ export function ScoreExplanationModal({
 
                     {/* Score Meter */}
                     <View className="mt-5 mb-2.5">
-                      <View className="h-1.5 rounded-full bg-white/20 overflow-hidden">
+                      <View className="h-1.5 rounded-full bg-surface/20 overflow-hidden">
                         <View
                           style={{
                             width: `${Math.min(100, Math.max(6, score))}%`,
@@ -356,14 +357,14 @@ export function ScoreExplanationModal({
                   </LinearGradient>
                 ) : (
                   /* Rare Fallback: Offline / Network Sync Error */
-                  <View className="bg-slate-50 dark:bg-slate-800/50 rounded-3xl p-6 border border-slate-100 dark:border-slate-700/50 items-center">
-                    <View className="w-14 h-14 rounded-full bg-slate-200/50 dark:bg-slate-700/50 items-center justify-center mb-4">
+                  <View className="bg-surface-alt dark:bg-slate-800/50 rounded-3xl p-6 border border-border dark:border-slate-700/50 items-center">
+                    <View className="w-14 h-14 rounded-full bg-border/50 dark:bg-slate-700/50 items-center justify-center mb-4">
                       <Feather name="refresh-cw" size={24} color={isDark ? "#94a3b8" : "#64748b"} />
                     </View>
-                    <Text className="text-[16px] font-bold text-slate-900 dark:text-white text-center mb-2">
+                    <Text className="text-[16px] font-bold text-text text-center mb-2">
                       Connecting to your Heart Score...
                     </Text>
-                    <Text className="text-[13px] text-slate-500 dark:text-slate-400 text-center leading-relaxed">
+                    <Text className="text-[13px] text-text-soft text-center leading-relaxed">
                       Check your connection or pull down to refresh.
                     </Text>
                   </View>
@@ -372,31 +373,31 @@ export function ScoreExplanationModal({
 
               {/* 2. DYNAMIC SCORE BREAKDOWN */}
               <View className="mb-2">
-                <Text className="text-[12px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3 ml-1">
+                <Text className="text-[12px] font-bold text-text-soft uppercase tracking-widest mb-3 ml-1">
                   What moved your score today
                 </Text>
 
-                <View className="bg-slate-50 dark:bg-slate-800/50 rounded-3xl border border-slate-100 dark:border-slate-700/50 overflow-hidden mb-4">
+                <View className="bg-surface-alt dark:bg-slate-800/50 rounded-3xl border border-border dark:border-slate-700/50 overflow-hidden mb-4">
                   {factors ? (
                     <>
                       {/* Base & Total Header */}
-                      <View className="flex-row items-center justify-between p-4 bg-slate-100/50 dark:bg-slate-800 border-b border-slate-200/60 dark:border-slate-700">
-                        <Text className="text-[14px] font-bold text-slate-700 dark:text-slate-300">Base Score</Text>
-                        <Text className="text-[14px] font-bold text-slate-900 dark:text-white">{factors.base_score || 0}</Text>
+                      <View className="flex-row items-center justify-between p-4 bg-surface-alt/50 dark:bg-slate-800 border-b border-border/60 dark:border-slate-700">
+                        <Text className="text-[14px] font-bold text-text">Base Score</Text>
+                        <Text className="text-[14px] font-bold text-text">{factors.base_score || 0}</Text>
                       </View>
 
                       <View className="px-4 py-2">
                         {/* Breakdown rows */}
                         {[
-                          { label: "Meals (Sodium, Fat, Fiber)", val: factors.meal_points, icon: "silverware-fork-knife", type: "material", color: "#f59e0b" },
-                          { label: "Exercise & Movement", val: factors.exercise_points, icon: "activity", type: "feather", color: "#10b981" },
-                          { label: "Sleep (7-9 hrs)", val: factors.sleep_points, icon: "moon", type: "feather", color: "#6366f1" },
-                          { label: "Medication Taken", val: factors.medication_points, icon: "pill", type: "material", color: "#8b5cf6" },
-                          { label: "Blood Sugar Range", val: factors.blood_sugar_points, icon: "water", type: "material", color: "#ef4444" },
-                          { label: "Weight Stability", val: factors.weight_gain_points, icon: "scale", type: "material", color: "#f43f5e" },
-                          { label: "Symptoms", val: factors.symptom_points, icon: "alert-circle", type: "feather", color: "#e11d48" },
-                          { label: "Consistency Streak", val: factors.streak_points, icon: "zap", type: "feather", color: "#f59e0b" },
-                          { label: "Data Staleness", val: factors.staleness_penalty, icon: "clock", type: "feather", color: "#64748b" },
+                          { label: "Meals (Sodium, Fat, Fiber)", val: factors.meal_points, icon: "silverware-fork-knife", type: "material", color: theme.warning },
+                          { label: "Exercise & Movement", val: factors.exercise_points, icon: "activity", type: "feather", color: theme.success },
+                          { label: "Sleep (7-9 hrs)", val: factors.sleep_points, icon: "moon", type: "feather", color: "#4FB6E6" },
+                          { label: "Medication Taken", val: factors.medication_points, icon: "pill", type: "material", color: "#38B3B5" },
+                          { label: "Blood Sugar Range", val: factors.blood_sugar_points, icon: "water", type: "material", color: theme.danger },
+                          { label: "Weight Stability", val: factors.weight_gain_points, icon: "scale", type: "material", color: theme.danger },
+                          { label: "Symptoms", val: factors.symptom_points, icon: "alert-circle", type: "feather", color: theme.danger },
+                          { label: "Consistency Streak", val: factors.streak_points, icon: "zap", type: "feather", color: theme.warning },
+                          { label: "Data Staleness", val: factors.staleness_penalty, icon: "clock", type: "feather", color: theme.textMuted },
                         ].map((item, idx) => {
                           if (item.val === undefined || item.val === 0) return null;
                           const isPositive = item.val > 0;
@@ -410,11 +411,11 @@ export function ScoreExplanationModal({
                                     <MaterialCommunityIcons name={item.icon as any} size={14} color={item.color} />
                                   )}
                                 </View>
-                                <Text className="text-[13px] font-medium text-slate-700 dark:text-slate-300">
+                                <Text className="text-[13px] font-medium text-text">
                                   {item.label}
                                 </Text>
                               </View>
-                              <Text className={`text-[14px] font-bold ${isPositive ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
+                              <Text className={`text-[14px] font-bold ${isPositive ? "text-success-text" : "text-danger-text"}`}>
                                 {formatPoints(item.val)}
                               </Text>
                             </View>
@@ -423,16 +424,16 @@ export function ScoreExplanationModal({
                       </View>
 
                       {/* Total adjustments footer */}
-                      <View className="flex-row items-center justify-between p-4 bg-slate-100/50 dark:bg-slate-800 border-t border-slate-200/60 dark:border-slate-700">
-                        <Text className="text-[13px] font-bold text-slate-700 dark:text-slate-300">Net Adjustments (Capped)</Text>
-                        <Text className="text-[15px] font-black text-slate-900 dark:text-white">
+                      <View className="flex-row items-center justify-between p-4 bg-surface-alt/50 dark:bg-slate-800 border-t border-border/60 dark:border-slate-700">
+                        <Text className="text-[13px] font-bold text-text">Net Adjustments (Capped)</Text>
+                        <Text className="text-[15px] font-black text-text">
                           {formatPoints(factors.total_lifestyle_adjustment || 0)}
                         </Text>
                       </View>
                     </>
                   ) : (
                     <View className="p-6 items-center">
-                      <Text className="text-[14px] text-slate-500 dark:text-slate-400 font-medium text-center">
+                      <Text className="text-[14px] text-text-soft font-medium text-center">
                         Log your meals, exercise, and vitals today to see your score adjustments here.
                       </Text>
                     </View>
@@ -440,9 +441,9 @@ export function ScoreExplanationModal({
                 </View>
 
                 {/* Helpful Takeaway Pill */}
-                <View className="bg-emerald-500/10 dark:bg-emerald-500/10 rounded-3xl p-4 border border-emerald-500/20 flex-row items-center gap-3">
+                <View className="bg-success-tint0/10 dark:bg-success-tint0/10 rounded-3xl p-4 border border-emerald-500/20 flex-row items-center gap-3">
                   <Text className="text-[20px]">💡</Text>
-                  <Text className="text-[12.5px] text-slate-700 dark:text-slate-300 flex-1 leading-relaxed font-medium">
+                  <Text className="text-[12.5px] text-text flex-1 leading-relaxed font-medium">
                     Your baseline gave your heart its starting score. Checking your blood pressure and daily habits keeps your score fine-tuned and protected!
                   </Text>
                 </View>

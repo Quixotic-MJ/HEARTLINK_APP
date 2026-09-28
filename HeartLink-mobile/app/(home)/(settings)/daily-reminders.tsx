@@ -9,6 +9,7 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { useUser } from "../../../contexts/UserContext";
 import { useToast } from "../../../contexts/ToastContext";
 import { ConfirmDialog } from "../../../components/ui/ConfirmDialog";
+import { theme } from "../../../constants/theme";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -37,20 +38,19 @@ function ReminderToggle({
   };
 
   return (
-    <View className={`py-4.5 ${!isLast ? "border-b border-slate-100 dark:border-slate-800/80" : ""}`}>
+    <View className={`py-4.5 ${!isLast ? "border-b border-border dark:border-slate-800/80" : ""}`}>
       <View className="flex-row items-center justify-between">
         <View className="flex-row items-center flex-1 pr-3">
           <View 
-            className="w-10 h-10 rounded-2xl items-center justify-center mr-3.5 border border-slate-200/80 dark:border-slate-800"
-            style={{ backgroundColor: iconBg }}
+            className="w-10 h-10 rounded-2xl items-center justify-center mr-3.5 border border-border/80 dark:border-slate-800"
           >
             <Feather name={icon} size={18} color={iconColor} />
           </View>
           <View className="flex-1">
-            <Text className="text-[15px] font-semibold text-slate-900 dark:text-white">
+            <Text className="text-[15px] font-semibold text-text">
               {title}
             </Text>
-            <Text className="text-[12px] text-slate-500 dark:text-slate-400 mt-0.5 leading-snug">
+            <Text className="text-[12px] text-text-soft mt-0.5 leading-snug">
               {description}
             </Text>
           </View>
@@ -69,7 +69,7 @@ function ReminderToggle({
 
       {enabled && (
         <View className="mt-3.5 pl-[54px] flex-row items-center">
-          <Text className="text-[13px] font-medium text-slate-500 dark:text-slate-400 mr-2.5">
+          <Text className="text-[13px] font-medium text-text-soft mr-2.5">
             Trigger at:
           </Text>
           <TouchableOpacity 
@@ -78,10 +78,10 @@ function ReminderToggle({
             accessible={true}
             accessibilityRole="button"
             accessibilityLabel={`Change time for ${title}, currently ${formatTime(time)}`}
-            className="bg-slate-100 dark:bg-slate-800 px-3.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 flex-row items-center gap-1.5"
+            className="bg-surface-alt px-3.5 py-1.5 rounded-xl border border-border flex-row items-center gap-1.5"
           >
             <Feather name="clock" size={13} color={isDark ? "#94a3b8" : "#64748b"} />
-            <Text className="text-[14px] font-semibold text-slate-900 dark:text-white">
+            <Text className="text-[14px] font-semibold text-text">
               {formatTime(time)}
             </Text>
           </TouchableOpacity>
@@ -251,38 +251,38 @@ export default function DailyRemindersScreen() {
 
   if (isLoading) {
     return (
-      <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950 items-center justify-center">
-        <ActivityIndicator size="large" color="#4A6080" />
+      <SafeAreaView className="flex-1 bg-surface-alt items-center justify-center">
+        <ActivityIndicator size="large" color={theme.textSoft} />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-surface-alt" edges={["top"]}>
       <StatusBar style="dark" />
 
       {/* Header */}
-      <View className="flex-row items-center px-5 pt-4 pb-3 border-b border-slate-200 dark:border-slate-800/60 bg-white dark:bg-slate-900">
+      <View className="flex-row items-center px-5 pt-4 pb-3 border-b border-border bg-surface">
         <TouchableOpacity
           onPress={handleBackPress}
           accessible={true}
           accessibilityRole="button"
           accessibilityLabel="Go back"
-          className="w-9 h-9 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 items-center justify-center mr-3"
+          className="w-9 h-9 rounded-xl bg-surface-alt border border-border items-center justify-center mr-3"
         >
           <Feather name="arrow-left" size={18} color={isDark ? "#f8fafc" : "#0f172a"} />
         </TouchableOpacity>
-        <Text className="text-[18px] font-semibold text-slate-900 dark:text-white tracking-tight">
+        <Text className="text-[18px] font-semibold text-text tracking-tight">
           Daily Reminders
         </Text>
       </View>
 
       <ScrollView contentContainerClassName="px-5 py-6 pb-28" showsVerticalScrollIndicator={false}>
-        <Text className="text-[14px] text-slate-500 dark:text-slate-400 mb-6 leading-relaxed">
+        <Text className="text-[14px] text-text-soft mb-6 leading-relaxed">
           Stay on track with your cardiovascular health by setting gentle reminders for your check-ins and daily routine.
         </Text>
 
-        <View className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800/80 px-5 mb-6 shadow-sm shadow-slate-100 dark:shadow-none">
+        <View className="bg-surface rounded-3xl border border-border/80 dark:border-slate-800/80 px-5 mb-6 shadow-sm shadow-slate-100 dark:shadow-none">
           <ReminderToggle
             title="Morning Check-in"
             description="Start your day with a HeartLink check-in."
@@ -330,8 +330,8 @@ export default function DailyRemindersScreen() {
           disabled={isSaving || !isDirty}
           activeOpacity={0.85}
         >
-          {isSaving && <ActivityIndicator color="#fff" size="small" className="mr-2" />}
-          <Text className={`font-semibold text-[15px] ${isDirty ? "text-white" : "text-slate-500 dark:text-slate-400"}`}>
+          {isSaving && <ActivityIndicator color={theme.onPrimary} size="small" className="mr-2" />}
+          <Text className={`font-semibold text-[15px] ${isDirty ? "text-white" : "text-text-soft"}`}>
             {isDirty ? "Save Reminder Changes" : "Reminders Up to Date"}
           </Text>
         </TouchableOpacity>

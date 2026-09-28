@@ -28,6 +28,7 @@ import Animated, {
   useAnimatedStyle,
   withTiming,
 } from "react-native-reanimated";
+import { theme } from "../../constants/theme";
 
 export default function Step3SleepSmoking() {
   const router = useRouter();
@@ -119,7 +120,7 @@ export default function Step3SleepSmoking() {
           />
           <Text
             className={`text-[14px] font-semibold relative z-10 ${
-              value ? "text-white" : "text-slate-500 dark:text-slate-400"
+              value ? "text-white" : "text-text-soft"
             }`}
           >
             Yes
@@ -141,7 +142,7 @@ export default function Step3SleepSmoking() {
           />
           <Text
             className={`text-[14px] font-semibold relative z-10 ${
-              !value ? "text-white" : "text-slate-500 dark:text-slate-400"
+              !value ? "text-white" : "text-text-soft"
             }`}
           >
             No
@@ -162,7 +163,7 @@ export default function Step3SleepSmoking() {
             onPress={handleBack}
             accessibilityRole="button"
             accessibilityLabel="Go back"
-            className="w-10 h-10 rounded-xl bg-white dark:bg-[#101615] border border-slate-200 dark:border-slate-800 items-center justify-center mr-3 shadow-xs"
+            className="w-10 h-10 rounded-xl bg-surface dark:bg-[#101615] border border-border items-center justify-center mr-3 shadow-xs"
           >
             <Feather
               name="arrow-left"
@@ -171,11 +172,11 @@ export default function Step3SleepSmoking() {
             />
           </AnimatedButton>
           <View className="flex-1">
-            <Text className="text-[11px] font-semibold text-[#E8532E] uppercase tracking-wider">
+            <Text className="text-[11px] font-semibold text-primary uppercase tracking-wider">
               Step 3 of 6
             </Text>
             <Text
-              className="text-xl font-bold text-slate-900 dark:text-white mt-0.5"
+              className="text-xl font-bold text-text mt-0.5"
               numberOfLines={1}
             >
               Sleep & Smoking
@@ -212,16 +213,16 @@ export default function Step3SleepSmoking() {
             >
               {/* Section Subtitle */}
               <View className="flex-row items-center justify-between mb-2">
-                <Text className="text-[13px] font-bold text-[#E8532E] uppercase tracking-wide">
+                <Text className="text-[13px] font-bold text-primary uppercase tracking-wide">
                   Part 1 of 2: Sleep Routine
                 </Text>
               </View>
 
               <View className="mb-6">
-                <Text className="text-[16px] font-bold text-slate-900 dark:text-white tracking-tight leading-snug mb-1">
+                <Text className="text-[16px] font-bold text-text tracking-tight leading-snug mb-1">
                   How many hours of sleep do you usually get each night?
                 </Text>
-                <Text className="text-[13px] text-slate-500 dark:text-slate-400 leading-relaxed mb-5">
+                <Text className="text-[13px] text-text-soft leading-relaxed mb-5">
                   Consistent nightly sleep is essential for cardiac recovery and blood pressure regulation.
                 </Text>
 
@@ -259,14 +260,14 @@ export default function Step3SleepSmoking() {
                           className={`absolute inset-0 border rounded-xl ${
                             isActive
                               ? "bg-[#2E9AE8] dark:bg-[#6EC1F5] border-[#E8532E] shadow-xs"
-                              : "bg-white dark:bg-[#101615] border-slate-200 dark:border-slate-800"
+                              : "bg-surface dark:bg-[#101615] border-border"
                           }`}
                         />
                         <Text
                           className={`font-semibold text-[15px] relative z-10 ${
                             isActive
                               ? "text-white"
-                              : "text-slate-900 dark:text-white"
+                              : "text-text"
                           }`}
                         >
                           {opt.label}
@@ -275,7 +276,7 @@ export default function Step3SleepSmoking() {
                           <Feather
                             name="check"
                             size={18}
-                            color="#ffffff"
+                            color={theme.onPrimary}
                             className="relative z-10"
                           />
                         )}
@@ -293,19 +294,19 @@ export default function Step3SleepSmoking() {
             >
               {/* Section Subtitle */}
               <View className="flex-row items-center justify-between mb-2">
-                <Text className="text-[13px] font-bold text-[#E8532E] uppercase tracking-wide">
+                <Text className="text-[13px] font-bold text-primary uppercase tracking-wide">
                   Part 2 of 2: Tobacco & Smoking History
                 </Text>
               </View>
 
-              <Text className="text-[14px] text-slate-500 dark:text-slate-400 mb-5 leading-relaxed">
+              <Text className="text-[14px] text-text-soft mb-5 leading-relaxed">
                 Smoking history is a primary metric for personalizing your cardiovascular health risk profile.
               </Text>
 
               {/* Question 1: Lifetime Smoking Card */}
               <Animated.View
                 layout={LinearTransition}
-                className="bg-white dark:bg-[#101615] rounded-2xl p-4 sm:p-5 mb-4 border border-slate-200 dark:border-slate-800 shadow-xs"
+                className="bg-surface dark:bg-[#101615] rounded-2xl p-4 sm:p-5 mb-4 border border-border shadow-xs"
               >
                 <View className="flex-row items-start mb-3.5">
                   <View
@@ -314,14 +315,14 @@ export default function Step3SleepSmoking() {
                     <Feather
                       name="wind"
                       size={18}
-                      color="#A9741B"
+                      color={theme.warningText}
                     />
                   </View>
                   <View className="flex-1 pr-1">
-                    <Text className="text-[15px] font-bold text-slate-900 dark:text-white tracking-tight leading-snug">
+                    <Text className="text-[15px] font-bold text-text tracking-tight leading-snug">
                       Have you ever smoked regularly in your lifetime?
                     </Text>
-                    <Text className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5 leading-4">
+                    <Text className="text-[13px] text-text-soft mt-0.5 leading-4">
                       Defined as having smoked at least 100 cigarettes (about 5 packs)
                     </Text>
                   </View>
@@ -342,11 +343,11 @@ export default function Step3SleepSmoking() {
                   entering={FadeInUp.duration(200)}
                   exiting={FadeOutUp.duration(150)}
                   layout={LinearTransition}
-                  className="bg-white dark:bg-[#101615] rounded-2xl p-4 sm:p-5 mb-4 border border-slate-200 dark:border-slate-800 shadow-xs"
+                  className="bg-surface dark:bg-[#101615] rounded-2xl p-4 sm:p-5 mb-4 border border-border shadow-xs"
                 >
                   <View className="flex-row items-start mb-3.5">
                     <View
-                      className="w-9 h-9 rounded-xl items-center justify-center mr-3 mt-0.5 bg-blue-500 dark:bg-blue-400/15"
+                      className="w-9 h-9 rounded-xl items-center justify-center mr-3 mt-0.5 bg-blue-tint0 dark:bg-blue-400/15"
                     >
                       <Feather
                         name="clock"
@@ -355,10 +356,10 @@ export default function Step3SleepSmoking() {
                       />
                     </View>
                     <View className="flex-1 pr-1">
-                      <Text className="text-[15px] font-bold text-slate-900 dark:text-white tracking-tight leading-snug">
+                      <Text className="text-[15px] font-bold text-text tracking-tight leading-snug">
                         Do you currently smoke tobacco products?
                       </Text>
-                      <Text className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5 leading-4">
+                      <Text className="text-[13px] text-text-soft mt-0.5 leading-4">
                         Select the option that reflects your current routine
                       </Text>
                     </View>
@@ -397,14 +398,14 @@ export default function Step3SleepSmoking() {
                             className={`absolute inset-0 border rounded-xl ${
                               isActive
                                 ? "bg-[#2E9AE8] dark:bg-[#6EC1F5] border-[#E8532E] shadow-xs"
-                                : "bg-white dark:bg-[#101615] border-slate-200 dark:border-slate-800"
+                                : "bg-surface dark:bg-[#101615] border-border"
                             }`}
                           />
                           <Text
                             className={`font-semibold text-[15px] relative z-10 ${
                               isActive
                                 ? "text-white"
-                                : "text-slate-900 dark:text-white"
+                                : "text-text"
                             }`}
                           >
                             {opt.label}
@@ -413,7 +414,7 @@ export default function Step3SleepSmoking() {
                             <Feather
                               name="check"
                               size={18}
-                              color="#ffffff"
+                              color={theme.onPrimary}
                               className="relative z-10"
                             />
                           )}
@@ -433,7 +434,7 @@ export default function Step3SleepSmoking() {
               size={13}
               color={Appearance.getColorScheme() === "dark" ? "#94A3B8" : "#5C6B66"}
             />
-            <Text className="text-[12px] text-slate-500 dark:text-slate-400 ml-1.5">
+            <Text className="text-[12px] text-text-soft ml-1.5">
               Your lifestyle habits help calibrate your health risk score
             </Text>
           </View>
@@ -442,10 +443,7 @@ export default function Step3SleepSmoking() {
 
       {/* Anchored Bottom CTA */}
       <View
-        className="px-5 pt-3.5 bg-[#EDF1EF] dark:bg-[#0A0F0E] border-t border-slate-200 dark:border-slate-800"
-        style={{
-          paddingBottom: Math.max(insets.bottom + 16, 32),
-        }}
+        className="px-5 pt-3.5 bg-[#EDF1EF] dark:bg-[#0A0F0E] border-t border-border"
       >
         <Animated.View style={animatedButtonStyle}>
           <Pressable
@@ -464,7 +462,7 @@ export default function Step3SleepSmoking() {
             <Feather
               name="arrow-right"
               size={18}
-              color="#ffffff"
+              color={theme.onPrimary}
               className="ml-2"
             />
           </Pressable>

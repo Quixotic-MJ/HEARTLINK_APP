@@ -7,6 +7,7 @@ import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useUser } from "../../../contexts/UserContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { theme } from "../../../constants/theme";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -73,7 +74,7 @@ export default function HealthAnalyticsScreen() {
           onPress={() => router.back()}
           className="w-10 h-10 rounded-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/70 items-center justify-center mr-4"
         >
-          <Feather name="arrow-left" size={18} color={isDark ? "#f8fafc" : "#0f172a"} />
+          <Feather name="arrow-left" size={18} color={theme.ink} />
         </TouchableOpacity>
         <View className="flex-1">
           <Text className="text-[12px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider mb-0.5">
@@ -216,7 +217,7 @@ export default function HealthAnalyticsScreen() {
               </Text>
             </View>
           </View>
-          <Feather name="chevron-right" size={18} color="#94a3b8" />
+          <Feather name="chevron-right" size={18} color={theme.textMuted} />
         </TouchableOpacity>
         
       </ScrollView>

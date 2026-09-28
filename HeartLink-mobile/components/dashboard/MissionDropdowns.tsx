@@ -18,6 +18,7 @@ import { OfflineSyncService } from "../../utils/OfflineSyncService";
 import { postLogAck } from "../../services/companionCopy";
 import { useLogSleep } from "../../hooks/useLogSleep";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { theme } from "../../constants/theme";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -50,7 +51,7 @@ export function MissionDropdown({
 
 export function SpinChevron({
   expanded,
-  color = "#8D9B96",
+  color = theme.textSoft,
   size = 13,
 }: {
   expanded: boolean;
@@ -92,7 +93,6 @@ function FieldShell({
     <View className="gap-1">
       <Text
         className="text-[11px] font-semibold ml-0.5"
-        style={{ color: isDark ? "#cbd5e1" : "#5C6B66" }}
       >
         {label}
       </Text>
@@ -118,7 +118,7 @@ function NumberInput({
 }) {
   return (
     <View
-      className="h-[46px] rounded-xl flex-row items-center px-3.5 border bg-white dark:bg-slate-950/60 border-[#DCE3DF] dark:border-slate-800"
+      className="h-[46px] rounded-xl flex-row items-center px-3.5 border bg-surface dark:bg-slate-950/60 border-border dark:border-slate-800"
     >
       <TextInput
         value={value}
@@ -127,9 +127,9 @@ function NumberInput({
         placeholderTextColor={isDark ? "#64748b" : "#94a3b8"}
         keyboardType="numeric"
         maxLength={maxLength}
-        className="flex-1 text-[15px] font-medium h-full text-[#152131] dark:text-white"
+        className="flex-1 text-[15px] font-medium h-full text-text dark:text-white"
       />
-      <Text className="text-[11px] font-medium text-[#8D9B96] dark:text-slate-500">
+      <Text className="text-[11px] font-medium text-text-soft dark:text-text-soft">
         {unit}
       </Text>
     </View>
@@ -140,7 +140,7 @@ function SaveButton({
   label,
   onPress,
   isLoading,
-  color = "#1B6E63",
+  color = theme.successMid,
 }: {
   label: string;
   onPress: () => void;
@@ -163,7 +163,7 @@ function SaveButton({
         gap: 6,
       }}
     >
-      <Feather name="check" size={14} color="#fff" />
+      <Feather name="check" size={14} color={theme.onPrimary} />
       <Text className="text-[13px] font-bold text-white">
         {isLoading ? "Saving…" : label}
       </Text>
@@ -271,10 +271,10 @@ export function SleepQuickForm({
   };
 
   return (
-    <View className="gap-2.5 pt-3 mt-1 border-t border-[#DCE3DF]/60 dark:border-slate-800">
+    <View className="gap-2.5 pt-3 mt-1 border-t border-border/60 dark:border-slate-800">
       
-      <View className="flex-row items-center justify-between rounded-xl px-4 py-3 bg-white dark:bg-slate-950/60 border border-[#DCE3DF] dark:border-slate-800">
-        <Text className="text-[14px] font-semibold text-[#152131] dark:text-white">Bedtime</Text>
+      <View className="flex-row items-center justify-between rounded-xl px-4 py-3 bg-surface dark:bg-slate-950/60 border border-border dark:border-slate-800">
+        <Text className="text-[14px] font-semibold text-text dark:text-white">Bedtime</Text>
         {Platform.OS === 'ios' ? (
           <DateTimePicker
             value={bedTime}
@@ -287,9 +287,9 @@ export function SleepQuickForm({
           <>
             <TouchableOpacity 
               onPress={() => setShowBedPicker(true)}
-              className="flex-row items-center gap-1.5 bg-slate-50 dark:bg-slate-900 border border-[#DCE3DF] dark:border-slate-700 px-3 py-2 rounded-lg"
+              className="flex-row items-center gap-1.5 bg-surface-alt border border-border dark:border-slate-700 px-3 py-2 rounded-lg"
             >
-              <Text className="text-[15px] font-bold text-[#1B6E63] dark:text-[#5EEAD4]">{formatTime(bedTime)}</Text>
+              <Text className="text-[15px] font-bold text-success-text dark:text-success-text">{formatTime(bedTime)}</Text>
               <Feather name="chevron-down" size={14} color={isDark ? "#94a3b8" : "#8D9B96"} />
             </TouchableOpacity>
             {showBedPicker && (
@@ -308,8 +308,8 @@ export function SleepQuickForm({
         )}
       </View>
 
-      <View className="flex-row items-center justify-between rounded-xl px-4 py-3 bg-white dark:bg-slate-950/60 border border-[#DCE3DF] dark:border-slate-800">
-        <Text className="text-[14px] font-semibold text-[#152131] dark:text-white">Wake Up</Text>
+      <View className="flex-row items-center justify-between rounded-xl px-4 py-3 bg-surface dark:bg-slate-950/60 border border-border dark:border-slate-800">
+        <Text className="text-[14px] font-semibold text-text dark:text-white">Wake Up</Text>
         {Platform.OS === 'ios' ? (
           <DateTimePicker
             value={wakeTime}
@@ -322,9 +322,9 @@ export function SleepQuickForm({
           <>
             <TouchableOpacity 
               onPress={() => setShowWakePicker(true)}
-              className="flex-row items-center gap-1.5 bg-slate-50 dark:bg-slate-900 border border-[#DCE3DF] dark:border-slate-700 px-3 py-2 rounded-lg"
+              className="flex-row items-center gap-1.5 bg-surface-alt border border-border dark:border-slate-700 px-3 py-2 rounded-lg"
             >
-              <Text className="text-[15px] font-bold text-[#1B6E63] dark:text-[#5EEAD4]">{formatTime(wakeTime)}</Text>
+              <Text className="text-[15px] font-bold text-success-text dark:text-success-text">{formatTime(wakeTime)}</Text>
               <Feather name="chevron-down" size={14} color={isDark ? "#94a3b8" : "#8D9B96"} />
             </TouchableOpacity>
             {showWakePicker && (
@@ -343,7 +343,7 @@ export function SleepQuickForm({
         )}
       </View>
 
-      <Text className="text-[12px] text-center font-medium text-[#5C6B66] dark:text-slate-400 my-1">
+      <Text className="text-[12px] text-center font-medium text-text-soft dark:text-text-muted my-1">
         Total sleep: {displayHours} hr {displayMins} min
       </Text>
 
@@ -360,12 +360,12 @@ export function SleepQuickForm({
               }}
               className={`px-3 py-2 rounded-full border ${
                 selected
-                  ? "bg-[#46516B] border-[#46516B]"
-                  : "bg-white dark:bg-slate-800/60 border-[#DCE3DF] dark:border-slate-700"
+                  ? "bg-primary border-primary"
+                  : "bg-surface/60 border-border dark:border-slate-700"
               }`}
             >
               <Text
-                className={`text-[11.5px] font-semibold ${selected ? "text-white" : "text-[#5C6B66] dark:text-slate-400"}`}
+                className={`text-[11.5px] font-semibold ${selected ? "text-white" : "text-text-soft dark:text-text-muted"}`}
               >
                 {q}
               </Text>
@@ -373,7 +373,7 @@ export function SleepQuickForm({
           );
         })}
       </View>
-      <SaveButton label="Log Sleep" onPress={handleSave} isLoading={logSleepMutation.isPending} color="#46516B" />
+      <SaveButton label="Log Sleep" onPress={handleSave} isLoading={logSleepMutation.isPending} color={theme.text} />
     </View>
   );
 }

@@ -16,6 +16,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useUser } from "../../../contexts/UserContext";
+import { theme } from "../../../constants/theme";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -53,7 +54,7 @@ function RecipeCard({
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
   
-  const colors = ["#C6E1AC", "#F6CA84", "#F2C0B8", "#BED9FA", "#DDD6FE", "#FBCFE8"];
+  const colors = ["#C6E1AC", "#F6CA84", "#F2C0B8", theme.skyTint, theme.blueTint, theme.dangerTint];
   const charCode = (recipe.title || "").charCodeAt(0) || 0;
   const color = colors[charCode % colors.length];
 
@@ -72,10 +73,9 @@ function RecipeCard({
     <TouchableOpacity 
       activeOpacity={0.8} 
       onPress={onPress} 
-      className="rounded-2xl overflow-hidden mb-4 relative" 
-      style={{ width: '48%', backgroundColor: isDark ? "#162232" : "#FFFFFF", borderColor: isDark ? "#1E293B" : "#F1F5F9", borderWidth: 1 }}
+      className="rounded-2xl overflow-hidden mb-4 relative bg-surface dark:bg-surface-alt border-border"
     >
-      <View className="h-[105px] w-full bg-slate-200 dark:bg-slate-800 items-center justify-center">
+      <View className="h-[105px] w-full bg-border items-center justify-center">
         <Feather name="image" size={24} color={isDark ? "#475569" : "#CBD5E1"} className="absolute" />
         <Image
           source={{ uri: recipe.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&q=80" }}
@@ -85,12 +85,12 @@ function RecipeCard({
         />
         <View className="absolute inset-0 bg-black/10" />
       </View>
-      <TouchableOpacity onPress={onSave} className="absolute top-2 right-2 p-1.5 rounded-full bg-white/80 dark:bg-black/40 backdrop-blur-sm">
+      <TouchableOpacity onPress={onSave} className="absolute top-2 right-2 p-1.5 rounded-full bg-surface/80 dark:bg-black/40 backdrop-blur-sm">
         <Feather name="heart" size={15} color={isSaved ? "#EF4444" : (isDark ? "#FFFFFF" : "#152131")} />
       </TouchableOpacity>
       <View className="p-3 pb-4">
-        <Text className="text-[14px] font-bold leading-tight mb-1" style={{ color: isDark ? "#FFFFFF" : "#0F172A" }} numberOfLines={1}>{recipe.title}</Text>
-        <Text className="text-[11px]" style={{ color: isDark ? "#94A3B8" : "#64748B" }}>{recipe.nutrition?.calories || 0} cal - {recipe.prepTime || 0} min</Text>
+        <Text className="text-[14px] font-bold leading-tight mb-1 text-text" numberOfLines={1}>{recipe.title}</Text>
+        <Text className="text-[11px] text-text-soft">{recipe.nutrition?.calories || 0} cal - {recipe.prepTime || 0} min</Text>
       </View>
     </TouchableOpacity>
   );
@@ -217,13 +217,13 @@ export default function RecipesScreen({
       {/* Top Bar matching the "See All" design */}
       {!isEmbedded && (
         <View className="flex-row items-center justify-between px-5 pt-3 pb-4">
-          <TouchableOpacity onPress={() => router.back()} className="w-10 h-10 items-center justify-center -ml-2 rounded-full" style={{ backgroundColor: isDark ? "#162232" : "#F1F5F9" }}>
+          <TouchableOpacity onPress={() => router.back()} className="w-10 h-10 items-center justify-center -ml-2 rounded-full bg-surface-alt">
             <Feather name="arrow-left" size={20} color={isDark ? "#FFFFFF" : "#0F172A"} />
           </TouchableOpacity>
-          <Text className="text-[18px] font-bold" style={{ color: isDark ? "#FFFFFF" : "#0F172A" }}>
+          <Text className="text-[18px] font-bold text-text">
             Recipes
           </Text>
-          <TouchableOpacity className="w-10 h-10 items-center justify-center -mr-2 rounded-full" style={{ backgroundColor: isDark ? "#162232" : "#F1F5F9" }}>
+          <TouchableOpacity className="w-10 h-10 items-center justify-center -mr-2 rounded-full bg-surface-alt">
             <Feather name="sliders" size={18} color={isDark ? "#FFFFFF" : "#0F172A"} />
           </TouchableOpacity>
         </View>
@@ -240,12 +240,8 @@ export default function RecipesScreen({
                 onPress={() => setActiveFilter(filter)}
                 activeOpacity={0.7}
                 className="px-5 py-2 rounded-full mr-3 border"
-                style={{ 
-                  backgroundColor: isActive ? (isDark ? "#F8F9FA" : "#152131") : (isDark ? "#162232" : "#FFFFFF"),
-                  borderColor: isActive ? "transparent" : (isDark ? "#1E293B" : "#E2E8F0")
-                }}
               >
-                <Text className="text-[14px] font-semibold" style={{ color: isActive ? (isDark ? "#152131" : "#FFFFFF") : (isDark ? "#94A3B8" : "#64748B") }}>
+                <Text className="text-[14px] font-semibold">
                   {filter}
                 </Text>
               </TouchableOpacity>
@@ -257,10 +253,10 @@ export default function RecipesScreen({
       <ScrollView
         contentContainerStyle={{ paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1B6E63" />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#33CC82" />}
       >
         <View className="px-5 mb-4">
-          <Text className="text-[13px] font-semibold" style={{ color: isDark ? "#F6CA84" : "#B45309" }}>
+          <Text className="text-[13px] font-semibold">
             {filteredRecipes.length} recipes
           </Text>
         </View>

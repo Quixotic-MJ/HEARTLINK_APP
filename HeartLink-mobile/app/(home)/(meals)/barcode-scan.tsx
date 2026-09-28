@@ -19,6 +19,7 @@ import { StatusBar } from "expo-status-bar";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter, useFocusEffect } from "expo-router";
 import { useToast } from "../../../contexts/ToastContext";
+import { theme } from "../../../constants/theme";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -205,8 +206,8 @@ export default function BarcodeScanScreen() {
   // ── Permission loading ──
   if (!permission) {
     return (
-      <View className="flex-1 items-center justify-center bg-slate-50 dark:bg-slate-950">
-        <ActivityIndicator size="large" color="#0f172a" />
+      <View className="flex-1 items-center justify-center bg-surface-alt">
+        <ActivityIndicator size="large" color={theme.text} />
       </View>
     );
   }
@@ -214,51 +215,50 @@ export default function BarcodeScanScreen() {
   // ── Permission denied ──
   if (!permission.granted) {
     return (
-      <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950 items-center justify-center px-6">
-        <View className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-800/70 items-center justify-center mb-4">
-          <Feather name="camera-off" size={26} color="#94a3b8" />
+      <SafeAreaView className="flex-1 bg-surface-alt items-center justify-center px-6">
+        <View className="w-16 h-16 rounded-2xl bg-surface-alt border border-border/70 items-center justify-center mb-4">
+          <Feather name="camera-off" size={26} color={theme.textSoft} />
         </View>
-        <Text className="text-[16px] font-medium text-slate-900 dark:text-white mb-2 text-center">
+        <Text className="text-[16px] font-medium text-text mb-2 text-center">
           Camera permission required
         </Text>
-        <Text className="text-[13px] text-slate-500 text-center mb-6 leading-relaxed">
+        <Text className="text-[13px] text-text-soft text-center mb-6 leading-relaxed">
           HeartLink needs camera access to scan food barcodes.
         </Text>
         <TouchableOpacity
           onPress={requestPermission}
           className="bg-primary px-6 py-3 rounded-xl flex-row items-center gap-2"
         >
-          <Feather name="camera" size={15} color="#fff" />
+          <Feather name="camera" size={15} color={theme.onPrimary} />
           <Text className="text-white font-medium text-[14px]">Grant permission</Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={() => router.back()} className="mt-3 px-6 py-3">
-          <Text className="text-slate-500 font-medium text-[13px]">Go back</Text>
+          <Text className="text-text-soft font-medium text-[13px]">Go back</Text>
         </TouchableOpacity>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-surface-alt" edges={["top"]}>
       <StatusBar style="dark" />
 
       {/* ── Header ── */}
-      <View className="flex-row items-center px-5 pt-4 pb-3 border-b border-slate-200 dark:border-slate-800/50">
+      <View className="flex-row items-center px-5 pt-4 pb-3 border-b border-border">
         <TouchableOpacity
           onPress={() => router.back()}
-          className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 items-center justify-center mr-3"
+          className="w-9 h-9 rounded-xl bg-surface border border-border/70 items-center justify-center mr-3"
         >
           <Feather name="arrow-left" size={18} color={isDark ? "#f8fafc" : "#0f172a"} />
         </TouchableOpacity>
         <View className="flex-1">
-          <Text className="text-[17px] font-medium text-slate-900 dark:text-white">Scan meal</Text>
-          <Text className="text-[12px] text-slate-500">Record via barcode</Text>
+          <Text className="text-[17px] font-medium text-text">Scan meal</Text>
+          <Text className="text-[12px] text-text-soft">Record via barcode</Text>
         </View>
         {/* Torch toggle (always visible) */}
         <TouchableOpacity
           onPress={() => setTorch(!torch)}
-          className="w-9 h-9 rounded-xl border border-slate-200 dark:border-slate-800/70 items-center justify-center"
-          style={{ backgroundColor: torch ? "#0f172a" : "#fff" }}
+          className="w-9 h-9 rounded-xl border border-border/70 items-center justify-center"
         >
           <Feather name={torch ? "zap" : "zap-off"} size={16} color={torch ? "#fff" : "#64748b"} />
         </TouchableOpacity>
@@ -271,11 +271,10 @@ export default function BarcodeScanScreen() {
         className="flex-1"
       >
         <View 
-          className="flex-1 px-5 pt-4" 
-          style={{ paddingBottom: Math.max(insets.bottom, 20) }}
+          className="flex-1 px-5 pt-4"
         >
           {/* Camera */}
-          <View collapsable={false} className="flex-1 rounded-2xl overflow-hidden relative" style={{ backgroundColor: "#000" }}>
+          <View collapsable={false} className="flex-1 rounded-2xl overflow-hidden relative">
             <CameraView
               style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, width: "100%", height: "100%" }}
               facing="back"
@@ -302,7 +301,7 @@ export default function BarcodeScanScreen() {
                           left: 0,
                           width: "100%",
                           height: 3,
-                          backgroundColor: "#ef4444",
+                          backgroundColor: theme.danger,
                           opacity: 0.8,
                           transform: [{ translateY: scanLineAnim }],
                         }}
@@ -316,13 +315,13 @@ export default function BarcodeScanScreen() {
                       { bottom: 0, left: 0, borderBottomWidth: 3, borderLeftWidth: 3, borderBottomLeftRadius: 12 },
                       { bottom: 0, right: 0, borderBottomWidth: 3, borderRightWidth: 3, borderBottomRightRadius: 12 },
                     ].map((s, i) => (
-                      <View key={i} style={{ position: "absolute", width: 28, height: 28, borderColor: "#fff", ...s }} />
+                      <View key={i} style={{ position: "absolute", width: 28, height: 28, borderColor: theme.surface, ...s }} />
                     ))}
 
                     {loading && (
                       <View style={{ backgroundColor: "rgba(0,0,0,0.6)", borderRadius: 14, padding: 16, alignItems: "center" }}>
-                        <ActivityIndicator size="large" color="#fff" />
-                        <Text style={{ color: "#fff", marginTop: 8, fontSize: 13 }}>Looking up…</Text>
+                        <ActivityIndicator size="large" color={theme.onPrimary} />
+                        <Text style={{ color: theme.surface, marginTop: 8, fontSize: 13 }}>Looking up…</Text>
                       </View>
                     )}
                   </View>
@@ -345,14 +344,14 @@ export default function BarcodeScanScreen() {
         <View className="mt-4">
           {showManualInput ? (
             <View className="flex-row items-center gap-2">
-              <View className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 rounded-xl px-3.5 py-2.5">
+              <View className="flex-1 bg-surface border border-border/70 rounded-xl px-3.5 py-2.5">
                 <TextInput
                   value={manualBarcode}
                   onChangeText={setManualBarcode}
                   placeholder="Enter barcode number…"
                   placeholderTextColor="#94a3b8"
                   keyboardType="numeric"
-                  className="text-[14px] text-slate-900 dark:text-white"
+                  className="text-[14px] text-text"
                   autoFocus
                 />
               </View>
@@ -368,24 +367,24 @@ export default function BarcodeScanScreen() {
                 <Text className="text-white text-[13px] font-medium">Look up</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={() => setShowManualInput(false)} className="p-2">
-                <Feather name="x" size={18} color="#64748b" />
+                <Feather name="x" size={18} color={theme.textSoft} />
               </TouchableOpacity>
             </View>
           ) : (
             <View className="flex-row items-center justify-center gap-3">
               <TouchableOpacity
                 onPress={() => setShowManualInput(true)}
-                className="flex-row items-center gap-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 px-4 py-2.5 rounded-xl"
+                className="flex-row items-center gap-1.5 bg-surface border border-border/70 px-4 py-2.5 rounded-xl"
               >
-                <Feather name="edit-2" size={13} color="#64748b" />
-                <Text className="text-[12px] font-medium text-slate-700 dark:text-slate-300">Enter manually</Text>
+                <Feather name="edit-2" size={13} color={theme.textSoft} />
+                <Text className="text-[12px] font-medium text-text">Enter manually</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => router.push("/(home)/(meals)/search-meal")}
-                className="flex-row items-center gap-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 px-4 py-2.5 rounded-xl"
+                className="flex-row items-center gap-1.5 bg-surface border border-border/70 px-4 py-2.5 rounded-xl"
               >
-                <Feather name="search" size={13} color="#64748b" />
-                <Text className="text-[12px] font-medium text-slate-700 dark:text-slate-300">Search food</Text>
+                <Feather name="search" size={13} color={theme.textSoft} />
+                <Text className="text-[12px] font-medium text-text">Search food</Text>
               </TouchableOpacity>
             </View>
           )}

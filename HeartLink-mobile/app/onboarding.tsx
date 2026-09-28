@@ -8,6 +8,7 @@ import "../global.css";
 import { useUser } from "../contexts/UserContext";
 import { Feather, MaterialCommunityIcons, MaterialIcons } from "../lib/icons";
 import HeartLogo from "../components/ui/HeartLogo";
+import { theme } from "../constants/theme";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -33,7 +34,7 @@ function FeatureCard({
   return (
     <Animated.View
       entering={FadeInDown.delay(delay).springify().damping(12).stiffness(90)}
-      className="bg-white dark:bg-[#101615] rounded-2xl p-4 flex-row items-center border border-slate-200 dark:border-slate-800 mb-3.5 shadow-sm shadow-slate-100 dark:shadow-none"
+      className="bg-surface rounded-2xl p-4 flex-row items-center border border-border mb-3.5 shadow-sm shadow-slate-100 dark:shadow-none"
       accessible={true}
       accessibilityRole="text"
       accessibilityLabel={`${title}. ${subtitle}`}
@@ -57,10 +58,10 @@ function FeatureCard({
         )}
       </View>
       <View className="flex-1 pr-1">
-        <Text className="text-base font-semibold text-slate-900 dark:text-white mb-1 tracking-tight">
+        <Text className="text-base font-semibold text-text mb-1 tracking-tight">
           {title}
         </Text>
-        <Text className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+        <Text className="text-xs sm:text-sm text-text-soft leading-relaxed">
           {subtitle}
         </Text>
       </View>
@@ -125,7 +126,7 @@ export default function OnboardingScreen() {
 
   return (
     <SafeAreaView
-      className="flex-1 bg-[#EDF1EF] dark:bg-[#0A0F0E]"
+      className="flex-1 bg-background"
       edges={["top", "bottom"]}
     >
       <StatusBar style="auto" />
@@ -141,7 +142,7 @@ export default function OnboardingScreen() {
           className="flex-row items-center px-6 pt-4 sm:pt-6 mb-6 sm:mb-8"
         >
           <HeartLogo size={24} />
-          <Text className="ml-2.5 text-lg text-slate-900 dark:text-white font-bold tracking-tight">
+          <Text className="ml-2.5 text-lg text-text font-bold tracking-tight">
             HeartLink
           </Text>
         </Animated.View>
@@ -150,14 +151,14 @@ export default function OnboardingScreen() {
           {/* Headline */}
           <Animated.Text
             entering={FadeInDown.delay(200).springify().damping(12).stiffness(90)}
-            className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white text-center tracking-tight leading-tight mb-3 sm:mb-4"
+            className="text-3xl sm:text-4xl font-bold text-text text-center tracking-tight leading-tight mb-3 sm:mb-4"
             accessibilityRole="header"
           >
             Everyday care for{"\n"}a healthier,{"\n"}stronger heart.
           </Animated.Text>
           <Animated.Text
             entering={FadeInDown.delay(300).springify().damping(12).stiffness(90)}
-            className="text-sm sm:text-base text-slate-600 dark:text-slate-400 text-center leading-relaxed px-1 sm:px-3 font-medium"
+            className="text-sm sm:text-base text-text-soft text-center leading-relaxed px-1 sm:px-3 font-medium"
           >
             Track daily vitals, discover personalized meals and workouts, and take confident steps toward lifelong cardiovascular wellness.
           </Animated.Text>
@@ -168,8 +169,8 @@ export default function OnboardingScreen() {
           <FeatureCard
             icon="bar-chart-2"
             iconType="feather"
-            iconBgClass="bg-blue-100 dark:bg-blue-900/30"
-            iconColorClass="text-blue-600 dark:text-blue-400"
+            iconBgClass="bg-blue-tint"
+            iconColorClass="text-blue-text"
             title="Health Stability Score"
             subtitle="Clear, daily insights into your cardiovascular wellness without complex clinical jargon."
             delay={400}
@@ -177,8 +178,8 @@ export default function OnboardingScreen() {
           <FeatureCard
             icon="silverware-fork-knife"
             iconType="mci"
-            iconBgClass="bg-emerald-100 dark:bg-emerald-900/30"
-            iconColorClass="text-emerald-600 dark:text-emerald-400"
+            iconBgClass="bg-teal-tint"
+            iconColorClass="text-teal-text"
             title="Heart-Healthy Recipes"
             subtitle="Discover delicious, balanced meals customized specifically to support your heart health."
             delay={500}
@@ -186,8 +187,8 @@ export default function OnboardingScreen() {
           <FeatureCard
             icon="fitness-center"
             iconType="material"
-            iconBgClass="bg-orange-100 dark:bg-orange-900/30"
-            iconColorClass="text-orange-600 dark:text-orange-400"
+            iconBgClass="bg-lime-tint"
+            iconColorClass="text-lime-text"
             title="Personalized Workouts"
             subtitle="Follow tailored, comfortable exercise routines adapted to your current stamina."
             delay={600}
@@ -199,18 +200,18 @@ export default function OnboardingScreen() {
       {/* ── Actions (Fixed Footer) ── */}
       <Animated.View
         entering={FadeInDown.delay(700).springify().damping(12).stiffness(90)}
-        className="px-6 pt-4 pb-6 bg-[#EDF1EF] dark:bg-[#0A0F0E] border-t border-slate-200 dark:border-slate-800"
+        className="px-6 pt-4 pb-6 bg-background border-t border-border"
       >
         {/* Server Offline Error */}
         {showError && (
           <Animated.View
             entering={FadeIn}
-            className="bg-red-100 dark:bg-red-900/20 border border-red-200 dark:border-red-900/40 rounded-xl p-3 mb-4 flex-row items-center gap-2.5"
+            className="bg-danger-tint border border-danger/40 rounded-xl p-3 mb-4 flex-row items-center gap-2.5"
             accessible={true}
             accessibilityRole="alert"
           >
-            <Feather name="wifi-off" size={16} className="text-red-600 dark:text-red-400 flex-shrink-0" />
-            <Text className="text-red-600 dark:text-red-400 text-xs sm:text-sm font-medium flex-1 leading-snug">
+            <Feather name="wifi-off" size={16} color={theme.dangerText} />
+            <Text className="text-danger-text text-xs sm:text-sm font-medium flex-1 leading-snug">
               Unable to connect to the server. Please check your internet connection and try again.
             </Text>
           </Animated.View>
@@ -219,7 +220,7 @@ export default function OnboardingScreen() {
         {/* Primary CTA */}
         <TouchableOpacity
           activeOpacity={0.85}
-          className="w-full bg-[#2E9AE8] dark:bg-[#6EC1F5] rounded-2xl py-4 flex-row justify-center items-center gap-2 mb-4 shadow-sm shadow-blue-500/20 dark:shadow-none"
+          className="w-full bg-primary rounded-2xl py-4 flex-row justify-center items-center gap-2 mb-4 shadow-sm shadow-blue-500/20 dark:shadow-none"
           style={isCheckingServer ? { opacity: 0.8 } : {}}
           onPress={handleGetStarted}
           disabled={isCheckingServer}
@@ -229,13 +230,13 @@ export default function OnboardingScreen() {
           accessibilityHint="Navigates to the registration screen"
         >
           {isCheckingServer ? (
-            <ActivityIndicator size="small" color="#fff" />
+            <ActivityIndicator size="small" color={theme.onPrimary} />
           ) : (
             <>
-              <Text className="text-white dark:text-slate-900 text-sm font-bold tracking-wide">
+              <Text className="text-on-primary text-sm font-bold tracking-wide">
                 Get started
               </Text>
-              <Feather name="arrow-right" size={16} className="text-white dark:text-slate-900" />
+              <Feather name="arrow-right" size={16} color={theme.onPrimary} />
             </>
           )}
         </TouchableOpacity>
@@ -250,10 +251,10 @@ export default function OnboardingScreen() {
           accessibilityLabel="Log in to existing account"
           accessibilityHint="Navigates to the login screen"
         >
-          <Text className="text-sm font-medium text-slate-500 dark:text-slate-400">
+          <Text className="text-sm font-medium text-text-soft">
             Already have an account?
           </Text>
-          <Text className="text-sm font-bold text-slate-900 dark:text-white">
+          <Text className="text-sm font-bold text-text">
             Log in
           </Text>
         </TouchableOpacity>

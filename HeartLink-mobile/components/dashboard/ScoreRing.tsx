@@ -21,6 +21,7 @@ import Svg, {
   Stop,
 } from "react-native-svg";
 import * as Haptics from "expo-haptics";
+import { theme } from "../../constants/theme";
 
 /**
  * ScoreRing — stroke-drawn beating heart gauge (ported template).
@@ -634,7 +635,7 @@ const styles = StyleSheet.create({
     letterSpacing: -2,
   },
   scoreLabel: {
-    color: "#94a3b8",
+    color: theme.textMuted,
     fontWeight: "500",
     letterSpacing: 1.5,
     textTransform: "uppercase",

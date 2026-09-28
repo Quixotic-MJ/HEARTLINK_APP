@@ -20,6 +20,7 @@ import { queueMealForSync } from "../../../services/SyncService";
 import { useToast } from "../../../contexts/ToastContext";
 import { logMealAndGetToast } from "../../../services/MealLoggingService";
 import { ChoiceChip, SectionHeader, calcRiskFromValues } from "../../../components/meals/SharedMealComponents";
+import { theme } from "../../../constants/theme";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -75,10 +76,10 @@ function NumericField({
 }) {
   return (
     <View className="flex-1">
-      <Text className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 ml-1">
+      <Text className="text-[11px] font-bold text-text-soft uppercase tracking-wider mb-2 ml-1">
         {label}
       </Text>
-      <View className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700/50 flex-row items-center px-4 py-3">
+      <View className="bg-surface-alt dark:bg-slate-800/50 rounded-2xl border border-border/50 flex-row items-center px-4 py-3">
         <TextInput
           value={value}
           onChangeText={(text) => {
@@ -88,9 +89,9 @@ function NumericField({
           placeholder={placeholder}
           placeholderTextColor="#94a3b8"
           keyboardType="decimal-pad"
-          className="flex-1 text-[15px] font-medium text-slate-900 dark:text-white"
+          className="flex-1 text-[15px] font-medium text-text"
         />
-        <Text className="text-[13px] font-bold text-slate-400 ml-1">{unit}</Text>
+        <Text className="text-[13px] font-bold text-text-muted ml-1">{unit}</Text>
       </View>
     </View>
   );
@@ -189,18 +190,18 @@ export default function ManualMealLogScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-surface-alt" edges={["top"]}>
       <StatusBar style="dark" />
 
       {/* ── Header Bar ── */}
       <View className="flex-row items-center justify-between px-5 py-3">
         <TouchableOpacity
           onPress={() => router.back()}
-          className="w-9 h-9 rounded-full bg-slate-200/50 dark:bg-slate-800 items-center justify-center z-10"
+          className="w-9 h-9 rounded-full bg-border/50 dark:bg-slate-800 items-center justify-center z-10"
         >
           <Feather name="arrow-left" size={18} color={isDark ? "#f8fafc" : "#0f172a"} />
         </TouchableOpacity>
-        <Text className="text-[22px] font-bold text-slate-900 dark:text-white absolute left-0 right-0 text-center pointer-events-none">
+        <Text className="text-[22px] font-bold text-text absolute left-0 right-0 text-center pointer-events-none">
           Log Food
         </Text>
         <View className="w-9" />
@@ -214,12 +215,12 @@ export default function ManualMealLogScreen() {
       >
 
         {/* Mode description & Guide button */}
-        <View className="bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl p-4 mb-6 border border-emerald-100 dark:border-emerald-800/30">
+        <View className="bg-success-tint rounded-2xl p-4 mb-6 border border-emerald-100 dark:border-emerald-800/30">
           <View className="flex-row items-start gap-3 mb-3">
             <Feather
               name="database"
               size={16}
-              color="#10b981"
+              color={theme.success}
               style={{ marginTop: 2 }}
             />
             <Text className="flex-1 text-[13px] text-emerald-800 dark:text-emerald-200 leading-relaxed font-medium">
@@ -229,27 +230,26 @@ export default function ManualMealLogScreen() {
           <TouchableOpacity 
             onPress={() => setShowEstimateGuide(true)}
             activeOpacity={0.7}
-            className="bg-white dark:bg-emerald-800/50 rounded-xl py-2.5 px-3 flex-row items-center justify-center border border-emerald-200 dark:border-emerald-700/50"
+            className="bg-surface dark:bg-emerald-800/50 rounded-xl py-2.5 px-3 flex-row items-center justify-center border border-emerald-200 dark:border-emerald-700/50"
           >
             <Feather name="help-circle" size={15} color="#059669" />
             <Text className="text-emerald-700 dark:text-emerald-300 font-medium text-[13px] ml-2">How to estimate carinderia / home-cooked food?</Text>
           </TouchableOpacity>
         </View>
 
-        <View className="bg-white dark:bg-slate-900 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-800 mb-6">
+        <View className="bg-surface rounded-3xl p-5 shadow-sm border border-border dark:border-slate-800 mb-6">
           {/* ── Risk Banner ── */}
           {((parseFloat(sodium) || 0) > 0 || (parseFloat(calories) || 0) > 0) && (
             <View
               className="rounded-2xl p-4 border mb-4"
-              style={{ backgroundColor: risk.bg, borderColor: risk.border }}
             >
               <View className="flex-row items-center gap-2 mb-1.5">
                 <Feather name={risk.icon} size={15} color={risk.color} />
-                <Text className="text-[12px] font-bold uppercase tracking-wide" style={{ color: risk.color }}>
+                <Text className="text-[12px] font-bold uppercase tracking-wide">
                   Impact estimate · {risk.level}
                 </Text>
               </View>
-              <Text className="text-[13px] font-medium leading-relaxed" style={{ color: risk.color, opacity: 0.9 }}>
+              <Text className="text-[13px] font-medium leading-relaxed">
                 {risk.desc}
               </Text>
             </View>
@@ -265,29 +265,29 @@ export default function ManualMealLogScreen() {
 
           {/* ── Food Description ── */}
           <SectionHeader title="Food description" icon="food-apple-outline" />
-          <View className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700/50 px-4 py-3.5">
+          <View className="bg-surface-alt dark:bg-slate-800/50 rounded-2xl border border-border/50 px-4 py-3.5">
             <TextInput
               value={foodDescription}
               onChangeText={setFoodDescription}
               placeholder="e.g. Pork sinigang, lechon, mango"
               placeholderTextColor="#94a3b8"
-              className="text-[15px] font-medium text-slate-900 dark:text-white"
+              className="text-[15px] font-medium text-text"
             />
           </View>
         </View>
 
-        <View className="bg-white dark:bg-slate-900 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-800 mb-6">
+        <View className="bg-surface rounded-3xl p-5 shadow-sm border border-border dark:border-slate-800 mb-6">
           {/* ── Nutrition Values ── */}
           <SectionHeader title="Nutrition values" icon="nutrition" />
 
           {/* NUMBER OF SERVINGS stepper */}
-          <View className="flex-row items-center justify-between mb-5 mt-2 bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-3 border border-slate-200 dark:border-slate-700/50">
-            <Text className="text-[12px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide ml-2">Number of servings</Text>
-            <View className="flex-row items-center bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-2 py-1.5 gap-4 shadow-sm">
+          <View className="flex-row items-center justify-between mb-5 mt-2 bg-surface-alt dark:bg-slate-800/50 rounded-2xl p-3 border border-border/50">
+            <Text className="text-[12px] font-bold text-text-soft uppercase tracking-wide ml-2">Number of servings</Text>
+            <View className="flex-row items-center bg-surface dark:bg-slate-700 border border-border dark:border-slate-600 rounded-xl px-2 py-1.5 gap-4 shadow-sm">
               <TouchableOpacity onPress={() => setServings(s => Math.max(0.5, s - 0.5))} className="p-1">
                 <Feather name="minus" size={16} color={isDark ? "#f8fafc" : "#0f172a"} />
               </TouchableOpacity>
-              <Text className="text-[15px] font-bold text-slate-900 dark:text-white w-8 text-center">{servings}</Text>
+              <Text className="text-[15px] font-bold text-text w-8 text-center">{servings}</Text>
               <TouchableOpacity onPress={() => setServings(s => Math.min(20, s + 0.5))} className="p-1">
                 <Feather name="plus" size={16} color={isDark ? "#f8fafc" : "#0f172a"} />
               </TouchableOpacity>
@@ -343,9 +343,9 @@ export default function ManualMealLogScreen() {
           </View>
 
           {/* Helper note */}
-          <View className="flex-row items-start gap-2 mt-3 mb-1 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-2xl border border-slate-100 dark:border-slate-800">
+          <View className="flex-row items-start gap-2 mt-3 mb-1 bg-surface-alt dark:bg-slate-800/50 p-3 rounded-2xl border border-border dark:border-slate-800">
             <Feather name="info" size={14} color={isDark ? "#64748b" : "#94a3b8"} style={{ marginTop: 2 }} />
-            <Text className="flex-1 text-[12px] font-medium text-slate-500 dark:text-slate-400 leading-relaxed">
+            <Text className="flex-1 text-[12px] font-medium text-text-soft leading-relaxed">
               Values are per serving. Check the food label or use a nutrition database for accurate figures.
             </Text>
           </View>
@@ -355,8 +355,7 @@ export default function ManualMealLogScreen() {
 
       {/* Save Button Container */}
       <View 
-        className="px-5 pt-3 bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800/50"
-        style={{ paddingBottom: Math.max(insets.bottom, 16) }}
+        className="px-5 pt-3 bg-surface-alt border-t border-border"
       >
         <TouchableOpacity
           onPress={executeSave}
@@ -366,9 +365,9 @@ export default function ManualMealLogScreen() {
           style={{ opacity: isSubmitting ? 0.7 : 1 }}
         >
           {isSubmitting ? (
-            <ActivityIndicator size="small" color="#fff" />
+            <ActivityIndicator size="small" color={theme.onPrimary} />
           ) : (
-            <Feather name="check-circle" size={16} color="#fff" />
+            <Feather name="check-circle" size={16} color={theme.onPrimary} />
           )}
           <Text className="text-white text-[15px] font-bold">
             {isSubmitting ? "Saving..." : "Save meal"}
@@ -379,34 +378,34 @@ export default function ManualMealLogScreen() {
       {/* Estimation Guide Modal */}
       <Modal visible={showEstimateGuide} transparent animationType="fade">
         <View className="flex-1 bg-black/60 justify-center items-center px-5">
-          <View className="bg-white dark:bg-slate-900 rounded-3xl p-6 w-full max-w-md border border-slate-100 dark:border-slate-800 shadow-xl">
-            <View className="flex-row items-center gap-3 mb-5 border-b border-slate-100 dark:border-slate-800/50 pb-4">
+          <View className="bg-surface rounded-3xl p-6 w-full max-w-md border border-border dark:border-slate-800 shadow-xl">
+            <View className="flex-row items-center gap-3 mb-5 border-b border-border dark:border-slate-800/50 pb-4">
               <View className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-full items-center justify-center">
-                <Feather name="help-circle" size={20} color="#3b82f6" />
+                <Feather name="help-circle" size={20} color={theme.blue} />
               </View>
-              <Text className="text-[18px] font-bold text-slate-900 dark:text-white flex-1">
+              <Text className="text-[18px] font-bold text-text flex-1">
                 Estimation Guide
               </Text>
             </View>
 
             <ScrollView className="max-h-[60vh] mb-6" showsVerticalScrollIndicator={false}>
               <View className="mb-4">
-                <Text className="text-[15px] font-bold text-slate-900 dark:text-white mb-1">1. Ask Google</Text>
-                <Text className="text-[13px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                <Text className="text-[15px] font-bold text-text mb-1">1. Ask Google</Text>
+                <Text className="text-[13px] text-text-soft leading-relaxed">
                   Search "calories in 1 cup pork adobo" or "sodium in pancit canton". Online fitness databases usually have rough averages you can copy.
                 </Text>
               </View>
               
               <View className="mb-4">
-                <Text className="text-[15px] font-bold text-slate-900 dark:text-white mb-1">2. Beware Hidden Sodium</Text>
-                <Text className="text-[13px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                <Text className="text-[15px] font-bold text-text mb-1">2. Beware Hidden Sodium</Text>
+                <Text className="text-[13px] text-text-soft leading-relaxed">
                   Carinderia and street foods rely heavily on sauces. Remember: just 1 tablespoon of soy sauce or patis has nearly 900mg of sodium!
                 </Text>
               </View>
 
               <View className="mb-2">
-                <Text className="text-[15px] font-bold text-slate-900 dark:text-white mb-1">3. Rough is better than blank</Text>
-                <Text className="text-[13px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                <Text className="text-[15px] font-bold text-text mb-1">3. Rough is better than blank</Text>
+                <Text className="text-[13px] text-text-soft leading-relaxed">
                   Don't skip logging a meal just because you don't know the exact numbers. A rough guess keeps you accountable and makes your daily charts useful.
                 </Text>
               </View>

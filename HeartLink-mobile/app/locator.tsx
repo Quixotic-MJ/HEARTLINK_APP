@@ -15,6 +15,7 @@ import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Location from 'expo-location';
 import MapView, { Marker, UrlTile } from "react-native-maps";
 import { EmptyState } from "../components/ui/EmptyState";
+import { theme } from "../constants/theme";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -55,13 +56,12 @@ function ClinicCard({ clinic, onDirections, onCall }: {
   const isEmergency = clinic.status.includes("24/7");
 
   return (
-    <View className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-5 mb-4 shadow-sm">
+    <View className="bg-surface rounded-3xl border border-border p-5 mb-4 shadow-sm">
       {/* Top row */}
       <View className="flex-row items-start mb-4">
         {/* Icon */}
         <View 
           className="w-11 h-11 rounded-xl items-center justify-center mr-4 flex-shrink-0"
-          style={{ backgroundColor: isEmergency ? 'rgba(239,68,68,0.1)' : 'rgba(56,189,248,0.1)' }}
         >
           <MaterialCommunityIcons 
             name="hospital-building" 
@@ -71,27 +71,27 @@ function ClinicCard({ clinic, onDirections, onCall }: {
         </View>
 
         <View className="flex-1 pr-2">
-          <Text className="text-[16px] font-bold text-slate-900 dark:text-white leading-snug mb-1">
+          <Text className="text-[16px] font-bold text-text leading-snug mb-1">
             {clinic.name}
           </Text>
-          <Text className="text-[13px] text-slate-500 dark:text-slate-400 font-medium">{clinic.doctor}</Text>
+          <Text className="text-[13px] text-text-soft font-medium">{clinic.doctor}</Text>
         </View>
         
         {/* Status Badge */}
         {isEmergency ? (
           <Text className="text-[12px] font-bold text-green-500">24/7</Text>
         ) : (
-          <Text className="text-[12px] font-bold text-slate-400">Business hrs</Text>
+          <Text className="text-[12px] font-bold text-text-muted">Business hrs</Text>
         )}
       </View>
 
       {/* Meta row with pills */}
       <View className="flex-row items-center mb-5 gap-2">
-        <View className="bg-slate-50 dark:bg-slate-800 px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700">
-          <Text className="text-[12px] font-bold text-slate-600 dark:text-slate-300">{clinic.distance}</Text>
+        <View className="bg-surface-alt dark:bg-slate-800 px-3 py-1.5 rounded-full border border-border">
+          <Text className="text-[12px] font-bold text-text-soft dark:text-slate-300">{clinic.distance}</Text>
         </View>
-        <View className="bg-slate-50 dark:bg-slate-800 px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700">
-          <Text className="text-[12px] font-bold text-slate-600 dark:text-slate-300">{clinic.specialty}</Text>
+        <View className="bg-surface-alt dark:bg-slate-800 px-3 py-1.5 rounded-full border border-border">
+          <Text className="text-[12px] font-bold text-text-soft dark:text-slate-300">{clinic.specialty}</Text>
         </View>
       </View>
 
@@ -102,7 +102,7 @@ function ClinicCard({ clinic, onDirections, onCall }: {
           onPress={onDirections}
           className="flex-1 flex-row items-center justify-center py-3.5 rounded-2xl bg-sky-400 dark:bg-sky-500 gap-2"
         >
-          <Feather name="navigation" size={15} color="#ffffff" />
+          <Feather name="navigation" size={15} color={theme.onPrimary} />
           <Text className="text-[15px] font-bold text-white">Directions</Text>
         </TouchableOpacity>
 
@@ -111,7 +111,7 @@ function ClinicCard({ clinic, onDirections, onCall }: {
           onPress={onCall}
           className="flex-1 flex-row items-center justify-center py-3.5 rounded-2xl bg-slate-900 dark:bg-slate-800 gap-2"
         >
-          <Feather name="phone-call" size={15} color="#ffffff" />
+          <Feather name="phone-call" size={15} color={theme.onPrimary} />
           <Text className="text-[15px] font-bold text-white">Call</Text>
         </TouchableOpacity>
       </View>
@@ -252,7 +252,7 @@ export default function LocatorScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-surface-alt" edges={["top"]}>
       <StatusBar style="dark" />
 
       {/* ── Header ── */}
@@ -260,24 +260,24 @@ export default function LocatorScreen() {
         <View className="flex-row items-center mb-4">
           <TouchableOpacity
             onPress={() => router.back()}
-            className="w-10 h-10 items-center justify-center mr-2 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800"
+            className="w-10 h-10 items-center justify-center mr-2 rounded-full bg-surface border border-border"
           >
-            <Feather name="arrow-left" size={20} color="#64748b" />
+            <Feather name="arrow-left" size={20} color={theme.textSoft} />
           </TouchableOpacity>
           <View className="flex-1 ml-1">
-            <Text className="text-[20px] font-bold text-slate-900 dark:text-white" numberOfLines={1}>
+            <Text className="text-[20px] font-bold text-text" numberOfLines={1}>
               Emergency locator
             </Text>
-            <Text className="text-[13px] text-slate-500 dark:text-slate-400 font-medium">Nearby cardiovascular centers</Text>
+            <Text className="text-[13px] text-text-soft font-medium">Nearby cardiovascular centers</Text>
           </View>
-          <View className="w-10 h-10 rounded-full items-center justify-center" style={{ backgroundColor: 'rgba(239,68,68,0.1)' }}>
-            <MaterialCommunityIcons name="heart-pulse" size={20} color="#ef4444" />
+          <View className="w-10 h-10 rounded-full items-center justify-center">
+            <MaterialCommunityIcons name="heart-pulse" size={20} color={theme.danger} />
           </View>
         </View>
         
         {locationError && (
           <View className="flex-row items-center bg-orange-50 dark:bg-orange-950 border border-orange-200 dark:border-orange-900/50 rounded-2xl px-4 py-3 gap-3 mb-2">
-            <Feather name="info" size={18} color="#f97316" />
+            <Feather name="info" size={18} color={theme.warning} />
             <Text className="flex-1 text-[13px] font-medium text-orange-800 dark:text-orange-200 leading-snug">
               {locationError}
             </Text>
@@ -289,7 +289,7 @@ export default function LocatorScreen() {
       <View className="flex-1 px-5">
         {/* List header */}
         <View className="py-4 flex-row items-center justify-between">
-          <Text className="text-[16px] font-bold text-slate-900 dark:text-white">
+          <Text className="text-[16px] font-bold text-text">
             Nearby specialists
           </Text>
           <Text className="text-[14px] font-bold text-sky-500">
@@ -303,7 +303,7 @@ export default function LocatorScreen() {
         >
           {filtered.length === 0 ? (
             <EmptyState
-              icon={<Feather name="search" size={26} color="#94a3b8" />}
+              icon={<Feather name="search" size={26} color={theme.textSoft} />}
               title="No results found"
               subtitle="Try a different name or specialty."
               className="pt-12"

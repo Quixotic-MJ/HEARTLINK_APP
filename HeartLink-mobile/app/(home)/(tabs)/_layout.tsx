@@ -13,12 +13,14 @@ import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColorScheme } from "nativewind";
 import { LinearGradient } from "expo-linear-gradient";
+import { Colors } from "../../../constants/theme";
 import {
   SplitRecordActions,
 } from "../../../components/tabs/SplitRecordActions";
 import { QuickLogModal } from "../../../components/exercise/QuickLogModal";
 import { MissionLogModal } from "../../../components/dashboard/MissionLogModal";
 import { useUser } from "../../../contexts/UserContext";
+import { theme } from "../../../constants/theme";
 
 // ─── Tab Config ───────────────────────────────────────────────────────────────
 
@@ -64,8 +66,9 @@ function TabBarItem({
     outputRange: [0.95, 1.05],
   });
   
-  const activeColor = "#38bdf8"; // Primary light blue (sky-400)
-  const inactiveColor = isDark ? "#94a3b8" : "#64748b";
+  const theme = isDark ? Colors.dark : Colors.light;
+  const activeColor = theme.primary;
+  const inactiveColor = theme.textSoft;
 
   return (
     <TouchableOpacity
@@ -103,9 +106,10 @@ function CustomTabBar({ state, navigation, splitOpen, onFabPress, onCloseSplit }
   const insets = useSafeAreaInsets();
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
+  const theme = isDark ? Colors.dark : Colors.light;
 
-  const INACTIVE_COLOR = isDark ? "#94a3b8" : "#64748b";
-  const ACTIVE_COLOR = "#38bdf8"; // Primary light blue
+  const INACTIVE_COLOR = theme.textSoft;
+  const ACTIVE_COLOR = theme.primary;
 
   const fabSpin = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -125,7 +129,7 @@ function CustomTabBar({ state, navigation, splitOpen, onFabPress, onCloseSplit }
   return (
     <View
       style={{
-        backgroundColor: isDark ? "#0f172a" : "#ffffff",
+        backgroundColor: theme.surface,
         flexDirection: "row",
         alignItems: "center",
         height: 60 + bottomPad,
@@ -133,10 +137,10 @@ function CustomTabBar({ state, navigation, splitOpen, onFabPress, onCloseSplit }
         paddingTop: 4,
         paddingHorizontal: 8,
         borderTopWidth: 1,
-        borderTopColor: isDark ? "#1e293b" : "#f1f5f9",
+        borderTopColor: theme.border,
         ...Platform.select({
           ios: {
-            shadowColor: isDark ? "#000000" : "#94a3b8",
+            shadowColor: theme.shadow,
             shadowOffset: { width: 0, height: -4 },
             shadowOpacity: isDark ? 0.3 : 0.1,
             shadowRadius: 8,
@@ -183,22 +187,22 @@ function CustomTabBar({ state, navigation, splitOpen, onFabPress, onCloseSplit }
                   width: 56,
                   height: 56,
                   borderRadius: 28,
-                  backgroundColor: "#38bdf8", // Primary light blue
+                  backgroundColor: theme.primary,
                   alignItems: "center",
                   justifyContent: "center",
                   ...Platform.select({
                     ios: {
-                      shadowColor: "#38bdf8",
+                      shadowColor: theme.primary,
                       shadowOffset: { width: 0, height: 6 },
                       shadowOpacity: 0.4,
                       shadowRadius: 12,
                     },
-                    android: { elevation: 8, shadowColor: "#38bdf8" },
+                    android: { elevation: 8, shadowColor: theme.primary },
                   }),
                 }}
               >
                 <Animated.View style={{ transform: [{ rotate: fabRotate }] }}>
-                  <Feather name="plus" size={26} color="#ffffff" />
+                  <Feather name="plus" size={26} color={theme.onPrimary} />
                 </Animated.View>
               </TouchableOpacity>
             </View>

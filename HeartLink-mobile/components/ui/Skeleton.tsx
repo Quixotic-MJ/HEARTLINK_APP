@@ -9,6 +9,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
 import { useColorScheme } from "nativewind";
+import { Colors } from "../../constants/theme";
 
 export interface SkeletonProps extends ViewProps {
   className?: string;
@@ -32,7 +33,7 @@ export function Skeleton({ className, style, ...props }: SkeletonProps) {
     transform: [{ translateX: shimmerValue.value * width }],
   }));
 
-  const backgroundColor = isDark ? "#1e293b" : "#e2e8f0";
+  const backgroundColor = isDark ? Colors.dark.border : Colors.light.border;
   const highlightColor = isDark ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.6)";
 
   return (

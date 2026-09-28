@@ -18,6 +18,7 @@ import { Image } from "expo-image";
 import { useToast } from "../../../contexts/ToastContext";
 import { logMealAndGetToast } from "../../../services/MealLoggingService";
 import { ChoiceChip, calcRiskFromValues } from "../../../components/meals/SharedMealComponents";
+import { theme } from "../../../constants/theme";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -41,16 +42,10 @@ function NutritionTile({
   return (
     <View
       className="rounded-2xl p-4 border"
-      style={{
-        width: "48%",
-        backgroundColor: highlight ? "#fcebeb" : "#f8fafc",
-        borderColor: highlight ? "#f7c1c1" : "#e2e8f0",
-      }}
     >
       <View className="flex-row items-center justify-between mb-1.5">
         <Text
           className="text-[10px] uppercase tracking-wide"
-          style={{ color: highlight ? "#a32d2d" : "#94a3b8" }}
         >
           {label}
         </Text>
@@ -66,12 +61,10 @@ function NutritionTile({
           }}
           keyboardType="numeric"
           className="text-[22px] font-medium p-0 m-0"
-          style={{ color: highlight ? "#a32d2d" : "#0f172a", minWidth: 20 }}
           selectTextOnFocus
         />
         <Text
           className="text-[12px] mb-1"
-          style={{ color: highlight ? "#f7c1c1" : "#94a3b8" }}
         >
           {unit}
         </Text>
@@ -105,8 +98,8 @@ export default function ScanResultScreen() {
 
   if (!product) {
     return (
-      <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950 items-center justify-center">
-        <Text className="text-slate-900 dark:text-white">No product data found.</Text>
+      <SafeAreaView className="flex-1 bg-surface-alt items-center justify-center">
+        <Text className="text-text">No product data found.</Text>
         <TouchableOpacity onPress={() => router.back()} className="mt-4 px-4 py-2 bg-slate-900 rounded-xl">
           <Text className="text-white">Go back</Text>
         </TouchableOpacity>
@@ -162,22 +155,22 @@ export default function ScanResultScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-surface-alt" edges={["top"]}>
       <StatusBar style="dark" />
 
       {/* Header */}
-      <View className="flex-row items-center px-5 pt-4 pb-3 border-b border-slate-200 dark:border-slate-800/50 bg-white dark:bg-slate-900">
+      <View className="flex-row items-center px-5 pt-4 pb-3 border-b border-border bg-surface">
         <TouchableOpacity
           onPress={() => router.back()}
-          className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 items-center justify-center mr-3"
+          className="w-9 h-9 rounded-xl bg-surface border border-border/70 items-center justify-center mr-3"
         >
           <Feather name="arrow-left" size={18} color={isDark ? "#f8fafc" : "#0f172a"} />
         </TouchableOpacity>
         <View className="flex-1">
-          <Text className="text-[17px] font-medium text-slate-900 dark:text-white" numberOfLines={1}>
+          <Text className="text-[17px] font-medium text-text" numberOfLines={1}>
             {product.product_name}
           </Text>
-          <Text className="text-[12px] text-slate-400">
+          <Text className="text-[12px] text-text-muted">
             {params.source === 'recent' ? 'Recent log' : params.source === 'search' ? 'Search result' : 'Scan result'}
           </Text>
         </View>
@@ -186,7 +179,7 @@ export default function ScanResultScreen() {
       <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerClassName="p-5 pb-10" showsVerticalScrollIndicator={false}>
 
         {/* Product header card */}
-        <View className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4 mb-3 flex-row items-start gap-3">
+        <View className="bg-surface rounded-2xl border border-border/70 p-4 mb-3 flex-row items-start gap-3">
           {product.image_url ? (
             <Image
               source={{ uri: product.image_url }}
@@ -196,19 +189,18 @@ export default function ScanResultScreen() {
           ) : (
             <View
               className="w-18 h-18 rounded-xl items-center justify-center flex-shrink-0"
-              style={{ backgroundColor: "#eaf3de", width: 72, height: 72 }}
             >
-              <MaterialCommunityIcons name="food-apple" size={32} color="#3b6d11" />
+              <MaterialCommunityIcons name="food-apple" size={32} color={theme.successText} />
             </View>
           )}
           <View className="flex-1 justify-center min-h-[72px]">
-            <Text className="text-[12px] text-slate-400 uppercase tracking-wide mb-1">
+            <Text className="text-[12px] text-text-muted uppercase tracking-wide mb-1">
               {product.brands}
             </Text>
-            <Text className="text-[17px] font-medium text-slate-900 dark:text-white leading-snug">
+            <Text className="text-[17px] font-medium text-text leading-snug">
               {product.product_name}
             </Text>
-            <Text className="text-[13px] text-slate-400 mt-1">
+            <Text className="text-[13px] text-text-muted mt-1">
               Base serving: {product.serving_size}
             </Text>
           </View>
@@ -216,14 +208,13 @@ export default function ScanResultScreen() {
 
         {/* Dynamic Risk warning */}
         {risk.level !== "Heart-Friendly" && (
-          <View className="rounded-2xl p-4 mb-3 border flex-row items-start gap-3"
-            style={{ backgroundColor: risk.bg, borderColor: risk.border }}>
+          <View className="rounded-2xl p-4 mb-3 border flex-row items-start gap-3">
             <Feather name={risk.icon} size={15} color={risk.color} style={{ marginTop: 1 }} />
             <View className="flex-1">
-              <Text className="text-[13px] font-medium mb-0.5" style={{ color: risk.color }}>
+              <Text className="text-[13px] font-medium mb-0.5">
                 {risk.level}
               </Text>
-              <Text className="text-[12px] leading-relaxed" style={{ color: risk.color, opacity: 0.85 }}>
+              <Text className="text-[12px] leading-relaxed">
                 {risk.desc}
               </Text>
             </View>
@@ -231,36 +222,36 @@ export default function ScanResultScreen() {
         )}
 
         {/* Servings + meal time */}
-        <View className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4 mb-3">
+        <View className="bg-surface rounded-2xl border border-border/70 p-4 mb-3">
           {/* Servings stepper */}
-          <Text className="text-[11px] text-slate-400 uppercase tracking-wide mb-2">
+          <Text className="text-[11px] text-text-muted uppercase tracking-wide mb-2">
             Servings consumed
           </Text>
-          <View className="flex-row items-center justify-between bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/70 rounded-xl px-3 py-2 mb-4">
+          <View className="flex-row items-center justify-between bg-surface-alt border border-border/70 rounded-xl px-3 py-2 mb-4">
             <TouchableOpacity
               onPress={() => setServingsStr(String(Math.max(0.5, servings - 0.5)))}
-              className="w-9 h-9 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 items-center justify-center"
+              className="w-9 h-9 rounded-lg bg-surface border border-border/70 items-center justify-center"
             >
-              <Feather name="minus" size={15} color="#475569" />
+              <Feather name="minus" size={15} color={theme.textSoft} />
             </TouchableOpacity>
             <View className="items-center">
               <TextInput
                 value={servingsStr}
                 onChangeText={(text) => setServingsStr(text.replace(/-/g, ""))}
                 keyboardType="numeric"
-                className="text-[20px] font-medium text-slate-900 dark:text-white text-center w-16"
+                className="text-[20px] font-medium text-text text-center w-16"
               />
             </View>
             <TouchableOpacity
               onPress={() => setServingsStr(String(servings + 0.5))}
-              className="w-9 h-9 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 items-center justify-center"
+              className="w-9 h-9 rounded-lg bg-surface border border-border/70 items-center justify-center"
             >
-              <Feather name="plus" size={15} color="#475569" />
+              <Feather name="plus" size={15} color={theme.textSoft} />
             </TouchableOpacity>
           </View>
 
           {/* Meal time chips */}
-          <Text className="text-[11px] text-slate-400 uppercase tracking-wide mb-2">
+          <Text className="text-[11px] text-text-muted uppercase tracking-wide mb-2">
             Time of meal
           </Text>
           <View className="flex-row flex-wrap">
@@ -271,20 +262,20 @@ export default function ScanResultScreen() {
         </View>
 
         {/* Crowd-sourced data disclaimer */}
-        <View className="flex-row items-start gap-2 bg-slate-100 dark:bg-slate-800/50 rounded-xl px-3 py-2.5 mb-3">
-          <Feather name="info" size={14} color="#64748b" style={{ marginTop: 2 }} />
-          <Text className="text-[11px] text-slate-500 leading-relaxed flex-1">
+        <View className="flex-row items-start gap-2 bg-surface-alt/50 rounded-xl px-3 py-2.5 mb-3">
+          <Feather name="info" size={14} color={theme.textSoft} style={{ marginTop: 2 }} />
+          <Text className="text-[11px] text-text-soft leading-relaxed flex-1">
             Nutritional data is crowd-sourced and may occasionally differ from the physical package. Please double-check the values below and tap to edit if needed.
           </Text>
         </View>
 
         {/* Nutrition grid */}
-        <View className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800/70 p-4 mb-4">
+        <View className="bg-surface rounded-2xl border border-border/70 p-4 mb-4">
           <View className="flex-row justify-between items-center mb-3">
-            <Text className="text-[11px] text-slate-400 uppercase tracking-wide">
+            <Text className="text-[11px] text-text-muted uppercase tracking-wide">
               Base nutrition (per serving)
             </Text>
-            <Text className="text-[10px] text-slate-400">
+            <Text className="text-[10px] text-text-muted">
               Tap to edit
             </Text>
           </View>
@@ -327,8 +318,7 @@ export default function ScanResultScreen() {
 
       {/* Sticky Action Button */}
       <View 
-        className="px-5 pt-3 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800/50"
-        style={{ paddingBottom: Math.max(insets.bottom, 16) }}
+        className="px-5 pt-3 bg-surface border-t border-border"
       >
         <TouchableOpacity
           onPress={handleLogMeal}
@@ -336,7 +326,7 @@ export default function ScanResultScreen() {
           className="bg-slate-900 w-full rounded-2xl py-4 items-center justify-center flex-row gap-2"
           activeOpacity={0.85}
         >
-          <Feather name="check-circle" size={18} color="#fff" />
+          <Feather name="check-circle" size={18} color={theme.onPrimary} />
           <Text className="text-white text-[15px] font-bold">
             {isSubmitting ? "Logging..." : "Log to daily diary"}
           </Text>

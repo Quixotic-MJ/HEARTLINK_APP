@@ -17,6 +17,7 @@ import { Feather } from "@expo/vector-icons";
 import { useColorScheme } from "nativewind";
 import * as Haptics from "expo-haptics";
 import * as Location from "expo-location";
+import { theme } from "../../constants/theme";
 
 /**
  * FacilityMapModal — pure React Native port of the ViewOnMap web blueprint
@@ -308,7 +309,7 @@ export function FacilityMapModal({
                   backgroundColor: isDark ? "#0f172a" : "#E5E4EE",
                 }}
               >
-                <ActivityIndicator size="large" color="#E8532E" />
+                <ActivityIndicator size="large" color={theme.dangerMid} />
                 <Text style={{ marginTop: 10, fontSize: 12, fontWeight: "600", color: isDark ? "#94A3B8" : "#64748b" }}>
                   Finding nearby Cebu facilities…
                 </Text>
@@ -360,8 +361,8 @@ export function FacilityMapModal({
                 gap: 6,
               }}
             >
-              <Feather name="map-pin" size={12} color="#fff" />
-              <Text numberOfLines={1} style={{ fontSize: 11, fontWeight: "700", color: "#fff" }}>
+              <Feather name="map-pin" size={12} color={theme.onPrimary} />
+              <Text numberOfLines={1} style={{ fontSize: 11, fontWeight: "700", color: theme.surface }}>
                 Cebu City area
               </Text>
             </View>
@@ -404,7 +405,7 @@ export function FacilityMapModal({
                         backgroundColor: "rgba(34,197,94,0.15)",
                       }}
                     >
-                      <Text style={{ fontSize: 11, fontWeight: "600", color: "#16a34a" }}>24/7</Text>
+                      <Text style={{ fontSize: 11, fontWeight: "600", color: theme.success }}>24/7</Text>
                     </View>
                   )}
                 </View>
@@ -413,10 +414,10 @@ export function FacilityMapModal({
                   <TouchableOpacity
                     activeOpacity={0.85}
                     onPress={() => openDirections(selected.latitude, selected.longitude, selected.name)}
-                    style={{ flex: 1, borderRadius: 10, paddingVertical: 11, backgroundColor: "#3b82f6", alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 6 }}
+                    style={{ flex: 1, borderRadius: 10, paddingVertical: 11, backgroundColor: theme.primary, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 6 }}
                   >
-                    <Feather name="navigation" size={15} color="#fff" />
-                    <Text style={{ fontSize: 14, fontWeight: "700", color: "#fff" }}>Directions</Text>
+                    <Feather name="navigation" size={15} color={theme.onPrimary} />
+                    <Text style={{ fontSize: 14, fontWeight: "700", color: theme.surface }}>Directions</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     activeOpacity={0.85}
@@ -424,8 +425,8 @@ export function FacilityMapModal({
                     onPress={() => selected.phone && Linking.openURL(`tel:${selected.phone}`)}
                     style={{ flex: 1, borderRadius: 10, paddingVertical: 11, backgroundColor: isDark ? "#0f172a" : "#1e293b", opacity: selected.phone ? 1 : 0.5, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 6 }}
                   >
-                    <Feather name="phone-call" size={15} color="#fff" />
-                    <Text style={{ fontSize: 14, fontWeight: "700", color: "#fff" }}>Call</Text>
+                    <Feather name="phone-call" size={15} color={theme.onPrimary} />
+                    <Text style={{ fontSize: 14, fontWeight: "700", color: theme.surface }}>Call</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -476,10 +477,10 @@ export function FacilityMapModal({
               onPress={() => animateOut(onOpenFull)}
               style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 16, marginTop: 4 }}
             >
-              <Text style={{ fontSize: 14, fontWeight: "700", color: "#3b82f6" }}>
+              <Text style={{ fontSize: 14, fontWeight: "700", color: theme.blue }}>
                 Open full locator
               </Text>
-              <Feather name="arrow-right" size={15} color="#3b82f6" />
+              <Feather name="arrow-right" size={15} color={theme.blue} />
             </TouchableOpacity>
           </ScrollView>
         </Animated.View>

@@ -5,6 +5,7 @@ import { useColorScheme } from 'nativewind';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { OfflineSyncService } from '../utils/OfflineSyncService';
+import { theme } from "../constants/theme";
 
 export default function OfflineBanner() {
   const netInfo = useNetInfo();
@@ -51,8 +52,8 @@ export default function OfflineBanner() {
       }}
     >
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 8, gap: 8 }}>
-        <Feather name="wifi-off" size={14} color="#fff" />
-        <Text style={{ color: '#fff', fontSize: 13, fontWeight: '500' }}>
+        <Feather name="wifi-off" size={14} color={theme.onPrimary} />
+        <Text style={{ color: theme.surface, fontSize: 13, fontWeight: '500' }}>
           No internet connection
         </Text>
       </View>

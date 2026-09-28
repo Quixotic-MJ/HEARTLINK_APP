@@ -15,6 +15,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useUser } from "../../../contexts/UserContext";
+import { theme } from "../../../constants/theme";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -42,12 +43,12 @@ function ExerciseCard({
   const getTypeProps = (type: string, title: string) => {
     const t = (type + " " + title).toLowerCase();
     if (t.includes("cardio") || t.includes("run") || t.includes("cycle")) {
-       return { color: "#BED9FA", icon: "activity", iconColor: "#1D4ED8" };
+       return { color: theme.skyTint, icon: "activity", iconColor: theme.skyText };
     }
     if (t.includes("strength") || t.includes("leg")) {
-       return { color: "#FBCFE8", icon: "target", iconColor: "#BE185D" };
+       return { color: theme.dangerTint, icon: "target", iconColor: theme.dangerText };
     }
-    return { color: "#DDD6FE", icon: "user", iconColor: "#6D28D9" };
+    return { color: theme.blueTint, icon: "user", iconColor: theme.blueText };
   };
   
   const { color, icon, iconColor } = getTypeProps(routine.type, routine.title);
@@ -57,15 +58,14 @@ function ExerciseCard({
     <TouchableOpacity 
       activeOpacity={0.8} 
       onPress={onPress} 
-      className="flex-row items-center p-3 mb-3 rounded-2xl border" 
-      style={{ backgroundColor: isDark ? "#162232" : "#FFFFFF", borderColor: isDark ? "#1E293B" : "#F1F5F9" }}
+      className="flex-row items-center p-3 mb-3 rounded-2xl border bg-surface dark:bg-surface-alt border-border"
     >
-      <View className="w-14 h-14 rounded-xl items-center justify-center mr-4" style={{ backgroundColor: color }}>
+      <View className="w-14 h-14 rounded-xl items-center justify-center mr-4">
         <Feather name={icon as any} size={22} color={iconColor} />
       </View>
       <View className="flex-1 justify-center">
-        <Text className="text-[15px] font-bold mb-1" style={{ color: isDark ? "#FFFFFF" : "#0F172A" }}>{routine.title}</Text>
-        <Text className="text-[12px]" style={{ color: isDark ? "#94A3B8" : "#64748B" }}>{routine.type} - {routine.duration} min - {calories} cal</Text>
+        <Text className="text-[15px] font-bold mb-1 text-text">{routine.title}</Text>
+        <Text className="text-[12px] text-text-soft">{routine.type} - {routine.duration} min - {calories} cal</Text>
       </View>
       <Feather name="chevron-right" size={18} color={isDark ? "#64748B" : "#94A3B8"} />
     </TouchableOpacity>
@@ -144,13 +144,13 @@ export default function ExercisesScreen({
       {/* Top Bar matching the "See All" design */}
       {!isEmbedded && (
         <View className="flex-row items-center justify-between px-5 pt-3 pb-4">
-          <TouchableOpacity onPress={() => router.back()} className="w-10 h-10 items-center justify-center -ml-2 rounded-full" style={{ backgroundColor: isDark ? "#162232" : "#F1F5F9" }}>
+          <TouchableOpacity onPress={() => router.back()} className="w-10 h-10 items-center justify-center -ml-2 rounded-full bg-surface-alt">
             <Feather name="arrow-left" size={20} color={isDark ? "#FFFFFF" : "#0F172A"} />
           </TouchableOpacity>
-          <Text className="text-[18px] font-bold" style={{ color: isDark ? "#FFFFFF" : "#0F172A" }}>
+          <Text className="text-[18px] font-bold text-text">
             Exercises
           </Text>
-          <TouchableOpacity className="w-10 h-10 items-center justify-center -mr-2 rounded-full" style={{ backgroundColor: isDark ? "#162232" : "#F1F5F9" }}>
+          <TouchableOpacity className="w-10 h-10 items-center justify-center -mr-2 rounded-full bg-surface-alt">
             <Feather name="sliders" size={18} color={isDark ? "#FFFFFF" : "#0F172A"} />
           </TouchableOpacity>
         </View>
@@ -167,12 +167,8 @@ export default function ExercisesScreen({
                 onPress={() => setActiveFilter(filter)}
                 activeOpacity={0.7}
                 className="px-5 py-2 rounded-full mr-3 border"
-                style={{ 
-                  backgroundColor: isActive ? (isDark ? "#F8F9FA" : "#152131") : (isDark ? "#162232" : "#FFFFFF"),
-                  borderColor: isActive ? "transparent" : (isDark ? "#1E293B" : "#E2E8F0")
-                }}
               >
-                <Text className="text-[14px] font-semibold" style={{ color: isActive ? (isDark ? "#152131" : "#FFFFFF") : (isDark ? "#94A3B8" : "#64748B") }}>
+                <Text className="text-[14px] font-semibold">
                   {filter}
                 </Text>
               </TouchableOpacity>
@@ -184,10 +180,10 @@ export default function ExercisesScreen({
       <ScrollView
         contentContainerStyle={{ paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1B6E63" />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#33CC82" />}
       >
         <View className="px-5 mb-4">
-          <Text className="text-[13px] font-semibold" style={{ color: isDark ? "#F6CA84" : "#B45309" }}>
+          <Text className="text-[13px] font-semibold">
             {filteredRoutines.length} exercises
           </Text>
         </View>

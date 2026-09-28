@@ -1,31 +1,42 @@
 import React from "react";
-import Svg, { Defs, LinearGradient, Stop, Rect, Path } from "react-native-svg";
+import Svg, { Defs, LinearGradient, Stop, G, Path } from "react-native-svg";
+import { hues } from "../../constants/theme";
 
 export default function HeartLogo({ size = 40 }: { size?: number }) {
   return (
-    <Svg width={size} height={size} viewBox="0 0 512 512">
+    <Svg width={size} height={size} viewBox="-132 -132 264 264" accessibilityRole="image" aria-label="HeartLink icon">
       <Defs>
-        <LinearGradient id="heartGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-          <Stop offset="0%" stopColor="#6EC1F5" />
-          <Stop offset="100%" stopColor="#2E9AE8" />
+        <LinearGradient id="hl-topright" gradientUnits="userSpaceOnUse" x1="0" y1="-122" x2="0" y2="30">
+          <Stop offset="0" stopColor={hues.blue} />
+          <Stop offset="0.30" stopColor={hues.blue} />
+          <Stop offset="0.52" stopColor={hues.teal} />
+          <Stop offset="0.68" stopColor={hues.success} />
+          <Stop offset="0.81" stopColor={hues.lime} />
+          <Stop offset="0.91" stopColor={hues.warning} />
+          <Stop offset="1" stopColor={hues.warning} />
+        </LinearGradient>
+        <LinearGradient id="hl-bottomleft" gradientUnits="userSpaceOnUse" x1="0" y1="-30" x2="0" y2="122">
+          <Stop offset="0" stopColor={hues.blue} />
+          <Stop offset="0.45" stopColor={hues.blue} />
+          <Stop offset="0.62" stopColor={hues.sky} />
+          <Stop offset="0.78" stopColor={hues.teal} />
+          <Stop offset="1" stopColor={hues.success} />
+        </LinearGradient>
+        <LinearGradient id="hl-bottomright" gradientUnits="userSpaceOnUse" x1="122" y1="0" x2="-32" y2="0">
+          <Stop offset="0" stopColor={hues.success} />
+          <Stop offset="0.30" stopColor={hues.lime} />
+          <Stop offset="0.50" stopColor={hues.lime} />
+          <Stop offset="0.70" stopColor={hues.lime} />
+          <Stop offset="0.85" stopColor={hues.warning} />
+          <Stop offset="1" stopColor={hues.warning} />
         </LinearGradient>
       </Defs>
-
-      {/* Heart shape */}
-      <Path
-        d="M256,410 C256,410 108,308 108,202 C108,148 150,106 204,106 C230,106 254,120 256,138 C258,120 282,106 308,106 C362,106 404,148 404,202 C404,308 256,410 256,410 Z"
-        fill="url(#heartGrad)"
-      />
-
-      {/* Pulse / heartbeat line through the heart, in white for contrast */}
-      <Path
-        d="M150,246 L196,246 L216,196 L246,296 L276,216 L302,246 L362,246"
-        fill="none"
-        stroke="#FFFFFF"
-        strokeWidth="14"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+      <G fill="none" strokeWidth="30" strokeLinecap="round" strokeLinejoin="round">
+        <Path d="M -79.20,-25.46 L -96.17,-42.43 A 38 38 0 0 1 -42.43,-96.17 L 28.28,-25.46" stroke={hues.danger}/>
+        <Path d="M 25.46,-79.20 L 42.43,-96.17 A 38 38 0 0 1 96.17,-42.43 L 25.46,28.28" stroke="url(#hl-topright)"/>
+        <Path d="M -25.46,79.20 L -42.43,96.17 A 38 38 0 0 1 -96.17,42.43 L -25.46,-28.28" stroke="url(#hl-bottomleft)"/>
+        <Path d="M 79.20,25.46 L 96.17,42.43 A 38 38 0 0 1 42.43,96.17 L -28.28,25.46" stroke="url(#hl-bottomright)"/>
+      </G>
     </Svg>
   );
 }

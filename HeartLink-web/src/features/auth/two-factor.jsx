@@ -2,11 +2,44 @@ import React, { useState, useRef } from "react";
 import { Lock, ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 
-// ─── Heart Icon (matches brand logo — thin outline, no fill) ─────────────────
-function HeartOutlineIcon({ size = 22, color = "currentColor" }) {
+// ─── HeartLink Official Brand Emblem ──────────────────────────────────────────
+function HeartLogoIcon({ size = 22, className = "" }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+    <svg 
+      width={size} 
+      height={size} 
+      viewBox="-132 -132 264 264" 
+      fill="none" 
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+      aria-hidden="true"
+      role="img"
+      aria-label="HeartLink icon"
+    >
+      <defs>
+        <linearGradient id="hl-topright" gradientUnits="userSpaceOnUse" x1="0" y1="-122" x2="0" y2="30">
+          <stop offset="0" stopColor="#2B84FF"/><stop offset="0.30" stopColor="#2E8DF5"/>
+          <stop offset="0.52" stopColor="#38B3B5"/><stop offset="0.68" stopColor="#5CC974"/>
+          <stop offset="0.81" stopColor="#B2D65A"/><stop offset="0.91" stopColor="#F7A63C"/>
+          <stop offset="1" stopColor="#FF9A2E"/>
+        </linearGradient>
+        <linearGradient id="hl-bottomleft" gradientUnits="userSpaceOnUse" x1="0" y1="-30" x2="0" y2="122">
+          <stop offset="0" stopColor="#2B87FF"/><stop offset="0.45" stopColor="#2A86F5"/>
+          <stop offset="0.62" stopColor="#2D9BE0"/><stop offset="0.78" stopColor="#30BE9C"/>
+          <stop offset="1" stopColor="#33CC82"/>
+        </linearGradient>
+        <linearGradient id="hl-bottomright" gradientUnits="userSpaceOnUse" x1="122" y1="0" x2="-32" y2="0">
+          <stop offset="0" stopColor="#3FC98A"/><stop offset="0.30" stopColor="#7ACD68"/>
+          <stop offset="0.50" stopColor="#B6D85A"/><stop offset="0.70" stopColor="#C2D857"/>
+          <stop offset="0.85" stopColor="#F2A93C"/><stop offset="1" stopColor="#FF9A2E"/>
+        </linearGradient>
+      </defs>
+      <g fill="none" strokeWidth="30" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M -79.20,-25.46 L -96.17,-42.43 A 38 38 0 0 1 -42.43,-96.17 L 28.28,-25.46" stroke="#FF4B4B"/>
+        <path d="M 25.46,-79.20 L 42.43,-96.17 A 38 38 0 0 1 96.17,-42.43 L 25.46,28.28" stroke="url(#hl-topright)"/>
+        <path d="M -25.46,79.20 L -42.43,96.17 A 38 38 0 0 1 -96.17,42.43 L -25.46,-28.28" stroke="url(#hl-bottomleft)"/>
+        <path d="M 79.20,25.46 L 96.17,42.43 A 38 38 0 0 1 42.43,96.17 L -28.28,25.46" stroke="url(#hl-bottomright)"/>
+      </g>
     </svg>
   );
 }
@@ -22,7 +55,7 @@ function BrandLogo({ dark = false }) {
         className="w-20 h-20 rounded-full flex items-center justify-center border-2"
         style={{ borderColor: dark ? "rgba(15,23,42,0.15)" : "rgba(255,255,255,0.35)", backgroundColor: "transparent" }}
       >
-        <HeartOutlineIcon size={34} color={dark ? "#0f172a" : "#ffffff"} />
+        <HeartLogoIcon size={34} />
       </div>
       {/* Wordmark */}
       <div className="text-center">

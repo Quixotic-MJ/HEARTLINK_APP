@@ -2,6 +2,7 @@ import React from "react";
 import { View, TouchableOpacity, Text, Platform } from "react-native";
 import { useRouter } from "expo-router";
 import { Feather } from "@expo/vector-icons";
+import { theme } from "../../constants/theme";
 
 export function SimpleHeader({ title = "", showBack = true }: { title?: string, showBack?: boolean }) {
   const router = useRouter();
@@ -20,12 +21,12 @@ export function SimpleHeader({ title = "", showBack = true }: { title?: string, 
       {showBack && (
         <TouchableOpacity
           onPress={() => router.back()}
-          className="absolute left-4 w-10 h-10 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800"
+          className="absolute left-4 w-10 h-10 items-center justify-center rounded-full bg-surface-alt"
         >
-          <Feather name="arrow-left" size={20} className="text-slate-900 dark:text-white" />
+          <Feather name="arrow-left" size={20} color={theme.text} />
         </TouchableOpacity>
       )}
-      <Text className="text-base font-semibold text-slate-900 dark:text-white">
+      <Text className="text-base font-semibold text-text">
         {title}
       </Text>
     </View>

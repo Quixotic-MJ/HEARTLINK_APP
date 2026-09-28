@@ -19,6 +19,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useUser } from "../../contexts/UserContext";
 import { useToast } from "../../contexts/ToastContext";
 import { useLogMeal } from "../../hooks/useLogMeal";
+import { theme } from "../../constants/theme";
 
 /**
  * RecommendationModal — pure React Native port of the ExpandableProfileCard
@@ -303,7 +304,7 @@ export function RecommendationModal({
               justifyContent: "center",
             }}
           >
-            <Feather name="x" size={16} color="#fff" />
+            <Feather name="x" size={16} color={theme.onPrimary} />
           </TouchableOpacity>
 
           {/* Hero image */}
@@ -317,7 +318,7 @@ export function RecommendationModal({
             ) : (
               <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
                 {isLoading ? (
-                  <ActivityIndicator size="large" color="#E8532E" />
+                  <ActivityIndicator size="large" color={theme.dangerMid} />
                 ) : (
                   <Feather
                     name={isRecipe ? "coffee" : "activity"}
@@ -381,7 +382,7 @@ export function RecommendationModal({
 
               {isLoading && !detail ? (
                 <View style={{ paddingVertical: 24, alignItems: "center" }}>
-                  <ActivityIndicator size="small" color="#E8532E" />
+                  <ActivityIndicator size="small" color={theme.dangerMid} />
                 </View>
               ) : fetchError && !detail ? (
                 <View style={{ paddingVertical: 24, alignItems: "center", gap: 12 }}>
@@ -459,7 +460,7 @@ export function RecommendationModal({
                           if (isOver) {
                             return (
                               <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: isDark ? "#450a0a" : "#FEF2F2", padding: 10, borderRadius: 8, marginTop: 4 }}>
-                                <Feather name="alert-triangle" size={16} color="#DC2626" />
+                                <Feather name="alert-triangle" size={16} color={theme.danger} />
                                 <Text style={{ marginLeft: 8, fontSize: 13, color: isDark ? "#fca5a5" : "#991B1B", fontWeight: "500", flex: 1 }}>
                                   Logging this meal will put you {overAmount}mg over your daily sodium limit.
                                 </Text>
@@ -477,7 +478,7 @@ export function RecommendationModal({
                           </Text>
                           {detail.ingredients.slice(0, 4).map((ing: string, i: number) => (
                             <View key={i} style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 3 }}>
-                              <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: "#1B6E63" }} />
+                              <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: theme.successMid }} />
                               <Text numberOfLines={1} style={{ flex: 1, fontSize: 12.5, color: isDark ? "#cbd5e1" : "#3f4a44" }}>
                                 {ing}
                               </Text>
@@ -546,7 +547,7 @@ export function RecommendationModal({
                               borderColor: isDark ? "#1E293B" : "#DBEAFE",
                             }}
                           >
-                            <Feather name={chip.icon as any} size={12} color="#4A6080" />
+                            <Feather name={chip.icon as any} size={12} color={theme.textSoft} />
                             <Text numberOfLines={1} style={{ fontSize: 11.5, fontWeight: "600", color: isDark ? "#cbd5e1" : "#1e40af" }}>
                               {chip.label}
                             </Text>
@@ -588,8 +589,8 @@ export function RecommendationModal({
                     opacity: logMealMutation.isPending || (isRecipe && !detail) ? 0.7 : 1,
                   }}
                 >
-                  <Feather name={isRecipe ? "check" : "play"} size={15} color="#fff" />
-                  <Text style={{ fontSize: 14, fontWeight: "700", color: "#fff" }}>
+                  <Feather name={isRecipe ? "check" : "play"} size={15} color={theme.onPrimary} />
+                  <Text style={{ fontSize: 14, fontWeight: "700", color: theme.surface }}>
                     {logMealMutation.isPending ? "Saving…" : isRecipe ? "Log This Recipe" : "Do This Exercise"}
                   </Text>
                 </TouchableOpacity>

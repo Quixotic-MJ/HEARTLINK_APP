@@ -22,6 +22,7 @@ import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
 import { useUser } from "../../../contexts/UserContext";
 import { Header } from "../../../components/Header";
+import { theme } from "../../../constants/theme";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -285,13 +286,20 @@ export default function TrendsTabScreen() {
       ].map((tab) => {
         const isActive = activeTab === tab.id;
         return (
-          <View key={tab.id} className={`rounded-full mr-2 border ${isActive ? "border-transparent" : (isDark ? "border-slate-800" : "border-slate-200")}`}>
+          <View 
+            key={tab.id} 
+            className="rounded-full mr-2 border"
+            style={{ borderColor: isActive ? "transparent" : theme.border }}
+          >
             <TouchableOpacity
               onPress={() => setActiveTab(tab.id as any)}
               className="px-4 py-2 rounded-full"
-              style={{ backgroundColor: isActive ? (isDark ? TOKENS.teal : TOKENS.teal) : (isDark ? "#1C2A3A" : "#FFFFFF") }}
+              style={{ backgroundColor: isActive ? theme.primary : "transparent" }}
             >
-              <Text className={`text-[13px] font-semibold ${isActive ? "text-white" : (isDark ? "text-slate-300" : "text-slate-600")}`}>
+              <Text 
+                className="text-[13px] font-semibold"
+                style={{ color: isActive ? theme.onPrimary : theme.textSoft }}
+              >
                 {tab.label}
               </Text>
             </TouchableOpacity>
@@ -305,28 +313,28 @@ export default function TrendsTabScreen() {
     return (
       <View className="flex-row justify-between mb-4">
         {/* Metric 1 */}
-        <View className="flex-1 bg-surface-card rounded-xl p-3 mr-2 border border-slate-100 dark:border-slate-800/60">
-          <Text className="text-[13px] font-semibold text-slate-700 dark:text-slate-300 mb-2">Sleep</Text>
-          <View className="h-1 bg-slate-200 dark:bg-slate-700/50 rounded-full w-full overflow-hidden mb-2">
-            <View className="h-full rounded-full" style={{ width: '70%', backgroundColor: TOKENS.indigo }} />
+        <View className="flex-1 bg-surface rounded-xl p-3 mr-2 border border-border dark:border-slate-800/60">
+          <Text className="text-[13px] font-semibold text-text mb-2">Sleep</Text>
+          <View className="h-1 bg-border/50 rounded-full w-full overflow-hidden mb-2">
+            <View className="h-full rounded-full" />
           </View>
-          <Text className="text-[14px] font-bold text-[#152131] dark:text-white">6.5<Text className="text-[11px] font-medium text-slate-500">/8hr</Text></Text>
+          <Text className="text-[14px] font-bold text-text">6.5<Text className="text-[11px] font-medium text-text-soft">/8hr</Text></Text>
         </View>
         {/* Metric 2 */}
-        <View className="flex-1 bg-surface-card rounded-xl p-3 mr-2 border border-slate-100 dark:border-slate-800/60">
-          <Text className="text-[13px] font-semibold text-slate-700 dark:text-slate-300 mb-2">Activity</Text>
-          <View className="h-1 bg-slate-200 dark:bg-slate-700/50 rounded-full w-full overflow-hidden mb-2">
-            <View className="h-full rounded-full" style={{ width: '60%', backgroundColor: TOKENS.teal }} />
+        <View className="flex-1 bg-surface rounded-xl p-3 mr-2 border border-border dark:border-slate-800/60">
+          <Text className="text-[13px] font-semibold text-text mb-2">Activity</Text>
+          <View className="h-1 bg-border/50 rounded-full w-full overflow-hidden mb-2">
+            <View className="h-full rounded-full" />
           </View>
-          <Text className="text-[14px] font-bold text-[#152131] dark:text-white">6.2k<Text className="text-[11px] font-medium text-slate-500">/10k</Text></Text>
+          <Text className="text-[14px] font-bold text-text">6.2k<Text className="text-[11px] font-medium text-text-soft">/10k</Text></Text>
         </View>
         {/* Metric 3 */}
-        <View className="flex-1 bg-surface-card rounded-xl p-3 border border-slate-100 dark:border-slate-800/60">
-          <Text className="text-[13px] font-semibold text-slate-700 dark:text-slate-300 mb-2">Sodium</Text>
-          <View className="h-1 bg-slate-200 dark:bg-slate-700/50 rounded-full w-full overflow-hidden mb-2">
-            <View className="h-full rounded-full" style={{ width: '40%', backgroundColor: TOKENS.orange }} />
+        <View className="flex-1 bg-surface rounded-xl p-3 border border-border dark:border-slate-800/60">
+          <Text className="text-[13px] font-semibold text-text mb-2">Sodium</Text>
+          <View className="h-1 bg-border/50 rounded-full w-full overflow-hidden mb-2">
+            <View className="h-full rounded-full" />
           </View>
-          <Text className="text-[14px] font-bold text-[#152131] dark:text-white">760<Text className="text-[11px] font-medium text-slate-500">/2g</Text></Text>
+          <Text className="text-[14px] font-bold text-text">760<Text className="text-[11px] font-medium text-text-soft">/2g</Text></Text>
         </View>
       </View>
     );
@@ -359,16 +367,16 @@ export default function TrendsTabScreen() {
     const areaPath = buildAreaPath(points, CHART_HEIGHT - CHART_PADDING);
 
     return (
-      <View className="bg-surface-card rounded-2xl p-5 mb-4 border border-slate-100 dark:border-slate-800/60">
+      <View className="bg-surface rounded-2xl p-5 mb-4 border border-border dark:border-slate-800/60">
         
         {/* Metric Header */}
         <View className="flex-row items-start justify-between mb-4">
           <View>
-            <Text className="text-[12px] font-semibold text-[#5C6B66] dark:text-slate-400 uppercase tracking-wider mb-1">
+            <Text className="text-[12px] font-semibold text-text-soft uppercase tracking-wider mb-1">
               {activeTab === "score" ? "Latest Heart Score" : activeTab === "bp" ? "Latest BP" : activeTab === "bpm" ? "Latest Resting HR" : "Total Sodium (Today)"}
             </Text>
             <View className="flex-row items-baseline">
-              <Text className="text-[38px] font-bold text-[#152131] dark:text-white tracking-tight leading-none">
+              <Text className="text-[38px] font-bold text-text tracking-tight leading-none">
                 {activeTab === "score" 
                   ? (latestHSS ?? "--") 
                   : activeTab === "bp" 
@@ -378,19 +386,19 @@ export default function TrendsTabScreen() {
                       : (chartData[chartData.length - 1]?.value ?? "--")
                 }
               </Text>
-              <Text className="text-[14px] font-medium text-[#5C6B66] dark:text-slate-400 ml-1.5">
+              <Text className="text-[14px] font-medium text-text-soft ml-1.5">
                 {activeTab === "score" ? "/ 100" : activeTab === "bp" ? "mmHg" : activeTab === "bpm" ? "bpm" : "mg"}
               </Text>
             </View>
           </View>
 
           <View className="items-end">
-            <Text className="text-[12px] font-semibold text-[#5C6B66] dark:text-slate-400 uppercase tracking-wider mb-1">
+            <Text className="text-[12px] font-semibold text-text-soft uppercase tracking-wider mb-1">
               This Week
             </Text>
             <View className="flex-row items-center">
               <Feather name={activeTab === "score" ? "trending-up" : "trending-down"} size={14} color={activeTab === "score" ? TOKENS.teal : TOKENS.teal} />
-              <Text className="text-[13px] font-bold ml-1" style={{ color: activeTab === "score" ? TOKENS.teal : TOKENS.teal }}>
+              <Text className="text-[13px] font-bold ml-1">
                 {activeTab === "score" ? "+5% vs last" : activeTab === "bp" ? "-2% vs last" : activeTab === "bpm" ? "-3% vs last" : "Under limit"}
               </Text>
             </View>
@@ -398,7 +406,7 @@ export default function TrendsTabScreen() {
         </View>
 
         {/* Time Interval Selector */}
-        <View className="flex-row p-1 rounded-xl mb-4" style={{ backgroundColor: isDark ? "rgba(148,163,184,0.1)" : TOKENS.neutralSoft }}>
+        <View className="flex-row p-1 rounded-xl mb-4">
           {([7, 14, 30] as const).map((days) => {
             const isActive = intervalDays === days;
             const label = `${days}D`;
@@ -408,9 +416,16 @@ export default function TrendsTabScreen() {
                 onPress={() => { Haptics.selectionAsync(); setIntervalDays(days); }}
                 activeOpacity={0.7}
                 className="flex-1 py-2 items-center rounded-lg"
-                style={isActive ? { backgroundColor: isDark ? "#1C2A3A" : "#FFFFFF" } : undefined}
+                style={{ 
+                  backgroundColor: isActive ? theme.surface : "transparent",
+                  elevation: isActive ? 1 : 0,
+                  shadowColor: isActive ? "rgba(0,0,0,0.1)" : "transparent",
+                  shadowOffset: isActive ? { width: 0, height: 1 } : undefined,
+                  shadowOpacity: isActive ? 1 : 0,
+                  shadowRadius: isActive ? 2 : 0,
+                }}
               >
-                <Text className="text-[12px] font-semibold tracking-tight" style={{ color: isActive ? (isDark ? "#FFFFFF" : TOKENS.ink) : (isDark ? TOKENS.subDark : TOKENS.sub) }}>
+                <Text className="text-[12px] font-semibold tracking-tight">
                   {label}
                 </Text>
               </TouchableOpacity>
@@ -420,13 +435,13 @@ export default function TrendsTabScreen() {
 
         {/* SVG CHART AREA / EMPTY STATE */}
         {activeTab === "sodium" ? (
-          <View className="h-44 items-center justify-center border-b border-[#DCE3DF] dark:border-slate-800 mb-4 pb-4">
-            <View className="w-12 h-12 rounded-full items-center justify-center mb-3" style={{ backgroundColor: isDark ? "rgba(111,111,209,0.15)" : "rgba(111,111,209,0.1)" }}>
+          <View className="h-44 items-center justify-center border-b border-border mb-4 pb-4">
+            <View className="w-12 h-12 rounded-full items-center justify-center mb-3">
               <MaterialCommunityIcons name="food-apple" size={20} color={TOKENS.indigo} />
             </View>
-            <Text className="text-[14px] font-semibold text-[#152131] dark:text-white mb-1">No Sodium Data</Text>
-            <Text className="text-[12px] text-center text-slate-500 dark:text-slate-400 mb-3 px-4">You haven't logged any meals in this timeframe.</Text>
-            <TouchableOpacity onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)} className="px-4 py-2 rounded-full" style={{ backgroundColor: TOKENS.indigo }}>
+            <Text className="text-[14px] font-semibold text-text mb-1">No Sodium Data</Text>
+            <Text className="text-[12px] text-center text-text-soft mb-3 px-4">You haven't logged any meals in this timeframe.</Text>
+            <TouchableOpacity onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)} className="px-4 py-2 rounded-full">
               <Text className="text-[12px] font-semibold text-white">Log a Meal</Text>
             </TouchableOpacity>
           </View>
@@ -468,7 +483,7 @@ export default function TrendsTabScreen() {
               {chartData.map((d, i) => {
                 const showLabel = intervalDays === 7 || (intervalDays === 14 && (i + 1) % 3 === 0) || (intervalDays === 30 && (i + 1) % 5 === 0);
                 return (
-                  <Text key={i} className="text-[10px] text-slate-400 font-medium" style={{ opacity: showLabel ? 1 : 0, width: 24, textAlign: 'center' }}>
+                  <Text key={i} className="text-[10px] text-text-muted font-medium">
                     {d.label}
                   </Text>
                 );
@@ -484,27 +499,27 @@ export default function TrendsTabScreen() {
 
   const renderHighlights = () => (
     <View className="px-5 mb-8">
-      <TouchableOpacity activeOpacity={0.7} className="flex-row items-center justify-between p-4 bg-surface-card rounded-2xl border border-slate-100 dark:border-slate-800/60 mb-2">
+      <TouchableOpacity activeOpacity={0.7} className="flex-row items-center justify-between p-4 bg-surface rounded-2xl border border-border dark:border-slate-800/60 mb-2">
         <View className="flex-row items-center gap-4">
-          <View className="w-10 h-10 rounded-full items-center justify-center" style={{ backgroundColor: isDark ? "rgba(111,111,209,0.15)" : TOKENS.indigoSoft }}>
+          <View className="w-10 h-10 rounded-full items-center justify-center">
             <Feather name="activity" size={16} color={TOKENS.indigo} />
           </View>
           <View>
-            <Text className="text-[15px] font-bold text-slate-900 dark:text-white mb-0.5">Best day</Text>
-            <Text className="text-[13px] text-slate-500 dark:text-slate-400">Wednesday, 120/80 mmHg</Text>
+            <Text className="text-[15px] font-bold text-text mb-0.5">Best day</Text>
+            <Text className="text-[13px] text-text-soft">Wednesday, 120/80 mmHg</Text>
           </View>
         </View>
         <Feather name="chevron-right" size={18} color={isDark ? "#64748B" : "#94A3B8"} />
       </TouchableOpacity>
 
-      <TouchableOpacity activeOpacity={0.7} className="flex-row items-center justify-between p-4 bg-surface-card rounded-2xl border border-slate-100 dark:border-slate-800/60">
+      <TouchableOpacity activeOpacity={0.7} className="flex-row items-center justify-between p-4 bg-surface rounded-2xl border border-border dark:border-slate-800/60">
         <View className="flex-row items-center gap-4">
-          <View className="w-10 h-10 rounded-full items-center justify-center" style={{ backgroundColor: isDark ? "rgba(178,58,58,0.15)" : TOKENS.criticalSoft }}>
+          <View className="w-10 h-10 rounded-full items-center justify-center">
             <Feather name="alert-triangle" size={16} color={TOKENS.critical} />
           </View>
           <View>
-            <Text className="text-[15px] font-bold text-slate-900 dark:text-white mb-0.5">Highest sodium</Text>
-            <Text className="text-[13px] text-slate-500 dark:text-slate-400">Saturday, 2,140mg</Text>
+            <Text className="text-[15px] font-bold text-text mb-0.5">Highest sodium</Text>
+            <Text className="text-[13px] text-text-soft">Saturday, 2,140mg</Text>
           </View>
         </View>
         <Feather name="chevron-right" size={18} color={isDark ? "#64748B" : "#94A3B8"} />
@@ -513,7 +528,7 @@ export default function TrendsTabScreen() {
   );
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-[#0B121C]">
+    <SafeAreaView className="flex-1 bg-surface-alt dark:bg-background">
       <StatusBar style={isDark ? "light" : "dark"} />
       <Header />
 
@@ -524,15 +539,15 @@ export default function TrendsTabScreen() {
         {/* Screen Header */}
         <View className="px-5 mb-5 mt-2 flex-row items-center justify-between">
           <View>
-            <Text className="text-[28px] font-bold text-[#152131] dark:text-white tracking-tight mb-1">
+            <Text className="text-[28px] font-bold text-text tracking-tight mb-1">
               Trends
             </Text>
-            <Text className="text-[14px] text-slate-500 dark:text-slate-400">
+            <Text className="text-[14px] text-text-soft">
               Analyze your vitals and discover patterns.
             </Text>
           </View>
           <View className="flex-row items-center gap-2">
-            <TouchableOpacity onPress={handleExportPDF} className="w-10 h-10 rounded-full items-center justify-center bg-slate-100 dark:bg-slate-800">
+            <TouchableOpacity onPress={handleExportPDF} className="w-10 h-10 rounded-full items-center justify-center bg-surface-alt">
               <Feather name="share" size={18} color={isDark ? "#FFFFFF" : TOKENS.ink} />
             </TouchableOpacity>
             <TouchableOpacity 
@@ -540,10 +555,9 @@ export default function TrendsTabScreen() {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                 router.push("/(home)/(health)/log-symptoms");
               }} 
-              className="w-10 h-10 rounded-full items-center justify-center" 
-              style={{ backgroundColor: TOKENS.teal }}
+              className="w-10 h-10 rounded-full items-center justify-center"
             >
-              <Feather name="plus" size={20} color="#FFFFFF" />
+              <Feather name="plus" size={20} color={theme.onPrimary} />
             </TouchableOpacity>
           </View>
         </View>

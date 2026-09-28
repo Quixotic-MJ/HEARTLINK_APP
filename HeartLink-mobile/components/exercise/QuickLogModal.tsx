@@ -16,6 +16,7 @@ import { Feather } from "@expo/vector-icons";
 import { useUser } from "../../contexts/UserContext";
 import { useToast } from "../../contexts/ToastContext";
 import { useLogExercise } from "../../hooks/useLogExercise";
+import { theme } from "../../constants/theme";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -123,7 +124,7 @@ export function QuickLogModal({ visible, onClose }: QuickLogModalProps) {
                 onPress={() => onClose(false)}
                 className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 items-center justify-center"
               >
-                <Feather name="x" size={16} color="#64748b" />
+                <Feather name="x" size={16} color={theme.textSoft} />
               </TouchableOpacity>
             </View>
 

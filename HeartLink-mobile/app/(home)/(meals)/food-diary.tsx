@@ -24,6 +24,7 @@ import { ConfirmDialog } from "../../../components/ui/ConfirmDialog";
 import { useUser } from "../../../contexts/UserContext";
 import { EmptyState } from "../../../components/ui/EmptyState";
 import { useToast } from "../../../contexts/ToastContext";
+import { theme } from "../../../constants/theme";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 const base_url = process.env.EXPO_PUBLIC_API_URL;
@@ -77,7 +78,7 @@ function SemiCircleProgress({ progress, remaining, isDark }: { progress: number;
   const bgColor = isDark ? "#1e293b" : "#f1f5f9";
 
   return (
-    <View className="items-center justify-center relative" style={{ width: 150, height: 85 }}>
+    <View className="items-center justify-center relative">
       <Svg width={150} height={85} viewBox="0 0 150 85">
         <Path
           d="M 10 75 A 65 65 0 0 1 140 75"
@@ -96,11 +97,11 @@ function SemiCircleProgress({ progress, remaining, isDark }: { progress: number;
           strokeDashoffset={strokeDashoffset}
         />
       </Svg>
-      <View className="absolute" style={{ top: 28, alignItems: "center" }}>
-        <Text className="text-2xl font-bold text-slate-900 dark:text-white">
+      <View className="absolute">
+        <Text className="text-2xl font-bold text-text">
           {Math.max(remaining, 0)}
         </Text>
-        <Text className="text-[11px] text-slate-500 font-medium">Remaining</Text>
+        <Text className="text-[11px] text-text-soft font-medium">Remaining</Text>
       </View>
     </View>
   );
@@ -110,11 +111,11 @@ const MacroBar = ({ label, current, total, color, isDark }: { label: string, cur
   const percent = Math.min((current / total) * 100, 100) || 0;
   return (
     <View className="flex-1 px-2 items-center">
-      <Text className="text-[11px] text-slate-500 font-medium mb-1.5">{label}</Text>
-      <View className="w-full h-1.5 rounded-full mb-1.5" style={{ backgroundColor: isDark ? "#1e293b" : "#f1f5f9" }}>
+      <Text className="text-[11px] text-text-soft font-medium mb-1.5">{label}</Text>
+      <View className="w-full h-1.5 rounded-full mb-1.5">
         <View className="h-full rounded-full" style={{ width: `${percent}%`, backgroundColor: color }} />
       </View>
-      <Text className="text-[10px] font-bold text-slate-800 dark:text-slate-200">
+      <Text className="text-[10px] font-bold text-text">
         {Math.round(current)} / {total} g
       </Text>
     </View>
@@ -261,10 +262,10 @@ export default function DailyDiaryScreen() {
   
   // Categorize meals by time of day
   const mealGroups = [
-    { name: "Breakfast", icon: "coffee", iconType: "feather", color: "#38bdf8", bg: "#e0f2fe", items: [] as MealLog[], cals: 0 },
-    { name: "Lunch", icon: "hamburger", iconType: "material", color: "#fb923c", bg: "#ffedd5", items: [] as MealLog[], cals: 0 },
-    { name: "Dinner", icon: "food-steak", iconType: "material", color: "#818cf8", bg: "#e0e7ff", items: [] as MealLog[], cals: 0 },
-    { name: "Snacks", icon: "apple", iconType: "material", color: "#fb7185", bg: "#ffe4e6", items: [] as MealLog[], cals: 0 },
+    { name: "Breakfast", icon: "coffee", iconType: "feather", color: theme.sky, bg: theme.skyTint, items: [] as MealLog[], cals: 0 },
+    { name: "Lunch", icon: "hamburger", iconType: "material", color: theme.warning, bg: theme.warningTint, items: [] as MealLog[], cals: 0 },
+    { name: "Dinner", icon: "food-steak", iconType: "material", color: theme.primary, bg: theme.blueTint, items: [] as MealLog[], cals: 0 },
+    { name: "Snacks", icon: "apple", iconType: "material", color: theme.danger, bg: theme.dangerTint, items: [] as MealLog[], cals: 0 },
   ];
 
   meals.forEach(meal => {
@@ -279,7 +280,7 @@ export default function DailyDiaryScreen() {
   });
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-[#0b1120]" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-surface-alt dark:bg-background" edges={["top"]}>
       <StatusBar style={isDark ? "light" : "dark"} />
 
       {/* ── Header Bar ── */}
@@ -292,11 +293,11 @@ export default function DailyDiaryScreen() {
               router.push("/(home)/(tabs)/dashboard" as any);
             }
           }}
-          className="w-9 h-9 rounded-full bg-slate-200/50 dark:bg-slate-800 items-center justify-center z-10"
+          className="w-9 h-9 rounded-full bg-border/50 dark:bg-slate-800 items-center justify-center z-10"
         >
           <Feather name="arrow-left" size={18} color={isDark ? "#f8fafc" : "#0f172a"} />
         </TouchableOpacity>
-        <Text className="text-[22px] font-bold text-slate-900 dark:text-white absolute left-0 right-0 text-center pointer-events-none">
+        <Text className="text-[22px] font-bold text-text absolute left-0 right-0 text-center pointer-events-none">
           Today
         </Text>
         <View className="w-9" />
@@ -310,13 +311,13 @@ export default function DailyDiaryScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={isDark ? "#f8fafc" : "#0f172a"} />
         }
         ListHeaderComponent={
-          <View className="bg-white dark:bg-slate-900 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-800 mb-6 mt-2">
+          <View className="bg-surface rounded-3xl p-5 shadow-sm border border-border dark:border-slate-800 mb-6 mt-2">
             
             {/* Top Row: Calories - Remaining Sodium - Total Sodium */}
             <View className="flex-row items-end justify-between mb-6">
               <View className="items-center pb-2">
-                <Text className="text-xl font-bold text-slate-800 dark:text-white mb-0.5">{totalCalories}</Text>
-                <Text className="text-[12px] text-slate-500">Calories</Text>
+                <Text className="text-xl font-bold text-text mb-0.5">{totalCalories}</Text>
+                <Text className="text-[12px] text-text-soft">Calories</Text>
               </View>
               
               <SemiCircleProgress 
@@ -326,29 +327,29 @@ export default function DailyDiaryScreen() {
               />
               
               <View className="items-center pb-2">
-                <Text className="text-xl font-bold text-slate-800 dark:text-white mb-0.5">{totalSodium}</Text>
-                <Text className="text-[12px] text-slate-500">Total Sod.</Text>
+                <Text className="text-xl font-bold text-text mb-0.5">{totalSodium}</Text>
+                <Text className="text-[12px] text-text-soft">Total Sod.</Text>
               </View>
             </View>
 
             {/* Bottom Row: Macro Bars */}
-            <View className="flex-row justify-between pt-2 border-t border-slate-100 dark:border-slate-800/50">
-              <MacroBar label="Sat Fat" current={totalSatFat} total={20} color="#38bdf8" isDark={isDark} />
-              <MacroBar label="Fiber" current={totalFiber} total={30} color="#60a5fa" isDark={isDark} />
-              <MacroBar label="Sodium" current={totalSodium} total={SODIUM_BUDGET} color="#2dd4bf" isDark={isDark} />
+            <View className="flex-row justify-between pt-2 border-t border-border dark:border-slate-800/50">
+              <MacroBar label="Sat Fat" current={totalSatFat} total={20} color={theme.sky} isDark={isDark} />
+              <MacroBar label="Fiber" current={totalFiber} total={30} color={theme.blue} isDark={isDark} />
+              <MacroBar label="Sodium" current={totalSodium} total={SODIUM_BUDGET} color={theme.teal} isDark={isDark} />
             </View>
           </View>
         }
         renderItem={({ item: group }) => (
-          <View className="bg-white dark:bg-slate-900 rounded-3xl p-5 mb-4 shadow-sm border border-slate-100 dark:border-slate-800">
+          <View className="bg-surface rounded-3xl p-5 mb-4 shadow-sm border border-border dark:border-slate-800">
             {/* Category Header */}
             <View className="flex-row items-center justify-between mb-4">
               <View className="flex-row items-center gap-4">
                 {/* Custom Circular Icon */}
                 <View className="relative">
                   {/* Progress Ring behind icon (simulated) */}
-                  <View className="absolute inset-0 rounded-full border-4 opacity-20" style={{ borderColor: group.color }} />
-                  <View className="w-12 h-12 rounded-full items-center justify-center bg-slate-50 dark:bg-slate-800 border-2 border-transparent">
+                  <View className="absolute inset-0 rounded-full border-4 opacity-20" />
+                  <View className="w-12 h-12 rounded-full items-center justify-center bg-surface-alt dark:bg-slate-800 border-2 border-transparent">
                     {group.iconType === "feather" ? (
                       <Feather name={group.icon as any} size={20} color={isDark ? "#cbd5e1" : "#475569"} />
                     ) : (
@@ -357,10 +358,10 @@ export default function DailyDiaryScreen() {
                   </View>
                 </View>
                 <View>
-                  <Text className="text-[16px] font-bold text-slate-800 dark:text-white mb-0.5">
+                  <Text className="text-[16px] font-bold text-text mb-0.5">
                     {group.name}
                   </Text>
-                  <Text className="text-[13px] text-slate-500">
+                  <Text className="text-[13px] text-text-soft">
                     {group.cals} Cal
                   </Text>
                 </View>
@@ -368,15 +369,14 @@ export default function DailyDiaryScreen() {
               <TouchableOpacity
                 onPress={openLogModal}
                 className="w-8 h-8 rounded-full items-center justify-center"
-                style={{ backgroundColor: group.color }}
               >
-                <Feather name="plus" size={16} color="#fff" />
+                <Feather name="plus" size={16} color={theme.onPrimary} />
               </TouchableOpacity>
             </View>
 
             {/* Meals under category */}
             {group.items.length > 0 && (
-              <View className="border-t border-slate-100 dark:border-slate-800/60 pt-3 mt-1">
+              <View className="border-t border-border dark:border-slate-800/60 pt-3 mt-1">
                 {group.items.map((meal, index) => (
                   <Swipeable 
                     key={meal.id} 
@@ -385,32 +385,32 @@ export default function DailyDiaryScreen() {
                         onPress={() => handleDeleteMeal(meal.id, meal.meal_name)}
                         className="bg-red-500 justify-center items-center px-4 rounded-xl ml-2 mb-2"
                       >
-                        <Feather name="trash-2" size={18} color="#fff" />
+                        <Feather name="trash-2" size={18} color={theme.onPrimary} />
                       </TouchableOpacity>
                     )}
                   >
-                    <View className="flex-row items-center justify-between py-2 mb-1 bg-white dark:bg-slate-900 rounded-xl px-2">
+                    <View className="flex-row items-center justify-between py-2 mb-1 bg-surface rounded-xl px-2">
                       <View className="flex-row items-center flex-1 gap-3">
-                        <View className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-800 items-center justify-center overflow-hidden">
-                          <MaterialCommunityIcons name="silverware-fork-knife" size={16} className="text-slate-300 dark:text-slate-700 absolute" />
+                        <View className="w-10 h-10 rounded-lg bg-surface-alt items-center justify-center overflow-hidden">
+                          <MaterialCommunityIcons name="silverware-fork-knife" size={16} color={theme.borderStrong} />
                           {!!meal.image_url && (
                             <Image source={{ uri: meal.image_url }} className="w-full h-full absolute" resizeMode="cover" />
                           )}
                         </View>
                         <View className="flex-1">
-                          <Text className="text-[14px] font-medium text-slate-800 dark:text-slate-200" numberOfLines={1}>
+                          <Text className="text-[14px] font-medium text-text" numberOfLines={1}>
                             {meal.meal_name}
                           </Text>
-                          <Text className="text-[11px] text-slate-400 mt-0.5">
+                          <Text className="text-[11px] text-text-muted mt-0.5">
                             {meal.portion || 1} Serving
                           </Text>
                         </View>
                       </View>
                       <View className="items-end pl-2">
-                        <Text className="text-[14px] font-bold text-slate-700 dark:text-slate-300">
-                          {meal.calories} <Text className="text-[10px] font-normal text-slate-400">kcal</Text>
+                        <Text className="text-[14px] font-bold text-text">
+                          {meal.calories} <Text className="text-[10px] font-normal text-text-muted">kcal</Text>
                         </Text>
-                        <Text className="text-[11px] font-medium text-rose-500 mt-0.5">
+                        <Text className="text-[11px] font-medium text-danger-text mt-0.5">
                           {meal.sodium_mg} mg
                         </Text>
                       </View>
@@ -495,7 +495,7 @@ export default function DailyDiaryScreen() {
             onPress={animateOut}
             style={{ marginTop: 14, alignItems: "center", paddingVertical: 13, backgroundColor: isDark ? "#1e293b" : "#f8fafc", borderRadius: 14, borderWidth: 0.5, borderColor: isDark ? "#334155" : "#e2e8f0" }}
           >
-            <Text style={{ fontSize: 13, fontWeight: "600", color: "#64748b" }}>Cancel</Text>
+            <Text style={{ fontSize: 13, fontWeight: "600", color: theme.textMuted }}>Cancel</Text>
           </TouchableOpacity>
         </Animated.View>
       </Modal>

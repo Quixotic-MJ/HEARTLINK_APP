@@ -27,6 +27,7 @@ import { useToast } from "../../../contexts/ToastContext";
 import { queueExerciseForSync } from "../../../services/SyncService";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { theme } from "../../../constants/theme";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -203,7 +204,7 @@ export default function ExerciseDiaryScreen() {
           onPress={() => router.back()}
           className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 items-center justify-center"
         >
-          <Feather name="arrow-left" size={18} color="#0f172a" />
+          <Feather name="arrow-left" size={18} color={theme.ink} />
         </TouchableOpacity>
 
         <Text className="text-[17px] font-semibold text-slate-900 dark:text-white">
@@ -216,7 +217,7 @@ export default function ExerciseDiaryScreen() {
             className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 items-center justify-center"
             accessibilityLabel="Browse Guided Video Routines"
           >
-            <Feather name="video" size={16} color="#0f172a" />
+            <Feather name="video" size={16} color={theme.ink} />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -224,7 +225,7 @@ export default function ExerciseDiaryScreen() {
             className="flex-row items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#1B6E63]"
             accessibilityLabel="Quick Log Physical Activity"
           >
-            <Feather name="plus" size={14} color="#ffffff" />
+            <Feather name="plus" size={14} color={theme.surface} />
             <Text className="text-white text-[12px] font-bold">Log</Text>
           </TouchableOpacity>
         </View>
@@ -253,7 +254,7 @@ export default function ExerciseDiaryScreen() {
 
       {/* ── Instructions Tip ── */}
       <View className="px-5 mb-2 flex-row items-start">
-        <Feather name="info" size={12} color="#94a3b8" className="mt-[3px]" />
+        <Feather name="info" size={12} color={theme.textMuted} className="mt-[3px]" />
         <Text className="text-[12px] text-slate-400 ml-1.5 flex-1 leading-relaxed">
           Swipe left on any session to remove it from your history.
         </Text>
@@ -262,11 +263,11 @@ export default function ExerciseDiaryScreen() {
       {/* ── Content / List ── */}
       {loading ? (
         <View className="flex-1 justify-center items-center">
-          <ActivityIndicator size="large" color="#0f172a" />
+          <ActivityIndicator size="large" color={theme.ink} />
         </View>
       ) : logs.length === 0 ? (
         <EmptyState
-          icon={<Feather name="activity" size={32} color="#94a3b8" />}
+          icon={<Feather name="activity" size={32} color={theme.textMuted} />}
           title="No Activity Logs"
           subtitle="You haven't logged any movement yet. Start a quick log or a guided routine to see it here!"
           actionLabel="Quick Log Activity"
