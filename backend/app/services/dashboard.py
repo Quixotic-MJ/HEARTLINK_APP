@@ -151,13 +151,14 @@ def _generate_insight(user_hss: list, latest_log: dict | None, first_name: str |
         icon = "trending-up"
     elif diff < 0:
         title = f"Your stability score dropped by {abs(diff)} points."
-        if latest_log and latest_log.get("symptoms"):
+        factors = user_hss[0].get("contributing_factors", {})
+        
+        if latest_log and latest_log.get("symptoms") and [s for s in latest_log["symptoms"] if s != "None (Feeling fine)"]:
             real_symptoms = [s for s in latest_log["symptoms"] if s != "None (Feeling fine)"]
-            if real_symptoms:
-                symptom_count = len(real_symptoms)
-                body = f"You logged {symptom_count} symptom(s) recently. Consider reviewing your diet and consulting your care team."
-            else:
-                body = "Consider reviewing your recent meals and activity levels."
+            symptom_count = len(real_symptoms)
+            body = f"You logged {symptom_count} symptom(s) recently. Consider reviewing your diet and consulting your care team."
+        elif factors.get("staleness_penalty", 0) < 0:
+            body = "Your score dropped due to missing data. Log your vitals and meals to keep your score accurate."
         else:
             body = "Consider reviewing your recent meals and activity levels."
         icon = "trending-down"
