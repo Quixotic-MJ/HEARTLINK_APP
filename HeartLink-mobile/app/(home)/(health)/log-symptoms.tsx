@@ -1008,9 +1008,9 @@ export default function LogSymptomsScreen() {
             {isEmergency && (
               <Animated.View entering={FadeInDown.duration(250)} exiting={FadeOutUp.duration(160)} className="bg-destructive/15 border border-destructive/40 rounded-2xl p-3.5 gap-2">
                 <View className="flex-row items-center justify-between">
-                  <View className="flex-row items-center gap-1.5">
-                    <Feather name="alert-triangle" size={15} color={theme.danger} />
-                    <Text className="text-xs font-bold text-destructive uppercase tracking-wide">
+                  <View className="flex-row items-center gap-1.5 flex-1 pr-2">
+                    <Feather name="alert-triangle" size={14} color={theme.danger} />
+                    <Text className="text-[11px] font-bold text-destructive uppercase tracking-wide flex-1 shrink">
                       {isSevereHypotension ? "Severe Hypotension (<90/60)" : isHypertensiveCrisis ? "Hypertensive Crisis (≥180/120)" : "Elevated Risk Detected"}
                     </Text>
                   </View>
