@@ -20,24 +20,25 @@ You can't just draw a flat line between two GPS points because the Earth is a sp
 
 ---
 
-## 2. Health Stability Score (HSS Scoring Engine)
-**Where it's used:** The Main Dashboard pie chart.
+## 2. Health Stability Score (The HSS Engine)
+**Where it's used:** The Main Dashboard and overall patient health status.
 
 **What it does:** 
-It translates complex medical data (blood pressure, sleep, medicine, symptoms) into a single, easy-to-understand score out of 100.
+It translates complex medical data into a single, easy-to-understand score from 1 to 100, which assigns the user into one of four risk tiers (Stable, Moderate, Elevated Risk, Critical).
 
-**How it works (The Math):**
-This is a **Composite Scoring Algorithm**. Every patient starts the day with a perfect baseline score of 100. As they log their daily activities, the engine deducts or adds points based on risk factors:
+**How it works (The Math & Algorithm):**
+The app uses a 3-phase Hybrid Algorithm:
 
-* **Formula snippet:** `HSS = 100 - (BP_Penalty) - (Symptom_Penalty) + (Mission_Bonus)`
-* **Penalties:** 
-  * If blood pressure is elevated: -15 points.
-  * If they report severe chest pain: -30 points.
-* **Bonuses:** 
-  * If they complete a 15-minute exercise: +5 points.
+1. **Phase 1 (Machine Learning Baseline):** When a user onboards, their data (age, weight, smoking, conditions) is processed by a Logistic Regression model trained on real-world medical data. It predicts cardiovascular risk probability, which is mathematically inverted into a baseline score out of 100.
+2. **Phase 2 (Vitals Algorithm):** When the user logs blood pressure (BP) and heart rate (HR), the system uses strict clinical guidelines (AHA/ACC). For example, a BP of 120/80 sets the base score to 78, while a Hypertensive Crisis (>=180/120) drops the score down to 25. High heart rates (tachycardia) deduct up to 8 points, unless the user indicates they just exercised.
+3. **Phase 3 (Daily Lifestyle Composite):** Every day, the engine looks at the user's daily habits and applies a **maximum variance of +/- 20 points** to their score:
+   * **Diet (Algorithm):** High sodium (>800mg) subtracts 3 points; low sodium (<140mg) adds 2 points.
+   * **Exercise (Math):** `(Duration / 10) * Intensity Multiplier` (Vigorous exercise yields a 3x multiplier).
+   * **Sleep (Logic):** Optimal sleep (7-9 hrs) gives +3 points. Too little (<5 hrs) or too much (>11 hrs) gives a -2 penalty.
+   * **Clinical Warnings (Logic):** Severe symptoms (chest pain) deduct 10 points. Rapid, sudden weight gain (a clinical sign of fluid retention in heart failure) deducts 15 points.
 
 **Example for Panelists:**
-"Instead of forcing a non-medical user to interpret what '145 over 90' means, our Hybrid Scoring Engine automatically calculates the risk and outputs a simple score out of 100. If the score drops below 50, the pie chart turns red to warn them."
+"Our Health Stability Score doesn't just guess. It uses Machine Learning to figure out the user's baseline, and then adjusts that baseline daily using hard medical mathematics. If a user logs a dangerously high blood pressure or eats way too much sodium, the algorithm calculates those penalties and updates their health tier instantly."
 
 ---
 
@@ -76,3 +77,24 @@ This is a dynamic multiplier function. The database stores the raw base value (e
 
 **Example for Panelists:**
 "Our app doesn't just display static text. If a user eats 2.5 servings of a meal, our system uses a real-time multiplier formula to calculate the exact amount of sodium they ingested, and then subtracts that from their strict daily limit."
+
+---
+
+## 5. Smart Recommendation Engine
+**Where it's used:** The Dashboard Feed (suggested recipes and exercises).
+
+**What it does:** 
+It dynamically curates and filters content to act as a digital health coach, ensuring the user only sees meals and workouts that are safe for their current heart condition and allergies.
+
+**How it works (The Algorithm):**
+The Recommendation Engine relies on Context-Aware Filtering and Dynamic Budget Prioritization:
+
+1. **HSS Tier Filtering:** A recipe or exercise is mathematically blocked from appearing unless it is rated "Stable" (universally safe) or matches the user's specific real-time HSS Tier (e.g., Elevated Risk).
+2. **Allergy & Diet Safeguards (Boolean Logic):** The engine cross-references recipe tags against the user's onboarding profile. If `recipe_tags CONTAINS user_allergy`, the item is completely stripped from the feed.
+3. **Dynamic Sodium Budgeting (Sorting Algorithm):** 
+   * The app calculates: `Remaining_Sodium = Daily_Limit - Consumed_Sodium_Today`
+   * **If `Remaining_Sodium < 500mg`**: The user is entering a high-risk zone for the day. The algorithm intercepts the feed and completely re-sorts all recipes. It prioritizes (pushes to the top) only the absolute lowest-sodium meals that have been explicitly flagged as "Expert Validated."
+4. **De-Duplication:** The engine filters out `Item ID`s that exist in today's activity logs so the user doesn't get recommended a workout they already completed an hour ago.
+
+**Example for Panelists:**
+"Our recommendation feed is smart. If the app detects that a patient has eaten 1,700mg of their 2,000mg daily sodium limit, the algorithm automatically recalculates their remaining budget. Since they have less than 500mg left, the algorithm immediately re-sorts the dashboard feed to push ultra-low sodium, expert-verified dinners to the very top, helping prevent a hypertensive spike."
