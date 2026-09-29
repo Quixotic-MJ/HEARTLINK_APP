@@ -312,7 +312,7 @@ export default function TabsLayout() {
         <SwipeableTabs.Screen name="trends" />
         <SwipeableTabs.Screen name="explore" />
         <SwipeableTabs.Screen name="profile" />
-        <SwipeableTabs.Screen name="wrap-up" />
+        <SwipeableTabs.Screen name="consultation-summary" />
         <SwipeableTabs.Screen name="recipes" />
         <SwipeableTabs.Screen name="exercises" />
       </SwipeableTabs>
