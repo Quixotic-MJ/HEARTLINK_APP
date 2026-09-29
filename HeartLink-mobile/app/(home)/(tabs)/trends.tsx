@@ -15,7 +15,6 @@ import { useColorScheme } from "nativewind";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
-let isCurrentlySharing = false;
 import { useRouter, useFocusEffect } from "expo-router";
 
 let isCurrentlySharing = false;
