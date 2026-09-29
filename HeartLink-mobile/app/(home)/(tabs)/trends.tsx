@@ -294,7 +294,7 @@ export default function TrendsTabScreen() {
         // Hide scrollbar natively on web browsers if they ignore showsHorizontalScrollIndicator
         scrollbarWidth: 'none', // Firefox
         msOverflowStyle: 'none' // IE/Edge
-      }}
+      } as any}
     >
       {[
         { id: "score", label: "Heart Score" },
