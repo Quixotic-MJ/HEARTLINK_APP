@@ -21,6 +21,7 @@ import { Feather, Ionicons } from "@expo/vector-icons";
 import { useUser } from "../../../contexts/UserContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Haptics from "expo-haptics";
+import * as Location from "expo-location";
 import { getCompanionGreeting, getCompanionLine, CompanionGreetingResult } from "../../../services/companionService";
 import { voiceGreeting } from "../../../services/companionCopy";
 import { useNetInfo } from "@react-native-community/netinfo";
@@ -128,6 +129,70 @@ function getDaypartTitle(): string {
 export default function DashboardScreen() {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
+
+  const [nearestClinic, setNearestClinic] = useState<{name: string, distance: string} | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const fetchNearest = async () => {
+      try {
+        let userLat = 10.3157;
+        let userLon = 123.8854;
+        
+        try {
+          const { status } = await Location.getForegroundPermissionsAsync();
+          if (status === "granted") {
+            const loc = await Location.getCurrentPositionAsync({});
+            userLat = loc.coords.latitude;
+            userLon = loc.coords.longitude;
+          }
+        } catch {}
+
+        if (cancelled) return;
+
+        const res = await fetch(`${base_url}/api/clinics`);
+        const data = await res.json();
+        
+        if (cancelled) return;
+
+        const getDistanceKm = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+          const R = 6371;
+          const dLat = ((lat2 - lat1) * Math.PI) / 180;
+          const dLon = ((lon2 - lon1) * Math.PI) / 180;
+          const a =
+            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+          return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        };
+
+        let closest = null;
+        let minDistance = Infinity;
+
+        (Array.isArray(data) ? data : []).forEach((c: any) => {
+          const lat = Number(c.latitude);
+          const lon = Number(c.longitude);
+          if (!isNaN(lat) && !isNaN(lon)) {
+            const dist = getDistanceKm(userLat, userLon, lat, lon);
+            if (dist < minDistance) {
+              minDistance = dist;
+              closest = {
+                name: c.name || "Clinic",
+                distance: `${dist.toFixed(1)} km`
+              };
+            }
+          }
+        });
+
+        if (closest && !cancelled) {
+          setNearestClinic(closest);
+        }
+      } catch (e) {
+        console.log("Failed to fetch nearest clinic", e);
+      }
+    };
+    fetchNearest();
+    return () => { cancelled = true; };
+  }, []);
   const router = useRouter();
   const { userId, token, user, logout } = useUser();
   const { showToast } = useToast();
@@ -139,6 +204,7 @@ export default function DashboardScreen() {
   // Varnished (LLM) variant of the voiced greeting line, when available.
   const [companionAi, setCompanionAi] = useState<string | null>(null);
   const [scoreModalVisible, setScoreModalVisible] = useState(false);
+  const [showInsight, setShowInsight] = useState(true);
 
   const isNavigatingRef = useRef(false);
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -853,17 +919,34 @@ export default function DashboardScreen() {
               </Animated.View>
             </View>
 
-            {/* Trend Label */}
-            {data?.latest_vitals?.trend && data.latest_vitals.trend !== "0" && data.latest_vitals.trend !== "+0" && (
-              <View className="mt-1">
-                <Text 
-                  className="font-bold text-[13px]"
-                  style={{ color: data.latest_vitals.trend.startsWith('-') ? colors.warningText : colors.successText }}
-                >
-                  {data.latest_vitals.trend.startsWith('-') ? '↓ Down' : '↑ Up'} {Math.abs(parseInt(data.latest_vitals.trend))} points this week
-                </Text>
-              </View>
-            )}
+            {/* Trend Label / AI Insight Toggle */}
+            <View className="mt-1 items-center justify-center">
+              {data?.insight ? (
+                !showInsight && (
+                  <TouchableOpacity 
+                    onPress={() => {
+                      setShowInsight(true);
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    }}
+                    className="flex-row items-center gap-1.5 px-3 py-1 bg-[#FFF4E5] dark:bg-[#FFF4E5]/10 rounded-full"
+                  >
+                    <Ionicons name="sparkles" size={12} color="#E5832D" />
+                    <Text className="text-[11px] font-bold text-[#E5832D]">
+                      Show AI Insight
+                    </Text>
+                  </TouchableOpacity>
+                )
+              ) : (
+                data?.latest_vitals?.trend && data.latest_vitals.trend !== "0" && data.latest_vitals.trend !== "+0" && (
+                  <Text 
+                    className="font-bold text-[13px]"
+                    style={{ color: data.latest_vitals.trend.startsWith('-') ? colors.warningText : colors.successText }}
+                  >
+                    {data.latest_vitals.trend.startsWith('-') ? '↓ Down' : '↑ Up'} {Math.abs(parseInt(data.latest_vitals.trend))} points this week
+                  </Text>
+                )
+              )}
+            </View>
           </View>
         </Reanimated.View>
 
@@ -879,16 +962,61 @@ export default function DashboardScreen() {
         >
 
           {/* AI / Clinical Insight banner */}
-          {data?.insight && (
-            <View className="w-full bg-info-tint rounded-2xl p-4 border border-border flex-row items-start gap-3 mb-3">
-              <Feather
-                name="activity"
-                size={16}
-                className="mt-[2px] text-info"
-              />
-              <Text className="flex-1 text-[13px] text-info-text leading-relaxed font-bold">
-                {data.insight.body}
-              </Text>
+          {showInsight && data?.insight && (
+            <View className="w-full bg-surface rounded-2xl p-4 border border-border shadow-sm shadow-slate-200/50 dark:shadow-none mb-3">
+              <View className="flex-row items-center justify-between mb-3">
+                <View className="bg-[#FFF4E5] dark:bg-[#FFF4E5]/10 px-2.5 py-1 rounded-full flex-row items-center gap-1.5">
+                  <Text className="text-[11px]">✨</Text>
+                  <Text className="text-[10px] font-bold text-[#E5832D] tracking-wider">AI INSIGHT</Text>
+                </View>
+                <TouchableOpacity onPress={() => setShowInsight(false)} hitSlop={{top: 10, right: 10, bottom: 10, left: 10}}>
+                  <Feather name="x" size={16} color={colors.textSoft} />
+                </TouchableOpacity>
+              </View>
+              
+              <View className="flex-row items-start gap-3">
+                <View className="w-10 h-10 rounded-xl bg-[#FFF4E5] dark:bg-[#FFF4E5]/10 items-center justify-center flex-shrink-0">
+                  <Feather name={data.insight.icon || "trending-down"} size={20} color="#E5832D" />
+                </View>
+                <View className="flex-1">
+                  {data.insight.title ? (
+                    <Text className="text-[15px] font-bold text-text mb-1.5 leading-tight">
+                      {data.insight.title}
+                    </Text>
+                  ) : null}
+                  <Text className="text-[13px] text-text-soft leading-relaxed font-medium mb-3">
+                    {data.insight.body}
+                  </Text>
+                  
+                  <View className="flex-row gap-2 mb-4">
+                    <View className="bg-surface-alt border border-border/50 px-2.5 py-1 rounded-full flex-row items-center gap-1.5">
+                      <Feather name="coffee" size={11} color={colors.textSoft} />
+                      <Text className="text-[11px] font-medium text-text-soft">Meals</Text>
+                    </View>
+                    <View className="bg-surface-alt border border-border/50 px-2.5 py-1 rounded-full flex-row items-center gap-1.5">
+                      <Feather name="activity" size={11} color={colors.textSoft} />
+                      <Text className="text-[11px] font-medium text-text-soft">Movement</Text>
+                    </View>
+                  </View>
+
+                  <View className="flex-row gap-2.5">
+                    <TouchableOpacity 
+                      onPress={() => safeNavigate("/(home)/(meals)/food-diary")}
+                      activeOpacity={0.8}
+                      className="bg-primary py-2.5 px-4 rounded-xl items-center justify-center flex-1 shadow-sm"
+                    >
+                      <Text className="text-white text-[13px] font-bold">Review meals</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      onPress={() => setShowInsight(false)}
+                      activeOpacity={0.8}
+                      className="bg-surface-alt py-2.5 px-4 rounded-xl items-center justify-center flex-1 border border-border/50"
+                    >
+                      <Text className="text-text text-[13px] font-bold">Not helpful</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
             </View>
           )}
 
@@ -1085,24 +1213,58 @@ export default function DashboardScreen() {
               }}
             />
 
-            {/* ── Action Links ── */}
-            <Reanimated.View entering={FadeInDown.delay(420).duration(300)} className="bg-surface rounded-3xl overflow-hidden shadow-sm shadow-slate-200/50 dark:shadow-none mb-8">
-              <TouchableOpacity activeOpacity={0.75} onPress={() => safeNavigate("/(home)/(tabs)/wrap-up")} className="flex-row items-center justify-between p-5 border-b border-border dark:border-borderStrong">
-                <View className="flex-row items-center gap-3">
-                  <Feather name={new Date().getHours() >= 19 ? "moon" : "clipboard"} size={16} color={isDark ? "#cbd5e1" : "#475569"} />
-                  <Text className="text-[14px] font-bold text-text">
-                    {new Date().getHours() >= 19 ? "Daily Heart Wrap-Up" : "Doctor consultation"}
-                  </Text>
-                </View>
-                <Feather name="chevron-right" size={16} color={isDark ? "#64748b" : "#94a3b8"} />
-              </TouchableOpacity>
-              <TouchableOpacity activeOpacity={0.75} onPress={() => { setMapVisible(true); Haptics.selectionAsync(); }} className="flex-row items-center justify-between p-5">
-                <View className="flex-row items-center gap-3">
-                  <Feather name="map-pin" size={16} color={isDark ? "#cbd5e1" : "#475569"} />
-                  <Text className="text-[14px] font-bold text-text">Nearest clinic</Text>
-                </View>
-                <Feather name="chevron-right" size={16} color={isDark ? "#64748b" : "#94a3b8"} />
-              </TouchableOpacity>
+            {/* ── Action Links / Care Tools ── */}
+            <Reanimated.View entering={FadeInDown.delay(420).duration(300)} className="mb-8">
+              <Text className="text-[11px] font-bold text-text-soft uppercase tracking-wider mb-2.5 mx-1">
+                CARE TOOLS
+              </Text>
+              <View className="bg-surface rounded-3xl overflow-hidden shadow-sm shadow-slate-200/50 dark:shadow-none">
+                <TouchableOpacity 
+                  activeOpacity={0.75} 
+                  onPress={() => safeNavigate("/(home)/(tabs)/consultation-summary")} 
+                  className="flex-row items-center justify-between p-4 border-b border-border dark:border-borderStrong"
+                >
+                  <View className="flex-row items-center gap-4 flex-1">
+                    <View className="w-12 h-12 rounded-2xl bg-[#EFF6FF] dark:bg-blue-500/10 items-center justify-center">
+                      <Feather 
+                        name={new Date().getHours() >= 19 ? "moon" : "clipboard"} 
+                        size={20} 
+                        color={isDark ? "#60a5fa" : "#1D4ED8"} 
+                      />
+                    </View>
+                    <View className="flex-1 pr-2">
+                      <Text className="text-[15px] font-bold text-text mb-0.5">
+                        {new Date().getHours() >= 19 ? "Daily Heart Wrap-Up" : "Doctor consultation"}
+                      </Text>
+                      <Text className="text-[13px] text-text-soft font-medium">
+                        Prepare a summary for your next visit
+                      </Text>
+                    </View>
+                  </View>
+                  <Feather name="chevron-right" size={18} color={isDark ? "#64748b" : "#94a3b8"} />
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  activeOpacity={0.75} 
+                  onPress={() => { setMapVisible(true); Haptics.selectionAsync(); }} 
+                  className="flex-row items-center justify-between p-4"
+                >
+                  <View className="flex-row items-center gap-4 flex-1">
+                    <View className="w-12 h-12 rounded-2xl bg-[#FEF2F2] dark:bg-red-500/10 items-center justify-center">
+                      <Feather name="map-pin" size={20} color={isDark ? "#f87171" : "#B91C1C"} />
+                    </View>
+                    <View className="flex-1 pr-2">
+                      <Text className="text-[15px] font-bold text-text mb-0.5">
+                        {nearestClinic ? nearestClinic.name : "Nearest clinic"}
+                      </Text>
+                      <Text className="text-[13px] text-text-soft font-medium">
+                        {nearestClinic ? `${nearestClinic.distance} away` : "Searching nearby..."}
+                      </Text>
+                    </View>
+                  </View>
+                  <Feather name="chevron-right" size={18} color={isDark ? "#64748b" : "#94a3b8"} />
+                </TouchableOpacity>
+              </View>
             </Reanimated.View>
           </>
         )}

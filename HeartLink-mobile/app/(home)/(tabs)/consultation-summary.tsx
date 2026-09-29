@@ -11,6 +11,8 @@ import { useColorScheme } from "nativewind";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Header } from "../../../components/Header";
 import { useUser } from "../../../contexts/UserContext";
+
+let isCurrentlySharing = false;
 import AnimatedButton from "../../../components/ui/AnimatedButton";
 import { Colors } from "../../../constants/theme";
 import { theme } from "../../../constants/theme";
@@ -91,8 +93,8 @@ function DailyRecordRowFlat({ dayData, isToday }: any) {
       <Text 
         className="text-[13px]"
         style={{ 
-          fontWeight: isToday ? 'bold' : '500', 
-          color: isToday ? Colors.light.primary : Colors.light.textMuted 
+          fontWeight: dayData.has_records || isToday ? 'bold' : '600', 
+          color: isToday ? Colors.light.primary : (summary.includes("Symptoms") ? theme.warningText : (dayData.has_records ? Colors.light.text : Colors.light.textMuted))
         }}
       >
         {isToday ? "Today" : summary}
@@ -101,19 +103,22 @@ function DailyRecordRowFlat({ dayData, isToday }: any) {
   );
 }
 
-function LogItemRow({ title, icon, color, onPress }: any) {
+function LogItemCard({ title, subtitle, icon, buttonColor, onPress }: any) {
   return (
-    <View className="flex-row items-center justify-between py-4 border-b border-border/60 last:border-b-0">
-      <View className="flex-row items-center">
-        <View className="w-10 h-10 rounded-xl items-center justify-center mr-3" style={{ backgroundColor: `${color}15` }}>
-          <Feather name={icon} size={18} color={color} />
+    <TouchableOpacity onPress={onPress} activeOpacity={0.7} className="bg-white dark:bg-slate-800 rounded-3xl p-4 flex-row items-center justify-between mb-3 shadow-sm shadow-slate-200/50 dark:shadow-none">
+      <View className="flex-row items-center flex-1">
+        <View className="w-10 h-10 rounded-full bg-slate-50 dark:bg-slate-700 items-center justify-center mr-4 border border-slate-100 dark:border-slate-600">
+          <Feather name={icon} size={18} color="#64748B" />
         </View>
-        <Text className="text-[15px] font-semibold text-text">{title}</Text>
+        <View className="flex-1 pr-2">
+          <Text className="text-[15px] font-bold text-text mb-0.5">{title}</Text>
+          <Text className="text-[13px] text-text-soft font-medium leading-tight">{subtitle}</Text>
+        </View>
       </View>
-      <TouchableOpacity onPress={onPress} className="w-7 h-7 rounded-full items-center justify-center">
-        <Feather name="plus" size={16} color={theme.onPrimary} />
-      </TouchableOpacity>
-    </View>
+      <View className="w-7 h-7 rounded-full items-center justify-center" style={{ backgroundColor: buttonColor }}>
+        <Feather name="plus" size={16} color="#ffffff" />
+      </View>
+    </TouchableOpacity>
   );
 }
 
@@ -332,7 +337,7 @@ function escapeHtml(unsafe: any): string {
       const newUri = `${FileSystem.documentDirectory}Weekly_Health_Report.pdf`;
       await FileSystem.writeAsStringAsync(newUri, base64!, { encoding: FileSystem.EncodingType.Base64 });
 
-      await Sharing.shareAsync(newUri, { UTI: 'com.adobe.pdf', mimeType: 'application/pdf', dialogTitle: 'Share Weekly Report' });
+      if (isCurrentlySharing) return; isCurrentlySharing = true; try { await Sharing.shareAsync(newUri, { UTI: 'com.adobe.pdf', mimeType: 'application/pdf', dialogTitle: 'Share Weekly Report' }); } finally { setTimeout(() => { isCurrentlySharing = false; }, 1000); }
     } catch (error) {
       console.error(error);
       alert("Failed to generate report.");
@@ -349,6 +354,10 @@ function escapeHtml(unsafe: any): string {
       </SafeAreaView>
     );
   }
+
+  const todayRecord = data?.daily_records?.[data.daily_records.length - 1];
+  const todayMealsSodium = todayRecord?.nutrition?.reduce((sum: number, m: any) => sum + Number(m.sodium_mg || 0), 0) || 0;
+  const todayMovementMins = todayRecord?.movement?.reduce((sum: number, m: any) => sum + Number(m.duration || 0), 0) || 0;
 
   return (
     <SafeAreaView className="flex-1 bg-surface-alt" edges={["top"]}>
@@ -382,6 +391,8 @@ function escapeHtml(unsafe: any): string {
           </Text>
         </View>
 
+
+
         {/* GLANCE GRID */}
         <View className="mb-8">
           <View className="flex-row gap-3 mb-3">
@@ -406,13 +417,35 @@ function escapeHtml(unsafe: any): string {
               color={theme.primary} 
             />
             <MetricCard 
-              title="Vitals" 
-              value={`${data.overview.vital_days} days`} 
-              icon={<Feather name="droplet" size={18} color={theme.blue} />} 
+              title="Vitals logged" 
+              value={`${data.overview.vital_days} of 7 days`} 
+              icon={<Feather name="bell" size={18} color={theme.blue} />} 
               color={theme.blue} 
             />
           </View>
         </View>
+
+        {/* SYMPTOMS THIS WEEK */}
+        {data.symptoms?.records?.length > 0 && (
+          <View className="mb-8">
+            <SectionTitle title="Symptoms This Week" />
+            {data.symptoms.records.map((symptom: any, index: number) => (
+              <View key={index} className="bg-white dark:bg-slate-800 rounded-3xl p-5 border border-border/40 shadow-sm shadow-slate-200/50 dark:shadow-none mb-3 last:mb-0">
+                 <View className="flex-row gap-3">
+                    <View className="mt-0.5">
+                      <Feather name="alert-circle" size={16} color={theme.warningText} />
+                    </View>
+                    <View className="flex-1">
+                       <Text className="text-[14px] font-bold text-text mb-1">{symptom.name} - {symptom.date}</Text>
+                       <Text className="text-[13px] font-medium text-text-soft leading-relaxed">
+                         Severity: {symptom.severity}/10. {symptom.context || ""}
+                       </Text>
+                    </View>
+                 </View>
+              </View>
+            ))}
+          </View>
+        )}
 
         {/* DAILY RECORD TIMELINE */}
         <View className="mb-8">
@@ -428,68 +461,55 @@ function escapeHtml(unsafe: any): string {
         {/* LOG A RECORD */}
         <View className="mb-8">
           <SectionTitle title="Log a Record" />
-          <View className="bg-surface-alt/50 dark:bg-slate-800/40 rounded-3xl px-5 border-0">
-            <LogItemRow 
-              title="Vital readings" 
+          <View>
+            <LogItemCard 
+              title="Blood pressure" 
+              subtitle="Morning check due today"
+              icon="heart" 
+              buttonColor="#38BDF8"
+              onPress={() => router.push("/(home)/(health)/log-symptoms")} 
+            />
+            <LogItemCard 
+              title="Meals" 
+              subtitle={`${todayMealsSodium.toLocaleString()} of 2,000 mg logged today`}
+              icon="coffee" 
+              buttonColor="#F97316"
+              onPress={() => router.push("/(home)/(meals)/food-diary")} 
+            />
+            <LogItemCard 
+              title="Movement" 
+              subtitle={`${todayMovementMins} of 30 mins completed today`}
               icon="activity" 
-              className="text-blue" 
-              onPress={() => router.push("/(home)/(health)/log-symptoms")} 
-            />
-            <LogItemRow 
-              title="Sleep" 
-              icon="moon" 
-              className="text-primary" 
-              onPress={() => router.push("/(home)/(health)/log-symptoms")} 
-            />
-            <LogItemRow 
-              title="Symptoms" 
-              icon="alert-circle" 
-              className="text-warning-text" 
-              onPress={() => router.push("/(home)/(health)/log-symptoms")} 
-            />
-            <LogItemRow 
-              title="Exercise" 
-              icon="play" 
-              className="text-blue" 
+              buttonColor="#FB7185"
               onPress={() => router.push("/(home)/(health)/exercise-diary")} 
             />
-            <LogItemRow 
-              title="Meals" 
-              icon="coffee" 
-              className="text-warning-text" 
-              onPress={() => router.push("/(home)/(meals)/food-diary")} 
+            <LogItemCard 
+              title="Sleep" 
+              subtitle="Target: 7-9 hrs of restful recovery"
+              icon="moon" 
+              buttonColor="#818CF8"
+              onPress={() => router.push("/(home)/(health)/log-symptoms")} 
             />
           </View>
         </View>
 
-        {/* CONSISTENCY */}
-        <View className="mb-10 bg-amber-100/80 dark:bg-warning/20 rounded-3xl p-5 border-0">
-          <Text className="text-[12px] font-bold text-amber-700 dark:text-warning-text uppercase tracking-widest mb-1">
-            Your Recording Streak
-          </Text>
-          <Text className="text-[22px] font-bold text-amber-900 dark:text-amber-400 mb-2">
-            🔥 {data.consistency.current_streak} days
-          </Text>
-          <Text className="text-[14px] text-amber-800 dark:text-amber-200">
-            Log something today to start your streak.
-          </Text>
-        </View>
+
 
         {/* DOCTOR REPORT ACTION */}
         <View className="mb-12">
           <AnimatedButton
             onPress={exportReport}
-            className="bg-surface-alt/80 rounded-3xl p-5 border-0 flex-row items-center"
+            className="bg-white dark:bg-surface-alt rounded-3xl p-5 border border-border/40 flex-row items-center shadow-sm shadow-slate-200/50"
           >
-            <View className="w-10 h-10 rounded-xl items-center justify-center mr-4" style={{ backgroundColor: `${activeTint}15` }}>
-              <Feather name="file-text" size={20} color={activeTint} />
+            <View className="w-10 h-10 rounded-xl items-center justify-center mr-4 bg-[#E0E7FF] dark:bg-blue-900/20">
+              <Feather name="file-text" size={20} color="#2563EB" />
             </View>
             <View className="flex-1">
               <Text className="text-[15px] font-bold text-text mb-0.5">
-                Export 7-Day Health Report
+                Doctor consultation summary
               </Text>
-              <Text className="text-[13px] text-text-soft">
-                Share with your doctor
+              <Text className="text-[13px] font-bold text-[#D97706] dark:text-warning-text">
+                Includes this week's flagged review
               </Text>
             </View>
             <Feather name="chevron-right" size={20} color={theme.textMuted} />
@@ -500,3 +520,4 @@ function escapeHtml(unsafe: any): string {
     </SafeAreaView>
   );
 }
+

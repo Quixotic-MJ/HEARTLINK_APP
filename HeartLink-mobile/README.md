@@ -1,48 +1,122 @@
-# HeartLink Mobile App 🫀
+# HeartLink - Mobile Application
 
-## App Purpose
-The application aims to monitor and track users' dietary and lifestyle habits and provide personalized recommendations, including food recipes and exercise routines, based on the user's Health Stability Score (HSS) to support cardiovascular health improvement.
+The cross-platform mobile client for HeartLink, built with React Native and Expo.
 
-HeartLink is designed to track and prevent heart disease from worsening, notice early warning signs, and remind users to get a timely in-person checkup from a nearby clinic.
+---
 
-> **Academic Capstone & Scope Note:**  
-> HeartLink is an applied undergraduate Capstone Research Project (**Capstone 2 at Cebu Technological University - Main Campus / CTU Main**) developed with a scalable startup vision. The clinics listed in the app are part of a curated public directory to help users locate nearby healthcare facilities and encourage in-person medical checkups; HeartLink has no direct commercial affiliations with these clinics. Independent medical experts and faculty advisors assist the platform solely to audit and calibrate the safety and accuracy of recipes, exercises, and algorithmic scoring. HeartLink is a supportive wellness tool (not a diagnostic medical device) and encourages professional doctor consultations whenever warning indicators arise.
+## 🛠️ Tech Stack & Requirements
 
-## Developer Setup Guide
+* **Framework:** Expo (Managed Workflow)
+* **Runtime:** React Native
+* **Language:** TypeScript/JavaScript
+* **Navigation / Routing:** Expo Router (file-based routing)
+* **Styling:** NativeWind / Tailwind CSS
+* **State & Query Management:** TanStack React Query + AsyncStorage
+* **Forms & Validation:** React Hook Form + Zod
+* **Device APIs:** Expo Location, Notifications, Camera, Print/Sharing
 
-Follow these steps to get the full project up and running locally for development.
+---
 
-### 1. Start the Backend Server (FastAPI)
-Open a terminal in the `backend` directory and run the following command to start the Python server:
+## 📁 Directory Architecture & Component Responsibilities
+
+```text
+HeartLink-mobile/
+├── app/                    # The main screens of the app (using Expo Router to handle navigation automatically).
+│   ├── (auth)/             # Screens for logging in, registering, and resetting passwords.
+│   ├── (tabs)/             # The main bottom navigation tabs (like Dashboard, Logs, and Recipes).
+│   └── _layout.tsx         # The master blueprint that dictates how screens transition and stack on top of each other.
+├── assets/                 # Visual files like app icons, fonts, and splash screens.
+├── components/             # Reusable UI building blocks (like standardized buttons, cards, and text inputs).
+├── constants/              # Global design rules (like system-wide colors, fonts, and theme settings).
+├── hooks/                  # Custom tools for specific features (like tracking location or fetching vital signs).
+├── services/               # The "messengers" that securely talk to the backend server and Supabase.
+├── types/                  # The "rulebooks" defining exactly what shapes data should take (TypeScript interfaces).
+├── .env.example            # A template showing where developers should put secret API keys.
+├── app.json                # The master configuration file for the Expo app (app name, version, icon settings).
+├── package.json            # The "recipe book" listing all external code tools the app needs to download to run.
+└── README.md               # The manual you are reading right now!
+```
+
+## ⚙️ Environment Variables
+
+Create a `.env` file in the root of the `HeartLink-mobile/` directory based on `.env.example`:
 
 ```bash
-cd ../backend
-python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+cp .env.example .env
 ```
-*Note: Ensure your virtual environment is activated and your backend dependencies are installed.*
 
-### 2. Configure Environment Variables
-If you are testing on a **physical device**, the mobile app needs to know your computer's local IP address to connect to the backend (since `localhost` points to the phone itself).
-1. Open the `.env` file in the `HeartLink-mobile` directory.
-2. Find your computer's local IPv4 address (e.g., run `ipconfig` on Windows or `ifconfig` on Mac).
-3. Update the API URL:
-   ```env
-   EXPO_PUBLIC_API_URL=http://<YOUR_LOCAL_IP>:8000
-   ```
+| Key | Description | Required | Example |
+|-----|-------------|----------|---------|
+| `EXPO_PUBLIC_API_URL` | Base URL of the backend API | Yes | `http://192.168.1.XX:8000` (Local) or deployed URL |
+| `EXPO_PUBLIC_SUPABASE_URL` | Supabase project URL | Optional | `https://xyz.supabase.co` |
+| `EXPO_PUBLIC_SUPABASE_ANON_KEY` | Public Supabase anon key | Optional | `your-anon-key` |
 
-### 3. Start the Mobile App (Expo)
-Open a separate terminal in the `HeartLink-mobile` directory. First, ensure dependencies are installed, then run the Expo bundler:
+### Example `.env` File
 
+```env
+# ==============================================================================
+# HeartLink Mobile Environment Configuration (Expo / React Native)
+# ==============================================================================
+
+# 1. PRIMARY / BACKUP (Railway)
+EXPO_PUBLIC_API_URL=https://heartlink-api-production-46db.up.railway.app
+
+# 3. LOCAL DEVELOPMENT (Must use your computer's local IP address instead of localhost)
+# EXPO_PUBLIC_API_URL=http://192.168.1.xxx:8000
+
+# Public Supabase Client (Anon key only)
+# IMPORTANT: NEVER place SUPABASE_SERVICE_ROLE_KEY here.
+EXPO_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
+```
+
+## 🚀 Local Setup & Installation
+
+### 1. Install Dependencies
 ```bash
 npm install
-npx expo start --tunnel -c
 ```
 
-**Understanding the flags:**
-- `--tunnel`: Allows you to test the app on your physical device using the Expo Go app, even if your phone and computer are on different Wi-Fi networks.
-- `-c`: Clears the bundler cache to prevent stale code issues.
+### 2. Start the Development Server
+```bash
+npx expo start
+```
 
-## Tech Stack
-- **Framework**: React Native with [Expo](https://expo.dev)
-- **Routing**: Expo Router (File-based routing)
-- **Backend**: Python / FastAPI
+### 3. Running on Devices / Emulators
+* **Physical Device (Fastest):** Install the **Expo Go** app on Android (Google Play) or iOS (App Store). Scan the QR code shown in your terminal. Ensure your phone and development machine are connected to the same Wi-Fi network.
+* **Android Emulator:** Press `a` in your terminal with Android Studio / an AVD running.
+* **iOS Simulator (macOS only):** Press `i` in your terminal.
+* **Clear Cache (Troubleshooting):**
+```bash
+npx expo start -c
+```
+
+## 🧪 Testing & Linting
+
+```bash
+# Run unit and screen tests
+npm test
+
+# Check TypeScript types
+npx tsc --noEmit
+```
+
+## 📦 Building Standalone Binaries (EAS Build)
+
+To package standalone APK / AAB bundles for Android or IPA files for iOS:
+
+### 1. Install EAS CLI & Log In
+```bash
+npm install -g eas-cli
+eas login
+```
+
+### 2. Configure EAS
+```bash
+eas build:configure
+```
+
+### 3. Generate Android Build (APK for testing)
+```bash
+eas build -p android --profile preview
+```

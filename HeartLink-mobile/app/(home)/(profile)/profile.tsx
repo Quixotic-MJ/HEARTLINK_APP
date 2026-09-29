@@ -18,6 +18,7 @@ import { ScreenWrapper } from "../../../components/ui/ScreenWrapper";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
+let isCurrentlySharing = false;
 import { useUser } from "../../../contexts/UserContext";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
@@ -428,7 +429,7 @@ export default function ProfileScreen({ isTab = false }: { isTab?: boolean } = {
         showToast({ title: "Error", message: "Sharing is not available on this device.", type: "error" });
         return;
       }
-      await Sharing.shareAsync(uri);
+      if (isCurrentlySharing) return; isCurrentlySharing = true; try { await Sharing.shareAsync(uri); } finally { setTimeout(() => { isCurrentlySharing = false; }, 1000); }
     } catch (error) {
       console.error(error);
       showToast({ title: "Error", message: "Failed to generate report.", type: "error" });
@@ -520,7 +521,7 @@ export default function ProfileScreen({ isTab = false }: { isTab?: boolean } = {
         <View className="rounded-3xl px-4 border mb-8 bg-surface border-border/70">
           <MoreRow icon="bar-chart-2" label="Long-term analytics" onPress={() => router.push("/(home)/(profile)/analytics")} />
           <MoreRow icon="users" label="My care team" onPress={() => router.push("/(home)/(profile)/care-team")} />
-          <MoreRow icon="file-text" label="Doctor consultation summary" onPress={() => router.push("/(home)/(tabs)/wrap-up" as any)} />
+          <MoreRow icon="file-text" label="Doctor consultation summary" onPress={() => router.push("/(home)/(tabs)/consultation-summary" as any)} />
           <MoreRow icon="download" label="Download biometrics PDF" onPress={exportPDF} isLast />
         </View>
 
@@ -536,3 +537,4 @@ export default function ProfileScreen({ isTab = false }: { isTab?: boolean } = {
     </ScreenWrapper>
   );
 }
+

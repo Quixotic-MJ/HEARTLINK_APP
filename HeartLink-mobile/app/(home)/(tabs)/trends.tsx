@@ -15,7 +15,10 @@ import { useColorScheme } from "nativewind";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
+let isCurrentlySharing = false;
 import { useRouter, useFocusEffect } from "expo-router";
+
+let isCurrentlySharing = false;
 import * as Haptics from "expo-haptics";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Print from "expo-print";
@@ -169,7 +172,7 @@ export default function TrendsTabScreen() {
       d.setDate(d.getDate() - (intervalDays - 1 - i));
       return {
         dateStr: d.toISOString().split("T")[0],
-        label: intervalDays <= 7 ? d.toLocaleDateString("en-US", { weekday: 'short' }) : d.getDate().toString(),
+        label: d.toLocaleDateString("en-US", { month: 'short', day: 'numeric' }),
         value: null as number | null
       };
     });
@@ -264,7 +267,13 @@ export default function TrendsTabScreen() {
       
       const { uri } = await Print.printToFileAsync({ html: htmlContent });
       if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(uri);
+        if (isCurrentlySharing) return;
+        isCurrentlySharing = true;
+        try {
+          await Sharing.shareAsync(uri);
+        } finally {
+          setTimeout(() => { isCurrentlySharing = false; }, 1000);
+        }
       }
     } catch (error) {
       console.error("Export failed:", error);
@@ -277,7 +286,17 @@ export default function TrendsTabScreen() {
   // ─── Sub-components for Content ──────────────────────────────────────────
   
   const renderTabSelector = () => (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-4" contentContainerStyle={{ paddingHorizontal: 20 }}>
+    <ScrollView 
+      horizontal 
+      showsHorizontalScrollIndicator={false} 
+      className="mb-5 mt-2" 
+      contentContainerStyle={{ paddingHorizontal: 20, gap: 8 }}
+      style={{
+        // Hide scrollbar natively on web browsers if they ignore showsHorizontalScrollIndicator
+        scrollbarWidth: 'none', // Firefox
+        msOverflowStyle: 'none' // IE/Edge
+      }}
+    >
       {[
         { id: "score", label: "Heart Score" },
         { id: "bp", label: "Blood Pressure" },
@@ -286,56 +305,102 @@ export default function TrendsTabScreen() {
       ].map((tab) => {
         const isActive = activeTab === tab.id;
         return (
-          <View 
-            key={tab.id} 
-            className="rounded-full mr-2 border"
-            style={{ borderColor: isActive ? "transparent" : theme.border }}
+          <TouchableOpacity
+            key={tab.id}
+            onPress={() => setActiveTab(tab.id as any)}
+            className="px-4 py-2 rounded-full"
+            style={{ 
+              backgroundColor: isActive ? "#2563EB" : isDark ? "#1E293B" : "#FFFFFF",
+              elevation: isActive ? 0 : 1,
+              shadowColor: isActive ? "transparent" : "rgba(0,0,0,0.1)",
+              shadowOffset: { width: 0, height: 1 },
+              shadowOpacity: isActive ? 0 : 1,
+              shadowRadius: isActive ? 0 : 2,
+            }}
           >
-            <TouchableOpacity
-              onPress={() => setActiveTab(tab.id as any)}
-              className="px-4 py-2 rounded-full"
-              style={{ backgroundColor: isActive ? theme.primary : "transparent" }}
+            <Text 
+              className="text-[13px] font-semibold"
+              style={{ color: isActive ? "#FFFFFF" : isDark ? "#94A3B8" : "#64748B" }}
             >
-              <Text 
-                className="text-[13px] font-semibold"
-                style={{ color: isActive ? theme.onPrimary : theme.textSoft }}
-              >
-                {tab.label}
-              </Text>
-            </TouchableOpacity>
-          </View>
+              {tab.label}
+            </Text>
+          </TouchableOpacity>
         );
       })}
     </ScrollView>
   );
 
-  const renderDailyGoals = () => {
+  const renderWeeklySummary = () => {
     return (
-      <View className="flex-row justify-between mb-4">
-        {/* Metric 1 */}
-        <View className="flex-1 bg-surface rounded-xl p-3 mr-2 border border-border dark:border-slate-800/60">
-          <Text className="text-[13px] font-semibold text-text mb-2">Sleep</Text>
-          <View className="h-1 bg-border/50 rounded-full w-full overflow-hidden mb-2">
-            <View className="h-full rounded-full" />
+      <View className="bg-[#F4F7F9] dark:bg-slate-900 rounded-[28px] p-5 mb-4 border border-border dark:border-slate-800/60">
+        <Text className="text-[11px] font-bold text-text-soft uppercase tracking-widest mb-4">
+          {intervalDays === 7 ? "THIS WEEK" : intervalDays === 14 ? "LAST 2 WEEKS" : "LAST 30 DAYS"}
+        </Text>
+        <View className="flex-row justify-between mb-6 gap-2">
+          {/* Sleep */}
+          <View className="flex-1 bg-white dark:bg-surface rounded-2xl p-3 shadow-sm shadow-slate-200/50 dark:shadow-none">
+            <View className="flex-row items-center gap-1.5 mb-2.5">
+              <Feather name="moon" size={14} color="#367484" />
+              <Text className="text-[12px] font-semibold text-text">Sleep</Text>
+            </View>
+            <View className="h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full w-full overflow-hidden mb-2.5">
+              <View className="h-full rounded-full bg-[#367484]" style={{ width: `${Math.min(100, (Number(summaryStats.sleepHours) / 8) * 100)}%` }} />
+            </View>
+            <Text className="text-[13px] font-bold text-text">{summaryStats.sleepHours}<Text className="text-[11px] font-medium text-text-soft">/8hr</Text></Text>
           </View>
-          <Text className="text-[14px] font-bold text-text">6.5<Text className="text-[11px] font-medium text-text-soft">/8hr</Text></Text>
-        </View>
-        {/* Metric 2 */}
-        <View className="flex-1 bg-surface rounded-xl p-3 mr-2 border border-border dark:border-slate-800/60">
-          <Text className="text-[13px] font-semibold text-text mb-2">Activity</Text>
-          <View className="h-1 bg-border/50 rounded-full w-full overflow-hidden mb-2">
-            <View className="h-full rounded-full" />
+          
+          {/* Activity */}
+          <View className="flex-1 bg-white dark:bg-surface rounded-2xl p-3 shadow-sm shadow-slate-200/50 dark:shadow-none">
+            <View className="flex-row items-center gap-1.5 mb-2.5">
+              <MaterialCommunityIcons name="run" size={16} color="#2563EB" />
+              <Text className="text-[12px] font-semibold text-text">Activity</Text>
+            </View>
+            <View className="h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full w-full overflow-hidden mb-2.5">
+              <View className="h-full rounded-full bg-[#2563EB]" style={{ width: `${Math.min(100, (summaryStats.activityMins / 30) * 100)}%` }} />
+            </View>
+            <Text className="text-[13px] font-bold text-text">{summaryStats.activityMins}<Text className="text-[11px] font-medium text-text-soft">/30m</Text></Text>
           </View>
-          <Text className="text-[14px] font-bold text-text">6.2k<Text className="text-[11px] font-medium text-text-soft">/10k</Text></Text>
-        </View>
-        {/* Metric 3 */}
-        <View className="flex-1 bg-surface rounded-xl p-3 border border-border dark:border-slate-800/60">
-          <Text className="text-[13px] font-semibold text-text mb-2">Sodium</Text>
-          <View className="h-1 bg-border/50 rounded-full w-full overflow-hidden mb-2">
-            <View className="h-full rounded-full" />
+          
+          {/* Sodium */}
+          <View className="flex-1 bg-white dark:bg-surface rounded-2xl p-3 shadow-sm shadow-slate-200/50 dark:shadow-none">
+            <View className="flex-row items-center gap-1.5 mb-2.5">
+              <MaterialCommunityIcons name="shaker-outline" size={14} color="#D97706" />
+              <Text className="text-[12px] font-semibold text-text">Sodium</Text>
+            </View>
+            <View className="h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full w-full overflow-hidden mb-2.5">
+              <View className="h-full rounded-full bg-[#D97706]" style={{ width: `${Math.min(100, (summaryStats.sodiumMg / 2000) * 100)}%` }} />
+            </View>
+            <Text className="text-[13px] font-bold text-text">{summaryStats.sodiumMg}<Text className="text-[11px] font-medium text-text-soft">/2g</Text></Text>
           </View>
-          <Text className="text-[14px] font-bold text-text">760<Text className="text-[11px] font-medium text-text-soft">/2g</Text></Text>
         </View>
+
+        <Text className="text-[11px] font-bold text-text-soft uppercase tracking-widest mb-4">Highlights</Text>
+        
+        <TouchableOpacity activeOpacity={0.7} className="flex-row items-center justify-between p-4 bg-white dark:bg-surface rounded-2xl mb-2.5 shadow-sm shadow-slate-200/50 dark:shadow-none">
+          <View className="flex-row items-center gap-4">
+            <View className="w-10 h-10 rounded-xl items-center justify-center bg-[#E6F4EA] dark:bg-[#E6F4EA]/10">
+              <Feather name="award" size={18} color="#1FAE8E" />
+            </View>
+            <View>
+              <Text className="text-[14px] font-bold text-text mb-0.5">Best day</Text>
+              <Text className="text-[12px] text-text-soft">{highlights.bestDayText}</Text>
+            </View>
+          </View>
+          <Feather name="chevron-right" size={16} color={isDark ? "#64748B" : "#94A3B8"} />
+        </TouchableOpacity>
+
+        <TouchableOpacity activeOpacity={0.7} className="flex-row items-center justify-between p-4 bg-white dark:bg-surface rounded-2xl shadow-sm shadow-slate-200/50 dark:shadow-none">
+          <View className="flex-row items-center gap-4">
+            <View className="w-10 h-10 rounded-xl items-center justify-center bg-slate-100 dark:bg-slate-800">
+              <MaterialCommunityIcons name="shaker-outline" size={18} color={isDark ? "#94A3B8" : "#64748B"} />
+            </View>
+            <View>
+              <Text className="text-[14px] font-bold text-text mb-0.5">Highest sodium</Text>
+              <Text className="text-[12px] text-text-soft">{highlights.highestSodiumText}</Text>
+            </View>
+          </View>
+          <Feather name="chevron-right" size={16} color={isDark ? "#64748B" : "#94A3B8"} />
+        </TouchableOpacity>
       </View>
     );
   };
@@ -343,7 +408,7 @@ export default function TrendsTabScreen() {
   const renderActiveChart = () => {
     const CHART_HEIGHT = 160;
     const CHART_PADDING = 12;
-    const color = activeTab === "score" ? TOKENS.teal : activeTab === "bp" ? TOKENS.pink : activeTab === "bpm" ? TOKENS.orange : TOKENS.indigo;
+    const color = "#2563EB";
     const areaFillColor = `${color}25`;
 
     const values = chartData.map((d) => d.value!);
@@ -367,7 +432,7 @@ export default function TrendsTabScreen() {
     const areaPath = buildAreaPath(points, CHART_HEIGHT - CHART_PADDING);
 
     return (
-      <View className="bg-surface rounded-2xl p-5 mb-4 border border-border dark:border-slate-800/60">
+      <View className="bg-white dark:bg-surface rounded-[28px] p-5 mb-4 shadow-sm shadow-slate-200/50 dark:shadow-none">
         
         {/* Metric Header */}
         <View className="flex-row items-start justify-between mb-4">
@@ -393,12 +458,12 @@ export default function TrendsTabScreen() {
           </View>
 
           <View className="items-end">
-            <Text className="text-[12px] font-semibold text-text-soft uppercase tracking-wider mb-1">
-              This Week
+            <Text className="text-[11px] font-bold text-text-soft uppercase tracking-widest mb-1.5">
+              {intervalDays === 7 ? "THIS WEEK" : intervalDays === 14 ? "LAST 2 WEEKS" : "LAST 30 DAYS"}
             </Text>
-            <View className="flex-row items-center">
-              <Feather name={activeTab === "score" ? "trending-up" : "trending-down"} size={14} color={activeTab === "score" ? TOKENS.teal : TOKENS.teal} />
-              <Text className="text-[13px] font-bold ml-1">
+            <View className="flex-row items-center bg-[#E6F4EA] px-2.5 py-1 rounded-full">
+              <Feather name={activeTab === "score" ? "trending-up" : "trending-down"} size={12} color="#1FAE8E" />
+              <Text className="text-[11px] font-bold ml-1 text-[#1FAE8E]">
                 {activeTab === "score" ? "+5% vs last" : activeTab === "bp" ? "-2% vs last" : activeTab === "bpm" ? "-3% vs last" : "Under limit"}
               </Text>
             </View>
@@ -406,7 +471,7 @@ export default function TrendsTabScreen() {
         </View>
 
         {/* Time Interval Selector */}
-        <View className="flex-row p-1 rounded-xl mb-4">
+        <View className="flex-row p-1 rounded-xl mb-4 bg-[#F4F7F9] dark:bg-slate-800">
           {([7, 14, 30] as const).map((days) => {
             const isActive = intervalDays === days;
             const label = `${days}D`;
@@ -417,7 +482,7 @@ export default function TrendsTabScreen() {
                 activeOpacity={0.7}
                 className="flex-1 py-2 items-center rounded-lg"
                 style={{ 
-                  backgroundColor: isActive ? theme.surface : "transparent",
+                  backgroundColor: isActive ? (isDark ? "#334155" : "#FFFFFF") : "transparent",
                   elevation: isActive ? 1 : 0,
                   shadowColor: isActive ? "rgba(0,0,0,0.1)" : "transparent",
                   shadowOffset: isActive ? { width: 0, height: 1 } : undefined,
@@ -471,24 +536,50 @@ export default function TrendsTabScreen() {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                   />
-                  {points.map((p, i) => {
-                     // Only show dots if it's 7 days, otherwise it's too crowded for 30 days
-                     if (intervalDays > 14) return null;
-                     return <Circle key={i} cx={p.x} cy={p.y} r={4} fill={color} stroke={isDark ? "#1C2A3A" : "#FFFFFF"} strokeWidth={2} />;
-                  })}
+                  {points.map((p, i) => (
+                    <Circle
+                      key={i}
+                      cx={p.x}
+                      cy={p.y}
+                      r={4}
+                      fill={isDark ? "#1E293B" : "#FFFFFF"}
+                      stroke={color}
+                      strokeWidth={2.5}
+                    />
+                  ))}
                 </Svg>
               )}
             </View>
-            <View className="flex-row items-center justify-between px-2">
-              {chartData.map((d, i) => {
-                const showLabel = intervalDays === 7 || (intervalDays === 14 && (i + 1) % 3 === 0) || (intervalDays === 30 && (i + 1) % 5 === 0);
-                return (
-                  <Text key={i} className="text-[10px] text-text-muted font-medium">
-                    {d.label}
-                  </Text>
-                );
-              })}
-            </View>
+            {chartWidth > 0 && (
+              <View style={{ height: 20, width: chartWidth, position: 'relative' }}>
+                {chartData.map((d, i) => {
+                  let showLabel = false;
+                  if (intervalDays === 7) {
+                    showLabel = true;
+                  } else if (intervalDays === 14) {
+                    showLabel = i === 0 || i === 3 || i === 6 || i === 10 || i === 13;
+                  } else {
+                    showLabel = i === 0 || i === 6 || i === 12 || i === 18 || i === 24 || i === 29;
+                  }
+
+                  if (!showLabel) return null;
+
+                  const x = chartData.length > 1
+                      ? CHART_PADDING + (usableWidth * i) / (chartData.length - 1)
+                      : CHART_PADDING + usableWidth / 2;
+
+                  return (
+                    <Text 
+                      key={i} 
+                      className="text-[10px] text-text-soft font-medium text-center absolute"
+                      style={{ left: x - 25, width: 50, top: 0 }}
+                    >
+                      {d.label}
+                    </Text>
+                  );
+                })}
+              </View>
+            )}
           </View>
         )}
 
@@ -497,38 +588,104 @@ export default function TrendsTabScreen() {
     );
   };
 
-  const renderHighlights = () => (
-    <View className="px-5 mb-8">
-      <TouchableOpacity activeOpacity={0.7} className="flex-row items-center justify-between p-4 bg-surface rounded-2xl border border-border dark:border-slate-800/60 mb-2">
-        <View className="flex-row items-center gap-4">
-          <View className="w-10 h-10 rounded-full items-center justify-center">
-            <Feather name="activity" size={16} color={TOKENS.indigo} />
-          </View>
-          <View>
-            <Text className="text-[15px] font-bold text-text mb-0.5">Best day</Text>
-            <Text className="text-[13px] text-text-soft">Wednesday, 120/80 mmHg</Text>
-          </View>
-        </View>
-        <Feather name="chevron-right" size={18} color={isDark ? "#64748B" : "#94A3B8"} />
-      </TouchableOpacity>
+  const highlights = useMemo(() => {
+    let bestDayText = "No data yet";
+    let highestSodiumText = "No data yet";
 
-      <TouchableOpacity activeOpacity={0.7} className="flex-row items-center justify-between p-4 bg-surface rounded-2xl border border-border dark:border-slate-800/60">
-        <View className="flex-row items-center gap-4">
-          <View className="w-10 h-10 rounded-full items-center justify-center">
-            <Feather name="alert-triangle" size={16} color={TOKENS.critical} />
-          </View>
-          <View>
-            <Text className="text-[15px] font-bold text-text mb-0.5">Highest sodium</Text>
-            <Text className="text-[13px] text-text-soft">Saturday, 2,140mg</Text>
-          </View>
-        </View>
-        <Feather name="chevron-right" size={18} color={isDark ? "#64748B" : "#94A3B8"} />
-      </TouchableOpacity>
-    </View>
-  );
+    if (analytics) {
+      // Best day by HSS score
+      const history = analytics.history || [];
+      if (history.length > 0) {
+        const best = history.reduce((max: any, h: any) => h.score > max.score ? h : max, history[0]);
+        if (best) {
+          const date = new Date(best.computed_at);
+          const weekday = date.toLocaleDateString('en-US', { weekday: 'long' });
+          
+          // Try to find BP for that day
+          const dateStr = (best.computed_at || "").split("T")[0];
+          const bps = (analytics.vitals || []).filter((v: any) => v.type === "bp" && (v.logged_at || "").startsWith(dateStr));
+          if (bps.length > 0) {
+            const latestBp = bps[bps.length - 1];
+            bestDayText = `${weekday}, ${latestBp.systolic}/${latestBp.diastolic} mmHg`;
+          } else {
+            bestDayText = `${weekday}, ${Math.round(best.score)} Score`;
+          }
+        }
+      }
+
+      // Highest sodium by day
+      const meals = (analytics.vitals || []).filter((v: any) => v.type === "meal");
+      if (meals.length > 0) {
+        const sodiumByDay: Record<string, number> = {};
+        meals.forEach((m: any) => {
+          const dateStr = (m.logged_at || "").split("T")[0];
+          if (!sodiumByDay[dateStr]) sodiumByDay[dateStr] = 0;
+          sodiumByDay[dateStr] += Number(m.sodium_mg || 0);
+        });
+        
+        let maxSodium = -1;
+        let maxSodiumDate = "";
+        Object.entries(sodiumByDay).forEach(([dateStr, sodium]) => {
+          if (sodium > maxSodium) {
+            maxSodium = sodium;
+            maxSodiumDate = dateStr;
+          }
+        });
+
+        if (maxSodium >= 0 && maxSodiumDate) {
+          const date = new Date(maxSodiumDate);
+          const weekday = date.toLocaleDateString('en-US', { weekday: 'long' });
+          highestSodiumText = `${weekday}, ${Math.round(maxSodium).toLocaleString()}mg`;
+        }
+      }
+    }
+
+    return { bestDayText, highestSodiumText };
+  }, [analytics]);
+
+  const summaryStats = useMemo(() => {
+    let sleepHours = 0;
+    let activityMins = 0;
+    let sodiumMg = 0;
+    
+    if (analytics) {
+      const sleepLogs = analytics.sleep_logs || [];
+      if (sleepLogs.length > 0) {
+        const totalSleep = sleepLogs.reduce((sum: number, s: any) => sum + (Number(s.duration_hours) || 0), 0);
+        sleepHours = totalSleep / sleepLogs.length;
+      }
+      
+      const exercises = analytics.exercise_logs || [];
+      if (exercises.length > 0) {
+        const totalExercise = exercises.reduce((sum: number, e: any) => sum + (Number(e.duration_minutes) || 0), 0);
+        activityMins = totalExercise / exercises.length;
+      }
+      
+      const meals = analytics.meal_logs || [];
+      if (meals.length > 0) {
+        const totalSodium = meals.reduce((sum: number, m: any) => sum + (Number(m.sodium_mg) || 0), 0);
+        const sodiumByDay: Record<string, number> = {};
+        meals.forEach((m: any) => {
+          const dateStr = (m.logged_at || "").split("T")[0];
+          if (!sodiumByDay[dateStr]) sodiumByDay[dateStr] = 0;
+          sodiumByDay[dateStr] += Number(m.sodium_mg || 0);
+        });
+        const daysLogged = Object.keys(sodiumByDay).length;
+        sodiumMg = daysLogged > 0 ? totalSodium / daysLogged : 0;
+      }
+    }
+    
+    return {
+      sleepHours: sleepHours.toFixed(1),
+      activityMins: Math.round(activityMins),
+      sodiumMg: Math.round(sodiumMg),
+    };
+  }, [analytics]);
+
+  // Highlights removed and combined into renderWeeklySummary
 
   return (
-    <SafeAreaView className="flex-1 bg-surface-alt dark:bg-background">
+    <SafeAreaView className="flex-1 bg-[#F4F7F9] dark:bg-slate-900">
       <StatusBar style={isDark ? "light" : "dark"} />
       <Header />
 
@@ -538,28 +695,20 @@ export default function TrendsTabScreen() {
       >
         {/* Screen Header */}
         <View className="px-5 mb-5 mt-2 flex-row items-center justify-between">
-          <View>
+          <View className="flex-1 mr-4">
             <Text className="text-[28px] font-bold text-text tracking-tight mb-1">
               Trends
             </Text>
-            <Text className="text-[14px] text-text-soft">
-              Analyze your vitals and discover patterns.
+            <Text className="text-[14px] text-text-soft flex-shrink" numberOfLines={2}>
+              Analyze your vitals & discover patterns.
             </Text>
           </View>
-          <View className="flex-row items-center gap-2">
-            <TouchableOpacity onPress={handleExportPDF} className="w-10 h-10 rounded-full items-center justify-center bg-surface-alt">
-              <Feather name="share" size={18} color={isDark ? "#FFFFFF" : TOKENS.ink} />
-            </TouchableOpacity>
-            <TouchableOpacity 
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                router.push("/(home)/(health)/log-symptoms");
-              }} 
-              className="w-10 h-10 rounded-full items-center justify-center"
-            >
-              <Feather name="plus" size={20} color={theme.onPrimary} />
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity 
+            onPress={handleExportPDF} 
+            className="w-10 h-10 rounded-full items-center justify-center bg-white dark:bg-surface shadow-sm shadow-slate-200/50 dark:shadow-none"
+          >
+            <Feather name="share-2" size={18} color={isDark ? "#FFFFFF" : "#334155"} />
+          </TouchableOpacity>
         </View>
 
         {/* Tab Selector */}
@@ -569,12 +718,9 @@ export default function TrendsTabScreen() {
           {/* Main Chart Card */}
           {renderActiveChart()}
 
-          {/* Daily Goals / Sub Metrics */}
-          {renderDailyGoals()}
+          {/* Weekly Summary (Combined Goals + Highlights) */}
+          {renderWeeklySummary()}
         </View>
-
-        {/* Highlights */}
-        {renderHighlights()}
 
         <View className="mb-20" />
       </ScrollView>
