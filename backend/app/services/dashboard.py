@@ -157,7 +157,7 @@ def _generate_insight(user_hss: list, latest_log: dict | None, first_name: str |
             real_symptoms = [s for s in latest_log["symptoms"] if s != "None (Feeling fine)"]
             symptom_count = len(real_symptoms)
             body = f"You logged {symptom_count} symptom(s) recently. Consider reviewing your diet and consulting your care team."
-        elif factors.get("staleness_penalty", 0) < 0:
+        elif factors.get("staleness_points", 0) < 0:
             body = "Your score dropped due to missing data. Log your vitals and meals to keep your score accurate."
         else:
             body = "Consider reviewing your recent meals and activity levels."
@@ -195,7 +195,7 @@ def _generate_insight(user_hss: list, latest_log: dict | None, first_name: str |
                 if factors.get("blood_sugar_points"): points.append(f"{factors.get('blood_sugar_points', 0):+} pts from blood sugar levels")
                 if factors.get("weight_gain_points"): points.append(f"{factors.get('weight_gain_points', 0):+} pts from rapid weight changes")
                 if factors.get("symptom_points"): points.append(f"{factors.get('symptom_points', 0):+} pts from reported symptoms")
-                if factors.get("staleness_penalty"): points.append(f"{factors.get('staleness_penalty', 0):+} pts penalty for missing data")
+                if factors.get("staleness_points"): points.append(f"{factors.get('staleness_points', 0):+} pts penalty for missing data")
                 if points:
                     context_str = "Today's score was affected by: " + ", ".join(points) + "."
             
