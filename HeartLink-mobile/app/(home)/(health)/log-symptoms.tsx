@@ -1011,7 +1011,7 @@ export default function LogSymptomsScreen() {
                 ? "Your blood pressure reading reflects acute hypotension (<90/60 mmHg)."
                 : isHypertensiveCrisis
                 ? "Your blood pressure reading reflects an acute Hypertensive Crisis (≥180/120 mmHg)."
-                : `You reported severe chest discomfort (${severities["Chest Discomfort / Tightness"] || 10}/10) while ${context.toLowerCase().replace("during ", "while ")}. This combination can be a sign of a heart attack.`}
+                : `You reported severe chest discomfort (${severities["Chest Discomfort / Tightness"] || 10}/10) ${context.toLowerCase().replace("during ", "while ")}. This combination can be a sign of a heart attack.`}
             </Text>
 
             <TouchableOpacity activeOpacity={0.85} onPress={() => { Linking.openURL("tel:911").catch(() => {}); }} className="w-full py-4 px-4 rounded-xl items-center justify-center mb-2 shadow-sm" style={{ backgroundColor: "#c82525" }}>
