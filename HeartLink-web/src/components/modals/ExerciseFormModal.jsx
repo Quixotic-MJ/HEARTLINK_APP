@@ -339,7 +339,6 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
                   />
                 </div>
               </div>
-              </div>
             </div>
           </div>
 
