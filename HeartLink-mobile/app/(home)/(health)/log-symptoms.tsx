@@ -392,6 +392,43 @@ export default function LogSymptomsScreen() {
   }, []);
 
   useEffect(() => {
+    if (!userId || !token) return;
+    
+    let isMounted = true;
+    const fetchLatestLog = async () => {
+      try {
+        const res = await fetch(`${base_url}/api/health-logs/${userId}?limit=1`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok && isMounted) {
+          const data = await res.json();
+          if (data && data.length > 0) {
+            const lastLog = data[0];
+            const logDate = new Date(lastLog.recorded_at);
+            const today = new Date();
+            const isToday = logDate.getDate() === today.getDate() && 
+                            logDate.getMonth() === today.getMonth() && 
+                            logDate.getFullYear() === today.getFullYear();
+            
+            if (isToday) {
+              if (lastLog.systolic_bp) setSystolic(lastLog.systolic_bp.toString());
+              if (lastLog.diastolic_bp) setDiastolic(lastLog.diastolic_bp.toString());
+              if (lastLog.heart_rate_bpm) setHeartRate(lastLog.heart_rate_bpm.toString());
+              if (lastLog.medication_taken !== undefined && lastLog.medication_taken !== null) setMedicationTaken(lastLog.medication_taken);
+            }
+            if (lastLog.weight_kg) setWeight(lastLog.weight_kg.toString());
+          }
+        }
+      } catch (err) {
+        console.warn("Autofill fetch failed", err);
+      }
+    };
+    
+    fetchLatestLog();
+    return () => { isMounted = false; };
+  }, [userId, token]);
+
+  useEffect(() => {
     if (params.triggered_by_exercise_id && symptomsY > 0) {
       setTimeout(() => {
         scrollViewRef.current?.scrollTo({ y: symptomsY, animated: true });
