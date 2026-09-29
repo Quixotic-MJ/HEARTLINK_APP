@@ -348,6 +348,7 @@ export default function LogSymptomsScreen() {
   const { showToast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showEmergencyGuidanceModal, setShowEmergencyGuidanceModal] = useState(false);
+  const [hasInterrupted, setHasInterrupted] = useState(false);
   const [showIncompleteWarning, setShowIncompleteWarning] = useState(false);
 
   const [timestamp, setTimestamp] = useState("");
@@ -425,6 +426,14 @@ export default function LogSymptomsScreen() {
           context === "While resting"))) ||
     isHypertensiveCrisis ||
     isSevereHypotension;
+
+  useEffect(() => {
+    if (isEmergency && !hasInterrupted) {
+      setShowEmergencyGuidanceModal(true);
+      setHasInterrupted(true);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    }
+  }, [isEmergency, hasInterrupted]);
 
   const handleLocateCardiologist = () => {
     Linking.openURL(
@@ -631,7 +640,12 @@ export default function LogSymptomsScreen() {
           duration: 6000 
         });
       }
-      setShowEmergencyGuidanceModal(true);
+      if (hasInterrupted) {
+        router.back();
+      } else {
+        setShowEmergencyGuidanceModal(true);
+        setHasInterrupted(true);
+      }
     } else {
       let comparisonStr = undefined;
       if (sys !== null && dia !== null) {
@@ -986,33 +1000,35 @@ export default function LogSymptomsScreen() {
       </KeyboardAvoidingView>
 
       {/* Emergency Guidance Modal (HL-ENG-17) */}
-      <Modal visible={showEmergencyGuidanceModal} transparent animationType="fade" onRequestClose={() => { setShowEmergencyGuidanceModal(false); router.back(); }}>
-        <View className="flex-1 bg-black/70 justify-center items-center px-5">
-          <View className="w-full max-w-sm bg-white dark:bg-slate-900 rounded-3xl p-6 border-2 border-red-500 shadow-2xl">
-            <View className="w-14 h-14 rounded-2xl bg-red-100 dark:bg-red-950/80 items-center justify-center mb-4 self-center">
-              <Feather name="alert-triangle" size={28} color={theme.dangerMid} />
+      <Modal visible={showEmergencyGuidanceModal} transparent animationType="fade" onRequestClose={() => { setShowEmergencyGuidanceModal(false); }}>
+        <View className="flex-1 bg-black/60 justify-center items-center px-5">
+          <View className="w-full max-w-sm rounded-3xl p-6 shadow-2xl mt-8" style={{ backgroundColor: isDark ? "#451a1a" : "#fdf2f2" }}>
+            <View className="w-16 h-16 rounded-full bg-white dark:bg-slate-800 items-center justify-center self-center -mt-12 mb-4 shadow-sm">
             </View>
-            <Text className="text-[20px] font-black text-slate-900 dark:text-white text-center mb-2 tracking-tight">Critical Vitals Detected</Text>
-            <Text className="text-[14px] text-slate-600 dark:text-slate-300 text-center leading-relaxed mb-6 font-medium">
+            <Text className="text-[22px] font-bold text-center mb-3 leading-tight" style={{ color: isDark ? "#fca5a5" : "#991b1b" }}>This may be a medical{"\n"}emergency</Text>
+            <Text className="text-[14.5px] text-center leading-relaxed mb-6 font-medium px-2" style={{ color: isDark ? "#fecaca" : "#7f1d1d" }}>
               {isSevereHypotension
-                ? "Your blood pressure reading reflects acute hypotension (<90/60 mmHg). Please sit or lie down, hydrate, and seek medical assistance immediately."
+                ? "Your blood pressure reading reflects acute hypotension (<90/60 mmHg)."
                 : isHypertensiveCrisis
-                ? "Your blood pressure reading reflects an acute Hypertensive Crisis (≥180/120 mmHg). Immediate emergency medical evaluation is strongly advised."
-                : "Your clinical indicators reflect acute cardiac strain. Please seek emergency medical care immediately."}
+                ? "Your blood pressure reading reflects an acute Hypertensive Crisis (≥180/120 mmHg)."
+                : `You reported severe chest discomfort (${severities["Chest Discomfort / Tightness"] || 10}/10) while ${context.toLowerCase().replace("during ", "while ")}. This combination can be a sign of a heart attack.`}
             </Text>
-            <View className="gap-3 w-full">
-              <TouchableOpacity activeOpacity={0.85} onPress={() => { setShowEmergencyGuidanceModal(false); router.replace("/locator" as any); }} className="w-full bg-red-600 py-3.5 px-4 rounded-xl flex-row items-center justify-center gap-2 shadow-sm">
-                <Feather name="map-pin" size={16} color={theme.surface} />
-                <Text className="text-white text-[14px] font-bold">Find Nearby Emergency Hospital</Text>
-              </TouchableOpacity>
-              <TouchableOpacity activeOpacity={0.85} onPress={() => { Linking.openURL("tel:911").catch(() => {}); }} className="w-full bg-slate-900 dark:bg-slate-800 py-3.5 px-4 rounded-xl flex-row items-center justify-center gap-2">
-                <Feather name="phone-call" size={16} color={theme.surface} />
-                <Text className="text-white text-[14px] font-bold">Call Emergency Services (911)</Text>
-              </TouchableOpacity>
-              <TouchableOpacity activeOpacity={0.7} onPress={() => { setShowEmergencyGuidanceModal(false); router.back(); }} className="w-full py-2.5 items-center justify-center mt-1">
-                <Text className="text-slate-400 dark:text-slate-500 text-[13px] font-semibold">Acknowledge & Return to App</Text>
-              </TouchableOpacity>
+
+            <TouchableOpacity activeOpacity={0.85} onPress={() => { Linking.openURL("tel:911").catch(() => {}); }} className="w-full py-4 px-4 rounded-xl items-center justify-center mb-2 shadow-sm" style={{ backgroundColor: "#c82525" }}>
+              <Text className="text-white text-[16px] font-bold">Call Emergency Services</Text>
+            </TouchableOpacity>
+            <Text className="text-[11.5px] text-center mb-6" style={{ color: isDark ? "#fca5a5" : "#7f1d1d" }}>This will dial your local emergency number</Text>
+
+            <View className="bg-white dark:bg-slate-900 rounded-xl p-4 mb-6 shadow-sm">
+              <Text className="text-[11px] font-bold tracking-widest mb-1.5" style={{ color: "#991b1b" }}>WHILE YOU WAIT</Text>
+              <Text className="text-[13px] leading-relaxed" style={{ color: isDark ? "#cbd5e1" : "#0f172a" }}>
+                Sit or lie down. Stay calm. If prescribed, take aspirin only if advised by a doctor to do so. Do not drive yourself.
+              </Text>
             </View>
+
+            <TouchableOpacity activeOpacity={0.7} onPress={() => { setShowEmergencyGuidanceModal(false); }} className="w-full items-center justify-center">
+              <Text className="text-[13px] font-semibold underline" style={{ color: isDark ? "#fca5a5" : "#7f1d1d" }}>I'm safe — just logging this for later</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
