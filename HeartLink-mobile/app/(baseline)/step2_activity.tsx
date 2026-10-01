@@ -52,6 +52,8 @@ function ActivitySubInput({
   hasError?: boolean;
 }) {
   const shakeAnim = useSharedValue(0);
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
 
   React.useEffect(() => {
     if (hasError) {
@@ -66,7 +68,7 @@ function ActivitySubInput({
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: shakeAnim.value }],
-    borderColor: hasError ? Appearance.getColorScheme() === "dark" ? "#F87171" : "#DC2626" : Appearance.getColorScheme() === "dark" ? "#1E293B" : "#DCE3DF",
+    borderColor: hasError ? isDark ? "#F87171" : "#DC2626" : isDark ? "#1E293B" : "#DCE3DF",
   }));
 
   return (
@@ -605,6 +607,7 @@ export default function Step2Activity() {
 
       {/* Anchored Bottom CTA */}
       <View
+        style={{ paddingBottom: Math.max(insets.bottom, 24) }}
         className="px-5 pt-3.5 bg-[#EDF1EF] dark:bg-[#0A0F0E] border-t border-border"
       >
         <Animated.View style={animatedButtonStyle}>

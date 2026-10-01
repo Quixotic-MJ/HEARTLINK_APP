@@ -566,6 +566,7 @@ export default function Step5Diet() {
 
       {/* Anchored Bottom CTA */}
       <View
+        style={{ paddingBottom: Math.max(insets.bottom, 24) }}
         className="px-5 pt-3.5 bg-[#EDF1EF] dark:bg-[#0A0F0E] border-t border-border"
       >
         <Animated.View style={animatedButtonStyle}>

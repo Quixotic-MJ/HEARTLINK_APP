@@ -74,7 +74,7 @@ EXPO_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
 
 ### 1. Install Dependencies
 ```bash
-npm install
+npm expo install --fix
 ```
 
 ### 2. Start the Development Server
