@@ -126,9 +126,9 @@ def create_recipe(data: Dict[str, Any], created_by: Optional[str] = None) -> Dic
         servings = 1
 
     # Status check constraint ('draft', 'published', 'archived')
-    raw_status = (data.get("status") or "draft").strip().lower()
+    raw_status = (data.get("status") or "published").strip().lower()
     valid_statuses = {"draft", "published", "archived"}
-    status_val = raw_status if raw_status in valid_statuses else "draft"
+    status_val = raw_status if raw_status in valid_statuses else "published"
 
     new_recipe_payload = {
         "name": (data.get("name") or "Untitled Recipe").strip(),

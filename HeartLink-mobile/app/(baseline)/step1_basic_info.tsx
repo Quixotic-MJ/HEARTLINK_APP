@@ -59,6 +59,8 @@ function FormInput({
   const [isFocused, setIsFocused] = useState(false);
   const focusAnim = useSharedValue(0);
   const shakeAnim = useSharedValue(0);
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
 
   useEffect(() => {
     focusAnim.value = withTiming(isFocused ? 1 : 0, {
@@ -80,18 +82,18 @@ function FormInput({
 
   const animatedContainerStyle = useAnimatedStyle(() => {
     const borderColor = hasError
-      ? Appearance.getColorScheme() === "dark" ? "#F87171" : "#DC2626"
+      ? isDark ? "#F87171" : "#DC2626"
       : isFocused
-      ? Appearance.getColorScheme() === "dark" ? "#FFFFFF" : "#152131"
-      : Appearance.getColorScheme() === "dark" ? "#1E293B" : "#DCE3DF";
+      ? isDark ? "#FFFFFF" : "#152131"
+      : isDark ? "#1E293B" : "#DCE3DF";
 
     return {
       borderColor,
       transform: [{ translateX: shakeAnim.value }],
       shadowColor: hasError
-        ? Appearance.getColorScheme() === "dark" ? "#F87171" : "#DC2626"
+        ? isDark ? "#F87171" : "#DC2626"
         : isFocused
-        ? Appearance.getColorScheme() === "dark" ? "#FFFFFF" : "#152131"
+        ? isDark ? "#FFFFFF" : "#152131"
         : "transparent",
       shadowOpacity: hasError ? 0.15 : focusAnim.value * 0.08,
       shadowRadius: focusAnim.value * 4,
@@ -160,6 +162,8 @@ function FormDatePicker({
   hasError?: boolean;
 }) {
   const shakeAnim = useSharedValue(0);
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
 
   useEffect(() => {
     if (hasError) {
@@ -174,7 +178,7 @@ function FormDatePicker({
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: shakeAnim.value }],
-    borderColor: hasError ? Appearance.getColorScheme() === "dark" ? "#F87171" : "#DC2626" : Appearance.getColorScheme() === "dark" ? "#1E293B" : "#DCE3DF",
+    borderColor: hasError ? isDark ? "#F87171" : "#DC2626" : isDark ? "#1E293B" : "#DCE3DF",
   }));
 
   return (
@@ -274,6 +278,8 @@ function SegmentedSexToggle({
   }, [hasError]);
 
   const pillWidth = containerWidth > 0 ? (containerWidth - 8) / 2 : 0;
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
 
   const animatedSliderStyle = useAnimatedStyle(() => {
     const slidePos = slideAnim.value === -1 ? 0 : slideAnim.value;
@@ -286,7 +292,7 @@ function SegmentedSexToggle({
   const animatedPressStyle = useAnimatedStyle(() => {
     return {
       transform: [{ scale: pressScale.value }, { translateX: shakeAnim.value }],
-      borderColor: hasError ? Appearance.getColorScheme() === "dark" ? "#F87171" : "#DC2626" : Appearance.getColorScheme() === "dark" ? "#1E293B" : "#DCE3DF",
+      borderColor: hasError ? isDark ? "#F87171" : "#DC2626" : isDark ? "#1E293B" : "#DCE3DF",
     };
   });
 
@@ -668,6 +674,7 @@ export default function Step1BasicInfo() {
 
       {/* Anchored Bottom CTA */}
       <View
+        style={{ paddingBottom: Math.max(insets.bottom, 24) }}
         className="px-5 pt-3.5 bg-[#EDF1EF] dark:bg-[#0A0F0E] border-t border-border"
       >
         <Animated.View style={animatedButtonStyle}>
