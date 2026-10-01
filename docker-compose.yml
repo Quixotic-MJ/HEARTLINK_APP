@@ -1,0 +1,29 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: heartlink_backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    env_file:
+      - ./backend/.env
+    restart: always
+
+  web:
+    build:
+      context: ./HeartLink-web
+      dockerfile: Dockerfile
+      target: dev
+    container_name: heartlink_web
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./HeartLink-web:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    restart: always

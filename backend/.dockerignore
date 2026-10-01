@@ -1,0 +1,23 @@
+# Python cache & artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Environments
+.env
+.env.*
+venv/
+env/
+
+# Git & OS
+.git/
+.DS_Store
+
+# IDEs
+.vscode/
+.idea/
+
+# Local data / specific files
+scripts/
+*.log
