@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, ScrollView, Image } from "react-native";
+import { View, Text, TouchableOpacity, ScrollView, Image, AccessibilityInfo, Alert } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { theme } from "../../constants/theme";
@@ -20,6 +20,11 @@ export function StretchingExerciseActive({
   const insets = useSafeAreaInsets();
   const [isPlaying, setIsPlaying] = useState(true);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [reduceMotion, setReduceMotion] = useState(false);
+
+  useEffect(() => {
+    AccessibilityInfo.isReduceMotionEnabled().then(setReduceMotion);
+  }, []);
 
   const steps = routine?.steps || [];
   const totalSeconds = steps.length > 0 
@@ -72,43 +77,67 @@ export function StretchingExerciseActive({
     ? currentStep.details
     : "Keep your back heel flat on the floor. Lean forward slightly.";
     
-  const progressPercent = Math.min(100, (elapsedSeconds / totalSeconds) * 100);
+  const progressPercent = reduceMotion 
+    ? (elapsedSeconds >= totalSeconds ? 100 : 0)
+    : Math.min(100, (elapsedSeconds / totalSeconds) * 100);
+
+  const handleNext = () => {
+    setElapsedSeconds(prev => Math.min(prev + timeRemainingInStep, totalSeconds));
+  };
+
+  const handlePrev = () => {
+    if (currentStepElapsed > 2) {
+      setElapsedSeconds(prev => Math.max(0, prev - currentStepElapsed));
+    } else if (currentStepIndex > 0) {
+      const prevStepDur = steps[currentStepIndex - 1]?.duration_seconds || 30;
+      setElapsedSeconds(prev => Math.max(0, prev - currentStepElapsed - prevStepDur));
+    } else {
+      setElapsedSeconds(0);
+    }
+  };
 
   return (
     <View className="flex-1 bg-white">
       {/* HEADER SECTION */}
       <View 
-        className="w-full relative bg-slate-50" 
+        className="w-full relative bg-surface" 
         style={{ paddingTop: Math.max(insets.top, 10) }}
       >
         <View className="flex-row items-center px-4 pb-4">
            {/* Close Button */}
            <TouchableOpacity 
              onPress={onClose} 
-             className="w-10 h-10 rounded-full bg-slate-200 items-center justify-center"
+             className="w-10 h-10 rounded-full bg-surface-alt items-center justify-center"
+             accessibilityLabel="Close"
+             accessibilityRole="button"
            >
              <Feather name="x" size={20} color={theme.ink} />
            </TouchableOpacity>
            
            {/* Title */}
            <View className="flex-1 px-4">
-             <Text className="text-slate-900 font-bold text-[16px]" numberOfLines={1}>
+             <Text className="text-text font-bold text-[16px]" numberOfLines={1}>
                {routine?.title || "Full Body Stretch"}
              </Text>
-             <Text className="text-slate-500 font-medium text-[13px]">
+             <Text className="text-text-soft font-medium text-[13px]">
                Pose {currentStepIndex + 1} of {totalSteps}
              </Text>
            </View>
            
            {/* Info Toggle */}
-           <TouchableOpacity className="w-10 h-10 rounded-full bg-slate-200 items-center justify-center">
+           <TouchableOpacity 
+             onPress={() => Alert.alert("Pose Info", stepHint)}
+             className="w-10 h-10 rounded-full bg-surface-alt items-center justify-center"
+             accessibilityLabel="View pose info"
+             accessibilityRole="button"
+           >
              <Feather name="info" size={18} color={theme.ink} />
            </TouchableOpacity>
         </View>
         
         {/* Progress Bar */}
-        <View className="w-full h-1 bg-slate-200">
-          <View className="h-full bg-sky-500 rounded-r-full" style={{ width: `${progressPercent}%` }} />
+        <View className="w-full h-1 bg-surface-alt">
+          <View className="h-full bg-teal rounded-r-full" style={{ width: `${progressPercent}%` }} />
         </View>
       </View>
 
@@ -132,16 +161,16 @@ export function StretchingExerciseActive({
 
         {/* Info Area */}
         <View className="items-center px-6 mb-8">
-          <Text className="text-slate-900 text-[22px] font-bold text-center mb-4">{stepTitle}</Text>
+          <Text className="text-text text-[22px] font-bold text-center mb-4">{stepTitle}</Text>
           
           <View className="flex-row items-baseline justify-center mb-8 gap-2">
-            <Text className="text-sky-500 text-[48px] font-medium tracking-tight">{timeRemainingInStep}</Text>
-            <Text className="text-slate-600 font-bold text-[14px]">sec hold</Text>
+            <Text className="text-teal text-[48px] font-medium tracking-tight">{timeRemainingInStep}</Text>
+            <Text className="text-text-soft font-bold text-[14px]">sec hold</Text>
           </View>
 
           {/* Hint Card */}
-          <View className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-5 shadow-sm shadow-slate-100">
-            <Text className="text-slate-600 text-[14px] leading-relaxed font-medium">
+          <View className="w-full bg-surface border border-border rounded-2xl p-5 shadow-sm">
+            <Text className="text-text-soft text-[14px] leading-relaxed font-medium">
               {stepHint}
             </Text>
           </View>
@@ -149,12 +178,19 @@ export function StretchingExerciseActive({
 
         {/* Controls */}
         <View className="flex-row items-center justify-center gap-8 mb-12">
-          <TouchableOpacity className="w-12 h-12 rounded-full bg-slate-100 items-center justify-center">
+          <TouchableOpacity 
+            onPress={handlePrev}
+            className="w-12 h-12 rounded-full bg-surface-alt items-center justify-center"
+            accessibilityLabel="Previous pose"
+            accessibilityRole="button"
+          >
             <Feather name="rewind" size={20} color={theme.textSoft} />
           </TouchableOpacity>
           <TouchableOpacity 
             onPress={() => setIsPlaying(!isPlaying)}
-            className="w-16 h-16 rounded-full bg-sky-500 items-center justify-center shadow-lg shadow-sky-500/30"
+            className="w-16 h-16 rounded-full bg-teal items-center justify-center shadow-lg shadow-teal/30"
+            accessibilityLabel={isPlaying ? "Pause" : "Play"}
+            accessibilityRole="button"
           >
             {isPlaying ? (
                <View className="flex-row gap-1">
@@ -165,7 +201,12 @@ export function StretchingExerciseActive({
                <Feather name="play" size={28} color="#fff" style={{ marginLeft: 4 }} />
             )}
           </TouchableOpacity>
-          <TouchableOpacity className="w-12 h-12 rounded-full bg-slate-100 items-center justify-center">
+          <TouchableOpacity 
+            onPress={handleNext}
+            className="w-12 h-12 rounded-full bg-surface-alt items-center justify-center"
+            accessibilityLabel="Next pose"
+            accessibilityRole="button"
+          >
             <Feather name="fast-forward" size={20} color={theme.textSoft} />
           </TouchableOpacity>
         </View>
@@ -173,11 +214,11 @@ export function StretchingExerciseActive({
 
       {/* Footer */}
       <View 
-        className="absolute bottom-0 w-full bg-white/95 pt-4 pb-2 border-t border-slate-100 items-center justify-center"
+        className="absolute bottom-0 w-full bg-white/95 pt-4 pb-2 border-t border-border items-center justify-center"
         style={{ paddingBottom: Math.max(insets.bottom, 20) }}
       >
         <TouchableOpacity onPress={onSymptoms} className="py-3 px-6 mb-2">
-          <Text className="text-[14px] font-medium text-slate-500 underline">
+          <Text className="text-[14px] font-medium text-text-soft underline">
             Feeling unwell? End session
           </Text>
         </TouchableOpacity>

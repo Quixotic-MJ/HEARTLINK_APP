@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, ScrollView } from "react-native";
+import { View, Text, TouchableOpacity, ScrollView, AccessibilityInfo } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { theme } from "../../constants/theme";
@@ -19,8 +19,14 @@ export function BreathingExerciseActive({
 }: BreathingExerciseActiveProps) {
   const insets = useSafeAreaInsets();
   const [isPlaying, setIsPlaying] = useState(true);
+  const [isMuted, setIsMuted] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [reduceMotion, setReduceMotion] = useState(false);
   const totalSeconds = (routine?.duration_minutes || routine?.duration || 10) * 60;
+
+  useEffect(() => {
+    AccessibilityInfo.isReduceMotionEnabled().then(setReduceMotion);
+  }, []);
 
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
@@ -65,43 +71,66 @@ export function BreathingExerciseActive({
   const currentStep = steps[currentStepIdx] || { instruction: "Breathe deeply" };
   const stepDuration = currentStep.duration_seconds || 5;
   const stepRemaining = stepDuration - currentStepElapsed;
-  const progressPercent = Math.min(100, (elapsedSeconds / totalSeconds) * 100);
+  const progressPercent = reduceMotion 
+    ? (elapsedSeconds >= totalSeconds ? 100 : 0) 
+    : Math.min(100, (elapsedSeconds / totalSeconds) * 100);
+
+  const handleNext = () => {
+    setElapsedSeconds(prev => Math.min(prev + stepRemaining, totalSeconds));
+  };
+  
+  const handlePrev = () => {
+    if (currentStepElapsed > 2 || steps.length === 0) {
+      setElapsedSeconds(prev => Math.max(0, prev - currentStepElapsed));
+    } else {
+      const prevStepIdx = currentStepIdx === 0 ? steps.length - 1 : currentStepIdx - 1;
+      const prevStepDuration = steps[prevStepIdx]?.duration_seconds || 5;
+      setElapsedSeconds(prev => Math.max(0, prev - currentStepElapsed - prevStepDuration));
+    }
+  };
 
   return (
     <View className="flex-1 bg-white">
       {/* HEADER SECTION */}
       <View 
-        className="w-full relative bg-slate-50" 
+        className="w-full relative bg-surface" 
         style={{ paddingTop: Math.max(insets.top, 10) }}
       >
         <View className="flex-row items-center px-4 pb-4">
            {/* Close Button */}
            <TouchableOpacity 
              onPress={onClose} 
-             className="w-10 h-10 rounded-full bg-slate-200 items-center justify-center"
+             className="w-10 h-10 rounded-full bg-surface-alt items-center justify-center"
+             accessibilityLabel="Close"
+             accessibilityRole="button"
            >
              <Feather name="x" size={20} color={theme.ink} />
            </TouchableOpacity>
            
            {/* Title */}
            <View className="flex-1 px-4">
-             <Text className="text-slate-900 font-bold text-[16px]" numberOfLines={1}>
+             <Text className="text-text font-bold text-[16px]" numberOfLines={1}>
                {routine?.name || routine?.title || "Breathing Exercise"}
              </Text>
-             <Text className="text-slate-500 font-medium text-[13px]">
+             <Text className="text-text-soft font-medium text-[13px]">
                {formatTime(elapsedSeconds)} of {formatTime(totalSeconds)}
              </Text>
            </View>
            
            {/* Sound Toggle */}
-           <TouchableOpacity className="w-10 h-10 rounded-full bg-slate-200 items-center justify-center">
-             <Feather name="volume-2" size={18} color={theme.ink} />
+           <TouchableOpacity 
+             onPress={() => setIsMuted(!isMuted)}
+             className="w-10 h-10 rounded-full bg-surface-alt items-center justify-center"
+             accessibilityLabel={isMuted ? "Unmute sound" : "Toggle sound"}
+             accessibilityRole="button"
+           >
+             <Feather name={isMuted ? "volume-x" : "volume-2"} size={18} color={theme.ink} />
            </TouchableOpacity>
         </View>
         
         {/* Progress Bar */}
-        <View className="w-full h-1 bg-slate-200">
-          <View className="h-full bg-sky-500 rounded-r-full" style={{ width: `${progressPercent}%` }} />
+        <View className="w-full h-1 bg-surface-alt">
+          <View className="h-full bg-primary rounded-r-full" style={{ width: `${progressPercent}%` }} />
         </View>
       </View>
 
@@ -109,27 +138,37 @@ export function BreathingExerciseActive({
         {/* Main Circle */}
         <View className="items-center mb-8">
           <View className="w-32 h-32 rounded-full bg-sky-100 items-center justify-center mb-6">
-            <View className="w-24 h-24 rounded-full bg-sky-500 items-center justify-center shadow-lg shadow-sky-500/30">
+            <View 
+              className="w-24 h-24 rounded-full bg-primary items-center justify-center shadow-lg shadow-primary/30"
+              style={!reduceMotion ? { transform: [{ scale: 1 + (currentStepElapsed / stepDuration) * 0.15 }] } : undefined}
+            >
               <Text className="text-white text-4xl font-bold">{Math.max(1, stepRemaining)}</Text>
             </View>
           </View>
 
-          <Text className="text-slate-900 text-[18px] font-bold mb-1 px-4 text-center">
+          <Text className="text-text text-[18px] font-bold mb-1 px-4 text-center">
             {currentStep.instruction || "Focus on your breath"}
           </Text>
-          <Text className="text-slate-500 text-[13px]">
+          <Text className="text-text-soft text-[13px]">
             Step {currentStepIdx + 1} of {Math.max(1, steps.length)}
           </Text>
         </View>
 
         {/* Controls */}
         <View className="flex-row items-center justify-center gap-8 mb-12">
-          <TouchableOpacity className="w-12 h-12 rounded-full bg-slate-100 items-center justify-center">
+          <TouchableOpacity 
+            onPress={handlePrev}
+            className="w-12 h-12 rounded-full bg-surface-alt items-center justify-center"
+            accessibilityLabel="Previous"
+            accessibilityRole="button"
+          >
             <Feather name="rewind" size={20} color={theme.textSoft} />
           </TouchableOpacity>
           <TouchableOpacity 
             onPress={() => setIsPlaying(!isPlaying)}
-            className="w-16 h-16 rounded-full bg-sky-500 items-center justify-center shadow-md shadow-sky-500/20"
+            className="w-16 h-16 rounded-full bg-primary items-center justify-center shadow-md shadow-primary/20"
+            accessibilityLabel={isPlaying ? "Pause" : "Play"}
+            accessibilityRole="button"
           >
             {isPlaying ? (
                <View className="flex-row gap-1">
@@ -140,7 +179,12 @@ export function BreathingExerciseActive({
                <Feather name="play" size={28} color="#fff" style={{ marginLeft: 4 }} />
             )}
           </TouchableOpacity>
-          <TouchableOpacity className="w-12 h-12 rounded-full bg-slate-100 items-center justify-center">
+          <TouchableOpacity 
+            onPress={handleNext}
+            className="w-12 h-12 rounded-full bg-surface-alt items-center justify-center"
+            accessibilityLabel="Next"
+            accessibilityRole="button"
+          >
             <Feather name="fast-forward" size={20} color={theme.textSoft} />
           </TouchableOpacity>
         </View>
@@ -157,14 +201,14 @@ export function BreathingExerciseActive({
             
             if (isActive) {
               return (
-                <View key={idx} style={{ backgroundColor: '#f0f9ff', borderColor: '#bae6fd', borderWidth: 1, borderRadius: 16, padding: 16, marginBottom: 12, flexDirection: 'row', alignItems: 'center' }}>
-                  <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: theme.sky, alignItems: 'center', justifyContent: 'center', marginRight: 16 }}>
+                <View key={idx} className="bg-primary/10 border-primary/30" style={{ borderWidth: 1, borderRadius: 16, padding: 16, marginBottom: 12, flexDirection: 'row', alignItems: 'center' }}>
+                  <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: theme.primary, alignItems: 'center', justifyContent: 'center', marginRight: 16 }}>
                     <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>{idx + 1}</Text>
                   </View>
-                  <Text style={{ flex: 1, fontSize: 14, fontWeight: 'bold', color: theme.skyText }}>
+                  <Text style={{ flex: 1, fontSize: 14, fontWeight: 'bold', color: theme.primary }}>
                     {step.instruction || `Step ${idx + 1}`}
                   </Text>
-                  <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.skyMid }}>
+                  <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.primary }}>
                     {step.duration_seconds || 5}s
                   </Text>
                 </View>
@@ -173,8 +217,8 @@ export function BreathingExerciseActive({
             
             if (isCompleted) {
               return (
-                <View key={idx} style={{ backgroundColor: 'white', borderColor: theme.surfaceAlt, borderWidth: 1, borderRadius: 16, padding: 16, marginBottom: 12, flexDirection: 'row', alignItems: 'center', opacity: 0.6 }}>
-                  <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: theme.sky, alignItems: 'center', justifyContent: 'center', marginRight: 16 }}>
+                <View key={idx} className="bg-surface border-border" style={{ borderWidth: 1, borderRadius: 16, padding: 16, marginBottom: 12, flexDirection: 'row', alignItems: 'center', opacity: 0.6 }}>
+                  <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: theme.primary, alignItems: 'center', justifyContent: 'center', marginRight: 16 }}>
                     <Feather name="check" size={14} color="#fff" />
                   </View>
                   <Text style={{ flex: 1, fontSize: 14, fontWeight: '500', color: theme.textSoft }}>
@@ -185,14 +229,14 @@ export function BreathingExerciseActive({
             }
             
             return (
-              <View key={idx} style={{ backgroundColor: 'white', borderColor: theme.surfaceAlt, borderWidth: 1, borderRadius: 16, padding: 16, marginBottom: 12, flexDirection: 'row', alignItems: 'center' }}>
+              <View key={idx} className="bg-surface border-border" style={{ borderWidth: 1, borderRadius: 16, padding: 16, marginBottom: 12, flexDirection: 'row', alignItems: 'center' }}>
                 <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: theme.border, alignItems: 'center', justifyContent: 'center', marginRight: 16 }}>
-                  <Text style={{ color: '#475569', fontSize: 12, fontWeight: 'bold' }}>{idx + 1}</Text>
+                  <Text style={{ color: theme.textSoft, fontSize: 12, fontWeight: 'bold' }}>{idx + 1}</Text>
                 </View>
-                <Text style={{ flex: 1, fontSize: 14, fontWeight: '500', color: '#475569' }}>
+                <Text style={{ flex: 1, fontSize: 14, fontWeight: '500', color: theme.textSoft }}>
                   {step.instruction || `Step ${idx + 1}`}
                 </Text>
-                <Text style={{ fontSize: 12, fontWeight: '500', color: theme.textMuted }}>
+                <Text style={{ fontSize: 12, fontWeight: '500', color: theme.textSoft }}>
                   {step.duration_seconds || 5}s
                 </Text>
               </View>
@@ -203,11 +247,11 @@ export function BreathingExerciseActive({
 
       {/* Footer */}
       <View 
-        className="absolute bottom-0 w-full bg-white/95 pt-4 pb-2 border-t border-slate-100 items-center justify-center"
+        className="absolute bottom-0 w-full bg-white/95 pt-4 pb-2 border-t border-border items-center justify-center"
         style={{ paddingBottom: Math.max(insets.bottom, 20) }}
       >
         <TouchableOpacity onPress={onSymptoms} className="py-3 px-6 mb-2">
-          <Text className="text-[14px] font-medium text-slate-500 underline">
+          <Text className="text-[14px] font-medium text-text-soft underline">
             Feeling unwell? End session
           </Text>
         </TouchableOpacity>

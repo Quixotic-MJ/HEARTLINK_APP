@@ -29,10 +29,12 @@ export function StopExerciseSheet({
   return (
     <Modal visible={visible} transparent animationType="fade">
       <Pressable
-        className="flex-1 justify-end"
+        className="flex-1 justify-end bg-black/40"
+        onPress={onBack}
       >
         <Pressable
           className="bg-surface rounded-t-[32px] px-6 pt-6 border-t border-border shadow-2xl"
+          style={{ paddingBottom: Math.max(insets.bottom, 20) }}
         >
           {/* Close Button */}
           <TouchableOpacity 
@@ -85,10 +87,10 @@ export function StopExerciseSheet({
           <TouchableOpacity
             activeOpacity={0.8}
             onPress={onJustChecking}
-            className="rounded-2xl py-4 items-center mb-4 flex-row justify-center gap-2 border border-border bg-surface shadow-sm"
+            className="py-3 items-center mb-2 flex-row justify-center"
           >
-            <Text className="text-[15px] font-bold text-text">
-              JUST CHECKING THE EXERCISE
+            <Text className="text-[14px] font-medium text-text-soft underline">
+              Just checking the exercise
             </Text>
           </TouchableOpacity>
         </Pressable>
