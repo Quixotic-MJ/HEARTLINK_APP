@@ -37,10 +37,12 @@ export function SafetyCheckSheet({
   return (
     <Modal visible={visible} transparent animationType="fade">
       <Pressable
-        className="flex-1 justify-end"
+        className="flex-1 justify-end bg-black/40"
+        onPress={onBack}
       >
         <Pressable
           className="bg-surface rounded-t-[32px] px-6 pt-5 border-t border-border shadow-2xl"
+          style={{ paddingBottom: Math.max(insets.bottom, 20) }}
         >
           {/* Close Button */}
           {onBack && (

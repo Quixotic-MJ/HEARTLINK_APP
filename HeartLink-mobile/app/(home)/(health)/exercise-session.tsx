@@ -406,6 +406,9 @@ export default function ExerciseSessionScreen() {
         }}
         onJustChecking={() => {
           setShowStopCheck(false);
+          setWorkoutState("overview");
+          setSessionStartedAt(null);
+          setSessionDurationSeconds(0);
         }}
         onBack={() => setShowStopCheck(false)}
       />
