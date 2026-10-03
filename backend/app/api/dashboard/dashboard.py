@@ -31,7 +31,7 @@ def get_dashboard(current_user: dict = Depends(get_current_user)):
         logger.error(f"[Dashboard /me Error for {user_id}]: {e}\n{traceback.format_exc()}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to load dashboard data: {str(e)}",
+            detail="Failed to load dashboard data",
         )
 
 @router.get("/wrapup", response_model=Dict[str, Any])
@@ -59,6 +59,6 @@ def get_wrapup(
         logger.error(f"[Dashboard /wrapup Error for {user_id}]: {e}\n{traceback.format_exc()}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to load wrap-up data: {str(e)}",
+            detail="Failed to load wrap-up data",
         )
 
