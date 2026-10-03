@@ -3,7 +3,7 @@
 HeartLink Authentication API Gateway.
 Routes registration, OTP verification, password login, 2FA, password recovery, and session invalidation through the authoritative AuthService.
 """
-from fastapi import APIRouter, status, HTTPException, Header, Request
+from fastapi import APIRouter, status, HTTPException, Header, Request, Response
 from app.schemas.auth import RegisterRequest, CodeResponse, Login, ResendCodeRequest, WebVerify2FA, ForgotPasswordRequest
 from app.utils.security import token_blacklist
 from app.services.auth_service import get_auth_service
@@ -16,7 +16,7 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 @router.post("/request-code", status_code=status.HTTP_200_OK)
 @limiter.limit("3/minute")
-async def request_code(payload: RegisterRequest, request: Request):
+async def request_code(payload: RegisterRequest, request: Request, response: Response):
     auth_svc = get_auth_service()
     return auth_svc.request_registration_otp(
         phone=payload.phone,
@@ -26,31 +26,31 @@ async def request_code(payload: RegisterRequest, request: Request):
 
 @router.post("/resend-code", status_code=status.HTTP_200_OK)
 @limiter.limit("3/minute")
-async def resend_code(payload: ResendCodeRequest, request: Request):
+async def resend_code(payload: ResendCodeRequest, request: Request, response: Response):
     auth_svc = get_auth_service()
     return auth_svc.resend_registration_otp(phone=payload.phone)
 
 @router.post("/verify-code", status_code=status.HTTP_201_CREATED)
 @limiter.limit("3/minute")
-async def verify_code(code: CodeResponse, request: Request):
+async def verify_code(code: CodeResponse, request: Request, response: Response):
     auth_svc = get_auth_service()
     return auth_svc.verify_registration_otp(phone=code.phone, code=code.code)
 
 @router.post("/login")
 @limiter.limit("5/minute")
-async def login(payload: Login, request: Request):
+async def login(payload: Login, request: Request, response: Response):
     auth_svc = get_auth_service()
     return auth_svc.login(identifier=payload.identifier, password=payload.password)
 
 @router.post("/web-login")
 @limiter.limit("5/minute")
-async def web_login(payload: Login, request: Request):
+async def web_login(payload: Login, request: Request, response: Response):
     auth_svc = get_auth_service()
     return auth_svc.web_login(identifier=payload.identifier, password=payload.password, remember=payload.remember)
 
 @router.post("/web-login/verify-2fa")
 @limiter.limit("3/minute")
-async def web_login_verify_2fa(payload: WebVerify2FA, request: Request):
+async def web_login_verify_2fa(payload: WebVerify2FA, request: Request, response: Response):
     auth_svc = get_auth_service()
     return auth_svc.verify_2fa(token_2fa=payload.token_2fa, code=payload.code)
 
@@ -63,6 +63,6 @@ async def logout(authorization: str = Header(None)):
 
 @router.post("/forgot-password")
 @limiter.limit("5/minute")
-async def forgot_password(payload: ForgotPasswordRequest, request: Request):
+async def forgot_password(payload: ForgotPasswordRequest, request: Request, response: Response):
     auth_svc = get_auth_service()
     return auth_svc.forgot_password(identifier=payload.identifier)

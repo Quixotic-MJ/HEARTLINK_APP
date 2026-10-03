@@ -44,12 +44,15 @@ class SupabaseHSSRepository(HSSRepository):
             pass
         return None
 
-    def list_hss_history(self, user_id: str, limit: Optional[int] = None) -> List[Dict[str, Any]]:
+    def list_hss_history(self, user_id: str, limit: Optional[int] = None, cutoff: Optional[str] = None) -> List[Dict[str, Any]]:
         uuid_val = self._resolve_user_uuid(user_id)
         if not uuid_val:
             return []
         try:
-            query = self.client.table("hss_history").select("*").eq("user_id", uuid_val).order("computed_at", desc=True)
+            query = self.client.table("hss_history").select("*").eq("user_id", uuid_val)
+            if cutoff:
+                query = query.gte("computed_at", cutoff)
+            query = query.order("computed_at", desc=True)
             if limit:
                 query = query.limit(limit)
             res = query.execute()

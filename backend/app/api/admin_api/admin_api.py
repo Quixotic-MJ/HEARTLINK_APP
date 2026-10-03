@@ -36,149 +36,38 @@ def _parse_dt(dt):
 
 @router.get("/dashboard", response_model=Dict[str, Any])
 def get_admin_dashboard(current_user: dict = Depends(get_current_admin_user)):
-    now = datetime.utcnow()
-    cutoff = now - timedelta(days=7)
-    
-    def is_recent(dt_val):
-        parsed = _parse_dt(dt_val)
-        return parsed is not None and parsed >= cutoff
-
-    profile_repo = get_profile_repo()
-    all_profiles = profile_repo.list_all()
-    users = [p for p in all_profiles if p.get("role") == "patient"]
-    patient_ids = {str(p["id"]) for p in users}
-    total_users = len(users)
-
-    meal_logs = get_meals_repo().list_all_meals()
-    exercise_logs = get_exercises_repo().list_all_logs()
-    sleep_logs = get_sleep_repo().list_all_logs()
-    daily_health_logs = get_health_logs_repo().list_all_logs()
-    hss_history = get_hss_repo().list_all_hss_records()
-    alerts = get_health_logs_repo().list_alerts()
-    recipes = get_content_repo().list_recipes()
-    exercise_routines = get_content_repo().list_routines()
-    evaluations = get_case_review_repo().list_evaluations()
-
-    active_user_ids = set()
-    for m in meal_logs:
-        if is_recent(m.get("logged_at")):
-            active_user_ids.add(str(m.get("user_id")))
-    for e in exercise_logs:
-        if is_recent(e.get("logged_at")):
-            active_user_ids.add(str(e.get("user_id")))
-    for s in sleep_logs:
-        if not s.get("is_deleted") and is_recent(s.get("logged_at")):
-            active_user_ids.add(str(s.get("user_id")))
-    for l in daily_health_logs:
-        if is_recent(l.get("logged_at")):
-            active_user_ids.add(str(l.get("user_id")))
+    try:
+        supabase_client = get_supabase_client()
+        # Call the PostgreSQL function for fast native aggregation (HL-003)
+        res = supabase_client.rpc("get_admin_dashboard_stats", {"days_cutoff": 7}).execute()
+        if not res.data:
+            raise HTTPException(status_code=500, detail="Dashboard RPC returned empty data")
+        
+        dashboard_data = res.data
+        
+        # Recent Admin Activity still loaded via Python (small payload)
+        admin_activity = get_admin_repo().list_activity(limit=10)
+        recent_activity = []
+        for act in admin_activity:
+            recent_activity.append({
+                "id": act.get("id"),
+                "admin_user_id": act.get("admin_user_id"),
+                "admin_name": act.get("admin_name"),
+                "action": act.get("action"),
+                "target_type": act.get("target_type"),
+                "target_id": act.get("target_id"),
+                "target_name": act.get("target_name"),
+                "created_at": act.get("created_at")
+            })
             
-    active_users = len(active_user_ids.intersection(patient_ids))
-    
-    # Average HSS (latest per user)
-    latest_hss = {}
-    sorted_hss = sorted(hss_history, key=lambda x: _parse_dt(x.get("computed_at")) or datetime.min)
-    for entry in sorted_hss:
-        uid = str(entry.get("user_id"))
-        score = entry.get("score")
-        if uid in patient_ids and score is not None:
-            latest_hss[uid] = score
-            
-    valid_scores = list(latest_hss.values())
-    avg_hss = round(sum(valid_scores) / len(valid_scores)) if valid_scores else 0
-    
-    # Open Alerts
-    open_alerts = sum(1 for a in alerts if a.get("status") != "Resolved")
-    
-    # HSS distribution
-    stable = sum(1 for s in valid_scores if s >= 80)
-    moderate = sum(1 for s in valid_scores if 60 <= s < 80)
-    elevated_risk = sum(1 for s in valid_scores if 50 <= s < 60)
-    critical = sum(1 for s in valid_scores if s < 50)
-            
-    total_scored = len(valid_scores)
-    hss_distribution = {
-        "stable": {
-            "count": stable,
-            "percentage": round((stable / total_scored * 100) if total_scored else 0)
-        },
-        "moderate": {
-            "count": moderate,
-            "percentage": round((moderate / total_scored * 100) if total_scored else 0)
-        },
-        "elevated_risk": {
-            "count": elevated_risk,
-            "percentage": round((elevated_risk / total_scored * 100) if total_scored else 0)
-        },
-        "critical": {
-            "count": critical,
-            "percentage": round((critical / total_scored * 100) if total_scored else 0)
-        }
-    }
-    
-    critical_hss_count = critical
-    symptoms_recorded = 0
-    for l in daily_health_logs:
-        if is_recent(l.get("logged_at")) and str(l.get("user_id")) in patient_ids:
-            symptoms_recorded += len(l.get("symptoms", []) or [])
-            
-    evaluated_user_ids = {str(e.get("user_id")) for e in evaluations}
-    pending_evaluations = sum(1 for p in users if p.get("onboarding_status") == "complete" and str(p["id"]) not in evaluated_user_ids)
-    
-    users_needing_review = {
-        "critical_hss": critical_hss_count,
-        "symptoms_recorded": symptoms_recorded,
-        "pending_evaluations": pending_evaluations,
-        "open_alerts": open_alerts
-    }
-    
-    meals_this_week = sum(1 for m in meal_logs if is_recent(m.get("logged_at")) and str(m.get("user_id")) in patient_ids)
-    exercise_this_week = sum(1 for e in exercise_logs if is_recent(e.get("logged_at")) and str(e.get("user_id")) in patient_ids)
-    vitals_this_week = sum(1 for l in daily_health_logs if is_recent(l.get("logged_at")) and str(l.get("user_id")) in patient_ids)
-    sleep_this_week = sum(1 for s in sleep_logs if not s.get("is_deleted") and is_recent(s.get("logged_at")) and str(s.get("user_id")) in patient_ids)
-    symptoms_this_week = symptoms_recorded
-    
-    user_activity = {
-        "meals": meals_this_week,
-        "exercise": exercise_this_week,
-        "vitals": vitals_this_week,
-        "sleep": sleep_this_week,
-        "symptoms": symptoms_this_week
-    }
-    
-    content_library = {
-        "recipes": len(recipes),
-        "exercises": len(exercise_routines)
-    }
-    
-    # Recent Admin Activity
-    admin_activity = get_admin_repo().list_activity(limit=10)
-    recent_activity = []
-    for act in admin_activity:
-        recent_activity.append({
-            "id": act.get("id"),
-            "admin_user_id": act.get("admin_user_id"),
-            "admin_name": act.get("admin_name"),
-            "action": act.get("action"),
-            "target_type": act.get("target_type"),
-            "target_id": act.get("target_id"),
-            "target_name": act.get("target_name"),
-            "created_at": act.get("created_at")
-        })
-    
-    return {
-        "kpi": {
-            "total_users": total_users,
-            "active_users": active_users,
-            "avg_hss": avg_hss,
-            "open_alerts": open_alerts
-        },
-        "users_needing_review": users_needing_review,
-        "hss_distribution": hss_distribution,
-        "user_activity": user_activity,
-        "content_library": content_library,
-        "recent_activity": recent_activity
-    }
+        dashboard_data["recent_activity"] = recent_activity
+        return dashboard_data
+        
+    except Exception as e:
+        if isinstance(e, HTTPException):
+            raise
+        print(f"[Dashboard Error] {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to load dashboard: {e}")
 
 @router.get("/analytics", response_model=Dict[str, Any])
 def get_admin_analytics(period: str = "6months", current_user: dict = Depends(get_current_admin_user)):
