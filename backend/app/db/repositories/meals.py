@@ -41,12 +41,15 @@ class SupabaseMealsRepository(MealsRepository):
             pass
         return None
 
-    def list_user_meals(self, user_id: str, limit: Optional[int] = None) -> List[Dict[str, Any]]:
+    def list_user_meals(self, user_id: str, limit: Optional[int] = None, cutoff: Optional[str] = None) -> List[Dict[str, Any]]:
         uuid_val = self._resolve_user_uuid(user_id)
         if not uuid_val:
             return []
         try:
-            query = self.client.table("meal_logs").select("*").eq("user_id", uuid_val).order("logged_at", desc=True)
+            query = self.client.table("meal_logs").select("*").eq("user_id", uuid_val)
+            if cutoff:
+                query = query.gte("logged_at", cutoff)
+            query = query.order("logged_at", desc=True)
             if limit:
                 query = query.limit(limit)
             res = query.execute()
