@@ -44,7 +44,16 @@ from app.api import uploads_api
 from app.api import feedback_api
 from app.api.companion import companion
 
-app = FastAPI(title="Heartlink", description="development phase", version="1.0.0")
+is_production = os.getenv("ENVIRONMENT", "").lower() == "production"
+
+app = FastAPI(
+    title="Heartlink", 
+    description="development phase", 
+    version="1.0.0",
+    docs_url=None if is_production else "/docs",
+    redoc_url=None if is_production else "/redoc",
+    openapi_url=None if is_production else "/openapi.json"
+)
 
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
