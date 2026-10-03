@@ -391,9 +391,10 @@ async def complete_baseline_onboarding(
     try:
         hss_score, hss_tier, risk_probability = compute_initial_hss(onboarding_data, user_profile)
     except HSSModelError as e:
+        logger.error(f"Health Stability Score computation failed: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=f"Health Stability Score computation failed: {str(e)}"
+            detail="Health Stability Score computation failed"
         )
 
     # 2. Save the onboarding data (also marks onboarding_status as complete)

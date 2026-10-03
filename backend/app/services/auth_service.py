@@ -13,6 +13,9 @@ import string
 from datetime import datetime, timedelta
 from typing import Dict, Any, Optional, Tuple
 from fastapi import HTTPException, status
+import logging
+
+logger = logging.getLogger(__name__)
 
 from app.db.client import get_supabase_client
 from app.utils.security import create_access_token, token_blacklist
@@ -189,7 +192,8 @@ class SupabaseAuthService(AuthService):
         except HTTPException:
             raise
         except Exception as e:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Registration failed: {str(e)}")
+            logger.error(f"Registration failed: {e}", exc_info=True)
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Registration failed")
 
     def _dispatch_real_sms_otp(self, e164_phone: str) -> Dict[str, Any]:
         """
@@ -218,7 +222,8 @@ class SupabaseAuthService(AuthService):
                     pass
             return {"success": True, "message": "Code resent successfully"}
         except Exception as e:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Resend failed: {str(e)}")
+            logger.error(f"Resend failed: {e}", exc_info=True)
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Resend failed")
 
     def verify_registration_otp(self, phone: str, code: str) -> Dict[str, Any]:
         try:
@@ -370,7 +375,8 @@ class SupabaseAuthService(AuthService):
         except HTTPException:
             raise
         except Exception as e:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Verification failed: {str(e)}")
+            logger.error(f"Verification failed: {e}", exc_info=True)
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Verification failed")
 
     def login(self, identifier: str, password: str) -> Dict[str, Any]:
         """

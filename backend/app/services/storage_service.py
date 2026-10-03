@@ -8,6 +8,9 @@ import uuid
 import re
 from typing import Dict, Any, Optional, List
 from fastapi import HTTPException, status, UploadFile
+import logging
+
+logger = logging.getLogger(__name__)
 
 from app.db.client import get_supabase_client
 
@@ -121,7 +124,8 @@ class SupabaseStorageService(StorageService):
                 "size": len(file_bytes)
             }
         except Exception as e:
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Storage upload failed: {str(e)}")
+            logger.error(f"Storage upload failed: {e}", exc_info=True)
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Storage upload failed")
 
     def delete_user_assets(self, user_id: str) -> bool:
         try:
