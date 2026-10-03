@@ -25,6 +25,9 @@ except ImportError:
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from app.utils.rate_limiter import limiter
 
 from app.api.auth import auth
 from app.api.users import profile
@@ -42,6 +45,9 @@ from app.api import feedback_api
 from app.api.companion import companion
 
 app = FastAPI(title="Heartlink", description="development phase", version="1.0.0")
+
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # CORS Configuration
 raw_cors = os.getenv("CORS_ALLOWED_ORIGINS", "").strip()
