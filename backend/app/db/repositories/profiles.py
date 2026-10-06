@@ -28,10 +28,10 @@ class ProfileRepository:
     def update_profile(self, user_id: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         return self.update(user_id, data)
 
-    def delete(self, user_id: str) -> bool:
+    def archive(self, user_id: str) -> bool:
         raise NotImplementedError
 
-    def list_all(self, role_filter: Optional[str] = None) -> List[Dict[str, Any]]:
+    def list_all(self, role_filter: Optional[str] = None, exclude_archived: bool = True) -> List[Dict[str, Any]]:
         raise NotImplementedError
 
     def toggle_status(self, user_id: str) -> Optional[Dict[str, Any]]:
@@ -119,21 +119,32 @@ class SupabaseProfileRepository(ProfileRepository):
             handle_db_error(e)
             return None
 
-    def delete(self, user_id: str) -> bool:
+    def archive(self, user_id: str) -> bool:
         try:
-            res = self.client.table("profiles").delete().eq("id", user_id).execute()
-            if not res.data:
-                res = self.client.table("profiles").delete().eq("legacy_id", user_id).execute()
+            from datetime import datetime, timezone
+            update_data = {"account_status": "archived", "updated_at": datetime.now(timezone.utc).isoformat()}
+            
+            try:
+                uuid.UUID(str(user_id))
+                res = self.client.table("profiles").update(update_data).eq("id", user_id).select("id").execute()
+                if res.data and len(res.data) > 0:
+                    return True
+            except (ValueError, TypeError):
+                pass
+
+            res = self.client.table("profiles").update(update_data).eq("legacy_id", user_id).select("id").execute()
             return bool(res.data)
         except Exception as e:
             handle_db_error(e)
             return False
 
-    def list_all(self, role_filter: Optional[str] = None) -> List[Dict[str, Any]]:
+    def list_all(self, role_filter: Optional[str] = None, exclude_archived: bool = True) -> List[Dict[str, Any]]:
         try:
             query = self.client.table("profiles").select("*")
             if role_filter:
                 query = query.eq("role", role_filter)
+            if exclude_archived:
+                query = query.or_("account_status.neq.archived,account_status.is.null")
             res = query.order("created_at", desc=False).execute()
             return res.data or []
         except Exception as e:

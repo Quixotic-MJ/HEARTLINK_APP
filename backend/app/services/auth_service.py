@@ -395,7 +395,9 @@ class SupabaseAuthService(AuthService):
             if not profile:
                 raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Credentials")
 
-            if profile.get("account_status") != "active":
+            if profile.get("account_status") == "archived":
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access Denied: Account is archived")
+            elif profile.get("account_status") != "active":
                 raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access Denied: Account is disabled or archived")
 
             auth_user_id = None

@@ -63,7 +63,7 @@ def _calculate_age(dob_str: Any) -> int:
 def list_reviewable_cases(current_user: dict = Depends(get_current_admin_user)):
     """List reviewable cases meeting clinical trigger criteria (Systolic > 120, Diastolic > 80, or HSS < 50)."""
     cases = []
-    all_profiles = get_profile_repo().list_all()
+    all_profiles = get_profile_repo().list_all(exclude_archived=False)
     patients = [p for p in all_profiles if p.get("role") == "patient" and p.get("onboarding_status") == "complete"]
     
     eval_repo = get_case_review_repo()

@@ -73,7 +73,7 @@ def get_admin_dashboard(current_user: dict = Depends(get_current_admin_user)):
 def get_admin_analytics(period: str = "6months", current_user: dict = Depends(get_current_admin_user)):
     now = datetime.utcnow()
     
-    all_profiles = get_profile_repo().list_all()
+    all_profiles = get_profile_repo().list_all(exclude_archived=False)
     actual_patients = [p for p in all_profiles if p.get("role") == "patient"]
     actual_users = len(actual_patients)
     archived_patients = sum(1 for p in actual_patients if p.get("account_status") == "archived")
@@ -369,7 +369,7 @@ def get_admin_analytics(period: str = "6months", current_user: dict = Depends(ge
 
 @router.get("/staff")
 def get_system_staff(current_user: dict = Depends(get_current_super_admin)):
-    all_profiles = get_profile_repo().list_all()
+    all_profiles = get_profile_repo().list_all(exclude_archived=False)
     staff = [p for p in all_profiles if p.get("role") in ["medical_expert", "admin", "super_admin"]]
     result = []
     for s in staff:
@@ -420,7 +420,7 @@ def create_system_staff(payload: dict, current_user: dict = Depends(get_current_
 
     # --- Duplicate email check ---
     profile_repo = get_profile_repo()
-    all_profiles = profile_repo.list_all()
+    all_profiles = profile_repo.list_all(exclude_archived=False)
     for p in all_profiles:
         if (p.get("email") or "").strip().lower() == email.lower():
             raise HTTPException(status_code=409, detail="An account with this email already exists.")
@@ -594,7 +594,7 @@ def toggle_user_status(user_id: str, current_user: dict = Depends(get_current_ad
         raise HTTPException(status_code=400, detail="Self-deactivation is not permitted")
         
     if user_role == "super_admin" and current_status == "active":
-        all_profiles = profile_repo.list_all()
+        all_profiles = profile_repo.list_all(exclude_archived=False)
         active_super_admins = [p for p in all_profiles if p.get("role") == "super_admin" and p.get("account_status") == "active"]
         if len(active_super_admins) <= 1:
             raise HTTPException(status_code=400, detail="Deactivating the last active Super Admin is not permitted")
@@ -689,40 +689,9 @@ def delete_user_or_staff(user_id: str, current_user: dict = Depends(get_current_
 
     user_name = f"{user.get('first_name', '')} {user.get('last_name', '')}".strip() if user else user_id
     
-    # 1. Clean up associated database child records across tables to satisfy foreign keys
-    # NOTE: admin_activity_logs is intentionally excluded — it has an immutability trigger
-    # that blocks DELETE operations. Its FK uses ON DELETE SET NULL, so it self-manages.
-    supabase_client = get_supabase_client()
-    child_tables = [
-        ("feedback_tickets", "user_id"),
-        ("feedback_tickets", "resolved_by"),
-        ("case_reviews", "expert_id"),
-        ("case_reviews", "patient_id"),
-        ("daily_health_logs", "user_id"),
-        ("health_logs", "user_id"),
-        ("sleep_logs", "user_id"),
-        ("meal_logs", "user_id"),
-        ("exercise_logs", "user_id"),
-        ("patient_notifications", "user_id"),
-        ("user_reminders", "user_id"),
-        ("user_thresholds", "user_id"),
-        ("baseline_onboarding", "user_id"),
-        ("clinical_alerts", "user_id"),
-    ]
-    for table_name, col_name in child_tables:
-        try:
-            supabase_client.table(table_name).delete().eq(col_name, user_id).execute()
-        except Exception:
-            pass
-
-    # 2. Delete profile
-    profile_repo.delete(user_id)
-
-    # 3. Delete from Supabase Auth
-    try:
-        supabase_client.auth.admin.delete_user(user_id)
-    except Exception as auth_err:
-        print(f"[delete_user_or_staff] Auth delete note: {auth_err}")
+    # Soft delete profile (preserves child data and auth identity)
+    if not profile_repo.archive(user_id):
+        raise HTTPException(status_code=500, detail="Failed to archive user profile.")
 
     # 4. Record admin activity
     admin_id = current_user.get("user_id") if current_user else "admin"
