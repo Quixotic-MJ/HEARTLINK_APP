@@ -46,7 +46,7 @@ async def read_all_users(current_user: dict = Depends(get_current_user)):
         get_baseline_repo,
     )
     
-    all_profiles = get_profile_repo().list_all()
+    all_profiles = get_profile_repo().list_all(exclude_archived=False)
 
     # Medical experts and doctors may only list patients assigned to their care team (TKT-SEC-01)
     if caller_role in ["medical_expert", "doctor", "clinician"]:

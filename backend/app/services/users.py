@@ -84,15 +84,10 @@ def delete_user(user_id: str, password: str = None) -> bool:
         if not auth_svc.verify_credentials(user_id, password):
             return False
 
-    # 2. Delete Supabase Auth / Identity
-    get_auth_service().delete_user_identity(user_id)
-
-    # 3. Clean up user assets from storage
-    get_storage_service().delete_user_assets(user_id)
-
-    # 4. Hard delete profile via repository (cascades related tables)
+    # 2. Soft delete profile via repository (Updates account_status to 'archived')
     profile_repo = get_profile_repo()
-    profile_repo.delete(user_id)
+    if not profile_repo.archive(user_id):
+        return False
 
     return True
 
