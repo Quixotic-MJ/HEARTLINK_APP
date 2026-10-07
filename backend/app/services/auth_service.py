@@ -18,6 +18,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 from app.db.client import get_supabase_client
+from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
 from app.utils.security import create_access_token, token_blacklist
 from app.db.repositories import get_profile_repo
 
@@ -162,7 +163,7 @@ class SupabaseAuthService(AuthService):
                 pass
 
             e164_phone = normalize_e164(phone)
-            now = datetime.utcnow()
+            now = utc_now()
             clean_digits = "".join(filter(str.isdigit, phone))
             is_whitelisted = is_test_phone_number(phone) or is_test_phone_number(clean_digits) or is_test_phone_number(e164_phone)
 
@@ -214,7 +215,7 @@ class SupabaseAuthService(AuthService):
         try:
             pending = self._pending_registrations.get(phone)
             if pending:
-                pending["expires_at"] = (datetime.now() + timedelta(minutes=10)).isoformat()
+                pending["expires_at"] = (utc_now() + timedelta(minutes=10)).isoformat()
                 e164 = pending.get("e164_phone") or phone
                 try:
                     self.client.auth.resend({"type": "sms", "phone": e164})

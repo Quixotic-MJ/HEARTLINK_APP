@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 import os
 import hashlib
+from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
 from app.db.repositories import (
     get_profile_repo,
     get_health_logs_repo,
@@ -87,30 +88,16 @@ def get_recent_telemetry_timeline(user_id: str, limit_days: int = 30) -> list:
     No synthetic telemetry is manufactured.
     """
     logs = []
-    cutoff_date = datetime.utcnow() - timedelta(days=limit_days)
+    cutoff_date = utc_now() - timedelta(days=limit_days)
     
     def parse_dt(x):
         if x is None:
-            return datetime.min
+            return UTC_MIN
         dt = x
         if isinstance(x, dict):
             dt = x.get("timestamp") or x.get("logged_at") or x.get("computed_at") or x.get("created_at")
-        if isinstance(dt, datetime):
-            if dt.tzinfo is not None:
-                return dt.astimezone(timezone.utc).replace(tzinfo=None)
-            return dt
-        if isinstance(dt, str):
-            try:
-                s = dt.strip()
-                if s.endswith("Z"):
-                    s = s[:-1] + "+00:00"
-                parsed = datetime.fromisoformat(s)
-                if parsed.tzinfo is not None:
-                    return parsed.astimezone(timezone.utc).replace(tzinfo=None)
-                return parsed
-            except Exception:
-                return datetime.min
-        return datetime.min
+        parsed = parse_utc(dt)
+        return parsed if parsed else UTC_MIN
 
     # daily health logs (Vitals & Symptoms)
     from app.services.health_logs import get_health_logs

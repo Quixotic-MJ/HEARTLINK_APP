@@ -8,6 +8,7 @@ from datetime import datetime, date
 import uuid
 import re
 from app.db.repositories.base import handle_db_error, serialize_for_db
+from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
 
 class ProfileRepository:
     def get_by_id(self, user_id: str) -> Optional[Dict[str, Any]]:
@@ -103,7 +104,7 @@ class SupabaseProfileRepository(ProfileRepository):
     def update(self, user_id: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         try:
             clean_data = serialize_for_db({k: v for k, v in data.items() if k not in ["password", "password_hash"]})
-            clean_data["updated_at"] = datetime.utcnow().isoformat()
+            clean_data["updated_at"] = utc_now().isoformat()
             
             try:
                 uuid.UUID(str(user_id))
@@ -122,7 +123,7 @@ class SupabaseProfileRepository(ProfileRepository):
     def archive(self, user_id: str) -> bool:
         try:
             from datetime import datetime, timezone
-            update_data = {"account_status": "archived", "updated_at": datetime.now(timezone.utc).isoformat()}
+            update_data = {"account_status": "archived", "updated_at": utc_now().isoformat()}
             
             try:
                 uuid.UUID(str(user_id))

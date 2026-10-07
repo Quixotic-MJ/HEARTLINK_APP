@@ -7,6 +7,7 @@ from datetime import datetime
 import uuid
 import logging
 from app.db.repositories.base import handle_db_error, resolve_uuid, serialize_for_db
+from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
 
 logger = logging.getLogger(__name__)
 
@@ -98,8 +99,8 @@ class SupabaseHSSRepository(HSSRepository):
                 "model_version": data.get("model_version", "v1.0.0"),
                 "model_hash": data.get("model_hash"),
                 "contributing_factors": data.get("contributing_factors", {}),
-                "computed_at": data.get("computed_at") or datetime.utcnow().isoformat(),
-                "created_at": datetime.utcnow().isoformat()
+                "computed_at": data.get("computed_at") or utc_now().isoformat(),
+                "created_at": utc_now().isoformat()
             }
             payload = serialize_for_db(payload)
             res = self.client.table("hss_history").insert(payload).execute()

@@ -28,6 +28,7 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 
 from app.utils.security import get_current_user
+from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
 
 logger = logging.getLogger("heartlink.companion")
 
@@ -97,7 +98,7 @@ _usage: Dict[str, Tuple[str, int]] = {}
 
 
 def _under_cap(user_id: str) -> bool:
-    today = date.today().isoformat()
+    today = to_local_date(utc_now()).isoformat()
     key = user_id or "anon"
     day, count = _usage.get(key, (today, 0))
     if day != today:

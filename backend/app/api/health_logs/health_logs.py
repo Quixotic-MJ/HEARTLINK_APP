@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends, status
 from typing import List, Dict, Any
 from app.services.health_logs import get_health_logs, create_health_log, delete_health_log
+from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
 from app.utils.security import get_current_user, verify_user_access
 
 router = APIRouter(prefix="/api/health-logs", tags=["Health Logs"])
@@ -105,7 +106,7 @@ def add_health_log(user_id: str, data: Dict[str, Any], current_user: dict = Depe
                     "heart_rate": hr,
                     "trigger": "health_log"
                 },
-                "computed_at": log.get("logged_at") or datetime.utcnow().isoformat()
+                "computed_at": log.get("logged_at") or utc_now().isoformat()
             })
 
             # Create clinical alert if acute emergency boundaries are breached
@@ -118,7 +119,7 @@ def add_health_log(user_id: str, data: Dict[str, Any], current_user: dict = Depe
                     "severity": "critical",
                     "status": "active",
                     "details": f"Critical vitals logged: {sys_bp}/{dia_bp} mmHg, HR: {hr or 'N/A'} BPM",
-                    "created_at": datetime.utcnow().isoformat()
+                    "created_at": utc_now().isoformat()
                 })
         except Exception as e:
             # Telemetry scoring failure should not drop the successfully saved health log
@@ -138,7 +139,7 @@ def add_health_log(user_id: str, data: Dict[str, Any], current_user: dict = Depe
                     "severity": "critical",
                     "status": "active",
                     "details": f"Critical heart rate logged: {hr} BPM",
-                    "created_at": datetime.utcnow().isoformat()
+                    "created_at": utc_now().isoformat()
                 })
         except Exception as e:
             import logging
@@ -170,7 +171,7 @@ def add_health_log(user_id: str, data: Dict[str, Any], current_user: dict = Depe
                 "severity": "critical",
                 "status": "active",
                 "details": " and ".join(details_list),
-                "created_at": log.get("logged_at") or datetime.utcnow().isoformat()
+                "created_at": log.get("logged_at") or utc_now().isoformat()
             })
         except Exception as e:
             import logging
@@ -184,7 +185,7 @@ def add_health_log(user_id: str, data: Dict[str, Any], current_user: dict = Depe
             repo = get_health_logs_repo()
             user_logs = repo.list_user_logs(user_id)
             
-            now_utc = datetime.utcnow()
+            now_utc = utc_now()
             current_log_id = log.get("id")
             
             for prior_log in user_logs:
@@ -195,8 +196,8 @@ def add_health_log(user_id: str, data: Dict[str, Any], current_user: dict = Depe
                 if prior_weight is not None:
                     prior_time_str = prior_log.get("logged_at")
                     if prior_time_str:
-                        prior_time = datetime.fromisoformat(prior_time_str.replace("Z", "+00:00")).replace(tzinfo=None)
-                        if (now_utc - prior_time).total_seconds() <= 3 * 24 * 3600:
+                        prior_time = parse_utc(prior_time_str)
+                        if prior_time and (now_utc - prior_time).total_seconds() <= 3 * 24 * 3600:
                             delta = weight - prior_weight
                             if delta >= 1.36:
                                 repo.create_alert({
@@ -205,7 +206,7 @@ def add_health_log(user_id: str, data: Dict[str, Any], current_user: dict = Depe
                                     "severity": "critical",
                                     "status": "active",
                                     "details": f"Rapid weight gain detected: +{delta:.2f} kg since {prior_time.strftime('%Y-%m-%d')}",
-                                    "created_at": log.get("logged_at") or datetime.utcnow().isoformat()
+                                    "created_at": log.get("logged_at") or utc_now().isoformat()
                                 })
                     # Stop at the first prior weight found
                     break

@@ -7,6 +7,7 @@ from datetime import datetime
 import uuid
 import logging
 from app.db.repositories.base import handle_db_error, resolve_uuid, serialize_for_db
+from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
 
 logger = logging.getLogger(__name__)
 
@@ -83,8 +84,8 @@ class SupabaseHealthLogsRepository(HealthLogsRepository):
             payload = {
                 **data,
                 "user_id": uuid_val,
-                "created_at": datetime.utcnow().isoformat(),
-                "logged_at": data.get("logged_at") or datetime.utcnow().isoformat()
+                "created_at": utc_now().isoformat(),
+                "logged_at": data.get("logged_at") or utc_now().isoformat()
             }
             payload = serialize_for_db(payload)
             res = self.client.table("daily_health_logs").insert(payload).execute()
@@ -117,7 +118,7 @@ class SupabaseHealthLogsRepository(HealthLogsRepository):
         try:
             payload = {
                 **alert_data,
-                "created_at": datetime.utcnow().isoformat()
+                "created_at": utc_now().isoformat()
             }
             if alert_data.get("user_id"):
                 resolved = self._resolve_user_uuid(alert_data["user_id"])

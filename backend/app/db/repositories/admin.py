@@ -7,6 +7,7 @@ from datetime import datetime
 import uuid
 import logging
 from app.db.repositories.base import handle_db_error, resolve_uuid
+from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +38,7 @@ class SupabaseAdminRepository(AdminRepository):
     def record_activity(self, data: Dict[str, Any]) -> Dict[str, Any]:
         try:
             payload = {
-                "created_at": datetime.utcnow().isoformat(),
+                "created_at": utc_now().isoformat(),
                 **data
             }
             res = self.client.table("admin_activity_logs").insert(payload).execute()
@@ -68,14 +69,14 @@ class SupabaseAdminRepository(AdminRepository):
     def create_admin_notification(self, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         try:
             payload = {
-                "created_at": datetime.utcnow().isoformat(),
+                "created_at": utc_now().isoformat(),
                 **data
             }
             clean_payload = {k: v for k, v in payload.items() if k != "read_by"}
             res = self.client.table("admin_notifications").insert(clean_payload).execute()
             created = res.data[0] if res.data else clean_payload
             if data.get("read_by") and created.get("id"):
-                reads = [{"notification_id": created["id"], "admin_user_id": uid, "read_at": datetime.utcnow().isoformat()} for uid in data["read_by"]]
+                reads = [{"notification_id": created["id"], "admin_user_id": uid, "read_at": utc_now().isoformat()} for uid in data["read_by"]]
                 self.client.table("admin_notification_reads").insert(reads).execute()
             return created
         except Exception as e:
@@ -123,7 +124,7 @@ class SupabaseAdminRepository(AdminRepository):
             payload = {
                 "notification_id": notification_id,
                 "admin_user_id": admin_uuid,
-                "read_at": datetime.utcnow().isoformat()
+                "read_at": utc_now().isoformat()
             }
             self.client.table("admin_notification_reads").insert(payload).execute()
             return True
@@ -140,7 +141,7 @@ class SupabaseAdminRepository(AdminRepository):
             items = notifs.get("items", [])
             unread_ids = [n["id"] for n in items if caller_id not in n.get("read_by", [])]
             if unread_ids:
-                reads = [{"notification_id": nid, "admin_user_id": admin_uuid, "read_at": datetime.utcnow().isoformat()} for nid in unread_ids]
+                reads = [{"notification_id": nid, "admin_user_id": admin_uuid, "read_at": utc_now().isoformat()} for nid in unread_ids]
                 self.client.table("admin_notification_reads").insert(reads).execute()
             return True
         except Exception as e:

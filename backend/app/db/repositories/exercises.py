@@ -7,6 +7,7 @@ from typing import Optional, Dict, Any, List
 from datetime import datetime
 import uuid
 from app.db.repositories.base import handle_db_error, resolve_uuid, serialize_for_db
+from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
 
 logger = logging.getLogger(__name__)
 
@@ -110,8 +111,8 @@ class SupabaseExercisesRepository(ExercisesRepository):
                 "duration_seconds": duration_sec,
                 "duration_minutes": duration_min,
                 "status": status_val,
-                "created_at": datetime.utcnow().isoformat(),
-                "logged_at": data.get("logged_at") or datetime.utcnow().isoformat()
+                "created_at": utc_now().isoformat(),
+                "logged_at": data.get("logged_at") or utc_now().isoformat()
             }
             if data.get("routine_id"):
                 valid_routine_id = resolve_uuid(data["routine_id"])

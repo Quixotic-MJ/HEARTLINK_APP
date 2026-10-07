@@ -3,6 +3,7 @@ import joblib
 import pandas as pd
 from typing import Dict, Any, Tuple
 from app.services.feature_transform import transform_to_model_features
+from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
 
 class HSSModelError(Exception):
     """Raised when the ML model cannot be loaded or used."""
@@ -139,7 +140,7 @@ def compute_lifestyle_composite_hss(user_id: str, trigger: str = "lifestyle_even
             except:
                 pass
 
-    today = datetime.utcnow().date()
+    today = to_local_date(utc_now())
     
     # Fetch today's raw logs
     meal_logs = get_meals_repo().list_user_meals(user_id)
@@ -267,7 +268,7 @@ def compute_lifestyle_composite_hss(user_id: str, trigger: str = "lifestyle_even
         "risk_probability": risk_prob,
         "source": "telemetry",
         "contributing_factors": factors,
-        "computed_at": datetime.utcnow().isoformat()
+        "computed_at": utc_now().isoformat()
     })
 
     return composite_score, tier, risk_prob, record

@@ -3,6 +3,7 @@ from typing import Dict, Any, List
 from datetime import datetime
 import uuid
 from app.utils.security import get_current_admin_user
+from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
 from app.services.users import get_full_profile
 from app.services.cases import get_deterministic_case_id
 from app.services.clinical import (
@@ -54,7 +55,7 @@ def _calculate_age(dob_str: Any) -> int:
             dob = datetime.fromisoformat(dob_str).date()
         else:
             dob = dob_str
-        today = datetime.now().date()
+        today = utc_now().date()
         return today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
     except Exception:
         return 0
@@ -259,7 +260,7 @@ def submit_evaluation(user_id: str, payload: dict, current_user: dict = Depends(
         "ml_score": ml_predicted_hss,
         "absolute_error": absolute_error,
         "tier_agreement": tier_agreement,
-        "timestamp": datetime.utcnow().isoformat()
+        "timestamp": utc_now().isoformat()
     }
 
     eval_repo = get_case_review_repo()
@@ -462,7 +463,7 @@ def generate_dataset(payload: dict = None, current_user: dict = Depends(get_curr
             detail="Multiple model versions detected. Filter by specific model hash or allow mixed versions."
         )
         
-    today_str = datetime.utcnow().strftime("%Y-%m-%d")
+    today_str = utc_now().strftime("%Y-%m-%d")
     existing_datasets = eval_repo.list_datasets()
     version_idx = 1
     for ds in existing_datasets:
@@ -496,7 +497,7 @@ def generate_dataset(payload: dict = None, current_user: dict = Depends(get_curr
         
     dataset_meta = {
         "dataset_id": dataset_id,
-        "created_at": datetime.utcnow().isoformat(),
+        "created_at": utc_now().isoformat(),
         "source_evaluation_ids": [ev.get("id") for ev in eligible_evals],
         "record_count": len(rows),
         "excluded_record_count": excluded_count,

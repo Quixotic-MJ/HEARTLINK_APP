@@ -7,6 +7,7 @@ from datetime import datetime
 import uuid
 import logging
 from app.db.repositories.base import handle_db_error, resolve_uuid, serialize_for_db
+from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
 
 logger = logging.getLogger(__name__)
 
@@ -104,8 +105,8 @@ class SupabaseContentRepository(ContentRepository):
     def create_recipe(self, data: Dict[str, Any]) -> Dict[str, Any]:
         try:
             payload = {
-                "created_at": datetime.utcnow().isoformat(),
-                "updated_at": datetime.utcnow().isoformat(),
+                "created_at": utc_now().isoformat(),
+                "updated_at": utc_now().isoformat(),
                 **data
             }
             payload = serialize_for_db(payload)
@@ -118,7 +119,7 @@ class SupabaseContentRepository(ContentRepository):
     def update_recipe(self, recipe_id: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         try:
             payload = {
-                "updated_at": datetime.utcnow().isoformat(),
+                "updated_at": utc_now().isoformat(),
                 **data
             }
             payload = serialize_for_db(payload)
@@ -179,7 +180,7 @@ class SupabaseContentRepository(ContentRepository):
             payload = {
                 "user_id": uuid_val,
                 "recipe_id": actual_recipe_id,
-                "saved_at": datetime.utcnow().isoformat()
+                "saved_at": utc_now().isoformat()
             }
             res = self.client.table("saved_recipes").insert(payload).execute()
             return bool(res.data)
@@ -231,8 +232,8 @@ class SupabaseContentRepository(ContentRepository):
     def create_routine(self, data: Dict[str, Any]) -> Dict[str, Any]:
         try:
             payload = {
-                "created_at": datetime.utcnow().isoformat(),
-                "updated_at": datetime.utcnow().isoformat(),
+                "created_at": utc_now().isoformat(),
+                "updated_at": utc_now().isoformat(),
                 **data
             }
             payload = serialize_for_db(payload)
@@ -245,7 +246,7 @@ class SupabaseContentRepository(ContentRepository):
     def update_routine(self, routine_id: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         try:
             payload = {
-                "updated_at": datetime.utcnow().isoformat(),
+                "updated_at": utc_now().isoformat(),
                 **data
             }
             payload = serialize_for_db(payload)
@@ -306,7 +307,7 @@ class SupabaseContentRepository(ContentRepository):
             payload = {
                 "user_id": uuid_val,
                 "routine_id": actual_routine_id,
-                "saved_at": datetime.utcnow().isoformat()
+                "saved_at": utc_now().isoformat()
             }
             res = self.client.table("saved_exercises").insert(payload).execute()
             return bool(res.data)

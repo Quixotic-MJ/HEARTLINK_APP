@@ -1,9 +1,10 @@
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timezone, timedelta
 from app.db.repositories import get_hss_repo, get_baseline_repo, get_health_logs_repo
+from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
 
 def get_analytics(user_id: str, days: int = 30) -> Dict[str, Any]:
-    cutoff = (datetime.utcnow() - timedelta(days=days)) if days else datetime.min
+    cutoff = (utc_now() - timedelta(days=days)) if days else UTC_MIN
     cutoff_str = cutoff.isoformat() + "Z" if days else None
     
     hss_repo = get_hss_repo()
@@ -12,26 +13,12 @@ def get_analytics(user_id: str, days: int = 30) -> Dict[str, Any]:
     
     def parse_dt(x):
         if x is None:
-            return datetime.min
+            return UTC_MIN
         dt = x
         if isinstance(x, dict):
             dt = x.get("computed_at") or x.get("created_at") or x.get("timestamp") or x.get("logged_at")
-        if isinstance(dt, datetime):
-            if dt.tzinfo is not None:
-                return dt.astimezone(timezone.utc).replace(tzinfo=None)
-            return dt
-        if isinstance(dt, str):
-            try:
-                s = dt.strip()
-                if s.endswith("Z"):
-                    s = s[:-1] + "+00:00"
-                parsed = datetime.fromisoformat(s)
-                if parsed.tzinfo is not None:
-                    return parsed.astimezone(timezone.utc).replace(tzinfo=None)
-                return parsed
-            except Exception:
-                return datetime.min
-        return datetime.min
+        parsed = parse_utc(dt)
+        return parsed if parsed else UTC_MIN
 
     # History was already filtered by cutoff in the DB
     history = sorted(history, key=parse_dt)

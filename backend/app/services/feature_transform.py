@@ -1,3 +1,4 @@
+from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
 import pandas as pd
 import numpy as np
 from typing import Dict, Any
@@ -49,7 +50,7 @@ def transform_to_model_features(data: Dict[str, Any], user_profile: Dict[str, An
     if dob:
         if isinstance(dob, str):
             dob = pd.to_datetime(dob).date()
-        age = pd.Timestamp.now().year - dob.year
+        age = utc_now().year - dob.year
     else:
         age = 45 # Fallback average
 

@@ -7,6 +7,7 @@ from datetime import datetime
 import uuid
 import logging
 from app.db.repositories.base import handle_db_error, resolve_uuid, serialize_for_db
+from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
 
 logger = logging.getLogger(__name__)
 
@@ -75,12 +76,12 @@ class SupabaseBaselineRepository(BaselineRepository):
         if not uuid_val:
             raise ValueError(f"Cannot save baseline: invalid or unknown user '{user_id}'")
         try:
-            payload = serialize_for_db({**data, "user_id": uuid_val, "updated_at": datetime.utcnow().isoformat()})
+            payload = serialize_for_db({**data, "user_id": uuid_val, "updated_at": utc_now().isoformat()})
             existing = self.get_baseline(uuid_val)
             if existing:
                 res = self.client.table("baseline_onboarding").update(payload).eq("user_id", uuid_val).execute()
             else:
-                payload["created_at"] = datetime.utcnow().isoformat()
+                payload["created_at"] = utc_now().isoformat()
                 res = self.client.table("baseline_onboarding").insert(payload).execute()
             return res.data[0] if res.data else payload
         except Exception as e:
@@ -103,7 +104,7 @@ class SupabaseBaselineRepository(BaselineRepository):
         if not uuid_val:
             raise ValueError(f"Cannot update thresholds: invalid or unknown user '{user_id}'")
         try:
-            payload = serialize_for_db({**data, "user_id": uuid_val, "updated_at": datetime.utcnow().isoformat()})
+            payload = serialize_for_db({**data, "user_id": uuid_val, "updated_at": utc_now().isoformat()})
             existing = self.get_thresholds(uuid_val)
             if existing:
                 res = self.client.table("user_thresholds").update(payload).eq("user_id", uuid_val).execute()
@@ -149,7 +150,7 @@ class SupabaseBaselineRepository(BaselineRepository):
                 "morning": data.get("morning"),
                 "evening": data.get("evening"),
                 "activity": data.get("activity"),
-                "updated_at": datetime.utcnow().isoformat()
+                "updated_at": utc_now().isoformat()
             }
             existing = self.client.table("user_reminders").select("id").eq("user_id", uuid_val).execute()
             if existing.data and len(existing.data) > 0:
@@ -183,7 +184,7 @@ class SupabaseBaselineRepository(BaselineRepository):
                 "name": data.get("name", ""),
                 "role_title": data.get("role_title", ""),
                 "phone": data.get("phone", ""),
-                "created_at": datetime.utcnow().isoformat()
+                "created_at": utc_now().isoformat()
             }
             res = self.client.table("care_team_contacts").insert(payload).execute()
             return res.data[0] if res.data else payload
