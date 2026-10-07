@@ -6,6 +6,7 @@ from fastapi import Depends, HTTPException, Security, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from app.db.repositories import get_profile_repo
+from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
 
 SECRET_KEY = os.getenv("SECRET_KEY")
 if not SECRET_KEY or SECRET_KEY == "heartlink-super-secret-jwt-key":
@@ -21,13 +22,13 @@ security = HTTPBearer()
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     to_encode = data.copy()
     if expires_delta:
-        expire = datetime.utcnow() + expires_delta
+        expire = utc_now() + expires_delta
     else:
         role = data.get("role", "patient")
         if role in ["admin", "super_admin", "medical_expert"]:
-            expire = datetime.utcnow() + timedelta(days=7)
+            expire = utc_now() + timedelta(days=7)
         else:
-            expire = datetime.utcnow() + timedelta(days=30)
+            expire = utc_now() + timedelta(days=30)
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt

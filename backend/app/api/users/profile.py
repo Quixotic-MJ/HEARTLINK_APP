@@ -1,5 +1,6 @@
 from fastapi import APIRouter, status, HTTPException, Depends
 from app.utils.security import get_current_user
+from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
 from app.schemas.user import (
     ProfileUpdate,
     ChangePasswordRequest,
@@ -105,30 +106,16 @@ async def read_all_users(current_user: dict = Depends(get_current_user)):
             hss_map[uid] = r
 
     activity_map = {}
-    cutoff = datetime.utcnow() - timedelta(days=7)
+    cutoff = utc_now() - timedelta(days=7)
     
     def parse_dt(x):
         if x is None:
-            return datetime.min
+            return UTC_MIN
         dt = x
         if isinstance(x, dict):
             dt = x.get("created_at") or x.get("logged_at") or x.get("timestamp") or x.get("computed_at")
-        if isinstance(dt, datetime):
-            if dt.tzinfo is not None:
-                return dt.astimezone(timezone.utc).replace(tzinfo=None)
-            return dt
-        if isinstance(dt, str):
-            try:
-                s = dt.strip()
-                if s.endswith("Z"):
-                    s = s[:-1] + "+00:00"
-                parsed = datetime.fromisoformat(s)
-                if parsed.tzinfo is not None:
-                    return parsed.astimezone(timezone.utc).replace(tzinfo=None)
-                return parsed
-            except Exception:
-                return datetime.min
-        return datetime.min
+        parsed = parse_utc(dt)
+        return parsed if parsed else UTC_MIN
 
     def add_dates(data_list):
         for r in data_list:
@@ -402,7 +389,7 @@ async def complete_baseline_onboarding(
     result = save_baseline_onboarding(user_id, onboarding_data, user_profile)
     
     # 3. Save or update the baseline HSS score
-    now_utc = datetime.utcnow()
+    now_utc = utc_now()
     hss_repo = get_hss_repo()
     new_hss = hss_repo.create_hss_record(user_id, {
         "score": hss_score,
@@ -470,4 +457,4 @@ async def delete_care_team_member(
     success = delete_care_team_contact(user_id, contact_id)
     if not success:
         raise HTTPException(status_code=404, detail="Contact not found")
-    return {"success": True, "message": "Care team member deleted"}
+    return {"success": True, "message": "Care team member deleted"}

@@ -1,6 +1,7 @@
 import os
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
+from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
 from app.db.repositories import (
     get_profile_repo,
     get_hss_repo,
@@ -14,29 +15,14 @@ from app.db.repositories import (
 )
 
 def _safe_date(val: Any) -> datetime.date:
-    if isinstance(val, datetime):
-        return val.date()
-    elif isinstance(val, str):
-        try:
-            s = val.replace("Z", "+00:00")
-            return datetime.fromisoformat(s).date()
-        except Exception:
-            return datetime.min.date()
-    elif hasattr(val, "year") and hasattr(val, "month") and hasattr(val, "day"):
-        return val
-    return datetime.min.date()
+    dt = parse_utc(val)
+    if dt:
+        return to_local_date(dt)
+    return UTC_MIN.date()
     
 def _safe_datetime(val: Any) -> datetime:
-    if isinstance(val, datetime):
-        return val.replace(tzinfo=None) if val.tzinfo else val
-    elif isinstance(val, str):
-        try:
-            s = val.replace("Z", "+00:00")
-            dt = datetime.fromisoformat(s)
-            return dt.replace(tzinfo=None) if dt.tzinfo else dt
-        except Exception:
-            return datetime.min
-    return datetime.min
+    dt = parse_utc(val)
+    return dt if dt else UTC_MIN
 
 # ─── Dietary exclusion map ─────────────────────────────────────────────────────
 # Maps a dietary practice to ingredient keywords that should be excluded.
@@ -239,7 +225,7 @@ def _generate_insight(user_hss: list, latest_log: dict | None, first_name: str |
     return {"title": title, "body": body, "icon": icon}
 
 def _calculate_streak_data(meal_logs, exercise_logs, daily_health_logs, sleep_logs) -> Dict[str, Any]:
-    now = datetime.now()
+    now_local = to_local_date(utc_now())
     
     meal_dates = set()
     for item in meal_logs:
@@ -268,7 +254,7 @@ def _calculate_streak_data(meal_logs, exercise_logs, daily_health_logs, sleep_lo
     all_logged_dates = meal_dates.intersection(exercise_dates).intersection(vitals_dates).intersection(sleep_dates)
     
     current_streak = 0
-    check_date = now.date()
+    check_date = now_local
     
     # 1-day grace period: if today is not logged yet, check yesterday
     if check_date not in all_logged_dates:
@@ -300,7 +286,7 @@ def _calculate_streak_data(meal_logs, exercise_logs, daily_health_logs, sleep_lo
 
 def _get_today_activity(user_id: str) -> dict:
     """Summarize today's logged activity."""
-    today = datetime.now().date()
+    today = to_local_date(utc_now())
 
     from app.services.health_logs import get_health_logs
     daily_health_logs = get_health_logs(user_id)
@@ -397,14 +383,15 @@ def get_dashboard_data(user_id: str, recipe_limit: int = 2, exercise_limit: int 
 
     # Symptom-based 24-hour safety lock check
     has_recent_severe_symptom = False
-    from datetime import datetime
-    now_utc = datetime.utcnow()
+    now_utc = utc_now()
     for log in user_logs:
         log_time_str = log.get("logged_at")
         if not log_time_str:
             continue
         try:
-            log_time = datetime.fromisoformat(log_time_str.replace("Z", "+00:00")).replace(tzinfo=None)
+            log_time = parse_utc(log_time_str)
+            if not log_time:
+                continue
             if (now_utc - log_time).total_seconds() > 24 * 3600:
                 break
             
@@ -579,23 +566,23 @@ def get_7_day_wrap_up_data(user_id: str, local_date_str: str = None) -> Dict[str
 
     if local_date_str:
         try:
-            now = datetime.strptime(local_date_str, "%Y-%m-%d")
+            now_local = datetime.strptime(local_date_str, "%Y-%m-%d").date()
         except ValueError:
-            now = datetime.now()
+            now_local = to_local_date(utc_now())
     else:
-        now = datetime.now()
+        now_local = to_local_date(utc_now())
         
-    seven_days_ago = now - timedelta(days=6) # 7 days inclusive
-    fourteen_days_ago = now - timedelta(days=13) # previous 7 days
+    seven_days_ago = now_local - timedelta(days=6) # 7 days inclusive
+    fourteen_days_ago = now_local - timedelta(days=13) # previous 7 days
 
     # Helper filters
     def in_current_week(date_str):
         if not date_str: return False
-        return seven_days_ago.date() <= _safe_date(date_str) <= now.date()
+        return seven_days_ago <= _safe_date(date_str) <= now_local
         
     def in_prev_week(date_str):
         if not date_str: return False
-        return fourteen_days_ago.date() <= _safe_date(date_str) < seven_days_ago.date()
+        return fourteen_days_ago <= _safe_date(date_str) < seven_days_ago
 
     # Domain Repositories
     meal_logs = get_meals_repo().list_user_meals(canonical_id)

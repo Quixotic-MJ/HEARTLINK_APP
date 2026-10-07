@@ -7,6 +7,7 @@ from datetime import datetime
 import uuid
 import logging
 from app.db.repositories.base import handle_db_error
+from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
 
 logger = logging.getLogger(__name__)
 
@@ -80,7 +81,7 @@ class SupabaseFeedbackRepository(FeedbackRepository):
                 except:
                     pass
             ticket_code = f"FB-{last_code + 1}"
-            now_iso = datetime.utcnow().isoformat()
+            now_iso = utc_now().isoformat()
             payload = {
                 "ticket_code": ticket_code,
                 "user_id": data.get("user_id"),
@@ -119,7 +120,7 @@ class SupabaseFeedbackRepository(FeedbackRepository):
                 db_payload["admin_notes"] = data["adminNotes"]
             elif "admin_notes" in data:
                 db_payload["admin_notes"] = data["admin_notes"]
-            db_payload["updated_at"] = datetime.utcnow().isoformat()
+            db_payload["updated_at"] = utc_now().isoformat()
 
             res = self.client.table("feedback_tickets").update(db_payload).eq("id", ticket_id).execute()
             if not res.data:

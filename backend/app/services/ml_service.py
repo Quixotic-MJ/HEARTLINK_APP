@@ -4,6 +4,7 @@ import joblib
 import pandas as pd
 from datetime import datetime
 from app.db.repositories import get_hss_repo
+from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
 
 class MLService:
     def __init__(self):
@@ -64,7 +65,7 @@ class MLService:
             "tier": tier,
             "source": "baseline_ml",
             "contributing_factors": contributing_factors,
-            "computed_at": datetime.utcnow().isoformat()
+            "computed_at": utc_now().isoformat()
         }
         
         saved_record = get_hss_repo().create_hss_record(user_id, new_hss_data)

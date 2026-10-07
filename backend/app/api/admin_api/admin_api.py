@@ -5,6 +5,7 @@ import os
 import random
 import hashlib
 from app.utils.security import get_current_admin_user, get_current_super_admin
+from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
 from app.utils.activity_helper import record_admin_activity
 from app.db.client import get_supabase_client
 from app.db.repositories import (
@@ -23,16 +24,7 @@ from app.db.repositories import (
 router = APIRouter(prefix="/api/admin", tags=["Admin"])
 
 def _parse_dt(dt):
-    if not dt:
-        return None
-    if isinstance(dt, datetime):
-        return dt
-    if isinstance(dt, str):
-        try:
-            return datetime.fromisoformat(dt.replace("Z", "+00:00")).replace(tzinfo=None)
-        except (ValueError, TypeError):
-            return None
-    return None
+    return parse_utc(dt)
 
 @router.get("/dashboard", response_model=Dict[str, Any])
 def get_admin_dashboard(current_user: dict = Depends(get_current_admin_user)):
@@ -71,7 +63,7 @@ def get_admin_dashboard(current_user: dict = Depends(get_current_admin_user)):
 
 @router.get("/analytics", response_model=Dict[str, Any])
 def get_admin_analytics(period: str = "6months", current_user: dict = Depends(get_current_admin_user)):
-    now = datetime.utcnow()
+    now = utc_now()
     
     all_profiles = get_profile_repo().list_all(exclude_archived=False)
     actual_patients = [p for p in all_profiles if p.get("role") == "patient"]
@@ -784,7 +776,7 @@ def get_user_timeline(user_id: str, current_user: dict = Depends(get_current_adm
         
     def parse_dt(x):
         dt = _parse_dt(x.get("timestamp"))
-        return dt if dt else datetime.min
+        return dt if dt else UTC_MIN
         
     logs.sort(key=parse_dt, reverse=True)
     return logs

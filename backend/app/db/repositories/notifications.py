@@ -7,6 +7,7 @@ from datetime import datetime
 import uuid
 import logging
 from app.db.repositories.base import handle_db_error, resolve_uuid, serialize_for_db
+from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
 
 logger = logging.getLogger(__name__)
 
@@ -91,7 +92,7 @@ class SupabaseNotificationRepository(NotificationRepository):
     def create_notification(self, data: Dict[str, Any]) -> Dict[str, Any]:
         try:
             payload = {
-                "created_at": datetime.utcnow().isoformat(),
+                "created_at": utc_now().isoformat(),
                 "read": False,
                 **data
             }
@@ -116,7 +117,7 @@ class SupabaseNotificationRepository(NotificationRepository):
 
     def create_broadcast(self, broadcast_data: Dict[str, Any], target_user_ids: Optional[List[str]] = None) -> Dict[str, Any]:
         try:
-            now_iso = datetime.utcnow().isoformat()
+            now_iso = utc_now().isoformat()
             payload = {
                 "created_at": now_iso,
                 **broadcast_data

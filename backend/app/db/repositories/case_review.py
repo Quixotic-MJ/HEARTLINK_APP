@@ -7,6 +7,7 @@ from datetime import datetime
 import uuid
 import logging
 from app.db.repositories.base import handle_db_error
+from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
 
 logger = logging.getLogger(__name__)
 
@@ -71,7 +72,7 @@ class SupabaseCaseReviewRepository(CaseReviewRepository):
     def create_or_update_evaluation(self, eval_data: Dict[str, Any]) -> Dict[str, Any]:
         try:
             payload = {
-                "created_at": datetime.utcnow().isoformat(),
+                "created_at": utc_now().isoformat(),
                 "status": "Logged",
                 **eval_data
             }
@@ -117,7 +118,7 @@ class SupabaseCaseReviewRepository(CaseReviewRepository):
     def create_dataset(self, dataset_data: Dict[str, Any]) -> Dict[str, Any]:
         try:
             payload = {
-                "created_at": datetime.utcnow().isoformat(),
+                "created_at": utc_now().isoformat(),
                 **dataset_data
             }
             res = self.client.table("calibration_datasets").insert(payload).execute()
@@ -137,7 +138,7 @@ class SupabaseCaseReviewRepository(CaseReviewRepository):
     def register_candidate_model(self, model_data: Dict[str, Any]) -> Dict[str, Any]:
         try:
             payload = {
-                "created_at": datetime.utcnow().isoformat(),
+                "created_at": utc_now().isoformat(),
                 "status": "candidate",
                 **model_data
             }

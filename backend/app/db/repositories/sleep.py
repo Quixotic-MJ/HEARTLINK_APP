@@ -7,6 +7,7 @@ from datetime import datetime
 import uuid
 import logging
 from app.db.repositories.base import handle_db_error, resolve_uuid, serialize_for_db
+from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
 
 logger = logging.getLogger(__name__)
 
@@ -74,8 +75,8 @@ class SupabaseSleepLogsRepository(SleepLogsRepository):
             payload = {
                 **data,
                 "user_id": uuid_val,
-                "created_at": datetime.utcnow().isoformat(),
-                "logged_at": data.get("logged_at") or datetime.utcnow().isoformat()
+                "created_at": utc_now().isoformat(),
+                "logged_at": data.get("logged_at") or utc_now().isoformat()
             }
             if payload.get("quality"):
                 clean_q = str(payload["quality"]).strip().capitalize()
