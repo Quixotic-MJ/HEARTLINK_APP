@@ -345,7 +345,7 @@ const Users = () => {
       });
       const isExpert = staffData.role?.toLowerCase().includes("expert");
       toast.success("Staff Account Provisioned Successfully", {
-        description: `${staffData.name} has been enrolled as a ${isExpert ? "Medical Expert" : "System Admin"} (Default Password: TempPass2026!).`,
+        description: `${staffData.name} has been enrolled as a ${isExpert ? "Medical Expert" : "System Admin"} (Default Password: TempPassword2026!).`,
       });
       await fetchUsers();
       closeModal();

@@ -416,8 +416,7 @@ def create_system_staff(payload: dict, current_user: dict = Depends(get_current_
     for p in all_profiles:
         if (p.get("email") or "").strip().lower() == email.lower():
             raise HTTPException(status_code=409, detail="An account with this email already exists.")
-
-    temp_pass = "TempPass2026!"
+    temp_pass = "TempPassword2026!"
     supabase_client = get_supabase_client()
     supabase_url = os.getenv("SUPABASE_URL", "").strip()
     service_role_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "").strip()

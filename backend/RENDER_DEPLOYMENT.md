@@ -168,7 +168,7 @@ curl -X POST "$RENDER_URL/api/auth/web-login" \
 curl -X POST "$RENDER_URL/api/admin/staff" \
   -H "Authorization: Bearer $SUPER_ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"name": "Dr. Test Expert", "email": "dr.expert@hospital.ph", "phone": "09170001122", "role": "Authorized Medical Expert", "temporary_password": "TempPass2026!"}'
+  -d '{"name": "Dr. Test Expert", "email": "dr.expert@hospital.ph", "phone": "09170001122", "role": "Authorized Medical Expert", "temporary_password": "TempPassword2026!"}'
 # Expected: 200 OK {"status": "success", "message": "...", "staff": {...}}
 
 # 15. Admin Notification Feed (Protected by RLS)

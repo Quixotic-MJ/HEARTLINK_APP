@@ -139,7 +139,7 @@ const StaffFormModal = ({ isOpen, onClose, staff, onSave }) => {
                 <div className="col-span-2 mt-1 bg-[#E3EFEC] p-3.5 rounded-[8px] border border-[#C5DFD8] flex items-start gap-2.5">
                   <Info size={14} className="text-[#1B6E63] mt-0.5 shrink-0" />
                   <p className="text-[11.5px] text-[#1B6E63] font-medium leading-relaxed m-0">
-                    Account will be provisioned with default credentials (<span className="text-[#0F172A] font-semibold">Password: </span><code className="text-[#2E9AE8] bg-[#FFFFFF] px-1.5 py-0.5 rounded border border-[#E2E8F0] font-bold select-all">TempPass2026!</code>) and direct email login.
+                    Account will be provisioned with default credentials (<span className="text-[#0F172A] font-semibold">Password: </span><code className="text-[#2E9AE8] bg-[#FFFFFF] px-1.5 py-0.5 rounded border border-[#E2E8F0] font-bold select-all">TempPassword2026!</code>) and direct email login.
                   </p>
                 </div>
               </div>

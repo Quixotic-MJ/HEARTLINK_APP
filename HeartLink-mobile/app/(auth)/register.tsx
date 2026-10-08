@@ -43,10 +43,11 @@ const registerSchema = z.object({
     ),
   password: z
     .string()
-    .min(8, "Password must be at least 8 characters.")
+    .min(16, "Password must be at least 16 characters.")
     .regex(/(?=.*[a-z])/, "Password must contain a lowercase letter.")
     .regex(/(?=.*[A-Z])/, "Password must contain an uppercase letter.")
-    .regex(/(?=.*\d)/, "Password must include at least one number."),
+    .regex(/(?=.*\d)/, "Password must include at least one number.")
+    .regex(/(?=.*[^A-Za-z0-9\s])/, "Password must include at least one special character."),
   confirmPassword: z.string().min(1, "Please confirm your password."),
 }).refine(data => data.password === data.confirmPassword, {
   message: "The passwords don't match yet. Please check again.",
@@ -168,15 +169,21 @@ export default function RegisterScreen() {
       if (response.ok) {
         router.push({ pathname: "/(auth)/verify-otp", params: { phone: normalizedPhone } });
       } else {
-        const detail = (typeof resData.detail === "string" ? resData.detail : "").toLowerCase();
+        let errorMsg = "An error occurred. Please try again.";
+        if (Array.isArray(resData.detail)) {
+            errorMsg = resData.detail[0].msg;
+        } else if (typeof resData.detail === "string") {
+            errorMsg = resData.detail;
+        }
+        errorMsg = errorMsg.replace(/^Value error,\s*/i, "");
+        
+        const detail = errorMsg.toLowerCase();
         if (detail.includes("phone") && (detail.includes("already registered") || detail.includes("duplicate"))) {
           setError("phone", { type: "server", message: "This phone number is already registered. Please log in." });
         } else if (detail.includes("email") && (detail.includes("already registered") || detail.includes("duplicate"))) {
           setError("email", { type: "server", message: "This email address is already registered. Please log in." });
-        } else if (resData.detail && typeof resData.detail === "string") {
-          setGeneralError(resData.detail);
         } else {
-          setGeneralError("An error occurred. Please try again.");
+          setGeneralError(errorMsg);
         }
       }
     } catch (error) {
@@ -361,12 +368,12 @@ export default function RegisterScreen() {
             <View className="mb-1 ml-1 pt-1 gap-2">
               <View className="flex-row items-center gap-2">
                 <Feather
-                  name={passwordValue.length >= 8 ? "check-circle" : "circle"}
+                  name={passwordValue.length >= 16 ? "check-circle" : "circle"}
                   size={14}
-                  className={passwordValue.length >= 8 ? "text-primary" : "text-text-muted dark:text-text-soft"}
+                  className={passwordValue.length >= 16 ? "text-primary" : "text-text-muted dark:text-text-soft"}
                 />
-                <Text className={`text-xs sm:text-[13px] ${passwordValue.length >= 8 ? "text-text font-bold" : "text-text-soft font-medium"}`}>
-                  At least 8 characters
+                <Text className={`text-xs sm:text-[13px] ${passwordValue.length >= 16 ? "text-text font-bold" : "text-text-soft font-medium"}`}>
+                  At least 16 characters
                 </Text>
               </View>
               <View className="flex-row items-center gap-2">
@@ -389,7 +396,18 @@ export default function RegisterScreen() {
                   At least one number
                 </Text>
               </View>
+              <View className="flex-row items-center gap-2">
+                <Feather
+                  name={/[^A-Za-z0-9\s]/.test(passwordValue) ? "check-circle" : "circle"}
+                  size={14}
+                  className={/[^A-Za-z0-9\s]/.test(passwordValue) ? "text-primary" : "text-text-muted dark:text-text-soft"}
+                />
+                <Text className={`text-xs sm:text-[13px] ${/[^A-Za-z0-9\s]/.test(passwordValue) ? "text-text font-bold" : "text-text-soft font-medium"}`}>
+                  At least one special character
+                </Text>
+              </View>
             </View>
+
 
             {/* Submit */}
             <View className="mt-1">

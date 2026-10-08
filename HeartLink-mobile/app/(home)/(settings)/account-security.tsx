@@ -48,10 +48,12 @@ export default function AccountSecurityScreen() {
   };
 
   // Requirement checks
-  const isMinLength = newPassword.length >= 6;
+  const isMinLength = newPassword.length >= 16;
+  const hasNumber = /\d/.test(newPassword);
+  const hasSpecial = /[^A-Za-z0-9\s]/.test(newPassword);
   const isMatching = newPassword.length > 0 && newPassword === confirmPassword;
   const isCurrentFilled = currentPassword.length > 0;
-  const isFormValid = isMinLength && isMatching && isCurrentFilled;
+  const isFormValid = isMinLength && hasNumber && hasSpecial && isMatching && isCurrentFilled;
 
   const handleUpdatePassword = async () => {
     if (!currentPassword || !newPassword || !confirmPassword) {
@@ -59,7 +61,15 @@ export default function AccountSecurityScreen() {
       return;
     }
     if (!isMinLength) {
-      showToast({ title: "Weak Password", message: "New password must be at least 6 characters.", type: "error" });
+      showToast({ title: "Weak Password", message: "New password must be at least 16 characters.", type: "error" });
+      return;
+    }
+    if (!hasNumber) {
+      showToast({ title: "Weak Password", message: "New password must contain at least one number.", type: "error" });
+      return;
+    }
+    if (!hasSpecial) {
+      showToast({ title: "Weak Password", message: "New password must contain at least one special character.", type: "error" });
       return;
     }
     if (!isMatching) {
@@ -79,7 +89,14 @@ export default function AccountSecurityScreen() {
       });
       const data = await response.json();
       if (!response.ok) {
-        showToast({ title: "Update Failed", message: data.detail || "Failed to update password.", type: "error" });
+        let errorMsg = "Failed to update password.";
+        if (Array.isArray(data.detail)) {
+            errorMsg = data.detail[0].msg;
+        } else if (typeof data.detail === "string") {
+            errorMsg = data.detail;
+        }
+        errorMsg = errorMsg.replace(/^Value error,\s*/i, "");
+        showToast({ title: "Update Failed", message: errorMsg, type: "error" });
       } else {
         showToast({ title: "Password Changed", message: "Your password has been updated successfully.", type: "success" });
         setCurrentPassword("");
@@ -263,7 +280,29 @@ export default function AccountSecurityScreen() {
                 color={isMinLength ? "#16a34a" : isDark ? "#64748b" : "#94a3b8"} 
               />
               <Text className={`text-[13px] ${isMinLength ? "text-green-600 dark:text-green-400 font-medium" : "text-text-soft"}`}>
-                At least 6 characters
+                At least 16 characters
+              </Text>
+            </View>
+
+            <View className="flex-row items-center gap-2">
+              <Feather 
+                name={hasNumber ? "check-circle" : "circle"} 
+                size={14} 
+                color={hasNumber ? "#16a34a" : isDark ? "#64748b" : "#94a3b8"} 
+              />
+              <Text className={`text-[13px] ${hasNumber ? "text-green-600 dark:text-green-400 font-medium" : "text-text-soft"}`}>
+                At least one number
+              </Text>
+            </View>
+
+            <View className="flex-row items-center gap-2">
+              <Feather 
+                name={hasSpecial ? "check-circle" : "circle"} 
+                size={14} 
+                color={hasSpecial ? "#16a34a" : isDark ? "#64748b" : "#94a3b8"} 
+              />
+              <Text className={`text-[13px] ${hasSpecial ? "text-green-600 dark:text-green-400 font-medium" : "text-text-soft"}`}>
+                At least one special character
               </Text>
             </View>
 
