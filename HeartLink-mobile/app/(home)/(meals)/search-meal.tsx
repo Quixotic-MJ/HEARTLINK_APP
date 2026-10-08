@@ -42,13 +42,14 @@ export default function SearchMealScreen() {
     async function loadRecentLogs() {
       if (!userId) return;
       try {
-        const res = await fetch(`${base_url}/api/meals/${userId}`, {
+        const res = await fetch(`${base_url}/api/meals/${userId}?page=1&page_size=50`, {
           headers: {
             "Authorization": `Bearer ${token || ""}`,
           },
         });
         if (res.ok) {
-          const data = await res.json();
+          const body = await res.json();
+          const data = body.data ?? body;
           const uniqueMap = new Map();
           data.forEach((log: any) => {
             if (!uniqueMap.has(log.meal_name)) {

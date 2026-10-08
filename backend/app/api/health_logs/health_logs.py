@@ -1,15 +1,20 @@
-from fastapi import APIRouter, HTTPException, Depends, status
+from fastapi import APIRouter, HTTPException, Depends, status, Query
 from typing import List, Dict, Any
-from app.services.health_logs import get_health_logs, create_health_log, delete_health_log
+from app.services.health_logs import get_health_logs, create_health_log, delete_health_log, get_paginated_health_logs
 from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
 from app.utils.security import get_current_user, verify_user_access
 
 router = APIRouter(prefix="/api/health-logs", tags=["Health Logs"])
 
-@router.get("/{user_id}", response_model=List[Dict[str, Any]])
-def read_health_logs(user_id: str, current_user: dict = Depends(get_current_user)):
+@router.get("/{user_id}", response_model=Dict[str, Any])
+def read_health_logs(
+    user_id: str, 
+    page: int = Query(1, ge=1), 
+    page_size: int = Query(20, ge=1, le=100), 
+    current_user: dict = Depends(get_current_user)
+):
     verify_user_access(current_user, user_id)
-    return get_health_logs(user_id)
+    return get_paginated_health_logs(user_id, page, page_size)
 
 @router.post("/{user_id}", response_model=Dict[str, Any])
 def add_health_log(user_id: str, data: Dict[str, Any], current_user: dict = Depends(get_current_user)):

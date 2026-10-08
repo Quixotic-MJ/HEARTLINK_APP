@@ -5,6 +5,9 @@ def get_health_logs(user_id: str, cutoff: Optional[str] = None) -> List[Dict[str
     logs = get_health_logs_repo().list_user_logs(user_id, cutoff=cutoff)
     return [log for log in logs if log.get("context") != "symptom_lock_cleared"]
 
+def get_paginated_health_logs(user_id: str, page: int = 1, page_size: int = 20) -> Dict[str, Any]:
+    return get_health_logs_repo().list_user_logs_paginated(user_id, page, page_size)
+
 def delete_health_log(user_id: str, log_id: str) -> Tuple[bool, str, int]:
     repo = get_health_logs_repo()
     if hasattr(repo, "delete_log"):
