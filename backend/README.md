@@ -68,7 +68,7 @@ cp .env.example .env
 | `DATABASE_MODE` | Determines database connection behavior | Yes | `supabase` / `mock` |
 | `SUPABASE_URL` | Supabase project REST endpoint | Yes | `https://xyz.supabase.co` |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase Admin Key (Bypasses RLS) | Yes | `eyJhbGci...` |
-| `SECRET_KEY` | Secret key for JWT token signing | Yes | `super-secret-random-key` |
+| `SECRET_KEY` | Secret key for JWT token signing. App will not start without it. | Yes (ALL modes) | `super-secret-random-key` |
 | `CORS_ALLOWED_ORIGINS` | Comma-separated list of allowed URLs | Yes | `http://localhost:5173` |
 | `GROQ_API_KEY` | API Key for Dashboard AI Insights | Optional | `gsk_...` |
 | `COMPANION_LLM_API_KEY` | API Key for Companion AI | Optional | `gsk_...` |
@@ -85,6 +85,7 @@ SUPABASE_ANON_KEY=your-supabase-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
 
 # JWT & AUTHENTICATION (SERVER-SIDE ONLY)
+# REQUIRED IN ALL MODES (including mock). The app will not start without it.
 SECRET_KEY=your-super-secret-jwt-key-change-in-production
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_HOURS=24
