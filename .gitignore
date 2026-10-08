@@ -26,4 +26,8 @@ scratch/
 *.backup.*
 *.backup.json
 mock_*.json
-backend/app/mock_*.json
+backend/app/mock_*.json
+
+# Graphify
+graphify-out/
+.agents/

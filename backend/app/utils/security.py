@@ -9,10 +9,8 @@ from app.db.repositories import get_profile_repo
 from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
 
 SECRET_KEY = os.getenv("SECRET_KEY")
-if not SECRET_KEY or SECRET_KEY == "heartlink-super-secret-jwt-key":
-    if os.getenv("DATABASE_MODE") == "supabase" or os.getenv("ENVIRONMENT") == "production":
-        raise RuntimeError("FATAL SECURITY CONFIGURATION: Insecure or missing SECRET_KEY environment variable.")
-    SECRET_KEY = SECRET_KEY or "heartlink-dev-jwt-key-not-for-production"
+if not SECRET_KEY or SECRET_KEY in ("heartlink-super-secret-jwt-key", "heartlink-dev-jwt-key-not-for-production", "your-super-secret-jwt-key-change-in-production"):
+    raise RuntimeError("FATAL SECURITY CONFIGURATION: Insecure or missing SECRET_KEY environment variable.")
 
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_HOURS = 24
