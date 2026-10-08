@@ -16,10 +16,9 @@ from fastapi.testclient import TestClient
 
 # Ensure DATABASE_MODE=supabase
 os.environ["DATABASE_MODE"] = "supabase"
-
 from app.main import app
 from app.db.client import get_supabase_client
-from app.utils.security import create_access_token, token_blacklist
+from app.utils.security import create_access_token, revoke_token
 from app.db.repositories import (
     get_profile_repo,
     get_health_logs_repo,

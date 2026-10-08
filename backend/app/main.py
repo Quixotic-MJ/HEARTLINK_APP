@@ -150,6 +150,12 @@ async def on_startup():
     except Exception as e:
         print(f"[HeartLink Startup Bootstrap Warning] {e}")
 
+    try:
+        from app.utils.security import load_revoked_tokens
+        load_revoked_tokens()
+    except Exception as e:
+        print(f"[HeartLink Startup Revoked Tokens Warning] {e}")
+
 @app.api_route("/", methods=["GET", "HEAD"], tags=["System"])
 def root_check():
     return {"status": "ok", "service": "HeartLink API"}

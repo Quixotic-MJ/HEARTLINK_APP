@@ -1,12 +1,17 @@
 import os
 import jwt
-from datetime import datetime, timedelta
+import hashlib
+import logging
+from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any
 from fastapi import Depends, HTTPException, Security, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from app.db.repositories import get_profile_repo
 from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
+from app.db.client import get_supabase_client
+
+logger = logging.getLogger(__name__)
 
 SECRET_KEY = os.getenv("SECRET_KEY")
 if not SECRET_KEY or SECRET_KEY in ("heartlink-super-secret-jwt-key", "heartlink-dev-jwt-key-not-for-production", "your-super-secret-jwt-key-change-in-production"):
@@ -31,11 +36,46 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
-# In-memory blacklist for revoked tokens
-token_blacklist = set()
+# Single-instance in-memory cache for revoked tokens
+revoked_token_hashes = set()
+
+def _token_hash(token: str) -> str:
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+def load_revoked_tokens():
+    try:
+        sb = get_supabase_client()
+        # Delete expired rows using UTC now
+        now_iso = datetime.now(timezone.utc).isoformat()
+        sb.table("revoked_tokens").delete().lt("expires_at", now_iso).execute()
+        
+        # Load active hashes
+        res = sb.table("revoked_tokens").select("token_hash").execute()
+        for row in res.data:
+            revoked_token_hashes.add(row["token_hash"])
+    except Exception as e:
+        logger.warning(f"Failed to load revoked tokens from Supabase: {e}")
+
+def revoke_token(token: str):
+    """Verifies token, then adds its hash to the set and Supabase."""
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        exp = payload.get("exp")
+        if exp:
+            expires_at = datetime.fromtimestamp(exp, tz=timezone.utc).isoformat()
+            t_hash = _token_hash(token)
+            revoked_token_hashes.add(t_hash)
+            
+            sb = get_supabase_client()
+            sb.table("revoked_tokens").upsert({
+                "token_hash": t_hash,
+                "expires_at": expires_at
+            }, on_conflict="token_hash").execute()
+    except Exception as e:
+        logger.warning(f"revoke_token failed or ignored: {e}")
 
 def verify_token(token: str) -> Dict[str, Any]:
-    if token in token_blacklist:
+    if _token_hash(token) in revoked_token_hashes:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token has been revoked",

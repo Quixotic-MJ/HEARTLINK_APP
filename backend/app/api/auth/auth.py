@@ -5,7 +5,6 @@ Routes registration, OTP verification, password login, 2FA, password recovery, a
 """
 from fastapi import APIRouter, status, HTTPException, Header, Request, Response
 from app.schemas.auth import RegisterRequest, CodeResponse, Login, ResendCodeRequest, WebVerify2FA, ForgotPasswordRequest
-from app.utils.security import token_blacklist
 from app.services.auth_service import get_auth_service
 from app.utils.rate_limiter import limiter
 
@@ -54,11 +53,13 @@ async def web_login_verify_2fa(payload: WebVerify2FA, request: Request, response
     auth_svc = get_auth_service()
     return auth_svc.verify_2fa(token_2fa=payload.token_2fa, code=payload.code)
 
+from app.utils.security import revoke_token
+
 @router.post("/logout")
 async def logout(authorization: str = Header(None)):
     if authorization and authorization.startswith("Bearer "):
         token = authorization.split(" ")[1]
-        token_blacklist.add(token)
+        revoke_token(token)
     return {"success": True, "message": "Logged out successfully"}
 
 @router.post("/forgot-password")

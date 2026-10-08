@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 from app.db.client import get_supabase_client
 from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
-from app.utils.security import create_access_token, token_blacklist
+from app.utils.security import create_access_token
 from app.db.repositories import get_profile_repo
 
 
