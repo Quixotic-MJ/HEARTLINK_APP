@@ -270,7 +270,7 @@ export default function ProfileScreen({ isTab = false }: { isTab?: boolean } = {
               "Authorization": `Bearer ${effectiveToken}`,
             },
           }),
-          fetch(`${base_url}/api/health-logs/${userId}`, {
+          fetch(`${base_url}/api/health-logs/${userId}?page=1&page_size=1`, {
             headers: {
               "Authorization": `Bearer ${effectiveToken}`,
             },
@@ -282,9 +282,10 @@ export default function ProfileScreen({ isTab = false }: { isTab?: boolean } = {
         
         let latestVitals = { restingHR: "--", systolicBP: "--", diastolicBP: "--" };
         if (logsRes && logsRes.ok) {
-          const logsData = await logsRes.json();
+          const logsResData = await logsRes.json();
+          const logsData = logsResData.data ?? logsResData;
           if (logsData && logsData.length > 0) {
-            const latest = logsData[logsData.length - 1]; 
+            const latest = logsData[0]; 
             latestVitals.restingHR = latest.heart_rate_bpm ? latest.heart_rate_bpm.toString() : "--";
             latestVitals.systolicBP = latest.systolic_bp ? latest.systolic_bp.toString() : "--";
             latestVitals.diastolicBP = latest.diastolic_bp ? latest.diastolic_bp.toString() : "--";

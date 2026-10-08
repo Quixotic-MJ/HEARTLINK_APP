@@ -15,6 +15,9 @@ class MealsRepository:
     def list_user_meals(self, user_id: str, limit: Optional[int] = None) -> List[Dict[str, Any]]:
         raise NotImplementedError
 
+    def list_user_meals_paginated(self, user_id: str, page: int = 1, page_size: int = 20) -> Dict[str, Any]:
+        raise NotImplementedError
+
     def list_all_meals(self) -> List[Dict[str, Any]]:
         raise NotImplementedError
 
@@ -58,6 +61,29 @@ class SupabaseMealsRepository(MealsRepository):
         except Exception as e:
             logger.warning(f"Error reading meal logs for {user_id}: {e}")
             return []
+
+    def list_user_meals_paginated(self, user_id: str, page: int = 1, page_size: int = 20) -> Dict[str, Any]:
+        uuid_val = self._resolve_user_uuid(user_id)
+        if not uuid_val:
+            return {"data": [], "total_count": 0, "page": page, "page_size": page_size}
+        try:
+            offset = (page - 1) * page_size
+            res = self.client.table("meal_logs")\
+                .select("*", count="exact")\
+                .eq("user_id", uuid_val)\
+                .order("logged_at", desc=True)\
+                .range(offset, offset + page_size - 1)\
+                .execute()
+            
+            return {
+                "data": res.data or [],
+                "total_count": res.count or 0,
+                "page": page,
+                "page_size": page_size
+            }
+        except Exception as e:
+            logger.warning(f"Error reading paginated meal logs for {user_id}: {e}")
+            return {"data": [], "total_count": 0, "page": page, "page_size": page_size}
 
     def list_all_meals(self) -> List[Dict[str, Any]]:
         try:

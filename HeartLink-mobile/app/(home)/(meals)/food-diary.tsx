@@ -186,13 +186,14 @@ export default function DailyDiaryScreen() {
   const fetchMeals = useCallback(async () => {
     if (!userId) return;
     try {
-      const response = await fetch(`${base_url}/api/meals/${userId}`, {
+      const response = await fetch(`${base_url}/api/meals/${userId}?page=1&page_size=50`, {
         headers: {
           "Authorization": `Bearer ${token || ""}`,
         },
       });
       if (response.ok) {
-        const data: MealLog[] = await response.json();
+        const result = await response.json();
+        const data: MealLog[] = result.data ?? result;
         
         // Filter meals to only include today's logs
         const today = new Date();

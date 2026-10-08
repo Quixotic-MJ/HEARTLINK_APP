@@ -397,14 +397,15 @@ export default function LogSymptomsScreen() {
     let isMounted = true;
     const fetchLatestLog = async () => {
       try {
-        const res = await fetch(`${base_url}/api/health-logs/${userId}?limit=1`, {
+        const res = await fetch(`${base_url}/api/health-logs/${userId}?page=1&page_size=1`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (res.ok && isMounted) {
-          const data = await res.json();
-          if (data && data.length > 0) {
-            const lastLog = data[0];
-            const logDate = new Date(lastLog.recorded_at);
+          const body = await res.json();
+          const items = body.data ?? body;
+          if (items && items.length > 0) {
+            const lastLog = items[0];
+            const logDate = new Date(lastLog.logged_at);
             const today = new Date();
             const isToday = logDate.getDate() === today.getDate() && 
                             logDate.getMonth() === today.getMonth() && 
@@ -687,16 +688,17 @@ export default function LogSymptomsScreen() {
       let comparisonStr = undefined;
       if (sys !== null && dia !== null) {
         try {
-          const res = await fetch(`${base_url}/api/health-logs/${userId}?limit=1`, {
+          const res = await fetch(`${base_url}/api/health-logs/${userId}?page=1&page_size=1`, {
             headers: { Authorization: `Bearer ${token}` }
           });
           if (res.ok) {
-            const logs = await res.json();
+            const body = await res.json();
+            const logs = body.data ?? body;
             if (logs && logs.length > 0 && logs[0].systolic_bp && logs[0].diastolic_bp) {
               const prevSys = logs[0].systolic_bp;
               const prevDia = logs[0].diastolic_bp;
               const dirSys = sys < prevSys ? "down from" : (sys > prevSys ? "up from" : "steady with");
-              const prevDate = new Date(logs[0].recorded_at);
+              const prevDate = new Date(logs[0].logged_at);
               const today = new Date();
               const isYesterday = today.getDate() - prevDate.getDate() === 1 && today.getMonth() === prevDate.getMonth() && today.getFullYear() === prevDate.getFullYear();
               const timeRef = isYesterday ? "yesterday's" : "your previous";

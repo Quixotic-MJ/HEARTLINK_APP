@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Query, HTTPException, Depends, status
 from typing import List, Dict, Any
-from app.services.meals import get_meal_logs, create_meal_log, search_meals, delete_meal_log
+from app.services.meals import get_meal_logs, create_meal_log, search_meals, delete_meal_log, get_paginated_meal_logs
 from app.utils.security import get_current_user, verify_user_access
 
 router = APIRouter(prefix="/api/meals", tags=["Meals"])
@@ -24,10 +24,15 @@ def get_meal_recos(current_user: dict = Depends(get_current_user)):
         logging.getLogger(__name__).error(f"Failed to fetch meal recommendations: {e}")
         return []
 
-@router.get("/{user_id}", response_model=List[Dict[str, Any]])
-def read_meal_logs(user_id: str, current_user: dict = Depends(get_current_user)):
+@router.get("/{user_id}", response_model=Dict[str, Any])
+def read_meal_logs(
+    user_id: str, 
+    page: int = Query(1, ge=1), 
+    page_size: int = Query(20, ge=1, le=100), 
+    current_user: dict = Depends(get_current_user)
+):
     verify_user_access(current_user, user_id)
-    return get_meal_logs(user_id)
+    return get_paginated_meal_logs(user_id, page, page_size)
 
 @router.post("/{user_id}", response_model=Dict[str, Any])
 def add_meal_log(user_id: str, data: Dict[str, Any], current_user: dict = Depends(get_current_user)):

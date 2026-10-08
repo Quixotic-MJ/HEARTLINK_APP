@@ -5,6 +5,9 @@ from app.services.recipes import normalize_recipe_fields
 def get_meal_logs(user_id: str) -> List[Dict[str, Any]]:
     return get_meals_repo().list_user_meals(user_id)
 
+def get_paginated_meal_logs(user_id: str, page: int = 1, page_size: int = 20) -> Dict[str, Any]:
+    return get_meals_repo().list_user_meals_paginated(user_id, page, page_size)
+
 def create_meal_log(user_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
     return get_meals_repo().create_meal(user_id, data)
 
