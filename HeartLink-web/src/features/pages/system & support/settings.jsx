@@ -218,8 +218,16 @@ function AccountTab({ user, userId }) {
       setPwError("All password fields are required.");
       return;
     }
-    if (pwForm.next.length < 8) {
-      setPwError("New password must be at least 8 characters.");
+    if (pwForm.next.length < 16) {
+      setPwError("New password must be at least 16 characters.");
+      return;
+    }
+    if (!/\d/.test(pwForm.next)) {
+      setPwError("New password must include at least one number.");
+      return;
+    }
+    if (!/[^A-Za-z0-9\s]/.test(pwForm.next)) {
+      setPwError("New password must include at least one special character.");
       return;
     }
     if (pwForm.next !== pwForm.confirm) {
@@ -245,9 +253,12 @@ function AccountTab({ user, userId }) {
       setPwForm({ current: "", next: "", confirm: "" });
       setPwState("success");
     } catch (err) {
-      const detail =
-        err?.data?.detail ?? "Password change failed. Please check your current password and try again.";
-      setPwError(detail);
+      let errorMsg = err?.data?.detail ?? "Password change failed. Please check your current password and try again.";
+      if (Array.isArray(err?.data?.detail)) {
+        errorMsg = err.data.detail[0].msg;
+      }
+      errorMsg = errorMsg.replace(/^Value error,\s*/i, "");
+      setPwError(errorMsg);
       // Clear current password on failure
       setPwForm((prev) => ({ ...prev, current: "" }));
       setPwState("error");
@@ -390,7 +401,7 @@ function AccountTab({ user, userId }) {
             className="space-y-4"
           >
             <p className="text-[12px] text-[#64748B] leading-relaxed">
-              Your new password must be at least 8 characters long. We recommend using a mix of letters, numbers, and symbols to keep your account secure.
+              Your new password must be at least 16 characters long. We recommend using a mix of letters, numbers, and symbols to keep your account secure.
             </p>
 
             {pwError && (

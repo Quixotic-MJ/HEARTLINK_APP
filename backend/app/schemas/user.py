@@ -108,19 +108,17 @@ class BaselineOnboardingRequest(BaseModel):
         return self
 
 
+from app.utils.password_policy import validate_strong_password
+
 # Change Password
 class ChangePasswordRequest(BaseModel):
     current_password: str = Field(..., min_length=1)
-    new_password: str = Field(..., min_length=6)
+    new_password: str
 
     @field_validator("new_password")
     @classmethod
     def validate_new_password(cls, v: str) -> str:
-        if not v or not v.strip():
-            raise ValueError("new_password cannot be empty or whitespace only")
-        if len(v) < 6:
-            raise ValueError("new_password must be at least 6 characters")
-        return v
+        return validate_strong_password(v)
 
 
 # Delete Account
