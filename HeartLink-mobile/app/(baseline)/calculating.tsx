@@ -6,7 +6,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Feather } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getToken, getUserId as getStoredUserId } from "../../lib/secureTokenStore";
 import { useUser } from "../../contexts/UserContext";
 import { useToast } from "../../contexts/ToastContext";
 import { useBaseline } from "../../contexts/BaselineContext";
@@ -86,8 +86,8 @@ export default function CalculatingScreen() {
     const submitData = async () => {
       try {
         const base_url = process.env.EXPO_PUBLIC_API_URL;
-        const storedToken = token || (await AsyncStorage.getItem("access_token")) || "";
-        const effectiveUserId = (params.user_id as string) || userId || (await AsyncStorage.getItem("user_id")) || "";
+        const storedToken = token || (await getToken()) || "";
+        const effectiveUserId = (params.user_id as string) || userId || (await getStoredUserId()) || "";
 
         if (!effectiveUserId) {
           throw new Error("User identifier not found. Please log in again.");

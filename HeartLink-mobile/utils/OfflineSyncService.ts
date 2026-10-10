@@ -1,4 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getToken, getUserId as getStoredUserId } from "../lib/secureTokenStore";
 
 export interface QueuedRequest {
   id: string;
@@ -50,7 +51,7 @@ export const OfflineSyncService = {
     userId?: string
   ): Promise<void> {
     try {
-      const effectiveUserId = userId || (await AsyncStorage.getItem("user_id")) || undefined;
+      const effectiveUserId = userId || (await getStoredUserId()) || undefined;
       const queueKey = getQueueKey(effectiveUserId);
       const existingQueueStr = await AsyncStorage.getItem(queueKey);
       const queue: QueuedRequest[] = existingQueueStr ? JSON.parse(existingQueueStr) : [];
@@ -80,7 +81,7 @@ export const OfflineSyncService = {
    */
   async processQueue(targetUserId?: string): Promise<{ successCount: number; failedCount: number }> {
     try {
-      const activeUserId = targetUserId || (await AsyncStorage.getItem("user_id")) || undefined;
+      const activeUserId = targetUserId || (await getStoredUserId()) || undefined;
       const queueKey = getQueueKey(activeUserId);
       const existingQueueStr = await AsyncStorage.getItem(queueKey);
       if (!existingQueueStr) return { successCount: 0, failedCount: 0 };
@@ -93,7 +94,7 @@ export const OfflineSyncService = {
       const remainingQueue: QueuedRequest[] = [];
       let successCount = 0;
       let failedCount = 0;
-      const token = await AsyncStorage.getItem("access_token");
+      const token = await getToken();
       if (!token) {
         console.warn("[OfflineSyncService] No access token available. Halting queue processing.");
         return { successCount: 0, failedCount: 0 };
@@ -174,7 +175,7 @@ export const OfflineSyncService = {
    */
   async getQueueCount(userId?: string): Promise<number> {
     try {
-      const activeUserId = userId || (await AsyncStorage.getItem("user_id")) || undefined;
+      const activeUserId = userId || (await getStoredUserId()) || undefined;
       const existingQueueStr = await AsyncStorage.getItem(getQueueKey(activeUserId));
       if (!existingQueueStr) return 0;
       const queue: QueuedRequest[] = JSON.parse(existingQueueStr);

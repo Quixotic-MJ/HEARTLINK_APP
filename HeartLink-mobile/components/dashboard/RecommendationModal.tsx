@@ -15,7 +15,7 @@ import {
 import { Feather } from "@expo/vector-icons";
 import { useColorScheme } from "nativewind";
 import * as Haptics from "expo-haptics";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getToken } from "../../lib/secureTokenStore";
 import { useUser } from "../../contexts/UserContext";
 import { useToast } from "../../contexts/ToastContext";
 import { useLogMeal } from "../../hooks/useLogMeal";
@@ -158,7 +158,7 @@ export function RecommendationModal({
     setIsLoading(true);
     setFetchError(false);
     try {
-      const storedToken = await AsyncStorage.getItem("access_token");
+      const storedToken = await getToken();
       const effectiveToken = token || storedToken || "";
       const headers: Record<string, string> = {};
       if (effectiveToken) headers["Authorization"] = `Bearer ${effectiveToken}`;

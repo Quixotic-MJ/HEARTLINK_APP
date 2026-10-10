@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useRef } from "r
 import { AppState, AppStateStatus } from "react-native";
 import NetInfo from "@react-native-community/netinfo";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getToken, setToken, removeToken, getUserId as getStoredUserId, setUserId as storeUserId, clearCredentials } from "../lib/secureTokenStore";
 import { syncOfflineAll } from "../services/SyncService";
 
 type UserContextType = {
@@ -97,8 +98,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       try {
         setIsLoading(true);
         setProfileError(false);
-        const storedId = await AsyncStorage.getItem("user_id");
-        const storedToken = await AsyncStorage.getItem("access_token");
+        const storedId = await getStoredUserId();
+        const storedToken = await getToken();
 
         if (storedId) {
           const userCacheKey = getProfileCacheKey(storedId);
@@ -136,8 +137,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
               syncOfflineAll(baseUrl).catch(e => console.log("Startup sync error:", e));
             } else if (response.status === 401 || response.status === 403) {
               console.warn(`[UserContext] Profile fetch returned ${response.status}. Invalidating session.`);
-              await AsyncStorage.removeItem("user_id");
-              await AsyncStorage.removeItem("access_token");
+              await clearCredentials();
               await AsyncStorage.removeItem(userCacheKey);
               await AsyncStorage.removeItem(DEFAULT_PROFILE_CACHE_KEY);
               setUserIdState(null);
@@ -173,20 +173,20 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     try {
       setProfileError(false);
       if (id) {
-        await AsyncStorage.setItem("user_id", id);
+        await storeUserId(id);
         setUserIdState(id);
         
         if (newToken) {
-          await AsyncStorage.setItem("access_token", newToken);
+          await setToken(newToken);
           setTokenState(newToken);
         } else {
-          const currentToken = await AsyncStorage.getItem("access_token");
+          const currentToken = await getToken();
           setTokenState(currentToken);
         }
         
         try {
           const baseUrl = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
-          const effectiveToken = newToken || (await AsyncStorage.getItem("access_token")) || "";
+          const effectiveToken = newToken || (await getToken()) || "";
           const response = await fetch(`${baseUrl}/api/users/${id}/profile`, {
             headers: {
               "Authorization": `Bearer ${effectiveToken}`,
@@ -216,8 +216,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             console.warn("Failed to clear user telemetry caches on logout", cleanErr);
           }
         }
-        await AsyncStorage.removeItem("user_id");
-        await AsyncStorage.removeItem("access_token");
+        await clearCredentials();
         await AsyncStorage.removeItem(DEFAULT_PROFILE_CACHE_KEY);
         setUserIdState(null);
         setTokenState(null);
@@ -233,7 +232,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     try {
       setProfileError(false);
       const baseUrl = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
-      const effectiveToken = token || (await AsyncStorage.getItem("access_token")) || "";
+      const effectiveToken = token || (await getToken()) || "";
       const response = await fetch(`${baseUrl}/api/users/${userId}/profile`, {
         headers: {
           "Authorization": `Bearer ${effectiveToken}`,
@@ -256,7 +255,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const logout = async () => {
     try {
       const baseUrl = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
-      const effectiveToken = token || (await AsyncStorage.getItem("access_token"));
+      const effectiveToken = token || (await getToken());
       if (effectiveToken) {
         await fetch(`${baseUrl}/api/auth/logout`, {
           method: "POST",

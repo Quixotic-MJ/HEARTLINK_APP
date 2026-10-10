@@ -3,6 +3,7 @@ import { View, ActivityIndicator, BackHandler, Alert } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getToken } from "../../../lib/secureTokenStore";
 import { useUser } from "../../../contexts/UserContext";
 import { useToast } from "../../../contexts/ToastContext";
 import { SafetyCheckSheet } from "../../../components/ui/SafetyCheckSheet";
@@ -98,7 +99,7 @@ export default function ExerciseSessionScreen() {
   useEffect(() => {
     async function fetchRoutine() {
       try {
-        const storedToken = await AsyncStorage.getItem("access_token");
+        const storedToken = await getToken();
         const effectiveToken = token || storedToken || "";
         const response = await fetch(`${base_url}/api/exercises/${id}`, {
           headers: effectiveToken ? { "Authorization": `Bearer ${effectiveToken}` } : {}
@@ -273,7 +274,7 @@ export default function ExerciseSessionScreen() {
           onPress: async () => {
             if (!userId) return;
             try {
-              const storedToken = await AsyncStorage.getItem("access_token");
+              const storedToken = await getToken();
               const effectiveToken = token || storedToken || "";
               const response = await fetch(`${base_url}/api/health-logs/${userId}/clear-symptom-lock`, {
                 method: "POST",

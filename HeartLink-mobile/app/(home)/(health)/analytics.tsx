@@ -6,7 +6,7 @@ import { StatusBar } from "expo-status-bar";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useUser } from "../../../contexts/UserContext";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getToken } from "../../../lib/secureTokenStore";
 import { theme } from "../../../constants/theme";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
@@ -23,7 +23,7 @@ export default function HealthAnalyticsScreen() {
   useEffect(() => {
     async function fetchAnalytics() {
       try {
-        const storedToken = await AsyncStorage.getItem("access_token");
+        const storedToken = await getToken();
         const effectiveToken = token || storedToken || "";
         const response = await fetch(`${base_url}/api/analytics/${userId}`, {
           headers: {

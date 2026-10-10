@@ -20,6 +20,7 @@ import { useColorScheme } from "nativewind";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { useUser } from "../../../contexts/UserContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getToken } from "../../../lib/secureTokenStore";
 import * as Haptics from "expo-haptics";
 import * as Location from "expo-location";
 import { getCompanionGreeting, getCompanionLine, CompanionGreetingResult } from "../../../services/companionService";
@@ -230,7 +231,7 @@ export default function DashboardScreen() {
 
   const fetchDashboardData = async () => {
     if (!userId) return null;
-    const storedToken = await AsyncStorage.getItem("access_token");
+    const storedToken = await getToken();
     const effectiveToken = token || storedToken || "";
 
     const response = await fetch(`${base_url}/api/dashboard/me`, {
