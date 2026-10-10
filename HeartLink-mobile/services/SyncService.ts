@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { DeviceEventEmitter } from "react-native";
+import { getToken, getUserId as getStoredUserId } from "../lib/secureTokenStore";
 
 const DEFAULT_MEAL_QUEUE_KEY = "@offline_meal_queue";
 const DEFAULT_EXERCISE_QUEUE_KEY = "@offline_exercise_queue";
@@ -32,7 +33,7 @@ export async function queueMealForSync(userId: string, payload: any): Promise<vo
 
 export async function syncOfflineMeals(baseUrl: string): Promise<number> {
   try {
-    const currentUserId = await AsyncStorage.getItem("user_id");
+    const currentUserId = await getStoredUserId();
     const queueKey = getMealQueueKey(currentUserId);
     const queueJson = await AsyncStorage.getItem(queueKey);
     if (!queueJson) return 0;
@@ -40,7 +41,7 @@ export async function syncOfflineMeals(baseUrl: string): Promise<number> {
     const queue = JSON.parse(queueJson);
     if (queue.length === 0) return 0;
 
-    const token = await AsyncStorage.getItem("access_token");
+    const token = await getToken();
     if (!token) {
       console.warn("[SyncService] No access token found. Skipping meal sync.");
       return 0;
@@ -117,7 +118,7 @@ export async function queueExerciseForSync(userId: string, payload: any): Promis
 
 export async function syncOfflineExercises(baseUrl: string): Promise<number> {
   try {
-    const currentUserId = await AsyncStorage.getItem("user_id");
+    const currentUserId = await getStoredUserId();
     const queueKey = getExerciseQueueKey(currentUserId);
     const queueJson = await AsyncStorage.getItem(queueKey);
     if (!queueJson) return 0;
@@ -125,7 +126,7 @@ export async function syncOfflineExercises(baseUrl: string): Promise<number> {
     const queue = JSON.parse(queueJson);
     if (queue.length === 0) return 0;
 
-    const token = await AsyncStorage.getItem("access_token");
+    const token = await getToken();
     if (!token) {
       console.warn("[SyncService] No access token found. Skipping exercise sync.");
       return 0;
@@ -201,7 +202,7 @@ export async function queueSleepForSync(userId: string, payload: any): Promise<v
 
 export async function syncOfflineSleeps(baseUrl: string): Promise<number> {
   try {
-    const currentUserId = await AsyncStorage.getItem("user_id");
+    const currentUserId = await getStoredUserId();
     const queueKey = getSleepQueueKey(currentUserId);
     const queueJson = await AsyncStorage.getItem(queueKey);
     if (!queueJson) return 0;
@@ -209,7 +210,7 @@ export async function syncOfflineSleeps(baseUrl: string): Promise<number> {
     const queue = JSON.parse(queueJson);
     if (queue.length === 0) return 0;
 
-    const token = await AsyncStorage.getItem("access_token");
+    const token = await getToken();
     if (!token) {
       console.warn("[SyncService] No access token found. Skipping sleep sync.");
       return 0;
@@ -285,7 +286,7 @@ export async function queueHealthLogForSync(userId: string, payload: any): Promi
 
 export async function syncOfflineHealthLogs(baseUrl: string): Promise<number> {
   try {
-    const currentUserId = await AsyncStorage.getItem("user_id");
+    const currentUserId = await getStoredUserId();
     const queueKey = getHealthQueueKey(currentUserId);
     const queueJson = await AsyncStorage.getItem(queueKey);
     if (!queueJson) return 0;
@@ -293,7 +294,7 @@ export async function syncOfflineHealthLogs(baseUrl: string): Promise<number> {
     const queue = JSON.parse(queueJson);
     if (queue.length === 0) return 0;
 
-    const token = await AsyncStorage.getItem("access_token");
+    const token = await getToken();
     if (!token) {
       console.warn("[SyncService] No access token found. Skipping health logs sync.");
       return 0;

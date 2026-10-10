@@ -26,7 +26,7 @@ import { EmptyState } from "../../../components/ui/EmptyState";
 import { useToast } from "../../../contexts/ToastContext";
 import { queueExerciseForSync } from "../../../services/SyncService";
 
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getToken } from "../../../lib/secureTokenStore";
 import { theme } from "../../../constants/theme";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
@@ -57,7 +57,7 @@ export default function ExerciseDiaryScreen() {
   const fetchLogs = useCallback(async () => {
     if (!userId) return;
     try {
-      const storedToken = await AsyncStorage.getItem("access_token");
+      const storedToken = await getToken();
       const effectiveToken = token || storedToken || "";
       const response = await fetch(`${base_url}/api/exercises/logs/${userId}?limit=50&offset=0`, {
         headers: {
@@ -97,7 +97,7 @@ export default function ExerciseDiaryScreen() {
   const confirmDeleteLog = async () => {
     if (!logToDelete || !userId) return;
     try {
-      const storedToken = await AsyncStorage.getItem("access_token");
+      const storedToken = await getToken();
       const effectiveToken = token || storedToken || "";
       const res = await fetch(`${base_url}/api/exercises/logs/${userId}/${logToDelete.id}`, {
         method: "DELETE",

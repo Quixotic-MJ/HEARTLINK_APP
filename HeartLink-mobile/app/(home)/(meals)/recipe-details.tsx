@@ -16,6 +16,7 @@ import { StatusBar } from "expo-status-bar";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getToken } from "../../../lib/secureTokenStore";
 import { useUser } from "../../../contexts/UserContext";
 import { queueMealForSync } from "../../../services/SyncService";
 import { useToast } from "../../../contexts/ToastContext";
@@ -90,7 +91,7 @@ export default function RecipeDetailsScreen() {
   useEffect(() => {
     async function fetchRecipe() {
       try {
-        const storedToken = await AsyncStorage.getItem("access_token");
+        const storedToken = await getToken();
         const effectiveToken = token || storedToken || "";
         const headers: Record<string, string> = {};
         if (effectiveToken) {
@@ -170,7 +171,7 @@ export default function RecipeDetailsScreen() {
           }
         }
 
-        const storedToken = await AsyncStorage.getItem("access_token");
+        const storedToken = await getToken();
         const effectiveToken = token || storedToken || "";
         if (userId && effectiveToken) {
           const res = await fetch(`${base_url}/api/recipes/saved/${userId}`, {
@@ -218,7 +219,7 @@ export default function RecipeDetailsScreen() {
       }
 
       // 2. Synchronize with Backend
-      const storedToken = await AsyncStorage.getItem("access_token");
+      const storedToken = await getToken();
       const effectiveToken = token || storedToken || "";
       if (userId && effectiveToken) {
         await fetch(`${base_url}/api/recipes/${id}/save/${userId}`, {
