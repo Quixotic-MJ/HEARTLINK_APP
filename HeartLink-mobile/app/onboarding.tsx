@@ -1,70 +1,126 @@
-import React, { useEffect, useState } from "react";
-import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator } from "react-native";
+import React, { useEffect } from "react";
+import { View, Text, TouchableOpacity, useWindowDimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
-import Animated, { FadeInDown, FadeIn } from "react-native-reanimated";
+import { LinearGradient } from "expo-linear-gradient";
+import { useColorScheme } from "nativewind";
+import Animated, {
+  Easing,
+  FadeIn,
+  FadeInDown,
+  FadeInLeft,
+  ZoomIn,
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withDelay,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from "react-native-reanimated";
 import "../global.css";
-import { useUser } from "../contexts/UserContext";
-import { Feather, MaterialCommunityIcons, MaterialIcons } from "../lib/icons";
+import { Colors } from "../constants/theme";
 import HeartLogo from "../components/ui/HeartLogo";
-import { theme } from "../constants/theme";
 
-const base_url = process.env.EXPO_PUBLIC_API_URL;
+// ─── A day with HeartLink ─────────────────────────────────────────────────────
+// The features are told as one example day. A single line in the logo's
+// gradient runs through the day and ends at the heart (the score). The whole
+// screen fits without scrolling: the timeline stretches to fill spare height.
 
-// ─── Feature Card ─────────────────────────────────────────────────────────────
+type Hue = "blue" | "teal" | "success" | "lime";
 
-function FeatureCard({
-  icon,
-  iconType,
-  iconBgClass,
-  iconColorClass,
-  title,
-  subtitle,
-  delay,
-}: {
-  icon: string;
-  iconType: "feather" | "material" | "mci";
-  iconBgClass: string;
-  iconColorClass: string;
-  title: string;
-  subtitle: string;
-  delay: number;
-}) {
+const DAY: { when: string; title: string; body: string; hue: Hue; next: Hue }[] = [
+  {
+    when: "Morning",
+    title: "Log your blood pressure",
+    body: "Unusual readings are flagged right away.",
+    hue: "blue",
+    next: "teal",
+  },
+  {
+    when: "Midday",
+    title: "Pick a heart-friendly lunch",
+    body: "Every recipe shows its sodium.",
+    hue: "teal",
+    next: "success",
+  },
+  {
+    when: "Evening",
+    title: "Move at your own pace",
+    body: "Workouts match your current stamina.",
+    hue: "success",
+    next: "lime",
+  },
+];
+
+// One orchestrated sequence: headline, then each moment of the day in turn,
+// the line growing between them, ending with the heart starting to beat.
+const START_MS = 450;
+const STEP_MS = 420;
+const FINAL_MS = START_MS + DAY.length * STEP_MS;
+
+// Below this height the supporting lines are dropped so nothing needs scrolling.
+const COMPACT_HEIGHT = 700;
+
+// ─── Line segment (grows downward once) ───────────────────────────────────────
+
+function Segment({ from, to, delay }: { from: string; to: string; delay: number }) {
+  const reduceMotion = useReducedMotion();
+  const progress = useSharedValue(reduceMotion ? 1 : 0);
+
+  useEffect(() => {
+    if (reduceMotion) return;
+    progress.value = withDelay(
+      delay,
+      withTiming(1, { duration: STEP_MS, easing: Easing.out(Easing.cubic) })
+    );
+  }, [delay, progress, reduceMotion]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scaleY: progress.value }],
+  }));
+
   return (
     <Animated.View
-      entering={FadeInDown.delay(delay).springify().damping(12).stiffness(90)}
-      className="bg-surface rounded-2xl p-4 flex-row items-center border border-border mb-3.5 shadow-sm shadow-slate-100 dark:shadow-none"
-      accessible={true}
-      accessibilityRole="text"
-      accessibilityLabel={`${title}. ${subtitle}`}
+      style={[{ flex: 1, width: 2, marginTop: 4, transformOrigin: "top" }, animatedStyle]}
     >
-      <View
-        className={`w-12 h-12 rounded-xl items-center justify-center mr-4 flex-shrink-0 ${iconBgClass}`}
-        importantForAccessibility="no"
-      >
-        {iconType === "feather" && (
-          <Feather name={icon as any} size={20} className={iconColorClass} />
-        )}
-        {iconType === "material" && (
-          <MaterialIcons name={icon as any} size={20} className={iconColorClass} />
-        )}
-        {iconType === "mci" && (
-          <MaterialCommunityIcons
-            name={icon as any}
-            size={20}
-            className={iconColorClass}
-          />
-        )}
-      </View>
-      <View className="flex-1 pr-1">
-        <Text className="text-base font-semibold text-text mb-1 tracking-tight">
-          {title}
-        </Text>
-        <Text className="text-xs sm:text-sm text-text-soft leading-relaxed">
-          {subtitle}
-        </Text>
-      </View>
+      <LinearGradient colors={[from, to]} style={{ flex: 1, borderRadius: 1 }} />
+    </Animated.View>
+  );
+}
+
+// ─── Heart at the end of the line (beats once the day is complete) ────────────
+
+function BeatingHeart({ size, delay }: { size: number; delay: number }) {
+  const reduceMotion = useReducedMotion();
+  const scale = useSharedValue(1);
+
+  useEffect(() => {
+    if (reduceMotion) return;
+    // "Lub-dub", then rest, repeated: a slow resting heartbeat.
+    scale.value = withDelay(
+      delay,
+      withRepeat(
+        withSequence(
+          withTiming(1.18, { duration: 140, easing: Easing.out(Easing.quad) }),
+          withTiming(1, { duration: 160 }),
+          withTiming(1.1, { duration: 120, easing: Easing.out(Easing.quad) }),
+          withTiming(1, { duration: 220 }),
+          withTiming(1, { duration: 1300 })
+        ),
+        -1
+      )
+    );
+  }, [delay, reduceMotion, scale]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  return (
+    <Animated.View style={animatedStyle}>
+      <HeartLogo size={size} />
     </Animated.View>
   );
 }
@@ -73,73 +129,29 @@ function FeatureCard({
 
 export default function OnboardingScreen() {
   const router = useRouter();
-  const { setUserId } = useUser();
+  const { height } = useWindowDimensions();
+  const compact = height < COMPACT_HEIGHT;
+  const { colorScheme } = useColorScheme();
+  const palette = colorScheme === "dark" ? Colors.dark : Colors.light;
 
-  const [isServerUp, setIsServerUp] = useState<boolean | null>(null);
-  const [isCheckingServer, setIsCheckingServer] = useState(false);
-  const [showError, setShowError] = useState(false);
+  const mid = (hue: Hue) => palette[`${hue}Mid`];
+  const label = (hue: Hue) => palette[`${hue}Text`];
 
-  // Silent check on mount
-  useEffect(() => {
-    const silentPing = async () => {
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 4000);
-        const response = await fetch(`${base_url}/api/health`, { signal: controller.signal });
-        clearTimeout(timeoutId);
-        if (response.ok) setIsServerUp(true);
-      } catch (e) {
-        setIsServerUp(false);
-      }
-    };
-    silentPing();
-  }, []);
-
-  const handleGetStarted = async () => {
-    if (isServerUp === true) {
-      router.push("/register");
-      return;
-    }
-
-    setIsCheckingServer(true);
-    setShowError(false);
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
-      const response = await fetch(`${base_url}/api/health`, { signal: controller.signal });
-      clearTimeout(timeoutId);
-
-      if (response.ok) {
-        setIsServerUp(true);
-        router.push("/register");
-      } else {
-        setIsServerUp(false);
-        setShowError(true);
-      }
-    } catch (e) {
-      setIsServerUp(false);
-      setShowError(true);
-    } finally {
-      setIsCheckingServer(false);
-    }
+  // No server pre-check here: registration reports connection errors on submit,
+  // so a slow or sleeping server never blocks a new user at the first tap.
+  const handleGetStarted = () => {
+    router.push("/register");
   };
 
   return (
-    <SafeAreaView
-      className="flex-1 bg-background"
-      edges={["top", "bottom"]}
-    >
+    <SafeAreaView className="flex-1 bg-background" edges={["top", "bottom"]}>
       <StatusBar style="auto" />
 
-      <ScrollView
-        contentContainerClassName="flex-grow pb-6"
-        showsVerticalScrollIndicator={false}
-        bounces={false}
-      >
+      <View className="flex-1 px-6">
         {/* ── Logo bar ── */}
         <Animated.View
-          entering={FadeInDown.delay(100).springify().damping(14).stiffness(100)}
-          className="flex-row items-center px-6 pt-4 sm:pt-6 mb-6 sm:mb-8"
+          entering={FadeIn.duration(400)}
+          className={compact ? "flex-row items-center pt-3 mb-4" : "flex-row items-center pt-4 mb-7"}
         >
           <HeartLogo size={24} />
           <Text className="ml-2.5 text-lg text-text font-bold tracking-tight">
@@ -147,101 +159,134 @@ export default function OnboardingScreen() {
           </Text>
         </Animated.View>
 
-        <View className="items-center px-6 mb-8 sm:mb-10">
-          {/* Headline */}
+        {/* ── Headline (two lines arrive one after the other) ── */}
+        <View
+          accessible={true}
+          accessibilityRole="header"
+          accessibilityLabel="Your heart, one day at a time."
+          className="mb-2"
+        >
           <Animated.Text
-            entering={FadeInDown.delay(200).springify().damping(12).stiffness(90)}
-            className="text-3xl sm:text-4xl font-bold text-text text-center tracking-tight leading-tight mb-3 sm:mb-4"
-            accessibilityRole="header"
+            entering={FadeInDown.delay(80).duration(500).easing(Easing.out(Easing.cubic))}
+            className={
+              compact
+                ? "text-[32px] leading-[36px] font-extrabold text-text tracking-tight"
+                : "text-[34px] leading-[38px] font-extrabold text-text tracking-tight"
+            }
           >
-            Everyday care for{"\n"}a healthier,{"\n"}stronger heart.
+            Your heart,
           </Animated.Text>
           <Animated.Text
-            entering={FadeInDown.delay(300).springify().damping(12).stiffness(90)}
-            className="text-sm sm:text-base text-text-soft text-center leading-relaxed px-1 sm:px-3 font-medium"
+            entering={FadeInDown.delay(220).duration(500).easing(Easing.out(Easing.cubic))}
+            className={
+              compact
+                ? "text-[32px] leading-[36px] font-extrabold text-text tracking-tight"
+                : "text-[34px] leading-[38px] font-extrabold text-text tracking-tight"
+            }
           >
-            Track daily vitals, discover personalized meals and workouts, and take confident steps toward lifelong cardiovascular wellness.
+            one day at a time.
           </Animated.Text>
         </View>
+        <Animated.Text
+          entering={FadeIn.delay(360).duration(500)}
+          className={compact ? "text-sm text-text-soft leading-5 mb-5" : "text-base text-text-soft leading-6 mb-7"}
+        >
+          Small daily check-ins, one clear picture of your heart.
+        </Animated.Text>
 
-        {/* ── Feature Cards ── */}
-        <View className="px-6 mb-6">
-          <FeatureCard
-            icon="bar-chart-2"
-            iconType="feather"
-            iconBgClass="bg-blue-tint"
-            iconColorClass="text-blue-text"
-            title="Health Stability Score"
-            subtitle="Clear, daily insights into your cardiovascular wellness without complex clinical jargon."
-            delay={400}
-          />
-          <FeatureCard
-            icon="silverware-fork-knife"
-            iconType="mci"
-            iconBgClass="bg-teal-tint"
-            iconColorClass="text-teal-text"
-            title="Heart-Healthy Recipes"
-            subtitle="Discover delicious, balanced meals customized specifically to support your heart health."
-            delay={500}
-          />
-          <FeatureCard
-            icon="fitness-center"
-            iconType="material"
-            iconBgClass="bg-lime-tint"
-            iconColorClass="text-lime-text"
-            title="Personalized Workouts"
-            subtitle="Follow tailored, comfortable exercise routines adapted to your current stamina."
-            delay={600}
-          />
+        {/* ── Example day: stretches to fill the remaining height ── */}
+        <View className="flex-1">
+          {DAY.map((moment, i) => {
+            const at = START_MS + i * STEP_MS;
+            return (
+              <View key={moment.when} className="flex-row flex-grow">
+                <View className="w-7 items-center">
+                  <Animated.View
+                    entering={ZoomIn.delay(at).springify().damping(10).stiffness(160)}
+                    className="w-3 h-3 rounded-full mt-0.5"
+                    style={{ backgroundColor: mid(moment.hue) }}
+                  />
+                  <Segment from={mid(moment.hue)} to={mid(moment.next)} delay={at + 120} />
+                </View>
+
+                <Animated.View
+                  entering={FadeInLeft.delay(at).duration(380).easing(Easing.out(Easing.cubic))}
+                  className="flex-1 pl-3 pb-4"
+                  accessible={true}
+                  accessibilityLabel={`${moment.when}. ${moment.title}. ${moment.body}`}
+                >
+                  <Text
+                    className="text-xs font-semibold leading-4 mb-0.5"
+                    style={{ color: label(moment.hue) }}
+                  >
+                    {moment.when}
+                  </Text>
+                  <Text className="text-base font-bold text-text tracking-tight">
+                    {moment.title}
+                  </Text>
+                  {!compact && (
+                    <Text className="text-sm text-text-soft leading-5 mt-0.5">
+                      {moment.body}
+                    </Text>
+                  )}
+                </Animated.View>
+              </View>
+            );
+          })}
+
+          {/* ── End of the day: the score ── */}
+          <View
+            className="flex-row pb-4"
+            accessible={true}
+            accessibilityLabel="By tonight. Your Heart Health Stability Score. One clear number, updated as you log."
+          >
+            <Animated.View
+              entering={ZoomIn.delay(FINAL_MS).springify().damping(9).stiffness(140)}
+              className="w-7 items-center"
+              style={{ marginTop: -6 }}
+            >
+              <BeatingHeart size={28} delay={FINAL_MS + 500} />
+            </Animated.View>
+            <Animated.View
+              entering={FadeInLeft.delay(FINAL_MS).duration(380).easing(Easing.out(Easing.cubic))}
+              className="flex-1 pl-3"
+            >
+              <Text
+                className="text-xs font-semibold leading-4 mb-0.5"
+                style={{ color: label("lime") }}
+              >
+                By tonight
+              </Text>
+              <Text className="text-base font-bold text-text tracking-tight">
+                Your Heart Health Stability Score
+              </Text>
+              {!compact && (
+                <Text className="text-sm text-text-soft leading-5 mt-0.5">
+                  One clear number, updated as you log.
+                </Text>
+              )}
+            </Animated.View>
+          </View>
         </View>
-
-      </ScrollView>
+      </View>
 
       {/* ── Actions (Fixed Footer) ── */}
       <Animated.View
-        entering={FadeInDown.delay(700).springify().damping(12).stiffness(90)}
-        className="px-6 pt-4 pb-6 bg-background border-t border-border"
+        entering={FadeInDown.delay(500).duration(500).easing(Easing.out(Easing.cubic))}
+        className={compact ? "px-6 pt-3 pb-3" : "px-6 pt-4 pb-5"}
       >
-        {/* Server Offline Error */}
-        {showError && (
-          <Animated.View
-            entering={FadeIn}
-            className="bg-danger-tint border border-danger/40 rounded-xl p-3 mb-4 flex-row items-center gap-2.5"
-            accessible={true}
-            accessibilityRole="alert"
-          >
-            <Feather name="wifi-off" size={16} color={theme.dangerText} />
-            <Text className="text-danger-text text-xs sm:text-sm font-medium flex-1 leading-snug">
-              Unable to connect to the server. Please check your internet connection and try again.
-            </Text>
-          </Animated.View>
-        )}
-
-        {/* Primary CTA */}
         <TouchableOpacity
           activeOpacity={0.85}
-          className="w-full bg-primary rounded-2xl py-4 flex-row justify-center items-center gap-2 mb-4 shadow-sm shadow-blue-500/20 dark:shadow-none"
-          style={isCheckingServer ? { opacity: 0.8 } : {}}
+          className="w-full bg-primary rounded-2xl py-4 items-center mb-2"
           onPress={handleGetStarted}
-          disabled={isCheckingServer}
           accessible={true}
           accessibilityRole="button"
-          accessibilityLabel="Get started with Heart Link"
-          accessibilityHint="Navigates to the registration screen"
+          accessibilityLabel="Create an account"
+          accessibilityHint="Opens the registration screen"
         >
-          {isCheckingServer ? (
-            <ActivityIndicator size="small" color={theme.onPrimary} />
-          ) : (
-            <>
-              <Text className="text-on-primary text-sm font-bold tracking-wide">
-                Get started
-              </Text>
-              <Feather name="arrow-right" size={16} color={theme.onPrimary} />
-            </>
-          )}
+          <Text className="text-on-primary text-base font-bold">Create an account</Text>
         </TouchableOpacity>
 
-        {/* Secondary CTA */}
         <TouchableOpacity
           activeOpacity={0.65}
           className="py-2 flex-row justify-center items-center gap-1.5"
@@ -249,14 +294,12 @@ export default function OnboardingScreen() {
           accessible={true}
           accessibilityRole="button"
           accessibilityLabel="Log in to existing account"
-          accessibilityHint="Navigates to the login screen"
+          accessibilityHint="Opens the login screen"
         >
           <Text className="text-sm font-medium text-text-soft">
             Already have an account?
           </Text>
-          <Text className="text-sm font-bold text-text">
-            Log in
-          </Text>
+          <Text className="text-sm font-bold text-text">Log in</Text>
         </TouchableOpacity>
       </Animated.View>
     </SafeAreaView>

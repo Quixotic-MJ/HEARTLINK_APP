@@ -1,18 +1,23 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
   TouchableOpacity,
   Platform,
   KeyboardAvoidingView,
+  TextInput,
   ScrollView,
+  Linking,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
+import { LinearGradient } from "expo-linear-gradient";
+import { useColorScheme } from "nativewind";
 import Animated, {
+  Easing,
   FadeIn,
-  FadeInDown,
+  useReducedMotion,
   useSharedValue,
   useAnimatedStyle,
   withSequence,
@@ -25,10 +30,20 @@ import "../../global.css";
 import { Feather } from "@expo/vector-icons";
 import { InputField } from "../../components/ui/InputField";
 import { Button } from "../../components/ui/Button";
-import { SimpleHeader } from "../../components/ui/SimpleHeader";
-import { theme } from "../../constants/theme";
+import { Colors } from "../../constants/theme";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
+
+// ─── Phone number ─────────────────────────────────────────────────────────────
+// People type Philippine mobile numbers as "0912…" or "912…" (and sometimes
+// paste "+63 912…"). Strip the prefix before counting, so no digit gets cut off.
+
+const nationalDigits = (value: string) => {
+  let digits = value.replace(/\D/g, "");
+  if (digits.startsWith("63") && digits.length > 10) digits = digits.slice(2);
+  if (digits.startsWith("0")) digits = digits.slice(1);
+  return digits;
+};
 
 // ─── Validation Schema ────────────────────────────────────────────────────────
 
@@ -38,8 +53,8 @@ const registerSchema = z.object({
     .string()
     .min(1, "Please fill out this field.")
     .refine(
-      (val) => val.replace(/\D/g, "").length === 10,
-      "Enter a valid 10-digit phone number (e.g., 912-345-6789)."
+      (val) => nationalDigits(val).length === 10,
+      "Enter a valid 10-digit mobile number (e.g., 912 345 6789)."
     ),
   password: z
     .string()
@@ -48,24 +63,68 @@ const registerSchema = z.object({
     .regex(/(?=.*[A-Z])/, "Password must contain an uppercase letter.")
     .regex(/(?=.*\d)/, "Password must include at least one number.")
     .regex(/(?=.*[^A-Za-z0-9\s])/, "Password must include at least one special character."),
-  confirmPassword: z.string().min(1, "Please confirm your password."),
-}).refine(data => data.password === data.confirmPassword, {
-  message: "The passwords don't match yet. Please check again.",
-  path: ["confirmPassword"],
 });
 
 type RegisterFormValues = z.infer<typeof registerSchema>;
+
+// ─── Password rules ───────────────────────────────────────────────────────────
+// Same rules as the schema above, shown as a four-part line. Each part fills
+// in the logo's gradient as its rule is met.
+
+type Hue = "blue" | "teal" | "success" | "lime";
+
+const PASSWORD_RULES: { label: string; test: (pw: string) => boolean; hue: Hue; next: Hue }[] = [
+  { label: "16+ characters", test: (pw) => pw.length >= 16, hue: "blue", next: "teal" },
+  { label: "Upper & lowercase", test: (pw) => /[A-Z]/.test(pw) && /[a-z]/.test(pw), hue: "teal", next: "success" },
+  { label: "A number", test: (pw) => /\d/.test(pw), hue: "success", next: "lime" },
+  { label: "A symbol (! # $)", test: (pw) => /[^A-Za-z0-9\s]/.test(pw), hue: "lime", next: "lime" },
+];
+
+function RuleSegment({ met, from, to, track }: { met: boolean; from: string; to: string; track: string }) {
+  const reduceMotion = useReducedMotion();
+  const fill = useSharedValue(met ? 1 : 0);
+
+  useEffect(() => {
+    fill.value = reduceMotion
+      ? (met ? 1 : 0)
+      : withTiming(met ? 1 : 0, { duration: 320, easing: Easing.out(Easing.cubic) });
+  }, [met, fill, reduceMotion]);
+
+  const fillStyle = useAnimatedStyle(() => ({
+    transform: [{ scaleX: fill.value }],
+  }));
+
+  return (
+    <View style={{ flex: 1, height: 4, borderRadius: 2, overflow: "hidden", backgroundColor: track }}>
+      <Animated.View style={[{ flex: 1, transformOrigin: "left" }, fillStyle]}>
+        <LinearGradient
+          colors={[from, to]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={{ flex: 1 }}
+        />
+      </Animated.View>
+    </View>
+  );
+}
+
+// Same links as Settings → About.
+const openLegal = (path: "terms" | "privacy") => {
+  Linking.openURL(`https://heartlink.com/${path}`);
+};
 
 // ─── Register Screen ──────────────────────────────────────────────────────────
 
 export default function RegisterScreen() {
   const router = useRouter();
+  const { colorScheme } = useColorScheme();
+  const palette = colorScheme === "dark" ? Colors.dark : Colors.light;
 
   const formatPhoneNumber = (value: string) => {
-    const digits = value.replace(/\D/g, "").slice(0, 10);
+    const digits = nationalDigits(value).slice(0, 10);
     if (digits.length <= 3) return digits;
-    if (digits.length <= 6) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
-    return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6, 10)}`;
+    if (digits.length <= 6) return `${digits.slice(0, 3)} ${digits.slice(3)}`;
+    return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6, 10)}`;
   };
 
   const {
@@ -82,22 +141,33 @@ export default function RegisterScreen() {
       email: "",
       phone: "",
       password: "",
-      confirmPassword: "",
     },
     mode: "onSubmit",
     reValidateMode: "onSubmit",
   });
 
+  // Keyboard "Next" moves through the fields in order.
+  const phoneRef = useRef<TextInput>(null);
+  const passwordRef = useRef<TextInput>(null);
+
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [generalError, setGeneralError] = useState<string | null>(null);
 
   // Micro-interactions
   const errorShake = useSharedValue(0);
   const eyeScale = useSharedValue(1);
-  const confirmEyeScale = useSharedValue(1);
 
+  const emailValue = watch("email") || "";
+  const phoneValue = watch("phone") || "";
   const passwordValue = watch("password") || "";
+  const rulesMet = PASSWORD_RULES.filter((rule) => rule.test(passwordValue)).length;
+
+  // Continue unlocks once every field is filled in; the email format is still
+  // checked on submit so a typo gets a specific message.
+  const canContinue =
+    emailValue.trim().length > 0 &&
+    nationalDigits(phoneValue).length === 10 &&
+    rulesMet === PASSWORD_RULES.length;
 
   useEffect(() => {
     if (generalError) {
@@ -119,10 +189,6 @@ export default function RegisterScreen() {
     transform: [{ scale: eyeScale.value }],
   }));
 
-  const confirmEyeAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: confirmEyeScale.value }],
-  }));
-
   const togglePasswordVisibility = () => {
     eyeScale.value = withSequence(
       withTiming(0.7, { duration: 80 }),
@@ -132,24 +198,10 @@ export default function RegisterScreen() {
     setShowPassword((prev) => !prev);
   };
 
-  const toggleConfirmPasswordVisibility = () => {
-    confirmEyeScale.value = withSequence(
-      withTiming(0.7, { duration: 80 }),
-      withTiming(1.15, { duration: 100 }),
-      withTiming(1, { duration: 80 })
-    );
-    setShowConfirmPassword((prev) => !prev);
-  };
-
   const onSubmit = async (data: RegisterFormValues) => {
     setGeneralError(null);
 
-    const rawDigits = data.phone.replace(/\D/g, "");
-    let normalizedPhone = rawDigits;
-    if (normalizedPhone.startsWith("0")) {
-      normalizedPhone = normalizedPhone.substring(1);
-    }
-    normalizedPhone = `+63${normalizedPhone}`;
+    const normalizedPhone = `+63${nationalDigits(data.phone)}`;
 
     try {
       const response = await fetch(`${base_url}/api/auth/request-code`, {
@@ -169,14 +221,14 @@ export default function RegisterScreen() {
       if (response.ok) {
         router.push({ pathname: "/(auth)/verify-otp", params: { phone: normalizedPhone } });
       } else {
-        let errorMsg = "An error occurred. Please try again.";
+        let errorMsg = "Couldn't send the code. Check your details and try again.";
         if (Array.isArray(resData.detail)) {
             errorMsg = resData.detail[0].msg;
         } else if (typeof resData.detail === "string") {
             errorMsg = resData.detail;
         }
         errorMsg = errorMsg.replace(/^Value error,\s*/i, "");
-        
+
         const detail = errorMsg.toLowerCase();
         if (detail.includes("phone") && (detail.includes("already registered") || detail.includes("duplicate"))) {
           setError("phone", { type: "server", message: "This phone number is already registered. Please log in." });
@@ -193,11 +245,32 @@ export default function RegisterScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-[#EDF1EF] dark:bg-[#0A0F0E]" edges={["top", "bottom"]}>
+    <SafeAreaView className="flex-1 bg-background" edges={["top", "bottom"]}>
       <StatusBar style="auto" />
 
-      {/* ── Top Bar ── */}
-      <SimpleHeader />
+      {/* ── Top bar: back + step, then a two-part progress line ── */}
+      <View className="px-6 pt-2">
+        <View className="flex-row items-center justify-between mb-3">
+          <TouchableOpacity
+            onPress={() => router.back()}
+            activeOpacity={0.7}
+            className="w-11 h-11 items-center justify-center rounded-full bg-surface border border-border"
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+          >
+            <Feather name="arrow-left" size={20} color={palette.text} />
+          </TouchableOpacity>
+          <Text className="text-xs font-medium text-text-soft">Step 1 of 2</Text>
+        </View>
+        <View
+          className="flex-row gap-1.5"
+          accessible={true}
+          accessibilityLabel="Step 1 of 2: your details"
+        >
+          <View className="flex-1 h-1 rounded-full bg-primary" />
+          <View className="flex-1 h-1 rounded-full bg-border" />
+        </View>
+      </View>
 
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -206,54 +279,56 @@ export default function RegisterScreen() {
         <ScrollView
           contentContainerStyle={{
             flexGrow: 1,
-            justifyContent: "center",
-            paddingHorizontal: 20,
-            paddingVertical: 16,
+            paddingHorizontal: 24,
+            paddingTop: 24,
+            paddingBottom: 16,
           }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
           {/* ── Heading ── */}
-          <Animated.View entering={FadeIn.delay(100)} className="mb-6 px-1">
-            <Text className="text-3xl sm:text-4xl font-bold text-text tracking-tight leading-tight mb-2">
-              Create your account.
+          <Animated.View entering={FadeIn.duration(400)} className="mb-6">
+            <Text
+              className="text-[28px] leading-[34px] font-extrabold text-text tracking-tight mb-2"
+              accessibilityRole="header"
+            >
+              Create your account
             </Text>
-            <Text className="text-sm sm:text-base text-text-soft leading-relaxed font-medium">
-              Securely track and nurture your cardiovascular wellness.
+            <Text className="text-[15px] text-text-soft leading-[22px]">
+              Takes about a minute. We'll text a code to confirm your number.
             </Text>
           </Animated.View>
 
-          {/* ── Card ── */}
-          <Animated.View
-            entering={FadeInDown.delay(200).springify().damping(12).stiffness(90)}
-            className="bg-surface dark:bg-[#101615] rounded-2xl border border-border px-5 py-6 gap-3.5 shadow-sm shadow-slate-100 dark:shadow-none"
-          >
+          <Animated.View entering={FadeIn.delay(120).duration(400)} className="gap-4">
             {/* General Error Banner */}
             {generalError && (
               <Animated.View
                 style={errorAnimatedStyle}
-                className="bg-red-100 dark:bg-red-900/20 border border-red-200 dark:border-red-900/40 rounded-xl p-3.5 flex-row items-center gap-2.5"
+                className="bg-danger-tint border border-danger/40 rounded-xl p-3.5 flex-row items-center gap-2.5"
                 accessible={true}
                 accessibilityRole="alert"
               >
-                <Feather name="alert-triangle" size={16} color={theme.danger} />
-                <Text className="text-red-600 dark:text-red-400 text-xs sm:text-sm font-medium flex-1 leading-snug">
+                <Feather name="alert-triangle" size={16} color={palette.dangerText} />
+                <Text className="text-danger-text text-sm font-medium flex-1 leading-snug">
                   {generalError}
                 </Text>
               </Animated.View>
             )}
 
-            {/* Email Field */}
             <InputField
               control={control}
               name="email"
-              label="Email Address"
+              label="Email"
               icon="mail"
-              placeholder="Enter your email address"
+              placeholder="name@example.com"
               keyboardType="email-address"
               autoComplete="email"
               textContentType="emailAddress"
               autoCapitalize="none"
+              forceLight={false}
+              returnKeyType="next"
+              submitBehavior="submit"
+              onSubmitEditing={() => phoneRef.current?.focus()}
               editable={!isSubmitting}
               onChangeText={(text) => {
                 setValue("email", text, { shouldValidate: false, shouldDirty: true });
@@ -263,17 +338,20 @@ export default function RegisterScreen() {
               }}
             />
 
-            {/* Phone Field */}
             <InputField
               control={control}
               name="phone"
-              label="Phone Number"
-              icon="phone"
-              placeholder="912-345-6789"
+              label="Mobile number"
+              placeholder="912 345 6789"
               keyboardType="phone-pad"
               autoComplete="tel"
               textContentType="telephoneNumber"
-              maxLength={12}
+              maxLength={17}
+              forceLight={false}
+              inputRef={phoneRef}
+              returnKeyType="next"
+              submitBehavior="submit"
+              onSubmitEditing={() => passwordRef.current?.focus()}
               editable={!isSubmitting}
               onChangeText={(text) => {
                 setValue("phone", formatPhoneNumber(text), { shouldValidate: false, shouldDirty: true });
@@ -282,162 +360,160 @@ export default function RegisterScreen() {
                 }
               }}
               leftElement={
-                <View className="flex-row items-center border-r border-border pr-2.5 mr-2 self-stretch py-2 my-1">
-                  <Text className="text-sm sm:text-base font-bold text-text">
-                    +63
-                  </Text>
+                <View
+                  className="flex-row items-center gap-1.5 pr-3 border-r border-border self-stretch"
+                  accessible={true}
+                  accessibilityLabel="Philippines, plus 63"
+                >
+                  <Text className="text-[11px] font-semibold text-text-muted">PH</Text>
+                  <Text className="text-base font-semibold text-text">+63</Text>
                 </View>
               }
             />
 
-            {/* Password Field */}
-            <InputField
-              control={control}
-              name="password"
-              label="Password"
-              icon="lock"
-              placeholder="Create a password"
-              secureTextEntry={!showPassword}
-              autoCapitalize="none"
-              editable={!isSubmitting}
-              onChangeText={(text) => {
-                setValue("password", text, { shouldValidate: false, shouldDirty: true });
-                if (errors.password) {
-                  clearErrors("password");
+            <View>
+              <InputField
+                control={control}
+                name="password"
+                label="Password"
+                icon="lock"
+                placeholder="Create a password"
+                secureTextEntry={!showPassword}
+                autoCapitalize="none"
+                textContentType="newPassword"
+                autoComplete="new-password"
+                forceLight={false}
+                inputRef={passwordRef}
+                returnKeyType="done"
+                onSubmitEditing={() => {
+                  if (canContinue) handleSubmit(onSubmit)();
+                }}
+                editable={!isSubmitting}
+                onChangeText={(text) => {
+                  setValue("password", text, { shouldValidate: false, shouldDirty: true });
+                  if (errors.password) {
+                    clearErrors("password");
+                  }
+                }}
+                rightElement={
+                  <TouchableOpacity
+                    onPress={togglePasswordVisibility}
+                    className="p-2 -mr-2"
+                    hitSlop={6}
+                    disabled={isSubmitting}
+                    activeOpacity={0.7}
+                    accessible={true}
+                    accessibilityRole="button"
+                    accessibilityLabel={showPassword ? "Hide password" : "Show password"}
+                  >
+                    <Animated.View style={eyeAnimatedStyle}>
+                      <Feather
+                        name={showPassword ? "eye-off" : "eye"}
+                        size={18}
+                        color={showPassword ? palette.primary : palette.textMuted}
+                      />
+                    </Animated.View>
+                  </TouchableOpacity>
                 }
-              }}
-              rightElement={
-                <TouchableOpacity
-                  onPress={togglePasswordVisibility}
-                  className="p-2 -mr-2"
-                  disabled={isSubmitting}
-                  activeOpacity={0.7}
-                  accessible={true}
-                  accessibilityRole="button"
-                  accessibilityLabel={showPassword ? "Hide password" : "Show password"}
-                >
-                  <Animated.View style={eyeAnimatedStyle}>
-                    <Feather
-                      name={showPassword ? "eye" : "eye-off"}
-                      size={18}
-                      color={showPassword ? "#2E9AE8" : "#94a3b8"}
-                    />
-                  </Animated.View>
-                </TouchableOpacity>
-              }
-            />
-
-            {/* Confirm Password Field */}
-            <InputField
-              control={control}
-              name="confirmPassword"
-              label="Confirm Password"
-              icon="shield"
-              placeholder="Confirm your password"
-              secureTextEntry={!showConfirmPassword}
-              autoCapitalize="none"
-              editable={!isSubmitting}
-              onChangeText={(text) => {
-                setValue("confirmPassword", text, { shouldValidate: false, shouldDirty: true });
-                if (errors.confirmPassword) {
-                  clearErrors("confirmPassword");
-                }
-              }}
-              rightElement={
-                <TouchableOpacity
-                  onPress={toggleConfirmPasswordVisibility}
-                  className="p-2 -mr-2"
-                  disabled={isSubmitting}
-                  activeOpacity={0.7}
-                  accessible={true}
-                  accessibilityRole="button"
-                  accessibilityLabel={showConfirmPassword ? "Hide password" : "Show password"}
-                >
-                  <Animated.View style={confirmEyeAnimatedStyle}>
-                    <Feather
-                      name={showConfirmPassword ? "eye" : "eye-off"}
-                      size={18}
-                      color={showConfirmPassword ? "#2E9AE8" : "#94a3b8"}
-                    />
-                  </Animated.View>
-                </TouchableOpacity>
-              }
-            />
-
-            {/* Password Validation Hints */}
-            <View className="mb-1 ml-1 pt-1 gap-2">
-              <View className="flex-row items-center gap-2">
-                <Feather
-                  name={passwordValue.length >= 16 ? "check-circle" : "circle"}
-                  size={14}
-                  className={passwordValue.length >= 16 ? "text-primary" : "text-text-muted dark:text-text-soft"}
-                />
-                <Text className={`text-xs sm:text-[13px] ${passwordValue.length >= 16 ? "text-text font-bold" : "text-text-soft font-medium"}`}>
-                  At least 16 characters
-                </Text>
-              </View>
-              <View className="flex-row items-center gap-2">
-                <Feather
-                  name={/(?=.*[A-Z])/.test(passwordValue) && /(?=.*[a-z])/.test(passwordValue) ? "check-circle" : "circle"}
-                  size={14}
-                  className={/(?=.*[A-Z])/.test(passwordValue) && /(?=.*[a-z])/.test(passwordValue) ? "text-primary" : "text-text-muted dark:text-text-soft"}
-                />
-                <Text className={`text-xs sm:text-[13px] ${/(?=.*[A-Z])/.test(passwordValue) && /(?=.*[a-z])/.test(passwordValue) ? "text-text font-bold" : "text-text-soft font-medium"}`}>
-                  Uppercase &amp; lowercase letter
-                </Text>
-              </View>
-              <View className="flex-row items-center gap-2">
-                <Feather
-                  name={/(?=.*\d)/.test(passwordValue) ? "check-circle" : "circle"}
-                  size={14}
-                  className={/(?=.*\d)/.test(passwordValue) ? "text-primary" : "text-text-muted dark:text-text-soft"}
-                />
-                <Text className={`text-xs sm:text-[13px] ${/(?=.*\d)/.test(passwordValue) ? "text-text font-bold" : "text-text-soft font-medium"}`}>
-                  At least one number
-                </Text>
-              </View>
-              <View className="flex-row items-center gap-2">
-                <Feather
-                  name={/[^A-Za-z0-9\s]/.test(passwordValue) ? "check-circle" : "circle"}
-                  size={14}
-                  className={/[^A-Za-z0-9\s]/.test(passwordValue) ? "text-primary" : "text-text-muted dark:text-text-soft"}
-                />
-                <Text className={`text-xs sm:text-[13px] ${/[^A-Za-z0-9\s]/.test(passwordValue) ? "text-text font-bold" : "text-text-soft font-medium"}`}>
-                  At least one special character
-                </Text>
-              </View>
-            </View>
-
-
-            {/* Submit */}
-            <View className="mt-1">
-              <Button
-                onPress={handleSubmit(onSubmit)}
-                isLoading={isSubmitting}
-                loadingText="Sending code..."
-                label="Send verification code"
-                icon="send"
               />
+
+              {/* Password rules: four-part line + 2×2 checklist */}
+              <View
+                className="mt-3 px-0.5"
+                accessible={true}
+                accessibilityLabel={`Password rules, ${rulesMet} of 4 met. ${PASSWORD_RULES.map(
+                  (rule) => `${rule.label}: ${rule.test(passwordValue) ? "met" : "not met"}`
+                ).join(". ")}.`}
+              >
+                <View className="flex-row gap-1.5 mb-3">
+                  {PASSWORD_RULES.map((rule) => (
+                    <RuleSegment
+                      key={rule.label}
+                      met={rule.test(passwordValue)}
+                      from={palette[`${rule.hue}Mid`]}
+                      to={palette[`${rule.next}Mid`]}
+                      track={palette.borderStrong}
+                    />
+                  ))}
+                </View>
+                <View className="flex-row flex-wrap gap-y-2">
+                  {PASSWORD_RULES.map((rule) => {
+                    const met = rule.test(passwordValue);
+                    return (
+                      <View key={rule.label} className="w-1/2 flex-row items-center gap-2 pr-2">
+                        <Feather
+                          name={met ? "check-circle" : "circle"}
+                          size={14}
+                          color={met ? palette[`${rule.hue}Mid`] : palette.textMuted}
+                        />
+                        <Text
+                          className="text-sm leading-5 flex-1"
+                          style={{
+                            color: met ? palette.text : palette.textSoft,
+                            fontWeight: met ? "600" : "400",
+                          }}
+                        >
+                          {rule.label}
+                        </Text>
+                      </View>
+                    );
+                  })}
+                </View>
+              </View>
             </View>
           </Animated.View>
 
-          {/* ── Mode toggle ── */}
-          <Animated.View entering={FadeInDown.delay(300).springify().damping(12).stiffness(90)}>
+          {/* Pushes the actions to the bottom when there is spare height */}
+          <View className="flex-1 min-h-[32px]" />
+
+          {/* ── Actions ── */}
+          <View>
+            <Button
+              onPress={handleSubmit(onSubmit)}
+              disabled={!canContinue}
+              isLoading={isSubmitting}
+              loadingText="Sending code..."
+              label="Continue"
+            />
+
+            <Text className="text-xs text-text-soft text-center leading-[18px] mt-3">
+              By continuing you agree to our{" "}
+              <Text
+                className="text-xs text-text underline"
+                onPress={() => openLegal("terms")}
+                accessibilityRole="link"
+                accessibilityLabel="Terms, opens in browser"
+              >
+                Terms
+              </Text>
+              {" "}and{" "}
+              <Text
+                className="text-xs text-text underline"
+                onPress={() => openLegal("privacy")}
+                accessibilityRole="link"
+                accessibilityLabel="Privacy Policy, opens in browser"
+              >
+                Privacy Policy
+              </Text>
+              .
+            </Text>
+
             <TouchableOpacity
               activeOpacity={0.65}
               onPress={() => router.replace("/(auth)/login")}
-              className="flex-row justify-center items-center py-5 gap-1.5 mt-4"
+              className="flex-row justify-center items-center py-3 gap-1.5 mt-1"
               accessible={true}
               accessibilityRole="button"
+              accessibilityLabel="Log in to existing account"
             >
               <Text className="text-sm font-medium text-text-soft">
                 Already have an account?
               </Text>
-              <Text className="text-sm font-bold text-text">
+              <Text className="text-sm font-bold text-primary">
                 Log in
               </Text>
             </TouchableOpacity>
-          </Animated.View>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

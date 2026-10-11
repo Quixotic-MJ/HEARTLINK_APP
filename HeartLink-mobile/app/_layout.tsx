@@ -1,8 +1,9 @@
 import { Stack, useRouter, useSegments } from "expo-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { LogBox, Platform } from "react-native";
 import { useColorScheme } from "nativewind";
 import * as SystemUI from "expo-system-ui";
+import * as SplashScreen from "expo-splash-screen";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import "../global.css";
@@ -15,6 +16,10 @@ import {
   ReanimatedLogLevel,
 } from "react-native-reanimated";
 import { useBroadcastListener } from "../hooks/useBroadcastListener";
+
+// Keep the native splash up until the saved theme preference is applied, so the
+// first JS frame doesn't render in the system theme and then flip.
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 configureReanimatedLogger({
   level: ReanimatedLogLevel.warn,
@@ -109,7 +114,18 @@ import { queryClient, asyncStoragePersister } from '../lib/react-query';
 import { Colors } from '../constants/theme';
 
 export default function RootLayout() {
-  const { setColorScheme } = useColorScheme();
+  const { colorScheme, setColorScheme } = useColorScheme();
+  const [prefLoaded, setPrefLoaded] = useState(false);
+  const [targetScheme, setTargetScheme] = useState<"light" | "dark" | null>(null);
+  const [waitTimedOut, setWaitTimedOut] = useState(false);
+  // Latched: once shown, later theme changes from Settings must not unmount the app.
+  const [hasShown, setHasShown] = useState(false);
+
+  // NativeWind only switches scheme once the native Appearance change event comes
+  // back, so rendering right after setColorScheme() still shows the system scheme
+  // for a few frames. Hold the native splash until NativeWind reports the saved one.
+  const themeReady =
+    prefLoaded && (targetScheme === null || colorScheme === targetScheme || waitTimedOut);
 
   useEffect(() => {
     let mounted = true;
@@ -118,21 +134,46 @@ export default function RootLayout() {
       SystemUI.setBackgroundColorAsync(Colors.light.background).catch(() => {});
     }
 
-    AsyncStorage.getItem("theme_preference").then((pref) => {
-      if (!mounted) return;
-      if (pref === "light" || pref === "dark" || pref === "system") {
-        setTimeout(() => {
-          setColorScheme(pref);
-          if (Platform.OS === "android") {
-            SystemUI.setBackgroundColorAsync(pref === "dark" ? Colors.dark.background : Colors.light.background).catch(() => {});
-          }
-        }, 0);
-      }
-    });
+    AsyncStorage.getItem("theme_preference")
+      .then((pref) => {
+        if (!mounted) return;
+        if (pref === "light" || pref === "dark" || pref === "system") {
+          setTimeout(() => {
+            if (!mounted) return;
+            setColorScheme(pref);
+            if (Platform.OS === "android") {
+              SystemUI.setBackgroundColorAsync(pref === "dark" ? Colors.dark.background : Colors.light.background).catch(() => {});
+            }
+            if (pref !== "system") setTargetScheme(pref);
+            setPrefLoaded(true);
+          }, 0);
+        } else {
+          setPrefLoaded(true);
+        }
+      })
+      .catch(() => {
+        if (mounted) setPrefLoaded(true);
+      });
     return () => {
       mounted = false;
     };
   }, []);
+
+  // Never hold the splash indefinitely if the scheme change doesn't arrive.
+  useEffect(() => {
+    if (!prefLoaded || themeReady || hasShown) return;
+    const timer = setTimeout(() => setWaitTimedOut(true), 1000);
+    return () => clearTimeout(timer);
+  }, [prefLoaded, themeReady, hasShown]);
+
+  // Adjust-state-during-render pattern, so the latch takes effect in the same render.
+  if (themeReady && !hasShown) setHasShown(true);
+
+  useEffect(() => {
+    if (hasShown) SplashScreen.hideAsync().catch(() => {});
+  }, [hasShown]);
+
+  if (!hasShown && !themeReady) return null;
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

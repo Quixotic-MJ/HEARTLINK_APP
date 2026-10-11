@@ -8,16 +8,19 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
+  NativeSyntheticEvent,
+  TextInputKeyPressEventData,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Feather } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useColorScheme } from "nativewind";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import Animated, {
-  FadeInDown,
+  FadeIn,
   useSharedValue,
   useAnimatedStyle,
   withSequence,
@@ -26,10 +29,12 @@ import Animated, {
 import "../../global.css";
 import { useUser } from "../../contexts/UserContext";
 import { Button } from "../../components/ui/Button";
-import { SimpleHeader } from "../../components/ui/SimpleHeader";
-import { theme } from "../../constants/theme";
+import { Colors } from "../../constants/theme";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
+
+const CODE_LENGTH = 6;
+const RESEND_SECONDS = 60;
 
 const verifyOtpSchema = z.object({
   code: z.string().length(6, "Please enter the 6-digit verification code."),
@@ -37,10 +42,26 @@ const verifyOtpSchema = z.object({
 
 type VerifyOtpFormValues = z.infer<typeof verifyOtpSchema>;
 
+// "+639123456789" → "+63 912 345 6789"
+const formatPhoneForDisplay = (value: string) => {
+  const match = value.match(/^\+63(\d{3})(\d{3})(\d{4})$/);
+  return match ? `+63 ${match[1]} ${match[2]} ${match[3]}` : value;
+};
+
+// The server's expiry message names the old "Send verification code" button.
+const friendlyVerifyError = (detail: string) =>
+  /expired/i.test(detail)
+    ? "This code has expired. Go back and tap Continue to get a new one."
+    : detail;
+
 export default function OTPVerificationScreen() {
   const router = useRouter();
   const { phone } = useLocalSearchParams();
   const { setUserId } = useUser();
+  const { colorScheme } = useColorScheme();
+  const palette = colorScheme === "dark" ? Colors.dark : Colors.light;
+
+  const phoneText = typeof phone === "string" ? phone : "";
 
   const {
     handleSubmit,
@@ -54,10 +75,11 @@ export default function OTPVerificationScreen() {
     mode: "onSubmit",
   });
 
-  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+  const [otp, setOtp] = useState<string[]>(Array(CODE_LENGTH).fill(""));
   const inputRefs = useRef<(TextInput | null)[]>([]);
+  const [focusedIndex, setFocusedIndex] = useState<number | null>(0);
   const [isVerifying, setIsVerifying] = useState(false);
-  const [timer, setTimer] = useState(30);
+  const [timer, setTimer] = useState(RESEND_SECONDS);
   const [canResend, setCanResend] = useState(false);
   const [isResending, setIsResending] = useState(false);
   const [generalError, setGeneralError] = useState<string | null>(null);
@@ -91,18 +113,33 @@ export default function OTPVerificationScreen() {
     transform: [{ translateX: errorShake.value }],
   }));
 
+  const applyOtp = (next: string[]) => {
+    setOtp(next);
+    setValue("code", next.join(""));
+  };
+
   const handleOtpChange = (value: string, index: number) => {
     setGeneralError(null);
+    const digits = value.replace(/\D/g, "");
+
+    // A whole code pasted or filled in from the SMS: spread it across the boxes.
+    if (digits.length >= CODE_LENGTH) {
+      applyOtp(digits.slice(0, CODE_LENGTH).split(""));
+      inputRefs.current[CODE_LENGTH - 1]?.focus();
+      return;
+    }
+
+    // Typing over a filled box keeps only the newest digit.
+    const digit = digits.slice(-1);
     const newOtp = [...otp];
-    newOtp[index] = value;
-    setOtp(newOtp);
-    setValue("code", newOtp.join(""));
-    if (value !== "" && index < 5) {
+    newOtp[index] = digit;
+    applyOtp(newOtp);
+    if (digit !== "" && index < CODE_LENGTH - 1) {
       inputRefs.current[index + 1]?.focus();
     }
   };
 
-  const handleKeyPress = (e: any, index: number) => {
+  const handleKeyPress = (e: NativeSyntheticEvent<TextInputKeyPressEventData>, index: number) => {
     if (e.nativeEvent.key === "Backspace" && otp[index] === "" && index > 0) {
       inputRefs.current[index - 1]?.focus();
     }
@@ -135,12 +172,16 @@ export default function OTPVerificationScreen() {
         });
       } else {
         setIsVerifying(false);
-        setGeneralError(resData.detail || "Invalid Verification Code.");
+        setGeneralError(
+          typeof resData.detail === "string"
+            ? friendlyVerifyError(resData.detail)
+            : "That code didn't work. Check it and try again."
+        );
       }
     } catch (err) {
       console.log(err);
       setIsVerifying(false);
-      setGeneralError("An error occurred. Please check your connection.");
+      setGeneralError("Unable to connect to the server. Please check your connection.");
     }
   };
 
@@ -158,143 +199,192 @@ export default function OTPVerificationScreen() {
         const data = await response.json();
 
         if (response.ok) {
-          setTimer(30);
+          setTimer(RESEND_SECONDS);
           setCanResend(false);
-          setOtp(["", "", "", "", "", ""]);
-          setValue("code", "");
+          applyOtp(Array(CODE_LENGTH).fill(""));
           inputRefs.current[0]?.focus();
         } else {
-          setGeneralError(data.detail || "Failed to resend verification code.");
+          setGeneralError(
+            typeof data.detail === "string" ? data.detail : "Couldn't resend the code. Try again in a minute."
+          );
         }
       } catch (err) {
         console.log(err);
-        setGeneralError("An error occurred. Please check your connection.");
+        setGeneralError("Unable to connect to the server. Please check your connection.");
       } finally {
         setIsResending(false);
       }
     }
   };
 
-  const formatTime = (s: number) =>
-    `${Math.floor(s / 60)
-      .toString()
-      .padStart(2, "0")}:${(s % 60).toString().padStart(2, "0")}`;
+  // 42 → "0:42"
+  const formatTime = (s: number) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, "0")}`;
 
-  const isComplete = otp.join("").length === 6;
+  const isComplete = otp.join("").length === CODE_LENGTH;
+  const hasError = !!(generalError || errors.code);
 
   return (
-    <SafeAreaView className="flex-1 bg-[#EDF1EF] dark:bg-[#0A0F0E]" edges={["top", "bottom"]}>
+    <SafeAreaView className="flex-1 bg-background" edges={["top", "bottom"]}>
       <StatusBar style="auto" />
 
-      {/* ── Top Bar ── */}
-      <SimpleHeader />
+      {/* ── Top bar: back + step, both parts of the progress line filled ── */}
+      <View className="px-6 pt-2">
+        <View className="flex-row items-center justify-between mb-3">
+          <TouchableOpacity
+            onPress={() => router.back()}
+            activeOpacity={0.7}
+            className="w-11 h-11 items-center justify-center rounded-full bg-surface border border-border"
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+          >
+            <Feather name="arrow-left" size={20} color={palette.text} />
+          </TouchableOpacity>
+          <Text className="text-xs font-medium text-text-soft">Step 2 of 2</Text>
+        </View>
+        <View
+          className="flex-row gap-1.5"
+          accessible={true}
+          accessibilityLabel="Step 2 of 2: confirm your number"
+        >
+          <View className="flex-1 h-1 rounded-full bg-primary" />
+          <View className="flex-1 h-1 rounded-full bg-primary" />
+        </View>
+      </View>
 
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         className="flex-1"
       >
         <ScrollView
-          contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 48 }}
+          contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 24, paddingTop: 24, paddingBottom: 16 }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* ── Card ── */}
-          <Animated.View entering={FadeInDown.delay(200).springify().damping(12).stiffness(90)} className="bg-surface dark:bg-[#101615] rounded-2xl border border-border px-5 py-7 gap-5 shadow-sm shadow-slate-100 dark:shadow-none mt-4">
-            {/* Icon + heading */}
-            <View className="items-center mb-2">
-              <View className="w-14 h-14 rounded-2xl items-center justify-center mb-4 bg-blue-100 dark:bg-blue-900/30 border border-blue-tint/50">
-                <Feather name="smartphone" size={24} color={theme.primary} />
-              </View>
-              <Text className="text-2xl font-bold text-text tracking-tight mb-2 text-center">
-                Verify your account
-              </Text>
-              <Text className="text-sm text-text-soft text-center leading-relaxed px-2 font-medium">
-                We've sent a 6-digit code to <Text className="font-bold text-text">{(phone as string) || "+63 912 345 6789"}</Text>.
-              </Text>
+          {/* ── Heading ── */}
+          <Animated.View entering={FadeIn.duration(400)} className="mb-6">
+            <View className="w-12 h-12 rounded-xl items-center justify-center mb-5 bg-blue-tint">
+              <Feather name="smartphone" size={22} color={palette.blueText} />
             </View>
+            <Text
+              className="text-[28px] leading-[34px] font-extrabold text-text tracking-tight mb-2"
+              accessibilityRole="header"
+            >
+              Enter the code
+            </Text>
+            <Text className="text-[15px] text-text-soft leading-[22px]">
+              We sent a 6-digit code to{" "}
+              <Text className="font-bold text-text">{formatPhoneForDisplay(phoneText)}</Text>.
+            </Text>
+            <TouchableOpacity
+              onPress={() => router.back()}
+              activeOpacity={0.65}
+              className="self-start py-1.5 pr-3"
+              accessibilityRole="link"
+              accessibilityLabel="Edit phone number"
+            >
+              <Text className="text-[15px] font-semibold text-primary underline">Edit</Text>
+            </TouchableOpacity>
+          </Animated.View>
 
-            {/* ── OTP boxes ── */}
-            <View className="flex-row justify-between gap-2 my-2">
-              {otp.map((digit, index) => {
-                const isFilled = digit !== "";
-                // Only provide inline background for iOS/Android overrides, rest in classNames
-                return (
-                  <TextInput
-                    key={index}
-                    ref={(ref) => { inputRefs.current[index] = ref; }}
-                    value={digit}
-                    onChangeText={(v) => handleOtpChange(v, index)}
-                    onKeyPress={(e) => handleKeyPress(e, index)}
-                    keyboardType="number-pad"
-                    maxLength={1}
-                    selectTextOnFocus
-                    className={`flex-1 aspect-square rounded-xl border text-center text-2xl font-semibold p-0 ${
-                      isFilled 
-                        ? "border-slate-900 dark:border-border bg-surface text-text" 
-                        : "border-border bg-surface-alt dark:bg-slate-800/50 text-text"
-                    }`}
-                    style={
-                      Platform.OS === "android" ? { includeFontPadding: false, textAlignVertical: "center" } : { textAlignVertical: "center" }
-                    }
-                  />
-                );
-              })}
-            </View>
+          {/* ── OTP boxes ── */}
+          <Animated.View
+            entering={FadeIn.delay(120).duration(400)}
+            style={errorAnimatedStyle}
+            className="flex-row gap-2"
+          >
+            {otp.map((digit, index) => {
+              const isFocused = focusedIndex === index;
+              return (
+                <TextInput
+                  key={index}
+                  ref={(ref) => { inputRefs.current[index] = ref; }}
+                  value={digit}
+                  onChangeText={(v) => handleOtpChange(v, index)}
+                  onKeyPress={(e) => handleKeyPress(e, index)}
+                  onFocus={() => setFocusedIndex(index)}
+                  onBlur={() => setFocusedIndex((current) => (current === index ? null : current))}
+                  autoFocus={index === 0}
+                  keyboardType="number-pad"
+                  // Let the first box accept a whole code from SMS autofill or paste.
+                  maxLength={index === 0 ? CODE_LENGTH : 2}
+                  textContentType={index === 0 ? "oneTimeCode" : "none"}
+                  autoComplete={index === 0 ? "sms-otp" : "off"}
+                  selectTextOnFocus
+                  editable={!isVerifying}
+                  accessibilityLabel={`Digit ${index + 1} of ${CODE_LENGTH}`}
+                  className="flex-1 aspect-square rounded-xl text-center text-2xl font-bold text-text p-0 bg-surface"
+                  style={{
+                    maxHeight: 56,
+                    borderWidth: isFocused ? 1.5 : 1,
+                    borderColor: hasError
+                      ? palette.dangerMid
+                      : isFocused
+                      ? palette.primary
+                      : palette.borderStrong,
+                    textAlignVertical: "center",
+                    ...(Platform.OS === "android" ? { includeFontPadding: false } : {}),
+                  }}
+                />
+              );
+            })}
+          </Animated.View>
 
-            {/* Error Message with Shake Animation */}
-            {(generalError || errors.code) && (
-              <Animated.View
-                style={errorAnimatedStyle}
-                className="bg-red-100 dark:bg-red-900/20 border border-red-200 dark:border-red-900/40 rounded-xl p-3.5 flex-row items-center gap-2 mt-1 mb-1"
+          {/* ── Resend row ── */}
+          <View className="flex-row items-center justify-between mt-4 min-h-[36px]">
+            <Text className="text-sm text-text-soft">Didn't get it?</Text>
+            {!canResend ? (
+              <Text className="text-sm text-text-soft">
+                Resend in <Text className="font-bold text-text">{formatTime(timer)}</Text>
+              </Text>
+            ) : (
+              <TouchableOpacity
+                onPress={handleResend}
+                disabled={isResending}
+                className="py-2 pl-3"
+                activeOpacity={0.7}
                 accessible={true}
-                accessibilityRole="alert"
+                accessibilityRole="button"
+                accessibilityLabel="Resend code"
               >
-                <Feather name="alert-triangle" size={16} color={theme.danger} />
-                <Text className="text-red-600 dark:text-red-400 text-xs font-medium flex-1">
-                  {generalError || errors.code?.message}
-                </Text>
-              </Animated.View>
+                {isResending ? (
+                  <ActivityIndicator size="small" color={palette.primary} />
+                ) : (
+                  <Text className="text-sm font-bold text-primary">Resend code</Text>
+                )}
+              </TouchableOpacity>
             )}
+          </View>
 
-            {/* Submit */}
+          {/* Error Message */}
+          {hasError && (
+            <View
+              className="bg-danger-tint border border-danger/40 rounded-xl p-3.5 flex-row items-center gap-2.5 mt-3"
+              accessible={true}
+              accessibilityRole="alert"
+            >
+              <Feather name="alert-triangle" size={16} color={palette.dangerText} />
+              <Text className="text-danger-text text-sm font-medium flex-1 leading-snug">
+                {generalError || errors.code?.message}
+              </Text>
+            </View>
+          )}
+
+          {/* Pushes the actions to the bottom when there is spare height */}
+          <View className="flex-1 min-h-[32px]" />
+
+          {/* ── Actions ── */}
+          <View>
             <Button
               onPress={handleSubmit(onSubmit)}
               isLoading={isVerifying}
               disabled={!isComplete || isVerifying}
               loadingText="Verifying..."
-              label="Verify & proceed"
-              icon="check-circle"
+              label="Verify and create account"
             />
-
-            {/* Resend Code */}
-            <View className="items-center mt-3">
-              {timer > 0 ? (
-                <Text className="text-sm font-medium text-text-soft">
-                  Resend code in <Text className="font-bold text-text">{formatTime(timer)}</Text>
-                </Text>
-              ) : (
-                <TouchableOpacity
-                  onPress={handleResend}
-                  disabled={isResending}
-                  className="flex-row items-center gap-1.5 py-2 px-4"
-                  activeOpacity={0.7}
-                  accessible={true}
-                  accessibilityRole="button"
-                >
-                  {isResending ? (
-                    <ActivityIndicator size="small" color="#2E9AE8" />
-                  ) : (
-                    <>
-                      <Feather name="refresh-cw" size={14} color={theme.primary} />
-                      <Text className="text-sm font-bold text-primary">
-                        Resend code
-                      </Text>
-                    </>
-                  )}
-                </TouchableOpacity>
-              )}
-            </View>
-          </Animated.View>
+            <Text className="text-xs text-text-soft text-center mt-3">
+              Codes expire after 10 minutes.
+            </Text>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
