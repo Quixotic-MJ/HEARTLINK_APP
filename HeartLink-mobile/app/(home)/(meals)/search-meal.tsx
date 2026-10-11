@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, ScrollView, TextInput, Image, RefreshControl } from "react-native";
+import { View, Text, TouchableOpacity, FlatList, TextInput, Image, RefreshControl } from "react-native";
 import { useColorScheme } from "nativewind";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -230,7 +230,9 @@ export default function SearchMealScreen() {
         <View className="w-9" />
       </View>
 
-      <ScrollView
+      <FlatList
+        data={isLoading ? [] : items}
+        keyExtractor={(item) => String(item.id)}
         contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 32 }}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
@@ -238,93 +240,110 @@ export default function SearchMealScreen() {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={isDark ? "#94a3b8" : "#64748b"} />
         }
-      >
-        {/* Search Bar */}
-        <View className="bg-surface rounded-3xl border border-border dark:border-slate-800 shadow-sm flex-row items-center px-4 py-3 mb-4">
-          <Feather name="search" size={18} color={theme.textSoft} />
-          <TextInput
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            placeholder="Search recipes, groceries, or fast food..."
-            placeholderTextColor={isDark ? "#64748b" : "#94a3b8"}
-            className="flex-1 text-[16px] text-text ml-2"
-            autoCapitalize="none"
-            autoCorrect={false}
-            returnKeyType="search"
-          />
-        </View>
+        ListHeaderComponent={
+          <>
+            {/* Search Bar */}
+            <View className="bg-surface rounded-3xl border border-border dark:border-slate-800 shadow-sm flex-row items-center px-4 py-3 mb-4">
+              <Feather name="search" size={18} color={theme.textSoft} />
+              <TextInput
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                placeholder="Search recipes, groceries, or fast food..."
+                placeholderTextColor={isDark ? "#64748b" : "#94a3b8"}
+                className="flex-1 text-[16px] text-text ml-2"
+                autoCapitalize="none"
+                autoCorrect={false}
+                returnKeyType="search"
+              />
+            </View>
 
-        {/* Quick Action Button */}
-        <TouchableOpacity
-          onPress={() => router.push("/(home)/(meals)/barcode-scan")}
-          activeOpacity={0.8}
-          className="bg-success-tint0/10 rounded-2xl py-3.5 px-4 mb-6 flex-row items-center justify-center border border-emerald-500/20"
-        >
-          <MaterialCommunityIcons name="barcode-scan" size={18} color={theme.success} />
-          <Text className="text-[14px] font-medium text-success-text ml-2">
-            Scan Barcode
-          </Text>
-        </TouchableOpacity>
+            {/* Quick Action Button */}
+            <TouchableOpacity
+              onPress={() => router.push("/(home)/(meals)/barcode-scan")}
+              activeOpacity={0.8}
+              className="bg-success-tint0/10 rounded-2xl py-3.5 px-4 mb-6 flex-row items-center justify-center border border-emerald-500/20"
+            >
+              <MaterialCommunityIcons name="barcode-scan" size={18} color={theme.success} />
+              <Text className="text-[14px] font-medium text-success-text ml-2">
+                Scan Barcode
+              </Text>
+            </TouchableOpacity>
 
-        {/* Results Container */}
-        <View className="bg-surface rounded-3xl p-5 mb-4 shadow-sm border border-border dark:border-slate-800">
-          <View className="flex-row items-center gap-4 mb-4">
-            <View className="relative">
-              <View className="absolute inset-0 rounded-full border-4 opacity-20 border-emerald-500" />
-              <View className="w-12 h-12 rounded-full items-center justify-center bg-surface-alt dark:bg-slate-800">
-                <Feather 
-                  name={searchQuery.trim().length === 0 ? "clock" : "list"} 
-                  size={20} 
-                  color={isDark ? "#cbd5e1" : "#475569"} 
-                />
+            {/* Results Container Header */}
+            <View className="bg-surface rounded-t-3xl p-5 shadow-sm border-t border-l border-r border-border dark:border-slate-800">
+              <View className="flex-row items-center gap-4 mb-4">
+                <View className="relative">
+                  <View className="absolute inset-0 rounded-full border-4 opacity-20 border-emerald-500" />
+                  <View className="w-12 h-12 rounded-full items-center justify-center bg-surface-alt dark:bg-slate-800">
+                    <Feather 
+                      name={searchQuery.trim().length === 0 ? "clock" : "list"} 
+                      size={20} 
+                      color={isDark ? "#cbd5e1" : "#475569"} 
+                    />
+                  </View>
+                </View>
+                <View>
+                  <Text className="text-[16px] font-bold text-text mb-0.5">
+                    {searchQuery.trim().length === 0 ? "Recently Logged" : "Search Results"}
+                  </Text>
+                  <Text className="text-[13px] text-text-soft">
+                    {isLoading ? "Searching..." : `${items.length} items found`}
+                  </Text>
+                </View>
+              </View>
+              
+              <View className="border-t border-border dark:border-slate-800/60 pt-3 mt-1">
+                {isLoading && (
+                  <View className="gap-2">
+                    {[1, 2, 3, 4, 5].map((key) => (
+                      <View key={key} className="flex-row items-center justify-between py-2 mb-1 px-2">
+                        <View className="flex-row items-center flex-1 gap-3">
+                          <Skeleton className="w-10 h-10 rounded-lg mr-1" />
+                          <View className="flex-1">
+                            <Skeleton className="w-2/3 h-4 mb-1.5" />
+                            <Skeleton className="w-1/3 h-3" />
+                          </View>
+                        </View>
+                        <Skeleton className="w-10 h-8 rounded-md" />
+                      </View>
+                    ))}
+                  </View>
+                )}
               </View>
             </View>
-            <View>
-              <Text className="text-[16px] font-bold text-text mb-0.5">
-                {searchQuery.trim().length === 0 ? "Recently Logged" : "Search Results"}
-              </Text>
-              <Text className="text-[13px] text-text-soft">
-                {isLoading ? "Searching..." : `${items.length} items found`}
-              </Text>
+          </>
+        }
+        ListEmptyComponent={
+          !isLoading ? (
+            <View className="bg-surface border-l border-r border-b rounded-b-3xl border-border dark:border-slate-800 p-5">
+              {errorMsg ? (
+                <EmptyState
+                  icon={<Feather name="wifi-off" size={32} color={theme.danger} />}
+                  title="Network Error"
+                  subtitle={errorMsg}
+                  className="py-6"
+                />
+              ) : (
+                <EmptyState
+                  icon={<Feather name="search" size={32} color={theme.textSoft} />}
+                  title="No results found"
+                  subtitle="Try a different search term or use the 'Estimate a Meal' feature."
+                  className="py-6"
+                />
+              )}
             </View>
-          </View>
-          
-          <View className="border-t border-border dark:border-slate-800/60 pt-3 mt-1">
-          {isLoading ? (
-            <View className="gap-2">
-              {[1, 2, 3, 4, 5].map((key) => (
-                <View key={key} className="flex-row items-center justify-between py-2 mb-1 px-2">
-                  <View className="flex-row items-center flex-1 gap-3">
-                    <Skeleton className="w-10 h-10 rounded-lg mr-1" />
-                    <View className="flex-1">
-                      <Skeleton className="w-2/3 h-4 mb-1.5" />
-                      <Skeleton className="w-1/3 h-3" />
-                    </View>
-                  </View>
-                  <Skeleton className="w-10 h-8 rounded-md" />
-                </View>
-              ))}
-            </View>
-          ) : errorMsg ? (
-            <EmptyState
-              icon={<Feather name="wifi-off" size={32} color={theme.danger} />}
-              title="Network Error"
-              subtitle={errorMsg}
-              className="py-6"
-            />
-          ) : items.length === 0 ? (
-            <EmptyState
-              icon={<Feather name="search" size={32} color={theme.textSoft} />}
-              title="No results found"
-              subtitle="Try a different search term or use the 'Estimate a Meal' feature."
-              className="py-6"
-            />
-          ) : items.map((item) => {
-            const inBasket = basket.some(b => b.id === item.id);
-            return (
+          ) : null
+        }
+        ListFooterComponent={
+          !isLoading && items.length > 0 ? (
+            <View className="bg-surface rounded-b-3xl border-b border-l border-r border-border dark:border-slate-800 h-5" />
+          ) : null
+        }
+        renderItem={({ item }) => {
+          const inBasket = basket.some(b => b.id === item.id);
+          return (
             <View
-              key={item.id}
-              className="flex-row items-center justify-between py-2 mb-1 rounded-xl px-2 border"
+              className="flex-row items-center justify-between py-2 mb-1 rounded-xl px-2 border mx-0 bg-surface border-l border-r border-border dark:border-slate-800"
             >
               <TouchableOpacity
                 activeOpacity={0.7}
@@ -403,10 +422,9 @@ export default function SearchMealScreen() {
                 )}
               </TouchableOpacity>
             </View>
-          )})}
-          </View>
-        </View>
-      </ScrollView>
+          );
+        }}
+      />
 
       {/* Sticky Fallback Button */}
       <View 

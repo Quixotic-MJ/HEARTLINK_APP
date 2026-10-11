@@ -4,6 +4,7 @@ import {
   Text,
   TouchableOpacity,
   ScrollView,
+  FlatList,
   TextInput,
   Linking,
   Platform,
@@ -297,30 +298,29 @@ export default function LocatorScreen() {
           </Text>
         </View>
 
-        <ScrollView
-          contentContainerClassName="pb-10 pt-2 gap-4"
+        <FlatList
+          data={filtered}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={{ paddingBottom: 40, paddingTop: 8, gap: 16 }}
           showsVerticalScrollIndicator={false}
-        >
-          {filtered.length === 0 ? (
+          ListEmptyComponent={
             <EmptyState
               icon={<Feather name="search" size={26} color={theme.textSoft} />}
               title="No results found"
               subtitle="Try a different name or specialty."
               className="pt-12"
             />
-          ) : (
-            filtered.map((clinic) => (
-              <ClinicCard
-                key={clinic.id}
-                clinic={clinic}
-                onDirections={() =>
-                  handleGetDirections(clinic.latitude, clinic.longitude, clinic.name)
-                }
-                onCall={() => handleCallClinic(clinic.phone)}
-              />
-            ))
+          }
+          renderItem={({ item: clinic }) => (
+            <ClinicCard
+              clinic={clinic}
+              onDirections={() =>
+                handleGetDirections(clinic.latitude, clinic.longitude, clinic.name)
+              }
+              onCall={() => handleCallClinic(clinic.phone)}
+            />
           )}
-        </ScrollView>
+        />
       </View>
     </SafeAreaView>
   );
