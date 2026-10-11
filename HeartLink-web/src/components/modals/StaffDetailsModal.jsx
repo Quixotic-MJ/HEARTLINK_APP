@@ -127,7 +127,14 @@ const StaffDetailsModal = ({
               <div className="grid grid-cols-2 gap-3.5 text-[12px]">
                 <div>
                   <p className="text-[#94A3B8] font-semibold text-[10.5px] uppercase tracking-wider">Role Assignment</p>
-                  <div className="mt-1">{getRoleBadge(staff.role)}</div>
+                  <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+                    {getRoleBadge(staff.role)}
+                    {staff.expert_type && (
+                      <span className="text-[10px] font-bold text-[#1B6E63] bg-[#E3EFEC] px-2 py-0.5 rounded border border-[#C5DFD8]">
+                        {staff.expert_type}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div>
                   <p className="text-[#94A3B8] font-semibold text-[10.5px] uppercase tracking-wider">Contact Number</p>

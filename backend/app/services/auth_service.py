@@ -508,6 +508,7 @@ class SupabaseAuthService(AuthService):
             "requires_2fa": False,
             "user_id": profile["id"],
             "role": profile["role"],
+            "expert_type": profile.get("expert_type"),
             "first_name": profile.get("first_name", ""),
             "last_name": profile.get("last_name", ""),
             "email": profile.get("email", ""),

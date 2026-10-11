@@ -48,6 +48,7 @@ const ConfirmActionModal = ({
   icon: CustomIcon,
   entityInfo = null,
   impactDetails = [],
+  children = null,
 }) => {
   const [loading, setLoading] = useState(false);
 
@@ -176,6 +177,8 @@ const ConfirmActionModal = ({
                 ))}
               </div>
             )}
+
+            {children}
 
             {/* Action Buttons */}
             <div className="flex items-center justify-end gap-2.5 mt-6">
