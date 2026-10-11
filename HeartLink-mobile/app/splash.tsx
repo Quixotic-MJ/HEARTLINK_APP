@@ -10,26 +10,26 @@ import Svg, { Defs, RadialGradient, Rect, Stop } from "react-native-svg";
 import "../global.css";
 import { Colors, hues } from "../constants/theme";
 
+// `paper` must match the expo-splash-screen backgroundColor in app.json so the
+// native splash hands off to this screen without a colour flash.
 const THEME = {
   light: {
-    ink: Colors.light.ink,
     inkSoft: Colors.light.textSoft,
     paper: Colors.light.background,
-    accent: Colors.light.blue,
-    brandText: hues.sky,
+    brand: Colors.light.skyText,
     statusBar: "dark" as const,
   },
   dark: {
-    ink: Colors.dark.ink,
     inkSoft: Colors.dark.textSoft,
     paper: Colors.dark.background,
-    accent: Colors.dark.blue,
-    brandText: hues.sky,
+    brand: hues.sky,
     statusBar: "light" as const,
   },
 };
 
 const MAX_LOAD_WAIT_MS = 4000;
+// Only show the spinner when loading is genuinely slow, to avoid a sub-second flash.
+const SPINNER_DELAY_MS = 1500;
 
 // ─── Ambient glow blob ────────────────────────────────────────────────────────
 function GlowBlob({ color, size }: { color: string; size: number }) {
@@ -60,7 +60,8 @@ export default function SplashScreen() {
   const isMounted = useRef(true);
   const [animationFinished, setAnimationFinished] = useState(false);
   const [loadTimedOut, setLoadTimedOut] = useState(false);
-  const [reduceMotion, setReduceMotion] = useState(false);
+  const [reduceMotion, setReduceMotion] = useState<boolean | null>(null);
+  const [showSpinner, setShowSpinner] = useState(false);
   const hasNavigated = useRef(false);
 
   const handleProceed = useCallback(() => {
@@ -68,7 +69,10 @@ export default function SplashScreen() {
     hasNavigated.current = true;
 
     if (userId) {
-      if (user && user.onboarding_status === "complete") {
+      // If the profile hasn't loaded (slow network / timeout), go to the dashboard
+      // rather than treating "not loaded yet" as "onboarding incomplete". The root
+      // layout redirects to baseline once the profile arrives, if it's needed.
+      if (!user || user.onboarding_status === "complete") {
         router.replace("/(home)/(tabs)/dashboard");
       } else {
         router.replace({
@@ -83,9 +87,13 @@ export default function SplashScreen() {
 
   useEffect(() => {
     let isActive = true;
-    AccessibilityInfo.isReduceMotionEnabled().then((enabled) => {
-      if (isActive) setReduceMotion(enabled);
-    });
+    AccessibilityInfo.isReduceMotionEnabled()
+      .then((enabled) => {
+        if (isActive) setReduceMotion(enabled);
+      })
+      .catch(() => {
+        if (isActive) setReduceMotion(false);
+      });
     return () => {
       isActive = false;
     };
@@ -93,26 +101,41 @@ export default function SplashScreen() {
 
   useEffect(() => {
     isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    // Wait for the reduce-motion check so the fade only starts once.
+    if (reduceMotion === null) return;
+    if (reduceMotion) {
+      fadeAnim.setValue(1);
+      setAnimationFinished(true);
+      return;
+    }
     Animated.timing(fadeAnim, {
       toValue: 1,
-      duration: reduceMotion ? 200 : 800,
+      duration: 800,
       easing: Easing.out(Easing.ease),
       useNativeDriver: true,
     }).start(() => {
       if (!isMounted.current) return;
       setAnimationFinished(true);
     });
-
-    return () => {
-      isMounted.current = false;
-    };
   }, [fadeAnim, reduceMotion]);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
+    const loadTimer = setTimeout(() => {
       if (isMounted.current) setLoadTimedOut(true);
     }, MAX_LOAD_WAIT_MS);
-    return () => clearTimeout(timer);
+    const spinnerTimer = setTimeout(() => {
+      if (isMounted.current) setShowSpinner(true);
+    }, SPINNER_DELAY_MS);
+    return () => {
+      clearTimeout(loadTimer);
+      clearTimeout(spinnerTimer);
+    };
   }, []);
 
   useEffect(() => {
@@ -125,54 +148,59 @@ export default function SplashScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.paper }} edges={["top", "bottom"]}>
       <StatusBar style={colors.statusBar} />
 
-      <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
-        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 20 }}>
-          
-          {/* Ambient glow */}
-          <View style={{ position: "absolute", opacity: 0.8 }}>
-            <GlowBlob color={colors.accent} size={300} />
-          </View>
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 20 }}>
+        {/* Ambient glow */}
+        <View style={{ position: "absolute", opacity: 0.8 }}>
+          <GlowBlob color={colors.brand} size={300} />
+        </View>
 
-          {/* Logo */}
+        {/* Logo + wordmark are visible from the first frame to match the native splash */}
+        <View
+          accessible
+          accessibilityRole="header"
+          accessibilityLabel="HeartLink, cardiovascular well-being"
+          style={{ alignItems: "center" }}
+        >
           <View style={{ marginBottom: 16 }}>
             <HeartLogo size={120} />
           </View>
 
-          {/* Wordmark */}
           <View style={{ marginBottom: 12, flexDirection: "row", alignItems: "flex-start" }}>
             <Text
               style={{
-                color: colors.brandText,
+                color: colors.brand,
                 fontSize: 42,
                 letterSpacing: -0.5,
                 fontWeight: "700",
               }}
-              accessibilityRole="header"
             >
               HeartLink
             </Text>
-            <Text style={{ color: colors.brandText, fontSize: 14, fontWeight: "500", marginTop: 6, marginLeft: 2 }}>™</Text>
+            <Text style={{ color: colors.brand, fontSize: 14, fontWeight: "500", marginTop: 6, marginLeft: 2 }}>™</Text>
           </View>
 
-          {/* Tagline */}
-          <Text
+          {/* Tagline fades in after the hand-off from the native splash */}
+          <Animated.Text
             style={{
+              opacity: fadeAnim,
               color: colors.inkSoft,
-              fontSize: 12,
+              fontSize: 13,
               letterSpacing: 1.5,
               textTransform: "uppercase",
               fontWeight: "600",
             }}
           >
             Cardiovascular well-being
-          </Text>
+          </Animated.Text>
         </View>
+      </View>
 
-        {/* Bottom loading indicator */}
-        <View style={{ paddingBottom: 60, alignItems: "center", justifyContent: "center" }}>
-          <ActivityIndicator size="large" color={colors.accent} />
-        </View>
-      </Animated.View>
+      {/* Bottom loading indicator (delayed; space is reserved so nothing shifts) */}
+      <View style={{ height: 36, marginBottom: 60, alignItems: "center", justifyContent: "center" }}>
+        {showSpinner && (
+          <ActivityIndicator size="large" color={colors.brand} accessibilityLabel="Loading" />
+        )}
+      </View>
     </SafeAreaView>
   );
 }

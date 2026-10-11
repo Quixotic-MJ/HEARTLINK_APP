@@ -51,6 +51,8 @@ export function Button({
   const theme = isDark ? Colors.dark : Colors.light;
 
   const isDisabled = props.disabled || isLoading;
+  // A disabled (not loading) primary button turns grey so it reads as "not yet".
+  const isIdleDisabled = !!props.disabled && !isLoading && variant === "primary";
   const isPrimary = variant === "primary";
   const isDestructive = variant === "destructive";
 
@@ -61,10 +63,10 @@ export function Button({
     : "w-full rounded-2xl py-4 flex-row justify-center items-center gap-2 bg-transparent border border-border";
 
   const textColor = isDestructive
-    ? "text-sm font-bold text-on-danger tracking-wide"
+    ? "text-base font-bold text-on-danger tracking-wide"
     : isPrimary
-    ? "text-sm font-bold text-on-primary tracking-wide"
-    : "text-sm font-bold text-text";
+    ? "text-base font-bold text-on-primary tracking-wide"
+    : "text-base font-bold text-text";
 
   const iconColor = isDestructive
     ? theme.onDanger
@@ -79,7 +81,13 @@ export function Button({
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
       disabled={isDisabled}
-      style={[animatedStyle, { opacity: isDisabled ? 0.7 : 1 }, props.style]}
+      style={[
+        animatedStyle,
+        isIdleDisabled
+          ? { opacity: 1, backgroundColor: theme.disabledFill, shadowOpacity: 0, elevation: 0 }
+          : { opacity: isDisabled ? 0.7 : 1 },
+        props.style,
+      ]}
       accessibilityState={{ busy: isLoading, disabled: isDisabled }}
       accessibilityRole="button"
       className={buttonBg}
@@ -97,10 +105,10 @@ export function Button({
             <Feather 
               name={icon} 
               size={16} 
-              color={iconColor} 
+              color={isIdleDisabled ? theme.disabledText : iconColor} 
             />
           )}
-          <Text className={textColor}>
+          <Text className={textColor} style={isIdleDisabled ? { color: theme.disabledText } : undefined}>
             {label}
           </Text>
         </>

@@ -22,6 +22,7 @@ interface InputFieldProps<T extends FieldValues> extends TextInputProps {
   rightElement?: React.ReactNode;
   leftElement?: React.ReactNode;
   forceLight?: boolean;
+  inputRef?: React.Ref<TextInput>;
 }
 
 export function InputField<T extends FieldValues>({
@@ -32,6 +33,10 @@ export function InputField<T extends FieldValues>({
   rightElement,
   leftElement,
   forceLight = true,
+  inputRef,
+  onChangeText,
+  onBlur,
+  onFocus,
   ...textInputProps
 }: InputFieldProps<T>) {
   const { colorScheme } = useColorScheme();
@@ -61,7 +66,7 @@ export function InputField<T extends FieldValues>({
   const borderColor = hasError
     ? theme.dangerMid
     : isFocused
-    ? theme.ink
+    ? theme.primary
     : theme.borderStrong;
 
   const iconColor = hasError
@@ -70,18 +75,14 @@ export function InputField<T extends FieldValues>({
     ? theme.ink
     : theme.textMuted;
 
-  const inputBg = hasError
-    ? theme.dangerTint
-    : isFocused
-    ? theme.surface
-    : theme.surfaceAlt;
+  const inputBg = hasError ? theme.dangerTint : theme.surface;
 
   const shadowColor = isFocused ? theme.shadow : "transparent";
 
   return (
     <View className="mb-1">
       {label && (
-        <Text className="text-xs sm:text-sm font-semibold text-text mb-1.5 ml-1">
+        <Text className="text-sm font-semibold text-text mb-1.5 ml-1">
           {label}
         </Text>
       )}
@@ -113,10 +114,11 @@ export function InputField<T extends FieldValues>({
         {leftElement}
 
         <TextInput
+          ref={inputRef}
           value={field.value}
           onChangeText={(text) => {
-            if (textInputProps.onChangeText) {
-              textInputProps.onChangeText(text);
+            if (onChangeText) {
+              onChangeText(text);
             } else {
               field.onChange(text);
             }
@@ -124,11 +126,11 @@ export function InputField<T extends FieldValues>({
           onBlur={(e) => {
             setIsFocused(false);
             field.onBlur();
-            textInputProps.onBlur?.(e);
+            onBlur?.(e);
           }}
           onFocus={(e) => {
             setIsFocused(true);
-            textInputProps.onFocus?.(e);
+            onFocus?.(e);
           }}
           placeholderTextColor={theme.textMuted}
           className="flex-1 ml-3 text-sm sm:text-base text-text py-3.5"
