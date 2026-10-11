@@ -292,7 +292,14 @@ const StaffListView = ({
                       </div>
                     </td>
                     <td className="py-3.5 px-4 sm:px-5 align-middle">
-                      {getRoleBadge(staff.role)}
+                      <div className="flex flex-col items-start gap-1">
+                        {getRoleBadge(staff.role)}
+                        {staff.expert_type && (
+                          <span className="text-[10px] font-semibold text-[#1B6E63] bg-[#E3EFEC] px-1.5 py-0.5 rounded border border-[#C5DFD8]">
+                            {staff.expert_type}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="py-3.5 px-4 sm:px-5 align-middle">
                       {getStatusBadge(staff.account_status || staff.status)}

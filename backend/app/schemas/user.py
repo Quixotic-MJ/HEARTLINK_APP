@@ -5,6 +5,18 @@ from datetime import date
 import re
 
 
+def normalize_expert_type(val: Optional[str]) -> Optional[str]:
+    if not val or not str(val).strip():
+        return None
+    key = str(val).strip().lower().replace("_", " ").replace("-", " ")
+    mapping = {
+        "physical therapist": "Physical Therapist",
+        "dietitian": "Dietitian",
+        "cardiologist": "Cardiologist",
+    }
+    return mapping.get(key)
+
+
 # Profile update (onboarding step 1)
 class ProfileUpdate(BaseModel):
     first_name: str = Field(..., min_length=1)

@@ -23,6 +23,29 @@ from app.db.repositories import (
 
 router = APIRouter(prefix="/api/admin", tags=["Admin"])
 
+from app.schemas.user import normalize_expert_type
+
+def _resolve_expert_type(target_role: str, raw: Any) -> Optional[str]:
+    """
+    Resolves and validates the expert specialization for a staff role.
+    - If target_role is 'medical_expert':
+        - missing/blank -> raises HTTPException 400 'expert_type is required when role is medical_expert'
+        - unknown -> raises HTTPException 400 "Invalid expert_type: '<raw>'. Must be one of: 'Physical Therapist', 'Dietitian', 'Cardiologist'."
+        - valid -> returns canonical string ('Physical Therapist', 'Dietitian', 'Cardiologist')
+    - Any other role (e.g. 'admin', 'super_admin') -> returns None
+    """
+    if target_role == "medical_expert":
+        if not raw or not str(raw).strip():
+            raise HTTPException(status_code=400, detail="expert_type is required when role is medical_expert")
+        canonical = normalize_expert_type(raw)
+        if not canonical:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid expert_type: '{raw}'. Must be one of: 'Physical Therapist', 'Dietitian', 'Cardiologist'."
+            )
+        return canonical
+    return None
+
 def _parse_dt(dt):
     return parse_utc(dt)
 
@@ -381,6 +404,7 @@ def get_system_staff(current_user: dict = Depends(get_current_super_admin)):
             "email": s.get("email"),
             "phone": s.get("phone", "No Phone"),
             "role": role_label,
+            "expert_type": s.get("expert_type"),
             "permissions": perms,
             "account_status": s.get("account_status", "active"),
             "status": s.get("account_status", "active").capitalize(),
@@ -409,6 +433,9 @@ def create_system_staff(payload: dict, current_user: dict = Depends(get_current_
         target_role = "admin"
     else:
         raise HTTPException(status_code=400, detail=f"Invalid staff role: '{role_label}'")
+
+    # Early validation of expert_type (HL-011)
+    canonical_expert_type = _resolve_expert_type(target_role, payload.get("expert_type"))
 
     # --- Duplicate email check ---
     profile_repo = get_profile_repo()
@@ -517,6 +544,7 @@ def create_system_staff(payload: dict, current_user: dict = Depends(get_current_
         "phone": phone or "No Phone",
         "email": email.lower(),
         "role": target_role,
+        "expert_type": canonical_expert_type,
         "account_status": "active"
     }
 
@@ -536,7 +564,7 @@ def create_system_staff(payload: dict, current_user: dict = Depends(get_current_
 
     # --- Step 4: Audit log ---
     admin_id = current_user.get("user_id") if current_user else "admin"
-    role_desc = "medical expert" if target_role == "medical_expert" else "admin"
+    role_desc = f"medical expert ({canonical_expert_type})" if target_role == "medical_expert" else ("admin" if target_role == "admin" else "super_admin")
     record_admin_activity(
         admin_user_id=admin_id,
         action=f"Created {role_desc} account",
@@ -642,6 +670,7 @@ def change_staff_role(staff_id: str, payload: dict, current_user: dict = Depends
         raise HTTPException(status_code=400, detail="Invalid role label")
         
     new_role = "medical_expert" if new_role_label in ["Authorized Medical Expert", "medical_expert"] else "admin"
+    canonical_expert_type = _resolve_expert_type(new_role, payload.get("expert_type"))
     
     if str(staff_id) == str(current_user.get("user_id")):
         raise HTTPException(status_code=400, detail="Self-demotion is not permitted")
@@ -650,11 +679,13 @@ def change_staff_role(staff_id: str, payload: dict, current_user: dict = Depends
         raise HTTPException(status_code=400, detail="Target user is not a regular staff member")
         
     old_role = target_user.get("role")
-    profile_repo.update_profile(staff_id, {"role": new_role})
+    profile_repo.update_profile(staff_id, {"role": new_role, "expert_type": canonical_expert_type})
     
     admin_id = current_user.get("user_id") if current_user else "admin"
     user_name = f"{target_user.get('first_name', '')} {target_user.get('last_name', '')}".strip() or target_user.get("email") or staff_id
     action_desc = f"Changed staff role from {old_role} to {new_role}"
+    if canonical_expert_type:
+        action_desc += f" ({canonical_expert_type})"
     
     record_admin_activity(
         admin_user_id=admin_id,
@@ -663,7 +694,7 @@ def change_staff_role(staff_id: str, payload: dict, current_user: dict = Depends
         target_id=str(staff_id),
         target_name=user_name
     )
-    return {"status": "success", "new_role": new_role}
+    return {"status": "success", "new_role": new_role, "expert_type": canonical_expert_type}
 
 @router.delete("/users/{user_id}")
 @router.delete("/staff/{user_id}")

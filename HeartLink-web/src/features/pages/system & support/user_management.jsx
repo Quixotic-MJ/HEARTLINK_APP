@@ -41,6 +41,7 @@ const Users = () => {
   const [activeEntity, setActiveEntity] = useState(null);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(false);
+  const [reassignExpertType, setReassignExpertType] = useState("");
 
   // Confirmation Modal State
   const [confirmConfig, setConfirmConfig] = useState({
@@ -205,6 +206,8 @@ const Users = () => {
     const isTargetExpert =
       newRoleLabel.includes("Expert") || newRoleLabel === "Authorized Medical Expert";
 
+    setReassignExpertType("");
+
     setConfirmConfig({
       isOpen: true,
       title: "Confirm Role Reassignment",
@@ -213,6 +216,7 @@ const Users = () => {
       confirmText: "Update Role",
       variant: "warning",
       icon: ShieldAlert,
+      isTargetExpert,
       entityInfo: {
         name: staffObj?.name || "Staff Member",
         email: staffObj?.email,
@@ -229,20 +233,31 @@ const Users = () => {
             "Removes direct clinical decision signing.",
           ],
       onConfirm: async () => {
+        if (isTargetExpert && (!reassignExpertType || !reassignExpertType.trim())) {
+          toast.error("Please select an expert specialization.");
+          throw new Error("Missing expert specialization");
+        }
         try {
+          const bodyPayload = { role: newRoleLabel };
+          if (isTargetExpert) {
+            bodyPayload.expert_type = reassignExpertType;
+          }
           await apiFetch(`/api/admin/staff/${staffId}/role`, {
             method: "PUT",
-            body: JSON.stringify({ role: newRoleLabel }),
+            body: JSON.stringify(bodyPayload),
           });
           toast.success(
-            `Role updated to ${isTargetExpert ? "Expert Reviewer" : "System Admin"}.`
+            `Role updated to ${isTargetExpert ? `Expert Reviewer (${reassignExpertType})` : "System Admin"}.`
           );
           await fetchUsers();
           closeModal();
           closeConfirmModal();
         } catch (e) {
-          console.error("Failed to change staff role", e);
-          toast.error(e.data?.detail || "Failed to update staff role.");
+          if (e.message !== "Missing expert specialization") {
+            console.error("Failed to change staff role", e);
+            toast.error(e.data?.detail || "Failed to update staff role.");
+          }
+          throw e;
         }
       },
     });
@@ -516,7 +531,25 @@ const Users = () => {
           icon={confirmConfig.icon}
           entityInfo={confirmConfig.entityInfo}
           impactDetails={confirmConfig.impactDetails}
-        />
+        >
+          {confirmConfig.isTargetExpert && (
+            <div className="my-4 text-left">
+              <label className="block text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider mb-1.5">
+                Expert Specialization <span className="text-[#A93226]">*</span>
+              </label>
+              <select
+                value={reassignExpertType}
+                onChange={(e) => setReassignExpertType(e.target.value)}
+                className="w-full px-3.5 py-2.5 text-[13px] font-semibold text-[#0F172A] bg-[#F8FAFC] border border-[#E2E8F0] focus:border-[#0F172A] rounded-[8px] focus:outline-none cursor-pointer"
+              >
+                <option value="">Select Specialization...</option>
+                <option value="Physical Therapist">Physical Therapist</option>
+                <option value="Dietitian">Dietitian</option>
+                <option value="Cardiologist">Cardiologist</option>
+              </select>
+            </div>
+          )}
+        </ConfirmActionModal>
       </div>
     </AdminLayout>
   );

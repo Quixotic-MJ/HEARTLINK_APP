@@ -6,18 +6,33 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { InputField } from "../ui/InputField";
 
-const staffSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters.").trim(),
-  email: z.string().email("Must be a valid email address."),
-  phone: z.string().optional().or(z.literal("")),
-  role: z.string().min(1, "Role is required."),
-});
+const staffSchema = z
+  .object({
+    name: z.string().min(2, "Name must be at least 2 characters.").trim(),
+    email: z.string().email("Must be a valid email address."),
+    phone: z.string().optional().or(z.literal("")),
+    role: z.string().min(1, "Role is required."),
+    expert_type: z.string().optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.role === "Authorized Medical Expert") {
+      if (!data.expert_type || !data.expert_type.trim()) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["expert_type"],
+          message: "Expert specialization is required for Medical Experts.",
+        });
+      }
+    }
+  });
 
 const StaffFormModal = ({ isOpen, onClose, staff, onSave }) => {
   const {
     register,
     handleSubmit,
     reset,
+    watch,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(staffSchema),
@@ -26,9 +41,19 @@ const StaffFormModal = ({ isOpen, onClose, staff, onSave }) => {
       email: "",
       phone: "",
       role: "Authorized Medical Expert",
+      expert_type: "",
     },
     mode: "onTouched",
   });
+
+  const selectedRole = watch("role");
+  const isExpertRole = selectedRole === "Authorized Medical Expert";
+
+  useEffect(() => {
+    if (!isExpertRole) {
+      setValue("expert_type", "");
+    }
+  }, [isExpertRole, setValue]);
 
   useEffect(() => {
     reset({
@@ -36,6 +61,7 @@ const StaffFormModal = ({ isOpen, onClose, staff, onSave }) => {
       email: "",
       phone: "",
       role: "Authorized Medical Expert",
+      expert_type: "",
     });
   }, [isOpen, reset]);
 
@@ -134,6 +160,24 @@ const StaffFormModal = ({ isOpen, onClose, staff, onSave }) => {
                   </select>
                   {errors.role && <p className="text-[11px] text-[#A93226] mt-1">{errors.role.message}</p>}
                 </div>
+
+                {isExpertRole && (
+                  <div className="col-span-2">
+                    <label className="block text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider mb-1">
+                      Expert Specialization <span className="text-[#A93226]">*</span>
+                    </label>
+                    <select
+                      {...register("expert_type")}
+                      className={`w-full px-3.5 py-2 text-[13px] font-semibold text-[#0F172A] bg-[#F8FAFC] border ${errors.expert_type ? 'border-[#A93226]' : 'border-[#E2E8F0] focus:border-[#0F172A]'} rounded-[8px] focus:outline-none cursor-pointer`}
+                    >
+                      <option value="">Select Specialization...</option>
+                      <option value="Physical Therapist">Physical Therapist</option>
+                      <option value="Dietitian">Dietitian</option>
+                      <option value="Cardiologist">Cardiologist</option>
+                    </select>
+                    {errors.expert_type && <p className="text-[11px] text-[#A93226] mt-1">{errors.expert_type.message}</p>}
+                  </div>
+                )}
 
                 {/* Notice Banner */}
                 <div className="col-span-2 mt-1 bg-[#E3EFEC] p-3.5 rounded-[8px] border border-[#C5DFD8] flex items-start gap-2.5">
