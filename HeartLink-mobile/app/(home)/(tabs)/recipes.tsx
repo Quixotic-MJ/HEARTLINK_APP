@@ -3,6 +3,7 @@ import {
   View,
   Text,
   TouchableOpacity,
+  FlatList,
   ScrollView,
   RefreshControl,
   Platform,
@@ -250,29 +251,32 @@ export default function RecipesScreen({
         </ScrollView>
       </View>
 
-      <ScrollView
-        contentContainerStyle={{ paddingBottom: 100 }}
+      <FlatList
+        data={filteredRecipes}
+        keyExtractor={(item) => item.id}
+        numColumns={2}
+        contentContainerStyle={{ paddingBottom: 100, paddingHorizontal: 20 }}
+        columnWrapperStyle={{ justifyContent: "space-between" }}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#33CC82" />}
-      >
-        <View className="px-5 mb-4">
-          <Text className="text-[13px] font-semibold">
-            {filteredRecipes.length} recipes
-          </Text>
-        </View>
-
-        <View className="px-5 flex-row flex-wrap justify-between">
-          {filteredRecipes.map((recipe) => (
+        ListHeaderComponent={
+          <View className="mb-4">
+            <Text className="text-[13px] font-semibold">
+              {filteredRecipes.length} recipes
+            </Text>
+          </View>
+        }
+        renderItem={({ item: recipe }) => (
+          <View style={{ width: "48%" }}>
             <RecipeCard
-              key={recipe.id}
               recipe={recipe}
               isSaved={savedRecipes.includes(recipe.id)}
               onSave={() => toggleSave(recipe.id)}
               onPress={() => router.push(`/(home)/(meals)/recipe-details?id=${recipe.id}` as any)}
             />
-          ))}
-        </View>
-      </ScrollView>
+          </View>
+        )}
+      />
     </Container>
   );
 }

@@ -3,6 +3,7 @@ import {
   View,
   Text,
   TouchableOpacity,
+  FlatList,
   ScrollView,
   RefreshControl,
   Platform,
@@ -177,27 +178,26 @@ export default function ExercisesScreen({
         </ScrollView>
       </View>
 
-      <ScrollView
-        contentContainerStyle={{ paddingBottom: 100 }}
+      <FlatList
+        data={filteredRoutines}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={{ paddingBottom: 100, paddingHorizontal: 20 }}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#33CC82" />}
-      >
-        <View className="px-5 mb-4">
-          <Text className="text-[13px] font-semibold">
-            {filteredRoutines.length} exercises
-          </Text>
-        </View>
-
-        <View className="px-5">
-          {filteredRoutines.map((routine) => (
-            <ExerciseCard
-              key={routine.id}
-              routine={routine}
-              onPress={() => router.push(`/(home)/(health)/exercise-session?id=${routine.id}` as any)}
-            />
-          ))}
-        </View>
-      </ScrollView>
+        ListHeaderComponent={
+          <View className="mb-4">
+            <Text className="text-[13px] font-semibold">
+              {filteredRoutines.length} exercises
+            </Text>
+          </View>
+        }
+        renderItem={({ item: routine }) => (
+          <ExerciseCard
+            routine={routine}
+            onPress={() => router.push(`/(home)/(health)/exercise-session?id=${routine.id}` as any)}
+          />
+        )}
+      />
     </Container>
   );
 }
