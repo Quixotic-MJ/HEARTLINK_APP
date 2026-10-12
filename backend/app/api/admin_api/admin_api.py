@@ -59,7 +59,18 @@ def get_admin_dashboard(current_user: dict = Depends(get_current_admin_user)):
             raise HTTPException(status_code=500, detail="Dashboard RPC returned empty data")
         
         dashboard_data = res.data
-        
+
+        # Keep the response contract the web dashboard reads (kpi block, content_library.exercises)
+        dashboard_data["kpi"] = {
+            "total_users": dashboard_data.get("total_users", 0),
+            "active_users": dashboard_data.get("active_users", 0),
+            "avg_hss": dashboard_data.get("avg_hss", 0),
+            "open_alerts": (dashboard_data.get("users_needing_review") or {}).get("open_alerts", 0),
+        }
+        content_library = dashboard_data.get("content_library") or {}
+        content_library.setdefault("exercises", content_library.get("routines", 0))
+        dashboard_data["content_library"] = content_library
+
         # Recent Admin Activity still loaded via Python (small payload)
         admin_activity = get_admin_repo().list_activity(limit=10)
         recent_activity = []
