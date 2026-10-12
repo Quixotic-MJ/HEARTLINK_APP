@@ -1,15 +1,13 @@
-import { useState, useEffect, useRef } from "react";
-import { 
-  Eye, 
-  EyeOff, 
-  ArrowRight, 
-  ArrowLeft, 
+import { useState, useEffect, useRef, useId } from "react";
+import {
+  Eye,
+  EyeOff,
+  ArrowLeft,
   AlertTriangle,
   AlertCircle,
   Loader2,
   CheckCircle2,
   X,
-  HelpCircle
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
@@ -22,16 +20,16 @@ import { toast } from "sonner";
 
 // ─── Validation Schemas ───────────────────────────────────────────────────────
 const loginSchema = z.object({
-  identifier: z.string().min(1, "Please enter your email or username."),
-  password: z.string().min(1, "Please enter your password."),
+  identifier: z.string().min(1, "Enter your email or username."),
+  password: z.string().min(1, "Enter your password."),
 });
 
 const twoFASchema = z.object({
   code: z
     .string()
-    .min(6, "Please enter the complete 6-digit verification code.")
-    .max(6, "Code must be 6 digits")
-    .regex(/^\d+$/, "Verification code must contain only numbers."),
+    .min(6, "Enter all 6 digits of the code.")
+    .max(6, "The code is 6 digits.")
+    .regex(/^\d+$/, "The code can only contain numbers."),
 });
 
 // ─── User-Friendly Error Mapper ───────────────────────────────────────────────
@@ -41,48 +39,58 @@ function mapAuthError(error) {
 
   if (status === 401 || detail.toLowerCase().includes("invalid credential") || detail.toLowerCase().includes("invalid login")) {
     return {
-      title: "Unable to sign in",
-      message: "Check your email or username and password, then try again.",
+      title: "Email, username or password is incorrect",
+      message: "Check both fields and try again. Passwords are case-sensitive.",
     };
   }
   if (status === 403 || detail.toLowerCase().includes("access denied") || detail.toLowerCase().includes("portal is strictly")) {
     return {
-      title: "Access Restricted",
-      message: "This portal is reserved for administrators and authorized specialists.",
+      title: "This account can't use the admin portal",
+      message: "The portal is for administrators and medical experts. Patients sign in through the HeartLink mobile app.",
     };
   }
   if (status === 429 || detail.toLowerCase().includes("rate limit") || detail.toLowerCase().includes("too many")) {
     return {
-      title: "Too Many Attempts",
-      message: "Security rate limit reached. Please wait a few moments before trying again.",
+      title: "Too many sign-in attempts",
+      message: "Wait a minute, then try again.",
     };
   }
   if (detail.toLowerCase().includes("disabled") || detail.toLowerCase().includes("deactivated")) {
     return {
-      title: "Account Inactive",
-      message: "Your staff account has been deactivated. Please contact your system administrator.",
+      title: "This account is deactivated",
+      message: "Ask your system administrator to reactivate it.",
     };
   }
-  if (!status || status === 500 || detail.toLowerCase().includes("network") || detail.toLowerCase().includes("fetch")) {
+  if (!status || status >= 500 || detail.toLowerCase().includes("network") || detail.toLowerCase().includes("fetch")) {
     return {
-      title: "Connection Unavailable",
-      message: "Unable to reach the authentication server. Please check your internet connection.",
+      title: "Can't reach HeartLink",
+      message: "Check your internet connection and try again.",
     };
   }
   return {
-    title: "Authentication Error",
-    message: detail || "An unexpected error occurred. Please try again or contact IT support.",
+    title: "Sign-in failed",
+    message: detail || "Try again. If it keeps happening, contact your system administrator.",
   };
 }
 
 // ─── HeartLink Official Two-Facet Brand Emblem ───────────────────────────────
+const EMBLEM_PATHS = [
+  "M -79.20,-25.46 L -96.17,-42.43 A 38 38 0 0 1 -42.43,-96.17 L 28.28,-25.46",
+  "M 25.46,-79.20 L 42.43,-96.17 A 38 38 0 0 1 96.17,-42.43 L 25.46,28.28",
+  "M -25.46,79.20 L -42.43,96.17 A 38 38 0 0 1 -96.17,42.43 L -25.46,-28.28",
+  "M 79.20,25.46 L 96.17,42.43 A 38 38 0 0 1 42.43,96.17 L -28.28,25.46",
+];
+
 function HeartLogoIcon({ size = 26, className = "" }) {
+  // Unique gradient ids per instance: a duplicate id inside a hidden copy breaks the visible one.
+  const uid = useId().replace(/:/g, "");
+  const gid = (name) => `${name}-${uid}`;
   return (
-    <svg 
-      width={size} 
-      height={size} 
-      viewBox="-132 -132 264 264" 
-      fill="none" 
+    <svg
+      width={size}
+      height={size}
+      viewBox="-132 -132 264 264"
+      fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
       aria-hidden="true"
@@ -90,46 +98,266 @@ function HeartLogoIcon({ size = 26, className = "" }) {
       aria-label="HeartLink icon"
     >
       <defs>
-        <linearGradient id="hl-topright" gradientUnits="userSpaceOnUse" x1="0" y1="-122" x2="0" y2="30">
+        <linearGradient id={gid("hl-topright")} gradientUnits="userSpaceOnUse" x1="0" y1="-122" x2="0" y2="30">
           <stop offset="0" stopColor="#2B84FF"/><stop offset="0.30" stopColor="#2E8DF5"/>
           <stop offset="0.52" stopColor="#38B3B5"/><stop offset="0.68" stopColor="#5CC974"/>
           <stop offset="0.81" stopColor="#B2D65A"/><stop offset="0.91" stopColor="#F7A63C"/>
           <stop offset="1" stopColor="#FF9A2E"/>
         </linearGradient>
-        <linearGradient id="hl-bottomleft" gradientUnits="userSpaceOnUse" x1="0" y1="-30" x2="0" y2="122">
+        <linearGradient id={gid("hl-bottomleft")} gradientUnits="userSpaceOnUse" x1="0" y1="-30" x2="0" y2="122">
           <stop offset="0" stopColor="#2B87FF"/><stop offset="0.45" stopColor="#2A86F5"/>
           <stop offset="0.62" stopColor="#2D9BE0"/><stop offset="0.78" stopColor="#30BE9C"/>
           <stop offset="1" stopColor="#33CC82"/>
         </linearGradient>
-        <linearGradient id="hl-bottomright" gradientUnits="userSpaceOnUse" x1="122" y1="0" x2="-32" y2="0">
+        <linearGradient id={gid("hl-bottomright")} gradientUnits="userSpaceOnUse" x1="122" y1="0" x2="-32" y2="0">
           <stop offset="0" stopColor="#3FC98A"/><stop offset="0.30" stopColor="#7ACD68"/>
           <stop offset="0.50" stopColor="#B6D85A"/><stop offset="0.70" stopColor="#C2D857"/>
           <stop offset="0.85" stopColor="#F2A93C"/><stop offset="1" stopColor="#FF9A2E"/>
         </linearGradient>
       </defs>
       <g fill="none" strokeWidth="30" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M -79.20,-25.46 L -96.17,-42.43 A 38 38 0 0 1 -42.43,-96.17 L 28.28,-25.46" stroke="#FF4B4B"/>
-        <path d="M 25.46,-79.20 L 42.43,-96.17 A 38 38 0 0 1 96.17,-42.43 L 25.46,28.28" stroke="url(#hl-topright)"/>
-        <path d="M -25.46,79.20 L -42.43,96.17 A 38 38 0 0 1 -96.17,42.43 L -25.46,-28.28" stroke="url(#hl-bottomleft)"/>
-        <path d="M 79.20,25.46 L 96.17,42.43 A 38 38 0 0 1 42.43,96.17 L -28.28,25.46" stroke="url(#hl-bottomright)"/>
+        <path d={EMBLEM_PATHS[0]} stroke="#FF4B4B"/>
+        <path d={EMBLEM_PATHS[1]} stroke={`url(#${gid("hl-topright")})`}/>
+        <path d={EMBLEM_PATHS[2]} stroke={`url(#${gid("hl-bottomleft")})`}/>
+        <path d={EMBLEM_PATHS[3]} stroke={`url(#${gid("hl-bottomright")})`}/>
       </g>
     </svg>
   );
 }
 
-// ─── Framer Motion Variants ───────────────────────────────────────────────────
-const containerVariants = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: { staggerChildren: 0.05, delayChildren: 0.1 }
-  }
+// ─── Shared Styles ────────────────────────────────────────────────────────────
+const focusRing =
+  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2E9AE8]";
+
+const inputBase =
+  "w-full h-11 rounded-[10px] border bg-white px-3.5 text-[14px] text-[#0F172A] placeholder:text-[#94A3B8] shadow-[0_1px_2px_rgba(15,23,42,0.04)] outline-none transition-[border-color,box-shadow]";
+
+const inputState = (hasError) =>
+  hasError
+    ? "border-[#F1A9A0] focus:border-[#D9534F] focus:shadow-[0_0_0_4px_rgba(217,83,79,0.12)]"
+    : "border-[#DCE1E8] hover:border-[#C5CDD8] focus:border-[#2E9AE8] focus:shadow-[0_0_0_4px_rgba(46,154,232,0.14)]";
+
+const labelText = "block text-[13.5px] font-medium text-[#334155]";
+
+const primaryButton =
+  `w-full h-11 rounded-[10px] bg-[#2E9AE8] hover:bg-[#2489D4] active:bg-[#1C7AC8] disabled:opacity-60 disabled:cursor-not-allowed text-white text-[14px] font-semibold flex items-center justify-center gap-2 shadow-[0_1px_2px_rgba(15,23,42,0.12),inset_0_1px_0_rgba(255,255,255,0.14)] transition-colors cursor-pointer ${focusRing}`;
+
+const compactPrimaryButton = primaryButton.replace("w-full h-11", "h-10 px-4");
+
+const secondaryButton =
+  `h-10 px-4 rounded-[10px] border border-[#DCE1E8] bg-white text-[14px] font-semibold text-[#334155] hover:bg-[#F8FAFC] shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed ${focusRing}`;
+
+const textLink =
+  `font-medium text-[#1C7AC8] hover:text-[#155E9C] cursor-pointer rounded-[4px] disabled:text-[#94A3B8] disabled:cursor-not-allowed ${focusRing}`;
+
+const card =
+  "bg-white border border-[#E2E8F0] rounded-2xl shadow-[0_1px_3px_rgba(15,23,42,0.04),0_16px_40px_-16px_rgba(15,23,42,0.12)]";
+
+const stepTransition = {
+  initial: { opacity: 0 },
+  animate: { opacity: 1, transition: { duration: 0.18, ease: "easeOut" } },
+  exit: { opacity: 0, transition: { duration: 0.12, ease: "easeIn" } },
 };
 
-const itemVariants = {
-  hidden: { opacity: 0, y: 12 },
-  show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
-};
+function FieldError({ id, message }) {
+  if (!message) return null;
+  return (
+    <p id={id} className="flex items-center gap-1.5 mt-1.5 text-[#B42318] text-[13px]">
+      <AlertCircle size={14} className="shrink-0" aria-hidden="true" />
+      <span>{message}</span>
+    </p>
+  );
+}
+
+function ErrorBanner({ error }) {
+  if (!error) return null;
+  return (
+    <div
+      role="alert"
+      className="flex gap-2.5 rounded-[10px] border border-[#FECDCA] bg-[#FEF3F2] px-3.5 py-3 text-[13px] leading-snug"
+    >
+      <AlertTriangle size={16} className="shrink-0 mt-px text-[#D92D20]" aria-hidden="true" />
+      <div>
+        <p className="font-semibold text-[#912018]">{error.title}</p>
+        <p className="mt-0.5 text-[#B42318]">{error.message}</p>
+      </div>
+    </div>
+  );
+}
+
+// ─── Animated Background ──────────────────────────────────────────────────────
+// Drifting blue/green colour fields, a dot grid, and small glowing floating orbs.
+// Animation stops for people who prefer reduced motion.
+const backdropCss = `
+.hl-field { position: absolute; border-radius: 50%; filter: blur(55px); will-change: transform; }
+.hl-field-blue {
+  width: 62vmax; height: 62vmax; top: -20vmax; left: -18vmax;
+  background: radial-gradient(circle, rgba(93,169,255,0.75), rgba(93,169,255,0) 68%);
+  animation: hl-drift-blue 16s ease-in-out infinite;
+}
+.hl-field-green {
+  width: 58vmax; height: 58vmax; top: -16vmax; right: -16vmax;
+  background: radial-gradient(circle, rgba(142,222,150,0.65), rgba(142,222,150,0) 68%);
+  animation: hl-drift-green 19s ease-in-out infinite;
+}
+.hl-field-blue-low {
+  width: 54vmax; height: 54vmax; bottom: -28vmax; left: 6vmax;
+  background: radial-gradient(circle, rgba(93,169,255,0.4), rgba(93,169,255,0) 68%);
+  animation: hl-drift-low 21s ease-in-out infinite;
+}
+.hl-field-green-low {
+  width: 46vmax; height: 46vmax; bottom: -22vmax; right: 4vmax;
+  background: radial-gradient(circle, rgba(142,222,150,0.35), rgba(142,222,150,0) 68%);
+  animation: hl-drift-low2 24s ease-in-out infinite;
+}
+@keyframes hl-drift-blue { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(9vw, 7vh) scale(1.18); } }
+@keyframes hl-drift-green { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(-8vw, 9vh) scale(1.14); } }
+@keyframes hl-drift-low { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(6vw, -6vh) scale(1.12); } }
+@keyframes hl-drift-low2 { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(-7vw, -5vh) scale(1.1); } }
+
+.hl-dot-grid {
+  position: absolute; inset: 0;
+  background-image: radial-gradient(rgba(60, 90, 130, 0.22) 1.3px, transparent 1.3px);
+  background-size: 28px 28px;
+  -webkit-mask-image: radial-gradient(ellipse 72% 62% at 50% 42%, black 0%, transparent 78%);
+  mask-image: radial-gradient(ellipse 72% 62% at 50% 42%, black 0%, transparent 78%);
+}
+
+.hl-orb { position: absolute; border-radius: 50%; animation: hl-float-orb ease-in-out infinite; }
+@keyframes hl-float-orb {
+  0%, 100% { transform: translateY(0) translateX(0) scale(1); }
+  50% { transform: translateY(-34px) translateX(16px) scale(1.15); }
+}
+
+/* Cursor spotlight: a soft glow plus brighter dots near the pointer */
+.hl-spot-glow, .hl-dot-grid-lit {
+  position: absolute; inset: 0;
+  opacity: var(--hl-spot, 0);
+  transition: opacity 0.5s ease;
+}
+.hl-spot-glow {
+  background: radial-gradient(520px circle at var(--hl-mx, 50%) var(--hl-my, 40%), rgba(93,169,255,0.22), transparent 62%);
+}
+.hl-dot-grid-lit {
+  background-image: radial-gradient(rgba(46,154,232,0.75) 1.4px, transparent 1.4px);
+  background-size: 28px 28px;
+  -webkit-mask-image: radial-gradient(200px circle at var(--hl-mx, 50%) var(--hl-my, 40%), black, transparent 75%);
+  mask-image: radial-gradient(200px circle at var(--hl-mx, 50%) var(--hl-my, 40%), black, transparent 75%);
+}
+@media (hover: none) {
+  .hl-spot-glow, .hl-dot-grid-lit { display: none; }
+}
+
+/* Glowing highlight that travels around the card edge */
+@property --hl-angle { syntax: "<angle>"; initial-value: 0deg; inherits: false; }
+@keyframes hl-spin { to { --hl-angle: 360deg; } }
+.hl-glow-border::before {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1.5px; pointer-events: none;
+  background: conic-gradient(from var(--hl-angle), transparent 0deg, rgba(93,169,255,0.95) 50deg, rgba(142,222,150,0.95) 100deg, transparent 150deg, transparent 360deg);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: hl-spin 7s linear infinite;
+}
+
+/* Logo heartbeat with a ripple ring */
+@keyframes hl-heartbeat {
+  0%, 60%, 100% { transform: scale(1); }
+  66% { transform: scale(1.12); }
+  72% { transform: scale(1); }
+  78% { transform: scale(1.08); }
+  84% { transform: scale(1); }
+}
+@keyframes hl-ripple {
+  0%, 60% { transform: scale(1); opacity: 0; }
+  64% { opacity: 0.55; }
+  100% { transform: scale(1.75); opacity: 0; }
+}
+.hl-heartbeat { animation: hl-heartbeat 2.4s ease-in-out infinite; }
+.hl-ripple {
+  position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  box-shadow: 0 0 0 2px rgba(93,169,255,0.6), 0 0 18px 2px rgba(93,169,255,0.35);
+  animation: hl-ripple 2.4s ease-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hl-field, .hl-orb { animation: none !important; }
+  .hl-glow-border::before, .hl-heartbeat { animation: none !important; }
+  .hl-ripple { display: none; }
+}
+`;
+
+const BLUE = "93,169,255";
+const GREEN = "142,222,150";
+
+const FLOATING_ORBS = [
+  { size: 16, top: "16%", left: "10%", rgb: BLUE, alpha: 0.75, glow: "0 0 22px 6px", glowAlpha: 0.55, duration: 7, delay: 0 },
+  { size: 12, top: "28%", left: "88%", rgb: GREEN, alpha: 0.8, glow: "0 0 20px 6px", glowAlpha: 0.55, duration: 9, delay: 1 },
+  { size: 20, top: "72%", left: "18%", rgb: BLUE, alpha: 0.6, glow: "0 0 26px 8px", glowAlpha: 0.45, duration: 11, delay: 2 },
+  { size: 14, top: "64%", left: "82%", rgb: GREEN, alpha: 0.75, glow: "0 0 22px 6px", glowAlpha: 0.5, duration: 8, delay: 0.5 },
+  { size: 9, top: "48%", left: "5%", rgb: BLUE, alpha: 0.7, glow: "0 0 16px 5px", glowAlpha: 0.5, duration: 6.5, delay: 1.5 },
+  { size: 10, top: "10%", left: "52%", rgb: GREEN, alpha: 0.7, glow: "0 0 18px 5px", glowAlpha: 0.5, duration: 10, delay: 3 },
+  { size: 13, top: "85%", left: "52%", rgb: BLUE, alpha: 0.65, glow: "0 0 20px 6px", glowAlpha: 0.45, duration: 9.5, delay: 2.5 },
+];
+
+function LoginBackdrop() {
+  const backdropRef = useRef(null);
+
+  // Feed the pointer position to CSS variables (no React re-renders).
+  useEffect(() => {
+    const el = backdropRef.current;
+    if (!el) return undefined;
+    let frame = 0;
+    const handleMove = (e) => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const rect = el.getBoundingClientRect();
+        el.style.setProperty("--hl-mx", `${e.clientX - rect.left}px`);
+        el.style.setProperty("--hl-my", `${e.clientY - rect.top}px`);
+        el.style.setProperty("--hl-spot", "1");
+      });
+    };
+    const handleLeave = () => el.style.setProperty("--hl-spot", "0");
+    window.addEventListener("pointermove", handleMove);
+    document.documentElement.addEventListener("pointerleave", handleLeave);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("pointermove", handleMove);
+      document.documentElement.removeEventListener("pointerleave", handleLeave);
+    };
+  }, []);
+
+  return (
+    <div ref={backdropRef} className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+      <style>{backdropCss}</style>
+
+      <div className="hl-field hl-field-blue" />
+      <div className="hl-field hl-field-green" />
+      <div className="hl-field hl-field-blue-low" />
+      <div className="hl-field hl-field-green-low" />
+      <div className="hl-dot-grid" />
+      <div className="hl-spot-glow" />
+      <div className="hl-dot-grid-lit" />
+
+      {FLOATING_ORBS.map((orb) => (
+        <div
+          key={`${orb.top}-${orb.left}`}
+          className="hl-orb"
+          style={{
+            width: orb.size,
+            height: orb.size,
+            top: orb.top,
+            left: orb.left,
+            background: `rgba(${orb.rgb},${orb.alpha})`,
+            boxShadow: `${orb.glow} rgba(${orb.rgb},${orb.glowAlpha})`,
+            animationDuration: `${orb.duration}s`,
+            animationDelay: `${orb.delay}s`,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
 
 // ─── Forgot Password Modal ────────────────────────────────────────────────────
 function ForgotPasswordModal({ isOpen, onClose }) {
@@ -146,6 +374,15 @@ function ForgotPasswordModal({ isOpen, onClose }) {
     return () => clearInterval(timer);
   }, [cooldown]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const handleSubmit = async (e) => {
@@ -158,137 +395,103 @@ function ForgotPasswordModal({ isOpen, onClose }) {
         method: "POST",
         body: JSON.stringify({ identifier: identifier.trim() }),
       });
-      setSubmitted(true);
-      setCooldown(60);
-      toast.success("Recovery request sent", {
-        description: "If an account exists, reset instructions have been dispatched.",
-      });
     } catch {
+      // Same outcome either way so the form never reveals whether an account exists.
+    } finally {
       setSubmitted(true);
       setCooldown(60);
-      toast.info("Request processed", {
-        description: "Please check your registered communication channels.",
-      });
-    } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div 
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#0F172A]/40 backdrop-blur-[2px]"
       role="dialog"
       aria-modal="true"
       aria-labelledby="forgot-password-title"
     >
       <motion.div
-        initial={{ opacity: 0, scale: 0.96, y: 8 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.96, y: 8 }}
-        className="bg-[#FFFFFF] rounded-2xl border border-[#DCE3DF] max-w-md w-full p-7 shadow-2xl relative text-black"
+        initial={{ opacity: 0, scale: 0.98 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.16, ease: "easeOut" }}
+        className={`${card} relative w-full max-w-[400px] p-6 text-[#0F172A]`}
         style={{ fontFamily: "'Inter', sans-serif" }}
       >
         <button
           type="button"
           onClick={onClose}
-          aria-label="Close dialog"
-          className="absolute top-5 right-5 p-1.5 rounded-lg text-black hover:bg-[#EDF1EF] transition-colors cursor-pointer"
+          aria-label="Close"
+          className={`absolute top-3.5 right-3.5 p-1.5 rounded-lg text-[#94A3B8] hover:text-[#334155] hover:bg-[#F1F5F9] transition-colors cursor-pointer ${focusRing}`}
         >
           <X size={18} />
         </button>
 
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-2xl bg-[#EAF5FC] border border-[#CDE1F4] flex items-center justify-center text-[#2E9AE8]">
-            <HelpCircle size={20} />
-          </div>
-          <div>
-            <h3 id="forgot-password-title" className="text-lg font-bold text-black">
-              Account Recovery
-            </h3>
-            <p className="text-xs text-black font-medium">Password Reset Assistance</p>
-          </div>
-        </div>
-
         {!submitted ? (
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <p className="text-[14px] text-black leading-relaxed">
-              Enter your registered staff email or username. Instructions to reset your password will be dispatched to your account.
+          <form onSubmit={handleSubmit}>
+            <h3 id="forgot-password-title" className="text-[18px] font-semibold tracking-[-0.01em] pr-8">
+              Reset your password
+            </h3>
+            <p className="mt-1.5 text-[14px] leading-relaxed text-[#64748B]">
+              Enter the email or username on your staff account and we'll send you instructions to reset your password.
             </p>
 
-            <div>
-              <label htmlFor="recovery-identifier" className="text-[12px] font-semibold text-black block mb-1.5">
-                Email or Username
-              </label>
-              <div className="w-full rounded-md flex items-center px-3.5 h-11 border border-[#DCE3DF] bg-[#EDF1EF] focus-within:border-[#152131] focus-within:ring-4 focus-within:ring-[#1B6E63]/10 focus-within:bg-white transition-all">
-                <input
-                  id="recovery-identifier"
-                  type="text"
-                  required
-                  placeholder="admin@heartlink.ph"
-                  value={identifier}
-                  onChange={(e) => setIdentifier(e.target.value)}
-                  className="flex-1 text-[14px] text-black placeholder:text-[#9AA5A1] bg-transparent outline-none py-2"
-                />
-              </div>
-            </div>
+            <label htmlFor="recovery-identifier" className={`${labelText} mt-5 mb-1.5`}>
+              Email or username
+            </label>
+            <input
+              id="recovery-identifier"
+              type="text"
+              required
+              autoComplete="username"
+              placeholder="you@heartlink.ph"
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
+              className={`${inputBase} ${inputState(false)}`}
+            />
 
-            <div className="p-3 bg-[#E3EFEC] border border-[#C5DFD8] rounded-md text-[12px] text-black font-medium flex items-start gap-2">
-              <span>If you need immediate access, you can also contact your system administrator directly.</span>
-            </div>
-
-            <div className="flex gap-2.5 pt-2">
-              <button
-                type="button"
-                onClick={onClose}
-                className="flex-1 py-2.5 px-4 rounded-md border border-[#DCE3DF] text-[14px] font-semibold text-black hover:bg-[#EDF1EF] transition-colors cursor-pointer"
-              >
+            <div className="mt-6 flex justify-end gap-2.5">
+              <button type="button" onClick={onClose} className={secondaryButton}>
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={isSubmitting || !identifier.trim() || cooldown > 0}
-                className="flex-1 py-2.5 px-4 rounded-md bg-[#152131] hover:bg-[#0d1622] hover:-translate-y-0.5 hover:shadow-md disabled:translate-y-0 disabled:shadow-none disabled:opacity-60 text-[14px] font-semibold text-white transition-all flex items-center justify-center gap-2 cursor-pointer"
+                className={compactPrimaryButton}
               >
                 {isSubmitting ? (
                   <>
                     <Loader2 size={15} className="animate-spin" />
-                    <span>Sending...</span>
+                    <span>Sending…</span>
                   </>
                 ) : cooldown > 0 ? (
-                  <span>Wait {cooldown}s</span>
+                  <span>Try again in {cooldown}s</span>
                 ) : (
-                  <span>Submit Request</span>
+                  <span>Send instructions</span>
                 )}
               </button>
             </div>
           </form>
         ) : (
-          <div className="space-y-4 py-2">
-            <div className="text-center py-4">
-              <div className="w-12 h-12 rounded-full bg-[#E3EFEC] text-[#1B6E63] border border-[#C5DFD8] flex items-center justify-center mx-auto mb-3">
-                <CheckCircle2 size={24} />
-              </div>
-              <h4 className="text-base font-bold text-black mb-1">
-                Request Received
-              </h4>
-              <p className="text-[14px] text-black leading-relaxed max-w-xs mx-auto">
-                If the identifier matches an active staff account, password recovery instructions have been generated.
-              </p>
-            </div>
-            <div className="flex gap-2.5">
+          <div>
+            <CheckCircle2 size={22} className="text-[#1B6E63]" aria-hidden="true" />
+            <h3 id="forgot-password-title" className="mt-3 text-[18px] font-semibold tracking-[-0.01em]">
+              Check your email
+            </h3>
+            <p className="mt-1.5 text-[14px] leading-relaxed text-[#64748B]">
+              If that account exists, reset instructions are on their way. They can take a few minutes to arrive.
+            </p>
+            <div className="mt-6 flex justify-end gap-2.5">
               <button
                 type="button"
+                disabled={cooldown > 0}
                 onClick={() => { setSubmitted(false); setIdentifier(""); }}
-                className="flex-1 py-2.5 px-4 rounded-md border border-[#DCE3DF] text-[14px] font-semibold text-black hover:bg-[#EDF1EF] transition-colors cursor-pointer"
+                className={secondaryButton}
               >
-                Request Again {cooldown > 0 ? `(${cooldown}s)` : ""}
+                {cooldown > 0 ? `Send again in ${cooldown}s` : "Send again"}
               </button>
-              <button
-                type="button"
-                onClick={onClose}
-                className="flex-1 py-2.5 px-4 rounded-md bg-[#152131] hover:bg-[#0d1622] hover:-translate-y-0.5 hover:shadow-md text-[14px] font-semibold text-white transition-all cursor-pointer"
-              >
-                Return to Sign In
+              <button type="button" onClick={onClose} className={compactPrimaryButton}>
+                Back to sign in
               </button>
             </div>
           </div>
@@ -309,26 +512,10 @@ export default function HeartLinkAdminLogin() {
   const [resendCooldown, setResendCooldown] = useState(0);
   const [capsLockOn, setCapsLockOn] = useState(false);
 
-  // Dynamic Text Carousel State - Updated for preventive vibe
-  const dynamicWords = ["meal", "routine", "choice", "habit"];
-  const [wordIndex, setWordIndex] = useState(0);
-
   const navigate = useNavigate();
   const { user, isAuthenticated, loading, login } = useAuth();
   const otpInputRef = useRef(null);
   const identifierInputRef = useRef(null);
-
-  // Smart Greeting Logic
-  const hour = new Date().getHours();
-  const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
-
-  // Dynamic Text Carousel Effect
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setWordIndex((prev) => (prev + 1) % dynamicWords.length);
-    }, 3000);
-    return () => clearInterval(interval);
-  }, []);
 
   // ─── 1. Auto-Redirect if Already Logged In ────────────────────────────────
   useEffect(() => {
@@ -368,7 +555,8 @@ export default function HeartLinkAdminLogin() {
   } = useForm({
     resolver: zodResolver(loginSchema),
     defaultValues: { identifier: "", password: "" },
-    mode: "onTouched",
+    mode: "onSubmit",
+    reValidateMode: "onChange",
   });
 
   const {
@@ -379,7 +567,8 @@ export default function HeartLinkAdminLogin() {
   } = useForm({
     resolver: zodResolver(twoFASchema),
     defaultValues: { code: "" },
-    mode: "onTouched",
+    mode: "onSubmit",
+    reValidateMode: "onChange",
   });
 
   const otpValue = watch2FA("code");
@@ -422,13 +611,11 @@ export default function HeartLinkAdminLogin() {
       if (response.requires_2fa || response.token_2fa) {
         setTemp2faToken(response.token_2fa);
         setStep("2fa");
-        toast.info("Two-Factor Verification", {
-          description: "Please enter the 6-digit security code sent to your device.",
+        toast.info("Verification code sent", {
+          description: "Enter the 6-digit code to finish signing in.",
         });
       } else if (response.success !== false && (response.user_id || response.success)) {
-        toast.success("Authentication successful", {
-          description: "Accessing HeartLink clinical portal...",
-        });
+        toast.success("Signed in");
         login(
           response.user_id,
           {
@@ -450,7 +637,6 @@ export default function HeartLinkAdminLogin() {
     } catch (error) {
       const mapped = mapAuthError(error);
       setStructuredError(mapped);
-      toast.error(mapped.title, { description: mapped.message });
     }
   };
 
@@ -468,9 +654,7 @@ export default function HeartLinkAdminLogin() {
       });
 
       if (response.success !== false && (response.user_id || response.success)) {
-        toast.success("Verification successful", {
-          description: "Security credentials confirmed. Launching portal...",
-        });
+        toast.success("Signed in");
         login(
           response.user_id,
           {
@@ -492,203 +676,86 @@ export default function HeartLinkAdminLogin() {
     } catch (error) {
       const mapped = mapAuthError(error);
       setStructuredError(mapped);
-      toast.error(mapped.title, { description: mapped.message });
     }
   };
 
+  const isLoginStep = step === "login";
+
   return (
-    <div 
-      className="min-h-screen w-full grid grid-cols-1 lg:grid-cols-[1.05fr_1fr] bg-[#FFFFFF] text-[#152131] selection:bg-[#2E9AE8] selection:text-white"
+    <div
+      className="relative isolate overflow-hidden min-h-screen w-full flex flex-col bg-[#F5F8FC] text-[#0F172A] selection:bg-[#2E9AE8] selection:text-white"
       style={{ fontFamily: "'Inter', sans-serif" }}
     >
-      {/* ═════════════════════════════════════════════════════════════════════════
-          LEFT: Editorial Hero Showcase (Soft Ambient Background)
-      ═════════════════════════════════════════════════════════════════════════ */}
-      <aside 
-        className="hidden lg:flex flex-col justify-between p-12 xl:p-16 relative select-none border-r border-[#DCE3DF] overflow-hidden bg-gradient-to-br from-[#FFFFFF] via-[#F8FAFC] to-[#F1F5F9]"
-        aria-label="HeartLink Brand Overview"
-      >
-        {/* Modern Dot Grid Background */}
-        <div 
-          className="absolute inset-0 z-0 pointer-events-none opacity-[0.3]"
-          style={{
-            backgroundImage: "radial-gradient(#94A3B8 1px, transparent 1px)",
-            backgroundSize: "24px 24px"
-          }}
-        />
+      <LoginBackdrop />
 
-        {/* Abstract Ambient Shapes */}
-        <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] bg-[#EAF5FC] opacity-70 rounded-full blur-[120px] mix-blend-multiply pointer-events-none z-0" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] bg-[#E3EFEC] opacity-60 rounded-full blur-[120px] mix-blend-multiply pointer-events-none z-0" />
-
-        {/* Top Brand Lockup */}
-        <div className="relative z-10 flex items-start gap-3.5">
-          <div className="mt-1.5">
-            <HeartLogoIcon size={34} />
-          </div>
-          <div>
-            <div className="text-[34px] font-bold tracking-tight text-slate-900 leading-none">
-              HeartLink
-            </div>
-            <div className="text-[15.5px] font-medium text-slate-500 mt-1">
-              Admin &amp; clinical portal
-            </div>
-          </div>
-        </div>
-
-        {/* Hero Headline & Narrative */}
-        <div className="relative z-10 max-w-[540px] my-auto py-10">
-          <h1 className="font-bold text-[#152131] tracking-tight leading-[1.2] mb-5 text-[34px] xl:text-[44px]">
-            {/* Perfectly aligned flex container to prevent clipping and baseline issues */}
-            <div className="flex flex-wrap items-center gap-x-2.5 mb-1">
-              <span>Every</span>
-              <div className="relative h-[1.3em] min-w-[160px] overflow-hidden text-[#2E9AE8]">
-                <AnimatePresence mode="popLayout">
-                  <motion.div
-                    key={wordIndex}
-                    initial={{ y: "100%", opacity: 0 }}
-                    animate={{ y: "0%", opacity: 1 }}
-                    exit={{ y: "-100%", opacity: 0 }}
-                    transition={{ duration: 0.4, ease: "easeOut" }}
-                    className="absolute inset-0 flex items-center"
-                  >
-                    {dynamicWords[wordIndex]},
-                  </motion.div>
-                </AnimatePresence>
-              </div>
-            </div>
-            <div className="block">guided by insights.</div>
-          </h1>
-          <p className="text-[15px] leading-[1.65] text-[#4a5568] mb-8 max-w-[42ch]">
-            Sign in to manage heart-healthy recipes, curate exercise routines, and oversee the algorithmic scoring that empowers users to build better preventive habits.
-          </p>
-
-          {/* Interactive Grow & Glow Pills (2 Rows of 3) */}
-          <div className="flex flex-wrap gap-2.5">
-            <span className="text-[11.5px] font-medium text-[#4a5568] border border-[#DCE3DF] bg-[#FFFFFF] rounded-full px-3.5 py-1.5 shadow-sm transition-all duration-300 hover:scale-105 hover:-translate-y-0.5 hover:shadow-[0_4px_14px_rgba(46,154,232,0.15)] hover:border-[#2E9AE8] hover:text-[#2E9AE8] cursor-default">
-              Preventive scoring
+      <main className="relative flex-1 flex items-center justify-center px-4 py-12 sm:py-16">
+        <div className="w-full max-w-[400px]">
+          {/* Header */}
+          <div className="flex flex-col items-center text-center">
+            <span className="relative flex h-12 w-12 items-center justify-center rounded-xl border border-white/70 bg-white/90 backdrop-blur ring-1 ring-[#E2E8F0]/70 shadow-[0_8px_20px_-6px_rgba(46,154,232,0.35)]">
+              <span className="hl-ripple" aria-hidden="true" />
+              <span className="hl-heartbeat inline-flex">
+                <HeartLogoIcon size={28} />
+              </span>
             </span>
-            <span className="text-[11.5px] font-medium text-[#4a5568] border border-[#DCE3DF] bg-[#FFFFFF] rounded-full px-3.5 py-1.5 shadow-sm transition-all duration-300 hover:scale-105 hover:-translate-y-0.5 hover:shadow-[0_4px_14px_rgba(46,154,232,0.15)] hover:border-[#2E9AE8] hover:text-[#2E9AE8] cursor-default">
-              Meal &amp; workout curation
-            </span>
-            <span className="text-[11.5px] font-medium text-[#4a5568] border border-[#DCE3DF] bg-[#FFFFFF] rounded-full px-3.5 py-1.5 shadow-sm transition-all duration-300 hover:scale-105 hover:-translate-y-0.5 hover:shadow-[0_4px_14px_rgba(46,154,232,0.15)] hover:border-[#2E9AE8] hover:text-[#2E9AE8] cursor-default">
-              Wellness algorithms
-            </span>
-            <span className="text-[11.5px] font-medium text-[#4a5568] border border-[#DCE3DF] bg-[#FFFFFF] rounded-full px-3.5 py-1.5 shadow-sm transition-all duration-300 hover:scale-105 hover:-translate-y-0.5 hover:shadow-[0_4px_14px_rgba(46,154,232,0.15)] hover:border-[#2E9AE8] hover:text-[#2E9AE8] cursor-default">
-              Nutrition tracking
-            </span>
-            <span className="text-[11.5px] font-medium text-[#4a5568] border border-[#DCE3DF] bg-[#FFFFFF] rounded-full px-3.5 py-1.5 shadow-sm transition-all duration-300 hover:scale-105 hover:-translate-y-0.5 hover:shadow-[0_4px_14px_rgba(46,154,232,0.15)] hover:border-[#2E9AE8] hover:text-[#2E9AE8] cursor-default">
-              Fitness metrics
-            </span>
-            <span className="text-[11.5px] font-medium text-[#4a5568] border border-[#DCE3DF] bg-[#FFFFFF] rounded-full px-3.5 py-1.5 shadow-sm transition-all duration-300 hover:scale-105 hover:-translate-y-0.5 hover:shadow-[0_4px_14px_rgba(46,154,232,0.15)] hover:border-[#2E9AE8] hover:text-[#2E9AE8] cursor-default">
-              Habit building
-            </span>
-          </div>
-        </div>
-
-        {/* Hero Footer */}
-        <div className="relative z-10 flex justify-between items-center pt-6 border-t border-[#DCE3DF] text-[12px] text-[#4a5568]">
-          <span>HeartLink web portal · v1.0</span>
-          <div className="flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-teal-500" />
-            <span>All systems normal</span>
-          </div>
-        </div>
-      </aside>
-
-      {/* ═════════════════════════════════════════════════════════════════════════
-          RIGHT: Form Panel (Clean White)
-      ═════════════════════════════════════════════════════════════════════════ */}
-      <main className="relative bg-[#FFFFFF] flex items-center justify-center p-6 sm:p-10 lg:p-12 overflow-y-auto z-0">
-        <div className="w-full max-w-[380px] py-4 z-10">
-
-          {/* Mobile Top Brand Bar (Visible only on smaller screens) */}
-          <div className="flex lg:hidden items-center gap-3 mb-8">
-            <HeartLogoIcon size={34} />
-            <div>
-              <div className="text-[22px] font-bold tracking-tight text-slate-900">
-                HeartLink
-              </div>
-              <div className="text-[13px] font-medium text-slate-500 -mt-0.5">
-                Admin &amp; clinical portal
-              </div>
-            </div>
+            <h1 className="mt-6 text-[24px] leading-8 font-semibold tracking-[-0.02em]">
+              {isLoginStep ? "Sign in to HeartLink" : "Enter verification code"}
+            </h1>
+            <p className="mt-2 text-[14px] text-[#64748B]">
+              {isLoginStep
+                ? "Admin portal for HeartLink staff"
+                : "We sent a 6-digit code to your registered device."}
+            </p>
           </div>
 
-          <AnimatePresence mode="wait">
-            {step === "login" ? (
-              <motion.div
-                key="login-step"
-                variants={containerVariants}
-                initial="hidden"
-                animate="show"
-                exit="hidden"
-              >
-                {/* Heading */}
-                <motion.div variants={itemVariants} className="mb-7">
-                  <h2 className="text-[27px] font-bold tracking-tight text-slate-900 mb-2">
-                    {greeting}
-                  </h2>
-                  <p className="text-[13.5px] text-slate-500 leading-normal">
-                    Sign in with your administrator or specialist credentials.
-                  </p>
-                </motion.div>
-
-                {/* Form */}
-                <form onSubmit={handleLoginSubmit(onLogin)} className="space-y-5" noValidate>
-                  
-                  {/* Identifier Input */}
-                  <motion.div variants={itemVariants}>
-                    <label 
-                      htmlFor="identifier" 
-                      className="block text-[12.5px] font-semibold text-slate-900 mb-1.5"
-                    >
+          {/* Card */}
+          <div className="hl-glow-border relative mt-8 rounded-2xl border border-white/70 bg-white/80 p-6 sm:p-8 backdrop-blur-xl shadow-[0_1px_3px_rgba(15,23,42,0.05),0_30px_70px_-28px_rgba(46,154,232,0.45)] ring-1 ring-[#E2E8F0]/70">
+            <AnimatePresence mode="wait" initial={false}>
+              {isLoginStep ? (
+                <motion.form
+                  key="login-step"
+                  {...stepTransition}
+                  onSubmit={handleLoginSubmit(onLogin)}
+                  className="space-y-5"
+                  noValidate
+                >
+                  {/* Identifier */}
+                  <div>
+                    <label htmlFor="identifier" className={`${labelText} mb-1.5`}>
                       Email or username
                     </label>
-                    <div 
-                      className={`flex items-center border rounded-[6px] px-3.5 h-[46px] transition-all focus-within:ring-4 focus-within:ring-[#1B6E63]/10 focus-within:bg-[#FFFFFF] ${
-                        loginErrors.identifier
-                          ? "border-red-500 bg-red-500/5"
-                          : "border-[#DCE3DF] bg-[#F8FAFC] focus-within:border-[#152131]"
-                      }`}
-                    >
-                      <input
-                        id="identifier"
-                        type="text"
-                        placeholder="you@heartlink.ph"
-                        autoComplete="username"
-                        aria-invalid={!!loginErrors.identifier}
-                        className="flex-1 bg-transparent border-none outline-none text-[14px] text-slate-900 placeholder:text-slate-400 h-full"
-                        {...registerLogin("identifier")}
-                        ref={(e) => {
-                          registerLogin("identifier").ref(e);
-                          identifierInputRef.current = e;
-                        }}
-                      />
-                    </div>
-                    {loginErrors.identifier && (
-                      <div className="flex items-center gap-1.5 mt-1.5 text-red-500 text-[11.5px] font-medium">
-                        <AlertCircle size={12} className="shrink-0" />
-                        <span>{loginErrors.identifier.message}</span>
-                      </div>
-                    )}
-                  </motion.div>
+                    <input
+                      id="identifier"
+                      type="text"
+                      placeholder="you@heartlink.ph"
+                      autoComplete="username"
+                      aria-invalid={!!loginErrors.identifier}
+                      aria-describedby={loginErrors.identifier ? "identifier-error" : undefined}
+                      className={`${inputBase} ${inputState(!!loginErrors.identifier)}`}
+                      {...registerLogin("identifier")}
+                      ref={(e) => {
+                        registerLogin("identifier").ref(e);
+                        identifierInputRef.current = e;
+                      }}
+                    />
+                    <FieldError id="identifier-error" message={loginErrors.identifier?.message} />
+                  </div>
 
-                  {/* Password Input */}
-                  <motion.div variants={itemVariants}>
-                    <label 
-                      htmlFor="password" 
-                      className="block text-[12.5px] font-semibold text-slate-900 mb-1.5"
-                    >
-                      Password
-                    </label>
-                    <div 
-                      className={`flex items-center relative border rounded-[6px] pl-3.5 pr-2 h-[46px] transition-all focus-within:ring-4 focus-within:ring-[#1B6E63]/10 focus-within:bg-[#FFFFFF] ${
-                        loginErrors.password
-                          ? "border-red-500 bg-red-500/5"
-                          : "border-[#DCE3DF] bg-[#F8FAFC] focus-within:border-[#152131]"
-                      }`}
-                    >
+                  {/* Password */}
+                  <div>
+                    <div className="mb-1.5 flex items-center justify-between">
+                      <label htmlFor="password" className={labelText}>
+                        Password
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setIsForgotModalOpen(true)}
+                        className={`text-[13.5px] ${textLink}`}
+                      >
+                        Forgot password?
+                      </button>
+                    </div>
+                    <div className="relative">
                       <input
                         id="password"
                         type={showPassword ? "text" : "password"}
@@ -697,230 +764,135 @@ export default function HeartLinkAdminLogin() {
                         onKeyUp={handleKeyUpDown}
                         onKeyDown={handleKeyUpDown}
                         aria-invalid={!!loginErrors.password}
-                        className="flex-1 bg-transparent border-none outline-none text-[14px] text-[#152131] placeholder:text-[#9AA5A1] h-full pr-14"
+                        aria-describedby={loginErrors.password ? "password-error" : capsLockOn ? "caps-lock-hint" : undefined}
+                        className={`${inputBase} ${inputState(!!loginErrors.password)} pr-11`}
                         {...registerLogin("password")}
                       />
-                      {capsLockOn && (
-                        <div className="absolute right-10 flex items-center justify-center pointer-events-none" title="Caps Lock is ON">
-                          <span className="bg-[#152131] text-white text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider">Caps</span>
-                        </div>
-                      )}
                       <button
                         type="button"
                         onClick={() => setShowPassword((prev) => !prev)}
-                        className="p-1.5 text-[#4a5568] hover:text-[#152131] transition-colors cursor-pointer rounded-md"
+                        className={`absolute right-1.5 top-1/2 -translate-y-1/2 p-2 rounded-lg text-[#94A3B8] hover:text-[#334155] transition-colors cursor-pointer ${focusRing}`}
                         aria-label={showPassword ? "Hide password" : "Show password"}
                       >
-                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                        {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
                       </button>
                     </div>
-                    {loginErrors.password && (
-                      <div className="flex items-center gap-1.5 mt-1.5 text-red-500 text-[11.5px] font-medium">
-                        <AlertCircle size={12} className="shrink-0" />
-                        <span>{loginErrors.password.message}</span>
-                      </div>
+                    <FieldError id="password-error" message={loginErrors.password?.message} />
+                    {capsLockOn && !loginErrors.password && (
+                      <p id="caps-lock-hint" className="mt-1.5 text-[13px] text-[#B54708]">
+                        Caps Lock is on.
+                      </p>
                     )}
-                  </motion.div>
+                  </div>
 
-                  {/* Keep me signed in & Forgot Password */}
-                  <motion.div variants={itemVariants} className="flex justify-between items-center pt-1 select-none">
-                    <label className="flex items-center gap-2.5 cursor-pointer">
-                      <input
-                        id="remember-me"
-                        type="checkbox"
-                        checked={remember}
-                        onChange={(e) => setRemember(e.target.checked)}
-                        className="w-4 h-4 rounded border-[#DCE3DF] bg-[#EDF1EF] text-[#2E9AE8] focus:ring-[#2E9AE8] cursor-pointer"
-                      />
-                      <span className="text-[13px] text-slate-500">
-                        Keep me signed in
-                      </span>
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() => setIsForgotModalOpen(true)}
-                      className="text-[12.5px] font-medium text-[#2E9AE8] hover:underline transition-colors cursor-pointer"
-                    >
-                      Forgot password?
-                    </button>
-                  </motion.div>
+                  {/* Stay signed in */}
+                  <label className="flex w-fit items-center gap-2.5 cursor-pointer select-none">
+                    <input
+                      id="remember-me"
+                      type="checkbox"
+                      checked={remember}
+                      onChange={(e) => setRemember(e.target.checked)}
+                      className={`h-4 w-4 rounded accent-[#2E9AE8] cursor-pointer ${focusRing}`}
+                    />
+                    <span className="text-[13.5px] text-[#475569]">Stay signed in for 7 days</span>
+                  </label>
 
-                  {/* Structured Error Alert Banner */}
-                  {structuredError && (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.98 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      role="alert"
-                      className="flex gap-2.5 bg-[#FBEAE6] border border-[#F0C4B8] rounded-[6px] p-3 text-[13px] text-black leading-normal"
-                    >
-                      <AlertTriangle size={15} className="shrink-0 mt-0.5 text-red-500" />
-                      <div className="flex-1">
-                        <strong className="block text-[13px] font-bold text-black mb-0.5">
-                          {structuredError.title}
-                        </strong>
-                        <span className="font-medium">{structuredError.message}</span>
-                      </div>
-                    </motion.div>
-                  )}
+                  <ErrorBanner error={structuredError} />
 
-                  {/* Submit Button */}
-                  <motion.div variants={itemVariants} className="pt-2">
-                    <button
-                      type="submit"
-                      disabled={isSubmittingLogin}
-                      className="w-full h-[46px] rounded-2xl bg-[#2E9AE8] hover:bg-[#1C7AC8] active:scale-[0.99] disabled:opacity-70 disabled:cursor-not-allowed text-white font-semibold text-[14px] flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm"
-                    >
-                      {isSubmittingLogin ? (
-                        <>
-                          <Loader2 size={16} className="animate-spin shrink-0" />
-                          <span>Signing in...</span>
-                        </>
-                      ) : (
-                        <>
-                          <span>Sign in</span>
-                          <ArrowRight size={15} strokeWidth={2.5} className="shrink-0" />
-                        </>
-                      )}
-                    </button>
-                  </motion.div>
-                </form>
-
-                <motion.p variants={itemVariants} className="text-center mt-6 text-[12px] text-[#9AA5A1]">
-                  Protected by two-factor authentication
-                </motion.p>
-              </motion.div>
-            ) : (
-              <motion.div
-                key="2fa-step"
-                variants={containerVariants}
-                initial="hidden"
-                animate="show"
-                exit="hidden"
-              >
-                {/* Back to sign in */}
-                <motion.button
-                  variants={itemVariants}
-                  type="button"
-                  onClick={() => { setStep("login"); setStructuredError(null); }}
-                  className="inline-flex items-center gap-1.5 text-[12.5px] text-slate-500 hover:text-slate-900 transition-colors mb-4 cursor-pointer"
+                  <button type="submit" disabled={isSubmittingLogin} className={primaryButton}>
+                    {isSubmittingLogin ? (
+                      <>
+                        <Loader2 size={16} className="animate-spin shrink-0" />
+                        <span>Signing in…</span>
+                      </>
+                    ) : (
+                      <span>Sign in</span>
+                    )}
+                  </button>
+                </motion.form>
+              ) : (
+                <motion.form
+                  key="2fa-step"
+                  {...stepTransition}
+                  onSubmit={handle2FASubmit(onVerify2FA)}
+                  className="space-y-5"
+                  noValidate
                 >
-                  <ArrowLeft size={13} strokeWidth={2.5} />
-                  <span>Back to sign in</span>
-                </motion.button>
-
-                {/* 2FA Heading */}
-                <motion.div variants={itemVariants} className="mb-7">
-                  <h2 className="text-[27px] font-bold tracking-tight text-slate-900 mb-2">
-                    Enter your code
-                  </h2>
-                  <p className="text-[13.5px] text-slate-500 leading-normal">
-                    We sent a 6-digit code to your registered device. It's valid for the next 5 minutes.
-                  </p>
-                </motion.div>
-
-                {/* 2FA Form */}
-                <form onSubmit={handle2FASubmit(onVerify2FA)} className="space-y-4" noValidate>
-                  <motion.div variants={itemVariants}>
-                    <label 
-                      htmlFor="otp" 
-                      className="block text-[12.5px] font-semibold text-slate-900 mb-1.5"
-                    >
+                  <div>
+                    <label htmlFor="otp" className={`${labelText} mb-1.5`}>
                       Verification code
                     </label>
-                    <div 
-                      className={`flex items-center border rounded-[6px] px-3.5 h-12 transition-all focus-within:ring-4 focus-within:ring-[#152131]/5 focus-within:bg-[#FFFFFF] ${
-                        errors2FA.code
-                          ? "border-red-500 bg-red-500/5"
-                          : "border-[#DCE3DF] bg-[#F8FAFC] focus-within:border-[#152131]"
-                      }`}
-                    >
-                      <input
-                        id="otp"
-                        type="text"
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        maxLength={6}
-                        placeholder="······"
-                        autoComplete="one-time-code"
-                        className="flex-1 bg-transparent border-none outline-none text-[18px] font-bold tracking-[0.5em] text-slate-900 placeholder:text-slate-400 text-center h-full"
-                        {...register2FA("code")}
-                        ref={(e) => {
-                          register2FA("code").ref(e);
-                          otpInputRef.current = e;
-                        }}
-                      />
-                    </div>
-                    {errors2FA.code && (
-                      <div className="flex items-center gap-1.5 mt-1.5 text-red-500 text-[11.5px] font-medium">
-                        <AlertCircle size={12} className="shrink-0" />
-                        <span>{errors2FA.code.message}</span>
-                      </div>
+                    <input
+                      id="otp"
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={6}
+                      placeholder="000000"
+                      autoComplete="one-time-code"
+                      aria-invalid={!!errors2FA.code}
+                      className={`${inputBase} ${inputState(!!errors2FA.code)} h-12 text-center text-[20px] font-semibold tracking-[0.5em] tabular-nums placeholder:text-[#CBD5E1]`}
+                      {...register2FA("code")}
+                      ref={(e) => {
+                        register2FA("code").ref(e);
+                        otpInputRef.current = e;
+                      }}
+                    />
+                    <FieldError message={errors2FA.code?.message} />
+                    <p className="mt-1.5 text-[13px] text-[#64748B]">The code expires in 5 minutes.</p>
+                  </div>
+
+                  <ErrorBanner error={structuredError} />
+
+                  <button type="submit" disabled={isSubmitting2FA} className={primaryButton}>
+                    {isSubmitting2FA ? (
+                      <>
+                        <Loader2 size={16} className="animate-spin shrink-0" />
+                        <span>Verifying…</span>
+                      </>
+                    ) : (
+                      <span>Verify and sign in</span>
                     )}
-                  </motion.div>
+                  </button>
 
-                  {/* Structured Error Alert Banner */}
-                  {structuredError && (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.98 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      role="alert"
-                      className="flex gap-2.5 bg-[#FBEAE6] border border-[#F0C4B8] rounded-[6px] p-3 text-[12.5px] text-black leading-normal"
-                    >
-                      <AlertTriangle size={15} className="shrink-0 mt-0.5 text-red-500" />
-                      <div className="flex-1">
-                        <strong className="block text-[13px] font-bold text-black mb-0.5">
-                          {structuredError.title}
-                        </strong>
-                        <span className="font-medium">{structuredError.message}</span>
-                      </div>
-                    </motion.div>
-                  )}
-
-                  {/* Submit Button */}
-                  <motion.div variants={itemVariants} className="pt-2">
+                  <div className="flex items-center justify-between text-[13.5px]">
                     <button
-                      type="submit"
-                      disabled={isSubmitting2FA}
-                      className="w-full h-[46px] rounded-2xl bg-[#2E9AE8] hover:bg-[#1C7AC8] active:scale-[0.99] disabled:opacity-70 disabled:cursor-not-allowed text-white font-semibold text-[14px] flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm"
+                      type="button"
+                      onClick={() => { setStep("login"); setStructuredError(null); }}
+                      className={`inline-flex items-center gap-1.5 font-medium text-[#64748B] hover:text-[#0F172A] transition-colors cursor-pointer rounded-[4px] ${focusRing}`}
                     >
-                      {isSubmitting2FA ? (
-                        <>
-                          <Loader2 size={16} className="animate-spin shrink-0" />
-                          <span>Verifying...</span>
-                        </>
-                      ) : (
-                        <>
-                          <span>Verify and continue</span>
-                          <ArrowRight size={15} strokeWidth={2.5} className="shrink-0" />
-                        </>
-                      )}
+                      <ArrowLeft size={15} />
+                      Back
                     </button>
-                  </motion.div>
-
-                  <motion.div variants={itemVariants} className="text-center pt-2 text-[12.5px] text-[#4a5568]">
-                    <span>Didn't get a code? </span>
                     <button
                       type="button"
                       disabled={resendCooldown > 0}
                       onClick={() => {
                         if (resendCooldown > 0) return;
                         setResendCooldown(60);
-                        toast.info("Resend Code", {
-                          description: "A fresh verification code has been dispatched to your device.",
+                        toast.info("New code sent", {
+                          description: "Check your registered device.",
                         });
                       }}
-                      className="text-slate-500 hover:text-slate-900 underline disabled:opacity-50 transition-colors cursor-pointer"
+                      className={textLink}
                     >
-                      {resendCooldown > 0 ? `Resend (${resendCooldown}s)` : "Resend"}
+                      {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend code"}
                     </button>
-                  </motion.div>
-                </form>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                  </div>
+                </motion.form>
+              )}
+            </AnimatePresence>
+          </div>
 
+          <p className="mt-6 text-center text-[13.5px] text-[#64748B]">
+            Need an account? Ask your system administrator.
+          </p>
         </div>
       </main>
+
+      <footer className="relative px-4 pb-8 text-center text-[13px] text-[#94A3B8]">
+        Patients sign in through the HeartLink mobile app.
+      </footer>
 
       {/* Forgot Password Modal Dialog */}
       <ForgotPasswordModal
