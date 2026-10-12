@@ -1,12 +1,12 @@
 {
   "rewrites": [
     {
-      "source": "/api/:path*",
-      "destination": "https://heartlink-api-production-46db.up.railway.app/api/:path*"
+      "source": "/api/(.*)",
+      "destination": "https://heartlink-api-production-46db.up.railway.app/api/$1"
     },
     {
-      "source": "/static/:path*",
-      "destination": "https://heartlink-api-production-46db.up.railway.app/static/:path*"
+      "source": "/static/(.*)",
+      "destination": "https://heartlink-api-production-46db.up.railway.app/static/$1"
     },
     {
       "source": "/(.*)",
