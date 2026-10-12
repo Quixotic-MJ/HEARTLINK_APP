@@ -1,9 +1,9 @@
-from fastapi import APIRouter, HTTPException, Query, Depends, status
+from fastapi import APIRouter, Request, HTTPException, Query, Depends, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from typing import List, Dict, Any, Optional
 from app.services.exercises import get_routines, get_exercise_logs, create_exercise_log, delete_exercise_log, create_routine, update_routine, delete_routine
 from app.services.hss_service import compute_lifestyle_composite_hss
-from app.utils.security import get_current_admin_user, get_current_user, verify_token, verify_user_access
+from app.utils.security import get_current_admin_user, get_current_user, verify_token, get_optional_token, verify_user_access
 from app.utils.activity_helper import record_admin_activity
 
 router = APIRouter(prefix="/api/exercises", tags=["Exercises"])
@@ -11,13 +11,14 @@ router = APIRouter(prefix="/api/exercises", tags=["Exercises"])
 security = HTTPBearer(auto_error=False)
 
 @router.get("/", response_model=List[Dict[str, Any]])
-def read_routines(credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)):
+def read_routines(request: Request, credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)):
     routines = get_routines()
     
     is_admin = False
-    if credentials:
+    token = get_optional_token(request, credentials)
+    if token:
         try:
-            payload = verify_token(credentials.credentials)
+            payload = verify_token(token)
             if payload.get("role") in ["admin", "medical_expert"]:
                 is_admin = True
         except Exception:
@@ -28,16 +29,17 @@ def read_routines(credentials: Optional[HTTPAuthorizationCredentials] = Depends(
     return [r for r in routines if r.get("status") == "published"]
 
 @router.get("/{routine_id}", response_model=Dict[str, Any])
-def read_routine(routine_id: str, credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)):
+def read_routine(routine_id: str, request: Request, credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)):
     routines = get_routines()
     routine = next((r for r in routines if r["id"] == routine_id), None)
     if not routine:
         raise HTTPException(status_code=404, detail="Routine not found")
         
     is_admin = False
-    if credentials:
+    token = get_optional_token(request, credentials)
+    if token:
         try:
-            payload = verify_token(credentials.credentials)
+            payload = verify_token(token)
             if payload.get("role") in ["admin", "medical_expert"]:
                 is_admin = True
         except Exception:

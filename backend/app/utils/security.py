@@ -2,9 +2,10 @@ import os
 import jwt
 import hashlib
 import logging
+import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any
-from fastapi import Depends, HTTPException, Security, status
+from fastapi import Depends, HTTPException, Request, Response, Security, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from app.db.repositories import get_profile_repo
@@ -20,7 +21,80 @@ if not SECRET_KEY or SECRET_KEY in ("heartlink-super-secret-jwt-key", "heartlink
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_HOURS = 24
 
-security = HTTPBearer()
+security = HTTPBearer(auto_error=False)
+
+# Web portal session cookies (HL-033). The mobile app keeps using Bearer headers.
+AUTH_COOKIE_NAME = "heartlink_admin_session"
+CSRF_COOKIE_NAME = "heartlink_csrf"
+CSRF_HEADER_NAME = "X-CSRF-Token"
+COOKIE_SECURE = os.getenv("COOKIE_SECURE", "true").strip().lower() != "false"
+ADMIN_SESSION_MAX_AGE = 7 * 24 * 60 * 60  # matches admin JWT lifetime in create_access_token
+CSRF_SAFE_METHODS = {"GET", "HEAD", "OPTIONS"}
+
+def set_auth_cookies(response: Response, token: str, remember: bool = False) -> None:
+    """Sets the HttpOnly session cookie plus a JS-readable CSRF cookie (double-submit)."""
+    max_age = ADMIN_SESSION_MAX_AGE if remember else None
+    response.set_cookie(
+        key=AUTH_COOKIE_NAME,
+        value=token,
+        max_age=max_age,
+        httponly=True,
+        secure=COOKIE_SECURE,
+        samesite="strict",
+        path="/",
+    )
+    response.set_cookie(
+        key=CSRF_COOKIE_NAME,
+        value=secrets.token_urlsafe(32),
+        max_age=max_age,
+        httponly=False,
+        secure=COOKIE_SECURE,
+        samesite="strict",
+        path="/",
+    )
+
+def clear_auth_cookies(response: Response) -> None:
+    for name, httponly in ((AUTH_COOKIE_NAME, True), (CSRF_COOKIE_NAME, False)):
+        response.delete_cookie(
+            key=name,
+            path="/",
+            secure=COOKIE_SECURE,
+            httponly=httponly,
+            samesite="strict",
+        )
+
+def enforce_csrf(request: Request) -> None:
+    """Double-submit check for cookie-authenticated, state-changing requests."""
+    if request.method.upper() in CSRF_SAFE_METHODS:
+        return
+    cookie_token = request.cookies.get(CSRF_COOKIE_NAME) or ""
+    header_token = request.headers.get(CSRF_HEADER_NAME) or ""
+    if not cookie_token or not header_token or not secrets.compare_digest(cookie_token, header_token):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="CSRF validation failed",
+        )
+
+def get_optional_token(request: Request, credentials: Optional[HTTPAuthorizationCredentials]) -> Optional[str]:
+    """Returns the Bearer token if present, else the session cookie token, else None.
+    Cookie-sourced tokens are CSRF-checked on unsafe methods."""
+    if credentials and credentials.credentials:
+        return credentials.credentials
+    cookie_token = request.cookies.get(AUTH_COOKIE_NAME)
+    if cookie_token:
+        enforce_csrf(request)
+        return cookie_token
+    return None
+
+def _require_token(request: Request, credentials: Optional[HTTPAuthorizationCredentials]) -> str:
+    token = get_optional_token(request, credentials)
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return token
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     to_encode = data.copy()
@@ -118,8 +192,8 @@ def verify_token(token: str) -> Dict[str, Any]:
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-def get_current_user(credentials: HTTPAuthorizationCredentials = Security(security)):
-    token = credentials.credentials
+def get_current_user(request: Request, credentials: Optional[HTTPAuthorizationCredentials] = Security(security)):
+    token = _require_token(request, credentials)
     payload = verify_token(token)
     user_id = payload.get("user_id")
     token_role = payload.get("role")
@@ -147,8 +221,8 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Security(securi
         
     return payload
 
-def get_current_admin_user(credentials: HTTPAuthorizationCredentials = Security(security)):
-    token = credentials.credentials
+def get_current_admin_user(request: Request, credentials: Optional[HTTPAuthorizationCredentials] = Security(security)):
+    token = _require_token(request, credentials)
     payload = verify_token(token)
     user_id = payload.get("user_id")
     token_role = payload.get("role")

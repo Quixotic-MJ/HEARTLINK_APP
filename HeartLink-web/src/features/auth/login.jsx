@@ -425,13 +425,12 @@ export default function HeartLinkAdminLogin() {
         toast.info("Two-Factor Verification", {
           description: "Please enter the 6-digit security code sent to your device.",
         });
-      } else if (response.success !== false && (response.token || response.user_id || response.success)) {
+      } else if (response.success !== false && (response.user_id || response.success)) {
         toast.success("Authentication successful", {
           description: "Accessing HeartLink clinical portal...",
         });
         login(
           response.user_id,
-          response.token,
           {
             id: response.user_id,
             role: response.role,
@@ -439,8 +438,7 @@ export default function HeartLinkAdminLogin() {
             last_name: response.last_name || "",
             email: response.email || "",
             phone: response.phone || "",
-          },
-          remember
+          }
         );
 
         if (response.role === "medical_expert") {
@@ -469,13 +467,12 @@ export default function HeartLinkAdminLogin() {
         }),
       });
 
-      if (response.success !== false && (response.token || response.user_id || response.success)) {
+      if (response.success !== false && (response.user_id || response.success)) {
         toast.success("Verification successful", {
           description: "Security credentials confirmed. Launching portal...",
         });
         login(
           response.user_id,
-          response.token,
           {
             id: response.user_id,
             role: response.role,
@@ -483,8 +480,7 @@ export default function HeartLinkAdminLogin() {
             last_name: response.last_name || "",
             email: response.email || "",
             phone: response.phone || "",
-          },
-          remember
+          }
         );
 
         if (response.role === "medical_expert") {

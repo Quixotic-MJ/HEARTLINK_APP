@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Body, Depends, status
+from fastapi import APIRouter, Request, HTTPException, Body, Depends, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from typing import List, Dict, Any, Optional
 from app.services.recipes import (
@@ -11,7 +11,7 @@ from app.services.recipes import (
     update_recipe,
     delete_recipe
 )
-from app.utils.security import get_current_admin_user, get_current_user, verify_token
+from app.utils.security import get_current_admin_user, get_current_user, verify_token, get_optional_token
 from app.utils.activity_helper import record_admin_activity
 
 router = APIRouter(prefix="/api/recipes", tags=["Recipes"])
@@ -20,12 +20,13 @@ security = HTTPBearer(auto_error=False)
 
 @router.get("", response_model=List[Dict[str, Any]])
 @router.get("/", response_model=List[Dict[str, Any]])
-def read_recipes(credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)):
+def read_recipes(request: Request, credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)):
     recipes = get_recipes()
     is_admin = False
-    if credentials:
+    token = get_optional_token(request, credentials)
+    if token:
         try:
-            payload = verify_token(credentials.credentials)
+            payload = verify_token(token)
             if payload.get("role") in ["admin", "medical_expert", "super_admin"]:
                 is_admin = True
         except Exception:
@@ -42,15 +43,16 @@ def read_saved_recipes(user_id: str, current_user: dict = Depends(get_current_us
     return get_saved_recipes(user_id)
 
 @router.get("/{recipe_id}", response_model=Dict[str, Any])
-def read_recipe(recipe_id: str, credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)):
+def read_recipe(recipe_id: str, request: Request, credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)):
     recipe = get_recipe(recipe_id)
     if not recipe:
         raise HTTPException(status_code=404, detail="Recipe not found")
         
     is_admin = False
-    if credentials:
+    token = get_optional_token(request, credentials)
+    if token:
         try:
-            payload = verify_token(credentials.credentials)
+            payload = verify_token(token)
             if payload.get("role") in ["admin", "medical_expert", "super_admin"]:
                 is_admin = True
         except Exception:

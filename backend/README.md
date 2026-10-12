@@ -70,6 +70,8 @@ cp .env.example .env
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase Admin Key (Bypasses RLS) | Yes | `eyJhbGci...` |
 | `SECRET_KEY` | Secret key for JWT token signing. App will not start without it. | Yes (ALL modes) | `super-secret-random-key` |
 | `CORS_ALLOWED_ORIGINS` | Comma-separated list of allowed URLs | Yes | `http://localhost:5173` |
+| `TRUSTED_PROXY_HOPS` | Number of reverse proxies that append to `X-Forwarded-For`; used to rate-limit by real client IP. | No (default `0`) | `2` |
+| `COOKIE_SECURE` | Marks the web portal session/CSRF cookies `Secure`. Set `false` only for local http dev. | No (default `true`) | `false` |
 | `GROQ_API_KEY` | API Key for Dashboard AI Insights | Optional | `gsk_...` |
 | `COMPANION_LLM_API_KEY` | API Key for Companion AI | Optional | `gsk_...` |
 
