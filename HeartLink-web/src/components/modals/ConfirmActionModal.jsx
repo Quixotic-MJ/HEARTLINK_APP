@@ -66,6 +66,8 @@ const ConfirmActionModal = ({
     } finally {
       setLoading(false);
     }
+    // Callers report success/failure via toasts; always dismiss once the action settles.
+    if (onClose) onClose();
   };
 
   return (
