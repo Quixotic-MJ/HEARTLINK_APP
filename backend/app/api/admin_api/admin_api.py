@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from typing import Dict, Any, Optional, List
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import os
 import random
 import hashlib
@@ -194,7 +194,7 @@ def get_admin_analytics(period: str = "6months", current_user: dict = Depends(ge
     }
 
     months_boundaries = []
-    current_month_start = datetime(now.year, now.month, 1)
+    current_month_start = datetime(now.year, now.month, 1, tzinfo=timezone.utc)
     
     for i in range(num_months - 1, -1, -1):
         m = current_month_start.month - i
@@ -202,13 +202,13 @@ def get_admin_analytics(period: str = "6months", current_user: dict = Depends(ge
         while m <= 0:
             m += 12
             y -= 1
-        start_of_month = datetime(y, m, 1)
+        start_of_month = datetime(y, m, 1, tzinfo=timezone.utc)
         nm = m + 1
         ny = y
         if nm > 12:
             nm = 1
             ny += 1
-        end_of_month = datetime(ny, nm, 1)
+        end_of_month = datetime(ny, nm, 1, tzinfo=timezone.utc)
         months_boundaries.append((start_of_month, end_of_month))
 
     for start_of_month, end_of_month in months_boundaries:

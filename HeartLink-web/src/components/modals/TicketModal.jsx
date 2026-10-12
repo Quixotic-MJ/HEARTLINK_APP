@@ -61,7 +61,7 @@ const TicketModal = ({ isOpen, onClose, ticket, onUpdate, onArchive }) => {
   // Check backend to verify no concurrent updates have occurred
   const checkConcurrencyConflict = async () => {
     try {
-      const latestTickets = await apiFetch("/api/feedback");
+      const latestTickets = await apiFetch("/api/feedback/");
       if (latestTickets) {
         const serverTicket = latestTickets.find((t) => t.id === ticket.id);
         if (serverTicket) {
