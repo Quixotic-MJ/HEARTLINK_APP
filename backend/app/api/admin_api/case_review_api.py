@@ -183,7 +183,7 @@ def get_case_detail(user_id: str, current_user: dict = Depends(get_current_admin
             "recipes": rec_recipes,
             "exercises": rec_exercises
         },
-        "model_metadata": get_model_metadata(user_id),
+        "model_metadata": get_model_metadata(),
         "existing_evaluation": _format_evaluation(existing_eval) if existing_eval else None
     }
     
@@ -232,7 +232,7 @@ def submit_evaluation(user_id: str, payload: dict, current_user: dict = Depends(
     absolute_error = abs(expert_hss_score - ml_predicted_hss) if ml_predicted_hss is not None else 0
     tier_agreement = (expert_hss_tier == ml_predicted_tier)
     
-    model_meta = get_model_metadata(user_id)
+    model_meta = get_model_metadata()
     clinical_data = get_clinical_baseline_data(user_id)
     timeline_data = get_recent_telemetry_timeline(user_id)
     onboarding_data = get_baseline_repo().get_baseline(user_id) or {}

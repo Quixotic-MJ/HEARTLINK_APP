@@ -787,7 +787,7 @@ const Exercises = () => {
                   description: `"${data.name}" was saved successfully.`,
                 });
               } else {
-                await apiFetch("/api/exercises", {
+                await apiFetch("/api/exercises/", {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify(data),
