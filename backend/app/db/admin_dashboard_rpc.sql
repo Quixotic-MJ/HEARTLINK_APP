@@ -47,12 +47,12 @@ BEGIN
     
     SELECT COUNT(*) INTO v_recipes FROM public.recipes;
     SELECT COUNT(*) INTO v_routines FROM public.exercise_routines;
-    SELECT COUNT(*) INTO v_evaluations FROM public.case_reviews;
+    SELECT COUNT(*) INTO v_evaluations FROM public.expert_evaluations;
 
     SELECT COUNT(*) INTO v_pending_evaluations
     FROM public.profiles p
     WHERE p.role = 'patient' AND p.onboarding_status = 'complete'
-      AND p.id NOT IN (SELECT c.user_id FROM public.case_reviews c WHERE c.user_id IS NOT NULL);
+      AND p.id NOT IN (SELECT c.user_id FROM public.expert_evaluations c WHERE c.user_id IS NOT NULL);
 
     -- active users (any log in last 7 days from patient tables)
     SELECT COUNT(DISTINCT user_id) INTO v_active_users
