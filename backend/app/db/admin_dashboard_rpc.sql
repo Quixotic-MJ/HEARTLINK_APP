@@ -72,9 +72,9 @@ BEGIN
     SELECT COUNT(*) INTO v_vitals_this_week FROM public.daily_health_logs WHERE logged_at >= cutoff;
     SELECT COUNT(*) INTO v_sleep_this_week FROM public.sleep_logs WHERE logged_at >= cutoff AND is_deleted = false;
     
-    -- symptoms count (jsonb array length or native array)
+    -- symptoms count (symptoms is a native text[] column)
     -- coalesce handles nulls
-    SELECT COALESCE(SUM(jsonb_array_length(symptoms::jsonb)), 0) INTO v_symptoms_this_week 
+    SELECT COALESCE(SUM(cardinality(symptoms)), 0) INTO v_symptoms_this_week 
     FROM public.daily_health_logs WHERE logged_at >= cutoff AND symptoms IS NOT NULL;
 
     -- latest HSS per user
