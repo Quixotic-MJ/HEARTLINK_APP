@@ -24,6 +24,8 @@ services:
     volumes:
       - ./HeartLink-web:/app
       - /app/node_modules
+    environment:
+      - VITE_PROXY_TARGET=http://backend:8000
     depends_on:
       - backend
     restart: always

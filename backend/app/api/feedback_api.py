@@ -1,9 +1,9 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from app.utils.security import verify_token
+from app.utils.security import verify_token, get_optional_token
 from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
 from app.utils.activity_helper import record_admin_activity
 from app.db.repositories import get_feedback_repo, get_profile_repo
@@ -23,11 +23,11 @@ class TicketCreate(BaseModel):
     userEmail: Optional[str] = "Not Provided"
     userId: Optional[str] = "N/A"
 
-def get_feedback_user(credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)):
-    if not credentials:
+def get_feedback_user(request: Request, credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)):
+    token = get_optional_token(request, credentials)
+    if not token:
         raise HTTPException(status_code=401, detail="Not authenticated")
     
-    token = credentials.credentials
     payload = verify_token(token)
     user_id = payload.get("user_id")
     if not user_id:

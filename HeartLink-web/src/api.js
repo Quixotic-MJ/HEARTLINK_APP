@@ -1,10 +1,34 @@
-export const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+// HL-033: default to same-origin ("") so the HttpOnly, SameSite=Strict session
+// cookie is sent. Dev proxies /api via Vite, prod via the vercel.json rewrite.
+export const BASE_URL = import.meta.env.VITE_API_URL ?? "";
+
+const CSRF_COOKIE_NAME = "heartlink_csrf";
+const CSRF_HEADER_NAME = "X-CSRF-Token";
+const CSRF_SAFE_METHODS = ["GET", "HEAD", "OPTIONS"];
 
 const apiCache = new Map();
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 // Export this in case you need to manually clear the cache from anywhere
 export const clearApiCache = () => apiCache.clear();
+
+// Reads the double-submit CSRF token the backend sets alongside the session cookie.
+export const getCsrfToken = () => {
+  const match = document.cookie
+    .split("; ")
+    .find((row) => row.startsWith(`${CSRF_COOKIE_NAME}=`));
+  return match ? decodeURIComponent(match.split("=")[1]) : null;
+};
+
+const withCsrf = (headers, method) => {
+  if (!CSRF_SAFE_METHODS.includes(method)) {
+    const csrfToken = getCsrfToken();
+    if (csrfToken) {
+      headers[CSRF_HEADER_NAME] = csrfToken;
+    }
+  }
+  return headers;
+};
 
 export const apiFetch = async (endpoint, options = {}) => {
   const url = `${BASE_URL}${endpoint}`;
@@ -21,25 +45,24 @@ export const apiFetch = async (endpoint, options = {}) => {
     }
   }
 
-  // 2. Prepare headers
-  const headers = {
+  // 2. Prepare headers (auth travels in the HttpOnly cookie, never in JS)
+  const headers = withCsrf({
     "Content-Type": "application/json",
     ...options.headers,
-  };
-
-  const token = localStorage.getItem('heartlink_admin_token') || sessionStorage.getItem('heartlink_admin_token');
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
-  }
+  }, method);
 
   // 3. Perform network request
   try {
-    const response = await fetch(url, { ...options, headers });
+    const fetchOptions = { ...options };
+    delete fetchOptions.bypassCache;
+    const response = await fetch(url, { ...fetchOptions, headers, credentials: "include" });
     const data = await response.json().catch(() => ({}));
 
     if (!response.ok) {
       const isAuthEndpoint = endpoint.includes("/auth/web-login") || 
                              endpoint.includes("/auth/login") || 
+                             endpoint.includes("/auth/me") || 
+                             endpoint.includes("/auth/logout") || 
                              endpoint.includes("/auth/request-code") || 
                              endpoint.includes("/auth/verify-code") || 
                              endpoint.includes("/auth/forgot-password");
@@ -74,17 +97,14 @@ export const apiUpload = async (file, bucket = "exercises") => {
   formData.append("file", file);
   formData.append("bucket", bucket);
 
-  const headers = {};
-  const token = localStorage.getItem('heartlink_admin_token') || sessionStorage.getItem('heartlink_admin_token');
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
-  }
+  const headers = withCsrf({}, "POST");
 
   try {
     const response = await fetch(url, {
       method: "POST",
       headers,
       body: formData,
+      credentials: "include",
     });
     const data = await response.json().catch(() => ({}));
 
