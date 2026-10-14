@@ -110,6 +110,20 @@ class SupabaseAuthService(AuthService):
         self.client = client
         self._pending_registrations = {}
 
+    def _isolated_auth(self):
+        """
+        A throwaway auth client for password checks. Signing in on the shared service-role client
+        makes supabase-py switch every later database call to that user's token, so password
+        checks must never run on self.client.
+        """
+        from supabase import create_client
+        from supabase.lib.client_options import SyncClientOptions
+
+        url = os.getenv("SUPABASE_URL", "").strip()
+        key = os.getenv("SUPABASE_ANON_KEY", "").strip() or os.getenv("SUPABASE_SERVICE_ROLE_KEY", "").strip()
+        options = SyncClientOptions(auto_refresh_token=False, persist_session=False)
+        return create_client(url, key, options=options).auth
+
     def request_registration_otp(self, phone: str, email: str, password: str) -> Dict[str, Any]:
         try:
             profile_repo = get_profile_repo()
@@ -329,7 +343,7 @@ class SupabaseAuthService(AuthService):
            using httpx with service_key or anon_key. Completely stateless and thread-safe; eliminates
            in-memory session state corruption across concurrent requests in server environments (e.g. Render).
            Supports multi-identity accounts with automatic phone normalization (+63, 63, 09).
-        2. Tier 2 (SDK Client Fallback): Falls back to self.client.auth.sign_in_with_password() if REST
+        2. Tier 2 (SDK Client Fallback): Falls back to an isolated client's sign_in_with_password() if REST
            communication encounters transient network issues.
         3. Enforces profile account_status == 'active' and returns minted application JWT.
         """
@@ -410,7 +424,7 @@ class SupabaseAuthService(AuthService):
                     credentials["phone"] = identifier
 
                 try:
-                    res = self.client.auth.sign_in_with_password(credentials)
+                    res = self._isolated_auth().sign_in_with_password(credentials)
                     if res and hasattr(res, "user") and res.user:
                         auth_user_id = str(res.user.id)
                 except Exception as client_err:
@@ -456,6 +470,7 @@ class SupabaseAuthService(AuthService):
             "last_name": profile.get("last_name", ""),
             "email": profile.get("email", ""),
             "phone": profile.get("phone", ""),
+            "must_change_password": bool(profile.get("must_change_password")),
             "token": login_res["token"]
         }
 
@@ -473,7 +488,7 @@ class SupabaseAuthService(AuthService):
                 credentials["email"] = profile["email"]
             else:
                 credentials["phone"] = profile["phone"]
-            res = self.client.auth.sign_in_with_password(credentials)
+            res = self._isolated_auth().sign_in_with_password(credentials)
             return bool(res and hasattr(res, "user") and res.user)
         except Exception:
             return False
@@ -494,26 +509,21 @@ class SupabaseAuthService(AuthService):
 
             auth_res = None
             try:
-                auth_res = self.client.auth.sign_in_with_password(credentials)
+                auth_res = self._isolated_auth().sign_in_with_password(credentials)
             except Exception as sign_err:
-                print(f"[change_password] Sign-in verification failed: {sign_err}")
+                logger.info(f"[change_password] Current password check failed: {sign_err}")
                 return False
 
             if not auth_res or not hasattr(auth_res, "user") or not auth_res.user:
                 return False
 
-            # Update password with authenticated session
+            # The admin API changes the password without touching any session on the shared client
             try:
-                self.client.auth.update_user({"password": new_password})
+                self.client.auth.admin.update_user_by_id(str(auth_res.user.id), {"password": new_password})
                 return True
-            except Exception as update_err:
-                print(f"[change_password] Session update_user failed: {update_err}, attempting admin fallback")
-                try:
-                    self.client.auth.admin.update_user_by_id(user_id, {"password": new_password})
-                    return True
-                except Exception as admin_err:
-                    print(f"[change_password] Admin update_user_by_id failed: {admin_err}")
-                    return False
+            except Exception as admin_err:
+                logger.error(f"[change_password] Admin update_user_by_id failed: {admin_err}")
+                return False
         except Exception as e:
             print(f"[change_password] Error: {e}")
             return False

@@ -69,6 +69,9 @@ export const apiFetch = async (endpoint, options = {}) => {
       if (response.status === 401 && !isAuthEndpoint) {
         window.dispatchEvent(new Event('auth:unauthorized'));
       }
+      if (response.status === 403 && data?.detail === "PASSWORD_CHANGE_REQUIRED") {
+        window.dispatchEvent(new Event('auth:password-change-required'));
+      }
       throw { status: response.status, data };
     }
 

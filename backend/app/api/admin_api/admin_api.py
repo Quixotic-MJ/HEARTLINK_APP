@@ -4,6 +4,8 @@ from datetime import datetime, timedelta, timezone
 import os
 import random
 import hashlib
+import secrets
+import string
 from app.utils.security import get_current_admin_user, get_current_super_admin
 from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
 from app.utils.activity_helper import record_admin_activity
@@ -423,6 +425,20 @@ def get_system_staff(current_user: dict = Depends(get_current_super_admin)):
         })
     return result
 
+TEMP_PASSWORD_SYMBOLS = "!@#$%^&*-_=+?"
+
+def generate_temp_password(length: int = 20) -> str:
+    """HL-044: a random one-time staff password that meets the HL-009 policy (16+ chars, a number, a symbol)."""
+    alphabet = string.ascii_letters + string.digits + TEMP_PASSWORD_SYMBOLS
+    while True:
+        candidate = "".join(secrets.choice(alphabet) for _ in range(length))
+        if (any(c.isdigit() for c in candidate)
+                and any(c in TEMP_PASSWORD_SYMBOLS for c in candidate)
+                and any(c.islower() for c in candidate)
+                and any(c.isupper() for c in candidate)):
+            return candidate
+
+
 @router.post("/staff")
 def create_system_staff(payload: dict, current_user: dict = Depends(get_current_super_admin)):
     name = payload.get("name", "").strip()
@@ -454,7 +470,7 @@ def create_system_staff(payload: dict, current_user: dict = Depends(get_current_
     for p in all_profiles:
         if (p.get("email") or "").strip().lower() == email.lower():
             raise HTTPException(status_code=409, detail="An account with this email already exists.")
-    temp_pass = "TempPassword2026!"
+    temp_pass = generate_temp_password()
     supabase_client = get_supabase_client()
     supabase_url = os.getenv("SUPABASE_URL", "").strip()
     service_role_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "").strip()
@@ -472,6 +488,14 @@ def create_system_staff(payload: dict, current_user: dict = Depends(get_current_
                 break
     except Exception as lookup_err:
         print(f"[create_system_staff] Pre-lookup warning: {lookup_err}")
+
+    if auth_user_id:
+        # The login exists without a profile; reset it to the new temporary password so the admin's copy works
+        try:
+            supabase_client.auth.admin.update_user_by_id(auth_user_id, {"password": temp_pass})
+        except Exception as reset_err:
+            print(f"[create_system_staff] Temporary password reset failed: {reset_err}")
+            raise HTTPException(status_code=500, detail="Could not set a temporary password for the existing login.")
 
     # --- Step 2: Create Supabase Auth user via direct REST (bypasses gotrue-py restrictions) ---
     if not auth_user_id:
@@ -556,7 +580,8 @@ def create_system_staff(payload: dict, current_user: dict = Depends(get_current_
         "email": email.lower(),
         "role": target_role,
         "expert_type": canonical_expert_type,
-        "account_status": "active"
+        "account_status": "active",
+        "must_change_password": True
     }
 
     try:
@@ -600,7 +625,8 @@ def create_system_staff(payload: dict, current_user: dict = Depends(get_current_
     except Exception as notif_err:
         print(f"[create_system_staff] Notification skipped: {notif_err}")
 
-    return {"status": "success", "id": str(staff_id)}
+    # HL-044: the temporary password is returned once, here, and never stored or logged
+    return {"status": "success", "id": str(staff_id), "temp_password": temp_pass}
 
 
 
