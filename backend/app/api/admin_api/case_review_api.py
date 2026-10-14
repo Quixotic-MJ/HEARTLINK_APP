@@ -22,6 +22,57 @@ from app.db.repositories import (
 
 router = APIRouter(tags=["Case Review & Calibration"])
 
+
+# --- HL-054: review queue (rounds in review_cases) -------------------------------------------------
+from app.services import review_queue
+
+QUEUE_REFRESH_SECONDS = 300
+_last_queue_refresh = {"at": None}
+
+
+def _require_admin(current_user: dict = Depends(get_current_admin_user)) -> dict:
+    if current_user.get("role") not in ("admin", "super_admin"):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access Denied: Admins only")
+    return current_user
+
+
+def _refresh_queue_if_stale(force: bool = False) -> dict:
+    now = utc_now()
+    last = _last_queue_refresh["at"]
+    if force or last is None or (now - last).total_seconds() >= QUEUE_REFRESH_SECONDS:
+        result = review_queue.refresh_queue(now)
+        _last_queue_refresh["at"] = now
+        return result
+    return {"opened": [], "upgraded": []}
+
+
+@router.get("/review-queue")
+def get_review_queue(current_user: dict = Depends(get_current_admin_user)):
+    """Open review rounds, urgent first. Also opens any urgent or re-review rounds that are due."""
+    _refresh_queue_if_stale()
+    return {"items": review_queue.list_queue(), "urgent_review_hours": review_queue.rules.URGENT_REVIEW_HOURS}
+
+
+@router.post("/review-queue/refresh")
+def refresh_review_queue(current_user: dict = Depends(get_current_admin_user)):
+    result = _refresh_queue_if_stale(force=True)
+    return {"status": "success", "opened": len(result["opened"]), "upgraded": len(result["upgraded"])}
+
+
+@router.post("/review-queue/sample")
+def draw_review_sample(current_user: dict = Depends(_require_admin)):
+    """Draws this week's random sample across all levels (admins only)."""
+    opened = review_queue.draw_sample(created_by=current_user.get("user_id"))
+    from app.utils.activity_helper import record_admin_activity
+    record_admin_activity(
+        admin_user_id=current_user.get("user_id"),
+        action=f"drew a review sample of {len(opened)} cases",
+        target_type="case",
+        target_id=None,
+        target_name="Weekly sample",
+    )
+    return {"status": "success", "opened": len(opened)}
+
 def _require_medical_expert(current_user: dict = Depends(get_current_admin_user)) -> dict:
     role = current_user.get("role")
     if role != "medical_expert":
