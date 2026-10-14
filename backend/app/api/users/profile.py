@@ -236,6 +236,12 @@ async def update_user_password(
             detail="You may only change your own password.",
         )
 
+    if payload.new_password == payload.current_password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="New password must be different from the current password.",
+        )
+
     # ── Password verification and mutation ────────────────────────────────────
     result = change_password(user_id, payload.current_password, payload.new_password)
     if not result:
@@ -243,6 +249,17 @@ async def update_user_password(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Incorrect current password",
         )
+
+    # HL-044: the temporary password has been replaced, so unlock the account
+    from app.db.repositories import get_profile_repo
+    profile_repo = get_profile_repo()
+    caller_profile = profile_repo.get_by_id(user_id)
+    if caller_profile and caller_profile.get("must_change_password"):
+        if not profile_repo.update(user_id, {"must_change_password": False}):
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Password changed, but the account could not be unlocked. Please try logging in again.",
+            )
     # ── Activity log ──────────────────────────────────────────────────────────
     try:
         from app.utils.activity_helper import record_admin_activity

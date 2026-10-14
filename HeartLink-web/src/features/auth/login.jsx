@@ -17,6 +17,14 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import {
+  focusRing,
+  inputBase,
+  inputState,
+  labelText,
+  primaryButton,
+  textLink,
+} from "./authStyles";
 
 // ─── Validation Schemas ───────────────────────────────────────────────────────
 const loginSchema = z.object({
@@ -81,7 +89,7 @@ const EMBLEM_PATHS = [
   "M 79.20,25.46 L 96.17,42.43 A 38 38 0 0 1 42.43,96.17 L -28.28,25.46",
 ];
 
-function HeartLogoIcon({ size = 26, className = "" }) {
+export function HeartLogoIcon({ size = 26, className = "" }) {
   // Unique gradient ids per instance: a duplicate id inside a hidden copy breaks the visible one.
   const uid = useId().replace(/:/g, "");
   const gid = (name) => `${name}-${uid}`;
@@ -126,29 +134,10 @@ function HeartLogoIcon({ size = 26, className = "" }) {
 }
 
 // ─── Shared Styles ────────────────────────────────────────────────────────────
-const focusRing =
-  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2E9AE8]";
-
-const inputBase =
-  "w-full h-11 rounded-[10px] border bg-white px-3.5 text-[14px] text-[#0F172A] placeholder:text-[#94A3B8] shadow-[0_1px_2px_rgba(15,23,42,0.04)] outline-none transition-[border-color,box-shadow]";
-
-const inputState = (hasError) =>
-  hasError
-    ? "border-[#F1A9A0] focus:border-[#D9534F] focus:shadow-[0_0_0_4px_rgba(217,83,79,0.12)]"
-    : "border-[#DCE1E8] hover:border-[#C5CDD8] focus:border-[#2E9AE8] focus:shadow-[0_0_0_4px_rgba(46,154,232,0.14)]";
-
-const labelText = "block text-[13.5px] font-medium text-[#334155]";
-
-const primaryButton =
-  `w-full h-11 rounded-[10px] bg-[#2E9AE8] hover:bg-[#2489D4] active:bg-[#1C7AC8] disabled:opacity-60 disabled:cursor-not-allowed text-white text-[14px] font-semibold flex items-center justify-center gap-2 shadow-[0_1px_2px_rgba(15,23,42,0.12),inset_0_1px_0_rgba(255,255,255,0.14)] transition-colors cursor-pointer ${focusRing}`;
-
 const compactPrimaryButton = primaryButton.replace("w-full h-11", "h-10 px-4");
 
 const secondaryButton =
   `h-10 px-4 rounded-[10px] border border-[#DCE1E8] bg-white text-[14px] font-semibold text-[#334155] hover:bg-[#F8FAFC] shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed ${focusRing}`;
-
-const textLink =
-  `font-medium text-[#1C7AC8] hover:text-[#155E9C] cursor-pointer rounded-[4px] disabled:text-[#94A3B8] disabled:cursor-not-allowed ${focusRing}`;
 
 const card =
   "bg-white border border-[#E2E8F0] rounded-2xl shadow-[0_1px_3px_rgba(15,23,42,0.04),0_16px_40px_-16px_rgba(15,23,42,0.12)]";
@@ -159,7 +148,7 @@ const stepTransition = {
   exit: { opacity: 0, transition: { duration: 0.12, ease: "easeIn" } },
 };
 
-function FieldError({ id, message }) {
+export function FieldError({ id, message }) {
   if (!message) return null;
   return (
     <p id={id} className="flex items-center gap-1.5 mt-1.5 text-[#B42318] text-[13px]">
@@ -169,7 +158,7 @@ function FieldError({ id, message }) {
   );
 }
 
-function ErrorBanner({ error }) {
+export function ErrorBanner({ error }) {
   if (!error) return null;
   return (
     <div
@@ -300,7 +289,7 @@ const FLOATING_ORBS = [
   { size: 13, top: "85%", left: "52%", rgb: BLUE, alpha: 0.65, glow: "0 0 20px 6px", glowAlpha: 0.45, duration: 9.5, delay: 2.5 },
 ];
 
-function LoginBackdrop() {
+export function LoginBackdrop() {
   const backdropRef = useRef(null);
 
   // Feed the pointer position to CSS variables (no React re-renders).
@@ -520,7 +509,9 @@ export default function HeartLinkAdminLogin() {
   // ─── 1. Auto-Redirect if Already Logged In ────────────────────────────────
   useEffect(() => {
     if (!loading && isAuthenticated && user) {
-      if (user.role === "medical_expert") {
+      if (user.mustChangePassword) {
+        navigate("/set-password", { replace: true });
+      } else if (user.role === "medical_expert") {
         navigate("/cases", { replace: true });
       } else {
         navigate("/dashboard", { replace: true });
@@ -625,10 +616,13 @@ export default function HeartLinkAdminLogin() {
             last_name: response.last_name || "",
             email: response.email || "",
             phone: response.phone || "",
+            must_change_password: !!response.must_change_password,
           }
         );
 
-        if (response.role === "medical_expert") {
+        if (response.must_change_password) {
+          navigate("/set-password");
+        } else if (response.role === "medical_expert") {
           navigate("/cases");
         } else {
           navigate("/dashboard");
@@ -664,10 +658,13 @@ export default function HeartLinkAdminLogin() {
             last_name: response.last_name || "",
             email: response.email || "",
             phone: response.phone || "",
+            must_change_password: !!response.must_change_password,
           }
         );
 
-        if (response.role === "medical_expert") {
+        if (response.must_change_password) {
+          navigate("/set-password");
+        } else if (response.role === "medical_expert") {
           navigate("/cases");
         } else {
           navigate("/dashboard");

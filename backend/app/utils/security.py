@@ -192,6 +192,22 @@ def verify_token(token: str) -> Dict[str, Any]:
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+PASSWORD_CHANGE_REQUIRED = "PASSWORD_CHANGE_REQUIRED"
+
+def _enforce_password_change(request: Request, user_id: str, user: dict) -> None:
+    """
+    HL-044: while a staff account still has its temporary password, the only allowed calls are
+    changing that password and the web session probe. Everything else returns 403.
+    """
+    if not user.get("must_change_password"):
+        return
+    allowed_paths = {f"/api/users/{user_id}/password", "/api/auth/me"}
+    if request.url.path.rstrip("/") not in allowed_paths:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=PASSWORD_CHANGE_REQUIRED,
+        )
+
 def get_current_user(request: Request, credentials: Optional[HTTPAuthorizationCredentials] = Security(security)):
     token = _require_token(request, credentials)
     payload = verify_token(token)
@@ -218,7 +234,8 @@ def get_current_user(request: Request, credentials: Optional[HTTPAuthorizationCr
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access Denied: Account is disabled or archived",
         )
-        
+
+    _enforce_password_change(request, user_id, user)
     return payload
 
 def get_current_admin_user(request: Request, credentials: Optional[HTTPAuthorizationCredentials] = Security(security)):
@@ -259,7 +276,8 @@ def get_current_admin_user(request: Request, credentials: Optional[HTTPAuthoriza
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access Denied: Admins/Experts only",
         )
-        
+
+    _enforce_password_change(request, user_id, user)
     return payload
 
 def get_current_super_admin(current_user: dict = Depends(get_current_admin_user)):

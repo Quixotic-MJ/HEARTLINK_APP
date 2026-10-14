@@ -11,6 +11,7 @@ import Foods from "../features/pages/management/food";
 import Analytics from "../features/pages/overview/analytics";
 import Dashboard from "../features/pages/overview/dashboard";
 import Login from "../features/auth/login";
+import SetPassword from "../features/auth/set_password";
 import UserWellnessProfile from "../features/pages/system & support/UserWellnessProfile";
 import ActivityLog from "../features/pages/system & support/ActivityLog";
 import { AuthProvider, useAuth } from "../contexts/AuthContext";
@@ -25,6 +26,11 @@ const RoleRoute = ({ children, allowedRoles = [] }) => {
   
   if (!isAuthenticated) {
     return <Navigate to="/" replace />;
+  }
+
+  // HL-044: a temporary password must be replaced before any page can be used
+  if (user?.mustChangePassword) {
+    return <Navigate to="/set-password" replace />;
   }
 
   const role = user?.role;
@@ -54,6 +60,7 @@ export default function App() {
           <Route path="/" element={<Login />} />
           <Route path="/login" element={<Navigate to="/" replace />} />
           <Route path="/two-factor" element={<Navigate to="/" replace />} />
+          <Route path="/set-password" element={<SetPassword />} />
           
           {/* Administrative & Shared Routes */}
           <Route path="/dashboard" element={<RoleRoute allowedRoles={ADMIN_ROLES}><Dashboard /></RoleRoute>} />

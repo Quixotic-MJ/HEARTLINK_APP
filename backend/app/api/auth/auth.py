@@ -85,6 +85,7 @@ async def me(current_user: dict = Depends(get_current_admin_user)):
         "last_name": profile.get("last_name", ""),
         "email": profile.get("email", ""),
         "phone": profile.get("phone", ""),
+        "must_change_password": bool(profile.get("must_change_password")),
     }
 
 @router.post("/logout")

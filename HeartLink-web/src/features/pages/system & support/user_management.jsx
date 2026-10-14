@@ -21,6 +21,7 @@ import StaffDetailsModal from "../../../components/modals/StaffDetailsModal";
 import StaffFormModal from "../../../components/modals/StaffFormModal";
 import AccountActionModal from "../../../components/modals/AccountActionModal";
 import ConfirmActionModal from "../../../components/modals/ConfirmActionModal";
+import TempPasswordModal from "../../../components/modals/TempPasswordModal";
 import { UI, FONTS, PageHeader } from "../../../styles/designSystem";
 
 const Users = () => {
@@ -28,6 +29,7 @@ const Users = () => {
   const currentUserRole = user?.role || "admin";
   const [activeTab, setActiveTab] = useState("app_users");
   const navigate = useNavigate();
+  const [newStaffCredentials, setNewStaffCredentials] = useState(null);
   const [searchParams] = useSearchParams();
 
   const [appUsers, setAppUsers] = useState([]);
@@ -354,16 +356,22 @@ const Users = () => {
   // 6. Save/Provision Staff Account
   const handleSaveStaff = async (staffData) => {
     try {
-      await apiFetch(`/api/admin/staff`, {
+      const created = await apiFetch(`/api/admin/staff`, {
         method: "POST",
         body: JSON.stringify(staffData),
       });
       const isExpert = staffData.role?.toLowerCase().includes("expert");
       toast.success("Staff Account Provisioned Successfully", {
-        description: `${staffData.name} has been enrolled as a ${isExpert ? "Medical Expert" : "System Admin"} (Default Password: TempPassword2026!).`,
+        description: `${staffData.name} has been enrolled as a ${isExpert ? "Medical Expert" : "System Admin"}.`,
+      });
+      closeModal();
+      // HL-044: the one-time temporary password is only available in this response
+      setNewStaffCredentials({
+        name: staffData.name,
+        email: staffData.email,
+        password: created?.temp_password,
       });
       await fetchUsers();
-      closeModal();
     } catch (e) {
       console.error("Failed to save staff", e);
       toast.error(e.data?.detail || "Failed to provision staff member.");
@@ -515,6 +523,15 @@ const Users = () => {
           onClose={closeModal}
           staff={activeEntity}
           onSave={handleSaveStaff}
+        />
+
+        {/* One-time temporary password for a new staff account */}
+        <TempPasswordModal
+          isOpen={!!newStaffCredentials?.password}
+          onClose={() => setNewStaffCredentials(null)}
+          staffName={newStaffCredentials?.name}
+          staffEmail={newStaffCredentials?.email}
+          password={newStaffCredentials?.password}
         />
 
         {/* Reusable Confirmation Modal */}

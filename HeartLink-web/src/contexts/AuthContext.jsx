@@ -23,6 +23,8 @@ const toUser = (data) => ({
   last_name: data.last_name || "",
   email: data.email || "",
   phone: data.phone || "",
+  // HL-044: staff on a temporary password must set their own before using the portal
+  mustChangePassword: !!(data.must_change_password ?? data.mustChangePassword),
 });
 
 export const AuthProvider = ({ children }) => {
@@ -78,6 +80,20 @@ export const AuthProvider = ({ children }) => {
     return () => window.removeEventListener('auth:unauthorized', handleUnauthorized);
   }, []);
 
+  // The backend refuses everything but a password change while the temporary password is in use.
+  useEffect(() => {
+    const handlePasswordChangeRequired = () => {
+      setUser((prev) => (prev ? { ...prev, mustChangePassword: true } : prev));
+    };
+    window.addEventListener('auth:password-change-required', handlePasswordChangeRequired);
+    return () => window.removeEventListener('auth:password-change-required', handlePasswordChangeRequired);
+  }, []);
+
+  const markPasswordChanged = () => {
+    clearApiCache();
+    setUser((prev) => (prev ? { ...prev, mustChangePassword: false } : prev));
+  };
+
   // The backend already set the session cookie on the login response; only mirror the profile in memory.
   const login = (userId, userData = null) => {
     clearApiCache();
@@ -87,7 +103,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, userId, isAuthenticated, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, userId, isAuthenticated, login, logout, markPasswordChanged, loading }}>
       {!loading && children}
     </AuthContext.Provider>
   );
