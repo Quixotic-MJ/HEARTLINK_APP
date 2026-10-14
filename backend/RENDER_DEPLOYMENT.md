@@ -36,7 +36,8 @@ Configure these variables in the **Environment** tab of the Render dashboard. Ne
 | `ALGORITHM` | Server-Only | Non-Sensitive | **Required** | Token cryptographic algorithm (default: `HS256`). |
 | `ACCESS_TOKEN_EXPIRE_HOURS` | Server-Only | Non-Sensitive | **Required** | Token lifetime in hours (default: `24`). |
 | `CORS_ALLOWED_ORIGINS` | Server-Only | Low | **Required** | Comma-separated allowed frontend origins (e.g. `https://your-admin-portal.onrender.com,https://your-web-portal.vercel.app,http://localhost:5173`). |
-| `INVITED_TESTER_NUMBERS` | Server-Only | Low | Optional | Comma-separated E.164 tester phone numbers permitted during beta testing phases. |
+| `DEV_OTP_ENABLED` | Server-Only | Non-Sensitive | Optional | `true` opens sign-up for any phone number using the shared `DEV_OTP_CODE` (no SMS gateway yet). Defaults to off in production. |
+| `DEV_OTP_CODE` | Server-Only | **SECRET** | Required if `DEV_OTP_ENABLED=true` in production | Private 6-digit sign-up code. Must not be `123456` in production. |
 | `SUPABASE_JWT_SECRET` | Server-Only | **CRITICAL SECRET**| Optional | Supabase direct JWT signing secret (if decoding Supabase Auth direct client tokens). |
 
 ---
@@ -84,7 +85,7 @@ curl -X GET "$RENDER_URL/api/clinics"
 
 ### 4.2 Authentication & User Security
 ```bash
-# 3. Request Registration OTP (Whitelisted Tester)
+# 3. Request Registration Code (requires DEV_OTP_ENABLED=true)
 curl -X POST "$RENDER_URL/api/auth/request-code" \
   -H "Content-Type: application/json" \
   -d '{"phone": "+639171234567", "email": "tester@heartlink.ph", "password": "<TESTER_PASSWORD>"}'
@@ -93,7 +94,7 @@ curl -X POST "$RENDER_URL/api/auth/request-code" \
 # 4. Verify Registration Code
 curl -X POST "$RENDER_URL/api/auth/verify-code" \
   -H "Content-Type: application/json" \
-  -d '{"phone": "+639171234567", "code": "123456"}'
+  -d '{"phone": "+639171234567", "code": "<DEV_OTP_CODE>"}'
 # Expected: 200 OK {"access_token": "...", "token_type": "bearer", "user": {...}}
 
 # 5. User Login

@@ -74,7 +74,7 @@ class DeploymentReadinessAuditTests(unittest.TestCase):
     # =========================================================================
 
     def test_phase1_otp_whitelisted_number_succeeds(self):
-        """Whitelisted test phone number allows code 123456."""
+        """HL-045: with dev OTP mode on (the local default), any number signs up with code 123456."""
         rand_digits = "".join(random.choices(string.digits, k=6))
         test_phone = f"+63999{rand_digits}"
         test_email = f"whitelisted_{rand_digits}@heartlink.health"
@@ -96,32 +96,32 @@ class DeploymentReadinessAuditTests(unittest.TestCase):
         self.assertTrue(verify_res.json().get("success"))
         self.assertIn("token", verify_res.json())
 
-    def test_phase1_otp_non_whitelisted_number_rejected(self):
-        """Non-whitelisted arbitrary phone number is rejected at request-code with HTTP 403."""
+    def test_phase1_signup_closed_when_dev_otp_disabled(self):
+        """HL-045: with DEV_OTP_ENABLED=false, request-code and verify-code return HTTP 403."""
+        from unittest.mock import patch
         rand_digits = "".join(random.choices(string.digits, k=6))
-        non_test_phone = f"+63920{rand_digits}" # +63920 is NOT in test prefixes
-        test_email = f"nonwhite_{rand_digits}@heartlink.health"
+        test_phone = f"+63920{rand_digits}"
+        test_email = f"closed_{rand_digits}@heartlink.health"
 
-        # Request OTP for non-whitelisted number must return 403 Forbidden
-        req_res = self.client.post("/api/auth/request-code", json={
-            "phone": non_test_phone,
-            "email": test_email,
-            "password": "Password123!"
-        })
-        self.assertEqual(req_res.status_code, 403)
-        self.assertIn("Self-registration is currently limited to invited testers", req_res.json().get("detail", ""))
+        with patch.dict(os.environ, {"DEV_OTP_ENABLED": "false"}):
+            req_res = self.client.post("/api/auth/request-code", json={
+                "phone": test_phone,
+                "email": test_email,
+                "password": "Password123!"
+            })
+            self.assertEqual(req_res.status_code, 403)
+            self.assertIn("Sign-up is currently closed", req_res.json().get("detail", ""))
 
-        # Verify OTP for non-whitelisted number must also return 403 Forbidden
-        verify_res = self.client.post("/api/auth/verify-code", json={
-            "phone": non_test_phone,
-            "code": "123456"
-        })
-        self.assertEqual(verify_res.status_code, 403)
-        self.assertIn("Self-registration is currently limited to invited testers", verify_res.json().get("detail", ""))
+            verify_res = self.client.post("/api/auth/verify-code", json={
+                "phone": test_phone,
+                "code": "123456"
+            })
+            self.assertEqual(verify_res.status_code, 403)
+            self.assertIn("Sign-up is currently closed", verify_res.json().get("detail", ""))
 
     def test_phase1_real_tester_normalization_and_registration(self):
         """Verify real tester phone numbers normalize across input formats and register successfully."""
-        from app.services.auth_service import is_test_phone_number, normalize_e164
+        from app.services.auth_service import normalize_e164
 
         # 1. Format variation tests for real tester numbers
         test_inputs = [
@@ -134,7 +134,6 @@ class DeploymentReadinessAuditTests(unittest.TestCase):
         ]
         for raw_inp, expected_e164 in test_inputs:
             self.assertEqual(normalize_e164(raw_inp), expected_e164)
-            self.assertTrue(is_test_phone_number(raw_inp), f"Failed to recognize {raw_inp} as whitelisted")
 
         # 2. End-to-end registration flow with real tester number (09281234567)
         tester_phone = "09281234567"
