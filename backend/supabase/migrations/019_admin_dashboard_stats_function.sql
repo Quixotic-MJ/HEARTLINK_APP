@@ -1,3 +1,8 @@
+-- backend/supabase/migrations/019_admin_dashboard_stats_function.sql
+-- HL-003: admin dashboard aggregates computed in Postgres (called via .rpc("get_admin_dashboard_stats")).
+-- Moved here from backend/app/db/admin_dashboard_rpc.sql on 2026-10-14 so every database change lives in this folder.
+-- CREATE OR REPLACE makes it safe to run again after editing the function.
+
 -- 1. Evidence-Based Indexing Instructions
 -- Do NOT execute these blindly. Run EXPLAIN (ANALYZE, BUFFERS) on the queries inside the RPC first.
 -- The following are candidate indexes that typically improve performance for the aggregates below.
