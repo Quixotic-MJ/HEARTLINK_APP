@@ -8,6 +8,7 @@ import os
 import re
 import uuid
 import hashlib
+import hmac
 import random
 import string
 from datetime import datetime, timedelta
@@ -23,22 +24,40 @@ from app.utils.security import create_access_token
 from app.db.repositories import get_profile_repo
 
 
-# Whitelisted test phone numbers and prefixes for zero-cost dev/test registration bypass
-TEST_PHONE_PREFIXES = (
-    "+63999", "+63900", "+63911", "+63912345", "+63917555", "+63918555", "+1555"
-)
-TEST_PHONE_NUMBERS = {
-    # Default test suite fixtures
-    "+639123456789",
-    "+639175550192",
-    "+639185550144",
-    "+639999999999",
-    "+639000000000",
-    "+639111111111",
-    # Invited real tester phone numbers (E.164 normalized)
-    "+639171234567",
-    "+639281234567",
-}
+LOCAL_DEV_OTP_CODE = "123456"
+
+
+def get_dev_otp_code() -> Optional[str]:
+    """
+    HL-045: Returns the shared sign-up code while development OTP mode is on, else None.
+
+    There is no SMS gateway yet, so every sign-up is verified with one shared code.
+    - DEV_OTP_ENABLED: on/off switch. Defaults to on outside production, off in production.
+    - DEV_OTP_CODE: the 6-digit code. Outside production it defaults to 123456; in production
+      it must be set (and must not be 123456), otherwise sign-up stays closed.
+    """
+    is_production = os.getenv("ENVIRONMENT", "").lower() == "production"
+    enabled_raw = os.getenv("DEV_OTP_ENABLED", "").strip().lower()
+    enabled = enabled_raw in ("1", "true", "yes", "on") if enabled_raw else not is_production
+    if not enabled:
+        return None
+
+    code = os.getenv("DEV_OTP_CODE", "").strip()
+    if not code:
+        if is_production:
+            logger.error("DEV_OTP_ENABLED is on but DEV_OTP_CODE is not set; sign-up is closed.")
+            return None
+        return LOCAL_DEV_OTP_CODE
+    if not re.fullmatch(r"\d{6}", code):
+        logger.error("DEV_OTP_CODE must be exactly 6 digits; sign-up is closed.")
+        return None
+    if is_production and code == LOCAL_DEV_OTP_CODE:
+        logger.error("DEV_OTP_CODE must not be the public default in production; sign-up is closed.")
+        return None
+    return code
+
+
+SIGNUP_CLOSED_DETAIL = "Sign-up is currently closed. Contact the system administrator for an account."
 
 def normalize_e164(phone: str) -> str:
     if not phone:
@@ -52,26 +71,6 @@ def normalize_e164(phone: str) -> str:
         else:
             e164 = "+63" + e164
     return e164
-
-# Dynamically include any additional invited tester numbers from environment
-_env_testers = os.getenv("INVITED_TESTER_NUMBERS", os.getenv("TEST_PHONE_NUMBERS", ""))
-if _env_testers:
-    for _raw in _env_testers.split(","):
-        _norm = normalize_e164(_raw.strip())
-        if _norm:
-            TEST_PHONE_NUMBERS.add(_norm)
-
-def is_test_phone_number(phone: str) -> bool:
-    """
-    Checks if a phone number matches whitelisted test phone numbers/prefixes
-    configured for dev/test OTP bypass without incurring SMS gateway charges.
-    """
-    if not phone:
-        return False
-    e164 = normalize_e164(phone)
-    if e164 in TEST_PHONE_NUMBERS:
-        return True
-    return any(e164.startswith(pfx) for pfx in TEST_PHONE_PREFIXES)
 
 
 class AuthService:
@@ -162,33 +161,18 @@ class SupabaseAuthService(AuthService):
             except Exception:
                 pass
 
-            e164_phone = normalize_e164(phone)
-            now = utc_now()
-            clean_digits = "".join(filter(str.isdigit, phone))
-            is_whitelisted = is_test_phone_number(phone) or is_test_phone_number(clean_digits) or is_test_phone_number(e164_phone)
+            # HL-045: no SMS gateway yet, so sign-up is only open while dev OTP mode is on
+            if get_dev_otp_code() is None:
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=SIGNUP_CLOSED_DETAIL)
 
-            # Phase gate: Lock self-registration strictly to whitelisted test numbers
-            if not is_whitelisted:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Self-registration is currently limited to invited testers. Contact the system administrator for an account."
-                )
-
-            pending_data = {
+            self._pending_registrations[e164_phone] = {
                 "email": email,
                 "password": password,
-                "code": "123456",
                 "e164_phone": e164_phone,
-                "expires_at": (now + timedelta(minutes=10)).isoformat()
+                "expires_at": (utc_now() + timedelta(minutes=10)).isoformat()
             }
-            self._pending_registrations[phone] = pending_data
-            self._pending_registrations[e164_phone] = pending_data
-            self._pending_registrations[clean_digits] = pending_data
-            if clean_digits.startswith("63"):
-                self._pending_registrations[clean_digits[2:]] = pending_data
-                self._pending_registrations["0" + clean_digits[2:]] = pending_data
 
-            print(f"[SupabaseAuthService] Whitelisted test number OTP for {phone} ({e164_phone}): 123456")
+            logger.info("Pending registration created for a new phone number")
             return {"success": True, "message": "Verification code dispatched"}
         except HTTPException:
             raise
@@ -213,14 +197,10 @@ class SupabaseAuthService(AuthService):
 
     def resend_registration_otp(self, phone: str) -> Dict[str, Any]:
         try:
-            pending = self._pending_registrations.get(phone)
+            # HL-045: codes are not sent by SMS yet, so resending only extends the pending window
+            pending = self._pending_registrations.get(normalize_e164(phone))
             if pending:
                 pending["expires_at"] = (utc_now() + timedelta(minutes=10)).isoformat()
-                e164 = pending.get("e164_phone") or phone
-                try:
-                    self.client.auth.resend({"type": "sms", "phone": e164})
-                except Exception:
-                    pass
             return {"success": True, "message": "Code resent successfully"}
         except Exception as e:
             logger.error(f"Resend failed: {e}", exc_info=True)
@@ -228,102 +208,65 @@ class SupabaseAuthService(AuthService):
 
     def verify_registration_otp(self, phone: str, code: str) -> Dict[str, Any]:
         try:
-            clean_phone = "".join(filter(str.isdigit, phone))
             e164_phone = normalize_e164(phone)
-            is_whitelisted = is_test_phone_number(phone) or is_test_phone_number(clean_phone) or is_test_phone_number(e164_phone)
 
-            # Registration is limited to whitelisted test numbers for this testing phase
-            if not is_whitelisted:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Self-registration is currently limited to invited testers. Contact the system administrator for an account."
-                )
+            dev_code = get_dev_otp_code()
+            if dev_code is None:
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=SIGNUP_CLOSED_DETAIL)
 
-            pending = self._pending_registrations.get(phone) or self._pending_registrations.get(clean_phone)
+            # HL-045: a code only ever completes the pending sign-up for this exact number. It never
+            # logs in an existing account (that needs the password), and never matches another number.
+            pending = self._pending_registrations.get(e164_phone)
+            if pending and parse_utc(pending["expires_at"]) < utc_now():
+                self._pending_registrations.pop(e164_phone, None)
+                pending = None
             if not pending:
-                for k, v in list(self._pending_registrations.items()):
-                    k_digits = "".join(filter(str.isdigit, k))
-                    if clean_phone and (clean_phone in k_digits or k_digits in clean_phone):
-                        pending = v
-                        break
-
-            if not pending and code == "123456" and is_whitelisted:
-                # Check if profile already created (e.g. across server restart)
-                profile_repo = get_profile_repo()
-                existing = profile_repo.get_by_identifier(phone)
-                if existing:
-                    auth_user_id = existing.get("id")
-                    access_token = create_access_token(data={"user_id": auth_user_id, "role": existing.get("role", "patient")})
-                    return {
-                        "success": True,
-                        "message": "Verified successfully",
-                        "user_id": auth_user_id,
-                        "token": access_token
-                    }
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Verification session expired. Please tap 'Send verification code' again to receive a fresh code."
                 )
 
+            if not hmac.compare_digest(str(code).strip(), dev_code):
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid Verification Code")
+
             auth_user = None
 
-            # 1. Whitelisted test code verification
-            if code == "123456" and is_whitelisted and pending:
-                email = pending["email"]
-                password = pending["password"]
-                e164_val = pending.get("e164_phone") or e164_phone
+            email = pending["email"]
+            password = pending["password"]
+            e164_val = pending.get("e164_phone") or e164_phone
 
-                # Create user directly in Supabase Auth via Admin API
-                try:
-                    res = self.client.auth.admin.create_user({
-                        "email": email,
-                        "password": password,
-                        "phone": e164_val,
-                        "email_confirm": True,
-                        "phone_confirm": True
-                    })
-                    auth_user = res.user if hasattr(res, "user") else res
-                except Exception as create_err:
-                    profile_repo = get_profile_repo()
-                    prof = profile_repo.get_by_identifier(e164_val) or profile_repo.get_by_identifier(email)
-                    if prof:
-                        auth_user_id = prof.get("id")
-                        try:
-                            self.client.auth.admin.update_user_by_id(
-                                auth_user_id,
-                                {"password": password, "email_confirm": True, "phone_confirm": True}
-                            )
-                        except Exception:
-                            pass
-                        
+            # Create user directly in Supabase Auth via Admin API
+            try:
+                res = self.client.auth.admin.create_user({
+                    "email": email,
+                    "password": password,
+                    "phone": e164_val,
+                    "email_confirm": True,
+                    "phone_confirm": True
+                })
+                auth_user = res.user if hasattr(res, "user") else res
+            except Exception as create_err:
+                profile_repo = get_profile_repo()
+                prof = profile_repo.get_by_identifier(e164_val) or profile_repo.get_by_identifier(email)
+                if prof:
+                    # HL-045: never take over (or reset the password of) an account that already exists
+                    self._pending_registrations.pop(e164_phone, None)
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="This account is already registered. Please log in with your password."
+                    )
+                else:
+                    err_str = str(create_err).lower()
+                    if "already" in err_str or "duplicate" in err_str or "timeout" in err_str or "timed out" in err_str:
+                        new_uuid = str(uuid.uuid4())
                         class UserWrapper:
                             def __init__(self, uid, em, ph):
                                 self.id = uid
                                 self.email = em
                                 self.phone = ph
-                        auth_user = UserWrapper(auth_user_id, email, e164_val)
+                        auth_user = UserWrapper(new_uuid, email, e164_val)
                     else:
-                        err_str = str(create_err).lower()
-                        if "already" in err_str or "duplicate" in err_str or "timeout" in err_str or "timed out" in err_str:
-                            new_uuid = str(uuid.uuid4())
-                            class UserWrapper:
-                                def __init__(self, uid, em, ph):
-                                    self.id = uid
-                                    self.email = em
-                                    self.phone = ph
-                            auth_user = UserWrapper(new_uuid, email, e164_val)
-                        else:
-                            raise create_err
-            else:
-                # Direct Supabase verify_otp for real SMS codes
-                res = self.client.auth.verify_otp({
-                    "phone": e164_phone,
-                    "token": code,
-                    "type": "sms"
-                })
-                if not res.user:
-                    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid Verification Code")
-                auth_user = res.user
+                        raise create_err
 
             if not auth_user:
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid Verification Code")
@@ -364,7 +307,7 @@ class SupabaseAuthService(AuthService):
                         pass
 
             # Clean up pending registration
-            self._pending_registrations.pop(phone, None)
+            self._pending_registrations.pop(e164_phone, None)
 
             access_token = create_access_token(data={"user_id": auth_user_id, "role": "patient"})
             return {
