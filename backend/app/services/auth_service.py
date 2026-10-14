@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 from app.db.client import get_supabase_client
 from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
 from app.utils.security import create_access_token
+from app.utils.phone import normalize_e164
 from app.db.repositories import get_profile_repo
 
 
@@ -58,20 +59,6 @@ def get_dev_otp_code() -> Optional[str]:
 
 
 SIGNUP_CLOSED_DETAIL = "Sign-up is currently closed. Contact the system administrator for an account."
-
-def normalize_e164(phone: str) -> str:
-    if not phone:
-        return ""
-    e164 = re.sub(r"[\s\-\(\)\.]", "", str(phone).strip())
-    if not e164.startswith("+"):
-        if e164.startswith("0"):
-            e164 = "+63" + e164[1:]
-        elif e164.startswith("63"):
-            e164 = "+" + e164
-        else:
-            e164 = "+63" + e164
-    return e164
-
 
 class AuthService:
     def request_registration_otp(self, phone: str, email: str, password: str) -> Dict[str, Any]:
