@@ -377,9 +377,9 @@ class DeploymentReadinessAuditTests(unittest.TestCase):
     # =========================================================================
 
     def test_phase4_patient_access_to_expert_cases_blocked(self):
-        """Patient attempting /api/expert/cases must return 403."""
+        """Patient attempting /api/admin/cases must return 403."""
         res = self.client.get(
-            "/api/expert/cases",
+            "/api/admin/cases",
             headers={"Authorization": f"Bearer {self.token_patient_a}"}
         )
         self.assertEqual(res.status_code, 403)
@@ -444,9 +444,9 @@ class DeploymentReadinessAuditTests(unittest.TestCase):
     # =========================================================================
 
     def test_phase5_expert_retrain_returns_501(self):
-        """Endpoint /api/expert/retrain returns HTTP 501 by design."""
+        """Endpoint /api/admin/retrain returns HTTP 501 by design."""
         res = self.client.post(
-            "/api/expert/retrain",
+            "/api/admin/retrain",
             headers={"Authorization": f"Bearer {self.token_admin}"}
         )
         self.assertEqual(res.status_code, 501)

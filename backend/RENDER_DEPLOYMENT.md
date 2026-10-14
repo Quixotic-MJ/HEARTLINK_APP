@@ -178,7 +178,7 @@ curl -X GET "$RENDER_URL/api/admin/notifications" \
 # Expected: 200 OK {"items": [], "unread_count": 0, "total": 0}
 
 # 16. Medical Expert Case Review Feed
-curl -X GET "$RENDER_URL/api/expert/cases" \
+curl -X GET "$RENDER_URL/api/admin/cases" \
   -H "Authorization: Bearer $EXPERT_ACCESS_TOKEN"
 # Expected: 200 OK
 ```
