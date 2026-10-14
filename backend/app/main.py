@@ -99,7 +99,7 @@ app.include_router(recipes_api.router)
 app.include_router(notifications_api.router)
 app.include_router(analytics_api.router)
 app.include_router(admin_api.router)
-app.include_router(case_review_api.router, prefix="/api/expert")
+# HL-050: case review is mounted once; a second /api/expert copy duplicated every endpoint
 app.include_router(case_review_api.router, prefix="/api/admin")
 app.include_router(admin_notifications_api.router)
 app.include_router(uploads_api.router)
