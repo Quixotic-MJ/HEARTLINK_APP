@@ -87,7 +87,7 @@ curl -X GET "$RENDER_URL/api/clinics"
 # 3. Request Registration OTP (Whitelisted Tester)
 curl -X POST "$RENDER_URL/api/auth/request-code" \
   -H "Content-Type: application/json" \
-  -d '{"phone": "+639171234567", "email": "tester@heartlink.ph", "password": "Password123!"}'
+  -d '{"phone": "+639171234567", "email": "tester@heartlink.ph", "password": "<TESTER_PASSWORD>"}'
 # Expected: 200 OK {"success": true, "message": "..."}
 
 # 4. Verify Registration Code
@@ -99,7 +99,7 @@ curl -X POST "$RENDER_URL/api/auth/verify-code" \
 # 5. User Login
 curl -X POST "$RENDER_URL/api/auth/login" \
   -H "Content-Type: application/json" \
-  -d '{"identifier": "+639171234567", "password": "Password123!"}'
+  -d '{"identifier": "+639171234567", "password": "<TESTER_PASSWORD>"}'
 # Expected: 200 OK {"access_token": "...", "token_type": "bearer"}
 ```
 
@@ -161,7 +161,7 @@ curl -X POST "$RENDER_URL/api/upload/" \
 # 13. Admin Web Portal Login (Stateless REST GoTrue Authentication)
 curl -X POST "$RENDER_URL/api/auth/web-login" \
   -H "Content-Type: application/json" \
-  -d '{"identifier": "super.admin@heartlink.ph", "password": "Password123!", "remember": false}'
+  -d '{"identifier": "super.admin@heartlink.ph", "password": "<SUPER_ADMIN_PASSWORD>", "remember": false}'
 # Expected: 200 OK {"success": true, "user_id": "...", "role": "super_admin", "token": "..."}
 
 # 14. Provision New Staff Account (Super Admin only via Supabase Auth Admin REST API)
