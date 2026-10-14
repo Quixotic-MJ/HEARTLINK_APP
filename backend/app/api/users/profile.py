@@ -65,7 +65,8 @@ async def read_all_users(current_user: dict = Depends(get_current_user)):
     import logging
     logger = logging.getLogger(__name__)
 
-    all_hss = all_meals = all_exercises = all_sleeps = all_health_logs = all_reviews = []
+    all_hss = all_meals = all_exercises = all_sleeps = all_health_logs = []
+    reviewed_patient_ids = set()
 
     try:
         all_hss = get_hss_repo().list_all_hss_records()
@@ -93,7 +94,7 @@ async def read_all_users(current_user: dict = Depends(get_current_user)):
         logger.error(f"[read_all_users] Failed to fetch health logs: {e}", exc_info=True)
 
     try:
-        all_reviews = get_case_review_repo().list_evaluations()
+        reviewed_patient_ids = set(get_case_review_repo().list_reviewed_patient_ids())
     except Exception as e:
         logger.error(f"[read_all_users] Failed to fetch case reviews: {e}", exc_info=True)
 
@@ -130,7 +131,7 @@ async def read_all_users(current_user: dict = Depends(get_current_user)):
     add_dates(all_sleeps)
     add_dates(all_health_logs)
     
-    review_set = {r.get("user_id") for r in all_reviews if r.get("user_id")}
+    review_set = reviewed_patient_ids
     # ---------------------------------------------
 
     for p in all_profiles:
