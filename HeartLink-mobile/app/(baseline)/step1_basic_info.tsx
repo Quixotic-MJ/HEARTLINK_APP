@@ -1,5 +1,5 @@
 import { Appearance } from "react-native";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -8,15 +8,18 @@ import {
   ScrollView,
   Platform,
   Pressable,
-  useColorScheme
+  useColorScheme,
+  Alert,
+  BackHandler
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Feather } from "@expo/vector-icons";
 import { useToast } from "../../contexts/ToastContext";
-import { useRouter, useLocalSearchParams } from "expo-router";
+import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useBaseline } from "../../contexts/BaselineContext";
+import { useUser } from "../../contexts/UserContext";
 import AnimatedButton from "../../components/ui/AnimatedButton";
 import StepProgress from "../../components/ui/StepProgress";
 import HeartLogo from "../../components/ui/HeartLogo";
@@ -384,7 +387,39 @@ export default function Step1BasicInfo() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { showToast } = useToast();
-  const { data, updateData } = useBaseline();
+  const { data, updateData, resetData } = useBaseline();
+  const { logout } = useUser();
+
+  // Step 1 is the first screen after sign-up/login (reached via router.replace), so there is
+  // nothing to go back to. Leaving it means logging out; the questions resume on next login.
+  const handleExit = useCallback(() => {
+    Alert.alert(
+      "Leave setup?",
+      "You'll be logged out and taken back to the login screen. You can finish these questions the next time you log in.",
+      [
+        { text: "Stay", style: "cancel" },
+        {
+          text: "Log out",
+          style: "destructive",
+          onPress: async () => {
+            resetData();
+            await logout();
+            router.replace("/(auth)/login");
+          },
+        },
+      ]
+    );
+  }, [logout, resetData, router]);
+
+  useFocusEffect(
+    useCallback(() => {
+      const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+        handleExit();
+        return true;
+      });
+      return () => sub.remove();
+    }, [handleExit])
+  );
 
   const insets = useSafeAreaInsets();
 
@@ -498,9 +533,9 @@ export default function Step1BasicInfo() {
       <View className="px-5 pt-4 pb-2.5">
         <View className="flex-row items-center mb-3">
           <AnimatedButton
-            onPress={() => router.back()}
+            onPress={handleExit}
             accessibilityRole="button"
-            accessibilityLabel="Go back"
+            accessibilityLabel="Log out and go back to login"
             className="w-10 h-10 rounded-xl bg-surface dark:bg-[#101615] border border-border items-center justify-center mr-3 shadow-xs"
           >
             <Feather
