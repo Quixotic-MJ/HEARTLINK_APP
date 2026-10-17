@@ -123,6 +123,7 @@ const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave, 
   const status = watch("status");
 
   const [imagePreviewError, setImagePreviewError] = useState(false);
+  const [uploadError, setUploadError] = useState("");
 
   useEffect(() => {
     setImagePreviewError(false);
@@ -420,22 +421,22 @@ const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave, 
                     accept="image/*"
                     onChange={async (e) => {
                       const file = e.target.files?.[0];
+                      e.target.value = "";
                       if (file) {
+                        setUploadError("");
                         try {
                           const data = await apiUpload(file, "recipes");
                           setValue("mediaUrl", data.url, { shouldValidate: true, shouldDirty: true });
                         } catch (err) {
+                          // HL-048: a rejected file is never saved some other way
                           console.error("Recipe image upload error:", err);
-                          const reader = new FileReader();
-                          reader.onloadend = () => {
-                            setValue("mediaUrl", reader.result);
-                          };
-                          reader.readAsDataURL(file);
+                          setUploadError(err?.data?.detail || "Upload failed. Please try again.");
                         }
                       }
                     }}
                     className="w-full px-3 py-1.5 text-[12px] bg-[#F8FAFC] border border-[#E2E8F0] rounded-[8px] focus:outline-none text-[#0F172A] transition-colors file:mr-3 file:py-1 file:px-2.5 file:rounded-[6px] file:border-0 file:text-[11px] file:font-semibold file:bg-[#FFFFFF] file:text-[#0F172A] file:border file:border-[#E2E8F0] hover:file:border-[#2E9AE8] hover:file:text-[#2E9AE8] cursor-pointer"
                   />
+                  {uploadError && <p className="text-[11px] text-[#A93226] mt-1">{uploadError}</p>}
                 </div>
               </div>
             </div>
