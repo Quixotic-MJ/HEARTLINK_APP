@@ -125,7 +125,7 @@ def test_session_probe_still_works_and_reports_the_flag(repo):
     assert res.json()["must_change_password"] is True
 
 
-def test_changing_the_password_unlocks_the_account(repo, monkeypatch):
+def test_changing_the_password_unlocks_the_account(repo, monkeypatch, refresh_repo):
     monkeypatch.setattr("app.api.users.profile.change_password", lambda uid, cur, new: True)
     client = TestClient(app)
 

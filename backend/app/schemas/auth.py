@@ -40,3 +40,11 @@ class ForgotPasswordRequest(BaseModel):
 
 class ResendCodeRequest(BaseModel):
     phone: str
+
+class RefreshRequest(BaseModel):
+    """HL-047: the mobile app sends its refresh token in the body; the web portal uses a cookie."""
+    refresh_token: Optional[str] = None
+
+
+class LogoutRequest(BaseModel):
+    refresh_token: Optional[str] = None

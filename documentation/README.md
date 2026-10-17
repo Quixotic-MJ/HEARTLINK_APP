@@ -79,6 +79,21 @@ Sign-ups waiting for their verification code, so a restart doesn't lose them (HL
 |  | `expires_at` | `TIMESTAMPTZ` | NOT NULL | 10 minutes after "Send code" (resend extends it) |
 |  | `created_at` | `TIMESTAMPTZ` | NOT NULL DEFAULT now() | |
 
+### 2.1 Users & Authentication - `refresh_tokens`
+
+Refresh tokens behind the short-lived access tokens (HL-047, migration 025): staff access tokens last 1 hour, patient access tokens 24 hours. Each refresh replaces the token; logout and password change revoke them.
+
+| Table Name | Column | Data Type | Constraints | Description |
+|---|---|---|---|---|
+| `refresh_tokens` | `id` | `UUID` | PRIMARY KEY DEFAULT gen_random_uuid() | |
+|  | `user_id` | `UUID` | NOT NULL, FK → `profiles(id)` ON DELETE CASCADE | |
+|  | `token_hash` | `TEXT` | NOT NULL UNIQUE | SHA-256 of the token, never the token itself |
+|  | `client` | `TEXT` | NOT NULL CHECK (`web`, `mobile`) | Which app the session belongs to |
+|  | `remember` | `BOOLEAN` | NOT NULL DEFAULT true | Web "Stay signed in" |
+|  | `expires_at` | `TIMESTAMPTZ` | NOT NULL | Staff: 7 days (1 day without "Stay signed in"), fixed. Patients: 30 days, renewed on each refresh |
+|  | `revoked_at`, `revoked_reason` | `TIMESTAMPTZ`, `TEXT` | | `rotated`, `logout`, `password_change`, `reuse_detected`, `account_inactive` |
+|  | `created_at` | `TIMESTAMPTZ` | NOT NULL DEFAULT now() | |
+
 ### 2.2 Patient Data & Settings - `baseline_onboarding`
 
 | Table Name | Column | Data Type | Constraints | Description |

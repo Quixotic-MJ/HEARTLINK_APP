@@ -1,5 +1,6 @@
-from fastapi import APIRouter, status, HTTPException, Depends
-from app.utils.security import get_current_user
+from fastapi import APIRouter, status, HTTPException, Depends, Request, Response
+from app.utils.security import get_current_user, set_auth_cookies, REFRESH_COOKIE_NAME
+from app.services.session_service import restart_after_password_change
 from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
 from app.schemas.user import (
     ProfileUpdate,
@@ -227,6 +228,8 @@ async def update_user_profile(
 async def update_user_password(
     user_id: str,
     payload: ChangePasswordRequest,
+    request: Request,
+    response: Response,
     current_user: dict = Depends(get_current_user),
 ):
     # ── Ownership check ────────────────────────────────────────────────────────
@@ -281,6 +284,23 @@ async def update_user_password(
     except Exception:
         pass
 
+    # HL-047: every session of this account ends (other devices are logged out); this device gets a fresh one
+    is_mobile = request.headers.get("authorization", "").lower().startswith("bearer ")
+    session = restart_after_password_change(
+        user_id,
+        current_user.get("role", "patient"),
+        "mobile" if is_mobile else "web",
+        current_refresh=None if is_mobile else request.cookies.get(REFRESH_COOKIE_NAME),
+    )
+    if is_mobile:
+        return {
+            "success": True,
+            "message": "Password updated successfully",
+            "token": session["token"],
+            "refresh_token": session["refresh_token"],
+            "expires_in": session["expires_in"],
+        }
+    set_auth_cookies(response, session)
     return {"success": True, "message": "Password updated successfully"}
 
 
