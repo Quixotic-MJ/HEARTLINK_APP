@@ -22,22 +22,47 @@ BUCKET_CONFIGS = {
     BUCKET_AVATARS: {
         "max_bytes": 2 * 1024 * 1024, # 2 MB
         "allowed_mimes": {"image/jpeg", "image/png", "image/webp"},
-        "allowed_extensions": {".jpg", ".jpeg", ".png", ".webp"},
         "allowed_roles": {"patient", "medical_expert", "admin", "super_admin"}
     },
     BUCKET_RECIPES: {
         "max_bytes": 5 * 1024 * 1024, # 5 MB
         "allowed_mimes": {"image/jpeg", "image/png", "image/webp"},
-        "allowed_extensions": {".jpg", ".jpeg", ".png", ".webp"},
         "allowed_roles": {"admin", "super_admin"}
     },
     BUCKET_EXERCISES: {
         "max_bytes": 20 * 1024 * 1024, # 20 MB
         "allowed_mimes": {"image/jpeg", "image/png", "image/webp", "video/mp4"},
-        "allowed_extensions": {".jpg", ".jpeg", ".png", ".webp", ".mp4"},
         "allowed_roles": {"admin", "super_admin", "medical_expert"}
     }
 }
+
+# HL-048: the file's real type is read from its first bytes ("magic bytes"); the name and the
+# Content-Type header sent by the browser or phone are never trusted
+FILE_TYPE_EXTENSIONS = {
+    "image/jpeg": ".jpg",
+    "image/png": ".png",
+    "image/webp": ".webp",
+    "video/mp4": ".mp4",
+}
+FILE_TYPE_LABELS = {"image/jpeg": "JPG", "image/png": "PNG", "image/webp": "WebP", "video/mp4": "MP4"}
+
+# HEIC photos and QuickTime (.mov) files also start with an "ftyp" box, so only these brands count as MP4
+MP4_BRANDS = {b"isom", b"iso2", b"iso4", b"iso5", b"iso6", b"mp41", b"mp42", b"avc1", b"M4V ", b"dash", b"MSNV"}
+
+
+def detect_file_type(file_bytes: bytes) -> Optional[str]:
+    """Returns the MIME type the bytes really are (one of FILE_TYPE_EXTENSIONS), or None."""
+    head = file_bytes[:16]
+    if head.startswith(b"\xff\xd8\xff"):
+        return "image/jpeg"
+    if head.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "image/png"
+    if head[:4] == b"RIFF" and head[8:12] == b"WEBP":
+        return "image/webp"
+    if head[4:8] == b"ftyp" and head[8:12] in MP4_BRANDS:
+        return "video/mp4"
+    return None
+
 
 LOCAL_UPLOAD_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "static", "uploads")
 os.makedirs(LOCAL_UPLOAD_DIR, exist_ok=True)
@@ -100,13 +125,19 @@ class SupabaseStorageService(StorageService):
             max_mb = cfg["max_bytes"] // (1024 * 1024)
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"File exceeds maximum allowed size of {max_mb} MB.")
 
-        # 4. MIME validation
-        ext = os.path.splitext(filename)[1].lower()
-        if content_type not in cfg["allowed_mimes"] or ext not in cfg["allowed_extensions"]:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid file type or MIME type.")
+        # 4. File type from the content itself (HL-048)
+        detected_type = detect_file_type(file_bytes)
+        if detected_type not in cfg["allowed_mimes"]:
+            allowed = ", ".join(FILE_TYPE_LABELS[m] for m in FILE_TYPE_EXTENSIONS if m in cfg["allowed_mimes"])
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"This file isn't a supported type. Allowed: {allowed}."
+            )
+        content_type = detected_type
 
-        # 5. Supabase Storage upload
-        safe_name = sanitize_filename(filename)
+        # 5. Supabase Storage upload, named and labelled by the detected type
+        base_name = os.path.splitext(sanitize_filename(filename))[0] or "file"
+        safe_name = f"{base_name}{FILE_TYPE_EXTENSIONS[detected_type]}"
         storage_path = f"{target_id}/{uuid.uuid4().hex}_{safe_name}"
         try:
             res = self.client.storage.from_(bucket).upload(

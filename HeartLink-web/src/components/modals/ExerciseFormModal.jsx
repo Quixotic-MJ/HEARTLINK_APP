@@ -114,6 +114,9 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
   const mediaUrl = watch("mediaUrl");
   const status = watch("status");
   const [isUploading, setIsUploading] = useState(false);
+  // HL-048: upload errors per field ("media" or "guide-<index>"); a rejected file is never saved some other way
+  const [uploadErrors, setUploadErrors] = useState({});
+  const setUploadError = (key, message) => setUploadErrors((prev) => ({ ...prev, [key]: message }));
 
   useEffect(() => {
     if (exercise) {
@@ -451,13 +454,16 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
                       disabled={isUploading}
                       onChange={async (e) => {
                         const file = e.target.files?.[0];
+                        e.target.value = "";
                         if (file) {
                           setIsUploading(true);
+                          setUploadError("media", "");
                           try {
                             const data = await apiUpload(file, "exercises");
                             setValue("mediaUrl", data.url, { shouldValidate: true, shouldDirty: true });
                           } catch (err) {
                             console.error("Upload error:", err);
+                            setUploadError("media", err?.data?.detail || "Upload failed. Please try again.");
                           } finally {
                             setIsUploading(false);
                           }
@@ -468,6 +474,7 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
                   </label>
                 </div>
                 {isUploading && <p className="text-[10.5px] text-[#2E9AE8] font-semibold mb-2">Uploading asset…</p>}
+                {uploadErrors.media && <p className="text-[11px] text-[#A93226] mb-2">{uploadErrors.media}</p>}
                 
                 {mediaUrl && !mediaUrl.includes("youtube.com") && !mediaUrl.includes("youtu.be") && (
                   <div className="w-36 h-20 rounded-[8px] overflow-hidden border border-[#E2E8F0] bg-[#F8FAFC] flex items-center justify-center">
@@ -537,22 +544,21 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
                         accept="image/*"
                         onChange={async (e) => {
                           const file = e.target.files?.[0];
+                          e.target.value = "";
                           if (file) {
+                            setUploadError(`guide-${index}`, "");
                             try {
                               const data = await apiUpload(file, "exercises");
                               setValue(`guideImages.${index}.url`, data.url, { shouldValidate: true, shouldDirty: true });
                             } catch (err) {
                               console.error("Guide upload error:", err);
-                              const reader = new FileReader();
-                              reader.onloadend = () => {
-                                setValue(`guideImages.${index}.url`, reader.result, { shouldValidate: true, shouldDirty: true });
-                              };
-                              reader.readAsDataURL(file);
+                              setUploadError(`guide-${index}`, err?.data?.detail || "Upload failed. Please try again.");
                             }
                           }
                         }}
                         className="w-full text-[10px] text-[#64748B] file:mr-2 file:py-0.5 file:px-2 file:rounded file:border file:border-[#E2E8F0] file:text-[9.5px] file:font-semibold file:bg-[#FFFFFF] file:text-[#0F172A] hover:file:border-[#2E9AE8] hover:file:text-[#2E9AE8] cursor-pointer"
                       />
+                      {uploadErrors[`guide-${index}`] && <p className="text-[10.5px] text-[#A93226] mt-1">{uploadErrors[`guide-${index}`]}</p>}
                     </div>
                   </div>
                   <div className="flex items-center gap-1">
