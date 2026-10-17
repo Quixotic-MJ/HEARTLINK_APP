@@ -11,6 +11,8 @@ export default defineConfig(({ mode }) => {
     tailwindcss(),
     ],
     server: {
+      // Docker on Windows/macOS: file changes only reach the container when polled (see DOCKER.md)
+      watch: env.VITE_USE_POLLING === 'true' ? { usePolling: true, interval: 300 } : undefined,
       // HL-033: proxy the API so the admin session cookie is same-origin (SameSite=Strict).
       proxy: {
         '/api': {

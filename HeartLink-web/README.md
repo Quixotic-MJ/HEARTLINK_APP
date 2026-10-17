@@ -1,124 +1,94 @@
 # HeartLink - Web Admin & Expert Portal
 
-The administrative and clinical evaluator portal for HeartLink, built with React and Vite.
+The web portal for HeartLink staff: medical experts review patient cases, and admins manage users, content and the system. Built with React and Vite.
 
 ---
 
 ## 🛠️ Tech Stack & Requirements
 
-* **Runtime:** Node.js v18+
+* **Runtime:** Node.js 20+
 * **Framework:** React 19
-* **Build Tool:** Vite
-* **Routing:** React Router DOM
+* **Build tool:** Vite
+* **Routing:** React Router 7
 * **Styling:** Tailwind CSS v4
-* **Icons & UI:** Lucide React, Framer Motion, Sonner (Toasts)
-* **Forms & Validation:** React Hook Form, Zod
-* **Data Visualization:** Recharts
+* **UI:** Lucide icons, Framer Motion, Sonner (toasts)
+* **Forms:** React Hook Form + Zod
+* **Charts:** Recharts
 
 ---
 
-## 📁 Directory Architecture & Component Responsibilities
+## 📁 Directory Layout
 
 ```text
 HeartLink-web/
-├── public/                 # Publicly accessible files like website icons (favicons) and raw images.
-├── src/                    # The main folder containing all the website's source code.
-│   ├── app/                
-│   │   ├── App.jsx         # The main "map" of the website that decides which screen to show based on the web address.
-│   │   └── main.jsx        # The starting point that initially loads the entire website into the browser.
-│   ├── assets/             # Visual files like pictures, logos, and system-wide styles.
-│   ├── components/         # Reusable building blocks (like standard buttons, pop-up windows, and data tables).
-│   ├── contexts/           # System-wide memory (keeps track of important things like who is currently logged in).
-│   ├── features/           # The actual screens and major sections (like the Dashboard, User Manager, and Recipe pages).
-│   ├── styles/             # The core design rules that make the website look good (spacing, layouts, and colors).
-│   ├── utils/              # Small helper tools used throughout the website (like a tool to format dates properly).
-│   └── api.js              # The "messenger" that talks to the backend server to securely fetch or save information.
-├── .env.example            # A template showing where developers should put secret passwords and API keys.
-├── package.json            # The "recipe book" listing all external code tools the website needs to download to run.
-├── vite.config.js          # Settings for the tool that bundles all this code together to make it fast.
-└── README.md               # The manual you are reading right now!
+├── public/                 # Icons and images served as-is.
+├── src/
+│   ├── app/App.jsx         # The page map: which screen shows for which address, and who may see it.
+│   ├── api.js              # Talks to the backend. Sends the login cookie and the CSRF token.
+│   ├── contexts/           # Shared state, mainly who is logged in (AuthContext).
+│   ├── components/         # Reusable pieces: layouts, tables, pop-ups (modals).
+│   ├── features/
+│   │   ├── auth/           # Login and "Set your password" screens.
+│   │   └── pages/          # The portal screens, grouped as overview, management,
+│   │                       # clinical portal (case review, calibration) and system & support.
+│   ├── styles/designSystem.js  # Shared colors, buttons, tables and page header.
+│   └── utils/              # Small helpers.
+├── Dockerfile              # dev stage (docker-compose) and prod stage (nginx).
+├── nginx.conf              # Used by the prod Docker stage; forwards /api to the backend.
+├── vercel.json             # Vercel settings: forwards /api to Railway, everything else to index.html.
+├── vite.config.js          # Dev server; forwards /api to the backend.
+└── .env.example
 ```
 
 ## ⚙️ Environment Variables
-
-Create a `.env` file in the root of the web directory based on `.env.example`:
 
 ```bash
 cp .env.example .env
 ```
 
-| Key | Description | Required | Example |
-|-----|-------------|----------|---------|
-| `VITE_API_URL` | Base URL pointing to the FastAPI backend | Yes | `http://localhost:8000` |
-| `VITE_SUPABASE_URL` | Supabase project URL (for direct client bucket access) | Optional | `https://xyz.supabase.co` |
-| `VITE_SUPABASE_ANON_KEY` | Public Supabase anonymous key | Optional | `your-anon-key` |
+| Key | What it does | Example |
+|-----|--------------|---------|
+| `VITE_API_URL` | Leave **empty**. The portal calls `/api/...` on its own address, which keeps the login cookie working. | *(empty)* |
+| `VITE_PROXY_TARGET` | Where the dev server forwards `/api` calls (local backend). | `http://127.0.0.1:8000` |
 
-### Example `.env` File
+**Why the API is "same-origin":** logins use an HttpOnly cookie with `SameSite=Strict` (HL-033), which browsers only send to the portal's own address. So `/api` is forwarded to the backend: by Vite during development, by `vercel.json` on Vercel, and by `nginx.conf` in the production Docker image.
 
-```env
-# ==============================================================================
-# HeartLink Web Admin / Medical Expert Portal Configuration (Vite / React)
-# ==============================================================================
+The portal never talks to Supabase directly, so it needs no Supabase keys.
 
-# Public API Gateway (FastAPI Backend URL)
-VITE_API_URL=http://localhost:8000
+## 🚀 Local Setup
 
-# Public Supabase Client (Anon key only)
-# IMPORTANT: NEVER place SUPABASE_SERVICE_ROLE_KEY here.
-VITE_SUPABASE_URL=https://your-project-ref.supabase.co
-VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
-```
+**With Docker:** see [../DOCKER.md](../DOCKER.md). The portal runs at http://localhost:5173.
 
-## 🚀 Local Setup & Installation
-
-### 1. Install Dependencies
+**Without Docker:**
 ```bash
 npm install
-```
-
-### 2. Run the Development Server
-```bash
 npm run dev
 ```
+Open http://localhost:5173. The backend must be running on the address in `VITE_PROXY_TARGET`.
 
-* The local server typically runs at `http://localhost:5173`.
-* Follow the terminal output for the exact active URL.
-
-## 👥 Portal Roles & Workflows
-
-### 1. Evaluator / Medical Expert
-* **Content Review:** Audit proposed food recipes and exercise regimens for cardiovascular safety.
-* **Scoring Calibration:** Review baseline survey questions and risk threshold logic.
-
-### 2. Administrator
-* **User Management:** Oversee active user accounts and permissions.
-* **Clinic Directory:** Maintain public clinic listings, contact numbers, and operating hours.
-* **System Metrics:** Monitor overall platform usage and database activity.
-
-## 📦 Build & Deployment
-
-**Create a Production Build**
-
+Other commands:
 ```bash
-npm run build
+npm run lint      # check code style
+npm run build     # production build into dist/
+npm run preview   # serve the production build locally
 ```
 
-This generates optimized static files inside the `dist/` folder.
+## 👥 Who Sees What
 
-**Preview the Production Build Locally**
+| Role | Screens |
+|------|---------|
+| **Admin / Super Admin** | Dashboard, Analytics, Foods, Exercises, Users, Feedback, Broadcasts, Settings, Activity log, Notifications, Case review (follow the queue, draw the weekly sample), Calibration |
+| **Medical Expert** | Case review (their own section), Calibration, Notifications |
+| **Super Admin only** | Creating staff accounts (with a one-time temporary password) |
 
-```bash
-npm run preview
-```
+**Case review:** the Cardiologist gives the risk level and checkup flag, the Dietitian checks the recommended recipes, and the PT checks the recommended exercises. The app's own level stays hidden until the Cardiologist submits. The expert type is set when the staff account is created.
 
-**Deployment Configuration (e.g., Vercel)**
+**First login:** staff with a temporary password must choose their own before they can use any page.
 
-If deploying to a static host like Vercel, ensure single-page application (SPA) routing is handled so page reloads route through `index.html`. 
+## 📦 Deployment (Vercel)
 
-Create a `vercel.json` file in your root folder:
+Vercel builds the `main` branch (`npm run build`, output `dist/`). `vercel.json` already:
+* forwards `/api/*` and `/static/*` to the Railway backend, and
+* sends every other address to `index.html`, so page reloads work.
 
-```json
-{
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
-}
-```
+No environment variables are needed on Vercel.

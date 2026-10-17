@@ -1,122 +1,104 @@
 # HeartLink - Mobile Application
 
-The cross-platform mobile client for HeartLink, built with React Native and Expo.
+The patient app for HeartLink, built with React Native and Expo. Patients log vitals, meals, exercise and sleep, see their Heart Stability Score (HSS) and recommendations, and find nearby clinics. It works offline and syncs when the connection returns.
 
 ---
 
 ## 🛠️ Tech Stack & Requirements
 
-* **Framework:** Expo (Managed Workflow)
-* **Runtime:** React Native
-* **Language:** TypeScript/JavaScript
-* **Navigation / Routing:** Expo Router (file-based routing)
-* **Styling:** NativeWind / Tailwind CSS
-* **State & Query Management:** TanStack React Query + AsyncStorage
-* **Forms & Validation:** React Hook Form + Zod
-* **Device APIs:** Expo Location, Notifications, Camera, Print/Sharing
+* **Framework:** Expo SDK 57 (managed workflow), React Native 0.86, React 19
+* **Language:** TypeScript (strict)
+* **Navigation:** Expo Router (file-based)
+* **Styling:** NativeWind (Tailwind for React Native)
+* **Data & offline:** TanStack React Query + AsyncStorage
+* **Forms:** React Hook Form + Zod
+* **Device APIs:** Expo Location, Notifications, Camera, Haptics, Print/Sharing
+* **You need:** Node.js 20+, and the Expo Go app on your phone (or an Android/iOS emulator)
+
+Coding rules for this app (styling, safety checks, patterns) are in [AGENTS.md](AGENTS.md).
 
 ---
 
-## 📁 Directory Architecture & Component Responsibilities
+## 📁 Directory Layout
 
 ```text
 HeartLink-mobile/
-├── app/                    # The main screens of the app (using Expo Router to handle navigation automatically).
-│   ├── (auth)/             # Screens for logging in, registering, and resetting passwords.
-│   ├── (tabs)/             # The main bottom navigation tabs (like Dashboard, Logs, and Recipes).
-│   └── _layout.tsx         # The master blueprint that dictates how screens transition and stack on top of each other.
-├── assets/                 # Visual files like app icons, fonts, and splash screens.
-├── components/             # Reusable UI building blocks (like standardized buttons, cards, and text inputs).
-├── constants/              # Global design rules (like system-wide colors, fonts, and theme settings).
-├── hooks/                  # Custom tools for specific features (like tracking location or fetching vital signs).
-├── services/               # The "messengers" that securely talk to the backend server and Supabase.
-├── types/                  # The "rulebooks" defining exactly what shapes data should take (TypeScript interfaces).
-├── .env.example            # A template showing where developers should put secret API keys.
-├── app.json                # The master configuration file for the Expo app (app name, version, icon settings).
-├── package.json            # The "recipe book" listing all external code tools the app needs to download to run.
-└── README.md               # The manual you are reading right now!
+├── app/                    # Screens (Expo Router: the folder layout is the navigation).
+│   ├── (auth)/             # Login, sign-up, verification code, forgot password.
+│   ├── (baseline)/         # The onboarding questions after sign-up (steps 1–6).
+│   ├── (home)/
+│   │   ├── (tabs)/         # Bottom tabs: dashboard, trends, recipes, exercises, explore, profile.
+│   │   ├── (health)/       # Logging vitals and symptoms, exercise sessions, analytics.
+│   │   ├── (meals)/        # Meal search, barcode scan, food diary.
+│   │   ├── (profile)/      # Profile, care team, notifications.
+│   │   └── (settings)/     # Account, reminders, appearance, help.
+│   ├── locator.tsx         # Nearby clinic map.
+│   └── _layout.tsx         # App start: theme, login check, and redirects.
+├── components/             # Reusable UI (dashboard cards, exercise views, buttons, …).
+├── contexts/               # Shared state: logged-in user, toasts, baseline answers.
+├── hooks/                  # React Query hooks (logging meals, exercise, …).
+├── services/               # Talking to the backend and offline sync.
+├── constants/theme.ts      # Colors, and the DARK_MODE_ENABLED switch.
+├── app.json                # Expo settings (name, icons, startup screen).
+└── .env.example
 ```
 
 ## ⚙️ Environment Variables
-
-Create a `.env` file in the root of the `HeartLink-mobile/` directory based on `.env.example`:
 
 ```bash
 cp .env.example .env
 ```
 
-| Key | Description | Required | Example |
-|-----|-------------|----------|---------|
-| `EXPO_PUBLIC_API_URL` | Base URL of the backend API | Yes | `http://192.168.1.XX:8000` (Local) or deployed URL |
-| `EXPO_PUBLIC_SUPABASE_URL` | Supabase project URL | Optional | `https://xyz.supabase.co` |
-| `EXPO_PUBLIC_SUPABASE_ANON_KEY` | Public Supabase anon key | Optional | `your-anon-key` |
+| Key | What it does | Example |
+|-----|--------------|---------|
+| `EXPO_PUBLIC_API_URL` | The backend the app talks to | `http://192.168.1.25:8000` (your computer, local) or `https://heartlink-api-production-46db.up.railway.app` (live) |
 
-### Example `.env` File
+That's the only setting. The app never talks to Supabase directly.
 
-```env
-# ==============================================================================
-# HeartLink Mobile Environment Configuration (Expo / React Native)
-# ==============================================================================
+**Using your own computer's backend:** use your computer's **Wi-Fi IP address**, not `localhost` (on the phone, `localhost` means the phone itself). On Windows, run `ipconfig` and copy the IPv4 Address under Wi-Fi. The backend must be started with `--host 0.0.0.0` (Docker does this for you). Test it by opening `http://<that IP>:8000/health` in your phone's browser.
 
-# 1. PRIMARY / BACKUP (Railway)
-EXPO_PUBLIC_API_URL=https://heartlink-api-production-46db.up.railway.app
+Sign-up on a local backend uses the code **123456**. The live server uses a private code.
 
-# 3. LOCAL DEVELOPMENT (Must use your computer's local IP address instead of localhost)
-# EXPO_PUBLIC_API_URL=http://192.168.1.xxx:8000
+## 🚀 Local Setup
 
-# Public Supabase Client (Anon key only)
-# IMPORTANT: NEVER place SUPABASE_SERVICE_ROLE_KEY here.
-EXPO_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
-EXPO_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
-```
+1. Install the packages:
+   ```bash
+   npm install
+   ```
+2. Start Expo:
+   ```bash
+   npx expo start
+   ```
+3. Open the app:
+   * **Phone:** scan the QR code with Expo Go. The phone and computer must be on the **same Wi-Fi**.
+   * **Android emulator:** press `a` (with Android Studio running).
+   * **iOS simulator (macOS):** press `i`.
 
-## 🚀 Local Setup & Installation
-
-### 1. Install Dependencies
-```bash
-npm expo install --fix
-```
-
-### 2. Start the Development Server
-```bash
-npx expo start
-```
-
-### 3. Running on Devices / Emulators
-* **Physical Device (Fastest):** Install the **Expo Go** app on Android (Google Play) or iOS (App Store). Scan the QR code shown in your terminal. Ensure your phone and development machine are connected to the same Wi-Fi network.
-* **Android Emulator:** Press `a` in your terminal with Android Studio / an AVD running.
-* **iOS Simulator (macOS only):** Press `i` in your terminal.
-* **Clear Cache (Troubleshooting):**
+If something looks stale, or after changing `app.json` or `.env`, restart with a clean cache:
 ```bash
 npx expo start -c
 ```
 
-## 🧪 Testing & Linting
+## 🌓 Light and Dark Mode
+
+Dark mode is only partly built, so the app currently **always runs in light mode**, whatever the phone's setting. The switch is `DARK_MODE_ENABLED` in `constants/theme.ts`. Turn it on once every screen has dark styles. (The dark startup screen in `app.json` was removed and should be added back then too.)
+
+## 🧪 Tests & Checks
 
 ```bash
-# Run unit and screen tests
-npm test
-
-# Check TypeScript types
-npx tsc --noEmit
+npm test             # unit tests (Jest)
+npx tsc --noEmit     # type check
+npm run lint         # code style
 ```
+`hooks/__tests__/useLogExercise.test.tsx` currently fails to start for an older reason and is being fixed separately.
 
-## 📦 Building Standalone Binaries (EAS Build)
+## 📦 Installable Builds (EAS)
 
-To package standalone APK / AAB bundles for Android or IPA files for iOS:
-
-### 1. Install EAS CLI & Log In
+EAS is not set up yet. To make an installable Android build:
 ```bash
 npm install -g eas-cli
 eas login
-```
-
-### 2. Configure EAS
-```bash
-eas build:configure
-```
-
-### 3. Generate Android Build (APK for testing)
-```bash
+eas build:configure          # creates eas.json, once
 eas build -p android --profile preview
 ```
+Set `EXPO_PUBLIC_API_URL` to the live backend for builds that testers install.
