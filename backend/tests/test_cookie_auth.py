@@ -66,8 +66,9 @@ def protected_post(user: dict = Depends(get_current_admin_user)):
 
 
 @pytest.fixture(autouse=True)
-def fakes(monkeypatch):
+def fakes(monkeypatch, refresh_repo):
     revoked_token_hashes.clear()
+    monkeypatch.setattr("app.services.session_service.get_profile_repo", lambda: FakeProfileRepo())
     limiter.reset()  # web-login is limited to 5/minute; keep this module independent of others
     monkeypatch.setattr("app.utils.security.get_profile_repo", lambda: FakeProfileRepo())
     monkeypatch.setattr("app.api.auth.auth.get_profile_repo", lambda: FakeProfileRepo())

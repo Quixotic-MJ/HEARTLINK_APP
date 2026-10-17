@@ -30,6 +30,41 @@ const withCsrf = (headers, method) => {
   return headers;
 };
 
+// HL-047: the access cookie only lasts an hour. On a 401 the portal quietly asks for a new one
+// (one request shared by every call that failed at the same moment) and then retries the call once.
+// The retry also runs when the refresh fails, because another tab may have just refreshed for us.
+const NO_REFRESH_ENDPOINTS = [
+  "/auth/web-login", "/auth/login", "/auth/refresh", "/auth/logout",
+  "/auth/request-code", "/auth/verify-code", "/auth/forgot-password",
+];
+const canRefresh = (endpoint) => !NO_REFRESH_ENDPOINTS.some((path) => endpoint.includes(path));
+
+let refreshInFlight = null;
+export const refreshSession = () => {
+  if (!refreshInFlight) {
+    refreshInFlight = fetch(`${BASE_URL}/api/auth/refresh`, {
+      method: "POST",
+      headers: withCsrf({}, "POST"),
+      credentials: "include",
+    })
+      .then((res) => res.ok)
+      .catch(() => false)
+      .finally(() => {
+        refreshInFlight = null;
+      });
+  }
+  return refreshInFlight;
+};
+
+const fetchWithRefresh = async (endpoint, send) => {
+  const response = await send();
+  if (response.status !== 401 || !canRefresh(endpoint)) {
+    return response;
+  }
+  await refreshSession();
+  return send();
+};
+
 export const apiFetch = async (endpoint, options = {}) => {
   const url = `${BASE_URL}${endpoint}`;
   const method = (options.method || "GET").toUpperCase();
@@ -45,17 +80,19 @@ export const apiFetch = async (endpoint, options = {}) => {
     }
   }
 
-  // 2. Prepare headers (auth travels in the HttpOnly cookie, never in JS)
-  const headers = withCsrf({
-    "Content-Type": "application/json",
-    ...options.headers,
-  }, method);
-
-  // 3. Perform network request
+  // 2. Perform network request (auth travels in the HttpOnly cookie, never in JS). Headers are built
+  // per attempt, because a refresh replaces the CSRF cookie.
   try {
     const fetchOptions = { ...options };
     delete fetchOptions.bypassCache;
-    const response = await fetch(url, { ...fetchOptions, headers, credentials: "include" });
+    const send = () => {
+      const headers = withCsrf({
+        "Content-Type": "application/json",
+        ...options.headers,
+      }, method);
+      return fetch(url, { ...fetchOptions, headers, credentials: "include" });
+    };
+    const response = await fetchWithRefresh(endpoint, send);
     const data = await response.json().catch(() => ({}));
 
     if (!response.ok) {
@@ -100,15 +137,13 @@ export const apiUpload = async (file, bucket = "exercises") => {
   formData.append("file", file);
   formData.append("bucket", bucket);
 
-  const headers = withCsrf({}, "POST");
-
   try {
-    const response = await fetch(url, {
+    const response = await fetchWithRefresh("/api/upload/", () => fetch(url, {
       method: "POST",
-      headers,
+      headers: withCsrf({}, "POST"),
       body: formData,
       credentials: "include",
-    });
+    }));
     const data = await response.json().catch(() => ({}));
 
     if (!response.ok) {

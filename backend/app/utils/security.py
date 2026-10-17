@@ -19,21 +19,52 @@ if not SECRET_KEY or SECRET_KEY in ("heartlink-super-secret-jwt-key", "heartlink
     raise RuntimeError("FATAL SECURITY CONFIGURATION: Insecure or missing SECRET_KEY environment variable.")
 
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
-ACCESS_TOKEN_EXPIRE_HOURS = 24
+
+# HL-047: short-lived access tokens; a refresh token (session_service) quietly gets a new one.
+# The *_MINUTES variables are for local testing only (e.g. 1 minute to watch a refresh happen).
+STAFF_ROLES = {"admin", "super_admin", "medical_expert"}
+STAFF_ACCESS_TOKEN_MINUTES = 60
+PATIENT_ACCESS_TOKEN_MINUTES = 24 * 60
+
+
+def access_token_lifetime(role: Optional[str]) -> timedelta:
+    staff = role in STAFF_ROLES
+    name = "STAFF_ACCESS_TOKEN_MINUTES" if staff else "PATIENT_ACCESS_TOKEN_MINUTES"
+    default = STAFF_ACCESS_TOKEN_MINUTES if staff else PATIENT_ACCESS_TOKEN_MINUTES
+    try:
+        minutes = int(os.getenv(name, "") or default)
+    except ValueError:
+        minutes = default
+    return timedelta(minutes=max(1, min(minutes, default)))
 
 security = HTTPBearer(auto_error=False)
 
 # Web portal session cookies (HL-033). The mobile app keeps using Bearer headers.
 AUTH_COOKIE_NAME = "heartlink_admin_session"
+REFRESH_COOKIE_NAME = "heartlink_admin_refresh"
+REFRESH_COOKIE_PATH = "/api/auth"  # only sent to the auth endpoints (refresh, logout)
 CSRF_COOKIE_NAME = "heartlink_csrf"
 CSRF_HEADER_NAME = "X-CSRF-Token"
 COOKIE_SECURE = os.getenv("COOKIE_SECURE", "true").strip().lower() != "false"
-ADMIN_SESSION_MAX_AGE = 7 * 24 * 60 * 60  # matches admin JWT lifetime in create_access_token
 CSRF_SAFE_METHODS = {"GET", "HEAD", "OPTIONS"}
 
-def set_auth_cookies(response: Response, token: str, remember: bool = False) -> None:
-    """Sets the HttpOnly session cookie plus a JS-readable CSRF cookie (double-submit)."""
-    max_age = ADMIN_SESSION_MAX_AGE if remember else None
+def set_auth_cookies(response: Response, session: Dict[str, Any]) -> None:
+    """
+    Sets the HttpOnly access and refresh cookies plus a JS-readable CSRF cookie (double-submit).
+    With "Stay signed in" the cookies last as long as the refresh token; otherwise they end with the browser.
+    The access token inside expires much sooner (HL-047); the portal then calls /api/auth/refresh.
+    """
+    max_age = session["refresh_expires_in"] if session.get("remember") else None
+    token = session["token"]
+    response.set_cookie(
+        key=REFRESH_COOKIE_NAME,
+        value=session["refresh_token"],
+        max_age=max_age,
+        httponly=True,
+        secure=COOKIE_SECURE,
+        samesite="strict",
+        path=REFRESH_COOKIE_PATH,
+    )
     response.set_cookie(
         key=AUTH_COOKIE_NAME,
         value=token,
@@ -54,10 +85,11 @@ def set_auth_cookies(response: Response, token: str, remember: bool = False) -> 
     )
 
 def clear_auth_cookies(response: Response) -> None:
-    for name, httponly in ((AUTH_COOKIE_NAME, True), (CSRF_COOKIE_NAME, False)):
+    cookies = ((AUTH_COOKIE_NAME, True, "/"), (CSRF_COOKIE_NAME, False, "/"), (REFRESH_COOKIE_NAME, True, REFRESH_COOKIE_PATH))
+    for name, httponly, path in cookies:
         response.delete_cookie(
             key=name,
-            path="/",
+            path=path,
             secure=COOKIE_SECURE,
             httponly=httponly,
             samesite="strict",
@@ -98,14 +130,7 @@ def _require_token(request: Request, credentials: Optional[HTTPAuthorizationCred
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     to_encode = data.copy()
-    if expires_delta:
-        expire = utc_now() + expires_delta
-    else:
-        role = data.get("role", "patient")
-        if role in ["admin", "super_admin", "medical_expert"]:
-            expire = utc_now() + timedelta(days=7)
-        else:
-            expire = utc_now() + timedelta(days=30)
+    expire = utc_now() + (expires_delta or access_token_lifetime(data.get("role", "patient")))
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt

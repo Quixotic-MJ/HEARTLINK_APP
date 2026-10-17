@@ -57,4 +57,5 @@ and `.temp/` is ignored by git.
 - 2026-10-14: 022 added review rounds for the Case Review redesign and rebuilt `expert_evaluations` (it held no rows). 023 fixed the admin dashboard function, which still read a column 022 removed.
   Lesson: before dropping or rebuilding a table, search the migrations for functions that use it (`grep -rn <table> migrations/`).
 - 2026-10-17: 024 added `pending_registrations` (HL-046), so sign-ups waiting for their code survive a restart. It stores only a bcrypt hash of the password.
+- 2026-10-17: 025 added `refresh_tokens` (HL-047): short access tokens plus rotating refresh tokens, stored only as hashes.
 - `seed/` holds sample content (clinics, exercises, recipes). It is not run by `db push`.

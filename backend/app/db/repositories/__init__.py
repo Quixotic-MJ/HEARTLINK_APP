@@ -17,6 +17,7 @@ from app.db.repositories.feedback import FeedbackRepository, SupabaseFeedbackRep
 from app.db.repositories.case_review import CaseReviewRepository, SupabaseCaseReviewRepository
 from app.db.repositories.content import ContentRepository, SupabaseContentRepository
 from app.db.repositories.pending_registrations import PendingRegistrationRepository, SupabasePendingRegistrationRepository
+from app.db.repositories.refresh_tokens import RefreshTokenRepository, SupabaseRefreshTokenRepository
 
 _profile_repo = None
 _baseline_repo = None
@@ -31,6 +32,7 @@ _feedback_repo = None
 _case_review_repo = None
 _content_repo = None
 _pending_registration_repo = None
+_refresh_token_repo = None
 
 def get_profile_repo() -> ProfileRepository:
     global _profile_repo
@@ -109,5 +111,11 @@ def get_pending_registration_repo() -> PendingRegistrationRepository:
     if _pending_registration_repo is None:
         _pending_registration_repo = SupabasePendingRegistrationRepository(get_supabase_client())
     return _pending_registration_repo
+
+def get_refresh_token_repo() -> RefreshTokenRepository:
+    global _refresh_token_repo
+    if _refresh_token_repo is None:
+        _refresh_token_repo = SupabaseRefreshTokenRepository(get_supabase_client())
+    return _refresh_token_repo
 
 get_sleep_logs_repo = get_sleep_repo

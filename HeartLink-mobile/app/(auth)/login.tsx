@@ -23,6 +23,7 @@ import Animated, {
 } from "react-native-reanimated";
 import "../../global.css";
 import { useUser } from "../../contexts/UserContext";
+import { isSessionTokens } from "../../services/SessionService";
 import { Feather } from "@expo/vector-icons";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -138,7 +139,7 @@ export default function AuthScreen() {
       const resData = await response.json();
 
       if (response.ok) {
-        await setUserId(resData.user_id, resData.token);
+        await setUserId(resData.user_id, resData.token, isSessionTokens(resData) ? resData : null);
 
         // Fetch profile to check onboarding status for correct routing
         try {

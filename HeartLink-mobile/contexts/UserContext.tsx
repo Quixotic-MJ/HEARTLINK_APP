@@ -2,13 +2,14 @@ import React, { createContext, useContext, useState, useEffect, useRef } from "r
 import { AppState, AppStateStatus } from "react-native";
 import NetInfo from "@react-native-community/netinfo";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { getToken, setToken, removeToken, getUserId as getStoredUserId, setUserId as storeUserId, clearCredentials } from "../lib/secureTokenStore";
+import { getToken, setToken, getRefreshToken, getUserId as getStoredUserId, setUserId as storeUserId, clearCredentials } from "../lib/secureTokenStore";
 import { syncOfflineAll } from "../services/SyncService";
+import { SessionTokens, storeSession, refreshSession, msUntilRefresh } from "../services/SessionService";
 
 type UserContextType = {
   userId: string | null;
   token: string | null;
-  setUserId: (id: string | null, token?: string | null) => Promise<void>;
+  setUserId: (id: string | null, token?: string | null, session?: SessionTokens | null) => Promise<void>;
   user: any;
   isLoading: boolean;
   profileError: boolean;
@@ -28,6 +29,8 @@ const UserContext = createContext<UserContextType>({
 });
 
 const DEFAULT_PROFILE_CACHE_KEY = "@user_profile_cache";
+// setTimeout can't wait longer than ~24.8 days; one day is plenty, the timer is set again after each refresh
+const MAX_REFRESH_TIMER_MS = 24 * 60 * 60 * 1000;
 
 function getProfileCacheKey(id?: string | null): string {
   return id ? `@user_profile_cache_${id}` : DEFAULT_PROFILE_CACHE_KEY;
@@ -62,6 +65,33 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const [profileError, setProfileError] = useState<boolean>(false);
   const appState = useRef(AppState.currentState);
 
+  // HL-047: renews the 24-hour access token when it is due. Returns the token to use,
+  // or null when the session has ended (the refresh token was revoked or expired).
+  const ensureFreshToken = async (): Promise<string | null> => {
+    const wait = await msUntilRefresh();
+    if (wait === null || wait > 0) return getToken();
+    const result = await refreshSession();
+    if (result.status === "refreshed") {
+      setTokenState(result.token);
+      return result.token;
+    }
+    return result.status === "expired" ? null : getToken();
+  };
+
+  const renewIfDue = async () => {
+    const fresh = await ensureFreshToken();
+    if (fresh === null) {
+      // Same clean-up as the startup check below when the session is no longer valid
+      console.warn("[UserContext] Session ended. Logging out.");
+      await clearCredentials();
+      await AsyncStorage.removeItem(getProfileCacheKey(userId));
+      await AsyncStorage.removeItem(DEFAULT_PROFILE_CACHE_KEY);
+      setUserIdState(null);
+      setTokenState(null);
+      setUser(null);
+    }
+  };
+
   // Background auto-sync trigger
   const attemptBackgroundSync = async () => {
     if (!userId) return;
@@ -74,7 +104,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const subscription = AppState.addEventListener("change", nextAppState => {
       if (appState.current.match(/inactive|background/) && nextAppState === "active") {
         console.log("App has come to the foreground, attempting sync...");
-        attemptBackgroundSync();
+        if (userId) {
+          renewIfDue().finally(() => attemptBackgroundSync());
+        }
       }
       appState.current = nextAppState;
     });
@@ -91,6 +123,23 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       unsubscribeNet();
     };
   }, [userId]);
+
+  // HL-047: while the app is open, renew the access token shortly before it expires
+  useEffect(() => {
+    if (!userId) return;
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    msUntilRefresh().then((wait) => {
+      if (cancelled || wait === null) return;
+      timer = setTimeout(() => {
+        renewIfDue();
+      }, Math.min(wait, MAX_REFRESH_TIMER_MS));
+    });
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+    };
+  }, [userId, token]);
 
   // Sync user profile, token, and state loading on startup
   useEffect(() => {
@@ -120,14 +169,25 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           
           try {
             const baseUrl = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
-            const effectiveToken = storedToken || "";
-            const response = await fetch(`${baseUrl}/api/users/${storedId}/profile`, {
-              headers: {
-                "Authorization": `Bearer ${effectiveToken}`,
-              },
-            });
-            
-            if (response.ok) {
+            // HL-047: renew the access token first if it is due (null = the session has ended)
+            const freshToken = await ensureFreshToken();
+            const fetchProfile = (bearer: string) =>
+              fetch(`${baseUrl}/api/users/${storedId}/profile`, {
+                headers: {
+                  "Authorization": `Bearer ${bearer}`,
+                },
+              });
+            let response = freshToken === null ? null : await fetchProfile(freshToken);
+            if (response && response.status === 401) {
+              // The token may have expired or been revoked early; one refresh before giving up
+              const retry = await refreshSession();
+              if (retry.status === "refreshed") {
+                setTokenState(retry.token);
+                response = await fetchProfile(retry.token);
+              }
+            }
+
+            if (response && response.ok) {
               const data = await response.json();
               const freshProfile = buildEnrichedUserProfile(data);
               setUser(freshProfile);
@@ -135,8 +195,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
               
               // Trigger foreground auto-sync for any pending offline logs
               syncOfflineAll(baseUrl).catch(e => console.log("Startup sync error:", e));
-            } else if (response.status === 401 || response.status === 403) {
-              console.warn(`[UserContext] Profile fetch returned ${response.status}. Invalidating session.`);
+            } else if (!response || response.status === 401 || response.status === 403) {
+              console.warn(`[UserContext] Profile fetch returned ${response ? response.status : "no session"}. Invalidating session.`);
               await clearCredentials();
               await AsyncStorage.removeItem(userCacheKey);
               await AsyncStorage.removeItem(DEFAULT_PROFILE_CACHE_KEY);
@@ -169,14 +229,18 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     initUser();
   }, []);
 
-  const setUserId = async (id: string | null, newToken?: string | null) => {
+  const setUserId = async (id: string | null, newToken?: string | null, session?: SessionTokens | null) => {
     try {
       setProfileError(false);
       if (id) {
         await storeUserId(id);
         setUserIdState(id);
-        
-        if (newToken) {
+
+        if (session) {
+          // HL-047: access token + refresh token from login, sign-up or a password change
+          await storeSession(session);
+          setTokenState(session.token);
+        } else if (newToken) {
           await setToken(newToken);
           setTokenState(newToken);
         } else {
@@ -256,12 +320,16 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     try {
       const baseUrl = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
       const effectiveToken = token || (await getToken());
-      if (effectiveToken) {
+      const refreshToken = await getRefreshToken();
+      if (effectiveToken || refreshToken) {
+        // HL-047: the server also revokes the refresh token, so it can't be used again
         await fetch(`${baseUrl}/api/auth/logout`, {
           method: "POST",
           headers: {
-            "Authorization": `Bearer ${effectiveToken}`,
+            "Content-Type": "application/json",
+            ...(effectiveToken ? { "Authorization": `Bearer ${effectiveToken}` } : {}),
           },
+          body: JSON.stringify({ refresh_token: refreshToken }),
         }).catch(() => {});
       }
     } catch (e) {

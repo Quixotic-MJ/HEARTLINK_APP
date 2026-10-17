@@ -6,6 +6,7 @@ import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 import { useUser } from "../../../contexts/UserContext";
+import { isSessionTokens } from "../../../services/SessionService";
 import { useToast } from "../../../contexts/ToastContext";
 import { ConfirmDialog } from "../../../components/ui/ConfirmDialog";
 import { theme } from "../../../constants/theme";
@@ -16,7 +17,7 @@ export default function AccountSecurityScreen() {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
   const router = useRouter();
-  const { userId, token, logout } = useUser();
+  const { userId, token, logout, setUserId } = useUser();
   const { showToast } = useToast();
 
   const [currentPassword, setCurrentPassword] = useState("");
@@ -98,6 +99,10 @@ export default function AccountSecurityScreen() {
         errorMsg = errorMsg.replace(/^Value error,\s*/i, "");
         showToast({ title: "Update Failed", message: errorMsg, type: "error" });
       } else {
+        // HL-047: changing the password logs out other devices; this phone gets a fresh session
+        if (userId && isSessionTokens(data)) {
+          await setUserId(userId, data.token, data);
+        }
         showToast({ title: "Password Changed", message: "Your password has been updated successfully.", type: "success" });
         setCurrentPassword("");
         setNewPassword("");

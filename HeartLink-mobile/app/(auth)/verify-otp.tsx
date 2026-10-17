@@ -28,6 +28,7 @@ import Animated, {
 } from "react-native-reanimated";
 import "../../global.css";
 import { useUser } from "../../contexts/UserContext";
+import { isSessionTokens } from "../../services/SessionService";
 import { Button } from "../../components/ui/Button";
 import { Colors } from "../../constants/theme";
 
@@ -164,7 +165,7 @@ export default function OTPVerificationScreen() {
       const resData = await response.json();
 
       if (response.ok) {
-        await setUserId(resData.user_id, resData.token);
+        await setUserId(resData.user_id, resData.token, isSessionTokens(resData) ? resData : null);
         setIsVerifying(false);
         router.replace({
           pathname: "/(auth)/verification-success",
