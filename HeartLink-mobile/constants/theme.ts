@@ -139,6 +139,13 @@ export type ThemeColors = typeof light;
 /** Convenience alias – use in style objects that are evaluated at load time. */
 export const theme = light;
 
+/**
+ * Dark mode is only partly built (about half the screens have dark styles), so a phone in
+ * dark mode showed a dark splash and dark inputs over light screens. While this is false the
+ * app always runs in light mode. Set it to true once every screen supports dark mode.
+ */
+export const DARK_MODE_ENABLED = false;
+
 // Expo-template compatible keys
 export const Colors = {
   light: { ...light, tint: light.primary, icon: light.textSoft, tabIconDefault: light.textMuted, tabIconSelected: light.primary },

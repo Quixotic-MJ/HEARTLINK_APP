@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/images/app-icon.svg",
     "scheme": "heartlinkmobile",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true
     },
@@ -30,11 +30,7 @@
           "image": "./assets/images/splash-logo-light.svg",
           "imageWidth": 291,
           "resizeMode": "contain",
-          "backgroundColor": "#F2F6FA",
-          "dark": {
-            "image": "./assets/images/splash-logo.svg",
-            "backgroundColor": "#0F1720"
-          }
+          "backgroundColor": "#F2F6FA"
         }
       ],
       "expo-font",
