@@ -235,3 +235,12 @@ def test_only_admins_draw_the_sample(world, monkeypatch):
         assert res.status_code == 403
     finally:
         app.dependency_overrides.update(saved)
+
+
+def test_unanswered_model_inputs_are_stored_as_null():
+    """NaN (a skipped onboarding answer) is not valid JSON, so saving a round with it failed."""
+    import json
+    raw = {"PAQ610": float("nan"), "PAD615": float("inf"), "RIDAGEYR": 58.0, "nested": [float("nan"), 1]}
+    safe = review_queue._json_safe(raw)
+    assert safe == {"PAQ610": None, "PAD615": None, "RIDAGEYR": 58.0, "nested": [None, 1]}
+    json.dumps(safe, allow_nan=False)
