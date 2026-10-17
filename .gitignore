@@ -31,3 +31,4 @@ backend/app/mock_*.json
 # Graphify
 graphify-out/
 .agents/
+.claude/
