@@ -79,6 +79,9 @@ class CaseReviewRepository:
     def list_hidden_recommendations(self, patient_id: str) -> List[Dict[str, Any]]:
         raise NotImplementedError
 
+    def archive_sections(self, review_case_id: str) -> None:
+        raise NotImplementedError
+
 
 class SupabaseCaseReviewRepository(CaseReviewRepository):
     def __init__(self, client):
@@ -310,3 +313,10 @@ class SupabaseCaseReviewRepository(CaseReviewRepository):
         except Exception as e:
             handle_db_error(e)
             return []
+
+    def archive_sections(self, review_case_id: str) -> None:
+        try:
+            (self.client.table("expert_evaluations").update({"status": "archived", "updated_at": utc_now().isoformat()})
+             .eq("review_case_id", review_case_id).execute())
+        except Exception as e:
+            handle_db_error(e)

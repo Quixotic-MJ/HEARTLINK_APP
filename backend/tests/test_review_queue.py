@@ -85,6 +85,10 @@ def world(monkeypatch):
     monkeypatch.setattr(review_queue, "get_health_logs_repo", lambda: state["logs"])
     monkeypatch.setattr(review_queue, "get_case_review_repo", lambda: state["cases"])
     monkeypatch.setattr(review_queue, "build_snapshot", lambda profile: {"model_features": {"RIDAGEYR": 58}, "input_snapshot": {}})
+    # Each level recommends 2 recipes and 2 exercises, except Stable, which recommends no exercises
+    state["recs"] = lambda rc: {"recipes": [{"id": "r1"}, {"id": "r2"}],
+                                "exercises": [] if rc.get("app_tier") == "Stable" else [{"id": "e1"}, {"id": "e2"}]}
+    monkeypatch.setattr("app.services.review_sections.recommendations_for", lambda rc: state["recs"](rc))
     return state
 
 
@@ -213,9 +217,45 @@ def test_queue_order_progress_and_blinding(world):
 
     assert [i["id"] for i in items] == ["u", "r", "s"]
     assert items[0]["overdue"] is True and items[1]["overdue"] is False
-    assert items[0]["sections"] == {"cardiology": False, "nutrition": True, "exercise": False}
+    assert items[0]["sections"] == {"cardiology": "waiting", "nutrition": "done", "exercise": "waiting"}
+    assert items[2]["sections"]["exercise"] == "not_needed"       # Stable: nothing to check
     assert items[0]["age"] == 58
     assert all("app_tier" not in i and "app_score" not in i for i in items)
+
+
+def round_(rid, status, lane="sample", tier="Moderate", hours=10, pid=None):
+    return {"id": rid, "patient_id": pid or rid, "status": status, "lane": lane, "reason": "x",
+            "case_code": f"CASE-{rid}", "app_tier": tier, "created_at": iso(NOW - timedelta(hours=hours))}
+
+
+def test_complete_case_stays_until_food_and_exercise_checks_are_done(world):
+    world["profiles"] = Profiles([patient("waiting-food"), patient("all-done"), patient("open")])
+    cases = world["cases"]
+    cases.rounds += [round_("waiting-food", "complete", hours=60), round_("all-done", "complete", hours=60),
+                     round_("open", "open", hours=2)]
+    cases.sections += [
+        {"review_case_id": "waiting-food", "section": "cardiology"},
+        {"review_case_id": "waiting-food", "section": "exercise"},
+        {"review_case_id": "all-done", "section": "cardiology"},
+        {"review_case_id": "all-done", "section": "nutrition"},
+        {"review_case_id": "all-done", "section": "exercise"},
+    ]
+
+    items = review_queue.list_queue(NOW)
+
+    assert [i["id"] for i in items] == ["open", "waiting-food"]      # waiting for the Cardiologist comes first
+    waiting = items[1]
+    assert waiting["status"] == "complete"
+    assert waiting["sections"] == {"cardiology": "done", "nutrition": "waiting", "exercise": "done"}
+    assert waiting["overdue"] is False                               # the urgent deadline is for the Cardiologist
+
+
+def test_check_with_nothing_recommended_counts_as_done(world):
+    world["profiles"] = Profiles([patient("stable")])
+    world["cases"].rounds.append(round_("stable", "complete", tier="Stable"))
+    world["cases"].sections += [{"review_case_id": "stable", "section": "cardiology"},
+                                {"review_case_id": "stable", "section": "nutrition"}]
+    assert review_queue.list_queue(NOW) == []                        # exercise was not needed, so it leaves
 
 
 # --- API -----------------------------------------------------------------------------------------------

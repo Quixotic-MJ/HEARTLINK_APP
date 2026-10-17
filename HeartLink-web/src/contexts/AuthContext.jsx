@@ -19,6 +19,7 @@ const purgeLegacyStorage = () => {
 const toUser = (data) => ({
   id: data.user_id || data.id,
   role: data.role,
+  expert_type: data.expert_type || null,
   first_name: data.first_name || "",
   last_name: data.last_name || "",
   email: data.email || "",

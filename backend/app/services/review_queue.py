@@ -231,14 +231,42 @@ def _age(dob: Any, now) -> Optional[int]:
     return today.year - b.year - ((today.month, today.day) < (b.month, b.day))
 
 
+def section_progress(rc: Dict[str, Any], done: set, recommendations: Dict[str, List]) -> Dict[str, str]:
+    """done / waiting / not_needed per section. A food or exercise check with nothing recommended is not needed."""
+    progress = {}
+    for section in SECTIONS:
+        if section in done:
+            progress[section] = "done"
+        elif section == "nutrition" and not recommendations.get("recipes"):
+            progress[section] = "not_needed"
+        elif section == "exercise" and not recommendations.get("exercises"):
+            progress[section] = "not_needed"
+        else:
+            progress[section] = "waiting"
+    return progress
+
+
 def list_queue(now=None) -> List[Dict[str, Any]]:
-    """Open rounds in review order, with each expert section's progress. The app's level is left out."""
+    """
+    Rounds that still need someone: every open round (waiting for the Cardiologist), plus complete rounds
+    whose food or exercise check is still waiting. A round counts for Model Check as soon as the Cardiologist
+    submits, but stays here until all three parts are done. The app's level is left out.
+    """
+    from app.services.review_sections import recommendations_for
+
     now = now or utc_now()
     repo = get_case_review_repo()
     profiles = get_profile_repo()
+    recs_by_tier: Dict[Any, Dict[str, List]] = {}
     items = []
-    for rc in repo.list_review_cases(status="open"):
+    for rc in repo.list_review_cases(status="open") + repo.list_review_cases(status="complete"):
+        tier = rc.get("app_tier")
+        if tier not in recs_by_tier:
+            recs_by_tier[tier] = recommendations_for(rc)
         done = {s.get("section") for s in repo.list_sections(review_case_id=rc["id"])}
+        progress = section_progress(rc, done, recs_by_tier[tier])
+        if rc.get("status") == "complete" and "waiting" not in progress.values():
+            continue  # every part is done: the case leaves the queue
         opened_at = parse_utc(rc.get("created_at")) or now
         hours = max(0, int((now - opened_at).total_seconds() // 3600))
         patient = profiles.get_by_id(rc["patient_id"]) or {}
@@ -247,12 +275,14 @@ def list_queue(now=None) -> List[Dict[str, Any]]:
             "case_code": rc.get("case_code"),
             "lane": rc.get("lane"),
             "reason": rc.get("reason"),
+            "status": rc.get("status"),
             "opened_at": rc.get("created_at"),
             "waiting_hours": hours,
-            "overdue": rc.get("lane") == "urgent" and hours > rules.URGENT_REVIEW_HOURS,
+            "overdue": rc.get("status") == "open" and rc.get("lane") == "urgent" and hours > rules.URGENT_REVIEW_HOURS,
             "age": _age(patient.get("date_of_birth"), now),
             "sex": patient.get("sex"),
-            "sections": {section: section in done for section in SECTIONS},
+            "sections": progress,
         })
-    items.sort(key=lambda i: (rules.LANE_ORDER.get(i["lane"], 9), i["opened_at"] or ""))
+    # Cases still waiting for the Cardiologist first, then those waiting only for food/exercise checks
+    items.sort(key=lambda i: (i["status"] != "open", rules.LANE_ORDER.get(i["lane"], 9), i["opened_at"] or ""))
     return items

@@ -1,6 +1,6 @@
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, ShieldCheck, CheckCircle2, Ban, ShieldAlert, KeyRound, Trash2, Stethoscope } from "lucide-react";
+import { X, ShieldCheck, CheckCircle2, Ban, ShieldAlert, KeyRound, Trash2, Stethoscope, BadgeCheck } from "lucide-react";
 
 const StaffDetailsModal = ({
   isOpen,
@@ -11,6 +11,7 @@ const StaffDetailsModal = ({
   onToggleStatus,
   onChangeRole,
   onDeleteStaff,
+  onToggleClinician,
 }) => {
   if (!isOpen || !staff) return null;
 
@@ -59,6 +60,8 @@ const StaffDetailsModal = ({
   };
 
   const isStatusActive = (staff.account_status || staff.status)?.toLowerCase() === "active";
+  const isExpert = staff.role === "Authorized Medical Expert" || staff.db_role === "medical_expert";
+  const canVerify = currentUserRole === "super_admin" && isExpert && onToggleClinician;
   const targetRoleLabel = (staff.role === "System Admin" || staff.role === "admin") ? "Authorized Medical Expert" : "System Admin";
 
   return (
@@ -154,6 +157,35 @@ const StaffDetailsModal = ({
                 </div>
               </div>
             </div>
+
+            {/* HL-058: only reviews by verified clinicians count in Model Check */}
+            {isExpert && (
+              <div className="bg-[#FFFFFF] p-4.5 rounded-[10px] border border-[#E2E8F0] space-y-2.5">
+                <h5 className="text-[10.5px] font-semibold text-[#94A3B8] uppercase tracking-wider border-b border-[#E2E8F0] pb-2 flex items-center gap-1.5">
+                  <BadgeCheck size={12} className="text-[#2E9AE8]" /> Clinician Verification
+                </h5>
+                <p className={`text-[12.5px] font-semibold m-0 ${staff.is_verified_clinician ? "text-[#14534B]" : "text-[#7A5414]"}`}>
+                  {staff.is_verified_clinician
+                    ? `Verified clinician${staff.clinician_verified_at ? ` since ${new Date(staff.clinician_verified_at).toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" })}` : ""}`
+                    : "Not verified: case reviews count as practice"}
+                </p>
+                <p className="text-[11.5px] text-[#64748B] m-0">
+                  Verify only after checking their professional license. Only reviews submitted while verified count in Model Check; earlier practice reviews stay practice.
+                </p>
+                {canVerify && (
+                  <button
+                    onClick={() => onToggleClinician(staff)}
+                    className={`px-3.5 py-2 text-[12px] font-semibold rounded-[8px] transition-colors cursor-pointer border ${
+                      staff.is_verified_clinician
+                        ? "text-[#0F172A] bg-[#F8FAFC] hover:bg-[#E2E8F0] border-[#E2E8F0]"
+                        : "text-white bg-[#1B6E63] hover:bg-[#14534B] border-[#1B6E63]"
+                    }`}
+                  >
+                    {staff.is_verified_clinician ? "Remove verification" : "Mark as verified clinician"}
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Footer actions */}
