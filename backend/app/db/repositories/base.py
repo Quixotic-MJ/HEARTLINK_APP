@@ -3,6 +3,9 @@ from typing import Any, Dict, Optional, List
 from datetime import datetime, date
 import uuid
 from fastapi import HTTPException, status
+import logging
+
+logger = logging.getLogger(__name__)
 
 def serialize_for_db(obj: Any) -> Any:
     """Recursively serializes date, datetime, and UUID objects to JSON-serializable primitives."""
@@ -61,6 +64,8 @@ def handle_db_error(e: Exception) -> None:
     if isinstance(e, RepositoryError):
         raise HTTPException(status_code=e.status_code, detail=e.detail)
 
+    # The client only ever sees a generic message; the real error is kept in the server log for debugging.
+    logger.warning("Database error (%s): %s", type(e).__name__, str(e)[:500])
     err_str = str(e).lower()
     if "not found" in err_str:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Requested resource not found.")
