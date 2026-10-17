@@ -8,6 +8,7 @@ import os
 import re
 import hashlib
 import hmac
+import bcrypt
 import random
 import string
 from datetime import datetime, timedelta
@@ -21,7 +22,7 @@ from app.db.client import get_supabase_client
 from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
 from app.utils.security import create_access_token
 from app.utils.phone import normalize_e164
-from app.db.repositories import get_profile_repo
+from app.db.repositories import get_profile_repo, get_pending_registration_repo
 
 
 LOCAL_DEV_OTP_CODE = "123456"
@@ -66,6 +67,16 @@ SIGNUP_RETRY_DETAIL = "We couldn't finish creating your account. Please try agai
 HALF_FINISHED_SIGNUP_WINDOW = timedelta(minutes=15)
 AUTH_USERS_PAGE_SIZE = 1000
 AUTH_USERS_MAX_PAGES = 50
+
+
+# HL-046: how long a sign-up waits for its code. Only a bcrypt hash of the password is kept meanwhile
+# (cost 10, Supabase's own default); Supabase Auth takes that hash directly as password_hash.
+PENDING_SIGNUP_TTL = timedelta(minutes=10)
+PENDING_PASSWORD_HASH_ROUNDS = 10
+
+
+def _hash_password(password: str) -> str:
+    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt(rounds=PENDING_PASSWORD_HASH_ROUNDS)).decode("utf-8")
 
 
 def _digits(value: Optional[str]) -> str:
@@ -114,9 +125,16 @@ class AuthService:
 
 
 class SupabaseAuthService(AuthService):
-    def __init__(self, client):
+    def __init__(self, client, pending_repo=None):
         self.client = client
-        self._pending_registrations = {}
+        # HL-046: pending sign-ups live in the database, so a restart or another worker doesn't lose them
+        self._pending_repo = pending_repo
+
+    @property
+    def pending(self):
+        if self._pending_repo is None:
+            self._pending_repo = get_pending_registration_repo()
+        return self._pending_repo
 
     def _isolated_auth(self):
         """
@@ -175,38 +193,44 @@ class SupabaseAuthService(AuthService):
         logger.warning("Sign-up blocked: login %s already exists without a profile", auth_user.id)
         return None
 
-    def _create_login(self, pending_key: str, email: str, password: str, phone: str, profile_repo):
+    def _new_login(self, email: str, password_hash: str, phone: str):
+        res = self.client.auth.admin.create_user({
+            "email": email,
+            "password_hash": password_hash,
+            "phone": phone,
+            "email_confirm": True,
+            "phone_confirm": True
+        })
+        auth_user = res.user if hasattr(res, "user") else res
+        if not getattr(auth_user, "id", None):
+            raise ValueError("Supabase returned no user id")
+        return auth_user
+
+    def _create_login(self, pending_key: str, email: str, password_hash: str, phone: str, profile_repo):
         """HL-051: creates the Supabase Auth login, or finishes a half-made one. Never invents an id."""
         try:
-            res = self.client.auth.admin.create_user({
-                "email": email,
-                "password": password,
-                "phone": phone,
-                "email_confirm": True,
-                "phone_confirm": True
-            })
-            auth_user = res.user if hasattr(res, "user") else res
-            if not getattr(auth_user, "id", None):
-                raise ValueError("Supabase returned no user id")
-            return auth_user
+            return self._new_login(email, password_hash, phone)
         except Exception as create_err:
             if _is_duplicate_error(create_err):
                 if profile_repo.get_by_identifier(phone) or profile_repo.get_by_identifier(email):
                     # HL-045: never take over (or reset the password of) an account that already exists
-                    self._pending_registrations.pop(pending_key, None)
+                    self.pending.delete(pending_key)
                     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=ALREADY_REGISTERED_DETAIL)
 
                 auth_user = self._resumable_login(email, phone)
                 if auth_user is None:
-                    self._pending_registrations.pop(pending_key, None)
+                    self.pending.delete(pending_key)
                     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=ALREADY_REGISTERED_DETAIL)
+                # HL-046: Supabase only takes a password hash when a login is created, not on update, so the
+                # half-made login (no profile, minutes old) is replaced by a fresh one with this sign-up's hash
                 try:
-                    self.client.auth.admin.update_user_by_id(str(auth_user.id), {"password": password})
-                except Exception as update_err:
-                    logger.error("Could not finish the half-made login (%s)", type(update_err).__name__)
+                    self.client.auth.admin.delete_user(str(auth_user.id))
+                    fresh = self._new_login(email, password_hash, phone)
+                except Exception as redo_err:
+                    logger.error("Could not finish the half-made login (%s)", type(redo_err).__name__)
                     raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=SIGNUP_RETRY_DETAIL)
-                logger.info("Finished a half-made sign-up for login %s", auth_user.id)
-                return auth_user
+                logger.info("Replaced half-made login %s with %s", auth_user.id, fresh.id)
+                return fresh
 
             # The pending sign-up is kept, so the person can retry with the same code
             if _is_timeout_error(create_err):
@@ -243,7 +267,7 @@ class SupabaseAuthService(AuthService):
                 return
             if p_err.status_code == status.HTTP_409_CONFLICT:
                 # The phone or email is taken by another profile; retrying won't help
-                self._pending_registrations.pop(pending_key, None)
+                self.pending.delete(pending_key)
                 failure = HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=ALREADY_REGISTERED_DETAIL)
             else:
                 failure = HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=SIGNUP_RETRY_DETAIL)
@@ -307,12 +331,13 @@ class SupabaseAuthService(AuthService):
             if get_dev_otp_code() is None:
                 raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=SIGNUP_CLOSED_DETAIL)
 
-            self._pending_registrations[e164_phone] = {
-                "email": email,
-                "password": password,
-                "e164_phone": e164_phone,
-                "expires_at": (utc_now() + timedelta(minutes=10)).isoformat()
-            }
+            self.pending.delete_expired()
+            self.pending.save(
+                e164_phone,
+                clean_email,
+                _hash_password(password),
+                (utc_now() + PENDING_SIGNUP_TTL).isoformat(),
+            )
 
             logger.info("Pending registration created for a new phone number")
             return {"success": True, "message": "Verification code dispatched"}
@@ -340,9 +365,7 @@ class SupabaseAuthService(AuthService):
     def resend_registration_otp(self, phone: str) -> Dict[str, Any]:
         try:
             # HL-045: codes are not sent by SMS yet, so resending only extends the pending window
-            pending = self._pending_registrations.get(normalize_e164(phone))
-            if pending:
-                pending["expires_at"] = (utc_now() + timedelta(minutes=10)).isoformat()
+            self.pending.extend(normalize_e164(phone), (utc_now() + PENDING_SIGNUP_TTL).isoformat())
             return {"success": True, "message": "Code resent successfully"}
         except Exception as e:
             logger.error(f"Resend failed: {e}", exc_info=True)
@@ -358,9 +381,9 @@ class SupabaseAuthService(AuthService):
 
             # HL-045: a code only ever completes the pending sign-up for this exact number. It never
             # logs in an existing account (that needs the password), and never matches another number.
-            pending = self._pending_registrations.get(e164_phone)
+            pending = self.pending.get(e164_phone)
             if pending and parse_utc(pending["expires_at"]) < utc_now():
-                self._pending_registrations.pop(e164_phone, None)
+                self.pending.delete(e164_phone)
                 pending = None
             if not pending:
                 raise HTTPException(
@@ -372,13 +395,13 @@ class SupabaseAuthService(AuthService):
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid Verification Code")
 
             email = pending["email"]
-            password = pending["password"]
-            e164_val = pending.get("e164_phone") or e164_phone
+            password_hash = pending["password_hash"]
+            e164_val = pending.get("phone") or e164_phone
 
             # HL-051: sign-up either finishes completely (real login + profile) or fails with nothing
             # left half-made, so the person can simply try again
             profile_repo = get_profile_repo()
-            auth_user = self._create_login(e164_phone, email, password, e164_val, profile_repo)
+            auth_user = self._create_login(e164_phone, email, password_hash, e164_val, profile_repo)
             auth_user_id = str(auth_user.id)
             user_email = getattr(auth_user, "email", None) or email
 
@@ -386,7 +409,7 @@ class SupabaseAuthService(AuthService):
                 self._create_patient_profile(e164_phone, auth_user_id, e164_val, user_email, profile_repo)
 
             # Clean up pending registration
-            self._pending_registrations.pop(e164_phone, None)
+            self.pending.delete(e164_phone)
 
             access_token = create_access_token(data={"user_id": auth_user_id, "role": "patient"})
             return {

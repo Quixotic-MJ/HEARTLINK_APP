@@ -56,4 +56,5 @@ and `.temp/` is ignored by git.
 - 2026-10-14: 020 blocked direct table access for the public key and logged-in Supabase users (the apps only use the backend); 021 stored all phones as `+63…` with no duplicates.
 - 2026-10-14: 022 added review rounds for the Case Review redesign and rebuilt `expert_evaluations` (it held no rows). 023 fixed the admin dashboard function, which still read a column 022 removed.
   Lesson: before dropping or rebuilding a table, search the migrations for functions that use it (`grep -rn <table> migrations/`).
+- 2026-10-17: 024 added `pending_registrations` (HL-046), so sign-ups waiting for their code survive a restart. It stores only a bcrypt hash of the password.
 - `seed/` holds sample content (clinics, exercises, recipes). It is not run by `db push`.

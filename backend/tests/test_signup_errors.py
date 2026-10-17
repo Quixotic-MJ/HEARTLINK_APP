@@ -3,6 +3,7 @@ from datetime import timedelta
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
+import bcrypt
 import pytest
 from fastapi import HTTPException
 
@@ -53,11 +54,11 @@ def repo(monkeypatch):
 
 
 @pytest.fixture
-def svc():
+def svc(pending_repo):
     client = MagicMock()
     client.auth.admin.list_users.return_value = []
     client.auth.admin.create_user.return_value = SimpleNamespace(user=login("new-user-id"))
-    service = SupabaseAuthService(client)
+    service = SupabaseAuthService(client, pending_repo)
     service.request_registration_otp(PHONE, EMAIL, PASSWORD)
     return service
 
@@ -71,16 +72,30 @@ def verify_fails(svc, status_code, detail):
 
 # --- the login already exists ------------------------------------------------------------------------
 
-def test_half_finished_sign_up_is_finished_with_the_real_login(repo, svc):
-    """The first try created the login, then timed out. The retry uses that login, not a made-up id."""
-    svc.client.auth.admin.create_user.side_effect = Exception("A user with this email address has already been registered")
-    svc.client.auth.admin.list_users.return_value = [login("real-login-id")]
+def test_half_finished_sign_up_is_redone_with_a_real_login(repo, svc):
+    """The first try created the login, then timed out. The retry replaces it with a real login, not a made-up id."""
+    svc.client.auth.admin.create_user.side_effect = [
+        Exception("A user with this email address has already been registered"),
+        SimpleNamespace(user=login("fresh-login-id")),
+    ]
+    svc.client.auth.admin.list_users.return_value = [login("half-made-id")]
 
     result = svc.verify_registration_otp(PHONE, CODE)
 
-    assert result["user_id"] == "real-login-id"
-    assert [p["id"] for p in repo.profiles] == ["real-login-id"]
-    svc.client.auth.admin.update_user_by_id.assert_called_once_with("real-login-id", {"password": PASSWORD})
+    svc.client.auth.admin.delete_user.assert_called_once_with("half-made-id")
+    assert result["user_id"] == "fresh-login-id"
+    assert [p["id"] for p in repo.profiles] == ["fresh-login-id"]
+    attrs = svc.client.auth.admin.create_user.call_args.args[0]
+    assert "password" not in attrs and bcrypt.checkpw(PASSWORD.encode(), attrs["password_hash"].encode())
+    svc.client.auth.admin.update_user_by_id.assert_not_called()
+
+
+def test_half_finished_sign_up_that_cannot_be_redone_can_be_retried(repo, svc):
+    svc.client.auth.admin.create_user.side_effect = [Exception("User already registered"), Exception("Request timed out")]
+    svc.client.auth.admin.list_users.return_value = [login("half-made-id")]
+
+    verify_fails(svc, 503, SIGNUP_RETRY_DETAIL)
+    assert PHONE in svc.pending.rows and repo.profiles == []
 
 
 @pytest.mark.parametrize("existing", [
@@ -96,7 +111,7 @@ def test_existing_login_is_never_taken_over(repo, svc, existing):
 
     assert repo.profiles == []
     svc.client.auth.admin.update_user_by_id.assert_not_called()
-    assert PHONE not in svc._pending_registrations
+    assert PHONE not in svc.pending.rows
 
 
 # --- creating the login fails ------------------------------------------------------------------------
@@ -106,7 +121,7 @@ def test_timeout_fails_cleanly_and_can_be_retried(repo, svc):
 
     verify_fails(svc, 503, SIGNUP_RETRY_DETAIL)
     assert repo.profiles == []
-    assert PHONE in svc._pending_registrations          # the same code still works for the retry
+    assert PHONE in svc.pending.rows          # the same code still works for the retry
 
     svc.client.auth.admin.create_user.side_effect = None
     assert svc.verify_registration_otp(PHONE, CODE)["user_id"] == "new-user-id"
@@ -126,7 +141,7 @@ def test_profile_failure_removes_the_new_login(repo, svc):
 
     verify_fails(svc, 503, SIGNUP_RETRY_DETAIL)
     svc.client.auth.admin.delete_user.assert_called_once_with("new-user-id")
-    assert PHONE in svc._pending_registrations
+    assert PHONE in svc.pending.rows
 
 
 def test_profile_taken_by_another_account_is_rejected(repo, svc):
@@ -149,12 +164,12 @@ def test_duplicate_profile_for_the_same_login_is_fine(repo, svc):
 
 # --- the login lookup reads every page ---------------------------------------------------------------
 
-def test_existing_login_on_a_later_page_blocks_sign_up(repo):
+def test_existing_login_on_a_later_page_blocks_sign_up(repo, pending_repo):
     first_page = [login(f"user-{i}", email=f"u{i}@example.com", phone=f"63900000{i:04d}") for i in range(AUTH_USERS_PAGE_SIZE)]
     client = MagicMock()
     client.auth.admin.list_users.side_effect = lambda page, per_page: first_page if page == 1 else [login("match")]
 
     with pytest.raises(HTTPException) as exc:
-        SupabaseAuthService(client).request_registration_otp(PHONE, EMAIL, PASSWORD)
+        SupabaseAuthService(client, pending_repo).request_registration_otp(PHONE, EMAIL, PASSWORD)
     assert exc.value.status_code == 400
     assert "email address is already registered" in exc.value.detail
