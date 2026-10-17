@@ -214,7 +214,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed, onLogou
 
           <SectionLabel label="HSS evaluation" collapsed={collapsed} />
           <NavItem path="/cases" icon={ClipboardList} label="Case review" collapsed={collapsed} />
-          <NavItem path="/calibration" icon={History} label="Calibration history" collapsed={collapsed} />
+          <NavItem path="/calibration" icon={History} label="Model Check" collapsed={collapsed} />
 
           {(role === "admin" || role === "super_admin") && (
             <>

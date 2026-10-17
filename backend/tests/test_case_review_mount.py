@@ -37,6 +37,6 @@ def test_admin_prefix_still_requires_login():
     app.dependency_overrides.clear()
     try:
         # 401 (not 404) proves the endpoint exists and is still protected
-        assert TestClient(app).get("/api/admin/cases").status_code == 401
+        assert TestClient(app).get("/api/admin/review-queue").status_code == 401
     finally:
         app.dependency_overrides.update(saved_overrides)

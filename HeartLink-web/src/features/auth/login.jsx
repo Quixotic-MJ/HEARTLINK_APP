@@ -612,6 +612,7 @@ export default function HeartLinkAdminLogin() {
           {
             id: response.user_id,
             role: response.role,
+            expert_type: response.expert_type || null,
             first_name: response.first_name || "",
             last_name: response.last_name || "",
             email: response.email || "",
@@ -654,6 +655,7 @@ export default function HeartLinkAdminLogin() {
           {
             id: response.user_id,
             role: response.role,
+            expert_type: response.expert_type || null,
             first_name: response.first_name || "",
             last_name: response.last_name || "",
             email: response.email || "",

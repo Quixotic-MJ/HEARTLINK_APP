@@ -418,6 +418,8 @@ def get_system_staff(current_user: dict = Depends(get_current_super_admin)):
             "phone": s.get("phone", "No Phone"),
             "role": role_label,
             "expert_type": s.get("expert_type"),
+            "is_verified_clinician": bool(s.get("is_verified_clinician")),
+            "clinician_verified_at": s.get("clinician_verified_at"),
             "permissions": perms,
             "account_status": s.get("account_status", "active"),
             "status": s.get("account_status", "active").capitalize(),
@@ -437,6 +439,37 @@ def generate_temp_password(length: int = 20) -> str:
                 and any(c.islower() for c in candidate)
                 and any(c.isupper() for c in candidate)):
             return candidate
+
+
+@router.put("/staff/{staff_id}/clinician-verification")
+def set_clinician_verification(staff_id: str, payload: dict, current_user: dict = Depends(get_current_super_admin)):
+    """
+    HL-058: a Super Admin marks a medical expert as a verified (license-checked) clinician. Only reviews
+    submitted while verified count in Model Check; earlier practice reviews stay practice.
+    """
+    verified = payload.get("verified")
+    if not isinstance(verified, bool):
+        raise HTTPException(status_code=400, detail="Send verified: true or false.")
+    profile_repo = get_profile_repo()
+    staff = profile_repo.get_by_id(staff_id)
+    if not staff or staff.get("role") != "medical_expert":
+        raise HTTPException(status_code=404, detail="Medical expert not found.")
+    updated = profile_repo.update(staff_id, {
+        "is_verified_clinician": verified,
+        "clinician_verified_by": current_user.get("user_id") if verified else None,
+        "clinician_verified_at": utc_now().isoformat() if verified else None,
+    })
+    if not updated:
+        raise HTTPException(status_code=500, detail="Could not update the clinician verification.")
+    name = f"{staff.get('first_name', '')} {staff.get('last_name', '')}".strip() or staff.get("email")
+    record_admin_activity(
+        admin_user_id=current_user.get("user_id"),
+        action="verified a clinician" if verified else "removed clinician verification",
+        target_type="staff",
+        target_id=staff_id,
+        target_name=name,
+    )
+    return {"status": "success", "is_verified_clinician": verified}
 
 
 @router.post("/staff")

@@ -6,6 +6,7 @@ import Users from "../features/pages/system & support/user_management";
 import Notifications from "../features/pages/system & support/notifications";
 import Calibrations from "../features/pages/clinical portal/calibration_history";
 import Cases from "../features/pages/clinical portal/case_review";
+import CaseReviewDetail from "../features/pages/clinical portal/case_review_detail";
 import Exercises from "../features/pages/management/exercise";
 import Foods from "../features/pages/management/food";
 import Analytics from "../features/pages/overview/analytics";
@@ -77,6 +78,7 @@ export default function App() {
           
           {/* Clinical Routes */}
           <Route path="/cases" element={<RoleRoute allowedRoles={CLINICAL_ROLES}><Cases /></RoleRoute>} />
+          <Route path="/cases/:roundId" element={<RoleRoute allowedRoles={CLINICAL_ROLES}><CaseReviewDetail /></RoleRoute>} />
           <Route path="/calibration" element={<RoleRoute allowedRoles={CLINICAL_ROLES}><Calibrations /></RoleRoute>} />
           
           {/* Catch-all route to redirect unknown paths to login */}

@@ -1,414 +1,223 @@
-import React, { useState } from "react";
-import {
-  Search,
-  CheckCircle2,
-  Activity,
-  ChevronDown,
-  Lock,
-  Stethoscope,
-  RotateCcw,
-} from "lucide-react";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Stethoscope, RefreshCw, Shuffle, AlertTriangle } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import AdminLayout from "../../../components/layouts/adminLayout";
-import ExpertEvaluationModal from "../../../components/modals/ExpertEvaluationModal";
 import { Skeleton } from "../../../components/ui/Skeleton";
 import { apiFetch } from "../../../api";
+import { useAuth } from "../../../contexts/AuthContext";
 import { UI, FONTS, PageHeader } from "../../../styles/designSystem";
+import { LANES, SECTION_LABELS, SECTION_EXPERT, PROGRESS, waitingText, mySection } from "./reviewUi";
 
+// HL-054 / HL-055: the case review queue. Urgent first, then re-reviews, then the weekly sample.
 const Cases = () => {
-  const [searchParams] = useSearchParams();
-  const patientIdParam = searchParams.get("patient_id");
   const navigate = useNavigate();
-
-  const [cases, setCases] = useState([]);
+  const { user } = useAuth();
+  const [items, setItems] = useState([]);
+  const [urgentHours, setUrgentHours] = useState(48);
   const [loading, setLoading] = useState(true);
+  const [lane, setLane] = useState("all");
+  const [busy, setBusy] = useState(null);
 
-  const [searchQuery, setSearchQuery] = useState("");
-  const [filterSeverity, setFilterSeverity] = useState("all");
-  const [filterStatus, setFilterStatus] = useState("all");
+  const isAdmin = user?.role === "admin" || user?.role === "super_admin";
+  const section = mySection(user);
 
-  // Modal & Evaluation State
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [activeCase, setActiveCase] = useState(null);
+  const fetchQueue = () => apiFetch("/api/admin/review-queue", { bypassCache: true });
+  const applyQueue = (data) => {
+    setItems(data?.items || []);
+    setUrgentHours(data?.urgent_review_hours || 48);
+  };
+  const load = () => fetchQueue().then(applyQueue).catch(() => toast.error("Couldn't load the review queue."));
 
-  // Fetch cases
-  React.useEffect(() => {
-    fetchCases();
+  useEffect(() => {
+    let alive = true;
+    fetchQueue()
+      .then((data) => alive && applyQueue(data))
+      .catch(() => toast.error("Couldn't load the review queue."))
+      .finally(() => alive && setLoading(false));
+    return () => {
+      alive = false;
+    };
   }, []);
 
-  // Auto-open modal if patient_id query param matches a case
-  React.useEffect(() => {
-    if (patientIdParam && cases.length > 0) {
-      const match = cases.find((c) => c.user_id === patientIdParam);
-      if (match) {
-        openModal(match);
-      }
-    }
-  }, [patientIdParam, cases]);
-
-  const fetchCases = async () => {
+  const refresh = async () => {
+    setBusy("refresh");
     try {
-      setLoading(true);
-      const data = await apiFetch("/api/admin/cases");
-      if (data) setCases(data);
-    } catch (err) {
-      console.error("Failed to fetch cases:", err);
+      const res = await apiFetch("/api/admin/review-queue/refresh", { method: "POST" });
+      toast.success(res.opened || res.upgraded ? `Queue updated: ${res.opened} new, ${res.upgraded} moved to urgent.` : "Queue is up to date.");
+      await load();
+    } catch {
+      toast.error("Couldn't refresh the queue.");
     } finally {
-      setLoading(false);
+      setBusy(null);
     }
   };
 
-  // Open Modal for Evaluation
-  const openModal = async (caseItem) => {
+  const drawSample = async () => {
+    setBusy("sample");
     try {
-      const fullDetail = await apiFetch(`/api/admin/cases/${caseItem.user_id}`);
-      setActiveCase(fullDetail);
-      setIsModalOpen(true);
+      const res = await apiFetch("/api/admin/review-queue/sample", { method: "POST" });
+      toast.success(res.opened ? `Added ${res.opened} cases to the sample lane.` : "No patients are due for sampling right now.");
+      await load();
     } catch (e) {
-      console.error("Failed to load case details", e);
+      toast.error(e?.data?.detail || "Couldn't draw the sample.");
+    } finally {
+      setBusy(null);
     }
   };
 
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setActiveCase(null);
+  const counts = {
+    all: items.length,
+    urgent: items.filter((i) => i.lane === "urgent").length,
+    rereview: items.filter((i) => i.lane === "rereview").length,
+    sample: items.filter((i) => i.lane === "sample").length,
   };
+  const shown = lane === "all" ? items : items.filter((i) => i.lane === lane);
 
-  const clearFilters = () => {
-    setSearchQuery("");
-    setFilterSeverity("all");
-    setFilterStatus("all");
-  };
-
-  // Filter Logic
-  const filteredCases = cases.filter((c) => {
-    const query = searchQuery.toLowerCase().trim();
-    const matchesSearch = !query || 
-      (c.case_id || "").toLowerCase().includes(query) ||
-      (c.user_id || "").toLowerCase().includes(query);
-    
-    const riskCategory = c.ml_predicted_hss !== null 
-      ? (c.ml_predicted_hss < 50 ? "critical" : (c.ml_predicted_hss < 60 ? "warning" : "stable"))
-      : "stable";
-    const matchesSeverity = filterSeverity === "all" || riskCategory === filterSeverity;
-    
-    const matchesStatus = filterStatus === "all" || c.status?.toLowerCase() === filterStatus;
-      
-    return matchesSearch && matchesSeverity && matchesStatus;
-  });
-
-  // Badge Color Helper
-  const getRiskBadgeColor = (hss) => {
-    if (hss === null || hss === undefined) return "bg-[#F8FAFC] text-[#64748B] border border-[#E2E8F0]";
-    if (hss < 50) return "bg-[#F7E4E1] text-[#A93226] border border-[#F0C4B8]";
-    if (hss < 60) return "bg-[#EAF5FC] text-[#2E9AE8] border border-[#CDE1F4]";
-    if (hss < 80) return "bg-[#F6EDDD] text-[#A9741B] border border-[#EBD7B8]";
-    return "bg-[#E3EFEC] text-[#1B6E63] border border-[#C5DFD8]";
-  };
-
-  const hasActiveFilters = Boolean(searchQuery) || filterSeverity !== "all" || filterStatus !== "all";
+  const yourPart = section
+    ? `Your part: the ${SECTION_LABELS[section]} section of each case.`
+    : isAdmin
+      ? "You can follow progress and draw the weekly sample. Reviewing is for medical experts."
+      : "Your account has no expert type yet, so you can view cases but not review them.";
 
   return (
     <AdminLayout>
       <div className={UI.page.container} style={{ fontFamily: FONTS.sans }}>
-        {/* ── PAGE HEAD ── */}
         <PageHeader
           eyebrow="Clinical portal"
           eyebrowIcon={Stethoscope}
-          title="Case review queue"
-          description="Evaluate anonymized patient telemetry, review ML model assessments, and record clinical calibration."
+          title="Case review"
+          description="Urgent cases first, then re-reviews, then the weekly sample. Names, phone numbers and emails are hidden."
+          actions={
+            <>
+              <button type="button" onClick={refresh} disabled={busy !== null} className={UI.button.secondary}>
+                <RefreshCw size={14} className={busy === "refresh" ? "animate-spin" : ""} />
+                <span>Check for new cases</span>
+              </button>
+              {isAdmin && (
+                <button type="button" onClick={drawSample} disabled={busy !== null} className={UI.button.primary}>
+                  <Shuffle size={14} />
+                  <span>Draw this week's sample</span>
+                </button>
+              )}
+            </>
+          }
         />
 
-        {/* ── MAIN CARD: SEARCH, FILTER & TABLE ── */}
-        <div className="bg-[#FFFFFF] border border-[#E2E8F0] rounded-[10px] shadow-2xs overflow-hidden">
-          
-          {/* Search & Filter Toolbar */}
-          <div className="p-4 border-b border-[#E2E8F0] bg-[#FFFFFF] space-y-3">
-            <div className="flex flex-col sm:flex-row gap-3">
-              {/* Search Box */}
-              <div className="relative flex-1">
-                <Search
-                  size={14}
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#94A3B8]"
-                />
-                <input
-                  type="text"
-                  placeholder="Search anonymized Case ID or Patient ID…"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-3.5 py-2 text-[13px] border border-[#E2E8F0] rounded-[8px] focus:outline-none focus:border-[#0F172A] transition-colors bg-[#F8FAFC] text-[#0F172A] placeholder:text-[#94A3B8]"
-                />
-              </div>
+        <p className="text-[13px] font-semibold text-[#0F172A] -mt-3 mb-4">{yourPart}</p>
 
-              {/* Filters Row */}
-              <div className="flex gap-2 flex-wrap items-center">
-                {/* Severity */}
-                <div className="relative">
-                  <select
-                    value={filterSeverity}
-                    onChange={(e) => setFilterSeverity(e.target.value)}
-                    className="pl-3 pr-7 py-1.5 text-[12px] font-semibold text-[#0F172A] bg-[#FFFFFF] border border-[#E2E8F0] rounded-[8px] focus:outline-none focus:border-[#0F172A] appearance-none cursor-pointer hover:border-[#94A3B8] transition-colors"
-                  >
-                    <option value="all">All Severities</option>
-                    <option value="critical">Critical (&lt;50)</option>
-                    <option value="warning">Warning (50-59)</option>
-                    <option value="stable">Stable (60-100)</option>
-                  </select>
-                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
-                    <ChevronDown size={12} className="text-[#94A3B8]" />
-                  </div>
-                </div>
-
-                {/* Status */}
-                <div className="relative">
-                  <select
-                    value={filterStatus}
-                    onChange={(e) => setFilterStatus(e.target.value)}
-                    className="pl-3 pr-7 py-1.5 text-[12px] font-semibold text-[#0F172A] bg-[#FFFFFF] border border-[#E2E8F0] rounded-[8px] focus:outline-none focus:border-[#0F172A] appearance-none cursor-pointer hover:border-[#94A3B8] transition-colors"
-                  >
-                    <option value="all">All Statuses</option>
-                    <option value="pending review">Pending Review</option>
-                    <option value="evaluated">Evaluated</option>
-                  </select>
-                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
-                    <ChevronDown size={12} className="text-[#94A3B8]" />
-                  </div>
-                </div>
-
-                {/* Clear Filters Button */}
-                {hasActiveFilters && (
-                  <button
-                    onClick={clearFilters}
-                    className="text-[11px] text-[#A93226] font-semibold px-3 py-1.5 rounded-[8px] border border-[#F0C4B8] bg-[#F7E4E1] hover:bg-[#F0C4B8] transition-colors shrink-0 flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <RotateCcw size={12} />
-                    <span>Clear filters</span>
-                  </button>
-                )}
-              </div>
+        <div className={UI.card.root}>
+          <div className={UI.card.header}>
+            <div role="group" aria-label="Filter by lane" className="flex flex-wrap gap-2">
+              {[["all", "All"], ["urgent", "Urgent"], ["rereview", "Re-review"], ["sample", "Sample"]].map(([key, label]) => (
+                <button
+                  key={key}
+                  type="button"
+                  aria-pressed={lane === key}
+                  onClick={() => setLane(key)}
+                  className={`min-h-[36px] px-3.5 rounded-full text-[12.5px] font-semibold border transition-colors cursor-pointer ${
+                    lane === key ? "bg-[#0F172A] text-white border-[#0F172A]" : "bg-white text-[#0F172A] border-[#E2E8F0] hover:border-[#94A3B8]"
+                  }`}
+                >
+                  {label} ({counts[key]})
+                </button>
+              ))}
             </div>
+            <span className="text-[12px] text-[#64748B]">Urgent cases should be reviewed within {urgentHours} hours.</span>
           </div>
 
-          {/* Case List Table */}
-          <div className="w-full overflow-x-auto">
-            <table className="w-full text-left border-collapse min-w-[780px]">
-              <thead>
-                <tr className="border-b border-[#E2E8F0] bg-[#F8FAFC]/40">
-                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#94A3B8] uppercase tracking-[0.1em] w-[26%]">
-                    Case profile
-                  </th>
-                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#94A3B8] uppercase tracking-[0.1em] text-center w-[12%]">
-                    ML HSS
-                  </th>
-                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#94A3B8] uppercase tracking-[0.1em] w-[15%]">
-                    Risk tier
-                  </th>
-                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#94A3B8] uppercase tracking-[0.1em] w-[18%]">
-                    Review status
-                  </th>
-                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#94A3B8] uppercase tracking-[0.1em] w-[17%]">
-                    Model / Expert
-                  </th>
-                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#94A3B8] uppercase tracking-[0.1em] text-right w-[12%]">
-                    Action
-                  </th>
+          <div className={UI.table.container}>
+            <table className="w-full text-left border-collapse min-w-[820px]">
+              <thead className={UI.table.thead}>
+                <tr>
+                  <th scope="col" className={UI.table.th}>Case</th>
+                  <th scope="col" className={UI.table.th}>Why it is here</th>
+                  <th scope="col" className={UI.table.th}>Waiting</th>
+                  {Object.keys(SECTION_LABELS).map((s) => (
+                    <th key={s} scope="col" className={UI.table.th}>{SECTION_LABELS[s]}</th>
+                  ))}
+                  <th scope="col" className={UI.table.th}><span className="sr-only">Action</span></th>
                 </tr>
               </thead>
-
-              {loading ? (
-                <tbody>
-                  {[1, 2, 3, 4, 5].map((item) => (
-                    <tr key={item} className="border-b border-[#E2E8F0]/60">
-                      <td className="py-3.5 px-5">
-                        <div className="flex items-center gap-3">
-                          <Skeleton className="w-8 h-8 rounded-[8px] bg-[#E2E8F0]/70 shrink-0" />
-                          <div>
-                            <Skeleton className="w-24 h-4 mb-1 bg-[#E2E8F0]/70 rounded" />
-                            <Skeleton className="w-16 h-3 bg-[#E2E8F0]/70 rounded" />
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-3.5 px-5 text-center">
-                        <Skeleton className="w-10 h-6 mx-auto bg-[#E2E8F0]/70 rounded-md" />
-                      </td>
-                      <td className="py-3.5 px-5">
-                        <Skeleton className="w-20 h-5 rounded-full bg-[#E2E8F0]/70" />
-                      </td>
-                      <td className="py-3.5 px-5">
-                        <Skeleton className="w-24 h-4 bg-[#E2E8F0]/70 rounded" />
-                      </td>
-                      <td className="py-3.5 px-5">
-                        <Skeleton className="w-28 h-4 bg-[#E2E8F0]/70 rounded" />
-                      </td>
-                      <td className="py-3.5 px-5 text-right">
-                        <Skeleton className="w-20 h-8 ml-auto rounded-[8px] bg-[#E2E8F0]/70" />
-                      </td>
+              <tbody className={UI.table.tbody}>
+                {loading ? (
+                  [0, 1, 2].map((n) => (
+                    <tr key={n}>
+                      <td colSpan={7} className={UI.table.td}><Skeleton className="h-8 w-full" /></td>
                     </tr>
-                  ))}
-                </tbody>
-              ) : filteredCases.length === 0 ? (
-                <tbody>
+                  ))
+                ) : shown.length === 0 ? (
                   <tr>
-                    <td colSpan="6" className="p-12 text-center text-[#64748B] text-[13px]">
-                      <div className="flex flex-col items-center justify-center gap-2">
-                        <p className="font-medium text-[#64748B]">
-                          {cases.length === 0 ? "No cases currently in review queue." : "No cases match your filters."}
-                        </p>
-                        {cases.length > 0 && (
-                          <button
-                            onClick={clearFilters}
-                            className="mt-1 px-3.5 py-1.5 text-[12px] font-semibold text-white bg-[#2E9AE8] hover:bg-[#1C7AC8] rounded-[8px] transition-colors cursor-pointer"
-                          >
-                            Clear filters
-                          </button>
-                        )}
-                      </div>
+                    <td colSpan={7} className="py-12 px-5 text-center text-[13px] text-[#64748B]">
+                      {items.length === 0
+                        ? "No open cases. Urgent cases appear on their own; admins can draw the weekly sample."
+                        : "No cases in this lane."}
                     </td>
                   </tr>
-                </tbody>
-              ) : (
-                <tbody className="divide-y divide-[#E2E8F0]">
-                  {filteredCases.map((c, idx) => {
-                    const isEvaluated = c.status?.toLowerCase() === "evaluated";
-                    const riskTier = c.ml_tier || "Stable";
-                    const badgeClass = getRiskBadgeColor(c.ml_predicted_hss);
-                    
+                ) : (
+                  shown.map((c) => {
+                    const mine = section && c.sections[section] === "waiting";
+                    const pendingChecks = ["nutrition", "exercise"].filter((s) => c.sections[s] === "waiting").map((s) => SECTION_LABELS[s].toLowerCase());
                     return (
-                      <tr
-                        key={c.case_id || idx}
-                        className="hover:bg-[#F8FAFC]/60 transition-colors group cursor-pointer"
-                        onClick={() => openModal(c)}
-                      >
-                        {/* Case Profile */}
-                        <td className="py-3.5 px-4 sm:px-5 align-middle">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-[8px] bg-[#EAF5FC] border border-[#E2E8F0] flex items-center justify-center shrink-0">
-                              <Lock size={13} className="text-[#2E9AE8]" />
-                            </div>
-                            <div className="flex flex-col">
-                              <span className="text-[#0F172A] font-bold text-[13px] font-mono leading-tight">
-                                {c.case_id}
-                              </span>
-                              <span className="text-[11px] text-[#64748B] font-medium mt-0.5">
-                                {c.age} yrs • {c.sex}
-                              </span>
-                            </div>
+                      <tr key={c.id} className={UI.table.tr}>
+                        <td className={UI.table.td}>
+                          <div className="text-[13px] font-semibold text-[#0F172A]">{c.case_code}</div>
+                          <div className="text-[12px] text-[#64748B]">
+                            {[c.age != null ? `${c.age}` : null, c.sex ? c.sex.charAt(0).toUpperCase() + c.sex.slice(1) : null].filter(Boolean).join(" · ") || "Age not given"}
                           </div>
                         </td>
-
-                        {/* ML HSS */}
-                        <td className="py-3.5 px-4 sm:px-5 align-middle text-center">
-                          <span 
-                            className="text-[16px] font-bold text-[#0F172A]"
-                            style={{ fontFamily: "'Fraunces', serif" }}
-                          >
-                            {c.ml_predicted_hss ?? "--"}
-                          </span>
-                        </td>
-
-                        {/* Risk Tier */}
-                        <td className="py-3.5 px-4 sm:px-5 align-middle">
-                          {c.ml_predicted_hss !== null ? (
-                            <span
-                              className={`inline-flex items-center text-[10px] font-semibold px-2.5 py-0.5 rounded-full ${badgeClass}`}
-                            >
-                              {riskTier}
+                        <td className={UI.table.td}>
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <span className={`text-[10.5px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${LANES[c.lane]?.className || ""}`}>
+                              {LANES[c.lane]?.label || c.lane}
                             </span>
-                          ) : (
-                            <span className="text-[11px] text-[#94A3B8] font-medium">None</span>
-                          )}
-                        </td>
-
-                        {/* Review Status */}
-                        <td className="py-3.5 px-4 sm:px-5 align-middle">
-                          <span
-                            className={`inline-flex items-center gap-1 text-[11px] font-semibold ${
-                              isEvaluated ? "text-[#1B6E63]" : "text-[#2E9AE8]"
-                            }`}
-                          >
-                            {isEvaluated ? (
-                              <CheckCircle2 size={13} />
-                            ) : (
-                              <Activity size={13} className="animate-pulse" />
+                            {c.overdue && (
+                              <span className="inline-flex items-center gap-1 text-[10.5px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border bg-[#A93226] text-white border-[#A93226]">
+                                <AlertTriangle size={11} aria-hidden="true" /> Overdue
+                              </span>
                             )}
-                            {c.status.toUpperCase()}
-                          </span>
-                        </td>
-
-                        {/* Model / Expert comparison */}
-                        <td className="py-3.5 px-4 sm:px-5 align-middle text-[12px] font-medium leading-tight">
-                          {isEvaluated ? (
-                            <div className="flex flex-col gap-0.5">
-                              <span className="text-[#64748B]">Model: <strong className="text-[#0F172A]">{c.ml_predicted_hss}</strong></span>
-                              <span className="text-[#64748B]">Expert: <strong className="text-[#1B6E63]">{c.expert_hss_score}</strong></span>
-                              {c.absolute_error !== null && (
-                                <span className="text-[10px] text-[#94A3B8] font-mono mt-0.5">
-                                  Diff: {c.absolute_error} pts
-                                </span>
-                              )}
+                          </div>
+                          <div className="text-[12.5px] text-[#334155] mt-1">{c.reason}</div>
+                          {c.status === "complete" && (
+                            <div className="text-[12px] font-semibold text-[#14534B] mt-1">
+                              Cardiology done · waiting for {pendingChecks.join(" and ")}
                             </div>
-                          ) : (
-                            <span className="text-[11px] text-[#94A3B8] font-medium italic">Pending evaluation</span>
                           )}
                         </td>
-
-                        {/* Actions */}
-                        <td className="py-3.5 px-4 sm:px-5 align-middle text-right" onClick={(e) => e.stopPropagation()}>
-                          <div className="flex items-center justify-end gap-1.5">
+                        <td className={`${UI.table.td} text-[12.5px] text-[#475569] whitespace-nowrap`}>{waitingText(c.waiting_hours)}</td>
+                        {Object.keys(SECTION_LABELS).map((s) => (
+                          <td key={s} className={UI.table.td}>
+                            <span className={`text-[11.5px] font-semibold px-2.5 py-0.5 rounded-full border whitespace-nowrap ${PROGRESS[c.sections[s]]?.className || ""}`}>
+                              {PROGRESS[c.sections[s]]?.label || c.sections[s]}
+                            </span>
+                          </td>
+                        ))}
+                        <td className={UI.table.td}>
+                          <div className="flex justify-end">
                             <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                navigate(`/users/${c.user_id}`);
-                              }}
-                              className="text-[12px] font-semibold px-2.5 py-1 rounded-[6px] border border-[#E2E8F0] text-[#0F172A] bg-[#F8FAFC] hover:bg-[#E2E8F0] transition-colors cursor-pointer"
+                              type="button"
+                              onClick={() => navigate(`/cases/${c.id}`)}
+                              className={mine ? UI.button.primary : UI.button.secondary}
+                              aria-label={`${mine ? "Review" : "Open"} ${c.case_code}`}
                             >
-                              Summary
-                            </button>
-                            <button
-                              className={`text-[12px] font-semibold px-3 py-1 rounded-[6px] transition-colors cursor-pointer ${
-                                isEvaluated
-                                  ? "bg-[#FFFFFF] border border-[#E2E8F0] text-[#0F172A] hover:bg-[#F8FAFC]"
-                                  : "bg-[#2E9AE8] hover:bg-[#1C7AC8] text-white shadow-2xs"
-                              }`}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                openModal(c);
-                              }}
-                            >
-                              {isEvaluated ? "Edit" : "Evaluate"}
+                              {mine ? "Review" : "Open"}
                             </button>
                           </div>
                         </td>
                       </tr>
                     );
-                  })}
-                </tbody>
-              )}
-          </table>
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
 
-      {/* Expert Evaluation Modal */}
-      <ExpertEvaluationModal
-        isOpen={isModalOpen}
-        onClose={closeModal}
-        activeCase={activeCase}
-        onSave={async (data) => {
-          if (!activeCase?.user_id) return;
-          try {
-            await apiFetch(`/api/admin/cases/${activeCase.user_id}/evaluate`, {
-              method: "POST",
-              body: JSON.stringify(data),
-            });
-            closeModal();
-            fetchCases(); // Refresh list
-          } catch (e) {
-            console.error("Failed to submit evaluation", e);
-          }
-        }}
-      />
-    </div>
-  </AdminLayout>
+        <p className="text-[12px] text-[#64748B] mt-3">
+          A case counts for Model Check as soon as the {SECTION_EXPERT.cardiology} submits, and stays in this queue until the food and exercise checks are done too.
+        </p>
+      </div>
+    </AdminLayout>
   );
 };
 

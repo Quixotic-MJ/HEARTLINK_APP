@@ -353,6 +353,24 @@ const Users = () => {
     }
   };
 
+  // HL-058: Super Admin marks a medical expert as a verified clinician (their reviews then count in Model Check)
+  const handleToggleClinician = async (staff) => {
+    const verified = !staff.is_verified_clinician;
+    try {
+      await apiFetch(`/api/admin/staff/${staff.id}/clinician-verification`, {
+        method: "PUT",
+        body: JSON.stringify({ verified }),
+      });
+      toast.success(verified ? `${staff.name} is now a verified clinician.` : `Verification removed for ${staff.name}.`);
+      setActiveEntity((prev) => (prev && prev.id === staff.id
+        ? { ...prev, is_verified_clinician: verified, clinician_verified_at: verified ? new Date().toISOString() : null }
+        : prev));
+      await fetchUsers();
+    } catch (e) {
+      toast.error(e.data?.detail || "Couldn't update the clinician verification.");
+    }
+  };
+
   // 6. Save/Provision Staff Account
   const handleSaveStaff = async (staffData) => {
     try {
@@ -515,6 +533,7 @@ const Users = () => {
           onToggleStatus={requestToggleStaffStatus}
           onChangeRole={requestChangeStaffRole}
           onDeleteStaff={requestDeleteStaff}
+          onToggleClinician={handleToggleClinician}
         />
 
         {/* Provision Staff Modal */}

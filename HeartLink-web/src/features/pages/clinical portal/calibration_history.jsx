@@ -1,619 +1,251 @@
-import React, { useState } from "react";
-import {
-  Search,
-  Download,
-  History,
-  Activity,
-  ChevronDown,
-  RotateCcw,
-  Sparkles,
-} from "lucide-react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
+import { useEffect, useState, Fragment } from "react";
+import { History, ChevronDown, ChevronRight, Info } from "lucide-react";
+import { toast } from "sonner";
 import AdminLayout from "../../../components/layouts/adminLayout";
-import CalibrationModal from "../../../components/modals/CalibrationModal";
 import { Skeleton } from "../../../components/ui/Skeleton";
 import { apiFetch } from "../../../api";
-import { UI, FONTS, PageHeader, KpiCard } from "../../../styles/designSystem";
+import { useAuth } from "../../../contexts/AuthContext";
+import { UI, FONTS, PageHeader } from "../../../styles/designSystem";
+import { AGREEMENT, CHECKUP, CONFIDENCE, LANES, PROGRESS, REASONS, SCORERS, TIERS, labelOf } from "./reviewUi";
 
-const CustomLightTooltip = ({ active, payload, label }) => {
-  if (active && payload && payload.length) {
-    return (
-      <div 
-        className="bg-[#FFFFFF] border border-[#E2E8F0] rounded-[8px] p-2.5 shadow-xl text-[12px] text-[#0F172A]"
-        style={{ fontFamily: "'Inter', sans-serif" }}
-      >
-        <p className="font-semibold text-[#0F172A] mb-1">{label}</p>
-        <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-[#2E9AE8]" />
-          <span className="text-[#64748B]">Error Margin:</span>
-          <span className="font-bold text-[#0F172A]">{payload[0].value} pts</span>
-        </div>
-      </div>
-    );
-  }
-  return null;
-};
+// HL-058: Model Check replaces Calibration History. One row per review round with a Cardiologist review;
+// the Dietitian's and PT's checks sit inside that row. Measures count clinical reviews only.
 
-const Calibration = () => {
-  const [logs, setLogs] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [filterType, setFilterType] = useState("all");
-  const [selectedHash, setSelectedHash] = useState("all");
-  const [selectedReason, setSelectedReason] = useState("all");
-  const [isExporting, setIsExporting] = useState(false);
-  const [exportMessage, setExportMessage] = useState("");
+const SCORER_FILTERS = [["all", "All scorers"], ["baseline_model", SCORERS.baseline_model], ["bp_rules", SCORERS.bp_rules], ["lifestyle_points", SCORERS.lifestyle_points]];
+const ROW_FILTERS = [["all", "All reviews"], ["clinical", "Clinical"], ["practice", "Practice"]];
+const SHORT_TIER = { Stable: "Stable", Moderate: "Moderate", "Elevated Risk": "Elevated", Critical: "Critical" };
 
-  // Modal State
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [activeLog, setActiveLog] = useState(null);
+const pct = (m) => (m?.percent == null ? "—" : `${m.percent}%`);
+const day = (iso) => (iso ? new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "");
 
-  // Fetch evaluations
-  React.useEffect(() => {
-    fetchLogs();
-  }, []);
+const chip = (selected) =>
+  `min-h-[36px] px-3.5 rounded-full text-[12.5px] font-semibold border transition-colors cursor-pointer ${
+    selected ? "bg-[#0F172A] text-white border-[#0F172A]" : "bg-white text-[#0F172A] border-[#E2E8F0] hover:border-[#94A3B8]"
+  }`;
 
-  const fetchLogs = async () => {
-    try {
-      setLoading(true);
-      const data = await apiFetch("/api/admin/evaluations");
-      if (data) setLogs(data);
-    } catch (e) {
-      console.error("Failed to fetch evaluations", e);
-      setLogs([]);
-    } finally {
-      setLoading(false);
-    }
+function Measure({ label, value, note, tone = "plain" }) {
+  const tones = {
+    plain: "bg-white border-[#E2E8F0] text-[#0F172A]",
+    warn: "bg-[#FDF3E7] border-[#EBC99A] text-[#7A4A0B]",
   };
-
-  const handleArchive = async (logId) => {
-    try {
-      setLoading(true);
-      await apiFetch(`/api/admin/evaluations/${logId}/archive`, { method: "PUT" });
-      await fetchLogs();
-      closeModal();
-    } catch (e) {
-      console.error("Failed to archive log", e);
-      alert("Failed to archive log");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Open Modal for Detail View
-  const openModal = (log) => {
-    setActiveLog(log);
-    setIsModalOpen(true);
-  };
-
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setActiveLog(null);
-  };
-
-  const handleExportDataset = async () => {
-    try {
-      setIsExporting(true);
-      setExportMessage("");
-      const res = await apiFetch("/api/admin/datasets/generate", {
-        method: "POST",
-        body: JSON.stringify({ allow_mixed_models: true }),
-      });
-      if (res && res.dataset) {
-        setExportMessage(`Dataset ${res.dataset.dataset_id} generated!`);
-        alert(`Versioned training dataset ${res.dataset.dataset_id} successfully compiled on backend database registry. Use offline dataset training script.`);
-      }
-    } catch (e) {
-      console.error("Export failed", e);
-      alert("Failed to export dataset. " + (e.message || "Please resolve mixed model hashes."));
-    } finally {
-      setIsExporting(false);
-    }
-  };
-
-  const clearFilters = () => {
-    setSearchQuery("");
-    setFilterType("all");
-    setSelectedHash("all");
-    setSelectedReason("all");
-  };
-
-  // Filter Logic
-  const uniqueHashes = Array.from(
-    new Set(
-      logs
-        .map((log) => log.model_metadata?.model_hash)
-        .filter(Boolean)
-    )
+  return (
+    <div className={`p-4 rounded-[10px] border shadow-2xs ${tones[tone]}`}>
+      <div className="text-[11px] font-semibold uppercase tracking-wider opacity-80">{label}</div>
+      <div className="text-[26px] font-semibold leading-tight mt-1">{value}</div>
+      <div className="text-[12px] opacity-80 mt-0.5">{note}</div>
+    </div>
   );
+}
 
-  const filteredLogs = logs.filter((log) => {
-    const query = searchQuery.toLowerCase().trim();
-    const matchesSearch =
-      !query ||
-      (log.id || "").toLowerCase().includes(query) ||
-      (log.case_id || "").toLowerCase().includes(query);
-      
-    let matchesType = true;
-    if (filterType === "eligible") {
-      matchesType = log.status !== "Archived" && log.expert_hss_score != null && log.input_snapshot?.model_features;
-    } else if (filterType === "archived") {
-      matchesType = log.status === "Archived";
-    } else if (filterType === "disagreement") {
-      matchesType = log.status !== "Archived" && !log.tier_agreement;
-    } else if (filterType === "high_error") {
-      matchesType = log.status !== "Archived" && (log.absolute_error || 0) >= 10;
-    } else if (filterType === "conf_high") {
-      matchesType = log.status !== "Archived" && log.reviewer_confidence === "high";
-    } else if (filterType === "conf_medium") {
-      matchesType = log.status !== "Archived" && log.reviewer_confidence === "medium";
-    } else if (filterType === "conf_low") {
-      matchesType = log.status !== "Archived" && log.reviewer_confidence === "low";
-    }
-    
-    const matchesHash = selectedHash === "all" || log.model_metadata?.model_hash === selectedHash;
-    const matchesReason = selectedReason === "all" || (log.adjustment_reasons && log.adjustment_reasons.includes(selectedReason));
-    
-    return matchesSearch && matchesType && matchesHash && matchesReason;
-  });
+function CheckSummary({ check }) {
+  if (!check) return null;
+  const progress = PROGRESS[check.status] || PROGRESS.waiting;
+  return (
+    <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border whitespace-nowrap ${progress.className}`}>
+      {progress.label}{check.not_suitable?.length ? ` · ${check.not_suitable.length} not suitable` : ""}
+    </span>
+  );
+}
 
-  // Calculate Summary Statistics
-  const eligibleLogs = logs.filter((log) => {
-    return (
-      log.status !== "Archived" &&
-      log.expert_hss_score != null &&
-      log.ml_predicted_hss != null &&
-      log.input_snapshot?.model_features &&
-      Object.keys(log.input_snapshot.model_features).length > 0
-    );
-  });
-  
-  const eligibleCount = eligibleLogs.length;
-  
-  const averageError = eligibleCount > 0 
-    ? (eligibleLogs.reduce((sum, log) => sum + (log.absolute_error || 0), 0) / eligibleCount).toFixed(1)
-    : "0.0";
-    
-  const tierAgreementRate = eligibleCount > 0
-    ? ((eligibleLogs.filter((log) => log.tier_agreement).length / eligibleCount) * 100).toFixed(1)
-    : "0.0";
-    
-  const highErrorCount = eligibleLogs.filter((log) => (log.absolute_error || 0) >= 10).length;
+const ModelCheck = () => {
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin" || user?.role === "super_admin";
+  const [scorer, setScorer] = useState("all");
+  const [rowFilter, setRowFilter] = useState("all");
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [open, setOpen] = useState(null);
 
-  const reasonKeys = [
-    { key: "blood_pressure_pattern", label: "Blood pressure pattern" },
-    { key: "heart_rate_pattern", label: "Heart-rate pattern" },
-    { key: "symptoms", label: "Symptoms" },
-    { key: "medication_related_factor", label: "Medication-related factor" },
-    { key: "activity_pattern", label: "Activity pattern" },
-    { key: "nutrition_sodium_pattern", label: "Nutrition / sodium pattern" },
-    { key: "sleep_pattern", label: "Sleep pattern" },
-    { key: "baseline_information", label: "Baseline information" },
-  ];
+  const load = (s) =>
+    apiFetch(`/api/admin/model-check?scorer=${s}`, { bypassCache: true })
+      .then(setData)
+      .catch(() => toast.error("Couldn't load Model Check."));
 
-  const getReasonCount = (reasonKey) => {
-    return eligibleLogs.filter((log) => log.adjustment_reasons && log.adjustment_reasons.includes(reasonKey)).length;
-  };
-
-  const getCalibrationStatus = (log) => {
-    if (log.status === "Archived") {
-      return {
-        label: "Archived",
-        style: "bg-[#F8FAFC] text-[#64748B] border border-[#E2E8F0]",
-        tooltip: "Evaluation archived and excluded from dataset compilation.",
-      };
-    }
-    
-    const isEligible = 
-      log.expert_hss_score != null &&
-      log.ml_predicted_hss != null &&
-      log.input_snapshot?.model_features &&
-      Object.keys(log.input_snapshot.model_features).length > 0;
-      
-    if (isEligible) {
-      return {
-        label: "Eligible",
-        style: "bg-[#E3EFEC] text-[#1B6E63] border border-[#C5DFD8]",
-        tooltip: "Evaluation is fully eligible for calibration analysis.",
-      };
-    }
-    
-    const missingSnapshot = !log.input_snapshot?.model_features || Object.keys(log.input_snapshot.model_features).length === 0;
-    if (missingSnapshot) {
-      return {
-        label: "Incomplete",
-        style: "bg-[#F6EDDD] text-[#A9741B] border border-[#EBD7B8]",
-        tooltip: "Evaluation is incomplete: missing model features snapshot.",
-      };
-    }
-    
-    return {
-      label: "Excluded",
-      style: "bg-[#F7E4E1] text-[#A93226] border border-[#F0C4B8]",
-      tooltip: "Evaluation excluded: missing required expert scores or predictions.",
+  useEffect(() => {
+    let alive = true;
+    apiFetch(`/api/admin/model-check?scorer=${scorer}`, { bypassCache: true })
+      .then((d) => alive && setData(d))
+      .catch(() => toast.error("Couldn't load Model Check."))
+      .finally(() => alive && setLoading(false));
+    return () => {
+      alive = false;
     };
+  }, [scorer]);
+
+  const archive = async (row) => {
+    if (!window.confirm(`Archive ${row.case_code}? It will leave Model Check and the review queue.`)) return;
+    try {
+      await apiFetch(`/api/admin/model-check/${row.round_id}/archive`, { method: "PUT" });
+      toast.success(`${row.case_code} archived.`);
+      setOpen(null);
+      await load(scorer);
+    } catch (e) {
+      toast.error(e?.data?.detail || "Couldn't archive.");
+    }
   };
 
-  // Calculate Chart Data
-  const chartData = logs
-    .filter((log) => log.ml_predicted_hss != null && log.expert_hss_score != null)
-    .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
-    .map((log, index) => {
-      const errorMargin = Math.abs(log.expert_hss_score - log.ml_predicted_hss);
-      return {
-        name: `Eval ${index + 1}`,
-        error: errorMargin,
-        expert: log.expert_hss_score,
-        ml: log.ml_predicted_hss,
-        date: new Date(log.created_at).toLocaleDateString(),
-      };
-    });
-
-  const hasActiveFilters = Boolean(searchQuery) || filterType !== "all" || selectedReason !== "all" || selectedHash !== "all";
+  const clinical = data?.clinical;
+  const rows = (data?.rows || []).filter((r) => rowFilter === "all" || (rowFilter === "clinical" ? r.is_clinical : !r.is_clinical));
+  const matrix = clinical?.matrix?.rows_app_columns_cardiologist || [];
 
   return (
     <AdminLayout>
       <div className={UI.page.container} style={{ fontFamily: FONTS.sans }}>
-        {/* ── PAGE HEAD ── */}
         <PageHeader
           eyebrow="Clinical portal"
           eyebrowIcon={History}
-          title="Model calibration history"
-          description="Monitor ground-truth clinical evaluations, algorithm accuracy margins, and offline training datasets."
-          actions={
-            <button
-              onClick={handleExportDataset}
-              disabled={isExporting}
-              className={UI.button.primary}
-            >
-              <Download size={14} strokeWidth={2.5} />
-              <span>{isExporting ? "Compiling…" : "Generate calibration dataset"}</span>
-            </button>
-          }
+          title="Model Check"
+          description="How often the app's risk level matches a cardiologist's, and which way it misses. Measures use clinical reviews only."
         />
 
-        {/* ── METRIC STAT CARDS ── */}
-        <div className={UI.kpi.grid}>
-          <KpiCard
-            label="Eligible evaluations"
-            value={eligibleCount}
-          />
-          <KpiCard
-            label="Average absolute error"
-            value={`${averageError} pts`}
-          />
-          <KpiCard
-            label="Tier agreement"
-            value={`${tierAgreementRate}%`}
-            valueColor="text-[#1B6E63]"
-          />
-          <KpiCard
-            label="High-error cases"
-            value={highErrorCount}
-            valueColor="text-[#A93226]"
-          />
+        <div role="group" aria-label="Scorer" className="flex flex-wrap gap-2 mb-4">
+          {SCORER_FILTERS.map(([key, label]) => (
+            <button key={key} type="button" aria-pressed={scorer === key} onClick={() => setScorer(key)} className={chip(scorer === key)}>{label}</button>
+          ))}
         </div>
 
-        {/* ── ACCURACY TREND DASHBOARD ── */}
-        {chartData.length > 0 && (
-          <div className="bg-[#FFFFFF] rounded-[10px] border border-[#E2E8F0] p-5 mb-6 shadow-2xs flex flex-col md:flex-row gap-6">
-            <div className="w-full md:w-1/3 space-y-3.5 border-b md:border-b-0 md:border-r border-[#E2E8F0] pb-4 md:pb-0 md:pr-6">
-              <div>
-                <p className="text-[10.5px] font-semibold text-[#94A3B8] uppercase tracking-wider mb-1">Model accuracy trend</p>
-                <h3 
-                  className="text-[18px] font-medium text-[#0F172A]"
-                  style={{ fontFamily: "'Fraunces', serif" }}
-                >
-                  Absolute error margin
-                </h3>
-                <p className="text-[12px] text-[#64748B] mt-1 leading-relaxed">
-                  Tracks the absolute difference between ML-predicted HSS and expert ground-truth HSS over time.
-                </p>
+        {loading || !data ? (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">{[0, 1, 2, 3].map((n) => <Skeleton key={n} className="h-24" />)}</div>
+        ) : (
+          <>
+            {!clinical.enough_reviews && (
+              <div className="flex items-start gap-2 text-[12.5px] bg-[#F6EDDD] text-[#7A5414] border border-[#EBD7B8] rounded-[8px] px-3 py-2.5 mb-4">
+                <Info size={14} className="mt-0.5 shrink-0" aria-hidden="true" />
+                Not enough clinical reviews to judge the model yet: {clinical.reviews} of {data.min_clinical_reviews}. The numbers below are for reference only.
               </div>
+            )}
 
-              <div className="bg-[#E3EFEC] border border-[#C5DFD8] p-3.5 rounded-[8px]">
-                <p className="text-[12px] font-semibold text-[#1B6E63] flex items-center gap-1.5">
-                  <Activity size={14} /> Accuracy objective
-                </p>
-                <p className="text-[11px] text-[#1B6E63]/90 mt-0.5 leading-relaxed font-medium">
-                  As more expert evaluations are applied, the model error margin trends toward zero.
-                </p>
-              </div>
-
-              {/* Production Model Details */}
-              <div className="bg-[#F8FAFC] border border-[#E2E8F0] p-3 rounded-[8px] space-y-1 text-[11.5px]">
-                <span className="text-[9.5px] font-semibold text-[#94A3B8] uppercase tracking-wider block mb-0.5">Production Model</span>
-                <div className="flex justify-between text-[#0F172A] font-medium">
-                  <span className="text-[#64748B]">Identifier:</span>
-                  <code className="text-[#2E9AE8] font-mono text-[11px]">heartlink_model.pkl</code>
-                </div>
-                <div className="flex justify-between text-[#0F172A] font-medium">
-                  <span className="text-[#64748B]">Pipeline:</span>
-                  <code className="text-[#0F172A] font-mono text-[11px]">v1.0 (offline)</code>
-                </div>
-              </div>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
+              <Measure label="Agreement" value={pct(clinical.agreement)} note={`${clinical.agreement.count} of ${clinical.reviews} clinical reviews`} />
+              <Measure label="Weighted kappa" value={clinical.weighted_kappa ?? "—"} note={clinical.kappa_label ? `${clinical.kappa_label} agreement` : "Needs reviews at more than one level"} />
+              <Measure label="Under-calling (safety)" value={pct(clinical.under_calling)} note={`${clinical.under_calling.count} rated riskier by the cardiologist`} tone="warn" />
+              <Measure label="Over-calling" value={pct(clinical.over_calling)} note={`${clinical.over_calling.count} rated safer by the cardiologist`} />
             </div>
-            
-            <div className="w-full md:w-2/3 h-56 relative pt-2">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: "#94A3B8" }} dy={8} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: "#94A3B8" }} />
-                  <Tooltip content={<CustomLightTooltip />} />
-                  <ReferenceLine y={0} stroke="#E2E8F0" />
-                  <Line 
-                    type="monotone" 
-                    dataKey="error" 
-                    name="Error Margin"
-                    stroke="#2E9AE8" 
-                    strokeWidth={2.5}
-                    dot={{ r: 3.5, strokeWidth: 1.5, fill: "#FFFFFF", stroke: "#2E9AE8" }} 
-                    activeDot={{ r: 5.5, fill: "#2E9AE8", stroke: "#FFFFFF", strokeWidth: 2 }}
-                    animationDuration={1000}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        )}
+            <p className="text-[12px] text-[#64748B] mb-6">
+              Practice reviews (by experts not yet verified as clinicians), not counted above: {data.practice.reviews}
+              {data.practice.reviews ? `, ${pct(data.practice.agreement)} agreement` : ""}.
+              {clinical.score_difference.reviews_with_score ? ` Average gap where a 1–100 score was given: ${clinical.score_difference.average_gap} points.` : ""}
+            </p>
 
-        {/* ── MAIN CARD: REFERENCE LOG TABLE ── */}
-        <div className="bg-[#FFFFFF] rounded-[10px] border border-[#E2E8F0] shadow-2xs overflow-hidden">
-          
-          {/* Search & Filter Bar */}
-          <div className="p-4 border-b border-[#E2E8F0] bg-[#FFFFFF] space-y-3">
-            <div className="flex flex-col sm:flex-row gap-3">
-              {/* Search Box */}
-              <div className="relative flex-1">
-                <Search
-                  size={14}
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#94A3B8]"
-                />
-                <input
-                  type="text"
-                  placeholder="Search by Feedback ID or Case ID…"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-3.5 py-2 text-[13px] border border-[#E2E8F0] rounded-[8px] focus:outline-none focus:border-[#0F172A] transition-colors bg-[#F8FAFC] text-[#0F172A] placeholder:text-[#94A3B8]"
-                />
+            <div className={`${UI.card.root} mb-6`}>
+              <div className={UI.card.header}>
+                <h2 className="text-[14px] font-semibold m-0">Level by level (clinical reviews)</h2>
+                <span className="text-[12px] text-[#64748B]">Rows: the app. Columns: the cardiologist. Orange = app too low.</span>
               </div>
-
-              {/* Filters Row */}
-              <div className="flex flex-wrap gap-2 items-center">
-                {/* Status */}
-                <div className="relative">
-                  <select
-                    value={filterType}
-                    onChange={(e) => setFilterType(e.target.value)}
-                    className="pl-3 pr-7 py-1.5 text-[12px] font-semibold text-[#0F172A] bg-[#FFFFFF] border border-[#E2E8F0] rounded-[8px] focus:outline-none focus:border-[#0F172A] appearance-none cursor-pointer hover:border-[#94A3B8] transition-colors"
-                  >
-                    <option value="all">All Statuses</option>
-                    <option value="eligible">Active / Eligible</option>
-                    <option value="archived">Archived</option>
-                    <option value="disagreement">Tier Disagreement</option>
-                    <option value="high_error">High Error (≥10)</option>
-                    <option value="conf_high">Confidence: High</option>
-                    <option value="conf_medium">Confidence: Medium</option>
-                    <option value="conf_low">Confidence: Low</option>
-                  </select>
-                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
-                    <ChevronDown size={12} className="text-[#94A3B8]" />
-                  </div>
-                </div>
-
-                {/* Adjustment Reason Filter */}
-                <div className="relative">
-                  <select
-                    value={selectedReason}
-                    onChange={(e) => setSelectedReason(e.target.value)}
-                    className="pl-3 pr-7 py-1.5 text-[12px] font-semibold text-[#0F172A] bg-[#FFFFFF] border border-[#E2E8F0] rounded-[8px] focus:outline-none focus:border-[#0F172A] appearance-none cursor-pointer hover:border-[#94A3B8] transition-colors max-w-[200px] truncate"
-                  >
-                    <option value="all">All Adjustment Reasons</option>
-                    {reasonKeys.map((r) => (
-                      <option key={r.key} value={r.key}>{r.label} ({getReasonCount(r.key)})</option>
+              <div className="p-4 overflow-x-auto">
+                <table className="w-full min-w-[460px] border-separate border-spacing-1 text-[13px] text-center">
+                  <thead>
+                    <tr>
+                      <th scope="col" className="text-left text-[11px] font-semibold text-[#64748B] uppercase tracking-wider">App ↓ · Cardiologist →</th>
+                      {TIERS.map((t) => <th key={t} scope="col" className="text-[12px] font-semibold text-[#475569]">{SHORT_TIER[t]}</th>)}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {TIERS.map((t, i) => (
+                      <tr key={t}>
+                        <th scope="row" className="text-left text-[12.5px] font-semibold py-2">{SHORT_TIER[t]}</th>
+                        {(matrix[i] || [0, 0, 0, 0]).map((n, j) => (
+                          <td key={j} className={`py-2.5 rounded-[6px] font-semibold ${
+                            i === j ? "bg-[#E3EFEC] text-[#14534B]" : j > i ? (n ? "bg-[#FDF3E7] text-[#7A4A0B]" : "bg-[#F8FAFC] text-[#94A3B8]") : (n ? "bg-[#EAF5FC] text-[#0F4C82]" : "bg-[#F8FAFC] text-[#94A3B8]")
+                          }`}>{n}</td>
+                        ))}
+                      </tr>
                     ))}
-                  </select>
-                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
-                    <ChevronDown size={12} className="text-[#94A3B8]" />
-                  </div>
-                </div>
-
-                {uniqueHashes.length > 0 && (
-                  <div className="relative">
-                    <select
-                      value={selectedHash}
-                      onChange={(e) => setSelectedHash(e.target.value)}
-                      className="pl-3 pr-7 py-1.5 text-[12px] font-semibold text-[#0F172A] bg-[#FFFFFF] border border-[#E2E8F0] rounded-[8px] focus:outline-none focus:border-[#0F172A] appearance-none cursor-pointer hover:border-[#94A3B8] transition-colors max-w-[150px] truncate"
-                    >
-                      <option value="all">All Models</option>
-                      {uniqueHashes.map((h) => (
-                        <option key={h} value={h}>Hash: {h.substring(0, 8)}…</option>
-                      ))}
-                    </select>
-                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
-                      <ChevronDown size={12} className="text-[#94A3B8]" />
-                    </div>
-                  </div>
-                )}
-
-                {/* Clear Filters */}
-                {hasActiveFilters && (
-                  <button
-                    onClick={clearFilters}
-                    className="text-[11px] text-[#A93226] font-semibold px-3 py-1.5 rounded-[8px] border border-[#F0C4B8] bg-[#F7E4E1] hover:bg-[#F0C4B8] transition-colors shrink-0 flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <RotateCcw size={12} />
-                    <span>Clear filters</span>
-                  </button>
-                )}
+                  </tbody>
+                </table>
               </div>
             </div>
-          </div>
 
-          {/* Calibration List Table */}
-          <div className="w-full overflow-x-auto">
-            <table className="w-full text-left border-collapse min-w-[950px]">
-              <thead>
-                <tr className="border-b border-[#E2E8F0] bg-[#F8FAFC]/40">
-                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#94A3B8] uppercase tracking-[0.1em]">
-                    Evaluation ID
-                  </th>
-                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#94A3B8] uppercase tracking-[0.1em]">
-                    Case
-                  </th>
-                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#94A3B8] uppercase tracking-[0.1em]">
-                    Model HSS
-                  </th>
-                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#94A3B8] uppercase tracking-[0.1em]">
-                    Expert HSS
-                  </th>
-                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#94A3B8] uppercase tracking-[0.1em]">
-                    Error
-                  </th>
-                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#94A3B8] uppercase tracking-[0.1em]">
-                    Tier agreement
-                  </th>
-                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#94A3B8] uppercase tracking-[0.1em]">
-                    Confidence
-                  </th>
-                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#94A3B8] uppercase tracking-[0.1em]">
-                    Model version
-                  </th>
-                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#94A3B8] uppercase tracking-[0.1em]">
-                    Date
-                  </th>
-                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#94A3B8] uppercase tracking-[0.1em] text-right">
-                    Action
-                  </th>
-                </tr>
-              </thead>
-
-              {loading ? (
-                <tbody>
-                  {[1, 2, 3, 4, 5].map((item) => (
-                    <tr key={item} className="border-b border-[#E2E8F0]/60">
-                      <td className="py-3.5 px-5"><Skeleton className="w-24 h-4 bg-[#E2E8F0]/70 rounded" /></td>
-                      <td className="py-3.5 px-5"><Skeleton className="w-16 h-4 bg-[#E2E8F0]/70 rounded" /></td>
-                      <td className="py-3.5 px-5"><Skeleton className="w-8 h-4 bg-[#E2E8F0]/70 rounded" /></td>
-                      <td className="py-3.5 px-5"><Skeleton className="w-8 h-4 bg-[#E2E8F0]/70 rounded" /></td>
-                      <td className="py-3.5 px-5"><Skeleton className="w-12 h-4 bg-[#E2E8F0]/70 rounded" /></td>
-                      <td className="py-3.5 px-5"><Skeleton className="w-12 h-4 bg-[#E2E8F0]/70 rounded" /></td>
-                      <td className="py-3.5 px-5"><Skeleton className="w-16 h-4 bg-[#E2E8F0]/70 rounded" /></td>
-                      <td className="py-3.5 px-5"><Skeleton className="w-16 h-4 bg-[#E2E8F0]/70 rounded" /></td>
-                      <td className="py-3.5 px-5"><Skeleton className="w-12 h-4 bg-[#E2E8F0]/70 rounded" /></td>
-                      <td className="py-3.5 px-5 text-right"><Skeleton className="w-16 h-7 ml-auto bg-[#E2E8F0]/70 rounded-[6px]" /></td>
-                    </tr>
+            <div className={UI.card.root}>
+              <div className={UI.card.header}>
+                <h2 className="text-[14px] font-semibold m-0">Reviewed cases ({rows.length})</h2>
+                <div role="group" aria-label="Show" className="flex flex-wrap gap-2">
+                  {ROW_FILTERS.map(([key, label]) => (
+                    <button key={key} type="button" aria-pressed={rowFilter === key} onClick={() => setRowFilter(key)} className={chip(rowFilter === key)}>{label}</button>
                   ))}
-                </tbody>
-              ) : filteredLogs.length === 0 ? (
-                <tbody>
-                  <tr>
-                    <td colSpan="10" className="p-12 text-center text-[#64748B] text-[13px]">
-                      <div className="flex flex-col items-center justify-center gap-2">
-                        <p className="font-medium text-[#64748B]">
-                          {logs.length === 0 ? "No calibration logs recorded yet." : "No evaluations match your filters."}
-                        </p>
-                        {logs.length > 0 && (
-                          <button
-                            onClick={clearFilters}
-                            className="mt-1 px-3.5 py-1.5 text-[12px] font-semibold text-white bg-[#2E9AE8] hover:bg-[#1C7AC8] rounded-[8px] transition-colors cursor-pointer"
-                          >
-                            Clear filters
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                </tbody>
-              ) : (
-                <tbody className="divide-y divide-[#E2E8F0]">
-                  {filteredLogs.map((log) => (
-                    <tr
-                      key={log.id}
-                      className={`hover:bg-[#F8FAFC]/60 transition-colors group cursor-pointer ${log.status === "Archived" ? "opacity-60 bg-[#F8FAFC]/30" : ""}`}
-                      onClick={() => openModal(log)}
-                    >
-                      <td className="py-3.5 px-4 sm:px-5 align-middle">
-                        <p className="text-[#0F172A] font-bold text-[12.5px] font-mono mb-0.5">
-                          {log.id}
-                        </p>
-                        {(() => {
-                          const statusInfo = getCalibrationStatus(log);
-                          return (
-                            <span 
-                              className={`inline-flex items-center px-2 py-0.5 rounded-[4px] text-[8.5px] font-bold uppercase tracking-wider ${statusInfo.style}`}
-                              title={statusInfo.tooltip}
-                            >
-                              {statusInfo.label}
-                            </span>
-                          );
-                        })()}
-                      </td>
-
-                      <td className="py-3.5 px-4 sm:px-5 align-middle">
-                        <span className="text-[#0F172A] font-semibold text-[11px] font-mono bg-[#F8FAFC] border border-[#E2E8F0] px-2 py-0.5 rounded-[5px]">
-                          {log.case_id}
-                        </span>
-                      </td>
-
-                      <td className="py-3.5 px-4 sm:px-5 align-middle text-[12.5px] font-bold text-[#0F172A]">
-                        {log.ml_predicted_hss ?? "--"}
-                      </td>
-
-                      <td className="py-3.5 px-4 sm:px-5 align-middle text-[12.5px] font-bold text-[#1B6E63]">
-                        {log.expert_hss_score}
-                      </td>
-
-                      <td className="py-3.5 px-4 sm:px-5 align-middle text-[12px] font-semibold text-[#64748B]">
-                        {log.absolute_error != null ? `${log.absolute_error} pts` : "--"}
-                      </td>
-
-                      <td className="py-3.5 px-4 sm:px-5 align-middle text-[12px] font-semibold">
-                        {log.tier_agreement ? (
-                          <span className="text-[#1B6E63] font-bold">Yes</span>
-                        ) : (
-                          <span className="text-[#A93226] font-bold">No</span>
-                        )}
-                      </td>
-
-                      <td className="py-3.5 px-4 sm:px-5 align-middle text-[12px]">
-                        <span className="capitalize text-[#64748B] font-medium">{log.reviewer_confidence || "Not recorded"}</span>
-                      </td>
-
-                      <td className="py-3.5 px-4 sm:px-5 align-middle text-[11.5px] font-mono text-[#94A3B8] max-w-[100px] truncate" title={log.model_metadata?.model_hash}>
-                        {log.model_metadata?.model_hash ? `${log.model_metadata.model_hash.substring(0, 8)}…` : "--"}
-                      </td>
-
-                      <td className="py-3.5 px-4 sm:px-5 align-middle text-[11.5px] text-[#94A3B8] font-medium">
-                        {new Date(log.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
-                      </td>
-
-                      <td className="py-3.5 px-4 sm:px-5 align-middle text-right" onClick={(e) => e.stopPropagation()}>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); openModal(log); }}
-                          className="text-[12px] font-semibold px-2.5 py-1 rounded-[6px] border border-[#E2E8F0] bg-[#F8FAFC] text-[#0F172A] hover:bg-[#E2E8F0] transition-colors cursor-pointer"
-                        >
-                          View Details
-                        </button>
-                      </td>
+                </div>
+              </div>
+              <div className={UI.table.container}>
+                <table className="w-full text-left border-collapse min-w-[900px]">
+                  <thead className={UI.table.thead}>
+                    <tr>
+                      <th scope="col" className={UI.table.th}><span className="sr-only">Details</span></th>
+                      <th scope="col" className={UI.table.th}>Case</th>
+                      <th scope="col" className={UI.table.th}>App said</th>
+                      <th scope="col" className={UI.table.th}>Cardiologist</th>
+                      <th scope="col" className={UI.table.th}>Comparison</th>
+                      <th scope="col" className={UI.table.th}>Food check</th>
+                      <th scope="col" className={UI.table.th}>Exercise check</th>
+                      <th scope="col" className={UI.table.th}>Counts as</th>
                     </tr>
-                  ))}
-                </tbody>
-              )}
-            </table>
-          </div>
-        </div>
-
-        <CalibrationModal
-          isOpen={isModalOpen}
-          onClose={closeModal}
-          activeLog={activeLog}
-          onArchive={handleArchive}
-        />
+                  </thead>
+                  <tbody className={UI.table.tbody}>
+                    {rows.length === 0 ? (
+                      <tr><td colSpan={8} className="py-12 px-5 text-center text-[13px] text-[#64748B]">No reviewed cases yet. Cases appear here once a Cardiologist submits a review.</td></tr>
+                    ) : rows.map((r) => {
+                      const agreement = AGREEMENT[r.tier_agreement];
+                      const isOpen = open === r.round_id;
+                      return (
+                        <Fragment key={r.round_id}>
+                          <tr className={UI.table.tr}>
+                            <td className={UI.table.td}>
+                              <button type="button" aria-expanded={isOpen} aria-label={`${isOpen ? "Hide" : "Show"} details for ${r.case_code}`} onClick={() => setOpen(isOpen ? null : r.round_id)} className={UI.button.icon}>
+                                {isOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                              </button>
+                            </td>
+                            <td className={UI.table.td}>
+                              <div className="text-[13px] font-semibold">{r.case_code}</div>
+                              <div className="text-[11.5px] text-[#64748B]">{LANES[r.lane]?.label} · {day(r.reviewed_at)}</div>
+                            </td>
+                            <td className={UI.table.td}>
+                              <div className="text-[13px] font-semibold">{r.app_tier || "No level"}</div>
+                              <div className="text-[11.5px] text-[#64748B]">{r.app_score != null ? `${r.app_score} · ` : ""}{SCORERS[r.app_scorer]}</div>
+                            </td>
+                            <td className={UI.table.td}>
+                              <div className="text-[13px] font-semibold">{r.expert_tier}</div>
+                              <div className="text-[11.5px] text-[#64748B]">{r.expert_score != null ? `Score ${r.expert_score}` : "No score"}</div>
+                            </td>
+                            <td className={UI.table.td}>
+                              <span className={`text-[11.5px] font-semibold px-2 py-0.5 rounded-full border whitespace-nowrap ${agreement?.className || ""}`}>{agreement?.label || "Not comparable"}</span>
+                            </td>
+                            <td className={UI.table.td}><CheckSummary check={r.food_check} /></td>
+                            <td className={UI.table.td}><CheckSummary check={r.exercise_check} /></td>
+                            <td className={`${UI.table.td} text-[12.5px] font-semibold ${r.is_clinical ? "text-[#14534B]" : "text-[#7A5414]"}`}>{r.is_clinical ? "Clinical" : "Practice"}</td>
+                          </tr>
+                          {isOpen && (
+                            <tr>
+                              <td colSpan={8} className="bg-[#F8FAFC] px-5 py-4">
+                                <dl className="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1.5 text-[12.5px] m-0">
+                                  <dt className="font-semibold">Reviewer</dt><dd className="m-0">{r.reviewer_name} · confidence {labelOf(CONFIDENCE, r.confidence)}</dd>
+                                  <dt className="font-semibold">Reasons</dt><dd className="m-0">{r.reasons.map((x) => labelOf(REASONS, x)).join(", ")}</dd>
+                                  <dt className="font-semibold">Checkup</dt><dd className="m-0">{labelOf(CHECKUP, r.checkup_flag)}</dd>
+                                  {r.notes ? (<><dt className="font-semibold">Note</dt><dd className="m-0 whitespace-pre-line">{r.notes}</dd></>) : null}
+                                  <dt className="font-semibold">Food check</dt>
+                                  <dd className="m-0">{r.food_check.status === "done" ? `${r.food_check.reviewer_name}: ${r.food_check.not_suitable.length ? `not suitable: ${r.food_check.not_suitable.join(", ")}` : "all recipes suitable"}` : PROGRESS[r.food_check.status]?.label}</dd>
+                                  <dt className="font-semibold">Exercise check</dt>
+                                  <dd className="m-0">{r.exercise_check.status === "done"
+                                    ? `${r.exercise_check.reviewer_name}: ${[r.exercise_check.not_suitable.length ? `not suitable: ${r.exercise_check.not_suitable.join(", ")}` : "", r.exercise_check.with_changes.length ? `with changes: ${r.exercise_check.with_changes.join(", ")}` : ""].filter(Boolean).join("; ") || "all exercises suitable"}`
+                                    : PROGRESS[r.exercise_check.status]?.label}</dd>
+                                  <dt className="font-semibold">Model</dt><dd className="m-0">{r.model_version || "Unknown"} · case opened {day(r.opened_at)}</dd>
+                                </dl>
+                                {isAdmin && (
+                                  <button type="button" onClick={() => archive(r)} className={`${UI.button.secondary} mt-3`}>Archive this review</button>
+                                )}
+                              </td>
+                            </tr>
+                          )}
+                        </Fragment>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </AdminLayout>
   );
 };
 
-export default Calibration;
+export default ModelCheck;
