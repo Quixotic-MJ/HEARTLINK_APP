@@ -111,7 +111,7 @@ function RootLayoutNav() {
 
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { queryClient, asyncStoragePersister } from '../lib/react-query';
-import { Colors } from '../constants/theme';
+import { Colors, DARK_MODE_ENABLED } from '../constants/theme';
 
 export default function RootLayout() {
   const { colorScheme, setColorScheme } = useColorScheme();
@@ -135,8 +135,10 @@ export default function RootLayout() {
     }
 
     AsyncStorage.getItem("theme_preference")
-      .then((pref) => {
+      .then((stored) => {
         if (!mounted) return;
+        // While dark mode is unfinished the app always runs light, whatever the phone or the saved setting says.
+        const pref = DARK_MODE_ENABLED ? stored : "light";
         if (pref === "light" || pref === "dark" || pref === "system") {
           setTimeout(() => {
             if (!mounted) return;
@@ -152,7 +154,9 @@ export default function RootLayout() {
         }
       })
       .catch(() => {
-        if (mounted) setPrefLoaded(true);
+        if (!mounted) return;
+        if (!DARK_MODE_ENABLED) setColorScheme("light");
+        setPrefLoaded(true);
       });
     return () => {
       mounted = false;

@@ -6,7 +6,7 @@ import { useRouter } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 import { useColorScheme } from "nativewind";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { theme } from "../../../constants/theme";
+import { theme, DARK_MODE_ENABLED } from "../../../constants/theme";
 
 export default function AppearanceScreen() {
   const router = useRouter();
@@ -17,13 +17,16 @@ export default function AppearanceScreen() {
 
   useEffect(() => {
     AsyncStorage.getItem("theme_preference").then((pref) => {
-      if (pref === "light" || pref === "dark" || pref === "system") {
+      if (!DARK_MODE_ENABLED) {
+        setSelectedTheme("light");
+      } else if (pref === "light" || pref === "dark" || pref === "system") {
         setSelectedTheme(pref);
       }
     });
   }, []);
 
   const handleThemeChange = async (theme: "light" | "dark" | "system") => {
+    if (!DARK_MODE_ENABLED && theme !== "light") return;
     setSelectedTheme(theme);
     setColorScheme(theme);
     await AsyncStorage.setItem("theme_preference", theme);
@@ -63,14 +66,18 @@ export default function AppearanceScreen() {
         <View className="bg-surface rounded-3xl border border-border/80 dark:border-slate-800/80 p-3 mb-6 shadow-sm shadow-slate-100 dark:shadow-none">
           {themes.map((t) => {
             const isSelected = selectedTheme === t.id;
+            // Dark mode is unfinished, so only Light can be picked for now (see DARK_MODE_ENABLED)
+            const unavailable = !DARK_MODE_ENABLED && t.id !== "light";
             return (
               <TouchableOpacity
                 key={t.id}
+                disabled={unavailable}
+                style={unavailable ? { opacity: 0.45 } : undefined}
                 onPress={() => handleThemeChange(t.id as any)}
                 accessible={true}
                 accessibilityRole="radio"
-                accessibilityState={{ checked: isSelected }}
-                accessibilityLabel={`${t.title}, ${t.description}`}
+                accessibilityState={{ checked: isSelected, disabled: unavailable }}
+                accessibilityLabel={`${t.title}, ${unavailable ? "coming soon" : t.description}`}
                 activeOpacity={0.7}
                 className={`flex-row items-center p-3.5 rounded-2xl mb-1 ${
                   isSelected ? "bg-blue-tint/60 dark:bg-blue-950/30 border border-blue-200/60 dark:border-blue-900/40" : ""
@@ -96,7 +103,7 @@ export default function AppearanceScreen() {
                     {t.title}
                   </Text>
                   <Text className="text-[12px] text-text-soft mt-0.5 leading-snug">
-                    {t.description}
+                    {unavailable ? "Coming soon" : t.description}
                   </Text>
                 </View>
                 {isSelected && (
