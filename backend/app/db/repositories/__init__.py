@@ -16,6 +16,7 @@ from app.db.repositories.admin import AdminRepository, SupabaseAdminRepository
 from app.db.repositories.feedback import FeedbackRepository, SupabaseFeedbackRepository
 from app.db.repositories.case_review import CaseReviewRepository, SupabaseCaseReviewRepository
 from app.db.repositories.content import ContentRepository, SupabaseContentRepository
+from app.db.repositories.pending_registrations import PendingRegistrationRepository, SupabasePendingRegistrationRepository
 
 _profile_repo = None
 _baseline_repo = None
@@ -29,6 +30,7 @@ _admin_repo = None
 _feedback_repo = None
 _case_review_repo = None
 _content_repo = None
+_pending_registration_repo = None
 
 def get_profile_repo() -> ProfileRepository:
     global _profile_repo
@@ -101,5 +103,11 @@ def get_content_repo() -> ContentRepository:
     if _content_repo is None:
         _content_repo = SupabaseContentRepository(get_supabase_client())
     return _content_repo
+
+def get_pending_registration_repo() -> PendingRegistrationRepository:
+    global _pending_registration_repo
+    if _pending_registration_repo is None:
+        _pending_registration_repo = SupabasePendingRegistrationRepository(get_supabase_client())
+    return _pending_registration_repo
 
 get_sleep_logs_repo = get_sleep_repo

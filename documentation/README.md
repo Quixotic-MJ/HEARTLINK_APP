@@ -67,6 +67,18 @@ Logged-out login tokens, so they stay invalid after a server restart (HL-010).
 |  | `expires_at` | `TIMESTAMPTZ` | NOT NULL | Expired rows are cleaned up |
 |  | `revoked_at` | `TIMESTAMPTZ` | NOT NULL DEFAULT now() | |
 
+### 2.1 Users & Authentication - `pending_registrations`
+
+Sign-ups waiting for their verification code, so a restart doesn't lose them (HL-046, migration 024). Rows are removed when the sign-up finishes or expires.
+
+| Table Name | Column | Data Type | Constraints | Description |
+|---|---|---|---|---|
+| `pending_registrations` | `phone` | `TEXT` | PRIMARY KEY | `+63…`; one pending sign-up per number |
+|  | `email` | `TEXT` | NOT NULL | |
+|  | `password_hash` | `TEXT` | NOT NULL | bcrypt hash, never the password; Supabase Auth takes it as `password_hash` |
+|  | `expires_at` | `TIMESTAMPTZ` | NOT NULL | 10 minutes after "Send code" (resend extends it) |
+|  | `created_at` | `TIMESTAMPTZ` | NOT NULL DEFAULT now() | |
+
 ### 2.2 Patient Data & Settings - `baseline_onboarding`
 
 | Table Name | Column | Data Type | Constraints | Description |

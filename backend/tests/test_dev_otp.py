@@ -48,13 +48,13 @@ def repo(monkeypatch):
 
 
 @pytest.fixture
-def svc():
+def svc(pending_repo):
     client = MagicMock()
     client.auth.admin.list_users.return_value = []
     client.auth.admin.create_user.return_value = SimpleNamespace(
         user=SimpleNamespace(id="new-user-id", email=EMAIL, phone=PHONE)
     )
-    return SupabaseAuthService(client)
+    return SupabaseAuthService(client, pending_repo)
 
 
 # --- get_dev_otp_code ---------------------------------------------------------
@@ -152,12 +152,12 @@ def test_code_cannot_complete_another_numbers_sign_up(otp_env, repo, svc):
 
 def test_expired_pending_sign_up_is_rejected(otp_env, repo, svc):
     svc.request_registration_otp(PHONE, EMAIL, PASSWORD)
-    svc._pending_registrations[PHONE]["expires_at"] = (utc_now() - timedelta(seconds=1)).isoformat()
+    svc.pending.rows[PHONE]["expires_at"] = (utc_now() - timedelta(seconds=1)).isoformat()
 
     with pytest.raises(HTTPException) as exc:
         svc.verify_registration_otp(PHONE, "123456")
     assert exc.value.status_code == 400
-    assert PHONE not in svc._pending_registrations
+    assert PHONE not in svc.pending.rows
 
 
 def test_existing_account_password_is_never_reset(otp_env, repo, svc):
