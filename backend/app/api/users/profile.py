@@ -1,5 +1,5 @@
 from fastapi import APIRouter, status, HTTPException, Depends, Request, Response
-from app.utils.security import get_current_user, set_auth_cookies, REFRESH_COOKIE_NAME
+from app.utils.security import get_current_user, set_auth_cookies, REFRESH_COOKIE_NAME, STAFF_ROLES
 from app.services.session_service import restart_after_password_change
 from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
 from app.schemas.user import (
@@ -29,7 +29,7 @@ router = APIRouter(prefix="/users", tags=["Users"])
 async def read_all_users(current_user: dict = Depends(get_current_user)):
     caller_role = current_user.get("role")
     caller_id = current_user.get("user_id")
-    if caller_role not in ["admin", "super_admin", "medical_expert", "doctor", "clinician"]:
+    if caller_role not in STAFF_ROLES:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access Denied: Admins/Experts only",
@@ -50,8 +50,8 @@ async def read_all_users(current_user: dict = Depends(get_current_user)):
     
     all_profiles = get_profile_repo().list_all(exclude_archived=False)
 
-    # Medical experts and doctors may only list patients assigned to their care team (TKT-SEC-01)
-    if caller_role in ["medical_expert", "doctor", "clinician"]:
+    # Medical experts may only list patients assigned to their care team (TKT-SEC-01)
+    if caller_role == "medical_expert":
         assigned_user_ids = set()
         for p in all_profiles:
             pid = p.get("id")
