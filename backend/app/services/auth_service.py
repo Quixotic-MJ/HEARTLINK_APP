@@ -6,7 +6,6 @@ Handles user registration, OTP verification, login, 2FA, password change, recove
 """
 import os
 import re
-import uuid
 import hashlib
 import hmac
 import random
@@ -59,6 +58,28 @@ def get_dev_otp_code() -> Optional[str]:
 
 
 SIGNUP_CLOSED_DETAIL = "Sign-up is currently closed. Contact the system administrator for an account."
+ALREADY_REGISTERED_DETAIL = "This account is already registered. Please log in with your password."
+SIGNUP_RETRY_DETAIL = "We couldn't finish creating your account. Please try again."
+
+# HL-051: a login with no profile that is at most this old is the half-finished result of the same
+# sign-up (for example the first try timed out), so a retry may finish it instead of being blocked
+HALF_FINISHED_SIGNUP_WINDOW = timedelta(minutes=15)
+AUTH_USERS_PAGE_SIZE = 1000
+AUTH_USERS_MAX_PAGES = 50
+
+
+def _digits(value: Optional[str]) -> str:
+    return "".join(filter(str.isdigit, value or ""))
+
+
+def _is_duplicate_error(err: Exception) -> bool:
+    text = str(err).lower()
+    return "already" in text or "duplicate" in text or "exists" in text
+
+
+def _is_timeout_error(err: Exception) -> bool:
+    text = f"{type(err).__name__} {err}".lower()
+    return "timeout" in text or "timed out" in text
 
 class AuthService:
     def request_registration_otp(self, phone: str, email: str, password: str) -> Dict[str, Any]:
@@ -111,6 +132,133 @@ class SupabaseAuthService(AuthService):
         options = SyncClientOptions(auto_refresh_token=False, persist_session=False)
         return create_client(url, key, options=options).auth
 
+    def _find_auth_user(self, email: str, phone: str):
+        """
+        Returns the Supabase Auth login whose email or phone matches, or None. supabase-py has no
+        lookup by email, so this pages through the whole user list (one page is only 50 by default).
+        """
+        email = (email or "").strip().lower()
+        phone_digits = _digits(normalize_e164(phone) if phone else "")
+        for page in range(1, AUTH_USERS_MAX_PAGES + 1):
+            res = self.client.auth.admin.list_users(page=page, per_page=AUTH_USERS_PAGE_SIZE)
+            users = res if isinstance(res, list) else (getattr(res, "users", []) or [])
+            for u in users:
+                if email and (getattr(u, "email", None) or "").lower() == email:
+                    return u
+                if phone_digits and _digits(getattr(u, "phone", None)) == phone_digits:
+                    return u
+            if len(users) < AUTH_USERS_PAGE_SIZE:
+                return None
+        return None
+
+    def _resumable_login(self, email: str, phone: str):
+        """
+        HL-051: the existing login a retry may finish, or None. Only a login with this exact email AND
+        phone that was created in the last few minutes counts; anything older is someone's real account.
+        """
+        try:
+            auth_user = self._find_auth_user(email, phone)
+        except Exception as lookup_err:
+            logger.warning("Could not look up the existing login (%s)", type(lookup_err).__name__)
+            return None
+        if not auth_user:
+            return None
+
+        same_details = (
+            (getattr(auth_user, "email", None) or "").lower() == email.strip().lower()
+            and _digits(getattr(auth_user, "phone", None)) == _digits(phone)
+        )
+        created_at = parse_utc(getattr(auth_user, "created_at", None))
+        recent = created_at is not None and utc_now() - created_at <= HALF_FINISHED_SIGNUP_WINDOW
+        if same_details and recent:
+            return auth_user
+        logger.warning("Sign-up blocked: login %s already exists without a profile", auth_user.id)
+        return None
+
+    def _create_login(self, pending_key: str, email: str, password: str, phone: str, profile_repo):
+        """HL-051: creates the Supabase Auth login, or finishes a half-made one. Never invents an id."""
+        try:
+            res = self.client.auth.admin.create_user({
+                "email": email,
+                "password": password,
+                "phone": phone,
+                "email_confirm": True,
+                "phone_confirm": True
+            })
+            auth_user = res.user if hasattr(res, "user") else res
+            if not getattr(auth_user, "id", None):
+                raise ValueError("Supabase returned no user id")
+            return auth_user
+        except Exception as create_err:
+            if _is_duplicate_error(create_err):
+                if profile_repo.get_by_identifier(phone) or profile_repo.get_by_identifier(email):
+                    # HL-045: never take over (or reset the password of) an account that already exists
+                    self._pending_registrations.pop(pending_key, None)
+                    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=ALREADY_REGISTERED_DETAIL)
+
+                auth_user = self._resumable_login(email, phone)
+                if auth_user is None:
+                    self._pending_registrations.pop(pending_key, None)
+                    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=ALREADY_REGISTERED_DETAIL)
+                try:
+                    self.client.auth.admin.update_user_by_id(str(auth_user.id), {"password": password})
+                except Exception as update_err:
+                    logger.error("Could not finish the half-made login (%s)", type(update_err).__name__)
+                    raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=SIGNUP_RETRY_DETAIL)
+                logger.info("Finished a half-made sign-up for login %s", auth_user.id)
+                return auth_user
+
+            # The pending sign-up is kept, so the person can retry with the same code
+            if _is_timeout_error(create_err):
+                logger.warning("Creating the login timed out (%s)", type(create_err).__name__)
+                raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=SIGNUP_RETRY_DETAIL)
+            logger.error("Creating the login failed (%s): %s", type(create_err).__name__, str(create_err)[:200])
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=SIGNUP_RETRY_DETAIL)
+
+    def _create_patient_profile(self, pending_key: str, user_id: str, phone: str, email: str, profile_repo) -> None:
+        """HL-051: creates the patient's profile. If that fails, the new login is removed again."""
+        new_profile = {
+            "id": user_id,
+            "phone": phone,
+            "email": email,
+            "role": "patient",
+            "first_name": "",
+            "last_name": "",
+            "date_of_birth": None,
+            "sex": None,
+            "height_cm": None,
+            "weight_kg": None,
+            "avatar_url": None,
+            "health_goals": [],
+            "onboarding_status": "pending",
+            "account_status": "active"
+        }
+        try:
+            if profile_repo.create(new_profile):
+                return
+            failure = HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=SIGNUP_RETRY_DETAIL)
+        except HTTPException as p_err:
+            # A duplicate is fine only when the profile really belongs to this login
+            if p_err.status_code == status.HTTP_409_CONFLICT and profile_repo.get_by_id(user_id):
+                return
+            if p_err.status_code == status.HTTP_409_CONFLICT:
+                # The phone or email is taken by another profile; retrying won't help
+                self._pending_registrations.pop(pending_key, None)
+                failure = HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=ALREADY_REGISTERED_DETAIL)
+            else:
+                failure = HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=SIGNUP_RETRY_DETAIL)
+        except Exception as p_err:
+            logger.error("Creating the profile failed (%s)", type(p_err).__name__)
+            failure = HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=SIGNUP_RETRY_DETAIL)
+
+        # Roll back, so no login is left without a profile (same idea as staff creation)
+        try:
+            self.client.auth.admin.delete_user(user_id)
+            logger.warning("Removed login %s after its profile could not be created", user_id)
+        except Exception as del_err:
+            logger.error("Could not remove login %s after a failed sign-up (%s)", user_id, type(del_err).__name__)
+        raise failure
+
     def request_registration_otp(self, phone: str, email: str, password: str) -> Dict[str, Any]:
         try:
             profile_repo = get_profile_repo()
@@ -139,28 +287,21 @@ class SupabaseAuthService(AuthService):
 
             # Check if already present in auth.users
             try:
-                users_res = self.client.auth.admin.list_users()
-                users_list = users_res if isinstance(users_res, list) else (getattr(users_res, 'users', []) or [])
-                for u in users_list:
-                    u_email = (getattr(u, 'email', None) or "").lower()
-                    u_phone = getattr(u, 'phone', None) or ""
-                    clean_phone = "".join(filter(str.isdigit, phone))
-                    if u_email and u_email == email.lower():
-                        raise HTTPException(
-                            status_code=status.HTTP_400_BAD_REQUEST,
-                            detail="This email address is already registered in Auth. Please log in instead."
-                        )
-                    if u_phone:
-                        clean_u_phone = "".join(filter(str.isdigit, u_phone))
-                        if clean_u_phone and clean_phone and clean_u_phone == clean_phone:
-                            raise HTTPException(
-                                status_code=status.HTTP_400_BAD_REQUEST,
-                                detail="This phone number is already registered in Auth. Please log in instead."
-                            )
-            except HTTPException:
-                raise
-            except Exception:
-                pass
+                auth_user = self._find_auth_user(clean_email, e164_phone)
+            except Exception as lookup_err:
+                # Not fatal: creating the login later fails on a duplicate anyway, and that is handled
+                logger.warning("Could not check existing logins (%s)", type(lookup_err).__name__)
+                auth_user = None
+            if auth_user:
+                if (getattr(auth_user, "email", None) or "").lower() == clean_email:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="This email address is already registered in Auth. Please log in instead."
+                    )
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="This phone number is already registered in Auth. Please log in instead."
+                )
 
             # HL-045: no SMS gateway yet, so sign-up is only open while dev OTP mode is on
             if get_dev_otp_code() is None:
@@ -230,82 +371,19 @@ class SupabaseAuthService(AuthService):
             if not hmac.compare_digest(str(code).strip(), dev_code):
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid Verification Code")
 
-            auth_user = None
-
             email = pending["email"]
             password = pending["password"]
             e164_val = pending.get("e164_phone") or e164_phone
 
-            # Create user directly in Supabase Auth via Admin API
-            try:
-                res = self.client.auth.admin.create_user({
-                    "email": email,
-                    "password": password,
-                    "phone": e164_val,
-                    "email_confirm": True,
-                    "phone_confirm": True
-                })
-                auth_user = res.user if hasattr(res, "user") else res
-            except Exception as create_err:
-                profile_repo = get_profile_repo()
-                prof = profile_repo.get_by_identifier(e164_val) or profile_repo.get_by_identifier(email)
-                if prof:
-                    # HL-045: never take over (or reset the password of) an account that already exists
-                    self._pending_registrations.pop(e164_phone, None)
-                    raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        detail="This account is already registered. Please log in with your password."
-                    )
-                else:
-                    err_str = str(create_err).lower()
-                    if "already" in err_str or "duplicate" in err_str or "timeout" in err_str or "timed out" in err_str:
-                        new_uuid = str(uuid.uuid4())
-                        class UserWrapper:
-                            def __init__(self, uid, em, ph):
-                                self.id = uid
-                                self.email = em
-                                self.phone = ph
-                        auth_user = UserWrapper(new_uuid, email, e164_val)
-                    else:
-                        raise create_err
-
-            if not auth_user:
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid Verification Code")
-
-            auth_user_id = str(auth_user.id)
-            user_email = getattr(auth_user, "email", None) or (pending.get("email") if pending else None)
-
-            # Create corresponding public.profiles row
+            # HL-051: sign-up either finishes completely (real login + profile) or fails with nothing
+            # left half-made, so the person can simply try again
             profile_repo = get_profile_repo()
-            e164_check = e164_val if "e164_val" in locals() else e164_phone
-            existing = (
-                profile_repo.get_by_id(auth_user_id) 
-                or profile_repo.get_by_identifier(phone) 
-                or profile_repo.get_by_identifier(e164_check)
-                or (profile_repo.get_by_identifier(user_email) if user_email else None)
-            )
-            if not existing:
-                new_profile = {
-                    "id": auth_user_id,
-                    "phone": phone,
-                    "email": user_email,
-                    "role": "patient",
-                    "first_name": "",
-                    "last_name": "",
-                    "date_of_birth": None,
-                    "sex": None,
-                    "height_cm": None,
-                    "weight_kg": None,
-                    "avatar_url": None,
-                    "health_goals": [],
-                    "onboarding_status": "pending",
-                    "account_status": "active"
-                }
-                try:
-                    profile_repo.create(new_profile)
-                except Exception as p_err:
-                    if "duplicate" not in str(p_err).lower() and "already" not in str(p_err).lower():
-                        pass
+            auth_user = self._create_login(e164_phone, email, password, e164_val, profile_repo)
+            auth_user_id = str(auth_user.id)
+            user_email = getattr(auth_user, "email", None) or email
+
+            if not profile_repo.get_by_id(auth_user_id):
+                self._create_patient_profile(e164_phone, auth_user_id, e164_val, user_email, profile_repo)
 
             # Clean up pending registration
             self._pending_registrations.pop(e164_phone, None)
