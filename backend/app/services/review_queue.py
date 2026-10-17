@@ -11,6 +11,7 @@ so later comparisons and datasets use exactly what the reviewers saw.
 """
 import json
 import logging
+import math
 import random
 from datetime import timedelta
 from typing import Any, Dict, List, Optional
@@ -42,7 +43,16 @@ def _day(value: Any) -> str:
 
 
 def _json_safe(value: Any) -> Any:
-    return json.loads(json.dumps(value, default=str))
+    """Plain JSON for the database: dates become strings, and NaN or infinity (an unanswered model input) becomes null."""
+    def clean(v):
+        if isinstance(v, float) and (math.isnan(v) or math.isinf(v)):
+            return None
+        if isinstance(v, dict):
+            return {k: clean(x) for k, x in v.items()}
+        if isinstance(v, (list, tuple)):
+            return [clean(x) for x in v]
+        return v
+    return json.loads(json.dumps(clean(json.loads(json.dumps(value, default=str))), allow_nan=False))
 
 
 def _eligible_patients() -> List[Dict[str, Any]]:
