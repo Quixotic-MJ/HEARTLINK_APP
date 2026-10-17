@@ -296,7 +296,7 @@ def get_current_admin_user(request: Request, credentials: Optional[HTTPAuthoriza
             detail="Access Denied: Role mismatch, please log in again",
         )
         
-    if token_role not in ["admin", "medical_expert", "super_admin"]:
+    if token_role not in STAFF_ROLES:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access Denied: Admins/Experts only",
@@ -331,8 +331,8 @@ def verify_user_access(current_user: dict, target_user_id: str) -> None:
             )
         return
 
-    # 3. Medical expert / Clinician: Allowed if self, assigned care team member, or active clinical reviewer
-    if caller_role in ["doctor", "clinician", "medical_expert"]:
+    # 3. Medical expert: Allowed if self, assigned care team member, or active clinical reviewer
+    if caller_role == "medical_expert":
         if caller_id == target_user_id:
             return
         try:
