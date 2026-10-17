@@ -25,8 +25,8 @@ graph TD
     Mobile -- "Vitals, Logs, Profile Updates" --> Backend
     Backend -- "Calculate HSS / Risk Assessment" --> ML
     Backend -- "Read / Write Operations" --> DB
-    ML -- "Generated Insights" --> DB
-    Web -- "Audit Baseline, Curate Recipes & Exercises, Clinic Directory" --> DB
+    ML -- "Scores & Insights" --> Backend
+    Web -- "Case review, Recipes & Exercises, Users, Clinic Directory" --> Backend
 ```
 
 ## 2. Core Entities & Database Tables
@@ -35,12 +35,37 @@ graph TD
 Manages user accounts, application roles, and profile settings.
 
 | Table Name | Column | Data Type | Constraints | Description |
-|------------|--------|-----------|-------------|-------------|
-| `profiles` | `id` | `UUID` | PK, References `auth.users(id)` | Unique user identifier |
-| | `email` | `VARCHAR(255)` | Unique, Not Null | Account email address |
-| | `full_name` | `VARCHAR(150)` | Nullable | User's full name |
-| | `role` | `VARCHAR(50)` | Default `'user'` | Role: `user`, `admin`, `expert` |
-| | `created_at` | `TIMESTAMPTZ` | Default `now()` | Account creation timestamp |
+|---|---|---|---|---|
+| `profiles` | `id` | `UUID` | PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE | Same id as the Supabase Auth user |
+|  | `legacy_id` | `TEXT` | UNIQUE | Old mock-data id, if any |
+|  | `phone` | `TEXT` | UNIQUE when it starts with `+` (migration 021) | Stored as `+63…` |
+|  | `email` | `TEXT` |  | Stored lowercase |
+|  | `first_name`, `last_name` | `TEXT` | DEFAULT '' | |
+|  | `date_of_birth` | `DATE` |  | |
+|  | `sex` | `TEXT` | CHECK (sex IS NULL OR sex IN ('male', 'female')) | |
+|  | `height_cm` | `NUMERIC` | CHECK 50–300 | |
+|  | `weight_kg` | `NUMERIC` | CHECK 20–400 | |
+|  | `avatar_url` | `TEXT` |  | |
+|  | `health_goals` | `TEXT[]` | DEFAULT '{}' | |
+|  | `onboarding_status` | `TEXT` | DEFAULT 'pending' CHECK IN ('pending', 'complete') | |
+|  | `account_status` | `TEXT` | DEFAULT 'active' CHECK IN ('active', 'disabled', 'archived') | Archived = soft-deleted (HL-005) |
+|  | `role` | `TEXT` | DEFAULT 'patient' CHECK IN ('patient', 'medical_expert', 'admin', 'super_admin') | |
+|  | `expert_type` | `TEXT` | CHECK IN ('Physical Therapist', 'Dietitian', 'Cardiologist') or NULL | Medical experts only (HL-011) |
+|  | `must_change_password` | `BOOLEAN` | NOT NULL DEFAULT false | Staff on a temporary password (HL-044) |
+|  | `is_verified_clinician` | `BOOLEAN` | NOT NULL DEFAULT false | Only verified clinicians' reviews count in Model Check (HL-053) |
+|  | `clinician_verified_by` | `UUID` | REFERENCES public.profiles(id) ON DELETE SET NULL | |
+|  | `clinician_verified_at` | `TIMESTAMPTZ` |  | |
+|  | `created_at`, `updated_at` | `TIMESTAMPTZ` | NOT NULL | |
+
+### 2.1 Users & Authentication - `revoked_tokens`
+
+Logged-out login tokens, so they stay invalid after a server restart (HL-010).
+
+| Table Name | Column | Data Type | Constraints | Description |
+|---|---|---|---|---|
+| `revoked_tokens` | `token_hash` | `TEXT` | PRIMARY KEY | SHA-256 of the token, never the token itself |
+|  | `expires_at` | `TIMESTAMPTZ` | NOT NULL | Expired rows are cleaned up |
+|  | `revoked_at` | `TIMESTAMPTZ` | NOT NULL DEFAULT now() | |
 
 ### 2.2 Patient Data & Settings - `baseline_onboarding`
 
@@ -156,8 +181,10 @@ Manages user accounts, application roles, and profile settings.
 |  | `media_url` | `TEXT` | DEFAULT '' | |
 |  | `video_url` | `TEXT` | DEFAULT '' | |
 |  | `guide_images` | `TEXT[]` | DEFAULT '{}' | |
+|  | `requirements` | `JSONB` | NOT NULL DEFAULT '[]'::jsonb | Added in migration 015 |
+|  | `calories` | `INT` | DEFAULT 0 | Estimated calories for the routine (migration 015) |
 |  | `status` | `TEXT` | NOT NULL DEFAULT 'published' CHECK (status IN ('draft', 'published', 'archived')) | |
-|  | `expert_validated` | `BOOLEAN` | NOT NULL DEFAULT true | |
+|  | `expert_validated` | `BOOLEAN` | NOT NULL DEFAULT true | Defaults to true; real approvals come with HL-038 |
 |  | `created_by` | `UUID` | REFERENCES public.profiles(id) ON DELETE SET NULL | |
 |  | `created_at` | `TIMESTAMPTZ` | DEFAULT timezone('utc'::text, now()) NOT NULL | |
 |  | `updated_at` | `TIMESTAMPTZ` | DEFAULT timezone('utc'::text, now()) NOT NULL | |
@@ -200,9 +227,9 @@ Manages user accounts, application roles, and profile settings.
 |---|---|---|---|---|
 | `daily_health_logs` | `id` | `UUID` | PRIMARY KEY DEFAULT gen_random_uuid() | |
 |  | `user_id` | `UUID` | NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE | |
-|  | `systolic_bp` | `INT` | NOT NULL CHECK (systolic_bp >= 50 AND systolic_bp <= 300) | |
-|  | `diastolic_bp` | `INT` | NOT NULL CHECK (diastolic_bp >= 30 AND diastolic_bp <= 200) | |
-|  | `heart_rate_bpm` | `INT` | NOT NULL CHECK (heart_rate_bpm >= 30 AND heart_rate_bpm <= 250) | |
+|  | `systolic_bp` | `INT` | CHECK (systolic_bp >= 50 AND systolic_bp <= 300) | Optional since migration 013 |
+|  | `diastolic_bp` | `INT` | CHECK (diastolic_bp >= 30 AND diastolic_bp <= 200) | Both BP values are given together or both left empty |
+|  | `heart_rate_bpm` | `INT` | CHECK (heart_rate_bpm >= 30 AND heart_rate_bpm <= 250) | Optional since migration 013 |
 |  | `weight_kg` | `NUMERIC` | CHECK (weight_kg IS NULL OR (weight_kg >= 20.0 AND weight_kg <= 400.0)) | |
 |  | `blood_sugar` | `NUMERIC` | CHECK (blood_sugar IS NULL OR (blood_sugar >= 20.0 AND blood_sugar <= 1000.0)) | |
 |  | `medication_taken` | `BOOLEAN` | NOT NULL DEFAULT false | |
@@ -240,7 +267,8 @@ Manages user accounts, application roles, and profile settings.
 |  | `user_id` | `UUID` | NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE | |
 |  | `routine_id` | `UUID` | REFERENCES public.exercise_routines(id) ON DELETE SET NULL | |
 |  | `routine_name` | `TEXT` | NOT NULL | |
-|  | `duration_minutes` | `INT` | NOT NULL CHECK (duration_minutes >= 1 AND duration_minutes <= 1440) | |
+|  | `duration_minutes` | `INT` | NOT NULL CHECK (duration_minutes >= 0 AND duration_minutes <= 1440) | |
+|  | `duration_seconds` | `INT` | DEFAULT 0 | Sub-minute precision (migration 012) |
 |  | `status` | `TEXT` | NOT NULL DEFAULT 'completed' CHECK (status IN ('completed', 'in_progress', 'skipped', 'partial', 'incomplete_due_to_symptoms', 'abandoned')) | |
 |  | `logged_at` | `TIMESTAMPTZ` | NOT NULL DEFAULT timezone('utc'::text, now()) | |
 |  | `created_at` | `TIMESTAMPTZ` | NOT NULL DEFAULT timezone('utc'::text, now()) | |
@@ -254,6 +282,8 @@ Manages user accounts, application roles, and profile settings.
 |  | `duration_hours` | `NUMERIC` | NOT NULL CHECK (duration_hours >= 0.5 AND duration_hours <= 24.0) | |
 |  | `quality` | `TEXT` | NOT NULL CHECK (quality IN ('Poor', 'Fair', 'Good', 'Excellent')) | |
 |  | `is_deleted` | `BOOLEAN` | NOT NULL DEFAULT false | |
+|  | `bedtime` | `TIMESTAMPTZ` |  | Added in migration 014 |
+|  | `wake_time` | `TIMESTAMPTZ` |  | Added in migration 014 |
 |  | `logged_at` | `TIMESTAMPTZ` | NOT NULL DEFAULT timezone('utc'::text, now()) | |
 |  | `created_at` | `TIMESTAMPTZ` | NOT NULL DEFAULT timezone('utc'::text, now()) | |
 
@@ -424,37 +454,70 @@ Manages user accounts, application roles, and profile settings.
 |  | `calibrated_by` | `UUID` | REFERENCES public.profiles(id) ON DELETE SET NULL | |
 |  | `calibrated_at` | `TIMESTAMPTZ` | NOT NULL DEFAULT timezone('utc'::text, now()) | |
 
-### 2.7 ML Calibration & Review - `expert_evaluations`
+### 2.7 Case Review - `review_cases`
+
+One row per review round (HL-053). A patient enters the queue through the urgent, sample or re-review lane; rounds are kept, never overwritten.
+
+| Table Name | Column | Data Type | Constraints | Description |
+|---|---|---|---|---|
+| `review_cases` | `id` | `UUID` | PRIMARY KEY DEFAULT gen_random_uuid() | |
+|  | `patient_id` | `UUID` | NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE | At most one open round per patient |
+|  | `case_code` | `TEXT` | NOT NULL | Anonymized code shown to reviewers, e.g. `CASE-0042` |
+|  | `lane` | `TEXT` | NOT NULL CHECK IN ('urgent', 'sample', 'rereview') | |
+|  | `reason` | `TEXT` | NOT NULL | Why the case is in the queue |
+|  | `status` | `TEXT` | NOT NULL DEFAULT 'open' CHECK IN ('open', 'complete', 'archived') | Complete when the Cardiologist submits |
+|  | `app_score`, `app_tier` | `INT`, `TEXT` |  | What the app said when the round opened |
+|  | `app_scorer` | `TEXT` | CHECK IN ('baseline_model', 'bp_rules', 'lifestyle_points', 'unknown') | Which scorer produced it |
+|  | `model_version`, `model_hash` | `TEXT` |  | Baseline model in use |
+|  | `model_features` | `JSONB` | NOT NULL DEFAULT '{}' | The 37 inputs the baseline model reads (unanswered = null) |
+|  | `input_snapshot` | `JSONB` | NOT NULL DEFAULT '{}' | What reviewers are shown, frozen at opening |
+|  | `created_by` | `UUID` | REFERENCES public.profiles(id) ON DELETE SET NULL | Admin who drew a sample |
+|  | `created_at`, `completed_at`, `archived_at` | `TIMESTAMPTZ` |  | |
+
+### 2.7 Case Review - `expert_evaluations`
+
+One row per expert section of a round (rebuilt in migration 022).
 
 | Table Name | Column | Data Type | Constraints | Description |
 |---|---|---|---|---|
 | `expert_evaluations` | `id` | `UUID` | PRIMARY KEY DEFAULT gen_random_uuid() | |
-|  | `legacy_id` | `TEXT` | UNIQUE | |
-|  | `case_id` | `TEXT` | NOT NULL | |
-|  | `user_id` | `UUID` | REFERENCES public.profiles(id) ON DELETE SET NULL | |
+|  | `review_case_id` | `UUID` | NOT NULL REFERENCES public.review_cases(id) ON DELETE CASCADE | |
+|  | `section` | `TEXT` | NOT NULL CHECK IN ('cardiology', 'nutrition', 'exercise') | UNIQUE with `review_case_id` |
 |  | `expert_id` | `UUID` | REFERENCES public.profiles(id) ON DELETE SET NULL | |
-|  | `reviewer_name` | `TEXT` | NOT NULL | |
-|  | `model_score` | `INT` | NOT NULL | |
-|  | `model_tier` | `TEXT` | NOT NULL | |
-|  | `expert_score` | `INT` | NOT NULL CHECK (expert_score >= 1 AND expert_score <= 100) | |
-|  | `expert_tier` | `TEXT` | NOT NULL CHECK (expert_tier IN ('Stable', 'Moderate', 'Elevated Risk', 'Critical')) | |
-|  | `score_difference` | `INT` | NOT NULL | |
-|  | `tier_match` | `BOOLEAN` | NOT NULL | |
-|  | `notes` | `TEXT` | NOT NULL | |
-|  | `recommendation_feedback` | `JSONB` | DEFAULT '{}'::jsonb | |
-|  | `exercise_feedback` | `JSONB` | DEFAULT '{}'::jsonb | |
-|  | `recipe_feedback` | `JSONB` | DEFAULT '{}'::jsonb | |
-|  | `adjustment_reasons` | `TEXT[]` | DEFAULT '{}' | |
-|  | `reviewer_confidence` | `NUMERIC` | CHECK (reviewer_confidence IS NULL OR (reviewer_confidence >= 0.0 AND reviewer_confidence <= 1.0)) | |
-|  | `input_snapshot` | `JSONB` | NOT NULL DEFAULT '{}'::jsonb | |
-|  | `review_context` | `JSONB` | DEFAULT '{}'::jsonb | |
-|  | `model_metadata` | `JSONB` | DEFAULT '{}'::jsonb | |
-|  | `status` | `TEXT` | NOT NULL DEFAULT 'Logged' CHECK (status IN ('Logged', 'Archived', 'Pending', 'completed')) | |
-|  | `created_at` | `TIMESTAMPTZ` | NOT NULL DEFAULT timezone('utc'::text, now()) | |
+|  | `reviewer_name`, `reviewer_expert_type` | `TEXT` |  | |
+|  | `is_clinical` | `BOOLEAN` | NOT NULL DEFAULT false | True only if the reviewer was a verified clinician at submit time |
+|  | `expert_tier` | `TEXT` | CHECK tier names | Required for the cardiology section |
+|  | `expert_score` | `INT` | CHECK 1–100 | Optional |
+|  | `reasons` | `TEXT[]` | NOT NULL DEFAULT '{}' | At least one for cardiology |
+|  | `confidence` | `TEXT` | CHECK IN ('low', 'medium', 'high') | |
+|  | `checkup_flag` | `TEXT` | CHECK IN ('not_needed', 'within_2_weeks', 'asap') | |
+|  | `tier_agreement` | `TEXT` | CHECK IN ('agree', 'under', 'over') | Computed against `review_cases.app_tier` |
+|  | `score_difference` | `INT` |  | Expert score minus app score, when both exist |
+|  | `item_verdicts` | `JSONB` | NOT NULL DEFAULT '[]' | Food / exercise verdicts per recommended item |
+|  | `notes` | `TEXT` | NOT NULL DEFAULT '' | Staff only |
+|  | `status` | `TEXT` | NOT NULL DEFAULT 'submitted' CHECK IN ('submitted', 'archived') | |
+|  | `created_at`, `updated_at` | `TIMESTAMPTZ` | NOT NULL | |
 
-## 4. Security & Access Rules (Row Level Security / RLS)
+### 2.7 Case Review - `patient_hidden_recommendations`
 
-*   **Profiles:** Users can read and update only their own profile data. Admins retain read access across all profiles.
-*   **Health Logs & HSS Records:** Strictly private to the individual account owner (`auth.uid() = user_id`).
-*   **Resources (Recipes & Exercises):** Readable by all authenticated and mobile users. Creation, modification, and deletion are restricted to `admin` and `expert` roles.
-*   **Clinic Directory:** Public read access for all clients; mutations restricted to `admin`.
+Recipes or exercises a reviewer marked not suitable for one patient. Used by HL-057, which is switched off until the adviser approves it.
+
+| Table Name | Column | Data Type | Constraints | Description |
+|---|---|---|---|---|
+| `patient_hidden_recommendations` | `id` | `UUID` | PRIMARY KEY DEFAULT gen_random_uuid() | |
+|  | `patient_id` | `UUID` | NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE | |
+|  | `item_type` | `TEXT` | NOT NULL CHECK IN ('recipe', 'exercise') | UNIQUE with `patient_id` and `item_id` |
+|  | `item_id` | `UUID` | NOT NULL | |
+|  | `review_case_id` | `UUID` | REFERENCES public.review_cases(id) ON DELETE SET NULL | |
+|  | `created_at` | `TIMESTAMPTZ` | NOT NULL DEFAULT now() | |
+
+## 3. Making Database Changes
+
+Every change is a numbered SQL file in `backend/supabase/migrations/`, applied with the Supabase CLI (`npx supabase db push`). See [backend/supabase/README.md](../backend/supabase/README.md). Staging and production share one Supabase project, so a pushed migration reaches the live database immediately.
+
+## 4. Security & Access Rules
+
+*   **The apps never query tables directly.** The mobile app and web portal only talk to the FastAPI backend, which uses the service-role key. Since migration 020, the public `anon` key and logged-in Supabase users (`authenticated`) have no access to any table or to the dashboard function.
+*   **Who may do what is enforced in the backend**, by role (`patient`, `medical_expert`, `admin`, `super_admin`) and, for case review, by expert type (Cardiologist, Dietitian, Physical Therapist).
+*   **Row Level Security stays on for every table** as a second safety layer. Its older per-user policies (for example "users manage own health logs") no longer apply in practice, because those roles have no table access.
+*   **The admin activity log cannot be edited or deleted** (trigger `deny_activity_log_modification`).

@@ -1,4 +1,4 @@
-# HeartLink Mobile App 
+# HeartLink
 
 ## App Purpose
 The application aims to monitor and track users' dietary and lifestyle habits and provide personalized recommendations, including food recipes and exercise routines, based on the user's Health Stability Score (HSS) to support cardiovascular health improvement.
@@ -27,10 +27,11 @@ flowchart TB
             StorageSvc[Storage Service]
             CompSvc[Companion AI Service]
             HSSSvc[Heart Stability Engine]
+            ReviewSvc[Case Review]
         end
         
         subgraph ML Pipeline
-            Sklearn[🤖 Scikit-Learn Model\nRF Classifier]
+            Sklearn[🤖 Scikit-Learn Model\nLogistic Regression]
         end
         
         %% Internal wiring
@@ -39,6 +40,7 @@ flowchart TB
         API --> StorageSvc
         API --> CompSvc
         API --> HSSSvc
+        API --> ReviewSvc
         HSSSvc <--> Sklearn
     end
 
@@ -51,7 +53,7 @@ flowchart TB
 
     %% External Services
     subgraph External APIs
-        Groq[🧠 Groq LLM API\nqwen & llama-3]
+        Groq[🧠 Groq LLM API]
     end
 
     %% Connections
@@ -63,81 +65,111 @@ flowchart TB
     TeleSvc --> DB
     StorageSvc --> Storage
     HSSSvc --> DB
+    ReviewSvc --> DB
     CompSvc -- HTTP POST --> Groq
     HSSSvc -- HTTP POST --> Groq
 ```
 
 ### Components overview
 
-* **Mobile App** (`HeartLink-mobile/`): Targets patients to monitor and track daily health metrics. Built with Expo / React Native.
-* **Web Portal** (`HeartLink-web/`): Targets medical experts and administrators for case review and content management. Built with Vite / React.
-* **Backend API** (`backend/`): Python 3.11 / FastAPI backend. Handles core business logic, secure JWT authentication, telemetry processing, and runs the scikit-learn Heart Stability Score (HSS) ML engine.
-* **Database & Services**: Supabase (PostgreSQL, Auth, Storage) for the primary database. Integrates with the Groq LLM API (qwen/llama-3) to power the Companion AI and generate personalized health insights.
+* **Mobile App** (`HeartLink-mobile/`): for patients, to log and track daily health data. Expo / React Native.
+* **Web Portal** (`HeartLink-web/`): for medical experts and administrators: case review, content and user management. (The Model Check page, which replaces Calibration History, is being built in HL-058.) Vite / React.
+* **Backend API** (`backend/`): Python 3.11 / FastAPI. Business logic, login and permissions, health data, case review, and the Heart Stability Score (HSS) engine.
+* **Database & Services**: Supabase (PostgreSQL, Auth, Storage). Groq's LLM API powers the dashboard insights and the optional Companion AI.
+
+**Only the backend talks to Supabase.** The mobile app and web portal call the backend; direct table access with the public Supabase key is blocked (migration 020).
+
+### How the Heart Stability Score (HSS) is calculated
+* **At onboarding:** a scikit-learn **Logistic Regression** model (`backend/app/ml/heartlink_model.pkl`) reads 37 questionnaire and diet inputs and predicts the chance of "higher risk". The score is `HSS = (1 − probability) × 99 + 1`.
+* **After that:** logged blood pressure and heart rate are scored with fixed guideline rules, and daily meals, exercise and sleep add or subtract lifestyle points.
+* **Levels:** 80–100 Stable · 60–79 Moderate · 50–59 Elevated Risk · 1–49 Critical.
 
 ## 👥 User Roles & Access
 
-| Role | Access Level | Primary Activities |
-|------|--------------|--------------------|
-| **Patient** | Mobile Application | Log vitals, meals, and exercise; view personalized Heart Stability Score (HSS) insights; talk to Companion AI; browse health resources. |
-| **Medical Expert** | Web Portal | Audit content, evaluate algorithmic scoring accuracy, verify patient case records, and provide clinical safety feedback. |
-| **System Admin** | Web Portal | User management, monitor system metrics, content configuration (recipes, exercises), and manage clinic directories. |
+| Role | Where | What they do |
+|------|-------|--------------|
+| **Patient** | Mobile app | Log vitals, meals, exercise and sleep; see their HSS and recommendations; find nearby clinics. |
+| **Medical Expert: Cardiologist** | Web portal | Owns each case review: risk level, reasons, confidence and checkup flag. |
+| **Medical Expert: Dietitian** | Web portal | Checks the recipes recommended for a case. |
+| **Medical Expert: Physical Therapist** | Web portal | Checks the exercises recommended for a case. |
+| **Admin** | Web portal | Users, content (recipes, exercises), clinics, broadcasts, feedback; follows the review queue and draws the weekly sample. |
+| **Super Admin** | Web portal | Everything an Admin can do, plus creating staff accounts (and verifying clinicians once HL-058 lands). |
+
+New staff get a one-time temporary password and must set their own on first login.
 
 ## 📁 Repository Structure
 
 ```plaintext
 CAPSTONE-2/
-├── backend/               # API server, data logic, ML engine, and external services
-├── HeartLink-web/         # Administrative and evaluator web application
-├── HeartLink-mobile/      # Cross-platform mobile client
-├── landing/               # Standalone project landing page
-└── documentation/         # Supplementary architecture diagrams, schemas, and specifications
+├── backend/               # FastAPI server, HSS engine, case review, database migrations (backend/supabase)
+├── HeartLink-web/         # Web admin & expert portal
+├── HeartLink-mobile/      # Patient mobile app
+├── landing/               # Project landing page
+├── documentation/         # Database schema, user flows, formulas, and planning docs
+├── docker-compose.yml     # Local development with Docker (see DOCKER.md)
+└── DOCKER.md              # Team guide: run the backend + portal with Docker
 ```
 
 ## 🌐 Deployments & Environments
 
-| Component | Provider / Platform | Environment | URL | Status |
-|-----------|---------------------|-------------|-----|--------|
-| **Backend API** | Railway | Production | `https://heartlink-api-production-46db.up.railway.app` | 🟢 Active |
-| **Backend API (Standby)** | Render | Staging | `https://heartlink-staging.onrender.com` | 🟡 Suspended |
-| **Web Portal** | Vercel | Production | `https://heartlink-admin-six.vercel.app` | 🟢 Active |
-| **Database & Storage** | Supabase | Cloud Instance | `Protected Managed Service` | 🟢 Active |
+| Component | Provider | Branch | URL | Status |
+|-----------|----------|--------|-----|--------|
+| **Backend API** | Railway | `main` | `https://heartlink-api-production-46db.up.railway.app` | 🟢 Active |
+| **Web Portal** | Vercel | `main` | `https://heartlink-admin-six.vercel.app` | 🟢 Active |
+| **Backend API (standby)** | Render | not connected | `https://heartlink-staging.onrender.com` | 🟡 Suspended |
+| **Database & Storage** | Supabase | shared | Managed service | 🟢 Active |
+
+**Branches:** work happens on `staging`; `main` is what Railway and Vercel deploy (the live site). Staging and live share **one Supabase database**, so database changes reach the live app right away. See [backend/supabase/README.md](backend/supabase/README.md) for how to change the database safely.
 
 ## ⚙️ Prerequisites
 
-Before running the application locally, ensure you have the following installed:
-
-* **Python Runtime**: Version `Python 3.11`
-* **Node.js Environment**: Version `Node.js v18+`
-* **Package Managers**: `npm` (for web/mobile) and `pip` (for backend)
-* **Client Tools**: `Expo Go` app (iOS/Android) or mobile emulators (Android Studio/Xcode)
+* **Python 3.11** (backend)
+* **Node.js 20+** and `npm` (web portal and mobile app)
+* **Expo Go** on your phone, or an Android/iOS emulator
+* Or **Docker Desktop** to run the backend and portal without installing Python/Node for them (see below)
 
 ## 🚀 Local Development Setup
 
-To run the complete system locally, launch each service in its own terminal window:
+### Option A: Docker (recommended for the team)
+Runs the backend and web portal with one command. Full guide: **[DOCKER.md](DOCKER.md)**.
+```bash
+cp backend/.env.example backend/.env   # then fill in the values (ask the project lead)
+docker compose up --build
+```
+Backend: http://localhost:8000 · Portal: http://localhost:5173 · Mobile app: see step 3 below.
 
-### 1. Backend API (FastAPI)
+### Option B: Run each part yourself
+
+**1. Backend API (FastAPI)**
 ```bash
 cd backend
 pip install -r requirements.txt
-# Copy .env.example to .env and configure your Supabase keys
-uvicorn app.main:app --reload
+cp .env.example .env   # then fill in the values
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
-*Runs on http://localhost:8000*
+Runs on http://localhost:8000. `--host 0.0.0.0` lets your phone reach it over Wi-Fi.
 
-### 2. Web Admin Portal (React/Vite)
+**2. Web Admin Portal (React/Vite)**
 ```bash
 cd HeartLink-web
 npm install
-# Copy .env.example to .env and configure VITE_API_URL
+cp .env.example .env
 npm run dev
 ```
-*Runs on http://localhost:5173*
+Runs on http://localhost:5173 and forwards `/api` calls to the backend.
 
-### 3. Mobile App (React Native/Expo)
+**3. Mobile App (React Native/Expo)**
 ```bash
 cd HeartLink-mobile
 npm install
-# Copy .env.example to .env and configure EXPO_PUBLIC_API_URL
+cp .env.example .env   # set EXPO_PUBLIC_API_URL=http://<your computer's Wi-Fi IP>:8000
 npx expo start
 ```
-*Scans the QR code with the Expo Go app on your physical device, or press 'a'/'i' to open in an emulator.*
+Scan the QR code with Expo Go (same Wi-Fi as the computer), or press `a` / `i` for an emulator.
+
+## 📚 More documentation
+* [DOCKER.md](DOCKER.md): Docker setup for the team
+* [backend/README.md](backend/README.md) · [HeartLink-web/README.md](HeartLink-web/README.md) · [HeartLink-mobile/README.md](HeartLink-mobile/README.md)
+* [backend/supabase/README.md](backend/supabase/README.md): making database changes
+* [documentation/README.md](documentation/README.md): database schema and access rules
+* [documentation/USER_FLOWS.md](documentation/USER_FLOWS.md) · [documentation/IPO_MODELS.md](documentation/IPO_MODELS.md) · [documentation/COMPUTATIONS_AND_FORMULAS.md](documentation/COMPUTATIONS_AND_FORMULAS.md)

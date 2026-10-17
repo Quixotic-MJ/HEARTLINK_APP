@@ -1,147 +1,130 @@
 # HeartLink - Backend API
 
-The core backend service for HeartLink, built with FastAPI and Python. This service handles data logic, machine learning pipelines, external AI integrations, and acts as the authoritative gateway to the database.
+The core backend for HeartLink, built with FastAPI. It is the only part of the system that talks to the database: the mobile app and web portal both go through it. It handles logins and permissions, health data, the Heart Stability Score (HSS), case review, and AI insights.
 
 ---
 
 ## 🛠️ Tech Stack & Requirements
 
 * **Runtime:** Python 3.11
-* **Framework:** FastAPI
-* **Server:** Uvicorn (ASGI)
-* **Database & Auth:** Supabase (PostgreSQL, Supabase Storage, Supabase Auth)
-* **Machine Learning / AI:** scikit-learn (Risk Classifiers), Groq SDK (qwen/llama-3 for LLM insights)
-* **Validation & Security:** Pydantic v2, PyJWT, Passlib (bcrypt)
+* **Framework:** FastAPI, served by Uvicorn
+* **Database, Auth & Storage:** Supabase (PostgreSQL, Supabase Auth, Supabase Storage) through the service-role key
+* **Scoring:** scikit-learn Logistic Regression (`app/ml/heartlink_model.pkl`) plus guideline-based blood-pressure rules and lifestyle points
+* **AI insights:** Groq API (dashboard insights; optional Companion chat)
+* **Security:** PyJWT, slowapi (rate limiting), Pydantic v2 validation
+* **Tests:** pytest
 
-## 📁 Directory Architecture & Component Responsibilities
+## 📁 Directory Layout
 
 ```text
 backend/
 ├── app/
-│   ├── main.py              # The main starting point of the backend. It turns on the server and connects all the pieces.
-│   │
-│   ├── api/                 # The "doorways" where the mobile app and website send their requests.
-│   │   ├── auth/            # Handles user sign-ups, log-ins, and keeping users securely signed in.
-│   │   ├── companion/       # Handles the conversational AI companion feature.
-│   │   ├── dashboard/       # Gathers all patient data to show daily insights and streaks on the main screen.
-│   │   ├── health_logs/     # Saves daily health checks like blood pressure, heart rate, and blood sugar.
-│   │   └── admin_api/       # Secure areas strictly for doctors to review cases and admins to manage the system.
-│   │
-│   ├── services/            # The "brain" of the app. Contains the actual rules and calculations.
-│   │   ├── hss_service.py     # Calculates the patient's Heart Stability Score based on daily health logs.
-│   │   ├── ml_service.py      # Uses artificial intelligence to figure out a patient's initial health risk level.
-│   │   ├── storage_service.py # Securely saves and manages uploaded files like profile pictures and exercise videos.
-│   │   └── auth_service.py    # Securely scrambles passwords and manages user profiles.
-│   │
-│   ├── db/                  # Handles all communication with the database (where information is stored).
-│   │   ├── client.py        # Sets up the secure connection to the database.
-│   │   ├── rest_client.py   # A backup way to talk to the database if the main connection fails.
-│   │   ├── repositories/    # Organizes how we save and grab specific things like meals or exercises.
-│   │   └── bootstrap.py     # Automatically adds basic information (like clinic lists) when the server first starts.
-│   │
-│   ├── ml/                  # Machine Learning Files
-│   │   └── heartlink_model.pkl # The pre-trained AI file that predicts cardiovascular health risks.
-│   │
-│   ├── schemas/             # Rulebooks that double-check all information entering or leaving the app is formatted correctly.
-│   │
-│   └── utils/               # Helpful tools used across the app.
-│       └── security.py      # Makes sure users are actually allowed to see the information they are asking for.
-│
-├── static/                  # A local folder for saving images/videos if the cloud storage is down.
-├── supabase/                # Scripts to set up and check the health of the database.
-├── verify_deployment_readiness.py # A safety check that runs before launching to make sure the app won't crash.
-├── seed_*.py                # Helper scripts that quickly fill the database with sample data (like fast food nutrition info).
-├── requirements.txt         # A list of external code tools the app needs to download to run properly.
-└── .env.example             # A template file showing where to put secret passwords and API keys.
+│   ├── main.py              # Starts the server and connects all the routes.
+│   ├── api/                 # The "doorways" the mobile app and web portal call.
+│   │   ├── auth/            # Sign-up, login, logout, web portal session (HttpOnly cookie).
+│   │   ├── users/           # Patient profile, baseline answers, password change.
+│   │   ├── dashboard/       # Daily dashboard data and insights for the mobile app.
+│   │   ├── health_logs/, meals/, exercises/, sleep_logs/   # What patients log each day.
+│   │   ├── recipes_api/, notifications_api/, analytics_api/, companion/
+│   │   └── admin_api/       # Web portal: users, staff, content, case review queue, calibration.
+│   ├── services/            # The rules and calculations.
+│   │   ├── hss_service.py       # Heart Stability Score (model, blood-pressure rules, lifestyle points).
+│   │   ├── feature_transform.py # Turns onboarding answers into the model's 37 inputs.
+│   │   ├── review_rules.py      # Case review queue thresholds (proposed values, pending the cardiologist).
+│   │   ├── review_queue.py      # Urgent / sample / re-review lanes.
+│   │   ├── review_sections.py   # Cardiologist, Dietitian and PT parts of a review.
+│   │   ├── auth_service.py      # Sign-up codes, login, password checks.
+│   │   └── storage_service.py   # Uploaded images and videos.
+│   ├── db/                  # Database access.
+│   │   ├── client.py        # The Supabase connection.
+│   │   ├── repositories/    # One file per area (profiles, meals, case review, …).
+│   │   └── bootstrap.py     # Adds starter content (clinics, recipes) on startup if missing.
+│   ├── ml/heartlink_model.pkl   # The trained baseline model.
+│   ├── schemas/             # Rules that check data coming in and going out.
+│   └── utils/               # Shared helpers: security.py (logins, roles), phone.py, time.py, rate limiter.
+├── supabase/
+│   ├── migrations/          # Every database change, numbered (001_…sql to 023_…sql).
+│   ├── seed/                # Sample content (clinics, exercises, recipes).
+│   └── README.md            # How to change the database with the Supabase CLI.
+├── scripts/                 # One-off tools: data checks, seeding, offline model training.
+├── tests/                   # Automated tests (pytest).
+├── static/                  # Local fallback folder for uploads.
+├── Dockerfile               # Used by Railway and by docker-compose.
+├── requirements.txt
+└── .env.example             # Template for your .env file.
 ```
 
 ## ⚙️ Environment Variables
-
-Create a `.env` file in the root of the `backend/` directory based on `.env.example`:
 
 ```bash
 cp .env.example .env
 ```
 
-| Key | Description | Required | Example |
-|-----|-------------|----------|---------|
-| `DATABASE_MODE` | Determines database connection behavior | Yes | `supabase` / `mock` |
-| `SUPABASE_URL` | Supabase project REST endpoint | Yes | `https://xyz.supabase.co` |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase Admin Key (Bypasses RLS) | Yes | `eyJhbGci...` |
-| `SECRET_KEY` | Secret key for JWT token signing. App will not start without it. | Yes (ALL modes) | `super-secret-random-key` |
-| `CORS_ALLOWED_ORIGINS` | Comma-separated list of allowed URLs | Yes | `http://localhost:5173` |
-| `TRUSTED_PROXY_HOPS` | Number of reverse proxies that append to `X-Forwarded-For`; used to rate-limit by real client IP. | No (default `0`) | `2` |
-| `COOKIE_SECURE` | Marks the web portal session/CSRF cookies `Secure`. Set `false` only for local http dev. | No (default `true`) | `false` |
-| `GROQ_API_KEY` | API Key for Dashboard AI Insights | Optional | `gsk_...` |
-| `COMPANION_LLM_API_KEY` | API Key for Companion AI | Optional | `gsk_...` |
+| Key | What it does | Required | Example |
+|-----|--------------|----------|---------|
+| `DATABASE_MODE` | Use the Supabase database | Yes | `supabase` |
+| `SUPABASE_URL` | Supabase project address | Yes | `https://xyz.supabase.co` |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase master key. **Backend only, never in an app.** | Yes | `eyJhbGci...` |
+| `SUPABASE_ANON_KEY` | Public key, used only for password checks | Yes | `eyJhbGci...` |
+| `SECRET_KEY` | Signs login tokens. The server will not start without it. | Yes | a long random string |
+| `ALGORITHM` | Token signing method | Yes | `HS256` |
+| `ACCESS_TOKEN_EXPIRE_HOURS` | Token lifetime setting | Yes | `24` |
+| `CORS_ALLOWED_ORIGINS` | Websites allowed to call the API | Yes | `http://localhost:5173` |
+| `ENVIRONMENT` | `production` on Railway: hides `/docs`, applies production rules | Production | `production` |
+| `COOKIE_SECURE` | Web portal login cookie needs https. Set `false` only for local http. | No (default `true`) | `false` |
+| `TRUSTED_PROXY_HOPS` | Proxies in front of the server, for rate-limiting by real IP. Railway only = `1`, Vercel → Railway = `2`. | No (default `0`) | `2` |
+| `DEV_OTP_ENABLED` | Sign-up with one shared code (no SMS yet). On locally, off in production unless set. | No | `true` |
+| `DEV_OTP_CODE` | The shared 6-digit sign-up code. Locally `123456`; in production it must be set and must not be `123456`. | Production, if sign-up is on | `482913` |
+| `GROQ_API_KEY` | Dashboard insight text | Optional | `gsk_...` |
+| `COMPANION_LLM_ENABLED`, `COMPANION_LLM_API_KEY` | Companion chat (off by default) | Optional | `true`, `gsk_...` |
+| `SUPABASE_JWT_SECRET` | Accept Supabase-issued tokens directly | Optional | |
 
-### Example `.env` File
+Never commit `.env`. Git ignores it.
 
-```env
-# Database Persistence Mode: 'mock' (offline JSON fallback) or 'supabase' (PostgreSQL)
-DATABASE_MODE=supabase
+## 🚀 Local Setup
 
-# SUPABASE CONFIGURATION (SERVER-SIDE ONLY)
-SUPABASE_URL=https://your-project-ref.supabase.co
-SUPABASE_ANON_KEY=your-supabase-anon-key
-SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
+**With Docker:** see [../DOCKER.md](../DOCKER.md).
 
-# JWT & AUTHENTICATION (SERVER-SIDE ONLY)
-# REQUIRED IN ALL MODES (including mock). The app will not start without it.
-SECRET_KEY=your-super-secret-jwt-key-change-in-production
-ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_HOURS=24
-
-# CORS ORIGIN WHITELIST
-CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:8081,http://localhost:8000,https://heartlink-admin-six.vercel.app
-
-# DEFAULT SEEDS
-SUPER_ADMIN_EMAIL=your_admin_email@example.com
-SUPER_ADMIN_PASSWORD=your_secure_password
-EXPERT_EMAIL=expert_email@example.com
-EXPERT_PASSWORD=expert_secure_password
-```
-
-## 🚀 Local Setup & Installation
-
-1. **Navigate to the backend directory**
+**Without Docker:**
+1. Create a virtual environment (recommended):
    ```bash
    cd backend
-   ```
-
-2. **Create a virtual environment (Recommended)**
-   ```bash
    python -m venv venv
-   # On Windows:
+   # Windows:
    venv\Scripts\activate
-   # On macOS/Linux:
+   # macOS/Linux:
    source venv/bin/activate
    ```
-
-3. **Install dependencies**
+2. Install the packages:
    ```bash
    pip install -r requirements.txt
    ```
-
-4. **Start the development server**
+3. Start the server:
    ```bash
-   uvicorn app.main:app --reload
+   uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
    ```
+   `--host 0.0.0.0` is what lets a phone on the same Wi-Fi reach it. Without it, only your computer can connect.
+4. Check it: http://localhost:8000/health shows `{"status":"ok"}`. The API documentation is at http://localhost:8000/docs (hidden in production).
 
-5. **Access the API Documentation**
-   Once the server is running, FastAPI automatically generates interactive documentation for all endpoints. You can view them at:
-   * **Swagger UI:** [http://localhost:8000/docs](http://localhost:8000/docs)
-   * **ReDoc:** [http://localhost:8000/redoc](http://localhost:8000/redoc)
+## 🧪 Tests
 
-## 🚢 Deployment Notes
+```bash
+python -m pytest tests -q
+```
+Six tests in `test_admin_analytics.py`, `test_auth_ratelimit.py` and `test_soft_delete.py` currently fail for older reasons and are being fixed separately; everything else should pass.
 
-* **Container / Process Command:**
-  When deploying to cloud platforms (like Railway or Render), use the following start command to bind to the dynamically assigned port:
-  ```bash
-  uvicorn app.main:app --host 0.0.0.0 --port $PORT
-  ```
+## 🗄️ Database Changes
 
-* **Production Reminders:**
-  * **Pre-flight Check:** Run `python verify_deployment_readiness.py` to test your connection and environment variables before pushing to production.
-  * **CORS Configuration:** Ensure `CORS_ALLOWED_ORIGINS` in your production environment variables includes your live Vercel web domain.
-  * **Security:** Verify that the `SUPABASE_SERVICE_ROLE_KEY` is kept strictly on the backend and is **never** exposed to the frontend web or mobile client environments.
+Every database change is a numbered SQL file in `supabase/migrations/`, applied with the Supabase CLI. Full guide: [supabase/README.md](supabase/README.md).
+
+```bash
+npx supabase db push --dry-run   # preview, changes nothing
+npx supabase db push             # apply
+```
+Staging and production share **one database**: ask the team before pushing a migration.
+
+## 🚢 Deployment
+
+* **Railway (live):** deploys the `main` branch using `Dockerfile`. The container listens on Railway's `$PORT`. After changing a variable in Railway, click **Deploy** to apply it.
+* **Render (standby):** `../render.yaml` describes a backup service. It is suspended and not connected to any branch.
+* **Before going live:** set `ENVIRONMENT=production`, a private `DEV_OTP_CODE`, and `CORS_ALLOWED_ORIGINS` including the Vercel portal address. Keep `SUPABASE_SERVICE_ROLE_KEY` on the backend only.

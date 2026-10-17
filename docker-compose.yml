@@ -1,3 +1,5 @@
+# Local development: the backend API and the web admin portal, with live reload.
+# Setup guide: DOCKER.md. The mobile app runs outside Docker (Expo Go on a phone).
 services:
   backend:
     build:
@@ -11,7 +13,12 @@ services:
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     env_file:
       - ./backend/.env
-    restart: always
+    environment:
+      # The portal runs on plain http locally, so the login cookie must not require https
+      - COOKIE_SECURE=false
+      # File changes from a Windows or macOS host only reach the container when polled
+      - WATCHFILES_FORCE_POLLING=true
+    restart: unless-stopped
 
   web:
     build:
@@ -25,7 +32,9 @@ services:
       - ./HeartLink-web:/app
       - /app/node_modules
     environment:
+      # Vite forwards /api to the backend container (same-origin, so the login cookie works)
       - VITE_PROXY_TARGET=http://backend:8000
+      - VITE_USE_POLLING=true
     depends_on:
       - backend
-    restart: always
+    restart: unless-stopped
