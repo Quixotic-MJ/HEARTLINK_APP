@@ -4,18 +4,13 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  KeyboardAvoidingView,
   Platform,
-  ScrollView,
   ActivityIndicator,
   NativeSyntheticEvent,
   TextInputKeyPressEventData,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { StatusBar } from "expo-status-bar";
 import { Feather } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useColorScheme } from "nativewind";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -29,8 +24,10 @@ import Animated, {
 import "../../global.css";
 import { useUser } from "../../contexts/UserContext";
 import { isSessionTokens } from "../../services/SessionService";
-import { Button } from "../../components/ui/Button";
-import { Colors } from "../../constants/theme";
+import DsButton from "../../components/onboarding/DsButton";
+import SetupHeader from "../../components/onboarding/SetupHeader";
+import { DsScreen } from "../../components/onboarding/QuestionLayout";
+import { useDs } from "../../components/onboarding/useDs";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -59,8 +56,7 @@ export default function OTPVerificationScreen() {
   const router = useRouter();
   const { phone } = useLocalSearchParams();
   const { setUserId } = useUser();
-  const { colorScheme } = useColorScheme();
-  const palette = colorScheme === "dark" ? Colors.dark : Colors.light;
+  const { c } = useDs();
 
   const phoneText = typeof phone === "string" ? phone : "";
 
@@ -224,170 +220,117 @@ export default function OTPVerificationScreen() {
   const isComplete = otp.join("").length === CODE_LENGTH;
   const hasError = !!(generalError || errors.code);
 
-  return (
-    <SafeAreaView className="flex-1 bg-background" edges={["top", "bottom"]}>
-      <StatusBar style="auto" />
 
-      {/* ── Top bar: back + step, both parts of the progress line filled ── */}
-      <View className="px-6 pt-2">
-        <View className="flex-row items-center justify-between mb-3">
+  return (
+    <DsScreen
+      header={
+        <View>
+          <SetupHeader title="Step 2 of 2" onBack={() => router.back()} />
+          <View className="flex-row px-6" style={{ gap: 4 }} accessible={true} accessibilityLabel="Step 2 of 2: confirm your number">
+            <View style={{ flex: 1, height: 4, borderRadius: 2, backgroundColor: c.line }} />
+            <View style={{ flex: 1, height: 4, borderRadius: 2, backgroundColor: c.line }} />
+          </View>
+        </View>
+      }
+      footer={
+        <>
+          <DsButton label="Verify and create account" onPress={handleSubmit(onSubmit)} loading={isVerifying} disabled={!isComplete || isVerifying} />
+          <Text style={{ fontSize: 12, color: c.steel, textAlign: "center", marginTop: 4 }}>Codes expire after 10 minutes.</Text>
+        </>
+      }
+    >
+      {/* ── Heading ── */}
+      <Animated.View entering={FadeIn.duration(400)} style={{ marginBottom: 20 }}>
+        <View style={{ width: 44, height: 44, borderRadius: 8, backgroundColor: c.tint, alignItems: "center", justifyContent: "center", marginBottom: 20 }}>
+          <Feather name="smartphone" size={20} color={c.charcoal} />
+        </View>
+        <Text accessibilityRole="header" style={{ fontSize: 28, lineHeight: 35, fontWeight: "600", letterSpacing: -0.5, color: c.ink }}>
+          Enter the code
+        </Text>
+        <Text style={{ fontSize: 16, lineHeight: 24, color: c.slate, marginTop: 8 }}>
+          We sent a 6-digit code to <Text style={{ fontWeight: "600", color: c.ink }}>{formatPhoneForDisplay(phoneText)}</Text>.
+        </Text>
+        <View style={{ alignItems: "flex-start" }}>
+          <DsButton label="Edit number" variant="link" block={false} onPress={() => router.back()} />
+        </View>
+      </Animated.View>
+
+      {/* ── OTP boxes ── */}
+      <Animated.View entering={FadeIn.delay(120).duration(400)} style={[errorAnimatedStyle, { flexDirection: "row", gap: 8 }]}>
+        {otp.map((digit, index) => {
+          const isFocused = focusedIndex === index;
+          return (
+            <TextInput
+              key={index}
+              ref={(ref) => { inputRefs.current[index] = ref; }}
+              value={digit}
+              onChangeText={(v) => handleOtpChange(v, index)}
+              onKeyPress={(e) => handleKeyPress(e, index)}
+              onFocus={() => setFocusedIndex(index)}
+              onBlur={() => setFocusedIndex((current) => (current === index ? null : current))}
+              autoFocus={index === 0}
+              keyboardType="number-pad"
+              // Let the first box accept a whole code from SMS autofill or paste.
+              maxLength={index === 0 ? CODE_LENGTH : 2}
+              textContentType={index === 0 ? "oneTimeCode" : "none"}
+              autoComplete={index === 0 ? "sms-otp" : "off"}
+              selectTextOnFocus
+              editable={!isVerifying}
+              accessibilityLabel={`Digit ${index + 1} of ${CODE_LENGTH}`}
+              style={{
+                flex: 1,
+                height: 56,
+                borderRadius: 8,
+                textAlign: "center",
+                fontSize: 22,
+                fontWeight: "600",
+                color: c.ink,
+                padding: 0,
+                backgroundColor: c.canvas,
+                borderWidth: isFocused || hasError ? 2 : 1,
+                borderColor: hasError ? c.danger : isFocused ? c.line : digit ? c.hairlineStrong : c.hairline,
+                textAlignVertical: "center",
+                ...(Platform.OS === "android" ? { includeFontPadding: false } : {}),
+              }}
+            />
+          );
+        })}
+      </Animated.View>
+
+      {/* ── Resend row ── */}
+      <View className="flex-row items-center" style={{ gap: 6, marginTop: 16, minHeight: 44 }}>
+        <Text style={{ fontSize: 14, color: c.slate }}>Didn&apos;t get it?</Text>
+        {!canResend ? (
+          <Text style={{ fontSize: 14, color: c.slate }}>
+            Resend in <Text style={{ fontWeight: "600", color: c.ink }}>{formatTime(timer)}</Text>
+          </Text>
+        ) : isResending ? (
+          <ActivityIndicator size="small" color={c.line} />
+        ) : (
           <TouchableOpacity
-            onPress={() => router.back()}
+            onPress={handleResend}
+            style={{ height: 44, justifyContent: "center", paddingHorizontal: 4 }}
             activeOpacity={0.7}
-            className="w-11 h-11 items-center justify-center rounded-full bg-surface border border-border"
+            accessible={true}
             accessibilityRole="button"
-            accessibilityLabel="Go back"
+            accessibilityLabel="Resend code"
           >
-            <Feather name="arrow-left" size={20} color={palette.text} />
+            <Text style={{ fontSize: 14, fontWeight: "500", color: c.link }}>Resend code</Text>
           </TouchableOpacity>
-          <Text className="text-xs font-medium text-text-soft">Step 2 of 2</Text>
-        </View>
-        <View
-          className="flex-row gap-1.5"
-          accessible={true}
-          accessibilityLabel="Step 2 of 2: confirm your number"
-        >
-          <View className="flex-1 h-1 rounded-full bg-primary" />
-          <View className="flex-1 h-1 rounded-full bg-primary" />
-        </View>
+        )}
       </View>
 
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        className="flex-1"
-      >
-        <ScrollView
-          contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 24, paddingTop: 24, paddingBottom: 16 }}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
+      {/* Error Message */}
+      {hasError && (
+        <View
+          style={{ flexDirection: "row", alignItems: "center", gap: 10, padding: 14, borderRadius: 12, backgroundColor: c.rose, marginTop: 12 }}
+          accessible={true}
+          accessibilityRole="alert"
         >
-          {/* ── Heading ── */}
-          <Animated.View entering={FadeIn.duration(400)} className="mb-6">
-            <View className="w-12 h-12 rounded-xl items-center justify-center mb-5 bg-blue-tint">
-              <Feather name="smartphone" size={22} color={palette.blueText} />
-            </View>
-            <Text
-              className="text-[28px] leading-[34px] font-extrabold text-text tracking-tight mb-2"
-              accessibilityRole="header"
-            >
-              Enter the code
-            </Text>
-            <Text className="text-[15px] text-text-soft leading-[22px]">
-              We sent a 6-digit code to{" "}
-              <Text className="font-bold text-text">{formatPhoneForDisplay(phoneText)}</Text>.
-            </Text>
-            <TouchableOpacity
-              onPress={() => router.back()}
-              activeOpacity={0.65}
-              className="self-start py-1.5 pr-3"
-              accessibilityRole="link"
-              accessibilityLabel="Edit phone number"
-            >
-              <Text className="text-[15px] font-semibold text-primary underline">Edit</Text>
-            </TouchableOpacity>
-          </Animated.View>
-
-          {/* ── OTP boxes ── */}
-          <Animated.View
-            entering={FadeIn.delay(120).duration(400)}
-            style={errorAnimatedStyle}
-            className="flex-row gap-2"
-          >
-            {otp.map((digit, index) => {
-              const isFocused = focusedIndex === index;
-              return (
-                <TextInput
-                  key={index}
-                  ref={(ref) => { inputRefs.current[index] = ref; }}
-                  value={digit}
-                  onChangeText={(v) => handleOtpChange(v, index)}
-                  onKeyPress={(e) => handleKeyPress(e, index)}
-                  onFocus={() => setFocusedIndex(index)}
-                  onBlur={() => setFocusedIndex((current) => (current === index ? null : current))}
-                  autoFocus={index === 0}
-                  keyboardType="number-pad"
-                  // Let the first box accept a whole code from SMS autofill or paste.
-                  maxLength={index === 0 ? CODE_LENGTH : 2}
-                  textContentType={index === 0 ? "oneTimeCode" : "none"}
-                  autoComplete={index === 0 ? "sms-otp" : "off"}
-                  selectTextOnFocus
-                  editable={!isVerifying}
-                  accessibilityLabel={`Digit ${index + 1} of ${CODE_LENGTH}`}
-                  className="flex-1 aspect-square rounded-xl text-center text-2xl font-bold text-text p-0 bg-surface"
-                  style={{
-                    maxHeight: 56,
-                    borderWidth: isFocused ? 1.5 : 1,
-                    borderColor: hasError
-                      ? palette.dangerMid
-                      : isFocused
-                      ? palette.primary
-                      : palette.borderStrong,
-                    textAlignVertical: "center",
-                    ...(Platform.OS === "android" ? { includeFontPadding: false } : {}),
-                  }}
-                />
-              );
-            })}
-          </Animated.View>
-
-          {/* ── Resend row ── */}
-          <View className="flex-row items-center justify-between mt-4 min-h-[36px]">
-            <Text className="text-sm text-text-soft">Didn't get it?</Text>
-            {!canResend ? (
-              <Text className="text-sm text-text-soft">
-                Resend in <Text className="font-bold text-text">{formatTime(timer)}</Text>
-              </Text>
-            ) : (
-              <TouchableOpacity
-                onPress={handleResend}
-                disabled={isResending}
-                className="py-2 pl-3"
-                activeOpacity={0.7}
-                accessible={true}
-                accessibilityRole="button"
-                accessibilityLabel="Resend code"
-              >
-                {isResending ? (
-                  <ActivityIndicator size="small" color={palette.primary} />
-                ) : (
-                  <Text className="text-sm font-bold text-primary">Resend code</Text>
-                )}
-              </TouchableOpacity>
-            )}
-          </View>
-
-          {/* Error Message */}
-          {hasError && (
-            <View
-              className="bg-danger-tint border border-danger/40 rounded-xl p-3.5 flex-row items-center gap-2.5 mt-3"
-              accessible={true}
-              accessibilityRole="alert"
-            >
-              <Feather name="alert-triangle" size={16} color={palette.dangerText} />
-              <Text className="text-danger-text text-sm font-medium flex-1 leading-snug">
-                {generalError || errors.code?.message}
-              </Text>
-            </View>
-          )}
-
-          {/* Pushes the actions to the bottom when there is spare height */}
-          <View className="flex-1 min-h-[32px]" />
-
-          {/* ── Actions ── */}
-          <View>
-            <Button
-              onPress={handleSubmit(onSubmit)}
-              isLoading={isVerifying}
-              disabled={!isComplete || isVerifying}
-              loadingText="Verifying..."
-              label="Verify and create account"
-            />
-            <Text className="text-xs text-text-soft text-center mt-3">
-              Codes expire after 10 minutes.
-            </Text>
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+          <Feather name="alert-triangle" size={16} color={c.danger} />
+          <Text style={{ flex: 1, fontSize: 14, lineHeight: 20, color: c.ink }}>{generalError || errors.code?.message}</Text>
+        </View>
+      )}
+    </DsScreen>
   );
 }

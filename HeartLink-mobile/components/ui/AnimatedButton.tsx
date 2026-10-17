@@ -5,14 +5,16 @@ import Animated, {
   useSharedValue,
   withTiming,
   Easing,
+  type AnimatedStyle,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
-export interface AnimatedButtonProps extends PressableProps {
+export interface AnimatedButtonProps extends Omit<PressableProps, 'style'> {
   className?: string;
-  style?: StyleProp<ViewStyle>;
+  /** Plain styles, or Reanimated animated styles (e.g. a colour that fades on selection). */
+  style?: StyleProp<AnimatedStyle<StyleProp<ViewStyle>>>;
   children?: React.ReactNode;
 }
 

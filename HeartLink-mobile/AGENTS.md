@@ -112,10 +112,16 @@ doesn't apply.
 
 Everywhere else, use NativeWind.
 
-**No centralized design system currently exists** — colors like `#1A2634` 
-are hardcoded per-component. Do not invent a new design-token system as a 
-side effect of an unrelated task. If a task specifically involves adding a 
-shared theme/constants file, ask first, since this touches many files.
+**Design system — decision made:** new UI follows
+`documentation/design-system/DESIGN.md` plus HeartLink's changes in
+`documentation/design-system/HEARTLINK.md`. Use the `ds-*` colour classes
+(`bg-ds-canvas`, `text-ds-ink`, `border-ds-hairline`, `bg-ds-primary`, …) and
+`ds.light` / `ds.dark` from `constants/theme.ts` for inline, animated and SVG
+styles. The onboarding screens (`app/(auth)`, `app/(baseline)`,
+`components/onboarding/`) are built this way and are the reference.
+Older screens still use the earlier `theme.ts` colours, and some hardcode
+values like `#1A2634`. Don't convert them as a side effect of another task;
+move a screen to `ds-*` only when it is being redesigned.
 
 ### Dark Mode
 Implemented via NativeWind's `useColorScheme()` producing an `isDark` 

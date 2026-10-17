@@ -1,15 +1,17 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState, ReactNode } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useUser } from './UserContext';
 
 export type BaselineData = {
-  // Step 1: Basic
+  // Part 1: About you
   first_name: string;
   last_name: string;
   date_of_birth: string;
   sex: 'male' | 'female' | '';
   height_cm: string;
   weight_kg: string;
-  
-  // Step 2: Activity
+
+  // Part 2: Movement
   vigorous_activity: boolean;
   vigorous_days?: string;
   vigorous_minutes?: string;
@@ -20,28 +22,27 @@ export type BaselineData = {
   walk_bike_days?: string;
   walk_bike_minutes?: string;
   sedentary_hours: string;
-  
-  // Step 3: Sleep/Smoking
+
+  // Part 3: Habits
   sleep_hours: string;
   ever_smoked: boolean;
   smoke_now?: string;
-  
-  // Step 4: Alcohol
   ever_drank: boolean;
   drink_frequency?: string;
   drinks_per_occasion?: string;
   binge_drinking_freq?: string;
-  
-  // Step 5: Diet
+
+  // Part 4: Food & goals
   diet_level: string;
   fried_food_freq: string;
   salty_food_freq: string;
   fruit_veg_servings: string;
-  
-  // Step 6: Health Background
   health_goals: string[];
   allergies: string[];
   dietary_practice: string;
+
+  // Yes/No questions default to false, so this records which ones were actually answered.
+  answered: Partial<Record<'vigorous_activity' | 'moderate_activity' | 'walk_bike_transport' | 'ever_smoked' | 'ever_drank', boolean>>;
 };
 
 const defaultData: BaselineData = {
@@ -50,30 +51,68 @@ const defaultData: BaselineData = {
   sleep_hours: '', ever_smoked: false,
   ever_drank: false,
   diet_level: '', fried_food_freq: '', salty_food_freq: '', fruit_veg_servings: '',
-  health_goals: [], allergies: [], dietary_practice: 'None'
+  health_goals: [], allergies: [], dietary_practice: '',
+  answered: {},
 };
 
 interface BaselineContextType {
   data: BaselineData;
+  /** True once saved answers (if any) have been loaded for the signed-in user. */
+  loaded: boolean;
   updateData: (updates: Partial<BaselineData>) => void;
   resetData: () => void;
 }
 
 const BaselineContext = createContext<BaselineContextType | undefined>(undefined);
 
+// Answers are kept on the phone per user, so "Finish later" picks up where they left off.
+const draftKey = (userId: string) => `@heartlink_setup_draft_${userId}`;
+
 export function BaselineProvider({ children }: { children: ReactNode }) {
-  const [data, setData] = useState<BaselineData>(defaultData);
+  const { userId } = useUser();
+  // The answers, tagged with the user they belong to, so a different login never sees them.
+  const [store, setStore] = useState<{ user: string | null; data: BaselineData }>({ user: null, data: defaultData });
+  const userRef = useRef<string | null>(null);
 
-  const updateData = (updates: Partial<BaselineData>) => {
-    setData(prev => ({ ...prev, ...updates }));
-  };
+  useEffect(() => {
+    userRef.current = userId;
+    if (!userId) return;
+    let active = true;
+    AsyncStorage.getItem(draftKey(userId))
+      .then((raw) => {
+        if (!active) return;
+        const saved = raw ? (JSON.parse(raw) as Partial<BaselineData>) : {};
+        setStore({ user: userId, data: { ...defaultData, ...saved, answered: { ...(saved.answered ?? {}) } } });
+      })
+      .catch(() => {
+        if (active) setStore({ user: userId, data: defaultData });
+      });
+    return () => {
+      active = false;
+    };
+  }, [userId]);
 
-  const resetData = () => {
-    setData(defaultData);
-  };
+  const loaded = !userId || store.user === userId;
+  const data = userId && store.user === userId ? store.data : defaultData;
+
+  const updateData = useCallback((updates: Partial<BaselineData>) => {
+    setStore((prev) => {
+      const id = userRef.current;
+      const base = prev.user === id ? prev.data : defaultData;
+      const next = { ...base, ...updates };
+      if (id) AsyncStorage.setItem(draftKey(id), JSON.stringify(next)).catch(() => {});
+      return { user: id, data: next };
+    });
+  }, []);
+
+  const resetData = useCallback(() => {
+    const id = userRef.current;
+    setStore({ user: id, data: defaultData });
+    if (id) AsyncStorage.removeItem(draftKey(id)).catch(() => {});
+  }, []);
 
   return (
-    <BaselineContext.Provider value={{ data, updateData, resetData }}>
+    <BaselineContext.Provider value={{ data, loaded, updateData, resetData }}>
       {children}
     </BaselineContext.Provider>
   );
