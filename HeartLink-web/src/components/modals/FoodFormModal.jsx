@@ -19,6 +19,26 @@ import * as z from "zod";
 import { InputField } from "../ui/InputField";
 import { apiUpload } from "../../api";
 
+// HL-031: ingredient units are picked from a list instead of typed
+const UNIT_GROUPS = [
+  { label: "Weight", units: [["g", "g (grams)"], ["kg", "kg (kilograms)"]] },
+  { label: "Volume", units: [["ml", "ml (millilitres)"], ["L", "L (litres)"], ["cup", "cup"], ["tbsp", "tbsp (tablespoon)"], ["tsp", "tsp (teaspoon)"]] },
+  { label: "Count", units: [["pc", "pc (piece)"], ["slice", "slice"], ["clove", "clove"], ["stalk", "stalk"], ["can", "can"], ["pack", "pack"], ["serving", "serving"], ["pinch", "pinch"]] },
+  { label: "Size", units: [["small", "small"], ["medium", "medium"], ["large", "large"]] },
+];
+const UNIT_VALUES = new Set(UNIT_GROUPS.flatMap((g) => g.units.map(([value]) => value)));
+// Older recipes typed some units differently; these select the matching dropdown option.
+const UNIT_ALIASES = {
+  cups: "cup", cloves: "clove", stalks: "stalk", slices: "slice", pcs: "pc", piece: "pc", pieces: "pc",
+  gram: "g", grams: "g", tablespoon: "tbsp", tablespoons: "tbsp", teaspoon: "tsp", teaspoons: "tsp",
+  l: "L", liter: "L", litre: "L", cans: "can", packs: "pack", servings: "serving",
+};
+const normalizeUnit = (unit) => {
+  const trimmed = (unit || "").trim();
+  if (!trimmed || UNIT_VALUES.has(trimmed)) return trimmed;
+  return UNIT_ALIASES[trimmed.toLowerCase()] || trimmed;
+};
+
 const parseIngredientString = (str) => {
   if (!str) return { name: "", amount: "", unit: "" };
   const match = str.trim().match(/^([0-9\./]+)\s*([a-zA-Z]+)?\s+(.+)$/);
@@ -31,7 +51,7 @@ const parseIngredientString = (str) => {
         amount = parseFloat(parts[0]) / parseFloat(parts[1]);
       }
     }
-    const unit = match[2] || "";
+    const unit = normalizeUnit(match[2]);
     const name = match[3] || "";
     if (!isNaN(amount) && name) {
       return { name, amount: String(amount), unit };
@@ -130,6 +150,7 @@ const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave, 
   });
 
   const category = watch("category");
+  const ingredientUnits = (watch("ingredients") || []).map((ing) => ing?.unit || "");
   const expertValidated = watch("expertValidated");
   const mediaUrl = watch("mediaUrl");
   const status = watch("status");
@@ -164,7 +185,7 @@ const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave, 
           return {
             name: ing.name || "",
             amount: ing.amount !== null && ing.amount !== undefined ? String(ing.amount) : "",
-            unit: ing.unit || ""
+            unit: normalizeUnit(ing.unit)
           };
         });
       }
@@ -537,14 +558,26 @@ const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave, 
                         errors.ingredients?.[index]?.amount ? 'border-[#A93226]' : 'border-[#E2E8F0] focus:border-[#0F172A]'
                       } rounded-[8px] focus:outline-none text-[#0F172A] placeholder:text-[#94A3B8] transition-colors`}
                     />
-                    <input
-                      type="text"
+                    <select
                       {...register(`ingredients.${index}.unit`)}
-                      placeholder="Unit (e.g. g, cup)"
-                      className={`w-28 px-2.5 py-1.5 text-[12.5px] bg-[#F8FAFC] border ${
+                      aria-label="Unit"
+                      className={`w-32 px-2 py-1.5 text-[12.5px] bg-[#F8FAFC] border ${
                         errors.ingredients?.[index]?.unit ? 'border-[#A93226]' : 'border-[#E2E8F0] focus:border-[#0F172A]'
-                      } rounded-[8px] focus:outline-none text-[#0F172A] placeholder:text-[#94A3B8] transition-colors`}
-                    />
+                      } rounded-[8px] focus:outline-none text-[#0F172A] transition-colors cursor-pointer`}
+                    >
+                      <option value="">No unit</option>
+                      {UNIT_GROUPS.map((group) => (
+                        <optgroup key={group.label} label={group.label}>
+                          {group.units.map(([value, label]) => (
+                            <option key={value} value={value}>{label}</option>
+                          ))}
+                        </optgroup>
+                      ))}
+                      {/* Keep an older unit that isn't in the list, so editing never loses it */}
+                      {ingredientUnits?.[index] && !UNIT_VALUES.has(ingredientUnits[index]) && (
+                        <option value={ingredientUnits[index]}>{ingredientUnits[index]}</option>
+                      )}
+                    </select>
                     <input
                       type="text"
                       {...register(`ingredients.${index}.name`)}
