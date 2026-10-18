@@ -25,6 +25,7 @@ import { useUser } from "../../../contexts/UserContext";
 import { EmptyState } from "../../../components/ui/EmptyState";
 import { useToast } from "../../../contexts/ToastContext";
 import { theme } from "../../../constants/theme";
+import { useSodiumBudget } from "../../../hooks/useSodiumBudget";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 const base_url = process.env.EXPO_PUBLIC_API_URL;
@@ -54,7 +55,7 @@ const FOOD_LOG_OPTIONS = [
     icon: "search" as const,
     iconType: "feather" as const,
     label: "Search food database",
-    subtitle: "Search verified meals & nutritional facts",
+    subtitle: "HeartLink recipes, recent meals and packaged foods",
     route: "/(home)/(meals)/search-meal",
   },
   {
@@ -66,7 +67,6 @@ const FOOD_LOG_OPTIONS = [
   },
 ];
 
-const SODIUM_BUDGET = 2000;
 
 function SemiCircleProgress({ progress, remaining, isDark }: { progress: number; remaining: number; isDark: boolean }) {
   const radius = 65;
@@ -128,6 +128,8 @@ export default function DailyDiaryScreen() {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
   const { userId, token } = useUser();
+  // The patient's own daily sodium limit (Goals & thresholds), 2,000 mg if not set
+  const { limitMg: sodiumLimit } = useSodiumBudget();
   const { showToast } = useToast();
 
   const [meals, setMeals] = useState<MealLog[]>([]);
@@ -322,8 +324,8 @@ export default function DailyDiaryScreen() {
               </View>
               
               <SemiCircleProgress 
-                progress={totalSodium / SODIUM_BUDGET} 
-                remaining={SODIUM_BUDGET - totalSodium}
+                progress={totalSodium / sodiumLimit} 
+                remaining={sodiumLimit - totalSodium}
                 isDark={isDark} 
               />
               
@@ -337,7 +339,7 @@ export default function DailyDiaryScreen() {
             <View className="flex-row justify-between pt-2 border-t border-border dark:border-slate-800/50">
               <MacroBar label="Sat Fat" current={totalSatFat} total={20} color={theme.sky} isDark={isDark} />
               <MacroBar label="Fiber" current={totalFiber} total={30} color={theme.blue} isDark={isDark} />
-              <MacroBar label="Sodium" current={totalSodium} total={SODIUM_BUDGET} color={theme.teal} isDark={isDark} />
+              <MacroBar label="Sodium" current={totalSodium} total={sodiumLimit} color={theme.teal} isDark={isDark} />
             </View>
           </View>
         }
