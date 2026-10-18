@@ -2,11 +2,8 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '../contexts/ToastContext';
 import { postLogAck } from '../services/companionCopy';
 import { queueExerciseForSync } from '../services/SyncService';
-import { useNetInfo } from '@react-native-community/netinfo';
-
-const base_url = process.env.EXPO_PUBLIC_API_URL;
-
-export interface ExercisePayload {
+import { apiFetch } from "../lib/api";
+import { useNetInfo } from '@react-native-community/netinfo';export interface ExercisePayload {
   routine_name: string;
   duration_minutes: number;
   duration_seconds: number;
@@ -27,7 +24,7 @@ export function useLogExercise(userId: string | null | undefined, token: string 
       const timeoutId = setTimeout(() => controller.abort(), 5000);
 
       try {
-        const response = await fetch(`${base_url}/api/exercises/logs/${userId}`, {
+        const response = await apiFetch(`/api/exercises/logs/${userId}`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

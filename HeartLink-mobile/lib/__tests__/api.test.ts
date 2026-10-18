@@ -1,0 +1,87 @@
+import { apiFetch, setSessionEndedHandler } from "../api";
+import { getToken } from "../secureTokenStore";
+import { refreshSession } from "../../services/SessionService";
+
+jest.mock("../secureTokenStore", () => ({ getToken: jest.fn() }));
+jest.mock("../../services/SessionService", () => ({ refreshSession: jest.fn() }));
+
+const mockGetToken = getToken as jest.Mock;
+const mockRefresh = refreshSession as jest.Mock;
+const realFetch = global.fetch;
+
+function reply(status: number) {
+  return { status, ok: status >= 200 && status < 300, json: async () => ({}) } as Response;
+}
+
+function sentAuth(call: number): string | undefined {
+  const init = (global.fetch as jest.Mock).mock.calls[call][1] as RequestInit;
+  return (init.headers as Record<string, string>).Authorization;
+}
+
+beforeEach(() => {
+  jest.clearAllMocks();
+  setSessionEndedHandler(null);
+});
+afterAll(() => {
+  global.fetch = realFetch;
+});
+
+describe("apiFetch (HL-023)", () => {
+  it("adds the saved token to backend requests", async () => {
+    mockGetToken.mockResolvedValue("tok-1");
+    global.fetch = jest.fn().mockResolvedValue(reply(200));
+
+    await apiFetch("/api/meals/u1", { method: "POST" });
+
+    expect((global.fetch as jest.Mock).mock.calls[0][0]).toMatch(/\/api\/meals\/u1$/);
+    expect(sentAuth(0)).toBe("Bearer tok-1");
+  });
+
+  it("sends no token and never renews for auth: false calls", async () => {
+    mockGetToken.mockResolvedValue("tok-1");
+    global.fetch = jest.fn().mockResolvedValue(reply(401));
+
+    const res = await apiFetch("/api/auth/login", { auth: false, method: "POST" });
+
+    expect(res.status).toBe(401);
+    expect(sentAuth(0)).toBeUndefined();
+    expect(mockRefresh).not.toHaveBeenCalled();
+  });
+
+  it("renews the session once on a 401 and retries with the new token", async () => {
+    mockGetToken.mockResolvedValue("old");
+    mockRefresh.mockResolvedValue({ status: "refreshed", token: "new" });
+    global.fetch = jest.fn().mockResolvedValueOnce(reply(401)).mockResolvedValueOnce(reply(200));
+
+    const res = await apiFetch("/api/dashboard/me", { headers: { Authorization: "Bearer old" } });
+
+    expect(res.status).toBe(200);
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+    expect(sentAuth(1)).toBe("Bearer new");
+  });
+
+  it("signs the patient out when the session can't be renewed", async () => {
+    const ended = jest.fn();
+    setSessionEndedHandler(ended);
+    mockGetToken.mockResolvedValue("old");
+    mockRefresh.mockResolvedValue({ status: "expired" });
+    global.fetch = jest.fn().mockResolvedValue(reply(401));
+
+    const res = await apiFetch("/api/dashboard/me");
+
+    expect(res.status).toBe(401);
+    expect(ended).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the session when renewal is only unavailable (offline)", async () => {
+    const ended = jest.fn();
+    setSessionEndedHandler(ended);
+    mockGetToken.mockResolvedValue("old");
+    mockRefresh.mockResolvedValue({ status: "unavailable" });
+    global.fetch = jest.fn().mockResolvedValue(reply(401));
+
+    await apiFetch("/api/dashboard/me");
+
+    expect(ended).not.toHaveBeenCalled();
+  });
+});

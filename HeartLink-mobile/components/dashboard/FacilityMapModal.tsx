@@ -18,6 +18,7 @@ import { useColorScheme } from "nativewind";
 import * as Haptics from "expo-haptics";
 import * as Location from "expo-location";
 import { theme } from "../../constants/theme";
+import { apiFetch } from "../../lib/api";
 
 /**
  * FacilityMapModal — pure React Native port of the ViewOnMap web blueprint
@@ -50,11 +51,7 @@ export interface CebuFacility {
 // Cebu City center (matches the locator default) + scope guard.
 const CEBU_CENTER = { latitude: 10.3157, longitude: 123.8854 };
 const CEBU_RADIUS_KM = 50;
-const MAX_PINS = 8;
-
-const base_url = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
-
-function getDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number) {
+const MAX_PINS = 8;function getDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number) {
   const R = 6371;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
   const dLon = ((lon2 - lon1) * Math.PI) / 180;
@@ -167,7 +164,7 @@ export function FacilityMapModal({
         if (cancelled) return;
         setUserCoords({ latitude: userLat, longitude: userLon });
 
-        const res = await fetch(`${base_url}/api/clinics`);
+        const res = await apiFetch(`/api/clinics`);
         const data = await res.json();
         if (cancelled) return;
 

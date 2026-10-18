@@ -46,13 +46,8 @@ import { ScreenWrapper } from "../../../components/ui/ScreenWrapper";
 import { DashboardTutorialModal } from "../../../components/dashboard/DashboardTutorialModal";
 import { ScoreExplanationModal } from "../../../components/dashboard/ScoreExplanationModal";
 import { RitualProgress } from "../../../components/dashboard/RitualProgress";
-import { theme as colors } from "../../../constants/theme";
-
-
-const base_url = process.env.EXPO_PUBLIC_API_URL;
-
-
-// ─── Score theme ──────────────────────────────────────────────────────────────
+import { apiFetch } from "../../../lib/api";
+import { theme as colors } from "../../../constants/theme";// ─── Score theme ──────────────────────────────────────────────────────────────
 type ScoreTheme = {
   label: string;
   barColor: string;
@@ -151,7 +146,7 @@ export default function DashboardScreen() {
 
         if (cancelled) return;
 
-        const res = await fetch(`${base_url}/api/clinics`);
+        const res = await apiFetch(`/api/clinics`);
         const data = await res.json();
         
         if (cancelled) return;
@@ -234,7 +229,7 @@ export default function DashboardScreen() {
     const storedToken = await getToken();
     const effectiveToken = token || storedToken || "";
 
-    const response = await fetch(`${base_url}/api/dashboard/me`, {
+    const response = await apiFetch(`/api/dashboard/me`, {
       headers: {
         "Authorization": `Bearer ${effectiveToken}`
       }

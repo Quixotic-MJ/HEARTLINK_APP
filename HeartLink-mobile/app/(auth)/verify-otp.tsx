@@ -27,11 +27,8 @@ import { isSessionTokens } from "../../services/SessionService";
 import DsButton from "../../components/onboarding/DsButton";
 import SetupHeader from "../../components/onboarding/SetupHeader";
 import { DsScreen } from "../../components/onboarding/QuestionLayout";
-import { useDs } from "../../components/onboarding/useDs";
-
-const base_url = process.env.EXPO_PUBLIC_API_URL;
-
-const CODE_LENGTH = 6;
+import { apiFetch } from "../../lib/api";
+import { useDs } from "../../components/onboarding/useDs";const CODE_LENGTH = 6;
 const RESEND_SECONDS = 60;
 
 const verifyOtpSchema = z.object({
@@ -147,7 +144,8 @@ export default function OTPVerificationScreen() {
     setIsVerifying(true);
 
     try {
-      const response = await fetch(`${base_url}/api/auth/verify-code`, {
+      const response = await apiFetch(`/api/auth/verify-code`, {
+        auth: false,
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -187,7 +185,8 @@ export default function OTPVerificationScreen() {
       setIsResending(true);
       setGeneralError(null);
       try {
-        const response = await fetch(`${base_url}/api/auth/resend-code`, {
+        const response = await apiFetch(`/api/auth/resend-code`, {
+          auth: false,
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ phone }),

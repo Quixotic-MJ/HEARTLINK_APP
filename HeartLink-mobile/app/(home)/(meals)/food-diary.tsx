@@ -26,11 +26,9 @@ import { useUser } from "../../../contexts/UserContext";
 import { useToast } from "../../../contexts/ToastContext";
 import { useSodiumBudget } from "../../../hooks/useSodiumBudget";
 import { formatMg } from "../../../services/foodLogging";
+import { apiFetch } from "../../../lib/api";
 
-const { height: SCREEN_HEIGHT } = Dimensions.get("window");
-const base_url = process.env.EXPO_PUBLIC_API_URL;
-
-type MealLog = {
+const { height: SCREEN_HEIGHT } = Dimensions.get("window");type MealLog = {
   id: string;
   user_id: string;
   meal_name: string;
@@ -140,7 +138,7 @@ export default function DailyDiaryScreen() {
   const fetchMeals = useCallback(async () => {
     if (!userId) return;
     try {
-      const response = await fetch(`${base_url}/api/meals/${userId}?page=1&page_size=50`, {
+      const response = await apiFetch(`/api/meals/${userId}?page=1&page_size=50`, {
         headers: {
           "Authorization": `Bearer ${token || ""}`,
         },
@@ -185,7 +183,7 @@ export default function DailyDiaryScreen() {
   const confirmDeleteMeal = async () => {
     if (!mealToDelete) return;
     try {
-      const res = await fetch(`${base_url}/api/meals/${userId}/${mealToDelete.id}`, {
+      const res = await apiFetch(`/api/meals/${userId}/${mealToDelete.id}`, {
         method: "DELETE",
         headers: {
           "Authorization": `Bearer ${token || ""}`,

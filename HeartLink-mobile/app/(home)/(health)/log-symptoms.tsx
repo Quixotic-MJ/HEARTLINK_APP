@@ -35,7 +35,8 @@ import { ConfirmDialog } from "../../../components/ui/ConfirmDialog";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { postLogAck } from "../../../services/companionCopy";
 import { theme } from "../../../constants/theme";
-const base_url = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
+import { API_BASE_URL, apiFetch } from "../../../lib/api";
+const base_url = API_BASE_URL;
 
 // ─── Types & Constants ────────────────────────────────────────────────────────
 
@@ -397,7 +398,7 @@ export default function LogSymptomsScreen() {
     let isMounted = true;
     const fetchLatestLog = async () => {
       try {
-        const res = await fetch(`${base_url}/api/health-logs/${userId}?page=1&page_size=1`, {
+        const res = await apiFetch(`/api/health-logs/${userId}?page=1&page_size=1`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (res.ok && isMounted) {
@@ -608,7 +609,7 @@ export default function LogSymptomsScreen() {
     let saveSucceeded = false;
 
     try {
-      const res = await fetch(targetUrl, {
+      const res = await apiFetch(`/api/health-logs/${userId}`, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
@@ -688,7 +689,7 @@ export default function LogSymptomsScreen() {
       let comparisonStr = undefined;
       if (sys !== null && dia !== null) {
         try {
-          const res = await fetch(`${base_url}/api/health-logs/${userId}?page=1&page_size=1`, {
+          const res = await apiFetch(`/api/health-logs/${userId}?page=1&page_size=1`, {
             headers: { Authorization: `Bearer ${token}` }
           });
           if (res.ok) {

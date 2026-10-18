@@ -124,10 +124,18 @@ Reference: `showIncompleteWarning` in `log-symptoms.tsx`.
 ## Patterns
 
 ### Fetching data
-- **Current:** about 30 screen files call `fetch()` directly. `hooks/useApiClient.ts` exists but
-  nothing uses it yet.
+- **Every call to the HeartLink backend goes through `apiFetch` in `lib/api.ts`** (HL-023):
+  `apiFetch("/api/meals/123", { method: "POST", ... })`. It takes the address from
+  `EXPO_PUBLIC_API_URL` (`lib/apiBase.ts`, no localhost fallback), adds the saved login token, and on
+  a 401 renews the session once and retries; if the session can't be renewed, UserContext signs the
+  patient out. Pass `auth: false` for login, sign-up and other calls that must not renew a session.
+  It returns a normal `Response`. Never build `${API_URL}/api/...` addresses or call `fetch()` for
+  the backend yourself. Plain `fetch` is only for other sites (Open Food Facts) and the refresh call
+  in `services/SessionService.ts`.
+- **Still to tidy:** `utils/OfflineSyncService.ts` stores full addresses for queued health logs and
+  sends them with plain `fetch` (its queue is separate; see Offline support).
 - **Target:** new data fetching goes in `services/` or in a React Query hook in `hooks/`
-  (`useQuery` / `useMutation`), like `hooks/useLogMeal.ts`. Don't add new `fetch()` calls to screen
+  (`useQuery` / `useMutation`), like `hooks/useLogMeal.ts`. Don't add data fetching to screen
   files. Move an existing one only if you're already changing that logic.
 
 ### Offline support

@@ -11,6 +11,7 @@ import { BaselineData, useBaseline } from "../../contexts/BaselineContext";
 import { useUser } from "../../contexts/UserContext";
 import { getToken, getUserId as getStoredUserId } from "../../lib/secureTokenStore";
 import { light, scoreBand, ScoreBand, DsColors } from "../../constants/theme";
+import { apiFetch } from "../../lib/api";
 
 const mapSleepHours = (val: string) => {
   switch (val) {
@@ -26,11 +27,9 @@ const daysOrNull = (on: boolean, v?: string) => (on ? Math.max(1, parseInt(v || 
 
 // Same two requests the old calculating screen made: profile first, then the baseline that
 // computes the starting Health Stability Score.
-async function submitBaseline(data: BaselineData, userId: string, token: string): Promise<number> {
-  const base_url = process.env.EXPO_PUBLIC_API_URL;
-  const headers = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
+async function submitBaseline(data: BaselineData, userId: string, token: string): Promise<number> {  const headers = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
 
-  const profileRes = await fetch(`${base_url}/api/users/${userId}/profile`, {
+  const profileRes = await apiFetch(`/api/users/${userId}/profile`, {
     method: "PUT",
     headers,
     body: JSON.stringify({
@@ -49,7 +48,7 @@ async function submitBaseline(data: BaselineData, userId: string, token: string)
   }
 
   const drinks = !!data.ever_drank;
-  const baselineRes = await fetch(`${base_url}/api/users/${userId}/baseline/complete`, {
+  const baselineRes = await apiFetch(`/api/users/${userId}/baseline/complete`, {
     method: "POST",
     headers,
     body: JSON.stringify({

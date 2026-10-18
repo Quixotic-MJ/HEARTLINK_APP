@@ -1,9 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { containsBanned } from "./companionCopy";
-
-const base_url = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
-
-export type CompanionLineSlot = "greeting" | "post_log" | "evening";
+import { apiFetch } from "../lib/api";
+import { containsBanned } from "./companionCopy";export type CompanionLineSlot = "greeting" | "post_log" | "evening";
 
 export interface CompanionLineResult {
   text: string;
@@ -41,7 +38,7 @@ async function refreshVarnishCache(
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 7000);
-    const res = await fetch(`${base_url}/api/companion/varnish`, {
+    const res = await apiFetch(`/api/companion/varnish`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

@@ -29,17 +29,14 @@ import HeartLogo from "../../components/ui/HeartLogo";
 import DsButton from "../../components/onboarding/DsButton";
 import { DsScreen } from "../../components/onboarding/QuestionLayout";
 import { useDs } from "../../components/onboarding/useDs";
+import { apiFetch } from "../../lib/api";
 
 const loginSchema = z.object({
   identifier: z.string().min(1, "Please enter your email or phone number."),
   password: z.string().min(1, "Please enter your password."),
 });
 
-type LoginFormData = z.infer<typeof loginSchema>;
-
-const base_url = process.env.EXPO_PUBLIC_API_URL;
-
-// ─── Auth Screen ──────────────────────────────────────────────────────────────
+type LoginFormData = z.infer<typeof loginSchema>;// ─── Auth Screen ──────────────────────────────────────────────────────────────
 
 export default function AuthScreen() {
   const router = useRouter();
@@ -124,7 +121,8 @@ export default function AuthScreen() {
     }
 
     try {
-      const response = await fetch(`${base_url}/api/auth/login`, {
+      const response = await apiFetch(`/api/auth/login`, {
+        auth: false,
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -141,7 +139,7 @@ export default function AuthScreen() {
 
         // Fetch profile to check onboarding status for correct routing
         try {
-          const profileRes = await fetch(`${base_url}/api/users/${resData.user_id}/profile`, {
+          const profileRes = await apiFetch(`/api/users/${resData.user_id}/profile`, {
             headers: {
               "Authorization": `Bearer ${resData.token || ""}`,
             },

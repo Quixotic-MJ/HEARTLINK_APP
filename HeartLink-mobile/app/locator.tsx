@@ -17,6 +17,7 @@ import * as Location from 'expo-location';
 import MapView, { Marker, UrlTile } from "react-native-maps";
 import { EmptyState } from "../components/ui/EmptyState";
 import { theme } from "../constants/theme";
+import { apiFetch } from "../lib/api";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -147,9 +148,7 @@ export default function LocatorScreen() {
           setUserLocation({ latitude: userLat, longitude: userLon });
         }
 
-        // Fetch Clinics from Backend
-        const base_url = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000';
-        const response = await fetch(`${base_url}/api/clinics`);
+        // Fetch Clinics from Backend        const response = await apiFetch(`/api/clinics`);
         const data = await response.json();
         
         const currentHour = new Date().getHours();

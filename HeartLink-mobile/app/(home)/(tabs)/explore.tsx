@@ -18,6 +18,7 @@ import { Header } from "../../../components/Header";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useUser } from "../../../contexts/UserContext";
 import { theme } from "../../../constants/theme";
+import { apiFetch } from "../../../lib/api";
 
 const TOKENS = {
   indigo: "#6F6FD1",
@@ -32,15 +33,11 @@ export default function ExploreTabScreen() {
   const [searchQuery, setSearchQuery] = useState("");
   const theme = isDark ? require('../../../constants/theme').dark : require('../../../constants/theme').light;
 
-  const filters = ["All", "Recipes", "Exercise", "Saved"];
-
-  const base_url = process.env.EXPO_PUBLIC_API_URL;
-
-  const { data: recipes = [] } = useQuery({
+  const filters = ["All", "Recipes", "Exercise", "Saved"];  const { data: recipes = [] } = useQuery({
     queryKey: ["explore_recipes"],
     staleTime: 5 * 60 * 1000,
     queryFn: async () => {
-      const response = await fetch(`${base_url}/api/recipes/`);
+      const response = await apiFetch(`/api/recipes/`);
       if (!response.ok) throw new Error("Failed to fetch recipes");
       const data = await response.json();
       return data.map((r: any) => ({
@@ -56,7 +53,7 @@ export default function ExploreTabScreen() {
     queryKey: ["explore_exercises"],
     staleTime: 5 * 60 * 1000,
     queryFn: async () => {
-      const res = await fetch(`${base_url}/api/exercises/`, {
+      const res = await apiFetch(`/api/exercises/`, {
         headers: token ? { "Authorization": `Bearer ${token}` } : {}
       });
       if (!res.ok) throw new Error("Failed to fetch exercises");
@@ -91,7 +88,7 @@ export default function ExploreTabScreen() {
     enabled: !!userId && !!token,
     staleTime: 5 * 60 * 1000,
     queryFn: async () => {
-      const response = await fetch(`${base_url}/api/recipes/saved/${userId}`, {
+      const response = await apiFetch(`/api/recipes/saved/${userId}`, {
         headers: { "Authorization": `Bearer ${token}` },
       });
       if (!response.ok) throw new Error("Failed to fetch saved recipes");

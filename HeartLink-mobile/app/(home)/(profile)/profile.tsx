@@ -1,4 +1,5 @@
 import { useColorScheme } from "nativewind";
+import { apiFetch } from "../../../lib/api";
 import React, { useState, useEffect } from "react";
 import {
   View,
@@ -23,11 +24,7 @@ import { useUser } from "../../../contexts/UserContext";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
 import { useToast } from "../../../contexts/ToastContext";
-import { theme } from "../../../constants/theme";
-
-const base_url = process.env.EXPO_PUBLIC_API_URL;
-
-// ─── Helper Components ────────────────────────────────────────────────────────
+import { theme } from "../../../constants/theme";// ─── Helper Components ────────────────────────────────────────────────────────
 
 function StatCard({ icon, iconColor, value, label }: { icon: any, iconColor: string, value: string, label: string }) {
   return (
@@ -265,12 +262,12 @@ export default function ProfileScreen({ isTab = false }: { isTab?: boolean } = {
       try {
         const effectiveToken = token || "";
         const [profileRes, logsRes] = await Promise.all([
-          fetch(`${base_url}/api/users/${userId}/profile`, {
+          apiFetch(`/api/users/${userId}/profile`, {
             headers: {
               "Authorization": `Bearer ${effectiveToken}`,
             },
           }),
-          fetch(`${base_url}/api/health-logs/${userId}?page=1&page_size=1`, {
+          apiFetch(`/api/health-logs/${userId}?page=1&page_size=1`, {
             headers: {
               "Authorization": `Bearer ${effectiveToken}`,
             },
@@ -356,7 +353,7 @@ export default function ProfileScreen({ isTab = false }: { isTab?: boolean } = {
       };
       
       const effectiveToken = token || "";
-      const response = await fetch(`${base_url}/api/users/${userId}/profile`, {
+      const response = await apiFetch(`/api/users/${userId}/profile`, {
         method: "PUT",
         headers: { 
           "Content-Type": "application/json",

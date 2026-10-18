@@ -16,11 +16,8 @@ import { useQuery } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useUser } from "../../../contexts/UserContext";
-import { theme } from "../../../constants/theme";
-
-const base_url = process.env.EXPO_PUBLIC_API_URL;
-
-export interface Routine {
+import { apiFetch } from "../../../lib/api";
+import { theme } from "../../../constants/theme";export interface Routine {
   id: string;
   title: string;
   duration: number;
@@ -90,7 +87,7 @@ export default function ExercisesScreen({
     queryKey: ["exercises_list", userId],
     staleTime: 5 * 60 * 1000,
     queryFn: async () => {
-      const res = await fetch(`${base_url}/api/exercises/`, {
+      const res = await apiFetch(`/api/exercises/`, {
         headers: token ? { "Authorization": `Bearer ${token}` } : {}
       });
       if (!res.ok) throw new Error("Failed to fetch exercises");

@@ -17,11 +17,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useUser } from "../../../contexts/UserContext";
-import { theme } from "../../../constants/theme";
-
-const base_url = process.env.EXPO_PUBLIC_API_URL;
-
-export interface Recipe {
+import { apiFetch } from "../../../lib/api";
+import { theme } from "../../../constants/theme";export interface Recipe {
   id: string;
   title: string;
   subtitle: string;
@@ -118,7 +115,7 @@ export default function RecipesScreen({
     initialData: cachedRecipes,
     staleTime: 5 * 60 * 1000,
     queryFn: async () => {
-      const response = await fetch(`${base_url}/api/recipes/`);
+      const response = await apiFetch(`/api/recipes/`);
       if (!response.ok) throw new Error("Failed to fetch recipes");
       const data = await response.json();
       const mapped: Recipe[] = data.map((r: any) => ({
@@ -150,7 +147,7 @@ export default function RecipesScreen({
     enabled: !!userId && !!token,
     staleTime: 5 * 60 * 1000,
     queryFn: async () => {
-      const response = await fetch(`${base_url}/api/recipes/saved/${userId}`, {
+      const response = await apiFetch(`/api/recipes/saved/${userId}`, {
         headers: { "Authorization": `Bearer ${token}` },
       });
       if (!response.ok) throw new Error("Failed to fetch saved recipes");
@@ -174,7 +171,7 @@ export default function RecipesScreen({
   const saveMutation = useMutation({
     mutationFn: async ({ id, isSaved }: { id: string; isSaved: boolean }) => {
       if (!userId || !token) return;
-      const response = await fetch(`${base_url}/api/recipes/${id}/save/${userId}`, {
+      const response = await apiFetch(`/api/recipes/${id}/save/${userId}`, {
         method: isSaved ? "DELETE" : "POST",
         headers: {
           "Authorization": `Bearer ${token}`,

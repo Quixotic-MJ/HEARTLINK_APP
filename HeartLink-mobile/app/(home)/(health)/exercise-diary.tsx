@@ -27,11 +27,8 @@ import { useToast } from "../../../contexts/ToastContext";
 import { queueExerciseForSync } from "../../../services/SyncService";
 
 import { getToken } from "../../../lib/secureTokenStore";
-import { theme } from "../../../constants/theme";
-
-const base_url = process.env.EXPO_PUBLIC_API_URL;
-
-export type ExerciseLog = {
+import { apiFetch } from "../../../lib/api";
+import { theme } from "../../../constants/theme";export type ExerciseLog = {
   id: string;
   user_id: string;
   routine_id: string;
@@ -59,7 +56,7 @@ export default function ExerciseDiaryScreen() {
     try {
       const storedToken = await getToken();
       const effectiveToken = token || storedToken || "";
-      const response = await fetch(`${base_url}/api/exercises/logs/${userId}?limit=50&offset=0`, {
+      const response = await apiFetch(`/api/exercises/logs/${userId}?limit=50&offset=0`, {
         headers: {
           "Authorization": `Bearer ${effectiveToken}`,
         },
@@ -99,7 +96,7 @@ export default function ExerciseDiaryScreen() {
     try {
       const storedToken = await getToken();
       const effectiveToken = token || storedToken || "";
-      const res = await fetch(`${base_url}/api/exercises/logs/${userId}/${logToDelete.id}`, {
+      const res = await apiFetch(`/api/exercises/logs/${userId}/${logToDelete.id}`, {
         method: "DELETE",
         headers: {
           "Authorization": `Bearer ${effectiveToken}`,

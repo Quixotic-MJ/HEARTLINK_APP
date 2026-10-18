@@ -18,11 +18,7 @@ import { OfflineSyncService } from "../../utils/OfflineSyncService";
 import { postLogAck } from "../../services/companionCopy";
 import { useLogSleep } from "../../hooks/useLogSleep";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { theme } from "../../constants/theme";
-
-const base_url = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
-
-/* ─── Collapsible body ───
+import { theme } from "../../constants/theme";/* ─── Collapsible body ───
    Uses Reanimated layout animations so the accordion expands and collapses
    naturally without requiring fragile onLayout height measurements. */
 

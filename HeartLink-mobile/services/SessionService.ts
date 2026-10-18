@@ -1,4 +1,5 @@
 import { getRefreshAt, getRefreshToken, setSession } from "../lib/secureTokenStore";
+import { apiUrl } from "../lib/apiBase";
 
 /**
  * HL-047: the access token now lasts 24 hours. The refresh token (30 days, renewed on every use)
@@ -16,8 +17,6 @@ export type RefreshResult =
   | { status: "refreshed"; token: string }
   | { status: "expired" } // the refresh token no longer works: log in again
   | { status: "unavailable" }; // offline or server trouble: keep the current token and try later
-
-const baseUrl = (): string => process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
 
 export function isSessionTokens(data: unknown): data is SessionTokens {
   if (!data || typeof data !== "object") return false;
@@ -45,7 +44,8 @@ async function doRefresh(): Promise<RefreshResult> {
   const refreshToken = await getRefreshToken();
   if (!refreshToken) return { status: "expired" };
   try {
-    const response = await fetch(`${baseUrl()}/api/auth/refresh`, {
+    // Plain fetch on purpose: apiFetch would try to refresh again on a 401 (HL-023)
+    const response = await fetch(apiUrl("/api/auth/refresh"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ refresh_token: refreshToken }),

@@ -15,11 +15,8 @@ import { useRouter } from "expo-router";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useUser } from "../../../contexts/UserContext";
 import { useToast } from "../../../contexts/ToastContext";
-import { theme } from "../../../constants/theme";
-
-const base_url = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
-
-// ─── Types ────────────────────────────────────────────────────────────────────
+import { apiFetch } from "../../../lib/api";
+import { theme } from "../../../constants/theme";// ─── Types ────────────────────────────────────────────────────────────────────
 
 type NotificationType =
   | "alert"
@@ -708,7 +705,7 @@ export default function NotificationsScreen() {
 
       try {
         const effectiveToken = token || "";
-        const response = await fetch(`${base_url}/api/notifications/${userId}`, {
+        const response = await apiFetch(`/api/notifications/${userId}`, {
           headers: {
             Authorization: `Bearer ${effectiveToken}`,
           },
@@ -793,7 +790,7 @@ export default function NotificationsScreen() {
 
     try {
       const effectiveToken = token || "";
-      const response = await fetch(`${base_url}/api/notifications/${id}/read`, {
+      const response = await apiFetch(`/api/notifications/${id}/read`, {
         method: "PUT",
         headers: {
           Authorization: `Bearer ${effectiveToken}`,
@@ -821,8 +818,8 @@ export default function NotificationsScreen() {
 
     try {
       const effectiveToken = token || "";
-      const response = await fetch(
-        `${base_url}/api/notifications/${userId}/mark-all-read`,
+      const response = await apiFetch(
+        `/api/notifications/${userId}/mark-all-read`,
         {
           method: "PUT",
           headers: {

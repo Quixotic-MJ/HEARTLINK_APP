@@ -1,8 +1,5 @@
-import type { FoodItem } from "./foodLogging";
-
-const base_url = process.env.EXPO_PUBLIC_API_URL;
-
-/**
+import { apiFetch } from "../lib/api";
+import type { FoodItem } from "./foodLogging";/**
  * HL-032: the three places food search looks, each returning FoodItems with their
  * source, so the screens can show where a food came from and treat it the right way.
  */
@@ -46,7 +43,7 @@ const n = (v: unknown) => {
 
 /** The patient's last five different meals. Values are per portion they logged, so 1 serving = last time. */
 export async function fetchRecentMeals(userId: string, token: string | null, signal?: AbortSignal): Promise<FoodItem[]> {
-  const res = await fetch(`${base_url}/api/meals/${userId}?page=1&page_size=50`, {
+  const res = await apiFetch(`/api/meals/${userId}?page=1&page_size=50`, {
     headers: { Authorization: `Bearer ${token || ""}` },
     signal,
   });
@@ -79,14 +76,14 @@ export async function fetchRecentMeals(userId: string, token: string | null, sig
 
 /** Published HeartLink recipes; with an empty query, the ones recommended for this patient come first. */
 export async function fetchRecipes(query: string, token: string | null, signal?: AbortSignal): Promise<FoodItem[]> {
-  const res = await fetch(`${base_url}/api/meals/search?q=${encodeURIComponent(query)}`, { signal });
+  const res = await apiFetch(`/api/meals/search?q=${encodeURIComponent(query)}`, { signal });
   if (!res.ok) throw new Error("Could not load HeartLink recipes");
   const recipes: RawRecipe[] = await res.json();
 
   let recommended = new Set<string>();
   if (!query) {
     try {
-      const recoRes = await fetch(`${base_url}/api/meals/recommendations/me`, {
+      const recoRes = await apiFetch(`/api/meals/recommendations/me`, {
         headers: { Authorization: `Bearer ${token || ""}` },
         signal,
       });

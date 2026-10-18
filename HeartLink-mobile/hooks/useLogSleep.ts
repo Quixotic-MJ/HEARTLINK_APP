@@ -1,11 +1,8 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '../contexts/ToastContext';
 import { postLogAck } from '../services/companionCopy';
-import { useNetInfo } from '@react-native-community/netinfo';
-
-const base_url = process.env.EXPO_PUBLIC_API_URL;
-
-export interface SleepPayload {
+import { apiFetch } from "../lib/api";
+import { useNetInfo } from '@react-native-community/netinfo';export interface SleepPayload {
   duration_hours: number;
   quality: string;
   bedtime: string;
@@ -26,7 +23,7 @@ export function useLogSleep(userId: string | null | undefined, token: string | n
       const timeoutId = setTimeout(() => controller.abort(), 5000);
 
       try {
-        const response = await fetch(`${base_url}/api/sleep-logs/${userId}`, {
+        const response = await apiFetch(`/api/sleep-logs/${userId}`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

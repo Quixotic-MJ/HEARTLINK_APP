@@ -21,8 +21,8 @@ import { EmptyState } from "../../../components/ui/EmptyState";
 import { useToast } from "../../../contexts/ToastContext";
 import { ConfirmDialog } from "../../../components/ui/ConfirmDialog";
 import { theme } from "../../../constants/theme";
+import { apiFetch } from "../../../lib/api";
 
-const base_url = process.env.EXPO_PUBLIC_API_URL;
 
 const DOCTOR_PRESETS = ["Cardiologist", "Primary Care Doctor", "Nurse", "Other"];
 const EMERGENCY_PRESETS = ["Spouse / Partner", "Parent", "Child", "Sibling", "Other"];
@@ -124,7 +124,7 @@ export default function CareTeamScreen() {
   const fetchCareTeam = async () => {
     try {
       const effectiveToken = token || "";
-      const response = await fetch(`${base_url}/api/users/${userId}/profile`, {
+      const response = await apiFetch(`/api/users/${userId}/profile`, {
         headers: {
           "Authorization": `Bearer ${effectiveToken}`,
         },
@@ -183,12 +183,12 @@ export default function CareTeamScreen() {
     setIsSaving(true);
     try {
       const method = editingContact ? "PUT" : "POST";
-      const endpoint = editingContact 
-        ? `${base_url}/api/users/${userId}/care-team/${editingContact.id}`
-        : `${base_url}/api/users/${userId}/care-team`;
+      const endpoint = editingContact
+        ? `/api/users/${userId}/care-team/${editingContact.id}`
+        : `/api/users/${userId}/care-team`;
 
       const effectiveToken = token || "";
-      const response = await fetch(endpoint, {
+      const response = await apiFetch(endpoint, {
         method,
         headers: { 
           "Content-Type": "application/json",
@@ -217,7 +217,7 @@ export default function CareTeamScreen() {
     try {
       setIsSaving(true);
       const effectiveToken = token || "";
-      const response = await fetch(`${base_url}/api/users/${userId}/care-team/${editingContact.id}`, {
+      const response = await apiFetch(`/api/users/${userId}/care-team/${editingContact.id}`, {
         method: "DELETE",
         headers: {
           "Authorization": `Bearer ${effectiveToken}`,

@@ -20,6 +20,7 @@ import { useUser } from "../../contexts/UserContext";
 import { useToast } from "../../contexts/ToastContext";
 import { useLogMeal } from "../../hooks/useLogMeal";
 import { theme } from "../../constants/theme";
+import { apiFetch, apiUrl } from "../../lib/api";
 
 /**
  * RecommendationModal — pure React Native port of the ExpandableProfileCard
@@ -43,16 +44,13 @@ export interface ActiveRec {
   subtitle: string;
 }
 
-const base_url = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
 
 function resolveMediaUrl(url: string) {
   if (!url) return "";
   if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:")) {
     return url;
   }
-  const cleanBase = base_url?.endsWith("/") ? base_url.slice(0, -1) : base_url;
-  const cleanPath = url.startsWith("/") ? url : `/${url}`;
-  return `${cleanBase || "http://localhost:8000"}${cleanPath}`;
+  return apiUrl(url);
 }
 
 const FALLBACK_RECIPE_IMG =
@@ -164,7 +162,7 @@ export function RecommendationModal({
       if (effectiveToken) headers["Authorization"] = `Bearer ${effectiveToken}`;
 
       if (targetRec.type === "recipe") {
-        const res = await fetch(`${base_url}/api/recipes/${targetRec.id}`, { headers });
+        const res = await apiFetch(`/api/recipes/${targetRec.id}`, { headers });
         if (!res.ok) throw new Error("Failed to fetch recipe");
         const data = await res.json();
         setDetail({
@@ -181,7 +179,7 @@ export function RecommendationModal({
           stepsCount: Array.isArray(data.steps) ? data.steps.length : 0,
         });
       } else {
-        const res = await fetch(`${base_url}/api/exercises/${targetRec.id}`, { headers });
+        const res = await apiFetch(`/api/exercises/${targetRec.id}`, { headers });
         if (!res.ok) throw new Error("Failed to fetch routine");
         const data = await res.json();
         setDetail({

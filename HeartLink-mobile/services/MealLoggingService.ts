@@ -1,10 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { queueMealForSync } from "./SyncService";
-import { postLogAck } from "./companionCopy";
-
-const base_url = process.env.EXPO_PUBLIC_API_URL;
-
-export type MealPayload = {
+import { apiFetch } from "../lib/api";
+import { postLogAck } from "./companionCopy";export type MealPayload = {
   recipe_id?: string;
   meal_name: string;
   portion: number;
@@ -41,7 +38,7 @@ export async function logMealAndGetToast(
 
   try {
     // 1. Send to server
-    const response = await fetch(`${base_url}/api/meals/${userId}`, {
+    const response = await apiFetch(`/api/meals/${userId}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -154,7 +151,7 @@ export async function logMeals(userId: string, token: string | null, payloads: M
   for (const payload of payloads) {
     totalAddedSodium += payload.sodium_mg;
     try {
-      const response = await fetch(`${base_url}/api/meals/${userId}`, {
+      const response = await apiFetch(`/api/meals/${userId}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

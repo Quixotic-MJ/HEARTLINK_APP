@@ -2,11 +2,8 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { MealPayload } from '../services/MealLoggingService';
 import { useToast } from '../contexts/ToastContext';
 import { postLogAck } from '../services/companionCopy';
-import { useNetInfo } from '@react-native-community/netinfo';
-
-const base_url = process.env.EXPO_PUBLIC_API_URL;
-
-export function useLogMeal(userId: string | null | undefined, token: string | null) {
+import { apiFetch } from "../lib/api";
+import { useNetInfo } from '@react-native-community/netinfo';export function useLogMeal(userId: string | null | undefined, token: string | null) {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
   const netInfo = useNetInfo();
@@ -20,7 +17,7 @@ export function useLogMeal(userId: string | null | undefined, token: string | nu
       const timeoutId = setTimeout(() => controller.abort(), 5000);
 
       try {
-        const response = await fetch(`${base_url}/api/meals/${userId}`, {
+        const response = await apiFetch(`/api/meals/${userId}`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

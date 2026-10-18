@@ -5,11 +5,8 @@ import { StatusBar } from "expo-status-bar";
 import { Feather } from "@expo/vector-icons";
 import { useRouter, useFocusEffect } from "expo-router";
 import { useUser } from "../../../contexts/UserContext";
-import { theme } from "../../../constants/theme";
-
-const base_url = process.env.EXPO_PUBLIC_API_URL;
-
-// Generate the last 26 weeks of days (approx 6 months)
+import { apiFetch } from "../../../lib/api";
+import { theme } from "../../../constants/theme";// Generate the last 26 weeks of days (approx 6 months)
 function generateHeatmapCalendar(loggedDates: Set<string>) {
   const weeks = [];
   const today = new Date();
@@ -61,7 +58,7 @@ export default function AnalyticsScreen() {
     if (!userId) return;
     setIsLoading(true);
     try {
-      const response = await fetch(`${base_url}/api/dashboard/me`, {
+      const response = await apiFetch(`/api/dashboard/me`, {
         headers: {
           "Authorization": `Bearer ${token || ""}`,
         },

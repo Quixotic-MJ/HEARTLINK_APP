@@ -9,6 +9,7 @@ import { Feather } from "@expo/vector-icons";
 import { useUser } from "../../../contexts/UserContext";
 import { useToast } from "../../../contexts/ToastContext";
 import Constants from "expo-constants";
+import { apiFetch } from "../../../lib/api";
 
 const CATEGORIES = [
   { id: "Bug Report", label: "Report a Bug", icon: "alert-triangle" },
@@ -40,15 +41,12 @@ export default function SubmitTicketScreen() {
     setIsSubmitting(true);
 
     try {
-      const baseUrl = process.env.EXPO_PUBLIC_API_URL || (Platform.OS === "android" ? "http://10.0.2.2:8000" : "http://localhost:8000");
-      const apiUrl = `${baseUrl}/api/feedback`;
-        
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000);
 
       const effectiveToken = token || "";
 
-      const res = await fetch(apiUrl, {
+      const res = await apiFetch("/api/feedback", {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",

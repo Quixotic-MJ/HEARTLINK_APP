@@ -16,11 +16,8 @@ import AnimatedButton from "../../../components/ui/AnimatedButton";
 import DsButton from "../../../components/onboarding/DsButton";
 import { useDs } from "../../../components/onboarding/useDs";
 import { AmountStepper } from "../../../components/food/FoodBits";
-import { formatMg } from "../../../services/foodLogging";
-
-const base_url = process.env.EXPO_PUBLIC_API_URL;
-
-type Tab = "Ingredients" | "Instructions";
+import { apiFetch } from "../../../lib/api";
+import { formatMg } from "../../../services/foodLogging";type Tab = "Ingredients" | "Instructions";
 
 export default function RecipeDetailsScreen() {
   const { c, isDark } = useDs();
@@ -51,7 +48,7 @@ export default function RecipeDetailsScreen() {
         if (effectiveToken) {
           headers["Authorization"] = `Bearer ${effectiveToken}`;
         }
-        const response = await fetch(`${base_url}/api/recipes/${id}`, { headers });
+        const response = await apiFetch(`/api/recipes/${id}`, { headers });
         if (!response.ok) throw new Error("Failed to fetch recipe");
         const data = await response.json();
 
@@ -128,7 +125,7 @@ export default function RecipeDetailsScreen() {
         const storedToken = await getToken();
         const effectiveToken = token || storedToken || "";
         if (userId && effectiveToken) {
-          const res = await fetch(`${base_url}/api/recipes/saved/${userId}`, {
+          const res = await apiFetch(`/api/recipes/saved/${userId}`, {
             headers: { "Authorization": `Bearer ${effectiveToken}` },
           });
           if (res.ok) {
@@ -176,7 +173,7 @@ export default function RecipeDetailsScreen() {
       const storedToken = await getToken();
       const effectiveToken = token || storedToken || "";
       if (userId && effectiveToken) {
-        await fetch(`${base_url}/api/recipes/${id}/save/${userId}`, {
+        await apiFetch(`/api/recipes/${id}/save/${userId}`, {
           method: nextSavedState ? "POST" : "DELETE",
           headers: {
             "Authorization": `Bearer ${effectiveToken}`,
@@ -240,7 +237,7 @@ export default function RecipeDetailsScreen() {
       image_url: recipe.image,
     };
     try {
-      const response = await fetch(`${base_url}/api/meals/${userId}`, {
+      const response = await apiFetch(`/api/meals/${userId}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
