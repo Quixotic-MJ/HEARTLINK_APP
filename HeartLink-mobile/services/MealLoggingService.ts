@@ -18,6 +18,12 @@ export type MealPayload = {
   time_of_meal?: string;
 };
 
+/** The patient's own daily sodium limit from the cached dashboard, else 2,000 mg. */
+function limitFromCache(data: any): number {
+  const limit = data?.nutrition_budget?.sodium?.limit_mg;
+  return typeof limit === "number" && limit > 0 ? limit : 2000;
+}
+
 /**
  * Centralized meal logging service that handles the network POST,
  * offline queuing, and safely computes the daily running total from the local cache.
@@ -31,6 +37,7 @@ export async function logMealAndGetToast(
 ) {
   const cacheKey = `@dashboard_cache_${userId}`;
   let runningTotal = payload.sodium_mg;
+  let limit = 2000;
 
   try {
     // 1. Send to server
@@ -49,6 +56,7 @@ export async function logMealAndGetToast(
     const cachedStr = await AsyncStorage.getItem(cacheKey);
     if (cachedStr) {
       const data = JSON.parse(cachedStr);
+      limit = limitFromCache(data);
       const prevTotal =
         data?.nutrition_budget?.sodium?.consumed_mg ??
         data?.today_activity?.total_sodium_mg ??
@@ -73,7 +81,7 @@ export async function logMealAndGetToast(
         "meal",
         `${Math.round(payload.sodium_mg)}mg sodium. You're at ${Math.round(
           runningTotal
-        ).toLocaleString()} of your 2,000mg budget today.`
+        ).toLocaleString()} of your ${limit.toLocaleString()}mg budget today.`
       ),
       type: "success",
       duration: 5500,
@@ -89,6 +97,7 @@ export async function logMealAndGetToast(
       const cachedStr = await AsyncStorage.getItem(cacheKey);
       if (cachedStr) {
         const data = JSON.parse(cachedStr);
+        limit = limitFromCache(data);
         const prevTotal =
           data?.nutrition_budget?.sodium?.consumed_mg ??
           data?.today_activity?.total_sodium_mg ??
@@ -115,7 +124,7 @@ export async function logMealAndGetToast(
         "meal",
         `Saved offline. Added ${Math.round(payload.sodium_mg)}mg. You're at ${Math.round(
           runningTotal
-        ).toLocaleString()} of 2,000mg.`
+        ).toLocaleString()} of ${limit.toLocaleString()}mg.`
       ),
       type: "info",
       duration: 5500,
@@ -125,22 +134,23 @@ export async function logMealAndGetToast(
   }
 }
 
+export type LogMealsResult = {
+  savedCount: number;
+  /** Saved on the phone and uploaded later by SyncService. */
+  offlineCount: number;
+};
+
 /**
- * Logs multiple meals at once (e.g. from a basket).
- * Processes each payload, updates the running total once, and displays a single summary toast.
+ * Logs several foods at once (HL-032 review screen). Each one that can't reach the
+ * server is queued for later, and the cached daily total is updated once. The caller
+ * shows the result (the "logged" screen), so no toast here.
  */
-export async function logMultipleMealsAndGetToast(
-  userId: string,
-  token: string | null,
-  payloads: MealPayload[],
-  showToast: (options: any) => void,
-  onComplete: () => void
-) {
+export async function logMeals(userId: string, token: string | null, payloads: MealPayload[]): Promise<LogMealsResult> {
   const cacheKey = `@dashboard_cache_${userId}`;
   let totalAddedSodium = 0;
-  let successCount = 0;
+  let savedCount = 0;
   let offlineCount = 0;
-  
+
   for (const payload of payloads) {
     totalAddedSodium += payload.sodium_mg;
     try {
@@ -154,7 +164,7 @@ export async function logMultipleMealsAndGetToast(
       });
 
       if (!response.ok) throw new Error("Failed to log meal to server");
-      successCount++;
+      savedCount++;
     } catch (error) {
       console.log("Network error logging one of multiple meals, queueing offline...", error);
       await queueMealForSync(userId, payload);
@@ -163,7 +173,6 @@ export async function logMultipleMealsAndGetToast(
   }
 
   // Update Cache once for the batch
-  let runningTotal = totalAddedSodium;
   try {
     const cachedStr = await AsyncStorage.getItem(cacheKey);
     if (cachedStr) {
@@ -172,7 +181,7 @@ export async function logMultipleMealsAndGetToast(
         data?.nutrition_budget?.sodium?.consumed_mg ??
         data?.today_activity?.total_sodium_mg ??
         0;
-      runningTotal = prevTotal + totalAddedSodium;
+      const runningTotal = prevTotal + totalAddedSodium;
 
       if (data.nutrition_budget?.sodium) {
         data.nutrition_budget.sodium.consumed_mg = runningTotal;
@@ -188,16 +197,5 @@ export async function logMultipleMealsAndGetToast(
     console.error("Failed to update cache during batch save", cacheError);
   }
 
-  // Show a single toast
-  const message = offlineCount > 0 
-    ? `Logged ${payloads.length} item(s) (${offlineCount} offline). Added ${Math.round(totalAddedSodium)}mg. You're at ${Math.round(runningTotal).toLocaleString()} of 2,000mg.`
-    : `Logged ${payloads.length} item(s)! Added ${Math.round(totalAddedSodium)}mg sodium. You're at ${Math.round(runningTotal).toLocaleString()} of 2,000mg.`;
-
-  showToast({
-    ...postLogAck("meal", message),
-    type: offlineCount > 0 ? "info" : "success",
-    duration: 5500,
-  });
-
-  onComplete();
+  return { savedCount, offlineCount };
 }
