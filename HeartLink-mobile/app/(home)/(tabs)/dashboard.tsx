@@ -437,6 +437,20 @@ export default function DashboardScreen() {
     [safeNavigate]
   );
 
+  // Screen positions of the tour's sections: their place in the scroll content, minus how far
+  // the page is actually scrolled, plus where the scroll area starts on screen.
+  const measureTourLayouts = useCallback((done: (layouts: Record<string, { x: number; y: number; width: number; height: number }>) => void) => {
+    (scrollViewRef.current as any)?.measureInWindow?.((_sx: number, sy: number) => {
+      const headerOffset = sy || 100;
+      const offset = scrollOffsetRef.current;
+      const updated: Record<string, { x: number; y: number; width: number; height: number }> = {};
+      for (const [k, v] of Object.entries(sectionLayoutsRef.current)) {
+        updated[k] = { x: v.x, y: v.y - offset + headerOffset, width: v.width, height: v.height };
+      }
+      done(updated);
+    });
+  }, []);
+
   // Check if user has already seen the interactive dashboard walkthrough
   useEffect(() => {
     const checkTutorial = async () => {
@@ -446,21 +460,11 @@ export default function DashboardScreen() {
         if (!seen) {
           const timer = setTimeout(() => {
             scrollViewRef.current?.scrollTo({ y: 0, animated: false });
-            setTutorialVisible(true);
-            // Wait for onLayout to fire and then compute screen-relative positions
+            // Measure first, then show, so the spotlight never starts in a guessed spot
             setTimeout(() => {
-              (scrollViewRef.current as any)?.measureInWindow?.((sx: number, sy: number) => {
-                const headerOffset = sy || 100;
-                const updated: Record<string, { x: number; y: number; width: number; height: number }> = {};
-                for (const [k, v] of Object.entries(sectionLayoutsRef.current)) {
-                  updated[k] = {
-                    x: v.x,
-                    y: v.y + headerOffset, // No scroll offset since we scrolled to 0
-                    width: v.width,
-                    height: v.height,
-                  };
-                }
-                setTutorialLayouts(updated);
+              measureTourLayouts((layouts) => {
+                setTutorialLayouts(layouts);
+                setTutorialVisible(true);
               });
             }, 500);
           }, 700);
@@ -469,7 +473,7 @@ export default function DashboardScreen() {
       } catch { }
     };
     checkTutorial();
-  }, [userId]);
+  }, [userId, measureTourLayouts]);
 
   const handleFinishTutorial = async () => {
     setTutorialVisible(false);
@@ -715,42 +719,22 @@ export default function DashboardScreen() {
       withScrollView={false}
     >
       {/* ── Interactive First-Time Coachmark Walkthrough Tour ── */}
-      <DashboardTutorialModal
-        visible={tutorialVisible}
-        onClose={handleFinishTutorial}
-        isDark={isDark}
-        targetLayouts={tutorialLayouts}
-        onStepChange={(stepIndex) => {
-          // Map step index to which section to scroll to
-          const sectionKeys = ['score', 'missions', 'vitals', 'summary'];
-          const key = sectionKeys[stepIndex];
-          const layout = sectionLayoutsRef.current[key];
-          if (!layout || layout.height === 0) return;
-
-          // Scroll so the section appears near top of screen (with some padding)
-          const targetScroll = Math.max(0, layout.y - 80);
-          scrollViewRef.current?.scrollTo({ y: targetScroll, animated: true });
-
-          // After scroll animation settles, recalculate screen-relative positions
-          setTimeout(() => {
-            const currentOffset = targetScroll;
-            const updated: Record<string, { x: number; y: number; width: number; height: number }> = {};
-            // Measure the ScrollView's screen position to get the header offset
-            (scrollViewRef.current as any)?.measureInWindow?.((sx: number, sy: number) => {
-              const headerOffset = sy || 100; // fallback ~100px for safe area + header
-              for (const [k, v] of Object.entries(sectionLayoutsRef.current)) {
-                updated[k] = {
-                  x: v.x,
-                  y: v.y - currentOffset + headerOffset,
-                  width: v.width,
-                  height: v.height,
-                };
-              }
-              setTutorialLayouts(updated);
-            });
-          }, 400);
-        }}
-      />
+      {/* Mounted only once the sections are measured; it picks its steps from what's on screen */}
+      {tutorialVisible && tutorialLayouts ? (
+        <DashboardTutorialModal
+          visible
+          onClose={handleFinishTutorial}
+          targetLayouts={tutorialLayouts}
+          onStepChange={(target) => {
+            const layout = sectionLayoutsRef.current[target];
+            if (!layout || layout.height === 0) return;
+            // Bring the section near the top, then measure where it really ended up
+            // (a short page can't always scroll as far as asked).
+            scrollViewRef.current?.scrollTo({ y: Math.max(0, layout.y - 80), animated: true });
+            setTimeout(() => measureTourLayouts(setTutorialLayouts), 420);
+          }}
+        />
+      ) : null}
 
       {/* Custom Alert Modal */}
       {isAlertActive && (

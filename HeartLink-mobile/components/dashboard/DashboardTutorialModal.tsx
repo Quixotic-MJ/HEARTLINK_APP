@@ -1,281 +1,162 @@
-import React, { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  Modal,
-  Dimensions,
-  Platform,
-} from "react-native";
-import Reanimated, { FadeIn, FadeOut, SlideInUp } from "react-native-reanimated";
-import { Feather } from "@expo/vector-icons";
+import React, { useEffect, useState } from "react";
+import { Modal, Text, View, useWindowDimensions } from "react-native";
+import Reanimated, {
+  Easing,
+  FadeIn,
+  useAnimatedProps,
+  useReducedMotion,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import Svg, { Defs, Mask, Rect } from "react-native-svg";
+import AnimatedButton from "../ui/AnimatedButton";
+import DsButton from "../onboarding/DsButton";
+import { useDs } from "../onboarding/useDs";
 
-import Svg, { Defs, Mask, Rect, Path, G } from "react-native-svg";
-import { theme } from "../../constants/theme";
+/**
+ * First-visit tour of the dashboard. Each step spotlights one section with a thin blue ring
+ * that glides to the next section, and explains it in a sheet at the bottom.
+ * Steps whose section isn't on screen (e.g. no recommendations yet) are skipped.
+ */
 
-interface TutorialStep {
-  id: string;
-  title: string;
-  description: string;
-  icon: keyof typeof Feather.glyphMap;
-  targetArea: "score" | "vitals" | "missions" | "summary";
-  badgeText: string;
-}
+export type TourTarget = "score" | "missions" | "vitals" | "summary";
+export type TourRect = { x: number; y: number; width: number; height: number };
 
-const TUTORIAL_STEPS: TutorialStep[] = [
+type TourStep = { target: TourTarget; title: string; body: string };
+
+const TOUR_STEPS: TourStep[] = [
   {
-    id: "step-1",
-    title: "Your Heart Health Score",
-    description:
-      "Your daily cardiovascular snapshot. Keep this in the 'Stable' zone by completing your daily tasks.",
-    icon: "activity",
-    targetArea: "score",
-    badgeText: "Step 1 of 4 • Core Metric",
+    target: "score",
+    title: "Your heart health score",
+    body: "A daily snapshot built from your readings and habits. It helps you keep healthy habits; it isn't a diagnosis.",
   },
   {
-    id: "step-2",
-    title: "Daily Heart Missions",
-    description:
-      "Your personalized goals. We break down exactly what you need to do today, like checking your blood pressure or taking a walk.",
-    icon: "target",
-    targetArea: "missions",
-    badgeText: "Step 2 of 4 • What to do",
+    target: "missions",
+    title: "Today's missions",
+    body: "Four small tasks each day: blood pressure, meals, movement and sleep. Tap one to log it.",
   },
   {
-    id: "step-3",
-    title: "The Quick Log Cards",
-    description:
-      "Tap the blue or orange '+' buttons on these cards anytime to instantly log your meals or vitals. This powers your Heart Score.",
-    icon: "plus-circle",
-    targetArea: "vitals",
-    badgeText: "Step 3 of 4 • How to use",
+    target: "vitals",
+    title: "Today so far",
+    body: "Calories, sodium, saturated fat and movement add up here as you log. Sodium counts against your own daily limit.",
   },
   {
-    id: "step-4",
-    title: "AI Insights & Trends",
-    description:
-      "As you log, our AI will generate clinical insights and spot trends to help you understand your heart better.",
-    icon: "trending-up",
-    targetArea: "summary",
-    badgeText: "Step 4 of 4 • The Value",
+    target: "summary",
+    title: "Recommended for you",
+    body: "Recipes and exercises picked for your current score. Tap one to see what's in it.",
   },
 ];
+
+/** Space between the section and the ring, and the ring's corner radius. */
+const PAD = 8;
+const RADIUS = 16;
+
+const AnimatedRect = Reanimated.createAnimatedComponent(Rect);
 
 interface DashboardTutorialModalProps {
   visible: boolean;
   onClose: () => void;
-  isDark?: boolean;
-  targetLayouts?: Record<string, { x: number; y: number; width: number; height: number }>;
-  onStepChange?: (stepIndex: number) => void;
+  /** Screen positions of the dashboard sections. The tour waits until these are measured. */
+  targetLayouts?: Partial<Record<TourTarget, TourRect>>;
+  /** Called when a step opens, so the dashboard can scroll that section into view. */
+  onStepChange?: (target: TourTarget) => void;
 }
 
-export function DashboardTutorialModal({
-  visible,
-  onClose,
-  isDark = false,
-  targetLayouts,
-  onStepChange,
-}: DashboardTutorialModalProps) {
-  const [currentStepIndex, setCurrentStepIndex] = useState(0);
-  const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
+export function DashboardTutorialModal({ visible, onClose, targetLayouts, onStepChange }: DashboardTutorialModalProps) {
+  const { c } = useDs();
+  const reduceMotion = useReducedMotion();
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+  const [index, setIndex] = useState(0);
 
-  const step = TUTORIAL_STEPS[currentStepIndex];
-  const isLastStep = currentStepIndex === TUTORIAL_STEPS.length - 1;
+  // Only steps whose section is actually on the dashboard right now.
+  const [steps] = useState<TourStep[]>(() => TOUR_STEPS.filter((s) => (targetLayouts?.[s.target]?.height ?? 0) > 0));
+  const step = steps[Math.min(index, steps.length - 1)];
+  const rect = step ? targetLayouts?.[step.target] : undefined;
+  const isLast = index >= steps.length - 1;
 
-  const currentLayout = targetLayouts?.[step.targetArea];
+  // The spotlight glides from one section to the next (instantly with reduced motion).
+  const x = useSharedValue(rect ? rect.x - PAD : 0);
+  const y = useSharedValue(rect ? rect.y - PAD : 0);
+  const w = useSharedValue(rect ? rect.width + PAD * 2 : 0);
+  const h = useSharedValue(rect ? rect.height + PAD * 2 : 0);
+  useEffect(() => {
+    if (!rect) return;
+    const to = (v: number) => (reduceMotion ? v : withTiming(v, { duration: 320, easing: Easing.out(Easing.cubic) }));
+    x.value = to(Math.max(4, rect.x - PAD));
+    y.value = to(rect.y - PAD);
+    w.value = to(Math.min(screenWidth - 8, rect.width + PAD * 2));
+    h.value = to(rect.height + PAD * 2);
+  }, [rect, reduceMotion, screenWidth, x, y, w, h]);
+  const holeProps = useAnimatedProps(() => ({ x: x.value, y: y.value, width: w.value, height: h.value }));
+  const ringProps = useAnimatedProps(() => ({ x: x.value, y: y.value, width: w.value, height: h.value }));
 
-  // Hardcoded fallback for Score Ring if layouts aren't passed
-  const isFirstStep = currentStepIndex === 0;
+  if (!visible || !step || !rect) return null;
 
-  let fallbackTx = 16;
-  let fallbackTy = 0;
-  let fallbackTw = screenWidth - 32;
-  let fallbackTh = 0;
-
-  if (currentStepIndex === 0) { // Score
-    fallbackTy = 130;
-    fallbackTh = 350;
-  } else if (currentStepIndex === 1) { // Missions
-    fallbackTy = 150; // Adjusted for scrolling
-    fallbackTh = 140;
-  } else if (currentStepIndex === 2) { // Quick Log
-    fallbackTy = 150; // Adjusted for scrolling
-    fallbackTh = 160;
-  } else { // Insights
-    fallbackTy = 150; // Adjusted for scrolling
-    fallbackTh = 80;
-  }
-
-  const tx = currentLayout?.x ?? fallbackTx;
-  const ty = currentLayout?.y ?? fallbackTy;
-  const tw = currentLayout?.width ?? fallbackTw;
-  const th = currentLayout?.height ?? fallbackTh;
-
-  const arrowSpace = (screenHeight - 280) - (ty + th);
-  const showArrow = arrowSpace > 20;
-
-  const handleNext = () => {
+  const goTo = (next: number) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    if (isLastStep) {
-      handleComplete();
-    } else {
-      const nextStep = currentStepIndex + 1;
-      setCurrentStepIndex(nextStep);
-      onStepChange?.(nextStep);
-    }
+    setIndex(next);
+    onStepChange?.(steps[next].target);
   };
-
-  const handleBack = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    if (currentStepIndex > 0) {
-      const prevStep = currentStepIndex - 1;
-      setCurrentStepIndex(prevStep);
-      onStepChange?.(prevStep);
-    }
-  };
-
-  const handleComplete = () => {
+  const finish = () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     onClose();
   };
 
-  if (!visible) return null;
-
   return (
-    <Modal
-      transparent
-      animationType="fade"
-      visible={visible}
-      onRequestClose={onClose}
-      statusBarTranslucent
-    >
-      <View style={{ flex: 1 }}>
-        {/* ── Spotlight SVG Mask ── */}
-        <Svg style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }} width="100%" height="100%">
+    <Modal transparent animationType="fade" visible onRequestClose={finish} statusBarTranslucent>
+      <View style={{ flex: 1 }} accessibilityViewIsModal>
+        <Svg style={{ position: "absolute", top: 0, left: 0 }} width={screenWidth} height={screenHeight} pointerEvents="none">
           <Defs>
-            <Mask id="spotlightMask">
-              <Rect x="0" y="0" width="100%" height="100%" fill="white" />
-              <Rect x={tx} y={ty} width={tw} height={th} rx={24} fill="black" />
+            <Mask id="tourSpotlight">
+              <Rect x={0} y={0} width={screenWidth} height={screenHeight} fill="white" />
+              <AnimatedRect animatedProps={holeProps} rx={RADIUS} fill="black" />
             </Mask>
           </Defs>
-          <Rect x="0" y="0" width="100%" height="100%" fill="rgba(0,0,0,0.75)" mask="url(#spotlightMask)" />
-
-          {/* Connective Line / Pointer */}
-          {showArrow && (
-            <G>
-              <Path
-                d={`M ${screenWidth / 2} ${ty + th + Math.min(arrowSpace, 60)} L ${screenWidth / 2} ${ty + th + 15}`}
-                stroke="white"
-                strokeWidth="2"
-                strokeDasharray="6, 6"
-                fill="none"
-                opacity={0.9}
-              />
-              {/* Arrowhead */}
-              <Path
-                d={`M ${screenWidth / 2 - 8} ${ty + th + 25} L ${screenWidth / 2} ${ty + th + 15} L ${screenWidth / 2 + 8} ${ty + th + 25}`}
-                stroke="white"
-                strokeWidth="2.5"
-                fill="none"
-              />
-            </G>
-          )}
+          <Rect x={0} y={0} width={screenWidth} height={screenHeight} fill="rgba(15,15,15,0.62)" mask="url(#tourSpotlight)" />
+          <AnimatedRect animatedProps={ringProps} rx={RADIUS} fill="none" stroke={c.line} strokeWidth={2} />
         </Svg>
 
-        {/* ── UI Layer ── */}
-        <View className="flex-1 justify-end" pointerEvents="box-none">
-          {/* ── Floating Tooltip Card ── */}
-          <Reanimated.View
-            entering={FadeIn.duration(240)}
-            key={step.id}
-            className="w-full bg-surface dark:bg-surface-alt border-t border-white/20 dark:border-slate-700 shadow-2xl rounded-t-[32px] px-6 pt-6 pb-12"
-            style={{
-              shadowColor: "#000",
-              shadowOffset: { width: 0, height: 10 },
-              shadowOpacity: 0.35,
-              shadowRadius: 20,
-              elevation: 10,
-            }}
-          >
-            {/* Header Row: Badge & Skip Button */}
-            <View className="flex-row items-center justify-between mb-3.5 w-full">
-              <View className="flex-row items-center gap-1.5 px-2.5 py-1 rounded-full bg-sky-mid/10 dark:bg-sky/20 border border-sky-mid/20 dark:border-sky/20 flex-shrink mr-2">
-                <Feather name={step.icon} size={11} color={isDark ? "#38bdf8" : "#0284c7"} />
-                <Text
-                  className="text-[10.5px] font-bold text-sky-mid dark:text-sky uppercase tracking-wider flex-shrink"
-                  numberOfLines={1}
-                  adjustsFontSizeToFit
-                >
-                  {step.badgeText}
-                </Text>
-              </View>
-
-              <TouchableOpacity
-                onPress={handleComplete}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                className="py-1 flex-shrink-0"
+        <View style={{ flex: 1, justifyContent: "flex-end" }} pointerEvents="box-none">
+          <View style={{ backgroundColor: c.canvas, borderTopLeftRadius: 16, borderTopRightRadius: 16, paddingHorizontal: 24, paddingTop: 16, paddingBottom: 32, gap: 16 }}>
+            {/* Where you are in the tour: same four-part bar as the set-up screens */}
+            <View className="flex-row items-center justify-between">
+              <View
+                className="flex-row"
+                style={{ gap: 4, width: 120 }}
+                accessible
+                accessibilityRole="progressbar"
+                accessibilityLabel={`Tour step ${index + 1} of ${steps.length}`}
               >
-                <Text className="text-[12px] font-semibold text-text-soft dark:text-text-muted">
-                  Skip Tour
-                </Text>
-              </TouchableOpacity>
+                {steps.map((s, i) => (
+                  <View key={s.target} style={{ flex: 1, height: 4, borderRadius: 2, backgroundColor: i <= index ? c.line : c.hairlineSoft }} />
+                ))}
+              </View>
+              <AnimatedButton
+                onPress={finish}
+                accessibilityRole="button"
+                accessibilityLabel="Skip the tour"
+                style={{ height: 44, paddingHorizontal: 4, justifyContent: "center" }}
+              >
+                <Text style={{ fontSize: 14, fontWeight: "500", color: c.slate }}>Skip tour</Text>
+              </AnimatedButton>
             </View>
 
-            {/* Title & Description */}
-            <Text className="text-[19px] font-bold text-text dark:text-white tracking-tight mb-2">
-              {step.title}
-            </Text>
-            <Text className="text-[13.5px] text-text-soft dark:text-slate-300 leading-relaxed mb-6 font-medium">
-              {step.description}
-            </Text>
+            <Reanimated.View key={step.target} entering={reduceMotion ? undefined : FadeIn.duration(200)} style={{ gap: 6 }}>
+              <Text style={{ fontSize: 13, color: c.steel }}>
+                {index + 1} of {steps.length}
+              </Text>
+              <Text accessibilityRole="header" style={{ fontSize: 20, fontWeight: "600", color: c.ink, lineHeight: 26 }}>
+                {step.title}
+              </Text>
+              <Text style={{ fontSize: 15, lineHeight: 22, color: c.slate }}>{step.body}</Text>
+            </Reanimated.View>
 
-            {/* Bottom Bar: Dots Pagination & Navigation Actions */}
-            <View className="flex-row items-center justify-between pt-2 border-t border-border/70 dark:border-slate-800">
-              {/* Step Dots (Active dot is elongated pill) */}
-              <View className="flex-row items-center gap-1.5">
-                {TUTORIAL_STEPS.map((_, idx) => {
-                  const isActive = idx === currentStepIndex;
-                  return (
-                    <View
-                      key={idx}
-                      className={`h-2 rounded-full transition-all ${isActive
-                          ? "w-6 bg-sky dark:bg-sky"
-                          : "w-2 bg-border dark:bg-slate-700"
-                        }`}
-                    />
-                  );
-                })}
-              </View>
-
-              {/* Back & Next Buttons */}
-              <View className="flex-row items-center gap-2">
-                {currentStepIndex > 0 && (
-                  <TouchableOpacity
-                    activeOpacity={0.7}
-                    onPress={handleBack}
-                    className="px-3 py-2 mr-2"
-                  >
-                    <Text className="text-[14px] font-bold text-text-soft dark:text-slate-300">
-                      &lt; Back
-                    </Text>
-                  </TouchableOpacity>
-                )}
-
-                <TouchableOpacity
-                  activeOpacity={0.85}
-                  onPress={handleNext}
-                  className="px-5 py-2.5 rounded-xl bg-sky flex-row items-center gap-1.5 shadow-xs"
-                >
-                  <Text className="text-[13px] font-bold text-white">
-                    {isLastStep ? "Got it!" : "Next"}
-                  </Text>
-                  {!isLastStep && <Feather name="chevron-right" size={14} color={theme.onPrimary} />}
-                </TouchableOpacity>
-              </View>
+            <View className="flex-row" style={{ gap: 8 }}>
+              {index > 0 ? <DsButton label="Back" variant="secondary" block={false} onPress={() => goTo(index - 1)} style={{ flex: 1 }} /> : null}
+              <DsButton label={isLast ? "Start using HeartLink" : "Next"} onPress={isLast ? finish : () => goTo(index + 1)} style={{ flex: index > 0 ? 2 : 1 }} />
             </View>
-          </Reanimated.View>
+          </View>
         </View>
       </View>
     </Modal>
