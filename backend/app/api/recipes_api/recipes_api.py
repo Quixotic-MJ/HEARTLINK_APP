@@ -11,7 +11,7 @@ from app.services.recipes import (
     update_recipe,
     delete_recipe
 )
-from app.utils.security import get_current_admin_user, get_current_user, verify_token, get_optional_token
+from app.utils.security import require_permission, get_current_user, verify_token, get_optional_token
 from app.utils.activity_helper import record_admin_activity
 
 router = APIRouter(prefix="/api/recipes", tags=["Recipes"])
@@ -65,7 +65,7 @@ def read_recipe(recipe_id: str, request: Request, credentials: Optional[HTTPAuth
 
 @router.post("", response_model=Dict[str, Any])
 @router.post("/", response_model=Dict[str, Any])
-def add_recipe(data: Dict[str, Any] = Body(...), current_user: dict = Depends(get_current_admin_user)):
+def add_recipe(data: Dict[str, Any] = Body(...), current_user: dict = Depends(require_permission("recipes:edit"))):
     admin_id = current_user.get("user_id") if current_user else None
     new_recipe = create_recipe(data, created_by=admin_id)
     if not new_recipe or not new_recipe.get("id"):
@@ -83,7 +83,7 @@ def add_recipe(data: Dict[str, Any] = Body(...), current_user: dict = Depends(ge
     return new_recipe
 
 @router.put("/{recipe_id}", response_model=Dict[str, Any])
-def edit_recipe(recipe_id: str, data: Dict[str, Any] = Body(...), current_user: dict = Depends(get_current_admin_user)):
+def edit_recipe(recipe_id: str, data: Dict[str, Any] = Body(...), current_user: dict = Depends(require_permission("recipes:edit"))):
     recipe = get_recipe(recipe_id)
     if not recipe:
         raise HTTPException(status_code=404, detail="Recipe not found")
@@ -114,7 +114,7 @@ def edit_recipe(recipe_id: str, data: Dict[str, Any] = Body(...), current_user: 
     return updated_recipe
 
 @router.delete("/{recipe_id}")
-def remove_recipe(recipe_id: str, current_user: dict = Depends(get_current_admin_user)):
+def remove_recipe(recipe_id: str, current_user: dict = Depends(require_permission("recipes:edit"))):
     recipe = get_recipe(recipe_id)
     if not recipe:
         raise HTTPException(status_code=404, detail="Recipe not found")

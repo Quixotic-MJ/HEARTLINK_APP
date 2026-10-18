@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends, status, Query
 from typing import Dict, Any
 from app.services.analytics import get_analytics, update_thresholds
-from app.utils.security import get_current_user, verify_user_access
+from app.utils.security import get_current_user, verify_user_access, check_expert_permission
 from app.schemas.user import ThresholdsUpdateRequest
 
 router = APIRouter(prefix="/api/analytics", tags=["Analytics"])
@@ -13,6 +13,7 @@ def read_analytics(
     current_user: dict = Depends(get_current_user),
 ):
     verify_user_access(current_user, user_id)
+    check_expert_permission(current_user, "vitals:read")
     return get_analytics(user_id, days=days)
 
 @router.put("/{user_id}/thresholds", response_model=Dict[str, Any])
@@ -22,6 +23,7 @@ def update_user_thresholds(
     current_user: dict = Depends(get_current_user),
 ):
     verify_user_access(current_user, user_id)
+    check_expert_permission(current_user, "vitals:write")
     res = update_thresholds(user_id, payload.model_dump())
     return {"success": True, "message": "Thresholds updated", "data": res}
 

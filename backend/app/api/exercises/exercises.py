@@ -3,7 +3,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from typing import List, Dict, Any, Optional
 from app.services.exercises import get_routines, get_exercise_logs, create_exercise_log, delete_exercise_log, create_routine, update_routine, delete_routine
 from app.services.hss_service import compute_lifestyle_composite_hss
-from app.utils.security import get_current_admin_user, get_current_user, verify_token, get_optional_token, verify_user_access
+from app.utils.security import require_permission, check_expert_permission, get_current_user, verify_token, get_optional_token, verify_user_access
 from app.utils.activity_helper import record_admin_activity
 
 router = APIRouter(prefix="/api/exercises", tags=["Exercises"])
@@ -51,7 +51,7 @@ def read_routine(routine_id: str, request: Request, credentials: Optional[HTTPAu
     return routine
 
 @router.post("/", response_model=Dict[str, Any])
-def add_routine(data: Dict[str, Any], current_user: dict = Depends(get_current_admin_user)):
+def add_routine(data: Dict[str, Any], current_user: dict = Depends(require_permission("exercises:edit"))):
     new_routine = create_routine(data)
     admin_id = current_user.get("user_id") if current_user else "admin"
     record_admin_activity(
@@ -64,7 +64,7 @@ def add_routine(data: Dict[str, Any], current_user: dict = Depends(get_current_a
     return new_routine
 
 @router.put("/{routine_id}", response_model=Dict[str, Any])
-def edit_routine(routine_id: str, data: Dict[str, Any], current_user: dict = Depends(get_current_admin_user)):
+def edit_routine(routine_id: str, data: Dict[str, Any], current_user: dict = Depends(require_permission("exercises:edit"))):
     try:
         updated_routine = update_routine(routine_id, data)
         admin_id = current_user.get("user_id") if current_user else "admin"
@@ -80,7 +80,7 @@ def edit_routine(routine_id: str, data: Dict[str, Any], current_user: dict = Dep
         raise HTTPException(status_code=404, detail=str(e))
 
 @router.delete("/{routine_id}", response_model=Dict[str, Any])
-def remove_routine(routine_id: str, current_user: dict = Depends(get_current_admin_user)):
+def remove_routine(routine_id: str, current_user: dict = Depends(require_permission("exercises:edit"))):
     routines = get_routines()
     routine = next((r for r in routines if r["id"] == routine_id), None)
     if not routine:
@@ -115,6 +115,7 @@ def read_exercise_logs(
         )
 
     verify_user_access(current_user, user_id)
+    check_expert_permission(current_user, "exercise_logs:read")
     return get_exercise_logs(user_id, limit=limit, offset=offset)
 
 @router.post("/logs/{user_id}", response_model=Dict[str, Any])

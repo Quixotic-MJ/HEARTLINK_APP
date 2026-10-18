@@ -6,7 +6,7 @@ import random
 import hashlib
 import secrets
 import string
-from app.utils.security import get_current_admin_user, get_current_super_admin
+from app.utils.security import get_current_admin_only, get_current_super_admin
 from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
 from app.utils.activity_helper import record_admin_activity
 from app.db.client import get_supabase_client
@@ -52,7 +52,7 @@ def _parse_dt(dt):
     return parse_utc(dt)
 
 @router.get("/dashboard", response_model=Dict[str, Any])
-def get_admin_dashboard(current_user: dict = Depends(get_current_admin_user)):
+def get_admin_dashboard(current_user: dict = Depends(get_current_admin_only)):
     try:
         supabase_client = get_supabase_client()
         # Call the PostgreSQL function for fast native aggregation (HL-003)
@@ -98,7 +98,7 @@ def get_admin_dashboard(current_user: dict = Depends(get_current_admin_user)):
         raise HTTPException(status_code=500, detail=f"Failed to load dashboard: {e}")
 
 @router.get("/analytics", response_model=Dict[str, Any])
-def get_admin_analytics(period: str = "6months", current_user: dict = Depends(get_current_admin_user)):
+def get_admin_analytics(period: str = "6months", current_user: dict = Depends(get_current_admin_only)):
     now = utc_now()
     
     all_profiles = get_profile_repo().list_all(exclude_archived=False)
@@ -664,7 +664,7 @@ def create_system_staff(payload: dict, current_user: dict = Depends(get_current_
 
 
 @router.put("/users/{user_id}/status")
-def toggle_user_status(user_id: str, current_user: dict = Depends(get_current_admin_user)):
+def toggle_user_status(user_id: str, current_user: dict = Depends(get_current_admin_only)):
     profile_repo = get_profile_repo()
     user = profile_repo.get_by_id(user_id)
     if not user:
@@ -800,7 +800,7 @@ def delete_user_or_staff(user_id: str, current_user: dict = Depends(get_current_
     return {"status": "success", "message": f"Account {user_name} deleted successfully"}
 
 @router.get("/users/{user_id}/timeline")
-def get_user_timeline(user_id: str, current_user: dict = Depends(get_current_admin_user)):
+def get_user_timeline(user_id: str, current_user: dict = Depends(get_current_admin_only)):
     logs = []
     
     from app.services.health_logs import get_health_logs
@@ -882,14 +882,14 @@ def get_user_timeline(user_id: str, current_user: dict = Depends(get_current_adm
     return logs
 
 @router.get("/broadcasts", response_model=list)
-def get_broadcasts(current_user: dict = Depends(get_current_admin_user)):
+def get_broadcasts(current_user: dict = Depends(get_current_admin_only)):
     return get_notification_repo().list_broadcasts()
 
 VALID_BROADCAST_TYPES = {"Maintenance", "App Update", "Safety Reminder", "General"}
 VALID_BROADCAST_AUDIENCES = {"All Registered Accounts"}
 
 @router.post("/broadcasts")
-def create_broadcast(payload: dict, current_user: dict = Depends(get_current_admin_user)):
+def create_broadcast(payload: dict, current_user: dict = Depends(get_current_admin_only)):
     title = (payload.get("title") or "").strip()
     if not title:
         raise HTTPException(status_code=422, detail="Announcement title is required.")
@@ -944,7 +944,7 @@ def create_broadcast(payload: dict, current_user: dict = Depends(get_current_adm
     return {"status": "success", "data": new_broadcast}
 
 @router.delete("/broadcasts/{broadcast_id}")
-def delete_broadcast(broadcast_id: str, current_user: dict = Depends(get_current_admin_user)):
+def delete_broadcast(broadcast_id: str, current_user: dict = Depends(get_current_admin_only)):
     success = get_notification_repo().delete_broadcast(broadcast_id)
     if not success:
         raise HTTPException(status_code=404, detail="Broadcast not found")
@@ -967,7 +967,7 @@ def get_activity_log(
     target_type: Optional[str] = None,
     admin_user_id: Optional[str] = None,
     search: Optional[str] = None,
-    current_user: dict = Depends(get_current_admin_user)
+    current_user: dict = Depends(get_current_admin_only)
 ):
     role = current_user.get("role")
     if role not in ["admin", "super_admin"]:

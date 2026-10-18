@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends, status, Query
 from typing import List, Dict, Any
 from app.services.health_logs import get_health_logs, create_health_log, delete_health_log, get_paginated_health_logs
 from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
-from app.utils.security import get_current_user, verify_user_access
+from app.utils.security import get_current_user, verify_user_access, check_expert_permission
 
 router = APIRouter(prefix="/api/health-logs", tags=["Health Logs"])
 
@@ -14,11 +14,13 @@ def read_health_logs(
     current_user: dict = Depends(get_current_user)
 ):
     verify_user_access(current_user, user_id)
+    check_expert_permission(current_user, "vitals:read")
     return get_paginated_health_logs(user_id, page, page_size)
 
 @router.post("/{user_id}", response_model=Dict[str, Any])
 def add_health_log(user_id: str, data: Dict[str, Any], current_user: dict = Depends(get_current_user)):
     verify_user_access(current_user, user_id)
+    check_expert_permission(current_user, "vitals:write")
     
     caller_id = current_user.get("user_id")
     caller_role = current_user.get("role")
@@ -224,6 +226,7 @@ def add_health_log(user_id: str, data: Dict[str, Any], current_user: dict = Depe
 @router.delete("/{user_id}/{log_id}", response_model=Dict[str, Any])
 def remove_health_log(user_id: str, log_id: str, current_user: dict = Depends(get_current_user)):
     verify_user_access(current_user, user_id)
+    check_expert_permission(current_user, "vitals:write")
     caller_id = current_user.get("user_id")
     caller_role = current_user.get("role")
     if caller_role == "patient" and caller_id != user_id:
@@ -239,6 +242,7 @@ def remove_health_log(user_id: str, log_id: str, current_user: dict = Depends(ge
 @router.post("/{user_id}/clear-symptom-lock", response_model=Dict[str, Any])
 def clear_symptom_lock(user_id: str, current_user: dict = Depends(get_current_user)):
     verify_user_access(current_user, user_id)
+    check_expert_permission(current_user, "vitals:write")
     
     caller_id = current_user.get("user_id")
     caller_role = current_user.get("role")
