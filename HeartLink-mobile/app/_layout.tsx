@@ -16,6 +16,13 @@ import {
   ReanimatedLogLevel,
 } from "react-native-reanimated";
 import { useBroadcastListener } from "../hooks/useBroadcastListener";
+import { AppErrorScreen } from "../components/ui/AppErrorScreen";
+import { installGlobalErrorLogging } from "../services/errorLog";
+
+// HL-024: Expo Router shows this instead of a blank/red screen when any screen crashes.
+export const ErrorBoundary = AppErrorScreen;
+
+installGlobalErrorLogging();
 
 // Keep the native splash up until the saved theme preference is applied, so the
 // first JS frame doesn't render in the system theme and then flip.
