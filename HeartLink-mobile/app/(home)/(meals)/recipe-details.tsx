@@ -22,6 +22,7 @@ import { queueMealForSync } from "../../../services/SyncService";
 import { useToast } from "../../../contexts/ToastContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { theme } from "../../../constants/theme";
+import { unitForAmount } from "../../../utils/units";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -122,7 +123,7 @@ export default function RecipeDetailsScreen() {
           ingredients: Array.isArray(data.ingredients)
             ? data.ingredients.map((ing: any) => {
                 const hasAmount = ing.amount !== null && ing.amount !== undefined && ing.amount !== 0;
-                const qtyStr = hasAmount ? `${ing.amount} ${ing.unit || ""}`.trim() : "";
+                const qtyStr = hasAmount ? `${ing.amount} ${unitForAmount(ing.unit, ing.amount)}`.trim() : "";
                 return { qty: qtyStr, item: ing.name || "" };
               })
             : data.ingredients 
