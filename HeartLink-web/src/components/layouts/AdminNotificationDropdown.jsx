@@ -320,7 +320,7 @@ export default function AdminNotificationDropdown({ userId }) {
                     <button
                       key={n.id}
                       onClick={() => markAsRead(n.id, n.route)}
-                      className={`text-left w-full px-4 py-3 transition-colors hover:bg-[#F8FAFC] flex items-start gap-3 relative cursor-pointer ${isRead ? 'opacity-70 bg-[#FFFFFF]' : 'bg-[#EAF5FC]/30'}`}
+                      className={`text-left w-full px-4 py-3 transition-colors flex items-start gap-3 relative cursor-pointer ${isRead ? 'bg-[#FFFFFF] hover:bg-[#F8FAFC]' : 'bg-[#F3F4F6] hover:bg-[#E5E7EB]'}`}
                     >
                       {!isRead && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-[#2E9AE8] rounded-r-full" />}
                       <div className={`mt-0.5 p-1.5 rounded-[7px] shrink-0 ${isRead ? 'bg-[#F8FAFC] border border-[#E2E8F0]' : 'bg-[#FFFFFF] border border-[#E2E8F0] shadow-2xs'}`}>
