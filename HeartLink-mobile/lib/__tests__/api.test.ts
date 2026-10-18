@@ -60,6 +60,17 @@ describe("apiFetch (HL-023)", () => {
     expect(sentAuth(1)).toBe("Bearer new");
   });
 
+  it("uses the saved token when a screen sends a blank one (its token hadn't loaded yet)", async () => {
+    mockGetToken.mockResolvedValue("tok-1");
+    global.fetch = jest.fn().mockResolvedValue(reply(200));
+
+    await apiFetch("/api/users/u1/profile", { headers: { Authorization: "Bearer " } });
+    await apiFetch("/api/users/u1/profile", { headers: { Authorization: "Bearer null" } });
+
+    expect(sentAuth(0)).toBe("Bearer tok-1");
+    expect(sentAuth(1)).toBe("Bearer tok-1");
+  });
+
   it("signs the patient out when the session can't be renewed", async () => {
     const ended = jest.fn();
     setSessionEndedHandler(ended);
