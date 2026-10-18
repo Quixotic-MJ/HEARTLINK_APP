@@ -2,9 +2,7 @@ import React, { useState, useCallback, useRef } from "react";
 import {
   View,
   Text,
-  TouchableOpacity,
   FlatList,
-  ActivityIndicator,
   RefreshControl,
   Image,
   Modal,
@@ -18,14 +16,16 @@ import { StatusBar } from "expo-status-bar";
 import { useRouter, useFocusEffect } from "expo-router";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { Swipeable } from "react-native-gesture-handler";
-import { useColorScheme } from "nativewind";
-import Svg, { Path } from "react-native-svg";
 import { ConfirmDialog } from "../../../components/ui/ConfirmDialog";
+import { Skeleton } from "../../../components/ui/Skeleton";
+import AnimatedButton from "../../../components/ui/AnimatedButton";
+import DsButton from "../../../components/onboarding/DsButton";
+import { useDs } from "../../../components/onboarding/useDs";
+import { FoodHeader } from "../../../components/food/FoodBits";
 import { useUser } from "../../../contexts/UserContext";
-import { EmptyState } from "../../../components/ui/EmptyState";
 import { useToast } from "../../../contexts/ToastContext";
-import { theme } from "../../../constants/theme";
 import { useSodiumBudget } from "../../../hooks/useSodiumBudget";
+import { formatMg } from "../../../services/foodLogging";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 const base_url = process.env.EXPO_PUBLIC_API_URL;
@@ -46,87 +46,39 @@ type MealLog = {
 const FOOD_LOG_OPTIONS = [
   {
     icon: "camera" as const,
-    iconType: "feather" as const,
-    label: "Scan food barcode",
-    subtitle: "Use camera to scan product barcodes",
+    label: "Scan a barcode",
+    subtitle: "Point the camera at a packaged food",
     route: "/(home)/(meals)/barcode-scan",
   },
   {
     icon: "search" as const,
-    iconType: "feather" as const,
-    label: "Search food database",
+    label: "Search food",
     subtitle: "HeartLink recipes, recent meals and packaged foods",
     route: "/(home)/(meals)/search-meal",
   },
   {
-    icon: "silverware-fork-knife" as const,
-    iconType: "material" as const,
-    label: "Log manually / Estimate",
-    subtitle: "Enter custom food details & nutrients",
+    icon: "edit-3" as const,
+    label: "Estimate a meal",
+    subtitle: "Type in your own food and its nutrition",
     route: "/(home)/(meals)/estimate-meal",
   },
 ];
 
+// Daily guides shown next to the diary totals (unchanged from the earlier design).
+const SAT_FAT_GUIDE_G = 20;
+const FIBRE_GUIDE_G = 30;
 
-function SemiCircleProgress({ progress, remaining, isDark }: { progress: number; remaining: number; isDark: boolean }) {
-  const radius = 65;
-  const strokeWidth = 12;
-  const circumference = Math.PI * radius;
-  const strokeDashoffset = circumference - (circumference * Math.min(progress, 1));
-  
-  const activeColor = remaining < 0 ? "#ef4444" : "#2dd4bf"; // red if over budget, teal otherwise
-  const bgColor = isDark ? "#1e293b" : "#f1f5f9";
-
-  return (
-    <View className="items-center justify-center relative">
-      <Svg width={150} height={85} viewBox="0 0 150 85">
-        <Path
-          d="M 10 75 A 65 65 0 0 1 140 75"
-          stroke={bgColor}
-          strokeWidth={strokeWidth}
-          strokeLinecap="round"
-          fill="none"
-        />
-        <Path
-          d="M 10 75 A 65 65 0 0 1 140 75"
-          stroke={activeColor}
-          strokeWidth={strokeWidth}
-          strokeLinecap="round"
-          fill="none"
-          strokeDasharray={circumference}
-          strokeDashoffset={strokeDashoffset}
-        />
-      </Svg>
-      <View className="absolute">
-        <Text className="text-2xl font-bold text-text">
-          {Math.max(remaining, 0)}
-        </Text>
-        <Text className="text-[11px] text-text-soft font-medium">Remaining</Text>
-      </View>
-    </View>
-  );
+/** "1 serving", "1.5 servings"; packaged food already says its grams in the name. */
+function portionText(meal: MealLog): string | null {
+  if (/\(\d+(\.\d+)?\s?g\)$/.test(meal.meal_name)) return null;
+  const p = Number(meal.portion) || 1;
+  return `${p} ${p === 1 ? "serving" : "servings"}`;
 }
-
-const MacroBar = ({ label, current, total, color, isDark }: { label: string, current: number, total: number, color: string, isDark: boolean }) => {
-  const percent = Math.min((current / total) * 100, 100) || 0;
-  return (
-    <View className="flex-1 px-2 items-center">
-      <Text className="text-[11px] text-text-soft font-medium mb-1.5">{label}</Text>
-      <View className="w-full h-1.5 rounded-full mb-1.5">
-        <View className="h-full rounded-full" style={{ width: `${percent}%`, backgroundColor: color }} />
-      </View>
-      <Text className="text-[10px] font-bold text-text">
-        {Math.round(current)} / {total} g
-      </Text>
-    </View>
-  );
-};
 
 export default function DailyDiaryScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { colorScheme } = useColorScheme();
-  const isDark = colorScheme === "dark";
+  const { c, isDark } = useDs();
   const { userId, token } = useUser();
   // The patient's own daily sodium limit (Goals & thresholds), 2,000 mg if not set
   const { limitMg: sodiumLimit } = useSodiumBudget();
@@ -196,7 +148,7 @@ export default function DailyDiaryScreen() {
       if (response.ok) {
         const result = await response.json();
         const data: MealLog[] = result.data ?? result;
-        
+
         // Filter meals to only include today's logs
         const today = new Date();
         const todaysMeals = data.filter((meal) => {
@@ -208,7 +160,7 @@ export default function DailyDiaryScreen() {
             mealDate.getDate() === today.getDate()
           );
         });
-        
+
         setMeals(todaysMeals);
       }
     } catch (error) {
@@ -262,13 +214,16 @@ export default function DailyDiaryScreen() {
   const totalSodium = meals.reduce((sum, m) => sum + (m.sodium_mg || 0), 0);
   const totalSatFat = meals.reduce((sum, m) => sum + (m.saturated_fat_g || 0), 0);
   const totalFiber = meals.reduce((sum, m) => sum + (m.fiber_g || 0), 0);
-  
+  const sodiumLeft = sodiumLimit - totalSodium;
+  const sodiumOver = sodiumLeft < 0;
+  const sodiumShare = Math.min(1, totalSodium / sodiumLimit);
+
   // Categorize meals by time of day
   const mealGroups = [
-    { name: "Breakfast", icon: "coffee", iconType: "feather", color: theme.sky, bg: theme.skyTint, items: [] as MealLog[], cals: 0 },
-    { name: "Lunch", icon: "hamburger", iconType: "material", color: theme.warning, bg: theme.warningTint, items: [] as MealLog[], cals: 0 },
-    { name: "Dinner", icon: "food-steak", iconType: "material", color: theme.primary, bg: theme.blueTint, items: [] as MealLog[], cals: 0 },
-    { name: "Snacks", icon: "apple", iconType: "material", color: theme.danger, bg: theme.dangerTint, items: [] as MealLog[], cals: 0 },
+    { name: "Breakfast", icon: "coffee", items: [] as MealLog[], cals: 0 },
+    { name: "Lunch", icon: "sun", items: [] as MealLog[], cals: 0 },
+    { name: "Dinner", icon: "moon", items: [] as MealLog[], cals: 0 },
+    { name: "Snacks", icon: "package", items: [] as MealLog[], cals: 0 },
   ];
 
   meals.forEach(meal => {
@@ -277,154 +232,162 @@ export default function DailyDiaryScreen() {
     if (hr >= 4 && hr < 11) index = 0; // breakfast
     else if (hr >= 11 && hr < 16) index = 1; // lunch
     else if (hr >= 16 && hr < 22) index = 2; // dinner
-    
+
     mealGroups[index].items.push(meal);
     mealGroups[index].cals += meal.calories || 0;
   });
 
+  const smallStats = [
+    { label: "Calories", value: `${formatMg(totalCalories)} kcal` },
+    { label: "Saturated fat", value: `${Math.round(totalSatFat * 10) / 10} of ${SAT_FAT_GUIDE_G} g` },
+    { label: "Fibre", value: `${Math.round(totalFiber * 10) / 10} of ${FIBRE_GUIDE_G} g` },
+  ];
+
   return (
-    <SafeAreaView className="flex-1 bg-surface-alt dark:bg-background" edges={["top"]}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: c.canvas }} edges={["top"]}>
       <StatusBar style={isDark ? "light" : "dark"} />
 
-      {/* ── Header Bar ── */}
-      <View className="flex-row items-center justify-between px-5 py-3">
-        <TouchableOpacity
-          onPress={() => {
-            if (router.canGoBack()) {
-              router.back();
-            } else {
-              router.push("/(home)/(tabs)/dashboard" as any);
-            }
-          }}
-          className="w-9 h-9 rounded-full bg-border/50 dark:bg-slate-800 items-center justify-center z-10"
-        >
-          <Feather name="arrow-left" size={18} color={isDark ? "#f8fafc" : "#0f172a"} />
-        </TouchableOpacity>
-        <Text className="text-[22px] font-bold text-text absolute left-0 right-0 text-center pointer-events-none">
-          Today
-        </Text>
-        <View className="w-9" />
-      </View>
+      <FoodHeader
+        title="Today"
+        backLabel="Back"
+        onBack={() => {
+          if (router.canGoBack()) {
+            router.back();
+          } else {
+            router.push("/(home)/(tabs)/dashboard" as any);
+          }
+        }}
+      />
 
       <FlatList
-        data={mealGroups}
+        data={loading ? [] : mealGroups}
         keyExtractor={(item) => item.name}
-        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 8, paddingBottom: 24, gap: 12 }}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={isDark ? "#f8fafc" : "#0f172a"} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={c.steel} />
         }
         ListHeaderComponent={
-          <View className="bg-surface rounded-3xl p-5 shadow-sm border border-border dark:border-slate-800 mb-6 mt-2">
-            
-            {/* Top Row: Calories - Remaining Sodium - Total Sodium */}
-            <View className="flex-row items-end justify-between mb-6">
-              <View className="items-center pb-2">
-                <Text className="text-xl font-bold text-text mb-0.5">{totalCalories}</Text>
-                <Text className="text-[12px] text-text-soft">Calories</Text>
+          <View style={{ gap: 12, marginBottom: 4 }}>
+            {/* Sodium today against the patient's own limit */}
+            <View style={{ padding: 16, borderRadius: 12, backgroundColor: sodiumOver ? c.peach : c.surface, gap: 10 }}>
+              <View className="flex-row items-baseline justify-between" style={{ gap: 12 }}>
+                <Text style={{ fontSize: 15, fontWeight: "600", color: c.ink }}>Sodium today</Text>
+                <Text style={{ fontSize: 13, color: c.slate }}>
+                  {formatMg(totalSodium)} of {formatMg(sodiumLimit)} mg
+                </Text>
               </View>
-              
-              <SemiCircleProgress 
-                progress={totalSodium / sodiumLimit} 
-                remaining={sodiumLimit - totalSodium}
-                isDark={isDark} 
-              />
-              
-              <View className="items-center pb-2">
-                <Text className="text-xl font-bold text-text mb-0.5">{totalSodium}</Text>
-                <Text className="text-[12px] text-text-soft">Total Sod.</Text>
+              <View
+                accessible
+                accessibilityRole="progressbar"
+                accessibilityLabel={`Sodium today ${formatMg(totalSodium)} of ${formatMg(sodiumLimit)} milligrams`}
+                style={{ height: 10, borderRadius: 9999, backgroundColor: c.hairlineSoft, overflow: "hidden" }}
+              >
+                <View style={{ width: `${sodiumShare * 100}%`, height: "100%", backgroundColor: sodiumOver ? c.warmText : c.line }} />
               </View>
+              <Text style={{ fontSize: 14, fontWeight: "500", lineHeight: 21, color: sodiumOver ? c.warmText : c.ink }}>
+                {sodiumOver
+                  ? `${formatMg(-sodiumLeft)} mg over your daily limit. Pick low-salt food for the rest of today.`
+                  : `${formatMg(sodiumLeft)} mg left for today.`}
+              </Text>
             </View>
 
-            {/* Bottom Row: Macro Bars */}
-            <View className="flex-row justify-between pt-2 border-t border-border dark:border-slate-800/50">
-              <MacroBar label="Sat Fat" current={totalSatFat} total={20} color={theme.sky} isDark={isDark} />
-              <MacroBar label="Fiber" current={totalFiber} total={30} color={theme.blue} isDark={isDark} />
-              <MacroBar label="Sodium" current={totalSodium} total={sodiumLimit} color={theme.teal} isDark={isDark} />
+            <View className="flex-row" style={{ gap: 8 }}>
+              {smallStats.map((s) => (
+                <View key={s.label} style={{ flex: 1, padding: 12, borderRadius: 12, borderWidth: 1, borderColor: c.hairline, gap: 2 }}>
+                  <Text style={{ fontSize: 13, color: c.slate }}>{s.label}</Text>
+                  <Text style={{ fontSize: 15, fontWeight: "600", color: c.ink }}>{s.value}</Text>
+                </View>
+              ))}
             </View>
+
+            {loading ? (
+              <View style={{ gap: 12 }}>
+                {[0, 1, 2].map((k) => (
+                  <Skeleton key={k} style={{ height: 88, borderRadius: 12 }} />
+                ))}
+              </View>
+            ) : null}
           </View>
         }
         renderItem={({ item: group }) => (
-          <View className="bg-surface rounded-3xl p-5 mb-4 shadow-sm border border-border dark:border-slate-800">
-            {/* Category Header */}
-            <View className="flex-row items-center justify-between mb-4">
-              <View className="flex-row items-center gap-4">
-                {/* Custom Circular Icon */}
-                <View className="relative">
-                  {/* Progress Ring behind icon (simulated) */}
-                  <View className="absolute inset-0 rounded-full border-4 opacity-20" />
-                  <View className="w-12 h-12 rounded-full items-center justify-center bg-surface-alt dark:bg-slate-800 border-2 border-transparent">
-                    {group.iconType === "feather" ? (
-                      <Feather name={group.icon as any} size={20} color={isDark ? "#cbd5e1" : "#475569"} />
-                    ) : (
-                      <MaterialCommunityIcons name={group.icon as any} size={22} color={isDark ? "#cbd5e1" : "#475569"} />
-                    )}
-                  </View>
+          <View style={{ borderWidth: 1, borderColor: c.hairline, borderRadius: 12, padding: 16 }}>
+            <View className="flex-row items-center justify-between" style={{ gap: 12 }}>
+              <View className="flex-row items-center" style={{ gap: 12, flex: 1 }}>
+                <View style={{ width: 40, height: 40, borderRadius: 10, backgroundColor: c.peach, alignItems: "center", justifyContent: "center" }}>
+                  <Feather name={group.icon as any} size={18} color={c.charcoal} />
                 </View>
                 <View>
-                  <Text className="text-[16px] font-bold text-text mb-0.5">
+                  <Text accessibilityRole="header" style={{ fontSize: 16, fontWeight: "600", color: c.ink }}>
                     {group.name}
                   </Text>
-                  <Text className="text-[13px] text-text-soft">
-                    {group.cals} Cal
-                  </Text>
+                  <Text style={{ fontSize: 13, color: c.slate }}>{formatMg(group.cals)} kcal</Text>
                 </View>
               </View>
-              <TouchableOpacity
+              <AnimatedButton
                 onPress={openLogModal}
-                className="w-8 h-8 rounded-full items-center justify-center"
+                accessibilityRole="button"
+                accessibilityLabel={`Add food to ${group.name.toLowerCase()}`}
+                style={{ width: 44, height: 44, borderRadius: 8, borderWidth: 1, borderColor: c.hairlineStrong, alignItems: "center", justifyContent: "center", backgroundColor: c.canvas }}
               >
-                <Feather name="plus" size={16} color={theme.onPrimary} />
-              </TouchableOpacity>
+                <Feather name="plus" size={18} color={c.ink} />
+              </AnimatedButton>
             </View>
 
-            {/* Meals under category */}
-            {group.items.length > 0 && (
-              <View className="border-t border-border dark:border-slate-800/60 pt-3 mt-1">
-                {group.items.map((meal, index) => (
-                  <Swipeable 
-                    key={meal.id} 
-                    renderRightActions={() => (
-                      <TouchableOpacity
-                        onPress={() => handleDeleteMeal(meal.id, meal.meal_name)}
-                        className="bg-red-500 justify-center items-center px-4 rounded-xl ml-2 mb-2"
-                      >
-                        <Feather name="trash-2" size={18} color={theme.onPrimary} />
-                      </TouchableOpacity>
-                    )}
-                  >
-                    <View className="flex-row items-center justify-between py-2 mb-1 bg-surface rounded-xl px-2">
-                      <View className="flex-row items-center flex-1 gap-3">
-                        <View className="w-10 h-10 rounded-lg bg-surface-alt items-center justify-center overflow-hidden">
-                          <MaterialCommunityIcons name="silverware-fork-knife" size={16} color={theme.borderStrong} />
+            {group.items.length > 0 ? (
+              <View style={{ marginTop: 12, borderTopWidth: 1, borderTopColor: c.hairlineSoft }}>
+                {group.items.map((meal) => {
+                  const portion = portionText(meal);
+                  return (
+                    <Swipeable
+                      key={meal.id}
+                      renderRightActions={() => (
+                        <AnimatedButton
+                          onPress={() => handleDeleteMeal(meal.id, meal.meal_name)}
+                          accessibilityRole="button"
+                          accessibilityLabel={`Delete ${meal.meal_name}`}
+                          style={{ backgroundColor: c.danger, justifyContent: "center", alignItems: "center", width: 64, borderRadius: 8, marginVertical: 6, marginLeft: 8 }}
+                        >
+                          <Feather name="trash-2" size={18} color="#ffffff" />
+                        </AnimatedButton>
+                      )}
+                    >
+                      <View className="flex-row items-center" style={{ minHeight: 60, gap: 12, paddingVertical: 8, backgroundColor: c.canvas }}>
+                        <View style={{ width: 40, height: 40, borderRadius: 8, backgroundColor: c.surface, alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+                          <MaterialCommunityIcons name="silverware-fork-knife" size={16} color={c.steel} />
                           {!!meal.image_url && (
-                            <Image source={{ uri: meal.image_url }} className="w-full h-full absolute" resizeMode="cover" />
+                            <Image source={{ uri: meal.image_url }} style={{ position: "absolute", width: "100%", height: "100%" }} resizeMode="cover" />
                           )}
                         </View>
-                        <View className="flex-1">
-                          <Text className="text-[14px] font-medium text-text" numberOfLines={1}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ fontSize: 15, fontWeight: "500", color: c.ink }} numberOfLines={2}>
                             {meal.meal_name}
                           </Text>
-                          <Text className="text-[11px] text-text-muted mt-0.5">
-                            {meal.portion || 1} Serving
-                          </Text>
+                          {portion ? <Text style={{ fontSize: 13, color: c.slate }}>{portion}</Text> : null}
+                        </View>
+                        <View className="items-end">
+                          <Text style={{ fontSize: 15, fontWeight: "600", color: c.ink }}>{formatMg(meal.sodium_mg)} mg</Text>
+                          <Text style={{ fontSize: 13, color: c.slate }}>{formatMg(meal.calories)} kcal</Text>
                         </View>
                       </View>
-                      <View className="items-end pl-2">
-                        <Text className="text-[14px] font-bold text-text">
-                          {meal.calories} <Text className="text-[10px] font-normal text-text-muted">kcal</Text>
-                        </Text>
-                        <Text className="text-[11px] font-medium text-danger-text mt-0.5">
-                          {meal.sodium_mg} mg
-                        </Text>
-                      </View>
-                    </View>
-                  </Swipeable>
-                ))}
+                    </Swipeable>
+                  );
+                })}
               </View>
+            ) : (
+              <Text style={{ marginTop: 10, fontSize: 13, color: c.slate }}>Nothing logged yet.</Text>
             )}
           </View>
         )}
+        ListFooterComponent={
+          !loading && meals.length > 0 ? (
+            <Text style={{ textAlign: "center", fontSize: 13, color: c.slate, marginTop: 4 }}>Swipe a meal left to delete it.</Text>
+          ) : null
+        }
       />
+
+      <View className="px-5 pt-3 pb-5" style={{ borderTopWidth: 1, borderTopColor: c.hairlineSoft, backgroundColor: c.canvas }}>
+        <DsButton label="Log food" onPress={openLogModal} />
+      </View>
 
       {/* ── Food Log Options Bottom Sheet Modal ── */}
       <Modal
@@ -435,8 +398,8 @@ export default function DailyDiaryScreen() {
         onShow={animateIn}
         onRequestClose={animateOut}
       >
-        <Animated.View style={{ flex: 1, backgroundColor: "rgba(15,23,42,0.45)", opacity: backdropAnim }}>
-          <Pressable style={{ flex: 1 }} onPress={animateOut} />
+        <Animated.View style={{ flex: 1, backgroundColor: "rgba(15,15,15,0.45)", opacity: backdropAnim }}>
+          <Pressable style={{ flex: 1 }} onPress={animateOut} accessibilityLabel="Close" />
         </Animated.View>
         <Animated.View
           style={{
@@ -444,62 +407,41 @@ export default function DailyDiaryScreen() {
             bottom: 0,
             left: 0,
             right: 0,
-            backgroundColor: isDark ? "#0f172a" : "#fff",
-            borderTopLeftRadius: 24,
-            borderTopRightRadius: 24,
+            backgroundColor: c.canvas,
+            borderTopLeftRadius: 16,
+            borderTopRightRadius: 16,
             paddingTop: 12,
             paddingBottom: Platform.OS === "ios" ? 40 : 28 + insets.bottom,
             paddingHorizontal: 20,
             transform: [{ translateY: slideAnim }],
           }}
         >
-          <View style={{ alignSelf: "center", width: 36, height: 4, backgroundColor: isDark ? "#334155" : "#e2e8f0", borderRadius: 2, marginBottom: 16 }} />
-          <Text style={{ fontSize: 17, fontWeight: "600", color: isDark ? "#f8fafc" : "#0f172a", marginBottom: 3 }}>Log Food</Text>
-          <Text style={{ fontSize: 13, color: isDark ? "#cbd5e1" : "#64748b", marginBottom: 18 }}>Choose how you want to record your meal</Text>
+          <View style={{ alignSelf: "center", width: 36, height: 4, backgroundColor: c.hairlineStrong, borderRadius: 2, marginBottom: 16 }} />
+          <Text accessibilityRole="header" style={{ fontSize: 18, fontWeight: "600", color: c.ink, marginBottom: 4 }}>Log food</Text>
+          <Text style={{ fontSize: 14, color: c.slate, marginBottom: 16 }}>How do you want to add it?</Text>
 
-          {FOOD_LOG_OPTIONS.map((option, index) => (
-            <TouchableOpacity
-              key={option.label}
-              activeOpacity={0.75}
-              onPress={() => handleSelectOption(option.route)}
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                backgroundColor: isDark ? "#1e293b" : "#ffffff",
-                borderRadius: 20,
-                padding: 16,
-                marginBottom: index < FOOD_LOG_OPTIONS.length - 1 ? 12 : 0,
-                borderWidth: 1.5,
-                borderColor: isDark ? "#334155" : "#f1f5f9",
-                shadowColor: isDark ? "#000" : "#64748b",
-                shadowOffset: { width: 0, height: 1 },
-                shadowOpacity: isDark ? 0.3 : 0.05,
-                shadowRadius: 3,
-                elevation: 1,
-              }}
-            >
-              <View style={{ width: 46, height: 46, borderRadius: 16, backgroundColor: isDark ? "#0f172a" : "#f8fafc", borderWidth: 1, borderColor: isDark ? "#334155" : "#e2e8f0", alignItems: "center", justifyContent: "center", marginRight: 16 }}>
-                {option.iconType === "feather" ? (
-                  <Feather name={option.icon as any} size={20} color={isDark ? "#f8fafc" : "#0f172a"} />
-                ) : (
-                  <MaterialCommunityIcons name={option.icon as any} size={20} color={isDark ? "#f8fafc" : "#0f172a"} />
-                )}
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 15, fontWeight: "700", color: isDark ? "#f8fafc" : "#1e293b", marginBottom: 3 }}>{option.label}</Text>
-                <Text style={{ fontSize: 12.5, fontWeight: "500", color: isDark ? "#94a3b8" : "#64748b", lineHeight: 18 }}>{option.subtitle}</Text>
-              </View>
-              <Feather name="chevron-right" size={18} color={isDark ? "#475569" : "#cbd5e1"} />
-            </TouchableOpacity>
-          ))}
+          <View style={{ gap: 8 }}>
+            {FOOD_LOG_OPTIONS.map((option) => (
+              <AnimatedButton
+                key={option.label}
+                onPress={() => handleSelectOption(option.route)}
+                accessibilityRole="button"
+                accessibilityLabel={`${option.label}. ${option.subtitle}`}
+                style={{ flexDirection: "row", alignItems: "center", gap: 14, minHeight: 64, paddingHorizontal: 14, paddingVertical: 12, borderRadius: 12, borderWidth: 1, borderColor: c.hairline, backgroundColor: c.canvas }}
+              >
+                <View style={{ width: 40, height: 40, borderRadius: 10, backgroundColor: c.peach, alignItems: "center", justifyContent: "center" }}>
+                  <Feather name={option.icon} size={18} color={c.charcoal} />
+                </View>
+                <View style={{ flex: 1, gap: 2 }}>
+                  <Text style={{ fontSize: 16, fontWeight: "500", color: c.ink }}>{option.label}</Text>
+                  <Text style={{ fontSize: 13, color: c.slate, lineHeight: 18 }}>{option.subtitle}</Text>
+                </View>
+                <Feather name="chevron-right" size={18} color={c.steel} />
+              </AnimatedButton>
+            ))}
+          </View>
 
-          <TouchableOpacity
-            activeOpacity={0.7}
-            onPress={animateOut}
-            style={{ marginTop: 14, alignItems: "center", paddingVertical: 13, backgroundColor: isDark ? "#1e293b" : "#f8fafc", borderRadius: 14, borderWidth: 0.5, borderColor: isDark ? "#334155" : "#e2e8f0" }}
-          >
-            <Text style={{ fontSize: 13, fontWeight: "600", color: theme.textMuted }}>Cancel</Text>
-          </TouchableOpacity>
+          <DsButton label="Cancel" variant="secondary" block onPress={animateOut} style={{ marginTop: 12 }} />
         </Animated.View>
       </Modal>
 
@@ -507,8 +449,8 @@ export default function DailyDiaryScreen() {
         visible={!!mealToDelete}
         onCancel={() => setMealToDelete(null)}
         onConfirm={confirmDeleteMeal}
-        title="Delete Meal?"
-        message={`Are you sure you want to remove "${mealToDelete?.name}" from your daily log?`}
+        title="Delete meal?"
+        message={`Remove "${mealToDelete?.name}" from today's diary?`}
         confirmLabel="Delete"
         variant="destructive"
         mode="bottom-sheet"

@@ -203,7 +203,7 @@ export default function SearchMealScreen() {
                   item={item}
                   on={!!picked[item.id]}
                   onToggle={() => toggle(item)}
-                  onViewRecipe={item.source === "recipe" ? () => router.push({ pathname: "/(home)/(meals)/meal-detail", params: { id: item.id } }) : undefined}
+                  onViewRecipe={item.source === "recipe" ? () => router.push({ pathname: "/(home)/(meals)/recipe-details", params: { id: item.id } }) : undefined}
                 />
               ))}
             </View>

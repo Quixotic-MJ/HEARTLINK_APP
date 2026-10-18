@@ -2,14 +2,13 @@ import React, { useMemo, useState } from "react";
 import { ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
-import { Feather } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { useUser } from "../../../contexts/UserContext";
 import AnimatedButton from "../../../components/ui/AnimatedButton";
 import DsButton from "../../../components/onboarding/DsButton";
 import { useDs } from "../../../components/onboarding/useDs";
-import { FoodHeader, SourceTag } from "../../../components/food/FoodBits";
+import { AmountStepper, FoodHeader, SourceTag } from "../../../components/food/FoodBits";
 import { useSodiumBudget } from "../../../hooks/useSodiumBudget";
 import { logMeals } from "../../../services/MealLoggingService";
 import {
@@ -50,24 +49,6 @@ function parseItems(raw: unknown): FoodItem[] {
 
 function showNumber(v: number, unit: string): string {
   return unit === "g" ? String(Math.round(v * 10) / 10) : formatMg(v);
-}
-
-function Stepper({ label, value, onLess, onMore }: { label: string; value: string; onLess: () => void; onMore: () => void }) {
-  const { c } = useDs();
-  const box = { width: 44, height: 44, borderRadius: 8, borderWidth: 1, borderColor: c.hairlineStrong, backgroundColor: c.canvas, alignItems: "center" as const, justifyContent: "center" as const };
-  return (
-    <View className="flex-row items-center" style={{ gap: 4 }}>
-      <AnimatedButton onPress={onLess} accessibilityRole="button" accessibilityLabel={`Less ${label}`} style={box}>
-        <Feather name="minus" size={18} color={c.ink} />
-      </AnimatedButton>
-      <Text style={{ minWidth: 92, textAlign: "center", fontSize: 17, fontWeight: "600", color: c.ink }} accessibilityLabel={`${label}: ${value}`}>
-        {value}
-      </Text>
-      <AnimatedButton onPress={onMore} accessibilityRole="button" accessibilityLabel={`More ${label}`} style={box}>
-        <Feather name="plus" size={18} color={c.ink} />
-      </AnimatedButton>
-    </View>
-  );
 }
 
 export default function MultiLogReviewScreen() {
@@ -188,7 +169,7 @@ export default function MultiLogReviewScreen() {
 
               <View className="flex-row items-center justify-between" style={{ gap: 12 }}>
                 <Text style={{ fontSize: 15, fontWeight: "500", color: c.ink, flexShrink: 1 }}>{rule.unit === "g" ? "Amount you ate" : "Servings you ate"}</Text>
-                <Stepper label={`${item.name} amount`} value={amountLabel(item.source, amount)} onLess={() => setAmount(-1)} onMore={() => setAmount(1)} />
+                <AmountStepper label={`${item.name} amount`} value={amountLabel(item.source, amount)} onLess={() => setAmount(-1)} onMore={() => setAmount(1)} />
               </View>
 
               <View style={{ gap: 8 }}>

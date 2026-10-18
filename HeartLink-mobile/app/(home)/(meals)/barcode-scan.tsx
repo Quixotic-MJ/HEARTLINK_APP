@@ -1,25 +1,24 @@
-import { useColorScheme } from "nativewind";
 import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
-  TouchableOpacity,
-  StyleSheet,
   ActivityIndicator,
   TextInput,
-  ScrollView,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Animated,
 } from "react-native";
 import { CameraView, useCameraPermissions } from "expo-camera";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
-import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Feather } from "@expo/vector-icons";
 import { useRouter, useFocusEffect } from "expo-router";
 import { useToast } from "../../../contexts/ToastContext";
-import { theme } from "../../../constants/theme";
+import { ConfirmDialog } from "../../../components/ui/ConfirmDialog";
+import AnimatedButton from "../../../components/ui/AnimatedButton";
+import DsButton from "../../../components/onboarding/DsButton";
+import { useDs } from "../../../components/onboarding/useDs";
+import { FoodHeader, OutlineButton } from "../../../components/food/FoodBits";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -35,22 +34,22 @@ type ProductData = {
   image_url?: string;
 };
 
-type MealTime = "Breakfast" | "Lunch" | "Dinner" | "Snack";
+/** Why a look-up didn't find a product: not in the database, or the connection was too slow. */
+type LookupProblem = "missing" | "slow" | null;
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
 export default function BarcodeScanScreen() {
-  const { colorScheme } = useColorScheme();
-  const isDark = colorScheme === "dark";
+  const { c, isDark } = useDs();
   const router = useRouter();
   const { showToast } = useToast();
-  const insets = useSafeAreaInsets();
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
   const [loading, setLoading] = useState(false);
   const [torch, setTorch] = useState(false);
   const [showManualInput, setShowManualInput] = useState(false);
   const [manualBarcode, setManualBarcode] = useState("");
+  const [problem, setProblem] = useState<LookupProblem>(null);
 
   const scanLineAnim = React.useRef(new Animated.Value(0)).current;
   const scanLock = React.useRef(false);
@@ -71,7 +70,7 @@ export default function BarcodeScanScreen() {
           }),
         ])
       );
-      
+
       animation.start();
 
       return () => {
@@ -81,13 +80,16 @@ export default function BarcodeScanScreen() {
     }, [scanLineAnim])
   );
 
-
-
   useEffect(() => {
     if (!permission) requestPermission();
   }, [permission, requestPermission]);
 
-  const handleBarcodeScanned = async ({ type, data }: { type: string; data: string }) => {
+  const resetScanner = () => {
+    scanLock.current = false;
+    setScanned(false);
+  };
+
+  const handleBarcodeScanned = async ({ data }: { type: string; data: string }) => {
     if (scanned || loading || scanLock.current) return;
     scanLock.current = true;
     setScanned(true);
@@ -96,21 +98,21 @@ export default function BarcodeScanScreen() {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000);
-      
-      const response = await fetch(`https://world.openfoodfacts.org/api/v0/product/${data}.json`, {
+
+      const response = await fetch(`https://world.openfoodfacts.org/api/v0/product/${encodeURIComponent(data)}.json`, {
         signal: controller.signal
       });
       clearTimeout(timeoutId);
-      
+
       const result = await response.json();
 
       if (result.status === 1 && result.product) {
         const prod = result.product;
         const n = prod.nutriments || {};
-        
+
         // 1. Check if the database actually has "per serving" nutritional data
         const hasServingData = n["energy-kcal_serving"] !== undefined || n["energy_serving"] !== undefined || n["sodium_serving"] !== undefined;
-        
+
         // 2. If serving data is completely missing, we are forced to fall back to 100g data.
         // We MUST explicitly label the serving size as "100g" so the user knows what they are multiplying.
         const finalServingSize = hasServingData ? (prod.serving_size || "1 serving") : "100g";
@@ -118,16 +120,16 @@ export default function BarcodeScanScreen() {
         const extractNutrient = (baseKey: string) => {
           // If we don't have serving data, forcefully extract the 100g data so the math aligns with our new label
           if (!hasServingData) {
-             return n[`${baseKey}_100g`] ?? 
-                    n[`${baseKey}_value`] ?? 
+             return n[`${baseKey}_100g`] ??
+                    n[`${baseKey}_value`] ??
                     n[baseKey] ?? 0;
           }
-          
-          return n[`${baseKey}_serving`] ?? 
-                 n[`${baseKey}_100g`] ?? 
-                 n[`${baseKey}_value`] ?? 
-                 n[`${baseKey}_prepared_serving`] ?? 
-                 n[`${baseKey}_prepared_100g`] ?? 
+
+          return n[`${baseKey}_serving`] ??
+                 n[`${baseKey}_100g`] ??
+                 n[`${baseKey}_value`] ??
+                 n[`${baseKey}_prepared_serving`] ??
+                 n[`${baseKey}_prepared_100g`] ??
                  n[baseKey] ?? 0;
         };
 
@@ -142,7 +144,7 @@ export default function BarcodeScanScreen() {
           // Default OpenFoodFacts normalization is usually grams, so we cautiously multiply by 1000 if the unit field is missing
           return 1000;
         };
-        
+
         const parsedProduct: ProductData = {
           product_name: prod.product_name || "Unknown product",
           brands: prod.brands || "Unknown brand",
@@ -154,49 +156,23 @@ export default function BarcodeScanScreen() {
           cholesterol_mg: extractNutrient("cholesterol") * getUnitMultiplier("cholesterol"),
           image_url: prod.image_front_url || prod.image_url || undefined,
         };
-        
+
         router.push({
           pathname: "/(home)/(meals)/scan-result",
           params: { product: JSON.stringify(parsedProduct) }
         });
-        
+
         // Reset scanner after a short delay so they can scan again if they go back
-        setTimeout(() => { scanLock.current = false; setScanned(false); }, 1000);
+        setTimeout(resetScanner, 1000);
       } else {
-        Alert.alert(
-          "Barcode Not Found",
-          "This product isn't in our global database yet. Would you like to estimate its nutrition instead?",
-          [
-            {
-              text: "Try Again",
-              style: "cancel",
-              onPress: () => { scanLock.current = false; setScanned(false); }
-            },
-            {
-              text: "Estimate",
-              style: "default",
-              onPress: () => {
-                scanLock.current = false;
-                setScanned(false);
-                router.push("/(home)/(meals)/estimate-meal");
-              }
-            }
-          ]
-        );
+        setProblem("missing");
       }
     } catch (error: any) {
       if (error.name === 'AbortError') {
-        Alert.alert(
-          "Connection Too Slow",
-          "It's taking a little too long to find this item. Would you like to estimate it instead?",
-          [
-            { text: "Try Again", style: "cancel", onPress: () => { scanLock.current = false; setScanned(false); } },
-            { text: "Estimate", style: "default", onPress: () => { scanLock.current = false; setScanned(false); router.push("/(home)/(meals)/estimate-meal"); } }
-          ]
-        );
+        setProblem("slow");
       } else {
         showToast({ title: "Error", message: "An error occurred while fetching product data.", type: "error" });
-        setTimeout(() => { scanLock.current = false; setScanned(false); }, 2000);
+        setTimeout(resetScanner, 2000);
       }
     } finally {
       setLoading(false);
@@ -206,8 +182,8 @@ export default function BarcodeScanScreen() {
   // ── Permission loading ──
   if (!permission) {
     return (
-      <View className="flex-1 items-center justify-center bg-surface-alt">
-        <ActivityIndicator size="large" color={theme.text} />
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: c.canvas }}>
+        <ActivityIndicator size="large" color={c.steel} />
       </View>
     );
   }
@@ -215,66 +191,48 @@ export default function BarcodeScanScreen() {
   // ── Permission denied ──
   if (!permission.granted) {
     return (
-      <SafeAreaView className="flex-1 bg-surface-alt items-center justify-center px-6">
-        <View className="w-16 h-16 rounded-2xl bg-surface-alt border border-border/70 items-center justify-center mb-4">
-          <Feather name="camera-off" size={26} color={theme.textSoft} />
+      <SafeAreaView style={{ flex: 1, backgroundColor: c.canvas, justifyContent: "center", paddingHorizontal: 24, gap: 16 }}>
+        <View style={{ width: 56, height: 56, borderRadius: 12, backgroundColor: c.surface, alignItems: "center", justifyContent: "center" }}>
+          <Feather name="camera-off" size={26} color={c.charcoal} />
         </View>
-        <Text className="text-[16px] font-medium text-text mb-2 text-center">
-          Camera permission required
-        </Text>
-        <Text className="text-[13px] text-text-soft text-center mb-6 leading-relaxed">
-          HeartLink needs camera access to scan food barcodes.
-        </Text>
-        <TouchableOpacity
-          onPress={requestPermission}
-          className="bg-primary px-6 py-3 rounded-xl flex-row items-center gap-2"
-        >
-          <Feather name="camera" size={15} color={theme.onPrimary} />
-          <Text className="text-white font-medium text-[14px]">Grant permission</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => router.back()} className="mt-3 px-6 py-3">
-          <Text className="text-text-soft font-medium text-[13px]">Go back</Text>
-        </TouchableOpacity>
+        <View style={{ gap: 6 }}>
+          <Text accessibilityRole="header" style={{ fontSize: 22, fontWeight: "600", color: c.ink }}>Allow the camera</Text>
+          <Text style={{ fontSize: 16, lineHeight: 24, color: c.slate }}>{"HeartLink needs the camera to read food barcodes. It isn't used for anything else."}</Text>
+        </View>
+        <DsButton label="Allow camera" onPress={requestPermission} />
+        <DsButton label="Go back" variant="secondary" block onPress={() => router.back()} />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-surface-alt" edges={["top"]}>
-      <StatusBar style="dark" />
-
-      {/* ── Header ── */}
-      <View className="flex-row items-center px-5 pt-4 pb-3 border-b border-border">
-        <TouchableOpacity
-          onPress={() => router.back()}
-          className="w-9 h-9 rounded-xl bg-surface border border-border/70 items-center justify-center mr-3"
-        >
-          <Feather name="arrow-left" size={18} color={isDark ? "#f8fafc" : "#0f172a"} />
-        </TouchableOpacity>
-        <View className="flex-1">
-          <Text className="text-[17px] font-medium text-text">Scan meal</Text>
-          <Text className="text-[12px] text-text-soft">Record via barcode</Text>
-        </View>
-        {/* Torch toggle (always visible) */}
-        <TouchableOpacity
-          onPress={() => setTorch(!torch)}
-          className="w-9 h-9 rounded-xl border border-border/70 items-center justify-center"
-        >
-          <Feather name={torch ? "zap" : "zap-off"} size={16} color={torch ? "#fff" : "#64748b"} />
-        </TouchableOpacity>
-      </View>
+    <SafeAreaView style={{ flex: 1, backgroundColor: c.canvas }} edges={["top"]}>
+      <StatusBar style={isDark ? "light" : "dark"} />
+      <FoodHeader
+        title="Scan a barcode"
+        onBack={() => router.back()}
+        right={
+          <AnimatedButton
+            onPress={() => setTorch(!torch)}
+            accessibilityRole="switch"
+            accessibilityState={{ checked: torch }}
+            accessibilityLabel="Torch"
+            style={{ width: 44, height: 44, borderRadius: 8, borderWidth: 1, borderColor: torch ? c.line : c.hairline, backgroundColor: torch ? c.tint : c.canvas, alignItems: "center", justifyContent: "center" }}
+          >
+            <Feather name={torch ? "zap" : "zap-off"} size={18} color={torch ? c.onTint : c.ink} />
+          </AnimatedButton>
+        }
+      />
 
       {/* ══ CAMERA VIEW ══ */}
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         behavior="padding"
         keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 24}
-        className="flex-1"
+        style={{ flex: 1 }}
       >
-        <View 
-          className="flex-1 px-5 pt-4"
-        >
+        <View style={{ flex: 1, paddingHorizontal: 20, paddingTop: 8, paddingBottom: 20, gap: 12 }}>
           {/* Camera */}
-          <View collapsable={false} className="flex-1 rounded-2xl overflow-hidden relative">
+          <View collapsable={false} style={{ flex: 1, borderRadius: 12, overflow: "hidden", position: "relative" }}>
             <CameraView
               style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, width: "100%", height: "100%" }}
               facing="back"
@@ -284,113 +242,121 @@ export default function BarcodeScanScreen() {
               }}
               enableTorch={torch}
             />
-              {/* Scan overlay */}
-              <View style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", flexDirection: "column" }} pointerEvents="box-none">
+            {/* Scan overlay */}
+            <View style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", flexDirection: "column" }} pointerEvents="box-none">
+              <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)" }} pointerEvents="none" />
+              <View style={{ flexDirection: "row", height: 240, alignSelf: "center" }} pointerEvents="box-none">
                 <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)" }} pointerEvents="none" />
-                <View style={{ flexDirection: "row", height: 240, alignSelf: "center" }} pointerEvents="box-none">
-                  <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)" }} pointerEvents="none" />
-                  
-                  {/* Scan frame (The Hole) */}
-                  <View style={{ width: 240, height: 240, position: "relative", alignItems: "center", justifyContent: "center", overflow: "hidden" }} pointerEvents="box-none">
-                    {/* Animated Laser Line */}
-                    {!scanned && !loading && (
-                      <Animated.View
-                        style={{
-                          position: "absolute",
-                          top: 0,
-                          left: 0,
-                          width: "100%",
-                          height: 3,
-                          backgroundColor: theme.danger,
-                          opacity: 0.8,
-                          transform: [{ translateY: scanLineAnim }],
-                        }}
-                      />
-                    )}
-                    
-                    {/* Corner marks */}
-                    {[
-                      { top: 0, left: 0, borderTopWidth: 3, borderLeftWidth: 3, borderTopLeftRadius: 12 },
-                      { top: 0, right: 0, borderTopWidth: 3, borderRightWidth: 3, borderTopRightRadius: 12 },
-                      { bottom: 0, left: 0, borderBottomWidth: 3, borderLeftWidth: 3, borderBottomLeftRadius: 12 },
-                      { bottom: 0, right: 0, borderBottomWidth: 3, borderRightWidth: 3, borderBottomRightRadius: 12 },
-                    ].map((s, i) => (
-                      <View key={i} style={{ position: "absolute", width: 28, height: 28, borderColor: theme.surface, ...s }} />
-                    ))}
 
-                    {loading && (
-                      <View style={{ backgroundColor: "rgba(0,0,0,0.6)", borderRadius: 14, padding: 16, alignItems: "center" }}>
-                        <ActivityIndicator size="large" color={theme.onPrimary} />
-                        <Text style={{ color: theme.surface, marginTop: 8, fontSize: 13 }}>Looking up…</Text>
-                      </View>
-                    )}
-                  </View>
+                {/* Scan frame (The Hole) */}
+                <View style={{ width: 240, height: 240, position: "relative", alignItems: "center", justifyContent: "center", overflow: "hidden" }} pointerEvents="box-none">
+                  {/* Animated scan line */}
+                  {!scanned && !loading && (
+                    <Animated.View
+                      style={{
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                        width: "100%",
+                        height: 3,
+                        backgroundColor: c.line,
+                        opacity: 0.9,
+                        transform: [{ translateY: scanLineAnim }],
+                      }}
+                    />
+                  )}
 
-                  <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)" }} pointerEvents="none" />
+                  {/* Corner marks */}
+                  {[
+                    { top: 0, left: 0, borderTopWidth: 3, borderLeftWidth: 3, borderTopLeftRadius: 12 },
+                    { top: 0, right: 0, borderTopWidth: 3, borderRightWidth: 3, borderTopRightRadius: 12 },
+                    { bottom: 0, left: 0, borderBottomWidth: 3, borderLeftWidth: 3, borderBottomLeftRadius: 12 },
+                    { bottom: 0, right: 0, borderBottomWidth: 3, borderRightWidth: 3, borderBottomRightRadius: 12 },
+                  ].map((s, i) => (
+                    <View key={i} style={{ position: "absolute", width: 28, height: 28, borderColor: "#ffffff", ...s }} />
+                  ))}
+
+                  {loading && (
+                    <View style={{ backgroundColor: "rgba(0,0,0,0.6)", borderRadius: 12, padding: 16, alignItems: "center" }}>
+                      <ActivityIndicator size="large" color="#ffffff" />
+                      <Text style={{ color: "#ffffff", marginTop: 8, fontSize: 14 }}>Looking it up…</Text>
+                    </View>
+                  )}
                 </View>
-                
-                <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", alignItems: "center" }} pointerEvents="none">
-                  {/* Label */}
-                  <View style={{ marginTop: 24, backgroundColor: "rgba(0,0,0,0.5)", borderRadius: 99, paddingHorizontal: 16, paddingVertical: 8 }}>
-                    <Text style={{ color: "rgba(255,255,255,0.9)", fontSize: 13, fontWeight: "500" }}>
-                      Centre barcode in frame
-                    </Text>
-                  </View>
+
+                <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)" }} pointerEvents="none" />
+              </View>
+
+              <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", alignItems: "center" }} pointerEvents="none">
+                <View style={{ marginTop: 20, backgroundColor: "rgba(0,0,0,0.55)", borderRadius: 9999, paddingHorizontal: 16, paddingVertical: 8 }}>
+                  <Text style={{ color: "#ffffff", fontSize: 14, fontWeight: "500" }}>Hold the barcode inside the frame</Text>
                 </View>
               </View>
+            </View>
           </View>
 
-        {/* Manual entry */}
-        <View className="mt-4">
+          {/* Type the number, or search instead */}
           {showManualInput ? (
-            <View className="flex-row items-center gap-2">
-              <View className="flex-1 bg-surface border border-border/70 rounded-xl px-3.5 py-2.5">
-                <TextInput
-                  value={manualBarcode}
-                  onChangeText={setManualBarcode}
-                  placeholder="Enter barcode number…"
-                  placeholderTextColor="#94a3b8"
-                  keyboardType="numeric"
-                  className="text-[14px] text-text"
-                  autoFocus
-                />
-              </View>
-              <TouchableOpacity
+            <View className="flex-row items-center" style={{ gap: 8 }}>
+              <TextInput
+                value={manualBarcode}
+                onChangeText={setManualBarcode}
+                placeholder="Barcode number"
+                placeholderTextColor={c.steel}
+                keyboardType="numeric"
+                accessibilityLabel="Barcode number"
+                autoFocus
+                style={{ flex: 1, height: 48, paddingHorizontal: 14, borderWidth: 1, borderColor: c.hairlineStrong, borderRadius: 8, fontSize: 17, color: c.ink, backgroundColor: c.canvas }}
+              />
+              <DsButton
+                label="Look up"
+                block={false}
+                disabled={!manualBarcode}
                 onPress={() => {
-                  if (manualBarcode) {
-                    setShowManualInput(false);
-                    handleBarcodeScanned({ type: "manual", data: manualBarcode });
-                  }
+                  setShowManualInput(false);
+                  handleBarcodeScanned({ type: "manual", data: manualBarcode });
                 }}
-                className="bg-primary px-4 py-2.5 rounded-xl"
+              />
+              <AnimatedButton
+                onPress={() => setShowManualInput(false)}
+                accessibilityRole="button"
+                accessibilityLabel="Close"
+                style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}
               >
-                <Text className="text-white text-[13px] font-medium">Look up</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => setShowManualInput(false)} className="p-2">
-                <Feather name="x" size={18} color={theme.textSoft} />
-              </TouchableOpacity>
+                <Feather name="x" size={20} color={c.ink} />
+              </AnimatedButton>
             </View>
           ) : (
-            <View className="flex-row items-center justify-center gap-3">
-              <TouchableOpacity
-                onPress={() => setShowManualInput(true)}
-                className="flex-row items-center gap-1.5 bg-surface border border-border/70 px-4 py-2.5 rounded-xl"
-              >
-                <Feather name="edit-2" size={13} color={theme.textSoft} />
-                <Text className="text-[12px] font-medium text-text">Enter manually</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => router.push("/(home)/(meals)/search-meal")}
-                className="flex-row items-center gap-1.5 bg-surface border border-border/70 px-4 py-2.5 rounded-xl"
-              >
-                <Feather name="search" size={13} color={theme.textSoft} />
-                <Text className="text-[12px] font-medium text-text">Search food</Text>
-              </TouchableOpacity>
+            <View className="flex-row" style={{ gap: 8 }}>
+              <OutlineButton label="Type the number" icon="edit-2" onPress={() => setShowManualInput(true)} />
+              <OutlineButton label="Search food" icon="search" onPress={() => router.push("/(home)/(meals)/search-meal")} />
             </View>
           )}
         </View>
-        </View>
       </KeyboardAvoidingView>
+
+      <ConfirmDialog
+        visible={problem !== null}
+        variant="info"
+        icon={problem === "slow" ? "wifi-off" : "search"}
+        title={problem === "slow" ? "Taking too long" : "Product not found"}
+        message={
+          problem === "slow"
+            ? "The connection is slow, so the product didn't load. You can try again or estimate the meal yourself."
+            : "This product isn't in the barcode database yet. You can scan again or estimate its nutrition yourself."
+        }
+        cancelLabel="Try again"
+        confirmLabel="Estimate"
+        onCancel={() => {
+          setProblem(null);
+          resetScanner();
+        }}
+        onConfirm={() => {
+          setProblem(null);
+          resetScanner();
+          router.push("/(home)/(meals)/estimate-meal");
+        }}
+      />
     </SafeAreaView>
   );
 }
