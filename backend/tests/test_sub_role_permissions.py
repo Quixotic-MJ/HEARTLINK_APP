@@ -45,7 +45,7 @@ def fakes(monkeypatch):
     monkeypatch.setattr("app.api.sleep_logs.sleep_logs.get_sleep_logs", lambda *a, **k: [])
     monkeypatch.setattr("app.api.recipes_api.recipes_api.create_recipe", lambda data, created_by=None: {"id": "r1", "name": "Soup"})
     monkeypatch.setattr("app.api.recipes_api.recipes_api.record_admin_activity", lambda **k: None)
-    monkeypatch.setattr("app.api.exercises.exercises.create_routine", lambda data: {"id": "e1", "name": "Walk"})
+    monkeypatch.setattr("app.api.exercises.exercises.create_routine", lambda data, **k: {"id": "e1", "name": "Walk"})
     monkeypatch.setattr("app.api.exercises.exercises.record_admin_activity", lambda **k: None)
     # Other test modules install app-wide dependency overrides at import time; use the real guards here.
     saved = dict(app.dependency_overrides)
