@@ -35,6 +35,10 @@ const HSS_TIER_LABELS = {
   Critical: "Critical (<50)",
 };
 
+// HL-030: an "Others" recipe shows the name typed for it
+const categoryLabel = (recipe) =>
+  recipe.category === "Others" && recipe.categoryOther ? recipe.categoryOther : recipe.category;
+
 const Foods = () => {
   const [recipes, setRecipes] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -83,6 +87,7 @@ const Foods = () => {
       const payload = {
         name: recipe.name,
         category: recipe.category,
+        categoryOther: recipe.categoryOther,
         hssTarget: recipe.hssTarget,
         foodSourceType: recipe.foodSourceType,
         prepTimeMinutes: recipe.prepTimeMinutes,
@@ -131,7 +136,7 @@ const Foods = () => {
       entityInfo: {
         name: recipe.name,
         badge: "Published -> Archived",
-        email: `${recipe.category} • ${recipe.hssTarget}`,
+        email: `${categoryLabel(recipe)} • ${recipe.hssTarget}`,
         id: recipe.id,
       },
       impactDetails: [
@@ -143,6 +148,7 @@ const Foods = () => {
           const payload = {
             name: recipe.name,
             category: recipe.category,
+            categoryOther: recipe.categoryOther,
             hssTarget: recipe.hssTarget,
             foodSourceType: recipe.foodSourceType,
             prepTimeMinutes: recipe.prepTimeMinutes,
@@ -193,7 +199,7 @@ const Foods = () => {
       entityInfo: {
         name: recipe.name,
         badge: recipe.status?.toUpperCase() || "RECIPE",
-        email: `${recipe.category} • ${recipe.hssTarget}`,
+        email: `${categoryLabel(recipe)} • ${recipe.hssTarget}`,
         id: recipe.id,
       },
       impactDetails: [
@@ -234,6 +240,7 @@ const Foods = () => {
           id: r.id,
           name: r.name,
           category: r.category || "Breakfast",
+          categoryOther: r.category_other || "",
           hssTarget: HSS_TIER_LABELS[hssTier],
           hssTier: hssTier,
           prepTimeMinutes: r.prep_time_minutes || 15,
@@ -299,7 +306,7 @@ const Foods = () => {
     const matchesSearch =
       !q ||
       r.name.toLowerCase().includes(q) ||
-      r.category.toLowerCase().includes(q) ||
+      categoryLabel(r).toLowerCase().includes(q) ||
       (r.tags && r.tags.some((t) => t.toLowerCase().includes(q)));
 
     const matchesStatus = filterStatus === "all" || r.status === filterStatus;
@@ -437,6 +444,7 @@ const Foods = () => {
                   <option value="Lunch">Lunch</option>
                   <option value="Dinner">Dinner</option>
                   <option value="Snack">Snack</option>
+                  <option value="Others">Others</option>
                 </select>
                 <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
                   <ChevronDown size={12} className="text-[#94A3B8]" />
@@ -558,7 +566,7 @@ const Foods = () => {
                                 {recipe.name}
                               </p>
                               <p className="text-[#64748B] text-[11px] font-medium truncate">
-                                {recipe.category} · <span className="capitalize">{recipe.status}</span>
+                                {categoryLabel(recipe)} · <span className="capitalize">{recipe.status}</span>
                               </p>
                             </div>
                           </div>

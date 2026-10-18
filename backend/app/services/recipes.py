@@ -66,6 +66,27 @@ def map_hss_tier(tier: str) -> str:
     if "Critical" in tier or "Needs Attention" in tier: return "Critical"
     return "Stable"
 
+STANDARD_CATEGORIES = {"Breakfast", "Lunch", "Dinner", "Snack"}
+OTHERS_CATEGORY = "Others"
+CATEGORY_OTHER_MAX_LENGTH = 40
+
+
+def resolve_category(data: Dict[str, Any]) -> Optional[tuple]:
+    """
+    HL-030: returns (category, category_other) for a known category, or None for an unknown one.
+    "Others" needs a typed name (categoryOther); raises ValueError when it is empty.
+    """
+    raw_cat = str(data.get("category") or "").strip()
+    if raw_cat in STANDARD_CATEGORIES:
+        return raw_cat, None
+    if raw_cat == OTHERS_CATEGORY:
+        other = str(data.get("categoryOther") or data.get("category_other") or "").strip()
+        if not other:
+            raise ValueError('Please type a category name when choosing "Others".')
+        return OTHERS_CATEGORY, other[:CATEGORY_OTHER_MAX_LENGTH]
+    return None
+
+
 def create_recipe(data: Dict[str, Any], created_by: Optional[str] = None) -> Dict[str, Any]:
     steps = data.get("steps")
     if steps is None:
@@ -103,10 +124,8 @@ def create_recipe(data: Dict[str, Any], created_by: Optional[str] = None) -> Dic
                 "unit": None
             })
 
-    # Validate category against schema check constraint ('Breakfast', 'Lunch', 'Dinner', 'Snack')
-    raw_cat = (data.get("category") or "Breakfast").strip()
-    valid_categories = {"Breakfast", "Lunch", "Dinner", "Snack"}
-    category = raw_cat if raw_cat in valid_categories else "Breakfast"
+    # Category must match the schema check constraint; an unknown one falls back to Breakfast
+    category, category_other = resolve_category(data) or ("Breakfast", None)
 
     # Difficulty check constraint ('Easy', 'Medium', 'Hard')
     raw_diff = (data.get("difficulty") or "Easy").strip()
@@ -135,6 +154,7 @@ def create_recipe(data: Dict[str, Any], created_by: Optional[str] = None) -> Dic
         "name": (data.get("name") or "Untitled Recipe").strip(),
         "subtitle": data.get("subtitle") or None,
         "category": category,
+        "category_other": category_other,
         "hss_tier": map_hss_tier(data.get("hssTarget") or data.get("hss_tier") or "Stable"),
         "sodium_mg": float(data.get("sodium") or data.get("sodium_mg") or 0),
         "calories": float(data.get("calories") or 0),
@@ -165,9 +185,9 @@ def update_recipe(recipe_id: str, data: Dict[str, Any]) -> Optional[Dict[str, An
     if "name" in data: update_data["name"] = data["name"]
     if "subtitle" in data: update_data["subtitle"] = data["subtitle"]
     if "category" in data:
-        raw_cat = str(data["category"]).strip()
-        if raw_cat in {"Breakfast", "Lunch", "Dinner", "Snack"}:
-            update_data["category"] = raw_cat
+        resolved = resolve_category(data)
+        if resolved:
+            update_data["category"], update_data["category_other"] = resolved
     if "hssTarget" in data or "hss_tier" in data:
         update_data["hss_tier"] = map_hss_tier(data.get("hssTarget", data.get("hss_tier")))
     if "sodium" in data or "sodium_mg" in data:

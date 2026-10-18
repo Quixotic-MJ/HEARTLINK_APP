@@ -67,7 +67,10 @@ def read_recipe(recipe_id: str, request: Request, credentials: Optional[HTTPAuth
 @router.post("/", response_model=Dict[str, Any])
 def add_recipe(data: Dict[str, Any] = Body(...), current_user: dict = Depends(require_permission("recipes:edit"))):
     admin_id = current_user.get("user_id") if current_user else None
-    new_recipe = create_recipe(data, created_by=admin_id)
+    try:
+        new_recipe = create_recipe(data, created_by=admin_id)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     if not new_recipe or not new_recipe.get("id"):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -89,7 +92,10 @@ def edit_recipe(recipe_id: str, data: Dict[str, Any] = Body(...), current_user: 
         raise HTTPException(status_code=404, detail="Recipe not found")
         
     old_status = recipe.get("status")
-    updated_recipe = update_recipe(recipe_id, data)
+    try:
+        updated_recipe = update_recipe(recipe_id, data)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     if not updated_recipe:
         raise HTTPException(status_code=404, detail="Recipe not found")
         
