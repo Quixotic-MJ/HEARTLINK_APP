@@ -43,6 +43,8 @@ backend on a phone, use the computer's local network IP (e.g. `192.168.x.x`), no
 - `react-native-reanimated` 4 (runs on `react-native-worklets`) for animations, e.g. toasts
 - `expo-haptics` for vibration feedback, `expo-secure-store` for auth tokens,
   `@react-native-community/netinfo` for online/offline status
+- `expo-speech` for spoken exercise instructions (`hooks/useVoiceGuide.ts`), `expo-keep-awake` to keep
+  the screen on during an exercise
 - Backend: Python FastAPI + Supabase (PostgreSQL), JWT bearer tokens. The app only talks to the
   FastAPI backend, never to Supabase directly.
 - Tests: Jest (`jest-expo` preset) + `@testing-library/react-native` v14, which needs
@@ -233,7 +235,8 @@ Every new piece of UI must look right in light and dark mode.
 - Shared setup (`jest-setup.js`, `jest.config.js`) affects every test. After changing it, or any
   test, run the full `npx jest`, not just one file.
 - Mocks for every test live in `jest-setup.js`: AsyncStorage, `react-native-worklets` (Reanimated's
-  native engine, which can't run in Jest), `expo-router`, `expo-haptics`, `expo-status-bar`.
+  native engine, which can't run in Jest), `expo-router`, `expo-haptics`, `expo-status-bar`,
+  `expo-speech`, `expo-keep-awake`, `react-native-youtube-iframe`.
 - React Query in tests: `retry: false`, `gcTime: Infinity` (otherwise its 5-minute cleanup timer
   keeps Jest running), and no real network calls (mock `fetch`). Today only
   `useLogExercise.test.tsx` uses React Query; when a second test needs it, move this setup into one

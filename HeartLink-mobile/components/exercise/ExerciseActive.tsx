@@ -1,242 +1,356 @@
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity, ScrollView, Image, Dimensions } from "react-native";
+import {
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
+import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSharedValue } from "react-native-reanimated";
 import { Feather } from "@expo/vector-icons";
-import { useColorScheme } from "nativewind";
 import YoutubePlayer from "react-native-youtube-iframe";
-import { Colors } from "../../constants/theme";
-import { theme } from "../../constants/theme";
+import AnimatedButton from "../ui/AnimatedButton";
+import { youtubeId } from "./ExerciseMedia";
+import {
+  SessionControls,
+  SessionScreenProps,
+  SessionTopBar,
+  StepBar,
+  UnwellButton,
+  WORKOUT,
+  useStepCue,
+} from "./ExerciseBits";
+import {
+  SECTION_NAME,
+  describePart,
+  formatClock,
+  spokenStep,
+} from "../../services/exerciseSession";
 
-const { width } = Dimensions.get("window");
+// Screen 3d, General exercises: the expert's video or pictures, and the moves with the current
+// one marked. There's no set time, so the clock counts up; Finish ends it.
 
-export interface ExerciseActiveProps {
-  routine: any;
-  onFinish: () => void;
-  onClose: () => void;
-  onSymptoms: () => void;
-}
 
-function getYoutubeVideoId(url: string) {
-  if (!url) return null;
-  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?]+)/);
-  return match ? match[1] : null;
-}
+type Tab = "video" | "pictures";
 
 export function ExerciseActive({
   routine,
+  elapsed,
+  paused,
+  onTogglePause,
   onFinish,
   onClose,
-  onSymptoms
-}: ExerciseActiveProps) {
+  onUnwell,
+  voice,
+}: SessionScreenProps) {
   const insets = useSafeAreaInsets();
-  const { colorScheme } = useColorScheme();
-  const isDark = colorScheme === "dark";
-  const activeBg = Colors[isDark ? "dark" : "light"].tint;
-
-  const hasVideo = !!routine.videoUrl;
-  const guideImages = Array.isArray(routine.guideImages) && routine.guideImages.length > 0 
-    ? routine.guideImages 
-    : (routine.image ? [routine.image] : []);
-  const hasGuide = guideImages.length > 0;
-  
-  const [activeTab, setActiveTab] = useState<"Guide" | "Video">(hasGuide ? "Guide" : "Video");
+  const videoId = youtubeId(routine.videoUrl);
+  const stepPictures = routine.steps
+    .map((s) => s.image)
+    .filter((u): u is string => !!u);
+  const pictures =
+    routine.guideImages.length > 0
+      ? routine.guideImages
+      : stepPictures.length > 0
+        ? stepPictures
+        : routine.image
+          ? [routine.image]
+          : [];
+  const showSections = new Set(routine.steps.map((s) => s.section)).size > 1;
   const [videoFailed, setVideoFailed] = useState(false);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const hasVideo = !!videoId && !videoFailed;
+  const [tab, setTab] = useState<Tab>(videoId ? "video" : "pictures");
+  const shown: Tab = tab === "video" && !hasVideo ? "pictures" : tab;
+  const [mediaWidth, setMediaWidth] = useState(0);
+  const [picture, setPicture] = useState(0);
+  const [current, setCurrent] = useState(0);
+  const steps = routine.steps;
+  const isLast = current >= steps.length - 1;
+  const full = useSharedValue(1);
+  useStepCue(
+    current,
+    voice.say,
+    steps.length > 0
+      ? spokenStep(steps[current])
+      : `${routine.title}. Follow the video or pictures.`,
+  );
 
-  const [containerWidth, setContainerWidth] = useState(width - 40);
-
-  const handleScroll = (event: any) => {
-    const slideSize = event.nativeEvent.layoutMeasurement.width;
-    const index = event.nativeEvent.contentOffset.x / slideSize;
-    setCurrentImageIndex(Math.round(index));
+  const onPictureScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const w = e.nativeEvent.layoutMeasurement.width;
+    if (w > 0) setPicture(Math.round(e.nativeEvent.contentOffset.x / w));
   };
 
-  const renderMedia = () => {
-    if (activeTab === "Video" && hasVideo && !videoFailed) {
-      const videoId = getYoutubeVideoId(routine.videoUrl);
-      if (videoId) {
-        return (
-          <View 
-            style={{ width: containerWidth, aspectRatio: 16 / 9, backgroundColor: theme.ink }}
-            onLayout={(e) => setContainerWidth(e.nativeEvent.layout.width)}
-          >
-            <YoutubePlayer
-              height={containerWidth * (9 / 16)}
-              width={containerWidth}
-              play={true}
-              videoId={videoId}
-              onError={() => setTimeout(() => setVideoFailed(true), 0)}
-              initialPlayerParams={{ controls: false, modestbranding: true }}
-            />
-          </View>
-        );
-      }
-    }
-
-    if ((activeTab === "Guide" || videoFailed) && hasGuide) {
-      return (
-        <View 
-          className="w-full relative bg-slate-100 dark:bg-slate-800" 
-          style={{ aspectRatio: 16 / 9 }}
-          onLayout={(e) => setContainerWidth(e.nativeEvent.layout.width)}
-        >
-          <ScrollView
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            onScroll={handleScroll}
-            scrollEventThrottle={16}
-            className="w-full h-full"
-          >
-            {guideImages.map((img: string, idx: number) => (
-              <View key={idx} style={{ width: containerWidth, aspectRatio: 16 / 9 }} className="overflow-hidden">
-                <Image 
-                  source={{ uri: img }} 
-                  className="absolute inset-0 w-full h-full" 
-                  resizeMode="cover"
-                />
-                <View className="absolute inset-0 bg-slate-900/10" />
-              </View>
-            ))}
-          </ScrollView>
-          
-          {/* Pagination Indicator */}
-          {guideImages.length > 1 && (
-            <View className="absolute bottom-3 left-0 right-0 flex-row justify-center items-center gap-1.5">
-              <View className="bg-black/50 px-3 py-1 rounded-full">
-                <Text className="text-white text-[11px] font-bold tracking-widest">
-                  {currentImageIndex + 1} / {guideImages.length}
-                </Text>
-              </View>
-            </View>
-          )}
-        </View>
-      );
-    }
-
+  const tabButton = (value: Tab, label: string) => {
+    const on = shown === value;
     return (
-      <View className="w-full items-center justify-center bg-slate-100 dark:bg-slate-800" style={{ aspectRatio: 16 / 9 }}>
-        <Feather name="image" size={32} color={theme.borderStrong} className="mb-2" />
-        <Text className="text-slate-400 font-medium text-[13px] tracking-wide uppercase">Visuals Unavailable</Text>
-      </View>
+      <AnimatedButton
+        key={value}
+        onPress={() => setTab(value)}
+        accessibilityRole="tab"
+        accessibilityState={{ selected: on }}
+        accessibilityLabel={label}
+        style={{
+          height: 44,
+          justifyContent: "center",
+          borderBottomWidth: 2,
+          borderBottomColor: on ? WORKOUT.ink : "transparent",
+        }}
+      >
+        <Text
+          style={{
+            fontSize: 15,
+            fontWeight: "500",
+            color: on ? WORKOUT.ink : WORKOUT.muted,
+          }}
+        >
+          {label}
+        </Text>
+      </AnimatedButton>
     );
   };
 
   return (
-    <View className="flex-1 bg-slate-50 dark:bg-slate-950">
-      {/* HEADER SECTION */}
-      <View 
-        className="w-full relative" 
-        style={{ 
-          paddingTop: Math.max(insets.top, 10), 
-          paddingBottom: 24,
-          backgroundColor: isDark ? "#0f172a" : "#1e293b" 
-        }}
+    <View
+      style={{ flex: 1, backgroundColor: WORKOUT.bg, paddingTop: insets.top }}
+    >
+      <SessionTopBar
+        title={routine.title}
+        subtitle={
+          paused
+            ? `Paused at ${formatClock(elapsed)}`
+            : `Time so far ${formatClock(elapsed)}`
+        }
+        onClose={onClose}
+        voice={voice}
       >
-        <View className="flex-row items-center px-4">
-           {/* Close Button */}
-           <TouchableOpacity 
-             onPress={onClose} 
-             className="w-10 h-10 rounded-full bg-white/10 items-center justify-center"
-           >
-             <Feather name="x" size={22} color="#fff" />
-           </TouchableOpacity>
-           
-           {/* Title */}
-           <View className="flex-1 px-4 items-center">
-             <Text 
-               className="text-white font-semibold text-[17px] text-center" 
-               numberOfLines={2}
-               adjustsFontSizeToFit
-               minimumFontScale={0.8}
-             >
-               {routine.title}
-             </Text>
-           </View>
-           
-           {/* Spacer */}
-           <View className="w-10 h-10" />
-        </View>
-      </View>
+        {steps.length > 1 ? (
+          <StepBar
+            count={steps.length}
+            index={current}
+            progress={full}
+            label={`Move ${current + 1} of ${steps.length}`}
+          />
+        ) : null}
+      </SessionTopBar>
 
-      {/* MAIN CONTENT CARD */}
-      <View className="flex-1 bg-white dark:bg-slate-900 rounded-t-3xl -mt-5 shadow-sm relative overflow-hidden">
-        
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerClassName="px-5 pt-8 pb-56">
-          
-          {hasVideo && hasGuide && (
-            <View className="flex-row items-center justify-center mb-5 gap-12">
-              <TouchableOpacity onPress={() => setActiveTab("Guide")} className="items-center">
-                <Text className={`text-[15px] font-bold mb-1.5 ${activeTab === "Guide" ? "" : "text-slate-400 dark:text-slate-500"}`} style={activeTab === "Guide" ? { color: activeBg } : {}}>GUIDE</Text>
-                {activeTab === "Guide" && <View className="h-0.5 w-6 rounded-full" style={{ backgroundColor: activeBg }} />}
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => setActiveTab("Video")} className="items-center">
-                <Text className={`text-[15px] font-bold mb-1.5 ${activeTab === "Video" ? "" : "text-slate-400 dark:text-slate-500"}`} style={activeTab === "Video" ? { color: activeBg } : {}}>VIDEO</Text>
-                {activeTab === "Video" && <View className="h-0.5 w-6 rounded-full" style={{ backgroundColor: activeBg }} />}
-              </TouchableOpacity>
+      <ScrollView
+        contentContainerStyle={{
+          paddingHorizontal: 20,
+          paddingTop: 14,
+          paddingBottom: 12,
+          gap: 14,
+        }}
+        showsVerticalScrollIndicator={false}
+      >
+        {hasVideo && pictures.length > 0 ? (
+          <View
+            className="flex-row"
+            style={{
+              gap: 24,
+              borderBottomWidth: 1,
+              borderBottomColor: WORKOUT.track,
+            }}
+            accessibilityRole="tablist"
+          >
+            {tabButton("video", "Video")}
+            {tabButton("pictures", "Pictures")}
+          </View>
+        ) : null}
+
+        <View
+          onLayout={(e) => setMediaWidth(e.nativeEvent.layout.width)}
+          style={{
+            aspectRatio: 16 / 9,
+            borderRadius: 12,
+            overflow: "hidden",
+            backgroundColor: WORKOUT.raised,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          {shown === "video" && videoId && mediaWidth > 0 ? (
+            <YoutubePlayer
+              width={mediaWidth}
+              height={(mediaWidth * 9) / 16}
+              videoId={videoId}
+              play={false}
+              onError={() => setVideoFailed(true)}
+              initialPlayerParams={{ modestbranding: true, rel: false }}
+            />
+          ) : pictures.length > 0 && mediaWidth > 0 ? (
+            <ScrollView
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              onMomentumScrollEnd={onPictureScroll}
+            >
+              {pictures.map((uri, i) => (
+                <Image
+                  key={i}
+                  source={{ uri }}
+                  style={{ width: mediaWidth, height: (mediaWidth * 9) / 16 }}
+                  contentFit="cover"
+                  accessibilityLabel={`Picture ${i + 1} of ${pictures.length}`}
+                />
+              ))}
+            </ScrollView>
+          ) : (
+            <View style={{ alignItems: "center", gap: 6, padding: 16 }}>
+              <Feather name="image" size={28} color={WORKOUT.soft} />
+              <Text
+                style={{
+                  fontSize: 14,
+                  color: WORKOUT.soft,
+                  textAlign: "center",
+                }}
+              >
+                {videoFailed
+                  ? "The video couldn't load. Follow the moves below."
+                  : "No video or pictures for this exercise. Follow the moves below."}
+              </Text>
             </View>
           )}
-
-          <View className="w-full bg-slate-100 dark:bg-slate-800 rounded-2xl overflow-hidden mb-8" style={{ aspectRatio: 16 / 9 }}>
-            {renderMedia()}
-          </View>
-
-          <View className="mb-8">
-            <Text className="text-[28px] font-black text-slate-900 dark:text-white mb-2">{routine.title}</Text>
-            {routine.goal ? (
-              <Text className="text-[16px] text-slate-600 dark:text-slate-400 leading-relaxed">
-                {routine.goal}
-              </Text>
-            ) : null}
-          </View>
-
-          <View className="mb-6">
-            <Text className="text-[14px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-6">
-              How to Perform
-            </Text>
-            
-            <View className="gap-y-6">
-              {routine.steps && routine.steps.map((step: any, idx: number) => (
-                <View key={idx} className="flex-row">
-                  <View className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 items-center justify-center mr-4 mt-1">
-                    <Text className="text-[14px] font-bold text-slate-700 dark:text-slate-300">{idx + 1}</Text>
-                  </View>
-                  <View className="flex-1">
-                    <Text className="text-[17px] font-semibold text-slate-800 dark:text-slate-100 leading-relaxed">
-                      {typeof step === 'string' ? step.trim() : (step.instruction || '').trim()}
-                    </Text>
-                  </View>
-                </View>
-              ))}
-            </View>
-          </View>
-
-        </ScrollView>
-
-        {/* BOTTOM ACTIONS */}
-        <View 
-          className="absolute bottom-0 w-full bg-white/95 dark:bg-slate-900/95 items-center justify-center" 
-          style={{ paddingBottom: Math.max(insets.bottom, 20), paddingTop: 16, paddingHorizontal: 20 }}
-        >
-          {/* Primary Action */}
-          <TouchableOpacity 
-            onPress={onFinish} 
-            className="w-full py-4 mb-3 rounded-xl items-center justify-center shadow-sm" 
-            style={{ backgroundColor: activeBg }}
-          >
-            <Text className="text-[16px] font-bold text-white tracking-wide">
-              FINISH ACTIVITY
-            </Text>
-          </TouchableOpacity>
-
-          {/* Secondary Safety Escape Hatch */}
-          <TouchableOpacity onPress={onSymptoms} className="py-2 px-4 mb-2">
-            <Text className="text-[14px] font-semibold text-slate-400 dark:text-slate-500 underline">
-              Feeling unwell?
-            </Text>
-          </TouchableOpacity>
-          
         </View>
+        {shown === "pictures" && pictures.length > 1 ? (
+          <Text
+            style={{ fontSize: 13, color: WORKOUT.soft, textAlign: "center" }}
+          >
+            Picture {picture + 1} of {pictures.length}, swipe for more
+          </Text>
+        ) : null}
+
+        {steps.length > 0 ? (
+          <View style={{ gap: 8 }}>
+            {steps.map((s, i) => {
+              const done = i < current;
+              const on = i === current;
+              const sectionStart =
+                showSections && (i === 0 || steps[i - 1].section !== s.section);
+              return (
+                <React.Fragment key={i}>
+                  {sectionStart ? (
+                    <Text
+                      accessibilityRole="header"
+                      style={{
+                        fontSize: 14,
+                        fontWeight: "600",
+                        color: WORKOUT.soft,
+                        marginTop: i === 0 ? 0 : 8,
+                      }}
+                    >
+                      {SECTION_NAME[s.section]}
+                      {s.section === "main" && routine.rounds > 1
+                        ? `, ${routine.rounds} rounds`
+                        : ""}
+                    </Text>
+                  ) : null}
+                  <AnimatedButton
+                    onPress={() => setCurrent(i)}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: on }}
+                    accessibilityLabel={`Move ${i + 1}: ${s.text}${done ? ", done" : ""}`}
+                    style={{
+                      minHeight: 56,
+                      borderRadius: 12,
+                      paddingHorizontal: 14,
+                      paddingVertical: 12,
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 12,
+                      borderWidth: on ? 2 : 1,
+                      borderColor: on ? WORKOUT.line : WORKOUT.track,
+                      backgroundColor: on
+                        ? "rgba(79,182,230,0.16)"
+                        : "transparent",
+                    }}
+                  >
+                    <View
+                      style={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: 14,
+                        alignItems: "center",
+                        justifyContent: "center",
+                        backgroundColor:
+                          done || on ? WORKOUT.line : WORKOUT.raised,
+                      }}
+                    >
+                      {done ? (
+                        <Feather name="check" size={15} color={WORKOUT.bg} />
+                      ) : (
+                        <Text
+                          style={{
+                            fontSize: 13,
+                            fontWeight: "600",
+                            color: on ? WORKOUT.bg : WORKOUT.ink,
+                          }}
+                        >
+                          {i + 1}
+                        </Text>
+                      )}
+                    </View>
+                    <View style={{ flex: 1, gap: 2 }}>
+                      <Text
+                        style={{
+                          fontSize: on ? 17 : 15,
+                          fontWeight: on ? "600" : "400",
+                          color: done ? WORKOUT.muted : WORKOUT.ink,
+                        }}
+                      >
+                        {s.text}
+                      </Text>
+                      {on && s.details ? (
+                        <Text
+                          style={{
+                            fontSize: 15,
+                            lineHeight: 21,
+                            color: WORKOUT.soft,
+                          }}
+                        >
+                          {s.details}
+                        </Text>
+                      ) : null}
+                    </View>
+                    <Text style={{ fontSize: 13, color: WORKOUT.muted }}>
+                      {describePart(s)}
+                    </Text>
+                  </AnimatedButton>
+                </React.Fragment>
+              );
+            })}
+          </View>
+        ) : null}
+      </ScrollView>
+
+      <View
+        className="px-5"
+        style={{
+          paddingTop: 12,
+          paddingBottom: Math.max(insets.bottom, 16) + 8,
+          gap: 16,
+        }}
+      >
+        <SessionControls
+          paused={paused}
+          onTogglePause={onTogglePause}
+          onFinish={onFinish}
+          onPrev={
+            steps.length > 1 && current > 0
+              ? () => setCurrent((i) => i - 1)
+              : undefined
+          }
+          onNext={
+            steps.length > 1
+              ? isLast
+                ? onFinish
+                : () => setCurrent((i) => i + 1)
+              : onFinish
+          }
+          nextIsFinish={steps.length <= 1 || isLast}
+        />
+        <UnwellButton onPress={onUnwell} />
       </View>
     </View>
   );

@@ -1,44 +1,61 @@
 import React from "react";
-import { View, Text, TouchableOpacity } from "react-native";
+import { Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
+import DsButton from "../onboarding/DsButton";
+import { useDs } from "../onboarding/useDs";
+import { LineBar } from "./ExerciseBits";
+import { formatDuration } from "../../services/exerciseSession";
+
+// Screen 6: the exercise is saved, and how today's movement stands against the goal.
 
 export interface ExerciseResultProps {
-  routine: any;
-  sessionDurationSeconds: number;
+  title: string;
+  seconds: number;
+  movementMinutes: number;
+  movementGoal: number;
   onDone: () => void;
+  onHistory: () => void;
 }
 
-export function ExerciseResult({ routine, sessionDurationSeconds, onDone }: ExerciseResultProps) {
-  
-  const formatTime = (seconds: number) => {
-    if (seconds < 60) return `${seconds}s`;
-    const m = Math.floor(seconds / 60);
-    const s = Math.floor(seconds % 60);
-    if (s > 0) return `${m}m ${s}s`;
-    return `${m}m`;
-  };
+export function ExerciseResult({ title, seconds, movementMinutes, movementGoal, onDone, onHistory }: ExerciseResultProps) {
+  const { c } = useDs();
+  const insets = useSafeAreaInsets();
+  const left = Math.max(0, movementGoal - movementMinutes);
 
   return (
-    <View className="flex-1 bg-white items-center justify-center px-6">
-      <View className="w-24 h-24 rounded-full items-center justify-center mb-6 bg-green-100 border-4 border-green-50 shadow-sm">
-        <Feather name="check" size={48} color="#16a34a" />
+    <View style={{ flex: 1, backgroundColor: c.canvas, paddingTop: insets.top }}>
+      <View className="px-5" style={{ flex: 1, justifyContent: "center", gap: 24 }}>
+        <View style={{ gap: 14 }}>
+          <View style={{ width: 56, height: 56, borderRadius: 12, backgroundColor: c.mint, alignItems: "center", justifyContent: "center" }}>
+            <Feather name="check" size={28} color={c.success} />
+          </View>
+          <Text accessibilityRole="header" style={{ fontSize: 28, lineHeight: 34, fontWeight: "600", color: c.ink }}>
+            Exercise saved
+          </Text>
+          <Text style={{ fontSize: 16, lineHeight: 24, color: c.slate }}>
+            {title}, {formatDuration(seconds)}.
+          </Text>
+        </View>
+
+        <View style={{ borderWidth: 1, borderColor: c.hairline, borderRadius: 12, padding: 16, gap: 10 }}>
+          <View className="flex-row items-baseline justify-between">
+            <Text style={{ fontSize: 15, fontWeight: "600", color: c.ink }}>Movement today</Text>
+            <Text style={{ fontSize: 15, color: c.ink, fontVariant: ["tabular-nums"] }}>
+              <Text style={{ fontWeight: "600" }}>{movementMinutes}</Text> of {movementGoal} min
+            </Text>
+          </View>
+          <LineBar progress={movementMinutes / movementGoal} label={`${movementMinutes} of ${movementGoal} minutes`} height={6} />
+          <Text style={{ fontSize: 14, lineHeight: 20, color: c.slate }}>
+            {left > 0 ? `${left} more ${left === 1 ? "minute reaches" : "minutes reach"} today's goal.` : "You've reached today's movement goal."}
+          </Text>
+        </View>
       </View>
-      
-      <Text className="text-[28px] font-bold text-slate-900 mb-2">Exercise Complete</Text>
-      <Text className="text-[20px] font-semibold text-slate-600 mb-8">{routine?.title || "Movement"}</Text>
-      
-      <View className="bg-slate-50 border border-slate-100 rounded-2xl p-6 w-full items-center mb-10 shadow-sm shadow-slate-100/50">
-        <Text className="text-[15px] font-bold text-slate-400 uppercase tracking-widest mb-2">Session Duration</Text>
-        <Text className="text-[28px] font-bold text-slate-800">{formatTime(sessionDurationSeconds)}</Text>
+
+      <View className="px-5" style={{ paddingTop: 12, paddingBottom: Math.max(insets.bottom, 16) + 8, gap: 4 }}>
+        <DsButton label="Back to dashboard" onPress={onDone} />
+        <DsButton label="See activity history" variant="link" onPress={onHistory} style={{ alignSelf: "center" }} />
       </View>
-      
-      <TouchableOpacity
-        activeOpacity={0.8}
-        onPress={onDone}
-        className="w-full py-4 rounded-full items-center justify-center bg-slate-900 shadow-sm"
-      >
-        <Text className="text-white text-[16px] font-bold tracking-wide">DONE</Text>
-      </TouchableOpacity>
     </View>
   );
 }

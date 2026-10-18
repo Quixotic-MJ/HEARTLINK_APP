@@ -8,9 +8,18 @@ import { useNetInfo } from '@react-native-community/netinfo';export interface E
   duration_minutes: number;
   duration_seconds: number;
   status: string;
+  /** Guided exercises also send which routine it was and its planned length. */
+  id?: string;
+  routine_id?: string;
+  planned_duration_seconds?: number;
+  planned_duration_minutes?: number;
 }
 
-export function useLogExercise(userId: string | null | undefined, token: string | null) {
+/**
+ * `quiet`: skip the "logged" message when the screen shows the result itself (the guided
+ * exercise's "Exercise saved" screen). Offline and error messages still show.
+ */
+export function useLogExercise(userId: string | null | undefined, token: string | null, { quiet = false }: { quiet?: boolean } = {}) {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
   const netInfo = useNetInfo();
@@ -98,7 +107,7 @@ export function useLogExercise(userId: string | null | undefined, token: string 
           type: "info",
           duration: 5500,
         });
-      } else {
+      } else if (!quiet) {
         showToast({
           ...postLogAck(
             "exercise",
