@@ -4,6 +4,12 @@ jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock')
 );
 
+// Reanimated runs on react-native-worklets, whose native part doesn't exist in
+// Jest. Use the official Worklets mock (recommended in the Worklets testing guide).
+jest.mock('react-native-worklets', () =>
+  require('react-native-worklets/src/mock')
+);
+
 jest.mock('expo-router', () => ({
   useRouter: () => ({
     push: jest.fn(),

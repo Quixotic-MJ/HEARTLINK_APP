@@ -1,246 +1,261 @@
 # AGENTS.md — HeartLink Mobile
 
-## Role
-You are a senior React Native + Expo engineer helping finish HeartLink, a 
-heart-health companion app that is close to being tested by real users.
+HeartLink is a heart-health companion app, built as a CTU capstone project. Users log blood pressure,
+heart rate, symptoms, meals (tracked for sodium), sleep and exercise. The app turns that into a Heart
+Health Stability Score (HSS), reacts to what was just logged, and works offline.
 
-You write clean, simple, maintainable code. You prioritize fixing the exact 
-thing that was asked over refactoring or restructuring things that weren't 
-part of the task — this app is mid-fix, not mid-rebuild, so unrelated 
-changes make it harder to verify what actually changed.
+It is a supportive wellness tool, **not a diagnostic device**. In any copy, never imply diagnosis,
+treatment or clinical certainty. When readings look risky, point the user to an in-person checkup.
+Clinics in the app are a public directory with no partnership or endorsement.
 
-You take clinical safety seriously. Any code path involving blood pressure, 
-symptom, or vital-sign thresholds must never skip or weaken an emergency 
-check, even if a task doesn't explicitly mention safety. When in doubt on a 
-health-safety matter, ask before proceeding rather than guessing.
-
-You explain what you did in plain English to a non-technical product owner, 
-not just in code terms.
+The owner is a solo, non-technical developer who tests on a real phone with Expo Go. Explain your
+work in plain English (see [Reporting back](#reporting-back)).
 
 ---
 
-## Project Overview
-HeartLink is a cardiovascular health companion app (React Native / Expo). 
-Users log daily vitals (blood pressure, heart rate), meals (tracked for 
-sodium), sleep, and exercise. The app computes a real-time Heart Health 
-Stability Score (HSS) from this data and is meant to give the user feedback 
-and encouragement based on it — not just record numbers silently. The app 
-has full offline support: actions taken without a connection are queued 
-locally and synced automatically once the connection returns.
+## Commands
+
+Run these from `HeartLink-mobile/`.
+
+| What | Command |
+| --- | --- |
+| Install packages | `npm install` (no extra flags needed) |
+| Run on a phone | `npx expo start`, then scan the QR code with Expo Go |
+| Tests (full suite) | `npx jest` |
+| Lint | `npm run lint` |
+| Type check | `npx tsc --noEmit` (has older errors, see [Known issues](#known-issues)) |
+
+Copy `.env.example` to `.env`. `EXPO_PUBLIC_API_URL` points at the backend. When testing a local
+backend on a phone, use the computer's local network IP (e.g. `192.168.x.x`), not `localhost`. Every
+`EXPO_PUBLIC_*` value ships inside the app, so never put a secret there.
 
 ---
 
-## Tech Stack
-- Expo (~57.0.21) + React Native (0.86.3)
-- TypeScript, strict mode — no `any`
-- Expo Router (file-based navigation)
-- NativeWind (Tailwind for React Native) — primary styling approach
-- React Context + local `useState` for state (no Zustand/Redux — do not 
-  introduce one without asking first)
-- `@tanstack/react-query` for data fetching, caching, and offline mutations
-- `@react-native-async-storage/async-storage` for offline persistence (integrates with React Query)
-- `react-hook-form` + `zod` for form handling and validation
-- `expo-haptics` for tactile feedback on actions
-- Backend: Python FastAPI + Supabase (PostgreSQL), JWT bearer tokens
+## Tech stack
 
-Do not introduce new major libraries (state management, styling systems, 
-navigation, etc.) without asking first and explaining why the existing 
-stack doesn't cover the need.
+- Expo ~57, React Native 0.86.3, React 19.2.3, TypeScript (strict)
+- Expo Router: file-based routes in `app/`
+- NativeWind 4 (Tailwind for React Native) for styling. Colours come from `constants/theme.ts`.
+- TanStack Query 5 for server data, with the cache saved to AsyncStorage (`lib/react-query.ts`)
+- React Context for app-wide state (`UserContext`, `ToastContext`, `BaselineContext`), local
+  `useState` for state inside one component
+- `react-hook-form` + `zod` for forms
+- `react-native-reanimated` 4 (runs on `react-native-worklets`) for animations, e.g. toasts
+- `expo-haptics` for vibration feedback, `expo-secure-store` for auth tokens,
+  `@react-native-community/netinfo` for online/offline status
+- Backend: Python FastAPI + Supabase (PostgreSQL), JWT bearer tokens. The app only talks to the
+  FastAPI backend, never to Supabase directly.
+- Tests: Jest (`jest-expo` preset) + `@testing-library/react-native` v14, which needs
+  `test-renderer` 1.2 (the line that matches React 19.2)
 
----
-
-## Development Philosophy
-Build one feature or fix at a time. For every task:
-1. Read this file first.
-2. Keep the implementation as simple as possible — prefer the smallest 
-   change that correctly solves the actual problem.
-3. Do not refactor or "clean up" surrounding code that wasn't part of the 
-   task, even if it looks messy. Flag it separately instead.
-4. Follow the existing patterns below rather than inventing new ones, 
-   unless a pattern is explicitly called out as inconsistent (see below) — 
-   in that case, follow the stated target, not whichever version of the 
-   inconsistency happens to be nearby.
+**Ask before adding any library.** Don't add a state library (Zustand, Redux), another styling
+system or another navigation library; the current stack is a deliberate choice for an app this size.
 
 ---
 
-## Architecture / Folder Structure
+## Where things go
+
 ```
-app/            → File-based routes/screens, grouped by flow: (auth), 
-                  (baseline), (home), etc. Screens should compose 
-                  components and call services/contexts — avoid putting 
-                  large reusable UI blocks or business logic directly here.
-components/     → Reusable UI, loosely grouped into subfolders 
-                  (dashboard/, exercise/, ui/, etc.)
-contexts/       → React Context providers for global state 
-                  (UserContext, ToastContext, BaselineContext)
-services/       → Business logic and offline/sync helpers 
-                  (SyncService.ts, MealLoggingService.ts)
+app/              Screens (Expo Router). Groups: (auth), (baseline) = first-run setup,
+                  (home)/(tabs|health|meals|profile|settings)
+components/ui/    Shared building blocks: Button, ConfirmDialog, Skeleton, InputField, ...
+components/...    Feature UI: dashboard/, exercise/, meals/, tabs/
+contexts/         UserContext, ToastContext, BaselineContext
+hooks/            React Query hooks per action (useLogMeal, useLogExercise, useLogSleep)
+services/         API calls and business logic: SyncService, MealLoggingService,
+                  companionCopy (postLogAck), companionService
+lib/              react-query.ts (QueryClient + persister), secureTokenStore.ts
+constants/        theme.ts (colours)
+utils/            OfflineSyncService.ts, notifications.ts
 ```
 
-**Known inconsistency — Decision made, override if you disagree:**  
-There is currently no centralized API/data-fetching layer. Some `fetch()` 
-calls live in `services/`, others are written directly inside screen files 
-like `dashboard.tsx`. 
-
-**Going forward:** new data-fetching logic goes in `services/`, not inline 
-in screen components. Do not add new inline `fetch()` calls to screens. 
-Existing inline fetches in already-working screens do not need to be moved 
-unless you're already modifying that specific piece of logic for another 
-reason — don't do a drive-by refactor.
+Screens should put components together and call hooks/services. Keep large reusable UI and business
+logic out of screen files.
 
 ---
 
-## Styling Rules
-NativeWind (`className`) is the default for all new UI. 
+## How to work
 
-**Known inconsistency — Decision made, override if you disagree:**  
-Complex or animated components (e.g. `ScoreRing.tsx`) currently use 
-`StyleSheet.create` instead of NativeWind. This is acceptable and should 
-continue for genuinely animated/SVG-driven components — do not force 
-NativeWind onto animated values, `Animated.View`, or SVG props where it 
-doesn't apply.
-
-### Style Exception List (use StyleSheet/inline instead of NativeWind for):
-- SafeAreaView
-- KeyboardAvoidingView (behavior props)
-- Modal (visible/transparent props)
-- Animated.View / animated style values
-- SVG components (e.g. ScoreRing)
-- Platform-specific styles
-- Dynamic styles calculated at runtime
-- **Important**: NEVER use dynamic `className` strings with template literals or ternaries on `TouchableOpacity` or `Pressable` components. `react-native-css-interop` can crash when resolving these during state changes. Keep `className` for static classes only, and use the `style` prop for dynamic overrides.
-
-Everywhere else, use NativeWind.
-
-**No centralized design system currently exists** — colors like `#1A2634` 
-are hardcoded per-component. Do not invent a new design-token system as a 
-side effect of an unrelated task. If a task specifically involves adding a 
-shared theme/constants file, ask first, since this touches many files.
-
-### Dark Mode
-Implemented via NativeWind's `useColorScheme()` producing an `isDark` 
-boolean, used in JS ternaries for hardcoded values plus Tailwind's `dark:` 
-prefix in classNames. Any new UI must support dark mode using this same 
-existing pattern — do not add a UI element that only renders correctly in 
-one mode.
+1. **Do the task you were given, with the smallest change that correctly fixes it.** This app is
+   mid-fix, not mid-rebuild. Don't refactor or tidy nearby code; list it as a follow-up instead.
+2. **Follow the patterns below.** Where a section says "current" vs "target", build new code to the
+   target, not to whatever older code happens to be nearby.
+3. **If a task is ambiguous,** pick the reasonable option, say what you assumed, and carry on.
+4. **Ask first** before: adding a library; a new architectural pattern (folders, state, styling);
+   changing theme colours/tokens (touches many screens); anything health-safety related you're
+   unsure about.
+5. **Git:** work on a feature branch. Feature branches merge into `staging` (testing); `main` is
+   the live app. Never commit or push without the owner's OK. Commit messages use conventional
+   style with the ticket id, e.g. `fix(mobile): show error screen on crash (HL-024)`. Tickets are
+   in `documentation/heartlink_update_plan.md` at the repo root. `documentation/` is git-ignored,
+   so it exists only in the owner's main checkout, not in worktrees or on GitHub.
 
 ---
 
-## State Management
-- React Context for global/shared state (see `contexts/`).
-- Local `useState` for component-local UI state.
-- TanStack Query (React Query) for server state, API data caching, and background syncing.
-- `AsyncStorage` for persistence (powers React Query's offline cache).
-- Do not introduce Zustand, Redux, or any other state library without 
-  asking first — the existing Context + local state approach is 
-  intentional for this app's size.
+## Safety rules (non-negotiable)
 
-Example real state fields already in use: `isLoading`, `data` (backend 
-payload incl. `hss_score`, `today_activity`), `isSyncingOffline`, 
-`companionAi` (fetched insight text), `fillScore` (drives ScoreRing 
-animation).
+### Emergency blood pressure
+- Any code path that accepts a blood pressure reading must treat these as an emergency and show the
+  emergency flow instead of a normal success message:
+  - **≥ 180 systolic or ≥ 120 diastolic** (hypertensive crisis)
+  - **< 90 systolic or < 60 diastolic** (severe hypotension)
+- Reference: `app/(home)/(health)/log-symptoms.tsx`. `isHypertensiveCrisis` and
+  `isSevereHypotension` feed `isEmergency`, which opens the emergency guidance modal and shows an
+  emergency toast on submit. The same `isEmergency` also fires for chest discomfort rated ≥ 7, or
+  shortness of breath while resting.
+- `services/companionService.ts` uses the same thresholds for the dashboard warning text. Keep the
+  two in sync.
+- Never remove, weaken or skip these checks, even if the task doesn't mention safety. If you touch a
+  form that takes vitals, confirm the check is there before calling the task done. Don't assume it
+  is because another form has it.
 
----
+### Incomplete health logs
+If the user saves a health log with core fields blank (blood pressure, medications), show a soft
+warning with `ConfirmDialog` and let them confirm. Don't save silently, and don't block them.
+Reference: `showIncompleteWarning` in `log-symptoms.tsx`.
 
-## TypeScript Rules
-- Strict mode is on — keep it on.
-- No `any`. If a type is genuinely unclear, ask rather than typing it `any`.
-- Keep types simple and readable over clever/generic.
-
----
-
-## Patterns to Follow
-
-**API calls:** We are migrating to TanStack Query (`useQuery` and `useMutation`). New fetch logic goes in `services/` or custom hooks (e.g. `hooks/useLogMeal.ts`) leveraging React Query, not inline in screen components.
-
-**Loading states:** Use the existing `<Skeleton />` component for 
-initial-load placeholder UI. Do not introduce spinners as a substitute — 
-match the existing pattern.
-
-**Offline queuing:** Historically, failed/offline actions were queued via 
-`SyncService.ts` into AsyncStorage. **We are migrating to React Query's built-in offline mutation persister** (e.g., `useLogMeal.ts`). When building new offline-capable features, use React Query's `useMutation` with optimistic updates, rather than the old manual `SyncService` approach.
-
-**Post-action feedback:** Success/error messages go through the global 
-`ToastContext` (`showToast`), often paired with `expo-haptics` via the 
-`<TactileCard>` wrapper for tactile confirmation. 
-
-**Important — this pattern is currently INCOMPLETE across the app:** 
-several save flows show a generic confirmation message instead of one that 
-reacts to the actual data just logged (e.g. comparing to a prior reading, 
-referencing a running daily total). When a task asks you to improve 
-post-log feedback, use the existing `postLogAck()`-style approach already 
-working in some flows as the reference — don't build a new confirmation 
-mechanism from scratch, and don't assume a flow is "done" just because it 
-calls a function with that name. Verify it's actually producing 
-data-aware messages, not just the generic fallback line.
-
-**Forms:** `react-hook-form` + `zod` for validation. Follow this pattern 
-for any new form rather than building manual validation logic.
-
-**Modals vs Native Alerts:** Do NOT use the native `Alert.alert()` for user prompts or selections; it breaks the app's premium design aesthetic. Always use custom UI components (like `ConfirmDialog` for warnings/confirmations, or dedicated custom modals like `QuickLogModal`) to maintain a cohesive, cross-platform experience.
-
-**Multiple entry points to one feature:** This app frequently has several 
-buttons/screens that all lead to the same underlying action (e.g. multiple 
-ways to reach vitals logging). When asked to fix or modify one of these, 
-trace where every relevant entry point actually leads in the code first — 
-do not assume two similar-looking entry points share logic, and do not 
-assume they don't. Report explicitly what you found.
+### Secrets and auth
+- Auth tokens live only in SecureStore, through `lib/secureTokenStore.ts`. Never put them in
+  AsyncStorage, never log them, never hardcode them.
+- No API keys or backend secrets in app code.
 
 ---
 
-## Safety Rules (non-negotiable)
-Any code path that accepts a blood pressure or vital-sign reading must 
-check for emergency-range values (currently: BP ≥180/120 or <90/60) and 
-trigger the existing emergency alert flow instead of a normal success 
-message. If you touch any vitals-entry form, verify this check exists 
-before considering the task done — do not assume it's present just because 
-a similar form elsewhere has it.
+## Patterns
 
-**Soft Nudges for Incomplete Data:** If a user attempts to save a health log while leaving core fields (like Blood Pressure or Medications) blank, they should be intercepted with a soft warning (e.g., using `ConfirmDialog`) asking them to confirm the partial log. Do not silently accept incomplete critical data without a nudge, but do not hard-block the user if they genuinely want to save it as-is.
+### Fetching data
+- **Current:** about 30 screen files call `fetch()` directly. `hooks/useApiClient.ts` exists but
+  nothing uses it yet.
+- **Target:** new data fetching goes in `services/` or in a React Query hook in `hooks/`
+  (`useQuery` / `useMutation`), like `hooks/useLogMeal.ts`. Don't add new `fetch()` calls to screen
+  files. Move an existing one only if you're already changing that logic.
+
+### Offline support
+- **Current:** three layers.
+  1. The React Query cache is saved to AsyncStorage (`PersistQueryClientProvider` in
+     `app/_layout.tsx`).
+  2. The logging hooks (`useLogMeal`, `useLogExercise`, `useLogSleep`) update the screen
+     straight away (optimistic update), roll back on real errors, and on network or 5xx errors put
+     the item in the AsyncStorage queue in `services/SyncService.ts`.
+  3. `utils/OfflineSyncService.ts` is a second, separate queue, used by `log-symptoms.tsx`,
+     `MissionDropdowns` and `OfflineBanner`.
+- **Target:** a new offline-capable action is a `useMutation` hook modelled on `useLogMeal.ts`.
+  Don't add another queue. Merging the two queues is its own task; ask first.
+
+### Feedback after an action
+- Messages go through `showToast({ title, message, type, duration })` from `ToastContext`, where
+  `type` is `"success" | "error" | "info"`.
+- After logging something, the message should react to the data just logged (a running total, a
+  comparison with the last reading). Build it with `postLogAck()` in `services/companionCopy.ts`.
+  Pass the detail text without a trailing full stop, because `postLogAck` adds its own.
+- **This is incomplete across the app:** some flows still show the generic fallback line. When
+  improving one, check the actual message it produces, not just that it calls `postLogAck`.
+- Haptics: call `expo-haptics` directly. There is no shared haptics wrapper (`TactileCard` is a
+  local helper inside `trends.tsx` only).
+
+### Dialogs
+Use `ConfirmDialog` (`components/ui/ConfirmDialog.tsx`: variants `destructive` / `warning` /
+`info`, shown as a bottom sheet or centred) or a custom modal like `QuickLogModal`. Don't add
+`Alert.alert()`. A few older screens still use it; replace it only when you're working there.
+
+### Loading states
+Use `<Skeleton />` (`components/ui/Skeleton.tsx`) as the placeholder while a screen first loads,
+not a spinner. For a button that's busy, use `Button`'s `isLoading` and `loadingText` props.
+
+### Forms
+Use `react-hook-form` + `zod` for new forms. Don't write validation by hand.
+
+### Several ways into one feature
+Many actions can be reached from more than one button or screen (for example, logging vitals).
+Before changing one, trace where each entry point really goes in the code. Don't assume they share
+code, or that they don't, and say what you found.
 
 ---
 
-## Secrets
-Never expose API keys, tokens, or backend secrets in client-side code. 
-Auth tokens are JWT bearer tokens obtained through the existing auth flow — 
-do not hardcode or log tokens.
+## Styling
+
+- Use NativeWind `className` by default.
+- Use `StyleSheet` or the `style` prop instead for: `SafeAreaView`, `KeyboardAvoidingView` behaviour
+  props, `Modal` props, `Animated.View` and animated values, SVG (e.g. `ScoreRing`),
+  platform-specific styles, and values calculated at runtime.
+- **Never give `TouchableOpacity` or `Pressable` a dynamic `className`** (template literal or
+  ternary). `react-native-css-interop` can crash when it changes. Keep `className` static on these
+  and put the changing parts in `style`.
+
+### Colours and design system
+- `constants/theme.ts` is the source of truth for the current colours: `Colors.light` /
+  `Colors.dark`, plus helpers like `scoreBand()`. The same colours are Tailwind classes
+  (`bg-background`, `bg-surface`, `text-text`, `text-text-soft`, `bg-primary`, `text-danger-text`,
+  ...) defined as CSS variables in `global.css`.
+- **New design direction (decided 2026-10-17):** new or redesigned UI follows
+  `documentation/design-system/DESIGN.md` (repo root), with HeartLink's changes in `HEARTLINK.md`, using the
+  `ds-*` colour classes and `ds` in `constants/theme.ts`. These were built on the
+  `onboarding-redesign` branch. If they aren't on your branch yet, ask before building new-look UI.
+- Use theme colours in new code, not hardcoded hex values. Many older files still hardcode colours;
+  don't convert them as a side effect of another task. Move a screen to the new look only when it is
+  being redesigned.
+
+### Dark mode
+Every new piece of UI must look right in light and dark mode.
+- Theme classes like `bg-background` switch automatically (the `.dark` block in `global.css`).
+  `dark:` prefixes in `className` are fine too.
+- For `style` props, animated values and SVG, use
+  `const { colorScheme } = useColorScheme()` from `nativewind`, then
+  `const c = colorScheme === "dark" ? Colors.dark : Colors.light`. Many screens call this `isDark`.
+  Use NativeWind's `useColorScheme`, as the rest of the app and the Appearance setting do, not the
+  one from `react-native` or `hooks/use-color-scheme.ts`.
 
 ---
 
-## Decision Rules
-- Ask before installing any new library.
-- Ask before introducing a new architectural pattern (new folder 
-  structure, new state management approach, new styling system).
-- If a task is ambiguous or could be done two reasonable ways, state your 
-  assumption and proceed — don't block on it — but flag the assumption 
-  clearly so it can be corrected if wrong.
+## TypeScript
+
+- Strict mode stays on.
+- No `any` in new code. Older files use it; don't spread it. If a type is genuinely unclear, ask.
+- Imports are mostly relative (`../services/...`). The `@/` alias works but few files use it.
 
 ---
 
-Testing Rules
+## Testing
 
-Never suppress a test error/warning without first identifying its root cause. If a test shows a warning or error (e.g. "can't access X on unmounted component," an act() warning, a leaked async task), the default response is to find and fix what's causing it — not to add a suppression, mock, or workaround that makes the message disappear without addressing why it's happening. If you genuinely believe suppression is the right call (e.g. a known, harmless library quirk), say so explicitly and explain why, rather than silently adding a fix that just hides the symptom.
-
-Any data-fetching library used in the app (react-query or otherwise) must be properly mocked or given a test-specific configuration in tests — disabled retries, disabled background refetching, and no real network calls. A shared test wrapper/render helper should provide this consistently rather than each test file configuring it differently.
-
-Global test setup files (jest-setup, test-utils, etc.) affect every test in the suite. Before changing one, run the FULL test suite afterward, not just the test you were originally trying to fix — a fix for one test can silently break or unmask issues in others.
-
-When a UI test fails because "the component thinks the input is empty" or state didn't update as expected, check for these common causes before assuming the test itself is wrong: (1) a leftover custom patch to the test renderer or React internals, (2) missing act() wrapping around state updates, (3) an un-mocked async dependency (data fetching, timers) still running in the background from a previous test.
-
-Keep AGENTS.md's Tech Stack section in sync with what's actually tested/mocked. If a testing fix reveals a library is used in a place the Tech Stack section doesn't mention, flag it and update that section rather than leaving the documentation out of date.
+- Before writing or changing tests, read the Testing Library docs that ship with the installed
+  version: `node_modules/@testing-library/react-native/docs/`, starting with
+  `guides/llm-guidelines.md`. Trust them over what you remember; v14 changed a lot.
+- In v14, `render`, `renderHook`, `fireEvent` and `act` are async. Always `await` them.
+- Shared setup (`jest-setup.js`, `jest.config.js`) affects every test. After changing it, or any
+  test, run the full `npx jest`, not just one file.
+- Mocks for every test live in `jest-setup.js`: AsyncStorage, `react-native-worklets` (Reanimated's
+  native engine, which can't run in Jest), `expo-router`, `expo-haptics`, `expo-status-bar`.
+- React Query in tests: `retry: false`, `gcTime: Infinity` (otherwise its 5-minute cleanup timer
+  keeps Jest running), and no real network calls (mock `fetch`). Today only
+  `useLogExercise.test.tsx` uses React Query; when a second test needs it, move this setup into one
+  shared helper instead of copying it.
+- **Never silence a warning or error without finding its cause.** If hiding it really is right (a
+  known, harmless library quirk), say so and explain why.
+- If a UI test fails because state "didn't update", check these first: a leftover patch to the test
+  renderer or React internals, a missing `await` / `act()`, or un-mocked async work (fetch, timers)
+  still running from another test.
+- Keep the [Tech stack](#tech-stack) list in sync with what the tests use and mock.
 
 ---
 
-## Communication
-Be concise. Explain what changed and exactly how to verify/test it — 
-specific taps/screens to check, not just "it should work now." State 
-plainly if something was NOT verified (e.g. "I did not test this on the 
-guided workout flow, only the manual log form").
+## Known issues
+
+Flag these if they get in your way; don't fix them as a side effect of another task.
+
+- `npx tsc --noEmit` shows older errors: test files can't see Jest's types under TypeScript 6, and
+  screens that import `global.css` have no type declaration for it.
+- `@testing-library/jest-native` is deprecated (Testing Library v14 has the same matchers built in)
+  and can be removed along with `react-test-renderer`.
+- `useLogMeal.ts` and `useLogSleep.ts` load `SyncService` with a dynamic `import()`, which Jest can't
+  run. `useLogExercise.ts` already uses a normal import.
+- `.env.example` lists `EXPO_PUBLIC_SUPABASE_*` values the app doesn't use.
 
 ---
 
-## Final Reminder
-Read this file before every feature or fix. Follow it strictly. When a 
-finding in this file (an inconsistency, an incomplete pattern) applies to 
-the task at hand, address it according to the stated target — not by 
-copying whichever nearby example happens to be most convenient.
+## Reporting back
+
+- Be short and use plain English.
+- Say what changed and exactly how to check it on the phone: which screen, what to tap, what should
+  appear.
+- Say plainly what you did **not** check, e.g. "I tested the manual log form, not the guided
+  workout."
