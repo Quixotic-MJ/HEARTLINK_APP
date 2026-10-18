@@ -9,11 +9,8 @@ import { useUser } from "../../../contexts/UserContext";
 import { isSessionTokens } from "../../../services/SessionService";
 import { useToast } from "../../../contexts/ToastContext";
 import { ConfirmDialog } from "../../../components/ui/ConfirmDialog";
-import { theme } from "../../../constants/theme";
-
-const base_url = process.env.EXPO_PUBLIC_API_URL;
-
-export default function AccountSecurityScreen() {
+import { apiFetch } from "../../../lib/api";
+import { theme } from "../../../constants/theme";export default function AccountSecurityScreen() {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
   const router = useRouter();
@@ -80,7 +77,7 @@ export default function AccountSecurityScreen() {
     setIsUpdating(true);
     try {
       const effectiveToken = token || "";
-      const response = await fetch(`${base_url}/api/users/${userId}/password`, {
+      const response = await apiFetch(`/api/users/${userId}/password`, {
         method: "PUT",
         headers: { 
           "Content-Type": "application/json",
@@ -128,7 +125,7 @@ export default function AccountSecurityScreen() {
     setIsDeleting(true);
     try {
       const effectiveToken = token || "";
-      const res = await fetch(`${base_url}/api/users/${userId}`, {
+      const res = await apiFetch(`/api/users/${userId}`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",

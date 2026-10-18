@@ -10,11 +10,8 @@ import { InputField } from "../../components/ui/InputField";
 import DsButton from "../../components/onboarding/DsButton";
 import SetupHeader from "../../components/onboarding/SetupHeader";
 import { DsScreen, InfoNote } from "../../components/onboarding/QuestionLayout";
-import { useDs } from "../../components/onboarding/useDs";
-
-const base_url = process.env.EXPO_PUBLIC_API_URL;
-
-const forgotPasswordSchema = z.object({
+import { apiFetch } from "../../lib/api";
+import { useDs } from "../../components/onboarding/useDs";const forgotPasswordSchema = z.object({
   identifier: z.string().min(1, "Please enter your email or phone number."),
 });
 
@@ -51,7 +48,8 @@ export default function ForgotPasswordScreen() {
     }
 
     try {
-      const response = await fetch(`${base_url}/api/auth/forgot-password`, {
+      const response = await apiFetch(`/api/auth/forgot-password`, {
+        auth: false,
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ identifier: finalIdentifier }),

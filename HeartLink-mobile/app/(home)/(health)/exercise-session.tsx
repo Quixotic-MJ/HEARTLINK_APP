@@ -20,17 +20,15 @@ import { BreathingExerciseActive } from "../../../components/exercise/BreathingE
 import { CardioExerciseActive } from "../../../components/exercise/CardioExerciseActive";
 import { StretchingExerciseActive } from "../../../components/exercise/StretchingExerciseActive";
 import { ExerciseResult } from "../../../components/exercise/ExerciseResult";
+import { apiFetch, apiUrl } from "../../../lib/api";
 
-const base_url = process.env.EXPO_PUBLIC_API_URL;
 
 function resolveMediaUrl(url: string) {
   if (!url) return "";
   if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:")) {
     return url;
   }
-  const cleanBase = base_url?.endsWith("/") ? base_url.slice(0, -1) : base_url;
-  const cleanPath = url.startsWith("/") ? url : `/${url}`;
-  return `${cleanBase || "http://localhost:8000"}${cleanPath}`;
+  return apiUrl(url);
 }
 
 const generateExerciseId = () => `ex-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
@@ -101,7 +99,7 @@ export default function ExerciseSessionScreen() {
       try {
         const storedToken = await getToken();
         const effectiveToken = token || storedToken || "";
-        const response = await fetch(`${base_url}/api/exercises/${id}`, {
+        const response = await apiFetch(`/api/exercises/${id}`, {
           headers: effectiveToken ? { "Authorization": `Bearer ${effectiveToken}` } : {}
         });
         if (!response.ok) throw new Error("Failed to fetch routine");
@@ -276,7 +274,7 @@ export default function ExerciseSessionScreen() {
             try {
               const storedToken = await getToken();
               const effectiveToken = token || storedToken || "";
-              const response = await fetch(`${base_url}/api/health-logs/${userId}/clear-symptom-lock`, {
+              const response = await apiFetch(`/api/health-logs/${userId}/clear-symptom-lock`, {
                 method: "POST",
                 headers: effectiveToken ? { "Authorization": `Bearer ${effectiveToken}` } : {}
               });

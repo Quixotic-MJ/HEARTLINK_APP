@@ -3,6 +3,7 @@
  * Same API and notification helpers as app/(home)/(settings)/daily-reminders.tsx.
  */
 import { requestNotificationPermissions, scheduleDailyReminder, cancelReminder } from "../utils/notifications";
+import { apiFetch } from "../lib/api";
 
 export interface Reminder {
   enabled: boolean;
@@ -29,9 +30,7 @@ const NOTIFICATION_COPY: Record<keyof Reminders, { id: string; title: string; bo
 };
 
 /** Saves reminders to the account. Throws if the server refuses. */
-export async function saveReminders(userId: string, token: string, reminders: Reminders): Promise<void> {
-  const base_url = process.env.EXPO_PUBLIC_API_URL;
-  const response = await fetch(`${base_url}/api/users/${userId}/reminders`, {
+export async function saveReminders(userId: string, token: string, reminders: Reminders): Promise<void> {  const response = await apiFetch(`/api/users/${userId}/reminders`, {
     method: "PUT",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
     body: JSON.stringify(reminders),

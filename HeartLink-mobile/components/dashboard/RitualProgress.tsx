@@ -3,59 +3,79 @@ import { View, Text } from "react-native";
 import { useColorScheme } from "nativewind";
 import { Feather } from "@expo/vector-icons";
 
+// HL-027: everything eaten and done today in one labelled card. A tile with nothing
+// logged says so instead of showing a bare 0. Cholesterol joins once meal logs store it (HL-028).
 export function RitualProgress({
-  completedCount,
-  missedCount,
+  calories,
   totalSod,
+  sodiumLimit,
   satFat,
   movementMins,
   movementGoal,
+  mealsLogged,
+  exerciseLogged,
 }: {
-  completedCount: number;
-  missedCount: number;
+  calories: number;
   totalSod: number;
+  sodiumLimit: number;
   satFat: number;
   movementMins: number;
   movementGoal: number;
+  mealsLogged: boolean;
+  exerciseLogged: boolean;
 }) {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
 
   return (
     <View className="mb-0">
-      <Text className="text-[11px] font-bold text-text-soft uppercase tracking-wider mb-2.5 mx-1">
-        TODAY'S LIMITS
+      <Text className="text-[16px] font-semibold text-text mb-2.5 mx-1" accessibilityRole="header">
+        Today so far
       </Text>
       <View
-        className="bg-surface rounded-3xl p-5 shadow-sm shadow-slate-200/50 dark:shadow-none"
+        className="bg-surface rounded-3xl p-5 shadow-sm shadow-slate-200/50 dark:shadow-none gap-5"
       >
         <View className="flex-row justify-between gap-4">
-          <MiniTracker 
-            label="Sat fat" 
-            current={satFat} 
-            target={20} 
-            unit="g" 
-            isDark={isDark} 
-            iconName="droplet"
-            isMaxLimit={true}
-          />
-          <MiniTracker 
-            label="Movement" 
-            current={movementMins} 
-            target={movementGoal} 
-            unit="min" 
-            isDark={isDark} 
-            iconName="activity"
+          <MiniTracker
+            label="Calories"
+            current={Math.round(calories)}
+            unit="kcal"
+            isDark={isDark}
+            iconName="zap"
             isMaxLimit={false}
+            emptyText={mealsLogged ? undefined : "No meals yet"}
           />
-          <MiniTracker 
-            label="Sodium" 
-            current={totalSod} 
-            target={2000} 
-            unit="mg" 
-            isDark={isDark} 
+          <MiniTracker
+            label="Sodium"
+            current={Math.round(totalSod)}
+            target={sodiumLimit}
+            unit="mg"
+            isDark={isDark}
             iconName="box"
             isMaxLimit={true}
+            emptyText={mealsLogged ? undefined : "No meals yet"}
+          />
+        </View>
+        <View className="flex-row justify-between gap-4">
+          <MiniTracker
+            label="Sat fat"
+            current={Math.round(satFat * 10) / 10}
+            target={20}
+            unit="g"
+            isDark={isDark}
+            iconName="droplet"
+            isMaxLimit={true}
+            emptyText={mealsLogged ? undefined : "No meals yet"}
+          />
+          <MiniTracker
+            label="Movement"
+            current={movementMins}
+            target={movementGoal}
+            unit="min"
+            isDark={isDark}
+            iconName="activity"
+            isMaxLimit={false}
+            emptyText={exerciseLogged ? undefined : "No exercise yet"}
           />
         </View>
       </View>
@@ -71,19 +91,23 @@ function MiniTracker({
   isDark,
   iconName,
   isMaxLimit,
+  emptyText,
 }: {
   label: string;
   current: number;
-  target: number;
+  /** Daily goal or limit; leave out for values without one (calories). */
+  target?: number;
   unit: string;
   isDark: boolean;
   iconName: keyof typeof Feather.glyphMap;
   isMaxLimit: boolean;
+  /** Shown instead of the number when nothing has been logged yet. */
+  emptyText?: string;
 }) {
-  const percent = Math.min(Math.max((current / target) * 100, 0), 100);
-  
+  const percent = target ? Math.min(Math.max((current / target) * 100, 0), 100) : 0;
+
   let barColor = "#10B981"; // Emerald 500 (Green)
-  
+
   if (isMaxLimit) {
     if (percent >= 85) {
       barColor = "#D97706"; // Amber 600 (Orange)
@@ -94,20 +118,38 @@ function MiniTracker({
     barColor = "#10B981"; // Green
   }
 
+  const labelColor = isDark ? "#94a3b8" : "#64748b";
+  const valueColor = isDark ? "#f8fafc" : "#0f172a";
+
   return (
-    <View className="flex-1">
+    <View
+      className="flex-1"
+      accessible
+      accessibilityLabel={emptyText ? `${label}: ${emptyText}` : `${label}: ${current}${target ? ` of ${target}` : ""} ${unit}`}
+    >
       <View className="flex-row items-center gap-1.5 mb-2">
-        <Feather name={iconName} size={12} color={isDark ? "#94a3b8" : "#64748b"} />
+        <Feather name={iconName} size={12} color={labelColor} />
         <Text className="text-[12px] font-medium text-text-soft">
           {label}
         </Text>
       </View>
-      <View style={{ height: 6, width: '100%', borderRadius: 9999, overflow: 'hidden', backgroundColor: isDark ? '#334155' : '#e2e8f0', marginBottom: 8 }}>
-        <View style={{ height: '100%', width: `${percent}%`, backgroundColor: barColor, borderRadius: 9999 }} />
-      </View>
-      <Text className="text-[13px] font-bold" style={{ color: isDark ? "#f8fafc" : "#0f172a" }}>
-        {current}<Text style={{ fontSize: 11, fontWeight: "500", color: isDark ? "#94a3b8" : "#64748b" }}>/{target}{unit}</Text>
-      </Text>
+      {target ? (
+        <View style={{ height: 6, width: '100%', borderRadius: 9999, overflow: 'hidden', backgroundColor: isDark ? '#334155' : '#e2e8f0', marginBottom: 8 }}>
+          <View style={{ height: '100%', width: `${percent}%`, backgroundColor: barColor, borderRadius: 9999 }} />
+        </View>
+      ) : null}
+      {emptyText ? (
+        <Text className="text-[13px] font-medium" style={{ color: labelColor }}>
+          {emptyText}
+        </Text>
+      ) : (
+        <Text className="text-[13px] font-bold" style={{ color: valueColor }}>
+          {current.toLocaleString()}
+          <Text style={{ fontSize: 11, fontWeight: "500", color: labelColor }}>
+            {target ? `/${target.toLocaleString()}` : " "}{unit}
+          </Text>
+        </Text>
+      )}
     </View>
   );
 }

@@ -9,11 +9,8 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { useUser } from "../../../contexts/UserContext";
 import { useToast } from "../../../contexts/ToastContext";
 import { ConfirmDialog } from "../../../components/ui/ConfirmDialog";
-import { theme } from "../../../constants/theme";
-
-const base_url = process.env.EXPO_PUBLIC_API_URL;
-
-function ReminderToggle({ 
+import { apiFetch } from "../../../lib/api";
+import { theme } from "../../../constants/theme";function ReminderToggle({ 
   title, 
   description, 
   icon, 
@@ -126,7 +123,7 @@ export default function DailyRemindersScreen() {
     const fetchReminders = async () => {
       try {
         const effectiveToken = token || "";
-        const response = await fetch(`${base_url}/api/users/${userId}/reminders`, {
+        const response = await apiFetch(`/api/users/${userId}/reminders`, {
           headers: {
             "Authorization": `Bearer ${effectiveToken}`,
           },
@@ -188,7 +185,7 @@ export default function DailyRemindersScreen() {
     setIsSaving(true);
     try {
       const effectiveToken = token || "";
-      const response = await fetch(`${base_url}/api/users/${userId}/reminders`, {
+      const response = await apiFetch(`/api/users/${userId}/reminders`, {
         method: "PUT",
         headers: { 
           "Content-Type": "application/json",

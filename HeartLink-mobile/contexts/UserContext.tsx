@@ -5,6 +5,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getToken, setToken, getRefreshToken, getUserId as getStoredUserId, setUserId as storeUserId, clearCredentials } from "../lib/secureTokenStore";
 import { syncOfflineAll } from "../services/SyncService";
 import { SessionTokens, storeSession, refreshSession, msUntilRefresh } from "../services/SessionService";
+import { API_BASE_URL, apiFetch, setSessionEndedHandler } from "../lib/api";
 
 type UserContextType = {
   userId: string | null;
@@ -78,24 +79,39 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     return result.status === "expired" ? null : getToken();
   };
 
+  // Same clean-up as the startup check below when the session is no longer valid
+  const endSession = async () => {
+    console.warn("[UserContext] Session ended. Logging out.");
+    await clearCredentials();
+    await AsyncStorage.removeItem(getProfileCacheKey(userId));
+    await AsyncStorage.removeItem(DEFAULT_PROFILE_CACHE_KEY);
+    setUserIdState(null);
+    setTokenState(null);
+    setUser(null);
+  };
+
   const renewIfDue = async () => {
     const fresh = await ensureFreshToken();
-    if (fresh === null) {
-      // Same clean-up as the startup check below when the session is no longer valid
-      console.warn("[UserContext] Session ended. Logging out.");
-      await clearCredentials();
-      await AsyncStorage.removeItem(getProfileCacheKey(userId));
-      await AsyncStorage.removeItem(DEFAULT_PROFILE_CACHE_KEY);
-      setUserIdState(null);
-      setTokenState(null);
-      setUser(null);
-    }
+    if (fresh === null) await endSession();
   };
+
+  // HL-023: when any request finds the session can't be renewed, sign out the same way.
+  // The ref always points at the latest endSession, so the handler is set once.
+  const endSessionRef = useRef(endSession);
+  useEffect(() => {
+    endSessionRef.current = endSession;
+  });
+  useEffect(() => {
+    setSessionEndedHandler(() => {
+      endSessionRef.current();
+    });
+    return () => setSessionEndedHandler(null);
+  }, []);
 
   // Background auto-sync trigger
   const attemptBackgroundSync = async () => {
     if (!userId) return;
-    const baseUrl = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
+    const baseUrl = API_BASE_URL;
     await syncOfflineAll(baseUrl).catch(e => console.log("Auto-sync error:", e));
   };
 
@@ -168,24 +184,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           setTokenState(storedToken);
           
           try {
-            const baseUrl = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
-            // HL-047: renew the access token first if it is due (null = the session has ended)
+            const baseUrl = API_BASE_URL;
+            // HL-047: renew the access token first if it is due (null = the session has ended).
+            // apiFetch adds the token and renews it once more on a 401 (HL-023).
             const freshToken = await ensureFreshToken();
-            const fetchProfile = (bearer: string) =>
-              fetch(`${baseUrl}/api/users/${storedId}/profile`, {
-                headers: {
-                  "Authorization": `Bearer ${bearer}`,
-                },
-              });
-            let response = freshToken === null ? null : await fetchProfile(freshToken);
-            if (response && response.status === 401) {
-              // The token may have expired or been revoked early; one refresh before giving up
-              const retry = await refreshSession();
-              if (retry.status === "refreshed") {
-                setTokenState(retry.token);
-                response = await fetchProfile(retry.token);
-              }
-            }
+            const response = freshToken === null ? null : await apiFetch(`/api/users/${storedId}/profile`);
+            setTokenState(await getToken());
 
             if (response && response.ok) {
               const data = await response.json();
@@ -249,9 +253,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
         
         try {
-          const baseUrl = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
           const effectiveToken = newToken || (await getToken()) || "";
-          const response = await fetch(`${baseUrl}/api/users/${id}/profile`, {
+          const response = await apiFetch(`/api/users/${id}/profile`, {
             headers: {
               "Authorization": `Bearer ${effectiveToken}`,
             },
@@ -295,9 +298,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     if (!userId) return;
     try {
       setProfileError(false);
-      const baseUrl = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
       const effectiveToken = token || (await getToken()) || "";
-      const response = await fetch(`${baseUrl}/api/users/${userId}/profile`, {
+      const response = await apiFetch(`/api/users/${userId}/profile`, {
         headers: {
           "Authorization": `Bearer ${effectiveToken}`,
         },
@@ -318,12 +320,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     try {
-      const baseUrl = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
       const effectiveToken = token || (await getToken());
       const refreshToken = await getRefreshToken();
       if (effectiveToken || refreshToken) {
         // HL-047: the server also revokes the refresh token, so it can't be used again
-        await fetch(`${baseUrl}/api/auth/logout`, {
+        await apiFetch(`/api/auth/logout`, {
+          auth: false, // sends its own token below; never renew a session that is ending
           method: "POST",
           headers: {
             "Content-Type": "application/json",

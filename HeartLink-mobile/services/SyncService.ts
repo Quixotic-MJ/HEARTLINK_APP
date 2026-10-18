@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { DeviceEventEmitter } from "react-native";
 import { getToken, getUserId as getStoredUserId } from "../lib/secureTokenStore";
+import { apiFetch } from "../lib/api";
 
 const DEFAULT_MEAL_QUEUE_KEY = "@offline_meal_queue";
 const DEFAULT_EXERCISE_QUEUE_KEY = "@offline_exercise_queue";
@@ -65,7 +66,7 @@ export async function syncOfflineMeals(baseUrl: string): Promise<number> {
       }
 
       try {
-        const response = await fetch(`${baseUrl}/api/meals/${item.userId}`, {
+        const response = await apiFetch(`/api/meals/${item.userId}`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -149,7 +150,7 @@ export async function syncOfflineExercises(baseUrl: string): Promise<number> {
       }
 
       try {
-        const response = await fetch(`${baseUrl}/api/exercises/logs/${item.userId}`, {
+        const response = await apiFetch(`/api/exercises/logs/${item.userId}`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -233,7 +234,7 @@ export async function syncOfflineSleeps(baseUrl: string): Promise<number> {
       }
 
       try {
-        const response = await fetch(`${baseUrl}/api/sleep-logs/${item.userId}`, {
+        const response = await apiFetch(`/api/sleep-logs/${item.userId}`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -317,7 +318,7 @@ export async function syncOfflineHealthLogs(baseUrl: string): Promise<number> {
       }
 
       try {
-        const response = await fetch(`${baseUrl}/api/health-logs/${item.userId}`, {
+        const response = await apiFetch(`/api/health-logs/${item.userId}`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

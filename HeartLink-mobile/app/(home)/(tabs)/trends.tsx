@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { apiFetch } from "../../../lib/api";
 import {
   View,
   Text,
@@ -24,11 +25,7 @@ import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
 import { useUser } from "../../../contexts/UserContext";
 import { Header } from "../../../components/Header";
-import { theme } from "../../../constants/theme";
-
-const base_url = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
-
-const TOKENS = {
+import { theme } from "../../../constants/theme";const TOKENS = {
   ink: "#152131",
   sub: "#5C6B66",
   subDark: "#94A3B8",
@@ -143,7 +140,7 @@ export default function TrendsTabScreen() {
     if (!userId || !token) return;
     setIsLoading(true);
     try {
-      const res = await fetch(`${base_url}/api/analytics/${userId}?days=${intervalDays}`, {
+      const res = await apiFetch(`/api/analytics/${userId}?days=${intervalDays}`, {
         headers: { "Authorization": `Bearer ${token}` }
       });
       if (res.ok) {

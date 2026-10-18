@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from "react";
+import { apiFetch } from "../../../lib/api";
 import { View, Text, ScrollView, TouchableOpacity, Animated, RefreshControl, LayoutAnimation, Platform, UIManager } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -16,11 +17,7 @@ import { useUser } from "../../../contexts/UserContext";
 let isCurrentlySharing = false;
 import AnimatedButton from "../../../components/ui/AnimatedButton";
 import { Colors } from "../../../constants/theme";
-import { theme } from "../../../constants/theme";
-
-const base_url = process.env.EXPO_PUBLIC_API_URL;
-
-// ─── Skeletons ────────────────────────────────────────────────────────────────
+import { theme } from "../../../constants/theme";// ─── Skeletons ────────────────────────────────────────────────────────────────
 function SkeletonPulse({ style, className }: any) {
   const anim = useRef(new Animated.Value(0.3)).current;
 
@@ -169,7 +166,7 @@ export default function WrapUpScreen() {
       const d = new Date();
       const localDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       const effectiveToken = token || (await getToken()) || "";
-      const response = await fetch(`${base_url}/api/dashboard/wrapup?local_date=${localDate}`, {
+      const response = await apiFetch(`/api/dashboard/wrapup?local_date=${localDate}`, {
         headers: { "Authorization": `Bearer ${effectiveToken}` }
       });
       if (response.ok) {

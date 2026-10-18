@@ -5,6 +5,7 @@ import { useColorScheme } from "nativewind";
 import { Feather } from "@expo/vector-icons";
 import { useUser } from "../contexts/UserContext";
 import HeartLogo from "./ui/HeartLogo";
+import { apiFetch } from "../lib/api";
 
 export function Header({
   unreadCount,
@@ -31,7 +32,7 @@ export function Header({
       async function checkUnread() {
         if (!userId || !token) return;
         try {
-          const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/notifications/${userId}`, {
+          const response = await apiFetch(`/api/notifications/${userId}`, {
             headers: {
               "Authorization": `Bearer ${token}`,
             },

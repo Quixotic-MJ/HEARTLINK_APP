@@ -6,6 +6,7 @@ import DsButton from "../../components/onboarding/DsButton";
 import { DsScreen, Tag } from "../../components/onboarding/QuestionLayout";
 import { useDs } from "../../components/onboarding/useDs";
 import { useUser } from "../../contexts/UserContext";
+import { apiFetch } from "../../lib/api";
 
 const TIPS: { icon: keyof typeof MaterialCommunityIcons.glyphMap; text: string }[] = [
   { icon: "timer-sand", text: "Rest 5 minutes first" },
@@ -33,9 +34,7 @@ export default function FirstReadingScreen() {
   useFocusEffect(
     useCallback(() => {
       if (!userId || !token) return;
-      let active = true;
-      const base_url = process.env.EXPO_PUBLIC_API_URL;
-      fetch(`${base_url}/api/health-logs/${userId}?page=1&page_size=1`, { headers: { Authorization: `Bearer ${token}` } })
+      let active = true;      apiFetch(`/api/health-logs/${userId}?page=1&page_size=1`, { headers: { Authorization: `Bearer ${token}` } })
         .then((res) => (res.ok ? res.json() : null))
         .then((body) => {
           if (!active || !body) return;

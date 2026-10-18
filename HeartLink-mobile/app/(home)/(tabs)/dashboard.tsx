@@ -46,13 +46,8 @@ import { ScreenWrapper } from "../../../components/ui/ScreenWrapper";
 import { DashboardTutorialModal } from "../../../components/dashboard/DashboardTutorialModal";
 import { ScoreExplanationModal } from "../../../components/dashboard/ScoreExplanationModal";
 import { RitualProgress } from "../../../components/dashboard/RitualProgress";
-import { theme as colors } from "../../../constants/theme";
-
-
-const base_url = process.env.EXPO_PUBLIC_API_URL;
-
-
-// ─── Score theme ──────────────────────────────────────────────────────────────
+import { apiFetch } from "../../../lib/api";
+import { theme as colors } from "../../../constants/theme";// ─── Score theme ──────────────────────────────────────────────────────────────
 type ScoreTheme = {
   label: string;
   barColor: string;
@@ -151,7 +146,7 @@ export default function DashboardScreen() {
 
         if (cancelled) return;
 
-        const res = await fetch(`${base_url}/api/clinics`);
+        const res = await apiFetch(`/api/clinics`);
         const data = await res.json();
         
         if (cancelled) return;
@@ -234,7 +229,7 @@ export default function DashboardScreen() {
     const storedToken = await getToken();
     const effectiveToken = token || storedToken || "";
 
-    const response = await fetch(`${base_url}/api/dashboard/me`, {
+    const response = await apiFetch(`/api/dashboard/me`, {
       headers: {
         "Authorization": `Bearer ${effectiveToken}`
       }
@@ -325,6 +320,9 @@ export default function DashboardScreen() {
   const completedCount = [mealsLogged, exerciseLogged, sleepLogged, vitalsLogged].filter(Boolean).length;
   const progressPercent = Math.round((completedCount / 4) * 100);
 
+  const sodiumTodayMg = data?.nutrition_budget?.sodium?.consumed_mg ?? data?.today_activity?.total_sodium_mg ?? 0;
+  // The patient's own daily limit (Goals & thresholds), 2,000 mg when not set
+  const sodiumLimitMg = data?.nutrition_budget?.sodium?.limit_mg || 2000;
   const movementMins = data?.today_activity?.total_exercise_minutes || 0;
   const movementGoal = (data as any)?.thresholds?.active_minutes_goal || 30;
   const streakDays = typeof data?.streak?.current_streak === "number" ? data.streak.current_streak : 0;
@@ -392,8 +390,8 @@ export default function DashboardScreen() {
       id: "meals",
       title: "Meals",
       subtitle: mealsLogged
-        ? `${data?.nutrition_budget?.sodium?.consumed_mg ?? data?.today_activity?.total_sodium_mg ?? 0} mg used`
-        : "0 of 2,000 mg logged today",
+        ? `${Number(sodiumTodayMg).toLocaleString()} of ${sodiumLimitMg.toLocaleString()} mg used`
+        : `0 of ${sodiumLimitMg.toLocaleString()} mg logged today`,
       icon: "silverware-fork-knife",
       iconType: "material",
       tileColors: ["#8A6820", "#B08B45"],
@@ -1035,12 +1033,14 @@ export default function DashboardScreen() {
           }}
         >
           <RitualProgress
-            completedCount={completedCount}
-            missedCount={Math.max(0, 4 - completedCount)}
-            totalSod={data?.nutrition_budget?.sodium?.consumed_mg ?? data?.today_activity?.total_sodium_mg ?? 0}
-            satFat={data?.nutrition_budget?.sat_fat?.consumed_g ?? 0}
+            calories={Number(data?.today_activity?.total_calories) || 0}
+            totalSod={sodiumTodayMg}
+            sodiumLimit={sodiumLimitMg}
+            satFat={data?.nutrition_budget?.sat_fat?.consumed_g ?? data?.today_activity?.total_saturated_fat_g ?? 0}
             movementMins={movementMins}
             movementGoal={movementGoal}
+            mealsLogged={mealsLogged}
+            exerciseLogged={exerciseLogged}
           />
         </Reanimated.View>
 

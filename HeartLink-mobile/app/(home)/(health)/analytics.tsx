@@ -7,11 +7,8 @@ import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useUser } from "../../../contexts/UserContext";
 import { getToken } from "../../../lib/secureTokenStore";
-import { theme } from "../../../constants/theme";
-
-const base_url = process.env.EXPO_PUBLIC_API_URL;
-
-export default function HealthAnalyticsScreen() {
+import { apiFetch } from "../../../lib/api";
+import { theme } from "../../../constants/theme";export default function HealthAnalyticsScreen() {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
   const router = useRouter();
@@ -25,7 +22,7 @@ export default function HealthAnalyticsScreen() {
       try {
         const storedToken = await getToken();
         const effectiveToken = token || storedToken || "";
-        const response = await fetch(`${base_url}/api/analytics/${userId}`, {
+        const response = await apiFetch(`/api/analytics/${userId}`, {
           headers: {
             "Authorization": `Bearer ${effectiveToken}`,
           },

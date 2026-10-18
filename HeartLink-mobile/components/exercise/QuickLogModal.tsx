@@ -16,11 +16,7 @@ import { Feather } from "@expo/vector-icons";
 import { useUser } from "../../contexts/UserContext";
 import { useToast } from "../../contexts/ToastContext";
 import { useLogExercise } from "../../hooks/useLogExercise";
-import { theme } from "../../constants/theme";
-
-const base_url = process.env.EXPO_PUBLIC_API_URL;
-
-type QuickLogModalProps = {
+import { theme } from "../../constants/theme";type QuickLogModalProps = {
   visible: boolean;
   onClose: (success?: boolean) => void;
 };

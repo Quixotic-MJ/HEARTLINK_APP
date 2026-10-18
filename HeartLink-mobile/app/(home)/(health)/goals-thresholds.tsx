@@ -16,11 +16,8 @@ import { useRouter } from "expo-router";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useUser } from "../../../contexts/UserContext";
 import { useToast } from "../../../contexts/ToastContext";
-import { theme } from "../../../constants/theme";
-
-const base_url = process.env.EXPO_PUBLIC_API_URL;
-
-export default function GoalsThresholdsScreen() {
+import { apiFetch } from "../../../lib/api";
+import { theme } from "../../../constants/theme";export default function GoalsThresholdsScreen() {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
   const router = useRouter();
@@ -40,7 +37,7 @@ export default function GoalsThresholdsScreen() {
     const fetchThresholds = async () => {
       try {
         const effectiveToken = token || "";
-        const response = await fetch(`${base_url}/api/analytics/${userId}`, {
+        const response = await apiFetch(`/api/analytics/${userId}`, {
           headers: {
             "Authorization": `Bearer ${effectiveToken}`,
           },
@@ -83,7 +80,7 @@ export default function GoalsThresholdsScreen() {
     setSaving(true);
     try {
       const effectiveToken = token || "";
-      const response = await fetch(`${base_url}/api/analytics/${userId}/thresholds`, {
+      const response = await apiFetch(`/api/analytics/${userId}/thresholds`, {
         method: "PUT",
         headers: { 
           "Content-Type": "application/json",

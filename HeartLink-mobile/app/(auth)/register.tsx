@@ -23,11 +23,8 @@ import { InputField } from "../../components/ui/InputField";
 import DsButton from "../../components/onboarding/DsButton";
 import SetupHeader from "../../components/onboarding/SetupHeader";
 import { DsScreen } from "../../components/onboarding/QuestionLayout";
-import { useDs } from "../../components/onboarding/useDs";
-
-const base_url = process.env.EXPO_PUBLIC_API_URL;
-
-// ─── Phone number ─────────────────────────────────────────────────────────────
+import { apiFetch } from "../../lib/api";
+import { useDs } from "../../components/onboarding/useDs";// ─── Phone number ─────────────────────────────────────────────────────────────
 // People type Philippine mobile numbers as "0912…" or "912…" (and sometimes
 // paste "+63 912…"). Strip the prefix before counting, so no digit gets cut off.
 
@@ -165,7 +162,8 @@ export default function RegisterScreen() {
     const normalizedPhone = `+63${nationalDigits(data.phone)}`;
 
     try {
-      const response = await fetch(`${base_url}/api/auth/request-code`, {
+      const response = await apiFetch(`/api/auth/request-code`, {
+        auth: false,
         method: "POST",
         headers: {
           "Content-Type": "application/json",

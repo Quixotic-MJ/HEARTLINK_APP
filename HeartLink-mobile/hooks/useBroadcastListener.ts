@@ -1,12 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useToast } from "../contexts/ToastContext";
-import { Platform, AppState, AppStateStatus } from "react-native";
-
-const API_URL =
-  process.env.EXPO_PUBLIC_API_URL ||
-  (Platform.OS === "android"
-    ? "http://10.0.2.2:8000"
-    : "http://localhost:8000");
+import { AppState, AppStateStatus } from "react-native";
+import { apiFetch } from "../lib/api";
 
 const POLLING_INTERVAL_MS = 15000; // 15 seconds
 
@@ -47,8 +42,8 @@ export function useBroadcastListener() {
       if (!isMounted) return;
 
       try {
-        const response = await fetch(
-          `${API_URL}/api/notifications/broadcasts`
+        const response = await apiFetch(
+          `/api/notifications/broadcasts`
         );
         if (!response.ok) return;
 
