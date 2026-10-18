@@ -43,7 +43,7 @@ import { CustomAlertModal } from "../../../components/dashboard/CustomAlertModal
 import { Header } from "../../../components/Header";
 import { Skeleton } from "../../../components/ui/Skeleton";
 import { ScreenWrapper } from "../../../components/ui/ScreenWrapper";
-import { DashboardTutorialModal } from "../../../components/dashboard/DashboardTutorialModal";
+import { TourSpot, useDashboardTour } from "../../../components/dashboard/DashboardTour";
 import { ScoreExplanationModal } from "../../../components/dashboard/ScoreExplanationModal";
 import { RitualProgress } from "../../../components/dashboard/RitualProgress";
 import { apiFetch } from "../../../lib/api";
@@ -327,19 +327,9 @@ export default function DashboardScreen() {
   const movementGoal = (data as any)?.thresholds?.active_minutes_goal || 30;
   const streakDays = typeof data?.streak?.current_streak === "number" ? data.streak.current_streak : 0;
 
-  const [tutorialVisible, setTutorialVisible] = useState(false);
   const [showQuickLogModal, setShowQuickLogModal] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
   const scrollOffsetRef = useRef(0);
-
-  // Track content-relative layout positions for tutorial spotlight
-  const sectionLayoutsRef = useRef<Record<string, { x: number; y: number; width: number; height: number }>>({
-    score: { x: 0, y: 0, width: 0, height: 0 },
-    missions: { x: 0, y: 0, width: 0, height: 0 },
-    vitals: { x: 0, y: 0, width: 0, height: 0 },
-    summary: { x: 0, y: 0, width: 0, height: 0 },
-  });
-  const [tutorialLayouts, setTutorialLayouts] = useState<Record<string, { x: number; y: number; width: number; height: number }> | undefined>(undefined);
 
   // Mission log modal (replaces the old inline dropdowns).
   // Exercise keeps its separate screen and never opens the modal.
@@ -437,52 +427,49 @@ export default function DashboardScreen() {
     [safeNavigate]
   );
 
-  // Screen positions of the tour's sections: their place in the scroll content, minus how far
-  // the page is actually scrolled, plus where the scroll area starts on screen.
-  const measureTourLayouts = useCallback((done: (layouts: Record<string, { x: number; y: number; width: number; height: number }>) => void) => {
-    (scrollViewRef.current as any)?.measureInWindow?.((_sx: number, sy: number) => {
-      const headerOffset = sy || 100;
-      const offset = scrollOffsetRef.current;
-      const updated: Record<string, { x: number; y: number; width: number; height: number }> = {};
-      for (const [k, v] of Object.entries(sectionLayoutsRef.current)) {
-        updated[k] = { x: v.x, y: v.y - offset + headerOffset, width: v.width, height: v.height };
-      }
-      done(updated);
+  // ── First-visit tour (tips drawn inside the page, see DashboardTour) ──
+  const tourKey = userId ? `@dashboard_tour_seen_${userId}` : "@dashboard_tour_seen_guest";
+
+  // Scroll so the section's tip sits just under the top bar. Both positions are measured on the
+  // same screen, so their difference plus the current scroll is the place in the page.
+  const scrollTourSpotIntoView = useCallback((spot: View) => {
+    const scroller = scrollViewRef.current?.getNativeScrollRef();
+    if (!scroller) return;
+    scroller.measureInWindow((_x, scrollTop) => {
+      spot.measureInWindow((_sx, spotTop) => {
+        const y = spotTop - scrollTop + scrollOffsetRef.current;
+        scrollViewRef.current?.scrollTo({ y: Math.max(0, y - 12), animated: !reduceMotion });
+      });
     });
-  }, []);
+  }, [reduceMotion]);
 
-  // Check if user has already seen the interactive dashboard walkthrough
+  const { tour, start: startTour } = useDashboardTour({
+    // The recommendations only show when there are some and the score isn't critical.
+    shown: { score: true, missions: true, vitals: true, summary: !isCritical && (data?.recommendations?.length ?? 0) > 0 },
+    onShown: scrollTourSpotIntoView,
+    onFinish: () => {
+      AsyncStorage.setItem(tourKey, "true").catch(() => {});
+    },
+  });
+
+  // Start the tour once the dashboard has loaded, unless this patient has already seen it.
+  const dashboardReady = !!data;
   useEffect(() => {
-    const checkTutorial = async () => {
-      try {
-        const tourKey = userId ? `@dashboard_tour_seen_${userId}` : "@dashboard_tour_seen_guest";
-        const seen = await AsyncStorage.getItem(tourKey);
-        if (!seen) {
-          const timer = setTimeout(() => {
-            scrollViewRef.current?.scrollTo({ y: 0, animated: false });
-            // Measure first, then show, so the spotlight never starts in a guessed spot
-            setTimeout(() => {
-              measureTourLayouts((layouts) => {
-                setTutorialLayouts(layouts);
-                setTutorialVisible(true);
-              });
-            }, 500);
-          }, 700);
-          return () => clearTimeout(timer);
-        }
-      } catch { }
+    if (!dashboardReady) return;
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    AsyncStorage.getItem(tourKey)
+      .then((seen) => {
+        if (cancelled || seen) return;
+        // Give the sections a moment to finish their entrance animation first.
+        timer = setTimeout(startTour, 900);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
     };
-    checkTutorial();
-  }, [userId, measureTourLayouts]);
-
-  const handleFinishTutorial = async () => {
-    setTutorialVisible(false);
-    setTutorialLayouts(undefined);
-    try {
-      const tourKey = userId ? `@dashboard_tour_seen_${userId}` : "@dashboard_tour_seen_guest";
-      await AsyncStorage.setItem(tourKey, "true");
-    } catch { }
-  };
+  }, [tourKey, dashboardReady, startTour]);
 
   useEffect(() => {
     if (data) {
@@ -718,24 +705,6 @@ export default function DashboardScreen() {
       edges={["top"]}
       withScrollView={false}
     >
-      {/* ── Interactive First-Time Coachmark Walkthrough Tour ── */}
-      {/* Mounted only once the sections are measured; it picks its steps from what's on screen */}
-      {tutorialVisible && tutorialLayouts ? (
-        <DashboardTutorialModal
-          visible
-          onClose={handleFinishTutorial}
-          targetLayouts={tutorialLayouts}
-          onStepChange={(target) => {
-            const layout = sectionLayoutsRef.current[target];
-            if (!layout || layout.height === 0) return;
-            // Bring the section near the top, then measure where it really ended up
-            // (a short page can't always scroll as far as asked).
-            scrollViewRef.current?.scrollTo({ y: Math.max(0, layout.y - 80), animated: true });
-            setTimeout(() => measureTourLayouts(setTutorialLayouts), 420);
-          }}
-        />
-      ) : null}
-
       {/* Custom Alert Modal */}
       {isAlertActive && (
         <CustomAlertModal
@@ -850,12 +819,8 @@ export default function DashboardScreen() {
         {/* ============================================================== */}
         {/* 1. TIER 1 - STATUS */}
         {/* ============================================================== */}
-        <Reanimated.View entering={FadeInDown.delay(100).duration(260)}
-          onLayout={(e) => {
-            const { x, y, width, height } = e.nativeEvent.layout;
-            sectionLayoutsRef.current.score = { x, y, width, height };
-          }}
-        >
+        <Reanimated.View entering={FadeInDown.delay(100).duration(260)}>
+          <TourSpot target="score" tour={tour}>
           <View className="bg-surface rounded-3xl p-5 items-center shadow-sm shadow-slate-200/50 dark:shadow-none">
             {/* Header Row: Status badge + Distinct Info Button */}
             <View className="flex-row items-center justify-center gap-2">
@@ -931,18 +896,13 @@ export default function DashboardScreen() {
               )}
             </View>
           </View>
+          </TourSpot>
         </Reanimated.View>
 
         {/* ============================================================== */}
         {/* 2. TIER 2 - PROTECT YOUR SCORE TODAY */}
         {/* ============================================================== */}
-        <Reanimated.View
-          entering={FadeInDown.delay(180).duration(260)}
-          onLayout={(e) => {
-            const { x, y, width, height } = e.nativeEvent.layout;
-            sectionLayoutsRef.current.missions = { x, y, width, height };
-          }}
-        >
+        <Reanimated.View entering={FadeInDown.delay(180).duration(260)}>
 
           {/* AI / Clinical Insight banner */}
           {showInsight && data?.insight && (
@@ -1003,19 +963,16 @@ export default function DashboardScreen() {
             </View>
           )}
 
-          <MissionList missions={missionItems} onPress={handleMissionPress} />
+          <TourSpot target="missions" tour={tour}>
+            <MissionList missions={missionItems} onPress={handleMissionPress} />
+          </TourSpot>
         </Reanimated.View>
 
         {/* ============================================================== */}
         {/* 3. TIER 3 - TODAY'S PROGRESS */}
         {/* ============================================================== */}
-        <Reanimated.View
-          entering={FadeInDown.delay(260).duration(260)}
-          onLayout={(e) => {
-            const { x, y, width, height } = e.nativeEvent.layout;
-            sectionLayoutsRef.current.vitals = { x, y, width, height };
-          }}
-        >
+        <Reanimated.View entering={FadeInDown.delay(260).duration(260)}>
+          <TourSpot target="vitals" tour={tour}>
           <RitualProgress
             calories={Number(data?.today_activity?.total_calories) || 0}
             totalSod={sodiumTodayMg}
@@ -1026,6 +983,7 @@ export default function DashboardScreen() {
             mealsLogged={mealsLogged}
             exerciseLogged={exerciseLogged}
           />
+          </TourSpot>
         </Reanimated.View>
 
 
@@ -1096,12 +1054,7 @@ export default function DashboardScreen() {
           <>
             {/* ── Recommendations (hidden when empty) ── */}
             {data?.recommendations && data.recommendations.length > 0 && (
-              <View
-                onLayout={(e) => {
-                  const { x, y, width, height } = e.nativeEvent.layout;
-                  sectionLayoutsRef.current.summary = { x, y, width, height };
-                }}
-              >
+              <TourSpot target="summary" tour={tour}>
                 <Reanimated.View entering={FadeInDown.delay(340).duration(300)} className="flex-row items-center justify-between mb-3 mx-1">
                   <Text className="text-[16px] font-bold text-text tracking-tight">
                     Recommended for you
@@ -1145,7 +1098,7 @@ export default function DashboardScreen() {
                     />
                   ))}
                 </ScrollView>
-              </View>
+              </TourSpot>
             )}
 
             <RecommendationModal
