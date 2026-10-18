@@ -75,10 +75,7 @@ export default function SplashScreen() {
       if (!user || user.onboarding_status === "complete") {
         router.replace("/(home)/(tabs)/dashboard");
       } else {
-        router.replace({
-          pathname: "/(baseline)/step1_basic_info",
-          params: { user_id: userId },
-        });
+        router.replace("/(baseline)/plan");
       }
     } else {
       router.replace("/onboarding");

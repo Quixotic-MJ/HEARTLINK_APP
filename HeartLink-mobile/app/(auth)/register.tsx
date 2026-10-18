@@ -3,21 +3,12 @@ import {
   View,
   Text,
   TouchableOpacity,
-  Platform,
-  KeyboardAvoidingView,
   TextInput,
-  ScrollView,
   Linking,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
-import { LinearGradient } from "expo-linear-gradient";
-import { useColorScheme } from "nativewind";
 import Animated, {
-  Easing,
   FadeIn,
-  useReducedMotion,
   useSharedValue,
   useAnimatedStyle,
   withSequence,
@@ -29,8 +20,10 @@ import * as z from "zod";
 import "../../global.css";
 import { Feather } from "@expo/vector-icons";
 import { InputField } from "../../components/ui/InputField";
-import { Button } from "../../components/ui/Button";
-import { Colors } from "../../constants/theme";
+import DsButton from "../../components/onboarding/DsButton";
+import SetupHeader from "../../components/onboarding/SetupHeader";
+import { DsScreen } from "../../components/onboarding/QuestionLayout";
+import { useDs } from "../../components/onboarding/useDs";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -68,45 +61,14 @@ const registerSchema = z.object({
 type RegisterFormValues = z.infer<typeof registerSchema>;
 
 // ─── Password rules ───────────────────────────────────────────────────────────
-// Same rules as the schema above, shown as a four-part line. Each part fills
-// in the logo's gradient as its rule is met.
+// Same rules as the schema above, shown as tags that turn green as each is met.
 
-type Hue = "blue" | "teal" | "success" | "lime";
-
-const PASSWORD_RULES: { label: string; test: (pw: string) => boolean; hue: Hue; next: Hue }[] = [
-  { label: "16+ characters", test: (pw) => pw.length >= 16, hue: "blue", next: "teal" },
-  { label: "Upper & lowercase", test: (pw) => /[A-Z]/.test(pw) && /[a-z]/.test(pw), hue: "teal", next: "success" },
-  { label: "A number", test: (pw) => /\d/.test(pw), hue: "success", next: "lime" },
-  { label: "A symbol (! # $)", test: (pw) => /[^A-Za-z0-9\s]/.test(pw), hue: "lime", next: "lime" },
+const PASSWORD_RULES: { label: string; test: (pw: string) => boolean }[] = [
+  { label: "16+ characters", test: (pw) => pw.length >= 16 },
+  { label: "Upper & lowercase", test: (pw) => /[A-Z]/.test(pw) && /[a-z]/.test(pw) },
+  { label: "A number", test: (pw) => /\d/.test(pw) },
+  { label: "A symbol (! # $)", test: (pw) => /[^A-Za-z0-9\s]/.test(pw) },
 ];
-
-function RuleSegment({ met, from, to, track }: { met: boolean; from: string; to: string; track: string }) {
-  const reduceMotion = useReducedMotion();
-  const fill = useSharedValue(met ? 1 : 0);
-
-  useEffect(() => {
-    fill.value = reduceMotion
-      ? (met ? 1 : 0)
-      : withTiming(met ? 1 : 0, { duration: 320, easing: Easing.out(Easing.cubic) });
-  }, [met, fill, reduceMotion]);
-
-  const fillStyle = useAnimatedStyle(() => ({
-    transform: [{ scaleX: fill.value }],
-  }));
-
-  return (
-    <View style={{ flex: 1, height: 4, borderRadius: 2, overflow: "hidden", backgroundColor: track }}>
-      <Animated.View style={[{ flex: 1, transformOrigin: "left" }, fillStyle]}>
-        <LinearGradient
-          colors={[from, to]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={{ flex: 1 }}
-        />
-      </Animated.View>
-    </View>
-  );
-}
 
 // Same links as Settings → About.
 const openLegal = (path: "terms" | "privacy") => {
@@ -117,8 +79,7 @@ const openLegal = (path: "terms" | "privacy") => {
 
 export default function RegisterScreen() {
   const router = useRouter();
-  const { colorScheme } = useColorScheme();
-  const palette = colorScheme === "dark" ? Colors.dark : Colors.light;
+  const { c } = useDs();
 
   const formatPhoneNumber = (value: string) => {
     const digits = nationalDigits(value).slice(0, 10);
@@ -245,277 +206,182 @@ export default function RegisterScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={["top", "bottom"]}>
-      <StatusBar style="auto" />
-
-      {/* ── Top bar: back + step, then a two-part progress line ── */}
-      <View className="px-6 pt-2">
-        <View className="flex-row items-center justify-between mb-3">
-          <TouchableOpacity
-            onPress={() => router.back()}
-            activeOpacity={0.7}
-            className="w-11 h-11 items-center justify-center rounded-full bg-surface border border-border"
-            accessibilityRole="button"
-            accessibilityLabel="Go back"
-          >
-            <Feather name="arrow-left" size={20} color={palette.text} />
-          </TouchableOpacity>
-          <Text className="text-xs font-medium text-text-soft">Step 1 of 2</Text>
-        </View>
-        <View
-          className="flex-row gap-1.5"
-          accessible={true}
-          accessibilityLabel="Step 1 of 2: your details"
-        >
-          <View className="flex-1 h-1 rounded-full bg-primary" />
-          <View className="flex-1 h-1 rounded-full bg-border" />
-        </View>
-      </View>
-
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        className="flex-1"
-      >
-        <ScrollView
-          contentContainerStyle={{
-            flexGrow: 1,
-            paddingHorizontal: 24,
-            paddingTop: 24,
-            paddingBottom: 16,
-          }}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
-          {/* ── Heading ── */}
-          <Animated.View entering={FadeIn.duration(400)} className="mb-6">
-            <Text
-              className="text-[28px] leading-[34px] font-extrabold text-text tracking-tight mb-2"
-              accessibilityRole="header"
-            >
-              Create your account
-            </Text>
-            <Text className="text-[15px] text-text-soft leading-[22px]">
-              Takes about a minute. We'll text a code to confirm your number.
-            </Text>
-          </Animated.View>
-
-          <Animated.View entering={FadeIn.delay(120).duration(400)} className="gap-4">
-            {/* General Error Banner */}
-            {generalError && (
-              <Animated.View
-                style={errorAnimatedStyle}
-                className="bg-danger-tint border border-danger/40 rounded-xl p-3.5 flex-row items-center gap-2.5"
-                accessible={true}
-                accessibilityRole="alert"
-              >
-                <Feather name="alert-triangle" size={16} color={palette.dangerText} />
-                <Text className="text-danger-text text-sm font-medium flex-1 leading-snug">
-                  {generalError}
-                </Text>
-              </Animated.View>
-            )}
-
-            <InputField
-              control={control}
-              name="email"
-              label="Email"
-              icon="mail"
-              placeholder="name@example.com"
-              keyboardType="email-address"
-              autoComplete="email"
-              textContentType="emailAddress"
-              autoCapitalize="none"
-              forceLight={false}
-              returnKeyType="next"
-              submitBehavior="submit"
-              onSubmitEditing={() => phoneRef.current?.focus()}
-              editable={!isSubmitting}
-              onChangeText={(text) => {
-                setValue("email", text, { shouldValidate: false, shouldDirty: true });
-                if (errors.email) {
-                  clearErrors("email");
-                }
-              }}
-            />
-
-            <InputField
-              control={control}
-              name="phone"
-              label="Mobile number"
-              placeholder="912 345 6789"
-              keyboardType="phone-pad"
-              autoComplete="tel"
-              textContentType="telephoneNumber"
-              maxLength={17}
-              forceLight={false}
-              inputRef={phoneRef}
-              returnKeyType="next"
-              submitBehavior="submit"
-              onSubmitEditing={() => passwordRef.current?.focus()}
-              editable={!isSubmitting}
-              onChangeText={(text) => {
-                setValue("phone", formatPhoneNumber(text), { shouldValidate: false, shouldDirty: true });
-                if (errors.phone) {
-                  clearErrors("phone");
-                }
-              }}
-              leftElement={
-                <View
-                  className="flex-row items-center gap-1.5 pr-3 border-r border-border self-stretch"
-                  accessible={true}
-                  accessibilityLabel="Philippines, plus 63"
-                >
-                  <Text className="text-[11px] font-semibold text-text-muted">PH</Text>
-                  <Text className="text-base font-semibold text-text">+63</Text>
-                </View>
-              }
-            />
-
-            <View>
-              <InputField
-                control={control}
-                name="password"
-                label="Password"
-                icon="lock"
-                placeholder="Create a password"
-                secureTextEntry={!showPassword}
-                autoCapitalize="none"
-                textContentType="newPassword"
-                autoComplete="new-password"
-                forceLight={false}
-                inputRef={passwordRef}
-                returnKeyType="done"
-                onSubmitEditing={() => {
-                  if (canContinue) handleSubmit(onSubmit)();
-                }}
-                editable={!isSubmitting}
-                onChangeText={(text) => {
-                  setValue("password", text, { shouldValidate: false, shouldDirty: true });
-                  if (errors.password) {
-                    clearErrors("password");
-                  }
-                }}
-                rightElement={
-                  <TouchableOpacity
-                    onPress={togglePasswordVisibility}
-                    className="p-2 -mr-2"
-                    hitSlop={6}
-                    disabled={isSubmitting}
-                    activeOpacity={0.7}
-                    accessible={true}
-                    accessibilityRole="button"
-                    accessibilityLabel={showPassword ? "Hide password" : "Show password"}
-                  >
-                    <Animated.View style={eyeAnimatedStyle}>
-                      <Feather
-                        name={showPassword ? "eye-off" : "eye"}
-                        size={18}
-                        color={showPassword ? palette.primary : palette.textMuted}
-                      />
-                    </Animated.View>
-                  </TouchableOpacity>
-                }
-              />
-
-              {/* Password rules: four-part line + 2×2 checklist */}
-              <View
-                className="mt-3 px-0.5"
-                accessible={true}
-                accessibilityLabel={`Password rules, ${rulesMet} of 4 met. ${PASSWORD_RULES.map(
-                  (rule) => `${rule.label}: ${rule.test(passwordValue) ? "met" : "not met"}`
-                ).join(". ")}.`}
-              >
-                <View className="flex-row gap-1.5 mb-3">
-                  {PASSWORD_RULES.map((rule) => (
-                    <RuleSegment
-                      key={rule.label}
-                      met={rule.test(passwordValue)}
-                      from={palette[`${rule.hue}Mid`]}
-                      to={palette[`${rule.next}Mid`]}
-                      track={palette.borderStrong}
-                    />
-                  ))}
-                </View>
-                <View className="flex-row flex-wrap gap-y-2">
-                  {PASSWORD_RULES.map((rule) => {
-                    const met = rule.test(passwordValue);
-                    return (
-                      <View key={rule.label} className="w-1/2 flex-row items-center gap-2 pr-2">
-                        <Feather
-                          name={met ? "check-circle" : "circle"}
-                          size={14}
-                          color={met ? palette[`${rule.hue}Mid`] : palette.textMuted}
-                        />
-                        <Text
-                          className="text-sm leading-5 flex-1"
-                          style={{
-                            color: met ? palette.text : palette.textSoft,
-                            fontWeight: met ? "600" : "400",
-                          }}
-                        >
-                          {rule.label}
-                        </Text>
-                      </View>
-                    );
-                  })}
-                </View>
-              </View>
-            </View>
-          </Animated.View>
-
-          {/* Pushes the actions to the bottom when there is spare height */}
-          <View className="flex-1 min-h-[32px]" />
-
-          {/* ── Actions ── */}
-          <View>
-            <Button
-              onPress={handleSubmit(onSubmit)}
-              disabled={!canContinue}
-              isLoading={isSubmitting}
-              loadingText="Sending code..."
-              label="Continue"
-            />
-
-            <Text className="text-xs text-text-soft text-center leading-[18px] mt-3">
-              By continuing you agree to our{" "}
-              <Text
-                className="text-xs text-text underline"
-                onPress={() => openLegal("terms")}
-                accessibilityRole="link"
-                accessibilityLabel="Terms, opens in browser"
-              >
-                Terms
-              </Text>
-              {" "}and{" "}
-              <Text
-                className="text-xs text-text underline"
-                onPress={() => openLegal("privacy")}
-                accessibilityRole="link"
-                accessibilityLabel="Privacy Policy, opens in browser"
-              >
-                Privacy Policy
-              </Text>
-              .
-            </Text>
-
-            <TouchableOpacity
-              activeOpacity={0.65}
-              onPress={() => router.replace("/(auth)/login")}
-              className="flex-row justify-center items-center py-3 gap-1.5 mt-1"
-              accessible={true}
-              accessibilityRole="button"
-              accessibilityLabel="Log in to existing account"
-            >
-              <Text className="text-sm font-medium text-text-soft">
-                Already have an account?
-              </Text>
-              <Text className="text-sm font-bold text-primary">
-                Log in
-              </Text>
-            </TouchableOpacity>
+    <DsScreen
+      header={
+        <View>
+          <SetupHeader title="Step 1 of 2" onBack={() => router.back()} />
+          <View className="flex-row px-6" style={{ gap: 4 }} accessible={true} accessibilityLabel="Step 1 of 2: your details">
+            <View style={{ flex: 1, height: 4, borderRadius: 2, backgroundColor: c.line }} />
+            <View style={{ flex: 1, height: 4, borderRadius: 2, backgroundColor: c.hairlineSoft }} />
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+        </View>
+      }
+      footer={
+        <>
+          <DsButton label="Continue" onPress={handleSubmit(onSubmit)} disabled={!canContinue} loading={isSubmitting} />
+          <Text style={{ fontSize: 12, lineHeight: 18, color: c.steel, textAlign: "center", marginTop: 4 }}>
+            By continuing you agree to our{" "}
+            <Text style={{ color: c.link }} onPress={() => openLegal("terms")} accessibilityRole="link" accessibilityLabel="Terms, opens in browser">
+              Terms
+            </Text>
+            {" "}and{" "}
+            <Text style={{ color: c.link }} onPress={() => openLegal("privacy")} accessibilityRole="link" accessibilityLabel="Privacy Policy, opens in browser">
+              Privacy Policy
+            </Text>
+            .
+          </Text>
+          <View className="flex-row justify-center items-center">
+            <Text style={{ fontSize: 14, color: c.slate }}>Already have an account?</Text>
+            <DsButton label="Log in" variant="link" block={false} onPress={() => router.replace("/(auth)/login")} />
+          </View>
+        </>
+      }
+    >
+      {/* ── Heading ── */}
+      <Animated.View entering={FadeIn.duration(400)} style={{ marginBottom: 24 }}>
+        <Text accessibilityRole="header" style={{ fontSize: 28, lineHeight: 35, fontWeight: "600", letterSpacing: -0.5, color: c.ink }}>
+          Create your account
+        </Text>
+        <Text style={{ fontSize: 16, lineHeight: 24, color: c.slate, marginTop: 8 }}>
+          Takes about a minute. We&apos;ll text a code to confirm your number.
+        </Text>
+      </Animated.View>
+
+      <Animated.View entering={FadeIn.delay(120).duration(400)} style={{ gap: 16 }}>
+        {/* General Error Banner */}
+        {generalError && (
+          <Animated.View
+            style={[errorAnimatedStyle, { flexDirection: "row", alignItems: "center", gap: 10, padding: 14, borderRadius: 12, backgroundColor: c.rose }]}
+            accessible={true}
+            accessibilityRole="alert"
+          >
+            <Feather name="alert-triangle" size={16} color={c.danger} />
+            <Text style={{ flex: 1, fontSize: 14, lineHeight: 20, color: c.ink }}>{generalError}</Text>
+          </Animated.View>
+        )}
+
+        <InputField
+          look="ds"
+          control={control}
+          name="email"
+          label="Email"
+          placeholder="name@example.com"
+          keyboardType="email-address"
+          autoComplete="email"
+          textContentType="emailAddress"
+          autoCapitalize="none"
+          forceLight={false}
+          returnKeyType="next"
+          submitBehavior="submit"
+          onSubmitEditing={() => phoneRef.current?.focus()}
+          editable={!isSubmitting}
+          onChangeText={(text) => {
+            setValue("email", text, { shouldValidate: false, shouldDirty: true });
+            if (errors.email) {
+              clearErrors("email");
+            }
+          }}
+        />
+
+        <InputField
+          look="ds"
+          control={control}
+          name="phone"
+          label="Mobile number"
+          placeholder="912 345 6789"
+          keyboardType="phone-pad"
+          autoComplete="tel"
+          textContentType="telephoneNumber"
+          maxLength={17}
+          forceLight={false}
+          inputRef={phoneRef}
+          returnKeyType="next"
+          submitBehavior="submit"
+          onSubmitEditing={() => passwordRef.current?.focus()}
+          editable={!isSubmitting}
+          onChangeText={(text) => {
+            setValue("phone", formatPhoneNumber(text), { shouldValidate: false, shouldDirty: true });
+            if (errors.phone) {
+              clearErrors("phone");
+            }
+          }}
+          leftElement={
+            <View
+              style={{ flexDirection: "row", alignItems: "center", alignSelf: "stretch", paddingRight: 12, marginRight: 12, borderRightWidth: 1, borderRightColor: c.hairline }}
+              accessible={true}
+              accessibilityLabel="Philippines, plus 63"
+            >
+              <Text style={{ fontSize: 15, fontWeight: "500", color: c.ink }}>+63</Text>
+            </View>
+          }
+        />
+
+        <View>
+          <InputField
+            look="ds"
+            control={control}
+            name="password"
+            label="Password"
+            placeholder="Create a password"
+            secureTextEntry={!showPassword}
+            autoCapitalize="none"
+            textContentType="newPassword"
+            autoComplete="new-password"
+            forceLight={false}
+            inputRef={passwordRef}
+            returnKeyType="done"
+            onSubmitEditing={() => {
+              if (canContinue) handleSubmit(onSubmit)();
+            }}
+            editable={!isSubmitting}
+            onChangeText={(text) => {
+              setValue("password", text, { shouldValidate: false, shouldDirty: true });
+              if (errors.password) {
+                clearErrors("password");
+              }
+            }}
+            rightElement={
+              <TouchableOpacity
+                onPress={togglePasswordVisibility}
+                style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center", marginRight: -10 }}
+                disabled={isSubmitting}
+                activeOpacity={0.7}
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel={showPassword ? "Hide password" : "Show password"}
+              >
+                <Animated.View style={eyeAnimatedStyle}>
+                  <Feather name={showPassword ? "eye-off" : "eye"} size={18} color={c.slate} />
+                </Animated.View>
+              </TouchableOpacity>
+            }
+          />
+
+          {/* Password rules as tags that turn green when met */}
+          <View
+            className="flex-row flex-wrap"
+            style={{ gap: 6, marginTop: 10 }}
+            accessible={true}
+            accessibilityLabel={`Password rules, ${rulesMet} of 4 met. ${PASSWORD_RULES.map(
+              (rule) => `${rule.label}: ${rule.test(passwordValue) ? "met" : "not met"}`
+            ).join(". ")}.`}
+          >
+            {PASSWORD_RULES.map((rule) => {
+              const met = rule.test(passwordValue);
+              return (
+                <View
+                  key={rule.label}
+                  className="flex-row items-center"
+                  style={{ gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, backgroundColor: met ? c.mint : c.surfaceAlt }}
+                >
+                  {met ? <Feather name="check" size={12} color={c.charcoal} /> : null}
+                  <Text style={{ fontSize: 13, fontWeight: "600", color: met ? c.charcoal : c.slate }}>{rule.label}</Text>
+                </View>
+              );
+            })}
+          </View>
+        </View>
+      </Animated.View>
+    </DsScreen>
   );
 }

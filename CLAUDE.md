@@ -1,5 +1,13 @@
 # HeartLink — notes for Claude Code
 
+## Design system
+
+All new HeartLink design and UI follows `documentation/design-system/DESIGN.md`, with HeartLink's own changes in
+`documentation/design-system/HEARTLINK.md` (light-blue primary `#1478B8`, built-in font, HeartLink logo). Read both
+before designing a screen or building new UI. In code, use the `ds-*` colours (`bg-ds-canvas`, `text-ds-slate`, …) from
+`HeartLink-mobile/global.css` and `ds` in `HeartLink-mobile/constants/theme.ts`. The onboarding screens are the first
+built this way and are the reference.
+
 ## graphify (code map)
 
 This project has a local graphify knowledge graph in `graphify-out/` (git-ignored, so it exists only on this PC).

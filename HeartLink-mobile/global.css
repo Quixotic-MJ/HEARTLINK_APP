@@ -54,6 +54,37 @@
     --color-on-danger: 255 255 255;
     --color-warning-solid: 255 154 46;
     --color-on-warning: 21 33 49;
+
+    /* Design system (documentation/design-system/HEARTLINK.md) */
+    --color-ds-canvas: 255 255 255;
+    --color-ds-surface: 246 245 244;
+    --color-ds-surface-alt: 240 238 236;
+    --color-ds-hairline: 229 227 223;
+    --color-ds-hairline-soft: 237 233 228;
+    --color-ds-hairline-strong: 200 196 190;
+    --color-ds-ink: 26 26 26;
+    --color-ds-charcoal: 55 53 47;
+    --color-ds-slate: 93 91 84;
+    --color-ds-steel: 120 118 113;
+    --color-ds-muted: 187 184 177;
+    --color-ds-primary: 20 120 184;
+    --color-ds-primary-pressed: 15 99 154;
+    --color-ds-on-primary: 255 255 255;
+    --color-ds-line: 46 154 232;
+    --color-ds-tint: 220 236 250;
+    --color-ds-on-tint: 10 21 48;
+    --color-ds-link: 0 117 222;
+    --color-ds-peach: 255 232 212;
+    --color-ds-rose: 253 224 236;
+    --color-ds-mint: 217 243 225;
+    --color-ds-lavender: 230 224 245;
+    --color-ds-sky: 220 236 250;
+    --color-ds-yellow: 254 247 214;
+    --color-ds-yellow-bold: 249 231 159;
+    --color-ds-warm-text: 121 52 0;
+    --color-ds-success: 26 174 57;
+    --color-ds-danger: 224 49 49;
+    --color-ds-navy: 10 21 48;
   }
 
   .dark {
@@ -107,5 +138,36 @@
     --color-on-danger: 15 23 32;
     --color-warning-solid: 255 154 46;
     --color-on-warning: 21 33 49;
+
+    /* Design system (documentation/design-system/HEARTLINK.md) */
+    --color-ds-canvas: 25 25 25;
+    --color-ds-surface: 32 32 32;
+    --color-ds-surface-alt: 42 42 42;
+    --color-ds-hairline: 47 47 47;
+    --color-ds-hairline-soft: 38 38 38;
+    --color-ds-hairline-strong: 69 69 69;
+    --color-ds-ink: 242 241 238;
+    --color-ds-charcoal: 227 226 222;
+    --color-ds-slate: 181 179 173;
+    --color-ds-steel: 155 154 151;
+    --color-ds-muted: 107 106 103;
+    --color-ds-primary: 20 120 184;
+    --color-ds-primary-pressed: 15 99 154;
+    --color-ds-on-primary: 255 255 255;
+    --color-ds-line: 79 182 230;
+    --color-ds-tint: 27 51 70;
+    --color-ds-on-tint: 220 236 250;
+    --color-ds-link: 77 163 255;
+    --color-ds-peach: 61 42 30;
+    --color-ds-rose: 59 35 48;
+    --color-ds-mint: 31 53 39;
+    --color-ds-lavender: 44 38 64;
+    --color-ds-sky: 27 51 70;
+    --color-ds-yellow: 58 52 32;
+    --color-ds-yellow-bold: 74 64 32;
+    --color-ds-warm-text: 255 179 122;
+    --color-ds-success: 60 203 90;
+    --color-ds-danger: 255 107 107;
+    --color-ds-navy: 10 21 48;
   }
 }

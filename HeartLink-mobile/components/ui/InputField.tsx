@@ -11,7 +11,7 @@ import Animated, {
   FadeInDown,
   FadeOutDown,
 } from "react-native-reanimated";
-import { Colors } from "../../constants/theme";
+import { Colors, ds } from "../../constants/theme";
 import { theme } from "../../constants/theme";
 
 interface InputFieldProps<T extends FieldValues> extends TextInputProps {
@@ -23,6 +23,8 @@ interface InputFieldProps<T extends FieldValues> extends TextInputProps {
   leftElement?: React.ReactNode;
   forceLight?: boolean;
   inputRef?: React.Ref<TextInput>;
+  /** "ds" = design-system look (documentation/design-system/HEARTLINK.md), used by sign-up screens. */
+  look?: "default" | "ds";
 }
 
 export function InputField<T extends FieldValues>({
@@ -34,6 +36,7 @@ export function InputField<T extends FieldValues>({
   leftElement,
   forceLight = true,
   inputRef,
+  look = "default",
   onChangeText,
   onBlur,
   onFocus,
@@ -78,6 +81,76 @@ export function InputField<T extends FieldValues>({
   const inputBg = hasError ? theme.dangerTint : theme.surface;
 
   const shadowColor = isFocused ? theme.shadow : "transparent";
+
+  if (look === "ds") {
+    const d = isDark ? ds.dark : ds.light;
+    const dsBorder = hasError ? d.danger : isFocused ? d.line : d.hairlineStrong;
+    const thick = hasError || isFocused;
+    return (
+      <View>
+        {label && (
+          <Text style={{ fontSize: 14, fontWeight: "500", color: d.ink, marginBottom: 6 }}>{label}</Text>
+        )}
+        <Animated.View
+          style={[
+            animatedStyle,
+            {
+              flexDirection: "row",
+              alignItems: "center",
+              minHeight: 52,
+              borderRadius: 8,
+              borderWidth: thick ? 2 : 1,
+              borderColor: dsBorder,
+              paddingHorizontal: thick ? 15 : 16,
+              backgroundColor: d.canvas,
+              opacity: !textInputProps.editable && textInputProps.editable !== undefined ? 0.6 : 1,
+            },
+          ]}
+        >
+          {leftElement}
+          <TextInput
+            ref={inputRef}
+            value={field.value}
+            onChangeText={(text) => {
+              if (onChangeText) {
+                onChangeText(text);
+              } else {
+                field.onChange(text);
+              }
+            }}
+            onBlur={(e) => {
+              setIsFocused(false);
+              field.onBlur();
+              onBlur?.(e);
+            }}
+            onFocus={(e) => {
+              setIsFocused(true);
+              onFocus?.(e);
+            }}
+            placeholderTextColor={d.steel}
+            style={{ flex: 1, fontSize: 16, color: d.ink, paddingVertical: 12 }}
+            aria-invalid={hasError}
+            aria-describedby={hasError ? `${name}-error` : undefined}
+            {...textInputProps}
+          />
+          {rightElement}
+        </Animated.View>
+        {hasError && (
+          <Animated.View
+            entering={FadeInDown.duration(200)}
+            exiting={FadeOutDown.duration(200)}
+            className="flex-row items-center gap-1.5 mt-1.5"
+            accessible={true}
+            accessibilityRole="alert"
+            nativeID={`${name}-error`}
+          >
+            <Feather name="alert-circle" size={12} color={d.danger} />
+            <Text style={{ fontSize: 13, color: d.danger, flex: 1 }}>{fieldState.error?.message}</Text>
+          </Animated.View>
+        )}
+      </View>
+    );
+  }
 
   return (
     <View className="mb-1">

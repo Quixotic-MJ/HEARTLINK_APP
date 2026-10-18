@@ -59,10 +59,12 @@ function RootLayoutNav() {
       firstSegment === "splash";
     if (isSplash) return;
 
-    // 2. Calculating screen: let calculating.tsx complete celebration and navigate
-    const isCalculating =
-      firstSegment === "(baseline)" && secondSegment === "calculating";
-    if (isCalculating) return;
+    // 2. Screens after the score is saved: onboarding is already "complete" by then, but
+    //    these finish the set-up (score, first reading, reminders, day one) and navigate on.
+    const AFTER_SCORE = ["score", "first-reading", "reminders", "day-one"];
+    const isAfterScore =
+      firstSegment === "(baseline)" && !!secondSegment && AFTER_SCORE.includes(secondSegment);
+    if (isAfterScore) return;
 
     const inAuthGroup = firstSegment === "(auth)";
     const inOnboarding = firstSegment === "onboarding";
@@ -85,10 +87,7 @@ function RootLayoutNav() {
       } else {
         // If onboarding is not complete, redirect to baseline (allow staying in auth for success screen)
         if (!inBaseline && !inAuthGroup) {
-          router.replace({
-            pathname: "/(baseline)/step1_basic_info",
-            params: { user_id: userId },
-          });
+          router.replace("/(baseline)/plan");
         }
       }
     }

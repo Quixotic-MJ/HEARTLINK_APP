@@ -1,24 +1,16 @@
 import React, { useState } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-} from "react-native";
+import { View, Text } from "react-native";
 import { useToast } from "../../contexts/ToastContext";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { StatusBar } from "expo-status-bar";
 import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { InputField } from "../../components/ui/InputField";
-import { SimpleHeader } from "../../components/ui/SimpleHeader";
-import { Button } from "../../components/ui/Button";
-import { theme } from "../../constants/theme";
+import DsButton from "../../components/onboarding/DsButton";
+import SetupHeader from "../../components/onboarding/SetupHeader";
+import { DsScreen, InfoNote } from "../../components/onboarding/QuestionLayout";
+import { useDs } from "../../components/onboarding/useDs";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
@@ -31,12 +23,9 @@ type ForgotPasswordFormValues = z.infer<typeof forgotPasswordSchema>;
 export default function ForgotPasswordScreen() {
   const router = useRouter();
   const { showToast } = useToast();
+  const { c } = useDs();
 
-  const {
-    control,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<ForgotPasswordFormValues>({
+  const { control, handleSubmit } = useForm<ForgotPasswordFormValues>({
     resolver: zodResolver(forgotPasswordSchema),
     defaultValues: {
       identifier: "",
@@ -84,75 +73,45 @@ export default function ForgotPasswordScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-[#EDF1EF] dark:bg-[#0A0F0E]" edges={["top", "bottom"]}>
-      <StatusBar style="auto" />
+    <DsScreen
+      header={<SetupHeader onBack={() => router.back()} />}
+      footer={<DsButton label="Send reset instructions" onPress={handleSubmit(onSubmit)} loading={isSubmitting} />}
+    >
+      <View style={{ width: 44, height: 44, borderRadius: 8, backgroundColor: c.tint, alignItems: "center", justifyContent: "center", marginBottom: 20 }}>
+        <Feather name="key" size={20} color={c.charcoal} />
+      </View>
+      <Text accessibilityRole="header" style={{ fontSize: 28, lineHeight: 35, fontWeight: "600", letterSpacing: -0.5, color: c.ink }}>
+        Forgot password?
+      </Text>
+      <Text style={{ fontSize: 16, lineHeight: 24, color: c.slate, marginTop: 8, marginBottom: 24 }}>
+        Enter your email or phone number and we&apos;ll send you a way to reset it.
+      </Text>
 
-      {/* Header */}
-      <SimpleHeader />
-
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-      >
-        <ScrollView
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="on-drag"
-          contentContainerStyle={{
-            flexGrow: 1,
-            justifyContent: "center",
-            paddingHorizontal: 20,
-            paddingVertical: 16,
-          }}
-          showsVerticalScrollIndicator={false}
-          bounces={false}
-        >
-          {/* ── Heading ── */}
-          <View className="mb-6 px-1">
-            <Text className="text-3xl sm:text-4xl font-bold text-text tracking-tight leading-tight mb-2" accessibilityRole="header">
-              Forgot password?
-            </Text>
-            <Text className="text-sm sm:text-base text-text-soft leading-relaxed font-medium">
-              Enter your email or phone number to receive instructions for recovering your account.
-            </Text>
+      <View style={{ gap: 16 }}>
+        {generalError && (
+          <View
+            style={{ flexDirection: "row", alignItems: "center", gap: 10, padding: 14, borderRadius: 12, backgroundColor: c.rose }}
+            accessible={true}
+            accessibilityRole="alert"
+          >
+            <Feather name="alert-triangle" size={16} color={c.danger} />
+            <Text style={{ flex: 1, fontSize: 14, lineHeight: 20, color: c.ink }}>{generalError}</Text>
           </View>
+        )}
 
-          {/* ── Card ── */}
-          <View className="bg-surface dark:bg-[#101615] rounded-2xl border border-border px-5 py-6 gap-4 shadow-sm shadow-slate-100 dark:shadow-none">
-            {generalError && (
-              <View className="bg-red-100 dark:bg-red-900/20 border border-red-200 dark:border-red-900/40 rounded-xl p-3.5 flex-row items-center gap-2.5" accessible={true} accessibilityRole="alert">
-                <Feather name="alert-triangle" size={16} color={theme.danger} />
-                <Text className="text-red-600 dark:text-red-400 text-xs sm:text-sm flex-1 font-medium leading-snug">
-                  {generalError}
-                </Text>
-              </View>
-            )}
+        <InputField
+          look="ds"
+          control={control}
+          name="identifier"
+          label="Email or phone number"
+          placeholder="Enter your email or phone number"
+          keyboardType="default"
+          autoCapitalize="none"
+          forceLight={false}
+        />
 
-            {/* Identifier Section */}
-            <View>
-              <InputField
-                control={control}
-                name="identifier"
-                label="Email or Phone Number"
-                icon="user"
-                placeholder="Enter your email or phone number"
-                keyboardType="default"
-                autoCapitalize="none"
-              />
-            </View>
-
-            {/* Submit */}
-            <View className="mt-1">
-              <Button
-                onPress={handleSubmit(onSubmit)}
-                isLoading={isSubmitting}
-                loadingText="Sending request..."
-                label="Reset Password"
-                icon="unlock"
-              />
-            </View>
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+        <InfoNote text="If this account is registered, the instructions arrive in a few minutes." />
+      </View>
+    </DsScreen>
   );
 }

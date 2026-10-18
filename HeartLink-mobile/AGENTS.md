@@ -189,8 +189,9 @@ code, or that they don't, and say what you found.
   ...) defined as CSS variables in `global.css`.
 - **New design direction (decided 2026-10-17):** new or redesigned UI follows
   `documentation/design-system/DESIGN.md` (repo root), with HeartLink's changes in `HEARTLINK.md`, using the
-  `ds-*` colour classes and `ds` in `constants/theme.ts`. These were built on the
-  `onboarding-redesign` branch. If they aren't on your branch yet, ask before building new-look UI.
+  `ds-*` colour classes and `ds` in `constants/theme.ts` (`useDs()` in `components/onboarding/useDs.ts`
+  gives the current light/dark set). The onboarding screens (`app/onboarding.tsx`, `app/(auth)`,
+  `app/(baseline)`, `components/onboarding/`) are the reference.
 - Use theme colours in new code, not hardcoded hex values. Many older files still hardcode colours;
   don't convert them as a side effect of another task. Move a screen to the new look only when it is
   being redesigned.
