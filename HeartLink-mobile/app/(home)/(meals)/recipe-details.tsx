@@ -1,74 +1,29 @@
-import { useColorScheme } from "nativewind";
 import React, { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  ScrollView,
-  Image,
-  Alert,
-} from "react-native";
-import {
-  SafeAreaView,
-  useSafeAreaInsets,
-} from "react-native-safe-area-context";
+import { View, Text, ScrollView, Image } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useQueryClient } from "@tanstack/react-query";
 import { getToken } from "../../../lib/secureTokenStore";
 import { useUser } from "../../../contexts/UserContext";
 import { queueMealForSync } from "../../../services/SyncService";
 import { useToast } from "../../../contexts/ToastContext";
-import { useQueryClient } from "@tanstack/react-query";
-import { theme } from "../../../constants/theme";
 import { unitForAmount } from "../../../utils/units";
+import { Skeleton } from "../../../components/ui/Skeleton";
+import AnimatedButton from "../../../components/ui/AnimatedButton";
+import DsButton from "../../../components/onboarding/DsButton";
+import { useDs } from "../../../components/onboarding/useDs";
+import { AmountStepper } from "../../../components/food/FoodBits";
+import { formatMg } from "../../../services/foodLogging";
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
 
-const DIFFICULTY_CONFIG = {
-  Easy: { bg: "#eaf3de", text: "#3b6d11" },
-  Medium: { bg: "#faeeda", text: "#854f0b" },
-  Hard: { bg: "#fcebeb", text: "#a32d2d" },
-} as const;
-
-function NutritionPill({
-  label,
-  value,
-  unit,
-  highlight = false,
-}: {
-  label: string;
-  value: number;
-  unit: string;
-  highlight?: boolean;
-}) {
-  const { colorScheme } = useColorScheme();
-  const isDark = colorScheme === "dark";
-
-  return (
-    <View
-      className="flex-1 rounded-2xl px-1 py-3 items-center justify-center border"
-    >
-      <Text
-        className="text-[14px] font-bold mb-1"
-      >
-        {value}
-      </Text>
-      <Text 
-        className="text-[9px] font-bold uppercase tracking-widest text-center text-text-soft"
-        numberOfLines={1}
-        adjustsFontSizeToFit
-      >
-        {label} {unit}
-      </Text>
-    </View>
-  );
-}
+type Tab = "Ingredients" | "Instructions";
 
 export default function RecipeDetailsScreen() {
-  const { colorScheme } = useColorScheme();
-  const isDark = colorScheme === "dark";
+  const { c, isDark } = useDs();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { userId, token } = useUser();
@@ -82,9 +37,7 @@ export default function RecipeDetailsScreen() {
   const [recipe, setRecipe] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [servingsMultiplier, setServingsMultiplier] = useState(1);
-  const [activeTab, setActiveTab] = useState<"Ingredients" | "Instructions">(
-    "Ingredients",
-  );
+  const [activeTab, setActiveTab] = useState<Tab>("Ingredients");
   const [isSaved, setIsSaved] = useState(false);
   const [isLogged, setIsLogged] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -101,7 +54,7 @@ export default function RecipeDetailsScreen() {
         const response = await fetch(`${base_url}/api/recipes/${id}`, { headers });
         if (!response.ok) throw new Error("Failed to fetch recipe");
         const data = await response.json();
-        
+
         // map backend structure to match existing frontend format expectations
         const mapped = {
           id: data.id,
@@ -110,7 +63,7 @@ export default function RecipeDetailsScreen() {
           prepTime: data.prep_time_minutes || 0,
           servings: data.servings || 1,
           difficulty: data.difficulty || "Easy",
-          image: data.image_url || "https://images.unsplash.com/photo-1587486913049-53fc88980cfc?w=200&q=80",
+          image: data.image_url || "",
           tags: data.tags || [],
           heartBenefit: data.heart_benefit || "",
           expertValidated: !!data.expert_validated,
@@ -126,8 +79,8 @@ export default function RecipeDetailsScreen() {
                 const qtyStr = hasAmount ? `${ing.amount} ${unitForAmount(ing.unit, ing.amount)}`.trim() : "";
                 return { qty: qtyStr, item: ing.name || "" };
               })
-            : data.ingredients 
-              ? Object.keys(data.ingredients).map(k => ({ qty: data.ingredients[k], item: k })) 
+            : data.ingredients
+              ? Object.keys(data.ingredients).map(k => ({ qty: data.ingredients[k], item: k }))
               : [],
           steps: data.steps || [],
         };
@@ -150,7 +103,7 @@ export default function RecipeDetailsScreen() {
         } catch (cacheErr) {
           console.error("Cache read failed:", cacheErr);
         }
-        
+
         console.error(error);
         showToast({ title: "Error", message: "Could not load recipe details.", type: "error" });
       } finally {
@@ -213,7 +166,7 @@ export default function RecipeDetailsScreen() {
         list = list.filter((rId) => String(rId) !== recipeIdStr);
       }
       await AsyncStorage.setItem(savedRecipesKey, JSON.stringify(list));
-      
+
       // Update global React Query state so parent screens reflect this instantly
       if (userId) {
         queryClient.setQueryData(["saved_recipes", userId], list);
@@ -233,9 +186,9 @@ export default function RecipeDetailsScreen() {
       }
 
       showToast({
-        title: nextSavedState ? "Recipe Saved" : "Recipe Removed",
+        title: nextSavedState ? "Recipe saved" : "Recipe removed",
         message: nextSavedState
-          ? "Added to your personal heart-healthy saved recipes collection."
+          ? "Added to your saved recipes."
           : "Removed from your saved recipes.",
         type: "success",
       });
@@ -244,10 +197,24 @@ export default function RecipeDetailsScreen() {
     }
   };
 
+  const roundButton = {
+    width: 44,
+    height: 44,
+    borderRadius: 8,
+    backgroundColor: c.canvas,
+    borderWidth: 1,
+    borderColor: c.hairline,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+  };
+
   if (isLoading || !recipe) {
     return (
-      <View className="flex-1 bg-surface justify-center items-center">
-        <Text>Loading...</Text>
+      <View style={{ flex: 1, backgroundColor: c.canvas, paddingTop: Math.max(insets.top, 16) + 60, paddingHorizontal: 20, gap: 12 }}>
+        <Skeleton style={{ height: 220, borderRadius: 12 }} />
+        <Skeleton style={{ height: 32, width: "70%", borderRadius: 8 }} />
+        <Skeleton style={{ height: 18, width: "50%", borderRadius: 8 }} />
+        <Skeleton style={{ height: 96, borderRadius: 12 }} />
       </View>
     );
   }
@@ -275,7 +242,7 @@ export default function RecipeDetailsScreen() {
     try {
       const response = await fetch(`${base_url}/api/meals/${userId}`, {
         method: "POST",
-        headers: { 
+        headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${token || ""}`,
         },
@@ -283,11 +250,11 @@ export default function RecipeDetailsScreen() {
       });
 
       if (!response.ok) throw new Error("Failed to log meal");
-      
+
       setIsLogged(true);
-      showToast({ 
-        title: "Meal logged!", 
-        message: "Your daily nutrition budget has been updated.", 
+      showToast({
+        title: "Meal logged!",
+        message: "Your daily nutrition budget has been updated.",
         type: "success",
         duration: 4000
       });
@@ -295,11 +262,11 @@ export default function RecipeDetailsScreen() {
     } catch (error) {
       console.log("Network error logging meal, queueing offline...", error);
       await queueMealForSync(userId!, payload);
-      
+
       setIsLogged(true);
-      showToast({ 
-        title: "Saved offline", 
-        message: "Your meal was saved locally and will sync when you reconnect.", 
+      showToast({
+        title: "Saved offline",
+        message: "Your meal was saved locally and will sync when you reconnect.",
         type: "info",
         duration: 4000
       });
@@ -309,321 +276,178 @@ export default function RecipeDetailsScreen() {
     }
   };
 
-  return (
-    <View className="flex-1 bg-surface">
-      <StatusBar style="dark" />
+  const meta = [
+    { icon: "clock" as const, text: `${recipe.prepTime} min` },
+    { icon: "bar-chart-2" as const, text: recipe.difficulty },
+    { icon: "users" as const, text: `Makes ${recipe.servings} ${recipe.servings === 1 ? "serving" : "servings"}` },
+  ];
+  const cells = [
+    { label: "Sodium", value: formatMg(currentSodium), unit: "mg" },
+    { label: "Calories", value: formatMg(currentCalories), unit: "kcal" },
+    { label: "Saturated fat", value: String(Math.round(currentSatFat * 10) / 10), unit: "g" },
+    { label: "Fibre", value: String(Math.round(currentFiber * 10) / 10), unit: "g" },
+  ];
 
-      {/* Header (Absolute position over scrollview) */}
+  return (
+    <View style={{ flex: 1, backgroundColor: c.canvas }}>
+      <StatusBar style={isDark ? "light" : "dark"} />
+
+      {/* Back and save sit over the photo */}
       <View
-        style={{ paddingTop: Math.max(insets.top, 16) }}
-        className="flex-row items-center px-5 pb-2 z-10 absolute top-0 left-0 right-0 justify-between"
+        style={{ paddingTop: Math.max(insets.top, 16), position: "absolute", top: 0, left: 0, right: 0, zIndex: 10, flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 20 }}
       >
-        <TouchableOpacity
-          onPress={() => router.back()}
-          className="w-10 h-10 rounded-full bg-surface/90 dark:bg-slate-900/90 items-center justify-center shadow-sm"
-        >
-          <Feather name="arrow-left" size={20} color={isDark ? "#f8fafc" : "#0f172a"} />
-        </TouchableOpacity>
-        
-        <TouchableOpacity
+        <AnimatedButton onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Go back" style={roundButton}>
+          <Feather name="arrow-left" size={20} color={c.ink} />
+        </AnimatedButton>
+        <AnimatedButton
           onPress={handleToggleSave}
-          className="w-10 h-10 rounded-full bg-surface/90 dark:bg-slate-900/90 items-center justify-center shadow-sm"
+          accessibilityRole="button"
+          accessibilityState={{ selected: isSaved }}
           accessibilityLabel={isSaved ? "Remove from saved recipes" : "Save recipe"}
+          style={roundButton}
         >
-          <Feather
-            name="heart"
-            size={20}
-            color={isSaved ? "#ef4444" : (isDark ? "#f8fafc" : "#0f172a")}
-          />
-        </TouchableOpacity>
+          <MaterialCommunityIcons name={isSaved ? "heart" : "heart-outline"} size={20} color={isSaved ? c.danger : c.ink} />
+        </AnimatedButton>
       </View>
 
-      <ScrollView
-        contentContainerStyle={{
-          paddingBottom: 120,
-        }}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Hero Image */}
-        <View className="w-full h-80 bg-surface-alt relative items-center justify-center">
-          <MaterialCommunityIcons name="silverware-fork-knife" size={48} color={theme.borderStrong} />
+      <ScrollView contentContainerStyle={{ paddingBottom: 24 }} showsVerticalScrollIndicator={false}>
+        {/* Photo */}
+        <View style={{ width: "100%", height: 260, backgroundColor: c.surface, alignItems: "center", justifyContent: "center" }}>
+          <MaterialCommunityIcons name="silverware-fork-knife" size={44} color={c.muted} />
           {!!recipe.image && (
-            <Image
-              source={{ uri: recipe.image }}
-              className="w-full h-full absolute"
-              resizeMode="cover"
-            />
+            <Image source={{ uri: recipe.image }} style={{ position: "absolute", width: "100%", height: "100%" }} resizeMode="cover" accessibilityIgnoresInvertColors />
           )}
-          {/* Subtle gradient overlay for top buttons */}
-          <View className="absolute top-0 left-0 right-0 h-32 bg-black/10" />
-          
-          <View
-            className="absolute bottom-4 left-5 flex-row items-center gap-1 px-2.5 py-1 rounded-lg"
-          >
-            <Feather name="clock" size={11} color="rgba(255,255,255,0.9)" />
-            <Text className="text-white text-[11px]">
-              {recipe.prepTime} min
-            </Text>
-          </View>
-          <View
-            className="absolute bottom-4 right-5 px-2.5 py-1 rounded-lg"
-          >
-            <Text
-              className="text-[10px] font-medium uppercase tracking-wide"
-            >
-              {recipe.difficulty}
-            </Text>
-          </View>
         </View>
 
-        {/* Title & Tags */}
-        <View className="px-5 pt-8 pb-6">
-          {recipe.expertValidated && (
-            <View className="flex-row items-center gap-1.5 px-3 py-1.5 rounded-full self-start mb-4">
-              <MaterialCommunityIcons name="check-decagram-outline" size={14} color={theme.success} />
-              <Text className="text-[11px] font-bold">
-                Clinical nutritionist verified
-              </Text>
-            </View>
-          )}
-
-          <Text className="text-[32px] font-bold text-text leading-tight mb-3">
-            {recipe.title}
-          </Text>
-          <Text className="text-[16px] text-text-soft mb-6 leading-relaxed">
-            {recipe.subtitle}
-          </Text>
-
-          <View className="flex-row flex-wrap gap-1.5 mb-6">
-            {recipe.tags.map((tag: string) => (
-              <View
-                key={tag}
-                className="px-3 py-1 rounded-full"
-              >
-                <Text
-                  className="text-[10px] font-bold"
-                >
-                  {tag}
-                </Text>
+        <View style={{ paddingHorizontal: 20, paddingTop: 20, gap: 20 }}>
+          {/* Title */}
+          <View style={{ gap: 10 }}>
+            {recipe.expertValidated && (
+              <View className="flex-row items-center self-start" style={{ gap: 6, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, backgroundColor: c.sky }}>
+                <MaterialCommunityIcons name="check-decagram-outline" size={14} color={c.onTint} />
+                <Text style={{ fontSize: 13, fontWeight: "600", color: c.onTint }}>Clinical nutritionist verified</Text>
               </View>
-            ))}
-          </View>
-
-          {/* Servings Multiplier */}
-          <View className="flex-row items-center justify-between p-4 rounded-2xl mb-4">
-            <View>
-              <Text className="text-[14px] font-bold mb-1 text-text">
-                Servings
-              </Text>
-              <Text className="text-[12px] text-text-soft">
-                Adjust to see exact macros
-              </Text>
-            </View>
-            <View className="flex-row items-center rounded-xl px-2 py-1.5 gap-4">
-              <TouchableOpacity
-                onPress={() =>
-                  setServingsMultiplier(Math.max(0.5, servingsMultiplier - 0.5))
-                }
-                className="p-2"
-              >
-                <Feather name="minus" size={16} color={isDark ? "#FFFFFF" : "#0F172A"} />
-              </TouchableOpacity>
-              <Text className="text-[15px] font-bold w-7 text-center text-text">
-                {servingsMultiplier}
-              </Text>
-              <TouchableOpacity
-                onPress={() => setServingsMultiplier(servingsMultiplier + 0.5)}
-                className="p-2"
-              >
-                <Feather name="plus" size={16} color={isDark ? "#FFFFFF" : "#0F172A"} />
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-
-        {/* ── Heart Benefit ── */}
-        <View className="px-5 mb-6">
-          <View className="rounded-2xl p-4 flex-row items-start gap-3">
-            <Feather
-              name="heart"
-              size={18}
-              color={theme.success}
-              className="mt-0.5"
-            />
-            <View className="flex-1">
-              <Text className="text-[14px] font-bold mb-1">
-                Why it's good
-              </Text>
-              <Text className="text-[13px] leading-tight">
-                {recipe.heartBenefit}
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        {/* ── Macros ── */}
-        <View className="px-5 mb-6">
-          <Text className="text-[18px] font-bold text-text mb-4">
-            Nutrition Breakdown
-          </Text>
-          <View className="flex-row gap-2">
-            <NutritionPill
-              label="Sodium"
-              value={currentSodium}
-              unit="mg"
-              highlight={!isHighSodium}
-            />
-            <NutritionPill label="Fiber" value={currentFiber} unit="g" />
-            <NutritionPill label="Sat. Fat" value={currentSatFat} unit="g" />
-            <NutritionPill
-              label="Calories"
-              value={currentCalories}
-              unit="cal"
-            />
-          </View>
-
-          {isHighSodium && (
-            <View className="mt-4 p-4 rounded-xl flex-row items-start gap-3">
-              <Feather
-                name="alert-triangle"
-                size={18}
-                color={theme.danger}
-                className="mt-0.5"
-              />
-              <View className="flex-1">
-                <Text className="text-[14px] font-bold mb-1">
-                  Exceeds your per-meal sodium limit
-                </Text>
-                <Text className="text-[13px] leading-tight">
-                  Based on your baseline, this portion exceeds your recommended
-                  per-meal sodium limit.
-                </Text>
-              </View>
-            </View>
-          )}
-        </View>
-
-        {/* ── Tabs ── */}
-        <View className="px-5 mt-2">
-          <View className="flex-row p-1 rounded-xl mb-4 bg-surface-alt">
-            <TouchableOpacity
-              onPress={() => setActiveTab("Ingredients")}
-              className="flex-1 py-2.5 items-center rounded-lg"
-              style={
-                activeTab === "Ingredients"
-                  ? { backgroundColor: isDark ? "#1E293B" : "#FFFFFF" }
-                  : undefined
-              }
-            >
-              <Text
-                className="text-[13px] font-bold"
-              >
-                Ingredients
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => setActiveTab("Instructions")}
-              className="flex-1 py-2.5 items-center rounded-lg"
-              style={
-                activeTab === "Instructions"
-                  ? { backgroundColor: isDark ? "#1E293B" : "#FFFFFF" }
-                  : undefined
-              }
-            >
-              <Text
-                className="text-[13px] font-bold"
-              >
-                Instructions
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {activeTab === "Ingredients" ? (
-            <View className="mb-6 mt-2">
-              {recipe.ingredients.map((ing: any, i: number) => (
-                <View
-                  key={i}
-                  className="flex-row items-center py-4"
-                  style={
-                    i !== recipe.ingredients.length - 1
-                      ? { borderBottomWidth: 1, borderBottomColor: isDark ? "#1E293B" : "#E2E8F0" }
-                      : undefined
-                  }
-                >
-                  <View className="flex-1 flex-row">
-                    <Text className="text-[14px] font-bold w-24 text-text">
-                      {ing.qty}
-                    </Text>
-                    <Text className="text-[14px] flex-1 leading-relaxed">
-                      {ing.item}
-                    </Text>
-                  </View>
+            )}
+            <Text accessibilityRole="header" style={{ fontSize: 28, fontWeight: "600", lineHeight: 35, color: c.ink }}>
+              {recipe.title}
+            </Text>
+            {recipe.subtitle ? <Text style={{ fontSize: 16, lineHeight: 24, color: c.slate }}>{recipe.subtitle}</Text> : null}
+            <View className="flex-row flex-wrap" style={{ gap: 6 }}>
+              {meta.map((m) => (
+                <View key={m.text} className="flex-row items-center" style={{ gap: 5, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: c.surfaceAlt }}>
+                  <Feather name={m.icon} size={13} color={c.charcoal} />
+                  <Text style={{ fontSize: 13, fontWeight: "500", color: c.charcoal }}>{m.text}</Text>
+                </View>
+              ))}
+              {recipe.tags.map((tag: string) => (
+                <View key={tag} style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: c.surfaceAlt }}>
+                  <Text style={{ fontSize: 13, fontWeight: "500", color: c.charcoal }}>{tag}</Text>
                 </View>
               ))}
             </View>
-          ) : (
-            <View className="mb-6 mt-4 px-2">
-              {recipe.steps.map((step: any, i: number) => {
-                const isLast = i === recipe.steps.length - 1;
-                return (
-                  <View key={i} className="flex-row mb-6 relative">
-                    {/* Timeline Line */}
-                    {!isLast && (
-                      <View 
-                        className="absolute left-[11px] top-8 bottom-[-24px] w-[2px]" 
-                      />
-                    )}
-                    
-                    {/* Step Node */}
-                    <View className="mr-4 mt-0.5 relative z-10">
-                      {isLast ? (
-                        <View className="w-6 h-6 rounded-full items-center justify-center">
-                          <Feather name="check" size={14} color={theme.success} />
-                        </View>
-                      ) : (
-                        <View className="w-6 h-6 rounded-full items-center justify-center">
-                          <Text className="text-[12px] font-bold">
-                            {i + 1}
-                          </Text>
-                        </View>
-                      )}
-                    </View>
+          </View>
 
-                    {/* Step Text */}
-                    <View className="flex-1 pt-1">
-                      <Text className="text-[15px] font-bold leading-relaxed text-text">
-                        {step}
-                      </Text>
-                    </View>
-                  </View>
+          {/* Why it's good */}
+          {recipe.heartBenefit ? (
+            <View className="flex-row" style={{ gap: 10, padding: 14, borderRadius: 12, backgroundColor: c.mint }}>
+              <Feather name="heart" size={18} color={c.charcoal} style={{ marginTop: 1 }} />
+              <View style={{ flex: 1, gap: 2 }}>
+                <Text style={{ fontSize: 14, fontWeight: "600", color: c.charcoal }}>{"Why it's good"}</Text>
+                <Text style={{ fontSize: 14, lineHeight: 20, color: c.charcoal }}>{recipe.heartBenefit}</Text>
+              </View>
+            </View>
+          ) : null}
+
+          {/* Servings and nutrition */}
+          <View style={{ gap: 12 }}>
+            <View className="flex-row items-center justify-between" style={{ gap: 12 }}>
+              <Text style={{ fontSize: 15, fontWeight: "500", color: c.ink, flexShrink: 1 }}>Servings you ate</Text>
+              <AmountStepper
+                label="servings"
+                value={`${servingsMultiplier} ${servingsMultiplier === 1 ? "serving" : "servings"}`}
+                onLess={() => setServingsMultiplier(Math.max(0.5, servingsMultiplier - 0.5))}
+                onMore={() => setServingsMultiplier(servingsMultiplier + 0.5)}
+              />
+            </View>
+            <View className="flex-row flex-wrap" style={{ gap: 8 }}>
+              {cells.map((cell) => (
+                <View key={cell.label} style={{ flexBasis: "47%", flexGrow: 1, minHeight: 56, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, backgroundColor: c.surface, gap: 2 }}>
+                  <Text style={{ fontSize: 13, color: c.slate }}>{cell.label}</Text>
+                  <Text style={{ fontSize: 16, fontWeight: "600", color: c.ink }}>
+                    {cell.value} <Text style={{ fontSize: 13, fontWeight: "400", color: c.slate }}>{cell.unit}</Text>
+                  </Text>
+                </View>
+              ))}
+            </View>
+
+            {isHighSodium && (
+              <View className="flex-row" style={{ gap: 10, padding: 14, borderRadius: 12, backgroundColor: c.rose }}>
+                <Feather name="alert-triangle" size={18} color={c.danger} style={{ marginTop: 1 }} />
+                <View style={{ flex: 1, gap: 2 }}>
+                  <Text style={{ fontSize: 14, fontWeight: "600", color: c.charcoal }}>Exceeds your per-meal sodium limit</Text>
+                  <Text style={{ fontSize: 14, lineHeight: 20, color: c.charcoal }}>
+                    Based on your baseline, this portion exceeds your recommended per-meal sodium limit.
+                  </Text>
+                </View>
+              </View>
+            )}
+          </View>
+
+          {/* Ingredients / instructions */}
+          <View>
+            <View accessibilityRole="tablist" className="flex-row" style={{ borderBottomWidth: 1, borderBottomColor: c.hairline, marginBottom: 8 }}>
+              {(["Ingredients", "Instructions"] as Tab[]).map((tab) => {
+                const on = activeTab === tab;
+                return (
+                  <AnimatedButton
+                    key={tab}
+                    onPress={() => setActiveTab(tab)}
+                    accessibilityRole="tab"
+                    accessibilityState={{ selected: on }}
+                    style={{ minHeight: 44, paddingHorizontal: 4, marginRight: 20, justifyContent: "center", borderBottomWidth: 2, borderBottomColor: on ? c.ink : "transparent", marginBottom: -1 }}
+                  >
+                    <Text style={{ fontSize: 15, fontWeight: "500", color: on ? c.ink : c.steel }}>{tab}</Text>
+                  </AnimatedButton>
                 );
               })}
             </View>
-          )}
+
+            {activeTab === "Ingredients" ? (
+              <View>
+                {recipe.ingredients.map((ing: any, i: number) => (
+                  <View
+                    key={i}
+                    className="flex-row"
+                    style={{ paddingVertical: 12, gap: 12, borderBottomWidth: i !== recipe.ingredients.length - 1 ? 1 : 0, borderBottomColor: c.hairlineSoft }}
+                  >
+                    <Text style={{ width: 96, fontSize: 15, fontWeight: "600", color: c.ink }}>{ing.qty}</Text>
+                    <Text style={{ flex: 1, fontSize: 15, lineHeight: 22, color: c.charcoal }}>{ing.item}</Text>
+                  </View>
+                ))}
+              </View>
+            ) : (
+              <View style={{ paddingTop: 8, gap: 16 }}>
+                {recipe.steps.map((step: any, i: number) => (
+                  <View key={i} className="flex-row" style={{ gap: 12 }}>
+                    <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: c.tint, alignItems: "center", justifyContent: "center" }}>
+                      <Text style={{ fontSize: 13, fontWeight: "600", color: c.onTint }}>{i + 1}</Text>
+                    </View>
+                    <Text style={{ flex: 1, fontSize: 15, lineHeight: 23, color: c.ink, paddingTop: 3 }}>{step}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
         </View>
       </ScrollView>
 
-      {/* ── Sticky Bottom Button ── */}
-      <View style={{ paddingBottom: Math.max(insets.bottom, 20) }} className="absolute bottom-0 left-0 right-0 bg-surface border-t border-border dark:border-slate-800 px-5 pt-4 pb-6 shadow-[0_-10px_20px_rgba(0,0,0,0.05)]">
-         <View className={`w-full rounded-xl ${isLogged ? "bg-surface-alt" : "bg-blue"}`}>
-           <TouchableOpacity 
-             activeOpacity={0.85}
-             onPress={handleLogMeal}
-             disabled={isLogged || isSubmitting}
-             className="w-full py-4 rounded-xl items-center justify-center flex-row gap-2"
-           >
-             {isLogged ? (
-               <MaterialCommunityIcons name="check-all" size={18} color={theme.textMuted} />
-             ) : (
-               <Feather name="check" size={18} color={theme.onPrimary} />
-             )}
-             <Text 
-               className={`text-[14px] font-semibold ${isLogged ? "text-text-muted dark:text-text-soft" : "text-white"}`}
-             >
-               {isLogged ? "Logged Today" : isSubmitting ? "Logging..." : "Log This Meal"}
-             </Text>
-           </TouchableOpacity>
-         </View>
+      <View style={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: Math.max(insets.bottom, 20), borderTopWidth: 1, borderTopColor: c.hairlineSoft, backgroundColor: c.canvas }}>
+        <DsButton
+          label={isLogged ? "Logged today" : "Log this meal"}
+          onPress={handleLogMeal}
+          loading={isSubmitting}
+          disabled={isLogged}
+        />
       </View>
     </View>
   );

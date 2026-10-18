@@ -1,28 +1,19 @@
-import { useColorScheme } from "nativewind";
 import React, { useState } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  TextInput,
-  Alert,
-  ActivityIndicator,
-  Modal,
-  ScrollView,
-} from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { View, Text, TextInput, Modal, ScrollView } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { StatusBar } from "expo-status-bar";
-import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Feather } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useUser } from "../../../contexts/UserContext";
-import { queueMealForSync } from "../../../services/SyncService";
 import { useToast } from "../../../contexts/ToastContext";
 import { logMealAndGetToast } from "../../../services/MealLoggingService";
-import { ChoiceChip, SectionHeader, calcRiskFromValues } from "../../../components/meals/SharedMealComponents";
-import { theme } from "../../../constants/theme";
-
-const base_url = process.env.EXPO_PUBLIC_API_URL;
+import { calcRiskFromValues } from "../../../components/meals/SharedMealComponents";
+import AnimatedButton from "../../../components/ui/AnimatedButton";
+import DsButton from "../../../components/onboarding/DsButton";
+import { useDs } from "../../../components/onboarding/useDs";
+import { AmountStepper, FoodHeader, ImpactNote, NutrientField } from "../../../components/food/FoodBits";
+import { mealTimeForHour } from "../../../services/foodLogging";
 
 // ─── Filipino Staple Presets ──────────────────────────────────────────────────
 
@@ -53,57 +44,25 @@ const FILIPINO_QUICK_PRESETS: Record<
   },
 };
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-type TimeOfMeal = "Breakfast" | "Lunch" | "Dinner" | "Snack";
-
-// Removed ChoiceChip and SectionHeader since they are now in SharedMealComponents
-
-// ─── Numeric Input Field ──────────────────────────────────────────────────────
-
-function NumericField({
-  label,
-  value,
-  unit,
-  onChange,
-  placeholder,
-}: {
-  label: string;
-  value: string;
-  unit: string;
-  onChange: (v: string) => void;
-  placeholder: string;
-}) {
-  return (
-    <View className="flex-1">
-      <Text className="text-[11px] font-bold text-text-soft uppercase tracking-wider mb-2 ml-1">
-        {label}
-      </Text>
-      <View className="bg-surface-alt dark:bg-slate-800/50 rounded-2xl border border-border/50 flex-row items-center px-4 py-3">
-        <TextInput
-          value={value}
-          onChangeText={(text) => {
-            const sanitized = text.replace(/[^0-9.]/g, "");
-            onChange(sanitized);
-          }}
-          placeholder={placeholder}
-          placeholderTextColor="#94a3b8"
-          keyboardType="decimal-pad"
-          className="flex-1 text-[15px] font-medium text-text"
-        />
-        <Text className="text-[13px] font-bold text-text-muted ml-1">{unit}</Text>
-      </View>
-    </View>
-  );
-}
-
-// Removed calcRiskFromValues since it is now in SharedMealComponents
+const GUIDE = [
+  {
+    title: "1. Ask Google",
+    body: 'Search "calories in 1 cup pork adobo" or "sodium in pancit canton". Online fitness databases usually have rough averages you can copy.',
+  },
+  {
+    title: "2. Beware hidden sodium",
+    body: "Carinderia and street foods rely heavily on sauces. Remember: just 1 tablespoon of soy sauce or patis has nearly 900mg of sodium!",
+  },
+  {
+    title: "3. Rough is better than blank",
+    body: "Don't skip logging a meal just because you don't know the exact numbers. A rough guess keeps you accountable and makes your daily charts useful.",
+  },
+];
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
 export default function ManualMealLogScreen() {
-  const { colorScheme } = useColorScheme();
-  const isDark = colorScheme === "dark";
+  const { c, isDark } = useDs();
   const router = useRouter();
   const params = useLocalSearchParams<{ quick_dish?: string }>();
   const quickDish = params.quick_dish;
@@ -111,15 +70,8 @@ export default function ManualMealLogScreen() {
   const { userId, token } = useUser();
   const { showToast } = useToast();
 
-  // Contextual time of meal based on current hour
-  const currentHour = new Date().getHours();
-  const defaultMealTime: TimeOfMeal =
-    currentHour < 11 ? "Breakfast" : currentHour < 16 ? "Lunch" : currentHour < 21 ? "Dinner" : "Snack";
-
   const preset = quickDish ? FILIPINO_QUICK_PRESETS[quickDish] : undefined;
 
-  // Shared
-  const [timeOfMeal, setTimeOfMeal] = useState<TimeOfMeal>(defaultMealTime);
   const [foodDescription, setFoodDescription] = useState(
     preset?.desc || (quickDish ? `${quickDish} (1 Serving)` : "")
   );
@@ -134,14 +86,13 @@ export default function ManualMealLogScreen() {
   const [fiber, setFiber] = useState(preset?.fiber || "");
   const [cholesterol, setCholesterol] = useState("");
 
-  const insets = useSafeAreaInsets();
-
   // Risk calculated from actual entered values
   const risk = calcRiskFromValues(
     (parseFloat(sodium) || 0) * servings,
     (parseFloat(calories) || 0) * servings,
     (parseFloat(satFat) || 0) * servings
   );
+  const hasNumbers = (parseFloat(sodium) || 0) > 0 || (parseFloat(calories) || 0) > 0;
 
   const executeSave = async () => {
     if (!userId) {
@@ -163,7 +114,7 @@ export default function ManualMealLogScreen() {
     }
 
     setIsSubmitting(true);
-    
+
     const payload = {
       meal_name: foodDescription.trim(),
       portion: servings,
@@ -174,7 +125,8 @@ export default function ManualMealLogScreen() {
       cholesterol_mg: Math.round((parseFloat(cholesterol) || 0) * servings),
       source: "manual_entry",
       image_url: null,
-      time_of_meal: timeOfMeal,
+      // The Food Diary files meals by the time they're logged (see services/foodLogging.ts).
+      time_of_meal: mealTimeForHour(new Date().getHours()),
     };
 
     await logMealAndGetToast(
@@ -190,233 +142,95 @@ export default function ManualMealLogScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-surface-alt" edges={["top"]}>
-      <StatusBar style="dark" />
-
-      {/* ── Header Bar ── */}
-      <View className="flex-row items-center justify-between px-5 py-3">
-        <TouchableOpacity
-          onPress={() => router.back()}
-          className="w-9 h-9 rounded-full bg-border/50 dark:bg-slate-800 items-center justify-center z-10"
-        >
-          <Feather name="arrow-left" size={18} color={isDark ? "#f8fafc" : "#0f172a"} />
-        </TouchableOpacity>
-        <Text className="text-[22px] font-bold text-text absolute left-0 right-0 text-center pointer-events-none">
-          Log Food
-        </Text>
-        <View className="w-9" />
-      </View>
+    <SafeAreaView style={{ flex: 1, backgroundColor: c.canvas }} edges={["top"]}>
+      <StatusBar style={isDark ? "light" : "dark"} />
+      <FoodHeader title="Estimate a meal" onBack={() => router.back()} />
 
       <KeyboardAwareScrollView
-        contentContainerClassName="px-5 pb-12 pt-4"
+        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 8, paddingBottom: 32, gap: 20 }}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         extraScrollHeight={20}
       >
-
-        {/* Mode description & Guide button */}
-        <View className="bg-success-tint rounded-2xl p-4 mb-6 border border-emerald-100 dark:border-emerald-800/30">
-          <View className="flex-row items-start gap-3 mb-3">
-            <Feather
-              name="database"
-              size={16}
-              color={theme.success}
-              style={{ marginTop: 2 }}
-            />
-            <Text className="flex-1 text-[13px] text-emerald-800 dark:text-emerald-200 leading-relaxed font-medium">
-              Enter nutrition values from a food label. No label? You can estimate the values instead.
-            </Text>
-          </View>
-          <TouchableOpacity 
+        {/* Why and how, in plain words */}
+        <View style={{ padding: 16, borderRadius: 12, backgroundColor: c.surface, gap: 10 }}>
+          <Text style={{ fontSize: 14, lineHeight: 21, color: c.charcoal }}>
+            Enter the nutrition from a food label. No label? A rough estimate is fine.
+          </Text>
+          <AnimatedButton
             onPress={() => setShowEstimateGuide(true)}
-            activeOpacity={0.7}
-            className="bg-surface dark:bg-emerald-800/50 rounded-xl py-2.5 px-3 flex-row items-center justify-center border border-emerald-200 dark:border-emerald-700/50"
+            accessibilityRole="button"
+            accessibilityLabel="How to estimate carinderia or home-cooked food"
+            style={{ alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 6, minHeight: 44 }}
           >
-            <Feather name="help-circle" size={15} color="#059669" />
-            <Text className="text-emerald-700 dark:text-emerald-300 font-medium text-[13px] ml-2">How to estimate carinderia / home-cooked food?</Text>
-          </TouchableOpacity>
+            <Feather name="help-circle" size={16} color={c.link} />
+            <Text style={{ fontSize: 14, fontWeight: "500", color: c.link }}>How to estimate carinderia or home-cooked food</Text>
+          </AnimatedButton>
         </View>
 
-        <View className="bg-surface rounded-3xl p-5 shadow-sm border border-border dark:border-slate-800 mb-6">
-          {/* ── Risk Banner ── */}
-          {((parseFloat(sodium) || 0) > 0 || (parseFloat(calories) || 0) > 0) && (
-            <View
-              className="rounded-2xl p-4 border mb-4"
-            >
-              <View className="flex-row items-center gap-2 mb-1.5">
-                <Feather name={risk.icon} size={15} color={risk.color} />
-                <Text className="text-[12px] font-bold uppercase tracking-wide">
-                  Impact estimate · {risk.level}
-                </Text>
-              </View>
-              <Text className="text-[13px] font-medium leading-relaxed">
-                {risk.desc}
-              </Text>
-            </View>
-          )}
-
-          {/* ── Time of Meal ── */}
-          <SectionHeader title="Time of meal" icon="clock-outline" />
-          <View className="flex-row flex-wrap mb-2">
-            {(["Breakfast", "Lunch", "Dinner", "Snack"] as TimeOfMeal[]).map((opt) => (
-              <ChoiceChip key={opt} label={opt} selected={timeOfMeal === opt} onSelect={setTimeOfMeal} />
-            ))}
-          </View>
-
-          {/* ── Food Description ── */}
-          <SectionHeader title="Food description" icon="food-apple-outline" />
-          <View className="bg-surface-alt dark:bg-slate-800/50 rounded-2xl border border-border/50 px-4 py-3.5">
-            <TextInput
-              value={foodDescription}
-              onChangeText={setFoodDescription}
-              placeholder="e.g. Pork sinigang, lechon, mango"
-              placeholderTextColor="#94a3b8"
-              className="text-[15px] font-medium text-text"
-            />
-          </View>
+        <View style={{ gap: 6 }}>
+          <Text style={{ fontSize: 14, fontWeight: "500", color: c.ink }}>What did you eat?</Text>
+          <TextInput
+            value={foodDescription}
+            onChangeText={setFoodDescription}
+            placeholder="e.g. Pork sinigang, lechon, mango"
+            placeholderTextColor={c.steel}
+            accessibilityLabel="What did you eat?"
+            style={{ height: 48, paddingHorizontal: 14, borderWidth: 1, borderColor: c.hairlineStrong, borderRadius: 8, fontSize: 17, color: c.ink, backgroundColor: c.canvas }}
+          />
         </View>
 
-        <View className="bg-surface rounded-3xl p-5 shadow-sm border border-border dark:border-slate-800 mb-6">
-          {/* ── Nutrition Values ── */}
-          <SectionHeader title="Nutrition values" icon="nutrition" />
+        <View className="flex-row items-center justify-between" style={{ gap: 12 }}>
+          <Text style={{ fontSize: 15, fontWeight: "500", color: c.ink, flexShrink: 1 }}>Servings you ate</Text>
+          <AmountStepper
+            label="servings"
+            value={`${servings} ${servings === 1 ? "serving" : "servings"}`}
+            onLess={() => setServings((s) => Math.max(0.5, s - 0.5))}
+            onMore={() => setServings((s) => Math.min(20, s + 0.5))}
+          />
+        </View>
 
-          {/* NUMBER OF SERVINGS stepper */}
-          <View className="flex-row items-center justify-between mb-5 mt-2 bg-surface-alt dark:bg-slate-800/50 rounded-2xl p-3 border border-border/50">
-            <Text className="text-[12px] font-bold text-text-soft uppercase tracking-wide ml-2">Number of servings</Text>
-            <View className="flex-row items-center bg-surface dark:bg-slate-700 border border-border dark:border-slate-600 rounded-xl px-2 py-1.5 gap-4 shadow-sm">
-              <TouchableOpacity onPress={() => setServings(s => Math.max(0.5, s - 0.5))} className="p-1">
-                <Feather name="minus" size={16} color={isDark ? "#f8fafc" : "#0f172a"} />
-              </TouchableOpacity>
-              <Text className="text-[15px] font-bold text-text w-8 text-center">{servings}</Text>
-              <TouchableOpacity onPress={() => setServings(s => Math.min(20, s + 0.5))} className="p-1">
-                <Feather name="plus" size={16} color={isDark ? "#f8fafc" : "#0f172a"} />
-              </TouchableOpacity>
-            </View>
+        <View style={{ gap: 12 }}>
+          <View style={{ gap: 2 }}>
+            <Text accessibilityRole="header" style={{ fontSize: 16, fontWeight: "600", color: c.ink }}>Nutrition per serving</Text>
+            <Text style={{ fontSize: 13, color: c.slate, lineHeight: 19 }}>Check the food label or a nutrition website for the numbers.</Text>
           </View>
-
-          {/* Row 1: Sodium + Calories */}
-          <View className="flex-row gap-3 mb-4">
-            <NumericField
-              label="Sodium"
-              value={sodium}
-              unit="mg"
-              onChange={setSodium}
-              placeholder="0"
-            />
-            <NumericField
-              label="Calories"
-              value={calories}
-              unit="kcal"
-              onChange={setCalories}
-              placeholder="0"
-            />
-          </View>
-
-          {/* Row 2: Sat. Fat + Fiber */}
-          <View className="flex-row gap-3 mb-4">
-            <NumericField
-              label="Sat. Fat"
-              value={satFat}
-              unit="g"
-              onChange={setSatFat}
-              placeholder="0"
-            />
-            <NumericField
-              label="Fiber"
-              value={fiber}
-              unit="g"
-              onChange={setFiber}
-              placeholder="0"
-            />
-          </View>
-
-          {/* Row 3: Cholesterol */}
-          <View className="flex-row gap-3 mb-2">
-            <NumericField
-              label="Cholesterol"
-              value={cholesterol}
-              unit="mg"
-              onChange={setCholesterol}
-              placeholder="0"
-            />
-            <View className="flex-1" />
-          </View>
-
-          {/* Helper note */}
-          <View className="flex-row items-start gap-2 mt-3 mb-1 bg-surface-alt dark:bg-slate-800/50 p-3 rounded-2xl border border-border dark:border-slate-800">
-            <Feather name="info" size={14} color={isDark ? "#64748b" : "#94a3b8"} style={{ marginTop: 2 }} />
-            <Text className="flex-1 text-[12px] font-medium text-text-soft leading-relaxed">
-              Values are per serving. Check the food label or use a nutrition database for accurate figures.
-            </Text>
+          <View className="flex-row flex-wrap" style={{ gap: 12 }}>
+            <NutrientField label="Sodium" value={sodium} unit="mg" onChange={setSodium} />
+            <NutrientField label="Calories" value={calories} unit="kcal" onChange={setCalories} />
+            <NutrientField label="Saturated fat" value={satFat} unit="g" onChange={setSatFat} />
+            <NutrientField label="Fibre" value={fiber} unit="g" onChange={setFiber} />
+            <NutrientField label="Cholesterol" value={cholesterol} unit="mg" onChange={setCholesterol} />
+            <View style={{ flexBasis: "47%", flexGrow: 1 }} />
           </View>
         </View>
 
+        {hasNumbers ? <ImpactNote risk={risk} /> : null}
       </KeyboardAwareScrollView>
 
-      {/* Save Button Container */}
-      <View 
-        className="px-5 pt-3 bg-surface-alt border-t border-border"
-      >
-        <TouchableOpacity
-          onPress={executeSave}
-          disabled={isSubmitting}
-          className="bg-emerald-600 w-full rounded-2xl py-3.5 items-center justify-center flex-row gap-2"
-          activeOpacity={0.85}
-          style={{ opacity: isSubmitting ? 0.7 : 1 }}
-        >
-          {isSubmitting ? (
-            <ActivityIndicator size="small" color={theme.onPrimary} />
-          ) : (
-            <Feather name="check-circle" size={16} color={theme.onPrimary} />
-          )}
-          <Text className="text-white text-[15px] font-bold">
-            {isSubmitting ? "Saving..." : "Save meal"}
-          </Text>
-        </TouchableOpacity>
+      <View className="px-5 pt-3 pb-5" style={{ borderTopWidth: 1, borderTopColor: c.hairlineSoft, backgroundColor: c.canvas }}>
+        <DsButton label="Save meal" onPress={executeSave} loading={isSubmitting} />
       </View>
 
-      {/* Estimation Guide Modal */}
-      <Modal visible={showEstimateGuide} transparent animationType="fade">
-        <View className="flex-1 bg-black/60 justify-center items-center px-5">
-          <View className="bg-surface rounded-3xl p-6 w-full max-w-md border border-border dark:border-slate-800 shadow-xl">
-            <View className="flex-row items-center gap-3 mb-5 border-b border-border dark:border-slate-800/50 pb-4">
-              <View className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-full items-center justify-center">
-                <Feather name="help-circle" size={20} color={theme.blue} />
+      {/* Estimation Guide */}
+      <Modal visible={showEstimateGuide} transparent animationType="fade" onRequestClose={() => setShowEstimateGuide(false)}>
+        <View style={{ flex: 1, backgroundColor: "rgba(15,15,15,0.5)", justifyContent: "center", paddingHorizontal: 20 }}>
+          <View style={{ backgroundColor: c.canvas, borderRadius: 12, padding: 20, gap: 16, maxHeight: "80%" }}>
+            <View className="flex-row items-center" style={{ gap: 12 }}>
+              <View style={{ width: 40, height: 40, borderRadius: 10, backgroundColor: c.sky, alignItems: "center", justifyContent: "center" }}>
+                <Feather name="help-circle" size={20} color={c.onTint} />
               </View>
-              <Text className="text-[18px] font-bold text-text flex-1">
-                Estimation Guide
-              </Text>
+              <Text accessibilityRole="header" style={{ fontSize: 18, fontWeight: "600", color: c.ink, flex: 1 }}>How to estimate</Text>
             </View>
-
-            <ScrollView className="max-h-[60vh] mb-6" showsVerticalScrollIndicator={false}>
-              <View className="mb-4">
-                <Text className="text-[15px] font-bold text-text mb-1">1. Ask Google</Text>
-                <Text className="text-[13px] text-text-soft leading-relaxed">
-                  Search "calories in 1 cup pork adobo" or "sodium in pancit canton". Online fitness databases usually have rough averages you can copy.
-                </Text>
-              </View>
-              
-              <View className="mb-4">
-                <Text className="text-[15px] font-bold text-text mb-1">2. Beware Hidden Sodium</Text>
-                <Text className="text-[13px] text-text-soft leading-relaxed">
-                  Carinderia and street foods rely heavily on sauces. Remember: just 1 tablespoon of soy sauce or patis has nearly 900mg of sodium!
-                </Text>
-              </View>
-
-              <View className="mb-2">
-                <Text className="text-[15px] font-bold text-text mb-1">3. Rough is better than blank</Text>
-                <Text className="text-[13px] text-text-soft leading-relaxed">
-                  Don't skip logging a meal just because you don't know the exact numbers. A rough guess keeps you accountable and makes your daily charts useful.
-                </Text>
-              </View>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 14 }}>
+              {GUIDE.map((g) => (
+                <View key={g.title} style={{ gap: 4 }}>
+                  <Text style={{ fontSize: 15, fontWeight: "600", color: c.ink }}>{g.title}</Text>
+                  <Text style={{ fontSize: 14, lineHeight: 21, color: c.slate }}>{g.body}</Text>
+                </View>
+              ))}
             </ScrollView>
-
-            <TouchableOpacity
-              onPress={() => setShowEstimateGuide(false)}
-              className="bg-emerald-600 w-full py-3.5 rounded-xl items-center"
-            >
-              <Text className="text-white font-bold text-[15px]">Got it</Text>
-            </TouchableOpacity>
+            <DsButton label="Got it" onPress={() => setShowEstimateGuide(false)} />
           </View>
         </View>
       </Modal>
