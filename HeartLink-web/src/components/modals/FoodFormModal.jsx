@@ -44,6 +44,7 @@ const foodSchema = z.object({
   name: z.string().min(1, "Name is required."),
   foodSourceType: z.string().default("Home Recipe"),
   category: z.string().min(1, "Category is required."),
+  categoryOther: z.string().max(40, "Keep it under 40 characters.").optional(),
   hssTarget: z.string().min(1, "HSS Tier is required."),
   prepTimeMinutes: z.coerce.number().min(0, "Cannot be negative").default(15),
   servings: z.coerce.number().min(1, "At least 1 serving").default(1),
@@ -72,6 +73,15 @@ const foodSchema = z.object({
       value: z.string().min(1, "Step content is required.")
     })
   ).min(1, "At least one step is required."),
+}).superRefine((data, ctx) => {
+  // HL-030: "Others" needs a typed category name
+  if (data.category === "Others" && !(data.categoryOther || "").trim()) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["categoryOther"],
+      message: "Type the category name.",
+    });
+  }
 });
 
 const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave, onDelete }) => {
@@ -88,6 +98,7 @@ const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave, 
     defaultValues: {
       name: "",
       category: "Breakfast",
+      categoryOther: "",
       hssTarget: "Stable (80-100)",
       foodSourceType: "Home Recipe",
       prepTimeMinutes: 15,
@@ -118,6 +129,7 @@ const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave, 
     name: "steps",
   });
 
+  const category = watch("category");
   const expertValidated = watch("expertValidated");
   const mediaUrl = watch("mediaUrl");
   const status = watch("status");
@@ -163,6 +175,7 @@ const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave, 
       reset({
         name: recipe.name || "",
         category: recipe.category || "Breakfast",
+        categoryOther: recipe.categoryOther || "",
         hssTarget: recipe.hssTarget || "Stable (80-100)",
         foodSourceType: recipe.foodSourceType || "Home Recipe",
         prepTimeMinutes: recipe.prepTimeMinutes !== undefined ? recipe.prepTimeMinutes : 15,
@@ -184,6 +197,7 @@ const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave, 
       reset({
         name: "",
         category: "Breakfast",
+      categoryOther: "",
         hssTarget: "Stable (80-100)",
         foodSourceType: "Home Recipe",
         prepTimeMinutes: 15,
@@ -220,6 +234,7 @@ const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave, 
 
       onSave({
         ...data,
+        categoryOther: data.category === "Others" ? data.categoryOther.trim() : "",
         prepTimeMinutes: Number(data.prepTimeMinutes) || 15,
         servings: Number(data.servings) || 1,
         difficulty: data.difficulty || "Easy",
@@ -318,8 +333,21 @@ const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave, 
                     <option value="Lunch">Lunch</option>
                     <option value="Dinner">Dinner</option>
                     <option value="Snack">Snack</option>
+                    <option value="Others">Others</option>
                   </select>
                   {errors.category && <p className="text-[11px] text-[#A93226] mt-1">{errors.category.message}</p>}
+                  {category === "Others" && (
+                    <div className="mt-2">
+                      <InputField
+                        id="categoryOther"
+                        label="Specify category *"
+                        placeholder="e.g. Soup, Dessert"
+                        maxLength={40}
+                        error={errors.categoryOther}
+                        {...register("categoryOther")}
+                      />
+                    </div>
+                  )}
                 </div>
 
                 <div>

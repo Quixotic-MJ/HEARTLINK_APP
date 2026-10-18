@@ -27,6 +27,18 @@ import { useAuth } from "../../../contexts/AuthContext";
 import { toast } from "sonner";
 import { UI, FONTS, PageHeader, StatusBadge } from "../../../styles/designSystem";
 
+// Database hss_tier -> the label the recipe form uses
+const HSS_TIER_LABELS = {
+  Stable: "Stable (80-100)",
+  Moderate: "Moderate (60-79)",
+  "Elevated Risk": "Elevated Risk (50-59)",
+  Critical: "Critical (<50)",
+};
+
+// HL-030: an "Others" recipe shows the name typed for it
+const categoryLabel = (recipe) =>
+  recipe.category === "Others" && recipe.categoryOther ? recipe.categoryOther : recipe.category;
+
 const Foods = () => {
   const [recipes, setRecipes] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -75,6 +87,7 @@ const Foods = () => {
       const payload = {
         name: recipe.name,
         category: recipe.category,
+        categoryOther: recipe.categoryOther,
         hssTarget: recipe.hssTarget,
         foodSourceType: recipe.foodSourceType,
         prepTimeMinutes: recipe.prepTimeMinutes,
@@ -123,7 +136,7 @@ const Foods = () => {
       entityInfo: {
         name: recipe.name,
         badge: "Published -> Archived",
-        email: `${recipe.category} • ${recipe.hssTarget}`,
+        email: `${categoryLabel(recipe)} • ${recipe.hssTarget}`,
         id: recipe.id,
       },
       impactDetails: [
@@ -135,6 +148,7 @@ const Foods = () => {
           const payload = {
             name: recipe.name,
             category: recipe.category,
+            categoryOther: recipe.categoryOther,
             hssTarget: recipe.hssTarget,
             foodSourceType: recipe.foodSourceType,
             prepTimeMinutes: recipe.prepTimeMinutes,
@@ -185,7 +199,7 @@ const Foods = () => {
       entityInfo: {
         name: recipe.name,
         badge: recipe.status?.toUpperCase() || "RECIPE",
-        email: `${recipe.category} • ${recipe.hssTarget}`,
+        email: `${categoryLabel(recipe)} • ${recipe.hssTarget}`,
         id: recipe.id,
       },
       impactDetails: [
@@ -218,26 +232,25 @@ const Foods = () => {
       const res = await apiFetch("/api/recipes");
       const list = Array.isArray(res) ? res : res.data || [];
       const mapped = list.map((r) => {
-        let hssTier = "Stable";
-        const hssVal = r.hss_target || "";
-        if (hssVal.includes("Moderate")) hssTier = "Moderate";
-        else if (hssVal.includes("Elevated")) hssTier = "Elevated Risk";
-        else if (hssVal.includes("Critical")) hssTier = "Critical";
+        // The API returns database column names (hss_tier, sodium_mg, ...). Reading the wrong
+        // names showed 0 here, and saving the recipe then wrote those 0s back.
+        const hssTier = HSS_TIER_LABELS[r.hss_tier] ? r.hss_tier : "Stable";
 
         return {
           id: r.id,
           name: r.name,
           category: r.category || "Breakfast",
-          hssTarget: r.hss_target || "Stable (80-100)",
+          categoryOther: r.category_other || "",
+          hssTarget: HSS_TIER_LABELS[hssTier],
           hssTier: hssTier,
           prepTimeMinutes: r.prep_time_minutes || 15,
           servings: r.servings || 1,
           difficulty: r.difficulty || "Easy",
-          sodium: r.sodium || 0,
+          sodium: r.sodium_mg || 0,
           calories: r.calories || 0,
-          satFat: r.sat_fat || 0,
-          cholesterol: r.cholesterol || 0,
-          fiber: r.fiber || 0,
+          satFat: r.saturated_fat_g || 0,
+          cholesterol: r.cholesterol_mg || 0,
+          fiber: r.fiber_g || 0,
           heartBenefit: r.heart_benefit || "",
           status: r.status || "draft",
           expertValidated: r.expert_validated || false,
@@ -293,7 +306,7 @@ const Foods = () => {
     const matchesSearch =
       !q ||
       r.name.toLowerCase().includes(q) ||
-      r.category.toLowerCase().includes(q) ||
+      categoryLabel(r).toLowerCase().includes(q) ||
       (r.tags && r.tags.some((t) => t.toLowerCase().includes(q)));
 
     const matchesStatus = filterStatus === "all" || r.status === filterStatus;
@@ -431,6 +444,7 @@ const Foods = () => {
                   <option value="Lunch">Lunch</option>
                   <option value="Dinner">Dinner</option>
                   <option value="Snack">Snack</option>
+                  <option value="Others">Others</option>
                 </select>
                 <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
                   <ChevronDown size={12} className="text-[#94A3B8]" />
@@ -552,7 +566,7 @@ const Foods = () => {
                                 {recipe.name}
                               </p>
                               <p className="text-[#64748B] text-[11px] font-medium truncate">
-                                {recipe.category} · <span className="capitalize">{recipe.status}</span>
+                                {categoryLabel(recipe)} · <span className="capitalize">{recipe.status}</span>
                               </p>
                             </div>
                           </div>
