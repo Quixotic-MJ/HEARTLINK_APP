@@ -1,368 +1,259 @@
-import React, { useState, useCallback } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  FlatList,
-  ActivityIndicator,
-  Alert,
-  RefreshControl,
-  Modal,
-  TextInput,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  Pressable,
-} from "react-native";
+import React, { useCallback, useMemo, useState } from "react";
+import { RefreshControl, SectionList, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
-import { useRouter, useFocusEffect } from "expo-router";
-import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
-import { ConfirmDialog } from "../../../components/ui/ConfirmDialog";
-import { QuickLogModal } from "../../../components/exercise/QuickLogModal";
-import { Swipeable } from "react-native-gesture-handler";
+import { useFocusEffect, useRouter } from "expo-router";
+import { Feather } from "@expo/vector-icons";
 import { useUser } from "../../../contexts/UserContext";
-import { EmptyState } from "../../../components/ui/EmptyState";
 import { useToast } from "../../../contexts/ToastContext";
-import { queueExerciseForSync } from "../../../services/SyncService";
-
-import { getToken } from "../../../lib/secureTokenStore";
 import { apiFetch } from "../../../lib/api";
-import { theme } from "../../../constants/theme";export type ExerciseLog = {
+import { ConfirmDialog } from "../../../components/ui/ConfirmDialog";
+import { Skeleton } from "../../../components/ui/Skeleton";
+import AnimatedButton from "../../../components/ui/AnimatedButton";
+import DsButton from "../../../components/onboarding/DsButton";
+import { useDs } from "../../../components/onboarding/useDs";
+import { QuickLogModal } from "../../../components/exercise/QuickLogModal";
+import { IconBadge, SquareIconButton, Tag } from "../../../components/exercise/ExerciseBits";
+import { formatDuration } from "../../../services/exerciseSession";
+
+// Screen 8: every exercise saved, guided or logged by hand, newest first and grouped by day,
+// with this week's totals. Each row can be deleted.
+
+export type ExerciseLog = {
   id: string;
   user_id: string;
-  routine_id: string;
+  routine_id?: string | null;
   routine_name: string;
   duration_minutes: number;
-  duration_seconds?: number;
+  duration_seconds?: number | null;
   status: "completed" | "incomplete_due_to_symptoms" | string;
   logged_at: string;
   deleted_at?: string | null;
 };
 
+const logSeconds = (log: ExerciseLog) => (log.duration_seconds && log.duration_seconds > 0 ? log.duration_seconds : Math.max(0, log.duration_minutes || 0) * 60);
+
+/** 3960 → "1 h 6 min" */
+function formatTotal(seconds: number) {
+  if (seconds < 3600) return formatDuration(seconds).replace(/ \d+ s$/, "");
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  return m ? `${h} h ${m} min` : `${h} h`;
+}
+
+function dayLabel(date: Date) {
+  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(today.getDate() - 1);
+  if (date.toDateString() === today.toDateString()) return "Today";
+  if (date.toDateString() === yesterday.toDateString()) return "Yesterday";
+  return date.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" });
+}
+
 export default function ExerciseDiaryScreen() {
   const router = useRouter();
-  const { userId, token, logout } = useUser();
+  const { c, isDark } = useDs();
+  const { userId } = useUser();
   const { showToast } = useToast();
-  // Quick Log Manual Activity State (HL-ENG-20 / Pillar A)
-  const [showQuickLogModal, setShowQuickLogModal] = useState(false);
   const [logs, setLogs] = useState<ExerciseLog[]>([]);
   const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [logToDelete, setLogToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [toDelete, setToDelete] = useState<ExerciseLog | null>(null);
+  const [showLog, setShowLog] = useState(false);
+  // When the list was last loaded; "last 7 days" counts back from here.
+  const [loadedAt, setLoadedAt] = useState(0);
 
   const fetchLogs = useCallback(async () => {
     if (!userId) return;
     try {
-      const storedToken = await getToken();
-      const effectiveToken = token || storedToken || "";
-      const response = await apiFetch(`/api/exercises/logs/${userId}?limit=50&offset=0`, {
-        headers: {
-          "Authorization": `Bearer ${effectiveToken}`,
-        },
-      });
-
-      if (response.status === 401) {
-        showToast({ title: "Session Expired", message: "Please log in again.", type: "info" });
-        await logout();
-        return;
-      }
-
-      if (response.ok) {
-        const data: ExerciseLog[] = await response.json();
-        setLogs(data);
-      }
-    } catch (error) {
-      console.error("Error fetching exercise logs:", error);
+      const res = await apiFetch(`/api/exercises/logs/${userId}?limit=50&offset=0`);
+      if (!res.ok) throw new Error(String(res.status));
+      const data: ExerciseLog[] = await res.json();
+      setLogs(data);
+      setLoadedAt(Date.now());
+      setFailed(false);
+    } catch {
+      setFailed(true);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [userId, token, logout]);
+  }, [userId]);
 
   useFocusEffect(
     useCallback(() => {
       fetchLogs();
-    }, [fetchLogs])
+    }, [fetchLogs]),
   );
 
-  const onRefresh = () => {
-    setRefreshing(true);
-    fetchLogs();
-  };
-
-  const confirmDeleteLog = async () => {
-    if (!logToDelete || !userId) return;
+  const deleteLog = async () => {
+    const log = toDelete;
+    setToDelete(null);
+    if (!log || !userId) return;
     try {
-      const storedToken = await getToken();
-      const effectiveToken = token || storedToken || "";
-      const res = await apiFetch(`/api/exercises/logs/${userId}/${logToDelete.id}`, {
-        method: "DELETE",
-        headers: {
-          "Authorization": `Bearer ${effectiveToken}`,
-        },
-      });
-
-      if (res.status === 401) {
-        showToast({ title: "Session Expired", message: "Please log in again.", type: "info" });
-        await logout();
-        return;
-      }
-
-      const json = await res.json();
-      if (res.ok && json.success) {
-        setLogs((prev) => prev.filter((item) => item.id !== logToDelete.id));
-        showToast({ title: "Deleted", message: "Exercise log removed.", type: "success" });
-      } else {
-        showToast({ title: "Cannot Delete Log", message: json.detail || "Could not delete this exercise log.", type: "error" });
-      }
+      const res = await apiFetch(`/api/exercises/logs/${userId}/${log.id}`, { method: "DELETE" });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || json.success === false) throw new Error(json.detail || "");
+      setLogs((prev) => prev.filter((l) => l.id !== log.id));
+      showToast({ title: "Deleted", message: `${log.routine_name} was removed from your history.`, type: "success" });
     } catch (err) {
-      console.error("Failed to delete exercise log:", err);
-      showToast({ title: "Error", message: "Network error occurred when trying to delete exercise log.", type: "error" });
-    } finally {
-      setLogToDelete(null);
+      const detail = err instanceof Error && err.message ? err.message : "Check your connection and try again.";
+      showToast({ title: "Couldn't delete", message: detail, type: "error" });
     }
   };
 
-  const handleDeleteLog = (logId: string, routineName: string) => {
-    setLogToDelete({ id: logId, name: routineName });
-  };
+  const weekAgo = loadedAt - 7 * 24 * 3600 * 1000;
+  const lastWeek = logs.filter((l) => new Date(l.logged_at).getTime() >= weekAgo);
+  const weekSeconds = lastWeek.reduce((sum, l) => sum + logSeconds(l), 0);
 
-  const renderRightActions = (item: ExerciseLog) => {
+  const sections = useMemo(() => {
+    const groups = new Map<string, ExerciseLog[]>();
+    for (const log of logs) {
+      const key = dayLabel(new Date(log.logged_at));
+      groups.set(key, [...(groups.get(key) ?? []), log]);
+    }
+    return Array.from(groups, ([title, data]) => ({ title, data }));
+  }, [logs]);
+
+  const renderRow = ({ item }: { item: ExerciseLog }) => {
+    const unwell = item.status === "incomplete_due_to_symptoms";
+    const breathing = item.routine_name?.toLowerCase().includes("breath");
+    const time = new Date(item.logged_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+    const how = item.routine_id ? "guided" : "logged by you";
     return (
-      <TouchableOpacity
-        onPress={() => handleDeleteLog(item.id, item.routine_name || "Exercise Routine")}
-        activeOpacity={0.8}
-        className="bg-red-500 justify-center items-center px-6 rounded-2xl mb-3 ml-2"
+      <View
+        style={{ minHeight: 72, borderRadius: 12, borderWidth: 1, borderColor: c.hairline, paddingLeft: 14, paddingRight: 4, paddingVertical: 12, flexDirection: "row", alignItems: "center", gap: 12 }}
       >
-        <Feather name="trash-2" size={20} color="#fff" />
-        <Text className="text-white text-[11px] font-medium mt-1">Delete</Text>
-      </TouchableOpacity>
+        <IconBadge icon={unwell ? "alert-triangle" : breathing ? "wind" : "activity"} tone={unwell ? "rose" : breathing ? "sky" : "mint"} />
+        <View style={{ flex: 1, gap: 4 }}>
+          <Text style={{ fontSize: 16, fontWeight: "500", color: c.ink }} numberOfLines={2}>
+            {item.routine_name || "Exercise"}
+          </Text>
+          <Text style={{ fontSize: 13, color: c.slate }}>
+            {time}, {formatDuration(logSeconds(item))}, {how}
+          </Text>
+          {unwell ? <Tag label="Stopped, felt unwell" tone="rose" /> : null}
+        </View>
+        <AnimatedButton
+          onPress={() => setToDelete(item)}
+          accessibilityRole="button"
+          accessibilityLabel={`Delete ${item.routine_name || "exercise"}`}
+          style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}
+        >
+          <Feather name="trash-2" size={18} color={c.steel} />
+        </AnimatedButton>
+      </View>
     );
   };
 
-  const formatDuration = (log: ExerciseLog): string => {
-    const sec = log.duration_seconds;
-    const min = log.duration_minutes;
-
-    // Case 1: duration_seconds is explicitly provided and > 0
-    if (sec !== undefined && sec !== null && sec > 0) {
-      if (sec < 60) return `${sec}s`;
-      const mins = Math.floor(sec / 60);
-      const remainderSecs = sec % 60;
-      if (remainderSecs > 0) return `${mins}m ${remainderSecs}s`;
-      return `${mins}m`;
-    }
-
-    // Case 2: Legacy rows where duration_seconds is 0 or null, but duration_minutes > 0
-    if (min !== undefined && min !== null && min > 0) {
-      return `${min}m`;
-    }
-
-    // Case 3: Exactly 0s
-    return "0s";
-  };
-
-  const totalDurationSeconds = logs.reduce((sum, item) => {
-    if (item.duration_seconds !== undefined && item.duration_seconds !== null && item.duration_seconds > 0) {
-      return sum + item.duration_seconds;
-    }
-    if (item.duration_minutes !== undefined && item.duration_minutes !== null && item.duration_minutes > 0) {
-      return sum + item.duration_minutes * 60;
-    }
-    return sum;
-  }, 0);
-
-  const formattedTotalTime = (): string => {
-    if (totalDurationSeconds === 0) return "0s";
-    if (totalDurationSeconds < 60) return `${totalDurationSeconds}s`;
-
-    const hours = Math.floor(totalDurationSeconds / 3600);
-    const remainingSeconds = totalDurationSeconds % 3600;
-    const mins = Math.floor(remainingSeconds / 60);
-    const secs = remainingSeconds % 60;
-
-    if (hours > 0) {
-      return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
-    }
-    if (secs > 0) {
-      return `${mins}m ${secs}s`;
-    }
-    return `${mins}m`;
-  };
-
   return (
-    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950" edges={["top"]}>
-      <StatusBar style="dark" />
+    <SafeAreaView style={{ flex: 1, backgroundColor: c.canvas }} edges={["top"]}>
+      <StatusBar style={isDark ? "light" : "dark"} />
 
-      {/* ── Header Bar ── */}
-      <View className="flex-row items-center justify-between px-5 py-3 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
-        <TouchableOpacity
-          onPress={() => router.back()}
-          className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 items-center justify-center"
+      <View className="flex-row items-center px-5 pt-3 pb-2" style={{ gap: 10 }}>
+        <SquareIconButton icon="arrow-left" label="Go back" onPress={() => router.back()} />
+        <Text accessibilityRole="header" style={{ flex: 1, fontSize: 22, fontWeight: "600", color: c.ink }} numberOfLines={1}>
+          Activity history
+        </Text>
+        <AnimatedButton
+          onPress={() => setShowLog(true)}
+          accessibilityRole="button"
+          accessibilityLabel="Log an activity"
+          style={{ height: 40, paddingHorizontal: 14, borderRadius: 8, borderWidth: 1, borderColor: c.hairlineStrong, flexDirection: "row", alignItems: "center", gap: 6 }}
         >
-          <Feather name="arrow-left" size={18} color={theme.ink} />
-        </TouchableOpacity>
-
-        <Text className="text-[17px] font-semibold text-slate-900 dark:text-white">
-          Activity Log History
-        </Text>
-
-        <View className="flex-row items-center gap-2">
-          <TouchableOpacity
-            onPress={() => router.push("/(home)/(tabs)/exercises")}
-            className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 items-center justify-center"
-            accessibilityLabel="Browse Guided Video Routines"
-          >
-            <Feather name="video" size={16} color={theme.ink} />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={() => setShowQuickLogModal(true)}
-            className="flex-row items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#1B6E63]"
-            accessibilityLabel="Quick Log Physical Activity"
-          >
-            <Feather name="plus" size={14} color={theme.surface} />
-            <Text className="text-white text-[12px] font-bold">Log</Text>
-          </TouchableOpacity>
-        </View>
+          <Feather name="plus" size={16} color={c.ink} />
+          <Text style={{ fontSize: 14, fontWeight: "500", color: c.ink }}>Log</Text>
+        </AnimatedButton>
       </View>
 
-      {/* ── Summary Banner ── */}
-      <View className="mx-5 mt-4 mb-3 p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 flex-row items-center justify-around">
-        <View className="items-center">
-          <Text className="text-[11px] text-slate-400 uppercase tracking-wide">
-            Total Sessions
-          </Text>
-          <Text className="text-[20px] font-bold text-slate-900 dark:text-white">
-            {logs.length}
-          </Text>
-        </View>
-        <View className="w-[1px] h-8 bg-slate-200 dark:bg-slate-800" />
-        <View className="items-center">
-          <Text className="text-[11px] text-slate-400 uppercase tracking-wide">
-            Total Active Time
-          </Text>
-          <Text className="text-[20px] font-bold text-slate-900 dark:text-white">
-            {formattedTotalTime()}
-          </Text>
-        </View>
-      </View>
-
-      {/* ── Instructions Tip ── */}
-      <View className="px-5 mb-2 flex-row items-start">
-        <Feather name="info" size={12} color={theme.textMuted} className="mt-[3px]" />
-        <Text className="text-[12px] text-slate-400 ml-1.5 flex-1 leading-relaxed">
-          Swipe left on any session to remove it from your history.
-        </Text>
-      </View>
-
-      {/* ── Content / List ── */}
       {loading ? (
-        <View className="flex-1 justify-center items-center">
-          <ActivityIndicator size="large" color={theme.ink} />
+        <View className="px-5" style={{ paddingTop: 12, gap: 10 }}>
+          <Skeleton style={{ height: 76, borderRadius: 12 }} />
+          {[0, 1, 2].map((k) => (
+            <Skeleton key={k} style={{ height: 72, borderRadius: 12 }} />
+          ))}
         </View>
-      ) : logs.length === 0 ? (
-        <EmptyState
-          icon={<Feather name="activity" size={32} color={theme.textMuted} />}
-          title="No Activity Logs"
-          subtitle="You haven't logged any movement yet. Start a quick log or a guided routine to see it here!"
-          actionLabel="Quick Log Activity"
-          onAction={() => setShowQuickLogModal(true)}
-          actionIcon={<Feather name="plus" size={15} color="#fff" />}
-        />
       ) : (
-        <FlatList
-          data={logs}
+        <SectionList
+          sections={sections}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}
+          renderItem={renderRow}
+          stickySectionHeadersEnabled={false}
+          contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 8, paddingBottom: 40 }}
+          ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#0f172a" />
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => {
+                setRefreshing(true);
+                fetchLogs();
+              }}
+              tintColor={c.line}
+            />
           }
-          renderItem={({ item }) => {
-            const hasSymptoms = item.status === "incomplete_due_to_symptoms";
-            return (
-              <Swipeable renderRightActions={() => renderRightActions(item)}>
-                <View className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 mb-3">
-                  <View className="flex-row items-center justify-between">
-                    <View className="flex-row items-center flex-1 gap-3 pr-2">
-                      <View className="w-11 h-11 rounded-xl bg-slate-100 dark:bg-slate-800 items-center justify-center">
-                        <Feather
-                          name={hasSymptoms ? "alert-circle" : item.routine_name?.toLowerCase().includes("breath") ? "wind" : "activity"}
-                          size={20}
-                          color={hasSymptoms ? "#e11d48" : "#3b6d11"}
-                        />
-                      </View>
-                      <View className="flex-1">
-                        <Text 
-                          className="text-[15px] font-semibold text-slate-900 dark:text-white leading-snug"
-                          numberOfLines={2}
-                          adjustsFontSizeToFit
-                        >
-                          {item.routine_name || "Rehab Routine"}
-                        </Text>
-                        <Text className="text-[12px] text-slate-400 mt-0.5">
-                          {new Date(item.logged_at).toLocaleDateString([], {
-                            month: "short",
-                            day: "numeric",
-                          })}{" "}
-                          •{" "}
-                          {new Date(item.logged_at).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </Text>
-                      </View>
-                    </View>
-
-                    <View className="items-end">
-                      <Text className="text-[15px] font-bold text-slate-900 dark:text-white">
-                        {formatDuration(item)}
-                      </Text>
-                      <Text
-                        className="text-[11px] font-medium uppercase tracking-wide mt-0.5"
-                        style={{ color: hasSymptoms ? "#e11d48" : "#3b6d11" }}
-                      >
-                        {hasSymptoms ? "Aborted" : "Completed"}
-                      </Text>
-                    </View>
-                  </View>
-
-                  {/* Symptom Badge */}
-                  {hasSymptoms && (
-                    <View className="flex-row items-center gap-1.5 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 px-2.5 py-1.5 rounded-lg self-start mt-3">
-                      <Feather name="alert-triangle" size={12} color="#e11d48" />
-                      <Text className="text-[11px] font-medium text-rose-600 dark:text-rose-400 uppercase tracking-wide">
-                        Symptoms Reported
-                      </Text>
-                    </View>
-                  )}
+          renderSectionHeader={({ section }) => (
+            <Text accessibilityRole="header" style={{ fontSize: 15, fontWeight: "600", color: c.ink, paddingTop: 20, paddingBottom: 8 }}>
+              {section.title}
+            </Text>
+          )}
+          ListHeaderComponent={
+            <View style={{ gap: 12 }}>
+              {failed ? (
+                <View style={{ padding: 16, borderRadius: 12, backgroundColor: c.surface, gap: 8 }}>
+                  <Text style={{ fontSize: 15, fontWeight: "600", color: c.ink }}>{"Your history couldn't load"}</Text>
+                  <Text style={{ fontSize: 14, color: c.slate }}>Check your connection, then pull down to try again.</Text>
                 </View>
-              </Swipeable>
-            );
-          }}
+              ) : null}
+              {logs.length > 0 ? (
+                <View className="flex-row" style={{ gap: 12 }}>
+                  <View style={{ flex: 1, backgroundColor: c.surface, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14, gap: 4 }}>
+                    <Text style={{ fontSize: 13, color: c.slate }}>Last 7 days</Text>
+                    <Text style={{ fontSize: 20, fontWeight: "600", color: c.ink }}>
+                      {lastWeek.length} {lastWeek.length === 1 ? "session" : "sessions"}
+                    </Text>
+                  </View>
+                  <View style={{ flex: 1, backgroundColor: c.surface, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14, gap: 4 }}>
+                    <Text style={{ fontSize: 13, color: c.slate }}>Time moving</Text>
+                    <Text style={{ fontSize: 20, fontWeight: "600", color: c.ink }}>{formatTotal(weekSeconds)}</Text>
+                  </View>
+                </View>
+              ) : null}
+            </View>
+          }
+          ListEmptyComponent={
+            failed ? null : (
+              <View style={{ marginTop: 12, padding: 20, borderRadius: 12, backgroundColor: c.surface, gap: 8 }}>
+                <Text style={{ fontSize: 16, fontWeight: "600", color: c.ink }}>Nothing logged yet</Text>
+                <Text style={{ fontSize: 14, lineHeight: 21, color: c.slate }}>Follow a guided exercise, or log a walk or anything else you did.</Text>
+                <View style={{ marginTop: 6, gap: 4 }}>
+                  <DsButton label="Log an activity" onPress={() => setShowLog(true)} />
+                  <DsButton label="Find an exercise" variant="link" style={{ alignSelf: "center" }} onPress={() => router.push("/(home)/(tabs)/exercises")} />
+                </View>
+              </View>
+            )
+          }
         />
       )}
 
       <ConfirmDialog
-        visible={!!logToDelete}
-        onCancel={() => setLogToDelete(null)}
-        onConfirm={confirmDeleteLog}
-        title="Delete Activity Log?"
-        message={`Are you sure you want to remove "${logToDelete?.name}" from your activity history?`}
+        visible={!!toDelete}
+        onCancel={() => setToDelete(null)}
+        onConfirm={deleteLog}
+        title="Delete this activity?"
+        message={`"${toDelete?.routine_name ?? ""}" will be removed from your history.`}
         confirmLabel="Delete"
         variant="destructive"
         mode="bottom-sheet"
         icon="trash-2"
       />
 
-      {/* ── Quick Log Manual Activity Modal (HL-ENG-20 / Pillar A) ── */}
-      <QuickLogModal 
-        visible={showQuickLogModal} 
-        onClose={(success) => {
-          setShowQuickLogModal(false);
-          if (success) fetchLogs();
-        }} 
+      <QuickLogModal
+        visible={showLog}
+        onClose={(saved) => {
+          setShowLog(false);
+          if (saved) fetchLogs();
+        }}
       />
     </SafeAreaView>
   );

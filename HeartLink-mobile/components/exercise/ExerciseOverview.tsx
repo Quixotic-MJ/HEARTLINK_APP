@@ -1,329 +1,221 @@
-import React, { useState } from "react";
-import { View, Text, TouchableOpacity, ScrollView, Image, Dimensions, Linking } from "react-native";
+import React from "react";
+import { ScrollView, Text, View } from "react-native";
+import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Feather, FontAwesome5 } from "@expo/vector-icons";
-import { theme } from "../../constants/theme";
+import { Feather } from "@expo/vector-icons";
+import DsButton from "../onboarding/DsButton";
+import { useDs } from "../onboarding/useDs";
+import { SquareIconButton, Tag } from "./ExerciseBits";
+import { ExerciseVideo, PictureThumb } from "./ExerciseMedia";
+import { ExerciseKind, Routine, SECTION_NAME, describePart, routineSeconds } from "../../services/exerciseSession";
 
-const { width } = Dimensions.get("window");
+// Screen 1: what the exercise is and how to do it, then Start. When workouts are paused for
+// safety (screen 1b) a rose card explains why and Start is turned off.
 
 export interface ExerciseOverviewProps {
-  routine: any;
-  stepCount: number;
+  routine: Routine;
+  kind: ExerciseKind;
+  paused: boolean;
+  /** The pause comes from a recent severe symptom, which a doctor can clear. */
+  canClearPause: boolean;
+  /** Still checking today's score and symptoms. */
+  checking: boolean;
   onStart: () => void;
   onBack: () => void;
-  isLockedCritical?: boolean;
-  hasRecentSevereSymptom?: boolean;
-  onClearSymptomLock?: () => void;
+  onClearPause: () => void;
+  onFindBreathing: () => void;
 }
 
-export function ExerciseOverview({
-  routine,
-  stepCount,
-  onStart,
-  onBack,
-  isLockedCritical = false,
-  hasRecentSevereSymptom = false,
-  onClearSymptomLock,
-}: ExerciseOverviewProps) {
+/** A labelled line in the "how it should feel / how often" box. */
+function InfoRow({ icon, label, value }: { icon: keyof typeof Feather.glyphMap; label: string; value: string }) {
+  const { c } = useDs();
+  return (
+    <View className="flex-row" style={{ gap: 10 }}>
+      <Feather name={icon} size={18} color={c.charcoal} style={{ marginTop: 2 }} />
+      <View style={{ flex: 1, gap: 2 }}>
+        <Text style={{ fontSize: 13, color: c.slate }}>{label}</Text>
+        <Text style={{ fontSize: 15, lineHeight: 22, color: c.ink }}>{value}</Text>
+      </View>
+    </View>
+  );
+}
+
+/** One section of "How to do it": numbered parts, each with its time or count, and its picture (tap to enlarge). */
+function PartList({ title, items }: { title: string; items: { text: string; details: string; amount?: string; image?: string }[] }) {
+  const { c } = useDs();
+  return (
+    <View style={{ gap: 10 }}>
+      <Text style={{ fontSize: 15, fontWeight: "600", color: c.charcoal }}>{title}</Text>
+      {items.map((step, i) => (
+        <View key={i} className="flex-row" style={{ gap: 12 }}>
+          <View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: c.surface, borderWidth: 1, borderColor: c.hairline, alignItems: "center", justifyContent: "center" }}>
+            <Text style={{ fontSize: 13, fontWeight: "600", color: c.ink }}>{i + 1}</Text>
+          </View>
+          <View style={{ flex: 1, gap: 2 }}>
+            <Text style={{ fontSize: 15, lineHeight: 22, color: c.ink }}>{step.text}</Text>
+            {step.details ? <Text style={{ fontSize: 14, lineHeight: 20, color: c.slate }}>{step.details}</Text> : null}
+            {step.amount ? <Text style={{ fontSize: 14, fontWeight: "500", color: c.charcoal }}>{step.amount}</Text> : null}
+          </View>
+          {step.image ? <PictureThumb uri={step.image} label={step.text} /> : null}
+        </View>
+      ))}
+    </View>
+  );
+}
+
+export function ExerciseOverview({ routine, kind, paused, canClearPause, checking, onStart, onBack, onClearPause, onFindBreathing }: ExerciseOverviewProps) {
+  const { c } = useDs();
   const insets = useSafeAreaInsets();
-  const [activeTab, setActiveTab] = useState<"guide" | "video">("guide");
+  const kindLabel = { breathing: "Breathing", cardio: "Light cardio", steps: "Move by move", guide: "Guided" }[kind];
+  const minutes = Math.max(1, Math.round(routineSeconds(routine) / 60));
 
   return (
-    <View className="flex-1 bg-white" style={{ paddingTop: insets.top }}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
-        {/* Top Header / Image Area */}
-        <View className="w-full bg-slate-100 relative" style={{ height: width * 0.6 }}>
-          <TouchableOpacity
-            onPress={onBack}
-            className="absolute z-10 w-10 h-10 rounded-full bg-white/80 backdrop-blur-md items-center justify-center shadow-sm"
-            style={{ top: 15, left: 15 }}
-          >
-            <Feather name="arrow-left" size={20} color={theme.ink} />
-          </TouchableOpacity>
-          
+    <View style={{ flex: 1, backgroundColor: c.canvas }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 24 }} showsVerticalScrollIndicator={false}>
+        <View style={{ height: 200 + insets.top, backgroundColor: c.mint, alignItems: "center", justifyContent: "center" }}>
+          <Feather name={kind === "breathing" ? "wind" : "activity"} size={44} color={c.charcoal} />
           {routine.image ? (
-            <Image source={{ uri: routine.image }} className="absolute inset-0 w-full h-full" resizeMode="cover" />
-          ) : (
-            <View className="flex-1 items-center justify-center opacity-50">
-              <Feather name="activity" size={48} color={theme.textMuted} />
-            </View>
-          )}
+            <Image source={{ uri: routine.image }} style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }} contentFit="cover" transition={200} accessibilityIgnoresInvertColors />
+          ) : null}
+          <View style={{ position: "absolute", top: insets.top + 12, left: 16 }}>
+            <SquareIconButton icon="arrow-left" label="Go back" onPress={onBack} />
+          </View>
         </View>
 
-        <View className="px-5 pt-6 bg-white flex-1 -mt-4 rounded-t-3xl">
-          {isLockedCritical && (
-            <View className="p-4 rounded-2xl flex-col mb-5 bg-red-50 border border-red-200">
-              <View className="flex-row gap-3 mb-2">
-                <Feather name="alert-triangle" size={20} color={theme.dangerMid} style={{ marginTop: 2 }} />
-                <View className="flex-1">
-                  <Text className="text-[14px] font-bold text-red-900 mb-1">
-                    Active Workouts Paused: Critical Cardiac Strain
+        <View className="px-5" style={{ paddingTop: 20, gap: 14 }}>
+          {paused ? (
+            <View style={{ backgroundColor: c.rose, borderRadius: 12, padding: 16, gap: 12 }}>
+              <View className="flex-row" style={{ gap: 12 }}>
+                <Feather name="alert-triangle" size={22} color={c.danger} style={{ marginTop: 1 }} />
+                <View style={{ flex: 1, gap: 6 }}>
+                  <Text accessibilityRole="header" style={{ fontSize: 16, fontWeight: "600", color: c.ink }}>
+                    Workouts are paused for now
                   </Text>
-                  <Text className="text-[13px] leading-relaxed font-medium text-red-700">
-                    Active cardiovascular workouts are paused to protect your heart. Please rest seated or lying down comfortably and contact your attending care team or emergency services immediately.
+                  <Text style={{ fontSize: 14, lineHeight: 20, color: c.charcoal }}>
+                    Your latest readings or symptoms suggest resting today. Breathing exercises are still open. If something feels wrong, get checked in person.
                   </Text>
                 </View>
               </View>
-              {hasRecentSevereSymptom && onClearSymptomLock && (
-                <TouchableOpacity
-                  onPress={onClearSymptomLock}
-                  className="mt-2 w-full py-3 bg-red-100 rounded-xl items-center justify-center border border-red-300"
-                >
-                  <Text className="text-red-800 font-bold text-[14px]">I've been cleared to exercise</Text>
-                </TouchableOpacity>
-              )}
+              {canClearPause ? <DsButton label="A doctor cleared me to exercise" variant="secondary" onPress={onClearPause} style={{ backgroundColor: c.canvas }} /> : null}
             </View>
-          )}
+          ) : null}
 
-          {/* Title */}
-          <Text className="text-[26px] font-bold text-slate-900 leading-tight mb-2">
+          <Text accessibilityRole="header" style={{ fontSize: 26, lineHeight: 32, fontWeight: "600", color: c.ink }}>
             {routine.title}
           </Text>
-          
-          {routine.description ? (
-            <Text className="text-[14px] text-slate-600 mb-6 leading-relaxed font-medium">
-              {routine.description}
-            </Text>
+          <View className="flex-row flex-wrap" style={{ gap: 8 }}>
+            <Tag label={`${minutes} min`} tone="sky" />
+            <Tag label={`${routine.intensity} intensity`} tone="mint" />
+            {routine.position ? <Tag label={routine.position} /> : <Tag label={kindLabel} />}
+            {routine.setting && routine.setting !== "Either" ? <Tag label={routine.setting} /> : null}
+          </View>
+          {routine.description ? <Text style={{ fontSize: 15, lineHeight: 22, color: c.slate }}>{routine.description}</Text> : null}
+
+          {routine.effortHint || routine.frequency ? (
+            <View style={{ borderWidth: 1, borderColor: c.hairline, borderRadius: 12, padding: 14, gap: 10 }}>
+              {routine.effortHint ? <InfoRow icon="thermometer" label="How it should feel" value={routine.effortHint} /> : null}
+              {routine.frequency ? <InfoRow icon="calendar" label="How often" value={routine.frequency} /> : null}
+            </View>
           ) : null}
-          
-          {/* Tags */}
-          <View className="flex-row flex-wrap gap-2 mb-6">
-            <View className="bg-red-50 px-3 py-1.5 rounded-full border border-red-100">
-              <Text className="text-[13px] font-bold text-red-600">{routine.duration} min</Text>
+
+          {routine.goal && routine.goal !== routine.description ? (
+            <View style={{ gap: 6 }}>
+              <Text accessibilityRole="header" style={{ fontSize: 17, fontWeight: "600", color: c.ink }}>
+                Why it helps
+              </Text>
+              <Text style={{ fontSize: 15, lineHeight: 22, color: c.charcoal }}>{routine.goal}</Text>
             </View>
-            <View className="bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-100">
-              <Text className="text-[13px] font-bold text-emerald-600">{routine.intensity}</Text>
+          ) : null}
+
+          {routine.skipIf.length > 0 ? (
+            <View style={{ backgroundColor: c.yellow, borderRadius: 12, padding: 14, gap: 6 }}>
+              <Text style={{ fontSize: 15, fontWeight: "600", color: c.ink }}>Skip this exercise today if:</Text>
+              {routine.skipIf.map((reason) => (
+                <Text key={reason} style={{ fontSize: 15, lineHeight: 22, color: c.charcoal }}>
+                  • {reason}
+                </Text>
+              ))}
             </View>
-            <View className="bg-slate-50 px-3 py-1.5 rounded-full border border-slate-200">
-              <Text className="text-[13px] font-bold text-slate-700">{stepCount} poses</Text>
-            </View>
-          </View>
-          
-          {/* Tabs */}
-          <View className="flex-row bg-slate-100 rounded-full p-1 mb-6 self-start">
-            <TouchableOpacity 
-              onPress={() => setActiveTab("guide")}
-              className="px-6 py-2 rounded-full"
-              style={activeTab === "guide" ? { backgroundColor: 'white', shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 2, shadowOffset: { width: 0, height: 1 }, elevation: 2 } : { backgroundColor: 'transparent' }}
-            >
-              <Text 
-                className="text-[14px] font-bold"
-                style={{ color: activeTab === "guide" ? "#0284c7" : "#64748b" }}
-              >Guide</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              onPress={() => setActiveTab("video")}
-              className="px-6 py-2 rounded-full"
-              style={activeTab === "video" ? { backgroundColor: 'white', shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 2, shadowOffset: { width: 0, height: 1 }, elevation: 2 } : { backgroundColor: 'transparent' }}
-            >
-              <Text 
-                className="text-[14px] font-bold"
-                style={{ color: activeTab === "video" ? "#0284c7" : "#64748b" }}
-              >Video</Text>
-            </TouchableOpacity>
-          </View>
+          ) : null}
 
-          {activeTab === "guide" ? (
-            <>
-              {/* Description / Goal */}
-              {routine.goal ? (
-                <View className="mb-6">
-                  <Text className="text-[12px] font-bold text-slate-400 mb-2 uppercase tracking-widest">Why this movement?</Text>
-                  <Text className="text-[14px] text-slate-700 leading-relaxed font-medium">{routine.goal}</Text>
-                </View>
-              ) : null}
-
-              {/* What you'll need */}
-              {routine.requirements && routine.requirements.length > 0 ? (
-                <View className="mb-8">
-                  <Text className="text-[12px] font-bold text-slate-400 mb-4 uppercase tracking-widest">What you'll need</Text>
-                  <View className="flex-row gap-2 flex-wrap">
-                    {routine.requirements.map((req: any, idx: number) => {
-                      let iconName: keyof typeof Feather.glyphMap = "check-circle";
-                      const label = typeof req === 'string' ? req : (req.name || '');
-                      const lower = label.toLowerCase();
-                      if (lower.includes('seat') || lower.includes('chair')) iconName = "box";
-                      else if (lower.includes('equipment')) iconName = "wind";
-                      else if (lower.includes('audio') || lower.includes('music')) iconName = "volume-2";
-                      else if (lower.includes('mat')) iconName = "layout";
-                      else if (lower.includes('water')) iconName = "droplet";
-                      else if (lower.includes('weight') || lower.includes('dumbbell')) iconName = "target";
-                      
-                      return (
-                        <View key={idx} className="flex-1 min-w-[30%] bg-slate-50 border border-slate-100 rounded-xl p-4 items-center justify-center">
-                          <Feather name={iconName} size={24} color={theme.textSoft} className="mb-2" />
-                          <Text className="text-[12px] font-medium text-slate-600 text-center mt-2">{label}</Text>
-                        </View>
-                      );
-                    })}
-                  </View>
-                </View>
-              ) : null}
-
-              {/* Movements / How to perform */}
-              <Text className="text-[12px] font-bold text-slate-400 mb-4 uppercase tracking-widest">How to perform</Text>
-              <View className="gap-y-4">
-                {routine.steps && routine.steps.length > 0 ? (
-                  routine.steps.map((step: any, idx: number) => {
-                    // Update to light blue theme
-                    const bgColors = ["bg-sky-100", "bg-blue-100", "bg-cyan-100", "bg-sky-50", "bg-indigo-100"];
-                    const iconColors = ["#0284c7", "#2563eb", "#0891b2", "#0ea5e9", "#4f46e5"];
-                    const colorIdx = idx % bgColors.length;
-                    
-                    const stepText = (typeof step === 'string' ? step : (step.instruction || '')).toLowerCase();
-                    let IconComponent: any = Feather;
-                    let iconName = "activity";
-                    
-                    if (stepText.includes("walk")) {
-                      IconComponent = FontAwesome5;
-                      iconName = "walking";
-                    } else if (stepText.includes("run") || stepText.includes("jog") || stepText.includes("warm")) {
-                      IconComponent = FontAwesome5;
-                      iconName = "running";
-                    } else if (stepText.includes("cool") || stepText.includes("shoe")) {
-                      IconComponent = FontAwesome5;
-                      iconName = "shoe-prints";
-                    } else if (stepText.includes("stretch") || stepText.includes("fold")) {
-                      IconComponent = FontAwesome5;
-                      iconName = "child";
-                    } else {
-                      const fallback = ["activity", "wind", "heart", "target"];
-                      iconName = fallback[idx % fallback.length];
-                    }
-                    
-                    return (
-                      <View key={idx} className="mb-2 shadow-sm shadow-slate-100">
-                        {/* Media Placeholder or Actual Image */}
-                        {routine.guideImages && routine.guideImages[idx] ? (
-                           <Image 
-                             source={{ uri: routine.guideImages[idx] }} 
-                             className="w-full h-40 rounded-t-2xl border-t border-l border-r border-slate-100"
-                             resizeMode="cover"
-                           />
-                        ) : (
-                           <View className={`w-full h-40 ${bgColors[colorIdx]} rounded-t-2xl items-center justify-center border-t border-l border-r border-slate-100`}>
-                             <IconComponent name={iconName} size={36} color={iconColors[colorIdx]} />
-                           </View>
-                        )}
-                        
-                        {/* Step Details */}
-                        <View className="bg-white rounded-b-2xl p-4 flex-row items-start border-b border-l border-r border-slate-100">
-                          <View className="w-7 h-7 rounded-full bg-slate-100 items-center justify-center mr-3 mt-1">
-                            <Text className="text-[12px] font-bold text-slate-700">{idx + 1}</Text>
-                          </View>
-                          <View className="flex-1">
-                            <Text className="text-[15px] font-bold text-slate-900 mb-1">
-                              {typeof step === 'string' ? step.trim() : (step.instruction || `Step ${idx+1}`).trim()}
-                            </Text>
-                            {typeof step === 'object' && step.details ? (
-                              <Text className="text-[13px] font-medium text-slate-500 leading-relaxed">
-                                {step.details}
-                              </Text>
-                            ) : null}
-                            {typeof step === 'object' && step.duration_minutes ? (
-                               <Text className="text-[13px] font-medium text-slate-400 mt-1">
-                                 Hold for {step.duration_minutes} min
-                               </Text>
-                            ) : null}
-                          </View>
-                        </View>
-                      </View>
-                    );
-                  })
-                ) : (
-                  <Text className="text-slate-500 italic">No movements listed.</Text>
-                )}
-              </View>
-            </>
-          ) : (
-            <View className="flex-1 pb-4">
-              {/* Video Player (Click to open) */}
-              <TouchableOpacity 
-                activeOpacity={0.9}
-                onPress={() => {
-                  if (routine.videoUrl) {
-                    Linking.openURL(routine.videoUrl).catch(() => {
-                      alert("Could not open video URL");
-                    });
-                  }
-                }}
-                className="w-full aspect-video bg-slate-900 rounded-2xl mb-4 border border-slate-800 relative overflow-hidden shadow-md items-center justify-center"
-              >
-                {routine.image ? (
-                  <Image 
-                    source={{ uri: routine.image }}
-                    className="absolute inset-0 w-full h-full opacity-60"
-                    resizeMode="cover"
-                  />
-                ) : null}
-                
-                <View className="w-16 h-16 bg-white/90 rounded-full items-center justify-center shadow-lg pl-1 z-10">
-                  <FontAwesome5 name="play" size={24} color={theme.sky} />
-                </View>
-
-                {routine.videoUrl ? null : (
-                  <View className="absolute bottom-4 left-4 bg-black/60 px-2 py-1 rounded z-10">
-                    <Text className="text-white text-[11px] font-bold">No Video Available</Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-
-              {/* Video Pills */}
-              {routine.videoUrl ? (
-                <View className="flex-row gap-2 mb-8">
-                  <View className="bg-sky-50 px-3 py-1.5 rounded-lg border border-sky-200">
-                    <Text className="text-sky-700 text-[12px] font-bold">Watch on YouTube</Text>
-                  </View>
-                </View>
-              ) : null}
-
-              <Text className="text-slate-900 font-bold text-[18px] mb-4">Jump to</Text>
-              
-              <View className="gap-2">
-                 {routine.steps && routine.steps.length > 0 ? (
-                   routine.steps.map((step: any, idx: number) => {
-                     const mins = Math.floor((idx * 45) / 60);
-                     const secs = (idx * 45) % 60;
-                     const timeStr = `${mins}:${secs.toString().padStart(2, '0')}`;
-                     return (
-                       <TouchableOpacity key={idx} className="bg-white rounded-xl p-4 flex-row items-center border border-slate-100 shadow-sm shadow-slate-100/50">
-                         <View className="w-10 h-10 bg-slate-100 rounded-lg mr-4" />
-                         <Text className="flex-1 text-slate-900 font-bold text-[14px]">
-                           {typeof step === 'string' ? step : (step.instruction || `Part ${idx+1}`)}
-                         </Text>
-                         <Text className="text-slate-500 text-[12px] font-medium">{timeStr}</Text>
-                       </TouchableOpacity>
-                     );
-                   })
-                 ) : (
-                   <View className="bg-white rounded-xl p-4 flex-row items-center border border-slate-100 mb-2 shadow-sm shadow-slate-100/50">
-                      <View className="w-10 h-10 bg-slate-100 rounded-lg mr-4" />
-                      <Text className="flex-1 text-slate-900 font-bold text-[14px]">Warm-up stretch</Text>
-                      <Text className="text-slate-500 text-[12px] font-medium">0:00</Text>
-                   </View>
-                 )}
+          {routine.requirements.length > 0 ? (
+            <View style={{ gap: 8 }}>
+              <Text accessibilityRole="header" style={{ fontSize: 17, fontWeight: "600", color: c.ink }}>
+                {"You'll need"}
+              </Text>
+              <View className="flex-row flex-wrap" style={{ gap: 8 }}>
+                {routine.requirements.map((need) => (
+                  <Tag key={need} label={need} />
+                ))}
               </View>
             </View>
-          )}
+          ) : null}
+
+          {routine.videoUrl ? (
+            <View style={{ gap: 8 }}>
+              <Text accessibilityRole="header" style={{ fontSize: 17, fontWeight: "600", color: c.ink }}>
+                {"Watch how it's done"}
+              </Text>
+              <ExerciseVideo url={routine.videoUrl} />
+            </View>
+          ) : null}
+
+          {routine.setup.length > 0 || routine.steps.length > 0 ? (
+            <View style={{ gap: 14 }}>
+              <Text accessibilityRole="header" style={{ fontSize: 17, fontWeight: "600", color: c.ink }}>
+                How to do it
+              </Text>
+              {routine.setup.length > 0 ? <PartList title="Get into position" items={routine.setup.map((s) => ({ text: s.text, details: s.details, image: s.image }))} /> : null}
+              {kind === "breathing" ? (
+                <PartList title="One round, repeated" items={routine.steps.map((s) => ({ text: s.text, details: s.details, amount: `${s.seconds} s`, image: s.image }))} />
+              ) : (
+                (["warmup", "main", "cooldown"] as const).map((section) => {
+                  const parts = routine.steps.filter((s) => s.section === section);
+                  if (parts.length === 0) return null;
+                  const title =
+                    section === "main" && routine.rounds > 1
+                      ? `${SECTION_NAME.main}, ${routine.rounds} rounds${routine.restSeconds ? ` with ${routine.restSeconds} s rest between` : ""}`
+                      : SECTION_NAME[section];
+                  return <PartList key={section} title={title} items={parts.map((s) => ({ text: s.text, details: s.details, amount: describePart(s), image: s.image }))} />;
+                })
+              )}
+            </View>
+          ) : null}
+
+          {routine.easierVersion ? (
+            <View style={{ backgroundColor: c.surface, borderRadius: 12, padding: 14, gap: 4 }}>
+              <Text style={{ fontSize: 15, fontWeight: "600", color: c.ink }}>Too hard today?</Text>
+              <Text style={{ fontSize: 15, lineHeight: 22, color: c.charcoal }}>{routine.easierVersion}</Text>
+            </View>
+          ) : null}
+
+          <View className="flex-row" style={{ backgroundColor: c.surface, borderRadius: 12, padding: 14, gap: 12 }}>
+            <Feather name="heart" size={20} color={c.charcoal} style={{ marginTop: 1 }} />
+            <Text style={{ flex: 1, fontSize: 14, lineHeight: 20, color: c.charcoal }}>
+              {'Stop and tap "I feel unwell" if you get chest pain, feel dizzy or can\'t catch your breath.'}
+            </Text>
+          </View>
+
+          {routine.reviewedAt ? (
+            <View className="flex-row items-center" style={{ gap: 8 }}>
+              <Feather name="check-circle" size={16} color={c.success} />
+              <Text style={{ fontSize: 13, color: c.slate }}>
+                Checked by a HeartLink expert on {new Date(routine.reviewedAt).toLocaleDateString([], { year: "numeric", month: "short", day: "numeric" })}
+              </Text>
+            </View>
+          ) : null}
         </View>
       </ScrollView>
 
-      {/* Sticky Bottom Button */}
-      <View style={{ paddingBottom: Math.max(insets.bottom, 20) }} className="absolute bottom-0 w-full px-5 pt-4 pb-6 bg-white/95 border-t border-slate-100">
-         <TouchableOpacity 
-           activeOpacity={isLockedCritical ? 1 : 0.8}
-           disabled={isLockedCritical}
-           onPress={onStart}
-           className="w-full py-4 rounded-full items-center justify-center shadow-lg shadow-sky-500/20"
-           style={{ backgroundColor: isLockedCritical ? "#e2e8f0" : "#0ea5e9" }}
-         >
-           <Text 
-             className="font-bold tracking-wide"
-             style={{ color: isLockedCritical ? "#64748b" : "white", fontSize: isLockedCritical ? 15 : 16 }}
-           >
-             {isLockedCritical ? "WORKOUT PAUSED" : "START EXERCISE"}
-           </Text>
-         </TouchableOpacity>
+      <View className="px-5" style={{ paddingTop: 12, paddingBottom: Math.max(insets.bottom, 16) + 8, borderTopWidth: 1, borderTopColor: c.hairlineSoft, gap: 4 }}>
+        {paused ? (
+          <>
+            <DsButton label="Paused for today" disabled onPress={onStart} />
+            <DsButton label="Try a breathing exercise" variant="link" onPress={onFindBreathing} style={{ alignSelf: "center" }} />
+          </>
+        ) : (
+          <DsButton label="Start exercise" loading={checking} onPress={onStart} />
+        )}
       </View>
     </View>
   );

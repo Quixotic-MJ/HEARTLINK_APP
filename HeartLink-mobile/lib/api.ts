@@ -29,6 +29,7 @@ export function setSessionEndedHandler(handler: (() => void) | null): void {
 /**
  * Adds the token. A caller's own Authorization header is kept on the first try (e.g. login uses
  * the token it just received), but replaced after a refresh (`replace`), since it is then stale.
+ * A blank one ("Bearer " from a screen whose token hadn't loaded yet) counts as missing.
  */
 function withToken(headers: HeadersInit | undefined, token: string | null, replace = false): Record<string, string> {
   const out: Record<string, string> = {};
@@ -36,15 +37,17 @@ function withToken(headers: HeadersInit | undefined, token: string | null, repla
   else if (Array.isArray(headers)) headers.forEach(([k, v]) => (out[k] = v));
   else if (headers) Object.assign(out, headers);
   const authKey = Object.keys(out).find((k) => k.toLowerCase() === "authorization");
-  if (authKey && replace) delete out[authKey];
-  if (token && (!authKey || replace)) out.Authorization = `Bearer ${token}`;
+  const callerHasToken = !!authKey && sentToken(out) !== null;
+  if (authKey && (replace || !callerHasToken)) delete out[authKey];
+  if (token && (!callerHasToken || replace)) out.Authorization = `Bearer ${token}`;
   return out;
 }
 
 function sentToken(headers: Record<string, string>): string | null {
   const key = Object.keys(headers).find((k) => k.toLowerCase() === "authorization");
   const value = key ? headers[key] : "";
-  return value.startsWith("Bearer ") && value.length > 7 ? value.slice(7) : null;
+  const token = value.startsWith("Bearer ") ? value.slice(7).trim() : "";
+  return token && token !== "null" && token !== "undefined" ? token : null;
 }
 
 export async function apiFetch(path: string, options: ApiOptions = {}): Promise<Response> {

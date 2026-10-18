@@ -52,7 +52,7 @@ def read_routine(routine_id: str, request: Request, credentials: Optional[HTTPAu
 
 @router.post("/", response_model=Dict[str, Any])
 def add_routine(data: Dict[str, Any], current_user: dict = Depends(require_permission("exercises:edit"))):
-    new_routine = create_routine(data)
+    new_routine = create_routine(data, reviewer_id=current_user.get("user_id") if current_user else None)
     admin_id = current_user.get("user_id") if current_user else "admin"
     record_admin_activity(
         admin_user_id=admin_id,
@@ -66,7 +66,9 @@ def add_routine(data: Dict[str, Any], current_user: dict = Depends(require_permi
 @router.put("/{routine_id}", response_model=Dict[str, Any])
 def edit_routine(routine_id: str, data: Dict[str, Any], current_user: dict = Depends(require_permission("exercises:edit"))):
     try:
-        updated_routine = update_routine(routine_id, data)
+        updated_routine = update_routine(routine_id, data, reviewer_id=current_user.get("user_id") if current_user else None)
+        if not updated_routine:
+            raise ValueError("Exercise not found")
         admin_id = current_user.get("user_id") if current_user else "admin"
         record_admin_activity(
             admin_user_id=admin_id,

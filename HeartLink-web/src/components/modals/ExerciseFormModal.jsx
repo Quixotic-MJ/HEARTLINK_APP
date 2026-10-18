@@ -10,7 +10,6 @@ import {
   CheckCircle2,
   Save,
   Clock,
-  Image as ImageIcon,
   ArrowUp,
   ArrowDown,
 } from "lucide-react";
@@ -19,6 +18,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { InputField } from "../ui/InputField";
 import { BASE_URL, apiUpload } from "../../api";
+import { EquipmentPicker, PartsEditor, SetupEditor, TextListEditor } from "./ExercisePartsEditor";
+import { NEW_PART, formatSeconds, partFromStep, partSeconds, stepFromPart } from "./exerciseParts";
 
 const resolveMediaUrl = (url) => {
   if (!url) return "";
@@ -29,6 +30,22 @@ const resolveMediaUrl = (url) => {
   const cleanPath = url.startsWith("/") ? url : `/${url}`;
   return `${cleanBase}${cleanPath}`;
 };
+
+const partSchema = z
+  .object({
+    instruction: z.string().min(1, "Instruction cannot be empty"),
+    details: z.string().optional(),
+    mode: z.enum(["time", "count"]).default("time"),
+    minutes: z.coerce.number().min(0).default(0),
+    seconds: z.coerce.number().min(0).max(59, "Use 0 to 59 seconds").default(30),
+    reps: z.coerce.number().min(1).default(10),
+    seconds_per_rep: z.coerce.number().min(1).default(3),
+    both_sides: z.boolean().default(false),
+    // Breathing exercises only: what this step asks for. Empty = the app reads it from the words.
+    breath: z.enum(["", "in", "hold", "out"]).optional(),
+    image: z.string().optional(),
+  })
+  .refine((p) => p.mode === "count" || p.minutes * 60 + p.seconds > 0, { message: "Give it a time", path: ["seconds"] });
 
 const exerciseSchema = z.object({
   name: z.string().min(1, "Name is required."),
@@ -43,14 +60,55 @@ const exerciseSchema = z.object({
   status: z.string().default("draft"),
   expertValidated: z.boolean().default(false),
   calories: z.coerce.number().min(0).default(0),
-  requirements: z.array(z.object({ value: z.string().min(1, "Requirement cannot be empty") })).optional(),
-  steps: z.array(z.object({ 
-    instruction: z.string().min(1, "Instruction cannot be empty"),
-    details: z.string().optional(),
-    duration_seconds: z.coerce.number().min(1).default(5)
-  })).optional(),
+  requirements: z.array(z.string()).default([]),
+  position: z.string().optional(),
+  setting: z.string().optional(),
+  effortHint: z.string().optional(),
+  frequency: z.string().optional(),
+  easierVersion: z.string().optional(),
+  skipIf: z.array(z.object({ value: z.string() })).optional(),
+  stopIf: z.array(z.object({ value: z.string() })).optional(),
+  setupSteps: z.array(z.object({ instruction: z.string(), details: z.string().optional(), image: z.string().optional() })).optional(),
+  warmupParts: z.array(partSchema).optional(),
+  mainParts: z.array(partSchema).optional(),
+  cooldownParts: z.array(partSchema).optional(),
+  rounds: z.coerce.number().min(1, "At least 1").max(20, "20 at most").default(1),
+  restSeconds: z.coerce.number().min(0).max(600, "10 minutes at most").default(0),
   guideImages: z.array(z.object({ url: z.string().min(1, "URL cannot be empty") })).optional(),
 });
+
+const EMPTY_FORM = {
+  name: "",
+  description: "",
+  duration: 10,
+  hssTarget: "Stable (80-100)",
+  mediaUrl: "",
+  videoUrl: "",
+  type: "General",
+  intensity: "Low",
+  goal: "",
+  status: "draft",
+  expertValidated: false,
+  calories: 0,
+  requirements: [],
+  position: "",
+  setting: "",
+  effortHint: "",
+  frequency: "",
+  easierVersion: "",
+  skipIf: [],
+  stopIf: [],
+  setupSteps: [],
+  warmupParts: [],
+  mainParts: [{ ...NEW_PART }],
+  cooldownParts: [],
+  rounds: 1,
+  restSeconds: 0,
+  guideImages: [],
+};
+
+const toValues = (list) => (Array.isArray(list) ? list.filter(Boolean).map((v) => ({ value: typeof v === "string" ? v : v.value || "" })) : []);
+const fromValues = (list) => (list || []).map((v) => (v.value || "").trim()).filter(Boolean);
 
 const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", onSave, onDelete }) => {
   const {
@@ -63,145 +121,115 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
     formState: { errors },
   } = useForm({
     resolver: zodResolver(exerciseSchema),
-    defaultValues: {
-      name: "",
-      description: "",
-      duration: 10,
-      hssTarget: "Stable (80-100)",
-      mediaUrl: "",
-      videoUrl: "",
-      type: "General",
-      intensity: "Low",
-      goal: "",
-      status: "draft",
-      expertValidated: false,
-      calories: 0,
-      requirements: [],
-      steps: [{ instruction: "", details: "", duration_seconds: 5 }],
-      guideImages: [],
-    },
+    defaultValues: EMPTY_FORM,
     mode: "onTouched",
   });
-
-  const { fields: stepsFields, append, remove, move } = useFieldArray({
-    control,
-    name: "steps",
-  });
-
-  const moveStepUp = (index) => {
-    if (index > 0) {
-      move(index, index - 1);
-    }
-  };
-
-  const moveStepDown = (index) => {
-    if (index < stepsFields.length - 1) {
-      move(index, index + 1);
-    }
-  };
 
   const { fields: guideImageFields, append: appendGuideImage, remove: removeGuideImage } = useFieldArray({
     control,
     name: "guideImages",
   });
 
-  const { fields: requirementsFields, append: appendRequirement, remove: removeRequirement } = useFieldArray({
-    control,
-    name: "requirements",
-  });
-
   const expertValidated = watch("expertValidated");
   const mediaUrl = watch("mediaUrl");
   const status = watch("status");
+  const isBreathing = watch("type") === "Breathing";
+  const editorProps = { control, register, watch, setValue, errors };
+  // Total time, worked out from the parts: warm-up once, the main part each round with rest between, cool-down once.
+  const sumParts = (name) => (watch(name) || []).reduce((t, p) => t + partSeconds(p), 0);
+  const rounds = Math.max(1, Number(watch("rounds")) || 1);
+  const totalSeconds = sumParts("warmupParts") + sumParts("mainParts") * rounds + (Number(watch("restSeconds")) || 0) * (rounds - 1) + sumParts("cooldownParts");
   const [isUploading, setIsUploading] = useState(false);
   // HL-048: upload errors per field ("media" or "guide-<index>"); a rejected file is never saved some other way
   const [uploadErrors, setUploadErrors] = useState({});
+  const [picturesNote, setPicturesNote] = useState("");
+
+  // Gives the extra pictures to the steps in order: set-up, warm-up, main, cool-down. Only when
+  // the counts match, so a picture never lands on the wrong move.
+  const putPicturesOnSteps = () => {
+    const urls = (watch("guideImages") || []).map((g) => (g.url || "").trim()).filter(Boolean);
+    const slots = ["setupSteps", "warmupParts", "mainParts", "cooldownParts"].flatMap((name) =>
+      (watch(name) || []).map((row, i) => ({ name, i, row })).filter(({ row }) => (row.instruction || "").trim())
+    );
+    if (urls.length === 0 || urls.length !== slots.length) {
+      setPicturesNote(`There are ${urls.length} pictures and ${slots.length} steps. Add or remove pictures or steps so they match, then try again.`);
+      return;
+    }
+    slots.forEach(({ name, i }, n) => setValue(`${name}.${i}.image`, urls[n], { shouldDirty: true }));
+    setPicturesNote(`Done: ${urls.length} pictures put on the steps in order. Check them under How it's done, then save.`);
+  };
   const setUploadError = (key, message) => setUploadErrors((prev) => ({ ...prev, [key]: message }));
 
   useEffect(() => {
-    if (exercise) {
-      reset({
-        ...exercise,
-        description: exercise.description || "",
-        mediaUrl: exercise.mediaUrl || "",
-        videoUrl: exercise.videoUrl || "",
-        type: exercise.type || "General",
-        intensity: exercise.intensity || "Low",
-        goal: exercise.goal || "",
-        calories: exercise.calories || 0,
-        requirements: Array.isArray(exercise.requirements) 
-          ? exercise.requirements.map(req => ({ value: typeof req === 'string' ? req : (req.name || req.value || "") })) 
-          : [],
-        steps: exercise.steps 
-          ? exercise.steps.map(step => {
-              if (typeof step === 'string') {
-                return { instruction: step, details: "", duration_seconds: 5 };
-              } else if (step && typeof step === 'object') {
-                return { 
-                  instruction: step.instruction || step.value || "", 
-                  details: step.details || "", 
-                  duration_seconds: step.duration_seconds || 5 
-                };
-              }
-              return { instruction: "", details: "", duration_seconds: 5 };
-            })
-          : [{ instruction: "", details: "", duration_seconds: 5 }],
-        guideImages: exercise.guideImages
-          ? exercise.guideImages.map(img => {
-              if (typeof img === 'string') {
-                return { url: img };
-              } else if (img && typeof img === 'object') {
-                return { url: img.url || "" };
-              }
-              return { url: "" };
-            })
-          : [],
-      });
-    } else {
-      reset({
-        name: "",
-        description: "",
-        duration: 10,
-        hssTarget: "Stable (80-100)",
-        mediaUrl: "",
-        videoUrl: "",
-        type: "General",
-        intensity: "Low",
-        goal: "",
-        status: "draft",
-        expertValidated: false,
-        calories: 0,
-        requirements: [],
-        steps: [{ instruction: "", details: "", duration_seconds: 5 }],
-        guideImages: [],
-      });
+    if (!exercise) {
+      reset(EMPTY_FORM);
+      return;
     }
+    const steps = Array.isArray(exercise.steps) ? exercise.steps : [];
+    // Old steps have no section: they all count as the main part.
+    const inSection = (section) => steps.filter((s) => (typeof s === "object" && s?.section ? s.section : "main") === section).map(partFromStep);
+    const main = inSection("main");
+    reset({
+      ...EMPTY_FORM,
+      ...exercise,
+      description: exercise.description || "",
+      mediaUrl: exercise.mediaUrl || "",
+      videoUrl: exercise.videoUrl || "",
+      // "Stretching" was an older type; it plays the same as Stationary.
+      type: exercise.type === "Stretching" ? "Stationary" : exercise.type || "General",
+      intensity: exercise.intensity === "Medium" ? "Moderate" : exercise.intensity || "Low",
+      goal: exercise.goal || "",
+      calories: exercise.calories || 0,
+      requirements: (exercise.requirements || []).map((r) => (typeof r === "string" ? r : r?.name || r?.value || "")).filter(Boolean),
+      position: exercise.position || "",
+      setting: exercise.setting || "",
+      effortHint: exercise.effortHint || "",
+      frequency: exercise.frequency || "",
+      easierVersion: exercise.easierVersion || "",
+      skipIf: toValues(exercise.skipIf),
+      stopIf: toValues(exercise.stopIf),
+      setupSteps: (exercise.setupSteps || []).map((s) => ({ instruction: s.instruction || "", details: s.details || "", image: s.image || "" })),
+      warmupParts: inSection("warmup"),
+      mainParts: main.length ? main : [{ ...NEW_PART }],
+      cooldownParts: inSection("cooldown"),
+      rounds: exercise.rounds || 1,
+      restSeconds: exercise.restSeconds || 0,
+      guideImages: (exercise.guideImages || []).map((img) => ({ url: typeof img === "string" ? img : img?.url || "" })),
+    });
   }, [exercise, isOpen, reset]);
 
   const onSubmit = (data) => {
     if (onSave) {
-      const cleanSteps = (data.steps || [])
-        .map(s => ({
-          instruction: (s.instruction || "").trim(),
-          details: (s.details || "").trim(),
-          duration_seconds: parseInt(s.duration_seconds || 5, 10)
-        }))
-        .filter(s => s.instruction.length > 0);
-
-      const cleanRequirements = (data.requirements || [])
-        .map(r => (r.value || "").trim())
-        .filter(r => r.length > 0);
-
-      const cleanGuides = (data.guideImages || [])
-        .map(g => (g.url || "").trim())
-        .filter(g => g.length > 0);
+      const breathing = data.type === "Breathing";
+      const keep = (parts) => (parts || []).filter((p) => (p.instruction || "").trim());
+      const steps = breathing
+        ? keep(data.mainParts).map((p) => stepFromPart(p, "main", true))
+        : [
+            ...keep(data.warmupParts).map((p) => stepFromPart(p, "warmup", false)),
+            ...keep(data.mainParts).map((p) => stepFromPart(p, "main", false)),
+            ...keep(data.cooldownParts).map((p) => stepFromPart(p, "cooldown", false)),
+          ];
+      // The three part lists are only for the form; they're saved together as `steps`.
+      // eslint-disable-next-line no-unused-vars
+      const { warmupParts, mainParts, cooldownParts, ...rest } = data;
 
       onSave({
-        ...data,
+        ...rest,
         calories: parseInt(data.calories || 0, 10),
-        requirements: cleanRequirements,
-        steps: cleanSteps,
-        guideImages: cleanGuides,
+        requirements: (data.requirements || []).map((r) => r.trim()).filter(Boolean),
+        skipIf: fromValues(data.skipIf),
+        stopIf: fromValues(data.stopIf),
+        setupSteps: (data.setupSteps || [])
+          .filter((s) => (s.instruction || "").trim())
+          .map((s) => ({ instruction: s.instruction.trim(), details: (s.details || "").trim(), ...(s.image ? { image: s.image.trim() } : {}) })),
+        steps,
+        // Breathing repeats its breaths until its time is up; everything else adds up its parts.
+        rounds: breathing ? 1 : data.rounds,
+        restSeconds: breathing ? 0 : data.restSeconds,
+        duration: breathing ? data.duration : Math.max(1, Math.ceil(totalSeconds / 60)),
+        position: data.position || null,
+        setting: data.setting || null,
+        guideImages: (data.guideImages || []).map((g) => (g.url || "").trim()).filter(Boolean),
       });
     }
     onClose();
@@ -311,24 +339,36 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
                   >
                     <option value="None">None</option>
                     <option value="Low">Low</option>
-                    <option value="Medium">Medium</option>
+                    <option value="Moderate">Moderate</option>
                     <option value="High">High</option>
                   </select>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-                <div>
-                  <InputField
-                    id="duration"
-                    type="number"
-                    label="Duration (Minutes)"
-                    left={<Clock size={13} />}
-                    error={errors.duration}
-                    {...register("duration")}
-                    min="1"
-                  />
-                </div>
+                {isBreathing ? (
+                  <div>
+                    <InputField
+                      id="duration"
+                      type="number"
+                      label="Duration (Minutes)"
+                      left={<Clock size={13} />}
+                      error={errors.duration}
+                      {...register("duration")}
+                      min="1"
+                    />
+                    <p className="text-[10.5px] text-[#64748B] mt-1">The breaths repeat until this time is up.</p>
+                  </div>
+                ) : (
+                  <div>
+                    <label className="block text-[11px] font-semibold text-[#64748B] uppercase tracking-wider mb-1">Total time</label>
+                    <div className="flex items-center gap-2 px-3 py-2 text-[13px] font-semibold bg-[#F8FAFC] border border-[#E2E8F0] rounded-[8px] text-[#0F172A]">
+                      <Clock size={13} className="text-[#64748B]" />
+                      {totalSeconds > 0 ? formatSeconds(totalSeconds) : "Add parts below"}
+                    </div>
+                    <p className="text-[10.5px] text-[#64748B] mt-1">Worked out from the parts below.</p>
+                  </div>
+                )}
 
                 <div>
                   <label className="block text-[11px] font-semibold text-[#64748B] uppercase tracking-wider mb-1">
@@ -366,36 +406,63 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
 
               <div>
                 <label className="block text-[11px] font-semibold text-[#64748B] uppercase tracking-wider mb-1">
-                  Required Equipment
+                  Equipment needed
                 </label>
-                <div className="space-y-2">
-                  {requirementsFields.map((field, index) => (
-                    <div key={field.id} className="flex gap-2">
-                      <input
-                        {...register(`requirements.${index}.value`)}
-                        className={`flex-1 px-3 py-2 text-[12.5px] bg-[#F8FAFC] border ${
-                          errors.requirements?.[index]?.value ? 'border-[#A93226]' : 'border-[#E2E8F0] focus:border-[#0F172A]'
-                        } rounded-[8px] focus:outline-none text-[#0F172A] transition-colors`}
-                        placeholder="e.g. Yoga Mat"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removeRequirement(index)}
-                        className="p-2 text-[#64748B] hover:text-[#A93226] bg-[#F8FAFC] hover:bg-[#F7E4E1] border border-[#E2E8F0] rounded-[8px] transition-colors cursor-pointer"
-                        title="Remove"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  ))}
-                  <button
-                    type="button"
-                    onClick={() => appendRequirement({ value: "" })}
-                    className="flex items-center gap-1.5 text-[11px] font-semibold text-[#2E9AE8] hover:text-[#1C7AC8] transition-colors mt-1 cursor-pointer"
+                <p className="text-[11px] text-[#64748B] mb-2">Patients tick these off on the app's "Before you start" check.</p>
+                <EquipmentPicker
+                  value={watch("requirements") || []}
+                  onChange={(list) => setValue("requirements", list, { shouldDirty: true })}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* ── WHO IT'S FOR AND SAFETY ── */}
+          <div>
+            <h4 className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider border-b border-[#E2E8F0] pb-2 mb-3.5">
+              Who it's for and safety
+            </h4>
+            <div className="space-y-3.5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                <div>
+                  <label className="block text-[11px] font-semibold text-[#64748B] uppercase tracking-wider mb-1">Position</label>
+                  <select
+                    {...register("position")}
+                    className="w-full px-3 py-2 text-[13px] font-medium bg-[#F8FAFC] border border-[#E2E8F0] rounded-[8px] focus:outline-none focus:border-[#0F172A] text-[#0F172A] cursor-pointer"
                   >
-                    <PlusCircle size={13} /> <span>Add equipment</span>
-                  </button>
+                    <option value="">Not set</option>
+                    <option value="Seated">Seated</option>
+                    <option value="Standing">Standing</option>
+                    <option value="Lying down">Lying down</option>
+                    <option value="Walking">Walking</option>
+                  </select>
                 </div>
+                <div>
+                  <label className="block text-[11px] font-semibold text-[#64748B] uppercase tracking-wider mb-1">Where</label>
+                  <select
+                    {...register("setting")}
+                    className="w-full px-3 py-2 text-[13px] font-medium bg-[#F8FAFC] border border-[#E2E8F0] rounded-[8px] focus:outline-none focus:border-[#0F172A] text-[#0F172A] cursor-pointer"
+                  >
+                    <option value="">Not set</option>
+                    <option value="Indoors">Indoors</option>
+                    <option value="Outdoors">Outdoors</option>
+                    <option value="Either">Indoors or outdoors</option>
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                <InputField id="effortHint" label="How it should feel" placeholder="e.g. You can still talk while doing it" {...register("effortHint")} />
+                <InputField id="frequency" label="How often" placeholder="e.g. 3 times a week" {...register("frequency")} />
+              </div>
+              <InputField id="easierVersion" label="Easier version" placeholder="e.g. Do it sitting down, with smaller movements" {...register("easierVersion")} />
+              <div>
+                <label className="block text-[11px] font-semibold text-[#64748B] uppercase tracking-wider mb-1">Skip this exercise if…</label>
+                <TextListEditor control={control} register={register} name="skipIf" placeholder="e.g. You have knee pain today" addLabel="Add a reason to skip" />
+              </div>
+              <div>
+                <label className="block text-[11px] font-semibold text-[#64748B] uppercase tracking-wider mb-1">Stop right away if…</label>
+                <p className="text-[11px] text-[#64748B] mb-2">Shown with the app's standard warning signs (chest pain, dizziness, short of breath).</p>
+                <TextListEditor control={control} register={register} name="stopIf" placeholder="e.g. Your knee starts to hurt" addLabel="Add a reason to stop" />
               </div>
             </div>
           </div>
@@ -519,8 +586,9 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
           {/* ── GUIDE IMAGES ── */}
           <div>
             <h4 className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider border-b border-[#E2E8F0] pb-2 mb-3.5">
-              Movement guide images
+              Extra pictures
             </h4>
+            <p className="text-[11px] text-[#64748B] -mt-2 mb-3">Shown in the app's Pictures tab. Pictures for a single move go on that move below.</p>
             <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
               {guideImageFields.map((field, index) => (
                 <div key={field.id} className="flex items-center gap-2.5 border border-[#E2E8F0] rounded-[8px] p-2 bg-[#F8FAFC]/40">
@@ -613,93 +681,71 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
             >
               <PlusCircle size={14} /> <span>Add guide image</span>
             </button>
+            {guideImageFields.length > 0 && (
+              <div className="mt-2">
+                <button
+                  type="button"
+                  onClick={putPicturesOnSteps}
+                  className="text-[12px] font-semibold text-[#0F172A] border border-[#E2E8F0] hover:border-[#2E9AE8] rounded-[6px] px-2.5 py-1.5 bg-[#FFFFFF] transition-colors cursor-pointer"
+                >
+                  Put these pictures on the steps
+                </button>
+                <p className="text-[11px] text-[#64748B] mt-1">
+                  {picturesNote || "One picture per step, in order: Get into position first, then warm-up, main part and cool-down."}
+                </p>
+              </div>
+            )}
           </div>
 
-          {/* ── STEP-BY-STEP INSTRUCTIONS ── */}
+          {/* ── HOW IT'S DONE ── */}
           <div>
             <h4 className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider border-b border-[#E2E8F0] pb-2 mb-3.5">
-              Step-by-step instructions
+              How it's done
             </h4>
-            <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
-              {stepsFields.map((field, index) => (
-                <div key={field.id} className="flex items-start gap-2.5 w-full border border-[#E2E8F0] rounded-[8px] p-2.5 bg-[#F8FAFC]/40">
-                  <div className="mt-1 text-[10px] font-bold text-[#94A3B8] bg-[#FFFFFF] border border-[#E2E8F0] w-5 h-5 flex items-center justify-center rounded-full shrink-0">
-                    {index + 1}
-                  </div>
-                  <div className="flex-1 space-y-2">
-                    <div>
-                      <input
-                        {...register(`steps.${index}.instruction`)}
-                        className={`w-full px-3 py-1.5 text-[12.5px] font-semibold bg-[#FFFFFF] border ${
-                          errors.steps?.[index]?.instruction ? 'border-[#A93226]' : 'border-[#E2E8F0] focus:border-[#0F172A]'
-                        } rounded-[6px] focus:outline-none text-[#0F172A] placeholder:text-[#94A3B8] transition-colors`}
-                        placeholder="Step instruction (e.g. Inhale deeply)"
-                      />
-                      {errors.steps?.[index]?.instruction && (
-                        <span className="text-[10px] text-[#A93226] mt-0.5 block font-medium">
-                          {errors.steps[index].instruction.message}
-                        </span>
-                      )}
-                    </div>
-                    
-                    <div className="flex gap-2">
-                      <div className="flex-1">
-                        <input
-                          {...register(`steps.${index}.details`)}
-                          className="w-full px-3 py-1.5 text-[11px] bg-[#FFFFFF] border border-[#E2E8F0] focus:border-[#0F172A] rounded-[6px] focus:outline-none text-[#64748B] placeholder:text-[#94A3B8] transition-colors"
-                          placeholder="Optional details..."
-                        />
+            <div className="space-y-5">
+              <SetupEditor {...editorProps} />
+
+              {isBreathing ? (
+                <PartsEditor
+                  {...editorProps}
+                  name="mainParts"
+                  isBreathing
+                  title="Breaths"
+                  hint="One round of breathing, e.g. breathe in 4 s, hold 4 s, breathe out 6 s. It repeats until the time above is up. Pick what each step asks for so the app's circle can follow it."
+                  addLabel="Add a breath"
+                />
+              ) : (
+                <>
+                  <PartsEditor {...editorProps} name="warmupParts" title="Warm-up" hint="Done once at the start, e.g. 2 minutes of slow walking." addLabel="Add a warm-up part" />
+
+                  <div className="space-y-3">
+                    <PartsEditor
+                      {...editorProps}
+                      name="mainParts"
+                      title="Main part"
+                      hint={'Use "A count" for moves done a number of times, e.g. lift each leg 10 times. Tick "Both sides" to repeat it on the other side.'}
+                      addLabel="Add a main part"
+                    />
+                    <div className="grid grid-cols-2 gap-3.5 bg-[#F8FAFC]/60 p-3 rounded-[8px] border border-[#E2E8F0]">
+                      <div>
+                        <InputField id="rounds" type="number" label="Rounds" min="1" max="20" error={errors.rounds} {...register("rounds")} />
+                        <p className="text-[10.5px] text-[#64748B] mt-1">How many times the main part repeats.</p>
                       </div>
-                      <div className="w-24">
-                        <input
-                          type="number"
-                          {...register(`steps.${index}.duration_seconds`)}
-                          className="w-full px-3 py-1.5 text-[11px] bg-[#FFFFFF] border border-[#E2E8F0] focus:border-[#0F172A] rounded-[6px] focus:outline-none text-[#0F172A] transition-colors"
-                          placeholder="Secs"
-                          min="0"
-                          title="Duration in seconds"
-                        />
+                      <div>
+                        <InputField id="restSeconds" type="number" label="Rest between rounds (sec)" min="0" max="600" error={errors.restSeconds} {...register("restSeconds")} />
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1 mt-1 shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => moveStepUp(index)}
-                      disabled={index === 0}
-                      className="p-1 hover:bg-[#F8FAFC] text-[#64748B] hover:text-[#0F172A] disabled:opacity-30 rounded transition-colors cursor-pointer"
-                      title="Move Step Up"
-                    >
-                      <ArrowUp size={13} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => moveStepDown(index)}
-                      disabled={index === stepsFields.length - 1}
-                      className="p-1 hover:bg-[#F8FAFC] text-[#64748B] hover:text-[#0F172A] disabled:opacity-30 rounded transition-colors cursor-pointer"
-                      title="Move Step Down"
-                    >
-                      <ArrowDown size={13} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => remove(index)}
-                      className="p-1 hover:bg-[#F7E4E1] text-[#64748B] hover:text-[#A93226] rounded transition-colors cursor-pointer"
-                      title="Delete Step"
-                    >
-                      <Trash2 size={13} />
-                    </button>
-                  </div>
-                </div>
-              ))}
+
+                  <PartsEditor {...editorProps} name="cooldownParts" title="Cool-down" hint="Done once at the end, e.g. 3 minutes of slower walking." addLabel="Add a cool-down part" />
+
+                  <p className="text-[12px] font-semibold text-[#0F172A] bg-[#E8F2FB] border border-[#C9E1F5] rounded-[8px] px-3 py-2">
+                    Total: {totalSeconds > 0 ? formatSeconds(totalSeconds) : "add parts to see the total"}
+                    {rounds > 1 ? ` (main part ${rounds} times)` : ""}
+                  </p>
+                </>
+              )}
             </div>
-            <button
-              type="button"
-              onClick={() => append({ instruction: "", details: "", duration_seconds: 5 })}
-              className="flex items-center gap-1.5 text-[12px] font-semibold text-[#2E9AE8] hover:text-[#1C7AC8] transition-colors mt-2 cursor-pointer"
-            >
-              <PlusCircle size={14} /> <span>Add step</span>
-            </button>
           </div>
 
           {/* ── EXPERT VALIDATION ── */}
@@ -732,6 +778,11 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
                   <p className="text-[11px] text-[#64748B] leading-relaxed select-none">
                     Reviewed or developed with input from a qualified cardiology or sports medicine expert.
                   </p>
+                  {exercise?.reviewedAt && expertValidated && (
+                    <p className="text-[11px] text-[#1B6E63] font-medium mt-1">
+                      Last checked {new Date(exercise.reviewedAt).toLocaleDateString([], { year: "numeric", month: "short", day: "numeric" })}
+                    </p>
+                  )}
                 </div>
 
                 <div className="relative inline-flex items-center shrink-0 mt-0.5 pointer-events-none">

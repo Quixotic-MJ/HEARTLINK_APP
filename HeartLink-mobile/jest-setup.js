@@ -1,3 +1,4 @@
+/* global jest */ // Jest provides `jest` when it runs this file; tells the linter it exists.
 import '@testing-library/jest-native/extend-expect';
 
 jest.mock('@react-native-async-storage/async-storage', () =>
@@ -38,4 +39,19 @@ jest.mock('expo-haptics', () => ({
 
 jest.mock('expo-status-bar', () => ({
   StatusBar: () => null,
+}));
+
+// Spoken exercise instructions and keeping the screen on are phone features with no Jest version.
+jest.mock('expo-speech', () => ({
+  speak: jest.fn(),
+  stop: jest.fn(),
+}));
+
+// The YouTube player is a web view, which doesn't exist in Jest.
+jest.mock('react-native-youtube-iframe', () => () => null);
+
+jest.mock('expo-keep-awake', () => ({
+  activateKeepAwakeAsync: jest.fn(() => Promise.resolve()),
+  deactivateKeepAwake: jest.fn(() => Promise.resolve()),
+  useKeepAwake: jest.fn(),
 }));

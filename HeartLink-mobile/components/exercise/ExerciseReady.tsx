@@ -1,61 +1,123 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, Animated, AccessibilityInfo } from 'react-native';
+import React, { useEffect, useRef, useState } from "react";
+import { AccessibilityInfo, ScrollView, Text, View } from "react-native";
+import { Image } from "expo-image";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Animated, { ZoomIn } from "react-native-reanimated";
+import * as Haptics from "expo-haptics";
+import AnimatedButton from "../ui/AnimatedButton";
+import { WORKOUT, WorkoutRing, useLinearProgress } from "./ExerciseBits";
+import type { SetupStep } from "../../services/exerciseSession";
+
+// Screen 2, on the workout view. If the exercise has set-up instructions ("Sit near the front of
+// the chair…"), they come first, read out loud, with no timer: the patient taps "I'm in position"
+// when ready. Then a 3-second count before the timer starts; the ring fills smoothly over the
+// 3 seconds and each number pops in with a light tap.
 
 export interface ExerciseReadyProps {
+  setup: SetupStep[];
+  firstStep: string;
   onComplete: () => void;
-  routine: any;
+  /** Spoken instructions. */
+  say: (text: string) => void;
 }
 
-export function ExerciseReady({ onComplete, routine }: ExerciseReadyProps) {
-  const [countdown, setCountdown] = useState(3);
-  const [scaleAnim] = useState(new Animated.Value(1));
-  const [reduceMotion, setReduceMotion] = useState(false);
-
+function GetIntoPosition({ setup, onReady, say }: { setup: SetupStep[]; onReady: () => void; say: (text: string) => void }) {
+  const insets = useSafeAreaInsets();
+  const picture = setup.find((s) => s.image)?.image;
+  const readOut = useRef({ say, setup });
   useEffect(() => {
-    AccessibilityInfo.isReduceMotionEnabled().then(setReduceMotion);
+    const { say: speak, setup: steps } = readOut.current;
+    speak(`Get into position. ${steps.map((s) => [s.text, s.details].filter(Boolean).join(". ")).join(". ")}. Tap I'm in position when you're ready.`);
+  }, []);
+
+  return (
+    <View style={{ flex: 1, backgroundColor: WORKOUT.bg, paddingTop: insets.top + 12 }}>
+      <ScrollView contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 20, paddingBottom: 12, gap: 18, justifyContent: "center" }}>
+        <Text accessibilityRole="header" style={{ fontSize: 28, fontWeight: "600", color: WORKOUT.ink }}>
+          Get into position
+        </Text>
+        {picture ? (
+          <View style={{ height: 200, borderRadius: 16, overflow: "hidden", backgroundColor: WORKOUT.raised }}>
+            <Image source={{ uri: picture }} style={{ width: "100%", height: "100%" }} contentFit="cover" accessibilityIgnoresInvertColors />
+          </View>
+        ) : null}
+        <View style={{ gap: 14 }}>
+          {setup.map((s, i) => (
+            <View key={i} className="flex-row" style={{ gap: 14 }}>
+              <View style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: WORKOUT.raised, borderWidth: 1, borderColor: WORKOUT.track, alignItems: "center", justifyContent: "center" }}>
+                <Text style={{ fontSize: 14, fontWeight: "600", color: WORKOUT.ink }}>{i + 1}</Text>
+              </View>
+              <View style={{ flex: 1, gap: 3 }}>
+                <Text style={{ fontSize: 19, lineHeight: 26, fontWeight: "500", color: WORKOUT.ink }}>{s.text}</Text>
+                {s.details ? <Text style={{ fontSize: 16, lineHeight: 23, color: WORKOUT.soft }}>{s.details}</Text> : null}
+              </View>
+            </View>
+          ))}
+        </View>
+      </ScrollView>
+      <View className="px-5" style={{ paddingTop: 12, paddingBottom: Math.max(insets.bottom, 16) + 8 }}>
+        <AnimatedButton
+          onPress={onReady}
+          accessibilityRole="button"
+          accessibilityLabel="I'm in position"
+          style={{ height: 56, borderRadius: 8, backgroundColor: WORKOUT.ink, alignItems: "center", justifyContent: "center" }}
+        >
+          <Text style={{ fontSize: 17, fontWeight: "600", color: WORKOUT.bg }}>{"I'm in position"}</Text>
+        </AnimatedButton>
+      </View>
+    </View>
+  );
+}
+
+function Countdown({ firstStep, onComplete, say }: Omit<ExerciseReadyProps, "setup">) {
+  const [count, setCount] = useState(3);
+  const done = useRef(onComplete);
+  useEffect(() => {
+    done.current = onComplete;
+  }, [onComplete]);
+  const ring = useLinearProgress(0, 3000, true, "ready");
+  // Said once; the first step is read out when the exercise starts.
+  const greet = useRef(say);
+  useEffect(() => {
+    greet.current("Get ready.");
   }, []);
 
   useEffect(() => {
-    if (countdown > 0) {
-      if (!reduceMotion) {
-        Animated.sequence([
-          Animated.timing(scaleAnim, { toValue: 1.15, duration: 250, useNativeDriver: true }),
-          Animated.timing(scaleAnim, { toValue: 1, duration: 250, useNativeDriver: true }),
-        ]).start();
-      }
-
-      const timer = setTimeout(() => setCountdown(c => c - 1), 1000);
-      return () => clearTimeout(timer);
-    } else {
-      onComplete();
+    if (count <= 0) {
+      done.current();
+      return;
     }
-  }, [countdown, scaleAnim, onComplete, reduceMotion]);
-
-  const hint = routine?.steps?.[0] 
-    ? (typeof routine.steps[0] === 'string' ? routine.steps[0] : routine.steps[0].instruction)
-    : (routine?.goal || "Prepare yourself for the exercise");
-
-  const isStretching = routine?.type === "Stretching" || routine?.title?.toLowerCase().includes("stretch");
-  const textColorClass = isStretching ? "text-teal" : "text-primary";
-  const bgColorClass = isStretching ? "bg-teal" : "bg-primary";
-  const shadowColorClass = isStretching ? "shadow-teal/30" : "shadow-primary/30";
+    Haptics.selectionAsync();
+    AccessibilityInfo.announceForAccessibility(String(count));
+    const t = setTimeout(() => setCount((n) => n - 1), 1000);
+    return () => clearTimeout(t);
+  }, [count]);
 
   return (
-    <View className="flex-1 bg-white items-center justify-center p-6">
-      <Text className={`${textColorClass} text-[16px] font-bold tracking-[2px] uppercase mb-16`}>
-        Get Ready
+    <View style={{ flex: 1, backgroundColor: WORKOUT.bg, alignItems: "center", justifyContent: "center", padding: 24, gap: 36 }}>
+      <Text accessibilityRole="header" style={{ fontSize: 17, fontWeight: "600", color: WORKOUT.soft }}>
+        Get ready
       </Text>
-      
-      <Animated.View 
-        className={`w-48 h-48 rounded-full ${bgColorClass} items-center justify-center mb-16 shadow-lg ${shadowColorClass}`}
-        style={{ transform: [{ scale: scaleAnim }] }}
-      >
-        <Text className="text-white text-[80px] font-black">{countdown}</Text>
-      </Animated.View>
-
-      <Text className="text-text text-[18px] text-center font-medium leading-relaxed px-4">
-        {hint}
-      </Text>
+      <WorkoutRing size={220} progress={ring}>
+        <Animated.Text key={count} entering={ZoomIn.duration(220)} maxFontSizeMultiplier={1} style={{ fontSize: 96, lineHeight: 112, fontWeight: "600", color: WORKOUT.ink, fontVariant: ["tabular-nums"] }}>
+          {Math.max(count, 1)}
+        </Animated.Text>
+      </WorkoutRing>
+      {firstStep ? (
+        <View style={{ alignItems: "center", gap: 6, maxWidth: 320 }}>
+          <Text style={{ fontSize: 14, color: WORKOUT.muted }}>First</Text>
+          <Text style={{ fontSize: 19, lineHeight: 27, fontWeight: "500", color: WORKOUT.ink, textAlign: "center" }}>{firstStep}</Text>
+        </View>
+      ) : null}
+      <AnimatedButton onPress={() => done.current()} accessibilityRole="button" accessibilityLabel="Start now" style={{ height: 44, paddingHorizontal: 16, justifyContent: "center" }}>
+        <Text style={{ fontSize: 15, fontWeight: "500", color: WORKOUT.line }}>Start now</Text>
+      </AnimatedButton>
     </View>
   );
+}
+
+export function ExerciseReady({ setup, firstStep, onComplete, say }: ExerciseReadyProps) {
+  const [inPosition, setInPosition] = useState(setup.length === 0);
+  if (!inPosition) return <GetIntoPosition setup={setup} onReady={() => setInPosition(true)} say={say} />;
+  return <Countdown firstStep={firstStep} onComplete={onComplete} say={say} />;
 }

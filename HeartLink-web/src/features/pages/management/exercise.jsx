@@ -117,6 +117,17 @@ const Exercises = () => {
           goal: r.goal || "",
           calories: r.calories || 0,
           requirements: r.requirements || [],
+          setupSteps: r.setup_steps || [],
+          rounds: r.rounds || 1,
+          restSeconds: r.rest_seconds || 0,
+          position: r.position || "",
+          setting: r.setting || "",
+          skipIf: r.skip_if || [],
+          stopIf: r.stop_if || [],
+          easierVersion: r.easier_version || "",
+          effortHint: r.effort_hint || "",
+          frequency: r.frequency || "",
+          reviewedAt: r.reviewed_at || null,
         };
       });
       setExercises(mapped);

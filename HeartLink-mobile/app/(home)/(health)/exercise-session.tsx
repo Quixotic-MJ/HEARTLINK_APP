@@ -1,423 +1,310 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { View, ActivityIndicator, BackHandler, Alert } from "react-native";
+import React, { useCallback, useEffect, useState } from "react";
+import { BackHandler, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { getToken } from "../../../lib/secureTokenStore";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useUser } from "../../../contexts/UserContext";
 import { useToast } from "../../../contexts/ToastContext";
-import { SafetyCheckSheet } from "../../../components/ui/SafetyCheckSheet";
-import { CompletionCheckSheet } from "../../../components/ui/CompletionCheckSheet";
-import { StopExerciseSheet } from "../../../components/ui/StopExerciseSheet";
-import { ShortSessionSheet } from "../../../components/ui/ShortSessionSheet";
 import { useLogExercise } from "../../../hooks/useLogExercise";
-
-// Components
+import { useSessionClock } from "../../../hooks/useSessionClock";
+import { useVoiceGuide } from "../../../hooks/useVoiceGuide";
+import { activateKeepAwakeAsync, deactivateKeepAwake } from "expo-keep-awake";
+import { useExerciseReadiness } from "../../../hooks/useExerciseReadiness";
+import { apiFetch } from "../../../lib/api";
+import { Skeleton } from "../../../components/ui/Skeleton";
+import { ConfirmDialog } from "../../../components/ui/ConfirmDialog";
+import DsButton from "../../../components/onboarding/DsButton";
+import { useDs } from "../../../components/onboarding/useDs";
 import { ExerciseOverview } from "../../../components/exercise/ExerciseOverview";
 import { ExerciseReady } from "../../../components/exercise/ExerciseReady";
+import { BeforeYouStart } from "../../../components/exercise/BeforeYouStart";
 import { ExerciseActive } from "../../../components/exercise/ExerciseActive";
 import { BreathingExerciseActive } from "../../../components/exercise/BreathingExerciseActive";
 import { CardioExerciseActive } from "../../../components/exercise/CardioExerciseActive";
 import { StretchingExerciseActive } from "../../../components/exercise/StretchingExerciseActive";
 import { ExerciseResult } from "../../../components/exercise/ExerciseResult";
-import { apiFetch, apiUrl } from "../../../lib/api";
+import { CheckInSheet, ShortSessionSheet, StopSheet } from "../../../components/exercise/SessionSheets";
+import { SessionScreenProps, WORKOUT } from "../../../components/exercise/ExerciseBits";
+import { RoutineApi, exerciseKind, isWorkoutPaused, toRoutine } from "../../../services/exerciseSession";
 
+// A guided exercise, start to finish: details → get ready → the "during" screen for its type →
+// how do you feel → saved. "I feel unwell" (always on screen) saves what was done as stopped
+// and opens the symptom log. Workouts pause for safety when the score is critical or a severe
+// symptom was logged recently; breathing exercises stay open.
 
-function resolveMediaUrl(url: string) {
-  if (!url) return "";
-  if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:")) {
-    return url;
-  }
-  return apiUrl(url);
-}
+type Phase = "overview" | "check" | "ready" | "active" | "done";
+type Sheet = null | "stop" | "short" | "checkin";
 
-const generateExerciseId = () => `ex-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
+const ACTIVE_SCREEN = {
+  breathing: BreathingExerciseActive,
+  cardio: CardioExerciseActive,
+  steps: StretchingExerciseActive,
+  guide: ExerciseActive,
+} as const;
+
+const newLogId = () => `ex-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
 export default function ExerciseSessionScreen() {
   const router = useRouter();
+  const { c, isDark } = useDs();
+  const queryClient = useQueryClient();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { userId, token, logout } = useUser();
+  const { userId, token } = useUser();
   const { showToast } = useToast();
+  const logExercise = useLogExercise(userId, token, { quiet: true });
+  const clock = useSessionClock();
+  const voice = useVoiceGuide();
+  const { readiness, isLoading: checking, movementMinutes, movementGoal, refetch: refetchReadiness } = useExerciseReadiness();
 
-  const [routine, setRoutine] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  // The phone keeps the server's own data and turns it into a Routine each time it's read, so a
+  // change to the app's exercise format never meets an old saved copy.
+  const routineQuery = useQuery({
+    queryKey: ["exercise-raw", id],
+    enabled: !!id,
+    queryFn: async (): Promise<RoutineApi> => {
+      const res = await apiFetch(`/api/exercises/${id}`);
+      if (!res.ok) throw new Error("Failed to fetch exercise");
+      return res.json();
+    },
+    select: toRoutine,
+  });
+  const routine = routineQuery.data;
 
-  const logExerciseMutation = useLogExercise(userId, token);
+  const [phase, setPhase] = useState<Phase>("overview");
+  const [sheet, setSheet] = useState<Sheet>(null);
+  const [savedSeconds, setSavedSeconds] = useState(0);
+  const [confirmClear, setConfirmClear] = useState(false);
 
-  const [workoutState, setWorkoutState] = useState<"overview" | "ready" | "active" | "result">("overview");
+  const kind = routine ? exerciseKind(routine) : "guide";
+  // Breathing and relaxation (type Breathing) are calm: they stay open when workouts are paused and
+  // skip the standing-up safety check, even when a relaxation plays step by step.
+  const calm = kind === "breathing" || (routine?.type ?? "").toLowerCase().includes("breath");
+  const paused = isWorkoutPaused(readiness, calm ? "breathing" : kind);
 
-  const [sessionStartedAt, setSessionStartedAt] = useState<number | null>(null);
-  const [sessionDurationSeconds, setSessionDurationSeconds] = useState(0);
-
-  const [showSafetyCheck, setShowSafetyCheck] = useState(false);
-  const [showCompletionCheck, setShowCompletionCheck] = useState(false);
-  const [showStopCheck, setShowStopCheck] = useState(false);
-  const [showShortSessionCheck, setShowShortSessionCheck] = useState(false);
-
-  const [hssScore, setHssScore] = useState<number>(0);
-  const [hssTier, setHssTier] = useState<string | null>(null);
-  const [hasRecentSevereSymptom, setHasRecentSevereSymptom] = useState<boolean>(false);
-
-  useEffect(() => {
-    async function loadHss() {
-      try {
-        const hssCacheKey = userId ? `@exercises_cache_hss_${userId}` : "@exercises_cache_hss";
-        const cachedHss = await AsyncStorage.getItem(hssCacheKey);
-        if (cachedHss) {
-          const parsed = JSON.parse(cachedHss);
-          if (parsed && typeof parsed.score === "number") {
-            setHssScore(parsed.score);
-            if (parsed.tier) setHssTier(parsed.tier);
-            // We still need dashboard cache for has_recent_severe_symptom
-          }
-        }
-        if (userId) {
-          const dashCache = await AsyncStorage.getItem(`@dashboard_cache_${userId}`);
-          if (dashCache) {
-            const parsedDash = JSON.parse(dashCache);
-            if (parsedDash && typeof parsedDash.hss_score === "number") {
-              setHssScore(parsedDash.hss_score);
-              if (parsedDash.hss_tier) setHssTier(parsedDash.hss_tier);
-            }
-            if (parsedDash && parsedDash.has_recent_severe_symptom) {
-              setHasRecentSevereSymptom(true);
-            }
-          }
-        }
-      } catch { }
-    }
-    loadHss();
-  }, [userId]);
-
-  const isLockedCritical = Boolean(
-    (hssTier === "Critical" || (hssScore > 0 && hssScore < 50) || hasRecentSevereSymptom) &&
-    routine?.type !== "Breathing"
-  );
-
-  useEffect(() => {
-    async function fetchRoutine() {
-      try {
-        const storedToken = await getToken();
-        const effectiveToken = token || storedToken || "";
-        const response = await apiFetch(`/api/exercises/${id}`, {
-          headers: effectiveToken ? { "Authorization": `Bearer ${effectiveToken}` } : {}
-        });
-        if (!response.ok) throw new Error("Failed to fetch routine");
-        const data = await response.json();
-
-        const r = {
-          id: data.id,
-          title: data.name || "",
-          description: data.description || "",
-          duration: data.duration_minutes || 0,
-          duration_minutes: data.duration_minutes || 0,
-          goal: data.goal || data.description || "",
-          type: data.type || "Light Cardio",
-          intensity: data.intensity || "Low",
-          category: data.hss_tier || "Stable",
-          steps: data.steps || [],
-          videoUrl: data.video_url || "",
-          image: resolveMediaUrl(data.media_url || ""),
-          guideImages: (data.guide_images || []).map((img: string) => resolveMediaUrl(img)),
-          requirements: data.requirements || data.equipment || [],
-          calories: data.calories || 0,
-        };
-
-        setRoutine(r);
-      } catch (error) {
-        console.error("Failed to load routine:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    fetchRoutine();
-  }, [id, token]);
-
-  const logExerciseData = (status: string, overrideSeconds?: number) => {
+  const save = (status: "completed" | "incomplete_due_to_symptoms", seconds: number) => {
     if (!routine || !userId) return;
-    const finalSeconds = overrideSeconds !== undefined ? overrideSeconds : sessionDurationSeconds;
-    const finalMinutes = Math.round(finalSeconds / 60);
-
-    const exerciseId = generateExerciseId();
-    const payload = {
-      id: exerciseId,
+    logExercise.mutate({
+      id: newLogId(),
       routine_id: routine.id,
       routine_name: routine.title,
-      duration_seconds: finalSeconds,
-      duration_minutes: finalMinutes,
-      planned_duration_seconds: routine.duration * 60,
-      planned_duration_minutes: routine.duration,
-      status: status,
-    };
-
-    logExerciseMutation.mutate(payload, {
-      onError: async (error: any) => {
-        if (error.status === 401) {
-          showToast({
-            title: "Session Expired",
-            message: "Your workout is preserved offline. Please log in again to sync.",
-            type: "info"
-          });
-          await logout();
-        }
-      }
+      duration_seconds: seconds,
+      duration_minutes: Math.round(seconds / 60),
+      planned_duration_seconds: routine.minutes * 60,
+      planned_duration_minutes: routine.minutes,
+      status,
     });
-
-    return payload;
   };
 
-  const handleStart = () => {
-    if (isLockedCritical) return;
-    setWorkoutState("ready");
+  const { say } = voice;
+  const finish = useCallback(() => {
+    clock.pause();
+    const secs = clock.readSeconds();
+    setSavedSeconds(secs);
+    setSheet(secs < 30 ? "short" : "checkin");
+    say(secs < 30 ? "Save this short session?" : "Well done. How do you feel now?");
+  }, [clock, say]);
+
+  const askWhyStopping = () => {
+    clock.pause();
+    setSavedSeconds(clock.readSeconds());
+    setSheet("stop");
+    say("Paused. Do you want to stop?");
   };
 
-  const handleReadyComplete = () => {
-    setSessionStartedAt(Date.now());
-    setWorkoutState("active");
+  const keepGoing = () => {
+    setSheet(null);
+    clock.resume();
+    say("Let's continue.");
   };
 
-  // Called when user hits FINISH EXERCISE button on active screen
-  const handleRequestFinish = () => {
-    const elapsedSeconds = sessionStartedAt ? Math.floor((Date.now() - sessionStartedAt) / 1000) : 0;
-    setSessionDurationSeconds(elapsedSeconds);
-
-    // Evaluate 30s threshold
-    if (elapsedSeconds < 30) {
-      setShowShortSessionCheck(true);
+  const togglePause = () => {
+    if (clock.paused) {
+      clock.resume();
+      say("Let's continue.");
     } else {
-      setShowCompletionCheck(true);
+      clock.pause();
+      say("Paused. Take your time.");
     }
   };
 
-  // Called when user opts to save short session (< 30s) anyway
-  const handleSaveShortAnyway = () => {
-    setShowShortSessionCheck(false);
-    setShowCompletionCheck(true);
+  const reportUnwell = () => {
+    voice.stop();
+    clock.pause();
+    setSheet(null);
+    save("incomplete_due_to_symptoms", clock.readSeconds());
+    router.replace("/(home)/(health)/log-symptoms?triggered_by_exercise_id=post-workout");
   };
 
-  // Called when user opts to discard short session (< 30s)
-  const handleDiscardShort = () => {
-    setShowShortSessionCheck(false);
-    setWorkoutState("overview");
-    setSessionStartedAt(null);
-    setSessionDurationSeconds(0);
-    showToast({
-      title: "Session Discarded",
-      message: "Exercise session was discarded and not recorded.",
-      type: "info"
-    });
+  const saveCompleted = () => {
+    setSheet(null);
+    save("completed", savedSeconds);
+    setPhase("done");
+    say("Exercise saved. Well done.");
   };
 
-  // Called when user selects "I FEEL OK" from the completion check
-  const handleConfirmFinish = () => {
-    setShowCompletionCheck(false);
-    logExerciseData("completed", sessionDurationSeconds);
-    setWorkoutState("result");
+  const discardShort = () => {
+    setSheet(null);
+    clock.reset();
+    setPhase("overview");
+    showToast({ title: "Not saved", message: "That short session wasn't recorded.", type: "info" });
   };
 
-  const handleCloseActive = () => {
-    const elapsedSeconds = sessionStartedAt ? Math.floor((Date.now() - sessionStartedAt) / 1000) : 0;
-    setSessionDurationSeconds(elapsedSeconds);
-    setShowStopCheck(true);
+  const clearPause = async () => {
+    setConfirmClear(false);
+    if (!userId) return;
+    try {
+      const res = await apiFetch(`/api/health-logs/${userId}/clear-symptom-lock`, { method: "POST" });
+      if (!res.ok) throw new Error(String(res.status));
+      await refetchReadiness();
+      queryClient.invalidateQueries({ queryKey: ["dashboard", userId] });
+      showToast({ title: "Workouts open again", message: "Take it easy and stop if you feel unwell.", type: "success" });
+    } catch {
+      showToast({ title: "Couldn't update", message: "Check your connection and try again.", type: "error" });
+    }
   };
 
-  // Hardware back press safety intercept for Android devices (HL-ENG-23 / SEC-QA-12)
+  // The phone's back button during an exercise asks why you're stopping instead of leaving.
   useFocusEffect(
     useCallback(() => {
-      const onBackPress = () => {
-        if (workoutState === "active") {
-          handleCloseActive();
+      const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+        if (phase === "check") {
+          setPhase("overview");
           return true;
         }
-        return false;
-      };
-
-      const sub = BackHandler.addEventListener("hardwareBackPress", onBackPress);
+        if (phase !== "active") return false;
+        if (sheet === null) {
+          clock.pause();
+          setSavedSeconds(clock.readSeconds());
+          setSheet("stop");
+          say("Paused. Do you want to stop?");
+        }
+        return true;
+      });
       return () => sub.remove();
-    }, [workoutState, sessionStartedAt])
+    }, [phase, sheet, clock, say]),
   );
 
-  const handleSymptomsPress = () => {
-    setShowSafetyCheck(true);
-  };
+  // The screen stays on from the countdown to the end of the exercise, so it never locks mid-way.
+  const exercising = phase === "ready" || phase === "active";
+  useEffect(() => {
+    if (!exercising) return;
+    activateKeepAwakeAsync("exercise").catch(() => {});
+    return () => {
+      deactivateKeepAwake("exercise").catch(() => {});
+    };
+  }, [exercising]);
 
-  const handleSafetySafe = () => {
-    setShowSafetyCheck(false);
-  };
-
-  const handleSafetySymptoms = () => {
-    setShowSafetyCheck(false);
-    setShowCompletionCheck(false);
-    setShowShortSessionCheck(false);
-    if (!routine) return;
-
-    const elapsedSeconds = sessionStartedAt ? Math.floor((Date.now() - sessionStartedAt) / 1000) : 0;
-
-    // Save the exercise independently (with built-in offline fallback)
-    logExerciseData("incomplete_due_to_symptoms", elapsedSeconds);
-
-    // Navigate to log-symptoms with only the context flag — no payload passing
-    router.push(`/(home)/(health)/log-symptoms?triggered_by_exercise_id=post-workout`);
-  };
-
-  const handleClearSymptomLock = () => {
-    Alert.alert(
-      "Unlock Exercises?",
-      "By unlocking, you explicitly certify that you have been evaluated by a doctor, or that your severe symptoms have completely resolved.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "I Certify & Unlock",
-          style: "destructive",
-          onPress: async () => {
-            if (!userId) return;
-            try {
-              const storedToken = await getToken();
-              const effectiveToken = token || storedToken || "";
-              const response = await apiFetch(`/api/health-logs/${userId}/clear-symptom-lock`, {
-                method: "POST",
-                headers: effectiveToken ? { "Authorization": `Bearer ${effectiveToken}` } : {}
-              });
-
-              if (response.ok) {
-                setHasRecentSevereSymptom(false);
-                await AsyncStorage.removeItem(`@dashboard_cache_${userId}`);
-                showToast({
-                  title: "Exercises Unlocked",
-                  message: "Your symptom lock has been cleared.",
-                  type: "success"
-                });
-              } else {
-                showToast({ title: "Error", message: "Failed to clear lock.", type: "error" });
-              }
-            } catch (err) {
-              showToast({ title: "Error", message: "Network error while clearing lock.", type: "error" });
-            }
-          }
-        }
-      ]
-    );
-  };
-
-  if (isLoading || !routine) {
+  if (!routine) {
     return (
-      <View className="flex-1 bg-slate-50 justify-center items-center">
-        <ActivityIndicator size="large" color="#f43f5e" />
-      </View>
+      <SafeAreaView style={{ flex: 1, backgroundColor: c.canvas }} edges={["top", "bottom"]}>
+        <StatusBar style={isDark ? "light" : "dark"} />
+        {routineQuery.isError || !id ? (
+          <View className="px-5" style={{ flex: 1, justifyContent: "center", gap: 12 }}>
+            <Text style={{ fontSize: 20, fontWeight: "600", color: c.ink }}>{"This exercise couldn't load"}</Text>
+            <Text style={{ fontSize: 15, lineHeight: 22, color: c.slate }}>Check your connection and try again.</Text>
+            <DsButton label="Try again" onPress={() => routineQuery.refetch()} />
+            <DsButton label="Go back" variant="secondary" onPress={() => router.back()} />
+          </View>
+        ) : (
+          <View style={{ gap: 14 }}>
+            <Skeleton style={{ height: 200 }} />
+            <View className="px-5" style={{ gap: 12 }}>
+              <Skeleton style={{ height: 32, width: "70%", borderRadius: 8 }} />
+              <Skeleton style={{ height: 24, width: "50%", borderRadius: 6 }} />
+              <Skeleton style={{ height: 120, borderRadius: 12 }} />
+            </View>
+          </View>
+        )}
+      </SafeAreaView>
     );
   }
 
-  return (
-    <View className="flex-1 bg-white">
-      <StatusBar style={workoutState === "active" || workoutState === "ready" ? "light" : "dark"} />
+  const Active = ACTIVE_SCREEN[kind];
+  // Get ready and the exercise itself use the navy workout view.
+  const workoutView = exercising;
+  const activeProps: SessionScreenProps = {
+    routine,
+    elapsed: clock.elapsed,
+    elapsedMs: clock.elapsedMs,
+    paused: clock.paused,
+    onTogglePause: togglePause,
+    onFinish: finish,
+    onClose: askWhyStopping,
+    onUnwell: reportUnwell,
+    voice,
+  };
 
-      {workoutState === "overview" && (
+  return (
+    <View style={{ flex: 1, backgroundColor: workoutView ? WORKOUT.bg : c.canvas }}>
+      <StatusBar style={workoutView || isDark ? "light" : "dark"} />
+
+      {phase === "overview" ? (
         <ExerciseOverview
           routine={routine}
-          stepCount={routine.steps.length}
-          onStart={handleStart}
+          kind={kind}
+          paused={paused}
+          canClearPause={!!readiness?.has_recent_severe_symptom}
+          checking={checking}
+          onStart={() => {
+            // Breathing is done sitting down, so it skips the safety check.
+            if (!paused && !checking) setPhase(calm ? "ready" : "check");
+          }}
           onBack={() => router.back()}
-          isLockedCritical={isLockedCritical}
-          hasRecentSevereSymptom={hasRecentSevereSymptom}
-          onClearSymptomLock={handleClearSymptomLock}
+          onClearPause={() => setConfirmClear(true)}
+          onFindBreathing={() => router.push({ pathname: "/(home)/(tabs)/exercises", params: { type: "Breathing" } })}
         />
-      )}
+      ) : null}
 
-      {workoutState === "ready" && (
+      {phase === "check" ? (
+        <BeforeYouStart routine={routine} say={say} onBack={() => setPhase("overview")} onReady={() => setPhase("ready")} />
+      ) : null}
+
+      {phase === "ready" ? (
         <ExerciseReady
-          routine={routine}
-          onComplete={handleReadyComplete}
+          setup={routine.setup}
+          firstStep={routine.steps[0]?.text ?? ""}
+          say={say}
+          onComplete={() => {
+            clock.start();
+            setPhase("active");
+          }}
         />
-      )}
+      ) : null}
 
-      {workoutState === "active" && (
-        (routine?.type === "Breathing" || routine?.title?.toLowerCase().includes("breathing")) ? (
-          <BreathingExerciseActive
-            routine={routine}
-            onFinish={handleRequestFinish}
-            onClose={handleCloseActive}
-            onSymptoms={handleSymptomsPress}
-          />
-        ) : (routine?.type === "Stretching" || routine?.title?.toLowerCase().includes("stretch")) ? (
-          <StretchingExerciseActive
-            routine={routine}
-            onFinish={handleRequestFinish}
-            onClose={handleCloseActive}
-            onSymptoms={handleSymptomsPress}
-          />
-        ) : (routine?.type?.toLowerCase().includes("cardio") || routine?.title?.toLowerCase().includes("walk") || routine?.title?.toLowerCase().includes("jog")) ? (
-          <CardioExerciseActive
-            routine={routine}
-            onFinish={handleRequestFinish}
-            onClose={handleCloseActive}
-            onSymptoms={handleSymptomsPress}
-          />
-        ) : (
-          <ExerciseActive
-            routine={routine}
-            onFinish={handleRequestFinish}
-            onClose={handleCloseActive}
-            onSymptoms={handleSymptomsPress}
-          />
-        )
-      )}
+      {phase === "active" ? <Active {...activeProps} /> : null}
 
-      {workoutState === "result" && (
+      {phase === "done" ? (
         <ExerciseResult
-          routine={routine}
-          sessionDurationSeconds={sessionDurationSeconds}
-          onDone={() => router.push("/(home)/(tabs)/dashboard")}
+          title={routine.title}
+          seconds={savedSeconds}
+          movementMinutes={movementMinutes}
+          movementGoal={movementGoal}
+          onDone={() => router.navigate("/(home)/(tabs)/dashboard")}
+          onHistory={() => router.replace("/(home)/(health)/exercise-diary")}
         />
-      )}
+      ) : null}
 
-      {/* Short Session Check (< 30s) */}
-      <ShortSessionSheet
-        visible={showShortSessionCheck}
-        seconds={sessionDurationSeconds}
-        onSaveAnyway={handleSaveShortAnyway}
-        onDiscard={handleDiscardShort}
-        onBack={() => setShowShortSessionCheck(false)}
+      <StopSheet
+        visible={sheet === "stop"}
+        seconds={savedSeconds}
+        onUnwell={reportUnwell}
+        onTired={() => setSheet(savedSeconds < 30 ? "short" : "checkin")}
+        onKeepGoing={keepGoing}
       />
+      <ShortSessionSheet visible={sheet === "short"} seconds={savedSeconds} onSave={() => setSheet("checkin")} onDiscard={discardShort} onKeepGoing={keepGoing} />
+      <CheckInSheet visible={sheet === "checkin"} onFine={saveCompleted} onUnwell={reportUnwell} onBack={keepGoing} />
 
-      {/* Standalone Safety Check (Triggered via X menu or "Feeling unwell?" link) */}
-      <SafetyCheckSheet
-        visible={showSafetyCheck}
-        onSafe={handleSafetySafe}
-        onSymptoms={handleSafetySymptoms}
-        onBack={() => setShowSafetyCheck(false)}
-        isSubmitting={logExerciseMutation.isPending}
-      />
-
-      {/* Stop Check Sheet */}
-      <StopExerciseSheet
-        visible={showStopCheck}
-        onSymptoms={() => {
-          setShowStopCheck(false);
-          setShowSafetyCheck(true);
-        }}
-        onTired={() => {
-          setShowStopCheck(false);
-          if (sessionDurationSeconds < 30) {
-            setShowShortSessionCheck(true);
-          } else {
-            setShowCompletionCheck(true);
-          }
-        }}
-        onJustChecking={() => {
-          setShowStopCheck(false);
-          setWorkoutState("overview");
-          setSessionStartedAt(null);
-          setSessionDurationSeconds(0);
-        }}
-        onBack={() => setShowStopCheck(false)}
-      />
-
-      {/* Post-Exercise Assessment (Triggered via FINISH EXERCISE button) */}
-      <CompletionCheckSheet
-        visible={showCompletionCheck}
-        onOk={handleConfirmFinish}
-        onSymptoms={handleSafetySymptoms}
-        onBack={() => setShowCompletionCheck(false)}
+      <ConfirmDialog
+        visible={confirmClear}
+        onCancel={() => setConfirmClear(false)}
+        onConfirm={clearPause}
+        title="Has a doctor cleared you?"
+        message="Only continue if a doctor has checked you, or your symptoms have fully gone."
+        confirmLabel="Yes, I've been cleared"
+        variant="warning"
+        mode="bottom-sheet"
+        icon="alert-triangle"
       />
     </View>
   );
