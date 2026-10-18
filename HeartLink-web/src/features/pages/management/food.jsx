@@ -27,6 +27,14 @@ import { useAuth } from "../../../contexts/AuthContext";
 import { toast } from "sonner";
 import { UI, FONTS, PageHeader, StatusBadge } from "../../../styles/designSystem";
 
+// Database hss_tier -> the label the recipe form uses
+const HSS_TIER_LABELS = {
+  Stable: "Stable (80-100)",
+  Moderate: "Moderate (60-79)",
+  "Elevated Risk": "Elevated Risk (50-59)",
+  Critical: "Critical (<50)",
+};
+
 const Foods = () => {
   const [recipes, setRecipes] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -218,26 +226,24 @@ const Foods = () => {
       const res = await apiFetch("/api/recipes");
       const list = Array.isArray(res) ? res : res.data || [];
       const mapped = list.map((r) => {
-        let hssTier = "Stable";
-        const hssVal = r.hss_target || "";
-        if (hssVal.includes("Moderate")) hssTier = "Moderate";
-        else if (hssVal.includes("Elevated")) hssTier = "Elevated Risk";
-        else if (hssVal.includes("Critical")) hssTier = "Critical";
+        // The API returns database column names (hss_tier, sodium_mg, ...). Reading the wrong
+        // names showed 0 here, and saving the recipe then wrote those 0s back.
+        const hssTier = HSS_TIER_LABELS[r.hss_tier] ? r.hss_tier : "Stable";
 
         return {
           id: r.id,
           name: r.name,
           category: r.category || "Breakfast",
-          hssTarget: r.hss_target || "Stable (80-100)",
+          hssTarget: HSS_TIER_LABELS[hssTier],
           hssTier: hssTier,
           prepTimeMinutes: r.prep_time_minutes || 15,
           servings: r.servings || 1,
           difficulty: r.difficulty || "Easy",
-          sodium: r.sodium || 0,
+          sodium: r.sodium_mg || 0,
           calories: r.calories || 0,
-          satFat: r.sat_fat || 0,
-          cholesterol: r.cholesterol || 0,
-          fiber: r.fiber || 0,
+          satFat: r.saturated_fat_g || 0,
+          cholesterol: r.cholesterol_mg || 0,
+          fiber: r.fiber_g || 0,
           heartBenefit: r.heart_benefit || "",
           status: r.status || "draft",
           expertValidated: r.expert_validated || false,
