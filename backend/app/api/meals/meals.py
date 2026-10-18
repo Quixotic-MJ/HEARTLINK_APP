@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Query, HTTPException, Depends, status
 from typing import List, Dict, Any
 from app.services.meals import get_meal_logs, create_meal_log, search_meals, delete_meal_log, get_paginated_meal_logs
-from app.utils.security import get_current_user, verify_user_access
+from app.utils.security import get_current_user, verify_user_access, check_expert_permission
 
 router = APIRouter(prefix="/api/meals", tags=["Meals"])
 
@@ -32,11 +32,13 @@ def read_meal_logs(
     current_user: dict = Depends(get_current_user)
 ):
     verify_user_access(current_user, user_id)
+    check_expert_permission(current_user, "meal_logs:read")
     return get_paginated_meal_logs(user_id, page, page_size)
 
 @router.post("/{user_id}", response_model=Dict[str, Any])
 def add_meal_log(user_id: str, data: Dict[str, Any], current_user: dict = Depends(get_current_user)):
     verify_user_access(current_user, user_id)
+    check_expert_permission(current_user, "meal_logs:write")
     caller_id = current_user.get("user_id")
     caller_role = current_user.get("role")
     if caller_role == "patient" and caller_id != user_id:
@@ -99,6 +101,7 @@ def add_meal_log(user_id: str, data: Dict[str, Any], current_user: dict = Depend
 @router.delete("/{user_id}/{meal_id}", response_model=Dict[str, Any])
 def remove_meal_log(user_id: str, meal_id: str, current_user: dict = Depends(get_current_user)):
     verify_user_access(current_user, user_id)
+    check_expert_permission(current_user, "meal_logs:write")
     caller_id = current_user.get("user_id")
     caller_role = current_user.get("role")
     if caller_role == "patient" and caller_id != user_id:

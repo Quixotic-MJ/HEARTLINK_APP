@@ -1,18 +1,20 @@
 from fastapi import APIRouter, HTTPException, Depends, status
 from typing import List, Dict, Any
 from app.services.sleep_logs import get_sleep_logs, create_sleep_log, delete_sleep_log
-from app.utils.security import get_current_user, verify_user_access
+from app.utils.security import get_current_user, verify_user_access, check_expert_permission
 
 router = APIRouter(prefix="/api/sleep-logs", tags=["Sleep Logs"])
 
 @router.get("/{user_id}", response_model=List[Dict[str, Any]])
 def read_sleep_logs(user_id: str, current_user: dict = Depends(get_current_user)):
     verify_user_access(current_user, user_id)
+    check_expert_permission(current_user, "vitals:read")
     return get_sleep_logs(user_id)
 
 @router.post("/{user_id}", response_model=Dict[str, Any])
 def add_sleep_log(user_id: str, data: Dict[str, Any], current_user: dict = Depends(get_current_user)):
     verify_user_access(current_user, user_id)
+    check_expert_permission(current_user, "vitals:write")
     caller_id = current_user.get("user_id")
     caller_role = current_user.get("role")
     if caller_role == "patient" and caller_id != user_id:
@@ -55,6 +57,7 @@ def add_sleep_log(user_id: str, data: Dict[str, Any], current_user: dict = Depen
 @router.delete("/{user_id}/{log_id}", response_model=Dict[str, Any])
 def remove_sleep_log(user_id: str, log_id: str, current_user: dict = Depends(get_current_user)):
     verify_user_access(current_user, user_id)
+    check_expert_permission(current_user, "vitals:write")
     caller_id = current_user.get("user_id")
     caller_role = current_user.get("role")
     if caller_role == "patient" and caller_id != user_id:

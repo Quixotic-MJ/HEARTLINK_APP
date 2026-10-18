@@ -314,6 +314,58 @@ def get_current_super_admin(current_user: dict = Depends(get_current_admin_user)
         )
     return current_user
 
+# HL-012: what each expert type may do. Admins and Super Admin may do everything.
+# Recipes are the Dietitian's, exercises the PT's; the Cardiologist reads every patient log
+# and may record vitals, but does not edit recipes or exercises.
+ADMIN_ROLES = {"admin", "super_admin"}
+EXPERT_PERMISSIONS = {
+    "Dietitian": {"recipes:edit", "meal_logs:read", "meal_logs:write", "vitals:read"},
+    "Physical Therapist": {"exercises:edit", "exercise_logs:read", "vitals:read"},
+    "Cardiologist": {"meal_logs:read", "meal_logs:write", "exercise_logs:read", "vitals:read", "vitals:write"},
+}
+
+
+def has_permission(current_user: dict, permission: str) -> bool:
+    role = current_user.get("role")
+    if role in ADMIN_ROLES:
+        return True
+    if role != "medical_expert":
+        return False
+    # Read the expert type fresh, so a changed specialization applies straight away.
+    profile = get_profile_repo().get_by_id(current_user.get("user_id")) or {}
+    return permission in EXPERT_PERMISSIONS.get(profile.get("expert_type"), set())
+
+
+def check_expert_permission(current_user: dict, permission: str) -> None:
+    """For endpoints patients use too: only medical experts are limited by their expert type."""
+    if current_user.get("role") == "medical_expert" and not has_permission(current_user, permission):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access Denied: your expert type does not cover this.",
+        )
+
+
+def require_permission(permission: str):
+    """Staff-only dependency: admins pass, experts need `permission` for their expert type."""
+    def dependency(current_user: dict = Depends(get_current_admin_user)):
+        if not has_permission(current_user, permission):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access Denied: your expert type does not cover this.",
+            )
+        return current_user
+    return dependency
+
+
+def get_current_admin_only(current_user: dict = Depends(get_current_admin_user)):
+    """Admin and Super Admin only; medical experts get 403."""
+    if current_user.get("role") not in ADMIN_ROLES:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access Denied: Admins only",
+        )
+    return current_user
+
 def verify_user_access(current_user: dict, target_user_id: str) -> None:
     caller_id = current_user.get("user_id")
     caller_role = current_user.get("role")

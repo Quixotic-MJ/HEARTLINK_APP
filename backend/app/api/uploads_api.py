@@ -7,7 +7,7 @@ and returns standard URL and filename metadata.
 from fastapi import APIRouter, UploadFile, File, Form, Depends, HTTPException, status
 from typing import Dict, Any, Optional
 
-from app.utils.security import get_current_user
+from app.utils.security import get_current_user, check_expert_permission
 from app.services.storage_service import get_storage_service, BUCKET_AVATARS, BUCKET_RECIPES, BUCKET_EXERCISES
 
 router = APIRouter(prefix="/api/upload", tags=["Uploads"])
@@ -23,6 +23,11 @@ async def upload_file(
     caller_role = current_user.get("role", "patient")
 
     effective_target_id = target_id or caller_id
+
+    # HL-012: recipe images are the Dietitian's, exercise media the PT's
+    bucket_permission = {BUCKET_RECIPES: "recipes:edit", BUCKET_EXERCISES: "exercises:edit"}.get(bucket)
+    if bucket_permission:
+        check_expert_permission(current_user, bucket_permission)
 
     file_bytes = await file.read()
     if not file_bytes:
