@@ -17,13 +17,17 @@ const mockShowToast = jest.fn();
 (ToastContext.useToast as jest.Mock).mockReturnValue({ showToast: mockShowToast });
 
 // Setup QueryClient
+// gcTime: Infinity stops React Query's 5-minute cache cleanup timer from
+// keeping Jest running after the tests finish.
 const createTestQueryClient = () => new QueryClient({
   defaultOptions: {
     queries: {
       retry: false,
+      gcTime: Infinity,
     },
     mutations: {
       retry: false,
+      gcTime: Infinity,
     },
   },
 });
@@ -59,7 +63,7 @@ describe('useLogExercise', () => {
       json: async () => ({ success: true })
     });
 
-    const { result } = renderHook(() => useLogExercise('user-1', 'token-123'), { wrapper });
+    const { result } = await renderHook(() => useLogExercise('user-1', 'token-123'), { wrapper });
 
     await act(async () => {
       result.current.mutate({
@@ -93,7 +97,7 @@ describe('useLogExercise', () => {
     // Mock network failure
     (global.fetch as jest.Mock).mockRejectedValueOnce(new TypeError('Network request failed'));
 
-    const { result } = renderHook(() => useLogExercise('user-1', 'token-123'), { wrapper });
+    const { result } = await renderHook(() => useLogExercise('user-1', 'token-123'), { wrapper });
 
     await act(async () => {
       result.current.mutate({

@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '../contexts/ToastContext';
 import { postLogAck } from '../services/companionCopy';
+import { queueExerciseForSync } from '../services/SyncService';
 import { useNetInfo } from '@react-native-community/netinfo';
 
 const base_url = process.env.EXPO_PUBLIC_API_URL;
@@ -95,7 +96,7 @@ export function useLogExercise(userId: string | null | undefined, token: string 
         showToast({
           ...postLogAck(
             "exercise",
-            `${newExercise.routine_name} — ${newExercise.duration_minutes} min saved offline. You're at ${runningTotal} min of activity today.`
+            `${newExercise.routine_name} — ${newExercise.duration_minutes} min saved offline. You're at ${runningTotal} min of activity today`
           ),
           type: "info",
           duration: 5500,
@@ -104,7 +105,7 @@ export function useLogExercise(userId: string | null | undefined, token: string 
         showToast({
           ...postLogAck(
             "exercise",
-            `${newExercise.routine_name} — ${newExercise.duration_minutes} min logged. You're at ${runningTotal} min of activity today.`
+            `${newExercise.routine_name} — ${newExercise.duration_minutes} min logged. You're at ${runningTotal} min of activity today`
           ),
           type: "success",
           duration: 5500,
@@ -122,9 +123,7 @@ export function useLogExercise(userId: string | null | undefined, token: string 
       
       if (isQueued) {
         if (userId) {
-          import('../services/SyncService').then(({ queueExerciseForSync }) => {
-            queueExerciseForSync(userId, newExercise);
-          });
+          queueExerciseForSync(userId, newExercise);
         }
         // Only show the offline toast if onMutate didn't already show one
         if (err.status !== 401 && !context?.offlineToastShown) {
