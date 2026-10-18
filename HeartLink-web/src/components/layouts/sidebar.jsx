@@ -16,6 +16,7 @@ import {
   LogOut,
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
+import { canAccess } from "../../app/access";
 
 // ─── Brand Logo Emblem ────────────────────────────────────────────────────────
 function HeartLogoIcon({ size = 24 }) {
@@ -116,6 +117,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed, onLogou
   const navigate = useNavigate();
   
   const role = user?.role || "admin";
+  const canOpen = (path) => canAccess(user, path);
   const userName = (user?.first_name || user?.last_name) 
     ? `${user.first_name || ""} ${user.last_name || ""}`.trim() 
     : (user?.email || "Staff User");
@@ -195,20 +197,21 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed, onLogou
 
         {/* Nav links */}
         <nav className="flex-1 overflow-y-auto overflow-x-hidden px-3 pb-3 space-y-0.5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-          <SectionLabel label="Overview" collapsed={collapsed} />
-          <NavItem path="/dashboard" icon={LayoutDashboard} label="Dashboard" collapsed={collapsed} />
-          
-          {(role === "admin" || role === "super_admin") && (
-            <NavItem path="/analytics" icon={PieChart} label="Analytics" collapsed={collapsed} />
+          {/* HL-034: each link shows only to people who can open it (app/access.js) */}
+          {canOpen("/dashboard") && (
+            <>
+              <SectionLabel label="Overview" collapsed={collapsed} />
+              <NavItem path="/dashboard" icon={LayoutDashboard} label="Dashboard" collapsed={collapsed} />
+              {canOpen("/analytics") && <NavItem path="/analytics" icon={PieChart} label="Analytics" collapsed={collapsed} />}
+              {canOpen("/notifications") && <NavItem path="/notifications" icon={Bell} label="Notifications" collapsed={collapsed} />}
+            </>
           )}
 
-          <NavItem path="/notifications" icon={Bell} label="Notifications" collapsed={collapsed} />
-
-          {(role === "admin" || role === "super_admin") && (
+          {(canOpen("/foods") || canOpen("/exercises")) && (
             <>
               <SectionLabel label="Content" collapsed={collapsed} />
-              <NavItem path="/foods" icon={Utensils} label="Food & recipe library" collapsed={collapsed} />
-              <NavItem path="/exercises" icon={Dumbbell} label="Exercise library" collapsed={collapsed} />
+              {canOpen("/foods") && <NavItem path="/foods" icon={Utensils} label="Food & recipe library" collapsed={collapsed} />}
+              {canOpen("/exercises") && <NavItem path="/exercises" icon={Dumbbell} label="Exercise library" collapsed={collapsed} />}
             </>
           )}
 

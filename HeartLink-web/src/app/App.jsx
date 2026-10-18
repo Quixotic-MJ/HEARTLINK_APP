@@ -16,15 +16,19 @@ import SetPassword from "../features/auth/set_password";
 import UserWellnessProfile from "../features/pages/system & support/UserWellnessProfile";
 import ActivityLog from "../features/pages/system & support/ActivityLog";
 import { AuthProvider, useAuth } from "../contexts/AuthContext";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
+import { Toaster, toast } from "sonner";
+import { canAccess, homeFor } from "./access";
 
-const RoleRoute = ({ children, allowedRoles = [] }) => {
+// HL-034: every page is checked against the shared rules in access.js (role and expert type).
+const RoleRoute = ({ children }) => {
   const { isAuthenticated, user, loading } = useAuth();
-  
+  const { pathname } = useLocation();
+
   if (loading) {
     return null;
   }
-  
+
   if (!isAuthenticated) {
     return <Navigate to="/" replace />;
   }
@@ -34,23 +38,13 @@ const RoleRoute = ({ children, allowedRoles = [] }) => {
     return <Navigate to="/set-password" replace />;
   }
 
-  const role = user?.role;
-  if (allowedRoles.length > 0 && !allowedRoles.includes(role)) {
-    // Medical Expert redirected to their clinical portal home
-    if (role === "medical_expert") {
-      return <Navigate to="/cases" replace />;
-    }
-    // Admin / Super Admin redirected to administrative dashboard
-    return <Navigate to="/dashboard" replace />;
+  if (!canAccess(user, pathname)) {
+    toast.error("You don't have access to that page", { id: "no-access" });
+    return <Navigate to={homeFor(user)} replace />;
   }
-  
+
   return children;
 };
-
-const ADMIN_ROLES = ["admin", "super_admin"];
-const CLINICAL_ROLES = ["medical_expert", "admin", "super_admin"];
-
-import { Toaster } from "sonner";
 
 export default function App() {
   return (
@@ -64,22 +58,22 @@ export default function App() {
           <Route path="/set-password" element={<SetPassword />} />
           
           {/* Administrative & Shared Routes */}
-          <Route path="/dashboard" element={<RoleRoute allowedRoles={ADMIN_ROLES}><Dashboard /></RoleRoute>} />
-          <Route path="/analytics" element={<RoleRoute allowedRoles={ADMIN_ROLES}><Analytics /></RoleRoute>} />
-          <Route path="/foods" element={<RoleRoute allowedRoles={ADMIN_ROLES}><Foods /></RoleRoute>} />
-          <Route path="/exercises" element={<RoleRoute allowedRoles={ADMIN_ROLES}><Exercises /></RoleRoute>} />
-          <Route path="/users" element={<RoleRoute allowedRoles={ADMIN_ROLES}><Users /></RoleRoute>} />
-          <Route path="/users/:id" element={<RoleRoute allowedRoles={ADMIN_ROLES}><UserWellnessProfile /></RoleRoute>} />
-          <Route path="/feedbacks" element={<RoleRoute allowedRoles={ADMIN_ROLES}><Feedbacks /></RoleRoute>} />
-          <Route path="/broadcasts" element={<RoleRoute allowedRoles={ADMIN_ROLES}><Broadcasts /></RoleRoute>} />
-          <Route path="/notifications" element={<RoleRoute allowedRoles={CLINICAL_ROLES}><Notifications /></RoleRoute>} />
-          <Route path="/settings" element={<RoleRoute allowedRoles={ADMIN_ROLES}><Settings /></RoleRoute>} />
-          <Route path="/activity-log" element={<RoleRoute allowedRoles={ADMIN_ROLES}><ActivityLog /></RoleRoute>} />
+          <Route path="/dashboard" element={<RoleRoute><Dashboard /></RoleRoute>} />
+          <Route path="/analytics" element={<RoleRoute><Analytics /></RoleRoute>} />
+          <Route path="/foods" element={<RoleRoute><Foods /></RoleRoute>} />
+          <Route path="/exercises" element={<RoleRoute><Exercises /></RoleRoute>} />
+          <Route path="/users" element={<RoleRoute><Users /></RoleRoute>} />
+          <Route path="/users/:id" element={<RoleRoute><UserWellnessProfile /></RoleRoute>} />
+          <Route path="/feedbacks" element={<RoleRoute><Feedbacks /></RoleRoute>} />
+          <Route path="/broadcasts" element={<RoleRoute><Broadcasts /></RoleRoute>} />
+          <Route path="/notifications" element={<RoleRoute><Notifications /></RoleRoute>} />
+          <Route path="/settings" element={<RoleRoute><Settings /></RoleRoute>} />
+          <Route path="/activity-log" element={<RoleRoute><ActivityLog /></RoleRoute>} />
           
           {/* Clinical Routes */}
-          <Route path="/cases" element={<RoleRoute allowedRoles={CLINICAL_ROLES}><Cases /></RoleRoute>} />
-          <Route path="/cases/:roundId" element={<RoleRoute allowedRoles={CLINICAL_ROLES}><CaseReviewDetail /></RoleRoute>} />
-          <Route path="/calibration" element={<RoleRoute allowedRoles={CLINICAL_ROLES}><Calibrations /></RoleRoute>} />
+          <Route path="/cases" element={<RoleRoute><Cases /></RoleRoute>} />
+          <Route path="/cases/:roundId" element={<RoleRoute><CaseReviewDetail /></RoleRoute>} />
+          <Route path="/calibration" element={<RoleRoute><Calibrations /></RoleRoute>} />
           
           {/* Catch-all route to redirect unknown paths to login */}
           <Route path="*" element={<Navigate to="/" replace />} />

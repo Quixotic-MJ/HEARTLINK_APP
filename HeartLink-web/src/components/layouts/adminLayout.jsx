@@ -4,6 +4,7 @@ import Sidebar from "./sidebar";
 import Header from "./header";
 import LogoutConfirmModal from "../modals/LogoutConfirmModal";
 import { useAuth } from "../../contexts/AuthContext";
+import { canAccess, homeFor } from "../../app/access";
 
 const AdminLayout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -19,13 +20,10 @@ const AdminLayout = ({ children }) => {
     if (!isAuthenticated) return;
     
     const role = user?.role;
-    
-    if (role === "medical_expert") {
-      const restrictedRoutes = ["/analytics", "/foods", "/exercises", "/feedbacks", "/broadcasts", "/settings"];
-      const isRestricted = restrictedRoutes.some(route => pathname.startsWith(route)) || pathname === "/users" || pathname === "/users/";
-      if (isRestricted) {
-        navigate("/dashboard", { replace: true });
-      }
+
+    // HL-034: same page rules as the routes (app/access.js), including expert type
+    if (!canAccess(user, pathname)) {
+      navigate(homeFor(user), { replace: true });
     } else if (role === "admin" || role === "super_admin") {
       // Admins should not access the individual user profile directly, they use the user detail drawer
       const isUserProfile = pathname.startsWith("/users/") && pathname.length > "/users/".length;
