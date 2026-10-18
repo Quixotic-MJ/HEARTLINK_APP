@@ -486,7 +486,8 @@ const Notifications = () => {
                     key={n.id}
                     onClick={() => handleNavigate(n.id, n.route)}
                     className={`p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-colors group cursor-pointer ${
-                      isRead ? "bg-[#FFFFFF] hover:bg-[#F8FAFC]/50 opacity-80" : "bg-[#EAF5FC]/20 hover:bg-[#EAF5FC]/40"
+                      // HL-042: unread grey, read white (the blue dot still marks unread)
+                      isRead ? "bg-[#FFFFFF] hover:bg-[#F8FAFC]" : "bg-[#F3F4F6] hover:bg-[#E5E7EB]"
                     }`}
                   >
                     {/* Left Icon + Content */}
