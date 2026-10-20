@@ -79,7 +79,7 @@ export default function Header({
 
   return (
     <header
-      className="sticky top-0 z-30 grid grid-cols-[auto_1fr_auto] items-center shrink-0 px-5 sm:px-6 bg-[#FFFFFF] border-b border-[#DCE3DF] h-[60px] select-none gap-4"
+      className="sticky top-0 z-30 grid grid-cols-[auto_1fr_auto] items-center shrink-0 px-5 sm:px-6 bg-ds-canvas border-b border-ds-hairline h-[60px] select-none gap-4"
       style={{ fontFamily: "'Inter', sans-serif" }}
     >
       {/* ═════════════════════════════════════════════════════════════════════════
@@ -88,7 +88,7 @@ export default function Header({
       <div className="flex items-center gap-4">
         <button
           aria-label="Open sidebar"
-          className="lg:hidden p-1.5 rounded-[8px] bg-[#F8FAFC] border border-[#E2E8F0] text-[#64748B] hover:text-[#0F172A] transition-colors cursor-pointer"
+          className="lg:hidden p-1.5 rounded-[8px] bg-ds-surface border border-ds-hairline text-ds-slate hover:text-ds-ink transition-colors cursor-pointer"
           onClick={() => setSidebarOpen(true)}
         >
           <Menu size={16} />
@@ -96,10 +96,10 @@ export default function Header({
 
         {/* Fixed minimum width lane so title changes never push the search bar */}
         <div className="hidden md:flex items-center gap-5 min-w-[210px]">
-          <h1 className="text-[12px] font-bold uppercase tracking-[0.15em] text-[#292524] truncate">
+          <h1 className="text-[12px] font-bold uppercase tracking-[0.15em] text-ds-ink truncate">
             {title}
           </h1>
-          <div className="w-px h-5 bg-[#DCE3DF] ml-auto" />
+          <div className="w-px h-5 bg-ds-hairline ml-auto" />
         </div>
       </div>
 
@@ -107,15 +107,15 @@ export default function Header({
           COLUMN 2: Steady, Non-Shifting Search Bar
       ═════════════════════════════════════════════════════════════════════════ */}
       <div className="flex items-center">
-        <div className="flex items-center gap-2 bg-[#FAFAF9] border border-[#DCE3DF] rounded-[6px] px-2.5 h-[32px] w-full max-w-[320px] focus-within:bg-[#FFFFFF] focus-within:border-[#2E9AE8] focus-within:ring-2 focus-within:ring-[#2E9AE8]/10 transition-all">
-          <Search size={13} className="text-[#78716C] shrink-0" />
+        <div className="flex items-center gap-2 bg-ds-surface border border-ds-hairline rounded-[6px] px-2.5 h-[32px] w-full max-w-[320px] focus-within:bg-ds-canvas focus-within:border-ds-line focus-within:ring-2 focus-within:ring-ds-line/10 transition-all">
+          <Search size={13} className="text-ds-slate shrink-0" />
           <input
             type="text"
             placeholder={searchPlaceholder}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={handleSearch}
-            className="w-full bg-transparent border-none outline-none text-[13px] text-[#0F172A] placeholder:text-[#94A3B8] h-full font-medium"
+            className="w-full bg-transparent border-none outline-none text-[13px] text-ds-ink placeholder:text-ds-steel h-full font-medium"
           />
         </div>
       </div>
@@ -126,8 +126,8 @@ export default function Header({
       <div className="flex items-center gap-3 justify-end">
         
         {/* Live Clock Widget */}
-        <div className="hidden xl:flex items-center gap-1.5 text-[11.5px] font-medium text-[#78716C] bg-[#FAFAF9] border border-[#DCE3DF] px-2.5 h-[32px] rounded-[6px]">
-          <Clock size={13} className="text-[#2E9AE8]" />
+        <div className="hidden xl:flex items-center gap-1.5 text-[11.5px] font-medium text-ds-slate bg-ds-surface border border-ds-hairline px-2.5 h-[32px] rounded-[6px]">
+          <Clock size={13} className="text-ds-primary" />
           <span>{currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
         </div>
 
@@ -137,7 +137,7 @@ export default function Header({
             onClick={() => setQuickActionsOpen(prev => !prev)}
             aria-expanded={quickActionsOpen}
             aria-label="Quick actions"
-            className="flex items-center gap-1.5 bg-[#2E9AE8] hover:bg-[#1C7AC8] text-white rounded-[6px] px-3 h-[32px] text-[12px] font-bold transition-colors cursor-pointer shadow-sm"
+            className="flex items-center gap-1.5 bg-ds-canvas hover:bg-ds-surface border border-ds-hairline-strong text-ds-ink rounded-[8px] px-3 h-9 text-[13px] font-medium transition-colors cursor-pointer"
           >
             <Zap size={13} strokeWidth={2.5} />
             <span>Actions</span>
@@ -149,46 +149,46 @@ export default function Header({
           </button>
 
           {quickActionsOpen && (
-            <div className="absolute right-0 top-[calc(100%+8px)] w-[210px] bg-[#FFFFFF] border border-[#E2E8F0] rounded-[10px] shadow-lg p-1.5 z-50">
+            <div className="absolute right-0 top-[calc(100%+8px)] w-[210px] bg-ds-canvas border border-ds-hairline rounded-xl shadow-lg p-1.5 z-50">
               {userRole === "admin" || userRole === "super_admin" ? (
                 <>
-                  <div className="text-[10.5px] font-semibold text-[#94A3B8] px-2.5 pt-2 pb-1 uppercase tracking-wider">
+                  <div className="text-[11px] font-semibold text-ds-steel px-2.5 pt-2 pb-1 uppercase tracking-wider">
                     System actions
                   </div>
                   <button
                     onClick={() => { navigate('/broadcasts'); setQuickActionsOpen(false); }}
-                    className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-[7px] text-[12.5px] font-medium text-[#0F172A] hover:bg-[#F8FAFC] transition-colors text-left cursor-pointer"
+                    className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-[7px] text-[12.5px] font-medium text-ds-ink hover:bg-ds-surface transition-colors text-left cursor-pointer"
                   >
-                    <Megaphone size={14} className="text-[#2E9AE8] shrink-0" />
+                    <Megaphone size={14} className="text-ds-primary shrink-0" />
                     <span>Send announcement</span>
                   </button>
                   {userRole === "super_admin" && (
                     <button
                       onClick={() => { navigate('/users'); setQuickActionsOpen(false); }}
-                      className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-[7px] text-[12.5px] font-medium text-[#0F172A] hover:bg-[#F8FAFC] transition-colors text-left cursor-pointer"
+                      className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-[7px] text-[12.5px] font-medium text-ds-ink hover:bg-ds-surface transition-colors text-left cursor-pointer"
                     >
-                      <UserPlus size={14} className="text-[#2E9AE8] shrink-0" />
+                      <UserPlus size={14} className="text-ds-primary shrink-0" />
                       <span>Provision staff account</span>
                     </button>
                   )}
                 </>
               ) : (
                 <>
-                  <div className="text-[10.5px] font-semibold text-[#94A3B8] px-2.5 pt-2 pb-1 uppercase tracking-wider">
+                  <div className="text-[11px] font-semibold text-ds-steel px-2.5 pt-2 pb-1 uppercase tracking-wider">
                     Evaluation actions
                   </div>
                   <button
                     onClick={() => { navigate('/dashboard'); setQuickActionsOpen(false); }}
-                    className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-[7px] text-[12.5px] font-medium text-[#0F172A] hover:bg-[#F8FAFC] transition-colors text-left cursor-pointer"
+                    className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-[7px] text-[12.5px] font-medium text-ds-ink hover:bg-ds-surface transition-colors text-left cursor-pointer"
                   >
-                    <LayoutDashboard size={14} className="text-[#2E9AE8] shrink-0" />
+                    <LayoutDashboard size={14} className="text-ds-primary shrink-0" />
                     <span>View Dashboard</span>
                   </button>
                   <button
                     onClick={() => { navigate('/cases'); setQuickActionsOpen(false); }}
-                    className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-[7px] text-[12.5px] font-medium text-[#0F172A] hover:bg-[#F8FAFC] transition-colors text-left cursor-pointer"
+                    className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-[7px] text-[12.5px] font-medium text-ds-ink hover:bg-ds-surface transition-colors text-left cursor-pointer"
                   >
-                    <ClipboardList size={14} className="text-[#2E9AE8] shrink-0" />
+                    <ClipboardList size={14} className="text-ds-primary shrink-0" />
                     <span>Review cases</span>
                   </button>
                 </>

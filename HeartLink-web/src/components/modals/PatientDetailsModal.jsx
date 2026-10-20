@@ -16,18 +16,18 @@ const PatientDetailsModal = ({ isOpen, onClose, patient, onDeactivate, onEnable 
   const getStatusBadge = (status) => {
     if (status === "Active")
       return (
-        <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-[0.15em] flex items-center gap-1 w-fit">
+        <span className="bg-ds-mint text-ds-charcoal border border-ds-mint px-2 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-[0.15em] flex items-center gap-1 w-fit">
           <CheckCircle2 size={10} /> Active
         </span>
       );
     if (status === "Disabled")
       return (
-        <span className="bg-red-50 text-red-700 border border-red-200 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-[0.15em] flex items-center gap-1 w-fit">
+        <span className="bg-ds-rose text-ds-ink border border-ds-rose px-2 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-[0.15em] flex items-center gap-1 w-fit">
           <Ban size={10} /> Disabled
         </span>
       );
     return (
-      <span className="bg-slate-50 text-slate-500 border border-slate-200 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-[0.15em] flex items-center gap-1 w-fit">
+      <span className="bg-ds-surface text-ds-slate border border-ds-hairline px-2 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-[0.15em] flex items-center gap-1 w-fit">
         <Archive size={10} /> Archived
       </span>
     );
@@ -36,20 +36,20 @@ const PatientDetailsModal = ({ isOpen, onClose, patient, onDeactivate, onEnable 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
       <div
-        className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity"
+        className="absolute inset-0 bg-black/55 backdrop-blur-sm transition-opacity"
         onClick={onClose}
       ></div>
 
-      <div className="relative w-full max-w-lg bg-slate-50 max-h-full rounded-2xl shadow-2xl flex flex-col animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
+      <div className="relative w-full max-w-lg bg-ds-surface max-h-full rounded-2xl shadow-2xl flex flex-col animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
         {/* Modal Header */}
-        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-200 bg-white shadow-sm z-10">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-ds-hairline bg-ds-canvas z-10">
           <div>
-            <h3 className="text-base font-semibold text-slate-900">User Details</h3>
-            <p className="text-[11px] text-slate-500 mt-1">{patient.name}</p>
+            <h3 className="text-base font-semibold text-ds-ink">User Details</h3>
+            <p className="text-[11px] text-ds-slate mt-1">{patient.name}</p>
           </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-900 p-2 rounded-xl hover:bg-slate-100 transition-colors"
+            className="text-ds-steel hover:text-ds-ink p-2 rounded-xl hover:bg-ds-surface-alt transition-colors"
           >
             <X size={18} />
           </button>
@@ -58,33 +58,33 @@ const PatientDetailsModal = ({ isOpen, onClose, patient, onDeactivate, onEnable 
         {/* Modal Content Area */}
         <div className="flex-1 overflow-y-auto p-6 custom-scrollbar space-y-6">
           {/* Identity Card */}
-          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+          <div className="bg-ds-canvas p-5 rounded-2xl border border-ds-hairline flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-bold text-slate-900">{patient.name}</h2>
-              <p className="text-xs text-slate-500 font-mono mt-1">{formatUserRef(patient.id)}</p>
+              <h2 className="text-xl font-bold text-ds-ink">{patient.name}</h2>
+              <p className="text-xs text-ds-slate font-mono mt-1">{formatUserRef(patient.id)}</p>
             </div>
             {getStatusBadge(patient.status)}
           </div>
 
           {/* Engagement Data */}
           <div>
-            <h4 className="text-[10px] font-semibold text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100 pb-2 mb-4 flex items-center gap-2">
+            <h4 className="text-[11px] font-semibold text-ds-steel uppercase tracking-[0.2em] border-b border-ds-hairline-soft pb-2 mb-4 flex items-center gap-2">
               <Activity size={13} /> Engagement Metrics
             </h4>
             <div className="grid grid-cols-2 gap-4">
-              <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                <p className="text-[10px] font-medium text-slate-500 uppercase tracking-widest mb-1.5">
+              <div className="bg-ds-canvas p-4 rounded-xl border border-ds-hairline ">
+                <p className="text-[11px] font-medium text-ds-slate uppercase tracking-widest mb-1.5">
                   Logins (7 Days)
                 </p>
-                <p className="text-2xl font-bold text-slate-900">
+                <p className="text-2xl font-bold text-ds-ink">
                   {patient.metrics?.loginsThisWeek}
                 </p>
               </div>
-              <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                <p className="text-[10px] font-medium text-slate-500 uppercase tracking-widest mb-1.5">
+              <div className="bg-ds-canvas p-4 rounded-xl border border-ds-hairline ">
+                <p className="text-[11px] font-medium text-ds-slate uppercase tracking-widest mb-1.5">
                   Avg Session
                 </p>
-                <p className="text-2xl font-bold text-slate-900">
+                <p className="text-2xl font-bold text-ds-ink">
                   {patient.metrics?.avgSession}
                 </p>
               </div>
@@ -93,19 +93,19 @@ const PatientDetailsModal = ({ isOpen, onClose, patient, onDeactivate, onEnable 
 
           {/* Alert Frequency */}
           <div>
-            <h4 className="text-[10px] font-semibold text-red-500 uppercase tracking-[0.2em] border-b border-red-100 pb-2 mb-4 flex items-center gap-2">
+            <h4 className="text-[11px] font-semibold text-ds-danger uppercase tracking-[0.2em] border-b border-ds-rose pb-2 mb-4 flex items-center gap-2">
               <AlertTriangle size={13} /> Alert History
             </h4>
-            <div className="bg-red-50 p-5 rounded-xl border border-red-100 flex items-center justify-between">
+            <div className="bg-ds-rose p-5 rounded-xl border border-ds-rose flex items-center justify-between">
               <div>
-                <p className="text-[10px] font-bold text-red-800 uppercase tracking-widest mb-1">
+                <p className="text-[11px] font-bold text-ds-danger uppercase tracking-widest mb-1">
                   High-Risk Triggers
                 </p>
-                <p className="text-xs text-red-600/80 font-medium">
+                <p className="text-xs text-ds-danger/80 font-medium">
                   Total alerts generated by this account.
                 </p>
               </div>
-              <span className="text-3xl font-bold text-red-600">
+              <span className="text-3xl font-bold text-ds-danger">
                 {patient.metrics?.alertsTriggered}
               </span>
             </div>
@@ -113,11 +113,11 @@ const PatientDetailsModal = ({ isOpen, onClose, patient, onDeactivate, onEnable 
 
           {/* Disabled Context (if applicable) */}
           {patient.status === "Disabled" && (
-            <div className="bg-slate-100 border border-slate-200 p-5 rounded-xl">
-              <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+            <div className="bg-ds-surface-alt border border-ds-hairline p-5 rounded-xl">
+              <p className="text-[11px] font-bold text-ds-slate uppercase tracking-widest mb-2 flex items-center gap-1.5">
                 <Ban size={12} /> Deactivation Log
               </p>
-              <p className="text-xs font-medium text-slate-800 italic leading-relaxed">
+              <p className="text-xs font-medium text-ds-ink italic leading-relaxed">
                 "{patient.deactivationReason}"
               </p>
             </div>
@@ -125,18 +125,18 @@ const PatientDetailsModal = ({ isOpen, onClose, patient, onDeactivate, onEnable 
         </div>
 
         {/* Modal Footer Actions */}
-        <div className="px-6 py-4 border-t border-slate-200 bg-slate-50 flex flex-wrap sm:flex-nowrap justify-between items-center gap-4 shrink-0 w-full">
+        <div className="px-6 py-4 border-t border-ds-hairline bg-ds-surface flex flex-wrap sm:flex-nowrap justify-between items-center gap-4 shrink-0 w-full">
           {patient.status === "Disabled" ? (
             <button
               onClick={onEnable}
-              className="flex items-center gap-2 px-5 py-2.5 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-sm transition-colors"
+              className="flex items-center gap-2 px-5 py-2.5 text-xs font-semibold text-white bg-ds-primary hover:bg-ds-primary-pressed rounded-xl transition-colors"
             >
               <CheckCircle2 size={14} /> Re-enable Account
             </button>
           ) : patient.status === "Active" ? (
             <button
               onClick={onDeactivate}
-              className="flex items-center gap-2 px-5 py-2.5 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 rounded-xl shadow-sm transition-colors"
+              className="flex items-center gap-2 px-5 py-2.5 text-xs font-semibold text-white bg-ds-danger hover:bg-ds-danger/90 rounded-xl transition-colors"
             >
               <Ban size={14} /> Disable Account
             </button>
@@ -146,11 +146,11 @@ const PatientDetailsModal = ({ isOpen, onClose, patient, onDeactivate, onEnable 
 
           <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 relative w-full sm:w-auto justify-end">
             {tempPassword && (
-              <div className="absolute bottom-full mb-3 right-0 bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-2.5 rounded-xl text-xs font-semibold shadow-sm flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2 whitespace-nowrap">
-                <span>New Temporary Password: <span className="font-mono bg-white px-2 py-0.5 rounded border border-yellow-300 ml-1 select-all">{tempPassword}</span></span>
+              <div className="absolute bottom-full mb-3 right-0 bg-ds-yellow border border-ds-yellow-bold text-ds-warm-text px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2 whitespace-nowrap">
+                <span>New Temporary Password: <span className="font-mono bg-ds-canvas px-2 py-0.5 rounded border border-ds-yellow-bold ml-1 select-all">{tempPassword}</span></span>
                 <button
                   onClick={() => navigator.clipboard.writeText(tempPassword)}
-                  className="text-yellow-600 hover:text-yellow-800 transition-colors p-1 hover:bg-yellow-100 rounded-md"
+                  className="text-ds-warm-text hover:text-ds-warm-text transition-colors p-1 hover:bg-ds-yellow rounded-md"
                   title="Copy to clipboard"
                 >
                   <Copy size={14} />
@@ -162,13 +162,13 @@ const PatientDetailsModal = ({ isOpen, onClose, patient, onDeactivate, onEnable 
                 const otp = Math.floor(100000 + Math.random() * 900000).toString();
                 setTempPassword(otp);
               }}
-              className="flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-100 rounded-xl transition-colors shadow-sm whitespace-nowrap w-full sm:w-auto"
+              className="flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-semibold text-ds-charcoal bg-ds-canvas border border-ds-hairline hover:bg-ds-surface-alt rounded-xl transition-colors whitespace-nowrap w-full sm:w-auto"
             >
               <Key size={14} /> Generate OTP
             </button>
             <button
               onClick={onClose}
-              className="px-6 py-2.5 text-xs font-semibold text-slate-700 bg-slate-100 border border-slate-200 hover:bg-slate-200 rounded-xl transition-colors shadow-sm w-full sm:w-auto"
+              className="px-6 py-2.5 text-xs font-semibold text-ds-charcoal bg-ds-surface-alt border border-ds-hairline hover:bg-ds-hairline rounded-xl transition-colors w-full sm:w-auto"
             >
               Close
             </button>

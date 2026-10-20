@@ -327,12 +327,12 @@ const Foods = () => {
   // HSS Badge Styling
   const getHssBadgeStyle = (target) => {
     if (target.includes("Stable"))
-      return "bg-[#E3EFEC] text-[#1B6E63] border border-[#C5DFD8]";
+      return "bg-ds-mint text-ds-charcoal border border-ds-mint";
     if (target.includes("Moderate"))
-      return "bg-[#F6EDDD] text-[#A9741B] border border-[#EBD7B8]";
+      return "bg-ds-yellow text-ds-warm-text border border-ds-yellow-bold";
     if (target.includes("Elevated"))
-      return "bg-[#EAF5FC] text-[#2E9AE8] border border-[#CDE1F4]";
-    return "bg-[#F7E4E1] text-[#A93226] border border-[#F0C4B8]";
+      return "bg-ds-tint text-ds-on-tint border border-ds-tint";
+    return "bg-ds-rose text-ds-ink border border-ds-rose";
   };
 
   const hasActiveFilters = 
@@ -363,23 +363,23 @@ const Foods = () => {
         />
 
         {/* ── MAIN CARD: SEARCH, FILTER & TABLE ── */}
-        <div className="bg-[#FFFFFF] border border-[#E2E8F0] rounded-[10px] shadow-2xs overflow-hidden">
+        <div className="bg-ds-canvas border border-ds-hairline rounded-xl overflow-hidden">
           
           {/* Filter Bar */}
-          <div className="p-4 border-b border-[#E2E8F0] bg-[#FFFFFF] space-y-3">
+          <div className="p-4 border-b border-ds-hairline bg-ds-canvas space-y-3">
             <div className="flex flex-col md:flex-row gap-3">
               {/* Search Box */}
               <div className="relative flex-1">
                 <Search
                   size={14}
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#94A3B8]"
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ds-steel"
                 />
                 <input
                   type="text"
                   placeholder="Search recipes, categories, or tags…"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-3.5 py-2 text-[13px] border border-[#E2E8F0] rounded-[8px] focus:outline-none focus:border-[#0F172A] transition-colors bg-[#F8FAFC] text-[#0F172A] placeholder:text-[#94A3B8]"
+                  className="w-full pl-9 pr-3.5 py-2 text-[13px] border border-ds-hairline rounded-[8px] focus:outline-none focus:border-ds-ink transition-colors bg-ds-surface text-ds-ink placeholder:text-ds-steel"
                 />
               </div>
 
@@ -387,7 +387,7 @@ const Foods = () => {
               {hasActiveFilters && (
                 <button
                   onClick={clearFilters}
-                  className="text-[11px] text-[#A93226] font-semibold px-3 py-2 rounded-[8px] border border-[#F0C4B8] bg-[#F7E4E1] hover:bg-[#F0C4B8] transition-colors shrink-0 flex items-center gap-1.5 cursor-pointer"
+                  className="text-[11px] text-ds-ink font-semibold px-3 py-2 rounded-[8px] border border-ds-rose bg-ds-rose hover:bg-ds-rose transition-colors shrink-0 flex items-center gap-1.5 cursor-pointer"
                 >
                   <RotateCcw size={12} />
                   <span>Clear filters</span>
@@ -402,7 +402,7 @@ const Foods = () => {
                 <select
                   value={filterStatus}
                   onChange={(e) => setFilterStatus(e.target.value)}
-                  className="w-full md:w-auto pl-3 pr-7 py-1.5 text-[12px] font-semibold text-[#0F172A] bg-[#FFFFFF] border border-[#E2E8F0] rounded-[8px] focus:outline-none focus:border-[#0F172A] appearance-none cursor-pointer hover:border-[#94A3B8] transition-colors"
+                  className="w-full md:w-auto pl-3 pr-7 py-1.5 text-[12px] font-semibold text-ds-ink bg-ds-canvas border border-ds-hairline rounded-[8px] focus:outline-none focus:border-ds-ink appearance-none cursor-pointer hover:border-ds-steel transition-colors"
                 >
                   <option value="all">All status</option>
                   <option value="published">Published</option>
@@ -410,7 +410,7 @@ const Foods = () => {
                   <option value="archived">Archived</option>
                 </select>
                 <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
-                  <ChevronDown size={12} className="text-[#94A3B8]" />
+                  <ChevronDown size={12} className="text-ds-steel" />
                 </div>
               </div>
 
@@ -419,7 +419,7 @@ const Foods = () => {
                 <select
                   value={filterHss}
                   onChange={(e) => setFilterHss(e.target.value)}
-                  className="w-full md:w-auto pl-3 pr-7 py-1.5 text-[12px] font-semibold text-[#0F172A] bg-[#FFFFFF] border border-[#E2E8F0] rounded-[8px] focus:outline-none focus:border-[#0F172A] appearance-none cursor-pointer hover:border-[#94A3B8] transition-colors"
+                  className="w-full md:w-auto pl-3 pr-7 py-1.5 text-[12px] font-semibold text-ds-ink bg-ds-canvas border border-ds-hairline rounded-[8px] focus:outline-none focus:border-ds-ink appearance-none cursor-pointer hover:border-ds-steel transition-colors"
                 >
                   <option value="all">All HSS tiers</option>
                   <option value="Stable">Stable</option>
@@ -428,7 +428,7 @@ const Foods = () => {
                   <option value="Critical">Critical</option>
                 </select>
                 <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
-                  <ChevronDown size={12} className="text-[#94A3B8]" />
+                  <ChevronDown size={12} className="text-ds-steel" />
                 </div>
               </div>
 
@@ -437,7 +437,7 @@ const Foods = () => {
                 <select
                   value={filterCategory}
                   onChange={(e) => setFilterCategory(e.target.value)}
-                  className="w-full md:w-auto pl-3 pr-7 py-1.5 text-[12px] font-semibold text-[#0F172A] bg-[#FFFFFF] border border-[#E2E8F0] rounded-[8px] focus:outline-none focus:border-[#0F172A] appearance-none cursor-pointer hover:border-[#94A3B8] transition-colors"
+                  className="w-full md:w-auto pl-3 pr-7 py-1.5 text-[12px] font-semibold text-ds-ink bg-ds-canvas border border-ds-hairline rounded-[8px] focus:outline-none focus:border-ds-ink appearance-none cursor-pointer hover:border-ds-steel transition-colors"
                 >
                   <option value="all">All categories</option>
                   <option value="Breakfast">Breakfast</option>
@@ -447,7 +447,7 @@ const Foods = () => {
                   <option value="Others">Others</option>
                 </select>
                 <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
-                  <ChevronDown size={12} className="text-[#94A3B8]" />
+                  <ChevronDown size={12} className="text-ds-steel" />
                 </div>
               </div>
 
@@ -456,7 +456,7 @@ const Foods = () => {
                 <select
                   value={filterFoodSource}
                   onChange={(e) => setFilterFoodSource(e.target.value)}
-                  className="w-full md:w-auto pl-3 pr-7 py-1.5 text-[12px] font-semibold text-[#0F172A] bg-[#FFFFFF] border border-[#E2E8F0] rounded-[8px] focus:outline-none focus:border-[#0F172A] appearance-none cursor-pointer hover:border-[#94A3B8] transition-colors"
+                  className="w-full md:w-auto pl-3 pr-7 py-1.5 text-[12px] font-semibold text-ds-ink bg-ds-canvas border border-ds-hairline rounded-[8px] focus:outline-none focus:border-ds-ink appearance-none cursor-pointer hover:border-ds-steel transition-colors"
                 >
                   <option value="all">All food sources</option>
                   <option value="Home Recipe">Home Recipe</option>
@@ -465,7 +465,7 @@ const Foods = () => {
                   <option value="Raw Ingredient">Raw Ingredient</option>
                 </select>
                 <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
-                  <ChevronDown size={12} className="text-[#94A3B8]" />
+                  <ChevronDown size={12} className="text-ds-steel" />
                 </div>
               </div>
 
@@ -474,14 +474,14 @@ const Foods = () => {
                 <select
                   value={filterReview}
                   onChange={(e) => setFilterReview(e.target.value)}
-                  className="w-full md:w-auto pl-3 pr-7 py-1.5 text-[12px] font-semibold text-[#0F172A] bg-[#FFFFFF] border border-[#E2E8F0] rounded-[8px] focus:outline-none focus:border-[#0F172A] appearance-none cursor-pointer hover:border-[#94A3B8] transition-colors"
+                  className="w-full md:w-auto pl-3 pr-7 py-1.5 text-[12px] font-semibold text-ds-ink bg-ds-canvas border border-ds-hairline rounded-[8px] focus:outline-none focus:border-ds-ink appearance-none cursor-pointer hover:border-ds-steel transition-colors"
                 >
                   <option value="all">All review status</option>
                   <option value="reviewed">Expert Reviewed</option>
                   <option value="pending">Pending Review</option>
                 </select>
                 <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
-                  <ChevronDown size={12} className="text-[#94A3B8]" />
+                  <ChevronDown size={12} className="text-ds-steel" />
                 </div>
               </div>
             </div>
@@ -491,20 +491,20 @@ const Foods = () => {
           <div className="w-full overflow-x-auto">
             <table className="w-full text-left border-collapse min-w-[720px]">
               <thead>
-                <tr className="border-b border-[#E2E8F0] bg-[#F8FAFC]/40">
-                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#94A3B8] uppercase tracking-[0.1em] w-1/3">
+                <tr className="border-b border-ds-hairline bg-ds-surface/40">
+                  <th className="py-3 px-4 sm:px-5 text-[11px] font-semibold text-ds-steel uppercase tracking-[0.1em] w-1/3">
                     Food / meal name
                   </th>
-                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#94A3B8] uppercase tracking-[0.1em]">
+                  <th className="py-3 px-4 sm:px-5 text-[11px] font-semibold text-ds-steel uppercase tracking-[0.1em]">
                     HSS suitability
                   </th>
-                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#94A3B8] uppercase tracking-[0.1em]">
+                  <th className="py-3 px-4 sm:px-5 text-[11px] font-semibold text-ds-steel uppercase tracking-[0.1em]">
                     Nutrition snapshot
                   </th>
-                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#94A3B8] uppercase tracking-[0.1em] text-center">
+                  <th className="py-3 px-4 sm:px-5 text-[11px] font-semibold text-ds-steel uppercase tracking-[0.1em] text-center">
                     Expert review
                   </th>
-                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#94A3B8] uppercase tracking-[0.1em] text-right">
+                  <th className="py-3 px-4 sm:px-5 text-[11px] font-semibold text-ds-steel uppercase tracking-[0.1em] text-right">
                     Actions
                   </th>
                 </tr>
@@ -513,42 +513,42 @@ const Foods = () => {
               {loading ? (
                 <tbody>
                   {[1, 2, 3, 4, 5].map((item) => (
-                    <tr key={item} className="border-b border-[#E2E8F0]/60">
+                    <tr key={item} className="border-b border-ds-hairline/60">
                       <td className="py-3.5 px-5">
                         <div className="flex items-center gap-3">
-                          <Skeleton className="w-9 h-9 rounded-[8px] shrink-0 bg-[#E2E8F0]/70" />
+                          <Skeleton className="w-9 h-9 rounded-[8px] shrink-0 bg-ds-hairline/70" />
                           <div>
-                            <Skeleton className="w-32 h-4 mb-1.5 bg-[#E2E8F0]/70 rounded" />
-                            <Skeleton className="w-20 h-3 bg-[#E2E8F0]/70 rounded" />
+                            <Skeleton className="w-32 h-4 mb-1.5 bg-ds-hairline/70 rounded" />
+                            <Skeleton className="w-20 h-3 bg-ds-hairline/70 rounded" />
                           </div>
                         </div>
                       </td>
                       <td className="py-3.5 px-5">
-                        <Skeleton className="w-24 h-5 rounded-full bg-[#E2E8F0]/70" />
+                        <Skeleton className="w-24 h-5 rounded-full bg-ds-hairline/70" />
                       </td>
                       <td className="py-3.5 px-5">
-                        <Skeleton className="w-20 h-4 mb-1 bg-[#E2E8F0]/70 rounded" />
-                        <Skeleton className="w-16 h-3 bg-[#E2E8F0]/70 rounded" />
+                        <Skeleton className="w-20 h-4 mb-1 bg-ds-hairline/70 rounded" />
+                        <Skeleton className="w-16 h-3 bg-ds-hairline/70 rounded" />
                       </td>
                       <td className="py-3.5 px-5 flex justify-center">
-                        <Skeleton className="w-7 h-7 rounded-full bg-[#E2E8F0]/70" />
+                        <Skeleton className="w-7 h-7 rounded-full bg-ds-hairline/70" />
                       </td>
                       <td className="py-3.5 px-5 text-right">
-                        <Skeleton className="w-6 h-6 rounded-md bg-[#E2E8F0]/70 ml-auto" />
+                        <Skeleton className="w-6 h-6 rounded-md bg-ds-hairline/70 ml-auto" />
                       </td>
                     </tr>
                   ))}
                 </tbody>
               ) : filteredRecipes.length > 0 ? (
-                <tbody className="divide-y divide-[#E2E8F0]">
+                <tbody className="divide-y divide-ds-hairline">
                   {filteredRecipes.map((recipe, index) => {
                     const badgeClass = getHssBadgeStyle(recipe.hssTarget);
                     return (
                       <tr
                         key={recipe.id}
                         onClick={() => openModal(recipe)}
-                        className={`hover:bg-[#F8FAFC]/60 transition-colors group cursor-pointer ${
-                          recipe.status === "archived" ? "opacity-60 bg-[#F8FAFC]/30" : ""
+                        className={`hover:bg-ds-surface/60 transition-colors group cursor-pointer ${
+                          recipe.status === "archived" ? "opacity-60 bg-ds-surface/30" : ""
                         }`}
                       >
                         {/* Food Name & Image */}
@@ -557,15 +557,15 @@ const Foods = () => {
                             <RecipeImage
                               src={recipe.mediaUrl}
                               alt={recipe.name}
-                              containerClassName="w-9 h-9 rounded-[8px] flex items-center justify-center shrink-0 overflow-hidden bg-[#EAF5FC] border border-[#E2E8F0] text-[#2E9AE8] shadow-2xs"
+                              containerClassName="w-9 h-9 rounded-[8px] flex items-center justify-center shrink-0 overflow-hidden bg-ds-tint border border-ds-hairline text-ds-on-tint "
                               fallbackIconSize={16}
-                              fallbackIconClassName="text-[#2E9AE8]"
+                              fallbackIconClassName="text-ds-primary"
                             />
                             <div className="min-w-0 pr-2">
-                              <p className="text-[#0F172A] font-semibold text-[13px] leading-tight mb-0.5 truncate">
+                              <p className="text-ds-ink font-semibold text-[13px] leading-tight mb-0.5 truncate">
                                 {recipe.name}
                               </p>
-                              <p className="text-[#64748B] text-[11px] font-medium truncate">
+                              <p className="text-ds-slate text-[11px] font-medium truncate">
                                 {categoryLabel(recipe)} · <span className="capitalize">{recipe.status}</span>
                               </p>
                             </div>
@@ -575,7 +575,7 @@ const Foods = () => {
                         {/* HSS Badge */}
                         <td className="py-3.5 px-4 sm:px-5 align-middle">
                           <span
-                            className={`inline-flex items-center text-[10px] font-semibold px-2.5 py-0.5 rounded-full ${badgeClass}`}
+                            className={`inline-flex items-center text-[11px] font-semibold px-2.5 py-0.5 rounded-full ${badgeClass}`}
                           >
                             {recipe.hssTarget}
                           </span>
@@ -583,14 +583,14 @@ const Foods = () => {
 
                         {/* Nutrition */}
                         <td className="py-3.5 px-4 sm:px-5 align-middle">
-                          <p className="text-[#0F172A] text-[12.5px] font-semibold flex items-center gap-1.5 m-0 leading-tight">
-                            <Activity size={13} className="text-[#2E9AE8] shrink-0" />
+                          <p className="text-ds-ink text-[12.5px] font-semibold flex items-center gap-1.5 m-0 leading-tight">
+                            <Activity size={13} className="text-ds-primary shrink-0" />
                             {recipe.sodium}mg{" "}
-                            <span className="text-[10.5px] text-[#64748B] font-normal">
+                            <span className="text-[11px] text-ds-slate font-normal">
                               Sodium
                             </span>
                           </p>
-                          <p className="text-[#64748B] text-[11px] font-medium mt-0.5 ml-[18px]">
+                          <p className="text-ds-slate text-[11px] font-medium mt-0.5 ml-[18px]">
                             {recipe.calories} kcal
                           </p>
                         </td>
@@ -599,14 +599,14 @@ const Foods = () => {
                         <td className="py-3.5 px-4 sm:px-5 align-middle text-center">
                           {recipe.expertValidated ? (
                             <div
-                              className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-[#E3EFEC] text-[#1B6E63] border border-[#C5DFD8] mx-auto"
+                              className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-ds-mint text-ds-charcoal border border-ds-mint mx-auto"
                               title="Expert Reviewed"
                             >
                               <ShieldCheck size={14} />
                             </div>
                           ) : (
                             <div
-                              className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-[#F6EDDD] text-[#A9741B] border border-[#EBD7B8] mx-auto"
+                              className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-ds-yellow text-ds-warm-text border border-ds-yellow-bold mx-auto"
                               title="Pending Review"
                             >
                               <ShieldAlert size={14} />
@@ -622,7 +622,7 @@ const Foods = () => {
                           <div className="flex items-center justify-end">
                             <button
                               type="button"
-                              className="p-1.5 text-[#64748B] hover:text-[#0F172A] hover:bg-[#F8FAFC] rounded-[8px] transition-colors cursor-pointer"
+                              className="p-1.5 text-ds-slate hover:text-ds-ink hover:bg-ds-surface rounded-[8px] transition-colors cursor-pointer"
                               onClick={(e) => toggleMenu(e, recipe.id)}
                               title="Actions"
                             >
@@ -632,7 +632,7 @@ const Foods = () => {
 
                           {activeMenuRecipeId === recipe.id && (
                             <div
-                              className={`absolute right-4 w-44 bg-[#FFFFFF] border border-[#E2E8F0] rounded-[10px] shadow-xl p-1.5 z-50 text-left ${
+                              className={`absolute right-4 w-44 bg-ds-canvas border border-ds-hairline rounded-xl shadow-xl p-1.5 z-50 text-left ${
                                 index >= filteredRecipes.length - 2 && filteredRecipes.length > 2
                                   ? "bottom-full mb-1"
                                   : "top-full mt-1"
@@ -645,9 +645,9 @@ const Foods = () => {
                                   setActiveMenuRecipeId(null);
                                   openModal(recipe);
                                 }}
-                                className="w-full px-2.5 py-1.5 text-[12px] text-[#0F172A] hover:bg-[#F8FAFC] rounded-[6px] flex items-center gap-2 font-medium cursor-pointer"
+                                className="w-full px-2.5 py-1.5 text-[12px] text-ds-ink hover:bg-ds-surface rounded-[6px] flex items-center gap-2 font-medium cursor-pointer"
                               >
-                                <Edit2 size={13} className="text-[#2E9AE8]" />
+                                <Edit2 size={13} className="text-ds-primary" />
                                 <span>Edit recipe</span>
                               </button>
 
@@ -659,9 +659,9 @@ const Foods = () => {
                                     setActiveMenuRecipeId(null);
                                     handleUpdateStatus(recipe, "published");
                                   }}
-                                  className="w-full px-2.5 py-1.5 text-[12px] text-[#0F172A] hover:bg-[#F8FAFC] rounded-[6px] flex items-center gap-2 font-medium cursor-pointer"
+                                  className="w-full px-2.5 py-1.5 text-[12px] text-ds-ink hover:bg-ds-surface rounded-[6px] flex items-center gap-2 font-medium cursor-pointer"
                                 >
-                                  <CheckCircle2 size={13} className="text-[#1B6E63]" />
+                                  <CheckCircle2 size={13} className="text-ds-charcoal" />
                                   <span>Publish</span>
                                 </button>
                               )}
@@ -674,9 +674,9 @@ const Foods = () => {
                                     setActiveMenuRecipeId(null);
                                     requestArchiveRecipe(recipe);
                                   }}
-                                  className="w-full px-2.5 py-1.5 text-[12px] text-[#0F172A] hover:bg-[#F8FAFC] rounded-[6px] flex items-center gap-2 font-medium cursor-pointer"
+                                  className="w-full px-2.5 py-1.5 text-[12px] text-ds-ink hover:bg-ds-surface rounded-[6px] flex items-center gap-2 font-medium cursor-pointer"
                                 >
-                                  <Archive size={13} className="text-[#A9741B]" />
+                                  <Archive size={13} className="text-ds-warm-text" />
                                   <span>Archive</span>
                                 </button>
                               )}
@@ -689,15 +689,15 @@ const Foods = () => {
                                     setActiveMenuRecipeId(null);
                                     handleUpdateStatus(recipe, "draft");
                                   }}
-                                  className="w-full px-2.5 py-1.5 text-[12px] text-[#0F172A] hover:bg-[#F8FAFC] rounded-[6px] flex items-center gap-2 font-medium cursor-pointer"
+                                  className="w-full px-2.5 py-1.5 text-[12px] text-ds-ink hover:bg-ds-surface rounded-[6px] flex items-center gap-2 font-medium cursor-pointer"
                                 >
-                                  <CheckCircle2 size={13} className="text-[#1B6E63]" />
+                                  <CheckCircle2 size={13} className="text-ds-charcoal" />
                                   <span>Restore to draft</span>
                                 </button>
                               )}
 
                               {/* Divider */}
-                              <div className="border-t border-[#E2E8F0] my-1" />
+                              <div className="border-t border-ds-hairline my-1" />
 
                               {/* Delete Action */}
                               <button
@@ -706,7 +706,7 @@ const Foods = () => {
                                   setActiveMenuRecipeId(null);
                                   requestDeleteRecipe(recipe);
                                 }}
-                                className="w-full px-2.5 py-1.5 text-[12px] text-[#A93226] hover:bg-[#F7E4E1] rounded-[6px] flex items-center gap-2 font-medium cursor-pointer"
+                                className="w-full px-2.5 py-1.5 text-[12px] text-ds-danger hover:bg-ds-rose rounded-[6px] flex items-center gap-2 font-medium cursor-pointer"
                               >
                                 <Trash2 size={13} />
                                 <span>Delete</span>
@@ -723,15 +723,15 @@ const Foods = () => {
 
             {/* Empty State */}
             {!loading && filteredRecipes.length === 0 && (
-              <div className="p-12 text-center text-[#64748B] text-[13px] flex flex-col items-center justify-center gap-2.5 border-t border-[#E2E8F0]">
+              <div className="p-12 text-center text-ds-slate text-[13px] flex flex-col items-center justify-center gap-2.5 border-t border-ds-hairline">
                 {recipes.length === 0 ? (
-                  <p className="font-medium text-[#64748B]">No recipes available in the library.</p>
+                  <p className="font-medium text-ds-slate">No recipes available in the library.</p>
                 ) : (
                   <>
-                    <p className="font-medium text-[#0F172A]">No recipes match your filter criteria.</p>
+                    <p className="font-medium text-ds-ink">No recipes match your filter criteria.</p>
                     <button
                       onClick={clearFilters}
-                      className="mt-1 px-3.5 py-1.5 text-[12px] font-semibold text-white bg-[#2E9AE8] hover:bg-[#1C7AC8] rounded-[8px] transition-colors cursor-pointer"
+                      className="mt-1 px-3.5 py-1.5 text-[12px] font-semibold text-white bg-ds-primary hover:bg-ds-primary-pressed rounded-[8px] transition-colors cursor-pointer"
                     >
                       Clear filters
                     </button>

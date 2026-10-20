@@ -137,10 +137,10 @@ export function HeartLogoIcon({ size = 26, className = "" }) {
 const compactPrimaryButton = primaryButton.replace("w-full h-11", "h-10 px-4");
 
 const secondaryButton =
-  `h-10 px-4 rounded-[10px] border border-[#DCE1E8] bg-white text-[14px] font-semibold text-[#334155] hover:bg-[#F8FAFC] shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed ${focusRing}`;
+  `h-10 px-4 rounded-[8px] border border-ds-hairline bg-ds-canvas text-[14px] font-semibold text-ds-charcoal hover:bg-ds-surface shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed ${focusRing}`;
 
 const card =
-  "bg-white border border-[#E2E8F0] rounded-2xl shadow-[0_1px_3px_rgba(15,23,42,0.04),0_16px_40px_-16px_rgba(15,23,42,0.12)]";
+  "bg-ds-canvas border border-ds-hairline rounded-2xl shadow-[0_1px_3px_rgba(15,23,42,0.04),0_16px_40px_-16px_rgba(15,23,42,0.12)]";
 
 const stepTransition = {
   initial: { opacity: 0 },
@@ -151,7 +151,7 @@ const stepTransition = {
 export function FieldError({ id, message }) {
   if (!message) return null;
   return (
-    <p id={id} className="flex items-center gap-1.5 mt-1.5 text-[#B42318] text-[13px]">
+    <p id={id} className="flex items-center gap-1.5 mt-1.5 text-ds-danger text-[13px]">
       <AlertCircle size={14} className="shrink-0" aria-hidden="true" />
       <span>{message}</span>
     </p>
@@ -163,12 +163,12 @@ export function ErrorBanner({ error }) {
   return (
     <div
       role="alert"
-      className="flex gap-2.5 rounded-[10px] border border-[#FECDCA] bg-[#FEF3F2] px-3.5 py-3 text-[13px] leading-snug"
+      className="flex gap-2.5 rounded-xl border border-ds-rose bg-ds-rose px-3.5 py-3 text-[13px] leading-snug"
     >
-      <AlertTriangle size={16} className="shrink-0 mt-px text-[#D92D20]" aria-hidden="true" />
+      <AlertTriangle size={16} className="shrink-0 mt-px text-ds-danger" aria-hidden="true" />
       <div>
-        <p className="font-semibold text-[#912018]">{error.title}</p>
-        <p className="mt-0.5 text-[#B42318]">{error.message}</p>
+        <p className="font-semibold text-ds-danger">{error.title}</p>
+        <p className="mt-0.5 text-ds-danger">{error.message}</p>
       </div>
     </div>
   );
@@ -395,7 +395,7 @@ function ForgotPasswordModal({ isOpen, onClose }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#0F172A]/40 backdrop-blur-[2px]"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ds-ink/40 backdrop-blur-[2px]"
       role="dialog"
       aria-modal="true"
       aria-labelledby="forgot-password-title"
@@ -404,14 +404,14 @@ function ForgotPasswordModal({ isOpen, onClose }) {
         initial={{ opacity: 0, scale: 0.98 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.16, ease: "easeOut" }}
-        className={`${card} relative w-full max-w-[400px] p-6 text-[#0F172A]`}
+        className={`${card} relative w-full max-w-[400px] p-6 text-ds-ink`}
         style={{ fontFamily: "'Inter', sans-serif" }}
       >
         <button
           type="button"
           onClick={onClose}
           aria-label="Close"
-          className={`absolute top-3.5 right-3.5 p-1.5 rounded-lg text-[#94A3B8] hover:text-[#334155] hover:bg-[#F1F5F9] transition-colors cursor-pointer ${focusRing}`}
+          className={`absolute top-3.5 right-3.5 p-1.5 rounded-lg text-ds-steel hover:text-ds-charcoal hover:bg-ds-surface-alt transition-colors cursor-pointer ${focusRing}`}
         >
           <X size={18} />
         </button>
@@ -421,7 +421,7 @@ function ForgotPasswordModal({ isOpen, onClose }) {
             <h3 id="forgot-password-title" className="text-[18px] font-semibold tracking-[-0.01em] pr-8">
               Reset your password
             </h3>
-            <p className="mt-1.5 text-[14px] leading-relaxed text-[#64748B]">
+            <p className="mt-1.5 text-[14px] leading-relaxed text-ds-slate">
               Enter the email or username on your staff account and we'll send you instructions to reset your password.
             </p>
 
@@ -463,11 +463,11 @@ function ForgotPasswordModal({ isOpen, onClose }) {
           </form>
         ) : (
           <div>
-            <CheckCircle2 size={22} className="text-[#1B6E63]" aria-hidden="true" />
+            <CheckCircle2 size={22} className="text-ds-charcoal" aria-hidden="true" />
             <h3 id="forgot-password-title" className="mt-3 text-[18px] font-semibold tracking-[-0.01em]">
               Check your email
             </h3>
-            <p className="mt-1.5 text-[14px] leading-relaxed text-[#64748B]">
+            <p className="mt-1.5 text-[14px] leading-relaxed text-ds-slate">
               If that account exists, reset instructions are on their way. They can take a few minutes to arrive.
             </p>
             <div className="mt-6 flex justify-end gap-2.5">
@@ -682,7 +682,7 @@ export default function HeartLinkAdminLogin() {
 
   return (
     <div
-      className="relative isolate overflow-hidden min-h-screen w-full flex flex-col bg-[#F5F8FC] text-[#0F172A] selection:bg-[#2E9AE8] selection:text-white"
+      className="relative isolate overflow-hidden min-h-screen w-full flex flex-col bg-ds-surface text-ds-ink selection:bg-ds-primary selection:text-white"
       style={{ fontFamily: "'Inter', sans-serif" }}
     >
       <LoginBackdrop />
@@ -691,7 +691,7 @@ export default function HeartLinkAdminLogin() {
         <div className="w-full max-w-[400px]">
           {/* Header */}
           <div className="flex flex-col items-center text-center">
-            <span className="relative flex h-12 w-12 items-center justify-center rounded-xl border border-white/70 bg-white/90 backdrop-blur ring-1 ring-[#E2E8F0]/70 shadow-[0_8px_20px_-6px_rgba(46,154,232,0.35)]">
+            <span className="relative flex h-12 w-12 items-center justify-center rounded-xl border border-ds-hairline/70 bg-ds-canvas/90 backdrop-blur ring-1 ring-ds-hairline/70 shadow-[0_8px_20px_-6px_rgba(46,154,232,0.35)]">
               <span className="hl-ripple" aria-hidden="true" />
               <span className="hl-heartbeat inline-flex">
                 <HeartLogoIcon size={28} />
@@ -700,7 +700,7 @@ export default function HeartLinkAdminLogin() {
             <h1 className="mt-6 text-[24px] leading-8 font-semibold tracking-[-0.02em]">
               {isLoginStep ? "Sign in to HeartLink" : "Enter verification code"}
             </h1>
-            <p className="mt-2 text-[14px] text-[#64748B]">
+            <p className="mt-2 text-[14px] text-ds-slate">
               {isLoginStep
                 ? "Admin portal for HeartLink staff"
                 : "We sent a 6-digit code to your registered device."}
@@ -708,7 +708,7 @@ export default function HeartLinkAdminLogin() {
           </div>
 
           {/* Card */}
-          <div className="hl-glow-border relative mt-8 rounded-2xl border border-white/70 bg-white/80 p-6 sm:p-8 backdrop-blur-xl shadow-[0_1px_3px_rgba(15,23,42,0.05),0_30px_70px_-28px_rgba(46,154,232,0.45)] ring-1 ring-[#E2E8F0]/70">
+          <div className="hl-glow-border relative mt-8 rounded-2xl border border-ds-hairline/70 bg-ds-canvas/80 p-6 sm:p-8 backdrop-blur-xl shadow-[0_1px_3px_rgba(15,23,42,0.05),0_30px_70px_-28px_rgba(46,154,232,0.45)] ring-1 ring-ds-hairline/70">
             <AnimatePresence mode="wait" initial={false}>
               {isLoginStep ? (
                 <motion.form
@@ -770,7 +770,7 @@ export default function HeartLinkAdminLogin() {
                       <button
                         type="button"
                         onClick={() => setShowPassword((prev) => !prev)}
-                        className={`absolute right-1.5 top-1/2 -translate-y-1/2 p-2 rounded-lg text-[#94A3B8] hover:text-[#334155] transition-colors cursor-pointer ${focusRing}`}
+                        className={`absolute right-1.5 top-1/2 -translate-y-1/2 p-2 rounded-lg text-ds-steel hover:text-ds-charcoal transition-colors cursor-pointer ${focusRing}`}
                         aria-label={showPassword ? "Hide password" : "Show password"}
                       >
                         {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
@@ -778,7 +778,7 @@ export default function HeartLinkAdminLogin() {
                     </div>
                     <FieldError id="password-error" message={loginErrors.password?.message} />
                     {capsLockOn && !loginErrors.password && (
-                      <p id="caps-lock-hint" className="mt-1.5 text-[13px] text-[#B54708]">
+                      <p id="caps-lock-hint" className="mt-1.5 text-[13px] text-ds-warm-text">
                         Caps Lock is on.
                       </p>
                     )}
@@ -791,9 +791,9 @@ export default function HeartLinkAdminLogin() {
                       type="checkbox"
                       checked={remember}
                       onChange={(e) => setRemember(e.target.checked)}
-                      className={`h-4 w-4 rounded accent-[#2E9AE8] cursor-pointer ${focusRing}`}
+                      className={`h-4 w-4 rounded accent-ds-line cursor-pointer ${focusRing}`}
                     />
-                    <span className="text-[13.5px] text-[#475569]">Stay signed in for 7 days</span>
+                    <span className="text-[13.5px] text-ds-charcoal">Stay signed in for 7 days</span>
                   </label>
 
                   <ErrorBanner error={structuredError} />
@@ -830,7 +830,7 @@ export default function HeartLinkAdminLogin() {
                       placeholder="000000"
                       autoComplete="one-time-code"
                       aria-invalid={!!errors2FA.code}
-                      className={`${inputBase} ${inputState(!!errors2FA.code)} h-12 text-center text-[20px] font-semibold tracking-[0.5em] tabular-nums placeholder:text-[#CBD5E1]`}
+                      className={`${inputBase} ${inputState(!!errors2FA.code)} h-12 text-center text-[20px] font-semibold tracking-[0.5em] tabular-nums placeholder:text-ds-hairline-strong`}
                       {...register2FA("code")}
                       ref={(e) => {
                         register2FA("code").ref(e);
@@ -838,7 +838,7 @@ export default function HeartLinkAdminLogin() {
                       }}
                     />
                     <FieldError message={errors2FA.code?.message} />
-                    <p className="mt-1.5 text-[13px] text-[#64748B]">The code expires in 5 minutes.</p>
+                    <p className="mt-1.5 text-[13px] text-ds-slate">The code expires in 5 minutes.</p>
                   </div>
 
                   <ErrorBanner error={structuredError} />
@@ -858,7 +858,7 @@ export default function HeartLinkAdminLogin() {
                     <button
                       type="button"
                       onClick={() => { setStep("login"); setStructuredError(null); }}
-                      className={`inline-flex items-center gap-1.5 font-medium text-[#64748B] hover:text-[#0F172A] transition-colors cursor-pointer rounded-[4px] ${focusRing}`}
+                      className={`inline-flex items-center gap-1.5 font-medium text-ds-slate hover:text-ds-ink transition-colors cursor-pointer rounded-[4px] ${focusRing}`}
                     >
                       <ArrowLeft size={15} />
                       Back
@@ -883,13 +883,13 @@ export default function HeartLinkAdminLogin() {
             </AnimatePresence>
           </div>
 
-          <p className="mt-6 text-center text-[13.5px] text-[#64748B]">
+          <p className="mt-6 text-center text-[13.5px] text-ds-slate">
             Need an account? Ask your system administrator.
           </p>
         </div>
       </main>
 
-      <footer className="relative px-4 pb-8 text-center text-[13px] text-[#94A3B8]">
+      <footer className="relative px-4 pb-8 text-center text-[13px] text-ds-steel">
         Patients sign in through the HeartLink mobile app.
       </footer>
 

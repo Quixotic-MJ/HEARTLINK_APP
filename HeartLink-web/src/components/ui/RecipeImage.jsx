@@ -6,8 +6,8 @@ export const RecipeImage = ({
   alt = "Recipe image",
   className = "w-full h-full object-cover",
   fallbackIconSize = 15,
-  containerClassName = "w-9 h-9 rounded-full flex items-center justify-center shrink-0 overflow-hidden bg-[#21202E] border border-white/10",
-  fallbackIconClassName = "text-[#E55F37]",
+  containerClassName = "w-9 h-9 rounded-full flex items-center justify-center shrink-0 overflow-hidden bg-ds-peach",
+  fallbackIconClassName = "text-ds-charcoal",
 }) => {
   const [hasError, setHasError] = useState(false);
 

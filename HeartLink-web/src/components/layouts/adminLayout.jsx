@@ -35,7 +35,7 @@ const AdminLayout = ({ children }) => {
 
   return (
     <div 
-      className="flex h-screen w-full bg-[#F8FAFC] text-[#0F172A] selection:bg-[#2E9AE8] selection:text-white overflow-hidden fixed inset-0"
+      className="flex h-screen w-full bg-ds-canvas text-ds-ink selection:bg-ds-primary selection:text-white overflow-hidden fixed inset-0"
       style={{ fontFamily: "'Inter', sans-serif" }}
     >
       {/* Sidebar Component */}
@@ -48,7 +48,7 @@ const AdminLayout = ({ children }) => {
       />
 
       {/* Main Column Area */}
-      <div className="flex-1 flex flex-col h-full min-w-0 overflow-hidden relative bg-[#F8FAFC]">
+      <div className="flex-1 flex flex-col h-full min-w-0 overflow-hidden relative bg-ds-canvas">
         {/* Header Component */}
         <Header
           setSidebarOpen={setSidebarOpen}
@@ -56,7 +56,7 @@ const AdminLayout = ({ children }) => {
         />
 
         {/* Scrollable Content Wrapper */}
-        <main className="flex-1 overflow-y-auto overflow-x-hidden p-5 sm:p-6 lg:p-8 bg-[#EDF1EF]">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden p-5 sm:p-6 lg:p-8 bg-ds-surface">
           {/* 
             FIX: Removed max-w-[1180px] to allow child components (like the Dashboard) 
             to utilize fluid, wide-screen grid layouts.

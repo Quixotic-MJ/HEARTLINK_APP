@@ -19,26 +19,26 @@ import {
 import AdminLayout from "../../../components/layouts/adminLayout";
 import { Skeleton } from "../../../components/ui/Skeleton";
 import { apiFetch } from "../../../api";
-import { UI, FONTS, PageHeader } from "../../../styles/designSystem";
+import { UI, FONTS, PageHeader, COLORS } from "../../../styles/designSystem";
 
 // ─── Custom Light Tooltip for Recharts ────────────────────────────────────────
 const CustomLightTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     return (
       <div 
-        className="bg-[#FFFFFF] border border-[#E2E8F0] rounded-[8px] p-2.5 px-3 shadow-lg text-xs select-none min-w-[130px]"
+        className="bg-ds-canvas border border-ds-hairline rounded-[8px] p-2.5 px-3 shadow-lg text-xs select-none min-w-[130px]"
         style={{ fontFamily: FONTS.sans }}
       >
-        <p className="font-semibold text-[#0F172A] mb-1.5 border-b border-[#E2E8F0] pb-1">
+        <p className="font-semibold text-ds-ink mb-1.5 border-b border-ds-hairline pb-1">
           {label}
         </p>
         {payload.map((entry, index) => (
           <div key={`item-${index}`} className="flex items-center justify-between gap-3 my-1">
             <div className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color || entry.fill }} />
-              <span className="text-[#64748B] font-medium text-[11px]">{entry.name}:</span>
+              <span className="text-ds-slate font-medium text-[11px]">{entry.name}:</span>
             </div>
-            <span className="font-bold text-[#0F172A] text-[11px]">
+            <span className="font-bold text-ds-ink text-[11px]">
               {entry.value?.toLocaleString?.() ?? entry.value}
             </span>
           </div>
@@ -82,25 +82,25 @@ const Analytics = () => {
           {/* Header Skeleton */}
           <div className="flex flex-wrap gap-4 justify-between items-end mb-5">
             <div>
-              <Skeleton className="w-28 h-3.5 mb-2 bg-[#E2E8F0]/70 rounded" />
-              <Skeleton className="w-64 h-8 mb-2 bg-[#E2E8F0]/70 rounded-md" />
-              <Skeleton className="w-96 h-4 bg-[#E2E8F0]/70 rounded" />
+              <Skeleton className="w-28 h-3.5 mb-2 bg-ds-hairline/70 rounded" />
+              <Skeleton className="w-64 h-8 mb-2 bg-ds-hairline/70 rounded-md" />
+              <Skeleton className="w-96 h-4 bg-ds-hairline/70 rounded" />
             </div>
-            <Skeleton className="w-40 h-9 rounded-[8px] bg-[#E2E8F0]/70" />
+            <Skeleton className="w-40 h-9 rounded-[8px] bg-ds-hairline/70" />
           </div>
 
           {/* Tabs Skeleton */}
-          <Skeleton className="w-80 h-11 rounded-[10px] mb-5 bg-[#E2E8F0]/60" />
+          <Skeleton className="w-80 h-11 rounded-[8px] mb-5 bg-ds-hairline/60" />
 
           {/* Stat Cards Skeleton */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 mb-5">
-            <Skeleton className="w-full h-32 rounded-[10px] bg-[#E2E8F0]/60" />
-            <Skeleton className="w-full h-32 rounded-[10px] bg-[#E2E8F0]/60" />
-            <Skeleton className="w-full h-32 rounded-[10px] bg-[#E2E8F0]/60" />
+            <Skeleton className="w-full h-32 rounded-xl bg-ds-hairline/60" />
+            <Skeleton className="w-full h-32 rounded-xl bg-ds-hairline/60" />
+            <Skeleton className="w-full h-32 rounded-xl bg-ds-hairline/60" />
           </div>
 
           {/* Chart Panel Skeleton */}
-          <Skeleton className="w-full h-72 rounded-[10px] mb-5 bg-[#E2E8F0]/60" />
+          <Skeleton className="w-full h-72 rounded-xl mb-5 bg-ds-hairline/60" />
         </div>
       </AdminLayout>
     );
@@ -118,14 +118,14 @@ const Analytics = () => {
           description="Understand HeartLink users, clinical activity, HSS telemetry trends, and content usage."
           actions={
             <div className="flex items-center gap-2.5">
-              <label htmlFor="period" className="text-[11.5px] font-semibold text-[#64748B]">
+              <label htmlFor="period" className="text-[11.5px] font-semibold text-ds-slate">
                 Period
               </label>
               <select
                 id="period"
                 value={period}
                 onChange={(e) => setPeriod(e.target.value)}
-                className="border border-[#E2E8F0] bg-[#FFFFFF] rounded-[8px] px-3 py-2 text-[12.5px] font-semibold text-[#0F172A] outline-none cursor-pointer hover:border-[#0F172A] transition-colors"
+                className="border border-ds-hairline bg-ds-canvas rounded-[8px] px-3 py-2 text-[12.5px] font-semibold text-ds-ink outline-none cursor-pointer hover:border-ds-ink transition-colors"
               >
                 <option value="30days">Last 30 days</option>
                 <option value="3months">Last 3 months</option>
@@ -137,14 +137,14 @@ const Analytics = () => {
         />
 
         {/* ── TABS ── */}
-        <div className="inline-flex gap-1 bg-[#FFFFFF] border border-[#E2E8F0] rounded-[10px] p-1 mb-5 shadow-2xs">
+        <div className="inline-flex gap-1 bg-ds-canvas border border-ds-hairline rounded-xl p-1 mb-5 ">
           <button
             type="button"
             onClick={() => setActiveTab("adoption")}
             className={`flex items-center gap-2 px-3.5 py-2 rounded-[7px] border-none text-[12.5px] font-semibold cursor-pointer transition-colors ${
               activeTab === "adoption"
-                ? "bg-[#2E9AE8] text-white shadow-2xs"
-                : "bg-transparent text-[#64748B] hover:bg-[#F8FAFC] hover:text-[#0F172A]"
+                ? "bg-ds-ink text-white "
+                : "bg-transparent text-ds-slate hover:bg-ds-surface hover:text-ds-ink"
             }`}
           >
             <Users size={14} />
@@ -156,8 +156,8 @@ const Analytics = () => {
             onClick={() => setActiveTab("outcomes")}
             className={`flex items-center gap-2 px-3.5 py-2 rounded-[7px] border-none text-[12.5px] font-semibold cursor-pointer transition-colors ${
               activeTab === "outcomes"
-                ? "bg-[#2E9AE8] text-white shadow-2xs"
-                : "bg-transparent text-[#64748B] hover:bg-[#F8FAFC] hover:text-[#0F172A]"
+                ? "bg-ds-ink text-white "
+                : "bg-transparent text-ds-slate hover:bg-ds-surface hover:text-ds-ink"
             }`}
           >
             <HeartPulse size={14} />
@@ -169,8 +169,8 @@ const Analytics = () => {
             onClick={() => setActiveTab("content")}
             className={`flex items-center gap-2 px-3.5 py-2 rounded-[7px] border-none text-[12.5px] font-semibold cursor-pointer transition-colors ${
               activeTab === "content"
-                ? "bg-[#2E9AE8] text-white shadow-2xs"
-                : "bg-transparent text-[#64748B] hover:bg-[#F8FAFC] hover:text-[#0F172A]"
+                ? "bg-ds-ink text-white "
+                : "bg-transparent text-ds-slate hover:bg-ds-surface hover:text-ds-ink"
             }`}
           >
             <Globe size={14} />
@@ -186,70 +186,70 @@ const Analytics = () => {
             {/* Stat Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
               {/* Total Sign-ups */}
-              <div className="bg-[#FFFFFF] border border-[#E2E8F0] rounded-[10px] p-4 sm:p-[18px_18px_16px] shadow-2xs">
+              <div className="bg-ds-canvas border border-ds-hairline rounded-xl p-4 sm:p-[18px_18px_16px] ">
                 <div className="flex justify-between items-start mb-3.5">
-                  <span className="text-[11px] font-semibold text-[#64748B]">Total sign-ups</span>
-                  <div className="w-7 h-7 rounded-[7px] bg-[#EAF5FC] text-[#2E9AE8] flex items-center justify-center">
+                  <span className="text-[11px] font-semibold text-ds-slate">Total sign-ups</span>
+                  <div className="w-7 h-7 rounded-[7px] bg-ds-tint text-ds-on-tint flex items-center justify-center">
                     <Users size={15} />
                   </div>
                 </div>
-                <div className="text-[24px] font-bold text-[#0F172A] tracking-tight">
+                <div className="text-[24px] font-bold text-ds-ink tracking-tight">
                   {formatNumber(demographics?.total_signups)}
                 </div>
-                <span className="inline-block mt-2 text-[10.5px] font-semibold px-2 py-0.5 rounded-[6px] bg-[#F8FAFC] border border-[#E2E8F0] text-[#64748B]">
+                <span className="inline-block mt-2 text-[11px] font-semibold px-2 py-0.5 rounded-[6px] bg-ds-surface border border-ds-hairline text-ds-slate">
                   {demographics?.signups_growth || "+12%"} from previous period
                 </span>
               </div>
 
               {/* Total Activity Logs */}
-              <div className="bg-[#FFFFFF] border border-[#E2E8F0] rounded-[10px] p-4 sm:p-[18px_18px_16px] shadow-2xs">
+              <div className="bg-ds-canvas border border-ds-hairline rounded-xl p-4 sm:p-[18px_18px_16px] ">
                 <div className="flex justify-between items-start mb-3.5">
-                  <span className="text-[11px] font-semibold text-[#64748B]">Total activity logs</span>
-                  <div className="w-7 h-7 rounded-[7px] bg-[#E3EFEC] text-[#1B6E63] flex items-center justify-center">
+                  <span className="text-[11px] font-semibold text-ds-slate">Total activity logs</span>
+                  <div className="w-7 h-7 rounded-[7px] bg-ds-mint text-ds-charcoal flex items-center justify-center">
                     <Activity size={15} />
                   </div>
                 </div>
-                <div className="text-[24px] font-bold text-[#0F172A] tracking-tight">
+                <div className="text-[24px] font-bold text-ds-ink tracking-tight">
                   {formatNumber(demographics?.total_records)}
                 </div>
-                <span className="inline-block mt-2 text-[10.5px] font-semibold px-2 py-0.5 rounded-[6px] bg-[#F8FAFC] border border-[#E2E8F0] text-[#64748B]">
+                <span className="inline-block mt-2 text-[11px] font-semibold px-2 py-0.5 rounded-[6px] bg-ds-surface border border-ds-hairline text-ds-slate">
                   {demographics?.records_growth || "+8%"} vs last period
                 </span>
               </div>
 
               {/* Archived Accounts */}
-              <div className="bg-[#FFFFFF] border border-[#E2E8F0] rounded-[10px] p-4 sm:p-[18px_18px_16px] shadow-2xs">
+              <div className="bg-ds-canvas border border-ds-hairline rounded-xl p-4 sm:p-[18px_18px_16px] ">
                 <div className="flex justify-between items-start mb-3.5">
-                  <span className="text-[11px] font-semibold text-[#64748B]">Archived accounts</span>
-                  <div className="w-7 h-7 rounded-[7px] bg-[#F7E4E1] text-[#A93226] flex items-center justify-center">
+                  <span className="text-[11px] font-semibold text-ds-slate">Archived accounts</span>
+                  <div className="w-7 h-7 rounded-[7px] bg-ds-rose text-ds-ink flex items-center justify-center">
                     <Archive size={15} />
                   </div>
                 </div>
-                <div className="text-[24px] font-bold text-[#0F172A] tracking-tight">
+                <div className="text-[24px] font-bold text-ds-ink tracking-tight">
                   {formatNumber(demographics?.archived_accounts)}
                 </div>
-                <span className="inline-block mt-2 text-[10.5px] font-semibold px-2 py-0.5 rounded-[6px] bg-[#F8FAFC] border border-[#E2E8F0] text-[#64748B]">
+                <span className="inline-block mt-2 text-[11px] font-semibold px-2 py-0.5 rounded-[6px] bg-ds-surface border border-ds-hairline text-ds-slate">
                   {demographics?.churn_rate || "3.1%"} archiving rate
                 </span>
               </div>
             </div>
 
             {/* Monthly Active Users Chart */}
-            <div className="bg-[#FFFFFF] border border-[#E2E8F0] rounded-[10px] p-5 shadow-2xs">
-              <h3 className="text-[13.5px] font-semibold text-[#0F172A] mb-0.5">
+            <div className="bg-ds-canvas border border-ds-hairline rounded-xl p-5 ">
+              <h3 className="text-[13.5px] font-semibold text-ds-ink mb-0.5">
                 Monthly active users trend
               </h3>
-              <div className="text-[12px] text-[#64748B] mb-4">
+              <div className="text-[12px] text-ds-slate mb-4">
                 Unique users logging at least one event per month
               </div>
               <div className="w-full h-64">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={demographics?.monthly_dau || []} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94A3B8' }} dy={10} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94A3B8' }} />
-                    <Tooltip content={<CustomLightTooltip />} cursor={{ fill: 'rgba(232,83,46,0.04)' }} />
-                    <Bar dataKey="dau" name="Active users" fill="#2E9AE8" radius={[5, 5, 0, 0]} maxBarSize={42} />
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={COLORS.line} />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: COLORS.inkFaint }} dy={10} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: COLORS.inkFaint }} />
+                    <Tooltip content={<CustomLightTooltip />} cursor={{ fill: 'rgba(46,154,232,0.06)' }} />
+                    <Bar dataKey="dau" name="Active users" fill={COLORS.brandLine} radius={[5, 5, 0, 0]} maxBarSize={42} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -258,28 +258,28 @@ const Analytics = () => {
             {/* Symptoms & Activity Volume Side-by-Side */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5">
               {/* Most Frequently Recorded Symptoms */}
-              <div className="bg-[#FFFFFF] border border-[#E2E8F0] rounded-[10px] p-5 shadow-2xs flex flex-col justify-between">
+              <div className="bg-ds-canvas border border-ds-hairline rounded-xl p-5 flex flex-col justify-between">
                 <div>
-                  <h3 className="text-[13.5px] font-semibold text-[#0F172A] mb-0.5">
+                  <h3 className="text-[13.5px] font-semibold text-ds-ink mb-0.5">
                     Most frequently recorded symptoms
                   </h3>
-                  <div className="text-[12px] text-[#64748B] mb-4">
+                  <div className="text-[12px] text-ds-slate mb-4">
                     Top self-reported symptoms this period
                   </div>
 
                   {data.symptoms_frequency && data.symptoms_frequency.length > 0 ? (
                     <div className="space-y-2">
                       {data.symptoms_frequency.slice(0, 5).map((item, idx) => (
-                        <div key={idx} className="flex justify-between items-center p-2.5 px-3 border border-[#E2E8F0] rounded-[8px] bg-[#F8FAFC]">
-                          <span className="text-[12.5px] font-semibold text-[#0F172A] capitalize">{item.name}</span>
-                          <span className="text-[12px] font-bold text-[#1C7AC8] bg-[#FFFFFF] border border-[#E2E8F0] px-2.5 py-0.5 rounded-[6px]">
+                        <div key={idx} className="flex justify-between items-center p-2.5 px-3 border border-ds-hairline rounded-[8px] bg-ds-surface">
+                          <span className="text-[12.5px] font-semibold text-ds-ink capitalize">{item.name}</span>
+                          <span className="text-[12px] font-bold text-ds-primary-pressed bg-ds-canvas border border-ds-hairline px-2.5 py-0.5 rounded-[6px]">
                             {item.count} logs
                           </span>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <div className="py-8 text-center text-[#94A3B8] text-xs border border-dashed border-[#E2E8F0] rounded-[8px]">
+                    <div className="py-8 text-center text-ds-steel text-xs border border-dashed border-ds-hairline rounded-[8px]">
                       No symptoms recorded for this period.
                     </div>
                   )}
@@ -287,24 +287,24 @@ const Analytics = () => {
               </div>
 
               {/* Activity Volume Over Time */}
-              <div className="bg-[#FFFFFF] border border-[#E2E8F0] rounded-[10px] p-5 shadow-2xs">
-                <h3 className="text-[13.5px] font-semibold text-[#0F172A] mb-0.5">
+              <div className="bg-ds-canvas border border-ds-hairline rounded-xl p-5 ">
+                <h3 className="text-[13.5px] font-semibold text-ds-ink mb-0.5">
                   Activity volume over time
                 </h3>
-                <div className="text-[12px] text-[#64748B] mb-4">
+                <div className="text-[12px] text-ds-slate mb-4">
                   Meals, exercise, and sleep logs per week
                 </div>
                 <div className="w-full h-52">
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={data.activity_over_time || []} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94A3B8' }} />
-                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94A3B8' }} />
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={COLORS.line} />
+                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: COLORS.inkFaint }} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: COLORS.inkFaint }} />
                       <Tooltip content={<CustomLightTooltip />} />
-                      <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', color: '#64748B', paddingTop: '10px' }} />
-                      <Area type="monotone" dataKey="meals" name="Meals" stroke="#2E9AE8" fill="rgba(232,83,46,0.10)" strokeWidth={2} />
-                      <Area type="monotone" dataKey="exercises" name="Exercise" stroke="#A9741B" fill="rgba(169,116,27,0.10)" strokeWidth={2} />
-                      <Area type="monotone" dataKey="sleep" name="Sleep" stroke="#1B6E63" fill="rgba(27,110,99,0.10)" strokeWidth={2} />
+                      <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', color: COLORS.inkSoft, paddingTop: '10px' }} />
+                      <Area type="monotone" dataKey="meals" name="Meals" stroke={COLORS.brandLine} fill="rgba(46,154,232,0.10)" strokeWidth={2} />
+                      <Area type="monotone" dataKey="exercises" name="Exercise" stroke={COLORS.amber} fill="rgba(121,52,0,0.08)" strokeWidth={2} />
+                      <Area type="monotone" dataKey="sleep" name="Sleep" stroke={COLORS.teal} fill="rgba(26,174,57,0.10)" strokeWidth={2} />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
@@ -319,25 +319,25 @@ const Analytics = () => {
         {activeTab === "outcomes" && (
           <div className="space-y-5 animate-in fade-in duration-200">
             {/* Stacked HSS Chart */}
-            <div className="bg-[#FFFFFF] border border-[#E2E8F0] rounded-[10px] p-5 shadow-2xs">
-              <h3 className="text-[13.5px] font-semibold text-[#0F172A] mb-0.5">
+            <div className="bg-ds-canvas border border-ds-hairline rounded-xl p-5 ">
+              <h3 className="text-[13.5px] font-semibold text-ds-ink mb-0.5">
                 HSS population tiers over time
               </h3>
-              <div className="text-[12px] text-[#64748B] mb-4">
+              <div className="text-[12px] text-ds-slate mb-4">
                 How registered users distribute across HSS tiers at the end of each month
               </div>
               <div className="w-full h-72">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={wellness_outcomes || []} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94A3B8' }} dy={10} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94A3B8' }} />
-                    <Tooltip content={<CustomLightTooltip />} cursor={{ fill: 'rgba(21,33,49,0.03)' }} />
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={COLORS.line} />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: COLORS.inkFaint }} dy={10} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: COLORS.inkFaint }} />
+                    <Tooltip content={<CustomLightTooltip />} cursor={{ fill: 'rgba(26,26,26,0.03)' }} />
                     <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', paddingTop: '15px' }} />
-                    <Bar dataKey="stable" name="Stable" stackId="s" fill="#1B6E63" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="moderate" name="Moderate" stackId="s" fill="#A9741B" />
-                    <Bar dataKey="elevated_risk" name="Elevated risk" stackId="s" fill="#2E9AE8" />
-                    <Bar dataKey="critical" name="Critical" stackId="s" fill="#A93226" />
+                    <Bar dataKey="stable" name="Stable" stackId="s" fill={COLORS.teal} radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="moderate" name="Moderate" stackId="s" fill={COLORS.amber} />
+                    <Bar dataKey="elevated_risk" name="Elevated risk" stackId="s" fill={COLORS.brandLine} />
+                    <Bar dataKey="critical" name="Critical" stackId="s" fill={COLORS.red} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -346,53 +346,53 @@ const Analytics = () => {
             {/* Content Library by Tier */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5">
               {/* Recipe Library by HSS */}
-              <div className="bg-[#FFFFFF] border border-[#E2E8F0] rounded-[10px] p-5 shadow-2xs">
-                <h3 className="text-[13.5px] font-semibold text-[#0F172A] mb-0.5">
+              <div className="bg-ds-canvas border border-ds-hairline rounded-xl p-5 ">
+                <h3 className="text-[13.5px] font-semibold text-ds-ink mb-0.5">
                   Recipe library by HSS target tier
                 </h3>
-                <div className="text-[12px] text-[#64748B] mb-4">
+                <div className="text-[12px] text-ds-slate mb-4">
                   Content distribution across risk cohorts
                 </div>
                 <div className="space-y-2">
                   {content_distribution?.recipes ? (
                     Object.entries(content_distribution.recipes).map(([tier, count]) => (
-                      <div key={tier} className="flex justify-between items-center p-2.5 px-3 border border-[#E2E8F0] rounded-[8px] bg-[#F8FAFC]">
-                        <span className="text-[12.5px] font-semibold text-[#0F172A] capitalize">
+                      <div key={tier} className="flex justify-between items-center p-2.5 px-3 border border-ds-hairline rounded-[8px] bg-ds-surface">
+                        <span className="text-[12.5px] font-semibold text-ds-ink capitalize">
                           {tier.replace(/_/g, " ")}
                         </span>
-                        <span className="text-[12px] font-bold text-[#1C7AC8] bg-[#FFFFFF] border border-[#E2E8F0] px-2.5 py-0.5 rounded-[6px]">
+                        <span className="text-[12px] font-bold text-ds-primary-pressed bg-ds-canvas border border-ds-hairline px-2.5 py-0.5 rounded-[6px]">
                           {count} recipes
                         </span>
                       </div>
                     ))
                   ) : (
-                    <div className="py-6 text-center text-[#94A3B8] text-xs">No data available</div>
+                    <div className="py-6 text-center text-ds-steel text-xs">No data available</div>
                   )}
                 </div>
               </div>
 
               {/* Exercise Library by HSS */}
-              <div className="bg-[#FFFFFF] border border-[#E2E8F0] rounded-[10px] p-5 shadow-2xs">
-                <h3 className="text-[13.5px] font-semibold text-[#0F172A] mb-0.5">
+              <div className="bg-ds-canvas border border-ds-hairline rounded-xl p-5 ">
+                <h3 className="text-[13.5px] font-semibold text-ds-ink mb-0.5">
                   Exercise library by HSS target tier
                 </h3>
-                <div className="text-[12px] text-[#64748B] mb-4">
+                <div className="text-[12px] text-ds-slate mb-4">
                   Content distribution across risk cohorts
                 </div>
                 <div className="space-y-2">
                   {content_distribution?.exercises ? (
                     Object.entries(content_distribution.exercises).map(([tier, count]) => (
-                      <div key={tier} className="flex justify-between items-center p-2.5 px-3 border border-[#E2E8F0] rounded-[8px] bg-[#F8FAFC]">
-                        <span className="text-[12.5px] font-semibold text-[#0F172A] capitalize">
+                      <div key={tier} className="flex justify-between items-center p-2.5 px-3 border border-ds-hairline rounded-[8px] bg-ds-surface">
+                        <span className="text-[12.5px] font-semibold text-ds-ink capitalize">
                           {tier.replace(/_/g, " ")}
                         </span>
-                        <span className="text-[12px] font-bold text-[#1C7AC8] bg-[#FFFFFF] border border-[#E2E8F0] px-2.5 py-0.5 rounded-[6px]">
+                        <span className="text-[12px] font-bold text-ds-primary-pressed bg-ds-canvas border border-ds-hairline px-2.5 py-0.5 rounded-[6px]">
                           {count} routines
                         </span>
                       </div>
                     ))
                   ) : (
-                    <div className="py-6 text-center text-[#94A3B8] text-xs">No data available</div>
+                    <div className="py-6 text-center text-ds-steel text-xs">No data available</div>
                   )}
                 </div>
               </div>
@@ -406,12 +406,12 @@ const Analytics = () => {
         {activeTab === "content" && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5 animate-in fade-in duration-200">
             {/* Most Logged Recipes */}
-            <div className="bg-[#FFFFFF] border border-[#E2E8F0] rounded-[10px] p-5 shadow-2xs">
+            <div className="bg-ds-canvas border border-ds-hairline rounded-xl p-5 ">
               <div className="flex items-center gap-2.5 mb-4">
-                <div className="w-[30px] h-[30px] rounded-[8px] bg-[#EAF5FC] text-[#2E9AE8] flex items-center justify-center shrink-0">
+                <div className="w-[30px] h-[30px] rounded-[8px] bg-ds-tint text-ds-on-tint flex items-center justify-center shrink-0">
                   <Utensils size={15} />
                 </div>
-                <h3 className="text-[13.5px] font-semibold text-[#0F172A] m-0">
+                <h3 className="text-[13.5px] font-semibold text-ds-ink m-0">
                   Most logged recipes
                 </h3>
               </div>
@@ -419,38 +419,38 @@ const Analytics = () => {
               <div className="space-y-2">
                 {content_efficacy?.top_recipes && content_efficacy.top_recipes.length > 0 ? (
                   content_efficacy.top_recipes.map((item, idx) => (
-                    <div key={idx} className="flex justify-between items-center p-2.5 px-3 border border-[#E2E8F0] rounded-[8px] bg-[#F8FAFC]">
+                    <div key={idx} className="flex justify-between items-center p-2.5 px-3 border border-ds-hairline rounded-[8px] bg-ds-surface">
                       <div className="flex items-center gap-2.5 min-w-0 pr-2">
-                        <span className="w-[22px] h-[22px] rounded-[6px] bg-[#FFFFFF] border border-[#E2E8F0] flex items-center justify-center text-[11px] font-bold text-[#2E9AE8] shrink-0">
+                        <span className="w-[22px] h-[22px] rounded-[6px] bg-ds-canvas border border-ds-hairline flex items-center justify-center text-[11px] font-bold text-ds-primary shrink-0">
                           {idx + 1}
                         </span>
-                        <span className="text-[12.5px] font-semibold text-[#0F172A] truncate">
+                        <span className="text-[12.5px] font-semibold text-ds-ink truncate">
                           {item.name}
                         </span>
                       </div>
                       <div className="text-right shrink-0">
-                        <div className="text-[13px] font-bold text-[#0F172A]">
+                        <div className="text-[13px] font-bold text-ds-ink">
                           {formatNumber(item.completions)}
                         </div>
-                        <div className="text-[9.5px] uppercase text-[#94A3B8] font-semibold tracking-wide">
+                        <div className="text-[11px] uppercase text-ds-steel font-semibold tracking-wide">
                           logs
                         </div>
                       </div>
                     </div>
                   ))
                 ) : (
-                  <div className="py-8 text-center text-[#94A3B8] text-xs">No recipes logged yet.</div>
+                  <div className="py-8 text-center text-ds-steel text-xs">No recipes logged yet.</div>
                 )}
               </div>
             </div>
 
             {/* Most Logged Exercises */}
-            <div className="bg-[#FFFFFF] border border-[#E2E8F0] rounded-[10px] p-5 shadow-2xs">
+            <div className="bg-ds-canvas border border-ds-hairline rounded-xl p-5 ">
               <div className="flex items-center gap-2.5 mb-4">
-                <div className="w-[30px] h-[30px] rounded-[8px] bg-[#EAF5FC] text-[#2E9AE8] flex items-center justify-center shrink-0">
+                <div className="w-[30px] h-[30px] rounded-[8px] bg-ds-tint text-ds-on-tint flex items-center justify-center shrink-0">
                   <Dumbbell size={15} />
                 </div>
-                <h3 className="text-[13.5px] font-semibold text-[#0F172A] m-0">
+                <h3 className="text-[13.5px] font-semibold text-ds-ink m-0">
                   Most logged exercises
                 </h3>
               </div>
@@ -458,27 +458,27 @@ const Analytics = () => {
               <div className="space-y-2">
                 {content_efficacy?.top_exercises && content_efficacy.top_exercises.length > 0 ? (
                   content_efficacy.top_exercises.map((item, idx) => (
-                    <div key={idx} className="flex justify-between items-center p-2.5 px-3 border border-[#E2E8F0] rounded-[8px] bg-[#F8FAFC]">
+                    <div key={idx} className="flex justify-between items-center p-2.5 px-3 border border-ds-hairline rounded-[8px] bg-ds-surface">
                       <div className="flex items-center gap-2.5 min-w-0 pr-2">
-                        <span className="w-[22px] h-[22px] rounded-[6px] bg-[#FFFFFF] border border-[#E2E8F0] flex items-center justify-center text-[11px] font-bold text-[#2E9AE8] shrink-0">
+                        <span className="w-[22px] h-[22px] rounded-[6px] bg-ds-canvas border border-ds-hairline flex items-center justify-center text-[11px] font-bold text-ds-primary shrink-0">
                           {idx + 1}
                         </span>
-                        <span className="text-[12.5px] font-semibold text-[#0F172A] truncate">
+                        <span className="text-[12.5px] font-semibold text-ds-ink truncate">
                           {item.name}
                         </span>
                       </div>
                       <div className="text-right shrink-0">
-                        <div className="text-[13px] font-bold text-[#0F172A]">
+                        <div className="text-[13px] font-bold text-ds-ink">
                           {formatNumber(item.completions)}
                         </div>
-                        <div className="text-[9.5px] uppercase text-[#94A3B8] font-semibold tracking-wide">
+                        <div className="text-[11px] uppercase text-ds-steel font-semibold tracking-wide">
                           sessions
                         </div>
                       </div>
                     </div>
                   ))
                 ) : (
-                  <div className="py-8 text-center text-[#94A3B8] text-xs">No exercises logged yet.</div>
+                  <div className="py-8 text-center text-ds-steel text-xs">No exercises logged yet.</div>
                 )}
               </div>
             </div>

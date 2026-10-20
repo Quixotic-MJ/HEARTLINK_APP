@@ -436,20 +436,20 @@ const Users = () => {
               disabled={loading}
               className={UI.button.secondary}
             >
-              <RefreshCw size={13} className={loading ? "animate-spin text-[#2E9AE8]" : ""} />
+              <RefreshCw size={13} className={loading ? "animate-spin text-ds-primary" : ""} />
               <span>Refresh Directory</span>
             </button>
           }
         />
 
         {/* ── SEGMENTED TAB BUTTONS ── */}
-        <div className="bg-[#FFFFFF] p-1 rounded-[10px] inline-flex flex-wrap border border-[#E2E8F0] mb-6 shadow-2xs">
+        <div className="bg-ds-canvas p-1 rounded-xl inline-flex flex-wrap border border-ds-hairline mb-6 ">
           <button
             onClick={() => handleTabSwitch("app_users")}
             className={`flex items-center gap-2 px-4 py-2 rounded-[7px] text-[12.5px] font-semibold transition-all cursor-pointer ${
               activeTab === "app_users" 
-                ? "bg-[#2E9AE8] text-white shadow-2xs" 
-                : "text-[#64748B] hover:text-[#0F172A] hover:bg-[#F8FAFC]"
+                ? "bg-ds-ink text-white " 
+                : "text-ds-slate hover:text-ds-ink hover:bg-ds-surface"
             }`}
           >
             <User size={14} />
@@ -461,8 +461,8 @@ const Users = () => {
               onClick={() => handleTabSwitch("system_staff")}
               className={`flex items-center gap-2 px-4 py-2 rounded-[7px] text-[12.5px] font-semibold transition-all cursor-pointer ${
                 activeTab === "system_staff" 
-                  ? "bg-[#2E9AE8] text-white shadow-2xs" 
-                  : "text-[#64748B] hover:text-[#0F172A] hover:bg-[#F8FAFC]"
+                  ? "bg-ds-ink text-white " 
+                  : "text-ds-slate hover:text-ds-ink hover:bg-ds-surface"
               }`}
             >
               <ShieldCheck size={14} />
@@ -570,13 +570,13 @@ const Users = () => {
         >
           {confirmConfig.isTargetExpert && (
             <div className="my-4 text-left">
-              <label className="block text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider mb-1.5">
-                Expert Specialization <span className="text-[#A93226]">*</span>
+              <label className="block text-[13px] font-medium text-ds-ink mb-1.5">
+                Expert Specialization <span className="text-ds-danger">*</span>
               </label>
               <select
                 value={reassignExpertType}
                 onChange={(e) => setReassignExpertType(e.target.value)}
-                className="w-full px-3.5 py-2.5 text-[13px] font-semibold text-[#0F172A] bg-[#F8FAFC] border border-[#E2E8F0] focus:border-[#0F172A] rounded-[8px] focus:outline-none cursor-pointer"
+                className="w-full px-3.5 py-2.5 text-[13px] font-semibold text-ds-ink bg-ds-canvas border border-ds-hairline-strong focus:border-ds-line rounded-[8px] focus:outline-none cursor-pointer"
               >
                 <option value="">Select Specialization...</option>
                 <option value="Physical Therapist">Physical Therapist</option>

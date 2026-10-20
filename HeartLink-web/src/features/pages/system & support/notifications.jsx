@@ -131,38 +131,38 @@ const Notifications = () => {
   const getIcon = (type, severity) => {
     switch (type) {
       case "feedback":
-        return <MessageSquare size={15} className={severity === "warning" ? "text-[#A9741B]" : "text-[#1B6E63]"} />;
+        return <MessageSquare size={15} className={severity === "warning" ? "text-ds-warm-text" : "text-ds-charcoal"} />;
       case "staff":
       case "user":
-        return <UserPlus size={15} className={severity === "warning" ? "text-[#2E9AE8]" : "text-[#1B6E63]"} />;
+        return <UserPlus size={15} className={severity === "warning" ? "text-ds-primary" : "text-ds-charcoal"} />;
       case "case":
       case "clinical":
-        return <Activity size={15} className="text-[#A93226]" />;
+        return <Activity size={15} className="text-ds-danger" />;
       case "security":
-        return <ShieldAlert size={15} className="text-[#A93226]" />;
+        return <ShieldAlert size={15} className="text-ds-danger" />;
       case "system":
-        return <Settings size={15} className="text-[#64748B]" />;
+        return <Settings size={15} className="text-ds-slate" />;
       default:
-        return <Info size={15} className="text-[#94A3B8]" />;
+        return <Info size={15} className="text-ds-steel" />;
     }
   };
 
   const getTypeBadge = (type) => {
     switch (type) {
       case "feedback":
-        return { label: "Feedback", cls: "bg-[#F6EDDD] text-[#A9741B] border-[#EBD7B8]" };
+        return { label: "Feedback", cls: "bg-ds-yellow text-ds-warm-text border-ds-yellow-bold" };
       case "case":
       case "clinical":
-        return { label: "Case Review", cls: "bg-[#F7E4E1] text-[#A93226] border-[#F0C4B8]" };
+        return { label: "Case Review", cls: "bg-ds-rose text-ds-ink border-ds-rose" };
       case "staff":
       case "user":
-        return { label: "Account", cls: "bg-[#E3EFEC] text-[#1B6E63] border-[#C5DFD8]" };
+        return { label: "Account", cls: "bg-ds-mint text-ds-charcoal border-ds-mint" };
       case "security":
-        return { label: "Security", cls: "bg-[#F7E4E1] text-[#A93226] border-[#F0C4B8]" };
+        return { label: "Security", cls: "bg-ds-rose text-ds-ink border-ds-rose" };
       case "system":
-        return { label: "System", cls: "bg-[#F8FAFC] text-[#64748B] border-[#E2E8F0]" };
+        return { label: "System", cls: "bg-ds-surface text-ds-slate border-ds-hairline" };
       default:
-        return { label: "General", cls: "bg-[#F8FAFC] text-[#94A3B8] border-[#E2E8F0]" };
+        return { label: "General", cls: "bg-ds-surface text-ds-steel border-ds-hairline" };
     }
   };
 
@@ -290,37 +290,37 @@ const Notifications = () => {
             label="Unread Items"
             value={loading ? "…" : unreadItemsCount}
             icon={AlertCircle}
-            iconBg="bg-[#EAF5FC]"
-            iconColor="text-[#2E9AE8]"
-            iconBorder="border-[#CDE1F4]"
-            valueColor="text-[#2E9AE8]"
+            iconBg="bg-ds-tint"
+            iconColor="text-ds-primary"
+            iconBorder="border-ds-tint"
+            valueColor="text-ds-primary"
           />
           <KpiCard
             label="Clinical Cases"
             value={loading ? "…" : clinicalCasesCount}
             icon={Activity}
-            iconBg="bg-[#F7E4E1]"
-            iconColor="text-[#A93226]"
-            iconBorder="border-[#F0C4B8]"
-            valueColor="text-[#A93226]"
+            iconBg="bg-ds-rose"
+            iconColor="text-ds-danger"
+            iconBorder="border-ds-rose"
+            valueColor="text-ds-danger"
           />
           <KpiCard
             label="Feedback & Support"
             value={loading ? "…" : feedbackTicketsCount}
             icon={MessageSquare}
-            iconBg="bg-[#F6EDDD]"
-            iconColor="text-[#A9741B]"
-            iconBorder="border-[#EBD7B8]"
+            iconBg="bg-ds-yellow"
+            iconColor="text-ds-warm-text"
+            iconBorder="border-ds-yellow-bold"
           />
         </div>
 
         {/* ── ACTION ERROR BANNER ── */}
         {actionError && (
-          <div className="p-3 mb-4 bg-[#F7E4E1] border border-[#F0C4B8] rounded-[8px] flex items-center justify-between text-[#A93226] text-[12px] font-medium">
+          <div className="p-3 mb-4 bg-ds-rose border border-ds-rose rounded-[8px] flex items-center justify-between text-ds-ink text-[12px] font-medium">
             <span>{actionError}</span>
             <button
               onClick={() => setActionError(null)}
-              className="text-[#A93226] font-bold text-xs hover:underline cursor-pointer"
+              className="text-ds-danger font-bold text-xs hover:underline cursor-pointer"
             >
               Dismiss
             </button>
@@ -328,14 +328,14 @@ const Notifications = () => {
         )}
 
         {/* ── MAIN CARD: INBOX & FILTERS ── */}
-        <div className="bg-[#FFFFFF] rounded-[10px] border border-[#E2E8F0] flex flex-col overflow-hidden shadow-2xs">
+        <div className="bg-ds-canvas rounded-xl border border-ds-hairline flex flex-col overflow-hidden ">
           {/* Filter & Search Header Toolbar */}
-          <div className="p-4 border-b border-[#E2E8F0] bg-[#FFFFFF] flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+          <div className="p-4 border-b border-ds-hairline bg-ds-canvas flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
             {/* Search input */}
             <div className="relative flex-1">
               <Search
                 size={14}
-                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#94A3B8] pointer-events-none"
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ds-steel pointer-events-none"
               />
               <input
                 type="text"
@@ -345,13 +345,13 @@ const Notifications = () => {
                   setSearchQuery(e.target.value);
                   setPage(1);
                 }}
-                className="w-full pl-9 pr-4 py-2 text-[13px] border border-[#E2E8F0] rounded-[8px] focus:outline-none focus:border-[#0F172A] transition-colors bg-[#F8FAFC] text-[#0F172A] placeholder:text-[#94A3B8]"
+                className="w-full pl-9 pr-4 py-2 text-[13px] border border-ds-hairline rounded-[8px] focus:outline-none focus:border-ds-ink transition-colors bg-ds-surface text-ds-ink placeholder:text-ds-steel"
               />
             </div>
 
             {/* Status Pills and Type dropdown */}
             <div className="flex flex-wrap items-center gap-2">
-              <div className="bg-[#F8FAFC] p-0.5 rounded-[8px] border border-[#E2E8F0] inline-flex">
+              <div className="bg-ds-surface p-0.5 rounded-[8px] border border-ds-hairline inline-flex">
                 <button
                   onClick={() => {
                     setStatusFilter("all");
@@ -359,8 +359,8 @@ const Notifications = () => {
                   }}
                   className={`px-3 py-1 rounded-[6px] text-[11.5px] font-semibold transition-colors cursor-pointer ${
                     statusFilter === "all"
-                      ? "bg-[#FFFFFF] text-[#0F172A] shadow-2xs"
-                      : "text-[#64748B] hover:text-[#0F172A]"
+                      ? "bg-ds-canvas text-ds-ink "
+                      : "text-ds-slate hover:text-ds-ink"
                   }`}
                 >
                   All ({totalCount})
@@ -372,11 +372,11 @@ const Notifications = () => {
                   }}
                   className={`px-3 py-1 rounded-[6px] text-[11.5px] font-semibold transition-colors cursor-pointer flex items-center gap-1.5 ${
                     statusFilter === "unread"
-                      ? "bg-[#FFFFFF] text-[#2E9AE8] shadow-2xs"
-                      : "text-[#64748B] hover:text-[#0F172A]"
+                      ? "bg-ds-canvas text-ds-primary "
+                      : "text-ds-slate hover:text-ds-ink"
                   }`}
                 >
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#2E9AE8]" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-ds-primary" />
                   Unread ({unreadItemsCount})
                 </button>
                 <button
@@ -386,8 +386,8 @@ const Notifications = () => {
                   }}
                   className={`px-3 py-1 rounded-[6px] text-[11.5px] font-semibold transition-colors cursor-pointer ${
                     statusFilter === "read"
-                      ? "bg-[#FFFFFF] text-[#0F172A] shadow-2xs"
-                      : "text-[#64748B] hover:text-[#0F172A]"
+                      ? "bg-ds-canvas text-ds-ink "
+                      : "text-ds-slate hover:text-ds-ink"
                   }`}
                 >
                   Read
@@ -400,7 +400,7 @@ const Notifications = () => {
                   setTypeFilter(e.target.value);
                   setPage(1);
                 }}
-                className="px-3 py-1.5 text-[12px] font-semibold bg-[#FFFFFF] border border-[#E2E8F0] text-[#0F172A] rounded-[8px] focus:outline-none focus:border-[#0F172A] transition-colors cursor-pointer"
+                className="px-3 py-1.5 text-[12px] font-semibold bg-ds-canvas border border-ds-hairline text-ds-ink rounded-[8px] focus:outline-none focus:border-ds-ink transition-colors cursor-pointer"
               >
                 <option value="all">All Types</option>
                 <option value="feedback">Feedback</option>
@@ -414,7 +414,7 @@ const Notifications = () => {
               {isFilterActive && (
                 <button
                   onClick={handleClearFilters}
-                  className="text-[11px] text-[#A93226] font-semibold px-2.5 py-1.5 rounded-[6px] border border-[#F0C4B8] bg-[#F7E4E1] hover:bg-[#F0C4B8] transition-colors cursor-pointer"
+                  className="text-[11px] text-ds-ink font-semibold px-2.5 py-1.5 rounded-[6px] border border-ds-rose bg-ds-rose hover:bg-ds-rose transition-colors cursor-pointer"
                 >
                   Reset
                 </button>
@@ -423,46 +423,46 @@ const Notifications = () => {
           </div>
 
           {/* ── NOTIFICATIONS LIST ── */}
-          <div className="divide-y divide-[#E2E8F0]">
+          <div className="divide-y divide-ds-hairline">
             {loading ? (
               <div className="p-8 space-y-4">
                 {Array.from({ length: 5 }).map((_, i) => (
                   <div key={i} className="flex items-start gap-3.5 animate-pulse">
-                    <Skeleton className="w-9 h-9 rounded-[8px] bg-[#E2E8F0]/70 shrink-0" />
+                    <Skeleton className="w-9 h-9 rounded-[8px] bg-ds-hairline/70 shrink-0" />
                     <div className="flex-1 space-y-2">
-                      <Skeleton className="h-4 bg-[#E2E8F0]/70 rounded w-1/3" />
-                      <Skeleton className="h-3.5 bg-[#E2E8F0]/70 rounded w-3/4" />
+                      <Skeleton className="h-4 bg-ds-hairline/70 rounded w-1/3" />
+                      <Skeleton className="h-3.5 bg-ds-hairline/70 rounded w-3/4" />
                     </div>
                   </div>
                 ))}
               </div>
             ) : fetchError ? (
               <div className="py-16 text-center">
-                <div className="w-12 h-12 bg-[#F7E4E1] text-[#A93226] rounded-full flex items-center justify-center mx-auto mb-3 border border-[#F0C4B8]">
+                <div className="w-12 h-12 bg-ds-rose text-ds-ink rounded-full flex items-center justify-center mx-auto mb-3 border border-ds-rose">
                   <AlertCircle size={22} />
                 </div>
-                <h4 className="text-[16px] font-semibold text-[#0F172A] mb-1">
+                <h4 className="text-[16px] font-semibold text-ds-ink mb-1">
                   Unable to load alerts
                 </h4>
-                <p className="text-[12px] text-[#64748B] max-w-sm mx-auto mb-4">
+                <p className="text-[12px] text-ds-slate max-w-sm mx-auto mb-4">
                   Please verify your network connection or try refreshing again.
                 </p>
                 <button
                   onClick={() => fetchNotifications()}
-                  className="px-4 py-2 text-[12px] font-semibold text-white bg-[#2E9AE8] hover:bg-[#1C7AC8] rounded-[8px] transition-colors cursor-pointer"
+                  className="px-4 py-2 text-[12px] font-semibold text-white bg-ds-primary hover:bg-ds-primary-pressed rounded-[8px] transition-colors cursor-pointer"
                 >
                   Try Again
                 </button>
               </div>
             ) : paginatedNotifications.length === 0 ? (
               <div className="py-16 text-center">
-                <div className="w-12 h-12 bg-[#F8FAFC] text-[#94A3B8] rounded-full flex items-center justify-center mx-auto mb-3 border border-[#E2E8F0]">
+                <div className="w-12 h-12 bg-ds-surface text-ds-steel rounded-full flex items-center justify-center mx-auto mb-3 border border-ds-hairline">
                   <Bell size={20} />
                 </div>
-                <h4 className="text-[16px] font-semibold text-[#0F172A] mb-1">
+                <h4 className="text-[16px] font-semibold text-ds-ink mb-1">
                   No notifications found
                 </h4>
-                <p className="text-[12px] text-[#64748B] max-w-sm mx-auto mb-3">
+                <p className="text-[12px] text-ds-slate max-w-sm mx-auto mb-3">
                   {isFilterActive
                     ? "No alerts match your applied filter or search parameters."
                     : "You are completely caught up with all administrative notifications."}
@@ -470,7 +470,7 @@ const Notifications = () => {
                 {isFilterActive && (
                   <button
                     onClick={handleClearFilters}
-                    className="px-3.5 py-1.5 text-[12px] font-semibold text-[#0F172A] bg-[#F8FAFC] hover:bg-[#E2E8F0] border border-[#E2E8F0] rounded-[6px] transition-colors cursor-pointer"
+                    className="px-3.5 py-1.5 text-[12px] font-semibold text-ds-ink bg-ds-surface hover:bg-ds-hairline border border-ds-hairline rounded-[6px] transition-colors cursor-pointer"
                   >
                     Clear Filters
                   </button>
@@ -487,7 +487,7 @@ const Notifications = () => {
                     onClick={() => handleNavigate(n.id, n.route)}
                     className={`p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-colors group cursor-pointer ${
                       // HL-042: unread grey, read white (the blue dot still marks unread)
-                      isRead ? "bg-[#FFFFFF] hover:bg-[#F8FAFC]" : "bg-[#F3F4F6] hover:bg-[#E5E7EB]"
+                      isRead ? "bg-ds-canvas hover:bg-ds-surface" : "bg-ds-surface-alt hover:bg-ds-hairline"
                     }`}
                   >
                     {/* Left Icon + Content */}
@@ -495,7 +495,7 @@ const Notifications = () => {
                       {/* Unread dot indicator */}
                       <div className="pt-2 flex items-center justify-center shrink-0">
                         {!isRead ? (
-                          <span className="w-2.5 h-2.5 rounded-full bg-[#2E9AE8] ring-2 ring-white shadow-2xs" />
+                          <span className="w-2.5 h-2.5 rounded-full bg-ds-primary ring-2 ring-white " />
                         ) : (
                           <span className="w-2.5 h-2.5 rounded-full bg-transparent" />
                         )}
@@ -505,8 +505,8 @@ const Notifications = () => {
                       <div
                         className={`w-9 h-9 rounded-[8px] flex items-center justify-center shrink-0 border ${
                           isRead
-                            ? "bg-[#F8FAFC] border-[#E2E8F0]"
-                            : "bg-[#FFFFFF] border-[#E2E8F0] shadow-2xs"
+                            ? "bg-ds-surface border-ds-hairline"
+                            : "bg-ds-canvas border-ds-hairline "
                         }`}
                       >
                         {getIcon(n.type, n.severity)}
@@ -517,23 +517,23 @@ const Notifications = () => {
                         <div className="flex items-center gap-2 flex-wrap mb-1">
                           <h4
                             className={`text-[13.5px] leading-snug truncate ${
-                              isRead ? "font-semibold text-[#0F172A]" : "font-bold text-[#0F172A]"
+                              isRead ? "font-semibold text-ds-ink" : "font-bold text-ds-ink"
                             }`}
                           >
                             {n.title}
                           </h4>
                           <span
-                            className={`inline-flex items-center px-2 py-0.2 rounded-[4px] text-[9.5px] font-bold uppercase tracking-wider border ${badge.cls}`}
+                            className={`inline-flex items-center px-2 py-0.2 rounded-[4px] text-[11px] font-bold uppercase tracking-wider border ${badge.cls}`}
                           >
                             {badge.label}
                           </span>
                         </div>
 
-                        <p className="text-[12.5px] text-[#64748B] leading-relaxed line-clamp-2 font-medium">
+                        <p className="text-[12.5px] text-ds-slate leading-relaxed line-clamp-2 font-medium">
                           {n.message}
                         </p>
 
-                        <div className="flex items-center gap-3 mt-1.5 text-[11px] text-[#94A3B8] font-medium">
+                        <div className="flex items-center gap-3 mt-1.5 text-[11px] text-ds-steel font-medium">
                           <span className="flex items-center gap-1">
                             <Clock size={11} /> {formatRelativeTime(n.created_at)}
                           </span>
@@ -545,13 +545,13 @@ const Notifications = () => {
 
                     {/* Right Actions */}
                     <div
-                      className="flex items-center gap-2 sm:self-center shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-[#E2E8F0]"
+                      className="flex items-center gap-2 sm:self-center shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-ds-hairline"
                       onClick={(e) => e.stopPropagation()}
                     >
                       {n.route && (
                         <button
                           onClick={() => handleNavigate(n.id, n.route)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold text-[#0F172A] bg-[#F8FAFC] hover:bg-[#E2E8F0] border border-[#E2E8F0] rounded-[6px] transition-colors cursor-pointer"
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold text-ds-ink bg-ds-surface hover:bg-ds-hairline border border-ds-hairline rounded-[6px] transition-colors cursor-pointer"
                         >
                           <span>Open</span>
                           <ExternalLink size={12} />
@@ -561,14 +561,14 @@ const Notifications = () => {
                       {!isRead ? (
                         <button
                           onClick={(e) => markAsRead(n.id, e)}
-                          className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-[#2E9AE8] hover:text-[#1C7AC8] bg-[#EAF5FC] hover:bg-[#CDE1F4] border border-[#CDE1F4] rounded-[6px] transition-colors cursor-pointer"
+                          className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-ds-on-tint hover:text-ds-primary-pressed bg-ds-tint hover:bg-ds-tint border border-ds-tint rounded-[6px] transition-colors cursor-pointer"
                           title="Mark as read"
                         >
                           <Check size={13} />
                           <span>Mark read</span>
                         </button>
                       ) : (
-                        <span className="text-[11px] text-[#94A3B8] font-medium px-2 py-1">
+                        <span className="text-[11px] text-ds-steel font-medium px-2 py-1">
                           Read
                         </span>
                       )}
@@ -581,20 +581,20 @@ const Notifications = () => {
 
           {/* ── PAGINATION BAR ── */}
           {filteredNotifications.length > 0 && (
-            <div className="p-3.5 border-t border-[#E2E8F0] bg-[#FFFFFF] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <p className="text-[12px] text-[#64748B] font-medium">
-                Showing <span className="text-[#0F172A] font-bold">{(page - 1) * pageSize + 1}–{Math.min(page * pageSize, filteredNotifications.length)}</span> of{" "}
-                <span className="text-[#0F172A] font-bold">{filteredNotifications.length}</span> alerts
+            <div className="p-3.5 border-t border-ds-hairline bg-ds-canvas flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <p className="text-[12px] text-ds-slate font-medium">
+                Showing <span className="text-ds-ink font-bold">{(page - 1) * pageSize + 1}–{Math.min(page * pageSize, filteredNotifications.length)}</span> of{" "}
+                <span className="text-ds-ink font-bold">{filteredNotifications.length}</span> alerts
               </p>
 
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page <= 1 || loading}
-                  className={`flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold rounded-[6px] border border-[#E2E8F0] bg-[#F8FAFC] transition-colors cursor-pointer ${
+                  className={`flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold rounded-[6px] border border-ds-hairline bg-ds-surface transition-colors cursor-pointer ${
                     page <= 1 || loading
-                      ? "text-[#94A3B8] cursor-not-allowed opacity-40"
-                      : "text-[#0F172A] hover:bg-[#E2E8F0]"
+                      ? "text-ds-steel cursor-not-allowed opacity-40"
+                      : "text-ds-ink hover:bg-ds-hairline"
                   }`}
                 >
                   <ChevronLeft size={13} /> Previous
@@ -602,10 +602,10 @@ const Notifications = () => {
                 <button
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={page >= totalPages || loading}
-                  className={`flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold rounded-[6px] border border-[#E2E8F0] bg-[#F8FAFC] transition-colors cursor-pointer ${
+                  className={`flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold rounded-[6px] border border-ds-hairline bg-ds-surface transition-colors cursor-pointer ${
                     page >= totalPages || loading
-                      ? "text-[#94A3B8] cursor-not-allowed opacity-40"
-                      : "text-[#0F172A] hover:bg-[#E2E8F0]"
+                      ? "text-ds-steel cursor-not-allowed opacity-40"
+                      : "text-ds-ink hover:bg-ds-hairline"
                   }`}
                 >
                   Next <ChevronRight size={13} />

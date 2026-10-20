@@ -8,32 +8,36 @@ import React from "react";
  */
 
 // ─── 1. Color Palette Tokens ──────────────────────────────────────────────────
+// The HeartLink design system (documentation/design-system/HEARTLINK.md). The same values are
+// the ds-* Tailwind colours in App.css; use these only where a class can't (charts, inline SVG).
 export const COLORS = {
-  ink: "#0F172A",        // Primary deep text & dark accents
-  inkSoft: "#64748B",    // Secondary & descriptive text
-  inkFaint: "#94A3B8",   // Captions, placeholders, inactive labels
-  paper: "#F8FAFC",      // Light page canvas & subtle inputs
-  paperRaise: "#FFFFFF", // Card, modal, drawer, and header surface
-  line: "#E2E8F0",       // Consistent border dividers & outlines
+  ink: "#1a1a1a",        // Headings & main text
+  inkSoft: "#5d5b54",    // Secondary text (ds-slate)
+  inkFaint: "#787671",   // Captions, placeholders (ds-steel)
+  paper: "#f6f5f4",      // Info boxes, subtle surfaces (ds-surface)
+  paperRaise: "#ffffff", // Page, cards, modals (ds-canvas)
+  line: "#e5e3df",       // Card borders & dividers (ds-hairline)
 
   // Brand Accents
-  coral: "#2E9AE8",      // Primary interactive brand color
-  coralDeep: "#1C7AC8",  // Primary hover & active states
-  coralSoft: "#EAF5FC",  // Subtle coral badge & icon containers
-  garnet: "#8A1F1A",     // Logo secondary deep accent
+  coral: "#1478b8",      // Primary button (ds-primary)
+  coralDeep: "#0f639a",  // Primary pressed (ds-primary-pressed)
+  coralSoft: "#dcecfa",  // Soft tag & selected (ds-tint)
+  garnet: "#e03131",     // Danger (ds-danger)
+  brandLine: "#2e9ae8",  // Lines, rings, chart series (ds-line)
 
-  // Status & Categorical Tones
-  teal: "#1B6E63",       // Success, active status, evaluated cases
-  tealSoft: "#E3EFEC",
-  amber: "#A9741B",      // Warning, pending review, maintenance
-  amberSoft: "#F6EDDD",
-  red: "#A93226",        // Critical alert, high risk, danger actions
-  redSoft: "#F7E4E1",
+  // Status & Categorical Tones (pastel tag + dark text, never coloured text on a tint)
+  teal: "#1aae39",       // Success marks (ds-success)
+  tealSoft: "#d9f3e1",   // ds-mint
+  amber: "#793400",      // Text on yellow/peach (ds-warm-text)
+  amberSoft: "#fef7d6",  // ds-yellow
+  red: "#e03131",        // Danger (ds-danger)
+  redSoft: "#fde0ec",    // ds-rose
 };
 
 // ─── 2. Typography Declarations ───────────────────────────────────────────────
+// The design system uses one sans family for headings and body, so `serif` points at it too.
 export const FONTS = {
-  serif: "'Fraunces', serif",
+  serif: "'Inter', sans-serif",
   sans: "'Inter', sans-serif",
   mono: "monospace",
 };
@@ -42,90 +46,91 @@ export const FONTS = {
 export const UI = {
   // Page Scaffolding
   page: {
-    container: "max-w-[1180px] mx-auto text-[#0F172A] selection:bg-[#2E9AE8] selection:text-white",
+    container: "max-w-[1180px] mx-auto text-ds-ink selection:bg-ds-primary selection:text-white",
     header: "flex flex-wrap gap-4 justify-between items-end mb-6",
-    eyebrow: "block text-[12px] text-[#94A3B8] font-medium mb-1 flex items-center gap-1.5",
-    title: "text-[26px] font-medium tracking-tight text-[#0F172A] m-0",
-    description: "text-[13px] text-[#64748B] mt-1.5 max-w-[55ch] leading-[1.5]",
+    eyebrow: "block text-[12px] text-ds-steel font-medium mb-1 flex items-center gap-1.5",
+    title: "text-[28px] font-semibold tracking-tight text-ds-ink m-0",
+    description: "text-[14px] text-ds-slate mt-1.5 max-w-[55ch] leading-[1.5]",
     actions: "flex items-center gap-2.5",
   },
 
   // KPI Metric Cards
   kpi: {
     grid: "grid grid-cols-2 lg:grid-cols-4 gap-3.5 mb-6",
-    card: "bg-[#FFFFFF] p-4 rounded-[10px] border border-[#E2E8F0] flex items-center justify-between shadow-2xs",
-    label: "text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wider mb-1",
-    value: "text-[20px] font-medium text-[#0F172A] leading-none",
+    card: "bg-ds-canvas p-4 rounded-xl border border-ds-hairline flex items-center justify-between",
+    label: "text-[11px] font-semibold text-ds-steel uppercase tracking-wider mb-1",
+    value: "text-[22px] font-semibold text-ds-ink leading-none",
     iconBox: "w-8 h-8 rounded-[8px] flex items-center justify-center shrink-0 border",
   },
 
   // Interactive Buttons
   button: {
     primary:
-      "flex items-center justify-center gap-1.5 px-4 py-2 text-[12.5px] font-semibold text-white bg-[#2E9AE8] hover:bg-[#1C7AC8] rounded-[8px] shadow-2xs transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed",
+      "flex items-center justify-center gap-1.5 px-4 h-10 text-[14px] font-medium text-white bg-ds-primary hover:bg-ds-primary-pressed rounded-[8px] transition-colors cursor-pointer disabled:bg-ds-hairline disabled:text-ds-steel disabled:cursor-not-allowed",
     secondary:
-      "flex items-center justify-center gap-1.5 px-3.5 py-2 text-[12.5px] font-semibold text-[#0F172A] bg-[#FFFFFF] hover:bg-[#F8FAFC] border border-[#E2E8F0] rounded-[8px] transition-colors shadow-2xs cursor-pointer disabled:opacity-50",
+      "flex items-center justify-center gap-1.5 px-4 h-10 text-[14px] font-medium text-ds-ink bg-ds-canvas hover:bg-ds-surface border border-ds-hairline-strong rounded-[8px] transition-colors cursor-pointer disabled:opacity-50",
     danger:
-      "flex items-center justify-center gap-1.5 px-3.5 py-2 text-[12.5px] font-semibold text-white bg-[#A93226] hover:bg-[#8A1F1A] rounded-[8px] shadow-2xs transition-colors cursor-pointer disabled:opacity-50",
+      "flex items-center justify-center gap-1.5 px-4 h-10 text-[14px] font-medium text-white bg-ds-danger hover:bg-ds-danger/90 rounded-[8px] transition-colors cursor-pointer disabled:opacity-50",
     dangerSoft:
-      "flex items-center justify-center gap-1.5 px-3.5 py-1.5 text-[12px] font-semibold text-[#A93226] bg-[#F7E4E1] hover:bg-[#F0C4B8] border border-[#F0C4B8] rounded-[6px] transition-colors cursor-pointer",
+      "flex items-center justify-center gap-1.5 px-3.5 h-9 text-[13px] font-medium text-ds-ink bg-ds-rose hover:bg-ds-rose/80 rounded-[8px] transition-colors cursor-pointer",
     ghost:
-      "flex items-center justify-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold text-[#64748B] hover:text-[#0F172A] hover:bg-[#F8FAFC] rounded-[6px] transition-colors cursor-pointer",
+      "flex items-center justify-center gap-1.5 px-3 h-9 text-[13px] font-medium text-ds-slate hover:text-ds-ink hover:bg-ds-surface rounded-[6px] transition-colors cursor-pointer",
     icon:
-      "p-1.5 rounded-[8px] text-[#64748B] hover:text-[#0F172A] hover:bg-[#F8FAFC] transition-colors cursor-pointer",
+      "p-2 rounded-[8px] text-ds-slate hover:text-ds-ink hover:bg-ds-surface transition-colors cursor-pointer",
   },
 
   // Surface Cards & Containers
   card: {
-    root: "bg-[#FFFFFF] rounded-[10px] border border-[#E2E8F0] flex flex-col overflow-hidden shadow-2xs",
-    header: "p-4 border-b border-[#E2E8F0] bg-[#FFFFFF] flex flex-wrap items-center justify-between gap-3",
+    root: "bg-ds-canvas rounded-xl border border-ds-hairline flex flex-col overflow-hidden",
+    header: "p-4 border-b border-ds-hairline bg-ds-canvas flex flex-wrap items-center justify-between gap-3",
     body: "p-6",
-    footer: "p-3.5 border-t border-[#E2E8F0] bg-[#FFFFFF] flex items-center justify-between",
+    footer: "p-3.5 border-t border-ds-hairline bg-ds-canvas flex items-center justify-between",
   },
 
   // Data Tables
   table: {
     container: "w-full overflow-x-auto",
     root: "w-full text-left border-collapse min-w-[700px]",
-    thead: "border-b border-[#E2E8F0] bg-[#F8FAFC]/40",
-    th: "py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#94A3B8] uppercase tracking-[0.1em]",
-    tbody: "divide-y divide-[#E2E8F0]",
-    tr: "hover:bg-[#F8FAFC]/60 transition-colors group cursor-default",
-    trClickable: "hover:bg-[#F8FAFC]/60 transition-colors group cursor-pointer",
+    thead: "border-b border-ds-hairline bg-ds-surface",
+    th: "py-3 px-4 sm:px-5 text-[11px] font-semibold text-ds-steel uppercase tracking-[0.08em]",
+    tbody: "divide-y divide-ds-hairline-soft",
+    tr: "hover:bg-ds-surface/60 transition-colors group cursor-default",
+    trClickable: "hover:bg-ds-surface/60 transition-colors group cursor-pointer",
     td: "py-3.5 px-4 sm:px-5 align-middle",
   },
 
   // Form Controls
   input: {
-    text: "w-full px-3.5 py-2 text-[13px] bg-[#F8FAFC] border border-[#E2E8F0] text-[#0F172A] rounded-[8px] focus:outline-none focus:border-[#0F172A] transition-colors placeholder:text-[#94A3B8]",
-    select: "px-3 py-2 text-[12.5px] font-semibold bg-[#F8FAFC] border border-[#E2E8F0] text-[#0F172A] rounded-[8px] focus:outline-none focus:border-[#0F172A] transition-colors cursor-pointer",
-    textarea: "w-full px-3.5 py-2 text-[12.5px] bg-[#F8FAFC] border border-[#E2E8F0] text-[#0F172A] rounded-[8px] focus:outline-none focus:border-[#0F172A] transition-colors resize-none leading-relaxed placeholder:text-[#94A3B8]",
-    label: "block text-[10.5px] font-semibold text-[#94A3B8] uppercase tracking-wider mb-1",
-    error: "text-[11px] font-semibold text-[#A93226] mt-1 flex items-center gap-1",
-    search: "w-full pl-9 pr-4 py-2 text-[13px] border border-[#E2E8F0] rounded-[8px] focus:outline-none focus:border-[#0F172A] transition-colors bg-[#F8FAFC] text-[#0F172A] placeholder:text-[#94A3B8]",
+    text: "w-full px-3.5 h-11 text-[14px] bg-ds-canvas border border-ds-hairline-strong text-ds-ink rounded-[8px] focus:outline-none focus:border-ds-line focus:ring-1 focus:ring-ds-line transition-colors placeholder:text-ds-steel",
+    select: "px-3 h-10 text-[14px] font-medium bg-ds-canvas border border-ds-hairline-strong text-ds-ink rounded-[8px] focus:outline-none focus:border-ds-line focus:ring-1 focus:ring-ds-line transition-colors cursor-pointer",
+    textarea: "w-full px-3.5 py-2.5 text-[14px] bg-ds-canvas border border-ds-hairline-strong text-ds-ink rounded-[8px] focus:outline-none focus:border-ds-line focus:ring-1 focus:ring-ds-line transition-colors resize-none leading-relaxed placeholder:text-ds-steel",
+    label: "block text-[13px] font-medium text-ds-ink mb-1.5",
+    error: "text-[12px] font-medium text-ds-danger mt-1 flex items-center gap-1",
+    search: "w-full pl-9 pr-4 h-10 text-[14px] border border-ds-hairline rounded-[8px] focus:outline-none focus:border-ds-line focus:ring-1 focus:ring-ds-line transition-colors bg-ds-surface text-ds-ink placeholder:text-ds-steel",
   },
 
   // Modals & Dialogs
   modal: {
-    backdrop: "fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-xs",
-    overlay: "absolute inset-0 bg-black/60 backdrop-blur-xs transition-opacity cursor-pointer",
-    container: "relative w-full max-w-lg bg-[#FFFFFF] max-h-full rounded-2xl shadow-2xl border border-[#E2E8F0] flex flex-col animate-in fade-in zoom-in-95 duration-200 overflow-hidden text-[#0F172A]",
-    header: "flex items-center justify-between px-6 py-4.5 border-b border-[#E2E8F0] bg-[#FFFFFF] z-10",
-    title: "text-[17px] font-medium text-[#0F172A] leading-tight",
+    backdrop: "fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/55",
+    overlay: "absolute inset-0 bg-black/55 transition-opacity cursor-pointer",
+    container: "relative w-full max-w-lg bg-ds-canvas max-h-full rounded-2xl shadow-[0_16px_48px_-8px_rgba(15,15,15,0.16)] border border-ds-hairline flex flex-col animate-in fade-in zoom-in-95 duration-200 overflow-hidden text-ds-ink",
+    header: "flex items-center justify-between px-6 py-4.5 border-b border-ds-hairline bg-ds-canvas z-10",
+    title: "text-[18px] font-semibold text-ds-ink leading-tight",
     body: "flex-1 overflow-y-auto p-6 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden space-y-4",
-    footer: "px-6 py-4 border-t border-[#E2E8F0] bg-[#FFFFFF] flex justify-between items-center shrink-0",
+    footer: "px-6 py-4 border-t border-ds-hairline bg-ds-canvas flex justify-between items-center shrink-0",
   },
 
   // Pagination Toolbar
   pagination: {
-    bar: "p-3.5 border-t border-[#E2E8F0] bg-[#FFFFFF] flex flex-col sm:flex-row sm:items-center justify-between gap-3",
-    text: "text-[12px] text-[#64748B] font-medium",
+    bar: "p-3.5 border-t border-ds-hairline bg-ds-canvas flex flex-col sm:flex-row sm:items-center justify-between gap-3",
+    text: "text-[12px] text-ds-slate font-medium",
     buttonGroup: "flex items-center gap-2",
-    button: "flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold rounded-[6px] border border-[#E2E8F0] bg-[#F8FAFC] transition-colors cursor-pointer text-[#0F172A] hover:bg-[#E2E8F0] disabled:text-[#94A3B8] disabled:cursor-not-allowed disabled:opacity-40",
+    button: "flex items-center gap-1 px-3 h-9 text-[13px] font-medium rounded-[8px] border border-ds-hairline-strong bg-ds-canvas transition-colors cursor-pointer text-ds-ink hover:bg-ds-surface disabled:text-ds-steel disabled:cursor-not-allowed disabled:opacity-40",
   },
 };
 
 // ─── 4. Standardized Status & Badge Styles ───────────────────────────────────
+// Pastel tag with dark text: mint = good, yellow = in progress, rose = critical, sky = new, grey = other.
 export const getBadgeConfig = (type) => {
   const t = (type || "").toLowerCase().trim();
 
@@ -133,10 +138,10 @@ export const getBadgeConfig = (type) => {
   if (["active", "resolved", "completed", "evaluated", "stable", "low", "operational", "online", "recipe", "dataset"].includes(t)) {
     return {
       label: type,
-      bg: "bg-[#E3EFEC]",
-      text: "text-[#1B6E63]",
-      border: "border-[#C5DFD8]",
-      cls: "bg-[#E3EFEC] text-[#1B6E63] border-[#C5DFD8]",
+      bg: "bg-ds-mint",
+      text: "text-ds-charcoal",
+      border: "border-ds-mint",
+      cls: "bg-ds-mint text-ds-charcoal border-ds-mint",
     };
   }
 
@@ -144,10 +149,10 @@ export const getBadgeConfig = (type) => {
   if (["in progress", "moderate", "medium", "pending", "maintenance", "feedback", "suggestion"].includes(t)) {
     return {
       label: type,
-      bg: "bg-[#F6EDDD]",
-      text: "text-[#A9741B]",
-      border: "border-[#EBD7B8]",
-      cls: "bg-[#F6EDDD] text-[#A9741B] border-[#EBD7B8]",
+      bg: "bg-ds-yellow",
+      text: "text-ds-warm-text",
+      border: "border-ds-yellow",
+      cls: "bg-ds-yellow text-ds-warm-text border-ds-yellow",
     };
   }
 
@@ -155,10 +160,10 @@ export const getBadgeConfig = (type) => {
   if (["critical", "high", "bug", "bug report", "disabled", "rejected", "safety", "safety reminder", "case", "security"].includes(t)) {
     return {
       label: type,
-      bg: "bg-[#F7E4E1]",
-      text: "text-[#A93226]",
-      border: "border-[#F0C4B8]",
-      cls: "bg-[#F7E4E1] text-[#A93226] border-[#F0C4B8]",
+      bg: "bg-ds-rose",
+      text: "text-ds-ink",
+      border: "border-ds-rose",
+      cls: "bg-ds-rose text-ds-ink border-ds-rose",
     };
   }
 
@@ -166,20 +171,20 @@ export const getBadgeConfig = (type) => {
   if (["super_admin", "super admin", "broadcast", "new", "unread"].includes(t)) {
     return {
       label: type,
-      bg: "bg-[#EAF5FC]",
-      text: "text-[#2E9AE8]",
-      border: "border-[#CDE1F4]",
-      cls: "bg-[#EAF5FC] text-[#2E9AE8] border-[#CDE1F4]",
+      bg: "bg-ds-tint",
+      text: "text-ds-on-tint",
+      border: "border-ds-tint",
+      cls: "bg-ds-tint text-ds-on-tint border-ds-tint",
     };
   }
 
   // Neutral / General / Staff / User
   return {
     label: type || "General",
-    bg: "bg-[#F8FAFC]",
-    text: "text-[#0F172A]",
-    border: "border-[#E2E8F0]",
-    cls: "bg-[#F8FAFC] text-[#0F172A] border-[#E2E8F0]",
+    bg: "bg-ds-surface-alt",
+    text: "text-ds-slate",
+    border: "border-ds-surface-alt",
+    cls: "bg-ds-surface-alt text-ds-slate border-ds-surface-alt",
   };
 };
 
@@ -194,7 +199,7 @@ export function PageHeader({ eyebrow, eyebrowIcon: Icon, title, description, act
       <div>
         {eyebrow && (
           <span className={UI.page.eyebrow}>
-            {Icon && <Icon size={13} className="text-[#2E9AE8]" />} {eyebrow}
+            {Icon && <Icon size={13} className="text-ds-primary" />} {eyebrow}
           </span>
         )}
         <h1 className={UI.page.title}>
@@ -210,7 +215,7 @@ export function PageHeader({ eyebrow, eyebrowIcon: Icon, title, description, act
 /**
  * Standardized KPI Metric Card Component
  */
-export function KpiCard({ label, value, icon: Icon, iconBg = "bg-[#F8FAFC]", iconColor = "text-[#64748B]", iconBorder = "border-[#E2E8F0]", valueColor = "text-[#0F172A]", className = "" }) {
+export function KpiCard({ label, value, icon: Icon, iconBg = "bg-ds-surface", iconColor = "text-ds-slate", iconBorder = "border-ds-hairline", valueColor = "text-ds-ink", className = "" }) {
   return (
     <div className={`${UI.kpi.card} ${className}`} style={{ fontFamily: FONTS.sans }}>
       <div>
@@ -237,7 +242,7 @@ export function StatusBadge({ status, label, icon: Icon, dot = false, className 
 
   return (
     <span
-      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-[4px] text-[9.5px] font-bold uppercase tracking-wider border ${cfg.cls} ${className}`}
+      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-[6px] text-[12px] font-semibold border ${cfg.cls} ${className}`}
       style={{ fontFamily: FONTS.sans }}
     >
       {dot && <span className="w-1.5 h-1.5 rounded-full bg-current opacity-80" />}

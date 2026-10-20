@@ -43,28 +43,28 @@ const TempPasswordModal = ({ isOpen, onClose, staffName, staffEmail, password })
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.94, y: 14 }}
           transition={{ type: "spring", damping: 25, stiffness: 350 }}
-          className="relative w-full max-w-md bg-[#FFFFFF] rounded-2xl shadow-2xl border border-[#E2E8F0] overflow-hidden text-[#0F172A] z-10"
+          className="relative w-full max-w-md bg-ds-canvas rounded-2xl shadow-2xl border border-ds-hairline overflow-hidden text-ds-ink z-10"
           style={{ fontFamily: "'Inter', sans-serif" }}
         >
-          <div className="h-1 w-full bg-gradient-to-r from-[#1B6E63] via-[#2E9AE8] to-[#A9741B]" />
+          <div className="h-1 w-full bg-gradient-to-r from-ds-primary via-ds-primary to-ds-warm-text" />
 
           <div className="p-6 sm:p-7">
-            <div className="w-14 h-14 rounded-2xl border flex items-center justify-center mx-auto mb-4 bg-[#E3EFEC] border-[#C5DFD8] text-[#1B6E63]">
+            <div className="w-14 h-14 rounded-2xl border flex items-center justify-center mx-auto mb-4 bg-ds-mint border-ds-mint text-ds-charcoal">
               <KeyRound size={24} />
             </div>
 
             <div className="text-center">
-              <h3 id="temp-password-title" className="text-xl font-bold text-[#0F172A] tracking-tight">
+              <h3 id="temp-password-title" className="text-xl font-bold text-ds-ink tracking-tight">
                 Account created
               </h3>
-              <p className="text-xs text-[#64748B] mt-2 leading-relaxed max-w-sm mx-auto">
-                Give this temporary password to <span className="font-semibold text-[#0F172A]">{staffName}</span>
+              <p className="text-xs text-ds-slate mt-2 leading-relaxed max-w-sm mx-auto">
+                Give this temporary password to <span className="font-semibold text-ds-ink">{staffName}</span>
                 {staffEmail ? <> ({staffEmail})</> : null} privately. They'll be asked to choose their own password the first time they sign in.
               </p>
             </div>
 
             <div className="mt-5">
-              <label htmlFor="temp-password-value" className="block text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider mb-1.5">
+              <label htmlFor="temp-password-value" className="block text-[13px] font-medium text-ds-ink mb-1.5">
                 Temporary password
               </label>
               <div className="flex items-stretch gap-2">
@@ -73,12 +73,12 @@ const TempPasswordModal = ({ isOpen, onClose, staffName, staffEmail, password })
                   readOnly
                   value={password}
                   onFocus={(e) => e.target.select()}
-                  className="flex-1 min-w-0 px-3.5 py-2.5 text-[14px] font-mono font-semibold text-[#0F172A] bg-[#F8FAFC] border border-[#E2E8F0] rounded-[8px] focus:outline-none focus:border-[#2E9AE8]"
+                  className="flex-1 min-w-0 px-3.5 py-2.5 text-[14px] font-mono font-semibold text-ds-ink bg-ds-canvas border border-ds-hairline-strong rounded-[8px] focus:outline-none focus:border-ds-line"
                 />
                 <button
                   type="button"
                   onClick={handleCopy}
-                  className="px-3.5 rounded-[8px] text-xs font-semibold bg-[#0F172A] hover:bg-[#0d1622] text-white flex items-center gap-1.5 cursor-pointer transition-colors"
+                  className="px-3.5 rounded-[8px] text-xs font-semibold bg-ds-ink hover:bg-ds-ink text-white flex items-center gap-1.5 cursor-pointer transition-colors"
                 >
                   {copied ? <Check size={14} /> : <Copy size={14} />}
                   {copied ? "Copied" : "Copy"}
@@ -86,7 +86,7 @@ const TempPasswordModal = ({ isOpen, onClose, staffName, staffEmail, password })
               </div>
             </div>
 
-            <div className="p-3 rounded-lg bg-[#F6EDDD]/60 border border-[#EBD7B8] mt-4 flex items-start gap-2 text-[11px] text-[#7A5414] leading-snug">
+            <div className="p-3 rounded-lg bg-ds-yellow/60 border border-ds-yellow-bold mt-4 flex items-start gap-2 text-[11px] text-ds-warm-text leading-snug">
               <Info size={13} className="shrink-0 mt-0.5" />
               <span>This is the only time this password is shown. Copy it before closing this window.</span>
             </div>
@@ -94,7 +94,7 @@ const TempPasswordModal = ({ isOpen, onClose, staffName, staffEmail, password })
             <button
               type="button"
               onClick={handleClose}
-              className="w-full mt-6 py-2.5 px-4 rounded-lg text-xs font-semibold bg-[#1B6E63] hover:bg-[#14534B] text-white transition-colors shadow-sm cursor-pointer"
+              className="w-full mt-6 py-2.5 px-4 rounded-lg text-xs font-semibold bg-ds-primary hover:bg-ds-primary text-white transition-colors cursor-pointer"
             >
               I've copied it
             </button>

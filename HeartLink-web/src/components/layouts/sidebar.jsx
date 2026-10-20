@@ -63,7 +63,7 @@ function HeartLogoIcon({ size = 24 }) {
 function SectionLabel({ label, collapsed }) {
   if (collapsed) return null;
   return (
-    <div className="text-[11px] text-[#94A3B8] font-semibold px-2.5 pt-3.5 pb-1.5 select-none">
+    <div className="text-[11px] text-ds-steel font-semibold px-2.5 pt-3.5 pb-1.5 select-none">
       {label}
     </div>
   );
@@ -80,8 +80,8 @@ function NavItem({ path, icon: Icon, label, collapsed, badge = null, activeOverr
       title={collapsed ? label : undefined}
       className={`group relative flex items-center gap-2.5 px-2.5 py-2 rounded-[8px] mb-0.5 text-[13px] font-medium transition-colors select-none ${
         active
-          ? "bg-[#2E9AE8] text-white font-semibold shadow-2xs"
-          : "text-[#64748B] hover:bg-[#F8FAFC] hover:text-[#0F172A]"
+          ? "bg-ds-tint text-ds-on-tint font-semibold "
+          : "text-ds-slate hover:bg-ds-surface hover:text-ds-ink"
       }`}
       style={{
         justifyContent: collapsed ? "center" : "flex-start",
@@ -91,7 +91,7 @@ function NavItem({ path, icon: Icon, label, collapsed, badge = null, activeOverr
       <Icon
         size={15}
         className={`shrink-0 transition-transform ${
-          active ? "text-white" : "text-[#94A3B8] group-hover:text-[#0F172A]"
+          active ? "text-ds-on-tint" : "text-ds-steel group-hover:text-ds-ink"
         }`}
         strokeWidth={active ? 2.5 : 2}
       />
@@ -103,7 +103,7 @@ function NavItem({ path, icon: Icon, label, collapsed, badge = null, activeOverr
       )}
       
       {!collapsed && badge && (
-        <span className="ml-auto px-1.5 py-0.5 rounded-full bg-[#EAF5FC] text-[#2E9AE8] text-[10px] font-bold">
+        <span className="ml-auto px-1.5 py-0.5 rounded-full bg-ds-primary text-white text-[11px] font-semibold">
           {badge}
         </span>
       )}
@@ -151,7 +151,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed, onLogou
 
       {/* Sidebar container */}
       <aside
-        className={`fixed lg:sticky top-0 left-0 h-screen z-50 flex flex-col shrink-0 bg-[#FFFFFF] border-r border-[#E2E8F0] transition-all duration-200 select-none ${
+        className={`fixed lg:sticky top-0 left-0 h-screen z-50 flex flex-col shrink-0 bg-ds-canvas border-r border-ds-hairline transition-all duration-200 select-none ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         }`}
         style={{
@@ -161,7 +161,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed, onLogou
       >
         {/* Mobile close button */}
         <button
-          className="lg:hidden absolute right-3 top-3.5 p-1 rounded-lg text-[#64748B] hover:text-[#0F172A] hover:bg-[#F8FAFC]"
+          className="lg:hidden absolute right-3 top-3.5 p-1 rounded-lg text-ds-slate hover:text-ds-ink hover:bg-ds-surface"
           onClick={() => setSidebarOpen(false)}
           aria-label="Close sidebar"
         >
@@ -181,19 +181,18 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed, onLogou
           {!collapsed && (
             <div className="overflow-hidden whitespace-nowrap">
               <div 
-                className="text-[16px] font-medium leading-[1.1] text-[#0F172A]"
-                style={{ fontFamily: "'Fraunces', serif" }}
+                className="text-[16px] font-medium leading-[1.1] text-ds-ink"
               >
                 HeartLink
               </div>
-              <div className="text-[10px] font-semibold text-[#1C7AC8] mt-0.5">
+              <div className="text-[11px] font-semibold text-ds-primary-pressed mt-0.5">
                 Admin portal
               </div>
             </div>
           )}
         </button>
 
-        <div className="mx-4 mb-2 border-t border-[#E2E8F0]" />
+        <div className="mx-4 mb-2 border-t border-ds-hairline" />
 
         {/* Nav links */}
         <nav className="flex-1 overflow-y-auto overflow-x-hidden px-3 pb-3 space-y-0.5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
@@ -234,11 +233,11 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed, onLogou
         </nav>
 
         {/* Bottom User Footer Strip */}
-        <div className="p-3 border-t border-[#E2E8F0] bg-[#FFFFFF]">
+        <div className="p-3 border-t border-ds-hairline bg-ds-canvas">
           {collapsed ? (
             <div className="flex flex-col items-center gap-2">
               <div
-                className="w-7 h-7 rounded-full flex items-center justify-center bg-[#EAF5FC] text-[#1C7AC8] text-[11px] font-bold"
+                className="w-7 h-7 rounded-full flex items-center justify-center bg-ds-tint text-ds-primary-pressed text-[11px] font-bold"
                 title={`${userName} (${getRoleLabel(role)})`}
               >
                 {userInitials}
@@ -246,29 +245,29 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed, onLogou
               <button
                 type="button"
                 onClick={handleLogout}
-                className="p-1 text-[#94A3B8] hover:text-[#A93226] transition-colors cursor-pointer"
+                className="p-1 text-ds-steel hover:text-ds-danger transition-colors cursor-pointer"
                 title="Sign out"
               >
                 <LogOut size={15} />
               </button>
             </div>
           ) : (
-            <div className="flex items-center gap-2.5 p-2 rounded-[9px] border border-[#E2E8F0] bg-[#F8FAFC]">
-              <div className="w-7 h-7 rounded-full shrink-0 flex items-center justify-center bg-[#EAF5FC] text-[#1C7AC8] text-[11px] font-bold">
+            <div className="flex items-center gap-2.5 p-2 rounded-[9px] border border-ds-hairline bg-ds-surface">
+              <div className="w-7 h-7 rounded-full shrink-0 flex items-center justify-center bg-ds-tint text-ds-primary-pressed text-[11px] font-bold">
                 {userInitials}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-[12px] font-semibold text-[#0F172A] truncate leading-tight">
+                <div className="text-[12px] font-semibold text-ds-ink truncate leading-tight">
                   {userName}
                 </div>
-                <div className="text-[10px] font-medium text-[#64748B] truncate mt-0.5">
+                <div className="text-[11px] font-medium text-ds-slate truncate mt-0.5">
                   {getRoleLabel(role)}
                 </div>
               </div>
               <button
                 type="button"
                 onClick={handleLogout}
-                className="p-1 text-[#94A3B8] hover:text-[#A93226] transition-colors cursor-pointer shrink-0"
+                className="p-1 text-ds-steel hover:text-ds-danger transition-colors cursor-pointer shrink-0"
                 title="Sign out"
               >
                 <LogOut size={15} />

@@ -1,9 +1,9 @@
 // Shared labels and badge styles for Case Review (HL-054 / HL-055 / HL-056).
 
 export const LANES = {
-  urgent: { label: "Urgent", className: "bg-[#F7E4E1] text-[#8A1F17] border-[#F0C4B8]" },
-  rereview: { label: "Re-review", className: "bg-[#EFE8F7] text-[#5B3A8C] border-[#DCCDEE]" },
-  sample: { label: "Sample", className: "bg-[#EAF5FC] text-[#0F4C82] border-[#CDE1F4]" },
+  urgent: { label: "Urgent", className: "bg-ds-rose text-ds-ink border-ds-rose" },
+  rereview: { label: "Re-review", className: "bg-ds-lavender text-ds-charcoal border-ds-lavender" },
+  sample: { label: "Sample", className: "bg-ds-tint text-ds-primary-pressed border-ds-tint" },
 };
 
 export const SECTION_LABELS = {
@@ -18,9 +18,9 @@ export const SECTION_EXPERT = {
   exercise: "Physical Therapist",
 };
 
-export const DONE_CHIP = "bg-[#E3EFEC] text-[#14534B] border-[#C5DFD8]";
-export const WAITING_CHIP = "bg-[#F6EDDD] text-[#7A5414] border-[#EBD7B8]";
-export const NOT_NEEDED_CHIP = "bg-[#F1F5F9] text-[#475569] border-[#E2E8F0]";
+export const DONE_CHIP = "bg-ds-mint text-ds-charcoal border-ds-mint";
+export const WAITING_CHIP = "bg-ds-yellow text-ds-warm-text border-ds-yellow-bold";
+export const NOT_NEEDED_CHIP = "bg-ds-surface-alt text-ds-charcoal border-ds-hairline";
 
 // done / waiting / not_needed (a food or exercise check with nothing recommended)
 export const PROGRESS = {
@@ -63,9 +63,9 @@ export const SCORERS = {
 };
 
 export const AGREEMENT = {
-  agree: { label: "Agrees with the app", className: "bg-[#E3EFEC] text-[#14534B] border-[#C5DFD8]" },
-  under: { label: "App too low (under-call)", className: "bg-[#FDF3E7] text-[#7A4A0B] border-[#EBC99A]" },
-  over: { label: "App too high (over-call)", className: "bg-[#EAF5FC] text-[#0F4C82] border-[#CDE1F4]" },
+  agree: { label: "Agrees with the app", className: "bg-ds-mint text-ds-charcoal border-ds-mint" },
+  under: { label: "App too low (under-call)", className: "bg-ds-yellow text-ds-warm-text border-ds-yellow-bold" },
+  over: { label: "App too high (over-call)", className: "bg-ds-tint text-ds-primary-pressed border-ds-tint" },
 };
 
 export const labelOf = (list, code) => (list.find((o) => o.code === code) || {}).label || code;

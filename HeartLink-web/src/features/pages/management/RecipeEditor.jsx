@@ -314,7 +314,7 @@ const RecipeEditor = ({ recipe, userRole, onSave, onDelete, onBack }) => {
 
             {/* Usage Counter */}
             {recipe && (
-              <span className="text-[10px] text-[#89899C] bg-[#21202E] border border-white/10 px-2 py-0.5 rounded font-medium">
+              <span className="text-[10px] text-ds-steel bg-[#21202E] border border-white/10 px-2 py-0.5 rounded font-medium">
                 {recipe.usageCount || 0} logged meals
               </span>
             )}
@@ -323,10 +323,10 @@ const RecipeEditor = ({ recipe, userRole, onSave, onDelete, onBack }) => {
 
         {/* Top Status Dropdown */}
         <div className="flex items-center gap-2">
-          <label className="text-[11px] font-bold text-[#89899C] uppercase">Status:</label>
+          <label className="text-[11px] font-bold text-ds-steel uppercase">Status:</label>
           <select
             {...register("status")}
-            className="px-3.5 py-1.5 text-xs font-bold bg-[#1A1A1A] border border-white/10 rounded-xl text-white focus:outline-none focus:border-[#E55F37] cursor-pointer transition-colors"
+            className="px-3.5 py-1.5 text-xs font-bold bg-ds-ink border border-white/10 rounded-xl text-white focus:outline-none focus:border-ds-line cursor-pointer transition-colors"
           >
             <option value="draft" className="bg-[#161616]">Draft</option>
             <option value="published" className="bg-[#161616]">Published</option>
@@ -342,7 +342,7 @@ const RecipeEditor = ({ recipe, userRole, onSave, onDelete, onBack }) => {
         <div className="flex-1 overflow-y-auto pr-2 space-y-6 custom-scrollbar pb-12">
           
           {/* Section 1: Recipe Details */}
-          <div className="border border-white/10 rounded-2xl p-5 bg-[#1A1A1A] shadow-sm space-y-4">
+          <div className="border border-white/10 rounded-2xl p-5 bg-ds-ink shadow-sm space-y-4">
             <h3 className="text-xs font-bold text-white border-b border-white/10 pb-2 mb-1 uppercase tracking-wider">
               1. Recipe Details
             </h3>
@@ -357,12 +357,12 @@ const RecipeEditor = ({ recipe, userRole, onSave, onDelete, onBack }) => {
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <label className="block text-[11px] font-bold text-[#89899C] uppercase tracking-wider mb-1.5">
+                <label className="block text-[11px] font-bold text-ds-steel uppercase tracking-wider mb-1.5">
                   Food Source
                 </label>
                 <select
                   {...register("foodSourceType")}
-                  className="w-full px-3 py-2 text-xs bg-[#21202E]/60 border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] text-white transition-colors cursor-pointer"
+                  className="w-full px-3 py-2 text-xs bg-[#21202E]/60 border border-white/10 rounded-xl focus:outline-none focus:border-ds-line text-white transition-colors cursor-pointer"
                 >
                   <option value="Home Recipe" className="bg-[#161616]">Home Recipe</option>
                   <option value="Fast Food Chain" className="bg-[#161616]">Fast Food Chain</option>
@@ -372,12 +372,12 @@ const RecipeEditor = ({ recipe, userRole, onSave, onDelete, onBack }) => {
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-[#89899C] uppercase tracking-wider mb-1.5">
+                <label className="block text-[11px] font-bold text-ds-steel uppercase tracking-wider mb-1.5">
                   Meal Category
                 </label>
                 <select
                   {...register("category")}
-                  className="w-full px-3 py-2 text-xs bg-[#21202E]/60 border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] text-white transition-colors cursor-pointer"
+                  className="w-full px-3 py-2 text-xs bg-[#21202E]/60 border border-white/10 rounded-xl focus:outline-none focus:border-ds-line text-white transition-colors cursor-pointer"
                 >
                   <option value="Breakfast" className="bg-[#161616]">Breakfast</option>
                   <option value="Lunch" className="bg-[#161616]">Lunch</option>
@@ -387,12 +387,12 @@ const RecipeEditor = ({ recipe, userRole, onSave, onDelete, onBack }) => {
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-[#89899C] uppercase tracking-wider mb-1.5">
+                <label className="block text-[11px] font-bold text-ds-steel uppercase tracking-wider mb-1.5">
                   HSS Suitability Target
                 </label>
                 <select
                   {...register("hssTarget")}
-                  className="w-full px-3 py-2 text-xs bg-[#21202E]/60 border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] text-white transition-colors cursor-pointer"
+                  className="w-full px-3 py-2 text-xs bg-[#21202E]/60 border border-white/10 rounded-xl focus:outline-none focus:border-ds-line text-white transition-colors cursor-pointer"
                 >
                   <option value="Stable (80-100)" className="bg-[#161616]">Stable (80-100) — Fallback</option>
                   <option value="Moderate (60-79)" className="bg-[#161616]">Moderate (60-79)</option>
@@ -403,7 +403,7 @@ const RecipeEditor = ({ recipe, userRole, onSave, onDelete, onBack }) => {
             </div>
 
             <div>
-              <label className="block text-[11px] font-bold text-[#89899C] uppercase tracking-wider mb-1.5">
+              <label className="block text-[11px] font-bold text-ds-steel uppercase tracking-wider mb-1.5">
                 Tags (Comma-separated)
               </label>
               <input
@@ -414,12 +414,12 @@ const RecipeEditor = ({ recipe, userRole, onSave, onDelete, onBack }) => {
                   setValue("tags", tagsArr);
                 }}
                 defaultValue={recipe?.tags ? recipe.tags.join(", ") : ""}
-                className="w-full px-3 py-2 text-xs bg-[#21202E]/60 border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] text-white placeholder:text-slate-500 transition-colors"
+                className="w-full px-3 py-2 text-xs bg-[#21202E]/60 border border-white/10 rounded-xl focus:outline-none focus:border-ds-line text-white placeholder:text-slate-500 transition-colors"
               />
             </div>
 
             <div>
-              <label className="block text-[11px] font-bold text-[#89899C] uppercase tracking-wider mb-1.5">
+              <label className="block text-[11px] font-bold text-ds-steel uppercase tracking-wider mb-1.5">
                 Image Banner URL
               </label>
               {watchAll.mediaUrl && (
@@ -448,14 +448,14 @@ const RecipeEditor = ({ recipe, userRole, onSave, onDelete, onBack }) => {
                       reader.readAsDataURL(file);
                     }
                   }}
-                  className="w-full px-3 py-2 text-xs bg-[#21202E]/60 border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] text-white transition-colors file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-[10px] file:font-semibold file:bg-[#21202E] file:text-white hover:file:bg-[#36272B] hover:file:text-[#E55F37] cursor-pointer"
+                  className="w-full px-3 py-2 text-xs bg-[#21202E]/60 border border-white/10 rounded-xl focus:outline-none focus:border-ds-line text-white transition-colors file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-[10px] file:font-semibold file:bg-[#21202E] file:text-white hover:file:bg-ds-ink hover:file:text-ds-primary cursor-pointer"
                 />
               </div>
             </div>
           </div>
 
           {/* Section 2: Nutrition */}
-          <div className="border border-white/10 rounded-2xl p-5 bg-[#1A1A1A] shadow-sm space-y-4">
+          <div className="border border-white/10 rounded-2xl p-5 bg-ds-ink shadow-sm space-y-4">
             <h3 className="text-xs font-bold text-white border-b border-white/10 pb-2 mb-1 uppercase tracking-wider">
               2. Nutrition & Details
             </h3>
@@ -476,12 +476,12 @@ const RecipeEditor = ({ recipe, userRole, onSave, onDelete, onBack }) => {
                 {...register("prepTime")}
               />
               <div>
-                <label className="block text-[11px] font-bold text-[#89899C] uppercase tracking-wider mb-1.5">
+                <label className="block text-[11px] font-bold text-ds-steel uppercase tracking-wider mb-1.5">
                   Difficulty
                 </label>
                 <select
                   {...register("difficulty")}
-                  className="w-full px-3 py-2 text-xs bg-[#21202E]/60 border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] text-white transition-colors cursor-pointer"
+                  className="w-full px-3 py-2 text-xs bg-[#21202E]/60 border border-white/10 rounded-xl focus:outline-none focus:border-ds-line text-white transition-colors cursor-pointer"
                 >
                   <option value="Easy" className="bg-[#161616]">Easy</option>
                   <option value="Medium" className="bg-[#161616]">Medium</option>
@@ -529,20 +529,20 @@ const RecipeEditor = ({ recipe, userRole, onSave, onDelete, onBack }) => {
             </div>
 
             <div>
-              <label className="block text-[11px] font-bold text-[#89899C] uppercase tracking-wider mb-1.5">
+              <label className="block text-[11px] font-bold text-ds-steel uppercase tracking-wider mb-1.5">
                 Heart Benefits Overview
               </label>
               <textarea
                 rows="2"
                 placeholder="Briefly summarize benefits..."
                 {...register("heartBenefit")}
-                className="w-full px-3 py-2 text-xs bg-[#21202E]/60 border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] text-white placeholder:text-slate-500 transition-colors resize-none"
+                className="w-full px-3 py-2 text-xs bg-[#21202E]/60 border border-white/10 rounded-xl focus:outline-none focus:border-ds-line text-white placeholder:text-slate-500 transition-colors resize-none"
               ></textarea>
             </div>
           </div>
 
           {/* Section 3: Ingredients Builder */}
-          <div className="border border-white/10 rounded-2xl p-5 bg-[#1A1A1A] shadow-sm space-y-4">
+          <div className="border border-white/10 rounded-2xl p-5 bg-ds-ink shadow-sm space-y-4">
             <div className="flex justify-between items-center border-b border-white/10 pb-2 mb-1">
               <h3 className="text-xs font-bold text-white uppercase tracking-wider">
                 3. Ingredients
@@ -574,7 +574,7 @@ const RecipeEditor = ({ recipe, userRole, onSave, onDelete, onBack }) => {
                       placeholder="e.g. 1 cup low-sodium chicken broth"
                       value={ing.name}
                       onChange={(e) => updateIngredientRow(index, "name", e.target.value)}
-                      className="flex-1 px-3 py-1.5 text-xs bg-[#21202E]/60 border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] text-white placeholder:text-slate-500"
+                      className="flex-1 px-3 py-1.5 text-xs bg-[#21202E]/60 border border-white/10 rounded-xl focus:outline-none focus:border-ds-line text-white placeholder:text-slate-500"
                     />
                   ) : (
                     <div className="flex-1 flex gap-2">
@@ -583,21 +583,21 @@ const RecipeEditor = ({ recipe, userRole, onSave, onDelete, onBack }) => {
                         placeholder="Qty"
                         value={ing.amount}
                         onChange={(e) => updateIngredientRow(index, "amount", e.target.value)}
-                        className="w-16 px-2.5 py-1.5 text-xs bg-[#21202E]/60 border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] text-white placeholder:text-slate-500"
+                        className="w-16 px-2.5 py-1.5 text-xs bg-[#21202E]/60 border border-white/10 rounded-xl focus:outline-none focus:border-ds-line text-white placeholder:text-slate-500"
                       />
                       <input
                         type="text"
                         placeholder="Unit"
                         value={ing.unit}
                         onChange={(e) => updateIngredientRow(index, "unit", e.target.value)}
-                        className="w-16 px-2.5 py-1.5 text-xs bg-[#21202E]/60 border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] text-white placeholder:text-slate-500"
+                        className="w-16 px-2.5 py-1.5 text-xs bg-[#21202E]/60 border border-white/10 rounded-xl focus:outline-none focus:border-ds-line text-white placeholder:text-slate-500"
                       />
                       <input
                         type="text"
                         placeholder="Ingredient Name (e.g. Chicken breast)"
                         value={ing.name}
                         onChange={(e) => updateIngredientRow(index, "name", e.target.value)}
-                        className="flex-1 px-3 py-1.5 text-xs bg-[#21202E]/60 border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] text-white placeholder:text-slate-500"
+                        className="flex-1 px-3 py-1.5 text-xs bg-[#21202E]/60 border border-white/10 rounded-xl focus:outline-none focus:border-ds-line text-white placeholder:text-slate-500"
                       />
                     </div>
                   )}
@@ -605,7 +605,7 @@ const RecipeEditor = ({ recipe, userRole, onSave, onDelete, onBack }) => {
                   <button
                     type="button"
                     onClick={() => toggleIngredientMode(index)}
-                    className="text-[9px] font-bold text-[#89899C] hover:text-white px-2 py-1 rounded bg-[#21202E] border border-white/5 cursor-pointer"
+                    className="text-[9px] font-bold text-ds-steel hover:text-white px-2 py-1 rounded bg-[#21202E] border border-white/5 cursor-pointer"
                   >
                     {ing.isFreeText ? "Structure" : "Free-text"}
                   </button>
@@ -620,13 +620,13 @@ const RecipeEditor = ({ recipe, userRole, onSave, onDelete, onBack }) => {
                 </div>
               ))}
               {ingredientsList.length === 0 && (
-                <p className="text-[10px] text-[#89899C] text-center py-2">No ingredients added yet.</p>
+                <p className="text-[10px] text-ds-steel text-center py-2">No ingredients added yet.</p>
               )}
             </div>
           </div>
 
           {/* Section 4: Instructions Builder */}
-          <div className="border border-white/10 rounded-2xl p-5 bg-[#1A1A1A] shadow-sm space-y-4">
+          <div className="border border-white/10 rounded-2xl p-5 bg-ds-ink shadow-sm space-y-4">
             <div className="flex justify-between items-center border-b border-white/10 pb-2 mb-1">
               <h3 className="text-xs font-bold text-white uppercase tracking-wider">
                 4. Instructions
@@ -643,7 +643,7 @@ const RecipeEditor = ({ recipe, userRole, onSave, onDelete, onBack }) => {
             <div className="space-y-3">
               {stepsList.map((step, index) => (
                 <div key={index} className="flex gap-2 items-start">
-                  <span className="text-[9px] font-bold text-[#89899C] mt-2.5 w-10 shrink-0">
+                  <span className="text-[9px] font-bold text-ds-steel mt-2.5 w-10 shrink-0">
                     STEP {index + 1}
                   </span>
                   
@@ -652,7 +652,7 @@ const RecipeEditor = ({ recipe, userRole, onSave, onDelete, onBack }) => {
                     placeholder="Describe step..."
                     value={step}
                     onChange={(e) => updateStepVal(index, e.target.value)}
-                    className="flex-1 px-3 py-1.5 text-xs bg-[#21202E]/60 border border-white/10 rounded-xl focus:outline-none focus:border-[#E55F37] text-white placeholder:text-slate-500 resize-none"
+                    className="flex-1 px-3 py-1.5 text-xs bg-[#21202E]/60 border border-white/10 rounded-xl focus:outline-none focus:border-ds-line text-white placeholder:text-slate-500 resize-none"
                   ></textarea>
 
                   <div className="flex flex-col gap-0.5 shrink-0 mt-0.5">
@@ -684,13 +684,13 @@ const RecipeEditor = ({ recipe, userRole, onSave, onDelete, onBack }) => {
                 </div>
               ))}
               {stepsList.length === 0 && (
-                <p className="text-[10px] text-[#89899C] text-center py-2">No steps added yet.</p>
+                <p className="text-[10px] text-ds-steel text-center py-2">No steps added yet.</p>
               )}
             </div>
           </div>
 
           {/* Section 5: Expert Review & Dietary Compatibility */}
-          <div className="border border-white/10 rounded-2xl p-5 bg-[#1A1A1A] shadow-sm space-y-4">
+          <div className="border border-white/10 rounded-2xl p-5 bg-ds-ink shadow-sm space-y-4">
             <h3 className="text-xs font-bold text-white border-b border-white/10 pb-2 mb-1 uppercase tracking-wider">
               5. Expert Review & Dietary Compatibility
             </h3>
@@ -706,7 +706,7 @@ const RecipeEditor = ({ recipe, userRole, onSave, onDelete, onBack }) => {
                   )}
                   {watchAll.expertValidated ? "Expert Reviewed" : "Pending Review"}
                 </h4>
-                <p className="text-[10px] text-[#89899C] leading-tight mt-0.5">
+                <p className="text-[10px] text-ds-steel leading-tight mt-0.5">
                   {watchAll.expertValidated
                     ? "Reviewed or developed with input from a qualified nutrition expert."
                     : "Sourced from an external reference and has not yet been reviewed by a nutrition expert."}
@@ -730,7 +730,7 @@ const RecipeEditor = ({ recipe, userRole, onSave, onDelete, onBack }) => {
             </div>
 
             {/* Compact Dietary row */}
-            <div className="flex items-center gap-4 text-[10px] text-[#89899C] pt-1">
+            <div className="flex items-center gap-4 text-[10px] text-ds-steel pt-1">
               <span className="font-bold text-white">Dietary Compatibility:</span>
               <div className="flex items-center gap-3">
                 {Object.keys(dietMap).map((key) => (
@@ -751,11 +751,11 @@ const RecipeEditor = ({ recipe, userRole, onSave, onDelete, onBack }) => {
 
         {/* Right Side: Lightweight Preview Frame */}
         <div className="w-[280px] shrink-0 hidden xl:flex flex-col bg-[#161616] p-4 border border-white/10 rounded-2xl h-[560px] overflow-y-auto custom-scrollbar">
-          <h4 className="text-[10px] font-bold text-[#89899C] uppercase tracking-wider mb-2 flex items-center gap-1">
-            <Sparkles size={11} className="text-[#E55F37]" /> Mobile View Preview
+          <h4 className="text-[10px] font-bold text-ds-steel uppercase tracking-wider mb-2 flex items-center gap-1">
+            <Sparkles size={11} className="text-ds-primary" /> Mobile View Preview
           </h4>
           
-          <div className="flex-1 bg-[#1A1A1A] rounded-xl border border-white/10 overflow-hidden flex flex-col shadow-inner text-[10px]">
+          <div className="flex-1 bg-ds-ink rounded-xl border border-white/10 overflow-hidden flex flex-col shadow-inner text-[10px]">
             {/* Preview Banner */}
             <div className="w-full h-24 bg-[#21202E] relative overflow-hidden flex items-center justify-center border-b border-white/10">
               {watchAll.mediaUrl ? (
@@ -774,7 +774,7 @@ const RecipeEditor = ({ recipe, userRole, onSave, onDelete, onBack }) => {
                 <h5 className="font-bold text-white leading-tight">
                   {watchAll.name || "Recipe Title"}
                 </h5>
-                <p className="text-[8px] text-[#89899C] mt-0.5 uppercase tracking-wide font-medium">
+                <p className="text-[8px] text-ds-steel mt-0.5 uppercase tracking-wide font-medium">
                   {watchAll.difficulty} • {watchAll.prepTime} mins • {watchAll.servings} serving{watchAll.servings === 1 ? "" : "s"}
                 </p>
               </div>
@@ -782,7 +782,7 @@ const RecipeEditor = ({ recipe, userRole, onSave, onDelete, onBack }) => {
               {/* HSS Suitability block */}
               <div className="p-2 border border-white/10 rounded-lg bg-[#21202E]/60 flex justify-between items-center">
                 <div>
-                  <span className="text-[7px] text-[#89899C] font-bold uppercase tracking-wider block">HSS SUITABILITY</span>
+                  <span className="text-[7px] text-ds-steel font-bold uppercase tracking-wider block">HSS SUITABILITY</span>
                   <span className="font-bold text-white">{watchAll.hssTarget}</span>
                 </div>
                 {watchAll.expertValidated ? (
@@ -802,7 +802,7 @@ const RecipeEditor = ({ recipe, userRole, onSave, onDelete, onBack }) => {
                   { label: "chol.", val: `${watchAll.cholesterol}mg` }
                 ].map((item, idx) => (
                   <div key={idx} className="bg-[#21202E]/60 p-1 border border-white/5 rounded flex flex-col items-center">
-                    <span className="text-[6px] text-[#89899C] font-medium uppercase leading-none">{item.label}</span>
+                    <span className="text-[6px] text-ds-steel font-medium uppercase leading-none">{item.label}</span>
                     <span className="text-[8px] font-bold text-white mt-0.5 leading-none">{item.val}</span>
                   </div>
                 ))}
@@ -810,7 +810,7 @@ const RecipeEditor = ({ recipe, userRole, onSave, onDelete, onBack }) => {
 
               {/* Ingredients */}
               <div>
-                <p className="text-[8px] font-bold text-[#89899C] uppercase tracking-wider mb-1">Ingredients</p>
+                <p className="text-[8px] font-bold text-ds-steel uppercase tracking-wider mb-1">Ingredients</p>
                 <ul className="list-disc list-inside space-y-0.5 text-slate-300 text-[9px]">
                   {ingredientsList.map((ing, idx) => (
                     <li key={idx} className="truncate">
@@ -825,11 +825,11 @@ const RecipeEditor = ({ recipe, userRole, onSave, onDelete, onBack }) => {
 
               {/* Steps */}
               <div>
-                <p className="text-[8px] font-bold text-[#89899C] uppercase tracking-wider mb-1">Instructions</p>
+                <p className="text-[8px] font-bold text-ds-steel uppercase tracking-wider mb-1">Instructions</p>
                 <div className="space-y-1">
                   {stepsList.map((step, idx) => (
                     <div key={idx} className="flex gap-1 items-start text-[8px] text-slate-300 leading-snug">
-                      <span className="font-bold text-[#E55F37] shrink-0">{idx + 1}.</span>
+                      <span className="font-bold text-ds-primary shrink-0">{idx + 1}.</span>
                       <p>{step}</p>
                     </div>
                   ))}
@@ -904,7 +904,7 @@ const RecipeEditor = ({ recipe, userRole, onSave, onDelete, onBack }) => {
           <button
             type="button"
             onClick={handleSubmit(onSubmit)}
-            className="flex items-center gap-1.5 px-5 py-2 text-xs font-bold text-white bg-[#E55F37] hover:bg-[#D4542E] rounded-xl shadow-sm shadow-[#E55F37]/25 transition-all cursor-pointer"
+            className="flex items-center gap-1.5 px-5 py-2 text-xs font-bold text-white bg-ds-primary hover:bg-ds-danger rounded-xl shadow-sm shadow-ds-line/25 transition-all cursor-pointer"
           >
             <Save size={13} /> Save Changes
           </button>

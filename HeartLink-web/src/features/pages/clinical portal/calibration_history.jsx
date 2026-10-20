@@ -20,16 +20,16 @@ const day = (iso) => (iso ? new Date(iso).toLocaleDateString("en-US", { month: "
 
 const chip = (selected) =>
   `min-h-[36px] px-3.5 rounded-full text-[12.5px] font-semibold border transition-colors cursor-pointer ${
-    selected ? "bg-[#0F172A] text-white border-[#0F172A]" : "bg-white text-[#0F172A] border-[#E2E8F0] hover:border-[#94A3B8]"
+    selected ? "bg-ds-ink text-white border-ds-ink" : "bg-ds-canvas text-ds-ink border-ds-hairline hover:border-ds-steel"
   }`;
 
 function Measure({ label, value, note, tone = "plain" }) {
   const tones = {
-    plain: "bg-white border-[#E2E8F0] text-[#0F172A]",
-    warn: "bg-[#FDF3E7] border-[#EBC99A] text-[#7A4A0B]",
+    plain: "bg-ds-canvas border-ds-hairline text-ds-ink",
+    warn: "bg-ds-yellow border-ds-yellow-bold text-ds-warm-text",
   };
   return (
-    <div className={`p-4 rounded-[10px] border shadow-2xs ${tones[tone]}`}>
+    <div className={`p-4 rounded-xl border ${tones[tone]}`}>
       <div className="text-[11px] font-semibold uppercase tracking-wider opacity-80">{label}</div>
       <div className="text-[26px] font-semibold leading-tight mt-1">{value}</div>
       <div className="text-[12px] opacity-80 mt-0.5">{note}</div>
@@ -109,7 +109,7 @@ const ModelCheck = () => {
         ) : (
           <>
             {!clinical.enough_reviews && (
-              <div className="flex items-start gap-2 text-[12.5px] bg-[#F6EDDD] text-[#7A5414] border border-[#EBD7B8] rounded-[8px] px-3 py-2.5 mb-4">
+              <div className="flex items-start gap-2 text-[12.5px] bg-ds-yellow text-ds-warm-text border border-ds-yellow-bold rounded-[8px] px-3 py-2.5 mb-4">
                 <Info size={14} className="mt-0.5 shrink-0" aria-hidden="true" />
                 Not enough clinical reviews to judge the model yet: {clinical.reviews} of {data.min_clinical_reviews}. The numbers below are for reference only.
               </div>
@@ -121,7 +121,7 @@ const ModelCheck = () => {
               <Measure label="Under-calling (safety)" value={pct(clinical.under_calling)} note={`${clinical.under_calling.count} rated riskier by the cardiologist`} tone="warn" />
               <Measure label="Over-calling" value={pct(clinical.over_calling)} note={`${clinical.over_calling.count} rated safer by the cardiologist`} />
             </div>
-            <p className="text-[12px] text-[#64748B] mb-6">
+            <p className="text-[12px] text-ds-slate mb-6">
               Practice reviews (by experts not yet verified as clinicians), not counted above: {data.practice.reviews}
               {data.practice.reviews ? `, ${pct(data.practice.agreement)} agreement` : ""}.
               {clinical.score_difference.reviews_with_score ? ` Average gap where a 1–100 score was given: ${clinical.score_difference.average_gap} points.` : ""}
@@ -130,14 +130,14 @@ const ModelCheck = () => {
             <div className={`${UI.card.root} mb-6`}>
               <div className={UI.card.header}>
                 <h2 className="text-[14px] font-semibold m-0">Level by level (clinical reviews)</h2>
-                <span className="text-[12px] text-[#64748B]">Rows: the app. Columns: the cardiologist. Orange = app too low.</span>
+                <span className="text-[12px] text-ds-slate">Rows: the app. Columns: the cardiologist. Orange = app too low.</span>
               </div>
               <div className="p-4 overflow-x-auto">
                 <table className="w-full min-w-[460px] border-separate border-spacing-1 text-[13px] text-center">
                   <thead>
                     <tr>
-                      <th scope="col" className="text-left text-[11px] font-semibold text-[#64748B] uppercase tracking-wider">App ↓ · Cardiologist →</th>
-                      {TIERS.map((t) => <th key={t} scope="col" className="text-[12px] font-semibold text-[#475569]">{SHORT_TIER[t]}</th>)}
+                      <th scope="col" className="text-left text-[11px] font-semibold text-ds-slate uppercase tracking-wider">App ↓ · Cardiologist →</th>
+                      {TIERS.map((t) => <th key={t} scope="col" className="text-[12px] font-semibold text-ds-charcoal">{SHORT_TIER[t]}</th>)}
                     </tr>
                   </thead>
                   <tbody>
@@ -146,7 +146,7 @@ const ModelCheck = () => {
                         <th scope="row" className="text-left text-[12.5px] font-semibold py-2">{SHORT_TIER[t]}</th>
                         {(matrix[i] || [0, 0, 0, 0]).map((n, j) => (
                           <td key={j} className={`py-2.5 rounded-[6px] font-semibold ${
-                            i === j ? "bg-[#E3EFEC] text-[#14534B]" : j > i ? (n ? "bg-[#FDF3E7] text-[#7A4A0B]" : "bg-[#F8FAFC] text-[#94A3B8]") : (n ? "bg-[#EAF5FC] text-[#0F4C82]" : "bg-[#F8FAFC] text-[#94A3B8]")
+                            i === j ? "bg-ds-mint text-ds-charcoal" : j > i ? (n ? "bg-ds-yellow text-ds-warm-text" : "bg-ds-surface text-ds-steel") : (n ? "bg-ds-tint text-ds-primary-pressed" : "bg-ds-surface text-ds-steel")
                           }`}>{n}</td>
                         ))}
                       </tr>
@@ -181,7 +181,7 @@ const ModelCheck = () => {
                   </thead>
                   <tbody className={UI.table.tbody}>
                     {rows.length === 0 ? (
-                      <tr><td colSpan={8} className="py-12 px-5 text-center text-[13px] text-[#64748B]">No reviewed cases yet. Cases appear here once a Cardiologist submits a review.</td></tr>
+                      <tr><td colSpan={8} className="py-12 px-5 text-center text-[13px] text-ds-slate">No reviewed cases yet. Cases appear here once a Cardiologist submits a review.</td></tr>
                     ) : rows.map((r) => {
                       const agreement = AGREEMENT[r.tier_agreement];
                       const isOpen = open === r.round_id;
@@ -195,26 +195,26 @@ const ModelCheck = () => {
                             </td>
                             <td className={UI.table.td}>
                               <div className="text-[13px] font-semibold">{r.case_code}</div>
-                              <div className="text-[11.5px] text-[#64748B]">{LANES[r.lane]?.label} · {day(r.reviewed_at)}</div>
+                              <div className="text-[11.5px] text-ds-slate">{LANES[r.lane]?.label} · {day(r.reviewed_at)}</div>
                             </td>
                             <td className={UI.table.td}>
                               <div className="text-[13px] font-semibold">{r.app_tier || "No level"}</div>
-                              <div className="text-[11.5px] text-[#64748B]">{r.app_score != null ? `${r.app_score} · ` : ""}{SCORERS[r.app_scorer]}</div>
+                              <div className="text-[11.5px] text-ds-slate">{r.app_score != null ? `${r.app_score} · ` : ""}{SCORERS[r.app_scorer]}</div>
                             </td>
                             <td className={UI.table.td}>
                               <div className="text-[13px] font-semibold">{r.expert_tier}</div>
-                              <div className="text-[11.5px] text-[#64748B]">{r.expert_score != null ? `Score ${r.expert_score}` : "No score"}</div>
+                              <div className="text-[11.5px] text-ds-slate">{r.expert_score != null ? `Score ${r.expert_score}` : "No score"}</div>
                             </td>
                             <td className={UI.table.td}>
                               <span className={`text-[11.5px] font-semibold px-2 py-0.5 rounded-full border whitespace-nowrap ${agreement?.className || ""}`}>{agreement?.label || "Not comparable"}</span>
                             </td>
                             <td className={UI.table.td}><CheckSummary check={r.food_check} /></td>
                             <td className={UI.table.td}><CheckSummary check={r.exercise_check} /></td>
-                            <td className={`${UI.table.td} text-[12.5px] font-semibold ${r.is_clinical ? "text-[#14534B]" : "text-[#7A5414]"}`}>{r.is_clinical ? "Clinical" : "Practice"}</td>
+                            <td className={`${UI.table.td} text-[12.5px] font-semibold ${r.is_clinical ? "text-ds-charcoal" : "text-ds-warm-text"}`}>{r.is_clinical ? "Clinical" : "Practice"}</td>
                           </tr>
                           {isOpen && (
                             <tr>
-                              <td colSpan={8} className="bg-[#F8FAFC] px-5 py-4">
+                              <td colSpan={8} className="bg-ds-surface px-5 py-4">
                                 <dl className="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1.5 text-[12.5px] m-0">
                                   <dt className="font-semibold">Reviewer</dt><dd className="m-0">{r.reviewer_name} · confidence {labelOf(CONFIDENCE, r.confidence)}</dd>
                                   <dt className="font-semibold">Reasons</dt><dd className="m-0">{r.reasons.map((x) => labelOf(REASONS, x)).join(", ")}</dd>

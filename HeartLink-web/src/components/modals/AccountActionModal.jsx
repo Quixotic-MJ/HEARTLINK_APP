@@ -97,26 +97,26 @@ const AccountActionModal = ({ isOpen, onClose, user, onToggleStatus, canDelete, 
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 10 }}
           transition={{ type: "spring", damping: 26, stiffness: 350 }}
-          className="relative w-full max-w-md bg-[#FFFFFF] rounded-2xl shadow-2xl border border-[#E2E8F0] overflow-hidden text-[#0F172A] z-10"
+          className="relative w-full max-w-md bg-ds-canvas rounded-2xl shadow-2xl border border-ds-hairline overflow-hidden text-ds-ink z-10"
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-6 py-4.5 border-b border-[#E2E8F0] bg-[#FFFFFF]">
+          <div className="flex items-center justify-between px-6 py-4.5 border-b border-ds-hairline bg-ds-canvas">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-[8px] bg-[#EAF5FC] flex items-center justify-center text-[#2E9AE8] border border-[#CDE1F4] shrink-0">
+              <div className="w-9 h-9 rounded-[8px] bg-ds-tint flex items-center justify-center text-ds-on-tint border border-ds-tint shrink-0">
                 <Shield size={16} />
               </div>
               <div>
-                <h3 className="text-[16px] font-bold text-[#0F172A] leading-tight">
+                <h3 className="text-[16px] font-bold text-ds-ink leading-tight">
                   Account Governance
                 </h3>
-                <p className="text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wider mt-0.5">
+                <p className="text-[11px] font-semibold text-ds-steel uppercase tracking-wider mt-0.5">
                   User access controls
                 </p>
               </div>
             </div>
             <button
               onClick={handleClose}
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-[#64748B] hover:text-[#0F172A] hover:bg-[#F8FAFC] transition-colors cursor-pointer"
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-ds-slate hover:text-ds-ink hover:bg-ds-surface transition-colors cursor-pointer"
             >
               <X size={16} />
             </button>
@@ -125,41 +125,41 @@ const AccountActionModal = ({ isOpen, onClose, user, onToggleStatus, canDelete, 
           {/* User Info */}
           <div className="px-6 py-5">
             <div className="flex items-center gap-3.5 mb-4.5">
-              <div className="w-11 h-11 rounded-full bg-[#EAF5FC] text-[#2E9AE8] border border-[#CDE1F4] flex items-center justify-center font-bold text-base shrink-0">
+              <div className="w-11 h-11 rounded-full bg-ds-tint text-ds-on-tint border border-ds-tint flex items-center justify-center font-bold text-base shrink-0">
                 {user.name?.charAt(0) || "P"}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[15px] font-bold text-[#0F172A] truncate">
+                <p className="text-[15px] font-bold text-ds-ink truncate">
                   {user.name}
                 </p>
-                <p className="text-[11px] text-[#64748B] mt-0.5">
+                <p className="text-[11px] text-ds-slate mt-0.5">
                   {formatUserRef(user.id)}
                 </p>
               </div>
             </div>
 
             {/* Details grid */}
-            <div className="grid grid-cols-2 gap-3 p-3.5 rounded-[8px] bg-[#F8FAFC]/60 border border-[#E2E8F0]">
+            <div className="grid grid-cols-2 gap-3 p-3.5 rounded-[8px] bg-ds-surface/60 border border-ds-hairline">
               <div>
-                <p className="text-[9.5px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-ds-steel mb-1">
                   Account Status
                 </p>
                 {isActive ? (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[4px] text-[9.5px] font-bold uppercase tracking-wider bg-[#E3EFEC] text-[#1B6E63] border border-[#C5DFD8]">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[4px] text-[11px] font-bold uppercase tracking-wider bg-ds-mint text-ds-charcoal border border-ds-mint">
                     <CheckCircle2 size={10} /> Active
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[4px] text-[9.5px] font-bold uppercase tracking-wider bg-[#F7E4E1] text-[#A93226] border border-[#F0C4B8]">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[4px] text-[11px] font-bold uppercase tracking-wider bg-ds-rose text-ds-ink border border-ds-rose">
                     <Ban size={10} /> Disabled
                   </span>
                 )}
               </div>
               <div>
-                <p className="text-[9.5px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-ds-steel mb-1">
                   Registered
                 </p>
-                <p className="text-[12px] font-semibold text-[#0F172A] flex items-center gap-1 mt-0.5">
-                  <Calendar size={11} className="text-[#94A3B8]" />
+                <p className="text-[12px] font-semibold text-ds-ink flex items-center gap-1 mt-0.5">
+                  <Calendar size={11} className="text-ds-steel" />
                   {user.regDate}
                 </p>
               </div>
@@ -167,16 +167,16 @@ const AccountActionModal = ({ isOpen, onClose, user, onToggleStatus, canDelete, 
 
             {/* Deactivation reason (if disabled) */}
             {!isActive && user.deactivationReason && (
-              <div className="mt-3.5 p-3 rounded-[8px] flex items-start gap-2 bg-[#F7E4E1] border border-[#F0C4B8]">
+              <div className="mt-3.5 p-3 rounded-[8px] flex items-start gap-2 bg-ds-rose border border-ds-rose">
                 <AlertTriangle
                   size={14}
-                  className="text-[#A93226] mt-0.5 shrink-0"
+                  className="text-ds-danger mt-0.5 shrink-0"
                 />
                 <div>
-                  <p className="text-[10px] font-bold text-[#A93226] uppercase tracking-wider mb-0.5">
+                  <p className="text-[11px] font-bold text-ds-danger uppercase tracking-wider mb-0.5">
                     Disabled Reason
                   </p>
-                  <p className="text-[11.5px] text-[#A93226] leading-relaxed font-medium">
+                  <p className="text-[11.5px] text-ds-danger leading-relaxed font-medium">
                     {user.deactivationReason}
                   </p>
                 </div>
@@ -185,12 +185,12 @@ const AccountActionModal = ({ isOpen, onClose, user, onToggleStatus, canDelete, 
           </div>
 
           {/* Action area */}
-          <div className="px-6 py-4 border-t border-[#E2E8F0] bg-[#FFFFFF]">
+          <div className="px-6 py-4 border-t border-ds-hairline bg-ds-canvas">
             {!isConfirming ? (
               <div className="flex flex-wrap gap-2">
                 <button
                   onClick={handleClose}
-                  className="px-3.5 py-2 text-[12px] font-semibold text-[#0F172A] bg-[#F8FAFC] hover:bg-[#E2E8F0] border border-[#E2E8F0] rounded-[8px] transition-colors cursor-pointer"
+                  className="px-3.5 py-2 text-[12px] font-semibold text-ds-ink bg-ds-surface hover:bg-ds-hairline border border-ds-hairline rounded-[8px] transition-colors cursor-pointer"
                 >
                   Close
                 </button>
@@ -198,7 +198,7 @@ const AccountActionModal = ({ isOpen, onClose, user, onToggleStatus, canDelete, 
                   <button
                     onClick={handleDisableClick}
                     disabled={isSubmitting}
-                    className="flex-1 px-3.5 py-2 text-[12px] font-semibold text-white bg-[#A9741B] hover:bg-[#8F5F14] rounded-[8px] transition-colors shadow-2xs flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                    className="flex-1 px-3.5 py-2 text-[12px] font-semibold text-white bg-ds-warm-text hover:bg-ds-warm-text rounded-[8px] transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
                   >
                     <Ban size={13} /> Disable Account
                   </button>
@@ -206,7 +206,7 @@ const AccountActionModal = ({ isOpen, onClose, user, onToggleStatus, canDelete, 
                   <button
                     onClick={handleEnable}
                     disabled={isSubmitting}
-                    className="flex-1 px-3.5 py-2 text-[12px] font-semibold text-white bg-[#1B6E63] hover:bg-[#14534B] rounded-[8px] transition-colors shadow-2xs flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                    className="flex-1 px-3.5 py-2 text-[12px] font-semibold text-white bg-ds-primary hover:bg-ds-primary rounded-[8px] transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
                   >
                     {isSubmitting ? (
                       <Loader2 size={13} className="animate-spin" />
@@ -220,7 +220,7 @@ const AccountActionModal = ({ isOpen, onClose, user, onToggleStatus, canDelete, 
                   <button
                     onClick={handleDelete}
                     disabled={isSubmitting}
-                    className="px-3 py-2 text-[12px] font-semibold text-white bg-[#A93226] hover:bg-[#8A1F1A] rounded-[8px] shadow-2xs transition-colors cursor-pointer flex items-center justify-center gap-1 disabled:opacity-50"
+                    className="px-3 py-2 text-[12px] font-semibold text-white bg-ds-danger hover:bg-ds-danger rounded-[8px] transition-colors cursor-pointer flex items-center justify-center gap-1 disabled:opacity-50"
                   >
                     <Trash2 size={13} />
                     Delete
@@ -230,25 +230,25 @@ const AccountActionModal = ({ isOpen, onClose, user, onToggleStatus, canDelete, 
             ) : (
               /* Disable confirmation with reason */
               <div className="space-y-3">
-                <div className="flex items-start gap-2 p-2.5 rounded-[8px] bg-[#F7E4E1] border border-[#F0C4B8]">
+                <div className="flex items-start gap-2 p-2.5 rounded-[8px] bg-ds-rose border border-ds-rose">
                   <AlertTriangle
                     size={13}
-                    className="text-[#A93226] mt-0.5 shrink-0"
+                    className="text-ds-danger mt-0.5 shrink-0"
                   />
-                  <p className="text-[11.5px] text-[#A93226] leading-relaxed font-medium">
+                  <p className="text-[11.5px] text-ds-danger leading-relaxed font-medium">
                     This will immediately revoke access. The user will not be able to log in until re-enabled.
                   </p>
                 </div>
 
                 <div>
-                  <label className="text-[10px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1.5 block">
+                  <label className="text-[11px] font-semibold uppercase tracking-wider text-ds-steel mb-1.5 block">
                     Reason for disabling *
                   </label>
                   <div className="relative">
                     <select
                       value={selectedReason}
                       onChange={(e) => setSelectedReason(e.target.value)}
-                      className="w-full pl-3 pr-7 py-2 text-[12.5px] font-medium text-[#0F172A] bg-[#F8FAFC] border border-[#E2E8F0] rounded-[8px] appearance-none cursor-pointer transition-colors focus:outline-none focus:border-[#0F172A]"
+                      className="w-full pl-3 pr-7 py-2 text-[12.5px] font-medium text-ds-ink bg-ds-canvas border border-ds-hairline-strong rounded-[8px] appearance-none cursor-pointer transition-colors focus:outline-none focus:border-ds-line"
                     >
                       <option value="" disabled>
                         Select a reason…
@@ -261,14 +261,14 @@ const AccountActionModal = ({ isOpen, onClose, user, onToggleStatus, canDelete, 
                     </select>
                     <ChevronDown
                       size={13}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-[#94A3B8]"
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-ds-steel"
                     />
                   </div>
                 </div>
 
                 {selectedReason === "Other" && (
                   <div>
-                    <label className="text-[10px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-1 block">
+                    <label className="text-[11px] font-semibold uppercase tracking-wider text-ds-steel mb-1 block">
                       Custom Reason *
                     </label>
                     <textarea
@@ -276,7 +276,7 @@ const AccountActionModal = ({ isOpen, onClose, user, onToggleStatus, canDelete, 
                       onChange={(e) => setCustomReason(e.target.value)}
                       placeholder="Describe the reason for disabling this account…"
                       rows={2}
-                      className="w-full px-3 py-2 text-[12.5px] rounded-[8px] bg-[#F8FAFC] border border-[#E2E8F0] text-[#0F172A] placeholder:text-[#94A3B8] resize-none focus:outline-none focus:border-[#0F172A]"
+                      className="w-full px-3 py-2 text-[12.5px] rounded-[8px] bg-ds-canvas border border-ds-hairline-strong text-ds-ink placeholder:text-ds-steel resize-none focus:outline-none focus:border-ds-line"
                     />
                   </div>
                 )}
@@ -285,14 +285,14 @@ const AccountActionModal = ({ isOpen, onClose, user, onToggleStatus, canDelete, 
                   <button
                     onClick={() => setIsConfirming(false)}
                     disabled={isSubmitting}
-                    className="flex-1 px-3 py-2 text-[12px] font-semibold text-[#0F172A] bg-[#F8FAFC] hover:bg-[#E2E8F0] border border-[#E2E8F0] rounded-[8px] transition-colors cursor-pointer disabled:opacity-50"
+                    className="flex-1 px-3 py-2 text-[12px] font-semibold text-ds-ink bg-ds-surface hover:bg-ds-hairline border border-ds-hairline rounded-[8px] transition-colors cursor-pointer disabled:opacity-50"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleConfirmDisable}
                     disabled={isSubmitting || !canSubmitDisable}
-                    className="flex-1 px-3 py-2 text-[12px] font-semibold text-white bg-[#A93226] hover:bg-[#8A1F1A] rounded-[8px] transition-colors shadow-2xs flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                    className="flex-1 px-3 py-2 text-[12px] font-semibold text-white bg-ds-danger hover:bg-ds-danger rounded-[8px] transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
                   >
                     {isSubmitting ? (
                       <Loader2 size={13} className="animate-spin" />

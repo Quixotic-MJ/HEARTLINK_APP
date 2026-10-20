@@ -104,7 +104,7 @@ const Cases = () => {
           }
         />
 
-        <p className="text-[13px] font-semibold text-[#0F172A] -mt-3 mb-4">{yourPart}</p>
+        <p className="text-[13px] font-semibold text-ds-ink -mt-3 mb-4">{yourPart}</p>
 
         <div className={UI.card.root}>
           <div className={UI.card.header}>
@@ -116,14 +116,14 @@ const Cases = () => {
                   aria-pressed={lane === key}
                   onClick={() => setLane(key)}
                   className={`min-h-[36px] px-3.5 rounded-full text-[12.5px] font-semibold border transition-colors cursor-pointer ${
-                    lane === key ? "bg-[#0F172A] text-white border-[#0F172A]" : "bg-white text-[#0F172A] border-[#E2E8F0] hover:border-[#94A3B8]"
+                    lane === key ? "bg-ds-ink text-white border-ds-ink" : "bg-ds-canvas text-ds-ink border-ds-hairline hover:border-ds-steel"
                   }`}
                 >
                   {label} ({counts[key]})
                 </button>
               ))}
             </div>
-            <span className="text-[12px] text-[#64748B]">Urgent cases should be reviewed within {urgentHours} hours.</span>
+            <span className="text-[12px] text-ds-slate">Urgent cases should be reviewed within {urgentHours} hours.</span>
           </div>
 
           <div className={UI.table.container}>
@@ -148,7 +148,7 @@ const Cases = () => {
                   ))
                 ) : shown.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="py-12 px-5 text-center text-[13px] text-[#64748B]">
+                    <td colSpan={7} className="py-12 px-5 text-center text-[13px] text-ds-slate">
                       {items.length === 0
                         ? "No open cases. Urgent cases appear on their own; admins can draw the weekly sample."
                         : "No cases in this lane."}
@@ -161,30 +161,30 @@ const Cases = () => {
                     return (
                       <tr key={c.id} className={UI.table.tr}>
                         <td className={UI.table.td}>
-                          <div className="text-[13px] font-semibold text-[#0F172A]">{c.case_code}</div>
-                          <div className="text-[12px] text-[#64748B]">
+                          <div className="text-[13px] font-semibold text-ds-ink">{c.case_code}</div>
+                          <div className="text-[12px] text-ds-slate">
                             {[c.age != null ? `${c.age}` : null, c.sex ? c.sex.charAt(0).toUpperCase() + c.sex.slice(1) : null].filter(Boolean).join(" · ") || "Age not given"}
                           </div>
                         </td>
                         <td className={UI.table.td}>
                           <div className="flex flex-wrap items-center gap-1.5">
-                            <span className={`text-[10.5px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${LANES[c.lane]?.className || ""}`}>
+                            <span className={`text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${LANES[c.lane]?.className || ""}`}>
                               {LANES[c.lane]?.label || c.lane}
                             </span>
                             {c.overdue && (
-                              <span className="inline-flex items-center gap-1 text-[10.5px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border bg-[#A93226] text-white border-[#A93226]">
+                              <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border bg-ds-danger text-white border-ds-danger">
                                 <AlertTriangle size={11} aria-hidden="true" /> Overdue
                               </span>
                             )}
                           </div>
-                          <div className="text-[12.5px] text-[#334155] mt-1">{c.reason}</div>
+                          <div className="text-[12.5px] text-ds-charcoal mt-1">{c.reason}</div>
                           {c.status === "complete" && (
-                            <div className="text-[12px] font-semibold text-[#14534B] mt-1">
+                            <div className="text-[12px] font-semibold text-ds-charcoal mt-1">
                               Cardiology done · waiting for {pendingChecks.join(" and ")}
                             </div>
                           )}
                         </td>
-                        <td className={`${UI.table.td} text-[12.5px] text-[#475569] whitespace-nowrap`}>{waitingText(c.waiting_hours)}</td>
+                        <td className={`${UI.table.td} text-[12.5px] text-ds-charcoal whitespace-nowrap`}>{waitingText(c.waiting_hours)}</td>
                         {Object.keys(SECTION_LABELS).map((s) => (
                           <td key={s} className={UI.table.td}>
                             <span className={`text-[11.5px] font-semibold px-2.5 py-0.5 rounded-full border whitespace-nowrap ${PROGRESS[c.sections[s]]?.className || ""}`}>
@@ -213,7 +213,7 @@ const Cases = () => {
           </div>
         </div>
 
-        <p className="text-[12px] text-[#64748B] mt-3">
+        <p className="text-[12px] text-ds-slate mt-3">
           A case counts for Model Check as soon as the {SECTION_EXPERT.cardiology} submits, and stays in this queue until the food and exercise checks are done too.
         </p>
       </div>

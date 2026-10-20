@@ -8,10 +8,10 @@ import { EQUIPMENT_PRESETS, NEW_PART, formatSeconds, partSeconds } from "./exerc
 // the equipment picker and short text lists (skip if / stop if).
 
 const inputClass =
-  "w-full px-3 py-1.5 text-[12px] bg-[#FFFFFF] border border-[#E2E8F0] focus:border-[#0F172A] rounded-[6px] focus:outline-none text-[#0F172A] placeholder:text-[#94A3B8] transition-colors";
-const smallLabel = "block text-[10px] font-semibold text-[#64748B] uppercase tracking-wider mb-0.5";
-const addButton = "flex items-center gap-1.5 text-[12px] font-semibold text-[#2E9AE8] hover:text-[#1C7AC8] transition-colors mt-2 cursor-pointer";
-const iconButton = "p-1 hover:bg-[#F8FAFC] text-[#64748B] hover:text-[#0F172A] disabled:opacity-30 rounded transition-colors cursor-pointer";
+  "w-full px-3 py-1.5 text-[13px] bg-ds-canvas border border-ds-hairline-strong focus:border-ds-line focus:ring-1 focus:ring-ds-line rounded-[8px] focus:outline-none text-ds-ink placeholder:text-ds-steel transition-colors";
+const smallLabel = "block text-[12px] font-medium text-ds-ink mb-1";
+const addButton = "flex items-center gap-1.5 text-[12px] font-semibold text-ds-primary hover:text-ds-primary-pressed transition-colors mt-2 cursor-pointer";
+const iconButton = "p-1 hover:bg-ds-surface text-ds-slate hover:text-ds-ink disabled:opacity-30 rounded transition-colors cursor-pointer";
 
 /** Full address for an uploaded picture ("/uploads/…" lives on the server). */
 function pictureUrl(url) {
@@ -25,11 +25,11 @@ function ImageField({ value, onChange }) {
   const [error, setError] = useState("");
   return (
     <div className="flex items-center gap-2">
-      <div className="w-12 h-9 rounded-[6px] border border-[#E2E8F0] bg-[#FFFFFF] overflow-hidden shrink-0 flex items-center justify-center" title="This step's picture">
-        {value ? <img src={pictureUrl(value)} alt="" className="w-full h-full object-cover" /> : <ImageIcon size={14} className="text-[#94A3B8]" />}
+      <div className="w-12 h-9 rounded-[6px] border border-ds-hairline bg-ds-canvas overflow-hidden shrink-0 flex items-center justify-center" title="This step's picture">
+        {value ? <img src={pictureUrl(value)} alt="" className="w-full h-full object-cover" /> : <ImageIcon size={14} className="text-ds-steel" />}
       </div>
       <input value={value || ""} onChange={(e) => onChange(e.target.value)} placeholder="This step's picture (optional): paste a link or upload" className={inputClass} />
-      <label className="px-2.5 py-1 bg-[#FFFFFF] hover:bg-[#F8FAFC] border border-[#E2E8F0] text-[11px] font-semibold rounded-[6px] cursor-pointer shrink-0">
+      <label className="px-2.5 py-1 bg-ds-canvas hover:bg-ds-surface border border-ds-hairline text-[11px] font-semibold rounded-[6px] cursor-pointer shrink-0">
         {busy ? "Uploading…" : "Upload"}
         <input
           type="file"
@@ -53,7 +53,7 @@ function ImageField({ value, onChange }) {
           }}
         />
       </label>
-      {error && <span className="text-[10.5px] text-[#A93226]">{error}</span>}
+      {error && <span className="text-[11px] text-ds-danger">{error}</span>}
     </div>
   );
 }
@@ -69,25 +69,25 @@ export function PartsEditor({ control, register, watch, setValue, errors, name, 
   return (
     <div>
       <div className="flex items-baseline justify-between mb-1">
-        <p className="text-[12.5px] font-semibold text-[#0F172A]">{title}</p>
-        {rows.length > 0 && <p className="text-[11px] text-[#64748B]">{formatSeconds(rows.reduce((t, p) => t + partSeconds(p), 0))}</p>}
+        <p className="text-[12.5px] font-semibold text-ds-ink">{title}</p>
+        {rows.length > 0 && <p className="text-[11px] text-ds-slate">{formatSeconds(rows.reduce((t, p) => t + partSeconds(p), 0))}</p>}
       </div>
-      {hint && <p className="text-[11px] text-[#64748B] mb-2 leading-relaxed">{hint}</p>}
+      {hint && <p className="text-[11px] text-ds-slate mb-2 leading-relaxed">{hint}</p>}
       <div className="space-y-2.5">
         {fields.map((field, index) => {
           const row = rows[index] || {};
           const err = errors?.[name]?.[index];
           return (
-            <div key={field.id} className="flex items-start gap-2.5 border border-[#E2E8F0] rounded-[8px] p-2.5 bg-[#F8FAFC]/40">
-              <div className="mt-1 text-[10px] font-bold text-[#94A3B8] bg-[#FFFFFF] border border-[#E2E8F0] w-5 h-5 flex items-center justify-center rounded-full shrink-0">{index + 1}</div>
+            <div key={field.id} className="flex items-start gap-2.5 border border-ds-hairline rounded-[8px] p-2.5 bg-ds-surface/40">
+              <div className="mt-1 text-[11px] font-bold text-ds-steel bg-ds-canvas border border-ds-hairline w-5 h-5 flex items-center justify-center rounded-full shrink-0">{index + 1}</div>
               <div className="flex-1 space-y-2 min-w-0">
                 <div>
                   <input
                     {...register(`${name}.${index}.instruction`)}
-                    className={`${inputClass} font-semibold text-[12.5px] ${err?.instruction ? "border-[#A93226]" : ""}`}
+                    className={`${inputClass} font-semibold text-[12.5px] ${err?.instruction ? "border-ds-danger" : ""}`}
                     placeholder={isBreathing ? "e.g. Breathe in slowly through your nose" : "e.g. Walk at a comfortable pace"}
                   />
-                  {err?.instruction && <span className="text-[10px] text-[#A93226] mt-0.5 block font-medium">{err.instruction.message}</span>}
+                  {err?.instruction && <span className="text-[11px] text-ds-danger mt-0.5 block font-medium">{err.instruction.message}</span>}
                 </div>
                 <input {...register(`${name}.${index}.details`)} className={inputClass} placeholder="Extra detail (optional), e.g. Keep your back straight" />
 
@@ -137,14 +137,14 @@ export function PartsEditor({ control, register, watch, setValue, errors, name, 
                   )}
 
                   {!isBreathing && (
-                    <label className="flex items-center gap-1.5 text-[11.5px] text-[#0F172A] pb-1.5 cursor-pointer select-none">
-                      <input type="checkbox" {...register(`${name}.${index}.both_sides`)} className="accent-[#2E9AE8]" />
+                    <label className="flex items-center gap-1.5 text-[11.5px] text-ds-ink pb-1.5 cursor-pointer select-none">
+                      <input type="checkbox" {...register(`${name}.${index}.both_sides`)} className="accent-ds-line" />
                       Both sides
                     </label>
                   )}
-                  <span className="text-[11px] text-[#64748B] pb-1.5 ml-auto">{formatSeconds(partSeconds(row))}</span>
+                  <span className="text-[11px] text-ds-slate pb-1.5 ml-auto">{formatSeconds(partSeconds(row))}</span>
                 </div>
-                {err?.seconds && <span className="text-[10px] text-[#A93226] block font-medium">{err.seconds.message}</span>}
+                {err?.seconds && <span className="text-[11px] text-ds-danger block font-medium">{err.seconds.message}</span>}
 
                 <ImageField value={row.image} onChange={(url) => setValue(`${name}.${index}.image`, url, { shouldDirty: true })} />
               </div>
@@ -155,7 +155,7 @@ export function PartsEditor({ control, register, watch, setValue, errors, name, 
                 <button type="button" onClick={() => move(index, index + 1)} disabled={index === fields.length - 1} className={iconButton} title="Move down">
                   <ArrowDown size={13} />
                 </button>
-                <button type="button" onClick={() => remove(index)} className="p-1 hover:bg-[#F7E4E1] text-[#64748B] hover:text-[#A93226] rounded transition-colors cursor-pointer" title="Delete">
+                <button type="button" onClick={() => remove(index)} className="p-1 hover:bg-ds-rose text-ds-slate hover:text-ds-danger rounded transition-colors cursor-pointer" title="Delete">
                   <Trash2 size={13} />
                 </button>
               </div>
@@ -176,17 +176,17 @@ export function SetupEditor({ control, register, watch, setValue, name = "setupS
   const rows = watch(name) || [];
   return (
     <div>
-      <p className="text-[12.5px] font-semibold text-[#0F172A] mb-1">Get into position</p>
-      <p className="text-[11px] text-[#64748B] mb-2 leading-relaxed">Done once before the timer starts, e.g. "Sit near the front of a sturdy chair, feet flat on the floor". No time needed.</p>
+      <p className="text-[12.5px] font-semibold text-ds-ink mb-1">Get into position</p>
+      <p className="text-[11px] text-ds-slate mb-2 leading-relaxed">Done once before the timer starts, e.g. "Sit near the front of a sturdy chair, feet flat on the floor". No time needed.</p>
       <div className="space-y-2">
         {fields.map((field, index) => (
-          <div key={field.id} className="flex items-start gap-2 border border-[#E2E8F0] rounded-[8px] p-2.5 bg-[#F8FAFC]/40">
+          <div key={field.id} className="flex items-start gap-2 border border-ds-hairline rounded-[8px] p-2.5 bg-ds-surface/40">
             <div className="flex-1 space-y-2 min-w-0">
               <input {...register(`${name}.${index}.instruction`)} className={`${inputClass} font-semibold text-[12.5px]`} placeholder="e.g. Sit with your feet flat on the floor" />
               <input {...register(`${name}.${index}.details`)} className={inputClass} placeholder="Extra detail (optional)" />
               <ImageField value={rows[index]?.image} onChange={(url) => setValue(`${name}.${index}.image`, url, { shouldDirty: true })} />
             </div>
-            <button type="button" onClick={() => remove(index)} className="p-1 mt-1 hover:bg-[#F7E4E1] text-[#64748B] hover:text-[#A93226] rounded transition-colors cursor-pointer" title="Delete">
+            <button type="button" onClick={() => remove(index)} className="p-1 mt-1 hover:bg-ds-rose text-ds-slate hover:text-ds-danger rounded transition-colors cursor-pointer" title="Delete">
               <Trash2 size={13} />
             </button>
           </div>
@@ -220,7 +220,7 @@ export function EquipmentPicker({ value = [], onChange }) {
               onClick={() => toggle(item)}
               aria-pressed={on}
               className={`px-2.5 py-1 text-[11.5px] font-medium rounded-full border transition-colors cursor-pointer ${
-                on ? "bg-[#0F172A] text-white border-[#0F172A]" : "bg-[#FFFFFF] text-[#0F172A] border-[#E2E8F0] hover:border-[#94A3B8]"
+                on ? "bg-ds-ink text-white border-ds-ink" : "bg-ds-canvas text-ds-ink border-ds-hairline hover:border-ds-steel"
               }`}
             >
               {item}
@@ -233,7 +233,7 @@ export function EquipmentPicker({ value = [], onChange }) {
             type="button"
             onClick={() => toggle(item)}
             title="Remove"
-            className="px-2.5 py-1 text-[11.5px] font-medium rounded-full border bg-[#0F172A] text-white border-[#0F172A] cursor-pointer"
+            className="px-2.5 py-1 text-[11.5px] font-medium rounded-full border bg-ds-ink text-white border-ds-ink cursor-pointer"
           >
             {item} ✕
           </button>
@@ -252,7 +252,7 @@ export function EquipmentPicker({ value = [], onChange }) {
           placeholder='Something else, e.g. "Light weights, 1 kg each"'
           className={inputClass}
         />
-        <button type="button" onClick={addOther} className="px-3 py-1.5 text-[11.5px] font-semibold bg-[#F8FAFC] hover:bg-[#E2E8F0] border border-[#E2E8F0] rounded-[6px] cursor-pointer shrink-0">
+        <button type="button" onClick={addOther} className="px-3 py-1.5 text-[11.5px] font-semibold bg-ds-surface hover:bg-ds-hairline border border-ds-hairline rounded-[6px] cursor-pointer shrink-0">
           Add
         </button>
       </div>
@@ -269,7 +269,7 @@ export function TextListEditor({ control, register, name, placeholder, addLabel 
         {fields.map((field, index) => (
           <div key={field.id} className="flex gap-2">
             <input {...register(`${name}.${index}.value`)} className={inputClass} placeholder={placeholder} />
-            <button type="button" onClick={() => remove(index)} className="p-1.5 text-[#64748B] hover:text-[#A93226] bg-[#F8FAFC] hover:bg-[#F7E4E1] border border-[#E2E8F0] rounded-[6px] transition-colors cursor-pointer" title="Remove">
+            <button type="button" onClick={() => remove(index)} className="p-1.5 text-ds-slate hover:text-ds-danger bg-ds-surface hover:bg-ds-rose border border-ds-hairline rounded-[6px] transition-colors cursor-pointer" title="Remove">
               <Trash2 size={13} />
             </button>
           </div>

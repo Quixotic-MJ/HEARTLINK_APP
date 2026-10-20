@@ -5,25 +5,25 @@ export const getCategoryBadge = (category) => {
   switch (category) {
     case "Maintenance":
       return (
-        <span className="inline-flex items-center gap-1 bg-[#F6EDDD] text-[#A9741B] border border-[#EBD7B8] px-2 py-0.5 rounded-[4px] text-[9px] font-bold uppercase tracking-wider whitespace-nowrap">
+        <span className="inline-flex items-center gap-1 bg-ds-yellow text-ds-warm-text border border-ds-yellow-bold px-2 py-0.5 rounded-[4px] text-[11px] font-bold uppercase tracking-wider whitespace-nowrap">
           <Wrench size={10} /> Maintenance
         </span>
       );
     case "App Update":
       return (
-        <span className="inline-flex items-center gap-1 bg-[#F8FAFC] text-[#0F172A] border border-[#E2E8F0] px-2 py-0.5 rounded-[4px] text-[9px] font-bold uppercase tracking-wider whitespace-nowrap">
+        <span className="inline-flex items-center gap-1 bg-ds-surface text-ds-ink border border-ds-hairline px-2 py-0.5 rounded-[4px] text-[11px] font-bold uppercase tracking-wider whitespace-nowrap">
           <Info size={10} /> Update
         </span>
       );
     case "Safety Reminder":
       return (
-        <span className="inline-flex items-center gap-1 bg-[#F7E4E1] text-[#A93226] border border-[#F0C4B8] px-2 py-0.5 rounded-[4px] text-[9px] font-bold uppercase tracking-wider whitespace-nowrap">
+        <span className="inline-flex items-center gap-1 bg-ds-rose text-ds-ink border border-ds-rose px-2 py-0.5 rounded-[4px] text-[11px] font-bold uppercase tracking-wider whitespace-nowrap">
           <ShieldAlert size={10} /> Safety
         </span>
       );
     default:
       return (
-        <span className="inline-flex items-center gap-1 bg-[#E3EFEC] text-[#1B6E63] border border-[#C5DFD8] px-2 py-0.5 rounded-[4px] text-[9px] font-bold uppercase tracking-wider whitespace-nowrap">
+        <span className="inline-flex items-center gap-1 bg-ds-mint text-ds-charcoal border border-ds-mint px-2 py-0.5 rounded-[4px] text-[11px] font-bold uppercase tracking-wider whitespace-nowrap">
           <Megaphone size={10} /> General
         </span>
       );
@@ -47,13 +47,12 @@ const ViewBroadcastModal = ({ isOpen, onClose, broadcast, onDelete }) => {
           className="absolute inset-0 bg-black/60 backdrop-blur-xs transition-opacity cursor-pointer" 
           onClick={onClose}
         />
-        <div className="relative w-full max-w-md bg-[#FFFFFF] max-h-full rounded-2xl shadow-2xl border border-[#E2E8F0] flex flex-col animate-in fade-in zoom-in-95 duration-200 overflow-hidden text-[#0F172A]">
+        <div className="relative w-full max-w-md bg-ds-canvas max-h-full rounded-2xl shadow-2xl border border-ds-hairline flex flex-col animate-in fade-in zoom-in-95 duration-200 overflow-hidden text-ds-ink">
           {/* Header */}
-          <div className="flex items-center justify-between px-6 py-4.5 border-b border-[#E2E8F0] bg-[#FFFFFF] z-10">
+          <div className="flex items-center justify-between px-6 py-4.5 border-b border-ds-hairline bg-ds-canvas z-10">
             <div className="flex items-center gap-2.5">
               <h3 
-                className="text-[17px] font-medium text-[#0F172A] leading-tight"
-                style={{ fontFamily: "'Fraunces', serif" }}
+                className="text-[17px] font-medium text-ds-ink leading-tight"
               >
                 Announcement Details
               </h3>
@@ -61,7 +60,7 @@ const ViewBroadcastModal = ({ isOpen, onClose, broadcast, onDelete }) => {
             </div>
             <button 
               onClick={onClose} 
-              className="text-[#64748B] hover:text-[#0F172A] p-1.5 rounded-lg hover:bg-[#F8FAFC] transition-colors cursor-pointer"
+              className="text-ds-slate hover:text-ds-ink p-1.5 rounded-lg hover:bg-ds-surface transition-colors cursor-pointer"
             >
               <X size={16} />
             </button>
@@ -72,12 +71,11 @@ const ViewBroadcastModal = ({ isOpen, onClose, broadcast, onDelete }) => {
             {/* Title */}
             {(broadcast.title || broadcast.type) && (
               <div>
-                <h4 className="text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wider border-b border-[#E2E8F0] pb-1 mb-2">
+                <h4 className="text-[11px] font-semibold text-ds-steel uppercase tracking-wider border-b border-ds-hairline pb-1 mb-2">
                   Announcement Title
                 </h4>
                 <p 
-                  className="text-[16px] font-medium text-[#0F172A]"
-                  style={{ fontFamily: "'Fraunces', serif" }}
+                  className="text-[16px] font-medium text-ds-ink"
                 >
                   {broadcast.title || broadcast.type}
                 </p>
@@ -85,15 +83,15 @@ const ViewBroadcastModal = ({ isOpen, onClose, broadcast, onDelete }) => {
             )}
 
             {/* Meta Info Card */}
-            <div className="bg-[#F8FAFC]/60 p-3.5 rounded-[8px] border border-[#E2E8F0] flex flex-col gap-2 text-[12px]">
+            <div className="bg-ds-surface/60 p-3.5 rounded-[8px] border border-ds-hairline flex flex-col gap-2 text-[12px]">
               <div className="flex justify-between items-center">
-                <span className="text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wider">Published On</span>
-                <span className="font-mono font-semibold text-[#0F172A]">{broadcast.date}</span>
+                <span className="text-[11px] font-semibold text-ds-steel uppercase tracking-wider">Published On</span>
+                <span className="font-mono font-semibold text-ds-ink">{broadcast.date}</span>
               </div>
-              <div className="h-px w-full bg-[#E2E8F0]"></div>
+              <div className="h-px w-full bg-ds-hairline"></div>
               <div className="flex justify-between items-center">
-                <span className="text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wider">Published By</span>
-                <span className="font-semibold text-[#0F172A]">
+                <span className="text-[11px] font-semibold text-ds-steel uppercase tracking-wider">Published By</span>
+                <span className="font-semibold text-ds-ink">
                   {broadcast.display_publisher ||
                     (broadcast.publisher
                       ? broadcast.publisher.replace(/^[^(]+\((.+)\)$/, "$1")
@@ -104,11 +102,11 @@ const ViewBroadcastModal = ({ isOpen, onClose, broadcast, onDelete }) => {
 
             {/* Message Body */}
             <div>
-              <h4 className="text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wider border-b border-[#E2E8F0] pb-1 mb-2">
+              <h4 className="text-[11px] font-semibold text-ds-steel uppercase tracking-wider border-b border-ds-hairline pb-1 mb-2">
                 Announcement Message
               </h4>
-              <div className="bg-[#F8FAFC]/40 rounded-[8px] border border-[#E2E8F0] p-3.5">
-                <p className="text-[12.5px] text-[#0F172A] leading-relaxed whitespace-pre-wrap font-medium">
+              <div className="bg-ds-surface/40 rounded-[8px] border border-ds-hairline p-3.5">
+                <p className="text-[12.5px] text-ds-ink leading-relaxed whitespace-pre-wrap font-medium">
                   {broadcast.message}
                 </p>
               </div>
@@ -116,12 +114,12 @@ const ViewBroadcastModal = ({ isOpen, onClose, broadcast, onDelete }) => {
 
             {/* Recipient count (if returned by API) */}
             {typeof broadcast.recipients_count === "number" ? (
-              <div className="bg-[#E3EFEC] p-3 rounded-[8px] border border-[#C5DFD8] flex items-center justify-between">
+              <div className="bg-ds-mint p-3 rounded-[8px] border border-ds-mint flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
-                  <CheckCircle2 size={15} className="text-[#1B6E63]" />
-                  <span className="text-[12px] font-bold text-[#1B6E63]">Delivered</span>
+                  <CheckCircle2 size={15} className="text-ds-charcoal" />
+                  <span className="text-[12px] font-bold text-ds-charcoal">Delivered</span>
                 </div>
-                <span className="text-[10px] font-bold text-[#1B6E63] bg-[#C5DFD8]/60 px-2 py-0.5 rounded-[4px] uppercase tracking-wider">
+                <span className="text-[11px] font-bold text-ds-charcoal bg-ds-mint/60 px-2 py-0.5 rounded-[4px] uppercase tracking-wider">
                   {broadcast.recipients_count} recipient{broadcast.recipients_count !== 1 ? "s" : ""}
                 </span>
               </div>
@@ -129,16 +127,16 @@ const ViewBroadcastModal = ({ isOpen, onClose, broadcast, onDelete }) => {
           </div>
 
           {/* Footer */}
-          <div className="px-6 py-4 border-t border-[#E2E8F0] bg-[#FFFFFF] flex justify-between shrink-0 items-center">
+          <div className="px-6 py-4 border-t border-ds-hairline bg-ds-canvas flex justify-between shrink-0 items-center">
             <button 
               onClick={() => setIsDeleteConfirmOpen(true)}
-              className="px-3.5 py-1.5 text-[12px] font-semibold text-[#A93226] bg-[#F7E4E1] hover:bg-[#F0C4B8] rounded-[6px] transition-colors border border-[#F0C4B8] shadow-2xs flex items-center gap-1.5 cursor-pointer"
+              className="px-3.5 py-1.5 text-[12px] font-semibold text-ds-ink bg-ds-rose hover:bg-ds-rose rounded-[6px] transition-colors border border-ds-rose flex items-center gap-1.5 cursor-pointer"
             >
               <Trash2 size={13} /> <span>Delete</span>
             </button>
             <button 
               onClick={onClose} 
-              className="px-4 py-2 text-[12px] font-semibold text-[#0F172A] bg-[#F8FAFC] hover:bg-[#E2E8F0] border border-[#E2E8F0] rounded-[8px] transition-colors shadow-2xs cursor-pointer"
+              className="px-4 py-2 text-[12px] font-semibold text-ds-ink bg-ds-surface hover:bg-ds-hairline border border-ds-hairline rounded-[8px] transition-colors cursor-pointer"
             >
               Close
             </button>
@@ -153,29 +151,28 @@ const ViewBroadcastModal = ({ isOpen, onClose, broadcast, onDelete }) => {
             className="absolute inset-0 bg-black/60 backdrop-blur-xs cursor-pointer" 
             onClick={() => setIsDeleteConfirmOpen(false)}
           />
-          <div className="bg-[#FFFFFF] p-5 rounded-2xl shadow-2xl max-w-sm w-full relative animate-in fade-in zoom-in-95 duration-200 border border-[#E2E8F0] text-[#0F172A]">
-            <div className="w-10 h-10 rounded-[8px] bg-[#F7E4E1] flex items-center justify-center mb-3 border border-[#F0C4B8] text-[#A93226]">
+          <div className="bg-ds-canvas p-5 rounded-2xl shadow-2xl max-w-sm w-full relative animate-in fade-in zoom-in-95 duration-200 border border-ds-hairline text-ds-ink">
+            <div className="w-10 h-10 rounded-[8px] bg-ds-rose flex items-center justify-center mb-3 border border-ds-rose text-ds-ink">
               <AlertTriangle size={18} />
             </div>
             <h4 
-              className="text-[17px] font-medium text-[#0F172A] mb-1 leading-tight"
-              style={{ fontFamily: "'Fraunces', serif" }}
+              className="text-[17px] font-medium text-ds-ink mb-1 leading-tight"
             >
               Delete Announcement?
             </h4>
-            <p className="text-[12px] text-[#64748B] leading-relaxed mb-5">
+            <p className="text-[12px] text-ds-slate leading-relaxed mb-5">
               Are you sure you want to delete this broadcast? It will be removed from user announcement feeds immediately.
             </p>
             <div className="flex gap-2">
               <button 
                 onClick={() => setIsDeleteConfirmOpen(false)} 
-                className="flex-1 px-3.5 py-2 text-[12px] font-semibold text-[#0F172A] bg-[#F8FAFC] hover:bg-[#E2E8F0] rounded-[8px] transition-colors border border-[#E2E8F0] cursor-pointer"
+                className="flex-1 px-3.5 py-2 text-[12px] font-semibold text-ds-ink bg-ds-surface hover:bg-ds-hairline rounded-[8px] transition-colors border border-ds-hairline cursor-pointer"
               >
                 Cancel
               </button>
               <button 
                 onClick={handleConfirmDelete} 
-                className="flex-1 px-3.5 py-2 text-[12px] font-semibold text-white bg-[#A93226] hover:bg-[#8A1F1A] rounded-[8px] transition-colors shadow-2xs cursor-pointer"
+                className="flex-1 px-3.5 py-2 text-[12px] font-semibold text-white bg-ds-danger hover:bg-ds-danger rounded-[8px] transition-colors cursor-pointer"
               >
                 Yes, Delete
               </button>

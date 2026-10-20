@@ -253,18 +253,17 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
       />
 
       {/* Modal Dialog Panel */}
-      <div className="relative w-full max-w-2xl bg-[#FFFFFF] border border-[#E2E8F0] max-h-full rounded-2xl shadow-2xl flex flex-col animate-in fade-in zoom-in-95 duration-200 overflow-hidden text-[#0F172A]">
+      <div className="relative w-full max-w-2xl bg-ds-canvas border border-ds-hairline max-h-full rounded-2xl shadow-2xl flex flex-col animate-in fade-in zoom-in-95 duration-200 overflow-hidden text-ds-ink">
         
         {/* Modal Header */}
-        <div className="flex items-center justify-between px-6 py-4.5 border-b border-[#E2E8F0] bg-[#FFFFFF]">
+        <div className="flex items-center justify-between px-6 py-4.5 border-b border-ds-hairline bg-ds-canvas">
           <div>
             <h3 
-              className="text-[18px] font-medium text-[#0F172A] tracking-tight"
-              style={{ fontFamily: "'Fraunces', serif" }}
+              className="text-[18px] font-medium text-ds-ink tracking-tight"
             >
               {exercise ? "Edit exercise routine" : "Create new routine"}
             </h3>
-            <p className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider mt-0.5 flex items-center gap-1.5">
+            <p className="text-[11px] font-semibold text-ds-steel uppercase tracking-wider mt-0.5 flex items-center gap-1.5">
               <span className="capitalize">{status}</span>
               <span>•</span>
               <span>{watch("hssTarget")}</span>
@@ -272,7 +271,7 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
           </div>
           <button
             onClick={onClose}
-            className="text-[#64748B] hover:text-[#0F172A] hover:bg-[#F8FAFC] p-1.5 rounded-lg transition-colors cursor-pointer"
+            className="text-ds-slate hover:text-ds-ink hover:bg-ds-surface p-1.5 rounded-lg transition-colors cursor-pointer"
             aria-label="Close modal"
           >
             <X size={16} />
@@ -284,7 +283,7 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
           
           {/* ── BASIC INFORMATION ── */}
           <div>
-            <h4 className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider border-b border-[#E2E8F0] pb-2 mb-3.5">
+            <h4 className="text-[11px] font-semibold text-ds-steel uppercase tracking-wider border-b border-ds-hairline pb-2 mb-3.5">
               Basic information
             </h4>
             <div className="space-y-3.5">
@@ -299,28 +298,28 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
               </div>
 
               <div>
-                <label className="block text-[11px] font-semibold text-[#64748B] uppercase tracking-wider mb-1">
+                <label className="block text-[13px] font-medium text-ds-ink mb-1">
                   Description
                 </label>
                 <textarea
                   rows="2"
                   {...register("description")}
-                  className={`w-full px-3 py-2 text-[12.5px] bg-[#F8FAFC] border ${
-                    errors.description ? 'border-[#A93226]' : 'border-[#E2E8F0] focus:border-[#0F172A]'
-                  } rounded-[8px] focus:outline-none text-[#0F172A] placeholder:text-[#94A3B8] transition-colors resize-none`}
+                  className={`w-full px-3 py-2 text-[12.5px] bg-ds-canvas border ${
+                    errors.description ? 'border-ds-danger' : 'border-ds-hairline-strong focus:border-ds-line'
+                  } rounded-[8px] focus:outline-none text-ds-ink placeholder:text-ds-steel transition-colors resize-none`}
                   placeholder="Short text summary of physical benefits…"
                 />
-                {errors.description && <p className="text-[11px] text-[#A93226] mt-1">{errors.description.message}</p>}
+                {errors.description && <p className="text-[11px] text-ds-danger mt-1">{errors.description.message}</p>}
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
                 <div>
-                  <label className="block text-[11px] font-semibold text-[#64748B] uppercase tracking-wider mb-1">
+                  <label className="block text-[13px] font-medium text-ds-ink mb-1">
                     Exercise Type
                   </label>
                   <select
                     {...register("type")}
-                    className="w-full px-3 py-2 text-[13px] font-medium bg-[#F8FAFC] border border-[#E2E8F0] rounded-[8px] focus:outline-none focus:border-[#0F172A] text-[#0F172A] transition-colors cursor-pointer"
+                    className="w-full px-3 py-2 text-[13px] font-medium bg-ds-canvas border border-ds-hairline-strong rounded-[8px] focus:outline-none focus:border-ds-line text-ds-ink transition-colors cursor-pointer"
                   >
                     <option value="Breathing">Breathing</option>
                     <option value="Light Cardio">Light Cardio</option>
@@ -330,12 +329,12 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-semibold text-[#64748B] uppercase tracking-wider mb-1">
+                  <label className="block text-[13px] font-medium text-ds-ink mb-1">
                     Intensity
                   </label>
                   <select
                     {...register("intensity")}
-                    className="w-full px-3 py-2 text-[13px] font-medium bg-[#F8FAFC] border border-[#E2E8F0] rounded-[8px] focus:outline-none focus:border-[#0F172A] text-[#0F172A] transition-colors cursor-pointer"
+                    className="w-full px-3 py-2 text-[13px] font-medium bg-ds-canvas border border-ds-hairline-strong rounded-[8px] focus:outline-none focus:border-ds-line text-ds-ink transition-colors cursor-pointer"
                   >
                     <option value="None">None</option>
                     <option value="Low">Low</option>
@@ -357,27 +356,27 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
                       {...register("duration")}
                       min="1"
                     />
-                    <p className="text-[10.5px] text-[#64748B] mt-1">The breaths repeat until this time is up.</p>
+                    <p className="text-[11px] text-ds-slate mt-1">The breaths repeat until this time is up.</p>
                   </div>
                 ) : (
                   <div>
-                    <label className="block text-[11px] font-semibold text-[#64748B] uppercase tracking-wider mb-1">Total time</label>
-                    <div className="flex items-center gap-2 px-3 py-2 text-[13px] font-semibold bg-[#F8FAFC] border border-[#E2E8F0] rounded-[8px] text-[#0F172A]">
-                      <Clock size={13} className="text-[#64748B]" />
+                    <label className="block text-[13px] font-medium text-ds-ink mb-1">Total time</label>
+                    <div className="flex items-center gap-2 px-3 py-2 text-[13px] font-semibold bg-ds-surface border border-ds-hairline rounded-[8px] text-ds-ink">
+                      <Clock size={13} className="text-ds-slate" />
                       {totalSeconds > 0 ? formatSeconds(totalSeconds) : "Add parts below"}
                     </div>
-                    <p className="text-[10.5px] text-[#64748B] mt-1">Worked out from the parts below.</p>
+                    <p className="text-[11px] text-ds-slate mt-1">Worked out from the parts below.</p>
                   </div>
                 )}
 
                 <div>
-                  <label className="block text-[11px] font-semibold text-[#64748B] uppercase tracking-wider mb-1">
+                  <label className="block text-[13px] font-medium text-ds-ink mb-1">
                     Routine Goal
                   </label>
                   <input
                     type="text"
                     {...register("goal")}
-                    className="w-full px-3 py-2 text-[12.5px] bg-[#F8FAFC] border border-[#E2E8F0] rounded-[8px] focus:outline-none focus:border-[#0F172A] text-[#0F172A] placeholder:text-[#94A3B8] transition-colors"
+                    className="w-full px-3 py-2 text-[12.5px] bg-ds-canvas border border-ds-hairline-strong rounded-[8px] focus:outline-none focus:border-ds-line text-ds-ink placeholder:text-ds-steel transition-colors"
                     placeholder="e.g. Builds gentle aerobic endurance…"
                   />
                 </div>
@@ -387,7 +386,7 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
 
           {/* ── TRACKING & REQUIREMENTS ── */}
           <div>
-            <h4 className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider border-b border-[#E2E8F0] pb-2 mb-3.5">
+            <h4 className="text-[11px] font-semibold text-ds-steel uppercase tracking-wider border-b border-ds-hairline pb-2 mb-3.5">
               Tracking & Requirements
             </h4>
             <div className="space-y-4">
@@ -405,10 +404,10 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
               </div>
 
               <div>
-                <label className="block text-[11px] font-semibold text-[#64748B] uppercase tracking-wider mb-1">
+                <label className="block text-[13px] font-medium text-ds-ink mb-1">
                   Equipment needed
                 </label>
-                <p className="text-[11px] text-[#64748B] mb-2">Patients tick these off on the app's "Before you start" check.</p>
+                <p className="text-[11px] text-ds-slate mb-2">Patients tick these off on the app's "Before you start" check.</p>
                 <EquipmentPicker
                   value={watch("requirements") || []}
                   onChange={(list) => setValue("requirements", list, { shouldDirty: true })}
@@ -419,16 +418,16 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
 
           {/* ── WHO IT'S FOR AND SAFETY ── */}
           <div>
-            <h4 className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider border-b border-[#E2E8F0] pb-2 mb-3.5">
+            <h4 className="text-[11px] font-semibold text-ds-steel uppercase tracking-wider border-b border-ds-hairline pb-2 mb-3.5">
               Who it's for and safety
             </h4>
             <div className="space-y-3.5">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
                 <div>
-                  <label className="block text-[11px] font-semibold text-[#64748B] uppercase tracking-wider mb-1">Position</label>
+                  <label className="block text-[13px] font-medium text-ds-ink mb-1">Position</label>
                   <select
                     {...register("position")}
-                    className="w-full px-3 py-2 text-[13px] font-medium bg-[#F8FAFC] border border-[#E2E8F0] rounded-[8px] focus:outline-none focus:border-[#0F172A] text-[#0F172A] cursor-pointer"
+                    className="w-full px-3 py-2 text-[13px] font-medium bg-ds-canvas border border-ds-hairline-strong rounded-[8px] focus:outline-none focus:border-ds-line text-ds-ink cursor-pointer"
                   >
                     <option value="">Not set</option>
                     <option value="Seated">Seated</option>
@@ -438,10 +437,10 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[11px] font-semibold text-[#64748B] uppercase tracking-wider mb-1">Where</label>
+                  <label className="block text-[13px] font-medium text-ds-ink mb-1">Where</label>
                   <select
                     {...register("setting")}
-                    className="w-full px-3 py-2 text-[13px] font-medium bg-[#F8FAFC] border border-[#E2E8F0] rounded-[8px] focus:outline-none focus:border-[#0F172A] text-[#0F172A] cursor-pointer"
+                    className="w-full px-3 py-2 text-[13px] font-medium bg-ds-canvas border border-ds-hairline-strong rounded-[8px] focus:outline-none focus:border-ds-line text-ds-ink cursor-pointer"
                   >
                     <option value="">Not set</option>
                     <option value="Indoors">Indoors</option>
@@ -456,12 +455,12 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
               </div>
               <InputField id="easierVersion" label="Easier version" placeholder="e.g. Do it sitting down, with smaller movements" {...register("easierVersion")} />
               <div>
-                <label className="block text-[11px] font-semibold text-[#64748B] uppercase tracking-wider mb-1">Skip this exercise if…</label>
+                <label className="block text-[13px] font-medium text-ds-ink mb-1">Skip this exercise if…</label>
                 <TextListEditor control={control} register={register} name="skipIf" placeholder="e.g. You have knee pain today" addLabel="Add a reason to skip" />
               </div>
               <div>
-                <label className="block text-[11px] font-semibold text-[#64748B] uppercase tracking-wider mb-1">Stop right away if…</label>
-                <p className="text-[11px] text-[#64748B] mb-2">Shown with the app's standard warning signs (chest pain, dizziness, short of breath).</p>
+                <label className="block text-[13px] font-medium text-ds-ink mb-1">Stop right away if…</label>
+                <p className="text-[11px] text-ds-slate mb-2">Shown with the app's standard warning signs (chest pain, dizziness, short of breath).</p>
                 <TextListEditor control={control} register={register} name="stopIf" placeholder="e.g. Your knee starts to hurt" addLabel="Add a reason to stop" />
               </div>
             </div>
@@ -469,21 +468,21 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
 
           {/* ── TARGETING ── */}
           <div>
-            <h4 className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider border-b border-[#E2E8F0] pb-2 mb-3.5">
+            <h4 className="text-[11px] font-semibold text-ds-steel uppercase tracking-wider border-b border-ds-hairline pb-2 mb-3.5">
               Clinical targeting
             </h4>
-            <div className="bg-[#F8FAFC]/60 p-3.5 rounded-[8px] border border-[#E2E8F0]">
-              <label className="block text-[12.5px] font-semibold text-[#0F172A] mb-0.5">
+            <div className="bg-ds-surface/60 p-3.5 rounded-[8px] border border-ds-hairline">
+              <label className="block text-[12.5px] font-semibold text-ds-ink mb-0.5">
                 HSS Suitability
               </label>
-              <p className="text-[11px] text-[#64748B] mb-2 font-medium">
+              <p className="text-[11px] text-ds-slate mb-2 font-medium">
                 Determines which patients receive this exercise routine based on clinical HSS status.
               </p>
               <select
                 {...register("hssTarget")}
-                className={`w-full px-3 py-2 text-[13px] font-medium bg-[#FFFFFF] border ${
-                  errors.hssTarget ? 'border-[#A93226]' : 'border-[#E2E8F0] focus:border-[#0F172A]'
-                } rounded-[8px] focus:outline-none text-[#0F172A] transition-colors cursor-pointer`}
+                className={`w-full px-3 py-2 text-[13px] font-medium bg-ds-canvas border ${
+                  errors.hssTarget ? 'border-ds-danger' : 'border-ds-hairline focus:border-ds-ink'
+                } rounded-[8px] focus:outline-none text-ds-ink transition-colors cursor-pointer`}
               >
                 <option value="Stable (80-100)">Stable (80-100)</option>
                 <option value="Moderate (60-79)">Moderate (60-79)</option>
@@ -495,13 +494,13 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
 
           {/* ── MEDIA ── */}
           <div>
-            <h4 className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider border-b border-[#E2E8F0] pb-2 mb-3.5">
+            <h4 className="text-[11px] font-semibold text-ds-steel uppercase tracking-wider border-b border-ds-hairline pb-2 mb-3.5">
               Media assets
             </h4>
             <div className="space-y-4">
               {/* Thumbnail Image */}
               <div>
-                <label className="block text-[11px] font-semibold text-[#64748B] uppercase tracking-wider mb-1">
+                <label className="block text-[13px] font-medium text-ds-ink mb-1">
                   Thumbnail Image
                 </label>
                 <div className="flex gap-2 mb-2.5">
@@ -510,10 +509,10 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
                       {...register("mediaUrl")}
                       type="text"
                       placeholder="Paste image URL…"
-                      className="w-full text-[12.5px] px-3 py-2 bg-[#F8FAFC] border border-[#E2E8F0] rounded-[8px] focus:outline-none focus:border-[#0F172A] text-[#0F172A] placeholder:text-[#94A3B8]"
+                      className="w-full text-[12.5px] px-3 py-2 bg-ds-canvas border border-ds-hairline-strong rounded-[8px] focus:outline-none focus:border-ds-line text-ds-ink placeholder:text-ds-steel"
                     />
                   </div>
-                  <label className="px-3.5 py-2 bg-[#F8FAFC] hover:bg-[#E2E8F0] border border-[#E2E8F0] text-[#0F172A] text-[12px] font-semibold rounded-[8px] cursor-pointer transition-colors flex items-center justify-center shrink-0">
+                  <label className="px-3.5 py-2 bg-ds-surface hover:bg-ds-hairline border border-ds-hairline text-ds-ink text-[12px] font-semibold rounded-[8px] cursor-pointer transition-colors flex items-center justify-center shrink-0">
                     Upload
                     <input
                       type="file"
@@ -540,11 +539,11 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
                     />
                   </label>
                 </div>
-                {isUploading && <p className="text-[10.5px] text-[#2E9AE8] font-semibold mb-2">Uploading asset…</p>}
-                {uploadErrors.media && <p className="text-[11px] text-[#A93226] mb-2">{uploadErrors.media}</p>}
+                {isUploading && <p className="text-[11px] text-ds-primary font-semibold mb-2">Uploading asset…</p>}
+                {uploadErrors.media && <p className="text-[11px] text-ds-danger mb-2">{uploadErrors.media}</p>}
                 
                 {mediaUrl && !mediaUrl.includes("youtube.com") && !mediaUrl.includes("youtu.be") && (
-                  <div className="w-36 h-20 rounded-[8px] overflow-hidden border border-[#E2E8F0] bg-[#F8FAFC] flex items-center justify-center">
+                  <div className="w-36 h-20 rounded-[8px] overflow-hidden border border-ds-hairline bg-ds-surface flex items-center justify-center">
                     {mediaUrl.startsWith("data:video") || mediaUrl.endsWith(".mp4") ? (
                       <video src={resolveMediaUrl(mediaUrl)} className="w-full h-full object-cover" muted />
                     ) : (
@@ -556,18 +555,18 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
 
               {/* Instructional Video Link */}
               <div>
-                <label className="block text-[11px] font-semibold text-[#64748B] uppercase tracking-wider mb-1">
+                <label className="block text-[13px] font-medium text-ds-ink mb-1">
                   Instructional Video Link
                 </label>
                 <input
                   {...register("videoUrl")}
                   type="text"
                   placeholder="Paste YouTube video link…"
-                  className="w-full text-[12.5px] px-3 py-2 bg-[#F8FAFC] border border-[#E2E8F0] rounded-[8px] focus:outline-none focus:border-[#0F172A] text-[#0F172A] placeholder:text-[#94A3B8] mb-2.5"
+                  className="w-full text-[12.5px] px-3 py-2 bg-ds-canvas border border-ds-hairline-strong rounded-[8px] focus:outline-none focus:border-ds-line text-ds-ink placeholder:text-ds-steel mb-2.5"
                 />
 
                 {watch("videoUrl") && (watch("videoUrl").includes("youtube.com") || watch("videoUrl").includes("youtu.be")) && (
-                  <div className="w-full max-w-md aspect-video rounded-[8px] overflow-hidden border border-[#E2E8F0] bg-black">
+                  <div className="w-full max-w-md aspect-video rounded-[8px] overflow-hidden border border-ds-hairline bg-black">
                     <iframe
                       width="100%"
                       height="100%"
@@ -585,18 +584,18 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
 
           {/* ── GUIDE IMAGES ── */}
           <div>
-            <h4 className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider border-b border-[#E2E8F0] pb-2 mb-3.5">
+            <h4 className="text-[11px] font-semibold text-ds-steel uppercase tracking-wider border-b border-ds-hairline pb-2 mb-3.5">
               Extra pictures
             </h4>
-            <p className="text-[11px] text-[#64748B] -mt-2 mb-3">Shown in the app's Pictures tab. Pictures for a single move go on that move below.</p>
+            <p className="text-[11px] text-ds-slate -mt-2 mb-3">Shown in the app's Pictures tab. Pictures for a single move go on that move below.</p>
             <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
               {guideImageFields.map((field, index) => (
-                <div key={field.id} className="flex items-center gap-2.5 border border-[#E2E8F0] rounded-[8px] p-2 bg-[#F8FAFC]/40">
-                  <div className="w-10 h-10 rounded-[6px] bg-[#FFFFFF] border border-[#E2E8F0] overflow-hidden shrink-0 flex items-center justify-center relative">
+                <div key={field.id} className="flex items-center gap-2.5 border border-ds-hairline rounded-[8px] p-2 bg-ds-surface/40">
+                  <div className="w-10 h-10 rounded-[6px] bg-ds-canvas border border-ds-hairline overflow-hidden shrink-0 flex items-center justify-center relative">
                     {watch(`guideImages.${index}.url`) ? (
                       <img src={resolveMediaUrl(watch(`guideImages.${index}.url`))} alt="Guide Preview" className="w-full h-full object-cover" />
                     ) : (
-                      <span className="text-[9px] text-[#94A3B8] font-semibold">No img</span>
+                      <span className="text-[11px] text-ds-steel font-semibold">No img</span>
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -604,7 +603,7 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
                       {...register(`guideImages.${index}.url`)}
                       type="text"
                       placeholder="Paste guide image URL…"
-                      className="w-full text-[12px] px-2.5 py-1.5 bg-[#FFFFFF] border border-[#E2E8F0] rounded-[6px] focus:outline-none focus:border-[#0F172A] text-[#0F172A] placeholder:text-[#94A3B8]"
+                      className="w-full text-[12px] px-2.5 py-1.5 bg-ds-canvas border border-ds-hairline rounded-[6px] focus:outline-none focus:border-ds-ink text-ds-ink placeholder:text-ds-steel"
                     />
                     <div className="relative mt-1">
                       <input
@@ -624,9 +623,9 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
                             }
                           }
                         }}
-                        className="w-full text-[10px] text-[#64748B] file:mr-2 file:py-0.5 file:px-2 file:rounded file:border file:border-[#E2E8F0] file:text-[9.5px] file:font-semibold file:bg-[#FFFFFF] file:text-[#0F172A] hover:file:border-[#2E9AE8] hover:file:text-[#2E9AE8] cursor-pointer"
+                        className="w-full text-[11px] text-ds-slate file:mr-2 file:py-0.5 file:px-2 file:rounded file:border file:border-ds-hairline file:text-[11px] file:font-semibold file:bg-ds-canvas file:text-ds-ink hover:file:border-ds-line hover:file:text-ds-primary cursor-pointer"
                       />
-                      {uploadErrors[`guide-${index}`] && <p className="text-[10.5px] text-[#A93226] mt-1">{uploadErrors[`guide-${index}`]}</p>}
+                      {uploadErrors[`guide-${index}`] && <p className="text-[11px] text-ds-danger mt-1">{uploadErrors[`guide-${index}`]}</p>}
                     </div>
                   </div>
                   <div className="flex items-center gap-1">
@@ -641,7 +640,7 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
                         }
                       }}
                       disabled={index === 0}
-                      className="p-1 hover:bg-[#F8FAFC] text-[#64748B] hover:text-[#0F172A] disabled:opacity-30 rounded transition-colors cursor-pointer"
+                      className="p-1 hover:bg-ds-surface text-ds-slate hover:text-ds-ink disabled:opacity-30 rounded transition-colors cursor-pointer"
                       title="Move Up"
                     >
                       <ArrowUp size={13} />
@@ -657,7 +656,7 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
                         }
                       }}
                       disabled={index === guideImageFields.length - 1}
-                      className="p-1 hover:bg-[#F8FAFC] text-[#64748B] hover:text-[#0F172A] disabled:opacity-30 rounded transition-colors cursor-pointer"
+                      className="p-1 hover:bg-ds-surface text-ds-slate hover:text-ds-ink disabled:opacity-30 rounded transition-colors cursor-pointer"
                       title="Move Down"
                     >
                       <ArrowDown size={13} />
@@ -665,7 +664,7 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
                     <button
                       type="button"
                       onClick={() => removeGuideImage(index)}
-                      className="p-1 hover:bg-[#F7E4E1] text-[#64748B] hover:text-[#A93226] rounded transition-colors cursor-pointer"
+                      className="p-1 hover:bg-ds-rose text-ds-slate hover:text-ds-danger rounded transition-colors cursor-pointer"
                       title="Remove"
                     >
                       <Trash2 size={13} />
@@ -677,7 +676,7 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
             <button
               type="button"
               onClick={() => appendGuideImage({ url: "" })}
-              className="flex items-center gap-1.5 text-[12px] font-semibold text-[#2E9AE8] hover:text-[#1C7AC8] transition-colors py-1 mt-2 cursor-pointer"
+              className="flex items-center gap-1.5 text-[12px] font-semibold text-ds-primary hover:text-ds-primary-pressed transition-colors py-1 mt-2 cursor-pointer"
             >
               <PlusCircle size={14} /> <span>Add guide image</span>
             </button>
@@ -686,11 +685,11 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
                 <button
                   type="button"
                   onClick={putPicturesOnSteps}
-                  className="text-[12px] font-semibold text-[#0F172A] border border-[#E2E8F0] hover:border-[#2E9AE8] rounded-[6px] px-2.5 py-1.5 bg-[#FFFFFF] transition-colors cursor-pointer"
+                  className="text-[12px] font-semibold text-ds-ink border border-ds-hairline hover:border-ds-line rounded-[6px] px-2.5 py-1.5 bg-ds-canvas transition-colors cursor-pointer"
                 >
                   Put these pictures on the steps
                 </button>
-                <p className="text-[11px] text-[#64748B] mt-1">
+                <p className="text-[11px] text-ds-slate mt-1">
                   {picturesNote || "One picture per step, in order: Get into position first, then warm-up, main part and cool-down."}
                 </p>
               </div>
@@ -699,7 +698,7 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
 
           {/* ── HOW IT'S DONE ── */}
           <div>
-            <h4 className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider border-b border-[#E2E8F0] pb-2 mb-3.5">
+            <h4 className="text-[11px] font-semibold text-ds-steel uppercase tracking-wider border-b border-ds-hairline pb-2 mb-3.5">
               How it's done
             </h4>
             <div className="space-y-5">
@@ -726,10 +725,10 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
                       hint={'Use "A count" for moves done a number of times, e.g. lift each leg 10 times. Tick "Both sides" to repeat it on the other side.'}
                       addLabel="Add a main part"
                     />
-                    <div className="grid grid-cols-2 gap-3.5 bg-[#F8FAFC]/60 p-3 rounded-[8px] border border-[#E2E8F0]">
+                    <div className="grid grid-cols-2 gap-3.5 bg-ds-surface/60 p-3 rounded-[8px] border border-ds-hairline">
                       <div>
                         <InputField id="rounds" type="number" label="Rounds" min="1" max="20" error={errors.rounds} {...register("rounds")} />
-                        <p className="text-[10.5px] text-[#64748B] mt-1">How many times the main part repeats.</p>
+                        <p className="text-[11px] text-ds-slate mt-1">How many times the main part repeats.</p>
                       </div>
                       <div>
                         <InputField id="restSeconds" type="number" label="Rest between rounds (sec)" min="0" max="600" error={errors.restSeconds} {...register("restSeconds")} />
@@ -739,7 +738,7 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
 
                   <PartsEditor {...editorProps} name="cooldownParts" title="Cool-down" hint="Done once at the end, e.g. 3 minutes of slower walking." addLabel="Add a cool-down part" />
 
-                  <p className="text-[12px] font-semibold text-[#0F172A] bg-[#E8F2FB] border border-[#C9E1F5] rounded-[8px] px-3 py-2">
+                  <p className="text-[12px] font-semibold text-ds-ink bg-ds-tint border border-ds-tint rounded-[8px] px-3 py-2">
                     Total: {totalSeconds > 0 ? formatSeconds(totalSeconds) : "add parts to see the total"}
                     {rounds > 1 ? ` (main part ${rounds} times)` : ""}
                   </p>
@@ -750,36 +749,36 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
 
           {/* ── EXPERT VALIDATION ── */}
           <div>
-            <h4 className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider border-b border-[#E2E8F0] pb-2 mb-3">
+            <h4 className="text-[11px] font-semibold text-ds-steel uppercase tracking-wider border-b border-ds-hairline pb-2 mb-3">
               Expert validation
             </h4>
             <div
               onClick={() => setValue("expertValidated", !expertValidated, { shouldValidate: true, shouldDirty: true })}
               className={`p-3.5 rounded-[8px] border cursor-pointer transition-colors ${
                 expertValidated
-                  ? "bg-[#E3EFEC] border-[#C5DFD8]"
-                  : "bg-[#F8FAFC]/60 border-[#E2E8F0] hover:border-[#94A3B8]"
+                  ? "bg-ds-mint border-ds-mint"
+                  : "bg-ds-surface/60 border-ds-hairline hover:border-ds-steel"
               }`}
             >
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <h4
                     className={`text-[12.5px] font-semibold ${
-                      expertValidated ? "text-[#1B6E63]" : "text-[#0F172A]"
+                      expertValidated ? "text-ds-charcoal" : "text-ds-ink"
                     } flex items-center gap-1.5 mb-0.5`}
                   >
                     {expertValidated ? (
-                      <ShieldCheck size={14} className="text-[#1B6E63]" />
+                      <ShieldCheck size={14} className="text-ds-charcoal" />
                     ) : (
-                      <ShieldAlert size={14} className="text-[#A9741B]" />
+                      <ShieldAlert size={14} className="text-ds-warm-text" />
                     )}
                     {expertValidated ? "Expert reviewed" : "Pending review"}
                   </h4>
-                  <p className="text-[11px] text-[#64748B] leading-relaxed select-none">
+                  <p className="text-[11px] text-ds-slate leading-relaxed select-none">
                     Reviewed or developed with input from a qualified cardiology or sports medicine expert.
                   </p>
                   {exercise?.reviewedAt && expertValidated && (
-                    <p className="text-[11px] text-[#1B6E63] font-medium mt-1">
+                    <p className="text-[11px] text-ds-charcoal font-medium mt-1">
                       Last checked {new Date(exercise.reviewedAt).toLocaleDateString([], { year: "numeric", month: "short", day: "numeric" })}
                     </p>
                   )}
@@ -788,11 +787,11 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
                 <div className="relative inline-flex items-center shrink-0 mt-0.5 pointer-events-none">
                   <div
                     className={`w-9 h-5 rounded-full transition-colors relative ${
-                      expertValidated ? "bg-[#1B6E63]" : "bg-[#E2E8F0]"
+                      expertValidated ? "bg-ds-line" : "bg-ds-hairline-strong"
                     }`}
                   >
                     <div
-                      className={`absolute top-[2px] left-[2px] bg-white rounded-full h-4 w-4 transition-transform ${
+                      className={`absolute top-[2px] left-[2px] bg-ds-canvas rounded-full h-4 w-4 transition-transform ${
                         expertValidated ? "translate-x-4" : "translate-x-0"
                       }`}
                     />
@@ -805,7 +804,7 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
         </form>
 
         {/* Modal Footer / Actions */}
-        <div className="px-6 py-3.5 border-t border-[#E2E8F0] bg-[#FFFFFF] flex justify-between items-center shrink-0">
+        <div className="px-6 py-3.5 border-t border-ds-hairline bg-ds-canvas flex justify-between items-center shrink-0">
           <div>
             {exercise && onDelete && (
               <button
@@ -814,7 +813,7 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
                   onClose();
                   onDelete(exercise);
                 }}
-                className="flex items-center gap-1.5 text-[12px] font-semibold text-[#A93226] hover:text-[#8A1F1A] transition-colors cursor-pointer"
+                className="flex items-center gap-1.5 text-[12px] font-semibold text-ds-danger hover:text-ds-danger transition-colors cursor-pointer"
               >
                 <Trash2 size={14} />
                 <span>Delete routine</span>
@@ -826,7 +825,7 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-[12px] font-semibold text-[#0F172A] bg-[#F8FAFC] hover:bg-[#E2E8F0] border border-[#E2E8F0] rounded-[8px] transition-colors cursor-pointer"
+              className="px-4 py-2 text-[12px] font-semibold text-ds-ink bg-ds-surface hover:bg-ds-hairline border border-ds-hairline rounded-[8px] transition-colors cursor-pointer"
             >
               Cancel
             </button>
@@ -836,14 +835,14 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
                 <button
                   type="button"
                   onClick={() => handleSaveWithStatus("draft")}
-                  className="px-3.5 py-2 text-[12px] font-semibold text-[#0F172A] bg-[#F8FAFC] hover:bg-[#E2E8F0] border border-[#E2E8F0] rounded-[8px] transition-colors cursor-pointer"
+                  className="px-3.5 py-2 text-[12px] font-semibold text-ds-ink bg-ds-surface hover:bg-ds-hairline border border-ds-hairline rounded-[8px] transition-colors cursor-pointer"
                 >
                   Save draft
                 </button>
                 <button
                   type="button"
                   onClick={() => handleSaveWithStatus("published")}
-                  className="flex items-center gap-1.5 px-4 py-2 text-[12px] font-semibold text-white bg-[#1B6E63] hover:bg-[#14534B] rounded-[8px] shadow-2xs transition-colors cursor-pointer"
+                  className="flex items-center gap-1.5 px-4 py-2 text-[12px] font-semibold text-white bg-ds-primary hover:bg-ds-primary rounded-[8px] transition-colors cursor-pointer"
                 >
                   <CheckCircle2 size={14} />
                   <span>Publish</span>
@@ -856,7 +855,7 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
                 <button
                   type="button"
                   onClick={() => handleSaveWithStatus("archived")}
-                  className="flex items-center gap-1.5 px-3.5 py-2 text-[12px] font-semibold text-[#A9741B] bg-[#F6EDDD] hover:bg-[#ebd7b8] border border-[#ebd7b8] rounded-[8px] transition-colors cursor-pointer"
+                  className="flex items-center gap-1.5 px-3.5 py-2 text-[12px] font-semibold text-ds-warm-text bg-ds-yellow hover:bg-ds-yellow-bold border border-ds-yellow-bold rounded-[8px] transition-colors cursor-pointer"
                 >
                   <Archive size={14} />
                   <span>Archive</span>
@@ -864,7 +863,7 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
                 <button
                   type="button"
                   onClick={() => handleSaveWithStatus("published")}
-                  className="flex items-center gap-1.5 px-4 py-2 text-[12px] font-semibold text-white bg-[#2E9AE8] hover:bg-[#1C7AC8] rounded-[8px] shadow-2xs transition-colors cursor-pointer"
+                  className="flex items-center gap-1.5 px-4 py-2 text-[12px] font-semibold text-white bg-ds-primary hover:bg-ds-primary-pressed rounded-[8px] transition-colors cursor-pointer"
                 >
                   <Save size={14} />
                   <span>Save changes</span>
@@ -876,7 +875,7 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", on
               <button
                 type="button"
                 onClick={() => handleSaveWithStatus("draft")}
-                className="flex items-center gap-1.5 px-4 py-2 text-[12px] font-semibold text-white bg-[#1B6E63] hover:bg-[#14534B] rounded-[8px] shadow-2xs transition-colors cursor-pointer"
+                className="flex items-center gap-1.5 px-4 py-2 text-[12px] font-semibold text-white bg-ds-primary hover:bg-ds-primary rounded-[8px] transition-colors cursor-pointer"
               >
                 <CheckCircle2 size={14} />
                 <span>Restore to draft</span>

@@ -10,28 +10,28 @@ import {
 
 const VARIANTS = {
   danger: {
-    iconBg: "bg-[#F7E4E1] border-[#F0C4B8] text-[#A93226]",
-    pingBg: "bg-[#F7E4E1]",
-    accentBar: "bg-gradient-to-r from-[#A93226] via-[#2E9AE8] to-[#A9741B]",
-    btnColor: "bg-[#A93226] hover:bg-[#8A1F1A] text-white",
+    iconBg: "bg-ds-rose border-ds-rose text-ds-ink",
+    pingBg: "bg-ds-rose",
+    accentBar: "bg-gradient-to-r from-ds-danger via-ds-primary to-ds-warm-text",
+    btnColor: "bg-ds-danger hover:bg-ds-danger text-white",
   },
   warning: {
-    iconBg: "bg-[#F6EDDD] border-[#EBD7B8] text-[#A9741B]",
-    pingBg: "bg-[#F6EDDD]",
-    accentBar: "bg-gradient-to-r from-[#A9741B] via-[#2E9AE8] to-[#1B6E63]",
-    btnColor: "bg-[#2E9AE8] hover:bg-[#1C7AC8] text-white",
+    iconBg: "bg-ds-yellow border-ds-yellow-bold text-ds-warm-text",
+    pingBg: "bg-ds-yellow",
+    accentBar: "bg-gradient-to-r from-ds-warm-text via-ds-primary to-ds-primary",
+    btnColor: "bg-ds-primary hover:bg-ds-primary-pressed text-white",
   },
   primary: {
-    iconBg: "bg-[#EAF5FC] border-[#CDE1F4] text-[#2E9AE8]",
-    pingBg: "bg-[#EAF5FC]",
-    accentBar: "bg-gradient-to-r from-[#2E9AE8] via-[#8A1F1A] to-[#1B6E63]",
-    btnColor: "bg-[#0F172A] hover:bg-[#0d1622] text-white",
+    iconBg: "bg-ds-tint border-ds-tint text-ds-on-tint",
+    pingBg: "bg-ds-tint",
+    accentBar: "bg-gradient-to-r from-ds-primary via-ds-danger to-ds-primary",
+    btnColor: "bg-ds-ink hover:bg-ds-ink text-white",
   },
   success: {
-    iconBg: "bg-[#E3EFEC] border-[#C5DFD8] text-[#1B6E63]",
-    pingBg: "bg-[#E3EFEC]",
-    accentBar: "bg-gradient-to-r from-[#1B6E63] via-[#2E9AE8] to-[#A9741B]",
-    btnColor: "bg-[#1B6E63] hover:bg-[#14534B] text-white",
+    iconBg: "bg-ds-mint border-ds-mint text-ds-charcoal",
+    pingBg: "bg-ds-mint",
+    accentBar: "bg-gradient-to-r from-ds-primary via-ds-primary to-ds-warm-text",
+    btnColor: "bg-ds-primary hover:bg-ds-primary text-white",
   },
 };
 
@@ -89,7 +89,7 @@ const ConfirmActionModal = ({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.94, y: 14 }}
           transition={{ type: "spring", damping: 25, stiffness: 350 }}
-          className="relative w-full max-w-md bg-[#FFFFFF] rounded-2xl shadow-2xl border border-[#E2E8F0] overflow-hidden text-[#0F172A] z-10"
+          className="relative w-full max-w-md bg-ds-canvas rounded-2xl shadow-2xl border border-ds-hairline overflow-hidden text-ds-ink z-10"
           style={{ fontFamily: "'Inter', sans-serif" }}
         >
           {/* Top glowing line */}
@@ -99,7 +99,7 @@ const ConfirmActionModal = ({
           <button
             onClick={onClose}
             disabled={loading}
-            className="absolute top-3.5 right-3.5 p-1.5 text-[#64748B] hover:text-[#0F172A] hover:bg-[#F8FAFC] rounded-lg transition-colors cursor-pointer disabled:opacity-40"
+            className="absolute top-3.5 right-3.5 p-1.5 text-ds-slate hover:text-ds-ink hover:bg-ds-surface rounded-lg transition-colors cursor-pointer disabled:opacity-40"
             aria-label="Close modal"
           >
             <X size={16} />
@@ -118,16 +118,16 @@ const ConfirmActionModal = ({
 
             {/* Title & Subtitle */}
             <div className="text-center">
-              <h3 className="text-xl font-bold text-[#0F172A] tracking-tight">
+              <h3 className="text-xl font-bold text-ds-ink tracking-tight">
                 {title}
               </h3>
               {subtitle && (
-                <p className="text-[11px] text-[#2E9AE8] font-semibold mt-0.5 uppercase tracking-wider">
+                <p className="text-[11px] text-ds-primary font-semibold mt-0.5 uppercase tracking-wider">
                   {subtitle}
                 </p>
               )}
               {description && (
-                <p className="text-xs text-[#64748B] mt-2 leading-relaxed max-w-sm mx-auto">
+                <p className="text-xs text-ds-slate mt-2 leading-relaxed max-w-sm mx-auto">
                   {description}
                 </p>
               )}
@@ -135,32 +135,32 @@ const ConfirmActionModal = ({
 
             {/* Target Entity Card */}
             {entityInfo && (
-              <div className="p-3.5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] flex items-center gap-3 my-4 text-left">
+              <div className="p-3.5 rounded-xl bg-ds-surface border border-ds-hairline flex items-center gap-3 my-4 text-left">
                 {entityInfo.avatar ? (
                   entityInfo.avatar
                 ) : (
-                  <div className="w-9 h-9 rounded-full bg-[#EAF5FC] text-[#1C7AC8] font-bold text-xs flex items-center justify-center shrink-0">
+                  <div className="w-9 h-9 rounded-full bg-ds-tint text-ds-primary-pressed font-bold text-xs flex items-center justify-center shrink-0">
                     {(entityInfo.name || "U").substring(0, 2).toUpperCase()}
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <p className="text-xs font-bold text-[#0F172A] truncate">
+                    <p className="text-xs font-bold text-ds-ink truncate">
                       {entityInfo.name}
                     </p>
                     {entityInfo.badge && (
-                      <span className="text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider border border-[#E2E8F0] bg-[#FFFFFF] text-[#64748B]">
+                      <span className="text-[11px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider border border-ds-hairline bg-ds-canvas text-ds-slate">
                         {entityInfo.badge}
                       </span>
                     )}
                   </div>
                   {entityInfo.email && (
-                    <p className="text-[10px] text-[#64748B] truncate mt-0.5">
+                    <p className="text-[11px] text-ds-slate truncate mt-0.5">
                       {entityInfo.email}
                     </p>
                   )}
                   {entityInfo.id && (
-                    <p className="text-[9px] text-[#94A3B8] truncate">
+                    <p className="text-[11px] text-ds-steel truncate">
                       ID: {entityInfo.id}
                     </p>
                   )}
@@ -170,10 +170,10 @@ const ConfirmActionModal = ({
 
             {/* Impact Details Box */}
             {impactDetails.length > 0 && (
-              <div className="p-3 rounded-lg bg-[#F8FAFC]/60 border border-[#E2E8F0] space-y-1.5 my-4">
+              <div className="p-3 rounded-lg bg-ds-surface/60 border border-ds-hairline space-y-1.5 my-4">
                 {impactDetails.map((detail, idx) => (
-                  <div key={idx} className="flex items-start gap-2 text-[11px] text-[#64748B] leading-snug">
-                    <Info size={13} className="text-[#2E9AE8] shrink-0 mt-0.5" />
+                  <div key={idx} className="flex items-start gap-2 text-[11px] text-ds-slate leading-snug">
+                    <Info size={13} className="text-ds-primary shrink-0 mt-0.5" />
                     <span>{detail}</span>
                   </div>
                 ))}
@@ -188,7 +188,7 @@ const ConfirmActionModal = ({
                 type="button"
                 onClick={onClose}
                 disabled={loading}
-                className="flex-1 py-2.5 px-4 rounded-lg text-xs font-semibold bg-[#F8FAFC] hover:bg-[#E2E8F0] text-[#0F172A] border border-[#E2E8F0] transition-colors cursor-pointer disabled:opacity-50"
+                className="flex-1 py-2.5 px-4 rounded-lg text-xs font-semibold bg-ds-surface hover:bg-ds-hairline text-ds-ink border border-ds-hairline transition-colors cursor-pointer disabled:opacity-50"
               >
                 {cancelText}
               </button>
@@ -196,7 +196,7 @@ const ConfirmActionModal = ({
                 type="button"
                 onClick={handleConfirm}
                 disabled={loading}
-                className={`flex-1 py-2.5 px-4 rounded-lg text-xs font-semibold transition-colors shadow-sm flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 ${currentVariant.btnColor}`}
+                className={`flex-1 py-2.5 px-4 rounded-lg text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 ${currentVariant.btnColor}`}
               >
                 {loading ? (
                   <>

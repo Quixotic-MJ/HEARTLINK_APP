@@ -33,7 +33,7 @@ function PasswordInput({ id, label, value, onChange, autoComplete, hasError, des
         <button
           type="button"
           onClick={() => setVisible((v) => !v)}
-          className={`absolute right-1.5 top-1/2 -translate-y-1/2 p-2 rounded-lg text-[#94A3B8] hover:text-[#334155] transition-colors cursor-pointer ${focusRing}`}
+          className={`absolute right-1.5 top-1/2 -translate-y-1/2 p-2 rounded-lg text-ds-steel hover:text-ds-charcoal transition-colors cursor-pointer ${focusRing}`}
           aria-label={visible ? "Hide password" : "Show password"}
         >
           {visible ? <EyeOff size={17} /> : <Eye size={17} />}
@@ -45,7 +45,7 @@ function PasswordInput({ id, label, value, onChange, autoComplete, hasError, des
 
 function Rule({ met, children }) {
   return (
-    <li className={`flex items-center gap-2 text-[13px] ${met ? "text-[#067647]" : "text-[#64748B]"}`}>
+    <li className={`flex items-center gap-2 text-[13px] ${met ? "text-ds-charcoal" : "text-ds-slate"}`}>
       {met ? <Check size={14} className="shrink-0" aria-hidden="true" /> : <Circle size={10} className="shrink-0 mx-[2px]" aria-hidden="true" />}
       <span>{children}</span>
       <span className="sr-only">{met ? "(done)" : "(not yet)"}</span>
@@ -112,7 +112,7 @@ export default function SetPassword() {
 
   return (
     <div
-      className="relative isolate overflow-hidden min-h-screen w-full flex flex-col bg-[#F5F8FC] text-[#0F172A] selection:bg-[#2E9AE8] selection:text-white"
+      className="relative isolate overflow-hidden min-h-screen w-full flex flex-col bg-ds-surface text-ds-ink selection:bg-ds-primary selection:text-white"
       style={{ fontFamily: "'Inter', sans-serif" }}
     >
       <LoginBackdrop />
@@ -120,16 +120,16 @@ export default function SetPassword() {
       <main className="relative flex-1 flex items-center justify-center px-4 py-12 sm:py-16">
         <div className="w-full max-w-[400px]">
           <div className="flex flex-col items-center text-center">
-            <span className="relative flex h-12 w-12 items-center justify-center rounded-xl border border-white/70 bg-white/90 backdrop-blur ring-1 ring-[#E2E8F0]/70 shadow-[0_8px_20px_-6px_rgba(46,154,232,0.35)]">
+            <span className="relative flex h-12 w-12 items-center justify-center rounded-xl border border-ds-hairline/70 bg-ds-canvas/90 backdrop-blur ring-1 ring-ds-hairline/70 shadow-[0_8px_20px_-6px_rgba(46,154,232,0.35)]">
               <HeartLogoIcon size={28} />
             </span>
             <h1 className="mt-6 text-[24px] leading-8 font-semibold tracking-[-0.02em]">Set your password</h1>
-            <p className="mt-2 text-[14px] text-[#64748B]">
+            <p className="mt-2 text-[14px] text-ds-slate">
               You signed in with a temporary password. Choose your own to continue.
             </p>
           </div>
 
-          <div className="hl-glow-border relative mt-8 rounded-2xl border border-white/70 bg-white/80 p-6 sm:p-8 backdrop-blur-xl shadow-[0_1px_3px_rgba(15,23,42,0.05),0_30px_70px_-28px_rgba(46,154,232,0.45)] ring-1 ring-[#E2E8F0]/70">
+          <div className="hl-glow-border relative mt-8 rounded-2xl border border-ds-hairline/70 bg-ds-canvas/80 p-6 sm:p-8 backdrop-blur-xl shadow-[0_1px_3px_rgba(15,23,42,0.05),0_30px_70px_-28px_rgba(46,154,232,0.45)] ring-1 ring-ds-hairline/70">
             <form onSubmit={onSubmit} className="space-y-5" noValidate>
               <div>
                 <PasswordInput
@@ -190,7 +190,7 @@ export default function SetPassword() {
             </form>
           </div>
 
-          <p className="mt-6 text-center text-[13.5px] text-[#64748B]">
+          <p className="mt-6 text-center text-[13.5px] text-ds-slate">
             Not you?{" "}
             <button type="button" onClick={logout} className={textLink}>
               Sign out

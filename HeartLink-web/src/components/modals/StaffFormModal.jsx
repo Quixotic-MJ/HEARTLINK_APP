@@ -92,21 +92,21 @@ const StaffFormModal = ({ isOpen, onClose, staff, onSave }) => {
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 10 }}
           transition={{ type: "spring", damping: 26, stiffness: 350 }}
-          className="relative w-full max-w-lg bg-[#FFFFFF] max-h-full rounded-2xl shadow-2xl border border-[#E2E8F0] flex flex-col overflow-hidden text-[#0F172A] z-10"
+          className="relative w-full max-w-lg bg-ds-canvas max-h-full rounded-2xl shadow-2xl border border-ds-hairline flex flex-col overflow-hidden text-ds-ink z-10"
         >
           {/* Modal Header */}
-          <div className="flex items-center justify-between px-6 py-4.5 border-b border-[#E2E8F0] bg-[#FFFFFF] z-10">
+          <div className="flex items-center justify-between px-6 py-4.5 border-b border-ds-hairline bg-ds-canvas z-10">
             <div>
-              <h3 className="text-[17px] font-bold text-[#0F172A] leading-tight">
+              <h3 className="text-[17px] font-bold text-ds-ink leading-tight">
                 Provision Staff Account
               </h3>
-              <p className="text-[11px] text-[#94A3B8] mt-0.5 font-medium">
+              <p className="text-[11px] text-ds-steel mt-0.5 font-medium">
                 Define administrative access controls and role boundaries.
               </p>
             </div>
             <button
               onClick={onClose}
-              className="text-[#64748B] hover:text-[#0F172A] p-1.5 rounded-lg hover:bg-[#F8FAFC] transition-colors cursor-pointer"
+              className="text-ds-slate hover:text-ds-ink p-1.5 rounded-lg hover:bg-ds-surface transition-colors cursor-pointer"
             >
               <X size={16} />
             </button>
@@ -147,42 +147,42 @@ const StaffFormModal = ({ isOpen, onClose, staff, onSave }) => {
                 </div>
 
                 <div className="col-span-2">
-                  <label className="block text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider mb-1">
+                  <label className="block text-[13px] font-medium text-ds-ink mb-1">
                     Role Assignment
                   </label>
                   <select
                     {...register("role")}
-                    className={`w-full px-3.5 py-2 text-[13px] font-semibold text-[#0F172A] bg-[#F8FAFC] border ${errors.role ? 'border-[#A93226]' : 'border-[#E2E8F0] focus:border-[#0F172A]'} rounded-[8px] focus:outline-none cursor-pointer`}
+                    className={`w-full px-3.5 py-2 text-[13px] font-semibold text-ds-ink bg-ds-canvas border ${errors.role ? 'border-ds-danger' : 'border-ds-hairline-strong focus:border-ds-line'} rounded-[8px] focus:outline-none cursor-pointer`}
                   >
                     <option value="Authorized Medical Expert">Expert Reviewer</option>
                     <option value="System Admin">System Admin</option>
                     <option value="Super Admin">Super Admin</option>
                   </select>
-                  {errors.role && <p className="text-[11px] text-[#A93226] mt-1">{errors.role.message}</p>}
+                  {errors.role && <p className="text-[11px] text-ds-danger mt-1">{errors.role.message}</p>}
                 </div>
 
                 {isExpertRole && (
                   <div className="col-span-2">
-                    <label className="block text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider mb-1">
-                      Expert Specialization <span className="text-[#A93226]">*</span>
+                    <label className="block text-[13px] font-medium text-ds-ink mb-1">
+                      Expert Specialization <span className="text-ds-danger">*</span>
                     </label>
                     <select
                       {...register("expert_type")}
-                      className={`w-full px-3.5 py-2 text-[13px] font-semibold text-[#0F172A] bg-[#F8FAFC] border ${errors.expert_type ? 'border-[#A93226]' : 'border-[#E2E8F0] focus:border-[#0F172A]'} rounded-[8px] focus:outline-none cursor-pointer`}
+                      className={`w-full px-3.5 py-2 text-[13px] font-semibold text-ds-ink bg-ds-canvas border ${errors.expert_type ? 'border-ds-danger' : 'border-ds-hairline-strong focus:border-ds-line'} rounded-[8px] focus:outline-none cursor-pointer`}
                     >
                       <option value="">Select Specialization...</option>
                       <option value="Physical Therapist">Physical Therapist</option>
                       <option value="Dietitian">Dietitian</option>
                       <option value="Cardiologist">Cardiologist</option>
                     </select>
-                    {errors.expert_type && <p className="text-[11px] text-[#A93226] mt-1">{errors.expert_type.message}</p>}
+                    {errors.expert_type && <p className="text-[11px] text-ds-danger mt-1">{errors.expert_type.message}</p>}
                   </div>
                 )}
 
                 {/* Notice Banner */}
-                <div className="col-span-2 mt-1 bg-[#E3EFEC] p-3.5 rounded-[8px] border border-[#C5DFD8] flex items-start gap-2.5">
-                  <Info size={14} className="text-[#1B6E63] mt-0.5 shrink-0" />
-                  <p className="text-[11.5px] text-[#1B6E63] font-medium leading-relaxed m-0">
+                <div className="col-span-2 mt-1 bg-ds-mint p-3.5 rounded-[8px] border border-ds-mint flex items-start gap-2.5">
+                  <Info size={14} className="text-ds-charcoal mt-0.5 shrink-0" />
+                  <p className="text-[11.5px] text-ds-charcoal font-medium leading-relaxed m-0">
                     A one-time temporary password will be generated and shown to you once. The new staff member must choose their own password the first time they sign in.
                   </p>
                 </div>
@@ -191,11 +191,11 @@ const StaffFormModal = ({ isOpen, onClose, staff, onSave }) => {
           </form>
 
           {/* Modal Footer Actions */}
-          <div className="px-6 py-4 border-t border-[#E2E8F0] bg-[#FFFFFF] flex justify-end gap-2.5 shrink-0">
+          <div className="px-6 py-4 border-t border-ds-hairline bg-ds-canvas flex justify-end gap-2.5 shrink-0">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-[12px] font-semibold text-[#0F172A] bg-[#F8FAFC] hover:bg-[#E2E8F0] border border-[#E2E8F0] rounded-[8px] transition-colors cursor-pointer"
+              className="px-4 py-2 text-[12px] font-semibold text-ds-ink bg-ds-surface hover:bg-ds-hairline border border-ds-hairline rounded-[8px] transition-colors cursor-pointer"
             >
               Cancel
             </button>
@@ -203,7 +203,7 @@ const StaffFormModal = ({ isOpen, onClose, staff, onSave }) => {
               type="submit"
               form="staff-provision-form"
               disabled={isSubmitting}
-              className="flex items-center gap-1.5 px-4.5 py-2 text-[12px] font-semibold text-white bg-[#2E9AE8] hover:bg-[#1C7AC8] rounded-[8px] shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
+              className="flex items-center gap-1.5 px-4.5 py-2 text-[12px] font-semibold text-white bg-ds-primary hover:bg-ds-primary-pressed rounded-[8px] transition-colors cursor-pointer disabled:opacity-50"
             >
               <UserPlus size={14} /> <span>{isSubmitting ? "Provisioning…" : "Provision account"}</span>
             </button>

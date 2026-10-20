@@ -1,6 +1,7 @@
 import React, { useState, useRef } from "react";
 import { Lock, ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
+import { COLORS } from "../../styles/designSystem";
 
 // ─── HeartLink Official Brand Emblem ──────────────────────────────────────────
 function HeartLogoIcon({ size = 22, className = "" }) {
@@ -46,7 +47,7 @@ function HeartLogoIcon({ size = 22, className = "" }) {
 
 // ─── Brand Logo lockup ────────────────────────────────────────────────────────
 function BrandLogo({ dark = false }) {
-  const text = dark ? "#0f172a" : "#ffffff";
+  const text = dark ? COLORS.ink : "#ffffff"; // white on the navy brand panel
   const sub  = dark ? "rgba(15,23,42,0.4)" : "rgba(255,255,255,0.4)";
   return (
     <div className="flex flex-col items-center gap-5">
@@ -64,7 +65,7 @@ function BrandLogo({ dark = false }) {
           <span style={{ fontWeight: 700 }}>Link</span>
           <span style={{ fontWeight: 700 }}>.</span>
         </p>
-        <p className="mt-3 tracking-[0.22em] text-[10px] uppercase" style={{ color: sub, fontWeight: 400 }}>
+        <p className="mt-3 tracking-[0.22em] text-[11px] uppercase" style={{ color: sub, fontWeight: 400 }}>
           Cardiovascular Well-Being
         </p>
       </div>
@@ -121,8 +122,7 @@ export default function TwoFactorAuth() {
 
       {/* ── Left panel — brand showcase ── */}
       <div
-        className="hidden lg:flex w-1/2 flex-col items-center justify-center p-16 relative"
-        style={{ backgroundColor: "#0d1424" }}
+        className="hidden lg:flex w-1/2 flex-col items-center justify-center p-16 relative bg-ds-navy"
       >
         {/* Subtle radial glow */}
         <div
@@ -144,7 +144,7 @@ export default function TwoFactorAuth() {
 
           {/* Version pill */}
           <div
-            className="mt-8 inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-[10px] tracking-widest uppercase"
+            className="mt-8 inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-[11px] tracking-widest uppercase"
             style={{ borderColor: "rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.3)" }}
           >
             v 1.0.0
@@ -153,7 +153,7 @@ export default function TwoFactorAuth() {
       </div>
 
       {/* ── Right panel — 2FA form ── */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 sm:p-14 bg-white">
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 sm:p-14 bg-ds-canvas">
         <div className="w-full max-w-[360px]">
 
           {/* Mobile logo */}
@@ -163,17 +163,17 @@ export default function TwoFactorAuth() {
 
           {/* Heading */}
           <div className="mb-9 relative">
-            <p className="text-[10px] font-medium tracking-[0.22em] uppercase text-slate-400 mb-2">
+            <p className="text-[11px] font-medium tracking-[0.22em] uppercase text-ds-steel mb-2">
               Secure gateway
             </p>
-            <div className="absolute top-4 right-0 flex items-center gap-1 text-[9px] text-slate-400">
+            <div className="absolute top-4 right-0 flex items-center gap-1 text-[11px] text-ds-steel">
               <Lock size={10} />
               <span>End-to-end encrypted connection</span>
             </div>
-            <h1 className="text-2xl font-semibold text-slate-900 tracking-tight mb-2">
+            <h1 className="text-2xl font-semibold text-ds-ink tracking-tight mb-2">
               Two-Factor Authentication
             </h1>
-            <p className="text-sm text-slate-400 leading-relaxed">
+            <p className="text-sm text-ds-steel leading-relaxed">
               Enter the 6-digit code from your authenticator app to access the admin dashboard.
             </p>
           </div>
@@ -194,14 +194,14 @@ export default function TwoFactorAuth() {
                     value={digit}
                     onChange={(e) => handleChange(index, e.target.value)}
                     onKeyDown={(e) => handleKeyDown(index, e)}
-                    className="w-12 h-14 bg-slate-50 border border-slate-200 rounded-xl text-lg font-medium text-center text-slate-900 outline-none transition-all focus:border-slate-400 focus:bg-white focus:ring-2 focus:ring-slate-900/5 placeholder-slate-300"
+                    className="w-12 h-14 bg-ds-canvas border border-ds-hairline-strong rounded-xl text-lg font-medium text-center text-ds-ink outline-none transition-all focus:border-ds-hairline-strong focus:bg-ds-canvas focus:ring-2 focus:ring-ds-hairline placeholder-slate-300"
                     placeholder="•"
                   />
                 ))}
               </div>
               
               <div className="text-center">
-                <a href="#" className="text-xs text-slate-400 hover:text-slate-600 transition-colors font-medium">
+                <a href="#" className="text-xs text-ds-steel hover:text-ds-slate transition-colors font-medium">
                   Use a recovery code
                 </a>
               </div>
@@ -211,8 +211,7 @@ export default function TwoFactorAuth() {
             <div>
               <Link
                 to="/dashboard"
-                className="w-full flex items-center justify-center gap-2.5 py-3 rounded-xl text-sm font-medium text-white transition-all hover:opacity-90 active:scale-[0.99]"
-                style={{ backgroundColor: "#0f172a" }}
+                className="w-full flex items-center justify-center gap-2.5 h-11 rounded-[8px] text-sm font-medium text-white bg-ds-primary hover:bg-ds-primary-pressed transition-all active:scale-[0.99]"
               >
                 Verify & Access Dashboard
                 <ArrowRight size={15} strokeWidth={2} />
@@ -222,8 +221,8 @@ export default function TwoFactorAuth() {
           </form>
 
           {/* Footer */}
-          <div className="mt-10 pt-8 border-t border-slate-100 text-center">
-            <p className="text-[10px] text-slate-300 tracking-wide">
+          <div className="mt-10 pt-8 border-t border-ds-hairline-soft text-center">
+            <p className="text-[11px] text-ds-steel tracking-wide">
               © 2026 HeartLink System. All rights reserved.
             </p>
           </div>

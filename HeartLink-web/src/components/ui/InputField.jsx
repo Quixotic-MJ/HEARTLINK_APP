@@ -25,7 +25,7 @@ export const InputField = React.forwardRef(({
           {label && (
             <label 
               htmlFor={id} 
-              className={`text-[11px] font-semibold uppercase tracking-wider ${hasError ? 'text-[#A93226]' : 'text-[#64748B]'}`}
+              className={`text-[13px] font-medium ${hasError ? 'text-ds-danger' : 'text-ds-ink'}`}
             >
               {label}
             </label>
@@ -34,7 +34,7 @@ export const InputField = React.forwardRef(({
             <a 
               href={hintHref || "#"} 
               onClick={onHintClick}
-              className="text-[11px] text-[#2E9AE8] hover:text-[#1C7AC8] transition-colors cursor-pointer font-medium"
+              className="text-[13px] text-ds-link hover:underline transition-colors cursor-pointer font-medium"
             >
               {hint}
             </a>
@@ -45,7 +45,7 @@ export const InputField = React.forwardRef(({
       {/* Input Container */}
       <div className="relative">
         {left && (
-          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#94A3B8]">
+          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-ds-steel">
             {left}
           </div>
         )}
@@ -56,14 +56,14 @@ export const InputField = React.forwardRef(({
           type={type}
           aria-invalid={hasError}
           aria-describedby={hasError ? `${id}-error` : undefined}
-          className={`w-full bg-[#F8FAFC] border ${
+          className={`w-full bg-ds-canvas border ${
             hasError 
-              ? 'border-[#A93226] focus:border-[#A93226] text-[#A93226]' 
-              : 'border-[#E2E8F0] focus:border-[#0F172A] text-[#0F172A]'
-          } rounded-[8px] text-[13px] placeholder:text-[#94A3B8] outline-none transition-colors ${inputClassName}`}
+              ? 'border-ds-danger focus:border-ds-danger text-ds-danger' 
+              : 'border-ds-hairline-strong focus:border-ds-line focus:ring-1 focus:ring-ds-line text-ds-ink'
+          } rounded-[8px] text-[14px] placeholder:text-ds-steel outline-none transition-colors ${inputClassName}`}
           style={{ 
-            paddingTop: 8, 
-            paddingBottom: 8, 
+            paddingTop: 10, 
+            paddingBottom: 10, 
             paddingLeft: left ? 36 : 12, 
             paddingRight: right ? 36 : 12 
           }}
@@ -80,8 +80,8 @@ export const InputField = React.forwardRef(({
       {/* Fixed height wrapper for error message */}
       {hasError && (
         <div className="min-h-[16px] flex items-center mt-1">
-          <p id={`${id}-error`} role="alert" className="text-[11px] text-[#A93226] flex items-center gap-1.5 font-medium m-0">
-            <AlertCircle size={12} className="shrink-0 text-[#A93226]" />
+          <p id={`${id}-error`} role="alert" className="text-[12px] text-ds-danger flex items-center gap-1.5 font-medium m-0">
+            <AlertCircle size={12} className="shrink-0 text-ds-danger" />
             {error.message}
           </p>
         </div>

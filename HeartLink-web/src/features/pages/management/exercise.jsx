@@ -310,12 +310,12 @@ const Exercises = () => {
   // HSS Badge Styling
   const getHssBadgeStyle = (target) => {
     if (target.includes("Stable"))
-      return "bg-[#E3EFEC] text-[#1B6E63] border border-[#C5DFD8]";
+      return "bg-ds-mint text-ds-charcoal border border-ds-mint";
     if (target.includes("Moderate"))
-      return "bg-[#F6EDDD] text-[#A9741B] border border-[#EBD7B8]";
+      return "bg-ds-yellow text-ds-warm-text border border-ds-yellow-bold";
     if (target.includes("Elevated"))
-      return "bg-[#EAF5FC] text-[#2E9AE8] border border-[#CDE1F4]";
-    return "bg-[#F7E4E1] text-[#A93226] border border-[#F0C4B8]";
+      return "bg-ds-tint text-ds-on-tint border border-ds-tint";
+    return "bg-ds-rose text-ds-ink border border-ds-rose";
   };
 
   const hasActiveFilters =
@@ -346,23 +346,23 @@ const Exercises = () => {
         />
 
         {/* ── MAIN CARD: SEARCH, FILTER & TABLE ── */}
-        <div className="bg-[#FFFFFF] border border-[#E2E8F0] rounded-[10px] shadow-2xs overflow-hidden">
+        <div className="bg-ds-canvas border border-ds-hairline rounded-xl overflow-hidden">
           
           {/* Search & Filter Toolbar */}
-          <div className="p-4 border-b border-[#E2E8F0] bg-[#FFFFFF] space-y-3">
+          <div className="p-4 border-b border-ds-hairline bg-ds-canvas space-y-3">
             <div className="flex flex-col md:flex-row gap-3">
               {/* Search Box */}
               <div className="relative flex-1">
                 <Search
                   size={14}
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#94A3B8]"
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ds-steel"
                 />
                 <input
                   type="text"
                   placeholder="Search exercises, goals, or descriptions…"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-3.5 py-2 text-[13px] border border-[#E2E8F0] rounded-[8px] focus:outline-none focus:border-[#0F172A] transition-colors bg-[#F8FAFC] text-[#0F172A] placeholder:text-[#94A3B8]"
+                  className="w-full pl-9 pr-3.5 py-2 text-[13px] border border-ds-hairline rounded-[8px] focus:outline-none focus:border-ds-ink transition-colors bg-ds-surface text-ds-ink placeholder:text-ds-steel"
                 />
               </div>
 
@@ -370,7 +370,7 @@ const Exercises = () => {
               {hasActiveFilters && (
                 <button
                   onClick={clearFilters}
-                  className="text-[11px] text-[#A93226] font-semibold px-3 py-2 rounded-[8px] border border-[#F0C4B8] bg-[#F7E4E1] hover:bg-[#F0C4B8] transition-colors shrink-0 flex items-center gap-1.5 cursor-pointer"
+                  className="text-[11px] text-ds-ink font-semibold px-3 py-2 rounded-[8px] border border-ds-rose bg-ds-rose hover:bg-ds-rose transition-colors shrink-0 flex items-center gap-1.5 cursor-pointer"
                 >
                   <RotateCcw size={12} />
                   <span>Clear filters</span>
@@ -385,7 +385,7 @@ const Exercises = () => {
                 <select
                   value={filterStatus}
                   onChange={(e) => setFilterStatus(e.target.value)}
-                  className="w-full md:w-auto pl-3 pr-7 py-1.5 text-[12px] font-semibold text-[#0F172A] bg-[#FFFFFF] border border-[#E2E8F0] rounded-[8px] focus:outline-none focus:border-[#0F172A] appearance-none cursor-pointer hover:border-[#94A3B8] transition-colors"
+                  className="w-full md:w-auto pl-3 pr-7 py-1.5 text-[12px] font-semibold text-ds-ink bg-ds-canvas border border-ds-hairline rounded-[8px] focus:outline-none focus:border-ds-ink appearance-none cursor-pointer hover:border-ds-steel transition-colors"
                 >
                   <option value="all">Status: All</option>
                   <option value="draft">Draft</option>
@@ -393,7 +393,7 @@ const Exercises = () => {
                   <option value="archived">Archived</option>
                 </select>
                 <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
-                  <ChevronDown size={12} className="text-[#94A3B8]" />
+                  <ChevronDown size={12} className="text-ds-steel" />
                 </div>
               </div>
 
@@ -402,7 +402,7 @@ const Exercises = () => {
                 <select
                   value={filterHss}
                   onChange={(e) => setFilterHss(e.target.value)}
-                  className="w-full md:w-auto pl-3 pr-7 py-1.5 text-[12px] font-semibold text-[#0F172A] bg-[#FFFFFF] border border-[#E2E8F0] rounded-[8px] focus:outline-none focus:border-[#0F172A] appearance-none cursor-pointer hover:border-[#94A3B8] transition-colors"
+                  className="w-full md:w-auto pl-3 pr-7 py-1.5 text-[12px] font-semibold text-ds-ink bg-ds-canvas border border-ds-hairline rounded-[8px] focus:outline-none focus:border-ds-ink appearance-none cursor-pointer hover:border-ds-steel transition-colors"
                 >
                   <option value="all">HSS: All</option>
                   <option value="Stable (80-100)">Stable (80-100)</option>
@@ -411,7 +411,7 @@ const Exercises = () => {
                   <option value="Critical (<50)">Critical (&lt;50)</option>
                 </select>
                 <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
-                  <ChevronDown size={12} className="text-[#94A3B8]" />
+                  <ChevronDown size={12} className="text-ds-steel" />
                 </div>
               </div>
 
@@ -420,7 +420,7 @@ const Exercises = () => {
                 <select
                   value={filterType}
                   onChange={(e) => setFilterType(e.target.value)}
-                  className="w-full md:w-auto pl-3 pr-7 py-1.5 text-[12px] font-semibold text-[#0F172A] bg-[#FFFFFF] border border-[#E2E8F0] rounded-[8px] focus:outline-none focus:border-[#0F172A] appearance-none cursor-pointer hover:border-[#94A3B8] transition-colors"
+                  className="w-full md:w-auto pl-3 pr-7 py-1.5 text-[12px] font-semibold text-ds-ink bg-ds-canvas border border-ds-hairline rounded-[8px] focus:outline-none focus:border-ds-ink appearance-none cursor-pointer hover:border-ds-steel transition-colors"
                 >
                   <option value="all">Type: All</option>
                   <option value="Breathing">Breathing</option>
@@ -429,7 +429,7 @@ const Exercises = () => {
                   <option value="General">General</option>
                 </select>
                 <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
-                  <ChevronDown size={12} className="text-[#94A3B8]" />
+                  <ChevronDown size={12} className="text-ds-steel" />
                 </div>
               </div>
 
@@ -438,7 +438,7 @@ const Exercises = () => {
                 <select
                   value={filterIntensity}
                   onChange={(e) => setFilterIntensity(e.target.value)}
-                  className="w-full md:w-auto pl-3 pr-7 py-1.5 text-[12px] font-semibold text-[#0F172A] bg-[#FFFFFF] border border-[#E2E8F0] rounded-[8px] focus:outline-none focus:border-[#0F172A] appearance-none cursor-pointer hover:border-[#94A3B8] transition-colors"
+                  className="w-full md:w-auto pl-3 pr-7 py-1.5 text-[12px] font-semibold text-ds-ink bg-ds-canvas border border-ds-hairline rounded-[8px] focus:outline-none focus:border-ds-ink appearance-none cursor-pointer hover:border-ds-steel transition-colors"
                 >
                   <option value="all">Intensity: All</option>
                   <option value="None">None</option>
@@ -447,7 +447,7 @@ const Exercises = () => {
                   <option value="High">High</option>
                 </select>
                 <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
-                  <ChevronDown size={12} className="text-[#94A3B8]" />
+                  <ChevronDown size={12} className="text-ds-steel" />
                 </div>
               </div>
 
@@ -456,14 +456,14 @@ const Exercises = () => {
                 <select
                   value={filterReview}
                   onChange={(e) => setFilterReview(e.target.value)}
-                  className="w-full md:w-auto pl-3 pr-7 py-1.5 text-[12px] font-semibold text-[#0F172A] bg-[#FFFFFF] border border-[#E2E8F0] rounded-[8px] focus:outline-none focus:border-[#0F172A] appearance-none cursor-pointer hover:border-[#94A3B8] transition-colors"
+                  className="w-full md:w-auto pl-3 pr-7 py-1.5 text-[12px] font-semibold text-ds-ink bg-ds-canvas border border-ds-hairline rounded-[8px] focus:outline-none focus:border-ds-ink appearance-none cursor-pointer hover:border-ds-steel transition-colors"
                 >
                   <option value="all">Review: All</option>
                   <option value="validated">Expert Reviewed</option>
                   <option value="pending">Pending Review</option>
                 </select>
                 <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
-                  <ChevronDown size={12} className="text-[#94A3B8]" />
+                  <ChevronDown size={12} className="text-ds-steel" />
                 </div>
               </div>
             </div>
@@ -473,26 +473,26 @@ const Exercises = () => {
           <div className="w-full overflow-x-auto">
             <table className="w-full text-left border-collapse min-w-[850px]">
               <thead>
-                <tr className="border-b border-[#E2E8F0] bg-[#F8FAFC]/40">
-                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#94A3B8] uppercase tracking-[0.1em] w-[32%]">
+                <tr className="border-b border-ds-hairline bg-ds-surface/40">
+                  <th className="py-3 px-4 sm:px-5 text-[11px] font-semibold text-ds-steel uppercase tracking-[0.1em] w-[32%]">
                     Exercise routine
                   </th>
-                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#94A3B8] uppercase tracking-[0.1em]">
+                  <th className="py-3 px-4 sm:px-5 text-[11px] font-semibold text-ds-steel uppercase tracking-[0.1em]">
                     Type / Intensity
                   </th>
-                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#94A3B8] uppercase tracking-[0.1em]">
+                  <th className="py-3 px-4 sm:px-5 text-[11px] font-semibold text-ds-steel uppercase tracking-[0.1em]">
                     HSS target
                   </th>
-                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#94A3B8] uppercase tracking-[0.1em]">
+                  <th className="py-3 px-4 sm:px-5 text-[11px] font-semibold text-ds-steel uppercase tracking-[0.1em]">
                     Duration
                   </th>
-                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#94A3B8] uppercase tracking-[0.1em]">
+                  <th className="py-3 px-4 sm:px-5 text-[11px] font-semibold text-ds-steel uppercase tracking-[0.1em]">
                     Media
                   </th>
-                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#94A3B8] uppercase tracking-[0.1em]">
+                  <th className="py-3 px-4 sm:px-5 text-[11px] font-semibold text-ds-steel uppercase tracking-[0.1em]">
                     Status / Review
                   </th>
-                  <th className="py-3 px-4 sm:px-5 text-[10.5px] font-semibold text-[#94A3B8] uppercase tracking-[0.1em] text-right">
+                  <th className="py-3 px-4 sm:px-5 text-[11px] font-semibold text-ds-steel uppercase tracking-[0.1em] text-right">
                     Actions
                   </th>
                 </tr>
@@ -501,58 +501,58 @@ const Exercises = () => {
               {loading ? (
                 <tbody>
                   {[1, 2, 3, 4, 5].map((item) => (
-                    <tr key={item} className="border-b border-[#E2E8F0]/60">
+                    <tr key={item} className="border-b border-ds-hairline/60">
                       <td className="py-3.5 px-5">
                         <div className="flex items-center gap-3">
-                          <Skeleton className="w-9 h-9 rounded-[8px] shrink-0 bg-[#E2E8F0]/70" />
+                          <Skeleton className="w-9 h-9 rounded-[8px] shrink-0 bg-ds-hairline/70" />
                           <div>
-                            <Skeleton className="w-32 h-4 mb-1.5 bg-[#E2E8F0]/70 rounded" />
-                            <Skeleton className="w-44 h-3 bg-[#E2E8F0]/70 rounded" />
+                            <Skeleton className="w-32 h-4 mb-1.5 bg-ds-hairline/70 rounded" />
+                            <Skeleton className="w-44 h-3 bg-ds-hairline/70 rounded" />
                           </div>
                         </div>
                       </td>
                       <td className="py-3.5 px-5">
-                        <Skeleton className="w-20 h-4 mb-1 bg-[#E2E8F0]/70 rounded" />
-                        <Skeleton className="w-16 h-3 bg-[#E2E8F0]/70 rounded" />
+                        <Skeleton className="w-20 h-4 mb-1 bg-ds-hairline/70 rounded" />
+                        <Skeleton className="w-16 h-3 bg-ds-hairline/70 rounded" />
                       </td>
                       <td className="py-3.5 px-5">
-                        <Skeleton className="w-20 h-5 rounded-full bg-[#E2E8F0]/70" />
+                        <Skeleton className="w-20 h-5 rounded-full bg-ds-hairline/70" />
                       </td>
                       <td className="py-3.5 px-5">
-                        <Skeleton className="w-16 h-4 bg-[#E2E8F0]/70 rounded" />
+                        <Skeleton className="w-16 h-4 bg-ds-hairline/70 rounded" />
                       </td>
                       <td className="py-3.5 px-5">
-                        <Skeleton className="w-14 h-4 bg-[#E2E8F0]/70 rounded" />
+                        <Skeleton className="w-14 h-4 bg-ds-hairline/70 rounded" />
                       </td>
                       <td className="py-3.5 px-5">
-                        <Skeleton className="w-16 h-3 mb-1 bg-[#E2E8F0]/70 rounded" />
-                        <Skeleton className="w-20 h-3 bg-[#E2E8F0]/70 rounded" />
+                        <Skeleton className="w-16 h-3 mb-1 bg-ds-hairline/70 rounded" />
+                        <Skeleton className="w-20 h-3 bg-ds-hairline/70 rounded" />
                       </td>
                       <td className="py-3.5 px-5 text-right">
-                        <Skeleton className="w-6 h-6 rounded-md bg-[#E2E8F0]/70 ml-auto" />
+                        <Skeleton className="w-6 h-6 rounded-md bg-ds-hairline/70 ml-auto" />
                       </td>
                     </tr>
                   ))}
                 </tbody>
               ) : filteredExercises.length > 0 ? (
-                <tbody className="divide-y divide-[#E2E8F0]">
+                <tbody className="divide-y divide-ds-hairline">
                   {filteredExercises.map((exercise, index) => {
                     const badgeClass = getHssBadgeStyle(exercise.hssTarget);
                     return (
                       <tr
                         key={exercise.id}
                         onClick={() => openModal(exercise)}
-                        className={`hover:bg-[#F8FAFC]/60 transition-colors group cursor-pointer ${
-                          exercise.status === "archived" ? "opacity-60 bg-[#F8FAFC]/30" : ""
+                        className={`hover:bg-ds-surface/60 transition-colors group cursor-pointer ${
+                          exercise.status === "archived" ? "opacity-60 bg-ds-surface/30" : ""
                         }`}
                       >
                         {/* 1. EXERCISE */}
                         <td className="py-3.5 px-4 sm:px-5 align-middle">
                           <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-[8px] flex items-center justify-center shrink-0 overflow-hidden bg-[#EAF5FC] border border-[#E2E8F0] text-[#2E9AE8] shadow-2xs">
+                            <div className="w-9 h-9 rounded-[8px] flex items-center justify-center shrink-0 overflow-hidden bg-ds-tint border border-ds-hairline text-ds-on-tint ">
                               {(() => {
                                 const resolvedUrl = resolveMediaUrl(exercise.mediaUrl);
-                                if (!resolvedUrl) return <Dumbbell size={16} className="text-[#2E9AE8]" />;
+                                if (!resolvedUrl) return <Dumbbell size={16} className="text-ds-primary" />;
                                 
                                 const ytMatch = resolvedUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?]+)/);
                                 if (ytMatch && ytMatch[1]) {
@@ -567,10 +567,10 @@ const Exercises = () => {
                               })()}
                             </div>
                             <div className="min-w-0 pr-2">
-                              <p className="text-[#0F172A] font-semibold text-[13px] leading-tight mb-0.5 truncate">
+                              <p className="text-ds-ink font-semibold text-[13px] leading-tight mb-0.5 truncate">
                                 {exercise.name}
                               </p>
-                              <p className="text-[#64748B] text-[11px] font-medium truncate max-w-[240px]">
+                              <p className="text-ds-slate text-[11px] font-medium truncate max-w-[240px]">
                                 {exercise.description || exercise.goal || "Physical rehabilitation regimen"}
                               </p>
                             </div>
@@ -580,10 +580,10 @@ const Exercises = () => {
                         {/* 2. TYPE / INTENSITY */}
                         <td className="py-3.5 px-4 sm:px-5 align-middle">
                           <div className="flex flex-col">
-                            <span className="text-[#0F172A] font-semibold text-[12.5px] leading-tight">
+                            <span className="text-ds-ink font-semibold text-[12.5px] leading-tight">
                               {exercise.type}
                             </span>
-                            <span className="text-[#64748B] text-[11px] font-medium mt-0.5">
+                            <span className="text-ds-slate text-[11px] font-medium mt-0.5">
                               {exercise.intensity} intensity
                             </span>
                           </div>
@@ -592,7 +592,7 @@ const Exercises = () => {
                         {/* 3. HSS TARGET */}
                         <td className="py-3.5 px-4 sm:px-5 align-middle">
                           <span
-                            className={`inline-flex items-center text-[10px] font-semibold px-2.5 py-0.5 rounded-full ${badgeClass}`}
+                            className={`inline-flex items-center text-[11px] font-semibold px-2.5 py-0.5 rounded-full ${badgeClass}`}
                           >
                             {exercise.hssTarget.split(" ")[0]}
                           </span>
@@ -600,28 +600,28 @@ const Exercises = () => {
 
                         {/* 4. DURATION */}
                         <td className="py-3.5 px-4 sm:px-5 align-middle">
-                          <span className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-[#0F172A]">
-                            <Clock size={13} className="text-[#2E9AE8]" />
+                          <span className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-ds-ink">
+                            <Clock size={13} className="text-ds-primary" />
                             {exercise.duration} min
                           </span>
                         </td>
 
                         {/* 5. MEDIA */}
                         <td className="py-3.5 px-4 sm:px-5 align-middle">
-                          <div className="flex flex-col gap-0.5 text-[10.5px] font-medium">
+                          <div className="flex flex-col gap-0.5 text-[11px] font-medium">
                             {exercise.videoUrl ? (
-                              <span className="flex items-center gap-1 text-[#1B6E63] font-semibold">
+                              <span className="flex items-center gap-1 text-ds-charcoal font-semibold">
                                 <Play size={11} strokeWidth={2.5} /> Video
                               </span>
                             ) : (
-                              <span className="text-[#94A3B8] flex items-center gap-1">— Video</span>
+                              <span className="text-ds-steel flex items-center gap-1">— Video</span>
                             )}
                             {exercise.guideImages && exercise.guideImages.length > 0 ? (
-                              <span className="flex items-center gap-1 text-[#1B6E63] font-semibold">
+                              <span className="flex items-center gap-1 text-ds-charcoal font-semibold">
                                 <Image size={11} strokeWidth={2.5} /> {exercise.guideImages.length} Guides
                               </span>
                             ) : (
-                              <span className="text-[#94A3B8] flex items-center gap-1">— Guides</span>
+                              <span className="text-ds-steel flex items-center gap-1">— Guides</span>
                             )}
                           </div>
                         </td>
@@ -630,22 +630,22 @@ const Exercises = () => {
                         <td className="py-3.5 px-4 sm:px-5 align-middle">
                           <div className="flex flex-col gap-1 items-start">
                             <span
-                              className={`text-[9.5px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-[5px] ${
+                              className={`text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-[5px] ${
                                 exercise.status === "published"
-                                  ? "bg-[#E3EFEC] text-[#1B6E63] border border-[#C5DFD8]"
+                                  ? "bg-ds-mint text-ds-charcoal border border-ds-mint"
                                   : exercise.status === "draft"
-                                  ? "bg-[#F6EDDD] text-[#A9741B] border border-[#EBD7B8]"
-                                  : "bg-[#F8FAFC] text-[#64748B] border border-[#E2E8F0]"
+                                  ? "bg-ds-yellow text-ds-warm-text border border-ds-yellow-bold"
+                                  : "bg-ds-surface text-ds-slate border border-ds-hairline"
                               }`}
                             >
                               {exercise.status}
                             </span>
                             {exercise.expertValidated ? (
-                              <span className="text-[10px] text-[#1B6E63] font-semibold flex items-center gap-1">
+                              <span className="text-[11px] text-ds-charcoal font-semibold flex items-center gap-1">
                                 ✓ Reviewed
                               </span>
                             ) : (
-                              <span className="text-[10px] text-[#A9741B] font-semibold flex items-center gap-1">
+                              <span className="text-[11px] text-ds-warm-text font-semibold flex items-center gap-1">
                                 ⚠ Pending
                               </span>
                             )}
@@ -660,7 +660,7 @@ const Exercises = () => {
                           <div className="flex items-center justify-end">
                             <button
                               type="button"
-                              className="p-1.5 text-[#64748B] hover:text-[#0F172A] hover:bg-[#F8FAFC] rounded-[8px] transition-colors cursor-pointer"
+                              className="p-1.5 text-ds-slate hover:text-ds-ink hover:bg-ds-surface rounded-[8px] transition-colors cursor-pointer"
                               onClick={(e) => toggleMenu(e, exercise.id)}
                               title="Actions"
                             >
@@ -670,7 +670,7 @@ const Exercises = () => {
 
                           {activeMenuId === exercise.id && (
                             <div
-                              className={`absolute right-4 w-44 bg-[#FFFFFF] border border-[#E2E8F0] rounded-[10px] shadow-xl p-1.5 z-50 text-left ${
+                              className={`absolute right-4 w-44 bg-ds-canvas border border-ds-hairline rounded-xl shadow-xl p-1.5 z-50 text-left ${
                                 index >= filteredExercises.length - 2 && filteredExercises.length > 2
                                   ? "bottom-full mb-1"
                                   : "top-full mt-1"
@@ -683,9 +683,9 @@ const Exercises = () => {
                                   setActiveMenuId(null);
                                   openModal(exercise);
                                 }}
-                                className="w-full px-2.5 py-1.5 text-[12px] text-[#0F172A] hover:bg-[#F8FAFC] rounded-[6px] flex items-center gap-2 font-medium cursor-pointer"
+                                className="w-full px-2.5 py-1.5 text-[12px] text-ds-ink hover:bg-ds-surface rounded-[6px] flex items-center gap-2 font-medium cursor-pointer"
                               >
-                                <Edit2 size={13} className="text-[#2E9AE8]" />
+                                <Edit2 size={13} className="text-ds-primary" />
                                 <span>Edit routine</span>
                               </button>
 
@@ -697,9 +697,9 @@ const Exercises = () => {
                                     setActiveMenuId(null);
                                     handleUpdateStatus(exercise, "published");
                                   }}
-                                  className="w-full px-2.5 py-1.5 text-[12px] text-[#0F172A] hover:bg-[#F8FAFC] rounded-[6px] flex items-center gap-2 font-medium cursor-pointer"
+                                  className="w-full px-2.5 py-1.5 text-[12px] text-ds-ink hover:bg-ds-surface rounded-[6px] flex items-center gap-2 font-medium cursor-pointer"
                                 >
-                                  <CheckCircle2 size={13} className="text-[#1B6E63]" />
+                                  <CheckCircle2 size={13} className="text-ds-charcoal" />
                                   <span>Publish</span>
                                 </button>
                               )}
@@ -712,9 +712,9 @@ const Exercises = () => {
                                     setActiveMenuId(null);
                                     requestArchiveExercise(exercise);
                                   }}
-                                  className="w-full px-2.5 py-1.5 text-[12px] text-[#0F172A] hover:bg-[#F8FAFC] rounded-[6px] flex items-center gap-2 font-medium cursor-pointer"
+                                  className="w-full px-2.5 py-1.5 text-[12px] text-ds-ink hover:bg-ds-surface rounded-[6px] flex items-center gap-2 font-medium cursor-pointer"
                                 >
-                                  <Archive size={13} className="text-[#A9741B]" />
+                                  <Archive size={13} className="text-ds-warm-text" />
                                   <span>Archive</span>
                                 </button>
                               )}
@@ -727,15 +727,15 @@ const Exercises = () => {
                                     setActiveMenuId(null);
                                     handleUpdateStatus(exercise, "draft");
                                   }}
-                                  className="w-full px-2.5 py-1.5 text-[12px] text-[#0F172A] hover:bg-[#F8FAFC] rounded-[6px] flex items-center gap-2 font-medium cursor-pointer"
+                                  className="w-full px-2.5 py-1.5 text-[12px] text-ds-ink hover:bg-ds-surface rounded-[6px] flex items-center gap-2 font-medium cursor-pointer"
                                 >
-                                  <CheckCircle2 size={13} className="text-[#1B6E63]" />
+                                  <CheckCircle2 size={13} className="text-ds-charcoal" />
                                   <span>Restore to draft</span>
                                 </button>
                               )}
 
                               {/* Divider */}
-                              <div className="border-t border-[#E2E8F0] my-1" />
+                              <div className="border-t border-ds-hairline my-1" />
 
                               {/* Delete Action */}
                               <button
@@ -744,7 +744,7 @@ const Exercises = () => {
                                   setActiveMenuId(null);
                                   requestDeleteExercise(exercise);
                                 }}
-                                className="w-full px-2.5 py-1.5 text-[12px] text-[#A93226] hover:bg-[#F7E4E1] rounded-[6px] flex items-center gap-2 font-medium cursor-pointer"
+                                className="w-full px-2.5 py-1.5 text-[12px] text-ds-danger hover:bg-ds-rose rounded-[6px] flex items-center gap-2 font-medium cursor-pointer"
                               >
                                 <Trash2 size={13} />
                                 <span>Delete</span>
@@ -761,15 +761,15 @@ const Exercises = () => {
 
             {/* Empty State */}
             {!loading && filteredExercises.length === 0 && (
-              <div className="p-12 text-center text-[#64748B] text-[13px] flex flex-col items-center justify-center gap-2.5 border-t border-[#E2E8F0]">
+              <div className="p-12 text-center text-ds-slate text-[13px] flex flex-col items-center justify-center gap-2.5 border-t border-ds-hairline">
                 {exercises.length === 0 ? (
-                  <p className="font-medium text-[#64748B]">No exercises available in the library.</p>
+                  <p className="font-medium text-ds-slate">No exercises available in the library.</p>
                 ) : (
                   <>
-                    <p className="font-medium text-[#0F172A]">No exercise routines match your filter criteria.</p>
+                    <p className="font-medium text-ds-ink">No exercise routines match your filter criteria.</p>
                     <button
                       onClick={clearFilters}
-                      className="mt-1 px-3.5 py-1.5 text-[12px] font-semibold text-white bg-[#2E9AE8] hover:bg-[#1C7AC8] rounded-[8px] transition-colors cursor-pointer"
+                      className="mt-1 px-3.5 py-1.5 text-[12px] font-semibold text-white bg-ds-primary hover:bg-ds-primary-pressed rounded-[8px] transition-colors cursor-pointer"
                     >
                       Clear filters
                     </button>

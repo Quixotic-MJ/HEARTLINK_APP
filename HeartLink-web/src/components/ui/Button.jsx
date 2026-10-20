@@ -17,20 +17,20 @@ export const Button = React.forwardRef(({
   const isDisabled = disabled || isLoading;
   
   const sizeStyles = {
-    sm: "px-3 py-1.5 text-[12px]",
-    md: "px-4 py-2 text-[12.5px]",
-    lg: "px-5 py-2.5 text-[13.5px]",
+    sm: "px-3 h-9 text-[13px]",
+    md: "px-4 h-10 text-[14px]",
+    lg: "px-5 h-11 text-[15px]",
   };
 
   const variants = {
-    primary: "bg-[#2E9AE8] hover:bg-[#1C7AC8] text-white shadow-2xs",
-    secondary: "bg-[#FFFFFF] hover:bg-[#F8FAFC] text-[#0F172A] border border-[#E2E8F0] shadow-2xs",
-    danger: "bg-[#A93226] hover:bg-[#8A1F1A] text-white shadow-2xs",
-    dangerSoft: "bg-[#F7E4E1] hover:bg-[#F0C4B8] text-[#A93226] border border-[#F0C4B8]",
-    ghost: "bg-transparent hover:bg-[#F8FAFC] text-[#64748B] hover:text-[#0F172A]",
+    primary: "bg-ds-primary hover:bg-ds-primary-pressed text-white ",
+    secondary: "bg-ds-canvas hover:bg-ds-surface text-ds-ink border border-ds-hairline-strong ",
+    danger: "bg-ds-danger hover:bg-ds-danger/90 text-white ",
+    dangerSoft: "bg-ds-rose hover:bg-ds-rose/80 text-ds-ink",
+    ghost: "bg-transparent hover:bg-ds-surface text-ds-slate hover:text-ds-ink",
   };
 
-  const baseStyles = "relative inline-flex items-center justify-center gap-1.5 font-semibold rounded-[8px] transition-colors outline-none cursor-pointer";
+  const baseStyles = "relative inline-flex items-center justify-center gap-1.5 font-medium rounded-[8px] transition-colors outline-none cursor-pointer";
   const stateStyles = isDisabled 
     ? "opacity-50 cursor-not-allowed pointer-events-none" 
     : "active:scale-[0.99]";

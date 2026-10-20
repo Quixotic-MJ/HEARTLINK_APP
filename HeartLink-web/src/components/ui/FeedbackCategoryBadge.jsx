@@ -7,25 +7,25 @@ export const getCategoryConfig = (category) => {
       return {
         label: "Bug",
         icon: Bug,
-        className: "bg-[#F7E4E1] text-[#A93226] border-[#F0C4B8]",
+        className: "bg-ds-rose text-ds-ink border-ds-rose",
       };
     case "UI/UX Suggestion":
       return {
         label: "Suggestion",
         icon: Lightbulb,
-        className: "bg-[#F6EDDD] text-[#A9741B] border-[#EBD7B8]",
+        className: "bg-ds-yellow text-ds-warm-text border-ds-yellow-bold",
       };
     case "Account Issue":
       return {
         label: "Account",
         icon: UserCircle,
-        className: "bg-[#E3EFEC] text-[#1B6E63] border-[#C5DFD8]",
+        className: "bg-ds-mint text-ds-charcoal border-ds-mint",
       };
     default:
       return {
         label: "Question",
         icon: HelpCircle,
-        className: "bg-[#F8FAFC] text-[#64748B] border-[#E2E8F0]",
+        className: "bg-ds-surface text-ds-slate border-ds-hairline",
       };
   }
 };
@@ -34,7 +34,7 @@ const FeedbackCategoryBadge = ({ category }) => {
   const config = getCategoryConfig(category);
   const Icon = config.icon;
   return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-[4px] text-[9px] font-bold uppercase tracking-wider border whitespace-nowrap ${config.className}`}>
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-[4px] text-[11px] font-bold uppercase tracking-wider border whitespace-nowrap ${config.className}`}>
       <Icon size={10} /> {config.label}
     </span>
   );

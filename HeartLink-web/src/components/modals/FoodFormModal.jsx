@@ -278,24 +278,23 @@ const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave, 
       />
 
       {/* Modal Dialog Panel */}
-      <div className="relative w-full max-w-2xl bg-[#FFFFFF] border border-[#E2E8F0] max-h-full rounded-2xl shadow-2xl flex flex-col animate-in fade-in zoom-in-95 duration-200 overflow-hidden text-[#0F172A]">
+      <div className="relative w-full max-w-2xl bg-ds-canvas border border-ds-hairline max-h-full rounded-2xl shadow-2xl flex flex-col animate-in fade-in zoom-in-95 duration-200 overflow-hidden text-ds-ink">
         
         {/* Modal Header */}
-        <div className="flex items-center justify-between px-6 py-4.5 border-b border-[#E2E8F0] bg-[#FFFFFF]">
+        <div className="flex items-center justify-between px-6 py-4.5 border-b border-ds-hairline bg-ds-canvas">
           <div>
             <h3 
-              className="text-[18px] font-medium text-[#0F172A] tracking-tight"
-              style={{ fontFamily: "'Fraunces', serif" }}
+              className="text-[18px] font-medium text-ds-ink tracking-tight"
             >
               {recipe ? "Edit food / meal entry" : "Create new entry"}
             </h3>
-            <p className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider mt-0.5">
+            <p className="text-[11px] font-semibold text-ds-steel uppercase tracking-wider mt-0.5">
               Define algorithmic nutritional values
             </p>
           </div>
           <button
             onClick={onClose}
-            className="text-[#64748B] hover:text-[#0F172A] hover:bg-[#F8FAFC] p-1.5 rounded-lg transition-colors cursor-pointer"
+            className="text-ds-slate hover:text-ds-ink hover:bg-ds-surface p-1.5 rounded-lg transition-colors cursor-pointer"
             aria-label="Close modal"
           >
             <X size={16} />
@@ -307,7 +306,7 @@ const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave, 
           
           {/* ── GENERAL ── */}
           <div>
-            <h4 className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider border-b border-[#E2E8F0] pb-2 mb-3.5">
+            <h4 className="text-[11px] font-semibold text-ds-steel uppercase tracking-wider border-b border-ds-hairline pb-2 mb-3.5">
               General information
             </h4>
             <div className="space-y-3.5">
@@ -322,33 +321,33 @@ const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave, 
               </div>
 
               <div>
-                <label className="block text-[11px] font-semibold text-[#64748B] uppercase tracking-wider mb-1">
+                <label className="block text-[13px] font-medium text-ds-ink mb-1">
                   Food Source Type
                 </label>
                 <select
                   {...register("foodSourceType")}
-                  className={`w-full px-3 py-2 text-[13px] font-medium bg-[#F8FAFC] border ${
-                    errors.foodSourceType ? 'border-[#A93226]' : 'border-[#E2E8F0] focus:border-[#0F172A]'
-                  } rounded-[8px] focus:outline-none text-[#0F172A] transition-colors cursor-pointer`}
+                  className={`w-full px-3 py-2 text-[13px] font-medium bg-ds-canvas border ${
+                    errors.foodSourceType ? 'border-ds-danger' : 'border-ds-hairline-strong focus:border-ds-line'
+                  } rounded-[8px] focus:outline-none text-ds-ink transition-colors cursor-pointer`}
                 >
                   <option value="Home Recipe">Home Recipe</option>
                   <option value="Fast Food Chain">Fast Food Chain</option>
                   <option value="Local Carenderia">Local Carenderia</option>
                   <option value="Raw Ingredient">Raw Ingredient</option>
                 </select>
-                {errors.foodSourceType && <p className="text-[11px] text-[#A93226] mt-1">{errors.foodSourceType.message}</p>}
+                {errors.foodSourceType && <p className="text-[11px] text-ds-danger mt-1">{errors.foodSourceType.message}</p>}
               </div>
 
               <div className="grid grid-cols-2 gap-3.5">
                 <div>
-                  <label className="block text-[11px] font-semibold text-[#64748B] uppercase tracking-wider mb-1">
+                  <label className="block text-[13px] font-medium text-ds-ink mb-1">
                     Meal Category
                   </label>
                   <select
                     {...register("category")}
-                    className={`w-full px-3 py-2 text-[13px] font-medium bg-[#F8FAFC] border ${
-                      errors.category ? 'border-[#A93226]' : 'border-[#E2E8F0] focus:border-[#0F172A]'
-                    } rounded-[8px] focus:outline-none text-[#0F172A] transition-colors cursor-pointer`}
+                    className={`w-full px-3 py-2 text-[13px] font-medium bg-ds-canvas border ${
+                      errors.category ? 'border-ds-danger' : 'border-ds-hairline-strong focus:border-ds-line'
+                    } rounded-[8px] focus:outline-none text-ds-ink transition-colors cursor-pointer`}
                   >
                     <option value="Breakfast">Breakfast</option>
                     <option value="Lunch">Lunch</option>
@@ -356,7 +355,7 @@ const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave, 
                     <option value="Snack">Snack</option>
                     <option value="Others">Others</option>
                   </select>
-                  {errors.category && <p className="text-[11px] text-[#A93226] mt-1">{errors.category.message}</p>}
+                  {errors.category && <p className="text-[11px] text-ds-danger mt-1">{errors.category.message}</p>}
                   {category === "Others" && (
                     <div className="mt-2">
                       <InputField
@@ -372,21 +371,21 @@ const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave, 
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-semibold text-[#64748B] uppercase tracking-wider mb-1">
+                  <label className="block text-[13px] font-medium text-ds-ink mb-1">
                     HSS Suitability
                   </label>
                   <select
                     {...register("hssTarget")}
-                    className={`w-full px-3 py-2 text-[13px] font-medium bg-[#F8FAFC] border ${
-                      errors.hssTarget ? 'border-[#A93226]' : 'border-[#E2E8F0] focus:border-[#0F172A]'
-                    } rounded-[8px] focus:outline-none text-[#0F172A] transition-colors cursor-pointer`}
+                    className={`w-full px-3 py-2 text-[13px] font-medium bg-ds-canvas border ${
+                      errors.hssTarget ? 'border-ds-danger' : 'border-ds-hairline-strong focus:border-ds-line'
+                    } rounded-[8px] focus:outline-none text-ds-ink transition-colors cursor-pointer`}
                   >
                     <option value="Stable (80-100)">Stable (80-100)</option>
                     <option value="Moderate (60-79)">Moderate (60-79)</option>
                     <option value="Elevated Risk (50-59)">Elevated Risk (50-59)</option>
                     <option value="Critical (<50)">Critical &lt;50</option>
                   </select>
-                  {errors.hssTarget && <p className="text-[11px] text-[#A93226] mt-1">{errors.hssTarget.message}</p>}
+                  {errors.hssTarget && <p className="text-[11px] text-ds-danger mt-1">{errors.hssTarget.message}</p>}
                 </div>
               </div>
 
@@ -413,14 +412,14 @@ const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave, 
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-semibold text-[#64748B] uppercase tracking-wider mb-1">
+                  <label className="block text-[13px] font-medium text-ds-ink mb-1">
                     Difficulty
                   </label>
                   <select
                     {...register("difficulty")}
-                    className={`w-full px-3 py-2 text-[13px] font-medium bg-[#F8FAFC] border ${
-                      errors.difficulty ? 'border-[#A93226]' : 'border-[#E2E8F0] focus:border-[#0F172A]'
-                    } rounded-[8px] focus:outline-none text-[#0F172A] transition-colors cursor-pointer`}
+                    className={`w-full px-3 py-2 text-[13px] font-medium bg-ds-canvas border ${
+                      errors.difficulty ? 'border-ds-danger' : 'border-ds-hairline-strong focus:border-ds-line'
+                    } rounded-[8px] focus:outline-none text-ds-ink transition-colors cursor-pointer`}
                   >
                     <option value="Easy">Easy</option>
                     <option value="Medium">Medium</option>
@@ -441,16 +440,16 @@ const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave, 
 
               {/* Media Image */}
               <div>
-                <label className="block text-[11px] font-semibold text-[#64748B] uppercase tracking-wider mb-1">
+                <label className="block text-[13px] font-medium text-ds-ink mb-1">
                   Media Image
                 </label>
-                <div className="mb-2.5 w-full h-32 rounded-[8px] overflow-hidden bg-[#F8FAFC] border border-[#E2E8F0] flex flex-col items-center justify-center relative">
+                <div className="mb-2.5 w-full h-32 rounded-[8px] overflow-hidden bg-ds-surface border border-ds-hairline flex flex-col items-center justify-center relative">
                   {!mediaUrl || imagePreviewError ? (
-                    <div className="flex flex-col items-center justify-center text-[#94A3B8] gap-1 p-4 text-center">
-                      <ImageIcon size={22} className="text-[#94A3B8]" />
+                    <div className="flex flex-col items-center justify-center text-ds-steel gap-1 p-4 text-center">
+                      <ImageIcon size={22} className="text-ds-steel" />
                       <span className="text-[11px] font-medium">Recipe image preview</span>
                       {imagePreviewError && (
-                        <span className="text-[10px] text-[#A9741B] font-semibold mt-1">
+                        <span className="text-[11px] text-ds-warm-text font-semibold mt-1">
                           Warning: Image URL is unreachable or invalid.
                         </span>
                       )}
@@ -483,9 +482,9 @@ const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave, 
                         }
                       }
                     }}
-                    className="w-full px-3 py-1.5 text-[12px] bg-[#F8FAFC] border border-[#E2E8F0] rounded-[8px] focus:outline-none text-[#0F172A] transition-colors file:mr-3 file:py-1 file:px-2.5 file:rounded-[6px] file:border-0 file:text-[11px] file:font-semibold file:bg-[#FFFFFF] file:text-[#0F172A] file:border file:border-[#E2E8F0] hover:file:border-[#2E9AE8] hover:file:text-[#2E9AE8] cursor-pointer"
+                    className="w-full px-3 py-1.5 text-[12px] bg-ds-canvas border border-ds-hairline-strong rounded-[8px] focus:outline-none text-ds-ink transition-colors file:mr-3 file:py-1 file:px-2.5 file:rounded-[6px] file:border-0 file:text-[11px] file:font-semibold file:bg-ds-canvas file:text-ds-ink file:border file:border-ds-hairline hover:file:border-ds-line hover:file:text-ds-primary cursor-pointer"
                   />
-                  {uploadError && <p className="text-[11px] text-[#A93226] mt-1">{uploadError}</p>}
+                  {uploadError && <p className="text-[11px] text-ds-danger mt-1">{uploadError}</p>}
                 </div>
               </div>
             </div>
@@ -493,8 +492,8 @@ const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave, 
 
           {/* ── NUTRITION ── */}
           <div>
-            <h4 className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider border-b border-[#E2E8F0] pb-2 mb-3.5 flex items-center gap-1.5">
-              <Activity size={13} className="text-[#2E9AE8]" /> Nutritional snapshot
+            <h4 className="text-[11px] font-semibold text-ds-steel uppercase tracking-wider border-b border-ds-hairline pb-2 mb-3.5 flex items-center gap-1.5">
+              <Activity size={13} className="text-ds-primary" /> Nutritional snapshot
             </h4>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3.5">
               <InputField
@@ -537,12 +536,12 @@ const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave, 
 
           {/* ── INGREDIENTS ── */}
           <div>
-            <h4 className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider border-b border-[#E2E8F0] pb-2 mb-3.5">
+            <h4 className="text-[11px] font-semibold text-ds-steel uppercase tracking-wider border-b border-ds-hairline pb-2 mb-3.5">
               Ingredients
             </h4>
 
             {errors.ingredients?.root && (
-              <p className="text-[11px] text-[#A93226] mb-2">{errors.ingredients.root.message}</p>
+              <p className="text-[11px] text-ds-danger mb-2">{errors.ingredients.root.message}</p>
             )}
 
             <div className="space-y-2 mb-3">
@@ -554,16 +553,16 @@ const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave, 
                       step="any"
                       {...register(`ingredients.${index}.amount`)}
                       placeholder="Amt"
-                      className={`w-20 px-2.5 py-1.5 text-[12.5px] bg-[#F8FAFC] border ${
-                        errors.ingredients?.[index]?.amount ? 'border-[#A93226]' : 'border-[#E2E8F0] focus:border-[#0F172A]'
-                      } rounded-[8px] focus:outline-none text-[#0F172A] placeholder:text-[#94A3B8] transition-colors`}
+                      className={`w-20 px-2.5 py-1.5 text-[12.5px] bg-ds-canvas border ${
+                        errors.ingredients?.[index]?.amount ? 'border-ds-danger' : 'border-ds-hairline-strong focus:border-ds-line'
+                      } rounded-[8px] focus:outline-none text-ds-ink placeholder:text-ds-steel transition-colors`}
                     />
                     <select
                       {...register(`ingredients.${index}.unit`)}
                       aria-label="Unit"
-                      className={`w-32 px-2 py-1.5 text-[12.5px] bg-[#F8FAFC] border ${
-                        errors.ingredients?.[index]?.unit ? 'border-[#A93226]' : 'border-[#E2E8F0] focus:border-[#0F172A]'
-                      } rounded-[8px] focus:outline-none text-[#0F172A] transition-colors cursor-pointer`}
+                      className={`w-32 px-2 py-1.5 text-[12.5px] bg-ds-canvas border ${
+                        errors.ingredients?.[index]?.unit ? 'border-ds-danger' : 'border-ds-hairline-strong focus:border-ds-line'
+                      } rounded-[8px] focus:outline-none text-ds-ink transition-colors cursor-pointer`}
                     >
                       <option value="">No unit</option>
                       {UNIT_GROUPS.map((group) => (
@@ -582,25 +581,25 @@ const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave, 
                       type="text"
                       {...register(`ingredients.${index}.name`)}
                       placeholder="Ingredient Name"
-                      className={`flex-1 px-2.5 py-1.5 text-[12.5px] bg-[#F8FAFC] border ${
-                        errors.ingredients?.[index]?.name ? 'border-[#A93226]' : 'border-[#E2E8F0] focus:border-[#0F172A]'
-                      } rounded-[8px] focus:outline-none text-[#0F172A] placeholder:text-[#94A3B8] transition-colors`}
+                      className={`flex-1 px-2.5 py-1.5 text-[12.5px] bg-ds-canvas border ${
+                        errors.ingredients?.[index]?.name ? 'border-ds-danger' : 'border-ds-hairline-strong focus:border-ds-line'
+                      } rounded-[8px] focus:outline-none text-ds-ink placeholder:text-ds-steel transition-colors`}
                     />
                     <button
                       type="button"
                       onClick={() => removeIngredient(index)}
-                      className="text-[#64748B] hover:text-[#A93226] p-1.5 rounded-lg hover:bg-[#F7E4E1] transition-colors shrink-0 cursor-pointer"
+                      className="text-ds-slate hover:text-ds-danger p-1.5 rounded-lg hover:bg-ds-rose transition-colors shrink-0 cursor-pointer"
                     >
                       <Trash2 size={14} />
                     </button>
                   </div>
                   {errors.ingredients?.[index]?.name && (
-                    <span className="text-[10px] text-[#A93226] block ml-1">
+                    <span className="text-[11px] text-ds-danger block ml-1">
                       {errors.ingredients[index].name.message}
                     </span>
                   )}
                   {errors.ingredients?.[index]?.amount && (
-                    <span className="text-[10px] text-[#A93226] block ml-1">
+                    <span className="text-[11px] text-ds-danger block ml-1">
                       {errors.ingredients[index].amount.message}
                     </span>
                   )}
@@ -610,7 +609,7 @@ const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave, 
             <button
               type="button"
               onClick={() => appendIngredient({ name: "", amount: "", unit: "" })}
-              className="flex items-center gap-1.5 text-[12px] font-semibold text-[#2E9AE8] hover:text-[#1C7AC8] transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 text-[12px] font-semibold text-ds-primary hover:text-ds-primary-pressed transition-colors cursor-pointer"
             >
               <PlusCircle size={14} /> <span>Add ingredient</span>
             </button>
@@ -618,12 +617,12 @@ const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave, 
 
           {/* ── INSTRUCTIONS ── */}
           <div>
-            <h4 className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider border-b border-[#E2E8F0] pb-2 mb-3.5">
+            <h4 className="text-[11px] font-semibold text-ds-steel uppercase tracking-wider border-b border-ds-hairline pb-2 mb-3.5">
               Cooking instructions
             </h4>
 
             {errors.steps?.root && (
-              <p className="text-[11px] text-[#A93226] mb-2">{errors.steps.root.message}</p>
+              <p className="text-[11px] text-ds-danger mb-2">{errors.steps.root.message}</p>
             )}
 
             <div className="space-y-3 mb-3">
@@ -631,16 +630,16 @@ const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave, 
                 <div key={field.id} className="space-y-1">
                   <div className="flex items-start gap-2.5 w-full">
                     <div className="flex-1">
-                      <span className="text-[10px] font-semibold text-[#94A3B8] uppercase block mb-1">
+                      <span className="text-[11px] font-semibold text-ds-steel uppercase block mb-1">
                         STEP {index + 1}
                       </span>
                       <textarea
                         rows="2"
                         {...register(`steps.${index}.value`)}
                         placeholder="Describe preparation step…"
-                        className={`w-full px-3 py-2 text-[12.5px] bg-[#F8FAFC] border ${
-                          errors.steps?.[index]?.value ? 'border-[#A93226]' : 'border-[#E2E8F0] focus:border-[#0F172A]'
-                        } rounded-[8px] focus:outline-none text-[#0F172A] placeholder:text-[#94A3B8] transition-colors resize-none`}
+                        className={`w-full px-3 py-2 text-[12.5px] bg-ds-canvas border ${
+                          errors.steps?.[index]?.value ? 'border-ds-danger' : 'border-ds-hairline-strong focus:border-ds-line'
+                        } rounded-[8px] focus:outline-none text-ds-ink placeholder:text-ds-steel transition-colors resize-none`}
                       />
                     </div>
                     <div className="flex items-center gap-1 mt-5 shrink-0">
@@ -648,7 +647,7 @@ const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave, 
                         type="button"
                         onClick={() => { if (index > 0) swapSteps(index, index - 1); }}
                         disabled={index === 0}
-                        className="text-[#64748B] hover:text-[#0F172A] disabled:opacity-30 p-1.5 rounded-[6px] hover:bg-[#F8FAFC] transition-colors cursor-pointer"
+                        className="text-ds-slate hover:text-ds-ink disabled:opacity-30 p-1.5 rounded-[6px] hover:bg-ds-surface transition-colors cursor-pointer"
                         title="Move up"
                       >
                         <ArrowUp size={14} />
@@ -657,7 +656,7 @@ const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave, 
                         type="button"
                         onClick={() => { if (index < stepsFields.length - 1) swapSteps(index, index + 1); }}
                         disabled={index === stepsFields.length - 1}
-                        className="text-[#64748B] hover:text-[#0F172A] disabled:opacity-30 p-1.5 rounded-[6px] hover:bg-[#F8FAFC] transition-colors cursor-pointer"
+                        className="text-ds-slate hover:text-ds-ink disabled:opacity-30 p-1.5 rounded-[6px] hover:bg-ds-surface transition-colors cursor-pointer"
                         title="Move down"
                       >
                         <ArrowDown size={14} />
@@ -665,7 +664,7 @@ const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave, 
                       <button
                         type="button"
                         onClick={() => removeStep(index)}
-                        className="text-[#64748B] hover:text-[#A93226] p-1.5 rounded-[6px] hover:bg-[#F7E4E1] transition-colors cursor-pointer"
+                        className="text-ds-slate hover:text-ds-danger p-1.5 rounded-[6px] hover:bg-ds-rose transition-colors cursor-pointer"
                         title="Delete step"
                       >
                         <Trash2 size={14} />
@@ -673,7 +672,7 @@ const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave, 
                     </div>
                   </div>
                   {errors.steps?.[index]?.value && (
-                    <span className="text-[10px] text-[#A93226] block ml-1">
+                    <span className="text-[11px] text-ds-danger block ml-1">
                       {errors.steps[index].value.message}
                     </span>
                   )}
@@ -683,7 +682,7 @@ const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave, 
             <button
               type="button"
               onClick={() => appendStep({ value: "" })}
-              className="flex items-center gap-1.5 text-[12px] font-semibold text-[#2E9AE8] hover:text-[#1C7AC8] transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 text-[12px] font-semibold text-ds-primary hover:text-ds-primary-pressed transition-colors cursor-pointer"
             >
               <PlusCircle size={14} /> <span>Add step</span>
             </button>
@@ -691,32 +690,32 @@ const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave, 
 
           {/* ── EXPERT VALIDATION ── */}
           <div>
-            <h4 className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider border-b border-[#E2E8F0] pb-2 mb-3">
+            <h4 className="text-[11px] font-semibold text-ds-steel uppercase tracking-wider border-b border-ds-hairline pb-2 mb-3">
               Expert validation
             </h4>
             <div
               onClick={() => setValue("expertValidated", !expertValidated, { shouldValidate: true, shouldDirty: true })}
               className={`p-3.5 rounded-[8px] border cursor-pointer transition-colors ${
                 expertValidated
-                  ? "bg-[#E3EFEC] border-[#C5DFD8]"
-                  : "bg-[#F8FAFC]/60 border-[#E2E8F0] hover:border-[#94A3B8]"
+                  ? "bg-ds-mint border-ds-mint"
+                  : "bg-ds-surface/60 border-ds-hairline hover:border-ds-steel"
               }`}
             >
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <h4
                     className={`text-[12.5px] font-semibold ${
-                      expertValidated ? "text-[#1B6E63]" : "text-[#0F172A]"
+                      expertValidated ? "text-ds-charcoal" : "text-ds-ink"
                     } flex items-center gap-1.5 mb-0.5`}
                   >
                     {expertValidated ? (
-                      <ShieldCheck size={14} className="text-[#1B6E63]" />
+                      <ShieldCheck size={14} className="text-ds-charcoal" />
                     ) : (
-                      <ShieldAlert size={14} className="text-[#A9741B]" />
+                      <ShieldAlert size={14} className="text-ds-warm-text" />
                     )}
                     {expertValidated ? "Expert reviewed" : "Pending review"}
                   </h4>
-                  <p className="text-[11px] text-[#64748B] leading-relaxed select-none">
+                  <p className="text-[11px] text-ds-slate leading-relaxed select-none">
                     {expertValidated
                       ? "Reviewed or developed with input from a qualified clinical nutrition expert."
                       : "Sourced from an external reference and has not yet been validated by an expert."}
@@ -726,11 +725,11 @@ const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave, 
                 <div className="relative inline-flex items-center shrink-0 mt-0.5 pointer-events-none">
                   <div
                     className={`w-9 h-5 rounded-full transition-colors relative ${
-                      expertValidated ? "bg-[#1B6E63]" : "bg-[#E2E8F0]"
+                      expertValidated ? "bg-ds-line" : "bg-ds-hairline-strong"
                     }`}
                   >
                     <div
-                      className={`absolute top-[2px] left-[2px] bg-white rounded-full h-4 w-4 transition-transform ${
+                      className={`absolute top-[2px] left-[2px] bg-ds-canvas rounded-full h-4 w-4 transition-transform ${
                         expertValidated ? "translate-x-4" : "translate-x-0"
                       }`}
                     />
@@ -742,7 +741,7 @@ const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave, 
 
           {/* ── PUBLICATION STATUS ── */}
           <div>
-            <h4 className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider border-b border-[#E2E8F0] pb-2 mb-3">
+            <h4 className="text-[11px] font-semibold text-ds-steel uppercase tracking-wider border-b border-ds-hairline pb-2 mb-3">
               Publication status
             </h4>
             <div className="flex flex-col sm:flex-row sm:items-center gap-3">
@@ -754,15 +753,15 @@ const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave, 
                     onClick={() => setValue("status", st)}
                     className={`px-3 py-1.5 rounded-[8px] text-[12px] font-semibold border capitalize transition-colors cursor-pointer ${
                       status === st
-                        ? "bg-[#2E9AE8] border-[#2E9AE8] text-white shadow-2xs"
-                        : "bg-[#FFFFFF] border-[#E2E8F0] text-[#64748B] hover:text-[#0F172A]"
+                        ? "bg-ds-ink border-ds-ink text-white "
+                        : "bg-ds-canvas border-ds-hairline text-ds-slate hover:text-ds-ink"
                     }`}
                   >
                     {st}
                   </button>
                 ))}
               </div>
-              <span className="text-[11px] text-[#64748B] leading-tight font-medium">
+              <span className="text-[11px] text-ds-slate leading-tight font-medium">
                 {status === "draft" && "Draft recipes are hidden from mobile patient recommendations."}
                 {status === "published" && "Published recipes are immediately live on mobile screens."}
                 {status === "archived" && "Archived recipes are hidden from mobile recommendations."}
@@ -773,13 +772,13 @@ const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave, 
         </form>
 
         {/* Modal Footer */}
-        <div className="px-6 py-3.5 border-t border-[#E2E8F0] bg-[#FFFFFF] flex justify-between items-center shrink-0">
+        <div className="px-6 py-3.5 border-t border-ds-hairline bg-ds-canvas flex justify-between items-center shrink-0">
           <div className="flex items-center gap-3">
             {status === "archived" ? (
               <button
                 type="button"
                 onClick={() => setValue("status", "draft")}
-                className="flex items-center gap-1.5 text-[12px] font-semibold text-[#1B6E63] hover:text-[#14534B] transition-colors cursor-pointer"
+                className="flex items-center gap-1.5 text-[12px] font-semibold text-ds-charcoal hover:text-ds-charcoal transition-colors cursor-pointer"
               >
                 <CheckCircle2 size={14} />
                 <span>Restore entry</span>
@@ -788,7 +787,7 @@ const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave, 
               <button
                 type="button"
                 onClick={() => setValue("status", "archived")}
-                className="flex items-center gap-1.5 text-[12px] font-semibold text-[#A9741B] hover:text-[#885d14] transition-colors cursor-pointer"
+                className="flex items-center gap-1.5 text-[12px] font-semibold text-ds-warm-text hover:text-ds-warm-text transition-colors cursor-pointer"
               >
                 <Archive size={14} />
                 <span>Archive entry</span>
@@ -802,7 +801,7 @@ const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave, 
                   onClose();
                   onDelete(recipe);
                 }}
-                className="flex items-center gap-1.5 text-[12px] font-semibold text-[#A93226] hover:text-[#8A1F1A] transition-colors cursor-pointer"
+                className="flex items-center gap-1.5 text-[12px] font-semibold text-ds-danger hover:text-ds-danger transition-colors cursor-pointer"
               >
                 <Trash2 size={14} />
                 <span>Delete entry</span>
@@ -814,14 +813,14 @@ const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", onSave, 
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-[12px] font-semibold text-[#0F172A] bg-[#F8FAFC] hover:bg-[#E2E8F0] border border-[#E2E8F0] rounded-[8px] transition-colors cursor-pointer"
+              className="px-4 py-2 text-[12px] font-semibold text-ds-ink bg-ds-surface hover:bg-ds-hairline border border-ds-hairline rounded-[8px] transition-colors cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
               onClick={handleSubmit(onSubmit)}
-              className="flex items-center gap-1.5 px-4 py-2 text-[12px] font-semibold text-white bg-[#2E9AE8] hover:bg-[#1C7AC8] rounded-[8px] shadow-2xs transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 px-4 py-2 text-[12px] font-semibold text-white bg-ds-primary hover:bg-ds-primary-pressed rounded-[8px] transition-colors cursor-pointer"
             >
               <Save size={14} />
               <span>Save to database</span>

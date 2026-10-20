@@ -162,8 +162,40 @@
   --color-warning-solid: rgb(var(--color-warning-solid));
   --color-on-warning: rgb(var(--color-on-warning));
   
-  --font-serif: 'Fraunces', serif;
+  --font-serif: 'Inter', sans-serif; /* design system: one sans family for headings and body */
   --font-sans: 'Inter', sans-serif;
+
+  /* Design system (documentation/design-system/HEARTLINK.md), the same values as the
+     mobile app's ds-* tokens. Light only: the portal has no dark mode. */
+  --color-ds-canvas: #ffffff;
+  --color-ds-surface: #f6f5f4;
+  --color-ds-surface-alt: #f0eeec;
+  --color-ds-hairline: #e5e3df;
+  --color-ds-hairline-soft: #ede9e4;
+  --color-ds-hairline-strong: #c8c4be;
+  --color-ds-ink: #1a1a1a;
+  --color-ds-charcoal: #37352f;
+  --color-ds-slate: #5d5b54;
+  --color-ds-steel: #787671;
+  --color-ds-muted: #bbb8b1;
+  --color-ds-primary: #1478b8;
+  --color-ds-primary-pressed: #0f639a;
+  --color-ds-on-primary: #ffffff;
+  --color-ds-line: #2e9ae8;
+  --color-ds-tint: #dcecfa;
+  --color-ds-on-tint: #0a1530;
+  --color-ds-link: #0075de;
+  --color-ds-peach: #ffe8d4;
+  --color-ds-rose: #fde0ec;
+  --color-ds-mint: #d9f3e1;
+  --color-ds-lavender: #e6e0f5;
+  --color-ds-sky: #dcecfa;
+  --color-ds-yellow: #fef7d6;
+  --color-ds-yellow-bold: #f9e79f;
+  --color-ds-warm-text: #793400;
+  --color-ds-success: #1aae39;
+  --color-ds-danger: #e03131;
+  --color-ds-navy: #0a1530;
 }
 
 /* ─── Global Shimmer Animation ─── */
@@ -180,17 +212,17 @@ input:-webkit-autofill,
 input:-webkit-autofill:hover, 
 input:-webkit-autofill:focus, 
 input:-webkit-autofill:active {
-  -webkit-box-shadow: 0 0 0 1000px #F8FAFC inset !important;
-  -webkit-text-fill-color: #0F172A !important;
-  caret-color: #0F172A !important;
+  -webkit-box-shadow: 0 0 0 1000px var(--color-ds-canvas) inset !important;
+  -webkit-text-fill-color: var(--color-ds-ink) !important;
+  caret-color: var(--color-ds-ink) !important;
   font-family: 'Inter', sans-serif !important;
   font-size: 13.5px !important;
   transition: background-color 5000s ease-in-out 0s;
 }
 
 input:focus:-webkit-autofill {
-  -webkit-box-shadow: 0 0 0 1000px #FFFFFF inset !important;
-  -webkit-text-fill-color: #0F172A !important;
+  -webkit-box-shadow: 0 0 0 1000px var(--color-ds-canvas) inset !important;
+  -webkit-text-fill-color: var(--color-ds-ink) !important;
 }
 
 /* Clean Native Scrollbar */
@@ -199,12 +231,12 @@ input:focus:-webkit-autofill {
   height: 6px;
 }
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: #F8FAFC;
+  background: var(--color-ds-surface);
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #E2E8F0;
+  background: var(--color-ds-hairline);
   border-radius: 9999px;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #94A3B8;
+  background: var(--color-ds-steel);
 }
