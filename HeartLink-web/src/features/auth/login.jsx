@@ -15,7 +15,7 @@ import { apiFetch } from "../../api";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { toast } from "sonner";
 import {
   focusRing,
@@ -163,12 +163,13 @@ export function ErrorBanner({ error }) {
   return (
     <div
       role="alert"
-      className="flex gap-2.5 rounded-xl border border-ds-rose bg-ds-rose px-3.5 py-3 text-[13px] leading-snug"
+      className="flex gap-3 rounded-xl bg-ds-rose px-4 py-3.5 text-[14px] leading-snug"
     >
-      <AlertTriangle size={16} className="shrink-0 mt-px text-ds-danger" aria-hidden="true" />
+      <AlertTriangle size={18} className="shrink-0 mt-px text-ds-danger" aria-hidden="true" />
       <div>
-        <p className="font-semibold text-ds-danger">{error.title}</p>
-        <p className="mt-0.5 text-ds-danger">{error.message}</p>
+        {/* Dark text on the pink tint: red on pink fails contrast (HEARTLINK.md). */}
+        <p className="font-semibold text-ds-ink">{error.title}</p>
+        <p className="mt-1 leading-normal text-ds-charcoal">{error.message}</p>
       </div>
     </div>
   );
@@ -490,6 +491,16 @@ function ForgotPasswordModal({ isOpen, onClose }) {
   );
 }
 
+// Small squares on the navy panel, in the logo's own colours (allowed by HEARTLINK.md).
+const PANEL_DOTS = [
+  { className: "top-[9%] right-[12%] h-4 w-4 rotate-[9deg]", color: "#FF4B4B" },
+  { className: "top-[17%] right-[5%] h-2.5 w-2.5 -rotate-12", color: "#2B84FF" },
+  { className: "top-[46%] right-[4%] h-[13px] w-[13px] rotate-[14deg]", color: "#5CC974" },
+  { className: "bottom-[8%] left-[9%] h-3.5 w-3.5 -rotate-[8deg]", color: "#FF9A2E" },
+  { className: "bottom-[14%] right-[9%] h-[9px] w-[9px] rotate-[20deg]", color: "#FF4B4B" },
+  { className: "bottom-[4%] left-[42%] h-[11px] w-[11px] rotate-6", color: "#2B84FF" },
+];
+
 // ─── Main Web Login Component ─────────────────────────────────────────────────
 export default function HeartLinkAdminLogin() {
   const [step, setStep] = useState("login"); // "login" | "2fa"
@@ -505,6 +516,7 @@ export default function HeartLinkAdminLogin() {
   const { user, isAuthenticated, loading, login } = useAuth();
   const otpInputRef = useRef(null);
   const identifierInputRef = useRef(null);
+  const reduceMotion = useReducedMotion();
 
   // ─── 1. Auto-Redirect if Already Logged In ────────────────────────────────
   useEffect(() => {
@@ -682,42 +694,29 @@ export default function HeartLinkAdminLogin() {
 
   return (
     <div
-      className="relative isolate overflow-hidden min-h-screen w-full flex flex-col bg-ds-surface text-ds-ink selection:bg-ds-primary selection:text-white"
+      className="min-h-screen w-full flex bg-ds-canvas text-ds-ink selection:bg-ds-primary selection:text-white"
       style={{ fontFamily: "'Inter', sans-serif" }}
     >
-      <LoginBackdrop />
+      <main className="flex-1 min-w-0 flex flex-col justify-between gap-14 px-5 py-8 sm:px-12 xl:px-24">
+        <div className="flex items-center gap-2.5">
+          <HeartLogoIcon size={32} />
+          <span className="text-[18px] font-semibold tracking-[-0.01em]">HeartLink</span>
+        </div>
 
-      <main className="relative flex-1 flex items-center justify-center px-4 py-12 sm:py-16">
         <div className="w-full max-w-[400px]">
-          {/* Header */}
-          <div className="flex flex-col items-center text-center">
-            <span className="relative flex h-12 w-12 items-center justify-center rounded-xl border border-ds-hairline/70 bg-ds-canvas/90 backdrop-blur ring-1 ring-ds-hairline/70 shadow-[0_8px_20px_-6px_rgba(46,154,232,0.35)]">
-              <span className="hl-ripple" aria-hidden="true" />
-              <span className="hl-heartbeat inline-flex">
-                <HeartLogoIcon size={28} />
-              </span>
-            </span>
-            <h1 className="mt-6 text-[24px] leading-8 font-semibold tracking-[-0.02em]">
-              {isLoginStep ? "Sign in to HeartLink" : "Enter verification code"}
-            </h1>
-            <p className="mt-2 text-[14px] text-ds-slate">
-              {isLoginStep
-                ? "Admin portal for HeartLink staff"
-                : "We sent a 6-digit code to your registered device."}
-            </p>
-          </div>
+          <AnimatePresence mode="wait" initial={false}>
+            {isLoginStep ? (
+              <motion.div key="login-step" {...stepTransition}>
+                <h1 className="text-[28px] leading-[1.25] font-semibold tracking-[-0.02em]">
+                  Sign in to the staff portal
+                </h1>
+                <p className="mt-2 text-[15px] leading-[1.55] text-ds-slate">
+                  For HeartLink administrators and medical experts.
+                </p>
 
-          {/* Card */}
-          <div className="hl-glow-border relative mt-8 rounded-2xl border border-ds-hairline/70 bg-ds-canvas/80 p-6 sm:p-8 backdrop-blur-xl shadow-[0_1px_3px_rgba(15,23,42,0.05),0_30px_70px_-28px_rgba(46,154,232,0.45)] ring-1 ring-ds-hairline/70">
-            <AnimatePresence mode="wait" initial={false}>
-              {isLoginStep ? (
-                <motion.form
-                  key="login-step"
-                  {...stepTransition}
-                  onSubmit={handleLoginSubmit(onLogin)}
-                  className="space-y-5"
-                  noValidate
-                >
+                <form onSubmit={handleLoginSubmit(onLogin)} className="mt-8 space-y-5" noValidate>
+                  <ErrorBanner error={structuredError} />
+
                   {/* Identifier */}
                   <div>
                     <label htmlFor="identifier" className={`${labelText} mb-1.5`}>
@@ -749,7 +748,7 @@ export default function HeartLinkAdminLogin() {
                       <button
                         type="button"
                         onClick={() => setIsForgotModalOpen(true)}
-                        className={`text-[13.5px] ${textLink}`}
+                        className={`text-[14px] ${textLink}`}
                       >
                         Forgot password?
                       </button>
@@ -764,16 +763,16 @@ export default function HeartLinkAdminLogin() {
                         onKeyDown={handleKeyUpDown}
                         aria-invalid={!!loginErrors.password}
                         aria-describedby={loginErrors.password ? "password-error" : capsLockOn ? "caps-lock-hint" : undefined}
-                        className={`${inputBase} ${inputState(!!loginErrors.password)} pr-11`}
+                        className={`${inputBase} ${inputState(!!loginErrors.password)} pr-12`}
                         {...registerLogin("password")}
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword((prev) => !prev)}
-                        className={`absolute right-1.5 top-1/2 -translate-y-1/2 p-2 rounded-lg text-ds-steel hover:text-ds-charcoal transition-colors cursor-pointer ${focusRing}`}
+                        className={`absolute right-1 top-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-md text-ds-steel hover:text-ds-ink transition-colors cursor-pointer ${focusRing}`}
                         aria-label={showPassword ? "Hide password" : "Show password"}
                       >
-                        {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                       </button>
                     </div>
                     <FieldError id="password-error" message={loginErrors.password?.message} />
@@ -793,10 +792,8 @@ export default function HeartLinkAdminLogin() {
                       onChange={(e) => setRemember(e.target.checked)}
                       className={`h-4 w-4 rounded accent-ds-line cursor-pointer ${focusRing}`}
                     />
-                    <span className="text-[13.5px] text-ds-charcoal">Stay signed in for 7 days</span>
+                    <span className="text-[14px] text-ds-charcoal">Stay signed in for 7 days</span>
                   </label>
-
-                  <ErrorBanner error={structuredError} />
 
                   <button type="submit" disabled={isSubmittingLogin} className={primaryButton}>
                     {isSubmittingLogin ? (
@@ -808,15 +805,24 @@ export default function HeartLinkAdminLogin() {
                       <span>Sign in</span>
                     )}
                   </button>
-                </motion.form>
-              ) : (
-                <motion.form
-                  key="2fa-step"
-                  {...stepTransition}
-                  onSubmit={handle2FASubmit(onVerify2FA)}
-                  className="space-y-5"
-                  noValidate
-                >
+                </form>
+
+                <p className="mt-6 text-[14px] text-ds-slate">
+                  Need an account? Ask your system administrator.
+                </p>
+              </motion.div>
+            ) : (
+              <motion.div key="2fa-step" {...stepTransition}>
+                <h1 className="text-[28px] leading-[1.25] font-semibold tracking-[-0.02em]">
+                  Enter your verification code
+                </h1>
+                <p className="mt-2 text-[15px] leading-[1.55] text-ds-slate">
+                  We sent a 6-digit code to your registered device.
+                </p>
+
+                <form onSubmit={handle2FASubmit(onVerify2FA)} className="mt-8 space-y-5" noValidate>
+                  <ErrorBanner error={structuredError} />
+
                   <div>
                     <label htmlFor="otp" className={`${labelText} mb-1.5`}>
                       Verification code
@@ -830,7 +836,7 @@ export default function HeartLinkAdminLogin() {
                       placeholder="000000"
                       autoComplete="one-time-code"
                       aria-invalid={!!errors2FA.code}
-                      className={`${inputBase} ${inputState(!!errors2FA.code)} h-12 text-center text-[20px] font-semibold tracking-[0.5em] tabular-nums placeholder:text-ds-hairline-strong`}
+                      className={`${inputBase} ${inputState(!!errors2FA.code)} h-14 text-center text-[26px] font-semibold tracking-[0.45em] tabular-nums placeholder:text-ds-hairline-strong`}
                       {...register2FA("code")}
                       ref={(e) => {
                         register2FA("code").ref(e);
@@ -838,10 +844,8 @@ export default function HeartLinkAdminLogin() {
                       }}
                     />
                     <FieldError message={errors2FA.code?.message} />
-                    <p className="mt-1.5 text-[13px] text-ds-slate">The code expires in 5 minutes.</p>
+                    <p className="mt-2 text-[13px] text-ds-slate">The code expires in 5 minutes.</p>
                   </div>
-
-                  <ErrorBanner error={structuredError} />
 
                   <button type="submit" disabled={isSubmitting2FA} className={primaryButton}>
                     {isSubmitting2FA ? (
@@ -854,13 +858,13 @@ export default function HeartLinkAdminLogin() {
                     )}
                   </button>
 
-                  <div className="flex items-center justify-between text-[13.5px]">
+                  <div className="flex items-center justify-between text-[14px]">
                     <button
                       type="button"
                       onClick={() => { setStep("login"); setStructuredError(null); }}
                       className={`inline-flex items-center gap-1.5 font-medium text-ds-slate hover:text-ds-ink transition-colors cursor-pointer rounded-[4px] ${focusRing}`}
                     >
-                      <ArrowLeft size={15} />
+                      <ArrowLeft size={16} />
                       Back
                     </button>
                     <button
@@ -878,20 +882,48 @@ export default function HeartLinkAdminLogin() {
                       {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend code"}
                     </button>
                   </div>
-                </motion.form>
-              )}
-            </AnimatePresence>
-          </div>
-
-          <p className="mt-6 text-center text-[13.5px] text-ds-slate">
-            Need an account? Ask your system administrator.
-          </p>
+                </form>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
+
+        <p className="text-[13px] text-ds-steel">
+          Patients sign in through the HeartLink mobile app.
+        </p>
       </main>
 
-      <footer className="relative px-4 pb-8 text-center text-[13px] text-ds-steel">
-        Patients sign in through the HeartLink mobile app.
-      </footer>
+      {/* Brand panel: wide screens only; phones already show the logo above the form. */}
+      <aside
+        aria-label="About the staff portal"
+        className="relative hidden lg:flex flex-[1.15] min-w-0 items-center justify-center overflow-hidden bg-ds-navy px-12 py-16 text-white"
+      >
+        {PANEL_DOTS.map((dot) => (
+          <span
+            key={dot.className}
+            aria-hidden="true"
+            className={`absolute rounded-[3px] ${dot.className}`}
+            style={{ backgroundColor: dot.color }}
+          />
+        ))}
+        <div className="relative flex max-w-[420px] flex-col items-center gap-8 text-center">
+          <motion.div
+            initial={reduceMotion ? false : { opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.52, delay: 0.12, ease: [0.2, 0.7, 0.2, 1] }}
+          >
+            <HeartLogoIcon size={136} />
+          </motion.div>
+          <div>
+            <h2 className="text-[28px] leading-[1.25] font-semibold tracking-[-0.02em]">
+              HeartLink staff portal
+            </h2>
+            <p className="mt-2.5 text-[15px] leading-[1.55] text-white/70">
+              For cardiologists, dietitians, physical therapists and admins.
+            </p>
+          </div>
+        </div>
+      </aside>
 
       {/* Forgot Password Modal Dialog */}
       <ForgotPasswordModal
