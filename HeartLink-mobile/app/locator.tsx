@@ -17,6 +17,7 @@ import * as Location from 'expo-location';
 import MapView, { Marker, UrlTile } from "react-native-maps";
 import { EmptyState } from "../components/ui/EmptyState";
 import { theme } from "../constants/theme";
+import { apiFetch } from "../lib/api";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -39,11 +40,11 @@ function getDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
   const R = 6371; // Radius of the earth in km
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = 
-    Math.sin(dLat/2) * Math.sin(dLat/2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-    Math.sin(dLon/2) * Math.sin(dLon/2); 
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c; // Distance in km
 }
 
@@ -61,13 +62,13 @@ function ClinicCard({ clinic, onDirections, onCall }: {
       {/* Top row */}
       <View className="flex-row items-start mb-4">
         {/* Icon */}
-        <View 
+        <View
           className="w-11 h-11 rounded-xl items-center justify-center mr-4 flex-shrink-0"
         >
-          <MaterialCommunityIcons 
-            name="hospital-building" 
-            size={22} 
-            color={isEmergency ? "#ef4444" : "#38bdf8"} 
+          <MaterialCommunityIcons
+            name="hospital-building"
+            size={22}
+            color={isEmergency ? "#ef4444" : "#38bdf8"}
           />
         </View>
 
@@ -77,7 +78,7 @@ function ClinicCard({ clinic, onDirections, onCall }: {
           </Text>
           <Text className="text-[13px] text-text-soft font-medium">{clinic.doctor}</Text>
         </View>
-        
+
         {/* Status Badge */}
         {isEmergency ? (
           <Text className="text-[12px] font-bold text-green-500">24/7</Text>
@@ -148,10 +149,9 @@ export default function LocatorScreen() {
         }
 
         // Fetch Clinics from Backend
-        const base_url = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000';
-        const response = await fetch(`${base_url}/api/clinics`);
+        const response = await apiFetch(`/api/clinics`);
         const data = await response.json();
-        
+
         const currentHour = new Date().getHours();
 
         // Calculate distance and map data
@@ -165,10 +165,10 @@ export default function LocatorScreen() {
             const lat = Number(clinic.latitude);
             const lon = Number(clinic.longitude);
             const dist = getDistance(userLat, userLon, lat, lon);
-            
+
             // Major medical institutes & hospital emergency departments operate 24/7
-            const isHospitalOrEmergency = 
-              clinic.name?.toLowerCase().includes("hospital") || 
+            const isHospitalOrEmergency =
+              clinic.name?.toLowerCase().includes("hospital") ||
               clinic.name?.toLowerCase().includes("institute") ||
               clinic.specialty?.toLowerCase().includes("emergency") ||
               clinic.operating_hours === "24/7";
@@ -204,7 +204,7 @@ export default function LocatorScreen() {
 
         // Sort by closest distance
         processedClinics.sort((a: any, b: any) => parseFloat(a.distance) - parseFloat(b.distance));
-        
+
         setClinics(processedClinics);
         setIsLoading(false);
 
@@ -218,11 +218,11 @@ export default function LocatorScreen() {
 
   const filtered = searchQuery.trim()
     ? clinics.filter(
-        (c) =>
-          c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          c.doctor.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          c.specialty.toLowerCase().includes(searchQuery.toLowerCase())
-      )
+      (c) =>
+        c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        c.doctor.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        c.specialty.toLowerCase().includes(searchQuery.toLowerCase())
+    )
     : clinics;
 
 
@@ -230,7 +230,7 @@ export default function LocatorScreen() {
     // The "dir/?api=1&destination=" format tells Google Maps to automatically calculate 
     // a route from the user's current location to the destination.
     const destination = `${lat},${lng}`;
-    
+
     const url = Platform.select({
       // Apple Maps directions
       ios: `http://maps.apple.com/?daddr=${destination}&dirflg=d`,
@@ -275,7 +275,7 @@ export default function LocatorScreen() {
             <MaterialCommunityIcons name="heart-pulse" size={20} color={theme.danger} />
           </View>
         </View>
-        
+
         {locationError && (
           <View className="flex-row items-center bg-orange-50 dark:bg-orange-950 border border-orange-200 dark:border-orange-900/50 rounded-2xl px-4 py-3 gap-3 mb-2">
             <Feather name="info" size={18} color={theme.warning} />

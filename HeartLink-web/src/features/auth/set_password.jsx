@@ -6,11 +6,10 @@ import { useAuth } from "../../contexts/AuthContext";
 import { apiFetch } from "../../api";
 import { HeartLogoIcon, LoginBackdrop, ErrorBanner, FieldError } from "./login";
 import { inputBase, inputState, labelText, primaryButton, textLink, focusRing } from "./authStyles";
+import { staffHome } from "../../utils/staffHome";
 
 // HL-044: staff created by a Super Admin start with a one-time temporary password and land here
 // on first login. The backend blocks every other request until the password is replaced.
-
-const homeFor = (role) => (role === "medical_expert" ? "/cases" : "/dashboard");
 
 function PasswordInput({ id, label, value, onChange, autoComplete, hasError, describedBy }) {
   const [visible, setVisible] = useState(false);
@@ -65,7 +64,7 @@ export default function SetPassword() {
 
   if (loading) return null;
   if (!isAuthenticated) return <Navigate to="/" replace />;
-  if (!user?.mustChangePassword) return <Navigate to={homeFor(user?.role)} replace />;
+  if (!user?.mustChangePassword) return <Navigate to={staffHome(user)} replace />;
 
   const rules = {
     length: next.length >= 16,
@@ -93,7 +92,7 @@ export default function SetPassword() {
       setConfirm("");
       markPasswordChanged();
       toast.success("Password saved", { description: "Use your new password next time you sign in." });
-      navigate(homeFor(user.role), { replace: true });
+      navigate(staffHome(user), { replace: true });
     } catch (err) {
       const detail = typeof err?.data?.detail === "string" ? err.data.detail : "";
       if (err?.status === 400 && detail.toLowerCase().includes("current password")) {

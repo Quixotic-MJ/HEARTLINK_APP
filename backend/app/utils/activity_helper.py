@@ -16,7 +16,8 @@ def record_admin_activity(
     action: str,
     target_type: str,
     target_id: str = None,
-    target_name: str = None
+    target_name: str = None,
+    details: dict = None,
 ):
     try:
         admin_name = "System Admin"
@@ -39,7 +40,8 @@ def record_admin_activity(
             "action": action,
             "target_type": target_type,
             "target_id": target_id,
-            "target_name": target_name
+            "target_name": target_name,
+            "details": details or {},
         }
 
         return get_admin_repo().record_activity(event)

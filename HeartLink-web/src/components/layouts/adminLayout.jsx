@@ -21,7 +21,7 @@ const AdminLayout = ({ children }) => {
     const role = user?.role;
     
     if (role === "medical_expert") {
-      const restrictedRoutes = ["/analytics", "/foods", "/exercises", "/feedbacks", "/broadcasts", "/settings"];
+      const restrictedRoutes = ["/analytics", "/feedbacks", "/broadcasts", "/settings"];
       const isRestricted = restrictedRoutes.some(route => pathname.startsWith(route)) || pathname === "/users" || pathname === "/users/";
       if (isRestricted) {
         navigate("/dashboard", { replace: true });

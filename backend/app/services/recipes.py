@@ -43,9 +43,10 @@ def normalize_recipe_fields(recipe: Optional[Dict[str, Any]]) -> Optional[Dict[s
             if unit == "" or unit is None:
                 unit = None
             normalized_ingredients.append({
+                **ing,
                 "name": name,
                 "amount": amount,
-                "unit": unit
+                "unit": unit,
             })
     recipe["ingredients"] = normalized_ingredients
     return recipe
@@ -66,6 +67,54 @@ def map_hss_tier(tier: str) -> str:
     if "Critical" in tier or "Needs Attention" in tier: return "Critical"
     return "Stable"
 
+def _float_value(value: Any, default: float = 0) -> float:
+    try:
+        return float(value if value not in (None, "") else default)
+    except (TypeError, ValueError):
+        return default
+
+
+def _string_list(value: Any) -> List[str]:
+    if isinstance(value, list):
+        return [str(item).strip() for item in value if str(item).strip()]
+    if isinstance(value, str):
+        return [item.strip() for item in value.split("\n") if item.strip()]
+    return []
+
+
+def _evidence_list(value: Any) -> List[Dict[str, Any]]:
+    if not isinstance(value, list):
+        return []
+    result = []
+    for item in value:
+        if isinstance(item, str) and item.strip():
+            result.append({"title": item.strip(), "url": ""})
+        elif isinstance(item, dict) and (item.get("title") or item.get("url")):
+            result.append({
+                "title": str(item.get("title") or "").strip(),
+                "url": str(item.get("url") or "").strip(),
+            })
+    return result
+
+
+def _normalize_ingredient(ingredient: Dict[str, Any]) -> Dict[str, Any]:
+    household_amount = ingredient.get("household_amount", ingredient.get("amount"))
+    household_unit = ingredient.get("household_unit", ingredient.get("unit"))
+    return {
+        "name": str(ingredient.get("name") or "").strip(),
+        "amount": _float_value(household_amount, None) if household_amount not in (None, "") else None,
+        "unit": str(household_unit).strip() if household_unit not in (None, "") else None,
+        "household_amount": str(household_amount).strip() if household_amount not in (None, "") else "",
+        "household_unit": str(household_unit or "").strip(),
+        "metric_amount": _float_value(ingredient.get("metric_amount"), None) if ingredient.get("metric_amount") not in (None, "") else None,
+        "metric_unit": str(ingredient.get("metric_unit") or "").strip(),
+        "preparation": str(ingredient.get("preparation") or "").strip(),
+        "brand": str(ingredient.get("brand") or "").strip(),
+        "nutrient_source": str(ingredient.get("nutrient_source") or "").strip(),
+        "nutrient_source_record_id": str(ingredient.get("nutrient_source_record_id") or "").strip(),
+    }
+
+
 def create_recipe(data: Dict[str, Any], created_by: Optional[str] = None) -> Dict[str, Any]:
     steps = data.get("steps")
     if steps is None:
@@ -78,24 +127,7 @@ def create_recipe(data: Dict[str, Any], created_by: Optional[str] = None) -> Dic
     ingredients_list = []
     for ing in data.get("ingredients", []):
         if isinstance(ing, dict):
-            amt = ing.get("amount")
-            if amt == 0 or amt == "" or amt is None:
-                amt = None
-            else:
-                try:
-                    amt = float(amt)
-                except Exception:
-                    amt = None
-            
-            ut = ing.get("unit")
-            if ut == "":
-                ut = None
-
-            ingredients_list.append({
-                "name": ing.get("name", ""),
-                "amount": amt,
-                "unit": ut
-            })
+            ingredients_list.append(_normalize_ingredient(ing))
         elif isinstance(ing, str) and ing.strip():
             ingredients_list.append({
                 "name": ing.strip(),
@@ -126,11 +158,6 @@ def create_recipe(data: Dict[str, Any], created_by: Optional[str] = None) -> Dic
     except Exception:
         servings = 1
 
-    # Status check constraint ('draft', 'published', 'archived')
-    raw_status = (data.get("status") or "published").strip().lower()
-    valid_statuses = {"draft", "published", "archived"}
-    status_val = raw_status if raw_status in valid_statuses else "published"
-
     new_recipe_payload = {
         "name": (data.get("name") or "Untitled Recipe").strip(),
         "subtitle": data.get("subtitle") or None,
@@ -149,8 +176,21 @@ def create_recipe(data: Dict[str, Any], created_by: Optional[str] = None) -> Dic
         "ingredients": ingredients_list,
         "steps": steps,
         "image_url": data.get("mediaUrl") or data.get("image_url") or "",
-        "status": status_val,
-        "expert_validated": bool(data.get("expertValidated") or data.get("expert_validated", False)),
+        "status": "draft",
+        "expert_validated": False,
+        "content_version": 1,
+        "change_notes": str(data.get("changeNotes") or data.get("change_notes") or "Initial draft").strip(),
+        "yield_description": str(data.get("yieldDescription") or data.get("yield_description") or "").strip(),
+        "serving_description": str(data.get("servingDescription") or data.get("serving_description") or "").strip(),
+        "nutrient_source": str(data.get("nutrientSource") or data.get("nutrient_source") or "").strip(),
+        "nutrient_source_record_id": str(data.get("nutrientSourceRecordId") or data.get("nutrient_source_record_id") or "").strip(),
+        "nutrient_calculation_notes": str(data.get("nutrientCalculationNotes") or data.get("nutrient_calculation_notes") or "").strip(),
+        "nutrition_totals": data.get("nutritionTotals") or data.get("nutrition_totals") or {},
+        "intended_audiences": _string_list(data.get("intendedAudiences") or data.get("intended_audiences") or ["general_wellness"]),
+        "allergen_notes": str(data.get("allergenNotes") or data.get("allergen_notes") or "").strip(),
+        "contraindication_notes": str(data.get("contraindicationNotes") or data.get("contraindication_notes") or "").strip(),
+        "evidence_sources": _evidence_list(data.get("evidenceSources") or data.get("evidence_sources") or []),
+        "requires_cardiologist_review": bool(data.get("requiresCardiologistReview") or data.get("requires_cardiologist_review", False)),
     }
     if created_by:
         new_recipe_payload["created_by"] = created_by
@@ -161,7 +201,15 @@ def create_recipe(data: Dict[str, Any], created_by: Optional[str] = None) -> Dic
     return normalize_recipe_fields(res)
 
 def update_recipe(recipe_id: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-    update_data = {}
+    existing = get_content_repo().get_recipe(recipe_id)
+    if not existing:
+        return None
+    update_data = {
+        "content_version": int(existing.get("content_version") or 1) + 1,
+        "status": "draft",
+        "expert_validated": False,
+        "change_notes": str(data.get("changeNotes") or data.get("change_notes") or "Content updated").strip(),
+    }
     if "name" in data: update_data["name"] = data["name"]
     if "subtitle" in data: update_data["subtitle"] = data["subtitle"]
     if "category" in data:
@@ -217,14 +265,36 @@ def update_recipe(recipe_id: str, data: Dict[str, Any]) -> Optional[Dict[str, An
         update_data["heart_benefit"] = data.get("heartBenefit", data.get("heart_benefit"))
     if "tags" in data:
         update_data["tags"] = data["tags"]
-    if "status" in data:
-        val = str(data["status"]).strip().lower()
-        if val in {"draft", "published", "archived"}:
-            update_data["status"] = val
-    if "expertValidated" in data or "expert_validated" in data:
-        update_data["expert_validated"] = bool(data.get("expertValidated", data.get("expert_validated")))
     if "mediaUrl" in data or "image_url" in data:
         update_data["image_url"] = data.get("mediaUrl", data.get("image_url"))
+
+    expanded_fields = {
+        "yieldDescription": "yield_description",
+        "yield_description": "yield_description",
+        "servingDescription": "serving_description",
+        "serving_description": "serving_description",
+        "nutrientSource": "nutrient_source",
+        "nutrient_source": "nutrient_source",
+        "nutrientSourceRecordId": "nutrient_source_record_id",
+        "nutrient_source_record_id": "nutrient_source_record_id",
+        "nutrientCalculationNotes": "nutrient_calculation_notes",
+        "nutrient_calculation_notes": "nutrient_calculation_notes",
+        "allergenNotes": "allergen_notes",
+        "allergen_notes": "allergen_notes",
+        "contraindicationNotes": "contraindication_notes",
+        "contraindication_notes": "contraindication_notes",
+    }
+    for source, target in expanded_fields.items():
+        if source in data:
+            update_data[target] = str(data.get(source) or "").strip()
+    if "nutritionTotals" in data or "nutrition_totals" in data:
+        update_data["nutrition_totals"] = data.get("nutritionTotals", data.get("nutrition_totals")) or {}
+    if "intendedAudiences" in data or "intended_audiences" in data:
+        update_data["intended_audiences"] = _string_list(data.get("intendedAudiences", data.get("intended_audiences")))
+    if "evidenceSources" in data or "evidence_sources" in data:
+        update_data["evidence_sources"] = _evidence_list(data.get("evidenceSources", data.get("evidence_sources")))
+    if "requiresCardiologistReview" in data or "requires_cardiologist_review" in data:
+        update_data["requires_cardiologist_review"] = bool(data.get("requiresCardiologistReview", data.get("requires_cardiologist_review")))
     
     if "steps" in data:
         update_data["steps"] = data["steps"]
@@ -239,20 +309,7 @@ def update_recipe(recipe_id: str, data: Dict[str, Any]) -> Optional[Dict[str, An
         ingredients_list = []
         for ing in data["ingredients"]:
             if isinstance(ing, dict):
-                amt = ing.get("amount")
-                if amt == 0 or amt == "" or amt is None:
-                    amt = None
-                else:
-                    try:
-                        amt = float(amt)
-                    except Exception:
-                        amt = None
-                ut = ing.get("unit") or None
-                ingredients_list.append({
-                    "name": ing.get("name", ""),
-                    "amount": amt,
-                    "unit": ut
-                })
+                ingredients_list.append(_normalize_ingredient(ing))
             elif isinstance(ing, str) and ing.strip():
                 ingredients_list.append({
                     "name": ing.strip(),

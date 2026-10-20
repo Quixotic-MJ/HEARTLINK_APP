@@ -5,6 +5,8 @@ from app.services.exercises import get_routines, get_exercise_logs, create_exerc
 from app.services.hss_service import compute_lifestyle_composite_hss
 from app.utils.security import get_current_admin_user, get_current_user, verify_token, get_optional_token, verify_user_access
 from app.utils.activity_helper import record_admin_activity
+from app.services.content_workflow import is_current_version_approved, record_version_snapshot
+from app.db.repositories import get_content_repo
 
 router = APIRouter(prefix="/api/exercises", tags=["Exercises"])
 
@@ -19,14 +21,17 @@ def read_routines(request: Request, credentials: Optional[HTTPAuthorizationCrede
     if token:
         try:
             payload = verify_token(token)
-            if payload.get("role") in ["admin", "medical_expert"]:
+            if payload.get("role") in ["admin", "medical_expert", "super_admin"]:
                 is_admin = True
         except Exception:
             pass
             
     if is_admin:
         return routines
-    return [r for r in routines if r.get("status") == "published"]
+    return [
+        r for r in routines
+        if r.get("status") == "published" and is_current_version_approved("exercise", r)
+    ]
 
 @router.get("/{routine_id}", response_model=Dict[str, Any])
 def read_routine(routine_id: str, request: Request, credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)):
@@ -40,20 +45,28 @@ def read_routine(routine_id: str, request: Request, credentials: Optional[HTTPAu
     if token:
         try:
             payload = verify_token(token)
-            if payload.get("role") in ["admin", "medical_expert"]:
+            if payload.get("role") in ["admin", "medical_expert", "super_admin"]:
                 is_admin = True
         except Exception:
             pass
             
-    if not is_admin and routine.get("status") != "published":
+    if not is_admin and (
+        routine.get("status") != "published"
+        or not is_current_version_approved("exercise", routine)
+    ):
         raise HTTPException(status_code=404, detail="Routine not found")
         
     return routine
 
 @router.post("/", response_model=Dict[str, Any])
 def add_routine(data: Dict[str, Any], current_user: dict = Depends(get_current_admin_user)):
-    new_routine = create_routine(data)
+    if current_user.get("role") not in {"admin", "super_admin"}:
+        raise HTTPException(status_code=403, detail="Only administrators can create exercise drafts.")
     admin_id = current_user.get("user_id") if current_user else "admin"
+    new_routine = create_routine(data, created_by=admin_id)
+    if not new_routine or not new_routine.get("id"):
+        raise HTTPException(status_code=400, detail="Failed to create exercise draft.")
+    record_version_snapshot("exercise", new_routine, admin_id, new_routine.get("change_notes"))
     record_admin_activity(
         admin_user_id=admin_id,
         action="created",
@@ -65,12 +78,18 @@ def add_routine(data: Dict[str, Any], current_user: dict = Depends(get_current_a
 
 @router.put("/{routine_id}", response_model=Dict[str, Any])
 def edit_routine(routine_id: str, data: Dict[str, Any], current_user: dict = Depends(get_current_admin_user)):
+    if current_user.get("role") not in {"admin", "super_admin"}:
+        raise HTTPException(status_code=403, detail="Expert reviewers cannot edit exercise content.")
     try:
+        previous = get_content_repo().get_routine(routine_id)
+        if not previous:
+            raise HTTPException(status_code=404, detail="Routine not found")
         updated_routine = update_routine(routine_id, data)
         admin_id = current_user.get("user_id") if current_user else "admin"
+        record_version_snapshot("exercise", updated_routine, admin_id, updated_routine.get("change_notes"))
         record_admin_activity(
             admin_user_id=admin_id,
-            action="updated",
+            action="revised" if previous.get("status") in {"approved", "published"} else "updated",
             target_type="exercise",
             target_id=updated_routine.get("id"),
             target_name=updated_routine.get("name")
@@ -81,6 +100,8 @@ def edit_routine(routine_id: str, data: Dict[str, Any], current_user: dict = Dep
 
 @router.delete("/{routine_id}", response_model=Dict[str, Any])
 def remove_routine(routine_id: str, current_user: dict = Depends(get_current_admin_user)):
+    if current_user.get("role") != "super_admin":
+        raise HTTPException(status_code=403, detail="Only the Superadmin can permanently delete content.")
     routines = get_routines()
     routine = next((r for r in routines if r["id"] == routine_id), None)
     if not routine:

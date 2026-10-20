@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Menu,
   Search,
@@ -13,6 +13,7 @@ import {
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import AdminNotificationDropdown from "./AdminNotificationDropdown";
+import { staffHome } from "../../utils/staffHome";
 
 export default function Header({ 
   setSidebarOpen, 
@@ -65,7 +66,7 @@ export default function Header({
       const trimmedQuery = searchQuery.trim();
       if (!trimmedQuery) return;
       if (userRole === "medical_expert") {
-        navigate(`/cases?search=${encodeURIComponent(trimmedQuery)}`);
+        navigate(`${staffHome(user)}?search=${encodeURIComponent(trimmedQuery)}`);
       } else {
         navigate(`/users?search=${encodeURIComponent(trimmedQuery)}`);
       }
@@ -178,19 +179,19 @@ export default function Header({
                     Evaluation actions
                   </div>
                   <button
-                    onClick={() => { navigate('/dashboard'); setQuickActionsOpen(false); }}
+                    onClick={() => { navigate(staffHome(user)); setQuickActionsOpen(false); }}
                     className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-[7px] text-[12.5px] font-medium text-[#0F172A] hover:bg-[#F8FAFC] transition-colors text-left cursor-pointer"
                   >
                     <LayoutDashboard size={14} className="text-[#2E9AE8] shrink-0" />
-                    <span>View Dashboard</span>
+                    <span>Open assigned queue</span>
                   </button>
-                  <button
+                  {user?.expertType === "Cardiologist" && <button
                     onClick={() => { navigate('/cases'); setQuickActionsOpen(false); }}
                     className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-[7px] text-[12.5px] font-medium text-[#0F172A] hover:bg-[#F8FAFC] transition-colors text-left cursor-pointer"
                   >
                     <ClipboardList size={14} className="text-[#2E9AE8] shrink-0" />
                     <span>Review cases</span>
-                  </button>
+                  </button>}
                 </>
               )}
             </div>

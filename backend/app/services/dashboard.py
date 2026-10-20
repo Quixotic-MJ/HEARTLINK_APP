@@ -434,10 +434,12 @@ def get_dashboard_data(user_id: str, recipe_limit: int = 2, exercise_limit: int 
     exercise_routines = content_repo.list_routines()
 
     tier = latest_hss.get("tier", "Stable")
+    from app.services.content_workflow import is_current_version_approved
+
     reco_recipes = [
         r
         for r in recipes
-        if r.get("status") == "published"
+        if r.get("status") == "published" and is_current_version_approved("recipe", r)
         and (r.get("hss_tier") == tier or r.get("hss_tier") == "Stable")
         and r.get("id") not in today_recipe_ids
         and _recipe_is_safe(r, dietary_practice, allergies)
@@ -457,6 +459,7 @@ def get_dashboard_data(user_id: str, recipe_limit: int = 2, exercise_limit: int 
         for e in exercise_routines
         if (e.get("hss_tier") == tier or e.get("hss_tier") == "Stable")
         and e.get("status") == "published"
+        and is_current_version_approved("exercise", e)
         and e.get("id") not in today_exercise_ids
     ]
 

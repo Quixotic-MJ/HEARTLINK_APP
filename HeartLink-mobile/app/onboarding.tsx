@@ -1,10 +1,8 @@
 import React, { useEffect } from "react";
-import { View, Text, TouchableOpacity, useWindowDimensions } from "react-native";
+import { View, Text, useWindowDimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
-import { LinearGradient } from "expo-linear-gradient";
-import { useColorScheme } from "nativewind";
 import Animated, {
   Easing,
   FadeIn,
@@ -20,39 +18,23 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import "../global.css";
-import { Colors } from "../constants/theme";
 import HeartLogo from "../components/ui/HeartLogo";
+import DsButton from "../components/onboarding/DsButton";
+import { useDs } from "../components/onboarding/useDs";
 
 // ─── A day with HeartLink ─────────────────────────────────────────────────────
-// The features are told as one example day. A single line in the logo's
-// gradient runs through the day and ends at the heart (the score). The whole
-// screen fits without scrolling: the timeline stretches to fill spare height.
+// The features are told as one example day, ending at the heart (the score).
+// The whole screen fits without scrolling: the timeline stretches to fill spare height.
 
-type Hue = "blue" | "teal" | "success" | "lime";
+type Dot = "sky" | "teal" | "green";
 
-const DAY: { when: string; title: string; body: string; hue: Hue; next: Hue }[] = [
-  {
-    when: "Morning",
-    title: "Log your blood pressure",
-    body: "Unusual readings are flagged right away.",
-    hue: "blue",
-    next: "teal",
-  },
-  {
-    when: "Midday",
-    title: "Pick a heart-friendly lunch",
-    body: "Every recipe shows its sodium.",
-    hue: "teal",
-    next: "success",
-  },
-  {
-    when: "Evening",
-    title: "Move at your own pace",
-    body: "Workouts match your current stamina.",
-    hue: "success",
-    next: "lime",
-  },
+const DAY: { when: string; title: string; body: string; dot: Dot }[] = [
+  { when: "Morning", title: "Log your blood pressure", body: "Unusual readings are flagged right away.", dot: "sky" },
+  { when: "Midday", title: "Pick a heart-friendly lunch", body: "Every recipe shows its sodium.", dot: "teal" },
+  { when: "Evening", title: "Move at your own pace", body: "Workouts match your current stamina.", dot: "green" },
 ];
+
+const DOT_COLOR: Record<Dot, string> = { sky: "#4FB6E6", teal: "#2a9d99", green: "#1aae39" };
 
 // One orchestrated sequence: headline, then each moment of the day in turn,
 // the line growing between them, ending with the heart starting to beat.
@@ -65,29 +47,20 @@ const COMPACT_HEIGHT = 700;
 
 // ─── Line segment (grows downward once) ───────────────────────────────────────
 
-function Segment({ from, to, delay }: { from: string; to: string; delay: number }) {
+function Segment({ color, delay }: { color: string; delay: number }) {
   const reduceMotion = useReducedMotion();
   const progress = useSharedValue(reduceMotion ? 1 : 0);
 
   useEffect(() => {
     if (reduceMotion) return;
-    progress.value = withDelay(
-      delay,
-      withTiming(1, { duration: STEP_MS, easing: Easing.out(Easing.cubic) })
-    );
+    progress.value = withDelay(delay, withTiming(1, { duration: STEP_MS, easing: Easing.out(Easing.cubic) }));
   }, [delay, progress, reduceMotion]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scaleY: progress.value }],
   }));
 
-  return (
-    <Animated.View
-      style={[{ flex: 1, width: 2, marginTop: 4, transformOrigin: "top" }, animatedStyle]}
-    >
-      <LinearGradient colors={[from, to]} style={{ flex: 1, borderRadius: 1 }} />
-    </Animated.View>
-  );
+  return <Animated.View style={[{ flex: 1, width: 1, marginTop: 6, backgroundColor: color, transformOrigin: "top" }, animatedStyle]} />;
 }
 
 // ─── Heart at the end of the line (beats once the day is complete) ────────────
@@ -131,11 +104,8 @@ export default function OnboardingScreen() {
   const router = useRouter();
   const { height } = useWindowDimensions();
   const compact = height < COMPACT_HEIGHT;
-  const { colorScheme } = useColorScheme();
-  const palette = colorScheme === "dark" ? Colors.dark : Colors.light;
-
-  const mid = (hue: Hue) => palette[`${hue}Mid`];
-  const label = (hue: Hue) => palette[`${hue}Text`];
+  const { c, isDark } = useDs();
+  const headline = { fontSize: compact ? 32 : 34, lineHeight: compact ? 36 : 38, fontWeight: "600" as const, letterSpacing: -1, color: c.ink };
 
   // No server pre-check here: registration reports connection errors on submit,
   // so a slow or sleeping server never blocks a new user at the first tap.
@@ -144,52 +114,28 @@ export default function OnboardingScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={["top", "bottom"]}>
-      <StatusBar style="auto" />
+    <SafeAreaView style={{ flex: 1, backgroundColor: c.canvas }} edges={["top", "bottom"]}>
+      <StatusBar style={isDark ? "light" : "dark"} />
 
       <View className="flex-1 px-6">
         {/* ── Logo bar ── */}
-        <Animated.View
-          entering={FadeIn.duration(400)}
-          className={compact ? "flex-row items-center pt-3 mb-4" : "flex-row items-center pt-4 mb-7"}
-        >
+        <Animated.View entering={FadeIn.duration(400)} className={compact ? "flex-row items-center pt-3 mb-4" : "flex-row items-center pt-4 mb-7"}>
           <HeartLogo size={24} />
-          <Text className="ml-2.5 text-lg text-text font-bold tracking-tight">
-            HeartLink
-          </Text>
+          <Text style={{ marginLeft: 10, fontSize: 17, fontWeight: "600", letterSpacing: -0.2, color: c.ink }}>HeartLink</Text>
         </Animated.View>
 
         {/* ── Headline (two lines arrive one after the other) ── */}
-        <View
-          accessible={true}
-          accessibilityRole="header"
-          accessibilityLabel="Your heart, one day at a time."
-          className="mb-2"
-        >
-          <Animated.Text
-            entering={FadeInDown.delay(80).duration(500).easing(Easing.out(Easing.cubic))}
-            className={
-              compact
-                ? "text-[32px] leading-[36px] font-extrabold text-text tracking-tight"
-                : "text-[34px] leading-[38px] font-extrabold text-text tracking-tight"
-            }
-          >
+        <View accessible={true} accessibilityRole="header" accessibilityLabel="Your heart, one day at a time." className="mb-2">
+          <Animated.Text entering={FadeInDown.delay(80).duration(500).easing(Easing.out(Easing.cubic))} style={headline}>
             Your heart,
           </Animated.Text>
-          <Animated.Text
-            entering={FadeInDown.delay(220).duration(500).easing(Easing.out(Easing.cubic))}
-            className={
-              compact
-                ? "text-[32px] leading-[36px] font-extrabold text-text tracking-tight"
-                : "text-[34px] leading-[38px] font-extrabold text-text tracking-tight"
-            }
-          >
+          <Animated.Text entering={FadeInDown.delay(220).duration(500).easing(Easing.out(Easing.cubic))} style={headline}>
             one day at a time.
           </Animated.Text>
         </View>
         <Animated.Text
           entering={FadeIn.delay(360).duration(500)}
-          className={compact ? "text-sm text-text-soft leading-5 mb-5" : "text-base text-text-soft leading-6 mb-7"}
+          style={{ fontSize: compact ? 15 : 16, lineHeight: compact ? 22 : 25, color: c.slate, marginBottom: compact ? 20 : 28 }}
         >
           Small daily check-ins, one clear picture of your heart.
         </Animated.Text>
@@ -200,35 +146,23 @@ export default function OnboardingScreen() {
             const at = START_MS + i * STEP_MS;
             return (
               <View key={moment.when} className="flex-row flex-grow">
-                <View className="w-7 items-center">
+                <View className="w-6 items-center">
                   <Animated.View
                     entering={ZoomIn.delay(at).springify().damping(10).stiffness(160)}
-                    className="w-3 h-3 rounded-full mt-0.5"
-                    style={{ backgroundColor: mid(moment.hue) }}
+                    style={{ width: 12, height: 12, borderRadius: 3, marginTop: 3, backgroundColor: DOT_COLOR[moment.dot] }}
                   />
-                  <Segment from={mid(moment.hue)} to={mid(moment.next)} delay={at + 120} />
+                  <Segment color={c.hairlineStrong} delay={at + 120} />
                 </View>
 
                 <Animated.View
                   entering={FadeInLeft.delay(at).duration(380).easing(Easing.out(Easing.cubic))}
-                  className="flex-1 pl-3 pb-4"
+                  className="flex-1 pl-3.5 pb-4"
                   accessible={true}
                   accessibilityLabel={`${moment.when}. ${moment.title}. ${moment.body}`}
                 >
-                  <Text
-                    className="text-xs font-semibold leading-4 mb-0.5"
-                    style={{ color: label(moment.hue) }}
-                  >
-                    {moment.when}
-                  </Text>
-                  <Text className="text-base font-bold text-text tracking-tight">
-                    {moment.title}
-                  </Text>
-                  {!compact && (
-                    <Text className="text-sm text-text-soft leading-5 mt-0.5">
-                      {moment.body}
-                    </Text>
-                  )}
+                  <Text style={{ fontSize: 12, fontWeight: "500", color: c.steel }}>{moment.when}</Text>
+                  <Text style={{ fontSize: 16, fontWeight: "600", color: c.ink, marginTop: 2 }}>{moment.title}</Text>
+                  {!compact && <Text style={{ fontSize: 14, lineHeight: 21, color: c.slate, marginTop: 2 }}>{moment.body}</Text>}
                 </Animated.View>
               </View>
             );
@@ -240,31 +174,13 @@ export default function OnboardingScreen() {
             accessible={true}
             accessibilityLabel="By tonight. Your Heart Health Stability Score. One clear number, updated as you log."
           >
-            <Animated.View
-              entering={ZoomIn.delay(FINAL_MS).springify().damping(9).stiffness(140)}
-              className="w-7 items-center"
-              style={{ marginTop: -6 }}
-            >
-              <BeatingHeart size={28} delay={FINAL_MS + 500} />
+            <Animated.View entering={ZoomIn.delay(FINAL_MS).springify().damping(9).stiffness(140)} className="w-6 items-center" style={{ marginTop: -4 }}>
+              <BeatingHeart size={24} delay={FINAL_MS + 500} />
             </Animated.View>
-            <Animated.View
-              entering={FadeInLeft.delay(FINAL_MS).duration(380).easing(Easing.out(Easing.cubic))}
-              className="flex-1 pl-3"
-            >
-              <Text
-                className="text-xs font-semibold leading-4 mb-0.5"
-                style={{ color: label("lime") }}
-              >
-                By tonight
-              </Text>
-              <Text className="text-base font-bold text-text tracking-tight">
-                Your Heart Health Stability Score
-              </Text>
-              {!compact && (
-                <Text className="text-sm text-text-soft leading-5 mt-0.5">
-                  One clear number, updated as you log.
-                </Text>
-              )}
+            <Animated.View entering={FadeInLeft.delay(FINAL_MS).duration(380).easing(Easing.out(Easing.cubic))} className="flex-1 pl-3.5">
+              <Text style={{ fontSize: 12, fontWeight: "500", color: c.steel }}>By tonight</Text>
+              <Text style={{ fontSize: 16, fontWeight: "600", color: c.ink, marginTop: 2 }}>Your Heart Health Stability Score</Text>
+              {!compact && <Text style={{ fontSize: 14, lineHeight: 21, color: c.slate, marginTop: 2 }}>One clear number, updated as you log.</Text>}
             </Animated.View>
           </View>
         </View>
@@ -273,34 +189,13 @@ export default function OnboardingScreen() {
       {/* ── Actions (Fixed Footer) ── */}
       <Animated.View
         entering={FadeInDown.delay(500).duration(500).easing(Easing.out(Easing.cubic))}
-        className={compact ? "px-6 pt-3 pb-3" : "px-6 pt-4 pb-5"}
+        style={{ paddingHorizontal: 24, paddingTop: compact ? 12 : 16, paddingBottom: compact ? 12 : 20, gap: 4 }}
       >
-        <TouchableOpacity
-          activeOpacity={0.85}
-          className="w-full bg-primary rounded-2xl py-4 items-center mb-2"
-          onPress={handleGetStarted}
-          accessible={true}
-          accessibilityRole="button"
-          accessibilityLabel="Create an account"
-          accessibilityHint="Opens the registration screen"
-        >
-          <Text className="text-on-primary text-base font-bold">Create an account</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          activeOpacity={0.65}
-          className="py-2 flex-row justify-center items-center gap-1.5"
-          onPress={() => router.push("/login")}
-          accessible={true}
-          accessibilityRole="button"
-          accessibilityLabel="Log in to existing account"
-          accessibilityHint="Opens the login screen"
-        >
-          <Text className="text-sm font-medium text-text-soft">
-            Already have an account?
-          </Text>
-          <Text className="text-sm font-bold text-text">Log in</Text>
-        </TouchableOpacity>
+        <DsButton label="Create an account" onPress={handleGetStarted} accessibilityHint="Opens the registration screen" />
+        <View className="flex-row justify-center items-center">
+          <Text style={{ fontSize: 14, color: c.slate }}>Already have an account?</Text>
+          <DsButton label="Log in" variant="link" block={false} onPress={() => router.push("/login")} accessibilityHint="Opens the login screen" />
+        </View>
       </Animated.View>
     </SafeAreaView>
   );

@@ -16,10 +16,17 @@ import {
   ReanimatedLogLevel,
 } from "react-native-reanimated";
 import { useBroadcastListener } from "../hooks/useBroadcastListener";
+import { AppErrorScreen } from "../components/ui/AppErrorScreen";
+import { installGlobalErrorLogging } from "../services/errorLog";
+
+// HL-024: Expo Router shows this instead of a blank/red screen when any screen crashes.
+export const ErrorBoundary = AppErrorScreen;
+
+installGlobalErrorLogging();
 
 // Keep the native splash up until the saved theme preference is applied, so the
 // first JS frame doesn't render in the system theme and then flip.
-SplashScreen.preventAutoHideAsync().catch(() => {});
+SplashScreen.preventAutoHideAsync().catch(() => { });
 
 configureReanimatedLogger({
   level: ReanimatedLogLevel.warn,
@@ -52,10 +59,12 @@ function RootLayoutNav() {
       firstSegment === "splash";
     if (isSplash) return;
 
-    // 2. Calculating screen: let calculating.tsx complete celebration and navigate
-    const isCalculating =
-      firstSegment === "(baseline)" && secondSegment === "calculating";
-    if (isCalculating) return;
+    // 2. Screens after the score is saved: onboarding is already "complete" by then, but
+    //    these finish the set-up (score, first reading, reminders, day one) and navigate on.
+    const AFTER_SCORE = ["score", "first-reading", "reminders", "day-one"];
+    const isAfterScore =
+      firstSegment === "(baseline)" && !!secondSegment && AFTER_SCORE.includes(secondSegment);
+    if (isAfterScore) return;
 
     const inAuthGroup = firstSegment === "(auth)";
     const inOnboarding = firstSegment === "onboarding";
@@ -78,10 +87,7 @@ function RootLayoutNav() {
       } else {
         // If onboarding is not complete, redirect to baseline (allow staying in auth for success screen)
         if (!inBaseline && !inAuthGroup) {
-          router.replace({
-            pathname: "/(baseline)/step1_basic_info",
-            params: { user_id: userId },
-          });
+          router.replace("/(baseline)/plan");
         }
       }
     }
@@ -89,7 +95,7 @@ function RootLayoutNav() {
 
   // Removed manual useFonts hook to prevent ExpoAsset download errors over tunnel.
   // Modern Expo Router natively bundles @expo/vector-icons.
-  
+
   return (
     <>
 
@@ -111,7 +117,7 @@ function RootLayoutNav() {
 
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { queryClient, asyncStoragePersister } from '../lib/react-query';
-import { Colors } from '../constants/theme';
+import { Colors, DARK_MODE_ENABLED } from '../constants/theme';
 
 export default function RootLayout() {
   const { colorScheme, setColorScheme } = useColorScheme();
@@ -131,18 +137,20 @@ export default function RootLayout() {
     let mounted = true;
 
     if (Platform.OS === "android") {
-      SystemUI.setBackgroundColorAsync(Colors.light.background).catch(() => {});
+      SystemUI.setBackgroundColorAsync(Colors.light.background).catch(() => { });
     }
 
     AsyncStorage.getItem("theme_preference")
-      .then((pref) => {
+      .then((stored) => {
         if (!mounted) return;
+        // While dark mode is unfinished the app always runs light, whatever the phone or the saved setting says.
+        const pref = DARK_MODE_ENABLED ? stored : "light";
         if (pref === "light" || pref === "dark" || pref === "system") {
           setTimeout(() => {
             if (!mounted) return;
             setColorScheme(pref);
             if (Platform.OS === "android") {
-              SystemUI.setBackgroundColorAsync(pref === "dark" ? Colors.dark.background : Colors.light.background).catch(() => {});
+              SystemUI.setBackgroundColorAsync(pref === "dark" ? Colors.dark.background : Colors.light.background).catch(() => { });
             }
             if (pref !== "system") setTargetScheme(pref);
             setPrefLoaded(true);
@@ -152,7 +160,9 @@ export default function RootLayout() {
         }
       })
       .catch(() => {
-        if (mounted) setPrefLoaded(true);
+        if (!mounted) return;
+        if (!DARK_MODE_ENABLED) setColorScheme("light");
+        setPrefLoaded(true);
       });
     return () => {
       mounted = false;
@@ -170,7 +180,7 @@ export default function RootLayout() {
   if (themeReady && !hasShown) setHasShown(true);
 
   useEffect(() => {
-    if (hasShown) SplashScreen.hideAsync().catch(() => {});
+    if (hasShown) SplashScreen.hideAsync().catch(() => { });
   }, [hasShown]);
 
   if (!hasShown && !themeReady) return null;

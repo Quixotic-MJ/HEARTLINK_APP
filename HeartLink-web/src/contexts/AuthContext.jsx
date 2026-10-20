@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { apiFetch, clearApiCache } from '../api';
 
 const AuthContext = createContext();
@@ -19,6 +19,7 @@ const purgeLegacyStorage = () => {
 const toUser = (data) => ({
   id: data.user_id || data.id,
   role: data.role,
+  expertType: data.expert_type || data.expertType || null,
   first_name: data.first_name || "",
   last_name: data.last_name || "",
   email: data.email || "",

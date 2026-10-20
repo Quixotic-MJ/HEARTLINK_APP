@@ -31,3 +31,10 @@ backend/app/mock_*.json
 # Graphify
 graphify-out/
 .agents/
+
+# Exclude downloaded AI assets and testing setups
+.agent
+.playwright-mcp
+Vault/
+HeartLink-web/.agents/
+HeartLink-web/.claude/

@@ -116,6 +116,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed, onLogou
   const navigate = useNavigate();
   
   const role = user?.role || "admin";
+  const expertType = user?.expertType;
   const userName = (user?.first_name || user?.last_name) 
     ? `${user.first_name || ""} ${user.last_name || ""}`.trim() 
     : (user?.email || "Staff User");
@@ -124,7 +125,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed, onLogou
   const getRoleLabel = (r) => {
     if (r === "super_admin") return "Super admin";
     if (r === "admin") return "System admin";
-    if (r === "medical_expert") return "Medical expert";
+    if (r === "medical_expert") return expertType || "Medical expert";
     return "Staff user";
   };
 
@@ -204,17 +205,19 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed, onLogou
 
           <NavItem path="/notifications" icon={Bell} label="Notifications" collapsed={collapsed} />
 
-          {(role === "admin" || role === "super_admin") && (
+          {(role === "admin" || role === "super_admin" || role === "medical_expert") && (
             <>
               <SectionLabel label="Content" collapsed={collapsed} />
-              <NavItem path="/foods" icon={Utensils} label="Food & recipe library" collapsed={collapsed} />
-              <NavItem path="/exercises" icon={Dumbbell} label="Exercise library" collapsed={collapsed} />
+              {(role !== "medical_expert" || expertType === "Dietitian" || expertType === "Cardiologist") && <NavItem path="/foods" icon={Utensils} label={role === "medical_expert" ? "Recipe review queue" : "Recipe lifecycle"} collapsed={collapsed} />}
+              {(role !== "medical_expert" || expertType === "Physical Therapist" || expertType === "Cardiologist") && <NavItem path="/exercises" icon={Dumbbell} label={role === "medical_expert" ? "Exercise review queue" : "Exercise lifecycle"} collapsed={collapsed} />}
             </>
           )}
 
-          <SectionLabel label="HSS evaluation" collapsed={collapsed} />
-          <NavItem path="/cases" icon={ClipboardList} label="Case review" collapsed={collapsed} />
-          <NavItem path="/calibration" icon={History} label="Calibration history" collapsed={collapsed} />
+          {(role !== "medical_expert" || expertType === "Cardiologist") && <>
+            <SectionLabel label="Clinical safety" collapsed={collapsed} />
+            <NavItem path="/cases" icon={ClipboardList} label="Case review" collapsed={collapsed} />
+            <NavItem path="/calibration" icon={History} label="Calibration history" collapsed={collapsed} />
+          </>}
 
           {(role === "admin" || role === "super_admin") && (
             <>

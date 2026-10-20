@@ -16,8 +16,9 @@ import UserWellnessProfile from "../features/pages/system & support/UserWellness
 import ActivityLog from "../features/pages/system & support/ActivityLog";
 import { AuthProvider, useAuth } from "../contexts/AuthContext";
 import { Navigate } from "react-router-dom";
+import { staffHome } from "../utils/staffHome";
 
-const RoleRoute = ({ children, allowedRoles = [] }) => {
+const RoleRoute = ({ children, allowedRoles = [], allowedExpertTypes = [] }) => {
   const { isAuthenticated, user, loading } = useAuth();
   
   if (loading) {
@@ -35,12 +36,11 @@ const RoleRoute = ({ children, allowedRoles = [] }) => {
 
   const role = user?.role;
   if (allowedRoles.length > 0 && !allowedRoles.includes(role)) {
-    // Medical Expert redirected to their clinical portal home
-    if (role === "medical_expert") {
-      return <Navigate to="/cases" replace />;
-    }
-    // Admin / Super Admin redirected to administrative dashboard
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to={staffHome(user)} replace />;
+  }
+
+  if (role === "medical_expert" && allowedExpertTypes.length > 0 && !allowedExpertTypes.includes(user?.expertType)) {
+    return <Navigate to={staffHome(user)} replace />;
   }
   
   return children;
@@ -48,6 +48,7 @@ const RoleRoute = ({ children, allowedRoles = [] }) => {
 
 const ADMIN_ROLES = ["admin", "super_admin"];
 const CLINICAL_ROLES = ["medical_expert", "admin", "super_admin"];
+const CONTENT_ROLES = ["medical_expert", "admin", "super_admin"];
 
 import { Toaster } from "sonner";
 
@@ -65,8 +66,8 @@ export default function App() {
           {/* Administrative & Shared Routes */}
           <Route path="/dashboard" element={<RoleRoute allowedRoles={ADMIN_ROLES}><Dashboard /></RoleRoute>} />
           <Route path="/analytics" element={<RoleRoute allowedRoles={ADMIN_ROLES}><Analytics /></RoleRoute>} />
-          <Route path="/foods" element={<RoleRoute allowedRoles={ADMIN_ROLES}><Foods /></RoleRoute>} />
-          <Route path="/exercises" element={<RoleRoute allowedRoles={ADMIN_ROLES}><Exercises /></RoleRoute>} />
+          <Route path="/foods" element={<RoleRoute allowedRoles={CONTENT_ROLES} allowedExpertTypes={["Dietitian", "Cardiologist"]}><Foods /></RoleRoute>} />
+          <Route path="/exercises" element={<RoleRoute allowedRoles={CONTENT_ROLES} allowedExpertTypes={["Physical Therapist", "Cardiologist"]}><Exercises /></RoleRoute>} />
           <Route path="/users" element={<RoleRoute allowedRoles={ADMIN_ROLES}><Users /></RoleRoute>} />
           <Route path="/users/:id" element={<RoleRoute allowedRoles={ADMIN_ROLES}><UserWellnessProfile /></RoleRoute>} />
           <Route path="/feedbacks" element={<RoleRoute allowedRoles={ADMIN_ROLES}><Feedbacks /></RoleRoute>} />
@@ -76,8 +77,8 @@ export default function App() {
           <Route path="/activity-log" element={<RoleRoute allowedRoles={ADMIN_ROLES}><ActivityLog /></RoleRoute>} />
           
           {/* Clinical Routes */}
-          <Route path="/cases" element={<RoleRoute allowedRoles={CLINICAL_ROLES}><Cases /></RoleRoute>} />
-          <Route path="/calibration" element={<RoleRoute allowedRoles={CLINICAL_ROLES}><Calibrations /></RoleRoute>} />
+          <Route path="/cases" element={<RoleRoute allowedRoles={CLINICAL_ROLES} allowedExpertTypes={["Cardiologist"]}><Cases /></RoleRoute>} />
+          <Route path="/calibration" element={<RoleRoute allowedRoles={CLINICAL_ROLES} allowedExpertTypes={["Cardiologist"]}><Calibrations /></RoleRoute>} />
           
           {/* Catch-all route to redirect unknown paths to login */}
           <Route path="*" element={<Navigate to="/" replace />} />

@@ -1,0 +1,31 @@
+import { AlertCircle, CheckCircle2, Clock3, ShieldCheck, Users, X } from "lucide-react";
+import { audienceLabel } from "../contentModel";
+
+const list = (value) => Array.isArray(value) ? value : [];
+
+export default function PatientPreviewModal({ open, type, detail, onClose }) {
+  const item = detail?.item;
+  if (!open || !item) return null;
+  const approved = detail?.approval?.approved && item.status === "published";
+  const audiences = item.intended_audiences || ["general_wellness"];
+  const reviews = detail?.current_reviews || [];
+
+  return (
+    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/50 p-3 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Patient preview">
+      <div className="flex max-h-[95vh] w-full max-w-md flex-col overflow-hidden rounded-[28px] border-[7px] border-slate-900 bg-slate-50 shadow-2xl">
+        <div className="flex items-center justify-between bg-white px-4 py-3"><div><p className="text-[10px] font-bold uppercase tracking-[0.14em] text-sky-700">Patient preview</p><p className="text-[11px] text-slate-500">Version {item.content_version || 1}</p></div><button onClick={onClose} className="rounded-full bg-slate-100 p-2 text-slate-600" aria-label="Close preview"><X size={17} /></button></div>
+        <div className="flex-1 overflow-y-auto">
+          {!approved && <div className="flex gap-2 border-y border-amber-200 bg-amber-50 px-4 py-3 text-[11px] leading-4 text-amber-900"><AlertCircle size={15} className="shrink-0" /><span><strong className="block">Admin-only preview</strong>Patients cannot retrieve this version until it is approved and published.</span></div>}
+          <div className="h-48 bg-gradient-to-br from-sky-100 via-emerald-50 to-amber-50">{(item.image_url || item.media_url) ? <img src={item.image_url || item.media_url} alt="" className="h-full w-full object-cover" /> : <div className="flex h-full items-center justify-center text-5xl">{type === "recipe" ? "🥗" : "🚶"}</div>}</div>
+          <article className="space-y-5 p-5">
+            <div><div className="flex flex-wrap gap-2"><span className="rounded-full bg-sky-50 px-2.5 py-1 text-[10px] font-bold text-sky-700">{type === "recipe" ? item.category : item.type}</span><span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-bold text-emerald-700">Professionally reviewed</span></div><h1 className="mt-3 text-2xl font-bold tracking-tight text-slate-950">{item.name}</h1>{item.description && <p className="mt-2 text-[13px] leading-6 text-slate-600">{item.description}</p>}</div>
+            <div className="grid grid-cols-2 gap-2 text-[11px]"><div className="rounded-xl border border-slate-200 bg-white p-3"><Clock3 size={15} className="mb-2 text-sky-600" /><strong className="block text-slate-800">{type === "recipe" ? `${item.prep_time_minutes || 0} min prep` : `${item.duration_minutes || 0} minutes`}</strong></div><div className="rounded-xl border border-slate-200 bg-white p-3"><Users size={15} className="mb-2 text-sky-600" /><strong className="block text-slate-800">{type === "recipe" ? item.serving_description || `${item.servings} servings` : item.intensity || "Low intensity"}</strong></div></div>
+            <div className="rounded-xl border border-sky-100 bg-sky-50 p-3 text-[11px] leading-5 text-sky-900"><strong className="block">For {audienceLabel(audiences)}</strong>HeartLink supports wellness and professionally diagnosed hypertension. It does not diagnose, prescribe treatment, or replace professional care.</div>
+            {type === "recipe" ? <><section><h2 className="text-[14px] font-bold text-slate-900">Nutrition per serving</h2><div className="mt-2 grid grid-cols-3 gap-2">{[[item.calories,"kcal"],[item.sodium_mg,"mg sodium"],[item.fiber_g,"g fiber"]].map(([value,label]) => <div key={label} className="rounded-xl border border-slate-200 bg-white p-2.5 text-center"><strong className="block text-[14px] text-slate-900">{value ?? "—"}</strong><span className="text-[9px] text-slate-500">{label}</span></div>)}</div></section><section><h2 className="text-[14px] font-bold text-slate-900">Ingredients</h2><ul className="mt-2 space-y-2 text-[12px] leading-5 text-slate-600">{list(item.ingredients).map((ingredient,index) => <li key={index} className="rounded-lg bg-white px-3 py-2"><strong>{ingredient.household_amount || ingredient.amount} {ingredient.household_unit || ingredient.unit}</strong> {ingredient.name}{ingredient.metric_amount ? ` · ${ingredient.metric_amount} ${ingredient.metric_unit}` : ""}</li>)}</ul></section></> : <><section><h2 className="text-[14px] font-bold text-slate-900">How to do it</h2><ol className="mt-2 space-y-2 text-[12px] leading-5 text-slate-600">{list(item.steps).map((step,index) => <li key={index} className="flex gap-2"><span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-sky-100 text-[10px] font-bold text-sky-700">{index + 1}</span>{typeof step === "string" ? step : step.instruction || step.name}</li>)}</ol></section><section className="rounded-xl border border-rose-200 bg-rose-50 p-3"><h2 className="flex items-center gap-2 text-[13px] font-bold text-rose-900"><AlertCircle size={15} />Stop exercising and seek help if needed</h2><ul className="mt-2 list-disc space-y-1 pl-4 text-[11px] leading-5 text-rose-800">{list(item.stop_symptoms).map((symptom,index) => <li key={index}>{symptom}</li>)}</ul></section></>}
+            <section><h2 className="flex items-center gap-2 text-[13px] font-bold text-slate-900"><ShieldCheck size={16} className="text-emerald-600" />Review record</h2><div className="mt-2 space-y-2">{reviews.map((review) => <div key={review.id} className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white p-2.5 text-[11px]"><CheckCircle2 size={14} className={review.decision === "approved" ? "text-emerald-600" : "text-amber-600"} /><span><strong className="block text-slate-800">{review.decision === "approved" ? "Approved" : "Reviewed"} by {review.reviewer_name}, {review.reviewer_specialization}</strong>Version {review.content_version} · {new Date(review.reviewed_at).toLocaleDateString()}</span></div>)}</div></section>
+          </article>
+        </div>
+      </div>
+    </div>
+  );
+}

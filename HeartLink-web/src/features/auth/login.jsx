@@ -17,6 +17,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import { staffHome } from "../../utils/staffHome";
 import {
   focusRing,
   inputBase,
@@ -511,10 +512,8 @@ export default function HeartLinkAdminLogin() {
     if (!loading && isAuthenticated && user) {
       if (user.mustChangePassword) {
         navigate("/set-password", { replace: true });
-      } else if (user.role === "medical_expert") {
-        navigate("/cases", { replace: true });
       } else {
-        navigate("/dashboard", { replace: true });
+        navigate(staffHome(user), { replace: true });
       }
     }
   }, [isAuthenticated, user, loading, navigate]);
@@ -612,6 +611,7 @@ export default function HeartLinkAdminLogin() {
           {
             id: response.user_id,
             role: response.role,
+            expert_type: response.expert_type,
             first_name: response.first_name || "",
             last_name: response.last_name || "",
             email: response.email || "",
@@ -622,10 +622,8 @@ export default function HeartLinkAdminLogin() {
 
         if (response.must_change_password) {
           navigate("/set-password");
-        } else if (response.role === "medical_expert") {
-          navigate("/cases");
         } else {
-          navigate("/dashboard");
+          navigate(staffHome({ role: response.role, expertType: response.expert_type }));
         }
       }
     } catch (error) {
@@ -654,6 +652,7 @@ export default function HeartLinkAdminLogin() {
           {
             id: response.user_id,
             role: response.role,
+            expert_type: response.expert_type,
             first_name: response.first_name || "",
             last_name: response.last_name || "",
             email: response.email || "",
@@ -664,10 +663,8 @@ export default function HeartLinkAdminLogin() {
 
         if (response.must_change_password) {
           navigate("/set-password");
-        } else if (response.role === "medical_expert") {
-          navigate("/cases");
         } else {
-          navigate("/dashboard");
+          navigate(staffHome({ role: response.role, expertType: response.expert_type }));
         }
       }
     } catch (error) {

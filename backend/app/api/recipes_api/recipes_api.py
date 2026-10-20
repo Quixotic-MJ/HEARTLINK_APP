@@ -13,6 +13,7 @@ from app.services.recipes import (
 )
 from app.utils.security import get_current_admin_user, get_current_user, verify_token, get_optional_token
 from app.utils.activity_helper import record_admin_activity
+from app.services.content_workflow import is_current_version_approved, record_version_snapshot
 
 router = APIRouter(prefix="/api/recipes", tags=["Recipes"])
 
@@ -34,13 +35,19 @@ def read_recipes(request: Request, credentials: Optional[HTTPAuthorizationCreden
             
     if is_admin:
         return recipes
-    return [r for r in recipes if r.get("status") == "published"]
+    return [
+        r for r in recipes
+        if r.get("status") == "published" and is_current_version_approved("recipe", r)
+    ]
 
 @router.get("/saved/{user_id}", response_model=List[Dict[str, Any]])
 def read_saved_recipes(user_id: str, current_user: dict = Depends(get_current_user)):
     from app.utils.security import verify_user_access
     verify_user_access(current_user, user_id)
-    return get_saved_recipes(user_id)
+    return [
+        recipe for recipe in get_saved_recipes(user_id)
+        if recipe.get("status") == "published" and is_current_version_approved("recipe", recipe)
+    ]
 
 @router.get("/{recipe_id}", response_model=Dict[str, Any])
 def read_recipe(recipe_id: str, request: Request, credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)):
@@ -58,7 +65,10 @@ def read_recipe(recipe_id: str, request: Request, credentials: Optional[HTTPAuth
         except Exception:
             pass
 
-    if not is_admin and recipe.get("status") != "published":
+    if not is_admin and (
+        recipe.get("status") != "published"
+        or not is_current_version_approved("recipe", recipe)
+    ):
         raise HTTPException(status_code=404, detail="Recipe not found")
 
     return recipe
@@ -66,6 +76,8 @@ def read_recipe(recipe_id: str, request: Request, credentials: Optional[HTTPAuth
 @router.post("", response_model=Dict[str, Any])
 @router.post("/", response_model=Dict[str, Any])
 def add_recipe(data: Dict[str, Any] = Body(...), current_user: dict = Depends(get_current_admin_user)):
+    if current_user.get("role") not in {"admin", "super_admin"}:
+        raise HTTPException(status_code=403, detail="Only administrators can create recipe drafts.")
     admin_id = current_user.get("user_id") if current_user else None
     new_recipe = create_recipe(data, created_by=admin_id)
     if not new_recipe or not new_recipe.get("id"):
@@ -73,6 +85,7 @@ def add_recipe(data: Dict[str, Any] = Body(...), current_user: dict = Depends(ge
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Failed to create recipe. Please check all nutritional and general fields."
         )
+    record_version_snapshot("recipe", new_recipe, admin_id, new_recipe.get("change_notes"))
     record_admin_activity(
         admin_user_id=admin_id or "admin",
         action="created",
@@ -84,29 +97,21 @@ def add_recipe(data: Dict[str, Any] = Body(...), current_user: dict = Depends(ge
 
 @router.put("/{recipe_id}", response_model=Dict[str, Any])
 def edit_recipe(recipe_id: str, data: Dict[str, Any] = Body(...), current_user: dict = Depends(get_current_admin_user)):
+    if current_user.get("role") not in {"admin", "super_admin"}:
+        raise HTTPException(status_code=403, detail="Expert reviewers cannot edit recipe content.")
     recipe = get_recipe(recipe_id)
     if not recipe:
         raise HTTPException(status_code=404, detail="Recipe not found")
         
-    old_status = recipe.get("status")
     updated_recipe = update_recipe(recipe_id, data)
     if not updated_recipe:
         raise HTTPException(status_code=404, detail="Recipe not found")
         
-    new_status = updated_recipe.get("status")
-    action = "updated"
-    if old_status != new_status:
-        if new_status == "published":
-            action = "published"
-        elif new_status == "archived":
-            action = "archived"
-        elif new_status == "draft" and old_status == "archived":
-            action = "restored"
-
     admin_id = current_user.get("user_id") if current_user else "admin"
+    record_version_snapshot("recipe", updated_recipe, admin_id, updated_recipe.get("change_notes"))
     record_admin_activity(
         admin_user_id=admin_id,
-        action=action,
+        action="revised" if recipe.get("status") in {"approved", "published"} else "updated",
         target_type="recipe",
         target_id=updated_recipe.get("id"),
         target_name=updated_recipe.get("name")
@@ -115,6 +120,8 @@ def edit_recipe(recipe_id: str, data: Dict[str, Any] = Body(...), current_user: 
 
 @router.delete("/{recipe_id}")
 def remove_recipe(recipe_id: str, current_user: dict = Depends(get_current_admin_user)):
+    if current_user.get("role") != "super_admin":
+        raise HTTPException(status_code=403, detail="Only the Superadmin can permanently delete content.")
     recipe = get_recipe(recipe_id)
     if not recipe:
         raise HTTPException(status_code=404, detail="Recipe not found")

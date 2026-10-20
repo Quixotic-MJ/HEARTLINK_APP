@@ -46,6 +46,7 @@ from app.api.admin_api import admin_api, case_review_api, admin_notifications_ap
 from app.api import uploads_api
 from app.api import feedback_api
 from app.api.companion import companion
+from app.api import content_workflow_api
 
 is_production = os.getenv("ENVIRONMENT", "").lower() == "production"
 
@@ -108,6 +109,7 @@ app.include_router(admin_notifications_api.router)
 app.include_router(uploads_api.router)
 app.include_router(feedback_api.router)
 app.include_router(companion.router)
+app.include_router(content_workflow_api.router)
 
 # Mount static files for uploads
 static_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static")
