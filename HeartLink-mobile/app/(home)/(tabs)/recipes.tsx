@@ -12,13 +12,15 @@ import { Image } from "expo-image";
 import { ScreenWrapper } from "../../../components/ui/ScreenWrapper";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
-import { useColorScheme } from "nativewind";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Feather } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useUser } from "../../../contexts/UserContext";
 import { apiFetch } from "../../../lib/api";
-import { theme } from "../../../constants/theme";export interface Recipe {
+import { useDs } from "../../../components/onboarding/useDs";
+import { SquareIconButton } from "../../../components/exercise/ExerciseBits";
+
+export interface Recipe {
   id: string;
   title: string;
   subtitle: string;
@@ -49,46 +51,37 @@ function RecipeCard({
   isSaved: boolean;
   onSave: () => void;
 }) {
-  const { colorScheme } = useColorScheme();
-  const isDark = colorScheme === "dark";
-  
-  const colors = ["#C6E1AC", "#F6CA84", "#F2C0B8", theme.skyTint, theme.blueTint, theme.dangerTint];
-  const charCode = (recipe.title || "").charCodeAt(0) || 0;
-  const color = colors[charCode % colors.length];
-
-  const getIcon = (title: string) => {
-     const t = title.toLowerCase();
-     if (t.includes("bowl")) return "bowl";
-     if (t.includes("soup")) return "pot-steam";
-     if (t.includes("toast")) return "bread-slice";
-     if (t.includes("salmon") || t.includes("fish")) return "fish";
-     if (t.includes("pasta")) return "noodles";
-     if (t.includes("smoothie")) return "blender";
-     return "food-apple";
-  };
+  const { c } = useDs();
 
   return (
-    <TouchableOpacity 
-      activeOpacity={0.8} 
-      onPress={onPress} 
-      className="rounded-2xl overflow-hidden mb-4 relative bg-surface dark:bg-surface-alt border-border"
+    <TouchableOpacity
+      activeOpacity={0.8}
+      onPress={onPress}
+      className="overflow-hidden mb-4 relative"
+      style={{ borderRadius: 12, borderWidth: 1, borderColor: c.hairline, backgroundColor: c.canvas }}
     >
-      <View className="h-[105px] w-full bg-border items-center justify-center">
-        <Feather name="image" size={24} color={isDark ? "#475569" : "#CBD5E1"} className="absolute" />
+      <View className="h-[105px] w-full items-center justify-center" style={{ backgroundColor: c.surface }}>
+        <Feather name="image" size={24} color={c.muted} style={{ position: "absolute" }} />
         <Image
           source={{ uri: recipe.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&q=80" }}
           style={{ width: "100%", height: "100%", position: 'absolute' }}
           contentFit="cover"
           transition={200}
         />
-        <View className="absolute inset-0 bg-black/10" />
       </View>
-      <TouchableOpacity onPress={onSave} className="absolute top-2 right-2 p-1.5 rounded-full bg-surface/80 dark:bg-black/40 backdrop-blur-sm">
-        <Feather name="heart" size={15} color={isSaved ? "#EF4444" : (isDark ? "#FFFFFF" : "#152131")} />
+      <TouchableOpacity
+        onPress={onSave}
+        accessibilityRole="button"
+        accessibilityLabel={isSaved ? `Remove ${recipe.title} from saved` : `Save ${recipe.title}`}
+        accessibilityState={{ selected: isSaved }}
+        className="absolute top-2 right-2 items-center justify-center rounded-full"
+        style={{ width: 32, height: 32, backgroundColor: c.canvas }}
+      >
+        <Feather name="heart" size={15} color={isSaved ? c.danger : c.ink} />
       </TouchableOpacity>
       <View className="p-3 pb-4">
-        <Text className="text-[14px] font-bold leading-tight mb-1 text-text" numberOfLines={1}>{recipe.title}</Text>
-        <Text className="text-[11px] text-text-soft">{recipe.nutrition?.calories || 0} cal - {recipe.prepTime || 0} min</Text>
+        <Text style={{ fontSize: 15, fontWeight: "500", color: c.ink, marginBottom: 2 }} numberOfLines={1}>{recipe.title}</Text>
+        <Text style={{ fontSize: 13, color: c.slate }}>{recipe.nutrition?.calories || 0} cal - {recipe.prepTime || 0} min</Text>
       </View>
     </TouchableOpacity>
   );
@@ -99,8 +92,7 @@ export default function RecipesScreen({
 }: {
   isEmbedded?: boolean;
 } = {}) {
-  const { colorScheme } = useColorScheme();
-  const isDark = colorScheme === "dark";
+  const { c, isDark } = useDs();
   const router = useRouter();
   const { userId, token } = useUser();
   const queryClient = useQueryClient();
@@ -206,7 +198,7 @@ export default function RecipesScreen({
   const Container = isEmbedded ? View : ScreenWrapper;
   const containerProps: any = isEmbedded
     ? { className: "flex-1" }
-    : { edges: ["top"], withScrollView: false };
+    : { edges: ["top"], withScrollView: false, safeAreaClassName: "flex-1 bg-ds-canvas" };
 
   return (
     <Container {...containerProps}>
@@ -214,16 +206,14 @@ export default function RecipesScreen({
       
       {/* Top Bar matching the "See All" design */}
       {!isEmbedded && (
-        <View className="flex-row items-center justify-between px-5 pt-3 pb-4">
-          <TouchableOpacity onPress={() => router.back()} className="w-10 h-10 items-center justify-center -ml-2 rounded-full bg-surface-alt">
-            <Feather name="arrow-left" size={20} color={isDark ? "#FFFFFF" : "#0F172A"} />
-          </TouchableOpacity>
-          <Text className="text-[18px] font-bold text-text">
+        <View className="flex-row items-center px-5 pt-3 pb-3" style={{ gap: 10 }}>
+          <SquareIconButton icon="arrow-left" label="Go back" onPress={() => router.back()} />
+          <Text accessibilityRole="header" style={{ flex: 1, fontSize: 22, fontWeight: "600", color: c.ink }}>
             Recipes
           </Text>
-          <TouchableOpacity className="w-10 h-10 items-center justify-center -mr-2 rounded-full bg-surface-alt">
-            <Feather name="sliders" size={18} color={isDark ? "#FFFFFF" : "#0F172A"} />
-          </TouchableOpacity>
+          <View className="items-center justify-center" style={{ width: 44, height: 44, borderRadius: 8, borderWidth: 1, borderColor: c.hairline }}>
+            <Feather name="sliders" size={18} color={c.ink} />
+          </View>
         </View>
       )}
 
@@ -237,9 +227,12 @@ export default function RecipesScreen({
                 key={filter}
                 onPress={() => setActiveFilter(filter)}
                 activeOpacity={0.7}
-                className="px-5 py-2 rounded-full mr-3 border"
+                accessibilityRole="tab"
+                accessibilityState={{ selected: isActive }}
+                className="mr-2 justify-center"
+                style={{ height: 40, paddingHorizontal: 16, borderRadius: 9999, borderWidth: 1, backgroundColor: isActive ? c.ink : c.canvas, borderColor: isActive ? c.ink : c.hairline }}
               >
-                <Text className="text-[14px] font-semibold">
+                <Text style={{ fontSize: 14, fontWeight: "500", color: isActive ? c.canvas : c.charcoal }}>
                   {filter}
                 </Text>
               </TouchableOpacity>
@@ -255,10 +248,10 @@ export default function RecipesScreen({
         contentContainerStyle={{ paddingBottom: 100, paddingHorizontal: 20 }}
         columnWrapperStyle={{ justifyContent: "space-between" }}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#33CC82" />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={c.line} />}
         ListHeaderComponent={
           <View className="mb-4">
-            <Text className="text-[13px] font-semibold">
+            <Text style={{ fontSize: 13, color: c.steel }}>
               {filteredRecipes.length} recipes
             </Text>
           </View>

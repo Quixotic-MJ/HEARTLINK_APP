@@ -21,8 +21,8 @@ import Animated, {
   withSpring, 
   runOnJS 
 } from "react-native-reanimated";
-import { useColorScheme } from "nativewind";
-import { Colors } from "../../constants/theme";
+import { ds, DsColors } from "../../constants/theme";
+import { useDs } from "../onboarding/useDs";
 
 const SCREEN_HEIGHT = Dimensions.get("window").height;
 
@@ -51,29 +51,28 @@ export interface ConfirmDialogProps {
 
 // ─── Variant Config ───────────────────────────────────────────────────────────
 
+// Design-system colours: a pastel icon badge, and a red (delete) or blue confirm button.
+// The red keeps its light-mode shade in dark mode so white text stays readable.
 const VARIANT_CONFIG = {
   destructive: {
-    iconBg: { light: Colors.light.dangerTint, dark: Colors.dark.dangerTint },
-    iconColor: { light: Colors.light.dangerMid, dark: Colors.dark.dangerMid },
+    iconBg: (c: DsColors) => c.rose,
+    iconColor: (c: DsColors) => c.danger,
     defaultIcon: "alert-triangle" as keyof typeof Feather.glyphMap,
-    confirmBg: { light: Colors.light.dangerSolid, dark: Colors.dark.dangerSolid },
-    confirmText: { light: Colors.light.onDanger, dark: Colors.dark.onDanger },
+    confirmBg: (_c: DsColors) => ds.light.danger,
     haptic: Haptics.NotificationFeedbackType.Warning,
   },
   warning: {
-    iconBg: { light: Colors.light.warningTint, dark: Colors.dark.warningTint },
-    iconColor: { light: Colors.light.warningMid, dark: Colors.dark.warningMid },
+    iconBg: (c: DsColors) => c.yellow,
+    iconColor: (c: DsColors) => c.warmText,
     defaultIcon: "alert-circle" as keyof typeof Feather.glyphMap,
-    confirmBg: { light: Colors.light.warningSolid, dark: Colors.dark.warningSolid },
-    confirmText: { light: Colors.light.onWarning, dark: Colors.dark.onWarning },
+    confirmBg: (c: DsColors) => c.primary,
     haptic: Haptics.NotificationFeedbackType.Warning,
   },
   info: {
-    iconBg: { light: Colors.light.blueTint, dark: Colors.dark.blueTint },
-    iconColor: { light: Colors.light.blueMid, dark: Colors.dark.blueMid },
+    iconBg: (c: DsColors) => c.tint,
+    iconColor: (c: DsColors) => c.onTint,
     defaultIcon: "info" as keyof typeof Feather.glyphMap,
-    confirmBg: { light: Colors.light.primary, dark: Colors.dark.primary },
-    confirmText: { light: Colors.light.onPrimary, dark: Colors.dark.onPrimary },
+    confirmBg: (c: DsColors) => c.primary,
     haptic: null,
   },
 };
@@ -94,9 +93,7 @@ export function ConfirmDialog({
   typedConfirmation,
 }: ConfirmDialogProps) {
   const insets = useSafeAreaInsets();
-  const { colorScheme } = useColorScheme();
-  const isDark = colorScheme === "dark";
-  const themeMode = isDark ? "dark" : "light";
+  const { c } = useDs();
   
   const config = VARIANT_CONFIG[variant];
   const resolvedIcon = icon || config.defaultIcon;
@@ -199,42 +196,45 @@ export function ConfirmDialog({
     <>
       {/* Icon */}
       <View
-        className="w-14 h-14 rounded-2xl items-center justify-center self-center mb-4"
+        className="items-center justify-center self-center mb-4"
+        style={{ width: 52, height: 52, borderRadius: 12, backgroundColor: config.iconBg(c) }}
       >
-        <Feather name={resolvedIcon} size={26} color={config.iconColor[themeMode]} />
+        <Feather name={resolvedIcon} size={24} color={config.iconColor(c)} />
       </View>
 
       {/* Title */}
       <Text
-        className="text-[18px] font-semibold text-text text-center mb-2"
+        className="text-center mb-2"
+        style={{ fontSize: 20, fontWeight: "600", color: c.ink }}
         accessibilityRole="header"
       >
         {title}
       </Text>
 
       {/* Message */}
-      <Text className="text-[13px] text-text-soft text-center leading-relaxed mb-6 px-2">
+      <Text className="text-center mb-6 px-2" style={{ fontSize: 15, lineHeight: 22, color: c.slate }}>
         {message}
       </Text>
 
       {/* Typed Confirmation Input */}
       {typedConfirmation && (
         <View className="mb-5 px-1">
-          <Text className="text-[12px] font-medium text-text-soft mb-2 text-center">
+          <Text className="mb-2 text-center" style={{ fontSize: 13, fontWeight: "500", color: c.slate }}>
             Type{" "}
-            <Text className="font-bold text-danger-text">
+            <Text style={{ fontWeight: "700", color: c.ink }}>
               {typedConfirmation}
             </Text>{" "}
             to confirm
           </Text>
           <TextInput
-            className="border border-border rounded-xl px-4 py-3 text-[15px] text-text text-center font-medium bg-surface-alt"
+            className="px-4 text-center"
+            style={{ height: 48, borderWidth: 1.5, borderColor: c.hairlineStrong, borderRadius: 8, fontSize: 16, fontWeight: "500", color: c.ink, backgroundColor: c.canvas }}
             value={typedValue}
             onChangeText={setTypedValue}
             autoCapitalize="characters"
             autoCorrect={false}
             placeholder={typedConfirmation}
-            placeholderTextColor={isDark ? "#8692A0" : "#676F78"}
+            placeholderTextColor={c.steel}
             editable={!isLoading}
           />
         </View>
@@ -247,12 +247,13 @@ export function ConfirmDialog({
           activeOpacity={0.8}
           onPress={handleCancel}
           disabled={isLoading}
-          className="w-full py-4 min-h-[48px] rounded-xl items-center border border-border"
+          className="w-full items-center justify-center"
+          style={{ height: 48, borderRadius: 8, borderWidth: 1, borderColor: c.hairlineStrong }}
           accessibilityRole="button"
           accessibilityLabel={cancelLabel}
           accessibilityHint="Dismisses this dialog without taking action"
         >
-          <Text className="text-[14px] font-medium text-text-soft">
+          <Text style={{ fontSize: 15, fontWeight: "500", color: c.ink }}>
             {cancelLabel}
           </Text>
         </TouchableOpacity>
@@ -262,14 +263,15 @@ export function ConfirmDialog({
           activeOpacity={0.8}
           onPress={handleConfirm}
           disabled={!isConfirmEnabled}
-          className="w-full py-4 min-h-[48px] rounded-xl items-center flex-row justify-center gap-2"
+          className="w-full items-center flex-row justify-center gap-2"
+          style={{ height: 48, borderRadius: 8, backgroundColor: isConfirmEnabled || isLoading ? config.confirmBg(c) : c.hairline }}
           accessibilityRole="button"
           accessibilityLabel={confirmLabel}
           accessibilityHint={`Confirms the ${variant} action`}
         >
-          {isLoading && <ActivityIndicator size="small" color={config.confirmText[themeMode]} />}
+          {isLoading && <ActivityIndicator size="small" color={c.onPrimary} />}
           <Text
-            className="text-[14px] font-semibold"
+            style={{ fontSize: 15, fontWeight: "500", color: isConfirmEnabled || isLoading ? c.onPrimary : c.steel }}
           >
             {confirmLabel}
           </Text>
@@ -296,7 +298,7 @@ export function ConfirmDialog({
             style={[
               {
                 flex: 1,
-                backgroundColor: "rgba(15,23,42,0.45)",
+                backgroundColor: "rgba(15,15,15,0.55)",
               },
               backdropStyle
             ]}
@@ -312,16 +314,16 @@ export function ConfirmDialog({
                 bottom: 0,
                 left: 0,
                 right: 0,
-                borderTopLeftRadius: 28,
-                borderTopRightRadius: 28,
+                borderTopLeftRadius: 16,
+                borderTopRightRadius: 16,
                 paddingBottom: Platform.OS === "ios" ? 40 : 24 + insets.bottom,
+                backgroundColor: c.canvas,
               },
               sheetStyle
             ]}
-            className="bg-surface border-t border-border"
           >
             {/* Drag Handle */}
-            <View className="w-10 h-1 bg-border-strong rounded-full self-center mt-3 mb-5" />
+            <View className="w-10 h-1 rounded-full self-center mt-3 mb-5" style={{ backgroundColor: c.hairlineStrong }} />
 
             <View className="px-6 pb-2">{dialogContent}</View>
           </Animated.View>
@@ -354,7 +356,7 @@ export function ConfirmDialog({
           {/* Backdrop — NOT dismissible for centered destructive modals */}
           <Animated.View
             style={[
-              { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(15,23,42,0.5)" },
+              { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(15,15,15,0.55)" },
               backdropStyle
             ]}
           >
@@ -369,10 +371,12 @@ export function ConfirmDialog({
               {
                 width: "100%",
                 maxWidth: 360,
+                borderRadius: 16,
+                backgroundColor: c.canvas,
               },
               cardStyle
             ]}
-            className="bg-surface rounded-3xl overflow-hidden shadow-sm"
+            className="overflow-hidden"
           >
             <View className="pt-7 pb-5 px-6">{dialogContent}</View>
           </Animated.View>

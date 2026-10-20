@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, TouchableOpacity, ScrollView, Switch, ActivityIndicator, Platform } from "react-native";
-import { useColorScheme } from "nativewind";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
@@ -10,7 +9,11 @@ import { useUser } from "../../../contexts/UserContext";
 import { useToast } from "../../../contexts/ToastContext";
 import { ConfirmDialog } from "../../../components/ui/ConfirmDialog";
 import { apiFetch } from "../../../lib/api";
-import { theme } from "../../../constants/theme";function ReminderToggle({ 
+import { useDs } from "../../../components/onboarding/useDs";
+import DsButton from "../../../components/onboarding/DsButton";
+import { SquareIconButton } from "../../../components/exercise/ExerciseBits";
+
+function ReminderToggle({ 
   title, 
   description, 
   icon, 
@@ -21,8 +24,8 @@ import { theme } from "../../../constants/theme";function ReminderToggle({
   onToggle, 
   onTimePress, 
   isLast = false,
-  isDark = false 
 }: any) {
+  const { c } = useDs();
   // Format "HH:mm" to "h:mm A" for display
   const formatTime = (timeStr: string) => {
     if (!timeStr) return "";
@@ -35,19 +38,20 @@ import { theme } from "../../../constants/theme";function ReminderToggle({
   };
 
   return (
-    <View className={`py-4.5 ${!isLast ? "border-b border-border dark:border-slate-800/80" : ""}`}>
+    <View className="py-4" style={{ borderBottomWidth: isLast ? 0 : 1, borderBottomColor: c.hairlineSoft }}>
       <View className="flex-row items-center justify-between">
         <View className="flex-row items-center flex-1 pr-3">
           <View 
-            className="w-10 h-10 rounded-2xl items-center justify-center mr-3.5 border border-border/80 dark:border-slate-800"
+            className="w-10 h-10 rounded-lg items-center justify-center mr-3.5"
+            style={{ backgroundColor: iconBg }}
           >
             <Feather name={icon} size={18} color={iconColor} />
           </View>
           <View className="flex-1">
-            <Text className="text-[15px] font-semibold text-text">
+            <Text className="text-[16px] font-medium text-ds-ink">
               {title}
             </Text>
-            <Text className="text-[12px] text-text-soft mt-0.5 leading-snug">
+            <Text className="text-[13px] text-ds-slate mt-0.5 leading-snug">
               {description}
             </Text>
           </View>
@@ -56,9 +60,9 @@ import { theme } from "../../../constants/theme";function ReminderToggle({
         <Switch
           value={enabled}
           onValueChange={onToggle}
-          trackColor={{ false: isDark ? "#334155" : "#e2e8f0", true: "#4A6080" }}
-          thumbColor="#ffffff"
-          ios_backgroundColor={isDark ? "#334155" : "#e2e8f0"}
+          trackColor={{ false: c.hairlineStrong, true: c.line }}
+          thumbColor={c.onPrimary}
+          ios_backgroundColor={c.hairlineStrong}
           accessibilityLabel={`${title} toggle`}
           accessibilityRole="switch"
         />
@@ -66,7 +70,7 @@ import { theme } from "../../../constants/theme";function ReminderToggle({
 
       {enabled && (
         <View className="mt-3.5 pl-[54px] flex-row items-center">
-          <Text className="text-[13px] font-medium text-text-soft mr-2.5">
+          <Text className="text-[13px] font-medium text-ds-slate mr-2.5">
             Trigger at:
           </Text>
           <TouchableOpacity 
@@ -75,10 +79,11 @@ import { theme } from "../../../constants/theme";function ReminderToggle({
             accessible={true}
             accessibilityRole="button"
             accessibilityLabel={`Change time for ${title}, currently ${formatTime(time)}`}
-            className="bg-surface-alt px-3.5 py-1.5 rounded-xl border border-border flex-row items-center gap-1.5"
+            className="bg-ds-canvas px-3.5 rounded-lg border border-ds-hairline-strong flex-row items-center gap-1.5"
+            style={{ minHeight: 40 }}
           >
-            <Feather name="clock" size={13} color={isDark ? "#94a3b8" : "#64748b"} />
-            <Text className="text-[14px] font-semibold text-text">
+            <Feather name="clock" size={14} color={c.charcoal} />
+            <Text className="text-[15px] font-medium text-ds-ink">
               {formatTime(time)}
             </Text>
           </TouchableOpacity>
@@ -89,8 +94,7 @@ import { theme } from "../../../constants/theme";function ReminderToggle({
 }
 
 export default function DailyRemindersScreen() {
-  const { colorScheme } = useColorScheme();
-  const isDark = colorScheme === "dark";
+  const { c, isDark } = useDs();
   const router = useRouter();
   const { userId, token } = useUser();
   const { showToast } = useToast();
@@ -248,90 +252,72 @@ export default function DailyRemindersScreen() {
 
   if (isLoading) {
     return (
-      <SafeAreaView className="flex-1 bg-surface-alt items-center justify-center">
-        <ActivityIndicator size="large" color={theme.textSoft} />
+      <SafeAreaView className="flex-1 bg-ds-canvas items-center justify-center">
+        <ActivityIndicator size="large" color={c.line} />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-surface-alt" edges={["top"]}>
-      <StatusBar style="dark" />
+    <SafeAreaView className="flex-1 bg-ds-canvas" edges={["top"]}>
+      <StatusBar style={isDark ? "light" : "dark"} />
 
       {/* Header */}
-      <View className="flex-row items-center px-5 pt-4 pb-3 border-b border-border bg-surface">
-        <TouchableOpacity
-          onPress={handleBackPress}
-          accessible={true}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-          className="w-9 h-9 rounded-xl bg-surface-alt border border-border items-center justify-center mr-3"
-        >
-          <Feather name="arrow-left" size={18} color={isDark ? "#f8fafc" : "#0f172a"} />
-        </TouchableOpacity>
-        <Text className="text-[18px] font-semibold text-text tracking-tight">
+      <View className="flex-row items-center px-5 pt-3 pb-3 border-b border-ds-hairline bg-ds-canvas" style={{ gap: 12 }}>
+        <SquareIconButton icon="arrow-left" label="Go back" onPress={handleBackPress} />
+        <Text accessibilityRole="header" className="text-[22px] font-semibold text-ds-ink flex-1" numberOfLines={1}>
           Daily Reminders
         </Text>
       </View>
 
       <ScrollView contentContainerClassName="px-5 py-6 pb-28" showsVerticalScrollIndicator={false}>
-        <Text className="text-[14px] text-text-soft mb-6 leading-relaxed">
+        <Text className="text-[15px] text-ds-slate mb-6 leading-relaxed">
           Stay on track with your cardiovascular health by setting gentle reminders for your check-ins and daily routine.
         </Text>
 
-        <View className="bg-surface rounded-3xl border border-border/80 dark:border-slate-800/80 px-5 mb-6 shadow-sm shadow-slate-100 dark:shadow-none">
+        <View className="bg-ds-canvas rounded-xl border border-ds-hairline px-5 mb-6">
           <ReminderToggle
             title="Morning Check-in"
             description="Start your day with a HeartLink check-in."
             icon="sunrise"
-            iconBg="#eff6ff"
-            iconColor="#4A6080"
+            iconBg={c.sky}
+            iconColor={c.charcoal}
             enabled={reminders.morning.enabled}
             time={reminders.morning.time}
             onToggle={() => toggleReminder("morning")}
             onTimePress={() => setPickerConfig({ visible: true, key: "morning" })}
-            isDark={isDark}
           />
           <ReminderToggle
             title="Evening Wrap-up"
             description="Review your day before bedtime."
             icon="moon"
-            iconBg="#f5f3ff"
-            iconColor="#7c3aed"
+            iconBg={c.lavender}
+            iconColor={c.charcoal}
             enabled={reminders.evening.enabled}
             time={reminders.evening.time}
             onToggle={() => toggleReminder("evening")}
             onTimePress={() => setPickerConfig({ visible: true, key: "evening" })}
-            isDark={isDark}
           />
           <ReminderToggle
             title="Activity Goal"
             description="Get a reminder to stay on track with your movement goal."
             icon="activity"
-            iconBg="#f0fdf4"
-            iconColor="#16a34a"
+            iconBg={c.mint}
+            iconColor={c.charcoal}
             enabled={reminders.activity.enabled}
             time={reminders.activity.time}
             onToggle={() => toggleReminder("activity")}
             onTimePress={() => setPickerConfig({ visible: true, key: "activity" })}
             isLast
-            isDark={isDark}
           />
         </View>
 
-        <TouchableOpacity 
-          className={`h-13 rounded-2xl items-center justify-center flex-row py-3.5 shadow-sm ${
-            isDirty ? "bg-slate-900 dark:bg-blue-600" : "bg-slate-300 dark:bg-slate-800"
-          }`}
+        <DsButton
+          label={isDirty ? "Save Reminder Changes" : "Reminders Up to Date"}
           onPress={() => handleSave(false)}
-          disabled={isSaving || !isDirty}
-          activeOpacity={0.85}
-        >
-          {isSaving && <ActivityIndicator color={theme.onPrimary} size="small" className="mr-2" />}
-          <Text className={`font-semibold text-[15px] ${isDirty ? "text-white" : "text-text-soft"}`}>
-            {isDirty ? "Save Reminder Changes" : "Reminders Up to Date"}
-          </Text>
-        </TouchableOpacity>
+          disabled={!isDirty}
+          loading={isSaving}
+        />
       </ScrollView>
 
       {/* Date Time Picker */}

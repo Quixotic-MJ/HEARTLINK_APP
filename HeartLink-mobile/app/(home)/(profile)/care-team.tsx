@@ -5,12 +5,10 @@ import {
   TouchableOpacity, 
   ScrollView, 
   Linking, 
-  ActivityIndicator,
   Modal,
   TextInput,
   Pressable
 } from "react-native";
-import { useColorScheme } from "nativewind";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
@@ -20,8 +18,11 @@ import { Skeleton } from "../../../components/ui/Skeleton";
 import { EmptyState } from "../../../components/ui/EmptyState";
 import { useToast } from "../../../contexts/ToastContext";
 import { ConfirmDialog } from "../../../components/ui/ConfirmDialog";
-import { theme } from "../../../constants/theme";
+import { ds } from "../../../constants/theme";
 import { apiFetch } from "../../../lib/api";
+import { useDs } from "../../../components/onboarding/useDs";
+import DsButton from "../../../components/onboarding/DsButton";
+import { SquareIconButton } from "../../../components/exercise/ExerciseBits";
 
 
 const DOCTOR_PRESETS = ["Cardiologist", "Primary Care Doctor", "Nurse", "Other"];
@@ -37,13 +38,14 @@ function ContactCard({
   const isDoctor = contact.contact_type === "doctor";
   const title = isDoctor ? "Doctor / Specialist" : "Emergency Contact";
   const icon = isDoctor ? "user" : "heart";
+  const { c } = useDs();
 
   return (
-    <View className="bg-surface rounded-3xl border border-border/80 dark:border-slate-800/80 p-5 mb-4 shadow-sm shadow-slate-100 dark:shadow-none">
+    <View className="bg-ds-canvas rounded-xl border border-ds-hairline p-5 mb-3">
       <View className="flex-row justify-between items-center mb-3">
         <View className="flex-row items-center gap-1.5">
-          <View className={`w-2 h-2 rounded-full ${isDoctor ? "bg-blue-tint0" : "bg-red-500"}`} />
-          <Text className="text-[12px] font-bold text-text-muted uppercase tracking-wider">
+          <View className="w-2 h-2 rounded-full" style={{ backgroundColor: isDoctor ? c.line : c.danger }} />
+          <Text className="text-[11px] font-semibold text-ds-steel uppercase tracking-wider">
             {title}
           </Text>
         </View>
@@ -52,23 +54,25 @@ function ContactCard({
           accessible={true}
           accessibilityRole="button"
           accessibilityLabel={`Edit contact ${contact.name}`}
-          className="px-2.5 py-1 rounded-lg bg-surface-alt dark:bg-slate-800"
+          className="px-3 justify-center rounded-lg border border-ds-hairline-strong"
+          style={{ height: 32 }}
         >
-          <Text className="text-[12px] font-semibold text-primary">Edit</Text>
+          <Text className="text-[13px] font-medium text-ds-ink">Edit</Text>
         </TouchableOpacity>
       </View>
 
       <View className="flex-row items-center mb-4">
-        <View 
-          className="w-12 h-12 rounded-2xl items-center justify-center mr-3.5 border border-border/80 dark:border-slate-800"
+        <View
+          className="w-12 h-12 rounded-lg items-center justify-center mr-3.5"
+          style={{ backgroundColor: isDoctor ? c.sky : c.rose }}
         >
-          <Feather name={icon as any} size={20} color={isDoctor ? "#4A6080" : "#9E4E5F"} />
+          <Feather name={icon as any} size={20} color={isDoctor ? c.charcoal : c.danger} />
         </View>
         <View className="flex-1">
-          <Text className="text-[16px] font-bold text-text mb-0.5">
+          <Text className="text-[16px] font-semibold text-ds-ink mb-0.5">
             {contact.name}
           </Text>
-          <Text className="text-[13px] text-text-soft">
+          <Text className="text-[13px] text-ds-slate">
             {contact.role_title || (isDoctor ? "Specialist" : "Emergency Link")}
           </Text>
         </View>
@@ -81,10 +85,11 @@ function ContactCard({
           accessible={true}
           accessibilityRole="button"
           accessibilityLabel={`Call ${contact.name} at ${contact.phone}`}
-          className="flex-1 flex-row items-center justify-center py-3 rounded-2xl gap-2 bg-slate-900 dark:bg-blue-600"
+          className="flex-1 flex-row items-center justify-center rounded-lg gap-2 bg-ds-primary"
+          style={{ height: 44 }}
         >
-          <Feather name="phone" size={15} color={theme.onPrimary} />
-          <Text className="text-[14px] font-semibold text-white">Call</Text>
+          <Feather name="phone" size={15} color={c.onPrimary} />
+          <Text className="text-[14px] font-medium text-ds-on-primary">Call</Text>
         </TouchableOpacity>
         
         <TouchableOpacity
@@ -93,10 +98,11 @@ function ContactCard({
           accessible={true}
           accessibilityRole="button"
           accessibilityLabel={`Message ${contact.name} at ${contact.phone}`}
-          className="flex-1 flex-row items-center justify-center py-3 rounded-2xl border border-border bg-surface-alt gap-2"
+          className="flex-1 flex-row items-center justify-center rounded-lg border border-ds-hairline-strong gap-2"
+          style={{ height: 44 }}
         >
-          <Feather name="message-circle" size={15} color={theme.textSoft} />
-          <Text className="text-[14px] font-semibold text-text">Message</Text>
+          <Feather name="message-circle" size={15} color={c.ink} />
+          <Text className="text-[14px] font-medium text-ds-ink">Message</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -104,8 +110,7 @@ function ContactCard({
 }
 
 export default function CareTeamScreen() {
-  const { colorScheme } = useColorScheme();
-  const isDark = colorScheme === "dark";
+  const { c, isDark } = useDs();
   const router = useRouter();
   const { userId, token } = useUser();
   const { showToast } = useToast();
@@ -242,35 +247,19 @@ export default function CareTeamScreen() {
   const currentPresets = form.contact_type === "doctor" ? DOCTOR_PRESETS : EMERGENCY_PRESETS;
 
   return (
-    <SafeAreaView className="flex-1 bg-surface-alt" edges={["top"]}>
-      <StatusBar style="dark" />
+    <SafeAreaView className="flex-1 bg-ds-canvas" edges={["top"]}>
+      <StatusBar style={isDark ? "light" : "dark"} />
 
       {/* Header */}
-      <View className="px-5 pt-4 pb-3 bg-surface border-b border-border flex-row items-center justify-between">
-        <View className="flex-row items-center">
-          <TouchableOpacity
-            onPress={() => router.back()}
-            accessible={true}
-            accessibilityRole="button"
-            accessibilityLabel="Go back"
-            className="w-9 h-9 rounded-xl bg-surface-alt border border-border items-center justify-center mr-3"
-          >
-            <Feather name="arrow-left" size={18} color={isDark ? "#f8fafc" : "#0f172a"} />
-          </TouchableOpacity>
-          <Text className="text-[18px] font-semibold text-text tracking-tight">
+      <View className="px-5 pt-3 pb-3 bg-ds-canvas border-b border-ds-hairline flex-row items-center justify-between">
+        <View className="flex-row items-center flex-1" style={{ gap: 12 }}>
+          <SquareIconButton icon="arrow-left" label="Go back" onPress={() => router.back()} />
+          <Text accessibilityRole="header" className="text-[22px] font-semibold text-ds-ink">
             My Care Team
           </Text>
         </View>
 
-        <TouchableOpacity
-          onPress={openAddModal}
-          accessible={true}
-          accessibilityRole="button"
-          accessibilityLabel="Add new contact"
-          className="w-9 h-9 rounded-xl bg-blue-tint dark:bg-blue-950/50 border border-blue-tint items-center justify-center"
-        >
-          <Feather name="plus" size={18} color={theme.textSoft} />
-        </TouchableOpacity>
+        <SquareIconButton icon="plus" label="Add new contact" onPress={openAddModal} />
       </View>
 
       <ScrollView contentContainerClassName="p-5 pb-24" showsVerticalScrollIndicator={false}>
@@ -281,33 +270,34 @@ export default function CareTeamScreen() {
           accessible={true}
           accessibilityRole="button"
           accessibilityLabel="Emergency SOS, Dial 911 immediately"
-          className="bg-red-600 rounded-3xl p-5 mb-6 flex-row items-center justify-center gap-3 shadow-md shadow-red-600/30"
+          className="rounded-xl p-5 mb-6 flex-row items-center justify-center gap-3"
+          style={{ backgroundColor: ds.light.danger }}
         >
-          <MaterialCommunityIcons name="alert-circle" size={24} color="white" />
-          <Text className="text-white text-[18px] font-bold tracking-wider">
+          <MaterialCommunityIcons name="alert-circle" size={24} color={ds.light.onPrimary} />
+          <Text className="text-[18px] font-semibold tracking-wider" style={{ color: ds.light.onPrimary }}>
             EMERGENCY SOS (911)
           </Text>
         </TouchableOpacity>
 
         {/* Contacts Section */}
-        <Text className="text-[12px] font-bold text-text-soft mb-3 px-1 uppercase tracking-wider">
+        <Text className="text-[11px] font-semibold text-ds-steel mb-3 px-1 uppercase tracking-wider">
           Saved Providers & Contacts
         </Text>
 
         {isLoading ? (
           <View className="gap-3">
             {[1, 2].map((key) => (
-              <View key={key} className="bg-surface border border-border/70 p-5 rounded-3xl">
+              <View key={key} className="bg-ds-canvas border border-ds-hairline p-5 rounded-xl">
                 <View className="flex-row items-center mb-3">
-                  <Skeleton className="w-12 h-12 rounded-2xl mr-3" />
+                  <Skeleton className="w-12 h-12 rounded-xl mr-3" />
                   <View className="flex-1">
                     <Skeleton className="w-1/2 h-5 mb-1.5" />
                     <Skeleton className="w-1/3 h-4" />
                   </View>
                 </View>
                 <View className="flex-row gap-2">
-                  <Skeleton className="flex-1 h-11 rounded-2xl" />
-                  <Skeleton className="flex-1 h-11 rounded-2xl" />
+                  <Skeleton className="flex-1 h-11 rounded-xl" />
+                  <Skeleton className="flex-1 h-11 rounded-xl" />
                 </View>
               </View>
             ))}
@@ -322,7 +312,7 @@ export default function CareTeamScreen() {
           ))
         ) : (
           <EmptyState
-            icon={<Feather name="users" size={32} color={theme.textSoft} />}
+            icon={<Feather name="users" size={32} color={c.slate} />}
             title="No care team contacts"
             subtitle="Add your cardiologists, primary care doctors, or family emergency contacts here."
           />
@@ -334,12 +324,12 @@ export default function CareTeamScreen() {
           accessible={true}
           accessibilityRole="button"
           accessibilityLabel="Add care team contact"
-          className="bg-surface rounded-3xl border border-dashed border-border-strong dark:border-slate-700 p-5 items-center justify-center py-6 mt-2"
+          className="bg-ds-canvas rounded-xl border border-dashed border-ds-hairline-strong p-5 items-center justify-center py-6 mt-2"
         >
-          <View className="w-10 h-10 rounded-2xl bg-surface-alt items-center justify-center mb-2">
-            <Feather name="user-plus" size={18} color={theme.textSoft} />
+          <View className="w-10 h-10 rounded-xl bg-ds-surface items-center justify-center mb-2">
+            <Feather name="user-plus" size={18} color={c.charcoal} />
           </View>
-          <Text className="text-[14px] font-semibold text-text">
+          <Text className="text-[14px] font-semibold text-ds-ink">
             Add Another Contact
           </Text>
         </TouchableOpacity>
@@ -352,60 +342,56 @@ export default function CareTeamScreen() {
         transparent={true}
         onRequestClose={() => setModalVisible(false)}
       >
-        <Pressable className="flex-1 justify-end bg-black/50" onPress={() => setModalVisible(false)}>
-          <Pressable className="bg-surface rounded-t-3xl pt-6 px-6">
-            
+        <Pressable className="flex-1 justify-end" style={{ backgroundColor: "rgba(15,15,15,0.55)" }} onPress={() => setModalVisible(false)}>
+          <Pressable className="bg-ds-canvas pt-6 px-6" style={{ borderTopLeftRadius: 16, borderTopRightRadius: 16 }}>
+
             <View className="flex-row justify-between items-center mb-5">
-              <Text className="text-[20px] font-bold text-text">
+              <Text accessibilityRole="header" className="text-[20px] font-semibold text-ds-ink flex-1">
                 {editingContact ? "Edit Contact" : "Add Care Team Contact"}
               </Text>
-              <TouchableOpacity 
-                onPress={() => setModalVisible(false)} 
-                className="w-8 h-8 items-center justify-center bg-surface-alt rounded-full"
-              >
-                <Feather name="x" size={18} color={theme.textSoft} />
-              </TouchableOpacity>
+              <SquareIconButton icon="x" label="Close" onPress={() => setModalVisible(false)} />
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false}>
               {/* Type Toggle */}
-              <View className="flex-row bg-surface-alt p-1 rounded-2xl mb-4">
-                <View className={`flex-1 rounded-xl ${form.contact_type === "doctor" ? "bg-surface shadow-sm" : ""}`}>
-                  <TouchableOpacity 
-                    onPress={() => setForm(prev => ({ ...prev, contact_type: "doctor", role_title: "Cardiologist" }))}
-                    className="py-2.5 items-center rounded-xl"
-                  >
-                    <Text className={`text-[14px] font-semibold ${form.contact_type === "doctor" ? "text-primary" : "text-text-soft"}`}>
-                      Doctor / Specialist
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-                <View className={`flex-1 rounded-xl ${form.contact_type === "emergency" ? "bg-surface shadow-sm" : ""}`}>
-                  <TouchableOpacity 
-                    onPress={() => setForm(prev => ({ ...prev, contact_type: "emergency", role_title: "Spouse / Partner" }))}
-                    className="py-2.5 items-center rounded-xl"
-                  >
-                    <Text className={`text-[14px] font-semibold ${form.contact_type === "emergency" ? "text-red-600 dark:text-red-400" : "text-text-soft"}`}>
-                      Emergency Contact
-                    </Text>
-                  </TouchableOpacity>
-                </View>
+              <View className="flex-row bg-ds-surface p-1 rounded-lg mb-4">
+                {([
+                  { type: "doctor", label: "Doctor / Specialist", role: "Cardiologist" },
+                  { type: "emergency", label: "Emergency Contact", role: "Spouse / Partner" },
+                ] as const).map((t) => {
+                  const on = form.contact_type === t.type;
+                  return (
+                    <TouchableOpacity
+                      key={t.type}
+                      onPress={() => setForm(prev => ({ ...prev, contact_type: t.type, role_title: t.role }))}
+                      accessibilityRole="tab"
+                      accessibilityState={{ selected: on }}
+                      className="flex-1 items-center justify-center rounded-md"
+                      style={{ height: 40, borderWidth: 1, backgroundColor: on ? c.canvas : "transparent", borderColor: on ? c.hairline : "transparent" }}
+                    >
+                      <Text style={{ fontSize: 14, fontWeight: "500", color: on ? c.ink : c.steel }}>
+                        {t.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
 
               {/* Full Name */}
-              <Text className="text-[12px] font-bold text-text-soft mb-1.5 uppercase tracking-wider">
+              <Text className="text-[14px] font-medium text-ds-ink mb-1.5">
                 Full Name
               </Text>
               <TextInput
-                className="bg-surface-alt border border-border rounded-2xl px-4 py-3.5 text-[15px] text-text mb-4"
+                className="bg-ds-canvas border border-ds-hairline-strong rounded-lg px-4 text-[16px] text-ds-ink mb-4"
+                style={{ height: 48 }}
                 placeholder={form.contact_type === "doctor" ? "Dr. Jane Smith" : "John Smith"}
-                placeholderTextColor="#94a3b8"
+                placeholderTextColor={c.steel}
                 value={form.name}
                 onChangeText={(t) => setForm({ ...form, name: t })}
               />
 
               {/* Role / Relationship Presets */}
-              <Text className="text-[12px] font-bold text-text-soft mb-2 uppercase tracking-wider">
+              <Text className="text-[14px] font-medium text-ds-ink mb-2">
                 Role / Relationship
               </Text>
               <View className="flex-row flex-wrap gap-2 mb-2.5">
@@ -415,13 +401,12 @@ export default function CareTeamScreen() {
                     <TouchableOpacity
                       key={preset}
                       onPress={() => selectPreset(preset)}
-                      className={`px-3 py-1.5 rounded-xl border ${
-                        isSelected 
-                          ? "bg-blue-tint dark:bg-blue-950/60 border-blue-300 dark:border-blue-700" 
-                          : "bg-surface-alt border-border"
-                      }`}
+                      accessibilityRole="radio"
+                      accessibilityState={{ checked: isSelected }}
+                      className="px-4 justify-center rounded-full border"
+                      style={{ minHeight: 40, backgroundColor: isSelected ? (isDark ? c.ink : "#000000") : c.canvas, borderColor: isSelected ? (isDark ? c.ink : "#000000") : c.hairline }}
                     >
-                      <Text className={`text-[12px] font-semibold ${isSelected ? "text-primary" : "text-text-soft"}`}>
+                      <Text style={{ fontSize: 14, fontWeight: "500", color: isSelected ? c.canvas : c.charcoal }}>
                         {preset}
                       </Text>
                     </TouchableOpacity>
@@ -430,51 +415,43 @@ export default function CareTeamScreen() {
               </View>
 
               <TextInput
-                className="bg-surface-alt border border-border rounded-2xl px-4 py-3 text-[14px] text-text mb-4"
+                className="bg-ds-canvas border border-ds-hairline-strong rounded-lg px-4 text-[16px] text-ds-ink mb-4"
+                style={{ height: 48 }}
                 placeholder="Specific title or relationship"
-                placeholderTextColor="#94a3b8"
+                placeholderTextColor={c.steel}
                 value={form.role_title}
                 onChangeText={(t) => setForm({ ...form, role_title: t })}
               />
 
               {/* Phone Number */}
-              <Text className="text-[12px] font-bold text-text-soft mb-1.5 uppercase tracking-wider">
+              <Text className="text-[14px] font-medium text-ds-ink mb-1.5">
                 Phone Number
               </Text>
               <TextInput
-                className="bg-surface-alt border border-border rounded-2xl px-4 py-3.5 text-[15px] text-text mb-2"
+                className="bg-ds-canvas border border-ds-hairline-strong rounded-lg px-4 text-[16px] text-ds-ink mb-2"
+                style={{ height: 48 }}
                 placeholder="+1 555-0100"
-                placeholderTextColor="#94a3b8"
+                placeholderTextColor={c.steel}
                 keyboardType="phone-pad"
                 value={form.phone}
                 onChangeText={(t) => setForm({ ...form, phone: t })}
               />
-              <Text className="text-[11px] text-text-muted mb-6 px-1">
+              <Text className="text-[13px] text-ds-steel mb-6 px-1">
                 Enter phone number for direct one-tap calling and SMS messaging.
               </Text>
 
               {/* Save Button */}
-              <TouchableOpacity 
-                activeOpacity={0.85}
-                onPress={saveContact}
-                disabled={isSaving}
-                className="bg-slate-900 dark:bg-blue-600 rounded-2xl py-4 items-center mb-3"
-              >
-                {isSaving ? (
-                  <ActivityIndicator color={theme.onPrimary} />
-                ) : (
-                  <Text className="text-white font-semibold text-[15px]">Save Contact</Text>
-                )}
-              </TouchableOpacity>
+              <DsButton label="Save Contact" onPress={saveContact} loading={isSaving} style={{ marginBottom: 12 }} />
 
               {editingContact && (
-                <TouchableOpacity 
+                <TouchableOpacity
                   activeOpacity={0.85}
                   onPress={() => setShowDeleteConfirm(true)}
                   disabled={isSaving}
-                  className="bg-red-50 dark:bg-red-950/30 rounded-2xl py-3.5 items-center mb-5 border border-red-200 dark:border-red-900/50"
+                  className="rounded-lg items-center justify-center mb-5 border border-ds-hairline-strong"
+                  style={{ height: 48 }}
                 >
-                  <Text className="text-red-600 dark:text-red-400 font-semibold text-[15px]">Remove Contact</Text>
+                  <Text style={{ fontSize: 15, fontWeight: "500", color: c.danger }}>Remove Contact</Text>
                 </TouchableOpacity>
               )}
             </ScrollView>

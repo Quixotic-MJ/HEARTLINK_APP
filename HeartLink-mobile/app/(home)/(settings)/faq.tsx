@@ -1,6 +1,7 @@
+import { useDs } from "../../../components/onboarding/useDs";
+import { SquareIconButton } from "../../../components/exercise/ExerciseBits";
 import React, { useState } from "react";
 import { View, Text, TouchableOpacity, ScrollView } from "react-native";
-import { useColorScheme } from "nativewind";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
@@ -29,11 +30,12 @@ const faqs = [
   }
 ];
 
-function FAQItem({ question, answer, isDark }: any) {
+function FAQItem({ question, answer }: any) {
+  const { c } = useDs();
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <View className="border-b border-border dark:border-slate-800/80 overflow-hidden">
+    <View className="border-b border-ds-hairline-soft overflow-hidden">
       <TouchableOpacity 
         activeOpacity={0.7} 
         onPress={() => setExpanded(!expanded)}
@@ -42,14 +44,14 @@ function FAQItem({ question, answer, isDark }: any) {
         accessibilityLabel={`${question}, ${expanded ? "expanded" : "collapsed"}`}
         className="flex-row items-center justify-between py-4"
       >
-        <Text className="flex-1 text-[15px] font-semibold text-text mr-3 leading-6">
+        <Text className="flex-1 text-[16px] font-medium text-ds-ink mr-3 leading-6">
           {question}
         </Text>
-        <Feather name={expanded ? "chevron-up" : "chevron-down"} size={18} color={isDark ? "#94a3b8" : "#64748b"} />
+        <Feather name={expanded ? "chevron-up" : "chevron-down"} size={18} color={c.slate} />
       </TouchableOpacity>
       {expanded && (
         <View className="pb-4 pt-1">
-          <Text className="text-[14px] leading-relaxed text-text-soft">
+          <Text className="text-[15px] leading-relaxed text-ds-slate">
             {answer}
           </Text>
         </View>
@@ -59,47 +61,37 @@ function FAQItem({ question, answer, isDark }: any) {
 }
 
 export default function FAQScreen() {
-  const { colorScheme } = useColorScheme();
-  const isDark = colorScheme === "dark";
+  const { isDark } = useDs();
   const router = useRouter();
 
   return (
-    <SafeAreaView className="flex-1 bg-surface-alt" edges={["top"]}>
-      <StatusBar style="dark" />
+    <SafeAreaView className="flex-1 bg-ds-canvas" edges={["top"]}>
+      <StatusBar style={isDark ? "light" : "dark"} />
 
       {/* Header */}
-      <View className="flex-row items-center px-5 pt-4 pb-3 border-b border-border bg-surface">
-        <TouchableOpacity
-          onPress={() => router.back()}
-          accessible={true}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-          className="w-9 h-9 rounded-xl bg-surface-alt border border-border items-center justify-center mr-3"
-        >
-          <Feather name="arrow-left" size={18} color={isDark ? "#f8fafc" : "#0f172a"} />
-        </TouchableOpacity>
-        <Text className="text-[18px] font-semibold text-text tracking-tight">
+      <View className="flex-row items-center px-5 pt-3 pb-3 border-b border-ds-hairline bg-ds-canvas" style={{ gap: 12 }}>
+        <SquareIconButton icon="arrow-left" label="Go back" onPress={() => router.back()} />
+        <Text accessibilityRole="header" className="text-[22px] font-semibold text-ds-ink flex-1" numberOfLines={1}>
           Frequently Asked Questions
         </Text>
       </View>
 
       <ScrollView contentContainerClassName="px-5 py-6 pb-20" showsVerticalScrollIndicator={false}>
         <View className="mb-6">
-          <Text className="text-[22px] font-bold text-text mb-1.5 tracking-tight">
+          <Text className="text-[22px] font-semibold text-ds-ink mb-1.5 tracking-tight">
             Help & Knowledge Base
           </Text>
-          <Text className="text-[14px] text-text-soft leading-relaxed">
+          <Text className="text-[14px] text-ds-slate leading-relaxed">
             Common questions about cardiovascular logging, health stability scoring, and app features.
           </Text>
         </View>
 
-        <View className="bg-surface rounded-3xl border border-border/80 dark:border-slate-800/80 px-5 pt-1 shadow-sm shadow-slate-100 dark:shadow-none">
+        <View className="bg-ds-canvas rounded-xl border border-ds-hairline px-5 pt-1">
           {faqs.map((faq, index) => (
             <FAQItem 
               key={index} 
               question={faq.question} 
               answer={faq.answer} 
-              isDark={isDark} 
             />
           ))}
         </View>

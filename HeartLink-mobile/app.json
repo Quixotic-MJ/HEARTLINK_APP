@@ -30,7 +30,7 @@
           "image": "./assets/images/splash-logo-light.svg",
           "imageWidth": 291,
           "resizeMode": "contain",
-          "backgroundColor": "#F2F6FA"
+          "backgroundColor": "#ffffff"
         }
       ],
       "expo-font",

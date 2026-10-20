@@ -6,12 +6,14 @@ import { useRouter } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 import { useColorScheme } from "nativewind";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { theme, DARK_MODE_ENABLED } from "../../../constants/theme";
+import { DARK_MODE_ENABLED } from "../../../constants/theme";
+import { useDs } from "../../../components/onboarding/useDs";
+import { SquareIconButton } from "../../../components/exercise/ExerciseBits";
 
 export default function AppearanceScreen() {
   const router = useRouter();
-  const { colorScheme, setColorScheme } = useColorScheme();
-  const isDark = colorScheme === "dark";
+  const { setColorScheme } = useColorScheme();
+  const { c, isDark } = useDs();
   
   const [selectedTheme, setSelectedTheme] = useState<"light" | "dark" | "system">("system");
 
@@ -39,31 +41,23 @@ export default function AppearanceScreen() {
   ];
 
   return (
-    <SafeAreaView className="flex-1 bg-surface-alt" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-ds-canvas" edges={["top"]}>
       <StatusBar style={isDark ? "light" : "dark"} />
 
       {/* Header */}
-      <View className="flex-row items-center px-5 pt-4 pb-3 border-b border-border bg-surface">
-        <TouchableOpacity
-          onPress={() => router.back()}
-          accessible={true}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-          className="w-9 h-9 rounded-xl bg-surface-alt border border-border items-center justify-center mr-3"
-        >
-          <Feather name="arrow-left" size={18} color={isDark ? "#f8fafc" : "#0f172a"} />
-        </TouchableOpacity>
-        <Text className="text-[18px] font-semibold text-text tracking-tight">
+      <View className="flex-row items-center px-5 pt-3 pb-3 border-b border-ds-hairline bg-ds-canvas" style={{ gap: 12 }}>
+        <SquareIconButton icon="arrow-left" label="Go back" onPress={() => router.back()} />
+        <Text accessibilityRole="header" className="text-[22px] font-semibold text-ds-ink flex-1" numberOfLines={1}>
           Appearance & Theme
         </Text>
       </View>
 
       <ScrollView contentContainerClassName="px-5 py-6 pb-20" showsVerticalScrollIndicator={false}>
-        <Text className="text-[14px] text-text-soft mb-6 leading-relaxed">
+        <Text className="text-[15px] text-ds-slate mb-6 leading-relaxed">
           Choose how HeartLink appears on your device. The interface automatically adapts colors for comfortable reading.
         </Text>
 
-        <View className="bg-surface rounded-3xl border border-border/80 dark:border-slate-800/80 p-3 mb-6 shadow-sm shadow-slate-100 dark:shadow-none">
+        <View className="mb-6" style={{ gap: 8 }}>
           {themes.map((t) => {
             const isSelected = selectedTheme === t.id;
             // Dark mode is unfinished, so only Light can be picked for now (see DARK_MODE_ENABLED)
@@ -72,45 +66,36 @@ export default function AppearanceScreen() {
               <TouchableOpacity
                 key={t.id}
                 disabled={unavailable}
-                style={unavailable ? { opacity: 0.45 } : undefined}
+                style={{ minHeight: 64, borderRadius: 12, borderWidth: 1.5, backgroundColor: isSelected ? c.tint : c.canvas, borderColor: isSelected ? c.line : c.hairline, opacity: unavailable ? 0.45 : 1 }}
                 onPress={() => handleThemeChange(t.id as any)}
                 accessible={true}
                 accessibilityRole="radio"
                 accessibilityState={{ checked: isSelected, disabled: unavailable }}
                 accessibilityLabel={`${t.title}, ${unavailable ? "coming soon" : t.description}`}
                 activeOpacity={0.7}
-                className={`flex-row items-center p-3.5 rounded-2xl mb-1 ${
-                  isSelected ? "bg-blue-tint/60 dark:bg-blue-950/30 border border-blue-200/60 dark:border-blue-900/40" : ""
-                }`}
+                className="flex-row items-center px-4 py-3"
               >
-                <View 
-                  className={`w-10 h-10 rounded-2xl items-center justify-center mr-3.5 ${
-                    isSelected ? "bg-blue-600" : "bg-surface-alt"
-                  }`}
+                <View
+                  className="w-10 h-10 rounded-lg items-center justify-center mr-3.5"
+                  style={{ backgroundColor: isSelected ? c.canvas : c.surface }}
                 >
-                  <Feather 
-                    name={t.icon as any} 
-                    size={18} 
-                    color={isSelected ? "#ffffff" : isDark ? "#94a3b8" : "#64748b"} 
+                  <Feather
+                    name={t.icon as any}
+                    size={18}
+                    color={isSelected ? c.onTint : c.charcoal}
                   />
                 </View>
                 <View className="flex-1 pr-2">
-                  <Text 
-                    className={`text-[15px] font-semibold ${
-                      isSelected ? "text-primary" : "text-text"
-                    }`}
-                  >
+                  <Text style={{ fontSize: 16, fontWeight: "500", color: isSelected ? c.onTint : c.ink }}>
                     {t.title}
                   </Text>
-                  <Text className="text-[12px] text-text-soft mt-0.5 leading-snug">
+                  <Text style={{ fontSize: 13, lineHeight: 18, marginTop: 2, color: isSelected ? c.onTint : c.slate }}>
                     {unavailable ? "Coming soon" : t.description}
                   </Text>
                 </View>
-                {isSelected && (
-                  <View className="w-6 h-6 rounded-full bg-blue-600 items-center justify-center">
-                    <Feather name="check" size={14} color={theme.onPrimary} />
-                  </View>
-                )}
+                <View style={{ width: 22, height: 22, borderRadius: 11, borderWidth: 2, alignItems: "center", justifyContent: "center", borderColor: isSelected ? c.line : c.hairlineStrong }}>
+                  {isSelected && <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: c.line }} />}
+                </View>
               </TouchableOpacity>
             );
           })}

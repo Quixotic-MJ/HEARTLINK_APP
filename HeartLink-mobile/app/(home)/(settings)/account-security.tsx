@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { View, Text, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, Modal } from "react-native";
-import { useColorScheme } from "nativewind";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
@@ -10,9 +9,13 @@ import { isSessionTokens } from "../../../services/SessionService";
 import { useToast } from "../../../contexts/ToastContext";
 import { ConfirmDialog } from "../../../components/ui/ConfirmDialog";
 import { apiFetch } from "../../../lib/api";
-import { theme } from "../../../constants/theme";export default function AccountSecurityScreen() {
-  const { colorScheme } = useColorScheme();
-  const isDark = colorScheme === "dark";
+import { useDs } from "../../../components/onboarding/useDs";
+import DsButton from "../../../components/onboarding/DsButton";
+import { SquareIconButton } from "../../../components/exercise/ExerciseBits";
+import { ds } from "../../../constants/theme";
+
+export default function AccountSecurityScreen() {
+  const { c, isDark } = useDs();
   const router = useRouter();
   const { userId, token, logout, setUserId } = useUser();
   const { showToast } = useToast();
@@ -20,12 +23,12 @@ import { theme } from "../../../constants/theme";export default function Accoun
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  
+
   // Password visibility
   const [showCurrentPass, setShowCurrentPass] = useState(false);
   const [showNewPass, setShowNewPass] = useState(false);
   const [showConfirmPass, setShowConfirmPass] = useState(false);
-  
+
   const [isUpdating, setIsUpdating] = useState(false);
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
 
@@ -79,7 +82,7 @@ import { theme } from "../../../constants/theme";export default function Accoun
       const effectiveToken = token || "";
       const response = await apiFetch(`/api/users/${userId}/password`, {
         method: "PUT",
-        headers: { 
+        headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${effectiveToken}`,
         },
@@ -150,53 +153,45 @@ import { theme } from "../../../constants/theme";export default function Accoun
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-surface-alt" edges={["top"]}>
-      <StatusBar style="dark" />
+    <SafeAreaView className="flex-1 bg-ds-canvas" edges={["top"]}>
+      <StatusBar style={isDark ? "light" : "dark"} />
 
       {/* Header */}
-      <View className="flex-row items-center px-5 pt-4 pb-3 border-b border-border bg-surface">
-        <TouchableOpacity
-          onPress={handleBackPress}
-          accessible={true}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-          className="w-9 h-9 rounded-xl bg-surface-alt border border-border items-center justify-center mr-3"
-        >
-          <Feather name="arrow-left" size={18} color={isDark ? "#f8fafc" : "#0f172a"} />
-        </TouchableOpacity>
-        <Text className="text-[18px] font-semibold text-text tracking-tight">
+      <View className="flex-row items-center px-5 pt-3 pb-3 border-b border-ds-hairline bg-ds-canvas" style={{ gap: 12 }}>
+        <SquareIconButton icon="arrow-left" label="Go back" onPress={handleBackPress} />
+        <Text accessibilityRole="header" className="text-[22px] font-semibold text-ds-ink flex-1" numberOfLines={1}>
           Login & Security
         </Text>
       </View>
 
       <ScrollView contentContainerClassName="px-5 py-6 pb-20" showsVerticalScrollIndicator={false}>
-        <Text className="text-[14px] text-text-soft mb-6 leading-relaxed">
+        <Text className="text-[15px] text-ds-slate mb-6 leading-relaxed">
           Manage your account password and security credentials to protect your personal health information.
         </Text>
 
         {/* Change Password Card */}
-        <View className="bg-surface rounded-3xl border border-border/80 dark:border-slate-800/80 p-5 mb-6 shadow-sm shadow-slate-100 dark:shadow-none">
+        <View className="bg-ds-canvas rounded-xl border border-ds-hairline p-5 mb-6">
           <View className="flex-row items-center gap-2.5 mb-4">
-            <View className="w-8 h-8 rounded-xl bg-blue-tint dark:bg-blue-950/40 items-center justify-center">
-              <Feather name="key" size={16} color={theme.textSoft} />
+            <View className="w-8 h-8 rounded-lg bg-ds-sky items-center justify-center">
+              <Feather name="key" size={16} color={c.charcoal} />
             </View>
-            <Text className="text-[16px] font-semibold text-text">
+            <Text className="text-[16px] font-semibold text-ds-ink">
               Change Password
             </Text>
           </View>
-          
+
           {/* Current Password Field */}
           <View className="mb-4">
-            <Text className="text-[12px] font-bold text-text-soft mb-1.5 uppercase tracking-wider">
+            <Text className="text-[14px] font-medium text-ds-ink mb-1.5">
               Current Password
             </Text>
-            <View className="flex-row items-center bg-surface-alt border border-border rounded-2xl px-4 h-13">
-              <Feather name="lock" size={16} color={theme.textSoft} />
-              <TextInput 
-                className="flex-1 ml-3 text-[15px] text-text"
+            <View className="flex-row items-center bg-ds-canvas border border-ds-hairline-strong rounded-lg px-4" style={{ height: 52 }}>
+              <Feather name="lock" size={16} color={c.slate} />
+              <TextInput
+                className="flex-1 ml-3 text-[16px] text-ds-ink"
                 placeholder="Enter current password"
                 secureTextEntry={!showCurrentPass}
-                placeholderTextColor="#94a3b8"
+                placeholderTextColor={c.steel}
                 value={currentPassword}
                 onChangeText={setCurrentPassword}
                 autoCapitalize="none"
@@ -208,23 +203,23 @@ import { theme } from "../../../constants/theme";export default function Accoun
                 accessibilityLabel={showCurrentPass ? "Hide current password" : "Show current password"}
                 className="p-2"
               >
-                <Feather name={showCurrentPass ? "eye-off" : "eye"} size={16} color={theme.textSoft} />
+                <Feather name={showCurrentPass ? "eye-off" : "eye"} size={16} color={c.slate} />
               </TouchableOpacity>
             </View>
           </View>
 
           {/* New Password Field */}
           <View className="mb-4">
-            <Text className="text-[12px] font-bold text-text-soft mb-1.5 uppercase tracking-wider">
+            <Text className="text-[14px] font-medium text-ds-ink mb-1.5">
               New Password
             </Text>
-            <View className="flex-row items-center bg-surface-alt border border-border rounded-2xl px-4 h-13">
-              <Feather name="lock" size={16} color={theme.textSoft} />
-              <TextInput 
-                className="flex-1 ml-3 text-[15px] text-text"
+            <View className="flex-row items-center bg-ds-canvas border border-ds-hairline-strong rounded-lg px-4" style={{ height: 52 }}>
+              <Feather name="lock" size={16} color={c.slate} />
+              <TextInput
+                className="flex-1 ml-3 text-[16px] text-ds-ink"
                 placeholder="Enter new password"
                 secureTextEntry={!showNewPass}
-                placeholderTextColor="#94a3b8"
+                placeholderTextColor={c.steel}
                 value={newPassword}
                 onChangeText={setNewPassword}
                 autoCapitalize="none"
@@ -236,23 +231,23 @@ import { theme } from "../../../constants/theme";export default function Accoun
                 accessibilityLabel={showNewPass ? "Hide new password" : "Show new password"}
                 className="p-2"
               >
-                <Feather name={showNewPass ? "eye-off" : "eye"} size={16} color={theme.textSoft} />
+                <Feather name={showNewPass ? "eye-off" : "eye"} size={16} color={c.slate} />
               </TouchableOpacity>
             </View>
           </View>
 
           {/* Confirm New Password Field */}
           <View className="mb-4">
-            <Text className="text-[12px] font-bold text-text-soft mb-1.5 uppercase tracking-wider">
+            <Text className="text-[14px] font-medium text-ds-ink mb-1.5">
               Confirm New Password
             </Text>
-            <View className="flex-row items-center bg-surface-alt border border-border rounded-2xl px-4 h-13">
-              <Feather name="check-circle" size={16} color={theme.textSoft} />
-              <TextInput 
-                className="flex-1 ml-3 text-[15px] text-text"
+            <View className="flex-row items-center bg-ds-canvas border border-ds-hairline-strong rounded-lg px-4" style={{ height: 52 }}>
+              <Feather name="check-circle" size={16} color={c.slate} />
+              <TextInput
+                className="flex-1 ml-3 text-[16px] text-ds-ink"
                 placeholder="Confirm new password"
                 secureTextEntry={!showConfirmPass}
-                placeholderTextColor="#94a3b8"
+                placeholderTextColor={c.steel}
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
                 autoCapitalize="none"
@@ -264,97 +259,85 @@ import { theme } from "../../../constants/theme";export default function Accoun
                 accessibilityLabel={showConfirmPass ? "Hide confirm password" : "Show confirm password"}
                 className="p-2"
               >
-                <Feather name={showConfirmPass ? "eye-off" : "eye"} size={16} color={theme.textSoft} />
+                <Feather name={showConfirmPass ? "eye-off" : "eye"} size={16} color={c.slate} />
               </TouchableOpacity>
             </View>
           </View>
 
           {/* Real-time Requirement Checklist */}
-          <View className="bg-surface-alt/80 rounded-2xl p-3.5 mb-5 border border-border dark:border-slate-800/80 gap-2">
-            <Text className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-0.5">
+          <View className="bg-ds-surface rounded-xl p-3.5 mb-5 border border-ds-hairline gap-2">
+            <Text className="text-[11px] font-semibold text-ds-steel uppercase tracking-wider mb-0.5">
               Password Requirements
             </Text>
-            
+
             <View className="flex-row items-center gap-2">
-              <Feather 
-                name={isMinLength ? "check-circle" : "circle"} 
-                size={14} 
-                color={isMinLength ? "#16a34a" : isDark ? "#64748b" : "#94a3b8"} 
+              <Feather
+                name={isMinLength ? "check-circle" : "circle"}
+                size={14}
+                color={isMinLength ? c.success : c.steel}
               />
-              <Text className={`text-[13px] ${isMinLength ? "text-green-600 dark:text-green-400 font-medium" : "text-text-soft"}`}>
+              <Text className={`text-[13px] ${isMinLength ? "text-ds-ink font-medium" : "text-ds-slate"}`}>
                 At least 16 characters
               </Text>
             </View>
 
             <View className="flex-row items-center gap-2">
-              <Feather 
-                name={hasNumber ? "check-circle" : "circle"} 
-                size={14} 
-                color={hasNumber ? "#16a34a" : isDark ? "#64748b" : "#94a3b8"} 
+              <Feather
+                name={hasNumber ? "check-circle" : "circle"}
+                size={14}
+                color={hasNumber ? c.success : c.steel}
               />
-              <Text className={`text-[13px] ${hasNumber ? "text-green-600 dark:text-green-400 font-medium" : "text-text-soft"}`}>
+              <Text className={`text-[13px] ${hasNumber ? "text-ds-ink font-medium" : "text-ds-slate"}`}>
                 At least one number
               </Text>
             </View>
 
             <View className="flex-row items-center gap-2">
-              <Feather 
-                name={hasSpecial ? "check-circle" : "circle"} 
-                size={14} 
-                color={hasSpecial ? "#16a34a" : isDark ? "#64748b" : "#94a3b8"} 
+              <Feather
+                name={hasSpecial ? "check-circle" : "circle"}
+                size={14}
+                color={hasSpecial ? c.success : c.steel}
               />
-              <Text className={`text-[13px] ${hasSpecial ? "text-green-600 dark:text-green-400 font-medium" : "text-text-soft"}`}>
+              <Text className={`text-[13px] ${hasSpecial ? "text-ds-ink font-medium" : "text-ds-slate"}`}>
                 At least one special character
               </Text>
             </View>
 
             <View className="flex-row items-center gap-2">
-              <Feather 
-                name={isMatching ? "check-circle" : "circle"} 
-                size={14} 
-                color={isMatching ? "#16a34a" : isDark ? "#64748b" : "#94a3b8"} 
+              <Feather
+                name={isMatching ? "check-circle" : "circle"}
+                size={14}
+                color={isMatching ? c.success : c.steel}
               />
-              <Text className={`text-[13px] ${isMatching ? "text-green-600 dark:text-green-400 font-medium" : "text-text-soft"}`}>
+              <Text className={`text-[13px] ${isMatching ? "text-ds-ink font-medium" : "text-ds-slate"}`}>
                 New passwords match
               </Text>
             </View>
           </View>
 
-          <TouchableOpacity 
-            className={`h-13 rounded-2xl items-center justify-center flex-row gap-2 ${
-              isFormValid && !isUpdating ? "bg-slate-900 dark:bg-blue-600" : "bg-slate-300 dark:bg-slate-800"
-            }`}
-            onPress={handleUpdatePassword}
-            disabled={!isFormValid || isUpdating}
-            activeOpacity={0.85}
-          >
-            {isUpdating ? <ActivityIndicator color={theme.onPrimary} size="small" /> : null}
-            <Text className={`font-semibold text-[15px] ${isFormValid && !isUpdating ? "text-white" : "text-text-soft"}`}>
-              Update Password
-            </Text>
-          </TouchableOpacity>
+          <DsButton label="Update Password" onPress={handleUpdatePassword} disabled={!isFormValid} loading={isUpdating} />
         </View>
 
         {/* Danger Zone */}
         <View className="mt-4">
-          <Text className="text-[12px] font-bold text-red-600 dark:text-red-400 mb-2.5 px-1 uppercase tracking-wider">
+          <Text className="text-[11px] font-semibold text-ds-steel mb-2.5 px-1 uppercase tracking-wider">
             Danger Zone
           </Text>
-          <View className="bg-red-50/60 dark:bg-red-950/20 rounded-3xl border border-red-200/80 dark:border-red-900/40 p-5">
+          <View className="bg-ds-rose rounded-xl p-5">
             <View className="flex-row items-center gap-2.5 mb-2">
-              <View className="w-8 h-8 rounded-xl bg-red-100 dark:bg-red-900/40 items-center justify-center">
-                <Feather name="alert-triangle" size={16} color={theme.danger} />
+              <View className="w-8 h-8 rounded-lg bg-ds-canvas items-center justify-center">
+                <Feather name="alert-triangle" size={16} color={c.danger} />
               </View>
-              <Text className="text-[16px] font-semibold text-red-700 dark:text-red-300">
+              <Text className="text-[16px] font-semibold text-ds-ink">
                 Delete Account
               </Text>
             </View>
 
-            <Text className="text-[13px] text-text-soft mb-4 leading-relaxed">
+            <Text className="text-[14px] text-ds-charcoal mb-4 leading-relaxed">
               Permanently remove your patient account, biometrics, health logs, care team contacts, and scheduled reminders. This cannot be undone.
             </Text>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               onPress={() => {
                 setDeletePassword("");
                 setDeleteTypedText("");
@@ -364,9 +347,10 @@ import { theme } from "../../../constants/theme";export default function Accoun
               accessible={true}
               accessibilityRole="button"
               accessibilityLabel="Delete my account"
-              className="bg-surface h-12 rounded-2xl items-center justify-center border border-red-300 dark:border-red-800/80 shadow-sm shadow-red-100 dark:shadow-none"
+              className="bg-ds-canvas rounded-lg items-center justify-center border border-ds-hairline-strong"
+              style={{ height: 48 }}
             >
-              <Text className="text-red-600 dark:text-red-400 font-semibold text-[15px]">
+              <Text style={{ fontSize: 15, fontWeight: "500", color: c.danger }}>
                 Delete My Account
               </Text>
             </TouchableOpacity>
@@ -398,37 +382,38 @@ import { theme } from "../../../constants/theme";export default function Accoun
         animationType="fade"
         onRequestClose={() => !isDeleting && setShowDeleteModal(false)}
       >
-        <View className="flex-1 bg-black/60 items-center justify-center px-5">
-          <View className="w-full max-w-md bg-surface rounded-3xl p-6 border border-border shadow-2xl">
-            <View className="w-12 h-12 rounded-2xl bg-red-100 dark:bg-red-950/50 items-center justify-center self-center mb-3">
-              <Feather name="alert-octagon" size={24} color={theme.danger} />
+        <View className="flex-1 items-center justify-center px-5" style={{ backgroundColor: "rgba(15,15,15,0.6)" }}>
+          <View className="w-full max-w-md bg-ds-canvas p-6" style={{ borderRadius: 16 }}>
+            <View className="w-12 h-12 rounded-xl bg-ds-rose items-center justify-center self-center mb-3">
+              <Feather name="alert-octagon" size={24} color={c.danger} />
             </View>
 
-            <Text className="text-[19px] font-bold text-text text-center mb-1.5">
+            <Text accessibilityRole="header" className="text-[20px] font-semibold text-ds-ink text-center mb-1.5">
               Permanent Account Deletion
             </Text>
-            
-            <Text className="text-[13px] text-text-soft text-center mb-4 leading-relaxed">
+
+            <Text className="text-[14px] text-ds-slate text-center mb-4 leading-relaxed">
               This action is permanent and irreversible. All associated data will be completely deleted:
             </Text>
 
             {/* Itemized Deletion Disclosures */}
-            <View className="bg-surface-alt rounded-2xl p-3.5 mb-4 border border-border dark:border-slate-800 gap-1.5">
-              <Text className="text-[12px] text-text-soft">• Personal profile & login credentials</Text>
-              <Text className="text-[12px] text-text-soft">• Blood pressure, heart rate, & symptom logs</Text>
-              <Text className="text-[12px] text-text-soft">• Meal diary & nutritional history</Text>
-              <Text className="text-[12px] text-text-soft">• Exercise & rehab routine history</Text>
-              <Text className="text-[12px] text-text-soft">• Care team contacts & scheduled reminders</Text>
+            <View className="bg-ds-surface rounded-xl p-3.5 mb-4 border border-ds-hairline gap-1.5">
+              <Text className="text-[13px] text-ds-slate">• Personal profile & login credentials</Text>
+              <Text className="text-[13px] text-ds-slate">• Blood pressure, heart rate, & symptom logs</Text>
+              <Text className="text-[13px] text-ds-slate">• Meal diary & nutritional history</Text>
+              <Text className="text-[13px] text-ds-slate">• Exercise & rehab routine history</Text>
+              <Text className="text-[13px] text-ds-slate">• Care team contacts & scheduled reminders</Text>
             </View>
 
             <View className="mb-3">
-              <Text className="text-[12px] font-bold text-text-soft mb-1.5 uppercase tracking-wider">
+              <Text className="text-[14px] font-medium text-ds-ink mb-1.5">
                 Current Password
               </Text>
               <TextInput
-                className="bg-surface-alt border border-border rounded-xl px-4 py-3 text-[14px] text-text"
+                className="bg-ds-canvas border border-ds-hairline-strong rounded-lg px-4 text-[16px] text-ds-ink"
                 placeholder="Enter your current password"
-                placeholderTextColor="#94a3b8"
+                style={{ height: 48 }}
+                placeholderTextColor={c.steel}
                 secureTextEntry
                 value={deletePassword}
                 onChangeText={setDeletePassword}
@@ -437,13 +422,14 @@ import { theme } from "../../../constants/theme";export default function Accoun
             </View>
 
             <View className="mb-5">
-              <Text className="text-[12px] font-bold text-text-soft mb-1.5 uppercase tracking-wider">
-                Type <Text className="font-bold text-red-600">DELETE</Text> to confirm
+              <Text className="text-[14px] font-medium text-ds-ink mb-1.5">
+                Type <Text className="font-semibold text-ds-danger">DELETE</Text> to confirm
               </Text>
               <TextInput
-                className="bg-surface-alt border border-border rounded-xl px-4 py-3 text-[14px] text-text text-center font-bold tracking-widest"
+                className="bg-ds-canvas border border-ds-hairline-strong rounded-lg px-4 text-[16px] text-ds-ink text-center font-semibold tracking-widest"
                 placeholder="DELETE"
-                placeholderTextColor="#94a3b8"
+                style={{ height: 48 }}
+                placeholderTextColor={c.steel}
                 autoCapitalize="characters"
                 value={deleteTypedText}
                 onChangeText={setDeleteTypedText}
@@ -454,9 +440,10 @@ import { theme } from "../../../constants/theme";export default function Accoun
               <TouchableOpacity
                 onPress={() => setShowDeleteModal(false)}
                 disabled={isDeleting}
-                className="w-full py-3.5 rounded-2xl items-center border border-border bg-surface"
+                className="w-full rounded-lg items-center justify-center border border-ds-hairline-strong bg-ds-canvas"
+                style={{ height: 48 }}
               >
-                <Text className="text-[15px] font-semibold text-text">
+                <Text className="text-[15px] font-medium text-ds-ink">
                   Cancel
                 </Text>
               </TouchableOpacity>
@@ -465,12 +452,15 @@ import { theme } from "../../../constants/theme";export default function Accoun
                 onPress={handleDeleteAccount}
                 disabled={isDeleting || !deletePassword || deleteTypedText !== "DELETE"}
                 style={{
+                  height: 48,
+                  // Red keeps its light-mode shade so the white text stays readable.
+                  backgroundColor: ds.light.danger,
                   opacity: (!isDeleting && deletePassword && deleteTypedText === "DELETE") ? 1 : 0.5,
                 }}
-                className="w-full py-3.5 rounded-2xl items-center bg-red-600 flex-row justify-center gap-2"
+                className="w-full rounded-lg items-center flex-row justify-center gap-2"
               >
-                {isDeleting ? <ActivityIndicator size="small" color={theme.onPrimary} /> : null}
-                <Text className="text-[15px] font-semibold text-white">
+                {isDeleting ? <ActivityIndicator size="small" color={ds.light.onPrimary} /> : null}
+                <Text className="text-[15px] font-medium" style={{ color: ds.light.onPrimary }}>
                   Permanently Delete Account
                 </Text>
               </TouchableOpacity>

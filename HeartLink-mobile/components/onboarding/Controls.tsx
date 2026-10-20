@@ -391,9 +391,13 @@ interface DsTextFieldProps extends Omit<TextInputProps, "style"> {
   unit?: string;
   hasError?: boolean;
   large?: boolean;
+  /** To move focus here from another field. */
+  inputRef?: React.Ref<TextInput>;
+  /** When a heading above already names the field (screen readers still hear the label). */
+  hideLabel?: boolean;
 }
 
-export function DsTextField({ label, optional, unit, hasError = false, large = false, ...input }: DsTextFieldProps) {
+export function DsTextField({ label, optional, unit, hasError = false, large = false, inputRef, hideLabel = false, ...input }: DsTextFieldProps) {
   const { c } = useDs();
   const [focused, setFocused] = useState(false);
   const p = useSelection(focused || hasError);
@@ -403,16 +407,19 @@ export function DsTextField({ label, optional, unit, hasError = false, large = f
   }));
   return (
     <View style={{ gap: 6 }}>
-      <Text style={{ fontSize: 14, fontWeight: "500", color: c.ink }}>
-        {label}
-        {optional ? <Text style={{ fontWeight: "400", color: c.steel }}> (optional)</Text> : null}
-      </Text>
+      {hideLabel ? null : (
+        <Text style={{ fontSize: 14, fontWeight: "500", color: c.ink }}>
+          {label}
+          {optional ? <Text style={{ fontWeight: "400", color: c.steel }}> (optional)</Text> : null}
+        </Text>
+      )}
       <Animated.View
         className="flex-row items-center"
         style={[{ height: large ? 64 : 52, borderRadius: 8, borderWidth: 1.5, paddingHorizontal: 16, backgroundColor: c.canvas }, box]}
       >
         <TextInput
           {...input}
+          ref={inputRef}
           accessibilityLabel={label}
           placeholderTextColor={c.steel}
           onFocus={(e) => {

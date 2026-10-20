@@ -8,7 +8,6 @@ import {
   ActivityIndicator,
   Animated as RNAnimated,
 } from "react-native";
-import { useColorScheme } from "nativewind";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
@@ -16,7 +15,9 @@ import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useUser } from "../../../contexts/UserContext";
 import { useToast } from "../../../contexts/ToastContext";
 import { apiFetch } from "../../../lib/api";
-import { theme } from "../../../constants/theme";// ─── Types ────────────────────────────────────────────────────────────────────
+import { ds, DsColors } from "../../../constants/theme";
+import { useDs } from "../../../components/onboarding/useDs";
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 type NotificationType =
   | "alert"
@@ -42,66 +43,17 @@ interface Notification {
 
 type NotifTheme = {
   icon: string;
-  color: string;
-  iconBg: string;
-  iconBorder: string;
-  dotColor: string;
-  darkColor: string;
-  darkIconBg: string;
-  darkIconBorder: string;
+  /** Badge background and icon colour, from the design-system tints. */
+  bg: keyof DsColors;
+  fg: keyof DsColors;
 };
 
 const NOTIF_THEME: Record<NotificationType, NotifTheme> = {
-  alert: {
-    icon: "alert-triangle",
-    color: theme.danger,
-    iconBg: "#fef2f2",
-    iconBorder: "#fecaca",
-    dotColor: "#dc2626",
-    darkColor: "#ef4444",
-    darkIconBg: "#2a1215",
-    darkIconBorder: "#451a1a",
-  },
-  insight: {
-    icon: "trending-up",
-    color: theme.textSoft,
-    iconBg: "#eff6ff",
-    iconBorder: "#bfdbfe",
-    dotColor: "#4A6080",
-    darkColor: "#6488B0",
-    darkIconBg: "#13203b",
-    darkIconBorder: "#1e3a5f",
-  },
-  reminder: {
-    icon: "clock",
-    color: theme.warningText,
-    iconBg: "#fffbeb",
-    iconBorder: "#fde68a",
-    dotColor: "#d97706",
-    darkColor: "#f59e0b",
-    darkIconBg: "#2d1f0d",
-    darkIconBorder: "#57300c",
-  },
-  achievement: {
-    icon: "award",
-    color: theme.success,
-    iconBg: "#f0fdf4",
-    iconBorder: "#bbf7d0",
-    dotColor: "#16a34a",
-    darkColor: "#22c55e",
-    darkIconBg: "#112a1a",
-    darkIconBorder: "#16532d",
-  },
-  system: {
-    icon: "info",
-    color: "#4FB6E6",
-    iconBg: "#eef2ff",
-    iconBorder: "#c7d2fe",
-    dotColor: "#6366f1",
-    darkColor: "#818cf8",
-    darkIconBg: "#1e1b4b",
-    darkIconBorder: "#312e81",
-  },
+  alert: { icon: "alert-triangle", bg: "rose", fg: "danger" },
+  insight: { icon: "trending-up", bg: "sky", fg: "charcoal" },
+  reminder: { icon: "clock", bg: "yellow", fg: "warmText" },
+  achievement: { icon: "award", bg: "mint", fg: "charcoal" },
+  system: { icon: "info", bg: "lavender", fg: "charcoal" },
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -155,14 +107,13 @@ function FilterChip({
   active,
   badge,
   onPress,
-  isDark,
 }: {
   label: string;
   active: boolean;
   badge?: number;
   onPress: () => void;
-  isDark: boolean;
 }) {
+  const { c } = useDs();
   return (
     <TouchableOpacity
       accessible={true}
@@ -180,35 +131,17 @@ function FilterChip({
         paddingHorizontal: 15,
         paddingVertical: 8,
         borderRadius: 100,
-        borderWidth: 1.5,
+        borderWidth: 1,
         gap: 6,
-        backgroundColor: active
-          ? isDark
-            ? "#e2e8f0"
-            : "#0f172a"
-          : isDark
-          ? "#0f172a"
-          : "#ffffff",
-        borderColor: active
-          ? isDark
-            ? "#e2e8f0"
-            : "#0f172a"
-          : isDark
-          ? "#334155"
-          : "#e2e8f0",
+        backgroundColor: active ? c.ink : c.canvas,
+        borderColor: active ? c.ink : c.hairline,
       }}
     >
       <Text
         style={{
-          fontSize: 12.5,
-          fontWeight: active ? "700" : "500",
-          color: active
-            ? isDark
-              ? "#0f172a"
-              : "#ffffff"
-            : isDark
-            ? "#94a3b8"
-            : "#64748b",
+          fontSize: 13,
+          fontWeight: "500",
+          color: active ? c.canvas : c.charcoal,
         }}
       >
         {label}
@@ -222,18 +155,14 @@ function FilterChip({
             alignItems: "center",
             justifyContent: "center",
             paddingHorizontal: 5,
-            backgroundColor: active
-              ? isDark
-                ? "#0f172a"
-                : "rgba(255,255,255,0.25)"
-              : "#dc2626",
+            backgroundColor: active ? c.canvas : ds.light.danger,
           }}
         >
           <Text
             style={{
-              fontSize: 10.5,
-              fontWeight: "700",
-              color: active && isDark ? "#f8fafc" : "#ffffff",
+              fontSize: 11,
+              fontWeight: "600",
+              color: active ? c.ink : ds.light.onPrimary,
             }}
           >
             {badge}
@@ -246,7 +175,8 @@ function FilterChip({
 
 // ─── Skeleton Loader Component ────────────────────────────────────────────────
 
-function SkeletonCard({ isDark }: { isDark: boolean }) {
+function SkeletonCard() {
+  const { c } = useDs();
   const opacity = useRef(new RNAnimated.Value(0.35)).current;
 
   useEffect(() => {
@@ -268,7 +198,7 @@ function SkeletonCard({ isDark }: { isDark: boolean }) {
     return () => anim.stop();
   }, [opacity]);
 
-  const skeletonBg = isDark ? "#1e293b" : "#e2e8f0";
+  const skeletonBg = c.surfaceAlt;
 
   return (
     <RNAnimated.View
@@ -276,12 +206,12 @@ function SkeletonCard({ isDark }: { isDark: boolean }) {
         opacity,
         flexDirection: "row",
         padding: 14,
-        borderRadius: 16,
+        borderRadius: 12,
         marginBottom: 10,
         minHeight: 76,
-        backgroundColor: isDark ? "#0f172a" : "#ffffff",
+        backgroundColor: c.canvas,
         borderWidth: 1,
-        borderColor: isDark ? "#1e293b" : "#f1f5f9",
+        borderColor: c.hairlineSoft,
       }}
     >
       <View
@@ -344,12 +274,11 @@ function SkeletonCard({ isDark }: { isDark: boolean }) {
 function NotificationCard({
   notification,
   onPress,
-  isDark,
 }: {
   notification: Notification;
   onPress: () => void;
-  isDark: boolean;
 }) {
+  const { c } = useDs();
   const router = useRouter();
   const theme = NOTIF_THEME[notification.type] || NOTIF_THEME.system;
   const { read, scope } = notification;
@@ -397,29 +326,13 @@ function NotificationCard({
       style={{
         flexDirection: "row",
         alignItems: "flex-start",
-        borderRadius: 16,
+        borderRadius: 12,
         marginBottom: 10,
         padding: 14,
         borderWidth: 1,
         minHeight: 74,
-        backgroundColor: read
-          ? isDark
-            ? "#090d16"
-            : "#f8fafc"
-          : isDark
-          ? "#0f172a"
-          : "#ffffff",
-        borderColor: read
-          ? isDark
-            ? "#1e293b60"
-            : "#f1f5f9"
-          : isDark
-          ? isBroadcast
-            ? "#312e81"
-            : "#1e293b"
-          : isBroadcast
-          ? "#c7d2fe"
-          : "#dbeafe",
+        backgroundColor: read ? c.surface : c.canvas,
+        borderColor: read ? c.hairlineSoft : c.hairline,
       }}
     >
       {/* Unread Accent Indicator Bar */}
@@ -433,13 +346,7 @@ function NotificationCard({
             width: 3.5,
             borderTopRightRadius: 3,
             borderBottomRightRadius: 3,
-            backgroundColor: isBroadcast
-              ? isDark
-                ? "#818cf8"
-                : "#6366f1"
-              : isDark
-              ? theme.darkColor
-              : theme.dotColor,
+            backgroundColor: notification.type === "alert" && !isBroadcast ? c.danger : c.line,
           }}
         />
       )}
@@ -453,34 +360,20 @@ function NotificationCard({
           alignItems: "center",
           justifyContent: "center",
           marginRight: 12,
-          borderWidth: 1,
-          backgroundColor: isDark
-            ? isBroadcast
-              ? "#1e1b4b"
-              : theme.darkIconBg
-            : isBroadcast
-            ? "#eef2ff"
-            : theme.iconBg,
-          borderColor: isDark
-            ? isBroadcast
-              ? "#312e81"
-              : theme.darkIconBorder
-            : isBroadcast
-            ? "#c7d2fe"
-            : theme.iconBorder,
+          backgroundColor: isBroadcast ? c.lavender : c[theme.bg],
         }}
       >
         {isBroadcast ? (
           <MaterialCommunityIcons
             name="bullhorn-outline"
             size={18}
-            color={isDark ? "#a5b4fc" : "#6366f1"}
+            color={c.charcoal}
           />
         ) : (
           <Feather
             name={theme.icon as any}
             size={17}
-            color={isDark ? theme.darkColor : theme.color}
+            color={c[theme.fg]}
           />
         )}
       </View>
@@ -508,16 +401,10 @@ function NotificationCard({
           >
             <Text
               style={{
-                fontSize: 13.5,
+                fontSize: 15,
                 lineHeight: 19,
                 fontWeight: read ? "500" : "700",
-                color: read
-                  ? isDark
-                    ? "#94a3b8"
-                    : "#475569"
-                  : isDark
-                  ? "#f8fafc"
-                  : "#0f172a",
+                color: read ? c.slate : c.ink,
               }}
               numberOfLines={expanded ? undefined : 2}
             >
@@ -530,16 +417,16 @@ function NotificationCard({
                   paddingHorizontal: 7,
                   paddingVertical: 2,
                   borderRadius: 6,
-                  backgroundColor: isDark ? "#312e81" : "#e0e7ff",
+                  backgroundColor: c.lavender,
                   borderWidth: 0.5,
-                  borderColor: isDark ? "#4338ca" : "#c7d2fe",
+                  borderColor: c.lavender,
                 }}
               >
                 <Text
                   style={{
-                    fontSize: 9,
-                    fontWeight: "700",
-                    color: isDark ? "#c7d2fe" : "#4338ca",
+                    fontSize: 11,
+                    fontWeight: "600",
+                    color: c.charcoal,
                     textTransform: "uppercase",
                     letterSpacing: 0.5,
                   }}
@@ -555,7 +442,7 @@ function NotificationCard({
               style={{
                 fontSize: 11,
                 fontWeight: "500",
-                color: isDark ? "#64748b" : "#94a3b8",
+                color: c.steel,
                 flexShrink: 0,
                 marginTop: 1,
               }}
@@ -568,15 +455,9 @@ function NotificationCard({
         {/* Message Body */}
         <Text
           style={{
-            fontSize: 12.5,
+            fontSize: 13,
             lineHeight: 18,
-            color: read
-              ? isDark
-                ? "#64748b"
-                : "#64748b"
-              : isDark
-              ? "#cbd5e1"
-              : "#334155",
+            color: read ? c.slate : c.charcoal,
             marginTop: 2,
           }}
           numberOfLines={expanded ? undefined : 2}
@@ -596,9 +477,9 @@ function NotificationCard({
           >
             <Text
               style={{
-                fontSize: 11.5,
+                fontSize: 13,
                 fontWeight: "600",
-                color: isDark ? "#38bdf8" : "#0284c7",
+                color: c.link,
               }}
             >
               View details
@@ -606,7 +487,7 @@ function NotificationCard({
             <Feather
               name="arrow-right"
               size={11}
-              color={isDark ? "#38bdf8" : "#0284c7"}
+              color={c.link}
             />
           </View>
         ) : isLongMessage ? (
@@ -622,7 +503,7 @@ function NotificationCard({
               style={{
                 fontSize: 11,
                 fontWeight: "600",
-                color: isDark ? "#94a3b8" : "#64748b",
+                color: c.slate,
               }}
             >
               {expanded ? "Show less" : "Show more"}
@@ -630,7 +511,7 @@ function NotificationCard({
             <Feather
               name={expanded ? "chevron-up" : "chevron-down"}
               size={11}
-              color={isDark ? "#94a3b8" : "#64748b"}
+              color={c.slate}
             />
           </View>
         ) : null}
@@ -643,11 +524,10 @@ function NotificationCard({
 
 function SectionHeader({
   title,
-  isDark,
 }: {
   title: string;
-  isDark: boolean;
 }) {
+  const { c } = useDs();
   return (
     <View
       style={{
@@ -660,8 +540,8 @@ function SectionHeader({
       <Text
         style={{
           fontSize: 11,
-          fontWeight: "700",
-          color: isDark ? "#64748b" : "#94a3b8",
+          fontWeight: "600",
+          color: c.steel,
           textTransform: "uppercase",
           letterSpacing: 1.2,
         }}
@@ -672,7 +552,7 @@ function SectionHeader({
         style={{
           flex: 1,
           height: 1,
-          backgroundColor: isDark ? "#1e293b" : "#e2e8f0",
+          backgroundColor: c.hairline,
           marginLeft: 12,
         }}
       />
@@ -683,8 +563,7 @@ function SectionHeader({
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
 export default function NotificationsScreen() {
-  const { colorScheme } = useColorScheme();
-  const isDark = colorScheme === "dark";
+  const { c, isDark } = useDs();
   const router = useRouter();
   const { userId, token } = useUser();
   const { showToast } = useToast();
@@ -919,7 +798,7 @@ export default function NotificationsScreen() {
 
   return (
     <SafeAreaView
-      style={{ flex: 1, backgroundColor: isDark ? "#020617" : "#f8fafc" }}
+      style={{ flex: 1, backgroundColor: c.canvas }}
       edges={["top"]}
     >
       <StatusBar style={isDark ? "light" : "dark"} />
@@ -933,8 +812,8 @@ export default function NotificationsScreen() {
           paddingTop: 16,
           paddingBottom: 14,
           borderBottomWidth: 1,
-          borderBottomColor: isDark ? "#1e293b60" : "#f1f5f9",
-          backgroundColor: isDark ? "#020617" : "#f8fafc",
+          borderBottomColor: c.hairlineSoft,
+          backgroundColor: c.canvas,
         }}
       >
         <TouchableOpacity
@@ -945,12 +824,12 @@ export default function NotificationsScreen() {
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           onPress={() => router.back()}
           style={{
-            width: 40,
-            height: 40,
-            borderRadius: 12,
-            backgroundColor: isDark ? "#0f172a" : "#ffffff",
+            width: 44,
+            height: 44,
+            borderRadius: 8,
+            backgroundColor: c.canvas,
             borderWidth: 1,
-            borderColor: isDark ? "#1e293b" : "#e2e8f0",
+            borderColor: c.hairline,
             alignItems: "center",
             justifyContent: "center",
             marginRight: 12,
@@ -959,7 +838,7 @@ export default function NotificationsScreen() {
           <Feather
             name="arrow-left"
             size={18}
-            color={isDark ? "#f8fafc" : "#0f172a"}
+            color={c.ink}
           />
         </TouchableOpacity>
 
@@ -974,10 +853,9 @@ export default function NotificationsScreen() {
         >
           <Text
             style={{
-              fontSize: 18,
-              fontWeight: "700",
-              color: isDark ? "#f8fafc" : "#0f172a",
-              letterSpacing: -0.3,
+              fontSize: 22,
+              fontWeight: "600",
+              color: c.ink,
             }}
           >
             Notifications
@@ -987,7 +865,7 @@ export default function NotificationsScreen() {
               accessible={true}
               accessibilityLabel={`${unreadCount} unread`}
               style={{
-                backgroundColor: isDark ? "#e2e8f0" : "#0f172a",
+                backgroundColor: c.ink,
                 borderRadius: 10,
                 minWidth: 22,
                 height: 20,
@@ -998,9 +876,9 @@ export default function NotificationsScreen() {
             >
               <Text
                 style={{
-                  color: isDark ? "#0f172a" : "#ffffff",
-                  fontSize: 10.5,
-                  fontWeight: "700",
+                  color: c.canvas,
+                  fontSize: 11,
+                  fontWeight: "600",
                 }}
               >
                 {unreadCount}
@@ -1024,9 +902,9 @@ export default function NotificationsScreen() {
               alignItems: "center",
               minHeight: 36,
               gap: 6,
-              backgroundColor: isDark ? "#0f172a" : "#ffffff",
+              backgroundColor: c.canvas,
               borderWidth: 1,
-              borderColor: isDark ? "#1e293b" : "#e2e8f0",
+              borderColor: c.hairline,
               paddingHorizontal: 12,
               paddingVertical: 7,
               borderRadius: 10,
@@ -1035,20 +913,20 @@ export default function NotificationsScreen() {
             {isMarkingAll ? (
               <ActivityIndicator
                 size="small"
-                color={isDark ? "#94a3b8" : "#64748b"}
+                color={c.slate}
               />
             ) : (
               <Feather
                 name="check-circle"
                 size={13}
-                color={isDark ? "#94a3b8" : "#64748b"}
+                color={c.slate}
               />
             )}
             <Text
               style={{
-                fontSize: 11.5,
+                fontSize: 13,
                 fontWeight: "600",
-                color: isDark ? "#94a3b8" : "#64748b",
+                color: c.slate,
               }}
             >
               Read all
@@ -1070,21 +948,21 @@ export default function NotificationsScreen() {
           label="All"
           active={filter === "all"}
           onPress={() => setFilter("all")}
-          isDark={isDark}
+         
         />
         <FilterChip
           label="Unread"
           active={filter === "unread"}
           badge={filter !== "unread" ? unreadCount : undefined}
           onPress={() => setFilter("unread")}
-          isDark={isDark}
+         
         />
         <FilterChip
           label="Announcements"
           active={filter === "broadcasts"}
           badge={filter !== "broadcasts" ? broadcastCount : undefined}
           onPress={() => setFilter("broadcasts")}
-          isDark={isDark}
+         
         />
       </View>
 
@@ -1092,7 +970,7 @@ export default function NotificationsScreen() {
       {isLoading ? (
         <View style={{ paddingHorizontal: 20, paddingTop: 12 }}>
           {[1, 2, 3, 4, 5].map((i) => (
-            <SkeletonCard key={i} isDark={isDark} />
+            <SkeletonCard key={i} />
           ))}
         </View>
       ) : hasFetchError && notifications.length === 0 ? (
@@ -1110,9 +988,9 @@ export default function NotificationsScreen() {
               width: 64,
               height: 64,
               borderRadius: 20,
-              backgroundColor: isDark ? "#2a1215" : "#fef2f2",
+              backgroundColor: c.rose,
               borderWidth: 1,
-              borderColor: isDark ? "#451a1a" : "#fecaca",
+              borderColor: c.rose,
               alignItems: "center",
               justifyContent: "center",
               marginBottom: 16,
@@ -1121,14 +999,14 @@ export default function NotificationsScreen() {
             <Feather
               name="alert-circle"
               size={28}
-              color={isDark ? "#ef4444" : "#dc2626"}
+              color={c.danger}
             />
           </View>
           <Text
             style={{
               fontSize: 17,
-              fontWeight: "700",
-              color: isDark ? "#f8fafc" : "#0f172a",
+              fontWeight: "600",
+              color: c.ink,
               marginBottom: 8,
               textAlign: "center",
             }}
@@ -1139,7 +1017,7 @@ export default function NotificationsScreen() {
             style={{
               fontSize: 13,
               fontWeight: "500",
-              color: isDark ? "#64748b" : "#94a3b8",
+              color: c.steel,
               textAlign: "center",
               maxWidth: 260,
               lineHeight: 18,
@@ -1159,7 +1037,7 @@ export default function NotificationsScreen() {
               paddingHorizontal: 20,
               paddingVertical: 12,
               borderRadius: 12,
-              backgroundColor: isDark ? "#e2e8f0" : "#0f172a",
+              backgroundColor: c.ink,
               alignItems: "center",
               justifyContent: "center",
             }}
@@ -1168,7 +1046,7 @@ export default function NotificationsScreen() {
               style={{
                 fontSize: 13,
                 fontWeight: "600",
-                color: isDark ? "#0f172a" : "#ffffff",
+                color: c.canvas,
               }}
             >
               Try again
@@ -1190,9 +1068,9 @@ export default function NotificationsScreen() {
               width: 64,
               height: 64,
               borderRadius: 20,
-              backgroundColor: isDark ? "#0f172a" : "#f1f5f9",
+              backgroundColor: c.surface,
               borderWidth: 1,
-              borderColor: isDark ? "#1e293b" : "#e2e8f0",
+              borderColor: c.hairline,
               alignItems: "center",
               justifyContent: "center",
               marginBottom: 16,
@@ -1201,14 +1079,14 @@ export default function NotificationsScreen() {
             <Feather
               name={emptyStateConfig.icon as any}
               size={26}
-              color={isDark ? "#475569" : "#94a3b8"}
+              color={c.steel}
             />
           </View>
           <Text
             style={{
               fontSize: 17,
-              fontWeight: "700",
-              color: isDark ? "#f8fafc" : "#0f172a",
+              fontWeight: "600",
+              color: c.ink,
               marginBottom: 8,
               textAlign: "center",
             }}
@@ -1219,7 +1097,7 @@ export default function NotificationsScreen() {
             style={{
               fontSize: 13,
               fontWeight: "500",
-              color: isDark ? "#64748b" : "#94a3b8",
+              color: c.steel,
               textAlign: "center",
               maxWidth: 280,
               lineHeight: 19,
@@ -1239,19 +1117,19 @@ export default function NotificationsScreen() {
             <RefreshControl
               refreshing={isRefreshing}
               onRefresh={onRefresh}
-              tintColor={isDark ? "#94a3b8" : "#64748b"}
-              colors={[isDark ? "#818cf8" : "#0f172a"]}
+              tintColor={c.slate}
+              colors={[c.line]}
             />
           }
           renderItem={({ item: section }) => (
             <View>
-              <SectionHeader title={section.title} isDark={isDark} />
+              <SectionHeader title={section.title} />
               {section.data.map((n) => (
                 <NotificationCard
                   key={n.id}
                   notification={n}
                   onPress={() => markAsRead(n.id)}
-                  isDark={isDark}
+                 
                 />
               ))}
             </View>

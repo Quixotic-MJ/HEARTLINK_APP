@@ -3,7 +3,6 @@ import { View, Text, Pressable, Platform } from "react-native";
 import { useRouter } from "expo-router";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useColorScheme } from "nativewind";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -12,7 +11,8 @@ import Animated, {
   Easing,
 } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
-import { theme } from "../../constants/theme";
+import { useDs } from "../onboarding/useDs";
+import { BadgeTint, tintColor } from "../onboarding/QuestionLayout";
 
 // ─── Action config (mirrors the RecordBottomSheet options) ───────────────────
 
@@ -21,8 +21,8 @@ export interface SplitAction {
   iconType: "feather" | "material";
   shortLabel: string;
   route: string;
-  iconColor: string;
-  iconBg: string;
+  /** Topic badge colour: food = peach, movement = mint, habits = lavender, vitals = sky. */
+  tint: BadgeTint;
   id?: string;
 }
 
@@ -33,8 +33,7 @@ export const SPLIT_ACTIONS: SplitAction[] = [
     shortLabel: "Meal",
     id: "meal",
     route: "",
-    iconColor: "#3b6d11",
-    iconBg: "#eaf3de",
+    tint: "peach",
   },
   {
     icon: "activity",
@@ -42,8 +41,7 @@ export const SPLIT_ACTIONS: SplitAction[] = [
     shortLabel: "Exercise",
     id: "exercise",
     route: "",
-    iconColor: "#4A6080",
-    iconBg: "#eff6ff",
+    tint: "mint",
   },
   {
     icon: "moon",
@@ -51,16 +49,14 @@ export const SPLIT_ACTIONS: SplitAction[] = [
     shortLabel: "Sleep",
     id: "sleep",
     route: "",
-    iconColor: "#6366f1",
-    iconBg: "#eef2ff",
+    tint: "lavender",
   },
   {
     icon: "heart",
     iconType: "feather",
     shortLabel: "Vitals",
     route: "/(home)/(health)/log-symptoms",
-    iconColor: "#e11d48",
-    iconBg: "#ffe4e6",
+    tint: "sky",
   },
 ];
 
@@ -77,16 +73,15 @@ function SplitPill({
   index,
   dir,
   open,
-  isDark,
   onPress,
 }: {
   action: SplitAction;
   index: number;
   dir: -1 | 0 | 1;
   open: boolean;
-  isDark: boolean;
   onPress: () => void;
 }) {
+  const { c } = useDs();
   const progress = useSharedValue(0);
 
   useEffect(() => {
@@ -114,19 +109,22 @@ function SplitPill({
         style={{
           flexDirection: "row",
           alignItems: "center",
-          gap: 8,
-          backgroundColor: isDark ? "#1e293b" : "#ffffff",
-          borderRadius: 999,
-          paddingVertical: 10,
-          paddingHorizontal: 14,
-          borderWidth: 0.5,
-          borderColor: isDark ? "#334155" : "#e2e8f0",
+          gap: 10,
+          minHeight: 48,
+          backgroundColor: c.canvas,
+          borderRadius: 12,
+          paddingVertical: 8,
+          paddingLeft: 8,
+          paddingRight: 16,
+          borderWidth: 1,
+          borderColor: c.hairline,
+          // Design-system modal shadow (level 4) so the choices stand off the dimmed screen.
           ...Platform.select({
             ios: {
-              shadowColor: "#0f172a",
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.12,
-              shadowRadius: 10,
+              shadowColor: "#0f0f0f",
+              shadowOffset: { width: 0, height: 16 },
+              shadowOpacity: 0.16,
+              shadowRadius: 24,
             },
             android: { elevation: 6 },
           }),
@@ -134,29 +132,29 @@ function SplitPill({
       >
         <View
           style={{
-            width: 30,
-            height: 30,
-            borderRadius: 15,
-            backgroundColor: action.iconBg,
+            width: 32,
+            height: 32,
+            borderRadius: 8,
+            backgroundColor: tintColor(c, action.tint),
             alignItems: "center",
             justifyContent: "center",
           }}
         >
           {action.iconType === "feather" ? (
-            <Feather name={action.icon as any} size={15} color={action.iconColor} />
+            <Feather name={action.icon as any} size={16} color={c.charcoal} />
           ) : (
             <MaterialCommunityIcons
               name={action.icon as any}
-              size={15}
-              color={action.iconColor}
+              size={16}
+              color={c.charcoal}
             />
           )}
         </View>
         <Text
           style={{
-            fontSize: 14,
-            fontWeight: "600",
-            color: isDark ? "#f8fafc" : "#0f172a",
+            fontSize: 15,
+            fontWeight: "500",
+            color: c.ink,
           }}
         >
           {action.shortLabel}
@@ -184,8 +182,6 @@ export function SplitRecordActions({
   const [visible, setVisible] = useState(open);
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { colorScheme } = useColorScheme();
-  const isDark = colorScheme === "dark";
   const backdropOpacity = useSharedValue(0);
 
   useEffect(() => {
@@ -238,7 +234,7 @@ export function SplitRecordActions({
       >
         <Animated.View
           style={[
-            { flex: 1, backgroundColor: theme.ink },
+            { flex: 1, backgroundColor: "#0f0f0f" },
             backdropStyle,
           ]}
         />
@@ -264,7 +260,6 @@ export function SplitRecordActions({
               index={i}
               dir={topDirs[i]}
               open={open}
-              isDark={isDark}
               onPress={() => {
                 onClose();
                 if (action.id === "exercise" && onOpenQuickLog) {
@@ -288,7 +283,6 @@ export function SplitRecordActions({
               index={topRow.length + i}
               dir={bottomDirs[i]}
               open={open}
-              isDark={isDark}
               onPress={() => {
                 onClose();
                 if (action.id === "exercise" && onOpenQuickLog) {

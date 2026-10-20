@@ -1,12 +1,13 @@
+import { useDs } from "../../../components/onboarding/useDs";
 import React, { useState } from "react";
 import { View, Text, TouchableOpacity, ScrollView } from "react-native";
-import { useColorScheme } from "nativewind";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useUser } from "../../../contexts/UserContext";
 import { ConfirmDialog } from "../../../components/ui/ConfirmDialog";
+import { SquareIconButton } from "../../../components/exercise/ExerciseBits";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -30,15 +31,16 @@ function SettingsRow({
   iconType = "feather",
   label,
   subtitle,
-  iconBg = "#f8fafc",
-  iconColor = "#64748b",
+  iconBg,
+  iconColor,
   danger = false,
   onPress,
   isLast = false,
   accessibilityLabel,
 }: SettingsRowProps) {
-  const { colorScheme } = useColorScheme();
-  const isDark = colorScheme === "dark";
+  const { c } = useDs();
+  iconBg = iconBg ?? c.surface;
+  iconColor = iconColor ?? c.slate;
 
   return (
     <TouchableOpacity
@@ -47,11 +49,13 @@ function SettingsRow({
       accessible={true}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel || label}
-      className={`flex-row items-center py-4 ${!isLast ? "border-b border-border dark:border-slate-800/60" : ""}`}
+      className="flex-row items-center py-3.5"
+      style={{ minHeight: 64, borderBottomWidth: isLast ? 0 : 1, borderBottomColor: c.hairlineSoft }}
     >
-      {/* Icon bubble */}
+      {/* Icon badge */}
       <View
-        className="w-10 h-10 rounded-2xl items-center justify-center mr-3.5 border border-border/80 dark:border-slate-800/60"
+        className="w-10 h-10 rounded-lg items-center justify-center mr-3.5"
+        style={{ backgroundColor: iconBg }}
       >
         {iconType === "material" ? (
           <MaterialCommunityIcons name={icon as any} size={20} color={iconColor} />
@@ -62,21 +66,17 @@ function SettingsRow({
 
       {/* Label + subtitle */}
       <View className="flex-1 pr-3">
-        <Text
-          className={`text-[15px] font-bold tracking-tight ${
-            danger ? "text-red-600 dark:text-red-400" : "text-text"
-          }`}
-        >
+        <Text style={{ fontSize: 16, fontWeight: "500", color: danger ? c.danger : c.ink }}>
           {label}
         </Text>
         {subtitle && (
-          <Text className={`text-[12px] mt-0.5 leading-snug ${danger ? "text-red-500 dark:text-red-400/80" : "text-text-soft"}`}>
+          <Text style={{ fontSize: 13, lineHeight: 18, marginTop: 2, color: c.slate }}>
             {subtitle}
           </Text>
         )}
       </View>
 
-      <Feather name="chevron-right" size={18} color={danger ? (isDark ? "#f87171" : "#dc2626") : (isDark ? "#475569" : "#94a3b8")} />
+      <Feather name="chevron-right" size={18} color={danger ? (c.danger) : (c.steel)} />
     </TouchableOpacity>
   );
 }
@@ -85,7 +85,7 @@ function SettingsRow({
 
 function SectionLabel({ title }: { title: string }) {
   return (
-    <Text className="text-[11px] text-text-soft uppercase font-bold tracking-widest mb-2 mt-5 px-1">
+    <Text className="text-[11px] text-ds-steel uppercase font-semibold tracking-widest mb-2 mt-6 px-1">
       {title}
     </Text>
   );
@@ -95,7 +95,7 @@ function SectionLabel({ title }: { title: string }) {
 
 function SettingsGroup({ children, className }: { children: React.ReactNode, className?: string }) {
   return (
-    <View className={`bg-surface rounded-3xl border border-border/80 dark:border-slate-800/60 px-4 shadow-sm shadow-slate-100 dark:shadow-none ${className || ""}`}>
+    <View className={`bg-ds-canvas rounded-xl border border-ds-hairline px-4 ${className || ""}`}>
       {children}
     </View>
   );
@@ -104,8 +104,7 @@ function SettingsGroup({ children, className }: { children: React.ReactNode, cla
 // ─── Settings Screen ──────────────────────────────────────────────────────────
 
 export default function SettingsScreen() {
-  const { colorScheme } = useColorScheme();
-  const isDark = colorScheme === "dark";
+  const { c, isDark } = useDs();
   const router = useRouter();
   const { logout } = useUser();
 
@@ -117,21 +116,13 @@ export default function SettingsScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-surface-alt" edges={["top"]}>
-      <StatusBar style="dark" />
+    <SafeAreaView className="flex-1 bg-ds-canvas" edges={["top"]}>
+      <StatusBar style={isDark ? "light" : "dark"} />
 
       {/* Header */}
-      <View className="flex-row items-center px-5 pt-4 pb-3 border-b border-border bg-surface">
-        <TouchableOpacity
-          onPress={() => router.back()}
-          accessible={true}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-          className="w-9 h-9 rounded-xl bg-surface-alt border border-border items-center justify-center mr-3"
-        >
-          <Feather name="arrow-left" size={18} color={isDark ? "#f8fafc" : "#0f172a"} />
-        </TouchableOpacity>
-        <Text className="text-[18px] font-semibold text-text tracking-tight">
+      <View className="flex-row items-center px-5 pt-3 pb-3 border-b border-ds-hairline bg-ds-canvas" style={{ gap: 12 }}>
+        <SquareIconButton icon="arrow-left" label="Go back" onPress={() => router.back()} />
+        <Text accessibilityRole="header" className="text-[22px] font-semibold text-ds-ink">
           Settings
         </Text>
       </View>
@@ -147,16 +138,16 @@ export default function SettingsScreen() {
             icon="user"
             label="Personal profile"
             subtitle="Details, biometrics and health PDF"
-            iconBg={isDark ? "#172554" : "#eff6ff"}
-            iconColor={isDark ? "#60a5fa" : "#3b82f6"}
+            iconBg={c.sky}
+            iconColor={c.charcoal}
             onPress={() => router.push("/(home)/(profile)/profile")}
           />
           <SettingsRow
             icon="shield"
             label="Login and security"
             subtitle="Password and account security"
-            iconBg={isDark ? "#2e1065" : "#f5f3ff"}
-            iconColor={isDark ? "#a78bfa" : "#8b5cf6"}
+            iconBg={c.lavender}
+            iconColor={c.charcoal}
             onPress={() => router.push("/(home)/(settings)/account-security")}
             isLast
           />
@@ -169,24 +160,24 @@ export default function SettingsScreen() {
             icon="bell"
             label="Daily reminders"
             subtitle="Morning, evening and movement"
-            iconBg={isDark ? "#451a03" : "#fffbeb"}
-            iconColor={isDark ? "#fbbf24" : "#d97706"}
+            iconBg={c.yellow}
+            iconColor={c.warmText}
             onPress={() => router.push("/(home)/(settings)/daily-reminders")}
           />
           <SettingsRow
             icon="target"
             label="Health targets and limits"
             subtitle="Sodium, fluid, movement, BP target"
-            iconBg={isDark ? "#064e3b" : "#f0fdf4"}
-            iconColor={isDark ? "#34d399" : "#10b981"}
+            iconBg={c.mint}
+            iconColor={c.charcoal}
             onPress={() => router.push("/(home)/(health)/goals-thresholds")}
           />
           <SettingsRow
             icon="users"
             label="My care team"
             subtitle="Doctors, specialists, contacts"
-            iconBg={isDark ? "#172554" : "#eff6ff"}
-            iconColor={isDark ? "#60a5fa" : "#3b82f6"}
+            iconBg={c.sky}
+            iconColor={c.charcoal}
             onPress={() => router.push("/(home)/(profile)/care-team")}
             isLast
           />
@@ -199,8 +190,8 @@ export default function SettingsScreen() {
             icon="moon"
             label="Appearance and theme"
             subtitle="Light, dark or system default"
-            iconBg={isDark ? "#334155" : "#f8fafc"}
-            iconColor={isDark ? "#cbd5e1" : "#475569"}
+            iconBg={c.surface}
+            iconColor={c.slate}
             onPress={() => router.push("/(home)/(settings)/appearance")}
             isLast
           />
@@ -213,24 +204,24 @@ export default function SettingsScreen() {
             icon="help-circle"
             label="Help and FAQ"
             subtitle="Questions and user guides"
-            iconBg={isDark ? "#334155" : "#f8fafc"}
-            iconColor={isDark ? "#cbd5e1" : "#475569"}
+            iconBg={c.surface}
+            iconColor={c.slate}
             onPress={() => router.push("/(home)/(settings)/help-support")}
           />
           <SettingsRow
             icon="message-square"
             label="Send feedback"
             subtitle="Report a bug or suggestion"
-            iconBg={isDark ? "#334155" : "#f8fafc"}
-            iconColor={isDark ? "#cbd5e1" : "#475569"}
+            iconBg={c.surface}
+            iconColor={c.slate}
             onPress={() => router.push("/(home)/(settings)/submit-ticket")}
           />
           <SettingsRow
             icon="info"
             label="About HeartLink"
             subtitle="Version 1.0.0, terms and privacy"
-            iconBg={isDark ? "#334155" : "#f8fafc"}
-            iconColor={isDark ? "#cbd5e1" : "#475569"}
+            iconBg={c.surface}
+            iconColor={c.slate}
             onPress={() => router.push("/(home)/(settings)/about")}
             isLast
           />
@@ -238,14 +229,14 @@ export default function SettingsScreen() {
 
         {/* ── 5. Sign Out ── */}
         <View className="mt-8 mb-4">
-          <SettingsGroup className="bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-900/40">
+          <SettingsGroup>
             <SettingsRow
               icon="log-out"
               label="Sign out"
               subtitle="End your session on this device"
               danger
-              iconBg={isDark ? "#450a0a" : "#fee2e2"}
-              iconColor={isDark ? "#f87171" : "#ef4444"}
+              iconBg={c.rose}
+              iconColor={c.danger}
               onPress={() => setShowSignOutConfirm(true)}
               isLast
             />

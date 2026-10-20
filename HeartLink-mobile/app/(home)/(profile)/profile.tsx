@@ -1,4 +1,3 @@
-import { useColorScheme } from "nativewind";
 import { apiFetch } from "../../../lib/api";
 import React, { useState, useEffect } from "react";
 import {
@@ -13,60 +12,69 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
-  ActivityIndicator,
 } from "react-native";
 import { ScreenWrapper } from "../../../components/ui/ScreenWrapper";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
+import { useDs } from "../../../components/onboarding/useDs";
+import DsButton from "../../../components/onboarding/DsButton";
+import { SquareIconButton } from "../../../components/exercise/ExerciseBits";
 let isCurrentlySharing = false;
 import { useUser } from "../../../contexts/UserContext";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
 import { useToast } from "../../../contexts/ToastContext";
-import { theme } from "../../../constants/theme";// ─── Helper Components ────────────────────────────────────────────────────────
+import { ds } from "../../../constants/theme";
 
-function StatCard({ icon, iconColor, value, label }: { icon: any, iconColor: string, value: string, label: string }) {
+// Report colours (the PDF is always light).
+const P = ds.light;
+// ─── Helper Components ────────────────────────────────────────────────────────
+
+function StatCard({ icon, value, label }: { icon: any, value: string, label: string }) {
+  const { c } = useDs();
   return (
-    <View className="flex-1 rounded-2xl p-3 border bg-surface border-border/70">
-      <Feather name={icon} size={14} color={iconColor} style={{ marginBottom: 6 }} />
-      <Text className="text-[16px] font-bold mb-0.5 text-text">{value}</Text>
-      <Text className="text-[10px] text-text-soft">{label}</Text>
+    <View className="flex-1 rounded-xl p-3 border bg-ds-canvas border-ds-hairline">
+      <Feather name={icon} size={14} color={c.slate} style={{ marginBottom: 6 }} />
+      <Text className="text-[16px] font-semibold mb-0.5 text-ds-ink">{value}</Text>
+      <Text className="text-[12px] text-ds-slate">{label}</Text>
     </View>
   );
 }
 
 function PersonalRow({ icon, value, isLast = false }: { icon: any, value: string, isLast?: boolean }) {
+  const { c } = useDs();
   return (
-    <View className={`flex-row items-center py-3.5 ${!isLast ? 'border-b border-border/70' : ''}`}>
+    <View className={`flex-row items-center py-3.5 ${!isLast ? 'border-b border-ds-hairline' : ''}`}>
       <View className="w-6 items-center mr-2">
-        <Feather name={icon} size={14} color={theme.textSoft} />
+        <Feather name={icon} size={14} color={c.slate} />
       </View>
-      <Text className="text-[14px] font-bold flex-1 text-text">{value}</Text>
+      <Text className="text-[15px] font-medium flex-1 text-ds-ink">{value}</Text>
     </View>
   );
 }
 
 function BiometricCard({ label, value, unit }: { label: string, value: string, unit: string }) {
   return (
-    <View className="rounded-2xl p-3.5 border mb-3 w-[48%] bg-surface border-border/70">
-      <Text className="text-[10px] font-bold mb-1 text-text-soft">{label}</Text>
-      <Text className="text-[16px] font-bold text-text">
-        {value} <Text className="text-[12px] font-normal text-text-soft">{unit}</Text>
+    <View className="rounded-xl p-3.5 border mb-3 w-[48%] bg-ds-canvas border-ds-hairline">
+      <Text className="text-[12px] font-semibold mb-1 text-ds-slate">{label}</Text>
+      <Text className="text-[16px] font-semibold text-ds-ink">
+        {value} <Text className="text-[12px] font-normal text-ds-slate">{unit}</Text>
       </Text>
     </View>
   );
 }
 
 function MoreRow({ icon, label, onPress, isLast = false }: { icon: any, label: string, onPress: () => void, isLast?: boolean }) {
+  const { c } = useDs();
   return (
-    <View className={`${!isLast ? 'border-b border-border/70' : ''}`}>
+    <View className={`${!isLast ? 'border-b border-ds-hairline' : ''}`}>
       <TouchableOpacity activeOpacity={0.7} onPress={onPress} className="flex-row items-center py-4">
         <View className="w-6 items-center mr-2">
-          <Feather name={icon} size={15} color={theme.text} />
+          <Feather name={icon} size={15} color={c.ink} />
         </View>
-        <Text className="flex-1 text-[14px] font-bold text-text">{label}</Text>
-        <Feather name="chevron-right" size={16} color={theme.textMuted} />
+        <Text className="flex-1 text-[15px] font-medium text-ds-ink">{label}</Text>
+        <Feather name="chevron-right" size={16} color={c.steel} />
       </TouchableOpacity>
     </View>
   );
@@ -84,22 +92,23 @@ function EditField({
   hasBorder = true,
   rightText = ""
 }: any) {
+  const { c } = useDs();
   return (
-    <View className={`px-4 py-3 ${hasBorder ? 'border-b border-border/70' : ''} flex-row items-center justify-between`}>
+    <View className={`px-4 py-3 ${hasBorder ? 'border-b border-ds-hairline' : ''} flex-row items-center justify-between`}>
       <View className="flex-1">
-        <Text className="text-[11px] font-bold mb-1 text-text-soft">{label}</Text>
+        <Text className="text-[11px] font-semibold mb-1 text-ds-slate">{label}</Text>
         <TextInput
            value={value}
            onChangeText={onChangeText}
            editable={editable}
            keyboardType={keyboardType}
-           className="text-[15px] font-bold p-0 m-0 text-text"
+           className="text-[15px] font-semibold p-0 m-0 text-ds-ink"
         />
       </View>
       {rightText ? (
-        <Text className="text-[12px] text-text-soft ml-2 font-normal">{rightText}</Text>
+        <Text className="text-[12px] text-ds-slate ml-2 font-normal">{rightText}</Text>
       ) : null}
-      {rightIcon && <Feather name={rightIcon} size={14} color={theme.textMuted} />}
+      {rightIcon && <Feather name={rightIcon} size={14} color={c.steel} />}
     </View>
   );
 }
@@ -123,8 +132,6 @@ function EditProfileModal({
   const [height, setHeight] = useState(currentData.height);
   const [weight, setWeight] = useState(currentData.weight);
   const [isSaving, setIsSaving] = useState(false);
-  const { colorScheme } = useColorScheme();
-  const isDark = colorScheme === "dark";
 
   React.useEffect(() => {
     if (visible) {
@@ -167,22 +174,22 @@ function EditProfileModal({
 
   return (
     <Modal visible={visible} transparent animationType="slide">
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} className="flex-1 bg-surface-alt">
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} className="flex-1 bg-ds-surface">
         {/* Header */}
         <View className="flex-row justify-between items-center px-5 pt-14 pb-4">
           <TouchableOpacity onPress={onClose} className="p-2 -ml-2">
-            <Text className="text-text-soft text-[15px]">Cancel</Text>
+            <Text className="text-ds-slate text-[15px]">Cancel</Text>
           </TouchableOpacity>
-          <Text className="text-text font-bold text-[17px]">Edit profile</Text>
+          <Text className="text-ds-ink font-semibold text-[17px]">Edit profile</Text>
           <TouchableOpacity onPress={handleSave} className="p-2 -mr-2">
-            <Text className="text-primary text-[15px] font-semibold">Save</Text>
+            <Text className="text-ds-link text-[15px] font-semibold">Save</Text>
           </TouchableOpacity>
         </View>
 
         <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}>
           {/* PERSONAL */}
-          <Text className="text-[11px] font-bold mx-5 mb-2 mt-4 uppercase tracking-widest text-text-soft">Personal</Text>
-          <View className="rounded-2xl border border-border/70 bg-surface mx-5 overflow-hidden mb-6">
+          <Text className="text-[11px] font-semibold mx-5 mb-2 mt-4 uppercase tracking-widest text-ds-steel">Personal</Text>
+          <View className="rounded-xl border border-ds-hairline bg-ds-canvas mx-5 overflow-hidden mb-6">
             <EditField label="Full name" value={name} onChangeText={setName} />
             <EditField label="Email" value={email} onChangeText={setEmail} editable={false} rightIcon="lock" />
             <EditField label="Phone" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
@@ -191,10 +198,10 @@ function EditProfileModal({
           </View>
 
           {/* BIOMETRICS */}
-          <Text className="text-[11px] font-bold mx-5 mb-2 uppercase tracking-widest text-text-soft">Biometrics</Text>
-          <View className="rounded-2xl border border-border/70 bg-surface mx-5 overflow-hidden mb-2">
-            <View className="flex-row border-b border-border/70">
-              <View className="flex-1 border-r border-border/70">
+          <Text className="text-[11px] font-semibold mx-5 mb-2 uppercase tracking-widest text-ds-steel">Biometrics</Text>
+          <View className="rounded-xl border border-ds-hairline bg-ds-canvas mx-5 overflow-hidden mb-2">
+            <View className="flex-row border-b border-ds-hairline">
+              <View className="flex-1 border-r border-ds-hairline">
                 <EditField label="Height (cm)" value={height} onChangeText={setHeight} keyboardType="numeric" hasBorder={false} />
               </View>
               <View className="flex-1">
@@ -204,21 +211,10 @@ function EditProfileModal({
             <EditField label="Blood pressure" value={`${currentData.systolicBP} / ${currentData.diastolicBP}`} editable={false} rightText="mmHg" />
             <EditField label="Resting heart rate" value={currentData.restingHR} editable={false} rightText="bpm" hasBorder={false} />
           </View>
-          <Text className="text-[11px] text-text-soft mx-5 mb-8">BMI updates automatically from height and weight.</Text>
+          <Text className="text-[11px] text-ds-slate mx-5 mb-8">BMI updates automatically from height and weight.</Text>
 
           <View className="px-5 pb-12">
-            <TouchableOpacity
-              activeOpacity={0.85}
-              onPress={handleSave}
-              disabled={isSaving}
-              className="bg-slate-900 dark:bg-surface-alt py-4 rounded-xl items-center justify-center flex-row gap-2"
-            >
-              {isSaving ? (
-                <ActivityIndicator size="small" color={isDark ? "#0F172A" : "#FFFFFF"} />
-              ) : (
-                <Text className="text-white dark:text-ink font-bold text-[16px]">Save changes</Text>
-              )}
-            </TouchableOpacity>
+            <DsButton label="Save changes" onPress={handleSave} loading={isSaving} />
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -229,8 +225,7 @@ function EditProfileModal({
 // ─── Profile Screen ───────────────────────────────────────────────────────────
 
 export default function ProfileScreen({ isTab = false }: { isTab?: boolean } = {}) {
-  const { colorScheme } = useColorScheme();
-  const isDark = colorScheme === "dark";
+  const { c, isDark } = useDs();
   const router = useRouter();
   const { userId, token, user, refreshUser } = useUser();
   const { showToast } = useToast();
@@ -384,16 +379,16 @@ export default function ProfileScreen({ isTab = false }: { isTab?: boolean } = {
         <html>
           <head>
             <style>
-              body { font-family: 'Helvetica', sans-serif; padding: 40px; color: #0f172a; line-height: 1.5; }
-              h1 { font-size: 28px; font-weight: bold; margin-bottom: 8px; color: #0f172a; }
-              p { margin: 0 0 30px 0; color: #5C6B66; font-size: 16px; }
-              .details { margin-bottom: 30px; font-size: 16px; background-color: #f8fafc; padding: 20px; border-radius: 12px; }
+              body { font-family: 'Helvetica', sans-serif; padding: 40px; color: ${P.ink}; line-height: 1.5; }
+              h1 { font-size: 28px; font-weight: bold; margin-bottom: 8px; color: ${P.ink}; }
+              p { margin: 0 0 30px 0; color: ${P.slate}; font-size: 16px; }
+              .details { margin-bottom: 30px; font-size: 16px; background-color: ${P.surface}; padding: 20px; border-radius: 12px; }
               table { width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 40px; }
-              th, td { text-align: left; padding: 14px 16px; border-bottom: 1px solid #e2e8f0; }
-              th { background-color: #f1f5f9; font-weight: bold; color: #5C6B66; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; }
-              td { font-size: 15px; color: #334155; }
-              .highlight { font-weight: bold; color: #0f172a; }
-              h2 { font-size: 20px; color: #0f172a; margin-bottom: 8px; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; }
+              th, td { text-align: left; padding: 14px 16px; border-bottom: 1px solid ${P.hairline}; }
+              th { background-color: ${P.surfaceAlt}; font-weight: bold; color: ${P.slate}; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; }
+              td { font-size: 15px; color: ${P.charcoal}; }
+              .highlight { font-weight: bold; color: ${P.ink}; }
+              h2 { font-size: 20px; color: ${P.ink}; margin-bottom: 8px; border-bottom: 2px solid ${P.hairline}; padding-bottom: 8px; }
             </style>
           </head>
           <body>
@@ -442,26 +437,29 @@ export default function ProfileScreen({ isTab = false }: { isTab?: boolean } = {
   };
 
   return (
-    <ScreenWrapper edges={["top"]} withScrollView={false}>
+    <ScreenWrapper edges={["top"]} withScrollView={false} safeAreaClassName="flex-1 bg-ds-canvas">
       <StatusBar style={isDark ? "light" : "dark"} />
 
       {/* Header */}
       <View className="flex-row items-center justify-between px-5 pt-4 pb-4">
         <View className="flex-row items-center">
           {!isTab && (
-            <TouchableOpacity onPress={() => router.back()} className="mr-3">
-              <Feather name="arrow-left" size={20} color={theme.text} />
-            </TouchableOpacity>
+            <View className="mr-3">
+              <SquareIconButton icon="arrow-left" label="Go back" onPress={() => router.back()} />
+            </View>
           )}
-          <Text className="text-[20px] font-bold text-text">
+          <Text className="text-[22px] font-semibold text-ds-ink">
             My profile
           </Text>
         </View>
-        <TouchableOpacity 
-          onPress={() => setShowUpdateModal(true)} 
-          className="w-8 h-8 rounded-full items-center justify-center bg-surface-alt"
+        <TouchableOpacity
+          onPress={() => setShowUpdateModal(true)}
+          accessibilityRole="button"
+          accessibilityLabel="Edit profile"
+          className="items-center justify-center"
+          style={{ width: 44, height: 44, borderRadius: 8, borderWidth: 1, borderColor: c.hairline, backgroundColor: c.canvas }}
         >
-          <Feather name="edit-2" size={14} color={theme.text} />
+          <Feather name="edit-2" size={16} color={c.ink} />
         </TouchableOpacity>
       </View>
 
@@ -472,18 +470,18 @@ export default function ProfileScreen({ isTab = false }: { isTab?: boolean } = {
         showsVerticalScrollIndicator={false}
       >
         {/* User Card */}
-        <View className="rounded-2xl p-4 flex-row items-center border bg-surface border-border/70">
+        <View className="rounded-xl p-4 flex-row items-center border bg-ds-canvas border-ds-hairline">
           <View className="relative mr-4">
-            <View className="w-[52px] h-[52px] rounded-full items-center justify-center bg-blue-100 dark:bg-blue-900/40 border border-blue-tint">
-              <Text className="text-blue-700 dark:text-blue-300 font-bold text-[16px] tracking-widest">{getInitials(userData.name)}</Text>
+            <View className="w-[52px] h-[52px] rounded-full items-center justify-center bg-ds-tint">
+              <Text className="text-ds-on-tint font-semibold text-[16px] tracking-widest">{getInitials(userData.name)}</Text>
             </View>
-            <View className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-white dark:border-slate-900" />
+            <View className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-ds-success rounded-full border-2 border-ds-canvas" />
           </View>
           <View className="flex-1">
-            <Text className="text-[16px] font-bold mb-0.5 text-text">
+            <Text className="text-[16px] font-semibold mb-0.5 text-ds-ink">
               {userData.name || "Loading..."}
             </Text>
-            <Text className="text-[12px] font-medium text-text-soft">
+            <Text className="text-[12px] font-medium text-ds-slate">
               {userData.email}
             </Text>
           </View>
@@ -491,14 +489,14 @@ export default function ProfileScreen({ isTab = false }: { isTab?: boolean } = {
 
         {/* Stats Row */}
         <View className="flex-row justify-between mt-3 gap-3">
-          <StatCard icon="activity" iconColor="#4ADE80" value={`${userData.systolicBP}/${userData.diastolicBP}`} label="Blood pressure" />
-          <StatCard icon="activity" iconColor="#60A5FA" value={userData.bmi} label="BMI" />
-          <StatCard icon="heart" iconColor="#F87171" value={userData.restingHR} label="Resting HR" />
+          <StatCard icon="activity" value={`${userData.systolicBP}/${userData.diastolicBP}`} label="Blood pressure" />
+          <StatCard icon="activity" value={userData.bmi} label="BMI" />
+          <StatCard icon="heart" value={userData.restingHR} label="Resting HR" />
         </View>
 
         {/* PERSONAL */}
-        <Text className="text-[11px] font-bold mt-6 mb-2 uppercase tracking-widest text-text-soft">Personal</Text>
-        <View className="rounded-3xl px-4 border bg-surface border-border/70">
+        <Text className="text-[11px] font-semibold mt-6 mb-2 uppercase tracking-widest text-ds-steel">Personal</Text>
+        <View className="rounded-xl px-4 border bg-ds-canvas border-ds-hairline">
           <PersonalRow icon="mail" value={userData.email || "Not provided"} />
           <PersonalRow icon="phone" value={userData.phone || "Not provided"} />
           <PersonalRow icon="calendar" value={userData.birthdate || "Not provided"} />
@@ -506,7 +504,7 @@ export default function ProfileScreen({ isTab = false }: { isTab?: boolean } = {
         </View>
 
         {/* BIOMETRICS */}
-        <Text className="text-[11px] font-bold mt-6 mb-2 uppercase tracking-widest text-text-soft">Biometrics</Text>
+        <Text className="text-[11px] font-semibold mt-6 mb-2 uppercase tracking-widest text-ds-steel">Biometrics</Text>
         <View className="flex-row flex-wrap justify-between">
           <BiometricCard label="Height" value={userData.height || "--"} unit="cm" />
           <BiometricCard label="Weight" value={userData.weight || "--"} unit="kg" />
@@ -515,8 +513,8 @@ export default function ProfileScreen({ isTab = false }: { isTab?: boolean } = {
         </View>
 
         {/* MORE */}
-        <Text className="text-[11px] font-bold mt-3 mb-2 uppercase tracking-widest text-text-soft">More</Text>
-        <View className="rounded-3xl px-4 border mb-8 bg-surface border-border/70">
+        <Text className="text-[11px] font-semibold mt-3 mb-2 uppercase tracking-widest text-ds-steel">More</Text>
+        <View className="rounded-xl px-4 border mb-8 bg-ds-canvas border-ds-hairline">
           <MoreRow icon="bar-chart-2" label="Long-term analytics" onPress={() => router.push("/(home)/(profile)/analytics")} />
           <MoreRow icon="users" label="My care team" onPress={() => router.push("/(home)/(profile)/care-team")} />
           <MoreRow icon="file-text" label="Doctor consultation summary" onPress={() => router.push("/(home)/(tabs)/consultation-summary" as any)} />

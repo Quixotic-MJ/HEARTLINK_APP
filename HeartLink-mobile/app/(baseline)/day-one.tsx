@@ -26,12 +26,12 @@ export default function DayOneScreen() {
           <View style={{ width: 24, height: 24, borderRadius: 6, backgroundColor: c.charcoal, alignItems: "center", justifyContent: "center" }}>
             <Feather name="check" size={14} color={c.yellowBold} />
           </View>
-          <Text style={{ fontSize: 13, fontWeight: "600", color: "#37352f" }}>Set-up complete</Text>
+          <Text style={{ fontSize: 13, fontWeight: "600", color: c.charcoal }}>Set-up complete</Text>
         </View>
-        <Text accessibilityRole="header" style={{ fontSize: 28, lineHeight: 34, fontWeight: "600", letterSpacing: -0.5, color: "#1a1a1a" }}>
+        <Text accessibilityRole="header" style={{ fontSize: 28, lineHeight: 34, fontWeight: "600", letterSpacing: -0.5, color: c.ink }}>
           {name ? `You're set, ${name}.` : "You're all set."} Here&apos;s day one.
         </Text>
-        <Text style={{ fontSize: 15, lineHeight: 23, color: "#37352f", marginTop: 6 }}>Three small things. Each one moves your score.</Text>
+        <Text style={{ fontSize: 15, lineHeight: 23, color: c.charcoal, marginTop: 6 }}>Three small things. Each one moves your score.</Text>
       </View>
 
       {STEPS.map((s, i) => (

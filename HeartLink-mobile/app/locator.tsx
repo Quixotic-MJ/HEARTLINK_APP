@@ -16,7 +16,8 @@ import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Location from 'expo-location';
 import MapView, { Marker, UrlTile } from "react-native-maps";
 import { EmptyState } from "../components/ui/EmptyState";
-import { theme } from "../constants/theme";
+import { useDs } from "../components/onboarding/useDs";
+import { SquareIconButton } from "../components/exercise/ExerciseBits";
 import { apiFetch } from "../lib/api";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -40,11 +41,11 @@ function getDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
   const R = 6371; // Radius of the earth in km
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = 
+  const a =
     Math.sin(dLat/2) * Math.sin(dLat/2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-    Math.sin(dLon/2) * Math.sin(dLon/2); 
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
   return R * c; // Distance in km
 }
 
@@ -56,44 +57,48 @@ function ClinicCard({ clinic, onDirections, onCall }: {
   onCall: () => void;
 }) {
   const isEmergency = clinic.status.includes("24/7");
+  const { c } = useDs();
 
   return (
-    <View className="bg-surface rounded-3xl border border-border p-5 mb-4 shadow-sm">
+    <View className="bg-ds-canvas rounded-xl border border-ds-hairline p-5 mb-4">
       {/* Top row */}
       <View className="flex-row items-start mb-4">
         {/* Icon */}
-        <View 
-          className="w-11 h-11 rounded-xl items-center justify-center mr-4 flex-shrink-0"
+        <View
+          className="w-11 h-11 rounded-lg items-center justify-center mr-4 flex-shrink-0"
+          style={{ backgroundColor: isEmergency ? c.rose : c.sky }}
         >
-          <MaterialCommunityIcons 
-            name="hospital-building" 
-            size={22} 
-            color={isEmergency ? "#ef4444" : "#38bdf8"} 
+          <MaterialCommunityIcons
+            name="hospital-building"
+            size={22}
+            color={isEmergency ? c.danger : c.charcoal}
           />
         </View>
 
         <View className="flex-1 pr-2">
-          <Text className="text-[16px] font-bold text-text leading-snug mb-1">
+          <Text className="text-[16px] font-semibold text-ds-ink leading-snug mb-1">
             {clinic.name}
           </Text>
-          <Text className="text-[13px] text-text-soft font-medium">{clinic.doctor}</Text>
+          <Text className="text-[13px] text-ds-slate font-medium">{clinic.doctor}</Text>
         </View>
-        
+
         {/* Status Badge */}
         {isEmergency ? (
-          <Text className="text-[12px] font-bold text-green-500">24/7</Text>
+          <View className="bg-ds-mint rounded-md px-2 py-0.5">
+            <Text className="text-[13px] font-semibold text-ds-charcoal">24/7</Text>
+          </View>
         ) : (
-          <Text className="text-[12px] font-bold text-text-muted">Business hrs</Text>
+          <Text className="text-[13px] font-medium text-ds-steel">Business hrs</Text>
         )}
       </View>
 
       {/* Meta row with pills */}
       <View className="flex-row items-center mb-5 gap-2">
-        <View className="bg-surface-alt dark:bg-slate-800 px-3 py-1.5 rounded-full border border-border">
-          <Text className="text-[12px] font-bold text-text-soft dark:text-slate-300">{clinic.distance}</Text>
+        <View className="bg-ds-surface-alt px-2 py-0.5 rounded-md">
+          <Text className="text-[13px] font-medium text-ds-slate">{clinic.distance}</Text>
         </View>
-        <View className="bg-surface-alt dark:bg-slate-800 px-3 py-1.5 rounded-full border border-border">
-          <Text className="text-[12px] font-bold text-text-soft dark:text-slate-300">{clinic.specialty}</Text>
+        <View className="bg-ds-surface-alt px-2 py-0.5 rounded-md">
+          <Text className="text-[13px] font-medium text-ds-slate">{clinic.specialty}</Text>
         </View>
       </View>
 
@@ -102,19 +107,21 @@ function ClinicCard({ clinic, onDirections, onCall }: {
         <TouchableOpacity
           activeOpacity={0.8}
           onPress={onDirections}
-          className="flex-1 flex-row items-center justify-center py-3.5 rounded-2xl bg-sky-400 dark:bg-sky-500 gap-2"
+          className="flex-1 flex-row items-center justify-center rounded-lg bg-ds-primary gap-2"
+          style={{ height: 48 }}
         >
-          <Feather name="navigation" size={15} color={theme.onPrimary} />
-          <Text className="text-[15px] font-bold text-white">Directions</Text>
+          <Feather name="navigation" size={15} color={c.onPrimary} />
+          <Text className="text-[15px] font-medium text-ds-on-primary">Directions</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           activeOpacity={0.8}
           onPress={onCall}
-          className="flex-1 flex-row items-center justify-center py-3.5 rounded-2xl bg-slate-900 dark:bg-slate-800 gap-2"
+          className="flex-1 flex-row items-center justify-center rounded-lg border border-ds-hairline-strong gap-2"
+          style={{ height: 48 }}
         >
-          <Feather name="phone-call" size={15} color={theme.onPrimary} />
-          <Text className="text-[15px] font-bold text-white">Call</Text>
+          <Feather name="phone-call" size={15} color={c.ink} />
+          <Text className="text-[15px] font-medium text-ds-ink">Call</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -124,6 +131,7 @@ function ClinicCard({ clinic, onDirections, onCall }: {
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
 export default function LocatorScreen() {
+  const { c, isDark } = useDs();
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [clinics, setClinics] = useState<Clinic[]>([]);
@@ -148,9 +156,10 @@ export default function LocatorScreen() {
           setUserLocation({ latitude: userLat, longitude: userLon });
         }
 
-        // Fetch Clinics from Backend        const response = await apiFetch(`/api/clinics`);
+        // Fetch Clinics from Backend
+        const response = await apiFetch(`/api/clinics`);
         const data = await response.json();
-        
+
         const currentHour = new Date().getHours();
 
         // Calculate distance and map data
@@ -164,10 +173,10 @@ export default function LocatorScreen() {
             const lat = Number(clinic.latitude);
             const lon = Number(clinic.longitude);
             const dist = getDistance(userLat, userLon, lat, lon);
-            
+
             // Major medical institutes & hospital emergency departments operate 24/7
-            const isHospitalOrEmergency = 
-              clinic.name?.toLowerCase().includes("hospital") || 
+            const isHospitalOrEmergency =
+              clinic.name?.toLowerCase().includes("hospital") ||
               clinic.name?.toLowerCase().includes("institute") ||
               clinic.specialty?.toLowerCase().includes("emergency") ||
               clinic.operating_hours === "24/7";
@@ -203,7 +212,7 @@ export default function LocatorScreen() {
 
         // Sort by closest distance
         processedClinics.sort((a: any, b: any) => parseFloat(a.distance) - parseFloat(b.distance));
-        
+
         setClinics(processedClinics);
         setIsLoading(false);
 
@@ -226,10 +235,10 @@ export default function LocatorScreen() {
 
 
   const handleGetDirections = (lat: number, lng: number, name: string) => {
-    // The "dir/?api=1&destination=" format tells Google Maps to automatically calculate 
+    // The "dir/?api=1&destination=" format tells Google Maps to automatically calculate
     // a route from the user's current location to the destination.
     const destination = `${lat},${lng}`;
-    
+
     const url = Platform.select({
       // Apple Maps directions
       ios: `http://maps.apple.com/?daddr=${destination}&dirflg=d`,
@@ -252,33 +261,28 @@ export default function LocatorScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-surface-alt" edges={["top"]}>
-      <StatusBar style="dark" />
+    <SafeAreaView className="flex-1 bg-ds-canvas" edges={["top"]}>
+      <StatusBar style={isDark ? "light" : "dark"} />
 
       {/* ── Header ── */}
       <View className="px-5 pt-4 pb-2">
         <View className="flex-row items-center mb-4">
-          <TouchableOpacity
-            onPress={() => router.back()}
-            className="w-10 h-10 items-center justify-center mr-2 rounded-full bg-surface border border-border"
-          >
-            <Feather name="arrow-left" size={20} color={theme.textSoft} />
-          </TouchableOpacity>
-          <View className="flex-1 ml-1">
-            <Text className="text-[20px] font-bold text-text" numberOfLines={1}>
+          <SquareIconButton icon="arrow-left" label="Go back" onPress={() => router.back()} />
+          <View className="flex-1 ml-3">
+            <Text accessibilityRole="header" className="text-[22px] font-semibold text-ds-ink" numberOfLines={1}>
               Emergency locator
             </Text>
-            <Text className="text-[13px] text-text-soft font-medium">Nearby cardiovascular centers</Text>
+            <Text className="text-[13px] text-ds-slate font-medium">Nearby cardiovascular centers</Text>
           </View>
-          <View className="w-10 h-10 rounded-full items-center justify-center">
-            <MaterialCommunityIcons name="heart-pulse" size={20} color={theme.danger} />
+          <View className="w-10 h-10 rounded-lg bg-ds-rose items-center justify-center">
+            <MaterialCommunityIcons name="heart-pulse" size={20} color={c.danger} />
           </View>
         </View>
-        
+
         {locationError && (
-          <View className="flex-row items-center bg-orange-50 dark:bg-orange-950 border border-orange-200 dark:border-orange-900/50 rounded-2xl px-4 py-3 gap-3 mb-2">
-            <Feather name="info" size={18} color={theme.warning} />
-            <Text className="flex-1 text-[13px] font-medium text-orange-800 dark:text-orange-200 leading-snug">
+          <View className="flex-row items-center bg-ds-yellow rounded-xl px-4 py-3 gap-3 mb-2">
+            <Feather name="info" size={18} color={c.warmText} />
+            <Text className="flex-1 text-[13px] font-medium text-ds-warm-text leading-snug">
               {locationError}
             </Text>
           </View>
@@ -289,10 +293,10 @@ export default function LocatorScreen() {
       <View className="flex-1 px-5">
         {/* List header */}
         <View className="py-4 flex-row items-center justify-between">
-          <Text className="text-[16px] font-bold text-text">
+          <Text className="text-[16px] font-semibold text-ds-ink">
             Nearby specialists
           </Text>
-          <Text className="text-[14px] font-bold text-sky-500">
+          <Text className="text-[13px] text-ds-steel">
             {filtered.length} found
           </Text>
         </View>
@@ -304,7 +308,7 @@ export default function LocatorScreen() {
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
             <EmptyState
-              icon={<Feather name="search" size={26} color={theme.textSoft} />}
+              icon={<Feather name="search" size={26} color={c.slate} />}
               title="No results found"
               subtitle="Try a different name or specialty."
               className="pt-12"

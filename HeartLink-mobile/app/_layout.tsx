@@ -117,7 +117,7 @@ function RootLayoutNav() {
 
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { queryClient, asyncStoragePersister } from '../lib/react-query';
-import { Colors, DARK_MODE_ENABLED } from '../constants/theme';
+import { ds, DARK_MODE_ENABLED } from '../constants/theme';
 
 export default function RootLayout() {
   const { colorScheme, setColorScheme } = useColorScheme();
@@ -137,7 +137,7 @@ export default function RootLayout() {
     let mounted = true;
 
     if (Platform.OS === "android") {
-      SystemUI.setBackgroundColorAsync(Colors.light.background).catch(() => {});
+      SystemUI.setBackgroundColorAsync(ds.light.canvas).catch(() => {});
     }
 
     AsyncStorage.getItem("theme_preference")
@@ -150,7 +150,7 @@ export default function RootLayout() {
             if (!mounted) return;
             setColorScheme(pref);
             if (Platform.OS === "android") {
-              SystemUI.setBackgroundColorAsync(pref === "dark" ? Colors.dark.background : Colors.light.background).catch(() => {});
+              SystemUI.setBackgroundColorAsync(pref === "dark" ? ds.dark.canvas : ds.light.canvas).catch(() => {});
             }
             if (pref !== "system") setTargetScheme(pref);
             setPrefLoaded(true);

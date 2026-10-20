@@ -8,16 +8,21 @@ import { useRouter, useFocusEffect } from "expo-router";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
 import * as FileSystem from "expo-file-system/legacy";
-import { useColorScheme } from "nativewind";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getToken } from "../../../lib/secureTokenStore";
 import { Header } from "../../../components/Header";
 import { useUser } from "../../../contexts/UserContext";
 
+import { useDs } from "../../../components/onboarding/useDs";
+import { BadgeTint, IconBadge } from "../../../components/onboarding/QuestionLayout";
 let isCurrentlySharing = false;
 import AnimatedButton from "../../../components/ui/AnimatedButton";
-import { Colors } from "../../../constants/theme";
-import { theme } from "../../../constants/theme";// ─── Skeletons ────────────────────────────────────────────────────────────────
+import { ds } from "../../../constants/theme";
+
+// Report colours (the PDF is always light).
+const P = ds.light;
+
+// ─── Skeletons ────────────────────────────────────────────────────────────────
 function SkeletonPulse({ style, className }: any) {
   const anim = useRef(new Animated.Value(0.3)).current;
 
@@ -30,7 +35,7 @@ function SkeletonPulse({ style, className }: any) {
     ).start();
   }, [anim]);
 
-  return <Animated.View style={[{ opacity: anim }, style]} className={`bg-border ${className}`} />;
+  return <Animated.View style={[{ opacity: anim }, style]} className={`bg-ds-surface-alt ${className}`} />;
 }
 
 function WrapUpSkeleton() {
@@ -49,30 +54,33 @@ function WrapUpSkeleton() {
 
 // ─── Reusable Components ──────────────────────────────────────────────────────
 function SectionTitle({ title }: { title: string }) {
+  const { c } = useDs();
   return (
-    <View className="mb-2 mt-4">
-      <Text className="text-[12px] font-bold text-text-soft tracking-[0.08em] uppercase">
+    <View className="mb-3 mt-4">
+      <Text accessibilityRole="header" style={{ fontSize: 11, fontWeight: "600", letterSpacing: 1, textTransform: "uppercase", color: c.steel }}>
         {title}
       </Text>
     </View>
   );
 }
 
-function MetricCard({ title, value, icon, color }: { title: string, value: string, icon: any, color: string }) {
+function MetricCard({ title, value, icon, tint }: { title: string, value: string, icon: any, tint: BadgeTint }) {
+  const { c } = useDs();
   return (
-    <View className="flex-1 bg-surface-alt/50 dark:bg-slate-800/40 rounded-2xl p-4 flex-row items-center border-0">
-      <View className="w-10 h-10 rounded-xl items-center justify-center mr-3" style={{ backgroundColor: `${color}15` }}>
-        <Text style={{ fontSize: 18 }}>{icon}</Text>
+    <View className="flex-1 p-4 flex-row items-center" style={{ borderRadius: 12, backgroundColor: c.surface }}>
+      <View style={{ marginRight: 12 }}>
+        <IconBadge icon={icon} tint={tint} size={40} />
       </View>
       <View className="flex-1">
-        <Text className="text-[11px] text-text-soft font-bold mb-0.5 uppercase tracking-wide">{title}</Text>
-        <Text className="text-[15px] font-bold text-text leading-tight">{value}</Text>
+        <Text style={{ fontSize: 12, fontWeight: "500", color: c.slate, marginBottom: 2 }}>{title}</Text>
+        <Text style={{ fontSize: 16, fontWeight: "600", color: c.ink }}>{value}</Text>
       </View>
     </View>
   );
 }
 
-function DailyRecordRowFlat({ dayData, isToday }: any) {
+function DailyRecordRowFlat({ dayData, isToday, isLast }: any) {
+  const { c } = useDs();
   const summary = dayData.has_records 
     ? [
         dayData.movement.length ? "Exercise" : null,
@@ -84,15 +92,15 @@ function DailyRecordRowFlat({ dayData, isToday }: any) {
     : "No records";
 
   return (
-    <View className="flex-row justify-between items-center py-4 border-b border-border/60 last:border-b-0">
-      <Text className="text-[14px] font-semibold text-text">
+    <View className="flex-row justify-between items-center py-4" style={{ borderBottomWidth: isLast ? 0 : 1, borderBottomColor: c.hairlineSoft }}>
+      <Text style={{ fontSize: 15, fontWeight: "500", color: c.ink }}>
         {dayData.date} - {dayData.day}
       </Text>
-      <Text 
-        className="text-[13px]"
-        style={{ 
-          fontWeight: dayData.has_records || isToday ? 'bold' : '600', 
-          color: isToday ? Colors.light.primary : (summary.includes("Symptoms") ? theme.warningText : (dayData.has_records ? Colors.light.text : Colors.light.textMuted))
+      <Text
+        style={{
+          fontSize: 13,
+          fontWeight: dayData.has_records || isToday ? "600" : "400",
+          color: isToday ? c.ink : (summary.includes("Symptoms") ? c.warmText : (dayData.has_records ? c.charcoal : c.steel))
         }}
       >
         {isToday ? "Today" : summary}
@@ -101,20 +109,21 @@ function DailyRecordRowFlat({ dayData, isToday }: any) {
   );
 }
 
-function LogItemCard({ title, subtitle, icon, buttonColor, onPress }: any) {
+function LogItemCard({ title, subtitle, icon, tint, onPress }: any) {
+  const { c } = useDs();
   return (
-    <TouchableOpacity onPress={onPress} activeOpacity={0.7} className="bg-white dark:bg-slate-800 rounded-3xl p-4 flex-row items-center justify-between mb-3 shadow-sm shadow-slate-200/50 dark:shadow-none">
+    <TouchableOpacity onPress={onPress} activeOpacity={0.7} accessibilityRole="button" accessibilityLabel={`Log ${title}. ${subtitle}`} className="p-4 flex-row items-center justify-between mb-2" style={{ borderRadius: 12, borderWidth: 1, borderColor: c.hairline, backgroundColor: c.canvas }}>
       <View className="flex-row items-center flex-1">
-        <View className="w-10 h-10 rounded-full bg-slate-50 dark:bg-slate-700 items-center justify-center mr-4 border border-slate-100 dark:border-slate-600">
-          <Feather name={icon} size={18} color="#64748B" />
+        <View style={{ marginRight: 14 }}>
+          <IconBadge icon={icon} tint={tint} size={40} />
         </View>
         <View className="flex-1 pr-2">
-          <Text className="text-[15px] font-bold text-text mb-0.5">{title}</Text>
-          <Text className="text-[13px] text-text-soft font-medium leading-tight">{subtitle}</Text>
+          <Text style={{ fontSize: 16, fontWeight: "500", color: c.ink, marginBottom: 2 }}>{title}</Text>
+          <Text style={{ fontSize: 13, lineHeight: 18, color: c.slate }}>{subtitle}</Text>
         </View>
       </View>
-      <View className="w-7 h-7 rounded-full items-center justify-center" style={{ backgroundColor: buttonColor }}>
-        <Feather name="plus" size={16} color="#ffffff" />
+      <View className="items-center justify-center" style={{ width: 32, height: 32, borderRadius: 8, borderWidth: 1, borderColor: c.hairlineStrong }}>
+        <Feather name="plus" size={16} color={c.ink} />
       </View>
     </TouchableOpacity>
   );
@@ -123,11 +132,8 @@ function LogItemCard({ title, subtitle, icon, buttonColor, onPress }: any) {
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function WrapUpScreen() {
   const router = useRouter();
-  const { colorScheme } = useColorScheme();
-  const isDark = colorScheme === "dark";
+  const { c, isDark } = useDs();
   const insets = useSafeAreaInsets();
-  
-  const activeTint = Colors[isDark ? "dark" : "light"].tint;
   
   const { userId, user, token } = useUser();
   const [isLoading, setIsLoading] = useState(true);
@@ -215,19 +221,19 @@ function escapeHtml(unsafe: any): string {
         <html>
           <head>
             <style>
-              body { font-family: 'Helvetica', sans-serif; padding: 40px; color: #1e293b; line-height: 1.6; }
-              h1 { font-size: 24px; font-weight: bold; margin-bottom: 4px; color: #0f172a; }
-              h2 { font-size: 16px; font-weight: bold; color: #334155; margin-top: 32px; margin-bottom: 12px; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em; }
-              h3 { margin-bottom: 8px; font-size: 14px; text-transform: uppercase; color: #0f172a; }
-              p { margin: 0 0 16px 0; color: #5C6B66; font-size: 14px; }
-              .details { margin-bottom: 32px; font-size: 14px; background-color: #f8fafc; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0; }
+              body { font-family: 'Helvetica', sans-serif; padding: 40px; color: ${P.ink}; line-height: 1.6; }
+              h1 { font-size: 24px; font-weight: bold; margin-bottom: 4px; color: ${P.ink}; }
+              h2 { font-size: 16px; font-weight: bold; color: ${P.charcoal}; margin-top: 32px; margin-bottom: 12px; border-bottom: 1px solid ${P.hairline}; padding-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em; }
+              h3 { margin-bottom: 8px; font-size: 14px; text-transform: uppercase; color: ${P.ink}; }
+              p { margin: 0 0 16px 0; color: ${P.slate}; font-size: 14px; }
+              .details { margin-bottom: 32px; font-size: 14px; background-color: ${P.surface}; padding: 20px; border-radius: 8px; border: 1px solid ${P.hairline}; }
               table { width: 100%; border-collapse: collapse; margin-top: 8px; margin-bottom: 24px; font-size: 14px; }
-              th, td { text-align: left; padding: 12px 16px; border-bottom: 1px solid #e2e8f0; }
-              th { background-color: #f1f5f9; font-weight: bold; color: #5C6B66; }
-              td { color: #334155; }
-              .highlight { font-weight: bold; color: #0f172a; }
-              .subtext { font-size: 12px; color: #5C6B66; }
-              .record-card { margin-bottom: 16px; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; }
+              th, td { text-align: left; padding: 12px 16px; border-bottom: 1px solid ${P.hairline}; }
+              th { background-color: ${P.surfaceAlt}; font-weight: bold; color: ${P.slate}; }
+              td { color: ${P.charcoal}; }
+              .highlight { font-weight: bold; color: ${P.ink}; }
+              .subtext { font-size: 12px; color: ${P.slate}; }
+              .record-card { margin-bottom: 16px; padding: 12px; border: 1px solid ${P.hairline}; border-radius: 8px; }
             </style>
           </head>
           <body>
@@ -251,7 +257,7 @@ function escapeHtml(unsafe: any): string {
             ${data.daily_records.map((r: any) => `
               <div class="record-card">
                 <h3>${escapeHtml(r.date)}</h3>
-                ${!r.has_records ? `<p style="color:#676F78; font-size: 13px;">No records</p>` : `
+                ${!r.has_records ? `<p style="color:${P.steel}; font-size: 13px;">No records</p>` : `
                   ${r.movement.length ? `<p><strong>Movement:</strong><br>${r.movement.map((m: any) => `${escapeHtml(m.name)} — ${Number(m.duration || 0)} min`).join('<br>')}</p>` : ''}
                   ${r.nutrition.length ? `<p><strong>Meals:</strong><br>${r.nutrition.map((m: any) => `${escapeHtml(m.meal_name)} — ${Number(m.calories || 0)} kcal, ${Number(m.sodium_mg || 0)}mg sodium`).join('<br>')}</p>` : ''}
                   ${r.vitals.length ? `<p><strong>Vitals:</strong><br>${r.vitals.map((v: any) => `${Number(v.systolic || 0)}/${Number(v.diastolic || 0)} mmHg — ${Number(v.bpm || 0)} BPM`).join('<br>')}</p>` : ''}
@@ -264,55 +270,55 @@ function escapeHtml(unsafe: any): string {
             <h2>VITAL TIMELINE</h2>
             ${data.vitals.records.length ? data.vitals.records.map((r: any) => `
               <div style="margin-bottom: 12px; font-size: 13px;">
-                <strong style="color: #5C6B66; font-size: 12px; text-transform: uppercase;">${escapeHtml(r.date)} · ${escapeHtml(r.time)}</strong><br>
+                <strong style="color: ${P.slate}; font-size: 12px; text-transform: uppercase;">${escapeHtml(r.date)} · ${escapeHtml(r.time)}</strong><br>
                 Blood Pressure: <strong>${Number(r.systolic || 0)} / ${Number(r.diastolic || 0)} mmHg</strong><br>
                 Heart Rate: <strong>${Number(r.bpm || 0)} BPM</strong>
                 ${r.weight_kg ? `<br>Weight: <strong>${Number(r.weight_kg).toFixed(1)} kg</strong>` : ''}
               </div>
-            `).join('') : '<p style="color:#676F78;">Not recorded</p>'}
+            `).join('') : '<p style="color:${P.steel};">Not recorded</p>'}
 
             <h2>SLEEP TIMELINE</h2>
             ${data.sleep.records.length ? data.sleep.records.map((r: any) => `
               <div style="margin-bottom: 12px; font-size: 13px;">
-                <strong style="color: #5C6B66; font-size: 12px; text-transform: uppercase;">${escapeHtml(r.date)}</strong><br>
+                <strong style="color: ${P.slate}; font-size: 12px; text-transform: uppercase;">${escapeHtml(r.date)}</strong><br>
                 Duration: <strong>${Number(r.hours || 0)}h</strong><br>
                 Quality: <strong>${escapeHtml(r.quality)}</strong>
               </div>
-            `).join('') : '<p style="color:#676F78;">No sleep records were logged during this period.</p>'}
+            `).join('') : '<p style="color:${P.steel};">No sleep records were logged during this period.</p>'}
 
             <h2>SYMPTOM TIMELINE</h2>
             ${data.symptoms.records.length ? data.symptoms.records.map((r: any) => `
               <div style="margin-bottom: 12px; font-size: 13px;">
-                <strong style="color: #5C6B66; font-size: 12px; text-transform: uppercase;">${escapeHtml(r.date)} · ${escapeHtml(r.time)}</strong><br>
+                <strong style="color: ${P.slate}; font-size: 12px; text-transform: uppercase;">${escapeHtml(r.date)} · ${escapeHtml(r.time)}</strong><br>
                 <strong>${escapeHtml(r.name)}</strong><br>
                 Severity: <strong>${Number(r.severity || 0)}/10</strong><br>
                 Context: <strong>${escapeHtml(r.context || 'Not specified')}</strong>
               </div>
-            `).join('') : '<p style="color:#676F78;">Not recorded</p>'}
+            `).join('') : '<p style="color:${P.steel};">Not recorded</p>'}
 
             <h2>EXERCISE TIMELINE</h2>
             ${data.movement.records.length ? data.movement.records.map((r: any) => `
               <div style="margin-bottom: 16px; font-size: 13px;">
-                <strong style="color: #5C6B66; font-size: 12px; text-transform: uppercase;">${escapeHtml(r.date)} · ${escapeHtml(r.time)}</strong><br>
+                <strong style="color: ${P.slate}; font-size: 12px; text-transform: uppercase;">${escapeHtml(r.date)} · ${escapeHtml(r.time)}</strong><br>
                 <strong>${escapeHtml(r.name)}</strong><br>
                 Duration: ${Number(r.duration || 0)} min<br>
                 Type: ${escapeHtml(r.type)}<br>
                 Intensity: ${escapeHtml(r.intensity)}<br>
                 Goal: ${escapeHtml(r.goal)}<br>
                 Status: ${escapeHtml(r.status)}<br>
-                ${r.instructions && r.instructions.length ? `<div style="margin-top: 4px; color: #5C6B66;"><em>How it was performed:</em><br> ${r.instructions.map((ins: string, i: number) => `${i+1}. ${escapeHtml(ins)}`).join('<br>')}</div>` : ''}
+                ${r.instructions && r.instructions.length ? `<div style="margin-top: 4px; color: ${P.slate};"><em>How it was performed:</em><br> ${r.instructions.map((ins: string, i: number) => `${i+1}. ${escapeHtml(ins)}`).join('<br>')}</div>` : ''}
               </div>
-            `).join('') : '<p style="color:#676F78;">Not recorded</p>'}
+            `).join('') : '<p style="color:${P.steel};">Not recorded</p>'}
 
             <h2>MEAL TIMELINE</h2>
             ${data.nutrition.records.length ? data.nutrition.records.map((r: any) => `
               <div style="margin-bottom: 12px; font-size: 13px;">
-                <strong style="color: #5C6B66; font-size: 12px; text-transform: uppercase;">${escapeHtml(r.date)} · ${escapeHtml(r.time)}</strong><br>
+                <strong style="color: ${P.slate}; font-size: 12px; text-transform: uppercase;">${escapeHtml(r.date)} · ${escapeHtml(r.time)}</strong><br>
                 <strong>${escapeHtml(r.meal_name)}</strong><br>
                 ${Number(r.calories || 0)} kcal<br>
                 ${Number(r.sodium_mg || 0)} mg sodium
               </div>
-            `).join('') : '<p style="color:#676F78;">Not recorded</p>'}
+            `).join('') : '<p style="color:${P.steel};">Not recorded</p>'}
 
             <h2>HSS / STABILITY</h2>
             <p>Weekly Average: <strong>${escapeHtml(data.stability.average ?? 'Not recorded')}</strong></p>
@@ -342,11 +348,9 @@ function escapeHtml(unsafe: any): string {
     }
   };
 
-  const activeText = isDark ? "#11181C" : "#ffffff";
-
   if (isLoading || !data) {
     return (
-      <SafeAreaView className="flex-1 bg-surface-alt" edges={["top"]}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: c.canvas }} edges={["top"]}>
         <Header />
         <WrapUpSkeleton />
       </SafeAreaView>
@@ -358,19 +362,19 @@ function escapeHtml(unsafe: any): string {
   const todayMovementMins = todayRecord?.movement?.reduce((sum: number, m: any) => sum + Number(m.duration || 0), 0) || 0;
 
   return (
-    <SafeAreaView className="flex-1 bg-surface-alt" edges={["top"]}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: c.canvas }} edges={["top"]}>
       <StatusBar style={isDark ? "light" : "dark"} />
       <Header />
 
       <ScrollView
         contentContainerClassName="px-5 pb-40 pt-4 md:max-w-2xl lg:max-w-4xl mx-auto w-full"
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={activeTint} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={c.line} />}
       >
         {isOfflineData && (
-          <View className="bg-warning-tint0/10 border border-amber-500/30 rounded-xl px-4 py-2.5 mb-4 flex-row items-center gap-2">
-            <Feather name="wifi-off" size={16} color={theme.warningText} />
-            <Text className="text-xs font-semibold text-amber-700 dark:text-amber-400 flex-1">
+          <View className="px-4 py-3 mb-4 flex-row items-center gap-2" style={{ borderRadius: 12, backgroundColor: c.yellow }}>
+            <Feather name="wifi-off" size={16} color={c.warmText} />
+            <Text className="flex-1" style={{ fontSize: 13, fontWeight: "500", color: c.warmText }}>
               Showing cached consultation report. Connect to the internet to update latest telemetry.
             </Text>
           </View>
@@ -378,13 +382,13 @@ function escapeHtml(unsafe: any): string {
 
         {/* HERO / WEEK HEADER */}
         <View className="mb-6 pt-2">
-          <Text className="text-[12px] font-bold text-text-soft tracking-[0.1em] uppercase mb-1">
+          <Text style={{ fontSize: 11, fontWeight: "600", letterSpacing: 1, textTransform: "uppercase", color: c.steel, marginBottom: 6 }}>
             Your Week
           </Text>
-          <Text className="text-[32px] font-bold text-text tracking-tight leading-tight mb-2">
+          <Text accessibilityRole="header" style={{ fontSize: 28, lineHeight: 34, fontWeight: "600", letterSpacing: -0.5, color: c.ink, marginBottom: 8 }}>
             {data.date_range.display}
           </Text>
-          <Text className="text-[15px] text-text-soft leading-relaxed">
+          <Text style={{ fontSize: 15, lineHeight: 23, color: c.slate }}>
             A chronological record of your health activity this week.
           </Text>
         </View>
@@ -396,29 +400,29 @@ function escapeHtml(unsafe: any): string {
           <View className="flex-row gap-3 mb-3">
             <MetricCard 
               title="Avg. stability" 
-              value={data.overview.hss_average ?? "No data"} 
-              icon={<Feather name="heart" size={18} color={theme.danger} />} 
-              color={theme.danger} 
+              value={data.overview.hss_average ?? "No data"}
+              icon="heart-outline"
+              tint="sky"
             />
-            <MetricCard 
-              title="Movement" 
-              value={data.overview.movement_minutes ? `${data.overview.movement_minutes} min` : "No data"} 
-              icon={<Feather name="activity" size={18} color={theme.warning} />} 
-              color={theme.warning} 
+            <MetricCard
+              title="Movement"
+              value={data.overview.movement_minutes ? `${data.overview.movement_minutes} min` : "No data"}
+              icon="walk"
+              tint="mint"
             />
           </View>
           <View className="flex-row gap-3">
             <MetricCard 
               title="Sleep" 
-              value={data.overview.sleep_average_hours ? `${data.overview.sleep_average_hours} hr` : "No data"} 
-              icon={<Feather name="moon" size={18} color={theme.primary} />} 
-              color={theme.primary} 
+              value={data.overview.sleep_average_hours ? `${data.overview.sleep_average_hours} hr` : "No data"}
+              icon="power-sleep"
+              tint="lavender"
             />
-            <MetricCard 
-              title="Vitals logged" 
-              value={`${data.overview.vital_days} of 7 days`} 
-              icon={<Feather name="bell" size={18} color={theme.blue} />} 
-              color={theme.blue} 
+            <MetricCard
+              title="Vitals logged"
+              value={`${data.overview.vital_days} of 7 days`}
+              icon="pulse"
+              tint="sky"
             />
           </View>
         </View>
@@ -428,14 +432,14 @@ function escapeHtml(unsafe: any): string {
           <View className="mb-8">
             <SectionTitle title="Symptoms This Week" />
             {data.symptoms.records.map((symptom: any, index: number) => (
-              <View key={index} className="bg-white dark:bg-slate-800 rounded-3xl p-5 border border-border/40 shadow-sm shadow-slate-200/50 dark:shadow-none mb-3 last:mb-0">
+              <View key={index} className="p-4 mb-2" style={{ borderRadius: 12, borderWidth: 1, borderColor: c.hairline, backgroundColor: c.canvas }}>
                  <View className="flex-row gap-3">
                     <View className="mt-0.5">
-                      <Feather name="alert-circle" size={16} color={theme.warningText} />
+                      <Feather name="alert-circle" size={16} color={c.warmText} />
                     </View>
                     <View className="flex-1">
-                       <Text className="text-[14px] font-bold text-text mb-1">{symptom.name} - {symptom.date}</Text>
-                       <Text className="text-[13px] font-medium text-text-soft leading-relaxed">
+                       <Text style={{ fontSize: 15, fontWeight: "500", color: c.ink, marginBottom: 4 }}>{symptom.name} - {symptom.date}</Text>
+                       <Text style={{ fontSize: 13, lineHeight: 19, color: c.slate }}>
                          Severity: {symptom.severity}/10. {symptom.context || ""}
                        </Text>
                     </View>
@@ -448,10 +452,10 @@ function escapeHtml(unsafe: any): string {
         {/* DAILY RECORD TIMELINE */}
         <View className="mb-8">
           <SectionTitle title="Daily Record" />
-          <View className="bg-surface-alt/50 dark:bg-slate-800/40 rounded-3xl px-5 border-0">
+          <View className="px-5" style={{ borderRadius: 12, backgroundColor: c.surface }}>
             {data.daily_records.map((dayData: any, idx: number) => {
               const isToday = idx === data.daily_records.length - 1;
-              return <DailyRecordRowFlat key={idx} dayData={dayData} isToday={isToday} />;
+              return <DailyRecordRowFlat key={idx} dayData={dayData} isToday={isToday} isLast={isToday} />;
             })}
           </View>
         </View>
@@ -463,29 +467,29 @@ function escapeHtml(unsafe: any): string {
             <LogItemCard 
               title="Blood pressure" 
               subtitle="Morning check due today"
-              icon="heart" 
-              buttonColor="#38BDF8"
+              icon="heart-pulse"
+              tint="sky"
               onPress={() => router.push("/(home)/(health)/log-symptoms")} 
             />
             <LogItemCard 
               title="Meals" 
               subtitle={`${todayMealsSodium.toLocaleString()} of 2,000 mg logged today`}
-              icon="coffee" 
-              buttonColor="#F97316"
+              icon="silverware-fork-knife"
+              tint="peach"
               onPress={() => router.push("/(home)/(meals)/food-diary")} 
             />
             <LogItemCard 
               title="Movement" 
               subtitle={`${todayMovementMins} of 30 mins completed today`}
-              icon="activity" 
-              buttonColor="#FB7185"
+              icon="walk"
+              tint="mint"
               onPress={() => router.push("/(home)/(health)/exercise-diary")} 
             />
             <LogItemCard 
               title="Sleep" 
               subtitle="Target: 7-9 hrs of restful recovery"
-              icon="moon" 
-              buttonColor="#818CF8"
+              icon="power-sleep"
+              tint="lavender"
               onPress={() => router.push("/(home)/(health)/log-symptoms")} 
             />
           </View>
@@ -497,20 +501,23 @@ function escapeHtml(unsafe: any): string {
         <View className="mb-12">
           <AnimatedButton
             onPress={exportReport}
-            className="bg-white dark:bg-surface-alt rounded-3xl p-5 border border-border/40 flex-row items-center shadow-sm shadow-slate-200/50"
+            accessibilityRole="button"
+            accessibilityLabel="Doctor consultation summary"
+            className="p-4 flex-row items-center"
+            style={{ borderRadius: 12, borderWidth: 1, borderColor: c.hairline, backgroundColor: c.canvas }}
           >
-            <View className="w-10 h-10 rounded-xl items-center justify-center mr-4 bg-[#E0E7FF] dark:bg-blue-900/20">
-              <Feather name="file-text" size={20} color="#2563EB" />
+            <View style={{ marginRight: 14 }}>
+              <IconBadge icon="file-document-outline" tint="sky" size={40} />
             </View>
             <View className="flex-1">
-              <Text className="text-[15px] font-bold text-text mb-0.5">
+              <Text style={{ fontSize: 16, fontWeight: "500", color: c.ink, marginBottom: 2 }}>
                 Doctor consultation summary
               </Text>
-              <Text className="text-[13px] font-bold text-[#D97706] dark:text-warning-text">
-                Includes this week's flagged review
+              <Text style={{ fontSize: 13, fontWeight: "500", color: c.warmText }}>
+                Includes this week&apos;s flagged review
               </Text>
             </View>
-            <Feather name="chevron-right" size={20} color={theme.textMuted} />
+            <Feather name="chevron-right" size={20} color={c.steel} />
           </AnimatedButton>
         </View>
 

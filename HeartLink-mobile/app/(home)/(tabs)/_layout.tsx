@@ -11,16 +11,13 @@ import { withLayoutContext, usePathname } from "expo-router";
 import { createMaterialTopTabNavigator } from "expo-router/js-top-tabs";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useColorScheme } from "nativewind";
-import { LinearGradient } from "expo-linear-gradient";
-import { Colors } from "../../../constants/theme";
+import { useDs } from "../../../components/onboarding/useDs";
 import {
   SplitRecordActions,
 } from "../../../components/tabs/SplitRecordActions";
 import { QuickLogModal } from "../../../components/exercise/QuickLogModal";
 import { MissionLogModal } from "../../../components/dashboard/MissionLogModal";
 import { useUser } from "../../../contexts/UserContext";
-import { theme } from "../../../constants/theme";
 
 // ─── Tab Config ───────────────────────────────────────────────────────────────
 
@@ -39,13 +36,11 @@ const TABS = [
 function TabBarItem({
   focused,
   label,
-  isDark,
   onPress,
   children,
 }: {
   focused: boolean;
   label: string;
-  isDark: boolean;
   onPress: () => void;
   children: React.ReactNode;
 }) {
@@ -66,9 +61,9 @@ function TabBarItem({
     outputRange: [0.95, 1.05],
   });
   
-  const theme = isDark ? Colors.dark : Colors.light;
-  const activeColor = theme.primary;
-  const inactiveColor = theme.textSoft;
+  const { c } = useDs();
+  const activeColor = c.ink;
+  const inactiveColor = c.steel;
 
   return (
     <TouchableOpacity
@@ -104,12 +99,10 @@ function TabBarItem({
 
 function CustomTabBar({ state, navigation, splitOpen, onFabPress, onCloseSplit }: any) {
   const insets = useSafeAreaInsets();
-  const { colorScheme } = useColorScheme();
-  const isDark = colorScheme === "dark";
-  const theme = isDark ? Colors.dark : Colors.light;
+  const { c } = useDs();
 
-  const INACTIVE_COLOR = theme.textSoft;
-  const ACTIVE_COLOR = theme.primary;
+  const INACTIVE_COLOR = c.steel;
+  const ACTIVE_COLOR = c.ink;
 
   const fabSpin = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -129,7 +122,7 @@ function CustomTabBar({ state, navigation, splitOpen, onFabPress, onCloseSplit }
   return (
     <View
       style={{
-        backgroundColor: theme.surface,
+        backgroundColor: c.canvas,
         flexDirection: "row",
         alignItems: "center",
         height: 60 + bottomPad,
@@ -137,16 +130,7 @@ function CustomTabBar({ state, navigation, splitOpen, onFabPress, onCloseSplit }
         paddingTop: 4,
         paddingHorizontal: 8,
         borderTopWidth: 1,
-        borderTopColor: theme.border,
-        ...Platform.select({
-          ios: {
-            shadowColor: theme.shadow,
-            shadowOffset: { width: 0, height: -4 },
-            shadowOpacity: isDark ? 0.3 : 0.1,
-            shadowRadius: 8,
-          },
-          android: { elevation: 16 },
-        }),
+        borderTopColor: c.hairline,
       }}
     >
       {TABS.map((tab: any) => {
@@ -187,22 +171,25 @@ function CustomTabBar({ state, navigation, splitOpen, onFabPress, onCloseSplit }
                   width: 56,
                   height: 56,
                   borderRadius: 28,
-                  backgroundColor: theme.primary,
+                  backgroundColor: c.primary,
+                  borderWidth: 3,
+                  borderColor: c.canvas,
                   alignItems: "center",
                   justifyContent: "center",
+                  // Design-system "card" shadow (level 2), just enough to lift it off the bar.
                   ...Platform.select({
                     ios: {
-                      shadowColor: theme.primary,
-                      shadowOffset: { width: 0, height: 6 },
-                      shadowOpacity: 0.4,
+                      shadowColor: "#0f0f0f",
+                      shadowOffset: { width: 0, height: 4 },
+                      shadowOpacity: 0.08,
                       shadowRadius: 12,
                     },
-                    android: { elevation: 8, shadowColor: theme.primary },
+                    android: { elevation: 4 },
                   }),
                 }}
               >
                 <Animated.View style={{ transform: [{ rotate: fabRotate }] }}>
-                  <Feather name="plus" size={26} color={theme.onPrimary} />
+                  <Feather name="plus" size={26} color={c.onPrimary} />
                 </Animated.View>
               </TouchableOpacity>
             </View>
@@ -217,7 +204,6 @@ function CustomTabBar({ state, navigation, splitOpen, onFabPress, onCloseSplit }
             <TabBarItem
               focused={isFocused}
               label={tab.label}
-              isDark={isDark}
               onPress={onPress}
             >
               {tab.type === "feather" ? (

@@ -12,12 +12,13 @@ import {
   BackHandler,
 } from "react-native";
 import Svg, { Path, Circle, Line as SvgLine } from "react-native-svg";
-import { useColorScheme } from "nativewind";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter, useFocusEffect } from "expo-router";
 
+import { useDs } from "../../../components/onboarding/useDs";
+import { IconBadge } from "../../../components/onboarding/QuestionLayout";
 let isCurrentlySharing = false;
 import * as Haptics from "expo-haptics";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -25,30 +26,7 @@ import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
 import { useUser } from "../../../contexts/UserContext";
 import { Header } from "../../../components/Header";
-import { theme } from "../../../constants/theme";const TOKENS = {
-  ink: "#152131",
-  sub: "#5C6B66",
-  subDark: "#94A3B8",
-  line: "#DCE3DF",
-  lineDark: "rgba(148,163,184,0.16)",
-  teal: "#1FAE8E",
-  tealSoft: "#DCEFE9",
-  tealSoftDark: "rgba(31,174,142,0.16)",
-  orange: "#E08A2E",
-  orangeSoft: "#FBF0DD",
-  orangeSoftDark: "rgba(224,138,46,0.16)",
-  pink: "#D94F6E",
-  pinkSoft: "#FBE7EC",
-  pinkSoftDark: "rgba(217,79,110,0.16)",
-  indigo: "#6F6FD1",
-  indigoSoft: "#EFE9FB",
-  indigoSoftDark: "rgba(111,111,209,0.16)",
-  critical: "#B23A3A",
-  criticalSoft: "#F8E3E1",
-  criticalSoftDark: "rgba(178,58,58,0.18)",
-  neutralSoft: "#EDF1EF",
-  neutralSoftDark: "rgba(148,163,184,0.14)",
-};
+import { ds } from "../../../constants/theme";
 
 function TactileCard({
   onPress,
@@ -80,13 +58,6 @@ function TactileCard({
   );
 }
 
-function getStatusTheme(score: number | null, isDark: boolean) {
-  if (score === null || score === undefined) return { tier: "Getting Started", dotColor: isDark ? TOKENS.subDark : "#94A3B8", badgeBg: isDark ? TOKENS.neutralSoftDark : TOKENS.neutralSoft, badgeText: isDark ? TOKENS.subDark : TOKENS.sub, barColor: isDark ? "#475569" : TOKENS.line };
-  if (score >= 80) return { tier: "Looking Great", dotColor: TOKENS.teal, badgeBg: isDark ? TOKENS.tealSoftDark : TOKENS.tealSoft, badgeText: TOKENS.teal, barColor: TOKENS.teal };
-  if (score >= 60) return { tier: "On Track", dotColor: TOKENS.orange, badgeBg: isDark ? TOKENS.orangeSoftDark : TOKENS.orangeSoft, badgeText: TOKENS.orange, barColor: TOKENS.orange };
-  if (score >= 50) return { tier: "Needs Attention", dotColor: TOKENS.pink, badgeBg: isDark ? TOKENS.pinkSoftDark : TOKENS.pinkSoft, badgeText: TOKENS.pink, barColor: TOKENS.pink };
-  return { tier: "Take Action", dotColor: TOKENS.critical, badgeBg: isDark ? TOKENS.criticalSoftDark : TOKENS.criticalSoft, badgeText: TOKENS.critical, barColor: TOKENS.critical };
-}
 
 const controlPoint = (current: any, previous: any, next: any, reverse: boolean) => {
   const p = previous || current;
@@ -123,8 +94,7 @@ function buildAreaPath(points: { x: number; y: number }[], baseline: number): st
 }
 
 export default function TrendsTabScreen() {
-  const { colorScheme } = useColorScheme();
-  const isDark = colorScheme === "dark";
+  const { c, isDark } = useDs();
   const router = useRouter();
   const { userId, token, logout } = useUser();
 
@@ -239,9 +209,9 @@ export default function TrendsTabScreen() {
         <html>
           <head>
             <style>
-              body { font-family: Helvetica, sans-serif; padding: 40px; color: #152131; }
-              h1 { color: #1FAE8E; }
-              h2 { font-size: 18px; margin-top: 20px; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+              body { font-family: Helvetica, sans-serif; padding: 40px; color: ${ds.light.ink}; }
+              h1 { color: ${ds.light.primary}; }
+              h2 { font-size: 18px; margin-top: 20px; border-bottom: 1px solid ${ds.light.hairline}; padding-bottom: 5px; }
               .stat { font-size: 14px; margin: 10px 0; }
               .val { font-weight: bold; }
             </style>
@@ -277,7 +247,9 @@ export default function TrendsTabScreen() {
   };
 
   const latestHSS = analytics?.history?.[analytics.history.length - 1]?.score ?? null;
-  const activeTheme = getStatusTheme(latestHSS, isDark);
+  // Design-system card: white, thin warm-grey border, 12px corners, no shadow.
+  const card = { backgroundColor: c.canvas, borderColor: c.hairline, borderWidth: 1, borderRadius: 12 };
+  const microLabel = { fontSize: 11, fontWeight: "600" as const, letterSpacing: 1, textTransform: "uppercase" as const, color: c.steel };
 
   // ─── Sub-components for Content ──────────────────────────────────────────
   
@@ -304,19 +276,20 @@ export default function TrendsTabScreen() {
           <TouchableOpacity
             key={tab.id}
             onPress={() => setActiveTab(tab.id as any)}
-            className="px-4 py-2 rounded-full"
-            style={{ 
-              backgroundColor: isActive ? "#2563EB" : isDark ? "#1E293B" : "#FFFFFF",
-              elevation: isActive ? 0 : 1,
-              shadowColor: isActive ? "transparent" : "rgba(0,0,0,0.1)",
-              shadowOffset: { width: 0, height: 1 },
-              shadowOpacity: isActive ? 0 : 1,
-              shadowRadius: isActive ? 0 : 2,
+            accessibilityRole="tab"
+            accessibilityState={{ selected: isActive }}
+            className="justify-center"
+            style={{
+              height: 40,
+              paddingHorizontal: 16,
+              borderRadius: 9999,
+              borderWidth: 1,
+              backgroundColor: isActive ? c.ink : c.canvas,
+              borderColor: isActive ? c.ink : c.hairline,
             }}
           >
-            <Text 
-              className="text-[13px] font-semibold"
-              style={{ color: isActive ? "#FFFFFF" : isDark ? "#94A3B8" : "#64748B" }}
+            <Text
+              style={{ fontSize: 14, fontWeight: "500", color: isActive ? c.canvas : c.charcoal }}
             >
               {tab.label}
             </Text>
@@ -328,74 +301,51 @@ export default function TrendsTabScreen() {
 
   const renderWeeklySummary = () => {
     return (
-      <View className="bg-[#F4F7F9] dark:bg-slate-900 rounded-[28px] p-5 mb-4 border border-border dark:border-slate-800/60">
-        <Text className="text-[11px] font-bold text-text-soft uppercase tracking-widest mb-4">
+      <View className="p-5 mb-4" style={{ borderRadius: 12, backgroundColor: c.surface }}>
+        <Text style={[microLabel, { marginBottom: 14 }]}>
           {intervalDays === 7 ? "THIS WEEK" : intervalDays === 14 ? "LAST 2 WEEKS" : "LAST 30 DAYS"}
         </Text>
         <View className="flex-row justify-between mb-6 gap-2">
-          {/* Sleep */}
-          <View className="flex-1 bg-white dark:bg-surface rounded-2xl p-3 shadow-sm shadow-slate-200/50 dark:shadow-none">
-            <View className="flex-row items-center gap-1.5 mb-2.5">
-              <Feather name="moon" size={14} color="#367484" />
-              <Text className="text-[12px] font-semibold text-text">Sleep</Text>
+          {[
+            { key: "sleep", label: "Sleep", icon: "power-sleep", ratio: Number(summaryStats.sleepHours) / 8, value: summaryStats.sleepHours, unit: "/8hr" },
+            { key: "activity", label: "Activity", icon: "run", ratio: summaryStats.activityMins / 30, value: summaryStats.activityMins, unit: "/30m" },
+            { key: "sodium", label: "Sodium", icon: "shaker-outline", ratio: summaryStats.sodiumMg / 2000, value: summaryStats.sodiumMg, unit: "/2g" },
+          ].map((s) => (
+            <View key={s.key} className="flex-1 p-3" style={card}>
+              <View className="flex-row items-center gap-1.5 mb-2.5">
+                <MaterialCommunityIcons name={s.icon as any} size={15} color={c.charcoal} />
+                <Text style={{ fontSize: 13, fontWeight: "500", color: c.ink }}>{s.label}</Text>
+              </View>
+              <View className="w-full overflow-hidden mb-2.5" style={{ height: 4, borderRadius: 2, backgroundColor: c.hairlineSoft }}>
+                <View style={{ height: "100%", backgroundColor: c.line, width: `${Math.min(100, s.ratio * 100)}%` }} />
+              </View>
+              <Text style={{ fontSize: 15, fontWeight: "600", color: c.ink }}>{s.value}<Text style={{ fontSize: 12, fontWeight: "400", color: c.slate }}>{s.unit}</Text></Text>
             </View>
-            <View className="h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full w-full overflow-hidden mb-2.5">
-              <View className="h-full rounded-full bg-[#367484]" style={{ width: `${Math.min(100, (Number(summaryStats.sleepHours) / 8) * 100)}%` }} />
-            </View>
-            <Text className="text-[13px] font-bold text-text">{summaryStats.sleepHours}<Text className="text-[11px] font-medium text-text-soft">/8hr</Text></Text>
-          </View>
-          
-          {/* Activity */}
-          <View className="flex-1 bg-white dark:bg-surface rounded-2xl p-3 shadow-sm shadow-slate-200/50 dark:shadow-none">
-            <View className="flex-row items-center gap-1.5 mb-2.5">
-              <MaterialCommunityIcons name="run" size={16} color="#2563EB" />
-              <Text className="text-[12px] font-semibold text-text">Activity</Text>
-            </View>
-            <View className="h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full w-full overflow-hidden mb-2.5">
-              <View className="h-full rounded-full bg-[#2563EB]" style={{ width: `${Math.min(100, (summaryStats.activityMins / 30) * 100)}%` }} />
-            </View>
-            <Text className="text-[13px] font-bold text-text">{summaryStats.activityMins}<Text className="text-[11px] font-medium text-text-soft">/30m</Text></Text>
-          </View>
-          
-          {/* Sodium */}
-          <View className="flex-1 bg-white dark:bg-surface rounded-2xl p-3 shadow-sm shadow-slate-200/50 dark:shadow-none">
-            <View className="flex-row items-center gap-1.5 mb-2.5">
-              <MaterialCommunityIcons name="shaker-outline" size={14} color="#D97706" />
-              <Text className="text-[12px] font-semibold text-text">Sodium</Text>
-            </View>
-            <View className="h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full w-full overflow-hidden mb-2.5">
-              <View className="h-full rounded-full bg-[#D97706]" style={{ width: `${Math.min(100, (summaryStats.sodiumMg / 2000) * 100)}%` }} />
-            </View>
-            <Text className="text-[13px] font-bold text-text">{summaryStats.sodiumMg}<Text className="text-[11px] font-medium text-text-soft">/2g</Text></Text>
-          </View>
+          ))}
         </View>
 
-        <Text className="text-[11px] font-bold text-text-soft uppercase tracking-widest mb-4">Highlights</Text>
-        
-        <TouchableOpacity activeOpacity={0.7} className="flex-row items-center justify-between p-4 bg-white dark:bg-surface rounded-2xl mb-2.5 shadow-sm shadow-slate-200/50 dark:shadow-none">
-          <View className="flex-row items-center gap-4">
-            <View className="w-10 h-10 rounded-xl items-center justify-center bg-[#E6F4EA] dark:bg-[#E6F4EA]/10">
-              <Feather name="award" size={18} color="#1FAE8E" />
-            </View>
-            <View>
-              <Text className="text-[14px] font-bold text-text mb-0.5">Best day</Text>
-              <Text className="text-[12px] text-text-soft">{highlights.bestDayText}</Text>
+        <Text style={[microLabel, { marginBottom: 14 }]}>Highlights</Text>
+
+        <TouchableOpacity activeOpacity={0.7} className="flex-row items-center justify-between p-4 mb-2" style={card}>
+          <View className="flex-row items-center gap-3 flex-1">
+            <IconBadge icon="trophy-outline" tint="mint" size={40} />
+            <View className="flex-1">
+              <Text style={{ fontSize: 15, fontWeight: "500", color: c.ink, marginBottom: 2 }}>Best day</Text>
+              <Text style={{ fontSize: 13, color: c.slate }}>{highlights.bestDayText}</Text>
             </View>
           </View>
-          <Feather name="chevron-right" size={16} color={isDark ? "#64748B" : "#94A3B8"} />
+          <Feather name="chevron-right" size={16} color={c.steel} />
         </TouchableOpacity>
 
-        <TouchableOpacity activeOpacity={0.7} className="flex-row items-center justify-between p-4 bg-white dark:bg-surface rounded-2xl shadow-sm shadow-slate-200/50 dark:shadow-none">
-          <View className="flex-row items-center gap-4">
-            <View className="w-10 h-10 rounded-xl items-center justify-center bg-slate-100 dark:bg-slate-800">
-              <MaterialCommunityIcons name="shaker-outline" size={18} color={isDark ? "#94A3B8" : "#64748B"} />
-            </View>
-            <View>
-              <Text className="text-[14px] font-bold text-text mb-0.5">Highest sodium</Text>
-              <Text className="text-[12px] text-text-soft">{highlights.highestSodiumText}</Text>
+        <TouchableOpacity activeOpacity={0.7} className="flex-row items-center justify-between p-4" style={card}>
+          <View className="flex-row items-center gap-3 flex-1">
+            <IconBadge icon="shaker-outline" tint="peach" size={40} />
+            <View className="flex-1">
+              <Text style={{ fontSize: 15, fontWeight: "500", color: c.ink, marginBottom: 2 }}>Highest sodium</Text>
+              <Text style={{ fontSize: 13, color: c.slate }}>{highlights.highestSodiumText}</Text>
             </View>
           </View>
-          <Feather name="chevron-right" size={16} color={isDark ? "#64748B" : "#94A3B8"} />
+          <Feather name="chevron-right" size={16} color={c.steel} />
         </TouchableOpacity>
       </View>
     );
@@ -404,7 +354,7 @@ export default function TrendsTabScreen() {
   const renderActiveChart = () => {
     const CHART_HEIGHT = 160;
     const CHART_PADDING = 12;
-    const color = "#2563EB";
+    const color = c.line;
     const areaFillColor = `${color}25`;
 
     const values = chartData.map((d) => d.value!);
@@ -428,16 +378,16 @@ export default function TrendsTabScreen() {
     const areaPath = buildAreaPath(points, CHART_HEIGHT - CHART_PADDING);
 
     return (
-      <View className="bg-white dark:bg-surface rounded-[28px] p-5 mb-4 shadow-sm shadow-slate-200/50 dark:shadow-none">
-        
+      <View className="p-5 mb-4" style={card}>
+
         {/* Metric Header */}
         <View className="flex-row items-start justify-between mb-4">
           <View>
-            <Text className="text-[12px] font-semibold text-text-soft uppercase tracking-wider mb-1">
+            <Text style={[microLabel, { marginBottom: 6 }]}>
               {activeTab === "score" ? "Latest Heart Score" : activeTab === "bp" ? "Latest BP" : activeTab === "bpm" ? "Latest Resting HR" : "Total Sodium (Today)"}
             </Text>
             <View className="flex-row items-baseline">
-              <Text className="text-[38px] font-bold text-text tracking-tight leading-none">
+              <Text style={{ fontSize: 36, lineHeight: 40, fontWeight: "600", letterSpacing: -0.5, color: c.ink }}>
                 {activeTab === "score" 
                   ? (latestHSS ?? "--") 
                   : activeTab === "bp" 
@@ -447,19 +397,19 @@ export default function TrendsTabScreen() {
                       : (chartData[chartData.length - 1]?.value ?? "--")
                 }
               </Text>
-              <Text className="text-[14px] font-medium text-text-soft ml-1.5">
+              <Text style={{ fontSize: 14, fontWeight: "500", color: c.slate, marginLeft: 6 }}>
                 {activeTab === "score" ? "/ 100" : activeTab === "bp" ? "mmHg" : activeTab === "bpm" ? "bpm" : "mg"}
               </Text>
             </View>
           </View>
 
           <View className="items-end">
-            <Text className="text-[11px] font-bold text-text-soft uppercase tracking-widest mb-1.5">
+            <Text style={[microLabel, { marginBottom: 6 }]}>
               {intervalDays === 7 ? "THIS WEEK" : intervalDays === 14 ? "LAST 2 WEEKS" : "LAST 30 DAYS"}
             </Text>
-            <View className="flex-row items-center bg-[#E6F4EA] px-2.5 py-1 rounded-full">
-              <Feather name={activeTab === "score" ? "trending-up" : "trending-down"} size={12} color="#1FAE8E" />
-              <Text className="text-[11px] font-bold ml-1 text-[#1FAE8E]">
+            <View className="flex-row items-center" style={{ paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, backgroundColor: c.mint }}>
+              <Feather name={activeTab === "score" ? "trending-up" : "trending-down"} size={12} color={c.charcoal} />
+              <Text style={{ fontSize: 13, fontWeight: "600", marginLeft: 4, color: c.charcoal }}>
                 {activeTab === "score" ? "+5% vs last" : activeTab === "bp" ? "-2% vs last" : activeTab === "bpm" ? "-3% vs last" : "Under limit"}
               </Text>
             </View>
@@ -467,7 +417,7 @@ export default function TrendsTabScreen() {
         </View>
 
         {/* Time Interval Selector */}
-        <View className="flex-row p-1 rounded-xl mb-4 bg-[#F4F7F9] dark:bg-slate-800">
+        <View className="flex-row p-1 mb-4" style={{ borderRadius: 8, backgroundColor: c.surface }}>
           {([7, 14, 30] as const).map((days) => {
             const isActive = intervalDays === days;
             const label = `${days}D`;
@@ -476,17 +426,18 @@ export default function TrendsTabScreen() {
                 key={days}
                 onPress={() => { Haptics.selectionAsync(); setIntervalDays(days); }}
                 activeOpacity={0.7}
-                className="flex-1 py-2 items-center rounded-lg"
-                style={{ 
-                  backgroundColor: isActive ? (isDark ? "#334155" : "#FFFFFF") : "transparent",
-                  elevation: isActive ? 1 : 0,
-                  shadowColor: isActive ? "rgba(0,0,0,0.1)" : "transparent",
-                  shadowOffset: isActive ? { width: 0, height: 1 } : undefined,
-                  shadowOpacity: isActive ? 1 : 0,
-                  shadowRadius: isActive ? 2 : 0,
+                accessibilityRole="tab"
+                accessibilityState={{ selected: isActive }}
+                className="flex-1 items-center justify-center"
+                style={{
+                  height: 36,
+                  borderRadius: 6,
+                  borderWidth: 1,
+                  backgroundColor: isActive ? c.canvas : "transparent",
+                  borderColor: isActive ? c.hairline : "transparent",
                 }}
               >
-                <Text className="text-[12px] font-semibold tracking-tight">
+                <Text style={{ fontSize: 13, fontWeight: "500", color: isActive ? c.ink : c.steel }}>
                   {label}
                 </Text>
               </TouchableOpacity>
@@ -496,14 +447,14 @@ export default function TrendsTabScreen() {
 
         {/* SVG CHART AREA / EMPTY STATE */}
         {activeTab === "sodium" ? (
-          <View className="h-44 items-center justify-center border-b border-border mb-4 pb-4">
-            <View className="w-12 h-12 rounded-full items-center justify-center mb-3">
-              <MaterialCommunityIcons name="food-apple" size={20} color={TOKENS.indigo} />
+          <View className="h-44 items-center justify-center mb-4 pb-4" style={{ borderBottomWidth: 1, borderBottomColor: c.hairlineSoft }}>
+            <View style={{ marginBottom: 12 }}>
+              <IconBadge icon="food-apple-outline" tint="peach" size={44} />
             </View>
-            <Text className="text-[14px] font-semibold text-text mb-1">No Sodium Data</Text>
-            <Text className="text-[12px] text-center text-text-soft mb-3 px-4">You haven't logged any meals in this timeframe.</Text>
-            <TouchableOpacity onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)} className="px-4 py-2 rounded-full">
-              <Text className="text-[12px] font-semibold text-white">Log a Meal</Text>
+            <Text style={{ fontSize: 15, fontWeight: "600", color: c.ink, marginBottom: 4 }}>No Sodium Data</Text>
+            <Text className="text-center mb-3 px-4" style={{ fontSize: 13, color: c.slate }}>You haven&apos;t logged any meals in this timeframe.</Text>
+            <TouchableOpacity onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)} className="justify-center" style={{ height: 40, paddingHorizontal: 16, borderRadius: 8, borderWidth: 1, borderColor: c.hairlineStrong }}>
+              <Text style={{ fontSize: 14, fontWeight: "500", color: c.ink }}>Log a Meal</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -520,7 +471,7 @@ export default function TrendsTabScreen() {
                     x2={chartWidth - CHART_PADDING}
                     y1={CHART_HEIGHT - CHART_PADDING}
                     y2={CHART_HEIGHT - CHART_PADDING}
-                    stroke={isDark ? "rgba(148,163,184,0.15)" : "rgba(148,163,184,0.4)"}
+                    stroke={c.hairline}
                     strokeWidth={1}
                   />
                   <Path d={areaPath} fill={areaFillColor} stroke="none" />
@@ -538,7 +489,7 @@ export default function TrendsTabScreen() {
                       cx={p.x}
                       cy={p.y}
                       r={4}
-                      fill={isDark ? "#1E293B" : "#FFFFFF"}
+                      fill={c.canvas}
                       stroke={color}
                       strokeWidth={2.5}
                     />
@@ -567,8 +518,8 @@ export default function TrendsTabScreen() {
                   return (
                     <Text 
                       key={i} 
-                      className="text-[10px] text-text-soft font-medium text-center absolute"
-                      style={{ left: x - 25, width: 50, top: 0 }}
+                      className="text-center absolute"
+                      style={{ left: x - 25, width: 50, top: 0, fontSize: 11, fontWeight: "500", color: c.steel }}
                     >
                       {d.label}
                     </Text>
@@ -681,29 +632,32 @@ export default function TrendsTabScreen() {
   // Highlights removed and combined into renderWeeklySummary
 
   return (
-    <SafeAreaView className="flex-1 bg-[#F4F7F9] dark:bg-slate-900">
+    <SafeAreaView style={{ flex: 1, backgroundColor: c.canvas }}>
       <StatusBar style={isDark ? "light" : "dark"} />
       <Header />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={TOKENS.teal} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={c.line} />}
       >
         {/* Screen Header */}
         <View className="px-5 mb-5 mt-2 flex-row items-center justify-between">
           <View className="flex-1 mr-4">
-            <Text className="text-[28px] font-bold text-text tracking-tight mb-1">
+            <Text accessibilityRole="header" style={{ fontSize: 28, lineHeight: 34, fontWeight: "600", letterSpacing: -0.5, color: c.ink, marginBottom: 4 }}>
               Trends
             </Text>
-            <Text className="text-[14px] text-text-soft flex-shrink" numberOfLines={2}>
+            <Text className="flex-shrink" style={{ fontSize: 15, color: c.slate }} numberOfLines={2}>
               Analyze your vitals & discover patterns.
             </Text>
           </View>
-          <TouchableOpacity 
-            onPress={handleExportPDF} 
-            className="w-10 h-10 rounded-full items-center justify-center bg-white dark:bg-surface shadow-sm shadow-slate-200/50 dark:shadow-none"
+          <TouchableOpacity
+            onPress={handleExportPDF}
+            accessibilityRole="button"
+            accessibilityLabel="Share trends report"
+            className="items-center justify-center"
+            style={{ width: 44, height: 44, borderRadius: 8, borderWidth: 1, borderColor: c.hairline, backgroundColor: c.canvas }}
           >
-            <Feather name="share-2" size={18} color={isDark ? "#FFFFFF" : "#334155"} />
+            <Feather name="share-2" size={18} color={c.ink} />
           </TouchableOpacity>
         </View>
 

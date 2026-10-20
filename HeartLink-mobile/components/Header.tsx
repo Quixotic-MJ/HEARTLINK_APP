@@ -1,8 +1,8 @@
 import React, { useState, useCallback } from "react";
 import { View, Text, TouchableOpacity, Image } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
-import { useColorScheme } from "nativewind";
 import { Feather } from "@expo/vector-icons";
+import { useDs } from "./onboarding/useDs";
 import { useUser } from "../contexts/UserContext";
 import HeartLogo from "./ui/HeartLogo";
 import { apiFetch } from "../lib/api";
@@ -15,13 +15,13 @@ export function Header({
   showProfile?: boolean;
 } = {}) {
   const router = useRouter();
-  const { colorScheme } = useColorScheme();
-  const isDark = colorScheme === "dark";
+  const { c } = useDs();
   const { user, userId, token } = useUser();
   const [hasUnreadState, setHasUnreadState] = useState(false);
 
   const hasUnread = unreadCount !== undefined ? unreadCount > 0 : hasUnreadState;
-  const iconColor = isDark ? "#cbd5e1" : "#64748b";
+  // 44px outlined squares, as on the other design-system screens.
+  const iconButton = { width: 44, height: 44, borderRadius: 8, borderWidth: 1, borderColor: c.hairline, backgroundColor: c.canvas };
 
   useFocusEffect(
     useCallback(() => {
@@ -56,8 +56,8 @@ export function Header({
     <View className="flex-row justify-between items-center px-5 pt-3 pb-2 bg-transparent">
       <View className="flex-row items-center gap-2">
         <HeartLogo size={22} />
-        <Text className="text-[18px] text-text dark:text-white tracking-tight font-bold">
-          HeartLink<Text className="text-[11px] text-text-soft dark:text-text-muted font-medium">™</Text>
+        <Text style={{ fontSize: 18, fontWeight: "600", letterSpacing: -0.3, color: c.ink }}>
+          HeartLink<Text style={{ fontSize: 11, fontWeight: "500", color: c.steel }}>™</Text>
         </Text>
       </View>
       <View className="flex-row items-center gap-2">
@@ -66,12 +66,13 @@ export function Header({
           accessible={true}
           accessibilityRole="button"
           accessibilityLabel={hasUnread ? "Notifications, unread items available" : "Notifications"}
-          className="w-10 h-10 rounded-full bg-surface border-0 items-center justify-center shadow-sm shadow-slate-200/50 dark:shadow-none"
+          className="items-center justify-center"
+          style={iconButton}
           activeOpacity={0.7}
         >
-          <Feather name="bell" size={18} color={isDark ? "#94a3b8" : "#64748b"} />
+          <Feather name="bell" size={19} color={c.ink} />
           {hasUnread && (
-            <View style={{ position: "absolute", top: 8, right: 10 }} className="w-2.5 h-2.5 bg-primary rounded-full border-2 border-white dark:border-surface-alt" />
+            <View style={{ position: "absolute", top: 9, right: 10, width: 10, height: 10, borderRadius: 5, borderWidth: 2, borderColor: c.canvas, backgroundColor: c.line }} />
           )}
         </TouchableOpacity>
 
@@ -80,10 +81,11 @@ export function Header({
           accessible={true}
           accessibilityRole="button"
           accessibilityLabel="Settings"
-          className="w-10 h-10 rounded-full bg-surface border-0 items-center justify-center shadow-sm shadow-slate-200/50 dark:shadow-none"
+          className="items-center justify-center"
+          style={iconButton}
           activeOpacity={0.7}
         >
-          <Feather name="settings" size={18} color={isDark ? "#94a3b8" : "#64748b"} />
+          <Feather name="settings" size={19} color={c.ink} />
         </TouchableOpacity>
 
         {showProfile && (
@@ -95,14 +97,14 @@ export function Header({
             accessibilityLabel="My Profile"
             className="ml-0.5"
           >
-            <View className="w-10 h-10 rounded-full bg-surface border-0 overflow-hidden shadow-sm shadow-slate-200/50 dark:shadow-none">
+            <View className="overflow-hidden" style={{ width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: c.hairline, backgroundColor: c.surface }}>
               <Image
                 source={{ uri: user?.avatar_url || "https://ui-avatars.com/api/?name=" + (user?.first_name || "U") + "&background=E2E8F0&color=152131&bold=true" }}
                 className="w-full h-full"
                 resizeMode="cover"
               />
             </View>
-            <View style={{ position: "absolute", bottom: 0, right: 0 }} className="w-3 h-3 bg-success rounded-full border-2 border-white dark:border-surface-alt" />
+            <View style={{ position: "absolute", bottom: 0, right: 0, width: 12, height: 12, borderRadius: 6, borderWidth: 2, borderColor: c.canvas, backgroundColor: c.success }} />
           </TouchableOpacity>
         )}
       </View>

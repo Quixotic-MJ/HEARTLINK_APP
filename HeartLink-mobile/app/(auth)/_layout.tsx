@@ -5,11 +5,12 @@ import { StatusBar } from "expo-status-bar";
 import * as SystemUI from "expo-system-ui";
 import { NavigationBar } from "expo-navigation-bar";
 import "../../global.css";
+import { ds } from "../../constants/theme";
 
 export default function AuthLayout() {
   useEffect(() => {
     if (Platform.OS === "android") {
-      SystemUI.setBackgroundColorAsync("#EDF1EF").catch(() => {});
+      SystemUI.setBackgroundColorAsync(ds.light.canvas).catch(() => {});
       NavigationBar.setStyle("light");
       RNStatusBar.setBackgroundColor("transparent");
       RNStatusBar.setTranslucent(true);

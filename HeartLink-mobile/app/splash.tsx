@@ -8,20 +8,21 @@ import { useUser } from "../contexts/UserContext";
 import HeartLogo from "../components/ui/HeartLogo";
 import Svg, { Defs, RadialGradient, Rect, Stop } from "react-native-svg";
 import "../global.css";
-import { Colors, hues } from "../constants/theme";
+import { Colors, ds, hues } from "../constants/theme";
 
 // `paper` must match the expo-splash-screen backgroundColor in app.json so the
-// native splash hands off to this screen without a colour flash.
+// native splash hands off to this screen without a colour flash. `brand` is the
+// wordmark colour in the splash logo, so it stays as it is (the logo keeps its colours).
 const THEME = {
   light: {
-    inkSoft: Colors.light.textSoft,
-    paper: Colors.light.background,
+    inkSoft: ds.light.slate,
+    paper: ds.light.canvas,
     brand: Colors.light.skyText,
     statusBar: "dark" as const,
   },
   dark: {
-    inkSoft: Colors.dark.textSoft,
-    paper: Colors.dark.background,
+    inkSoft: ds.dark.slate,
+    paper: ds.dark.canvas,
     brand: hues.sky,
     statusBar: "light" as const,
   },

@@ -11,29 +11,26 @@ import { Image } from "expo-image";
 import { ScreenWrapper } from "../../../components/ui/ScreenWrapper";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
-import { useColorScheme } from "nativewind";
 import * as Haptics from "expo-haptics";
 import { useQuery } from "@tanstack/react-query";
 import { Header } from "../../../components/Header";
-import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Feather } from "@expo/vector-icons";
 import { useUser } from "../../../contexts/UserContext";
-import { theme } from "../../../constants/theme";
 import { apiFetch } from "../../../lib/api";
-
-const TOKENS = {
-  indigo: "#6F6FD1",
-};
+import { useDs } from "../../../components/onboarding/useDs";
+import { IconBadge } from "../../../components/exercise/ExerciseBits";
 
 export default function ExploreTabScreen() {
   const router = useRouter();
-  const { colorScheme } = useColorScheme();
-  const isDark = colorScheme === "dark";
+  const { c, isDark } = useDs();
   const { userId, token } = useUser();
   const [activeFilter, setActiveFilter] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
-  const theme = isDark ? require('../../../constants/theme').dark : require('../../../constants/theme').light;
+  // Design-system card: white, thin warm-grey border, 12px corners, no shadow.
+  const card = useMemo(() => ({ backgroundColor: c.canvas, borderColor: c.hairline, borderWidth: 1, borderRadius: 12 }), [c]);
 
-  const filters = ["All", "Recipes", "Exercise", "Saved"];  const { data: recipes = [] } = useQuery({
+  const filters = ["All", "Recipes", "Exercise", "Saved"];
+  const { data: recipes = [] } = useQuery({
     queryKey: ["explore_recipes"],
     staleTime: 5 * 60 * 1000,
     queryFn: async () => {
@@ -60,14 +57,12 @@ export default function ExploreTabScreen() {
       const data = await res.json();
       return data.map((r: any) => {
         const type = (r.type || "Cardio").toLowerCase();
-        let color = theme.blueTint;
         let icon = "user";
-        let iconColor = theme.blueText;
-        
+
         if (type.includes("cardio") || type.includes("run") || type.includes("cycle")) {
-          color = theme.skyTint; icon = "activity"; iconColor = theme.skyText;
+          icon = "activity";
         } else if (type.includes("strength") || type.includes("leg")) {
-          color = theme.dangerTint; icon = "target"; iconColor = theme.dangerText;
+          icon = "target";
         }
 
         const cal = r.calories || Math.floor((r.duration_minutes || 0) * 7.5);
@@ -75,9 +70,7 @@ export default function ExploreTabScreen() {
           id: r.id,
           title: r.name || "",
           subtitle: `${r.type || "Cardio"} - ${r.duration_minutes || 0} min - ${cal} cal`,
-          color,
           icon,
-          iconColor
         };
       });
     }
@@ -112,7 +105,7 @@ export default function ExploreTabScreen() {
       <Text>
         {parts.map((part, i) =>
           part.toLowerCase() === query.toLowerCase() ? (
-            <Text key={i} style={{ backgroundColor: isDark ? 'rgba(217, 119, 6, 0.2)' : 'rgba(217, 119, 6, 0.15)', color: isDark ? '#fcd34d' : '#b45309' }}>
+            <Text key={i} style={{ backgroundColor: c.yellow, color: c.warmText }}>
               {part}
             </Text>
           ) : (
@@ -145,102 +138,102 @@ export default function ExploreTabScreen() {
   const renderSearchItem = useCallback(({ item }: { item: any }) => {
     if (item._type === 'recipe') {
       return (
-        <TouchableOpacity onPress={() => router.push(`/(home)/(meals)/recipe-details?id=${item.id}` as any)} activeOpacity={0.8} className="flex-row items-center p-3 mb-3 mx-5 rounded-2xl border bg-surface dark:bg-surface-alt border-border">
-          <View className="bg-surface-alt dark:bg-border" style={{ width: 48, height: 48, borderRadius: 12, marginRight: 14, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' }}>
-            <Feather name="image" size={20} color={theme.textMuted} style={{ position: 'absolute' }} />
+        <TouchableOpacity onPress={() => router.push(`/(home)/(meals)/recipe-details?id=${item.id}` as any)} activeOpacity={0.8} className="flex-row items-center p-3 mb-2 mx-5" style={card}>
+          <View style={{ width: 48, height: 48, borderRadius: 8, marginRight: 14, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', backgroundColor: c.surface }}>
+            <Feather name="image" size={20} color={c.muted} style={{ position: 'absolute' }} />
             <Image source={{ uri: item.image }} style={{ width: 48, height: 48, position: 'absolute' }} />
           </View>
           <View className="flex-1 justify-center">
-            <Text className="text-[15px] font-bold mb-1 text-text">
+            <Text style={{ fontSize: 16, fontWeight: "500", color: c.ink, marginBottom: 2 }}>
               <HighlightText text={item.title} query={searchQuery} />
             </Text>
-            <Text className="text-[12px] text-text-soft">{item.subtitle}</Text>
+            <Text style={{ fontSize: 13, color: c.slate }}>{item.subtitle}</Text>
           </View>
         </TouchableOpacity>
       );
     }
     // exercise
     return (
-      <TouchableOpacity onPress={() => router.push(`/(home)/(health)/exercise-session?id=${item.id}` as any)} activeOpacity={0.8} className="flex-row items-center p-3 mb-3 mx-5 rounded-2xl border bg-surface dark:bg-surface-alt border-border">
-        <View className="w-12 h-12 rounded-xl items-center justify-center mr-4">
-          <Feather name={item.icon as any} size={20} color={item.iconColor} />
+      <TouchableOpacity onPress={() => router.push(`/(home)/(health)/exercise-session?id=${item.id}` as any)} activeOpacity={0.8} className="flex-row items-center p-3 mb-2 mx-5" style={card}>
+        <View style={{ marginRight: 14 }}>
+          <IconBadge icon={item.icon as any} tone="mint" size={48} />
         </View>
         <View className="flex-1 justify-center">
-          <Text className="text-[15px] font-bold mb-1 text-text">
+          <Text style={{ fontSize: 16, fontWeight: "500", color: c.ink, marginBottom: 2 }}>
             <HighlightText text={item.title} query={searchQuery} />
           </Text>
-          <Text className="text-[12px] text-text-soft">{item.subtitle}</Text>
+          <Text style={{ fontSize: 13, color: c.slate }}>{item.subtitle}</Text>
         </View>
       </TouchableOpacity>
     );
-  }, [router, searchQuery, theme, isDark]);
+  }, [router, searchQuery, c, card]);
 
   const renderRecipeGridItem = useCallback(({ item }: { item: any }) => (
-    <TouchableOpacity onPress={() => router.push(`/(home)/(meals)/recipe-details?id=${item.id}` as any)} activeOpacity={0.8} className="mb-4 rounded-3xl overflow-hidden relative bg-surface dark:bg-surface-alt shadow-sm shadow-slate-200/50 dark:shadow-none border border-border/40" style={{ width: "48%" }}>
-      <View className="h-[110px] w-full bg-border items-center justify-center">
-        <Feather name="image" size={24} color={isDark ? "#475569" : "#CBD5E1"} style={{ position: 'absolute' }} />
+    <TouchableOpacity onPress={() => router.push(`/(home)/(meals)/recipe-details?id=${item.id}` as any)} activeOpacity={0.8} className="mb-4 overflow-hidden relative" style={[card, { width: "48%" }]}>
+      <View className="h-[110px] w-full items-center justify-center" style={{ backgroundColor: c.surface }}>
+        <Feather name="image" size={24} color={c.muted} style={{ position: 'absolute' }} />
         <Image source={{ uri: item.image }} style={{ width: "100%", height: "100%", position: 'absolute' }} contentFit="cover" transition={200} />
-        <View className="absolute inset-0 bg-black/10" />
       </View>
-      <TouchableOpacity className="absolute top-2 right-2 p-1.5 rounded-full bg-surface/80 dark:bg-black/40 backdrop-blur-sm">
-        <Feather name="heart" size={15} color={isDark ? "#FFFFFF" : "#152131"} />
+      <TouchableOpacity className="absolute top-2 right-2 p-1.5 rounded-full" style={{ backgroundColor: c.canvas }}>
+        <Feather name="heart" size={15} color={c.ink} />
       </TouchableOpacity>
       <View className="p-3.5 pb-4">
-        <Text className="text-[14.5px] font-bold leading-tight mb-1 text-text" numberOfLines={1}>{item.title}</Text>
-        <Text className="text-[12px] font-medium text-text-soft">{item.subtitle}</Text>
+        <Text style={{ fontSize: 15, fontWeight: "500", color: c.ink, marginBottom: 2 }} numberOfLines={1}>{item.title}</Text>
+        <Text style={{ fontSize: 13, color: c.slate }}>{item.subtitle}</Text>
       </View>
     </TouchableOpacity>
-  ), [router, isDark]);
+  ), [router, c, card]);
 
   const renderExerciseItem = useCallback(({ item: exercise }: { item: any }) => (
-    <TouchableOpacity onPress={() => router.push(`/(home)/(health)/exercise-session?id=${exercise.id}` as any)} activeOpacity={0.8} className="flex-row items-center p-4 mb-3 rounded-3xl bg-surface dark:bg-surface-alt shadow-sm shadow-slate-200/50 dark:shadow-none border border-border/40">
-      <View className="w-12 h-12 rounded-2xl items-center justify-center mr-4" style={{ backgroundColor: exercise.color }}>
-        <Feather name={exercise.icon as any} size={22} color={exercise.iconColor} />
+    <TouchableOpacity onPress={() => router.push(`/(home)/(health)/exercise-session?id=${exercise.id}` as any)} activeOpacity={0.8} className="flex-row items-center mb-2" style={[card, { minHeight: 72, paddingHorizontal: 14, paddingVertical: 12 }]}>
+      <View style={{ marginRight: 12 }}>
+        <IconBadge icon={exercise.icon as any} tone="mint" size={48} />
       </View>
       <View className="flex-1 justify-center pr-2">
-        <Text className="text-[15px] font-bold mb-1 text-text" numberOfLines={2}>{exercise.title}</Text>
-        <Text className="text-[12px] font-medium text-text-soft">{exercise.subtitle}</Text>
+        <Text style={{ fontSize: 16, fontWeight: "500", color: c.ink, marginBottom: 2 }} numberOfLines={2}>{exercise.title}</Text>
+        <Text style={{ fontSize: 13, color: c.slate }}>{exercise.subtitle}</Text>
       </View>
-      <Feather name="chevron-right" size={18} color={isDark ? "#64748B" : "#94A3B8"} />
+      <Feather name="chevron-right" size={18} color={c.steel} />
     </TouchableOpacity>
-  ), [router, isDark]);
+  ), [router, c, card]);
 
   const renderSavedItem = useCallback(({ item: recipe }: { item: any }) => (
-    <TouchableOpacity onPress={() => router.push(`/(home)/(meals)/recipe-details?id=${recipe.id}` as any)} activeOpacity={0.8} className="flex-row items-center p-3.5 mb-3 rounded-3xl bg-surface dark:bg-surface-alt shadow-sm shadow-slate-200/50 dark:shadow-none border border-border/40">
-      <View className="w-16 h-16 rounded-2xl items-center justify-center mr-4 bg-border overflow-hidden">
-        <Feather name="image" size={20} color={isDark ? "#475569" : "#CBD5E1"} style={{ position: 'absolute' }} />
+    <TouchableOpacity onPress={() => router.push(`/(home)/(meals)/recipe-details?id=${recipe.id}` as any)} activeOpacity={0.8} className="flex-row items-center p-3 mb-2" style={card}>
+      <View className="w-16 h-16 items-center justify-center mr-4 overflow-hidden" style={{ borderRadius: 8, backgroundColor: c.surface }}>
+        <Feather name="image" size={20} color={c.muted} style={{ position: 'absolute' }} />
         <Image source={{ uri: recipe.image }} style={{ width: "100%", height: "100%", position: 'absolute' }} contentFit="cover" transition={200} />
       </View>
       <View className="flex-1 justify-center pr-2">
-        <Text className="text-[10px] font-bold tracking-widest mb-1 uppercase text-text-soft">Recipe</Text>
-        <Text className="text-[15.5px] font-bold mb-0.5 text-text" numberOfLines={1}>{recipe.title}</Text>
-        <Text className="text-[12px] font-medium text-text-soft">{recipe.subtitle}</Text>
+        <Text style={{ fontSize: 11, fontWeight: "600", letterSpacing: 1, textTransform: "uppercase", color: c.steel, marginBottom: 4 }}>Recipe</Text>
+        <Text style={{ fontSize: 16, fontWeight: "500", color: c.ink, marginBottom: 2 }} numberOfLines={1}>{recipe.title}</Text>
+        <Text style={{ fontSize: 13, color: c.slate }}>{recipe.subtitle}</Text>
       </View>
     </TouchableOpacity>
-  ), [router, isDark]);
+  ), [router, c, card]);
 
   // Shared header: search bar + filter pills
   const SharedHeader = (
     <>
       {/* Search Bar */}
-      <View className="flex-row items-center px-4 py-3.5 mx-5 mt-4 rounded-2xl bg-surface shadow-sm shadow-slate-200/50 dark:shadow-none border border-border/60">
-        <Feather name="search" size={18} color={isDark ? "#94A3B8" : "#64748B"} />
+      <View className="flex-row items-center px-4 mx-5 mt-4" style={{ height: 48, borderRadius: 8, borderWidth: 1, borderColor: c.hairline, backgroundColor: c.surface }}>
+        <Feather name="search" size={18} color={c.steel} />
         <TextInput
           placeholder="Search recipes, workouts..."
-          placeholderTextColor={isDark ? "#94A3B8" : "#64748B"}
-          className="flex-1 ml-3 text-[14.5px] text-text font-medium"
+          placeholderTextColor={c.steel}
+          className="flex-1 ml-3"
+          style={{ fontSize: 16, color: c.ink, paddingVertical: 0 }}
           value={searchQuery}
           onChangeText={setSearchQuery}
         />
         {searchQuery.length > 0 && (
-          <TouchableOpacity onPress={() => setSearchQuery("")} className="p-1">
-            <Feather name="x" size={16} color={isDark ? "#94A3B8" : "#64748B"} />
+          <TouchableOpacity onPress={() => setSearchQuery("")} accessibilityRole="button" accessibilityLabel="Clear search" className="items-center justify-center" style={{ width: 36, height: 36 }}>
+            <Feather name="x" size={16} color={c.steel} />
           </TouchableOpacity>
         )}
       </View>
 
-      {/* Filter Pills */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mt-5 pl-5 mb-2" contentContainerStyle={{ paddingRight: 40 }}>
+      {/* Filter Pills: black pill chips */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mt-4 pl-5 mb-2" contentContainerStyle={{ paddingRight: 40 }}>
         {filters.map((filter) => {
           const isActive = activeFilter === filter;
           return (
@@ -248,20 +241,20 @@ export default function ExploreTabScreen() {
               key={filter}
               onPress={() => { Haptics.selectionAsync(); setActiveFilter(filter); }}
               activeOpacity={0.7}
-              className="px-5 py-2.5 rounded-full mr-3 border"
+              accessibilityRole="tab"
+              accessibilityState={{ selected: isActive }}
+              className="mr-2 justify-center"
               style={{
-                backgroundColor: isActive ? theme.primary : theme.surface,
-                borderColor: isActive ? theme.primary : theme.border,
-                shadowColor: isActive ? theme.primary : "transparent",
-                shadowOffset: isActive ? { width: 0, height: 1 } : undefined,
-                shadowOpacity: isActive ? 0.3 : 0,
-                shadowRadius: isActive ? 2 : 0,
-                elevation: isActive ? 2 : 0,
+                height: 40,
+                paddingHorizontal: 16,
+                borderRadius: 9999,
+                borderWidth: 1,
+                backgroundColor: isActive ? c.ink : c.canvas,
+                borderColor: isActive ? c.ink : c.hairline,
               }}
             >
-              <Text 
-                className="text-[14.5px] font-semibold tracking-tight"
-                style={{ color: isActive ? theme.onPrimary : theme.textSoft }}
+              <Text
+                style={{ fontSize: 14, fontWeight: "500", color: isActive ? c.canvas : c.charcoal }}
               >
                 {filter}
               </Text>
@@ -280,7 +273,7 @@ export default function ExploreTabScreen() {
   const isSavedTab = !isSearchMode && activeFilter === "Saved";
 
   return (
-    <ScreenWrapper edges={["top"]} withScrollView={false}>
+    <ScreenWrapper edges={["top"]} withScrollView={false} safeAreaClassName="flex-1 bg-ds-canvas">
       <StatusBar style={isDark ? "light" : "dark"} />
       <Header />
 
@@ -292,17 +285,17 @@ export default function ExploreTabScreen() {
           {/* Recipes Section */}
           <View className="mt-6">
             <View className="flex-row justify-between items-end px-5 mb-4">
-              <Text className="text-[18px] font-bold text-text">Recipes for you</Text>
-              <TouchableOpacity onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push("/(home)/(tabs)/recipes"); }}>
-                <Text className="text-[13px] font-semibold">See all</Text>
+              <Text accessibilityRole="header" style={{ fontSize: 20, fontWeight: "600", color: c.ink }}>Recipes for you</Text>
+              <TouchableOpacity onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push("/(home)/(tabs)/recipes"); }} style={{ minHeight: 32, justifyContent: "center" }}>
+                <Text style={{ fontSize: 14, fontWeight: "500", color: c.link }}>See all</Text>
               </TouchableOpacity>
             </View>
             
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20 }}>
               {recipes.slice(0, 5).map((recipe: any) => (
-                <TouchableOpacity key={recipe.id} onPress={() => router.push(`/(home)/(meals)/recipe-details?id=${recipe.id}` as any)} activeOpacity={0.8} className="w-[155px] mr-4 rounded-3xl overflow-hidden bg-surface dark:bg-surface-alt shadow-sm shadow-slate-200/50 dark:shadow-none border border-border/40">
-                  <View className="bg-surface-alt dark:bg-border" style={{ width: "100%", height: 110, alignItems: 'center', justifyContent: 'center' }}>
-                    <Feather name="image" size={24} color={theme.textMuted} style={{ position: 'absolute' }} />
+                <TouchableOpacity key={recipe.id} onPress={() => router.push(`/(home)/(meals)/recipe-details?id=${recipe.id}` as any)} activeOpacity={0.8} className="w-[155px] mr-3 overflow-hidden" style={card}>
+                  <View style={{ width: "100%", height: 110, alignItems: 'center', justifyContent: 'center', backgroundColor: c.surface }}>
+                    <Feather name="image" size={24} color={c.muted} style={{ position: 'absolute' }} />
                     <Image
                       source={{ uri: recipe.image }}
                       style={{ width: "100%", height: "100%", position: 'absolute' }}
@@ -311,8 +304,8 @@ export default function ExploreTabScreen() {
                     />
                   </View>
                   <View className="p-3.5 pb-4">
-                    <Text className="text-[14.5px] font-bold leading-tight mb-1 text-text" numberOfLines={1}>{recipe.title}</Text>
-                    <Text className="text-[12px] font-medium text-text-soft">{recipe.subtitle}</Text>
+                    <Text style={{ fontSize: 15, fontWeight: "500", color: c.ink, marginBottom: 2 }} numberOfLines={1}>{recipe.title}</Text>
+                    <Text style={{ fontSize: 13, color: c.slate }}>{recipe.subtitle}</Text>
                   </View>
                 </TouchableOpacity>
               ))}
@@ -322,24 +315,15 @@ export default function ExploreTabScreen() {
           {/* Exercises Section */}
           <View className="mt-8">
             <View className="flex-row justify-between items-end px-5 mb-4">
-              <Text className="text-[18px] font-bold text-text">Exercises for you</Text>
-              <TouchableOpacity onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push("/(home)/(tabs)/exercises"); }}>
-                <Text className="text-[13px] font-semibold">See all</Text>
+              <Text accessibilityRole="header" style={{ fontSize: 20, fontWeight: "600", color: c.ink }}>Exercises for you</Text>
+              <TouchableOpacity onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push("/(home)/(tabs)/exercises"); }} style={{ minHeight: 32, justifyContent: "center" }}>
+                <Text style={{ fontSize: 14, fontWeight: "500", color: c.link }}>See all</Text>
               </TouchableOpacity>
             </View>
 
             <View className="px-5">
               {exercises.slice(0, 3).map((exercise: any) => (
-                <TouchableOpacity key={exercise.id} onPress={() => router.push(`/(home)/(health)/exercise-session?id=${exercise.id}` as any)} activeOpacity={0.8} className="flex-row items-center p-4 mb-3 rounded-3xl bg-surface dark:bg-surface-alt shadow-sm shadow-slate-200/50 dark:shadow-none border border-border/40">
-                  <View className="w-12 h-12 rounded-2xl items-center justify-center mr-4" style={{ backgroundColor: exercise.color }}>
-                    <Feather name={exercise.icon as any} size={22} color={exercise.iconColor} />
-                  </View>
-                  <View className="flex-1 justify-center pr-2">
-                    <Text className="text-[15px] font-bold mb-1 text-text" numberOfLines={2}>{exercise.title}</Text>
-                    <Text className="text-[12px] font-medium text-text-soft">{exercise.subtitle}</Text>
-                  </View>
-                  <Feather name="chevron-right" size={18} color={theme.textMuted} />
-                </TouchableOpacity>
+                <React.Fragment key={exercise.id}>{renderExerciseItem({ item: exercise })}</React.Fragment>
               ))}
             </View>
           </View>
@@ -355,18 +339,18 @@ export default function ExploreTabScreen() {
             <>
               {SharedHeader}
               <View className="px-5 mt-6 mb-4">
-                <Text className="text-[14px] font-bold text-text">
-                  {totalResults} results for "{searchQuery}"
+                <Text style={{ fontSize: 13, color: c.steel }}>
+                  {totalResults} results for &quot;{searchQuery}&quot;
                 </Text>
               </View>
             </>
           }
           ListEmptyComponent={
-            <View className="flex-row items-center p-3 mb-3 mx-5 rounded-2xl border bg-surface dark:bg-surface-alt border-border">
-              <View className="w-12 h-12 rounded-xl items-center justify-center mr-3 bg-surface-alt dark:bg-border">
-                <Feather name="slash" size={20} color={theme.textMuted} />
+            <View className="flex-row items-center p-4 mx-5" style={{ borderRadius: 12, backgroundColor: c.surface }}>
+              <View className="w-12 h-12 items-center justify-center mr-3" style={{ borderRadius: 8, backgroundColor: c.surfaceAlt }}>
+                <Feather name="slash" size={20} color={c.steel} />
               </View>
-              <Text className="text-[14px] font-semibold">No results match "{searchQuery}"</Text>
+              <Text style={{ flex: 1, fontSize: 15, fontWeight: "500", color: c.ink }}>No results match &quot;{searchQuery}&quot;</Text>
             </View>
           }
           renderItem={renderSearchItem}
@@ -384,7 +368,7 @@ export default function ExploreTabScreen() {
             <>
               {SharedHeader}
               <View className="mt-6 mb-4">
-                <Text className="text-[14px] font-bold text-text">
+                <Text style={{ fontSize: 13, color: c.steel }}>
                   {recipes.length} recipes
                 </Text>
               </View>
@@ -403,7 +387,7 @@ export default function ExploreTabScreen() {
             <>
               {SharedHeader}
               <View className="mt-6 mb-4">
-                <Text className="text-[14px] font-bold text-text">
+                <Text style={{ fontSize: 13, color: c.steel }}>
                   {exercises.length} exercises
                 </Text>
               </View>
@@ -422,7 +406,7 @@ export default function ExploreTabScreen() {
             <>
               {SharedHeader}
               <View className="mt-6 mb-4">
-                <Text className="text-[14px] font-bold text-text">
+                <Text style={{ fontSize: 13, color: c.steel }}>
                   {savedRecipes.length} saved
                 </Text>
               </View>

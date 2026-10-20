@@ -1,15 +1,15 @@
 import React, { useRef, useEffect } from "react";
 import { View, Text, TouchableOpacity, ScrollView, Linking, Animated } from "react-native";
-import { useColorScheme } from "nativewind";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
-import { theme } from "../../../constants/theme";
+import { useDs } from "../../../components/onboarding/useDs";
+import HeartLogo from "../../../components/ui/HeartLogo";
+import { SquareIconButton } from "../../../components/exercise/ExerciseBits";
 
 export default function AboutScreen() {
-  const { colorScheme } = useColorScheme();
-  const isDark = colorScheme === "dark";
+  const { c, isDark } = useDs();
   const router = useRouter();
 
   // Gentle Pulse Animation
@@ -37,21 +37,13 @@ export default function AboutScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-surface-alt" edges={["top"]}>
-      <StatusBar style="dark" />
+    <SafeAreaView className="flex-1 bg-ds-canvas" edges={["top"]}>
+      <StatusBar style={isDark ? "light" : "dark"} />
 
       {/* Header */}
-      <View className="flex-row items-center px-5 pt-4 pb-3 border-b border-border bg-surface">
-        <TouchableOpacity
-          onPress={() => router.back()}
-          accessible={true}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-          className="w-9 h-9 rounded-xl bg-surface-alt border border-border items-center justify-center mr-3"
-        >
-          <Feather name="arrow-left" size={18} color={isDark ? "#f8fafc" : "#0f172a"} />
-        </TouchableOpacity>
-        <Text className="text-[18px] font-semibold text-text tracking-tight">
+      <View className="flex-row items-center px-5 pt-3 pb-3 border-b border-ds-hairline bg-ds-canvas" style={{ gap: 12 }}>
+        <SquareIconButton icon="arrow-left" label="Go back" onPress={() => router.back()} />
+        <Text accessibilityRole="header" className="text-[22px] font-semibold text-ds-ink flex-1" numberOfLines={1}>
           About HeartLink
         </Text>
       </View>
@@ -62,88 +54,88 @@ export default function AboutScreen() {
         <View className="items-center mb-7 pt-2">
           <Animated.View 
             style={{ transform: [{ scale: scaleAnim }] }}
-            className="w-22 h-22 rounded-3xl bg-surface items-center justify-center border border-border/80 dark:border-slate-800 shadow-sm shadow-slate-200/50 mb-3.5"
+            className="w-22 h-22 rounded-xl bg-ds-canvas items-center justify-center border border-ds-hairline mb-3.5"
           >
-            <Feather name="heart" size={36} color={theme.textSoft} />
+            <HeartLogo size={44} />
           </Animated.View>
-          <Text className="text-[26px] font-bold text-text tracking-tight">
-            Heart<Text className="text-blue-600 font-light">Link</Text>
+          <Text className="text-[26px] font-semibold text-ds-ink tracking-tight">
+            Heart<Text className="text-ds-primary font-light">Link</Text>
           </Text>
-          <Text className="text-[13px] font-semibold text-text-soft mt-0.5">
+          <Text className="text-[14px] text-ds-slate mt-0.5">
             Cardiovascular Health Companion
           </Text>
         </View>
 
         {/* Build & Release Info Card */}
-        <View className="bg-surface rounded-3xl border border-border/80 dark:border-slate-800/80 p-5 mb-4 shadow-sm shadow-slate-100 dark:shadow-none">
-          <Text className="text-[12px] font-bold text-text-muted uppercase tracking-wider mb-3">
+        <View className="bg-ds-canvas rounded-xl border border-ds-hairline p-5 mb-4">
+          <Text className="text-[11px] font-semibold text-ds-steel uppercase tracking-wider mb-3">
             Application Information
           </Text>
 
-          <View className="flex-row justify-between py-2 border-b border-border dark:border-slate-800">
-            <Text className="text-[14px] text-text-soft">Version</Text>
-            <Text className="text-[14px] font-semibold text-text">1.0.0</Text>
+          <View className="flex-row justify-between py-2 border-b border-ds-hairline-soft">
+            <Text className="text-[14px] text-ds-slate">Version</Text>
+            <Text className="text-[14px] font-semibold text-ds-ink">1.0.0</Text>
           </View>
 
-          <View className="flex-row justify-between py-2 border-b border-border dark:border-slate-800">
-            <Text className="text-[14px] text-text-soft">Release Build</Text>
-            <Text className="text-[14px] font-semibold text-text">2026.1</Text>
+          <View className="flex-row justify-between py-2 border-b border-ds-hairline-soft">
+            <Text className="text-[14px] text-ds-slate">Release Build</Text>
+            <Text className="text-[14px] font-semibold text-ds-ink">2026.1</Text>
           </View>
 
           <View className="flex-row justify-between py-2">
-            <Text className="text-[14px] text-text-soft">Environment</Text>
+            <Text className="text-[14px] text-ds-slate">Environment</Text>
             <View className="flex-row items-center gap-1.5">
-              <View className="w-2 h-2 rounded-full bg-green-500" />
-              <Text className="text-[14px] font-semibold text-text">Production API</Text>
+              <View className="w-2 h-2 rounded-full bg-ds-success" />
+              <Text className="text-[14px] font-semibold text-ds-ink">Production API</Text>
             </View>
           </View>
         </View>
 
         {/* Privacy & Data Transparency Card */}
-        <View className="bg-surface rounded-3xl border border-border/80 dark:border-slate-800/80 p-5 mb-4 shadow-sm shadow-slate-100 dark:shadow-none">
+        <View className="bg-ds-canvas rounded-xl border border-ds-hairline p-5 mb-4">
           <View className="flex-row items-center gap-2 mb-3">
-            <View className="w-7 h-7 rounded-xl bg-blue-tint dark:bg-blue-950/50 items-center justify-center">
-              <MaterialCommunityIcons name="shield-check" size={16} color={theme.textSoft} />
+            <View className="w-8 h-8 rounded-lg bg-ds-sky items-center justify-center">
+              <MaterialCommunityIcons name="shield-check" size={16} color={c.charcoal} />
             </View>
-            <Text className="text-[14px] font-bold text-text">
+            <Text className="text-[14px] font-semibold text-ds-ink">
               Privacy & Data Transparency
             </Text>
           </View>
 
           <View className="gap-2">
-            <Text className="text-[12px] text-text-soft leading-relaxed">
-              • <Text className="font-semibold text-text">Patient Ownership:</Text> Your health logs, blood pressure records, and dietary entries belong solely to your account.
+            <Text className="text-[13px] text-ds-slate leading-relaxed">
+              • <Text className="font-semibold text-ds-ink">Patient Ownership:</Text> Your health logs, blood pressure records, and dietary entries belong solely to your account.
             </Text>
-            <Text className="text-[12px] text-text-soft leading-relaxed">
-              • <Text className="font-semibold text-text">On-Device Export:</Text> Exported clinical summary reports are generated on your device and shared only with your explicit action.
+            <Text className="text-[13px] text-ds-slate leading-relaxed">
+              • <Text className="font-semibold text-ds-ink">On-Device Export:</Text> Exported clinical summary reports are generated on your device and shared only with your explicit action.
             </Text>
-            <Text className="text-[12px] text-text-soft leading-relaxed">
-              • <Text className="font-semibold text-text">Private Contacts:</Text> Care team and emergency contacts are stored securely and never shared with third parties.
+            <Text className="text-[13px] text-ds-slate leading-relaxed">
+              • <Text className="font-semibold text-ds-ink">Private Contacts:</Text> Care team and emergency contacts are stored securely and never shared with third parties.
             </Text>
           </View>
         </View>
 
         {/* Legal Links */}
-        <View className="bg-surface rounded-3xl border border-border/80 dark:border-slate-800/80 px-4 mb-6 shadow-sm shadow-slate-100 dark:shadow-none">
+        <View className="bg-ds-canvas rounded-xl border border-ds-hairline px-4 mb-6">
           <TouchableOpacity 
             onPress={() => openURL("terms")}
             accessible={true}
             accessibilityRole="link"
             accessibilityLabel="Terms of Service, opens in browser"
-            className="flex-row items-center justify-between py-4 border-b border-border dark:border-slate-800"
+            className="flex-row items-center justify-between py-4 border-b border-ds-hairline-soft"
           >
-            <Text className="text-[15px] font-medium text-text">Terms of Service</Text>
-            <Feather name="external-link" size={16} color={theme.textSoft} />
+            <Text className="text-[15px] font-medium text-ds-ink">Terms of Service</Text>
+            <Feather name="external-link" size={16} color={c.slate} />
           </TouchableOpacity>
           <TouchableOpacity 
             onPress={() => openURL("privacy")}
             accessible={true}
             accessibilityRole="link"
             accessibilityLabel="Privacy Policy, opens in browser"
-            className="flex-row items-center justify-between py-4 border-b border-border dark:border-slate-800"
+            className="flex-row items-center justify-between py-4 border-b border-ds-hairline-soft"
           >
-            <Text className="text-[15px] font-medium text-text">Privacy Policy</Text>
-            <Feather name="external-link" size={16} color={theme.textSoft} />
+            <Text className="text-[15px] font-medium text-ds-ink">Privacy Policy</Text>
+            <Feather name="external-link" size={16} color={c.slate} />
           </TouchableOpacity>
           <TouchableOpacity 
             onPress={() => openURL("licenses")}
@@ -152,15 +144,15 @@ export default function AboutScreen() {
             accessibilityLabel="Open Source Licenses, opens in browser"
             className="flex-row items-center justify-between py-4"
           >
-            <Text className="text-[15px] font-medium text-text">Open Source Licenses</Text>
-            <Feather name="external-link" size={16} color={theme.textSoft} />
+            <Text className="text-[15px] font-medium text-ds-ink">Open Source Licenses</Text>
+            <Feather name="external-link" size={16} color={c.slate} />
           </TouchableOpacity>
         </View>
 
-        <Text className="text-[12px] text-text-muted text-center px-4 leading-relaxed">
+        <Text className="text-[13px] text-ds-steel text-center px-4 leading-relaxed">
           HeartLink empowers patients to actively track vitals, monitor symptoms, and collaborate with their clinical care team.
         </Text>
-        <Text className="text-[11px] text-text-muted text-center mt-4 mb-8">
+        <Text className="text-[12px] text-ds-steel text-center mt-4 mb-8">
           © 2026 HeartLink Inc. All rights reserved.
         </Text>
 

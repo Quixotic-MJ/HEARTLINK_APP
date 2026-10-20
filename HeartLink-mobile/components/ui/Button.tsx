@@ -3,9 +3,8 @@ import { Text, ActivityIndicator, Pressable, PressableProps, Platform } from "re
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, Easing } from "react-native-reanimated";
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import { useColorScheme } from "nativewind";
-import { Colors } from "../../constants/theme";
-import { theme } from "../../constants/theme";
+import { ds } from "../../constants/theme";
+import { useDs } from "../onboarding/useDs";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -17,6 +16,7 @@ interface ButtonProps extends PressableProps {
   variant?: "primary" | "outline" | "destructive";
 }
 
+// Design-system button (8px corners, 48px tall) with an optional icon and loading text.
 export function Button({
   label,
   isLoading = false,
@@ -46,33 +46,15 @@ export function Button({
     if (props.onPressOut) props.onPressOut(e);
   };
 
-  const { colorScheme } = useColorScheme();
-  const isDark = colorScheme === "dark";
-  const theme = isDark ? Colors.dark : Colors.light;
+  const { c } = useDs();
 
   const isDisabled = props.disabled || isLoading;
   // A disabled (not loading) primary button turns grey so it reads as "not yet".
   const isIdleDisabled = !!props.disabled && !isLoading && variant === "primary";
-  const isPrimary = variant === "primary";
-  const isDestructive = variant === "destructive";
 
-  const buttonBg = isDestructive
-    ? "w-full rounded-2xl py-4 flex-row justify-center items-center gap-2 bg-danger-solid shadow-sm"
-    : isPrimary
-    ? "w-full rounded-2xl py-4 flex-row justify-center items-center gap-2 bg-primary shadow-sm shadow-blue-500/20 dark:shadow-none"
-    : "w-full rounded-2xl py-4 flex-row justify-center items-center gap-2 bg-transparent border border-border";
-
-  const textColor = isDestructive
-    ? "text-base font-bold text-on-danger tracking-wide"
-    : isPrimary
-    ? "text-base font-bold text-on-primary tracking-wide"
-    : "text-base font-bold text-text";
-
-  const iconColor = isDestructive
-    ? theme.onDanger
-    : isPrimary
-    ? theme.onPrimary
-    : theme.text;
+  // Red keeps its light-mode shade in dark mode so white text stays readable (4.5:1).
+  const bg = variant === "destructive" ? ds.light.danger : variant === "primary" ? c.primary : "transparent";
+  const fg = isIdleDisabled ? c.steel : variant === "outline" ? c.ink : c.onPrimary;
 
   return (
     <AnimatedPressable
@@ -83,32 +65,32 @@ export function Button({
       disabled={isDisabled}
       style={[
         animatedStyle,
-        isIdleDisabled
-          ? { opacity: 1, backgroundColor: theme.disabledFill, shadowOpacity: 0, elevation: 0 }
-          : { opacity: isDisabled ? 0.7 : 1 },
+        {
+          minHeight: 48,
+          borderRadius: 8,
+          paddingHorizontal: 18,
+          backgroundColor: isIdleDisabled ? c.hairline : bg,
+          borderWidth: variant === "outline" ? 1 : 0,
+          borderColor: c.hairlineStrong,
+          opacity: isDisabled && !isIdleDisabled ? 0.7 : 1,
+        },
         props.style,
       ]}
       accessibilityState={{ busy: isLoading, disabled: isDisabled }}
       accessibilityRole="button"
-      className={buttonBg}
+      className="w-full flex-row justify-center items-center gap-2"
     >
       {isLoading ? (
         <>
-          <ActivityIndicator size="small" color={iconColor} />
-          <Text className={textColor}>
+          <ActivityIndicator size="small" color={fg} />
+          <Text style={{ fontSize: 15, fontWeight: "500", color: fg }}>
             {loadingText || label}
           </Text>
         </>
       ) : (
         <>
-          {icon && (
-            <Feather 
-              name={icon} 
-              size={16} 
-              color={isIdleDisabled ? theme.disabledText : iconColor} 
-            />
-          )}
-          <Text className={textColor} style={isIdleDisabled ? { color: theme.disabledText } : undefined}>
+          {icon && <Feather name={icon} size={16} color={fg} />}
+          <Text style={{ fontSize: 15, fontWeight: "500", color: fg }}>
             {label}
           </Text>
         </>

@@ -1,7 +1,9 @@
+import { useDs } from "../../../components/onboarding/useDs";
+import { SquareIconButton } from "../../../components/exercise/ExerciseBits";
+import DsButton from "../../../components/onboarding/DsButton";
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity, TextInput, Platform, ActivityIndicator, Alert } from "react-native";
+import { View, Text, TouchableOpacity, TextInput, Platform, Alert } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
-import { useColorScheme } from "nativewind";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -19,8 +21,7 @@ const CATEGORIES = [
 ];
 
 export default function SubmitTicketScreen() {
-  const { colorScheme } = useColorScheme();
-  const isDark = colorScheme === "dark";
+  const { c, isDark } = useDs();
   const router = useRouter();
   const params = useLocalSearchParams();
   const { showToast } = useToast();
@@ -83,21 +84,13 @@ export default function SubmitTicketScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-surface-alt" edges={["top"]}>
-      <StatusBar style="dark" />
+    <SafeAreaView className="flex-1 bg-ds-canvas" edges={["top"]}>
+      <StatusBar style={isDark ? "light" : "dark"} />
 
       {/* Header */}
-      <View className="flex-row items-center px-5 pt-4 pb-3 border-b border-border bg-surface">
-        <TouchableOpacity
-          onPress={() => router.back()}
-          accessible={true}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-          className="w-9 h-9 rounded-xl bg-surface-alt border border-border items-center justify-center mr-3"
-        >
-          <Feather name="arrow-left" size={18} color={isDark ? "#f8fafc" : "#0f172a"} />
-        </TouchableOpacity>
-        <Text className="text-[18px] font-semibold text-text tracking-tight">
+      <View className="flex-row items-center px-5 pt-3 pb-3 border-b border-ds-hairline bg-ds-canvas" style={{ gap: 12 }}>
+        <SquareIconButton icon="arrow-left" label="Go back" onPress={() => router.back()} />
+        <Text accessibilityRole="header" className="text-[22px] font-semibold text-ds-ink flex-1" numberOfLines={1}>
           Send Feedback
         </Text>
       </View>
@@ -109,15 +102,15 @@ export default function SubmitTicketScreen() {
         enableOnAndroid={true}
         extraScrollHeight={20}
       >
-        <Text className="text-[20px] font-bold text-text mb-1.5 tracking-tight">
+        <Text className="text-[20px] font-semibold text-ds-ink mb-1.5 tracking-tight">
           Share your experience
         </Text>
-        <Text className="text-[14px] text-text-soft mb-6 leading-relaxed">
+        <Text className="text-[15px] text-ds-slate mb-6 leading-relaxed">
           Select a feedback category and describe your suggestion or the issue you encountered.
         </Text>
 
         {/* Category Selection */}
-        <Text className="text-[12px] font-bold text-text-soft uppercase tracking-wider mb-2.5 px-1">
+        <Text className="text-[14px] font-medium text-ds-ink mb-2.5">
           Topic / Category
         </Text>
         <View className="flex-row flex-wrap gap-2 mb-6">
@@ -128,21 +121,17 @@ export default function SubmitTicketScreen() {
               accessible={true}
               accessibilityRole="button"
               accessibilityLabel={`Category ${cat.label}`}
-              className={`flex-row items-center px-4 py-2.5 rounded-2xl border ${
-                category === cat.id 
-                  ? "bg-blue-tint dark:bg-blue-950/60 border-blue-300 dark:border-blue-700" 
-                  : "bg-surface border-border/80 dark:border-slate-800"
-              }`}
+              accessibilityState={{ selected: category === cat.id }}
+              className="flex-row items-center px-4 rounded-full border"
+              style={{ minHeight: 44, backgroundColor: category === cat.id ? (isDark ? c.ink : "#000000") : c.canvas, borderColor: category === cat.id ? (isDark ? c.ink : "#000000") : c.hairline }}
             >
               <Feather 
                 name={cat.icon as any} 
                 size={14} 
-                color={category === cat.id ? "#4A6080" : isDark ? "#94a3b8" : "#64748b"} 
+                color={category === cat.id ? c.canvas : c.charcoal} 
               />
               <Text 
-                className={`ml-2 text-[13px] font-semibold ${
-                  category === cat.id ? "text-primary" : "text-text"
-                }`}
+                style={{ marginLeft: 8, fontSize: 14, fontWeight: "500", color: category === cat.id ? c.canvas : c.charcoal }}
               >
                 {cat.label}
               </Text>
@@ -151,46 +140,31 @@ export default function SubmitTicketScreen() {
         </View>
 
         {/* Description Input */}
-        <Text className="text-[12px] font-bold text-text-soft uppercase tracking-wider mb-2 px-1">
+        <Text className="text-[14px] font-medium text-ds-ink mb-2">
           Details
         </Text>
-        <View className="bg-surface border border-border/80 dark:border-slate-800 rounded-3xl overflow-hidden shadow-sm shadow-slate-100 dark:shadow-none p-4 mb-2">
+        <View className="bg-ds-canvas border border-ds-hairline-strong rounded-lg overflow-hidden p-4 mb-2">
           <TextInput
-            className="min-h-[160px] text-[15px] text-text"
+            className="min-h-[160px] text-[16px] text-ds-ink"
             placeholder="Please describe the issue or your suggestion in detail..."
-            placeholderTextColor={isDark ? "#64748b" : "#94a3b8"}
+            placeholderTextColor={c.steel}
             multiline
             textAlignVertical="top"
             value={description}
             onChangeText={setDescription}
           />
         </View>
-        <Text className="text-[11px] text-text-muted px-1 mb-8">
+        <Text className="text-[13px] text-ds-steel px-1 mb-8">
           Basic device metadata (OS platform, version) is automatically attached to assist troubleshooting.
         </Text>
 
         {/* Submit Button */}
-        <TouchableOpacity
+        <DsButton
+          label="Send Feedback"
           onPress={handleSubmit}
-          disabled={isSubmitting || !description.trim()}
-          accessible={true}
-          accessibilityRole="button"
-          accessibilityLabel="Send Feedback button"
-          className={`h-13 rounded-2xl flex-row items-center justify-center shadow-sm ${
-            isSubmitting || !description.trim()
-              ? "bg-slate-300 dark:bg-slate-800"
-              : "bg-slate-900 dark:bg-blue-600"
-          }`}
-        >
-          {isSubmitting ? (
-            <ActivityIndicator color="white" />
-          ) : (
-            <>
-              <Feather name="send" size={16} color="white" />
-              <Text className="text-white text-[15px] font-semibold ml-2">Send Feedback</Text>
-            </>
-          )}
-        </TouchableOpacity>
+          disabled={!description.trim()}
+          loading={isSubmitting}
+        />
       </KeyboardAwareScrollView>
     </SafeAreaView>
   );
