@@ -12,6 +12,16 @@ def is_visible_to_patients(routine: Dict[str, Any]) -> bool:
     """HL-026: patients only get exercises that are published AND approved by a Physical Therapist."""
     return routine.get("status") == "published" and bool(routine.get("expert_validated"))
 
+def get_saved_exercises(user_id: str) -> List[Dict[str, Any]]:
+    # Only patients save exercises, so one that lost its PT approval drops out of the list.
+    return [r for r in get_content_repo().list_saved_exercises(user_id) if is_visible_to_patients(r)]
+
+def save_exercise_for_user(user_id: str, routine_id: str) -> bool:
+    return get_content_repo().save_exercise_for_user(user_id, routine_id)
+
+def unsave_exercise_for_user(user_id: str, routine_id: str) -> bool:
+    return get_content_repo().unsave_exercise_for_user(user_id, routine_id)
+
 def get_exercise_logs(user_id: str, limit: int = 50, offset: int = 0) -> List[Dict[str, Any]]:
     logs = get_exercises_repo().list_user_logs(user_id)
     return logs[offset:offset + limit]

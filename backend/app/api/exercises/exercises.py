@@ -1,23 +1,14 @@
 from fastapi import APIRouter, Request, HTTPException, Query, Depends, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from typing import List, Dict, Any, Optional
-from app.services.exercises import get_routines, get_exercise_logs, create_exercise_log, delete_exercise_log, create_routine, update_routine, delete_routine, is_visible_to_patients
+from app.services.exercises import get_routines, get_exercise_logs, create_exercise_log, delete_exercise_log, create_routine, update_routine, delete_routine, is_visible_to_patients, get_saved_exercises, save_exercise_for_user, unsave_exercise_for_user
 from app.services.hss_service import compute_lifestyle_composite_hss
-from app.utils.security import require_permission, check_expert_permission, get_current_user, verify_token, get_optional_token, verify_user_access
+from app.utils.security import expert_id_if, require_permission, check_expert_permission, get_current_user, verify_token, get_optional_token, verify_user_access
 from app.utils.activity_helper import record_admin_activity
-from app.db.repositories import get_profile_repo
 
 router = APIRouter(prefix="/api/exercises", tags=["Exercises"])
 
 security = HTTPBearer(auto_error=False)
-
-
-def _pt_id(current_user: Optional[dict]) -> Optional[str]:
-    """The caller's id when they are a Physical Therapist, the only role that may approve (HL-026)."""
-    if not current_user or current_user.get("role") != "medical_expert":
-        return None
-    profile = get_profile_repo().get_by_id(current_user.get("user_id")) or {}
-    return current_user.get("user_id") if profile.get("expert_type") == "Physical Therapist" else None
 
 @router.get("/", response_model=List[Dict[str, Any]])
 def read_routines(request: Request, credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)):
@@ -36,6 +27,27 @@ def read_routines(request: Request, credentials: Optional[HTTPAuthorizationCrede
     if is_admin:
         return routines
     return [r for r in routines if is_visible_to_patients(r)]
+
+def _own_account_only(current_user: dict, user_id: str) -> None:
+    if current_user.get("user_id") != user_id and current_user.get("role") != "super_admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You may only change saved exercises for your own account.")
+
+@router.get("/saved/{user_id}", response_model=List[Dict[str, Any]])
+def read_saved_exercises(user_id: str, current_user: dict = Depends(get_current_user)):
+    verify_user_access(current_user, user_id)
+    return get_saved_exercises(user_id)
+
+@router.post("/{routine_id}/save/{user_id}")
+def save_exercise(routine_id: str, user_id: str, current_user: dict = Depends(get_current_user)):
+    _own_account_only(current_user, user_id)
+    save_exercise_for_user(user_id, routine_id)
+    return {"success": True, "message": "Exercise saved"}
+
+@router.delete("/{routine_id}/save/{user_id}")
+def unsave_exercise(routine_id: str, user_id: str, current_user: dict = Depends(get_current_user)):
+    _own_account_only(current_user, user_id)
+    unsave_exercise_for_user(user_id, routine_id)
+    return {"success": True, "message": "Exercise removed from saved"}
 
 @router.get("/{routine_id}", response_model=Dict[str, Any])
 def read_routine(routine_id: str, request: Request, credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)):
@@ -61,7 +73,7 @@ def read_routine(routine_id: str, request: Request, credentials: Optional[HTTPAu
 
 @router.post("/", response_model=Dict[str, Any])
 def add_routine(data: Dict[str, Any], current_user: dict = Depends(require_permission("exercises:edit"))):
-    new_routine = create_routine(data, pt_id=_pt_id(current_user))
+    new_routine = create_routine(data, pt_id=expert_id_if(current_user, "Physical Therapist"))
     admin_id = current_user.get("user_id") if current_user else "admin"
     record_admin_activity(
         admin_user_id=admin_id,
@@ -75,7 +87,7 @@ def add_routine(data: Dict[str, Any], current_user: dict = Depends(require_permi
 @router.put("/{routine_id}", response_model=Dict[str, Any])
 def edit_routine(routine_id: str, data: Dict[str, Any], current_user: dict = Depends(require_permission("exercises:edit"))):
     try:
-        updated_routine = update_routine(routine_id, data, pt_id=_pt_id(current_user))
+        updated_routine = update_routine(routine_id, data, pt_id=expert_id_if(current_user, "Physical Therapist"))
         if not updated_routine:
             raise ValueError("Exercise not found")
         admin_id = current_user.get("user_id") if current_user else "admin"

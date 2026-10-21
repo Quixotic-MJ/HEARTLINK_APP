@@ -59,6 +59,9 @@ class ContentRepository:
     def save_exercise_for_user(self, user_id: str, routine_id: str) -> bool:
         raise NotImplementedError
 
+    def unsave_exercise_for_user(self, user_id: str, routine_id: str) -> bool:
+        raise NotImplementedError
+
     # Clinics
     def list_clinics(self) -> List[Dict[str, Any]]:
         raise NotImplementedError
@@ -309,8 +312,21 @@ class SupabaseContentRepository(ContentRepository):
                 "routine_id": actual_routine_id,
                 "saved_at": utc_now().isoformat()
             }
-            res = self.client.table("saved_exercises").insert(payload).execute()
+            # Saving twice keeps one row (the table allows one per user and exercise).
+            res = self.client.table("saved_exercises").upsert(payload, on_conflict="user_id,routine_id").execute()
             return bool(res.data)
+        except Exception as e:
+            handle_db_error(e)
+            return False
+
+    def unsave_exercise_for_user(self, user_id: str, routine_id: str) -> bool:
+        uuid_val = self._resolve_user_uuid(user_id)
+        valid_r_id = resolve_uuid(routine_id)
+        if not uuid_val or not valid_r_id:
+            return False
+        try:
+            self.client.table("saved_exercises").delete().eq("user_id", uuid_val).eq("routine_id", valid_r_id).execute()
+            return True
         except Exception as e:
             handle_db_error(e)
             return False

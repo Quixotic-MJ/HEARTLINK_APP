@@ -9,9 +9,10 @@ from app.services.recipes import (
     get_saved_recipes,
     create_recipe,
     update_recipe,
-    delete_recipe
+    delete_recipe,
+    is_visible_to_patients,
 )
-from app.utils.security import require_permission, get_current_user, verify_token, get_optional_token
+from app.utils.security import expert_id_if, require_permission, get_current_user, verify_token, get_optional_token
 from app.utils.activity_helper import record_admin_activity
 
 router = APIRouter(prefix="/api/recipes", tags=["Recipes"])
@@ -34,7 +35,7 @@ def read_recipes(request: Request, credentials: Optional[HTTPAuthorizationCreden
             
     if is_admin:
         return recipes
-    return [r for r in recipes if r.get("status") == "published"]
+    return [r for r in recipes if is_visible_to_patients(r)]
 
 @router.get("/saved/{user_id}", response_model=List[Dict[str, Any]])
 def read_saved_recipes(user_id: str, current_user: dict = Depends(get_current_user)):
@@ -58,7 +59,7 @@ def read_recipe(recipe_id: str, request: Request, credentials: Optional[HTTPAuth
         except Exception:
             pass
 
-    if not is_admin and recipe.get("status") != "published":
+    if not is_admin and not is_visible_to_patients(recipe):
         raise HTTPException(status_code=404, detail="Recipe not found")
 
     return recipe
@@ -68,7 +69,7 @@ def read_recipe(recipe_id: str, request: Request, credentials: Optional[HTTPAuth
 def add_recipe(data: Dict[str, Any] = Body(...), current_user: dict = Depends(require_permission("recipes:edit"))):
     admin_id = current_user.get("user_id") if current_user else None
     try:
-        new_recipe = create_recipe(data, created_by=admin_id)
+        new_recipe = create_recipe(data, created_by=admin_id, dietitian_id=expert_id_if(current_user, "Dietitian"))
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     if not new_recipe or not new_recipe.get("id"):
@@ -93,7 +94,7 @@ def edit_recipe(recipe_id: str, data: Dict[str, Any] = Body(...), current_user: 
         
     old_status = recipe.get("status")
     try:
-        updated_recipe = update_recipe(recipe_id, data)
+        updated_recipe = update_recipe(recipe_id, data, dietitian_id=expert_id_if(current_user, "Dietitian"))
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     if not updated_recipe:

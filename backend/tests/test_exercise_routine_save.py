@@ -123,3 +123,23 @@ def test_patients_only_see_published_pt_approved_exercises():
     assert not is_visible_to_patients({"status": "published", "expert_validated": False})
     assert not is_visible_to_patients({"status": "published"})
     assert not is_visible_to_patients({"status": "draft", "expert_validated": True})
+
+
+def test_saved_exercises_only_list_ones_patients_can_still_get(monkeypatch):
+    class Saved:
+        def list_saved_exercises(self, user_id):
+            return [
+                {"id": "e1", "status": "published", "expert_validated": True},
+                {"id": "e2", "status": "published", "expert_validated": False},  # lost its PT approval
+                {"id": "e3", "status": "archived", "expert_validated": True},
+            ]
+    monkeypatch.setattr(exercise_service, "get_content_repo", lambda: Saved())
+    assert [e["id"] for e in exercise_service.get_saved_exercises("p1")] == ["e1"]
+
+
+def test_only_the_patient_changes_their_own_saved_exercises():
+    from fastapi import HTTPException
+    from app.api.exercises.exercises import _own_account_only
+    _own_account_only({"user_id": "p1", "role": "patient"}, "p1")
+    with pytest.raises(HTTPException):
+        _own_account_only({"user_id": "p2", "role": "patient"}, "p1")

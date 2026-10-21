@@ -41,10 +41,12 @@ class Cases:
 class Content:
     def list_recipes(self):
         return [
-            {"id": "r2", "name": "Oatmeal with banana", "hss_tier": "Moderate", "status": "published"},
-            {"id": "r1", "name": "Garlic tofu", "hss_tier": "Moderate", "status": "published"},
-            {"id": "r3", "name": "Draft stew", "hss_tier": "Moderate", "status": "draft"},
-            {"id": "r4", "name": "Fried fish", "hss_tier": "Critical", "status": "published"},
+            {"id": "r2", "name": "Oatmeal with banana", "hss_tier": "Moderate", "status": "published", "expert_validated": True},
+            {"id": "r1", "name": "Garlic tofu", "hss_tier": "Moderate", "status": "published", "expert_validated": True},
+            {"id": "r3", "name": "Draft stew", "hss_tier": "Moderate", "status": "draft", "expert_validated": True},
+            {"id": "r4", "name": "Fried fish", "hss_tier": "Critical", "status": "published", "expert_validated": True},
+            # HL-037: not Dietitian-approved, so the review never lists it.
+            {"id": "r5", "name": "Pancit", "hss_tier": "Moderate", "status": "published", "expert_validated": False},
         ]
 
     def list_routines(self):
@@ -197,3 +199,9 @@ def test_the_review_lists_only_pt_approved_exercises(world):
     # HL-026: the exercises the app recommends are the ones patients can actually get.
     ids = [e["id"] for e in review_sections.recommendations_for({"app_tier": "Moderate"})["exercises"]]
     assert "e3" not in ids and set(ids) <= {"e1", "e2"}
+
+
+def test_the_review_lists_only_dietitian_approved_recipes(world):
+    # HL-037: an unapproved recipe never reaches patients, so the review doesn't list it either.
+    ids = [r["id"] for r in review_sections.recommendations_for({"app_tier": "Moderate"})["recipes"]]
+    assert "r5" not in ids and set(ids) <= {"r1", "r2"}

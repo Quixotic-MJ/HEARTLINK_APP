@@ -3,6 +3,7 @@ from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
 from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
 from app.services.exercises import is_visible_to_patients
+from app.services.recipes import is_visible_to_patients as recipe_visible
 from app.db.repositories import (
     get_profile_repo,
     get_hss_repo,
@@ -438,7 +439,7 @@ def get_dashboard_data(user_id: str, recipe_limit: int = 2, exercise_limit: int 
     reco_recipes = [
         r
         for r in recipes
-        if r.get("status") == "published"
+        if recipe_visible(r)
         and (r.get("hss_tier") == tier or r.get("hss_tier") == "Stable")
         and r.get("id") not in today_recipe_ids
         and _recipe_is_safe(r, dietary_practice, allergies)
@@ -468,7 +469,7 @@ def get_dashboard_data(user_id: str, recipe_limit: int = 2, exercise_limit: int 
             {
                 "id": r["id"],
                 "type": "recipe",
-                "tag": "Expert Verified" if is_expert else "Heart-healthy",
+                "tag": "Dietitian approved",
                 "title": r["name"],
                 "subtitle": f"Sodium: {r.get('sodium_mg', 0)}mg",
                 "icon": "bowl-mix-outline",

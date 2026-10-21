@@ -1,6 +1,6 @@
 from typing import List, Dict, Any
 from app.db.repositories import get_meals_repo, get_content_repo
-from app.services.recipes import normalize_recipe_fields
+from app.services.recipes import normalize_recipe_fields, is_visible_to_patients
 
 def get_meal_logs(user_id: str) -> List[Dict[str, Any]]:
     return get_meals_repo().list_user_meals(user_id)
@@ -17,7 +17,7 @@ def search_meals(query: str) -> List[Dict[str, Any]]:
     return [
         normalize_recipe_fields(r) 
         for r in recipes 
-        if r.get("status") == "published"
+        if is_visible_to_patients(r)
         and (query in r.get("name", "").lower() or any(query in str(tag).lower() for tag in r.get("tags", [])))
     ]
 

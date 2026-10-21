@@ -336,6 +336,14 @@ def has_permission(current_user: dict, permission: str) -> bool:
     return permission in EXPERT_PERMISSIONS.get(profile.get("expert_type"), set())
 
 
+def expert_id_if(current_user: Optional[dict], expert_type: str) -> Optional[str]:
+    """The caller's id when they are a medical expert of this type (HL-026/037 approvals), else None."""
+    if not current_user or current_user.get("role") != "medical_expert":
+        return None
+    profile = get_profile_repo().get_by_id(current_user.get("user_id")) or {}
+    return current_user.get("user_id") if profile.get("expert_type") == expert_type else None
+
+
 def check_expert_permission(current_user: dict, permission: str) -> None:
     """For endpoints patients use too: only medical experts are limited by their expert type."""
     if current_user.get("role") == "medical_expert" and not has_permission(current_user, permission):

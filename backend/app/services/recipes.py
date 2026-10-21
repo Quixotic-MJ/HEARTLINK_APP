@@ -54,6 +54,29 @@ def get_recipes() -> List[Dict[str, Any]]:
     recipes = get_content_repo().list_recipes()
     return [normalize_recipe_fields(r) for r in recipes]
 
+
+def is_visible_to_patients(recipe: Dict[str, Any]) -> bool:
+    """HL-037: patients only get recipes that are published AND approved by a Dietitian."""
+    return recipe.get("status") == "published" and bool(recipe.get("expert_validated"))
+
+
+def _mark_review(payload: Dict[str, Any], data: Dict[str, Any], dietitian_id: Optional[str]) -> None:
+    """HL-037: only a Dietitian approves. A Dietitian's save keeps the switch as sent, records who and
+    when, and may leave a note when sending it back; anyone else's save sends the recipe back to
+    waiting, so a Dietitian checks the version patients see. A note stays until a Dietitian changes it."""
+    if not dietitian_id:
+        payload.update(expert_validated=False, reviewed_by=None, reviewed_at=None)
+        return
+    if "reviewNote" in data or "review_note" in data:
+        note = str(data.get("reviewNote", data.get("review_note")) or "").strip()[:500]
+        payload["review_note"] = note or None
+    if "expert_validated" not in payload:
+        return
+    if payload["expert_validated"]:
+        payload.update(reviewed_by=dietitian_id, reviewed_at=utc_now().isoformat(), review_note=None)
+    else:
+        payload.update(reviewed_by=None, reviewed_at=None)
+
 def get_recipe(recipe_id: str) -> Optional[Dict[str, Any]]:
     r = get_content_repo().get_recipe(recipe_id)
     return normalize_recipe_fields(r) if r else None
@@ -87,7 +110,7 @@ def resolve_category(data: Dict[str, Any]) -> Optional[tuple]:
     return None
 
 
-def create_recipe(data: Dict[str, Any], created_by: Optional[str] = None) -> Dict[str, Any]:
+def create_recipe(data: Dict[str, Any], created_by: Optional[str] = None, dietitian_id: Optional[str] = None) -> Dict[str, Any]:
     steps = data.get("steps")
     if steps is None:
         instructions_str = data.get("instructions") or ""
@@ -176,11 +199,12 @@ def create_recipe(data: Dict[str, Any], created_by: Optional[str] = None) -> Dic
         new_recipe_payload["created_by"] = created_by
     if data.get("id"):
         new_recipe_payload["id"] = data["id"]
-        
+    _mark_review(new_recipe_payload, data, dietitian_id)
+
     res = get_content_repo().create_recipe(new_recipe_payload)
     return normalize_recipe_fields(res)
 
-def update_recipe(recipe_id: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+def update_recipe(recipe_id: str, data: Dict[str, Any], dietitian_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
     update_data = {}
     if "name" in data: update_data["name"] = data["name"]
     if "subtitle" in data: update_data["subtitle"] = data["subtitle"]
@@ -281,6 +305,7 @@ def update_recipe(recipe_id: str, data: Dict[str, Any]) -> Optional[Dict[str, An
                 })
         update_data["ingredients"] = ingredients_list
 
+    _mark_review(update_data, data, dietitian_id)
     res = get_content_repo().update_recipe(recipe_id, update_data)
     return normalize_recipe_fields(res) if res else None
 
@@ -294,5 +319,6 @@ def unsave_recipe_for_user(user_id: str, recipe_id: str) -> bool:
     return get_content_repo().unsave_recipe_for_user(user_id, recipe_id)
 
 def get_saved_recipes(user_id: str) -> List[Dict[str, Any]]:
+    # Only patients save recipes, so a saved recipe that lost its approval drops out of the list.
     recipes = get_content_repo().list_saved_recipes(user_id)
-    return [normalize_recipe_fields(r) for r in recipes]
+    return [normalize_recipe_fields(r) for r in recipes if is_visible_to_patients(r)]
