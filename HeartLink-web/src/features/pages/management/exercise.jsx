@@ -23,6 +23,7 @@ import {
 import AdminLayout from "../../../components/layouts/adminLayout";
 import ExerciseFormModal from "../../../components/modals/ExerciseFormModal";
 import ConfirmActionModal from "../../../components/modals/ConfirmActionModal";
+import { BulkApproveBar, SelectBox } from "../../../components/modals/BulkApprove";
 import { Skeleton } from "../../../components/ui/Skeleton";
 import { apiFetch, BASE_URL } from "../../../api";
 import { useAuth } from "../../../contexts/AuthContext";
@@ -71,8 +72,16 @@ const Exercises = () => {
     setConfirmConfig((prev) => ({ ...prev, isOpen: false }));
   };
 
+  // The row menu is pinned to the screen next to its button, so the table's scroll box can't cut it off.
+  const [menuPos, setMenuPos] = useState(null);
   const toggleMenu = (e, id) => {
     e.stopPropagation();
+    const rect = e.currentTarget.getBoundingClientRect();
+    const openUp = rect.bottom + 200 > window.innerHeight;
+    setMenuPos({
+      right: window.innerWidth - rect.right,
+      ...(openUp ? { bottom: window.innerHeight - rect.top + 4 } : { top: rect.bottom + 4 }),
+    });
     setActiveMenuId(activeMenuId === id ? null : id);
   };
 
@@ -83,9 +92,12 @@ const Exercises = () => {
     };
     window.addEventListener("click", handleOutsideClick);
     window.addEventListener("keydown", handleKeyDown);
+    // The menu is pinned to the screen, so it closes when anything scrolls instead of floating away.
+    window.addEventListener("scroll", handleOutsideClick, true);
     return () => {
       window.removeEventListener("click", handleOutsideClick);
       window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("scroll", handleOutsideClick, true);
     };
   }, []);
 
@@ -150,6 +162,16 @@ const Exercises = () => {
 
   const { user } = useAuth();
   const userRole = user?.role;
+  // Approving several at once: only the Physical Therapist who approves sees the checkboxes (HL-026/037).
+  const canApprove = userRole === "medical_expert" && user?.expert_type === "Physical Therapist";
+  const [selectedIds, setSelectedIds] = useState(() => new Set());
+  const toggleSelected = (id) =>
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
 
   const openModal = (exercise = null) => {
     setEditingExercise(exercise || null);
@@ -306,6 +328,7 @@ const Exercises = () => {
 
     return matchesSearch && matchesStatus && matchesHss && matchesType && matchesIntensity && matchesReview;
   });
+  const waitingShown = canApprove ? filteredExercises.filter((x) => !x.expertValidated) : [];
 
   // HSS Badge Styling
   const getHssBadgeStyle = (target) => {
@@ -474,6 +497,16 @@ const Exercises = () => {
             <table className="w-full text-left border-collapse min-w-[850px]">
               <thead>
                 <tr className="border-b border-ds-hairline bg-ds-surface/40">
+{canApprove && (
+                    <th className="py-3 pl-4 sm:pl-5 pr-0 w-10">
+                      <SelectBox
+                        label="Select every exercise waiting for approval"
+                        checked={waitingShown.length > 0 && waitingShown.every((x) => selectedIds.has(x.id))}
+                        indeterminate={waitingShown.some((x) => selectedIds.has(x.id))}
+                        onChange={(e) => setSelectedIds(e.target.checked ? new Set(waitingShown.map((x) => x.id)) : new Set())}
+                      />
+                    </th>
+                  )}
                   <th className="py-3 px-4 sm:px-5 text-[11px] font-semibold text-ds-steel uppercase tracking-[0.1em] w-[32%]">
                     Exercise routine
                   </th>
@@ -536,7 +569,7 @@ const Exercises = () => {
                 </tbody>
               ) : filteredExercises.length > 0 ? (
                 <tbody className="divide-y divide-ds-hairline">
-                  {filteredExercises.map((exercise, index) => {
+                  {filteredExercises.map((exercise) => {
                     const badgeClass = getHssBadgeStyle(exercise.hssTarget);
                     return (
                       <tr
@@ -546,6 +579,17 @@ const Exercises = () => {
                           exercise.status === "archived" ? "opacity-60 bg-ds-surface/30" : ""
                         }`}
                       >
+{canApprove && (
+                          <td className="py-3.5 pl-4 sm:pl-5 pr-0 align-middle" onClick={(e) => e.stopPropagation()}>
+                            {!exercise.expertValidated && (
+                              <SelectBox
+                                label={`Select ${exercise.name}`}
+                                checked={selectedIds.has(exercise.id)}
+                                onChange={() => toggleSelected(exercise.id)}
+                              />
+                            )}
+                          </td>
+                        )}
                         {/* 1. EXERCISE */}
                         <td className="py-3.5 px-4 sm:px-5 align-middle">
                           <div className="flex items-center gap-3">
@@ -670,11 +714,8 @@ const Exercises = () => {
 
                           {activeMenuId === exercise.id && (
                             <div
-                              className={`absolute right-4 w-44 bg-ds-canvas border border-ds-hairline rounded-xl shadow-xl p-1.5 z-50 text-left ${
-                                index >= filteredExercises.length - 2 && filteredExercises.length > 2
-                                  ? "bottom-full mb-1"
-                                  : "top-full mt-1"
-                              }`}
+                              className="fixed w-44 bg-ds-canvas border border-ds-hairline rounded-xl shadow-xl p-1.5 z-50 text-left"
+                              style={menuPos || undefined}
                             >
                               {/* Edit Action */}
                               <button
@@ -821,6 +862,25 @@ const Exercises = () => {
             requestDeleteExercise(exToDelete || editingExercise);
           }}
         />
+
+{canApprove && (
+          <BulkApproveBar
+            selected={exercises.filter((x) => selectedIds.has(x.id))}
+            noun="exercise"
+            approve={(x) =>
+              apiFetch(`/api/exercises/${x.id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ expertValidated: true }),
+              })
+            }
+            onClear={() => setSelectedIds(new Set())}
+            onDone={(failed) => {
+              setSelectedIds(new Set(failed.map((x) => x.id)));
+              fetchExercises();
+            }}
+          />
+        )}
 
         {/* Confirmation Modal */}
         <ConfirmActionModal

@@ -20,6 +20,7 @@ import {
 import AdminLayout from "../../../components/layouts/adminLayout";
 import FoodFormModal from "../../../components/modals/FoodFormModal";
 import ConfirmActionModal from "../../../components/modals/ConfirmActionModal";
+import { BulkApproveBar, SelectBox } from "../../../components/modals/BulkApprove";
 import { Skeleton } from "../../../components/ui/Skeleton";
 import { apiFetch } from "../../../api";
 import RecipeImage from "../../../components/ui/RecipeImage";
@@ -70,8 +71,16 @@ const Foods = () => {
     setConfirmConfig((prev) => ({ ...prev, isOpen: false }));
   };
 
+  // The row menu is pinned to the screen next to its button, so the table's scroll box can't cut it off.
+  const [menuPos, setMenuPos] = useState(null);
   const toggleMenu = (e, id) => {
     e.stopPropagation();
+    const rect = e.currentTarget.getBoundingClientRect();
+    const openUp = rect.bottom + 200 > window.innerHeight;
+    setMenuPos({
+      right: window.innerWidth - rect.right,
+      ...(openUp ? { bottom: window.innerHeight - rect.top + 4 } : { top: rect.bottom + 4 }),
+    });
     setActiveMenuRecipeId(activeMenuRecipeId === id ? null : id);
   };
 
@@ -79,7 +88,12 @@ const Foods = () => {
   React.useEffect(() => {
     const handleDocumentClick = () => setActiveMenuRecipeId(null);
     document.addEventListener("click", handleDocumentClick);
-    return () => document.removeEventListener("click", handleDocumentClick);
+    // The menu is pinned to the screen, so it closes when anything scrolls instead of floating away.
+    window.addEventListener("scroll", handleDocumentClick, true);
+    return () => {
+      document.removeEventListener("click", handleDocumentClick);
+      window.removeEventListener("scroll", handleDocumentClick, true);
+    };
   }, []);
 
   const handleUpdateStatus = async (recipe, newStatus) => {
@@ -254,6 +268,8 @@ const Foods = () => {
           heartBenefit: r.heart_benefit || "",
           status: r.status || "draft",
           expertValidated: r.expert_validated || false,
+          reviewedAt: r.reviewed_at || null,
+          reviewNote: r.review_note || "",
           mediaUrl: r.image_url || "",
           ingredients: r.ingredients || [],
           steps: r.steps || [],
@@ -280,6 +296,16 @@ const Foods = () => {
 
   const { user } = useAuth();
   const userRole = user?.role;
+  // Approving several at once: only the Dietitian who approves sees the checkboxes (HL-026/037).
+  const canApprove = userRole === "medical_expert" && user?.expert_type === "Dietitian";
+  const [selectedIds, setSelectedIds] = useState(() => new Set());
+  const toggleSelected = (id) =>
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
 
   const openModal = (recipe = null) => {
     setEditingRecipe(recipe || null);
@@ -323,6 +349,7 @@ const Foods = () => {
 
     return matchesSearch && matchesStatus && matchesHss && matchesCategory && matchesFoodSource && matchesReview;
   });
+  const waitingShown = canApprove ? filteredRecipes.filter((x) => !x.expertValidated) : [];
 
   // HSS Badge Styling
   const getHssBadgeStyle = (target) => {
@@ -477,8 +504,8 @@ const Foods = () => {
                   className="w-full md:w-auto pl-3 pr-7 py-1.5 text-[12px] font-semibold text-ds-ink bg-ds-canvas border border-ds-hairline rounded-[8px] focus:outline-none focus:border-ds-ink appearance-none cursor-pointer hover:border-ds-steel transition-colors"
                 >
                   <option value="all">All review status</option>
-                  <option value="reviewed">Expert Reviewed</option>
-                  <option value="pending">Pending Review</option>
+                  <option value="reviewed">Dietitian approved</option>
+                  <option value="pending">Waiting for dietitian</option>
                 </select>
                 <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
                   <ChevronDown size={12} className="text-ds-steel" />
@@ -492,6 +519,16 @@ const Foods = () => {
             <table className="w-full text-left border-collapse min-w-[720px]">
               <thead>
                 <tr className="border-b border-ds-hairline bg-ds-surface/40">
+{canApprove && (
+                    <th className="py-3 pl-4 sm:pl-5 pr-0 w-10">
+                      <SelectBox
+                        label="Select every recipe waiting for approval"
+                        checked={waitingShown.length > 0 && waitingShown.every((x) => selectedIds.has(x.id))}
+                        indeterminate={waitingShown.some((x) => selectedIds.has(x.id))}
+                        onChange={(e) => setSelectedIds(e.target.checked ? new Set(waitingShown.map((x) => x.id)) : new Set())}
+                      />
+                    </th>
+                  )}
                   <th className="py-3 px-4 sm:px-5 text-[11px] font-semibold text-ds-steel uppercase tracking-[0.1em] w-1/3">
                     Food / meal name
                   </th>
@@ -541,7 +578,7 @@ const Foods = () => {
                 </tbody>
               ) : filteredRecipes.length > 0 ? (
                 <tbody className="divide-y divide-ds-hairline">
-                  {filteredRecipes.map((recipe, index) => {
+                  {filteredRecipes.map((recipe) => {
                     const badgeClass = getHssBadgeStyle(recipe.hssTarget);
                     return (
                       <tr
@@ -551,6 +588,17 @@ const Foods = () => {
                           recipe.status === "archived" ? "opacity-60 bg-ds-surface/30" : ""
                         }`}
                       >
+{canApprove && (
+                          <td className="py-3.5 pl-4 sm:pl-5 pr-0 align-middle" onClick={(e) => e.stopPropagation()}>
+                            {!recipe.expertValidated && (
+                              <SelectBox
+                                label={`Select ${recipe.name}`}
+                                checked={selectedIds.has(recipe.id)}
+                                onChange={() => toggleSelected(recipe.id)}
+                              />
+                            )}
+                          </td>
+                        )}
                         {/* Food Name & Image */}
                         <td className="py-3.5 px-4 sm:px-5 align-middle">
                           <div className="flex items-center gap-3">
@@ -598,19 +646,16 @@ const Foods = () => {
                         {/* Expert Review Status */}
                         <td className="py-3.5 px-4 sm:px-5 align-middle text-center">
                           {recipe.expertValidated ? (
-                            <div
-                              className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-ds-mint text-ds-charcoal border border-ds-mint mx-auto"
-                              title="Expert Reviewed"
-                            >
-                              <ShieldCheck size={14} />
-                            </div>
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[6px] bg-ds-mint text-ds-charcoal text-[11.5px] font-semibold whitespace-nowrap">
+                              <ShieldCheck size={13} aria-hidden="true" /> Approved
+                            </span>
                           ) : (
-                            <div
-                              className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-ds-yellow text-ds-warm-text border border-ds-yellow-bold mx-auto"
-                              title="Pending Review"
+                            <span
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[6px] bg-ds-yellow text-ds-warm-text border border-ds-yellow-bold text-[11.5px] font-semibold whitespace-nowrap"
+                              title={recipe.reviewNote ? `Dietitian's note: ${recipe.reviewNote}` : undefined}
                             >
-                              <ShieldAlert size={14} />
-                            </div>
+                              <ShieldAlert size={13} aria-hidden="true" /> {recipe.reviewNote ? "Sent back" : "Waiting"}
+                            </span>
                           )}
                         </td>
 
@@ -632,11 +677,8 @@ const Foods = () => {
 
                           {activeMenuRecipeId === recipe.id && (
                             <div
-                              className={`absolute right-4 w-44 bg-ds-canvas border border-ds-hairline rounded-xl shadow-xl p-1.5 z-50 text-left ${
-                                index >= filteredRecipes.length - 2 && filteredRecipes.length > 2
-                                  ? "bottom-full mb-1"
-                                  : "top-full mt-1"
-                              }`}
+                              className="fixed w-44 bg-ds-canvas border border-ds-hairline rounded-xl shadow-xl p-1.5 z-50 text-left"
+                              style={menuPos || undefined}
                             >
                               {/* Edit Action */}
                               <button
@@ -748,6 +790,7 @@ const Foods = () => {
           onClose={closeModal}
           recipe={editingRecipe}
           userRole={userRole}
+          isDietitian={userRole === "medical_expert" && user?.expert_type === "Dietitian"}
           onSave={async (formData) => {
             try {
               if (editingRecipe?.id) {
@@ -781,6 +824,25 @@ const Foods = () => {
             requestDeleteRecipe(recipeToDelete || editingRecipe);
           }}
         />
+
+{canApprove && (
+          <BulkApproveBar
+            selected={recipes.filter((x) => selectedIds.has(x.id))}
+            noun="recipe"
+            approve={(x) =>
+              apiFetch(`/api/recipes/${x.id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ expertValidated: true }),
+              })
+            }
+            onClear={() => setSelectedIds(new Set())}
+            onDone={(failed) => {
+              setSelectedIds(new Set(failed.map((x) => x.id)));
+              fetchFoods();
+            }}
+          />
+        )}
 
         {/* Reusable Action Confirmation Modal */}
         <ConfirmActionModal
