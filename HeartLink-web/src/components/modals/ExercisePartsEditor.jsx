@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { PlusCircle, Trash2, ArrowUp, ArrowDown, Image as ImageIcon } from "lucide-react";
+import { PlusCircle, Trash2, ArrowUp, ArrowDown, ChevronDown, ChevronUp, Image as ImageIcon } from "lucide-react";
 import { useFieldArray } from "react-hook-form";
 import { BASE_URL, apiUpload } from "../../api";
 import { EQUIPMENT_PRESETS, NEW_PART, formatSeconds, partSeconds } from "./exerciseParts";
@@ -65,18 +65,37 @@ function ImageField({ value, onChange }) {
 export function PartsEditor({ control, register, watch, setValue, errors, name, title, hint, isBreathing = false, addLabel = "Add part" }) {
   const { fields, append, remove, move } = useFieldArray({ control, name });
   const rows = watch(name) || [];
+  // One step open at a time; the rest show as a single line. A new, empty or invalid step stays open.
+  const [openIndex, setOpenIndex] = useState(null);
 
   return (
     <div>
       <div className="flex items-baseline justify-between mb-1">
-        <p className="text-[12.5px] font-semibold text-ds-ink">{title}</p>
-        {rows.length > 0 && <p className="text-[11px] text-ds-slate">{formatSeconds(rows.reduce((t, p) => t + partSeconds(p), 0))}</p>}
+        <p className="text-[14px] font-semibold text-ds-ink">{title}</p>
+        {rows.length > 0 && <p className="text-[13px] text-ds-slate">{formatSeconds(rows.reduce((t, p) => t + partSeconds(p), 0))}</p>}
       </div>
-      {hint && <p className="text-[11px] text-ds-slate mb-2 leading-relaxed">{hint}</p>}
-      <div className="space-y-2.5">
+      {hint && <p className="text-[12px] text-ds-slate mb-2 leading-relaxed">{hint}</p>}
+      <div className="space-y-2">
         {fields.map((field, index) => {
           const row = rows[index] || {};
           const err = errors?.[name]?.[index];
+          const isOpen = openIndex === index || !(row.instruction || "").trim() || !!err;
+          if (!isOpen) {
+            return (
+              <button
+                key={field.id}
+                type="button"
+                onClick={() => setOpenIndex(index)}
+                aria-label={`Edit step ${index + 1}: ${row.instruction}`}
+                className="w-full flex items-center gap-3 border border-ds-hairline rounded-[8px] px-3 py-2.5 bg-ds-canvas hover:border-ds-steel text-left transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ds-line"
+              >
+                <span className="w-6 h-6 rounded-[6px] bg-ds-surface-alt text-[12px] font-semibold text-ds-ink flex items-center justify-center shrink-0">{index + 1}</span>
+                <span className="flex-1 min-w-0 truncate text-[13.5px] font-medium text-ds-ink">{row.instruction}</span>
+                <span className="text-[12.5px] text-ds-slate shrink-0">{formatSeconds(partSeconds(row))}</span>
+                <ChevronDown size={16} className="text-ds-slate shrink-0" aria-hidden="true" />
+              </button>
+            );
+          }
           return (
             <div key={field.id} className="flex items-start gap-2.5 border border-ds-hairline rounded-[8px] p-2.5 bg-ds-surface/40">
               <div className="mt-1 text-[11px] font-bold text-ds-steel bg-ds-canvas border border-ds-hairline w-5 h-5 flex items-center justify-center rounded-full shrink-0">{index + 1}</div>
@@ -149,6 +168,11 @@ export function PartsEditor({ control, register, watch, setValue, errors, name, 
                 <ImageField value={row.image} onChange={(url) => setValue(`${name}.${index}.image`, url, { shouldDirty: true })} />
               </div>
               <div className="flex items-center gap-1 mt-1 shrink-0">
+                {(row.instruction || "").trim() && !err && (
+                  <button type="button" onClick={() => setOpenIndex(null)} className={iconButton} title="Close this step" aria-label="Close this step">
+                    <ChevronUp size={13} />
+                  </button>
+                )}
                 <button type="button" onClick={() => move(index, index - 1)} disabled={index === 0} className={iconButton} title="Move up">
                   <ArrowUp size={13} />
                 </button>
@@ -163,7 +187,14 @@ export function PartsEditor({ control, register, watch, setValue, errors, name, 
           );
         })}
       </div>
-      <button type="button" onClick={() => append({ ...NEW_PART })} className={addButton}>
+      <button
+        type="button"
+        onClick={() => {
+          append({ ...NEW_PART });
+          setOpenIndex(fields.length);
+        }}
+        className={addButton}
+      >
         <PlusCircle size={14} /> <span>{addLabel}</span>
       </button>
     </div>
