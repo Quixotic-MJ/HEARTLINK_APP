@@ -143,3 +143,16 @@ def test_only_the_patient_changes_their_own_saved_exercises():
     _own_account_only({"user_id": "p1", "role": "patient"}, "p1")
     with pytest.raises(HTTPException):
         _own_account_only({"user_id": "p2", "role": "patient"}, "p1")
+
+
+def test_calories_burned_scale_with_the_minutes_done():
+    # HL-015: the PT's estimate is for the full exercise; half the time burns half.
+    routines = [{"id": "walk", "duration_minutes": 20, "calories": 90}, {"id": "yoga", "duration_minutes": 15, "calories": 0}]
+    logs = [
+        {"routine_id": "walk", "duration_seconds": 600},   # 10 of 20 min -> 45
+        {"routine_id": "walk", "duration_minutes": 20},    # full -> 90
+        {"routine_id": "walk", "duration_seconds": 7200},  # left running: capped at twice -> 180
+        {"routine_id": "yoga", "duration_minutes": 15},    # no estimate -> not counted
+        {"routine_id": None, "duration_minutes": 30},      # logged by hand -> not counted
+    ]
+    assert exercise_service.calories_burned(logs, routines) == (315, 2)

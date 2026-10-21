@@ -5,8 +5,11 @@ import { Feather } from "@expo/vector-icons";
 
 // HL-027: everything eaten and done today in one labelled card. A tile with nothing
 // logged says so instead of showing a bare 0. Cholesterol joins once meal logs store it (HL-028).
+// HL-029: calories show as net (eaten - burned by exercise), with the sum written underneath.
 export function RitualProgress({
   calories,
+  caloriesBurned = 0,
+  exercisesNotCounted = 0,
   totalSod,
   sodiumLimit,
   satFat,
@@ -16,6 +19,8 @@ export function RitualProgress({
   exerciseLogged,
 }: {
   calories: number;
+  caloriesBurned?: number;
+  exercisesNotCounted?: number;
   totalSod: number;
   sodiumLimit: number;
   satFat: number;
@@ -37,13 +42,19 @@ export function RitualProgress({
       >
         <View className="flex-row justify-between gap-4">
           <MiniTracker
-            label="Calories"
-            current={Math.round(calories)}
+            label="Net calories"
+            current={Math.round(calories - caloriesBurned)}
             unit="kcal"
             isDark={isDark}
             iconName="zap"
             isMaxLimit={false}
-            emptyText={mealsLogged ? undefined : "No meals yet"}
+            emptyText={mealsLogged || caloriesBurned > 0 ? undefined : "No meals yet"}
+            note={
+              mealsLogged || caloriesBurned > 0
+                ? `${Math.round(calories).toLocaleString()} eaten − ${Math.round(caloriesBurned).toLocaleString()} burned` +
+                  (exercisesNotCounted > 0 ? `. ${exercisesNotCounted} exercise${exercisesNotCounted === 1 ? "" : "s"} without an estimate not counted` : "")
+                : undefined
+            }
           />
           <MiniTracker
             label="Sodium"
@@ -92,6 +103,8 @@ function MiniTracker({
   iconName,
   isMaxLimit,
   emptyText,
+  note,
+  warn = false,
 }: {
   label: string;
   current: number;
@@ -103,6 +116,10 @@ function MiniTracker({
   isMaxLimit: boolean;
   /** Shown instead of the number when nothing has been logged yet. */
   emptyText?: string;
+  /** A small line under the value, e.g. how net calories were worked out. */
+  note?: string;
+  /** Shows the note as a warning (over a daily limit). */
+  warn?: boolean;
 }) {
   const percent = target ? Math.min(Math.max((current / target) * 100, 0), 100) : 0;
 
@@ -125,7 +142,7 @@ function MiniTracker({
     <View
       className="flex-1"
       accessible
-      accessibilityLabel={emptyText ? `${label}: ${emptyText}` : `${label}: ${current}${target ? ` of ${target}` : ""} ${unit}`}
+      accessibilityLabel={emptyText ? `${label}: ${emptyText}` : `${label}: ${current}${target ? ` of ${target}` : ""} ${unit}${note ? `. ${note}` : ""}`}
     >
       <View className="flex-row items-center gap-1.5 mb-2">
         <Feather name={iconName} size={12} color={labelColor} />
@@ -150,6 +167,11 @@ function MiniTracker({
           </Text>
         </Text>
       )}
+      {note && !emptyText ? (
+        <Text className="text-[11px] mt-1" style={{ color: warn ? (isDark ? "#FBBF24" : "#B45309") : labelColor, fontWeight: warn ? "600" : "400" }}>
+          {note}
+        </Text>
+      ) : null}
     </View>
   );
 }

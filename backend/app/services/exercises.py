@@ -12,6 +12,27 @@ def is_visible_to_patients(routine: Dict[str, Any]) -> bool:
     """HL-026: patients only get exercises that are published AND approved by a Physical Therapist."""
     return routine.get("status") == "published" and bool(routine.get("expert_validated"))
 
+def calories_burned(logs: List[Dict[str, Any]], routines: List[Dict[str, Any]]) -> Tuple[int, int]:
+    """HL-015: calories burned by these exercise logs, from each exercise's PT-set estimate scaled by the
+    minutes actually done. A log with no library exercise (or no estimate) isn't counted.
+    Returns (calories burned, logs not counted)."""
+    by_id = {str(r.get("id")): r for r in routines}
+    burned = 0.0
+    not_counted = 0
+    for log in logs:
+        routine = by_id.get(str(log.get("routine_id") or ""))
+        planned = float((routine or {}).get("duration_minutes") or 0)
+        estimate = float((routine or {}).get("calories") or 0)
+        minutes = (log.get("duration_seconds") or 0) / 60 or float(log.get("duration_minutes") or 0)
+        if not planned or not estimate or not minutes:
+            not_counted += 1
+            continue
+        # shortcut: a session left running counts at most twice the planned time; replace with a
+        # per-minute rate if PTs start setting one.
+        burned += estimate * min(minutes / planned, 2.0)
+    return round(burned), not_counted
+
+
 def get_saved_exercises(user_id: str) -> List[Dict[str, Any]]:
     # Only patients save exercises, so one that lost its PT approval drops out of the list.
     return [r for r in get_content_repo().list_saved_exercises(user_id) if is_visible_to_patients(r)]

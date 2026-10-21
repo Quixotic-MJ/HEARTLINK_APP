@@ -975,6 +975,8 @@ export default function DashboardScreen() {
           <TourSpot target="vitals" tour={tour}>
           <RitualProgress
             calories={Number(data?.today_activity?.total_calories) || 0}
+            caloriesBurned={Number(data?.today_activity?.total_calories_burned) || 0}
+            exercisesNotCounted={Number(data?.today_activity?.exercises_not_counted) || 0}
             totalSod={sodiumTodayMg}
             sodiumLimit={sodiumLimitMg}
             satFat={data?.nutrition_budget?.sat_fat?.consumed_g ?? data?.today_activity?.total_saturated_fat_g ?? 0}

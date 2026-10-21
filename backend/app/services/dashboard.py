@@ -2,7 +2,7 @@ import os
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
 from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
-from app.services.exercises import is_visible_to_patients
+from app.services.exercises import is_visible_to_patients, calories_burned
 from app.services.recipes import is_visible_to_patients as recipe_visible
 from app.db.repositories import (
     get_profile_repo,
@@ -330,6 +330,8 @@ def _get_today_activity(user_id: str) -> dict:
     total_fiber = sum((m.get("fiber_g") or 0) for m in meals_today)
     
     total_exercise_min = sum((e.get("duration_minutes") or 0) for e in exercises_today)
+    # HL-015: net calories = eaten - burned by today's exercises.
+    burned, not_counted = calories_burned(exercises_today, get_content_repo().list_routines()) if exercises_today else (0, 0)
     total_sleep_hours = sum((s.get("duration_hours") or 0) for s in sleeps_today)
 
     # Meds adherence today
@@ -348,6 +350,9 @@ def _get_today_activity(user_id: str) -> dict:
         "sleep_logged": len(sleeps_today) > 0,
         "total_sodium_mg": total_sodium,
         "total_calories": total_calories,
+        "total_calories_burned": burned,
+        "net_calories": round(total_calories - burned),
+        "exercises_not_counted": not_counted,
         "total_saturated_fat_g": total_saturated_fat,
         "total_fiber_g": total_fiber,
         "total_exercise_minutes": total_exercise_min,
@@ -554,6 +559,8 @@ def get_dashboard_data(user_id: str, recipe_limit: int = 2, exercise_limit: int 
             },
             "calories": {
                 "consumed": today_activity["total_calories"],
+                "burned": today_activity["total_calories_burned"],
+                "net": today_activity["net_calories"],
                 "limit": calorie_limit,
             },
         },
