@@ -8,11 +8,12 @@ import uuid
 import logging
 from app.db.repositories.base import handle_db_error, resolve_uuid, serialize_for_db
 from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
+from app.services.notification_archive import keep_active
 
 logger = logging.getLogger(__name__)
 
 class NotificationRepository:
-    def list_user_notifications(self, user_id: str) -> List[Dict[str, Any]]:
+    def list_user_notifications(self, user_id: str, include_archived: bool = False) -> List[Dict[str, Any]]:
         raise NotImplementedError
 
     def mark_read(self, notification_id: str, user_id: Optional[str] = None) -> bool:
@@ -51,13 +52,14 @@ class SupabaseNotificationRepository(NotificationRepository):
             pass
         return None
 
-    def list_user_notifications(self, user_id: str) -> List[Dict[str, Any]]:
+    def list_user_notifications(self, user_id: str, include_archived: bool = False) -> List[Dict[str, Any]]:
         uuid_val = self._resolve_user_uuid(user_id)
         if not uuid_val:
             return []
         try:
             res = self.client.table("patient_notifications").select("*").eq("user_id", uuid_val).order("created_at", desc=True).execute()
-            return res.data or []
+            # HL-019: archived ones (over 72 hours old) only when asked for.
+            return keep_active(res.data or [], include_archived)
         except Exception as e:
             logger.warning(f"Error reading notifications for {user_id}: {e}")
             return []

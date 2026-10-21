@@ -142,6 +142,12 @@ async def on_startup():
     except Exception as e:
         logger.warning("Revoked tokens not loaded: %s", e)
 
+    # HL-019: archive notifications 72 hours after they're sent; runs now, then hourly.
+    if os.getenv("NOTIFICATION_ARCHIVE_JOB", "on").lower() != "off":
+        import asyncio
+        from app.services.notification_archive import run_archive_job
+        app.state.archive_job = asyncio.create_task(run_archive_job())
+
 @app.api_route("/", methods=["GET", "HEAD"], tags=["System"])
 def root_check():
     return {"status": "ok", "service": "HeartLink API"}

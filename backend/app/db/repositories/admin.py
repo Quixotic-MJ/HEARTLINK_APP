@@ -8,6 +8,7 @@ import uuid
 import logging
 from app.db.repositories.base import handle_db_error, resolve_uuid
 from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
+from app.services.notification_archive import keep_active
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +22,7 @@ class AdminRepository:
     def create_admin_notification(self, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         raise NotImplementedError
 
-    def list_admin_notifications(self, caller_role: str, caller_id: str) -> Dict[str, Any]:
+    def list_admin_notifications(self, caller_role: str, caller_id: str, include_archived: bool = False) -> Dict[str, Any]:
         raise NotImplementedError
 
     def mark_admin_notification_read(self, notification_id: str, caller_role: str, caller_id: str) -> bool:
@@ -83,12 +84,14 @@ class SupabaseAdminRepository(AdminRepository):
             handle_db_error(e)
             return None
 
-    def list_admin_notifications(self, caller_role: str, caller_id: str) -> Dict[str, Any]:
+    def list_admin_notifications(self, caller_role: str, caller_id: str, include_archived: bool = False) -> Dict[str, Any]:
         try:
             admin_uuid = resolve_uuid(caller_id)
             res = self.client.table("admin_notifications").select("*").order("created_at", desc=True).execute()
             all_notifs = res.data or []
             visible = [n for n in all_notifs if caller_role in n.get("recipient_roles", [])]
+            # HL-019: archived ones (over 72 hours old) only when asked for; they never count as unread.
+            visible = keep_active(visible, include_archived)
             
             read_notif_ids = set()
             if admin_uuid:
@@ -100,7 +103,7 @@ class SupabaseAdminRepository(AdminRepository):
             for n in visible:
                 item = dict(n)
                 item["read_by"] = [caller_id] if n["id"] in read_notif_ids else []
-                if n["id"] not in read_notif_ids:
+                if n["id"] not in read_notif_ids and not item["archived"]:
                     unread_count += 1
                 formatted.append(item)
 

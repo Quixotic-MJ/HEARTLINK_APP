@@ -39,7 +39,7 @@ const Notifications = () => {
 
   // Filter & Search states
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all"); // 'all' | 'unread' | 'read'
+  const [statusFilter, setStatusFilter] = useState("all"); // 'all' | 'unread' | 'read' | 'archived'
   const [typeFilter, setTypeFilter] = useState("all");
 
   // Pagination states
@@ -51,7 +51,8 @@ const Notifications = () => {
     setLoading(true);
     setFetchError(false);
     try {
-      const data = await apiFetch("/api/admin/notifications");
+      // HL-019: archived ones (over 72 hours old) come too, but only show under "Archived".
+      const data = await apiFetch("/api/admin/notifications?include_archived=true");
       setNotifications(data.items || []);
       setUnreadCount(data.unread_count || 0);
     } catch (error) {
@@ -208,7 +209,8 @@ const Notifications = () => {
   const filteredNotifications = notifications.filter((n) => {
     const isRead = n.read_by?.includes(userId);
 
-    // Status filter
+    // Status filter: archived notifications only show under "Archived"
+    if ((statusFilter === "archived") !== !!n.archived) return false;
     if (statusFilter === "unread" && isRead) return false;
     if (statusFilter === "read" && !isRead) return false;
 
@@ -228,8 +230,10 @@ const Notifications = () => {
   });
 
   // KPI Metrics Calculation
-  const totalCount = notifications.length;
-  const unreadItemsCount = notifications.filter((n) => !n.read_by?.includes(userId)).length;
+  const activeNotifications = notifications.filter((n) => !n.archived);
+  const archivedCount = notifications.length - activeNotifications.length;
+  const totalCount = activeNotifications.length;
+  const unreadItemsCount = activeNotifications.filter((n) => !n.read_by?.includes(userId)).length;
   const clinicalCasesCount = notifications.filter((n) => n.type === "case" || n.type === "clinical").length;
   const feedbackTicketsCount = notifications.filter((n) => n.type === "feedback").length;
 
@@ -391,6 +395,20 @@ const Notifications = () => {
                   }`}
                 >
                   Read
+                </button>
+                <button
+                  onClick={() => {
+                    setStatusFilter("archived");
+                    setPage(1);
+                  }}
+                  title="Notifications archive 72 hours after they're sent"
+                  className={`px-3 py-1 rounded-[6px] text-[11.5px] font-semibold transition-colors cursor-pointer ${
+                    statusFilter === "archived"
+                      ? "bg-ds-canvas text-ds-ink "
+                      : "text-ds-slate hover:text-ds-ink"
+                  }`}
+                >
+                  Archived ({archivedCount})
                 </button>
               </div>
 

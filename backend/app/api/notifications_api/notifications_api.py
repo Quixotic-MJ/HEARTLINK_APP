@@ -13,11 +13,13 @@ def get_latest_broadcasts():
 @router.get("/{user_id}", response_model=List[Dict[str, Any]])
 def read_notifications(
     user_id: str,
+    include_archived: bool = False,
     current_user: dict = Depends(get_current_user),
 ):
     from app.utils.security import verify_user_access
     verify_user_access(current_user, user_id)
-    return get_notifications(user_id)
+    # HL-019: notifications over 72 hours old are archived; ?include_archived=true lists them too.
+    return get_notifications(user_id, include_archived)
 
 @router.put("/{notification_id}/read")
 def mark_read(

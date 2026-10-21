@@ -18,11 +18,12 @@ def _require_admin_or_super_admin(current_user: dict = Depends(get_current_admin
 
 @router.get("", response_model=Dict[str, Any])
 @router.get("/", response_model=Dict[str, Any])
-def get_admin_notifications(current_user: dict = Depends(_require_admin_or_super_admin)):
+def get_admin_notifications(include_archived: bool = False, current_user: dict = Depends(_require_admin_or_super_admin)):
     caller_id = current_user.get("user_id")
     caller_role = current_user.get("role")
     try:
-        return get_admin_repo().list_admin_notifications(caller_role, caller_id)
+        # HL-019: notifications over 72 hours old are archived; ?include_archived=true lists them too.
+        return get_admin_repo().list_admin_notifications(caller_role, caller_id, include_archived)
     except Exception:
         return {"items": [], "unread_count": 0, "total": 0}
 

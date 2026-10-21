@@ -5,6 +5,8 @@ import pytest
 os.environ["SECRET_KEY"] = "dummy-secret-key-for-testing-1234567890"
 os.environ["DATABASE_MODE"] = "mock"
 os.environ["ALGORITHM"] = "HS256"
+# HL-019: tests never start the hourly notification archive job (it writes to the database).
+os.environ["NOTIFICATION_ARCHIVE_JOB"] = "off"
 
 
 class FakePendingRepo:
