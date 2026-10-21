@@ -12,6 +12,9 @@ import { useDs } from "../../../components/onboarding/useDs";
 import { IconBadge, SquareIconButton } from "../../../components/exercise/ExerciseBits";
 import { apiFetch } from "../../../lib/api";
 import { Routine, exerciseKind, toRoutines } from "../../../services/exerciseSession";
+import { useRefetchOnFocus } from "../../../hooks/useRefetchOnFocus";
+import { useExploreScore } from "../../../hooks/useExploreData";
+import { suitsTier } from "../../../services/explore";
 
 // Every exercise a physical therapist approved (the server sends no others, HL-026), filtered by type.
 
@@ -23,7 +26,9 @@ const KIND_ICON = { breathing: "wind", cardio: "activity", steps: "user", guide:
 export default function ExercisesScreen({ isEmbedded = false }: { isEmbedded?: boolean } = {}) {
   const { c, isDark } = useDs();
   const router = useRouter();
-  const params = useLocalSearchParams<{ type?: string }>();
+  const params = useLocalSearchParams<{ type?: string; from?: string }>();
+  // Opened from Explore's "All exercises": back returns there, not to the first tab.
+  const from = params.from;
   const startFilter = FILTERS.find((f) => f.toLowerCase() === (params.type ?? "").toLowerCase()) ?? "All";
   // This tab stays open in the background, so a new ?type= (e.g. "Try a breathing exercise")
   // replaces whatever filter was picked before.
@@ -43,7 +48,12 @@ export default function ExercisesScreen({ isEmbedded = false }: { isEmbedded?: b
     },
     select: toRoutines,
   });
+  // An exercise a PT approves shows when the patient comes back to this tab (HL-026).
+  useRefetchOnFocus(query.refetch);
   const all = query.data ?? [];
+  // Every approved exercise shows here; the ones for the patient's score level get a tag.
+  const patientTier = useExploreScore().data?.tier ?? null;
+  const knowsTier = !!patientTier && patientTier !== "Unknown";
   const shown = filter === "All" ? all : all.filter((r) => r.type.toLowerCase() === filter.toLowerCase());
   const [refreshing, setRefreshing] = useState(false);
 
@@ -64,6 +74,11 @@ export default function ExercisesScreen({ isEmbedded = false }: { isEmbedded?: b
           <Text style={{ fontSize: 13, color: c.slate }}>
             {item.type}, {item.minutes} min, {item.intensity.toLowerCase()} intensity
           </Text>
+          {knowsTier && item.tier && suitsTier(item.tier, patientTier) ? (
+            <View style={{ alignSelf: "flex-start", paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, backgroundColor: c.mint }}>
+              <Text style={{ fontSize: 12, fontWeight: "600", color: c.charcoal }}>Suits your score</Text>
+            </View>
+          ) : null}
           {item.reviewedAt ? (
             <View className="flex-row items-center" style={{ gap: 4 }}>
               <Feather name="check-circle" size={13} color={c.success} />
@@ -80,7 +95,7 @@ export default function ExercisesScreen({ isEmbedded = false }: { isEmbedded?: b
     <>
       {!isEmbedded ? (
         <View className="flex-row items-center px-5 pt-3 pb-2" style={{ gap: 10 }}>
-          <SquareIconButton icon="arrow-left" label="Go back" onPress={() => router.back()} />
+          <SquareIconButton icon="arrow-left" label="Go back" onPress={() => (from === "explore" ? router.navigate("/(home)/(tabs)/explore") : router.back())} />
           <Text accessibilityRole="header" style={{ flex: 1, fontSize: 22, fontWeight: "600", color: c.ink }}>
             Exercises
           </Text>

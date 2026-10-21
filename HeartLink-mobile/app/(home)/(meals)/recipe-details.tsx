@@ -322,7 +322,7 @@ export default function RecipeDetailsScreen() {
             {recipe.expertValidated && (
               <View className="flex-row items-center self-start" style={{ gap: 6, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, backgroundColor: c.sky }}>
                 <MaterialCommunityIcons name="check-decagram-outline" size={14} color={c.onTint} />
-                <Text style={{ fontSize: 13, fontWeight: "600", color: c.onTint }}>Clinical nutritionist verified</Text>
+                <Text style={{ fontSize: 13, fontWeight: "600", color: c.onTint }}>Dietitian approved</Text>
               </View>
             )}
             <Text accessibilityRole="header" style={{ fontSize: 28, fontWeight: "600", lineHeight: 35, color: c.ink }}>

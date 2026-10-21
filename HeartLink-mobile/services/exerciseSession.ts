@@ -53,6 +53,8 @@ export type Routine = {
   effortHint: string;
   frequency: string;
   reviewedAt: string | null;
+  /** Which score level it's for; the Exercises list marks the ones that suit the patient. */
+  tier?: string;
 };
 
 /** Which "during" screen an exercise uses. */
@@ -104,6 +106,7 @@ export type RoutineApi = {
   effort_hint?: string | null;
   frequency?: string | null;
   reviewed_at?: string | null;
+  hss_tier?: string | null;
 };
 
 /** The portal saves a step's time as 5 seconds unless the expert changes it. */
@@ -180,6 +183,7 @@ export function toRoutine(data: RoutineApi): Routine {
     effortHint: (data.effort_hint || "").trim(),
     frequency: (data.frequency || "").trim(),
     reviewedAt: data.reviewed_at || null,
+    tier: data.hss_tier || "",
   };
   // Saved in the new layout when any step has a section, or set-up / rounds were filled in.
   const structured = (data.steps ?? []).some((s) => typeof s === "object" && s !== null && !!s.section) || setup.length > 0 || (data.rounds ?? 1) > 1;

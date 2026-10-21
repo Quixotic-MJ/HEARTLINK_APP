@@ -11,13 +11,16 @@ import {
 import { Image } from "expo-image";
 import { ScreenWrapper } from "../../../components/ui/ScreenWrapper";
 import { StatusBar } from "expo-status-bar";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useUser } from "../../../contexts/UserContext";
 import { apiFetch } from "../../../lib/api";
 import { useDs } from "../../../components/onboarding/useDs";
+import { useRefetchOnFocus } from "../../../hooks/useRefetchOnFocus";
+import { useExploreScore } from "../../../hooks/useExploreData";
+import { suitsTier } from "../../../services/explore";
 import { SquareIconButton } from "../../../components/exercise/ExerciseBits";
 
 export interface Recipe {
@@ -38,6 +41,8 @@ export interface Recipe {
   };
   ingredients: { qty: string; item: string }[];
   steps: string[];
+  /** Which score level it's for (HL-037 Explore: marks the ones that suit the patient). */
+  tier?: string;
 }
 
 function RecipeCard({
@@ -45,11 +50,13 @@ function RecipeCard({
   onPress,
   isSaved,
   onSave,
+  suits = false,
 }: {
   recipe: Recipe;
   onPress: () => void;
   isSaved: boolean;
   onSave: () => void;
+  suits?: boolean;
 }) {
   const { c } = useDs();
 
@@ -82,6 +89,11 @@ function RecipeCard({
       <View className="p-3 pb-4">
         <Text style={{ fontSize: 15, fontWeight: "500", color: c.ink, marginBottom: 2 }} numberOfLines={1}>{recipe.title}</Text>
         <Text style={{ fontSize: 13, color: c.slate }}>{recipe.nutrition?.calories || 0} cal - {recipe.prepTime || 0} min</Text>
+        {suits ? (
+          <View style={{ alignSelf: "flex-start", marginTop: 6, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, backgroundColor: c.mint }}>
+            <Text style={{ fontSize: 12, fontWeight: "600", color: c.charcoal }}>Suits your score</Text>
+          </View>
+        ) : null}
       </View>
     </TouchableOpacity>
   );
@@ -94,9 +106,14 @@ export default function RecipesScreen({
 } = {}) {
   const { c, isDark } = useDs();
   const router = useRouter();
+  // Opened from Explore's "All meals": back returns there, not to the first tab.
+  const { from } = useLocalSearchParams<{ from?: string }>();
   const { userId, token } = useUser();
   const queryClient = useQueryClient();
   const [activeFilter, setActiveFilter] = useState("All");
+  // Every approved meal shows here; the ones for the patient's score level get a tag.
+  const patientTier = useExploreScore().data?.tier ?? null;
+  const knowsTier = !!patientTier && patientTier !== "Unknown";
 
   const savedRecipesKey = userId ? `@saved_recipes_${userId}` : "@saved_recipes";
   const recipesCacheKey = userId ? `@recipes_cache_${userId}` : "@recipes_cache";
@@ -120,6 +137,7 @@ export default function RecipesScreen({
         image: r.image_url || "",
         tags: r.tags || [],
         heartBenefit: r.heart_benefit || "",
+        tier: r.hss_tier || "",
         nutrition: {
           sodium: r.sodium_mg || 0,
           fiber: r.fiber_g || 0,
@@ -152,6 +170,9 @@ export default function RecipesScreen({
   });
 
   const [refreshing, setRefreshing] = useState(false);
+  // A recipe a Dietitian approves shows when the patient comes back to this tab (HL-037).
+  useRefetchOnFocus(refetchRecipes);
+
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await Promise.all([refetchRecipes(), refetchSaved()]);
@@ -207,7 +228,7 @@ export default function RecipesScreen({
       {/* Top Bar matching the "See All" design */}
       {!isEmbedded && (
         <View className="flex-row items-center px-5 pt-3 pb-3" style={{ gap: 10 }}>
-          <SquareIconButton icon="arrow-left" label="Go back" onPress={() => router.back()} />
+          <SquareIconButton icon="arrow-left" label="Go back" onPress={() => (from === "explore" ? router.navigate("/(home)/(tabs)/explore") : router.back())} />
           <Text accessibilityRole="header" style={{ flex: 1, fontSize: 22, fontWeight: "600", color: c.ink }}>
             Recipes
           </Text>
@@ -253,6 +274,7 @@ export default function RecipesScreen({
           <View className="mb-4">
             <Text style={{ fontSize: 13, color: c.steel }}>
               {filteredRecipes.length} recipes
+              {knowsTier ? `, ${filteredRecipes.filter((r) => r.tier && suitsTier(r.tier, patientTier)).length} suit your score` : ""}
             </Text>
           </View>
         }
@@ -263,6 +285,7 @@ export default function RecipesScreen({
               isSaved={savedRecipes.includes(recipe.id)}
               onSave={() => toggleSave(recipe.id)}
               onPress={() => router.push(`/(home)/(meals)/recipe-details?id=${recipe.id}` as any)}
+              suits={knowsTier && !!recipe.tier && suitsTier(recipe.tier, patientTier)}
             />
           </View>
         )}

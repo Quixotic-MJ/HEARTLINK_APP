@@ -27,6 +27,7 @@ import { ExerciseResult } from "../../../components/exercise/ExerciseResult";
 import { CheckInSheet, ShortSessionSheet, StopSheet } from "../../../components/exercise/SessionSheets";
 import { SessionScreenProps, WORKOUT } from "../../../components/exercise/ExerciseBits";
 import { RoutineApi, exerciseKind, isWorkoutPaused, toRoutine } from "../../../services/exerciseSession";
+import { useSavedExercises } from "../../../hooks/useExploreData";
 
 // A guided exercise, start to finish: details → get ready → the "during" screen for its type →
 // how do you feel → saved. "I feel unwell" (always on screen) saves what was done as stopped
@@ -47,6 +48,7 @@ const newLogId = () => `ex-${Date.now()}-${Math.random().toString(36).slice(2, 8
 
 export default function ExerciseSessionScreen() {
   const router = useRouter();
+  const savedExercises = useSavedExercises();
   const { c, isDark } = useDs();
   const queryClient = useQueryClient();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -253,6 +255,8 @@ export default function ExerciseSessionScreen() {
           onBack={() => router.back()}
           onClearPause={() => setConfirmClear(true)}
           onFindBreathing={() => router.push({ pathname: "/(home)/(tabs)/exercises", params: { type: "Breathing" } })}
+          saved={savedExercises.ids.includes(routine.id)}
+          onToggleSave={() => savedExercises.toggle(routine.id)}
         />
       ) : null}
 

@@ -6,6 +6,7 @@ import { Feather } from "@expo/vector-icons";
 import DsButton from "../onboarding/DsButton";
 import { useDs } from "../onboarding/useDs";
 import { SquareIconButton, Tag } from "./ExerciseBits";
+import { SaveButton } from "../explore/ExploreBits";
 import { ExerciseVideo, PictureThumb } from "./ExerciseMedia";
 import { ExerciseKind, Routine, SECTION_NAME, describePart, routineSeconds } from "../../services/exerciseSession";
 
@@ -24,6 +25,9 @@ export interface ExerciseOverviewProps {
   onBack: () => void;
   onClearPause: () => void;
   onFindBreathing: () => void;
+  /** Whether the patient saved this exercise, and the bookmark that changes it (Explore > Saved). */
+  saved?: boolean;
+  onToggleSave?: () => void;
 }
 
 /** A labelled line in the "how it should feel / how often" box. */
@@ -63,7 +67,7 @@ function PartList({ title, items }: { title: string; items: { text: string; deta
   );
 }
 
-export function ExerciseOverview({ routine, kind, paused, canClearPause, checking, onStart, onBack, onClearPause, onFindBreathing }: ExerciseOverviewProps) {
+export function ExerciseOverview({ routine, kind, paused, canClearPause, checking, onStart, onBack, onClearPause, onFindBreathing, saved = false, onToggleSave }: ExerciseOverviewProps) {
   const { c } = useDs();
   const insets = useSafeAreaInsets();
   const kindLabel = { breathing: "Breathing", cardio: "Light cardio", steps: "Move by move", guide: "Guided" }[kind];
@@ -80,6 +84,11 @@ export function ExerciseOverview({ routine, kind, paused, canClearPause, checkin
           <View style={{ position: "absolute", top: insets.top + 12, left: 16 }}>
             <SquareIconButton icon="arrow-left" label="Go back" onPress={onBack} />
           </View>
+          {onToggleSave ? (
+            <View style={{ position: "absolute", top: insets.top + 12, right: 16, borderRadius: 8, borderWidth: 1, borderColor: c.hairline, backgroundColor: c.canvas }}>
+              <SaveButton saved={saved} label={routine.title} onPress={onToggleSave} />
+            </View>
+          ) : null}
         </View>
 
         <View className="px-5" style={{ paddingTop: 20, gap: 14 }}>
