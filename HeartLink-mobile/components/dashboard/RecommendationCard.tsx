@@ -1,118 +1,78 @@
 import React from "react";
-import { View, Text, TouchableOpacity, Image } from "react-native";
-import Animated, { FadeInDown } from "react-native-reanimated";
-import { LinearGradient } from "expo-linear-gradient";
-import { MaterialCommunityIcons, Feather } from "@expo/vector-icons";
-import { theme } from "../../constants/theme";
+import { View, Text } from "react-native";
+import { Image } from "expo-image";
+import { Feather } from "@expo/vector-icons";
+import AnimatedButton from "../ui/AnimatedButton";
+import { useDs } from "../onboarding/useDs";
+import { ApprovedBy, PICK_CARD_WIDTH } from "../explore/ExploreBits";
 
-/**
- * RecommendationCard — collapsed state of the ExpandableProfileCard blueprint:
- * cover visual (photo when available, tonal cover + watermark glyph otherwise),
- * dark gradient rising from the bottom, tag pill + title + subtitle pinned to
- * the lower edge. Whole card is the tap target that opens the detail modal.
- */
-export function RecommendationCard({
-  tag,
-  title,
-  subtitle,
-  icon,
-  bg,
-  image,
-  tagBg,
-  tagText,
-  subColor,
-  index = 0,
-  onPress,
-}: {
+/** A dashboard recommendation as the backend sends it (only the fields the card uses). */
+export type DashboardRec = {
+  id: string | number;
+  type: "recipe" | "exercise";
   tag: string;
   title: string;
-  subtitle: string;
-  icon: string;
-  bg?: string;
-  image?: string;
-  tagBg?: string;
-  tagText?: string;
-  subColor?: string;
-  index?: number;
-  onPress?: () => void;
-}) {
+  subtitle?: string;
+  image_url?: string;
+  sodium_mg?: number;
+  duration_minutes?: number;
+  intensity?: string;
+  exercise_type?: string;
+};
+
+/** One line on why this pick suits today, from what is left of the patient's limits and goal. */
+export function recommendationReason(rec: DashboardRec, today: { sodiumLeftMg: number; movementLeftMins: number }): string {
+  if (rec.type === "recipe") {
+    if (rec.sodium_mg === undefined) return rec.subtitle ?? "";
+    const sodium = `${Math.round(rec.sodium_mg).toLocaleString()} mg sodium a serving`;
+    if (today.sodiumLeftMg <= 0) return sodium;
+    return rec.sodium_mg <= today.sodiumLeftMg
+      ? `${sodium}, within the ${Math.round(today.sodiumLeftMg).toLocaleString()} mg you have left`
+      : `${sodium}, more than the ${Math.round(today.sodiumLeftMg).toLocaleString()} mg you have left`;
+  }
+  if (!rec.duration_minutes) return rec.subtitle ?? "";
+  const effort = rec.intensity && rec.intensity !== "None" ? `, ${rec.intensity.toLowerCase()} effort` : "";
+  const goal = today.movementLeftMins > 0 ? `. You have ${today.movementLeftMins} min left of your goal` : "";
+  return `${rec.duration_minutes} minutes${effort}${goal}`;
+}
+
+/** A card in the dashboard's "Picked for your score" row; same look as Explore's picks. */
+export function RecommendationCard({ rec, reason, onPress }: { rec: DashboardRec; reason: string; onPress: () => void }) {
+  const { c } = useDs();
+  const isMeal = rec.type === "recipe";
+  const isBreathing = rec.exercise_type === "Breathing";
+  const tint = isMeal ? c.peach : isBreathing ? c.sky : c.mint;
+  const icon: keyof typeof Feather.glyphMap = isMeal ? "coffee" : isBreathing ? "wind" : rec.exercise_type === "Light Cardio" ? "activity" : "user";
+
   return (
-    <Animated.View
-      entering={FadeInDown.delay(560 + index * 80).duration(300)}
-      className="w-[245px] h-[162px]"
-    >
-    <TouchableOpacity
+    <AnimatedButton
       onPress={onPress}
-      activeOpacity={0.9}
-      accessible={true}
       accessibilityRole="button"
-      accessibilityLabel={`${tag} recommendation: ${title}. ${subtitle}. Tap to view details.`}
-      className="flex-1 rounded-3xl overflow-hidden border border-border dark:border-slate-800 shadow-xs"
+      accessibilityLabel={`${isMeal ? "Meal" : "Exercise"}: ${rec.title}. ${reason}. ${rec.tag}`}
+      style={{ width: PICK_CARD_WIDTH, borderWidth: 1, borderColor: c.hairline, borderRadius: 14, overflow: "hidden", backgroundColor: c.canvas }}
     >
-      {/* Cover: photo when the backend provides one, fallback photo for EXERCISE, glyph watermark otherwise */}
-      {image ? (
-        <Image
-          source={{ uri: image }}
-          style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
-          resizeMode="cover"
-        />
-      ) : tag?.toUpperCase() === "EXERCISE" ? (
-        <Image
-          source={require("../../assets/images/placeholder_exercise.jpg")}
-          style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
-          resizeMode="cover"
-        />
-      ) : (
-        <View
-          style={{
-            position: "absolute",
-            bottom: -18,
-            right: -18,
-            opacity: 0.22,
-          }}
-        >
-          <MaterialCommunityIcons name={icon as any} size={130} color={theme.onPrimary} />
+      <View style={{ height: 128, backgroundColor: tint, alignItems: "center", justifyContent: "center" }}>
+        <Feather name={icon} size={isMeal ? 26 : 34} color={c.charcoal} style={{ position: "absolute" }} />
+        {isMeal && rec.image_url ? (
+          <Image source={{ uri: rec.image_url }} style={{ width: "100%", height: "100%" }} contentFit="cover" transition={200} />
+        ) : null}
+      </View>
+      <View style={{ padding: 14, gap: 6 }}>
+        <View style={{ alignSelf: "flex-start", paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, backgroundColor: tint }}>
+          <Text style={{ fontSize: 12, fontWeight: "600", color: c.charcoal }}>{isMeal ? "Meal" : "Exercise"}</Text>
         </View>
-      )}
-
-      {/* Bottom scrim (blueprint from-black/80 via-black/20 gradient) */}
-      <LinearGradient
-        colors={["transparent", "rgba(0,0,0,0.25)", "rgba(0,0,0,0.82)"]}
-        locations={[0, 0.45, 1]}
-        style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
-      />
-
-      {/* Pinned title block */}
-      <View className="flex-1 justify-end p-3.5">
-        <View
-          className="self-start px-2 py-0.5 rounded-md mb-1.5"
-        >
-          <Text
-            className="text-[10px] font-bold uppercase tracking-wider"
-            numberOfLines={1}
-          >
-            {tag}
-          </Text>
-        </View>
-        <Text
-          className="text-[14px] font-bold text-white leading-snug"
-          numberOfLines={2}
-        >
-          {title}
+        <Text style={{ fontSize: 17, fontWeight: "600", lineHeight: 22, color: c.ink }} numberOfLines={2}>
+          {rec.title}
         </Text>
-        <View className="flex-row items-center justify-between mt-1">
-          <Text
-            className="text-[11px] font-semibold flex-1 mr-2"
-            numberOfLines={1}
-          >
-            {subtitle}
+        {reason ? (
+          <Text style={{ fontSize: 14, lineHeight: 20, color: c.charcoal }} numberOfLines={3}>
+            {reason}
           </Text>
-          <View className="w-6 h-6 rounded-full bg-surface/20 border border-white/30 items-center justify-center">
-            <Feather name="arrow-up-right" size={12} color={theme.onPrimary} />
-          </View>
+        ) : null}
+        <View style={{ marginTop: 2 }}>
+          <ApprovedBy who={isMeal ? "Dietitian" : "PT"} />
         </View>
       </View>
-    </TouchableOpacity>
-    </Animated.View>
+    </AnimatedButton>
   );
 }

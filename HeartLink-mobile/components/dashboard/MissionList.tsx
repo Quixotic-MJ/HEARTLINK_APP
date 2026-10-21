@@ -1,10 +1,10 @@
 import React from "react";
-import { View, Text, TouchableOpacity } from "react-native";
-import Animated, { FadeInDown, FadeOut, LinearTransition } from "react-native-reanimated";
-import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
-import { useColorScheme } from "nativewind";
+import { View, Text } from "react-native";
+import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import { theme } from "../../constants/theme";
+import AnimatedButton from "../ui/AnimatedButton";
+import { useDs } from "../onboarding/useDs";
+import { DsColors } from "../../constants/theme";
 
 export type MissionId = "vitals" | "meals" | "exercise" | "sleep";
 
@@ -12,101 +12,81 @@ export interface MissionItem {
   id: MissionId;
   title: string;
   subtitle: string;
-  icon: string;
-  iconType?: "feather" | "material";
-  tileColors: [string, string];
   done: boolean;
+  /** 0–100, for a mission with a goal (movement minutes). */
+  progress?: number;
 }
 
-function getThemeColor(id: MissionId) {
-  switch (id) {
-    case "vitals": return "#38BDF8"; // Blue
-    case "meals": return "#FB923C"; // Orange
-    case "exercise": return "#FB7185"; // Pink
-    case "sleep": return "#818CF8"; // Purple
-    default: return "#10B981";
-  }
+const ICONS: Record<MissionId, keyof typeof Feather.glyphMap> = {
+  vitals: "heart",
+  meals: "coffee",
+  exercise: "activity",
+  sleep: "moon",
+};
+
+// Pastel badges by topic, as in HEARTLINK.md: readings sky, food peach, movement mint, habits lavender.
+function tintFor(id: MissionId, c: DsColors) {
+  return id === "vitals" ? c.sky : id === "meals" ? c.peach : id === "exercise" ? c.mint : c.lavender;
 }
 
-function MissionCard({
+function MissionTile({
   item,
-  index,
+  isNext,
   onPress,
 }: {
   item: MissionItem;
-  index: number;
+  /** The first mission not done yet gets the one blue button on the screen. */
+  isNext: boolean;
   onPress: (id: MissionId) => void;
 }) {
-  const { colorScheme } = useColorScheme();
-  const isDark = colorScheme === "dark";
-  const themeColor = getThemeColor(item.id);
+  const { c } = useDs();
 
   return (
-    <Animated.View
-      layout={LinearTransition.springify().stiffness(400).damping(40)}
-      entering={FadeInDown.delay(150 + index * 70).duration(300)}
-      exiting={FadeOut.duration(160)}
-      style={{ width: "100%", marginBottom: 12 }}
+    <AnimatedButton
+      onPress={() => {
+        Haptics.selectionAsync();
+        onPress(item.id);
+      }}
+      accessibilityRole="button"
+      accessibilityLabel={`${item.title}. ${item.subtitle}. ${item.done ? "Done. Tap to log more." : "Tap to log."}`}
+      style={{ flex: 1, borderWidth: 1, borderColor: c.hairline, borderRadius: 12, padding: 14, gap: 10, backgroundColor: c.canvas }}
     >
-      <TouchableOpacity
-        activeOpacity={0.75}
-        accessible={true}
-        accessibilityRole="button"
-        accessibilityLabel={`${item.title}. ${item.subtitle}. ${item.done ? "Completed." : "Tap to log."}`}
-        onPress={() => {
-          Haptics.selectionAsync();
-          onPress(item.id);
-        }}
-        className="flex-row items-center bg-surface rounded-3xl p-5 shadow-sm shadow-slate-200/50 dark:shadow-none"
-      >
-        {/* Left Icon */}
-        <View className="w-10 h-10 rounded-full items-center justify-center bg-border/50 dark:bg-slate-700/50 mr-4">
-          {item.iconType === "material" ? (
-            <MaterialCommunityIcons
-              name={item.icon as any}
-              size={22}
-              color={isDark ? "#94a3b8" : "#64748b"}
-            />
-          ) : (
-            <Feather
-              name={item.icon as any}
-              size={20}
-              color={isDark ? "#94a3b8" : "#64748b"}
-            />
-          )}
+      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
+        <View style={{ width: 36, height: 36, borderRadius: 9, backgroundColor: tintFor(item.id, c), alignItems: "center", justifyContent: "center" }}>
+          <Feather name={ICONS[item.id]} size={18} color={c.charcoal} />
         </View>
-
-        {/* Middle Content */}
-        <View className="flex-1 justify-center">
-          <Text
-            className="text-[16px] font-bold text-ink dark:text-slate-50 mb-1"
+        {item.done ? (
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+            <Feather name="check" size={14} color={c.success} />
+            <Text style={{ fontSize: 13, fontWeight: "500", color: c.charcoal }}>Done</Text>
+          </View>
+        ) : (
+          <View
+            style={{
+              paddingVertical: 4,
+              paddingHorizontal: 10,
+              borderRadius: 6,
+              backgroundColor: isNext ? c.primary : "transparent",
+              borderWidth: isNext ? 0 : 1,
+              borderColor: c.hairlineStrong,
+            }}
           >
-            {item.title}
-          </Text>
-          <Text
-            className="text-[13px] font-medium text-text-soft"
-          >
-            {item.subtitle}
-          </Text>
+            <Text style={{ fontSize: 13, fontWeight: "500", color: isNext ? c.onPrimary : c.ink }}>Log</Text>
+          </View>
+        )}
+      </View>
+      <Text style={{ fontSize: 16, fontWeight: "600", color: c.ink }}>{item.title}</Text>
+      <Text style={{ fontSize: 13, lineHeight: 18, color: c.slate }}>{item.subtitle}</Text>
+      {item.progress !== undefined ? (
+        <View style={{ height: 4, borderRadius: 2, backgroundColor: c.hairlineSoft, overflow: "hidden" }}>
+          <View style={{ height: "100%", width: `${Math.min(Math.max(item.progress, 0), 100)}%`, backgroundColor: c.success }} />
         </View>
-
-        {/* Right Button */}
-        <View
-          style={{ backgroundColor: item.done ? "#10B981" : themeColor }}
-          className="w-8 h-8 rounded-full items-center justify-center ml-3"
-        >
-          <Feather
-            name={item.done ? "check" : "plus"}
-            size={16}
-            color={theme.onPrimary}
-            strokeWidth={3}
-          />
-        </View>
-      </TouchableOpacity>
-    </Animated.View>
+      ) : null}
+    </AnimatedButton>
   );
 }
 
+/** Today's four missions: a header with how many are done, a four-part bar, and a 2×2 grid of tiles. */
 export function MissionList({
   missions,
   onPress,
@@ -114,10 +94,49 @@ export function MissionList({
   missions: MissionItem[];
   onPress: (id: MissionId) => void;
 }) {
+  const { c } = useDs();
+  const doneCount = missions.filter((m) => m.done).length;
+  const allDone = missions.length > 0 && doneCount === missions.length;
+  const nextId = missions.find((m) => !m.done)?.id;
+  const rows = [missions.slice(0, 2), missions.slice(2, 4)].filter((r) => r.length > 0);
+
   return (
-    <View style={{ flexDirection: "column", width: "100%" }}>
-      {missions.map((item, i) => (
-        <MissionCard key={item.id} item={item} index={i} onPress={onPress} />
+    <View style={{ gap: 12 }}>
+      <View style={{ flexDirection: "row", alignItems: "baseline", justifyContent: "space-between" }}>
+        <Text accessibilityRole="header" style={{ fontSize: 20, fontWeight: "600", color: c.ink }}>
+          {"Today's missions"}
+        </Text>
+        {allDone ? (
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+            <Feather name="check" size={14} color={c.success} />
+            <Text style={{ fontSize: 14, color: c.charcoal }}>All done today</Text>
+          </View>
+        ) : (
+          <Text style={{ fontSize: 14, color: c.slate }}>
+            {doneCount} of {missions.length} done
+          </Text>
+        )}
+      </View>
+      <View
+        style={{ flexDirection: "row", gap: 4 }}
+        accessible
+        accessibilityRole="progressbar"
+        accessibilityLabel={`${doneCount} of ${missions.length} missions done`}
+      >
+        {missions.map((m, i) => (
+          <View key={m.id} style={{ flex: 1, height: 4, borderRadius: 2, backgroundColor: i < doneCount ? c.line : c.hairlineSoft }} />
+        ))}
+      </View>
+      {allDone ? (
+        <Text style={{ fontSize: 14, lineHeight: 20, color: c.slate }}>Nice work. You can still tap a mission to log more.</Text>
+      ) : null}
+      {rows.map((row, r) => (
+        <View key={r} style={{ flexDirection: "row", gap: 12 }}>
+          {row.map((item) => (
+            <MissionTile key={item.id} item={item} isNext={item.id === nextId} onPress={onPress} />
+          ))}
+          {row.length === 1 ? <View style={{ flex: 1 }} /> : null}
+        </View>
       ))}
     </View>
   );

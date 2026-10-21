@@ -124,12 +124,17 @@ def _get_trend_direction(user_hss: list) -> str:
 
 
 def _generate_insight(user_hss: list, latest_log: dict | None, first_name: str | None = None) -> dict:
-    """Generate a dynamic smart insight based on actual data."""
+    """Generate a dynamic smart insight based on actual data.
+
+    `action` names the one step the app offers under the note: "log_vitals", "review_meals" or None.
+    `ai_written` is True when the body came from the AI coach rather than the rules below."""
     if len(user_hss) < 2:
         return {
             "title": "Start tracking to unlock insights.",
             "body": "Log your vitals and meals daily so HeartLink can give you personalized insights.",
             "icon": "info",
+            "action": "log_vitals",
+            "ai_written": False,
         }
 
     latest_score = user_hss[0].get("score", 0)
@@ -140,6 +145,7 @@ def _generate_insight(user_hss: list, latest_log: dict | None, first_name: str |
         title = f"Your stability score improved by {diff} points."
         body = "Consistent tracking is paying off. Keep logging your vitals and meals."
         icon = "trending-up"
+        action = None
     elif diff < 0:
         title = f"Your stability score dropped by {abs(diff)} points."
         factors = user_hss[0].get("contributing_factors", {})
@@ -148,25 +154,32 @@ def _generate_insight(user_hss: list, latest_log: dict | None, first_name: str |
             real_symptoms = [s for s in latest_log["symptoms"] if s != "None (Feeling fine)"]
             symptom_count = len(real_symptoms)
             body = f"You logged {symptom_count} symptom(s) recently. Consider reviewing your diet and consulting your care team."
+            action = "review_meals"
         elif factors.get("staleness_points", 0) < 0:
             body = "Your score dropped due to missing data. Log your vitals and meals to keep your score accurate."
+            action = "log_vitals"
         else:
             body = "Consider reviewing your recent meals and activity levels."
+            action = "review_meals"
         icon = "trending-down"
     else:
         if latest_score >= 80:
             title = "Your stability score is holding steady."
             body = "You're doing great! Keep maintaining your healthy routine."
             icon = "check-circle"
+            action = None
         elif latest_score < 50:
             title = "Your stability score remains critically low."
             body = "Please consult your care team and strictly monitor your vitals and diet."
             icon = "alert-circle"
+            action = "log_vitals"
         else:
             title = "Your stability score is holding steady."
             body = "Your score hasn't changed, but there's still room for improvement."
             icon = "minus"
+            action = None
 
+    ai_written = False
     # Try to enhance the body with Groq AI if available
     groq_api_key = os.environ.get("GROQ_API_KEY")
     if groq_api_key and first_name:
@@ -222,12 +235,13 @@ def _generate_insight(user_hss: list, latest_log: dict | None, first_name: str |
             if ai_body:
                 body = ai_body
                 title = "" # Remove legacy rigid title so the AI coach speaks naturally
+                ai_written = True
         except Exception as e:
             print(f"Groq API Error: {str(e)}")
             # Silently fallback to the deterministic rule-based body if timeout or error
             pass
 
-    return {"title": title, "body": body, "icon": icon}
+    return {"title": title, "body": body, "icon": icon, "action": action, "ai_written": ai_written}
 
 def _calculate_streak_data(meal_logs, exercise_logs, daily_health_logs, sleep_logs) -> Dict[str, Any]:
     now_local = to_local_date(utc_now())
@@ -514,6 +528,9 @@ def get_dashboard_data(user_id: str, recipe_limit: int = 2, exercise_limit: int 
                 "tagText": "rgba(255,255,255,0.8)",
                 "subColor": "#94a3b8",
                 "route": f"/(home)/exercise-details?id={e['id']}",
+                "duration_minutes": e.get("duration_minutes") or 0,
+                "intensity": e.get("intensity") or "",
+                "exercise_type": e.get("type") or "",
             }
         )
 

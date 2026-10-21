@@ -1,28 +1,74 @@
-import React, { useRef, useCallback } from "react";
-import {
-  View,
-  Text,
-  Modal,
-  TouchableOpacity,
-  ScrollView,
-  Animated,
-  PanResponder,
-} from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
-import { useColorScheme } from "nativewind";
+import React, { useCallback, useMemo, useRef } from "react";
+import { View, Text, Modal, TouchableOpacity, ScrollView, Animated, Easing, Dimensions, PanResponder } from "react-native";
+import { Feather } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
-import { theme } from "../../constants/theme";
+import DsButton from "../onboarding/DsButton";
+import { useDs } from "../onboarding/useDs";
+import { DsColors } from "../../constants/theme";
+import { bandTag } from "./ScoreCard";
+
+/** The score's parts as the backend stores them (hss_service.compute_lifestyle_composite_hss). */
+type ScoreFactors = {
+  base_score?: number;
+  meal_points?: number;
+  exercise_points?: number;
+  sleep_points?: number;
+  medication_points?: number;
+  blood_sugar_points?: number;
+  weight_gain_points?: number;
+  symptom_points?: number;
+  streak_points?: number;
+  staleness_points?: number;
+  /** Older name some records may still carry. */
+  staleness_penalty?: number;
+  total_lifestyle_adjustment?: number;
+};
 
 interface ScoreExplanationModalProps {
   visible: boolean;
   score: number;
   tierLabel: string;
   hasLoggedData: boolean;
-  factors?: any; // Dynamic HSS factors from backend
+  factors?: ScoreFactors | null;
   onClose: () => void;
   onNavigateToLogging: () => void;
 }
+
+// One short line per band; same advice as the earlier sheet, fewer words.
+const FRAMING: Record<string, string> = {
+  Stable: "Your heart is doing great. Keep up your daily habits.",
+  Moderate: "Doing okay. Water, a short walk or some rest will help today.",
+  "Elevated Risk": "Your heart is working harder today. Take a break, skip salty snacks and check your blood pressure.",
+  Critical: "Your heart is under a lot of stress. Sit down, rest, and contact your doctor or family if you feel unwell.",
+};
+
+// Bands as in the dashboard's getScoreTheme: under 50, 50–59, 60–79, 80 and up.
+const BANDS = [
+  { from: 1, to: 49, tint: (c: DsColors) => c.rose, edge: (c: DsColors) => c.charcoal },
+  { from: 50, to: 59, tint: (c: DsColors) => c.peach, edge: (c: DsColors) => c.warmText },
+  { from: 60, to: 79, tint: (c: DsColors) => c.yellow, edge: (c: DsColors) => c.warmText },
+  { from: 80, to: 100, tint: (c: DsColors) => c.sky, edge: (c: DsColors) => c.line },
+];
+
+const LIFESTYLE_CAP = 20;
+
+function factorRows(f: ScoreFactors, c: DsColors) {
+  const rows: { label: string; value: number | undefined; icon: keyof typeof Feather.glyphMap; tint: string }[] = [
+    { label: "Meals: sodium, fat and fibre", value: f.meal_points, icon: "coffee", tint: c.peach },
+    { label: "Movement", value: f.exercise_points, icon: "activity", tint: c.mint },
+    { label: "Sleep, 7 to 9 hours", value: f.sleep_points, icon: "moon", tint: c.lavender },
+    { label: "Medication taken", value: f.medication_points, icon: "check-square", tint: c.sky },
+    { label: "Blood sugar", value: f.blood_sugar_points, icon: "droplet", tint: c.rose },
+    { label: "Weight change", value: f.weight_gain_points, icon: "bar-chart-2", tint: c.sky },
+    { label: "Symptoms", value: f.symptom_points, icon: "alert-circle", tint: c.rose },
+    { label: "Logging streak", value: f.streak_points, icon: "zap", tint: c.lavender },
+    { label: "Missing readings", value: f.staleness_points ?? f.staleness_penalty, icon: "clock", tint: c.surfaceAlt },
+  ];
+  return rows.filter((r): r is typeof r & { value: number } => typeof r.value === "number" && r.value !== 0);
+}
+
+const signed = (n: number) => (n > 0 ? `+${n}` : n < 0 ? `−${Math.abs(n)}` : "0");
 
 export function ScoreExplanationModal({
   visible,
@@ -33,427 +79,278 @@ export function ScoreExplanationModal({
   onClose,
   onNavigateToLogging,
 }: ScoreExplanationModalProps) {
-  const { colorScheme } = useColorScheme();
-  const isDark = colorScheme === "dark";
+  const { c } = useDs();
+  const insets = useSafeAreaInsets();
 
-  const panelShift = useRef(new Animated.Value(500)).current;
-  const panelOpacity = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(Dimensions.get("window").height)).current;
   const backdropAnim = useRef(new Animated.Value(0)).current;
-  const contentShift = useRef(new Animated.Value(20)).current;
-  const contentOpacity = useRef(new Animated.Value(0)).current;
-  const panY = useRef(new Animated.Value(0)).current;
 
   const animateIn = useCallback(() => {
-    panelShift.setValue(500);
-    panY.setValue(0);
-    panelOpacity.setValue(0);
+    slideAnim.setValue(Dimensions.get("window").height);
     backdropAnim.setValue(0);
-    contentShift.setValue(20);
-    contentOpacity.setValue(0);
-
     Animated.parallel([
-      Animated.timing(backdropAnim, {
-        toValue: 1,
-        duration: 250,
-        useNativeDriver: true,
-      }),
-      Animated.spring(panelShift, {
-        toValue: 0,
-        stiffness: 400,
-        damping: 32,
-        mass: 1,
-        useNativeDriver: true,
-      }),
-      Animated.timing(panelOpacity, {
-        toValue: 1,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-      Animated.spring(contentShift, {
-        toValue: 0,
-        stiffness: 300,
-        damping: 24,
-        mass: 1,
-        delay: 60,
-        useNativeDriver: true,
-      }),
-      Animated.timing(contentOpacity, {
-        toValue: 1,
-        duration: 200,
-        delay: 60,
-        useNativeDriver: true,
-      }),
+      Animated.timing(backdropAnim, { toValue: 1, duration: 200, useNativeDriver: true }),
+      Animated.spring(slideAnim, { toValue: 0, stiffness: 300, damping: 30, mass: 0.9, useNativeDriver: true }),
     ]).start();
-  }, [panelShift, panY, panelOpacity, backdropAnim, contentShift, contentOpacity]);
+  }, [slideAnim, backdropAnim]);
 
   const animateOut = useCallback(
     (done?: () => void) => {
       Animated.parallel([
-        Animated.timing(backdropAnim, {
-          toValue: 0,
-          duration: 200,
+        Animated.timing(backdropAnim, { toValue: 0, duration: 180, useNativeDriver: true }),
+        Animated.timing(slideAnim, {
+          toValue: Dimensions.get("window").height,
+          duration: 220,
+          easing: Easing.in(Easing.quad),
           useNativeDriver: true,
         }),
-        Animated.timing(panelShift, {
-          toValue: 500,
-          duration: 240,
-          useNativeDriver: true,
-        }),
-        Animated.timing(panelOpacity, {
-          toValue: 0,
-          duration: 180,
-          useNativeDriver: true,
-        }),
-      ]).start(() => {
-        panY.setValue(0);
-        done?.();
-      });
+      ]).start(() => done?.());
     },
-    [panelShift, panY, panelOpacity, backdropAnim]
+    [slideAnim, backdropAnim]
   );
 
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => false,
-      onMoveShouldSetPanResponder: (_, gestureState) => {
-        return gestureState.dy > 8 && Math.abs(gestureState.dx) < Math.abs(gestureState.dy);
-      },
-      onPanResponderMove: (_, gestureState) => {
-        if (gestureState.dy > 0) {
-          panY.setValue(gestureState.dy);
-        }
-      },
-      onPanResponderRelease: (_, gestureState) => {
-        if (gestureState.dy > 110 || gestureState.vy > 0.8) {
-          Haptics.selectionAsync();
-          animateOut(onClose);
-        } else {
-          Animated.spring(panY, {
-            toValue: 0,
-            stiffness: 400,
-            damping: 30,
-            useNativeDriver: true,
-          }).start();
-        }
-      },
-    })
-  ).current;
+  // Dragging the top of the sheet down past 100px closes it; a shorter drag springs back.
+  const dragResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onMoveShouldSetPanResponder: (_e, g) => g.dy > 6 && Math.abs(g.dy) > Math.abs(g.dx),
+        onPanResponderMove: (_e, g) => slideAnim.setValue(Math.max(0, g.dy)),
+        onPanResponderRelease: (_e, g) => {
+          if (g.dy > 100 || g.vy > 1.2) {
+            Haptics.selectionAsync();
+            animateOut(onClose);
+          } else {
+            Animated.spring(slideAnim, { toValue: 0, stiffness: 300, damping: 30, useNativeDriver: true }).start();
+          }
+        },
+      }),
+    [slideAnim, animateOut, onClose]
+  );
 
   if (!visible) return null;
 
-  const getTierInfo = (tier: string) => {
-    switch (tier) {
-      case "Stable":
-        return {
-          gradient: ["#0C2E29", "#1B6E63"] as [string, string],
-          accent: "#34d399",
-          badgeBg: "rgba(52, 211, 153, 0.2)",
-          badgeText: "#34d399",
-          framing: "Awesome job! Your heart is relaxed and doing great. Keep up your healthy daily habits!",
-        };
-      case "Moderate":
-        return {
-          gradient: ["#452B05", "#8C5E13"] as [string, string],
-          accent: "#fbbf24",
-          badgeBg: "rgba(251, 191, 36, 0.2)",
-          badgeText: "#fbbf24",
-          framing: "You are doing okay, but your heart could use a little extra love today — like drinking water, taking a walk, or resting.",
-        };
-      case "Elevated Risk":
-        return {
-          gradient: ["#4A170A", "#BA3D1D"] as [string, string],
-          accent: "#fb923c",
-          badgeBg: "rgba(251, 146, 60, 0.2)",
-          badgeText: "#fb923c",
-          framing: "Be careful today. Your heart is working harder than it should. Try to take a break, skip salty snacks, and check your blood pressure.",
-        };
-      case "Critical":
-        return {
-          gradient: ["#450C0A", "#8A1F1A"] as [string, string],
-          accent: "#f87171",
-          badgeBg: "rgba(248, 113, 113, 0.2)",
-          badgeText: "#f87171",
-          framing: "Warning: your heart is under a lot of stress right now. Please sit down, rest, and contact your doctor or family if you feel sick.",
-        };
-      default:
-        return {
-          gradient: ["#1E293B", "#334155"] as [string, string],
-          accent: "#94a3b8",
-          badgeBg: "rgba(148, 163, 184, 0.2)",
-          badgeText: "#94a3b8",
-          framing: "Keep checking your daily numbers so we can show you how your heart is doing.",
-        };
-    }
-  };
+  const hasScore = hasLoggedData && score > 0;
+  const tag = bandTag(tierLabel, hasScore, c);
+  const close = () => animateOut(onClose);
+  const logBloodPressure = () => animateOut(onNavigateToLogging);
 
-  const tierInfo = getTierInfo(tierLabel);
-
-  // Helper to format points with + or -
-  const formatPoints = (pts: number) => {
-    if (!pts || pts === 0) return "+0";
-    return pts > 0 ? `+${pts}` : `${pts}`;
-  };
+  const rows = factors ? factorRows(factors, c) : [];
+  const change = factors?.total_lifestyle_adjustment ?? rows.reduce((sum, r) => sum + r.value, 0);
+  // Older records don't store the starting point; it is the score before today's change.
+  const start = factors?.base_score ?? score - change;
+  const capped = Math.abs(rows.reduce((sum, r) => sum + r.value, 0)) > LIFESTYLE_CAP;
+  const needsCheck = tierLabel === "Elevated Risk" || tierLabel === "Critical";
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="none"
-      statusBarTranslucent
-      onShow={animateIn}
-      onRequestClose={() => animateOut(onClose)}
-    >
-      <Animated.View
-        style={{
-          flex: 1,
-          backgroundColor: "rgba(15,23,42,0.6)",
-          opacity: backdropAnim,
-          justifyContent: "flex-end",
-        }}
-      >
-        {/* Backdrop touchable to dismiss */}
+    <Modal visible={visible} transparent animationType="none" statusBarTranslucent onShow={animateIn} onRequestClose={close}>
+      <Animated.View style={{ flex: 1, backgroundColor: "rgba(10,21,48,0.45)", opacity: backdropAnim }}>
         <TouchableOpacity
           activeOpacity={1}
-          onPress={() => animateOut(onClose)}
+          onPress={close}
+          accessibilityLabel="Close"
           style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
         />
+      </Animated.View>
 
-        {/* Sliding Panel */}
-        <Animated.View
-          style={{
-            width: "100%",
-            maxHeight: "88%",
-            borderTopLeftRadius: 36,
-            borderTopRightRadius: 36,
-            overflow: "hidden",
-            backgroundColor: isDark ? "#0f172a" : "#ffffff",
-            borderWidth: 1,
-            borderBottomWidth: 0,
-            borderColor: isDark ? "#334155" : "#f1f5f9",
-            opacity: panelOpacity,
-            transform: [{ translateY: Animated.add(panelShift, panY) }],
-            paddingBottom: 24,
-          }}
+      <Animated.View
+        accessibilityViewIsModal
+        style={{
+          position: "absolute",
+          left: 0,
+          right: 0,
+          bottom: 0,
+          maxHeight: "90%",
+          backgroundColor: c.canvas,
+          borderTopLeftRadius: 20,
+          borderTopRightRadius: 20,
+          transform: [{ translateY: slideAnim }],
+        }}
+      >
+        <View {...dragResponder.panHandlers} style={{ paddingHorizontal: 20, paddingTop: 10 }}>
+          <View style={{ alignSelf: "center", width: 36, height: 4, borderRadius: 2, backgroundColor: c.hairlineStrong }} />
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 6 }}>
+            <Text accessibilityRole="header" style={{ fontSize: 20, fontWeight: "600", color: c.ink }}>
+              How your score works
+            </Text>
+            <TouchableOpacity
+              onPress={close}
+              accessibilityRole="button"
+              accessibilityLabel="Close"
+              style={{ width: 44, height: 44, marginRight: -10, alignItems: "center", justifyContent: "center" }}
+            >
+              <Feather name="x" size={20} color={c.slate} />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+          contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 32 + insets.bottom, gap: 28 }}
         >
-          {/* Top Drag Handle & Header (Swipe down trigger) */}
-          <View {...panResponder.panHandlers}>
-            {/* Grab Pill */}
-            <View className="items-center pt-3 pb-2">
-              <View className="w-10 h-1.5 rounded-full bg-border-strong" />
-            </View>
-
-            {/* Header Row */}
-            <View className="flex-row items-center justify-between px-6 pb-4">
-              <View className="flex-row items-center gap-3">
-                <View className="w-10 h-10 rounded-xl bg-success-tint0/10 dark:bg-success-tint0/20 items-center justify-center">
-                  <Feather name="activity" size={20} color={isDark ? "#34d399" : "#10b981"} />
-                </View>
-                <View>
-                  <Text className="text-[18px] font-bold text-text tracking-tight">
-                    Your Heart Score
-                  </Text>
-                  <Text className="text-[12px] font-medium text-text-soft">
-                    Daily stability guide
-                  </Text>
-                </View>
+          {/* The score, its band and where it sits among the bands */}
+          <View style={{ gap: 18 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+              <Text style={{ fontSize: 48, lineHeight: 54, fontWeight: "700", color: hasScore ? c.ink : c.steel, fontVariant: ["tabular-nums"] }}>
+                {hasScore ? score : "--"}
+              </Text>
+              {hasScore ? <Text style={{ fontSize: 15, color: c.slate, marginTop: 14 }}>out of 100</Text> : null}
+              <View style={{ marginLeft: "auto", paddingVertical: 3, paddingHorizontal: 10, borderRadius: 999, backgroundColor: tag.bg }}>
+                <Text style={{ fontSize: 13, fontWeight: "500", color: tag.fg }}>{tag.text}</Text>
               </View>
-
-              <TouchableOpacity
-                onPress={() => {
-                  Haptics.selectionAsync();
-                  animateOut(onClose);
-                }}
-                accessibilityRole="button"
-                accessibilityLabel="Close"
-                hitSlop={10}
-                className="w-9 h-9 rounded-full bg-surface-alt border border-border items-center justify-center"
-              >
-                <Feather name="x" size={17} color={isDark ? "#94a3b8" : "#64748b"} />
-              </TouchableOpacity>
             </View>
+
+            {hasScore ? (
+              <>
+                <BandBar c={c} score={score} />
+                {FRAMING[tierLabel] ? (
+                  <Text style={{ fontSize: 15, lineHeight: 22, color: c.charcoal }}>{FRAMING[tierLabel]}</Text>
+                ) : null}
+              </>
+            ) : (
+              <>
+                <Text style={{ fontSize: 15, lineHeight: 22, color: c.charcoal }}>
+                  Log a blood pressure reading to get your first score.
+                </Text>
+                <DsButton label="Log blood pressure" onPress={logBloodPressure} />
+              </>
+            )}
           </View>
 
-          {/* Scrollable Content */}
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 24 }}
-          >
-            <Animated.View style={{ opacity: contentOpacity, transform: [{ translateY: contentShift }] }}>
+          {hasScore ? (
+            <>
+              <View style={{ height: 1, backgroundColor: c.hairlineSoft }} />
 
-              {/* 1. CURRENT STATUS (Dynamic Hero Card) */}
-              <View className="mb-6">
-                {score > 0 ? (
-                  <LinearGradient
-                    colors={tierInfo.gradient}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={{ borderRadius: 24, padding: 20, overflow: "hidden" }}
-                  >
-                    {/* Ambient glow accent */}
-                    <View
-                      style={{
-                        position: "absolute",
-                        right: -30,
-                        top: -30,
-                        width: 150,
-                        height: 150,
-                        borderRadius: 75,
-                        backgroundColor: "rgba(255,255,255,0.08)",
-                      }}
-                    />
-
-                    {/* Top Score Row */}
-                    <View className="flex-row items-center justify-between">
-                      <View>
-                        <Text className="text-[11px] font-bold text-white/70 uppercase tracking-widest mb-1">
-                          Today's Score
-                        </Text>
-                        <View className="flex-row items-baseline gap-1">
-                          <Text className="text-[38px] font-black text-white tracking-tight">
-                            {score}
-                          </Text>
-                          <Text className="text-[15px] font-bold text-white/60">
-                            / 100
-                          </Text>
-                        </View>
-                      </View>
-
-                      <View
-                        style={{ backgroundColor: "rgba(255,255,255,0.15)", borderColor: "rgba(255,255,255,0.2)" }}
-                        className="px-3.5 py-2 rounded-full border flex-row items-center gap-2"
-                      >
-                        <View style={{ backgroundColor: tierInfo.accent }} className="w-2.5 h-2.5 rounded-full" />
-                        <Text className="text-[12px] font-bold text-white uppercase tracking-widest">
-                          {tierLabel}
-                        </Text>
-                      </View>
-                    </View>
-
-                    {/* Score Meter */}
-                    <View className="mt-5 mb-2.5">
-                      <View className="h-1.5 rounded-full bg-surface/20 overflow-hidden">
-                        <View
-                          style={{
-                            width: `${Math.min(100, Math.max(6, score))}%`,
-                            backgroundColor: tierInfo.accent,
-                          }}
-                          className="h-full rounded-full"
-                        />
-                      </View>
-                      <View className="flex-row justify-between mt-2 px-0.5">
-                        <Text className="text-[10px] font-bold text-white/60 uppercase tracking-wider">Needs Care</Text>
-                        <Text className="text-[10px] font-bold text-white/60 uppercase tracking-wider">50</Text>
-                        <Text className="text-[10px] font-bold text-white/60 uppercase tracking-wider">80</Text>
-                        <Text className="text-[10px] font-bold text-white/60 uppercase tracking-wider">Great</Text>
-                      </View>
-                    </View>
-
-                    {/* Framing Message */}
-                    <View className="bg-black/20 rounded-2xl p-3.5 mt-3">
-                      <Text className="text-[13px] text-white/90 leading-relaxed font-medium">
-                        {tierInfo.framing}
-                      </Text>
-                    </View>
-                  </LinearGradient>
-                ) : (
-                  /* Rare Fallback: Offline / Network Sync Error */
-                  <View className="bg-surface-alt dark:bg-slate-800/50 rounded-3xl p-6 border border-border dark:border-slate-700/50 items-center">
-                    <View className="w-14 h-14 rounded-full bg-border/50 dark:bg-slate-700/50 items-center justify-center mb-4">
-                      <Feather name="refresh-cw" size={24} color={isDark ? "#94a3b8" : "#64748b"} />
-                    </View>
-                    <Text className="text-[16px] font-bold text-text text-center mb-2">
-                      Connecting to your Heart Score...
-                    </Text>
-                    <Text className="text-[13px] text-text-soft text-center leading-relaxed">
-                      Check your connection or pull down to refresh.
-                    </Text>
-                  </View>
-                )}
-              </View>
-
-              {/* 2. DYNAMIC SCORE BREAKDOWN */}
-              <View className="mb-2">
-                <Text className="text-[12px] font-bold text-text-soft uppercase tracking-widest mb-3 ml-1">
+              <View style={{ gap: 12 }}>
+                <Text accessibilityRole="header" style={{ fontSize: 17, fontWeight: "600", color: c.ink }}>
                   What moved your score today
                 </Text>
 
-                <View className="bg-surface-alt dark:bg-slate-800/50 rounded-3xl border border-border dark:border-slate-700/50 overflow-hidden mb-4">
-                  {factors ? (
-                    <>
-                      {/* Base & Total Header */}
-                      <View className="flex-row items-center justify-between p-4 bg-surface-alt/50 dark:bg-slate-800 border-b border-border/60 dark:border-slate-700">
-                        <Text className="text-[14px] font-bold text-text">Base Score</Text>
-                        <Text className="text-[14px] font-bold text-text">{factors.base_score || 0}</Text>
-                      </View>
+                <View style={{ borderWidth: 1, borderColor: c.hairline, borderRadius: 12, overflow: "hidden" }}>
+                  <View
+                    accessible
+                    accessibilityLabel={`Starting point: ${start}`}
+                    style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 14, paddingHorizontal: 16, backgroundColor: c.surface, gap: 12 }}
+                  >
+                    <Text style={{ flex: 1, fontSize: 15, fontWeight: "500", color: c.ink }}>Starting point</Text>
+                    <Text style={{ fontSize: 17, fontWeight: "600", color: c.ink, fontVariant: ["tabular-nums"] }}>{start}</Text>
+                  </View>
 
-                      <View className="px-4 py-2">
-                        {/* Breakdown rows */}
-                        {[
-                          { label: "Meals (Sodium, Fat, Fiber)", val: factors.meal_points, icon: "silverware-fork-knife", type: "material", color: theme.warning },
-                          { label: "Exercise & Movement", val: factors.exercise_points, icon: "activity", type: "feather", color: theme.success },
-                          { label: "Sleep (7-9 hrs)", val: factors.sleep_points, icon: "moon", type: "feather", color: "#4FB6E6" },
-                          { label: "Medication Taken", val: factors.medication_points, icon: "pill", type: "material", color: "#38B3B5" },
-                          { label: "Blood Sugar Range", val: factors.blood_sugar_points, icon: "water", type: "material", color: theme.danger },
-                          { label: "Weight Stability", val: factors.weight_gain_points, icon: "scale", type: "material", color: theme.danger },
-                          { label: "Symptoms", val: factors.symptom_points, icon: "alert-circle", type: "feather", color: theme.danger },
-                          { label: "Consistency Streak", val: factors.streak_points, icon: "zap", type: "feather", color: theme.warning },
-                          { label: "Data Staleness", val: factors.staleness_penalty, icon: "clock", type: "feather", color: theme.textMuted },
-                        ].map((item, idx) => {
-                          if (item.val === undefined || item.val === 0) return null;
-                          const isPositive = item.val > 0;
-                          return (
-                            <View key={idx} className="flex-row items-center justify-between py-2.5">
-                              <View className="flex-row items-center gap-2">
-                                <View className="w-7 h-7 rounded-full items-center justify-center" style={{ backgroundColor: `${item.color}20` }}>
-                                  {item.type === "feather" ? (
-                                    <Feather name={item.icon as any} size={14} color={item.color} />
-                                  ) : (
-                                    <MaterialCommunityIcons name={item.icon as any} size={14} color={item.color} />
-                                  )}
-                                </View>
-                                <Text className="text-[13px] font-medium text-text">
-                                  {item.label}
-                                </Text>
-                              </View>
-                              <Text className={`text-[14px] font-bold ${isPositive ? "text-success-text" : "text-danger-text"}`}>
-                                {formatPoints(item.val)}
-                              </Text>
-                            </View>
-                          );
-                        })}
-                      </View>
-
-                      {/* Total adjustments footer */}
-                      <View className="flex-row items-center justify-between p-4 bg-surface-alt/50 dark:bg-slate-800 border-t border-border/60 dark:border-slate-700">
-                        <Text className="text-[13px] font-bold text-text">Net Adjustments (Capped)</Text>
-                        <Text className="text-[15px] font-black text-text">
-                          {formatPoints(factors.total_lifestyle_adjustment || 0)}
-                        </Text>
-                      </View>
-                    </>
-                  ) : (
-                    <View className="p-6 items-center">
-                      <Text className="text-[14px] text-text-soft font-medium text-center">
-                        Log your meals, exercise, and vitals today to see your score adjustments here.
-                      </Text>
+                  {rows.length > 0 ? (
+                    <View style={{ paddingHorizontal: 16, paddingVertical: 6 }}>
+                      {rows.map((r, i) => (
+                        <View
+                          key={r.label}
+                          accessible
+                          accessibilityLabel={`${r.label}: ${r.value > 0 ? "plus" : "minus"} ${Math.abs(r.value)} points`}
+                          style={{
+                            flexDirection: "row",
+                            alignItems: "center",
+                            gap: 12,
+                            paddingVertical: 12,
+                            borderBottomWidth: i < rows.length - 1 ? 1 : 0,
+                            borderBottomColor: c.hairlineSoft,
+                          }}
+                        >
+                          <View style={{ width: 30, height: 30, borderRadius: 8, backgroundColor: r.tint, alignItems: "center", justifyContent: "center" }}>
+                            <Feather name={r.icon} size={15} color={c.charcoal} />
+                          </View>
+                          <Text style={{ flex: 1, fontSize: 15, color: c.ink }}>{r.label}</Text>
+                          <View style={{ paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, backgroundColor: r.value > 0 ? c.mint : c.peach }}>
+                            <Text style={{ fontSize: 14, fontWeight: "600", color: r.value > 0 ? c.charcoal : c.warmText, fontVariant: ["tabular-nums"] }}>
+                              {signed(r.value)}
+                            </Text>
+                          </View>
+                        </View>
+                      ))}
                     </View>
+                  ) : (
+                    <Text style={{ paddingHorizontal: 16, paddingVertical: 14, fontSize: 14, lineHeight: 20, color: c.slate }}>
+                      Nothing logged yet today.
+                    </Text>
                   )}
+
+                  {rows.length > 0 ? (
+                  <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "baseline", paddingVertical: 12, paddingHorizontal: 16, borderTopWidth: 1, borderTopColor: c.hairline }}>
+                    <Text style={{ fontSize: 15, color: c.charcoal }}>
+                      {"Today's change"}
+                      {capped ? <Text style={{ fontSize: 13, color: c.slate }}> (limited to 20 either way)</Text> : null}
+                    </Text>
+                    <Text style={{ fontSize: 15, fontWeight: "600", color: c.ink, fontVariant: ["tabular-nums"] }}>{signed(change)}</Text>
+                  </View>
+                  ) : null}
+                  <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "baseline", paddingVertical: 14, paddingHorizontal: 16, backgroundColor: c.surface, borderTopWidth: 1, borderTopColor: c.hairline }}>
+                    <Text style={{ fontSize: 15, fontWeight: "600", color: c.ink }}>Your score today</Text>
+                    <Text style={{ fontSize: 17, fontWeight: "700", color: c.ink, fontVariant: ["tabular-nums"] }}>{score}</Text>
+                  </View>
                 </View>
 
-                {/* Helpful Takeaway Pill */}
-                <View className="bg-success-tint0/10 dark:bg-success-tint0/10 rounded-3xl p-4 border border-emerald-500/20 flex-row items-center gap-3">
-                  <Text className="text-[20px]">💡</Text>
-                  <Text className="text-[12.5px] text-text flex-1 leading-relaxed font-medium">
-                    Your baseline gave your heart its starting score. Checking your blood pressure and daily habits keeps your score fine-tuned and protected!
-                  </Text>
-                </View>
+                {needsCheck ? (
+                  <DsButton label="Log blood pressure" variant="secondary" block={false} onPress={logBloodPressure} style={{ alignSelf: "flex-start", height: 44 }} />
+                ) : null}
+
+                <Text style={{ fontSize: 13, lineHeight: 19, color: c.slate }}>
+                  {"Your starting point comes from your latest blood pressure reading. Today's habits move it up to 20 points either way. It isn't a diagnosis."}
+                </Text>
               </View>
-
-            </Animated.View>
-          </ScrollView>
-        </Animated.View>
+            </>
+          ) : null}
+        </ScrollView>
       </Animated.View>
     </Modal>
   );
 }
 
+/** The four bands side by side, a "You" marker above the score, and the band edges (50, 60, 80) below. */
+function BandBar({ c, score }: { c: DsColors; score: number }) {
+  const clamped = Math.min(100, Math.max(1, score));
+  const current = BANDS.find((b) => clamped >= b.from && clamped <= b.to);
+  const width = (b: (typeof BANDS)[number]) => b.to - b.from + 1;
+  // Keep the marker inside the bar's ends so it never clips.
+  const markerLeft = Math.min(94, Math.max(6, clamped));
+
+  return (
+    <View
+      accessible
+      accessibilityLabel={`Score bands: Critical under 50, Elevated risk 50 to 59, Moderate 60 to 79, Stable 80 and up. You are at ${score}.`}
+      style={{ gap: 4 }}
+    >
+      <View style={{ height: 30 }}>
+        <View style={{ position: "absolute", left: `${markerLeft}%`, width: 48, marginLeft: -24, alignItems: "center" }}>
+          <Text numberOfLines={1} maxFontSizeMultiplier={1.3} style={{ fontSize: 12, fontWeight: "600", color: c.ink }}>
+            You
+          </Text>
+          <Feather name="chevron-down" size={14} color={c.ink} style={{ marginTop: -2 }} />
+        </View>
+      </View>
+      <View style={{ flexDirection: "row", gap: 3, height: 10 }}>
+        {BANDS.map((b, i) => (
+          <View
+            key={b.from}
+            style={{
+              flex: width(b),
+              backgroundColor: b.tint(c),
+              borderTopLeftRadius: i === 0 ? 5 : 0,
+              borderBottomLeftRadius: i === 0 ? 5 : 0,
+              borderTopRightRadius: i === BANDS.length - 1 ? 5 : 0,
+              borderBottomRightRadius: i === BANDS.length - 1 ? 5 : 0,
+              borderWidth: b === current ? 1.5 : 0,
+              borderColor: b.edge(c),
+            }}
+          />
+        ))}
+      </View>
+      <View style={{ height: 18 }}>
+        {[50, 60, 80].map((edge) => (
+          <Text
+            key={edge}
+            maxFontSizeMultiplier={1.3}
+            style={{ position: "absolute", left: `${edge}%`, width: 32, marginLeft: -16, textAlign: "center", fontSize: 12, color: c.slate }}
+          >
+            {edge}
+          </Text>
+        ))}
+      </View>
+    </View>
+  );
+}

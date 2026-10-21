@@ -17,7 +17,7 @@ import Reanimated, { FadeInDown, LinearTransition, ZoomIn } from "react-native-r
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter, useFocusEffect } from "expo-router";
 import { useColorScheme } from "nativewind";
-import { Feather, Ionicons } from "@expo/vector-icons";
+import { Feather } from "@expo/vector-icons";
 import { useUser } from "../../../contexts/UserContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getToken } from "../../../lib/secureTokenStore";
@@ -38,7 +38,11 @@ import {
   type ActiveRec,
 } from "../../../components/dashboard/RecommendationModal";
 import { FacilityMapModal } from "../../../components/dashboard/FacilityMapModal";
-import { RecommendationCard } from "../../../components/dashboard/RecommendationCard";
+import { RecommendationCard, recommendationReason, type DashboardRec } from "../../../components/dashboard/RecommendationCard";
+import { TodayNote } from "../../../components/dashboard/TodayNote";
+import { ScoreCard } from "../../../components/dashboard/ScoreCard";
+import { CareTools } from "../../../components/dashboard/CareTools";
+import { useDs } from "../../../components/onboarding/useDs";
 import { CustomAlertModal } from "../../../components/dashboard/CustomAlertModal";
 import { Header } from "../../../components/Header";
 import { Skeleton } from "../../../components/ui/Skeleton";
@@ -47,7 +51,8 @@ import { TourSpot, useDashboardTour } from "../../../components/dashboard/Dashbo
 import { ScoreExplanationModal } from "../../../components/dashboard/ScoreExplanationModal";
 import { RitualProgress } from "../../../components/dashboard/RitualProgress";
 import { apiFetch } from "../../../lib/api";
-import { theme as colors } from "../../../constants/theme";// ─── Score theme ──────────────────────────────────────────────────────────────
+import { theme as colors } from "../../../constants/theme";
+// ─── Score theme ──────────────────────────────────────────────────────────────
 type ScoreTheme = {
   label: string;
   barColor: string;
@@ -125,6 +130,7 @@ function getDaypartTitle(): string {
 export default function DashboardScreen() {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
+  const { c } = useDs();
 
   const [nearestClinic, setNearestClinic] = useState<{name: string, distance: string} | null>(null);
 
@@ -297,6 +303,12 @@ export default function DashboardScreen() {
   const hasHssScore = hssScore > 0;
   const theme = getScoreTheme(hssScore, isDark);
   const isCritical = hasHssScore && hssScore < 50;
+  // Weekly score change under the heart ring; today's note says the same thing when there is one.
+  const rawTrend = data?.latest_vitals?.trend;
+  const scoreTrend =
+    !data?.insight && rawTrend && rawTrend !== "0" && rawTrend !== "+0"
+      ? `${rawTrend.startsWith("-") ? "Down" : "Up"} ${Math.abs(parseInt(rawTrend, 10))} points this week`
+      : null;
 
   // Latest vitals for the swipe card under the score ring.
   const rawLatestBp = typeof data?.latest_vitals?.bp === "string" ? data.latest_vitals.bp : "";
@@ -363,46 +375,42 @@ export default function DashboardScreen() {
     [safeNavigate]
   );
 
+  const mealsCount = data?.today_activity?.meals_count || 0;
+  const sleepHours = data?.today_activity?.total_sleep_hours;
   const missionItems: MissionItem[] = [
     {
       id: "vitals",
       title: "Blood pressure",
       subtitle: vitalsLogged
         ? data?.latest_vitals?.bp
-          ? `Recorded: ${data.latest_vitals.bp} mmHg${data?.latest_vitals?.bpm ? ` • ${data.latest_vitals.bpm} BPM` : ""}`
-          : "Daily check-in recorded today"
+          ? `${data.latest_vitals.bp} mmHg${data?.latest_vitals?.bpm ? `, ${data.latest_vitals.bpm} bpm` : ""}`
+          : "Checked in today"
         : "Morning check due today",
-      icon: "heart",
-      tileColors: ["#9E4E5F", "#BF7E8C"],
       done: vitalsLogged,
     },
     {
       id: "meals",
       title: "Meals",
       subtitle: mealsLogged
-        ? `${Number(sodiumTodayMg).toLocaleString()} of ${sodiumLimitMg.toLocaleString()} mg used`
-        : `0 of ${sodiumLimitMg.toLocaleString()} mg logged today`,
-      icon: "silverware-fork-knife",
-      iconType: "material",
-      tileColors: ["#8A6820", "#B08B45"],
+        ? `${mealsCount} logged, ${Number(sodiumTodayMg).toLocaleString()} of ${sodiumLimitMg.toLocaleString()} mg sodium`
+        : "Nothing logged yet today",
       done: mealsLogged,
     },
     {
       id: "exercise",
       title: "Movement",
-      subtitle: `${movementMins} of ${movementGoal} mins completed today`,
-      icon: "activity",
-      tileColors: ["#3D6494", "#6488B0"],
+      subtitle: `${movementMins} of ${movementGoal} minutes`,
       done: exerciseLogged,
+      progress: movementGoal ? (movementMins / movementGoal) * 100 : 0,
     },
     {
       id: "sleep",
       title: "Sleep",
       subtitle: sleepLogged
-        ? `${typeof data?.today_activity?.total_sleep_hours === "number" ? data.today_activity.total_sleep_hours : "Recorded"} hrs logged`
-        : "Target: 7–9 hrs of restful recovery",
-      icon: "moon",
-      tileColors: ["#5A5E96", "#8589BC"],
+        ? typeof sleepHours === "number"
+          ? `${sleepHours} hours logged`
+          : "Logged today"
+        : "Aim for 7 to 9 hours",
       done: sleepLogged,
     },
   ];
@@ -445,7 +453,14 @@ export default function DashboardScreen() {
 
   const { tour, start: startTour } = useDashboardTour({
     // The recommendations only show when there are some and the score isn't critical.
-    shown: { score: true, missions: true, vitals: true, summary: !isCritical && (data?.recommendations?.length ?? 0) > 0 },
+    shown: {
+      score: true,
+      note: !!data?.insight,
+      missions: true,
+      vitals: true,
+      summary: !isCritical && (data?.recommendations?.length ?? 0) > 0,
+      care: !isCritical,
+    },
     onShown: scrollTourSpotIntoView,
     onFinish: () => {
       AsyncStorage.setItem(tourKey, "true").catch(() => {});
@@ -821,81 +836,43 @@ export default function DashboardScreen() {
         {/* ============================================================== */}
         <Reanimated.View entering={FadeInDown.delay(100).duration(260)}>
           <TourSpot target="score" tour={tour}>
-          <View className="bg-surface rounded-3xl p-5 items-center shadow-sm shadow-slate-200/50 dark:shadow-none">
-            {/* Header Row: Status badge + Distinct Info Button */}
-            <View className="flex-row items-center justify-center gap-2">
-              <TouchableOpacity
-                onPress={() => {
-                  Haptics.selectionAsync();
-                  setScoreModalVisible(true);
-                }}
-                activeOpacity={0.7}
-                className="flex-row items-center gap-2 px-3.5 py-1.5 rounded-full bg-surface-alt border border-border"
-              >
-                <View
-                  className="w-2.5 h-2.5 rounded-full"
+          <ScoreCard
+            label={theme.label}
+            hasScore={hasHssScore}
+            systolic={latestSbp}
+            diastolic={latestDbp}
+            bpm={latestBpm}
+            streakDays={streakDays}
+            trend={scoreTrend}
+            onExplain={() => {
+              Haptics.selectionAsync();
+              setScoreModalVisible(true);
+            }}
+            onLogBloodPressure={() => handleMissionPress("vitals")}
+          >
+            <Animated.View
+              className="items-center justify-center"
+              style={{ transform: [{ scale: pulseAnim }] }}
+            >
+              {isCritical && (
+                <Animated.View
+                  className="absolute w-[140px] h-[140px] rounded-full bg-danger-tint"
+                  style={{ opacity: glowOpacity }}
                 />
-                <Text className="text-[12px] font-bold uppercase tracking-widest text-tealText dark:text-text">
-                  HEART HEALTH - {theme.label.toUpperCase()}
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Centered Score Ring */}
-            <View className="items-center justify-center my-0">
-              <Animated.View
-                className="items-center justify-center"
-                style={{ transform: [{ scale: pulseAnim }] }}
-              >
-                {isCritical && (
-                  <Animated.View
-                    className="absolute w-[140px] h-[140px] rounded-full bg-danger-tint"
-                    style={{ opacity: glowOpacity }}
-                  />
-                )}
-                <ScoreRing
-                  score={hssScore}
-                  size={240}
-                  color={theme.barColor}
-                  refreshTrigger={dataUpdatedAt}
-                  celebrateTrigger={completedCount}
-                  systolic={latestSbp}
-                  diastolic={latestDbp}
-                  bpm={latestBpm}
-                  streakDays={streakDays}
-                />
-              </Animated.View>
-            </View>
-
-            {/* Trend Label / AI Insight Toggle */}
-            <View className="mt-1 items-center justify-center">
-              {data?.insight ? (
-                !showInsight && (
-                  <TouchableOpacity 
-                    onPress={() => {
-                      setShowInsight(true);
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    }}
-                    className="flex-row items-center gap-1.5 px-3 py-1 bg-[#FFF4E5] dark:bg-[#FFF4E5]/10 rounded-full"
-                  >
-                    <Ionicons name="sparkles" size={12} color="#E5832D" />
-                    <Text className="text-[11px] font-bold text-[#E5832D]">
-                      Show AI Insight
-                    </Text>
-                  </TouchableOpacity>
-                )
-              ) : (
-                data?.latest_vitals?.trend && data.latest_vitals.trend !== "0" && data.latest_vitals.trend !== "+0" && (
-                  <Text 
-                    className="font-bold text-[13px]"
-                    style={{ color: data.latest_vitals.trend.startsWith('-') ? colors.warningText : colors.successText }}
-                  >
-                    {data.latest_vitals.trend.startsWith('-') ? '↓ Down' : '↑ Up'} {Math.abs(parseInt(data.latest_vitals.trend))} points this week
-                  </Text>
-                )
               )}
-            </View>
-          </View>
+              <ScoreRing
+                score={hssScore}
+                size={240}
+                color={theme.barColor}
+                refreshTrigger={dataUpdatedAt}
+                celebrateTrigger={completedCount}
+                systolic={latestSbp}
+                diastolic={latestDbp}
+                bpm={latestBpm}
+                streakDays={streakDays}
+              />
+            </Animated.View>
+          </ScoreCard>
           </TourSpot>
         </Reanimated.View>
 
@@ -904,64 +881,25 @@ export default function DashboardScreen() {
         {/* ============================================================== */}
         <Reanimated.View entering={FadeInDown.delay(180).duration(260)}>
 
-          {/* AI / Clinical Insight banner */}
-          {showInsight && data?.insight && (
-            <View className="w-full bg-surface rounded-2xl p-4 border border-border shadow-sm shadow-slate-200/50 dark:shadow-none mb-3">
-              <View className="flex-row items-center justify-between mb-3">
-                <View className="bg-[#FFF4E5] dark:bg-[#FFF4E5]/10 px-2.5 py-1 rounded-full flex-row items-center gap-1.5">
-                  <Text className="text-[11px]">✨</Text>
-                  <Text className="text-[10px] font-bold text-[#E5832D] tracking-wider">AI INSIGHT</Text>
-                </View>
-                <TouchableOpacity onPress={() => setShowInsight(false)} hitSlop={{top: 10, right: 10, bottom: 10, left: 10}}>
-                  <Feather name="x" size={16} color={colors.textSoft} />
-                </TouchableOpacity>
-              </View>
-              
-              <View className="flex-row items-start gap-3">
-                <View className="w-10 h-10 rounded-xl bg-[#FFF4E5] dark:bg-[#FFF4E5]/10 items-center justify-center flex-shrink-0">
-                  <Feather name={data.insight.icon || "trending-down"} size={20} color="#E5832D" />
-                </View>
-                <View className="flex-1">
-                  {data.insight.title ? (
-                    <Text className="text-[15px] font-bold text-text mb-1.5 leading-tight">
-                      {data.insight.title}
-                    </Text>
-                  ) : null}
-                  <Text className="text-[13px] text-text-soft leading-relaxed font-medium mb-3">
-                    {data.insight.body}
-                  </Text>
-                  
-                  <View className="flex-row gap-2 mb-4">
-                    <View className="bg-surface-alt border border-border/50 px-2.5 py-1 rounded-full flex-row items-center gap-1.5">
-                      <Feather name="coffee" size={11} color={colors.textSoft} />
-                      <Text className="text-[11px] font-medium text-text-soft">Meals</Text>
-                    </View>
-                    <View className="bg-surface-alt border border-border/50 px-2.5 py-1 rounded-full flex-row items-center gap-1.5">
-                      <Feather name="activity" size={11} color={colors.textSoft} />
-                      <Text className="text-[11px] font-medium text-text-soft">Movement</Text>
-                    </View>
-                  </View>
-
-                  <View className="flex-row gap-2.5">
-                    <TouchableOpacity 
-                      onPress={() => safeNavigate("/(home)/(meals)/food-diary")}
-                      activeOpacity={0.8}
-                      className="bg-primary py-2.5 px-4 rounded-xl items-center justify-center flex-1 shadow-sm"
-                    >
-                      <Text className="text-white text-[13px] font-bold">Review meals</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity 
-                      onPress={() => setShowInsight(false)}
-                      activeOpacity={0.8}
-                      className="bg-surface-alt py-2.5 px-4 rounded-xl items-center justify-center flex-1 border border-border/50"
-                    >
-                      <Text className="text-text text-[13px] font-bold">Not helpful</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </View>
+          {/* Today's note: what changed in the score and one step to take */}
+          {data?.insight ? (
+            <View style={{ marginBottom: 12 }}>
+              <TourSpot target="note" tour={tour}>
+                <TodayNote
+                  insight={data.insight}
+                  hidden={!showInsight}
+                  onHide={() => setShowInsight(false)}
+                  onShow={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setShowInsight(true);
+                  }}
+                  onAction={(action) =>
+                    action === "log_vitals" ? handleMissionPress("vitals") : safeNavigate("/(home)/(meals)/food-diary")
+                  }
+                />
+              </TourSpot>
             </View>
-          )}
+          ) : null}
 
           <TourSpot target="missions" tour={tour}>
             <MissionList missions={missionItems} onPress={handleMissionPress} />
@@ -986,6 +924,7 @@ export default function DashboardScreen() {
             movementGoal={movementGoal}
             mealsLogged={mealsLogged}
             exerciseLogged={exerciseLogged}
+            onLogMeal={() => handleMissionPress("meals")}
           />
           </TourSpot>
         </Reanimated.View>
@@ -1059,12 +998,17 @@ export default function DashboardScreen() {
             {/* ── Recommendations (hidden when empty) ── */}
             {data?.recommendations && data.recommendations.length > 0 && (
               <TourSpot target="summary" tour={tour}>
-                <Reanimated.View entering={FadeInDown.delay(340).duration(300)} className="flex-row items-center justify-between mb-3 mx-1">
-                  <Text className="text-[16px] font-bold text-text tracking-tight">
-                    Recommended for you
+                <Reanimated.View entering={FadeInDown.delay(340).duration(300)} className="flex-row items-center justify-between mb-3">
+                  <Text accessibilityRole="header" style={{ fontSize: 20, fontWeight: "600", color: c.ink }}>
+                    Picked for your score
                   </Text>
-                  <TouchableOpacity>
-                    <Text className="text-[13px] font-bold text-primary">See all</Text>
+                  <TouchableOpacity
+                    onPress={() => safeNavigate("/(home)/(tabs)/explore")}
+                    accessibilityRole="link"
+                    accessibilityLabel="See all picks in Explore"
+                    style={{ height: 44, justifyContent: "center" }}
+                  >
+                    <Text style={{ fontSize: 15, fontWeight: "500", color: c.link }}>See all</Text>
                   </TouchableOpacity>
                 </Reanimated.View>
                 <ScrollView
@@ -1072,21 +1016,17 @@ export default function DashboardScreen() {
                   showsHorizontalScrollIndicator={false}
                   nestedScrollEnabled={true}
                   directionalLockEnabled={true}
-                  contentContainerClassName="gap-3"
+                  style={{ marginRight: -20 }}
+                  contentContainerStyle={{ gap: 12, paddingRight: 20 }}
                 >
-                  {data?.recommendations?.map((r: any, idx: number) => (
+                  {data?.recommendations?.map((r: DashboardRec) => (
                     <RecommendationCard
                       key={`${r.type}-${r.id}`}
-                      index={idx}
-                      tag={r.tag}
-                      title={r.title}
-                      subtitle={r.subtitle}
-                      icon={r.icon}
-                      bg={r.bg}
-                      image={r.image_url}
-                      tagBg={r.tagBg}
-                      tagText={r.tagText}
-                      subColor={r.subColor}
+                      rec={r}
+                      reason={recommendationReason(r, {
+                        sodiumLeftMg: sodiumLimitMg - sodiumTodayMg,
+                        movementLeftMins: Math.max(0, movementGoal - movementMins),
+                      })}
                       onPress={() => {
                         if (r.type === "recipe" || r.type === "exercise") {
                           Haptics.selectionAsync();
@@ -1095,7 +1035,7 @@ export default function DashboardScreen() {
                             type: r.type,
                             tag: r.tag,
                             title: r.title,
-                            subtitle: r.subtitle,
+                            subtitle: r.subtitle ?? "",
                           });
                         }
                       }}
@@ -1108,8 +1048,15 @@ export default function DashboardScreen() {
             <RecommendationModal
               visible={activeRec !== null}
               rec={activeRec}
-              budgetLimit={data?.nutrition_budget?.sodium?.limit_mg}
-              currentSodium={data?.nutrition_budget?.sodium?.consumed_mg}
+              today={{
+                sodiumMg: sodiumTodayMg,
+                sodiumLimitMg: sodiumLimitMg,
+                caloriesEaten: Number(data?.today_activity?.total_calories) || 0,
+                cholesterolMg: Number(data?.nutrition_budget?.cholesterol?.consumed_mg ?? data?.today_activity?.total_cholesterol_mg) || 0,
+                cholesterolLimitMg: Number(data?.nutrition_budget?.cholesterol?.limit_mg) || 200,
+                movementMins,
+                movementGoal,
+              }}
               onClose={() => setActiveRec(null)}
               onLogged={handleRecLogged}
               onOpenFull={handleRecOpenFull}
@@ -1155,58 +1102,18 @@ export default function DashboardScreen() {
               }}
             />
 
-            {/* ── Action Links / Care Tools ── */}
+            {/* ── Care tools ── */}
             <Reanimated.View entering={FadeInDown.delay(420).duration(300)} className="mb-8">
-              <Text className="text-[11px] font-bold text-text-soft uppercase tracking-wider mb-2.5 mx-1">
-                CARE TOOLS
-              </Text>
-              <View className="bg-surface rounded-3xl overflow-hidden shadow-sm shadow-slate-200/50 dark:shadow-none">
-                <TouchableOpacity 
-                  activeOpacity={0.75} 
-                  onPress={() => safeNavigate("/(home)/(tabs)/consultation-summary")} 
-                  className="flex-row items-center justify-between p-4 border-b border-border dark:border-borderStrong"
-                >
-                  <View className="flex-row items-center gap-4 flex-1">
-                    <View className="w-12 h-12 rounded-2xl bg-[#EFF6FF] dark:bg-blue-500/10 items-center justify-center">
-                      <Feather 
-                        name={new Date().getHours() >= 19 ? "moon" : "clipboard"} 
-                        size={20} 
-                        color={isDark ? "#60a5fa" : "#1D4ED8"} 
-                      />
-                    </View>
-                    <View className="flex-1 pr-2">
-                      <Text className="text-[15px] font-bold text-text mb-0.5">
-                        {new Date().getHours() >= 19 ? "Daily Heart Wrap-Up" : "Doctor consultation"}
-                      </Text>
-                      <Text className="text-[13px] text-text-soft font-medium">
-                        Prepare a summary for your next visit
-                      </Text>
-                    </View>
-                  </View>
-                  <Feather name="chevron-right" size={18} color={isDark ? "#64748b" : "#94a3b8"} />
-                </TouchableOpacity>
-
-                <TouchableOpacity 
-                  activeOpacity={0.75} 
-                  onPress={() => { setMapVisible(true); Haptics.selectionAsync(); }} 
-                  className="flex-row items-center justify-between p-4"
-                >
-                  <View className="flex-row items-center gap-4 flex-1">
-                    <View className="w-12 h-12 rounded-2xl bg-[#FEF2F2] dark:bg-red-500/10 items-center justify-center">
-                      <Feather name="map-pin" size={20} color={isDark ? "#f87171" : "#B91C1C"} />
-                    </View>
-                    <View className="flex-1 pr-2">
-                      <Text className="text-[15px] font-bold text-text mb-0.5">
-                        {nearestClinic ? nearestClinic.name : "Nearest clinic"}
-                      </Text>
-                      <Text className="text-[13px] text-text-soft font-medium">
-                        {nearestClinic ? `${nearestClinic.distance} away` : "Searching nearby..."}
-                      </Text>
-                    </View>
-                  </View>
-                  <Feather name="chevron-right" size={18} color={isDark ? "#64748b" : "#94a3b8"} />
-                </TouchableOpacity>
-              </View>
+              <TourSpot target="care" tour={tour}>
+                <CareTools
+                  nearestClinic={nearestClinic}
+                  onOpenSummary={() => safeNavigate("/(home)/(tabs)/consultation-summary")}
+                  onOpenClinics={() => {
+                    setMapVisible(true);
+                    Haptics.selectionAsync();
+                  }}
+                />
+              </TourSpot>
             </Reanimated.View>
           </>
         )}

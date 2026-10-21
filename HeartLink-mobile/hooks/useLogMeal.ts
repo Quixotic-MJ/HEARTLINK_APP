@@ -83,17 +83,20 @@ import { useNetInfo } from '@react-native-community/netinfo';export function us
       
       // Calculate running total for the toast
       let runningTotal = newMeal.sodium_mg;
+      // The patient's own daily sodium limit, 2,000 mg when not set
+      let sodiumLimit = 2000;
       if (previousDashboard) {
         const prevData = previousDashboard as any;
         const prevTotal = prevData.nutrition_budget?.sodium?.consumed_mg ?? prevData.today_activity?.total_sodium_mg ?? 0;
         runningTotal = prevTotal + newMeal.sodium_mg;
+        sodiumLimit = prevData.nutrition_budget?.sodium?.limit_mg || 2000;
       }
 
       if (isOffline) {
         showToast({
           ...postLogAck(
             "meal",
-            `Saved offline. Added ${Math.round(newMeal.sodium_mg)}mg. You're at ${Math.round(runningTotal).toLocaleString()} of 2,000mg.`
+            `Saved offline. Added ${Math.round(newMeal.sodium_mg)}mg. You're at ${Math.round(runningTotal).toLocaleString()} of ${sodiumLimit.toLocaleString()}mg.`
           ),
           type: "info",
           duration: 5500,
@@ -102,7 +105,7 @@ import { useNetInfo } from '@react-native-community/netinfo';export function us
         showToast({
           ...postLogAck(
             "meal",
-            `${Math.round(newMeal.sodium_mg)}mg sodium. You're at ${Math.round(runningTotal).toLocaleString()} of your 2,000mg budget today.`
+            `${Math.round(newMeal.sodium_mg)}mg sodium. You're at ${Math.round(runningTotal).toLocaleString()} of your ${sodiumLimit.toLocaleString()}mg limit today.`
           ),
           type: "success",
           duration: 5500,
