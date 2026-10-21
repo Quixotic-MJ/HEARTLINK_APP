@@ -3,6 +3,9 @@ from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
 from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
 from app.services.exercises import is_visible_to_patients, calories_burned
+
+# HL-028: daily cholesterol limit used when a patient has none set. To confirm with the cardiologist.
+DEFAULT_CHOLESTEROL_LIMIT_MG = 200
 from app.services.recipes import is_visible_to_patients as recipe_visible
 from app.db.repositories import (
     get_profile_repo,
@@ -327,6 +330,7 @@ def _get_today_activity(user_id: str) -> dict:
     total_sodium = sum((m.get("sodium_mg") or 0) for m in meals_today)
     total_calories = sum((m.get("calories") or 0) for m in meals_today)
     total_saturated_fat = sum((m.get("saturated_fat_g") or 0) for m in meals_today)
+    total_cholesterol = sum((m.get("cholesterol_mg") or 0) for m in meals_today)
     total_fiber = sum((m.get("fiber_g") or 0) for m in meals_today)
     
     total_exercise_min = sum((e.get("duration_minutes") or 0) for e in exercises_today)
@@ -354,6 +358,7 @@ def _get_today_activity(user_id: str) -> dict:
         "net_calories": round(total_calories - burned),
         "exercises_not_counted": not_counted,
         "total_saturated_fat_g": total_saturated_fat,
+        "total_cholesterol_mg": round(total_cholesterol),
         "total_fiber_g": total_fiber,
         "total_exercise_minutes": total_exercise_min,
         "total_sleep_hours": total_sleep_hours,
@@ -434,6 +439,8 @@ def get_dashboard_data(user_id: str, recipe_limit: int = 2, exercise_limit: int 
     threshold = baseline_repo.get_thresholds(canonical_id)
     sodium_limit = threshold.get("sodium_limit_mg", None) if threshold else None
     calorie_limit = threshold.get("daily_calories", None) if threshold else None
+    # HL-028: 200 mg until the cardiologist confirms the limit and HL-016 sets it per patient.
+    cholesterol_limit = (threshold or {}).get("cholesterol_limit_mg") or DEFAULT_CHOLESTEROL_LIMIT_MG
 
     # ── Recommendations: filter by HSS tier AND dietary preference ─────────────
     content_repo = get_content_repo()
@@ -556,6 +563,11 @@ def get_dashboard_data(user_id: str, recipe_limit: int = 2, exercise_limit: int 
             "sodium": {
                 "consumed_mg": today_activity["total_sodium_mg"],
                 "limit_mg": sodium_limit,
+            },
+            "cholesterol": {
+                "consumed_mg": today_activity["total_cholesterol_mg"],
+                "limit_mg": cholesterol_limit,
+                "over": today_activity["total_cholesterol_mg"] > cholesterol_limit,
             },
             "calories": {
                 "consumed": today_activity["total_calories"],

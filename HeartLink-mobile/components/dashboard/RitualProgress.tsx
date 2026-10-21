@@ -4,12 +4,14 @@ import { useColorScheme } from "nativewind";
 import { Feather } from "@expo/vector-icons";
 
 // HL-027: everything eaten and done today in one labelled card. A tile with nothing
-// logged says so instead of showing a bare 0. Cholesterol joins once meal logs store it (HL-028).
+// logged says so instead of showing a bare 0. HL-028: cholesterol counts against the patient's daily limit.
 // HL-029: calories show as net (eaten - burned by exercise), with the sum written underneath.
 export function RitualProgress({
   calories,
   caloriesBurned = 0,
   exercisesNotCounted = 0,
+  cholesterol = 0,
+  cholesterolLimit = 200,
   totalSod,
   sodiumLimit,
   satFat,
@@ -21,6 +23,8 @@ export function RitualProgress({
   calories: number;
   caloriesBurned?: number;
   exercisesNotCounted?: number;
+  cholesterol?: number;
+  cholesterolLimit?: number;
   totalSod: number;
   sodiumLimit: number;
   satFat: number;
@@ -88,6 +92,21 @@ export function RitualProgress({
             isMaxLimit={false}
             emptyText={exerciseLogged ? undefined : "No exercise yet"}
           />
+        </View>
+        <View className="flex-row justify-between gap-4">
+          <MiniTracker
+            label="Cholesterol"
+            current={Math.round(cholesterol)}
+            target={cholesterolLimit}
+            unit="mg"
+            isDark={isDark}
+            iconName="heart"
+            isMaxLimit={true}
+            emptyText={mealsLogged ? undefined : "No meals yet"}
+            note={mealsLogged && cholesterol > cholesterolLimit ? `Over your ${cholesterolLimit} mg daily limit` : undefined}
+            warn={mealsLogged && cholesterol > cholesterolLimit}
+          />
+          <View className="flex-1" />
         </View>
       </View>
     </View>

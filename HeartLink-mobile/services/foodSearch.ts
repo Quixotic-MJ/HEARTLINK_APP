@@ -1,5 +1,6 @@
 import { apiFetch } from "../lib/api";
-import type { FoodItem } from "./foodLogging";/**
+import type { FoodItem } from "./foodLogging";
+/**
  * HL-032: the three places food search looks, each returning FoodItems with their
  * source, so the screens can show where a food came from and treat it the right way.
  */
@@ -12,6 +13,7 @@ type RawRecipe = {
   calories?: number | null;
   saturated_fat_g?: number | null;
   fiber_g?: number | null;
+  cholesterol_mg?: number | null;
 };
 
 type RawMealLog = {
@@ -22,6 +24,7 @@ type RawMealLog = {
   calories?: number | null;
   saturated_fat_g?: number | null;
   fiber_g?: number | null;
+  cholesterol_mg?: number | null;
   image_url?: string | null;
   recipe_id?: string | null;
 };
@@ -67,6 +70,7 @@ export async function fetchRecentMeals(userId: string, token: string | null, sig
         calories: n(log.calories) / portion,
         saturated_fat_g: n(log.saturated_fat_g) / portion,
         fiber_g: n(log.fiber_g) / portion,
+        cholesterol_mg: n(log.cholesterol_mg) / portion,
       },
     });
     if (items.length === 5) break;
@@ -109,6 +113,7 @@ export async function fetchRecipes(query: string, token: string | null, signal?:
         calories: n(r.calories),
         saturated_fat_g: n(r.saturated_fat_g),
         fiber_g: n(r.fiber_g),
+        cholesterol_mg: n(r.cholesterol_mg),
       },
     }))
     .sort((a, b) => Number(b.recommended) - Number(a.recommended));
@@ -146,6 +151,8 @@ export async function searchPackagedFoods(query: string, signal?: AbortSignal): 
         calories: Math.round(n(p.nutriments?.["energy-kcal"])),
         saturated_fat_g: n(p.nutriments?.["saturated-fat"]),
         fiber_g: n(p.nutriments?.fiber),
+        // Cholesterol is in grams per 100 g too, and often missing: then it isn't counted.
+        ...(typeof p.nutriments?.cholesterol === "number" ? { cholesterol_mg: Math.round(n(p.nutriments?.cholesterol) * 1000) } : {}),
       },
     }));
 }

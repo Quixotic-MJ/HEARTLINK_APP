@@ -104,6 +104,7 @@ class SupabaseMealsRepository(MealsRepository):
                 "meal_name": meal_name,
                 "calories": float(data.get("calories", 0)),
                 "sodium_mg": float(data.get("sodium_mg", 0)),
+                "cholesterol_mg": float(data.get("cholesterol_mg") or 0),
                 "user_id": uuid_val,
                 "created_at": utc_now().isoformat(),
                 "logged_at": data.get("logged_at") or utc_now().isoformat()
@@ -115,7 +116,7 @@ class SupabaseMealsRepository(MealsRepository):
             allowed_cols = {
                 "id", "user_id", "recipe_id", "meal_name", "barcode",
                 "portion", "calories", "sodium_mg", "saturated_fat_g",
-                "fiber_g", "image_url", "logged_at", "created_at"
+                "fiber_g", "cholesterol_mg", "image_url", "logged_at", "created_at"
             }
             payload = {k: v for k, v in raw_payload.items() if k in allowed_cols}
             payload = serialize_for_db(payload)

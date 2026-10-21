@@ -977,6 +977,8 @@ export default function DashboardScreen() {
             calories={Number(data?.today_activity?.total_calories) || 0}
             caloriesBurned={Number(data?.today_activity?.total_calories_burned) || 0}
             exercisesNotCounted={Number(data?.today_activity?.exercises_not_counted) || 0}
+            cholesterol={Number(data?.nutrition_budget?.cholesterol?.consumed_mg ?? data?.today_activity?.total_cholesterol_mg) || 0}
+            cholesterolLimit={Number(data?.nutrition_budget?.cholesterol?.limit_mg) || 200}
             totalSod={sodiumTodayMg}
             sodiumLimit={sodiumLimitMg}
             satFat={data?.nutrition_budget?.sat_fat?.consumed_g ?? data?.today_activity?.total_saturated_fat_g ?? 0}

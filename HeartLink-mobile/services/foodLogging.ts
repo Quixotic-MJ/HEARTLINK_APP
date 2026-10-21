@@ -16,6 +16,8 @@ export type Nutrition = {
   calories: number;
   saturated_fat_g: number;
   fiber_g: number;
+  /** HL-028: left out when the source doesn't say (the server then uses the recipe's, or 0). */
+  cholesterol_mg?: number;
 };
 
 export type FoodItem = {
@@ -106,6 +108,7 @@ export function eaten(base: Nutrition, source: FoodSource, amount: number): Nutr
     calories: Math.round(base.calories * k),
     saturated_fat_g: Math.round(base.saturated_fat_g * k * 10) / 10,
     fiber_g: Math.round(base.fiber_g * k * 10) / 10,
+    ...(base.cholesterol_mg !== undefined ? { cholesterol_mg: Math.round(base.cholesterol_mg * k) } : {}),
   };
 }
 
@@ -131,6 +134,7 @@ export function toMealPayload(item: FoodItem, base: Nutrition, amount: number, m
     sodium_mg: total.sodium_mg,
     saturated_fat_g: total.saturated_fat_g,
     fiber_g: total.fiber_g,
+    ...(total.cholesterol_mg !== undefined ? { cholesterol_mg: total.cholesterol_mg } : {}),
     image_url: item.image_url || null,
     source: item.source === "packaged" ? "openfoodfacts" : item.source === "recipe" ? "recipe" : "recent",
     time_of_meal: meal,

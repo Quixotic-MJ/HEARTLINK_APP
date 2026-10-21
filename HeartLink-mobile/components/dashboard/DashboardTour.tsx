@@ -32,7 +32,7 @@ export const TOUR_STEPS: TourStep[] = [
   {
     target: "vitals",
     title: "Today so far",
-    body: "Calories, sodium, saturated fat and movement add up here as you log. Sodium counts against your own daily limit.",
+    body: "Net calories (what you eat minus what exercise burns), sodium, saturated fat, cholesterol and movement add up here as you log. Sodium and cholesterol count against your own daily limits.",
   },
   {
     target: "summary",

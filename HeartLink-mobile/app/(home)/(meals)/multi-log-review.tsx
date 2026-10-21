@@ -30,7 +30,8 @@ import {
 // HeartLink recipes are locked (patients change the amount); recent meals and
 // packaged foods can be corrected.
 
-type NutritionKey = keyof Nutrition;
+// Cholesterol is optional (not every food lists it) and isn't one of the editable cells.
+type NutritionKey = Exclude<keyof Nutrition, "cholesterol_mg">;
 const CELLS: { key: NutritionKey; label: string; unit: string }[] = [
   { key: "sodium_mg", label: "Sodium", unit: "mg" },
   { key: "calories", label: "Calories", unit: "kcal" },
