@@ -126,8 +126,14 @@ export function picksForScore(
   recipes: ExploreRecipe[],
   exercises: ExploreExercise[],
   tier?: string | null,
-  count = 2
+  count = 2,
+  /** HL-057: "recipe:<id>" / "exercise:<id>" a clinician marked not suitable for this patient. */
+  hidden: string[] = []
 ): { recipes: ExploreRecipe[]; exercises: ExploreExercise[] } {
+  if (hidden.length) {
+    recipes = recipes.filter((r) => !hidden.includes(`recipe:${r.id}`));
+    exercises = exercises.filter((e) => !hidden.includes(`exercise:${e.id}`));
+  }
   if (recommendations?.length) {
     const ids = (type: string) => recommendations.filter((r) => r.type === type).map((r) => String(r.id));
     const recipeIds = ids("recipe");

@@ -14,7 +14,7 @@ from typing import Any, Dict, List, Optional
 from fastapi import HTTPException, status
 
 from app.db.repositories import get_case_review_repo, get_content_repo, get_profile_repo
-from app.services import review_rules as rules
+from app.services import review_feedback, review_rules as rules
 from app.services.review_queue import _age, section_progress
 from app.services.exercises import is_visible_to_patients
 from app.services.recipes import is_visible_to_patients as recipe_visible
@@ -182,6 +182,7 @@ def submit_cardiology(round_id: str, payload: Dict[str, Any], current_user: Dict
     saved = repo.save_section(rc["id"], "cardiology", data)
     if rc.get("status") == "open":
         repo.update_review_case(rc["id"], {"status": "complete", "completed_at": utc_now().isoformat()})
+    review_feedback.notify_checkup(rc, checkup)  # HL-057: only while the setting is on
     return saved
 
 
@@ -208,4 +209,6 @@ def submit_items(section: str, round_id: str, payload: Dict[str, Any], current_u
 
     data = {**_reviewer_fields(profile), "item_verdicts": verdicts,
             "notes": _clean_note(payload.get("notes")), "status": "submitted"}
-    return get_case_review_repo().save_section(rc["id"], section, data)
+    saved = get_case_review_repo().save_section(rc["id"], section, data)
+    review_feedback.record_not_suitable(rc, verdicts)  # HL-056 records; HL-057 hides them once switched on
+    return saved

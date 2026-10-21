@@ -42,6 +42,7 @@ import { RecommendationCard, recommendationReason, type DashboardRec } from "../
 import { TodayNote } from "../../../components/dashboard/TodayNote";
 import { ScoreCard } from "../../../components/dashboard/ScoreCard";
 import { CareTools } from "../../../components/dashboard/CareTools";
+import { CheckupBanner, type CheckupReminder } from "../../../components/dashboard/CheckupBanner";
 import { useDs } from "../../../components/onboarding/useDs";
 import { CustomAlertModal } from "../../../components/dashboard/CustomAlertModal";
 import { Header } from "../../../components/Header";
@@ -207,6 +208,13 @@ export default function DashboardScreen() {
   const [companionAi, setCompanionAi] = useState<string | null>(null);
   const [scoreModalVisible, setScoreModalVisible] = useState(false);
   const [showInsight, setShowInsight] = useState(true);
+  // HL-057: the review whose checkup reminder the patient hid (a newer review shows it again).
+  const checkupHiddenKey = userId ? `@checkup_banner_hidden_${userId}` : null;
+  const [hiddenCheckupAt, setHiddenCheckupAt] = useState<string | null>(null);
+  useEffect(() => {
+    if (!checkupHiddenKey) return;
+    AsyncStorage.getItem(checkupHiddenKey).then(setHiddenCheckupAt).catch(() => {});
+  }, [checkupHiddenKey]);
 
   const isNavigatingRef = useRef(false);
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -823,6 +831,19 @@ export default function DashboardScreen() {
             <Feather name="chevron-right" size={18} color={colors.dangerText} />
           </TouchableOpacity>
         )}
+
+        {/* ── HL-057: checkup reminder after a clinician's review (only sent while the setting is on) ── */}
+        {data?.checkup_reminder && hiddenCheckupAt !== (data.checkup_reminder.review_completed_at ?? "") ? (
+          <CheckupBanner
+            reminder={data.checkup_reminder as CheckupReminder}
+            onFindClinic={() => safeNavigate("/locator")}
+            onHide={() => {
+              const at = data.checkup_reminder.review_completed_at ?? "";
+              setHiddenCheckupAt(at);
+              if (checkupHiddenKey) AsyncStorage.setItem(checkupHiddenKey, at).catch(() => {});
+            }}
+          />
+        ) : null}
 
         {/* ── Clean Greeting ── */}
         <Reanimated.View entering={FadeInDown.duration(280)} className="pt-3 pb-1">

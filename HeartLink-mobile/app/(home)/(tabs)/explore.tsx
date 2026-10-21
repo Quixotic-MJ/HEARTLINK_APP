@@ -52,7 +52,7 @@ export default function ExploreTabScreen() {
 
   // Picks in one swipeable row (meal, exercise, meal, exercise), with dots for where you are.
   const pickRow = useMemo(
-    () => interleavePicks(picksForScore(scoreQuery.data?.recommendations, recipes, exercises, tier)),
+    () => interleavePicks(picksForScore(scoreQuery.data?.recommendations, recipes, exercises, tier, 2, scoreQuery.data?.hidden)),
     [scoreQuery.data, recipes, exercises, tier]
   );
   const [pickIndex, setPickIndex] = useState(0);

@@ -7,6 +7,7 @@ from app.services.exercises import is_visible_to_patients, calories_burned
 # HL-028: daily cholesterol limit used when a patient has none set. To confirm with the cardiologist.
 DEFAULT_CHOLESTEROL_LIMIT_MG = 200
 from app.services.recipes import is_visible_to_patients as recipe_visible
+from app.services import review_feedback
 from app.db.repositories import (
     get_profile_repo,
     get_hss_repo,
@@ -462,12 +463,15 @@ def get_dashboard_data(user_id: str, recipe_limit: int = 2, exercise_limit: int 
     exercise_routines = content_repo.list_routines()
 
     tier = latest_hss.get("tier", "Stable")
+    # HL-057: items an expert marked not suitable for this patient (empty while the setting is off).
+    hidden = review_feedback.hidden_items(canonical_id)
     reco_recipes = [
         r
         for r in recipes
         if recipe_visible(r)
         and (r.get("hss_tier") == tier or r.get("hss_tier") == "Stable")
         and r.get("id") not in today_recipe_ids
+        and ("recipe", str(r.get("id"))) not in hidden
         and _recipe_is_safe(r, dietary_practice, allergies)
     ]
 
@@ -486,6 +490,7 @@ def get_dashboard_data(user_id: str, recipe_limit: int = 2, exercise_limit: int 
         if (e.get("hss_tier") == tier or e.get("hss_tier") == "Stable")
         and is_visible_to_patients(e)
         and e.get("id") not in today_exercise_ids
+        and ("exercise", str(e.get("id"))) not in hidden
     ]
 
     recommendations = []
@@ -574,6 +579,9 @@ def get_dashboard_data(user_id: str, recipe_limit: int = 2, exercise_limit: int 
         },
         "latest_alert": latest_alert,
         "recommendations": recommendations,
+        # HL-057: so Explore can leave these out of its own picks too.
+        "hidden_items": [{"type": t, "id": i} for t, i in sorted(hidden)],
+        "checkup_reminder": review_feedback.checkup_reminder(canonical_id),
         "insight": insight,
         "today_activity": today_activity,
         "nutrition_budget": {

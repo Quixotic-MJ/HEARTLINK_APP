@@ -41,8 +41,19 @@ export function useExploreScore() {
     enabled: !!userId,
     queryFn: () => getJson("/api/dashboard/me"),
     select: (data) => {
-      const d = (data ?? {}) as { hss_score?: number; hss_tier?: string; recommendations?: { id: string | number; type: string }[] };
-      return { score: d.hss_score ?? null, tier: d.hss_tier ?? null, recommendations: d.recommendations ?? [] };
+      const d = (data ?? {}) as {
+        hss_score?: number;
+        hss_tier?: string;
+        recommendations?: { id: string | number; type: string }[];
+        hidden_items?: { id: string | number; type: string }[];
+      };
+      return {
+        score: d.hss_score ?? null,
+        tier: d.hss_tier ?? null,
+        recommendations: d.recommendations ?? [],
+        // HL-057: items a clinician marked not suitable for this patient (empty while the setting is off).
+        hidden: (d.hidden_items ?? []).map((h) => `${h.type}:${h.id}`),
+      };
     },
   });
 }

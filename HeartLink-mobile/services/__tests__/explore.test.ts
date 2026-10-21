@@ -70,3 +70,16 @@ describe("pick cards", () => {
     expect(row.map((p) => (p.kind === "recipe" ? p.recipe.id : p.exercise.id))).toEqual(["a", "x", "b"]);
   });
 });
+
+describe("picksForScore with hidden items (HL-057)", () => {
+  it("leaves out items a clinician marked not suitable", () => {
+    const recipes = [recipe("r1", 100, 10), recipe("r2", 100, 10)];
+    const exercises = [exercise("e1", "Walk", "Light Cardio"), exercise("e2", "Breathe", "Breathing")];
+    const hidden = ["recipe:r1", "exercise:e2"];
+    const fallback = picksForScore([], recipes, exercises, "Stable", 2, hidden);
+    expect(fallback.recipes.map((r) => r.id)).toEqual(["r2"]);
+    expect(fallback.exercises.map((e) => e.id)).toEqual(["e1"]);
+    const fromDashboard = picksForScore([{ id: "r1", type: "recipe" }, { id: "r2", type: "recipe" }], recipes, exercises, "Stable", 2, hidden);
+    expect(fromDashboard.recipes.map((r) => r.id)).toEqual(["r2"]);
+  });
+});
