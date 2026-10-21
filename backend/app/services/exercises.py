@@ -7,6 +7,11 @@ from app.utils.time import utc_now
 def get_routines() -> List[Dict[str, Any]]:
     return get_content_repo().list_routines()
 
+
+def is_visible_to_patients(routine: Dict[str, Any]) -> bool:
+    """HL-026: patients only get exercises that are published AND approved by a Physical Therapist."""
+    return routine.get("status") == "published" and bool(routine.get("expert_validated"))
+
 def get_exercise_logs(user_id: str, limit: int = 50, offset: int = 0) -> List[Dict[str, Any]]:
     logs = get_exercises_repo().list_user_logs(user_id)
     return logs[offset:offset + limit]
@@ -183,26 +188,31 @@ def routine_payload(data: Dict[str, Any], partial: bool = False) -> Dict[str, An
     return out
 
 
-def _mark_review(payload: Dict[str, Any], reviewer_id: Optional[str]) -> None:
-    """An expert marking the routine as checked records who did it and when; unmarking clears it."""
+def _mark_review(payload: Dict[str, Any], pt_id: Optional[str]) -> None:
+    """HL-026: only a Physical Therapist approves. A PT's save keeps the switch as sent and records
+    who approved and when; anyone else's save sends the exercise back to waiting for a PT, so a PT
+    always checks the version patients see."""
+    if not pt_id:
+        payload.update(expert_validated=False, reviewed_by=None, reviewed_at=None)
+        return
     if "expert_validated" not in payload:
         return
-    if payload["expert_validated"] and reviewer_id:
-        payload["reviewed_by"] = reviewer_id
+    if payload["expert_validated"]:
+        payload["reviewed_by"] = pt_id
         payload["reviewed_at"] = utc_now().isoformat()
-    elif not payload["expert_validated"]:
+    else:
         payload["reviewed_by"] = None
         payload["reviewed_at"] = None
 
 
-def create_routine(data: Dict[str, Any], reviewer_id: Optional[str] = None) -> Dict[str, Any]:
+def create_routine(data: Dict[str, Any], pt_id: Optional[str] = None) -> Dict[str, Any]:
     payload = routine_payload(data)
-    _mark_review(payload, reviewer_id)
+    _mark_review(payload, pt_id)
     return get_content_repo().create_routine(payload)
 
-def update_routine(routine_id: str, data: Dict[str, Any], reviewer_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
+def update_routine(routine_id: str, data: Dict[str, Any], pt_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
     payload = routine_payload(data, partial=True)
-    _mark_review(payload, reviewer_id)
+    _mark_review(payload, pt_id)
     return get_content_repo().update_routine(routine_id, payload)
 
 def delete_routine(routine_id: str) -> bool:

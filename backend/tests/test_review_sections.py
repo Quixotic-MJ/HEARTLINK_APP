@@ -49,8 +49,10 @@ class Content:
 
     def list_routines(self):
         return [
-            {"id": "e1", "name": "Brisk walking", "hss_tier": "Moderate", "status": "published"},
-            {"id": "e2", "name": "Band rows", "hss_tier": "Moderate", "status": "published"},
+            {"id": "e1", "name": "Brisk walking", "hss_tier": "Moderate", "status": "published", "expert_validated": True},
+            {"id": "e2", "name": "Band rows", "hss_tier": "Moderate", "status": "published", "expert_validated": True},
+            # HL-026: not PT-approved, so patients never get it and the review never lists it.
+            {"id": "e3", "name": "Arm circles", "hss_tier": "Moderate", "status": "published", "expert_validated": False},
         ]
 
 
@@ -189,3 +191,9 @@ def test_sections_belong_to_their_expert_type(world, section, who):
     with pytest.raises(HTTPException) as exc:
         review_sections.submit_items(section, ROUND, {"items": []}, as_user(who))
     assert exc.value.status_code == 403
+
+
+def test_the_review_lists_only_pt_approved_exercises(world):
+    # HL-026: the exercises the app recommends are the ones patients can actually get.
+    ids = [e["id"] for e in review_sections.recommendations_for({"app_tier": "Moderate"})["exercises"]]
+    assert "e3" not in ids and set(ids) <= {"e1", "e2"}

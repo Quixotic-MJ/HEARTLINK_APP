@@ -2,7 +2,7 @@
 import pytest
 
 from app.services import exercises as exercise_service
-from app.services.exercises import clean_step, create_routine, routine_payload, total_seconds, update_routine
+from app.services.exercises import clean_step, create_routine, is_visible_to_patients, routine_payload, total_seconds, update_routine
 
 
 class FakeContentRepo:
@@ -92,15 +92,34 @@ def test_lists_and_choices_are_cleaned():
     assert out["setup_steps"] == [{"instruction": "Sit with feet flat", "details": ""}]
 
 
-def test_an_expert_marking_it_checked_records_who_and_when(repo):
-    create_routine({"name": "Walk", "expertValidated": True}, reviewer_id="expert-1")
-    assert repo.created["reviewed_by"] == "expert-1"
+def test_a_pt_approving_it_records_who_and_when(repo):
+    create_routine({"name": "Walk", "expertValidated": True}, pt_id="pt-1")
+    assert repo.created["expert_validated"] is True
+    assert repo.created["reviewed_by"] == "pt-1"
     assert repo.created["reviewed_at"]
 
-    update_routine("e1", {"expertValidated": False}, reviewer_id="expert-1")
+    update_routine("e1", {"expertValidated": False}, pt_id="pt-1")
     assert repo.updated["reviewed_by"] is None and repo.updated["reviewed_at"] is None
 
 
-def test_an_update_only_changes_what_was_sent(repo):
-    update_routine("e1", {"status": "published"})
+def test_only_a_pt_can_approve_and_other_saves_send_it_back_to_waiting(repo):
+    # HL-026: an admin ticking the switch does not approve it.
+    create_routine({"name": "Walk", "expertValidated": True})
+    assert repo.created["expert_validated"] is False and repo.created["reviewed_by"] is None
+
+    # Any non-PT edit of an approved exercise needs a PT to check it again.
+    update_routine("e1", {"name": "Brisk walk"})
+    assert repo.updated["expert_validated"] is False
+    assert repo.updated["reviewed_by"] is None and repo.updated["reviewed_at"] is None
+
+
+def test_a_pt_update_only_changes_what_was_sent(repo):
+    update_routine("e1", {"status": "published"}, pt_id="pt-1")
     assert repo.updated == {"status": "published"}
+
+
+def test_patients_only_see_published_pt_approved_exercises():
+    assert is_visible_to_patients({"status": "published", "expert_validated": True})
+    assert not is_visible_to_patients({"status": "published", "expert_validated": False})
+    assert not is_visible_to_patients({"status": "published"})
+    assert not is_visible_to_patients({"status": "draft", "expert_validated": True})

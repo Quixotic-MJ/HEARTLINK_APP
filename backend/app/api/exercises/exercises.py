@@ -1,32 +1,41 @@
 from fastapi import APIRouter, Request, HTTPException, Query, Depends, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from typing import List, Dict, Any, Optional
-from app.services.exercises import get_routines, get_exercise_logs, create_exercise_log, delete_exercise_log, create_routine, update_routine, delete_routine
+from app.services.exercises import get_routines, get_exercise_logs, create_exercise_log, delete_exercise_log, create_routine, update_routine, delete_routine, is_visible_to_patients
 from app.services.hss_service import compute_lifestyle_composite_hss
 from app.utils.security import require_permission, check_expert_permission, get_current_user, verify_token, get_optional_token, verify_user_access
 from app.utils.activity_helper import record_admin_activity
+from app.db.repositories import get_profile_repo
 
 router = APIRouter(prefix="/api/exercises", tags=["Exercises"])
 
 security = HTTPBearer(auto_error=False)
 
+
+def _pt_id(current_user: Optional[dict]) -> Optional[str]:
+    """The caller's id when they are a Physical Therapist, the only role that may approve (HL-026)."""
+    if not current_user or current_user.get("role") != "medical_expert":
+        return None
+    profile = get_profile_repo().get_by_id(current_user.get("user_id")) or {}
+    return current_user.get("user_id") if profile.get("expert_type") == "Physical Therapist" else None
+
 @router.get("/", response_model=List[Dict[str, Any]])
 def read_routines(request: Request, credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)):
     routines = get_routines()
-    
+
     is_admin = False
     token = get_optional_token(request, credentials)
     if token:
         try:
             payload = verify_token(token)
-            if payload.get("role") in ["admin", "medical_expert"]:
+            if payload.get("role") in ["admin", "super_admin", "medical_expert"]:
                 is_admin = True
         except Exception:
             pass
-            
+
     if is_admin:
         return routines
-    return [r for r in routines if r.get("status") == "published"]
+    return [r for r in routines if is_visible_to_patients(r)]
 
 @router.get("/{routine_id}", response_model=Dict[str, Any])
 def read_routine(routine_id: str, request: Request, credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)):
@@ -40,19 +49,19 @@ def read_routine(routine_id: str, request: Request, credentials: Optional[HTTPAu
     if token:
         try:
             payload = verify_token(token)
-            if payload.get("role") in ["admin", "medical_expert"]:
+            if payload.get("role") in ["admin", "super_admin", "medical_expert"]:
                 is_admin = True
         except Exception:
             pass
-            
-    if not is_admin and routine.get("status") != "published":
+
+    if not is_admin and not is_visible_to_patients(routine):
         raise HTTPException(status_code=404, detail="Routine not found")
         
     return routine
 
 @router.post("/", response_model=Dict[str, Any])
 def add_routine(data: Dict[str, Any], current_user: dict = Depends(require_permission("exercises:edit"))):
-    new_routine = create_routine(data, reviewer_id=current_user.get("user_id") if current_user else None)
+    new_routine = create_routine(data, pt_id=_pt_id(current_user))
     admin_id = current_user.get("user_id") if current_user else "admin"
     record_admin_activity(
         admin_user_id=admin_id,
@@ -66,7 +75,7 @@ def add_routine(data: Dict[str, Any], current_user: dict = Depends(require_permi
 @router.put("/{routine_id}", response_model=Dict[str, Any])
 def edit_routine(routine_id: str, data: Dict[str, Any], current_user: dict = Depends(require_permission("exercises:edit"))):
     try:
-        updated_routine = update_routine(routine_id, data, reviewer_id=current_user.get("user_id") if current_user else None)
+        updated_routine = update_routine(routine_id, data, pt_id=_pt_id(current_user))
         if not updated_routine:
             raise ValueError("Exercise not found")
         admin_id = current_user.get("user_id") if current_user else "admin"

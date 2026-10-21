@@ -200,7 +200,7 @@ export function ExerciseOverview({ routine, kind, paused, canClearPause, checkin
             <View className="flex-row items-center" style={{ gap: 8 }}>
               <Feather name="check-circle" size={16} color={c.success} />
               <Text style={{ fontSize: 13, color: c.slate }}>
-                Checked by a HeartLink expert on {new Date(routine.reviewedAt).toLocaleDateString([], { year: "numeric", month: "short", day: "numeric" })}
+                Approved by a physical therapist on {new Date(routine.reviewedAt).toLocaleDateString([], { year: "numeric", month: "short", day: "numeric" })}
               </Text>
             </View>
           ) : null}

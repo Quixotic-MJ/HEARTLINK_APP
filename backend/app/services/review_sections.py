@@ -16,6 +16,7 @@ from fastapi import HTTPException, status
 from app.db.repositories import get_case_review_repo, get_content_repo, get_profile_repo
 from app.services import review_rules as rules
 from app.services.review_queue import _age, section_progress
+from app.services.exercises import is_visible_to_patients
 from app.utils.time import parse_utc, utc_now
 
 logger = logging.getLogger(__name__)
@@ -47,7 +48,7 @@ def recommendations_for(rc: Dict[str, Any]) -> Dict[str, List[Dict[str, Any]]]:
     tier = rc.get("app_tier")
     content = get_content_repo()
     recipes = [r for r in content.list_recipes() if r.get("status", "published") == "published" and r.get("hss_tier") == tier]
-    routines = [r for r in content.list_routines() if r.get("status", "published") == "published" and r.get("hss_tier") == tier]
+    routines = [r for r in content.list_routines() if is_visible_to_patients(r) and r.get("hss_tier") == tier]
     pick = lambda rows, n: [{"id": str(r["id"]), "name": r.get("name")} for r in sorted(rows, key=lambda r: r.get("name") or "")[:n]]
     return {"recipes": pick(recipes, RECIPES_SHOWN), "exercises": pick(routines, EXERCISES_SHOWN)}
 

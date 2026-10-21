@@ -459,8 +459,8 @@ const Exercises = () => {
                   className="w-full md:w-auto pl-3 pr-7 py-1.5 text-[12px] font-semibold text-ds-ink bg-ds-canvas border border-ds-hairline rounded-[8px] focus:outline-none focus:border-ds-ink appearance-none cursor-pointer hover:border-ds-steel transition-colors"
                 >
                   <option value="all">Review: All</option>
-                  <option value="validated">Expert Reviewed</option>
-                  <option value="pending">Pending Review</option>
+                  <option value="validated">PT approved</option>
+                  <option value="pending">Waiting for PT</option>
                 </select>
                 <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
                   <ChevronDown size={12} className="text-ds-steel" />
@@ -642,11 +642,11 @@ const Exercises = () => {
                             </span>
                             {exercise.expertValidated ? (
                               <span className="text-[11px] text-ds-charcoal font-semibold flex items-center gap-1">
-                                ✓ Reviewed
+                                ✓ PT approved
                               </span>
                             ) : (
                               <span className="text-[11px] text-ds-warm-text font-semibold flex items-center gap-1">
-                                ⚠ Pending
+                                ⚠ Waiting for PT
                               </span>
                             )}
                           </div>
@@ -786,6 +786,7 @@ const Exercises = () => {
           onClose={closeModal}
           exercise={editingExercise}
           userRole={userRole}
+          isPT={userRole === "medical_expert" && user?.expert_type === "Physical Therapist"}
           onSave={async (data) => {
             try {
               if (editingExercise?.id) {

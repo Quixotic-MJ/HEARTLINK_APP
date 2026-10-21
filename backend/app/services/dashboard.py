@@ -2,6 +2,7 @@ import os
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
 from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
+from app.services.exercises import is_visible_to_patients
 from app.db.repositories import (
     get_profile_repo,
     get_hss_repo,
@@ -456,7 +457,7 @@ def get_dashboard_data(user_id: str, recipe_limit: int = 2, exercise_limit: int 
         e
         for e in exercise_routines
         if (e.get("hss_tier") == tier or e.get("hss_tier") == "Stable")
-        and e.get("status") == "published"
+        and is_visible_to_patients(e)
         and e.get("id") not in today_exercise_ids
     ]
 
@@ -491,7 +492,7 @@ def get_dashboard_data(user_id: str, recipe_limit: int = 2, exercise_limit: int 
             {
                 "id": e["id"],
                 "type": "exercise",
-                "tag": "Exercise",
+                "tag": "PT approved",
                 "title": e["name"],
                 "subtitle": e.get("description", "")[:30] + "...",
                 "icon": "yoga",

@@ -13,7 +13,7 @@ import { IconBadge, SquareIconButton } from "../../../components/exercise/Exerci
 import { apiFetch } from "../../../lib/api";
 import { Routine, exerciseKind, toRoutines } from "../../../services/exerciseSession";
 
-// Every published exercise, filtered by the types experts pick in the portal.
+// Every exercise a physical therapist approved (the server sends no others, HL-026), filtered by type.
 
 const FILTERS = ["All", "Light Cardio", "Breathing", "Stationary", "General"] as const;
 type Filter = (typeof FILTERS)[number];
@@ -53,7 +53,7 @@ export default function ExercisesScreen({ isEmbedded = false }: { isEmbedded?: b
       <AnimatedButton
         onPress={() => router.push({ pathname: "/(home)/(health)/exercise-session", params: { id: item.id } })}
         accessibilityRole="button"
-        accessibilityLabel={`${item.title}. ${item.type}, ${item.minutes} minutes, ${item.intensity} intensity`}
+        accessibilityLabel={`${item.title}. ${item.type}, ${item.minutes} minutes, ${item.intensity} intensity${item.reviewedAt ? ". PT approved" : ""}`}
         style={{ minHeight: 72, borderRadius: 12, borderWidth: 1, borderColor: c.hairline, paddingHorizontal: 14, paddingVertical: 12, flexDirection: "row", alignItems: "center", gap: 12 }}
       >
         <IconBadge icon={KIND_ICON[kind]} tone={kind === "breathing" ? "sky" : "mint"} size={48} />
@@ -64,6 +64,12 @@ export default function ExercisesScreen({ isEmbedded = false }: { isEmbedded?: b
           <Text style={{ fontSize: 13, color: c.slate }}>
             {item.type}, {item.minutes} min, {item.intensity.toLowerCase()} intensity
           </Text>
+          {item.reviewedAt ? (
+            <View className="flex-row items-center" style={{ gap: 4 }}>
+              <Feather name="check-circle" size={13} color={c.success} />
+              <Text style={{ fontSize: 12, fontWeight: "600", color: c.charcoal }}>PT approved</Text>
+            </View>
+          ) : null}
         </View>
         <Feather name="chevron-right" size={18} color={c.steel} />
       </AnimatedButton>
