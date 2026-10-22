@@ -5,7 +5,9 @@ from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
 
 def get_analytics(user_id: str, days: int = 30) -> Dict[str, Any]:
     cutoff = (utc_now() - timedelta(days=days)) if days else UTC_MIN
-    cutoff_str = cutoff.isoformat() + "Z" if days else None
+    # Plain UTC with a Z. (isoformat() of an aware time already ends "+00:00"; adding "Z" made an invalid
+    # timestamp, the database refused every query, and Trends showed nothing.)
+    cutoff_str = cutoff.strftime("%Y-%m-%dT%H:%M:%SZ") if days else None
     
     hss_repo = get_hss_repo()
     limit = max(14, days * 4) if days else None
