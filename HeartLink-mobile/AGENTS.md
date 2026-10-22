@@ -68,7 +68,7 @@ services/         API calls and business logic: SyncService, MealLoggingService,
                   companionCopy (postLogAck), companionService
 lib/              react-query.ts (QueryClient + persister), secureTokenStore.ts
 constants/        theme.ts (colours)
-utils/            OfflineSyncService.ts, notifications.ts
+utils/            notifications.ts, units.ts
 ```
 
 Screens should put components together and call hooks/services. Keep large reusable UI and business
@@ -134,23 +134,22 @@ Reference: `showIncompleteWarning` in `log-symptoms.tsx`.
   It returns a normal `Response`. Never build `${API_URL}/api/...` addresses or call `fetch()` for
   the backend yourself. Plain `fetch` is only for other sites (Open Food Facts) and the refresh call
   in `services/SessionService.ts`.
-- **Still to tidy:** `utils/OfflineSyncService.ts` stores full addresses for queued health logs and
-  sends them with plain `fetch` (its queue is separate; see Offline support).
 - **Target:** new data fetching goes in `services/` or in a React Query hook in `hooks/`
   (`useQuery` / `useMutation`), like `hooks/useLogMeal.ts`. Don't add data fetching to screen
   files. Move an existing one only if you're already changing that logic.
 
 ### Offline support
-- **Current:** three layers.
+- Two layers:
   1. The React Query cache is saved to AsyncStorage (`PersistQueryClientProvider` in
      `app/_layout.tsx`).
-  2. The logging hooks (`useLogMeal`, `useLogExercise`, `useLogSleep`) update the screen
-     straight away (optimistic update), roll back on real errors, and on network or 5xx errors put
-     the item in the AsyncStorage queue in `services/SyncService.ts`.
-  3. `utils/OfflineSyncService.ts` is a second, separate queue, used by `log-symptoms.tsx`,
-     `MissionDropdowns` and `OfflineBanner`.
-- **Target:** a new offline-capable action is a `useMutation` hook modelled on `useLogMeal.ts`.
-  Don't add another queue. Merging the two queues is its own task; ask first.
+  2. The logging hooks (`useLogMeal`, `useLogExercise`, `useLogSleep`, `useLogVitals`) update the
+     screen straight away (optimistic update), roll back on real errors, and on network or 5xx errors
+     put the item in the AsyncStorage queue in `services/SyncService.ts`. `syncOfflineAll` uploads it
+     on start-up, when the app comes back to the foreground and when the connection returns.
+- The old second queue (`utils/OfflineSyncService.ts`) is gone; `migrateOldOfflineQueue` in
+  `SyncService` moves anything still saved under its keys into the health log queue.
+- A new offline-capable action is a `useMutation` hook modelled on `useLogMeal.ts`. Don't add
+  another queue.
 
 ### Feedback after an action
 - Messages go through `showToast({ title, message, type, duration })` from `ToastContext`, where

@@ -14,7 +14,6 @@ import { Feather } from "@expo/vector-icons";
 import { useColorScheme } from "nativewind";
 import * as Haptics from "expo-haptics";
 import { useToast } from "../../contexts/ToastContext";
-import { OfflineSyncService } from "../../utils/OfflineSyncService";
 import { postLogAck } from "../../services/companionCopy";
 import { useLogSleep } from "../../hooks/useLogSleep";
 import AsyncStorage from "@react-native-async-storage/async-storage";

@@ -356,16 +356,73 @@ export async function syncOfflineHealthLogs(baseUrl: string): Promise<number> {
   }
 }
 
+// The old second queue (utils/OfflineSyncService, removed) kept full request addresses under these keys.
+const OLD_QUEUE_PREFIX = "@offline_request_queue";
+const OLD_HEALTH_LOG_PATH = /\/api\/health-logs\/([^/?#]+)$/;
+
+interface OldQueuedRequest {
+  url?: string;
+  method?: string;
+  body?: string;
+  timestamp?: number;
+}
+
+/**
+ * Moves check-ins still waiting in the old queue into the health log queue above, then deletes the
+ * old queue. Only health logs were ever saved there; anything else is dropped. Returns how many moved.
+ */
+export async function migrateOldOfflineQueue(): Promise<number> {
+  try {
+    const oldKeys = (await AsyncStorage.getAllKeys()).filter((k) => k.startsWith(OLD_QUEUE_PREFIX));
+    if (oldKeys.length === 0) return 0;
+
+    const byUser: Record<string, { userId: string; payload: unknown; timestamp: number }[]> = {};
+    for (const key of oldKeys) {
+      const raw = await AsyncStorage.getItem(key);
+      const items: OldQueuedRequest[] = raw ? JSON.parse(raw) : [];
+      for (const item of items) {
+        const userId = item.url?.match(OLD_HEALTH_LOG_PATH)?.[1];
+        if (!userId || (item.method ?? "POST") !== "POST" || !item.body) {
+          console.warn("[SyncService] Dropping an old queued request that wasn't a health log.");
+          continue;
+        }
+        try {
+          (byUser[userId] ??= []).push({ userId, payload: JSON.parse(item.body), timestamp: item.timestamp ?? Date.now() });
+        } catch {
+          console.warn("[SyncService] Dropping an old queued health log that couldn't be read.");
+        }
+      }
+    }
+
+    let moved = 0;
+    for (const [userId, items] of Object.entries(byUser)) {
+      const queueKey = getHealthQueueKey(userId);
+      const queueJson = await AsyncStorage.getItem(queueKey);
+      const queue = queueJson ? JSON.parse(queueJson) : [];
+      await AsyncStorage.setItem(queueKey, JSON.stringify([...items, ...queue]));
+      moved += items.length;
+    }
+    await AsyncStorage.multiRemove(oldKeys);
+    if (moved > 0) console.log(`[SyncService] Moved ${moved} health log(s) from the old offline queue.`);
+    return moved;
+  } catch (error) {
+    console.error("[SyncService] Failed to move the old offline queue", error);
+    return 0;
+  }
+}
+
 export async function syncOfflineAll(baseUrl: string): Promise<void> {
   if (isSyncing) {
     console.log("[SyncService] Sync already in progress, skipping concurrent attempt.");
     return;
   }
-  
+
   isSyncing = true;
   DeviceEventEmitter.emit("sync_started");
   try {
     let syncedCount = 0;
+    // Runs on every sync, but only does anything the first time after the update.
+    await migrateOldOfflineQueue();
     
     const wrapSync = async (syncFn: () => Promise<number>) => {
       try {

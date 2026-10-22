@@ -3,20 +3,21 @@ import { View, Text, TouchableOpacity, ScrollView, Switch, ActivityIndicator, Pl
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
-import { Feather } from "@expo/vector-icons";
+import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useUser } from "../../../contexts/UserContext";
 import { useToast } from "../../../contexts/ToastContext";
 import { ConfirmDialog } from "../../../components/ui/ConfirmDialog";
-import { apiFetch } from "../../../lib/api";
+import { DEFAULT_REMINDERS, Reminders, loadReminders, saveReminders, scheduleReminders } from "../../../services/remindersService";
 import { useDs } from "../../../components/onboarding/useDs";
 import DsButton from "../../../components/onboarding/DsButton";
 import { SquareIconButton } from "../../../components/exercise/ExerciseBits";
 
 function ReminderToggle({ 
   title, 
-  description, 
-  icon, 
+  description,
+  icon,
+  mcIcon,
   iconBg,
   iconColor,
   enabled, 
@@ -45,7 +46,11 @@ function ReminderToggle({
             className="w-10 h-10 rounded-lg items-center justify-center mr-3.5"
             style={{ backgroundColor: iconBg }}
           >
-            <Feather name={icon} size={18} color={iconColor} />
+            {mcIcon ? (
+              <MaterialCommunityIcons name={mcIcon} size={18} color={iconColor} />
+            ) : (
+              <Feather name={icon} size={18} color={iconColor} />
+            )}
           </View>
           <View className="flex-1">
             <Text className="text-[16px] font-medium text-ds-ink">
@@ -102,21 +107,19 @@ export default function DailyRemindersScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   
-  const [reminders, setReminders] = useState({
+  // Shown until the saved reminders load (and if they can't be loaded).
+  const fallback: Reminders = {
     morning: { enabled: false, time: "08:00" },
     evening: { enabled: false, time: "20:00" },
-    activity: { enabled: false, time: "17:00" }
-  });
-
-  const [initialReminders, setInitialReminders] = useState({
-    morning: { enabled: false, time: "08:00" },
-    evening: { enabled: false, time: "20:00" },
-    activity: { enabled: false, time: "17:00" }
-  });
+    activity: { enabled: false, time: "17:00" },
+    medicine: DEFAULT_REMINDERS.medicine,
+  };
+  const [reminders, setReminders] = useState<Reminders>(fallback);
+  const [initialReminders, setInitialReminders] = useState<Reminders>(fallback);
 
   const [showExitConfirm, setShowExitConfirm] = useState(false);
 
-  const [pickerConfig, setPickerConfig] = useState<{ visible: boolean, key: keyof typeof reminders | null }>({
+  const [pickerConfig, setPickerConfig] = useState<{ visible: boolean, key: keyof Reminders | null }>({
     visible: false,
     key: null
   });
@@ -126,23 +129,10 @@ export default function DailyRemindersScreen() {
   useEffect(() => {
     const fetchReminders = async () => {
       try {
-        const effectiveToken = token || "";
-        const response = await apiFetch(`/api/users/${userId}/reminders`, {
-          headers: {
-            "Authorization": `Bearer ${effectiveToken}`,
-          },
-        });
-        if (response.ok) {
-          const data = await response.json();
-          if (data) {
-            const loaded = {
-              morning: data.morning || { enabled: false, time: "08:00" },
-              evening: data.evening || { enabled: false, time: "20:00" },
-              activity: data.activity || { enabled: false, time: "17:00" }
-            };
-            setReminders(loaded);
-            setInitialReminders(loaded);
-          }
+        const loaded = await loadReminders(userId as string, token || "");
+        if (loaded) {
+          setReminders(loaded);
+          setInitialReminders(loaded);
         }
       } catch (err) {
         console.error("Failed to load reminders", err);
@@ -153,7 +143,7 @@ export default function DailyRemindersScreen() {
     if (userId) fetchReminders();
   }, [userId, token]);
 
-  const toggleReminder = (key: keyof typeof reminders) => {
+  const toggleReminder = (key: keyof Reminders) => {
     setReminders(prev => ({
       ...prev,
       [key]: { ...prev[key], enabled: !prev[key].enabled }
@@ -186,59 +176,25 @@ export default function DailyRemindersScreen() {
   };
 
   const handleSave = async (shouldNavigateBack = false) => {
+    if (!userId) return;
     setIsSaving(true);
     try {
-      const effectiveToken = token || "";
-      const response = await apiFetch(`/api/users/${userId}/reminders`, {
-        method: "PUT",
-        headers: { 
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${effectiveToken}`,
-        },
-        body: JSON.stringify(reminders)
-      });
-      if (response.ok) {
-        setInitialReminders(reminders);
-        // Handle Local Notifications
-        try {
-          const { requestNotificationPermissions, scheduleDailyReminder, cancelReminder } = require("../../../utils/notifications");
-          const hasPermission = await requestNotificationPermissions();
-          
-          if (hasPermission) {
-            // Morning
-            if (reminders.morning.enabled) {
-              await scheduleDailyReminder("morning_reminder", "Morning Check-in", "Start your day with a HeartLink check-in.", reminders.morning.time);
-            } else {
-              await cancelReminder("morning_reminder");
-            }
-            // Evening
-            if (reminders.evening.enabled) {
-              await scheduleDailyReminder("evening_reminder", "Evening Wrap-up", "Review your day before bedtime.", reminders.evening.time);
-            } else {
-              await cancelReminder("evening_reminder");
-            }
-            // Activity
-            if (reminders.activity.enabled) {
-              await scheduleDailyReminder("activity_reminder", "Activity Goal", "Get a reminder to stay on track with your movement goal.", reminders.activity.time);
-            } else {
-              await cancelReminder("activity_reminder");
-            }
-          }
-        } catch (notifErr) {
-          console.warn("Local notification scheduling error:", notifErr);
-        }
-
-        showToast({ title: "Reminders Saved", message: "Your daily check-in schedule has been updated.", type: "success" });
-        if (shouldNavigateBack) {
-          router.back();
-        }
-      } else {
-        showToast({ title: "Save Failed", message: "Failed to save reminder preferences.", type: "error" });
-      }
+      await saveReminders(userId, token || "", reminders);
     } catch (err) {
-      showToast({ title: "Network Error", message: "Please check your connection and try again.", type: "error" });
-    } finally {
+      showToast({ title: "Save Failed", message: "Failed to save reminder preferences. Please check your connection and try again.", type: "error" });
       setIsSaving(false);
+      return;
+    }
+    setInitialReminders(reminders);
+    try {
+      await scheduleReminders(reminders);
+    } catch (notifErr) {
+      console.warn("Local notification scheduling error:", notifErr);
+    }
+    setIsSaving(false);
+    showToast({ title: "Reminders Saved", message: "Your daily check-in schedule has been updated.", type: "success" });
+    if (shouldNavigateBack) {
+      router.back();
     }
   };
 
@@ -286,6 +242,17 @@ export default function DailyRemindersScreen() {
             time={reminders.morning.time}
             onToggle={() => toggleReminder("morning")}
             onTimePress={() => setPickerConfig({ visible: true, key: "morning" })}
+          />
+          <ReminderToggle
+            title="Take Your Medicines"
+            description="A daily reminder to take your medicines as prescribed."
+            mcIcon="pill"
+            iconBg={c.peach}
+            iconColor={c.charcoal}
+            enabled={reminders.medicine.enabled}
+            time={reminders.medicine.time}
+            onToggle={() => toggleReminder("medicine")}
+            onTimePress={() => setPickerConfig({ visible: true, key: "medicine" })}
           />
           <ReminderToggle
             title="Evening Wrap-up"
