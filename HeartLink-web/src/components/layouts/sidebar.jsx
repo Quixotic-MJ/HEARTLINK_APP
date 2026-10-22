@@ -12,6 +12,7 @@ import {
   Megaphone,
   Settings,
   Bell,
+  HeartPulse,
   X,
   LogOut,
 } from "lucide-react";
@@ -115,6 +116,7 @@ function NavItem({ path, icon: Icon, label, collapsed, badge = null, activeOverr
 const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed, onLogoutClick }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   
   const role = user?.role || "admin";
   const canOpen = (path) => canAccess(user, path);
@@ -203,6 +205,19 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed, onLogou
               <NavItem path="/dashboard" icon={LayoutDashboard} label="Dashboard" collapsed={collapsed} />
               {canOpen("/analytics") && <NavItem path="/analytics" icon={PieChart} label="Analytics" collapsed={collapsed} />}
               {canOpen("/notifications") && <NavItem path="/notifications" icon={Bell} label="Notifications" collapsed={collapsed} />}
+            </>
+          )}
+
+          {canOpen("/patients") && (
+            <>
+              <SectionLabel label="Care team" collapsed={collapsed} />
+              <NavItem
+                path="/patients"
+                icon={HeartPulse}
+                label={user?.expert_type === "Cardiologist" ? "Cardiologist dashboard" : "Patients"}
+                collapsed={collapsed}
+                activeOverride={location.pathname.startsWith("/patients/")}
+              />
             </>
           )}
 

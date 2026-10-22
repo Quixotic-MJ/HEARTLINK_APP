@@ -317,11 +317,14 @@ def get_current_super_admin(current_user: dict = Depends(get_current_admin_user)
 # HL-012: what each expert type may do. Admins and Super Admin may do everything.
 # Recipes are the Dietitian's, exercises the PT's; the Cardiologist reads every patient log
 # and may record vitals, but does not edit recipes or exercises.
+# Patient notes (HL-039/013/040): every expert reads them; the Cardiologist writes guidance,
+# Dietitians and PTs write to their shared message thread.
 ADMIN_ROLES = {"admin", "super_admin"}
 EXPERT_PERMISSIONS = {
-    "Dietitian": {"recipes:edit", "meal_logs:read", "meal_logs:write", "vitals:read"},
-    "Physical Therapist": {"exercises:edit", "exercise_logs:read", "vitals:read"},
-    "Cardiologist": {"meal_logs:read", "meal_logs:write", "exercise_logs:read", "vitals:read", "vitals:write"},
+    "Dietitian": {"recipes:edit", "meal_logs:read", "meal_logs:write", "vitals:read", "notes:read", "notes:message"},
+    "Physical Therapist": {"exercises:edit", "exercise_logs:read", "vitals:read", "notes:read", "notes:message"},
+    "Cardiologist": {"meal_logs:read", "meal_logs:write", "exercise_logs:read", "vitals:read", "vitals:write",
+                     "notes:read", "notes:guidance"},
 }
 
 
