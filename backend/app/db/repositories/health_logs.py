@@ -68,7 +68,7 @@ class SupabaseHealthLogsRepository(HealthLogsRepository):
             res = query.execute()
             return res.data or []
         except Exception as e:
-            logger.warning(f"Error reading health logs for {user_id}: {e}")
+            handle_db_error(e)
             return []
 
     def list_user_logs_paginated(self, user_id: str, page: int = 1, page_size: int = 20) -> Dict[str, Any]:
@@ -100,7 +100,7 @@ class SupabaseHealthLogsRepository(HealthLogsRepository):
             res = self.client.table("daily_health_logs").select("*").order("logged_at", desc=True).execute()
             return res.data or []
         except Exception as e:
-            logger.warning(f"Error reading all daily health logs: {e}")
+            handle_db_error(e)
             return []
 
     def create_log(self, user_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
@@ -138,7 +138,7 @@ class SupabaseHealthLogsRepository(HealthLogsRepository):
             res = query.order("created_at", desc=True).execute()
             return res.data or []
         except Exception as e:
-            logger.warning(f"Error reading clinical alerts: {e}")
+            handle_db_error(e)
             return []
 
     def create_alert(self, alert_data: Dict[str, Any]) -> Dict[str, Any]:

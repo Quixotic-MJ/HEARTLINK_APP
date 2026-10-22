@@ -1,4 +1,5 @@
 import pytest
+from unittest.mock import patch
 from fastapi.testclient import TestClient
 from app.main import app
 
@@ -22,9 +23,12 @@ def test_login_rate_limit():
     # Ensure no internal data is leaked
     assert "error" in response.json() or "detail" in response.json()
 
-def test_request_code_rate_limit():
+@patch("app.api.auth.auth.get_auth_service")
+def test_request_code_rate_limit(mock_auth_service):
+    # A password that passes the strength check, so the request reaches the limiter (a weak one stops at 422).
+    mock_auth_service.return_value.request_registration_otp.return_value = {"success": True}
     endpoint = "/api/auth/request-code"
-    payload = {"phone": "+1234567890", "email": "test@test.com", "password": "wrongpassword"}
+    payload = {"phone": "+1234567890", "email": "test@test.com", "password": "Str0ng!Passw0rd-2026"}
     
     # 3 attempts should be allowed
     for _ in range(3):

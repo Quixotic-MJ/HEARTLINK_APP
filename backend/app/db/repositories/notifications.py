@@ -61,7 +61,7 @@ class SupabaseNotificationRepository(NotificationRepository):
             # HL-019: archived ones (over 72 hours old) only when asked for.
             return keep_active(res.data or [], include_archived)
         except Exception as e:
-            logger.warning(f"Error reading notifications for {user_id}: {e}")
+            handle_db_error(e)
             return []
 
     def mark_read(self, notification_id: str, user_id: Optional[str] = None) -> bool:
@@ -114,7 +114,7 @@ class SupabaseNotificationRepository(NotificationRepository):
             res = self.client.table("system_broadcasts").select("*").order("created_at", desc=True).execute()
             return res.data or []
         except Exception as e:
-            logger.warning(f"Error reading system broadcasts: {e}")
+            handle_db_error(e)
             return []
 
     def create_broadcast(self, broadcast_data: Dict[str, Any], target_user_ids: Optional[List[str]] = None) -> Dict[str, Any]:

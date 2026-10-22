@@ -2,6 +2,10 @@ import pytest
 from httpx import AsyncClient
 from typing import Dict, Any
 
+# Needs a throwaway database with a real signed-up user (async_client, test_user, test_db, auth_headers fixtures).
+# The suite only has the shared staging/live database, so this stays off until a test database exists.
+pytestmark = pytest.mark.skip(reason="needs a separate test database; never run against the shared one")
+
 @pytest.mark.asyncio
 async def test_user_soft_delete_lifecycle(
     async_client: AsyncClient,

@@ -10,11 +10,9 @@ import {
   BackHandler,
   Alert,
   AccessibilityInfo,
-  Platform,
   DeviceEventEmitter,
 } from "react-native";
-import Reanimated, { FadeInDown, LinearTransition, ZoomIn } from "react-native-reanimated";
-import { LinearGradient } from "expo-linear-gradient";
+import Reanimated, { FadeInDown } from "react-native-reanimated";
 import { useRouter, useFocusEffect } from "expo-router";
 import { useColorScheme } from "nativewind";
 import { Feather } from "@expo/vector-icons";
@@ -23,8 +21,6 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getToken } from "../../../lib/secureTokenStore";
 import * as Haptics from "expo-haptics";
 import * as Location from "expo-location";
-import { getCompanionGreeting, getCompanionLine, CompanionGreetingResult } from "../../../services/companionService";
-import { voiceGreeting } from "../../../services/companionCopy";
 import { useNetInfo } from "@react-native-community/netinfo";
 import { useToast } from "../../../contexts/ToastContext";
 
@@ -121,13 +117,6 @@ function getGreeting(name?: string): string {
   return name ? `${timeStr}, ${name}` : timeStr;
 }
 
-function getDaypartTitle(): string {
-  const hour = new Date().getHours();
-  if (hour < 12) return "Start your day";
-  if (hour < 17) return "Keep the rhythm";
-  return "Wind down tonight";
-}
-
 // ─── Dashboard Screen ─────────────────────────────────────────────────────────
 export default function DashboardScreen() {
   const { colorScheme } = useColorScheme();
@@ -202,11 +191,9 @@ export default function DashboardScreen() {
   const { showToast } = useToast();
 
   const [refreshing, setRefreshing] = useState(false);
-  const [alertModalVisible, setAlertModalVisible] = useState(false);
+  // The patient tapped the alert banner to see the popup again.
+  const [alertReopened, setAlertReopened] = useState(false);
   const [reduceMotion, setReduceMotion] = useState(false);
-  const [companion, setCompanion] = useState<CompanionGreetingResult | null>(null);
-  // Varnished (LLM) variant of the voiced greeting line, when available.
-  const [companionAi, setCompanionAi] = useState<string | null>(null);
   const [scoreModalVisible, setScoreModalVisible] = useState(false);
   const [showInsight, setShowInsight] = useState(true);
   // HL-057: the review whose checkup reminder the patient hid (a newer review shows it again).
@@ -218,7 +205,7 @@ export default function DashboardScreen() {
   }, [checkupHiddenKey]);
 
   const isNavigatingRef = useRef(false);
-  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const [pulseAnim] = useState(() => new Animated.Value(1));
 
   const [isSyncingOffline, setIsSyncingOffline] = useState(false);
 
@@ -339,7 +326,6 @@ export default function DashboardScreen() {
   const sleepLogged = !!data?.today_activity?.sleep_logged;
   const vitalsLogged = !!data?.today_activity?.vitals_logged;
   const completedCount = [mealsLogged, exerciseLogged, sleepLogged, vitalsLogged].filter(Boolean).length;
-  const progressPercent = Math.round((completedCount / 4) * 100);
 
   const sodiumTodayMg = data?.nutrition_budget?.sodium?.consumed_mg ?? data?.today_activity?.total_sodium_mg ?? 0;
   // The patient's own daily limit (Goals & thresholds), 2,000 mg when not set
@@ -495,63 +481,6 @@ export default function DashboardScreen() {
     };
   }, [tourKey, dashboardReady, startTour]);
 
-  useEffect(() => {
-    if (data) {
-      const firstName = data?.user?.first_name || user?.first_name || "";
-      const rawBp = typeof data?.latest_vitals?.bp === "string" ? data.latest_vitals.bp : "";
-      let sbp: number | undefined;
-      let dbp: number | undefined;
-      if (rawBp && rawBp !== "--/--") {
-        const parts = rawBp.split("/").map((p: string) => parseInt(p.trim(), 10));
-        if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
-          sbp = parts[0];
-          dbp = parts[1];
-        }
-      }
-
-      const activityContext = {
-        vitals_logged: !!data?.today_activity?.vitals_logged,
-        total_sodium_mg: data?.nutrition_budget?.sodium?.consumed_mg ?? data?.today_activity?.total_sodium_mg,
-        total_exercise_minutes: movementMins,
-        total_sleep_hours: data?.today_activity?.total_sleep_hours,
-        latest_sbp: sbp,
-        latest_dbp: dbp,
-      };
-
-      const hssContext = {
-        score: hssScore,
-        tier: theme.label,
-      };
-
-      getCompanionGreeting(firstName, activityContext, hssContext, userId || undefined).then((result) => {
-        setCompanion(result);
-        // v2 variety layer: instant cached varnish (or template), warming the
-        // cache for next open. Crisis tones bypass AI entirely.
-        if (result.tone !== "warning" && result.tone !== "caution") {
-          const voiced = voiceGreeting(
-            result,
-            typeof streakDays === "number" ? streakDays : 0
-          );
-          if (voiced.voiced) {
-            getCompanionLine(
-              "greeting",
-              { streak_days: typeof streakDays === "number" ? streakDays : 0 },
-              voiced.text,
-              userId || undefined,
-              token || undefined
-            ).then((line) => {
-              setCompanionAi(line.source === "ai" ? line.text : null);
-            });
-          } else {
-            setCompanionAi(null);
-          }
-        } else {
-          setCompanionAi(null);
-        }
-      });
-    }
-  }, [data, user?.first_name, movementMins, hssScore, theme.label, userId, streakDays, token]);
-
   // React Query handles isolation automatically by including userId in the queryKey.
 
 
@@ -591,36 +520,37 @@ export default function DashboardScreen() {
     };
   }, [isCritical, pulseAnim, isLoading, reduceMotion]);
 
-  const [dismissedAlertIds, setDismissedAlertIds] = useState<string[]>([]);
+  // null until the saved list loads, so a dismissed alert doesn't flash back up on every launch.
+  const [dismissedAlertIds, setDismissedAlertIds] = useState<string[] | null>(null);
   const dismissedAlertsKey = userId ? `@dismissed_alert_ids_${userId}` : "@dismissed_alert_ids_guest";
 
   useEffect(() => {
-    AsyncStorage.getItem(dismissedAlertsKey).then((res) => {
-      if (res) {
+    AsyncStorage.getItem(dismissedAlertsKey)
+      .then((res) => {
         try {
-          setDismissedAlertIds(JSON.parse(res));
-        } catch { }
-      }
-    });
+          setDismissedAlertIds(res ? JSON.parse(res) : []);
+        } catch {
+          setDismissedAlertIds([]);
+        }
+      })
+      .catch(() => setDismissedAlertIds([]));
   }, [dismissedAlertsKey]);
 
   const handleDismissAlert = async (alertId?: string) => {
-    setAlertModalVisible(false);
+    setAlertReopened(false);
     if (!alertId) return;
-    if (!dismissedAlertIds.includes(alertId)) {
-      const updated = [...dismissedAlertIds, alertId];
+    const saved = dismissedAlertIds ?? [];
+    if (!saved.includes(alertId)) {
+      const updated = [...saved, alertId];
       setDismissedAlertIds(updated);
       await AsyncStorage.setItem(dismissedAlertsKey, JSON.stringify(updated));
     }
   };
 
-  // Auto-show alert modal ONLY if it hasn't been dismissed by the user yet
-  useEffect(() => {
-    const alertId = data?.latest_alert?.id;
-    if (alertId && !isLoading && !dismissedAlertIds.includes(alertId)) {
-      setAlertModalVisible(true);
-    }
-  }, [data?.latest_alert?.id, isLoading, dismissedAlertIds]);
+  // Auto-show the alert popup ONLY if the patient hasn't dismissed it yet
+  const latestAlertId = data?.latest_alert?.id;
+  const alertModalVisible =
+    alertReopened || (!!latestAlertId && !isLoading && !!dismissedAlertIds && !dismissedAlertIds.includes(latestAlertId));
 
   // Clean Android BackHandler on the primary Dashboard tab
   useFocusEffect(
@@ -785,7 +715,7 @@ export default function DashboardScreen() {
             <View className="flex-row items-center gap-2 flex-1 pr-2">
               <Feather name="alert-circle" size={14} color={colors.dangerText} />
               <Text className="text-[12px] text-danger-text font-medium">
-                Couldn't refresh your latest data.
+                Couldn&apos;t refresh your latest data.
               </Text>
             </View>
             <TouchableOpacity
@@ -814,7 +744,7 @@ export default function DashboardScreen() {
         {/* ── Critical Health Alert Banner (Tap to re-open modal) ── */}
         {isAlertActive && (
           <TouchableOpacity activeOpacity={0.8}
-            onPress={() => setAlertModalVisible(true)}
+            onPress={() => setAlertReopened(true)}
             className="mx-5 mt-3 bg-danger-tint border border-danger/30 rounded-3xl p-4 flex-row items-center gap-3"
             style={cardShadowStyle}
           >
@@ -964,7 +894,7 @@ export default function DashboardScreen() {
               </Text>
             </View>
             <Text className="text-[14px] font-bold text-text mb-1">
-              Elevated indicators detected. Please don't worry.
+              Elevated indicators detected. Please don&apos;t worry.
             </Text>
             <Text className="text-[12px] text-text-soft leading-relaxed font-medium mb-3">
               A single high reading can be caused by temporary stress, exertion, or caffeine. Follow these steps:

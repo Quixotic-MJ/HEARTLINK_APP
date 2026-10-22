@@ -56,7 +56,7 @@ class SupabaseSleepLogsRepository(SleepLogsRepository):
             res = query.execute()
             return res.data or []
         except Exception as e:
-            logger.warning(f"Error reading sleep logs for {user_id}: {e}")
+            handle_db_error(e)
             return []
 
     def list_all_logs(self) -> List[Dict[str, Any]]:
@@ -64,7 +64,7 @@ class SupabaseSleepLogsRepository(SleepLogsRepository):
             res = self.client.table("sleep_logs").select("*").eq("is_deleted", False).order("logged_at", desc=True).execute()
             return res.data or []
         except Exception as e:
-            logger.warning(f"Error reading all sleep logs: {e}")
+            handle_db_error(e)
             return []
 
     def create_log(self, user_id: str, data: Dict[str, Any]) -> Dict[str, Any]:

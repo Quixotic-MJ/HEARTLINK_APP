@@ -59,7 +59,7 @@ class SupabaseMealsRepository(MealsRepository):
             res = query.execute()
             return res.data or []
         except Exception as e:
-            logger.warning(f"Error reading meal logs for {user_id}: {e}")
+            handle_db_error(e)
             return []
 
     def list_user_meals_paginated(self, user_id: str, page: int = 1, page_size: int = 20) -> Dict[str, Any]:
@@ -90,7 +90,7 @@ class SupabaseMealsRepository(MealsRepository):
             res = self.client.table("meal_logs").select("*").order("logged_at", desc=True).execute()
             return res.data or []
         except Exception as e:
-            logger.warning(f"Error reading all meal logs: {e}")
+            handle_db_error(e)
             return []
 
     def create_meal(self, user_id: str, data: Dict[str, Any]) -> Dict[str, Any]:

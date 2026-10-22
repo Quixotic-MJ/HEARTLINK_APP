@@ -79,7 +79,7 @@ class SupabaseExercisesRepository(ExercisesRepository):
             logs = res.data or []
             return [self._normalize_log(log) for log in logs]
         except Exception as e:
-            logger.warning(f"Error reading exercise logs for {user_id}: {e}")
+            handle_db_error(e)
             return []
 
     def list_all_logs(self) -> List[Dict[str, Any]]:
@@ -88,7 +88,7 @@ class SupabaseExercisesRepository(ExercisesRepository):
             logs = res.data or []
             return [self._normalize_log(log) for log in logs]
         except Exception as e:
-            logger.warning(f"Error reading all exercise logs: {e}")
+            handle_db_error(e)
             return []
 
     def create_log(self, user_id: str, data: Dict[str, Any]) -> Dict[str, Any]:

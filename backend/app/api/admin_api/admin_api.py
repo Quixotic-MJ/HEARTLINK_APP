@@ -95,7 +95,8 @@ def get_admin_dashboard(current_user: dict = Depends(get_current_admin_only)):
         if isinstance(e, HTTPException):
             raise
         print(f"[Dashboard Error] {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to load dashboard: {e}")
+        # The database's own error text stays in the server log, not in the response.
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
 @router.get("/analytics", response_model=Dict[str, Any])
 def get_admin_analytics(period: str = "6months", current_user: dict = Depends(get_current_admin_only)):

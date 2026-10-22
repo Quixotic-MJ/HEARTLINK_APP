@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -28,7 +28,8 @@ import { useSodiumBudget } from "../../../hooks/useSodiumBudget";
 import { formatMg } from "../../../services/foodLogging";
 import { apiFetch } from "../../../lib/api";
 
-const { height: SCREEN_HEIGHT } = Dimensions.get("window");type MealLog = {
+const { height: SCREEN_HEIGHT } = Dimensions.get("window");
+type MealLog = {
   id: string;
   user_id: string;
   meal_name: string;
@@ -84,13 +85,15 @@ export default function DailyDiaryScreen() {
 
   const [meals, setMeals] = useState<MealLog[]>([]);
   const [loading, setLoading] = useState(true);
+  // Loading failed: say so instead of showing an empty day.
+  const [failed, setFailed] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [mealToDelete, setMealToDelete] = useState<{ id: string; name: string } | null>(null);
   const [logModalVisible, setLogModalVisible] = useState(false);
 
   // Bottom Sheet animations
-  const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
-  const backdropAnim = useRef(new Animated.Value(0)).current;
+  const [slideAnim] = useState(() => new Animated.Value(SCREEN_HEIGHT));
+  const [backdropAnim] = useState(() => new Animated.Value(0));
 
   const openLogModal = () => {
     setLogModalVisible(true);
@@ -143,26 +146,26 @@ export default function DailyDiaryScreen() {
           "Authorization": `Bearer ${token || ""}`,
         },
       });
-      if (response.ok) {
-        const result = await response.json();
-        const data: MealLog[] = result.data ?? result;
+      if (!response.ok) throw new Error(String(response.status));
+      const result = await response.json();
+      const data: MealLog[] = result.data ?? result;
 
-        // Filter meals to only include today's logs
-        const today = new Date();
-        const todaysMeals = data.filter((meal) => {
-          if (!meal.logged_at) return false;
-          const mealDate = new Date(meal.logged_at);
-          return (
-            mealDate.getFullYear() === today.getFullYear() &&
-            mealDate.getMonth() === today.getMonth() &&
-            mealDate.getDate() === today.getDate()
-          );
-        });
+      // Filter meals to only include today's logs
+      const today = new Date();
+      const todaysMeals = data.filter((meal) => {
+        if (!meal.logged_at) return false;
+        const mealDate = new Date(meal.logged_at);
+        return (
+          mealDate.getFullYear() === today.getFullYear() &&
+          mealDate.getMonth() === today.getMonth() &&
+          mealDate.getDate() === today.getDate()
+        );
+      });
 
-        setMeals(todaysMeals);
-      }
-    } catch (error) {
-      console.error("Error fetching daily meals:", error);
+      setMeals(todaysMeals);
+      setFailed(false);
+    } catch {
+      setFailed(true);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -258,7 +261,7 @@ export default function DailyDiaryScreen() {
       />
 
       <FlatList
-        data={loading ? [] : mealGroups}
+        data={loading || failed ? [] : mealGroups}
         keyExtractor={(item) => item.name}
         contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 8, paddingBottom: 24, gap: 12 }}
         refreshControl={
@@ -266,7 +269,14 @@ export default function DailyDiaryScreen() {
         }
         ListHeaderComponent={
           <View style={{ gap: 12, marginBottom: 4 }}>
+            {failed ? (
+              <View style={{ padding: 16, borderRadius: 12, backgroundColor: c.surface, gap: 8 }}>
+                <Text style={{ fontSize: 15, fontWeight: "600", color: c.ink }}>{"Today's meals couldn't load"}</Text>
+                <Text style={{ fontSize: 14, color: c.slate }}>Check your connection, then pull down to try again.</Text>
+              </View>
+            ) : null}
             {/* Sodium today against the patient's own limit */}
+            {failed ? null : (
             <View style={{ padding: 16, borderRadius: 12, backgroundColor: sodiumOver ? c.peach : c.surface, gap: 10 }}>
               <View className="flex-row items-baseline justify-between" style={{ gap: 12 }}>
                 <Text style={{ fontSize: 15, fontWeight: "600", color: c.ink }}>Sodium today</Text>
@@ -288,6 +298,7 @@ export default function DailyDiaryScreen() {
                   : `${formatMg(sodiumLeft)} mg left for today.`}
               </Text>
             </View>
+            )}
 
             <View className="flex-row" style={{ gap: 8 }}>
               {smallStats.map((s) => (

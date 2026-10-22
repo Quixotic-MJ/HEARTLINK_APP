@@ -59,7 +59,7 @@ class SupabaseHSSRepository(HSSRepository):
             res = query.execute()
             return res.data or []
         except Exception as e:
-            logger.warning(f"Error reading HSS history for {user_id}: {e}")
+            handle_db_error(e)
             return []
 
     def list_all_hss_records(self) -> List[Dict[str, Any]]:
@@ -67,7 +67,7 @@ class SupabaseHSSRepository(HSSRepository):
             res = self.client.table("hss_history").select("*").order("computed_at", desc=True).execute()
             return res.data or []
         except Exception as e:
-            logger.warning(f"Error reading all HSS records: {e}")
+            handle_db_error(e)
             return []
 
     def get_latest_hss(self, user_id: str) -> Optional[Dict[str, Any]]:
@@ -82,7 +82,7 @@ class SupabaseHSSRepository(HSSRepository):
             res = self.client.table("hss_history").select("*").eq("user_id", uuid_val).eq("source", "baseline").order("computed_at", desc=True).limit(1).execute()
             return res.data[0] if res.data else None
         except Exception as e:
-            logger.warning(f"Error reading baseline HSS for {user_id}: {e}")
+            handle_db_error(e)
             return None
 
     def create_hss_record(self, user_id: str, data: Dict[str, Any]) -> Dict[str, Any]:

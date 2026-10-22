@@ -89,7 +89,7 @@ class SupabaseContentRepository(ContentRepository):
             res = self.client.table("recipes").select("*").execute()
             return res.data or []
         except Exception as e:
-            logger.warning(f"Error reading recipes from Supabase: {e}")
+            handle_db_error(e)
             return []
 
     def get_recipe(self, recipe_id: str) -> Optional[Dict[str, Any]]:
@@ -102,7 +102,7 @@ class SupabaseContentRepository(ContentRepository):
             res = self.client.table("recipes").select("*").eq("legacy_id", recipe_id).execute()
             return res.data[0] if res.data else None
         except Exception as e:
-            logger.warning(f"Error reading recipe {recipe_id}: {e}")
+            handle_db_error(e)
             return None
 
     def create_recipe(self, data: Dict[str, Any]) -> Dict[str, Any]:
@@ -163,7 +163,7 @@ class SupabaseContentRepository(ContentRepository):
                     saved.append(r)
             return saved
         except Exception as e:
-            logger.warning(f"Error reading saved recipes for {user_id}: {e}")
+            handle_db_error(e)
             return []
 
     def save_recipe_for_user(self, user_id: str, recipe_id: str) -> bool:
@@ -216,7 +216,7 @@ class SupabaseContentRepository(ContentRepository):
             res = self.client.table("exercise_routines").select("*").execute()
             return res.data or []
         except Exception as e:
-            logger.warning(f"Error reading exercise routines from Supabase: {e}")
+            handle_db_error(e)
             return []
 
     def get_routine(self, routine_id: str) -> Optional[Dict[str, Any]]:
@@ -229,7 +229,7 @@ class SupabaseContentRepository(ContentRepository):
             res = self.client.table("exercise_routines").select("*").eq("legacy_id", routine_id).execute()
             return res.data[0] if res.data else None
         except Exception as e:
-            logger.warning(f"Error reading exercise routine {routine_id}: {e}")
+            handle_db_error(e)
             return None
 
     def create_routine(self, data: Dict[str, Any]) -> Dict[str, Any]:
@@ -290,7 +290,7 @@ class SupabaseContentRepository(ContentRepository):
                     saved.append(ex)
             return saved
         except Exception as e:
-            logger.warning(f"Error reading saved exercises for {user_id}: {e}")
+            handle_db_error(e)
             return []
 
     def save_exercise_for_user(self, user_id: str, routine_id: str) -> bool:

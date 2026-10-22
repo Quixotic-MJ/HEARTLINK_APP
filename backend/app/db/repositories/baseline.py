@@ -68,7 +68,7 @@ class SupabaseBaselineRepository(BaselineRepository):
             res = self.client.table("baseline_onboarding").select("*").eq("user_id", uuid_val).execute()
             return res.data[0] if res.data else None
         except Exception as e:
-            logger.warning(f"Error reading baseline for {user_id}: {e}")
+            handle_db_error(e)
             return None
 
     def save_baseline(self, user_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
@@ -96,7 +96,7 @@ class SupabaseBaselineRepository(BaselineRepository):
             res = self.client.table("user_thresholds").select("*").eq("user_id", uuid_val).execute()
             return res.data[0] if res.data else None
         except Exception as e:
-            logger.warning(f"Error reading thresholds for {user_id}: {e}")
+            handle_db_error(e)
             return None
 
     def update_thresholds(self, user_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
@@ -170,7 +170,7 @@ class SupabaseBaselineRepository(BaselineRepository):
             res = self.client.table("care_team_contacts").select("*").eq("user_id", uuid_val).execute()
             return res.data or []
         except Exception as e:
-            logger.warning(f"Error reading care team for {user_id}: {e}")
+            handle_db_error(e)
             return []
 
     def add_care_team_contact(self, user_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
