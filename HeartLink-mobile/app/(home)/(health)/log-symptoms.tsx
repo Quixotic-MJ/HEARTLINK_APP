@@ -1,551 +1,247 @@
-import React, { useState, useEffect, useRef } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  ScrollView,
-  Linking,
-  Platform,
-  KeyboardAvoidingView,
-  PanResponder,
-  Modal,
-} from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import { View, Text, TextInput, ScrollView, Linking, Platform, KeyboardAvoidingView, Modal } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
-import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Feather } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import Animated, {
-  FadeIn,
-  FadeInDown,
-  FadeOutUp,
-  LinearTransition,
-  Easing,
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-} from "react-native-reanimated";
-import { useUser } from "../../../contexts/UserContext";
-import { OfflineSyncService } from "../../../utils/OfflineSyncService";
+import { useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
-import { useToast } from "../../../contexts/ToastContext";
-import { Button } from "../../../components/ui/Button";
-import { ConfirmDialog } from "../../../components/ui/ConfirmDialog";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { postLogAck } from "../../../services/companionCopy";
-import { ds, DsColors } from "../../../constants/theme";
-import { useDs } from "../../../components/onboarding/useDs";
-import { DsTextField } from "../../../components/onboarding/Controls";
+import { useUser } from "../../../contexts/UserContext";
+import { useToast } from "../../../contexts/ToastContext";
+import { OfflineSyncService } from "../../../utils/OfflineSyncService";
+import { ConfirmDialog } from "../../../components/ui/ConfirmDialog";
+import AnimatedButton from "../../../components/ui/AnimatedButton";
+import DsButton from "../../../components/onboarding/DsButton";
 import { SquareIconButton } from "../../../components/exercise/ExerciseBits";
-import { IconBadge } from "../../../components/onboarding/QuestionLayout";
-import { TickBox } from "../../../components/food/FoodBits";
+import { useDs } from "../../../components/onboarding/useDs";
+import { ds, DsColors } from "../../../constants/theme";
+import { postLogAck } from "../../../services/companionCopy";
+import {
+  CHEST,
+  completeReading,
+  isHypertensiveCrisis as crisisFor,
+  isSevereHypotension as lowFor,
+  isSymptomEmergency,
+} from "../../../services/vitalsCheck";
 import { API_BASE_URL, apiFetch } from "../../../lib/api";
-const base_url = API_BASE_URL;
 
-// ─── Types & Constants ────────────────────────────────────────────────────────
+// The daily check-in: blood pressure (and pulse), medicines, how the patient feels, and weight if they like.
+// Safety: a complete blood pressure reading of 180/120 or more, or under 90/60, chest discomfort rated 7 or
+// more, or shortness of breath while resting opens the emergency guidance (services/vitalsCheck.ts).
 
-type SymptomType =
-  | "None (Feeling fine)"
-  | "Chest Discomfort / Tightness"
-  | "Shortness of Breath"
-  | "Dizziness / Lightheadedness"
-  | "Palpitations"
-  | "Fatigue / Weakness";
-
-type ContextType =
-  | "While resting"
-  | "During physical activity"
-  | "After eating";
-
-const SYMPTOMS: SymptomType[] = [
-  "None (Feeling fine)",
-  "Chest Discomfort / Tightness",
-  "Shortness of Breath",
-  "Dizziness / Lightheadedness",
-  "Palpitations",
-  "Fatigue / Weakness",
+const FINE = "None (Feeling fine)";
+// Stored names (the backend and the score use them) and the words shown.
+const SYMPTOMS: { id: string; label: string }[] = [
+  { id: FINE, label: "I feel fine" },
+  { id: CHEST, label: "Chest discomfort" },
+  { id: "Shortness of Breath", label: "Short of breath" },
+  { id: "Dizziness / Lightheadedness", label: "Dizzy" },
+  { id: "Palpitations", label: "Heart racing" },
+  { id: "Fatigue / Weakness", label: "Tired or weak" },
+];
+const CONTEXTS: { id: string; label: string; stored: string }[] = [
+  { id: "While resting", label: "While resting", stored: "resting" },
+  { id: "During physical activity", label: "During activity", stored: "after_exercise" },
+  { id: "After eating", label: "After eating", stored: "after_eating" },
 ];
 
-const CONTEXTS: ContextType[] = [
-  "While resting",
-  "During physical activity",
-  "After eating",
+type Medicine = "taken" | "not_yet" | "none";
+const MEDICINES: { id: Medicine; label: string }[] = [
+  { id: "taken", label: "I took them" },
+  { id: "not_yet", label: "Not yet" },
+  { id: "none", label: "I don't take any" },
 ];
 
-const SYMPTOM_ICONS: Record<SymptomType, string> = {
-  "None (Feeling fine)": "emoticon-happy-outline",
-  "Chest Discomfort / Tightness": "heart-pulse",
-  "Shortness of Breath": "lungs",
-  "Dizziness / Lightheadedness": "emoticon-confused-outline",
-  Palpitations: "waveform",
-  "Fatigue / Weakness": "battery-low",
-};
-
-const CONTEXT_ICONS: Record<ContextType, string> = {
-  "While resting": "sofa-outline",
-  "During physical activity": "run",
-  "After eating": "food-outline",
-};
-
-// ─── Severity Colors ──────────────────────────────────────────────────────────
-
-/** Tinted tag colours: mint for mild, peach for moderate, rose with dark text for severe. */
-function getSeverityColor(num: number, c: DsColors) {
-  if (num <= 3) return { bg: c.mint, text: c.charcoal };
-  if (num <= 6) return { bg: c.peach, text: c.warmText };
-  return { bg: c.rose, text: c.ink };
+function strengthTag(n: number, c: DsColors) {
+  if (n <= 3) return { text: "Mild", bg: c.mint, fg: c.charcoal };
+  if (n <= 6) return { text: "Moderate", bg: c.peach, fg: c.warmText };
+  return { text: "Severe", bg: c.rose, fg: c.ink };
 }
 
-function getSeverityLabel(num: number) {
-  if (num <= 3) return "Mild";
-  if (num <= 6) return "Moderate";
-  return "Severe";
+function sameDay(a: Date, b: Date) {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }
-
-// ─── Interactive Severity Slider Component ───────────────────────────────────
-
-function SeveritySlider({
-  value,
-  onChange,
-  isTouched,
-}: {
-  value: number;
-  onChange: (val: number) => void;
-  isTouched?: boolean;
-}) {
-  const { c } = useDs();
-  const [width, setWidth] = useState(0);
-  const valueRef = useRef(value);
-  valueRef.current = value;
-  const widthRef = useRef(width);
-  widthRef.current = width;
-
-  const isDragging = useRef(false);
-
-  const updateFromPosition = (x: number) => {
-    if (widthRef.current <= 0) return;
-    const padding = 14;
-    const usableWidth = widthRef.current - padding * 2;
-    const clampedX = Math.max(0, Math.min(usableWidth, x - padding));
-    const ratio = clampedX / usableWidth;
-    
-    // Update visual position continuously without delay for perfectly smooth drag
-    animatedPercentage.value = ratio * 100;
-
-    const stepVal = Math.round(1 + ratio * 9);
-    const clampedVal = Math.max(1, Math.min(10, stepVal));
-    if (clampedVal !== valueRef.current) {
-      const prevVal = valueRef.current;
-      if (clampedVal >= 7 && prevVal < 7) {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-      } else {
-        Haptics.selectionAsync();
-      }
-      onChange(clampedVal);
-    }
-  };
-
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: (evt) => {
-        isDragging.current = true;
-        updateFromPosition(evt.nativeEvent.locationX);
-      },
-      onPanResponderMove: (evt) => {
-        updateFromPosition(evt.nativeEvent.locationX);
-      },
-      onPanResponderRelease: () => {
-        isDragging.current = false;
-        animatedPercentage.value = withTiming(((valueRef.current - 1) / 9) * 100, {
-          duration: 200,
-          easing: Easing.out(Easing.ease),
-        });
-      },
-      onPanResponderTerminate: () => {
-        isDragging.current = false;
-        animatedPercentage.value = withTiming(((valueRef.current - 1) / 9) * 100, {
-          duration: 200,
-          easing: Easing.out(Easing.ease),
-        });
-      },
-    })
-  ).current;
-
-  const sev = getSeverityColor(value, c);
-  const label = getSeverityLabel(value);
-  const percentage = Math.max(0, Math.min(100, ((value - 1) / 9) * 100));
-
-  const animatedPercentage = useSharedValue(percentage);
-
-  useEffect(() => {
-    if (!isDragging.current) {
-      animatedPercentage.value = withTiming(percentage, {
-        duration: 150,
-        easing: Easing.out(Easing.ease),
-      });
-    }
-  }, [percentage]);
-
-  const activeTrackStyle = useAnimatedStyle(() => {
-    return {
-      width: `${animatedPercentage.value}%`,
-    };
-  });
-
-  const thumbStyle = useAnimatedStyle(() => {
-    const trackWidth = width > 0 ? width - 28 : 0;
-    return {
-      left: (animatedPercentage.value / 100) * trackWidth - 14,
-    };
-  });
-
-  // Like the score ring: the line stays blue and the severity shows as a tinted tag.
-  const primaryColor = c.line;
-
-  return (
-    <View className="gap-3 mt-1">
-      {/* Top Header Row */}
-      <View className="flex-row items-center justify-between px-1">
-        <View className="flex-row items-center gap-1.5">
-          <Text style={{ fontSize: 13, fontWeight: "500", color: c.slate }}>
-            Intensity:
-          </Text>
-          <Text style={{ fontSize: 15, fontWeight: "600", color: c.ink }}>
-            Level {value}
-            <Text style={{ fontSize: 13, fontWeight: "500", color: c.steel }}> /10</Text>
-          </Text>
-        </View>
-
-        <View style={{ paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, backgroundColor: sev.bg }}>
-          <Text style={{ fontSize: 13, fontWeight: "600", color: sev.text }}>
-            {label}
-          </Text>
-        </View>
-      </View>
-
-      {/* Discrete Slider Track Container */}
-      <View
-        onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
-        {...panResponder.panHandlers}
-        className="py-3 px-3.5 justify-center"
-      >
-        <View style={{ height: 28, justifyContent: "center" }}>
-          {/* Inactive Track */}
-          <View
-            style={{
-              height: 8,
-              width: "100%",
-              backgroundColor: c.hairlineSoft,
-              borderRadius: 4,
-              overflow: "hidden",
-            }}
-          >
-            {/* Active Primary Track */}
-            <Animated.View
-              style={[{
-                height: "100%",
-                backgroundColor: primaryColor,
-                borderRadius: 4,
-                position: "absolute",
-              }, activeTrackStyle]}
-            />
-            
-            {/* Tick Marks */}
-            {width > 0 && (
-              <View style={{ position: "absolute", width: "100%", height: "100%", flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 4 }} pointerEvents="none">
-                {Array.from({ length: 10 }).map((_, i) => (
-                  <View key={i} style={{ width: 2, height: 4, backgroundColor: c.hairlineStrong, borderRadius: 1 }} />
-                ))}
-              </View>
-            )}
-          </View>
-
-          {/* Floating Thumb (white with inner severity dot) */}
-          <Animated.View
-            style={[{
-              position: "absolute",
-              width: 28,
-              height: 28,
-              borderRadius: 14,
-              backgroundColor: c.canvas,
-              borderWidth: 1.5,
-              borderColor: c.hairlineStrong,
-              alignItems: "center",
-              justifyContent: "center",
-            }, thumbStyle]}
-          >
-            <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: isTouched === false ? c.danger : primaryColor }} />
-
-            {isTouched === false && (
-              <View style={{ position: "absolute", top: -2, right: -2, width: 8, height: 8, borderRadius: 4, backgroundColor: c.danger, borderWidth: 1, borderColor: c.canvas }} />
-            )}
-          </Animated.View>
-        </View>
-      </View>
-
-      {/* Calibration Labels */}
-      <View className="flex-row justify-between items-center px-1">
-        <Text style={{ fontSize: 12, fontWeight: "500", color: c.steel }}>
-          1 • Mild
-        </Text>
-        <Text style={{ fontSize: 12, fontWeight: "500", color: c.steel }}>
-          5 • Moderate
-        </Text>
-        <Text style={{ fontSize: 12, fontWeight: "500", color: c.steel }}>
-          10 • Severe
-        </Text>
-      </View>
-    </View>
-  );
-}
-
-// ─── Main Screen ──────────────────────────────────────────────────────────────
 
 export default function LogSymptomsScreen() {
   const { c, isDark } = useDs();
-  // A selected answer: sky tint with a blue border.
-  const pick = (on: boolean) => ({ backgroundColor: on ? c.tint : c.canvas, borderColor: on ? c.line : c.hairline });
-  const card = { backgroundColor: c.canvas, borderColor: c.hairline };
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const params = useLocalSearchParams<{
-    triggered_by_exercise_id?: string;
-  }>();
+  const queryClient = useQueryClient();
+  const params = useLocalSearchParams<{ triggered_by_exercise_id?: string }>();
+  const fromExercise = !!params.triggered_by_exercise_id;
   const { userId, token } = useUser();
   const { showToast } = useToast();
+
+  const [systolic, setSystolic] = useState("");
+  const [diastolic, setDiastolic] = useState("");
+  const [pulse, setPulse] = useState("");
+  const [weight, setWeight] = useState("");
+  const [showWeight, setShowWeight] = useState(false);
+  const [medicine, setMedicine] = useState<Medicine | null>(null);
+  const [symptoms, setSymptoms] = useState<string[]>([FINE]);
+  const [strength, setStrength] = useState<Record<string, number>>({});
+  // Nothing is chosen for the patient, except after an exercise, where we know it was during activity.
+  const [context, setContext] = useState<string | null>(fromExercise ? "During physical activity" : null);
+
+  const [lastReading, setLastReading] = useState<{ text: string; weight?: string } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showEmergencyGuidanceModal, setShowEmergencyGuidanceModal] = useState(false);
+  const [showEmergency, setShowEmergency] = useState(false);
   const [hasInterrupted, setHasInterrupted] = useState(false);
   const [showIncompleteWarning, setShowIncompleteWarning] = useState(false);
 
-  const [timestamp, setTimestamp] = useState("");
   const diastolicRef = useRef<TextInput>(null);
-  
-  const scrollViewRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<ScrollView>(null);
   const [symptomsY, setSymptomsY] = useState(0);
+  const noMedsKey = userId ? `@no_regular_meds_${userId}` : null;
 
-  // Vitals State
-  const [systolic, setSystolic] = useState("");
-  const [diastolic, setDiastolic] = useState("");
-  const [heartRate, setHeartRate] = useState("");
-  const [weight, setWeight] = useState("");
-  const [medicationTaken, setMedicationTaken] = useState<boolean | null>(null);
-
-  // Hemodynamic boundary checks (AHA / Philippine DOH Hypertensive Crisis & Hypotension)
-  const sysVal = parseInt(systolic, 10);
-  const diaVal = parseInt(diastolic, 10);
-  const isHypertensiveCrisis =
-    (!isNaN(sysVal) && sysVal >= 180) || (!isNaN(diaVal) && diaVal >= 120);
-  const isSevereHypotension =
-    (!isNaN(sysVal) && sysVal > 0 && sysVal < 90) ||
-    (!isNaN(diaVal) && diaVal > 0 && diaVal < 60);
-
-  // Symptoms State
-  const [selectedSymptoms, setSelectedSymptoms] = useState<SymptomType[]>(["None (Feeling fine)"]);
-  const [severities, setSeverities] = useState<Record<string, number>>({});
-  const [touchedSeverities, setTouchedSeverities] = useState<Record<string, boolean>>({});
-  const [context, setContext] = useState<ContextType>(
-    params.triggered_by_exercise_id ? "During physical activity" : "While resting"
-  );
-
-  useEffect(() => {
-    setTimestamp(
-      new Date().toLocaleDateString("en-PH", {
-        weekday: "short",
-        month: "short",
-        day: "numeric",
-      })
-    );
-  }, []);
-
-  useEffect(() => {
-    if (!userId || !token) return;
-    
-    let isMounted = true;
-    const fetchLatestLog = async () => {
-      try {
-        const res = await apiFetch(`/api/health-logs/${userId}?page=1&page_size=1`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (res.ok && isMounted) {
-          const body = await res.json();
-          const items = body.data ?? body;
-          if (items && items.length > 0) {
-            const lastLog = items[0];
-            const logDate = new Date(lastLog.logged_at);
-            const today = new Date();
-            const isToday = logDate.getDate() === today.getDate() && 
-                            logDate.getMonth() === today.getMonth() && 
-                            logDate.getFullYear() === today.getFullYear();
-            
-            if (isToday) {
-              if (lastLog.systolic_bp) setSystolic(lastLog.systolic_bp.toString());
-              if (lastLog.diastolic_bp) setDiastolic(lastLog.diastolic_bp.toString());
-              if (lastLog.heart_rate_bpm) setHeartRate(lastLog.heart_rate_bpm.toString());
-              if (lastLog.medication_taken !== undefined && lastLog.medication_taken !== null) setMedicationTaken(lastLog.medication_taken);
-            }
-            if (lastLog.weight_kg) setWeight(lastLog.weight_kg.toString());
-          }
-        }
-      } catch (err) {
-        console.warn("Autofill fetch failed", err);
-      }
-    };
-    
-    fetchLatestLog();
-    return () => { isMounted = false; };
-  }, [userId, token]);
-
-  useEffect(() => {
-    if (params.triggered_by_exercise_id && symptomsY > 0) {
-      setTimeout(() => {
-        scrollViewRef.current?.scrollTo({ y: symptomsY, animated: true });
-      }, 300);
-    }
-  }, [params.triggered_by_exercise_id, symptomsY]);
-
-  const hasRealSymptoms =
-    !selectedSymptoms.includes("None (Feeling fine)") &&
-    selectedSymptoms.length > 0;
-
-  const toggleSymptom = (symp: SymptomType) => {
-    Haptics.selectionAsync();
-    if (symp === "None (Feeling fine)") {
-      setSelectedSymptoms(["None (Feeling fine)"]);
-      return;
-    }
-    let next = selectedSymptoms.filter((s) => s !== "None (Feeling fine)");
-    if (next.includes(symp)) {
-      next = next.filter((s) => s !== symp);
-    } else {
-      next.push(symp);
-    }
-    setSelectedSymptoms(next.length === 0 ? ["None (Feeling fine)"] : next);
-  };
-
-  const isEmergency =
-    (hasRealSymptoms &&
-      ((selectedSymptoms.includes("Chest Discomfort / Tightness") &&
-        (severities["Chest Discomfort / Tightness"] || 1) >= 7) ||
-        (selectedSymptoms.includes("Shortness of Breath") &&
-          context === "While resting"))) ||
-    isHypertensiveCrisis ||
-    isSevereHypotension;
+  // ── Safety checks (complete readings only) ──
+  const reading = completeReading(systolic, diastolic);
+  const isHypertensiveCrisis = crisisFor(reading);
+  const isSevereHypotension = lowFor(reading);
+  const hasRealSymptoms = !symptoms.includes(FINE) && symptoms.length > 0;
+  const symptomEmergency = hasRealSymptoms && isSymptomEmergency(symptoms, strength, context);
+  const isEmergency = isHypertensiveCrisis || isSevereHypotension || symptomEmergency;
 
   useEffect(() => {
     if (isEmergency && !hasInterrupted) {
-      setShowEmergencyGuidanceModal(true);
+      setShowEmergency(true);
       setHasInterrupted(true);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
   }, [isEmergency, hasInterrupted]);
 
-  const handleLocateCardiologist = () => {
-    Linking.openURL(
-      "https://www.google.com/maps/search/Cardiologist+in+Cebu+City"
-    ).catch(() => showToast({ title: "Error", message: "Could not open map application.", type: "error" }));
-  };
-
-  const handleSubmit = async (bypassIncompleteCheck = false) => {
-    const parseIntegerInput = (val: string): number | null => {
-      const trimmed = val.trim();
-      if (!trimmed) return null;
-      const n = Number(trimmed);
-      return !Number.isInteger(n) ? NaN : n;
+  // Today's reading fills in again if the patient comes back; otherwise the last one is shown for comparison.
+  useEffect(() => {
+    if (!userId || !token) return;
+    let alive = true;
+    (async () => {
+      try {
+        const res = await apiFetch(`/api/health-logs/${userId}?page=1&page_size=1`, { headers: { Authorization: `Bearer ${token}` } });
+        if (!res.ok || !alive) return;
+        const body = await res.json();
+        const last = (body.data ?? body)?.[0];
+        if (!last) return;
+        const at = new Date(last.logged_at);
+        if (sameDay(at, new Date())) {
+          if (last.systolic_bp) setSystolic(String(last.systolic_bp));
+          if (last.diastolic_bp) setDiastolic(String(last.diastolic_bp));
+          if (last.heart_rate_bpm) setPulse(String(last.heart_rate_bpm));
+          if (last.medication_taken === true) setMedicine("taken");
+        }
+        if (last.systolic_bp && last.diastolic_bp) {
+          const when = sameDay(at, new Date()) ? "earlier today" : at.toLocaleDateString("en-US", { weekday: "long" });
+          setLastReading({ text: `Last time ${last.systolic_bp}/${last.diastolic_bp}, ${when}`, weight: last.weight_kg ? String(last.weight_kg) : undefined });
+        } else if (last.weight_kg) {
+          setLastReading({ text: "", weight: String(last.weight_kg) });
+        }
+      } catch {
+        // The form works without it.
+      }
+    })();
+    return () => {
+      alive = false;
     };
-    const parseFloatInput = (val: string): number | null => {
-      const trimmed = val.trim();
-      if (!trimmed) return null;
-      const n = Number(trimmed);
-      return isNaN(n) ? NaN : n;
-    };
+  }, [userId, token]);
 
-    const sys = parseIntegerInput(systolic);
-    const dia = parseIntegerInput(diastolic);
-    const hr = parseIntegerInput(heartRate);
-    const w = parseFloatInput(weight);
+  // Someone who said they take no regular medicines isn't asked again each day.
+  useEffect(() => {
+    if (!noMedsKey) return;
+    AsyncStorage.getItem(noMedsKey)
+      .then((v) => {
+        if (v === "true") setMedicine((m) => m ?? "none");
+      })
+      .catch(() => {});
+  }, [noMedsKey]);
 
-    if (sys !== null) {
-      if (isNaN(sys) || sys < 50 || sys > 300) {
-        showToast({ title: "Unusual Reading", message: "Top blood pressure (systolic) is typically between 50 and 300 mmHg. Please double-check your reading.", type: "error" });
-        return;
-      }
+  useEffect(() => {
+    if (fromExercise && symptomsY > 0) {
+      const t = setTimeout(() => scrollRef.current?.scrollTo({ y: symptomsY, animated: true }), 300);
+      return () => clearTimeout(t);
     }
-    if (dia !== null) {
-      if (isNaN(dia) || dia < 30 || dia > 200) {
-        showToast({ title: "Unusual Reading", message: "Bottom blood pressure (diastolic) is typically between 30 and 200 mmHg. Please double-check your reading.", type: "error" });
-        return;
-      }
-    }
-    if (hr !== null) {
-      if (isNaN(hr) || hr < 30 || hr > 250) {
-        showToast({ title: "Unusual Pulse Rate", message: "Heart rate is typically between 30 and 250 BPM. Please re-check your pulse reading.", type: "error" });
-        return;
-      }
-    }
-    if (w !== null) {
-      if (isNaN(w) || w < 20 || w > 400) {
-        showToast({ title: "Check Weight", message: "Please enter a realistic body weight between 20 and 400 kg.", type: "error" });
-        return;
-      }
-    }
+  }, [fromExercise, symptomsY]);
 
-    if ((sys !== null && dia === null) || (sys === null && dia !== null)) {
-      showToast({
-        title: "Incomplete Blood Pressure",
-        message: "Please enter both the top (systolic) and bottom (diastolic) numbers for an accurate reading.",
-        type: "error",
-      });
+  const toggleSymptom = (id: string) => {
+    Haptics.selectionAsync();
+    if (id === FINE) {
+      setSymptoms([FINE]);
       return;
     }
+    const rest = symptoms.filter((s) => s !== FINE);
+    const next = rest.includes(id) ? rest.filter((s) => s !== id) : [...rest, id];
+    setSymptoms(next.length ? next : [FINE]);
+  };
 
+  const pickMedicine = (m: Medicine) => {
+    Haptics.selectionAsync();
+    setMedicine(m);
+    if (noMedsKey) AsyncStorage.setItem(noMedsKey, m === "none" ? "true" : "false").catch(() => {});
+  };
+
+  const unrated = hasRealSymptoms ? symptoms.filter((s) => !strength[s]) : [];
+  const needsWhen = hasRealSymptoms && !context;
+  const blockedReason =
+    unrated.length > 0
+      ? "Rate how strong each symptom is to save"
+      : needsWhen
+        ? "Choose when it happened to save"
+        : null;
+
+  const findClinic = () => router.push("/locator" as never);
+  const call911 = () => Linking.openURL("tel:911").catch(() => {});
+
+  const handleSubmit = async (bypassIncompleteCheck = false) => {
+    if (blockedReason) return;
+    const toInt = (v: string): number | null => {
+      const t = v.trim();
+      if (!t) return null;
+      const n = Number(t);
+      return Number.isInteger(n) ? n : NaN;
+    };
+    const sys = toInt(systolic);
+    const dia = toInt(diastolic);
+    const hr = toInt(pulse);
+    const w = weight.trim() ? Number(weight.trim()) : null;
+
+    if (sys !== null && (isNaN(sys) || sys < 50 || sys > 300)) {
+      showToast({ title: "Check the top number", message: "It's usually between 50 and 300 mmHg. Please check your reading.", type: "error" });
+      return;
+    }
+    if (dia !== null && (isNaN(dia) || dia < 30 || dia > 200)) {
+      showToast({ title: "Check the bottom number", message: "It's usually between 30 and 200 mmHg. Please check your reading.", type: "error" });
+      return;
+    }
+    if (hr !== null && (isNaN(hr) || hr < 30 || hr > 250)) {
+      showToast({ title: "Check your pulse", message: "It's usually between 30 and 250 bpm. Please check your reading.", type: "error" });
+      return;
+    }
+    if (w !== null && (isNaN(w) || w < 20 || w > 400)) {
+      showToast({ title: "Check your weight", message: "Please enter a weight between 20 and 400 kg.", type: "error" });
+      return;
+    }
+    if ((sys === null) !== (dia === null)) {
+      showToast({ title: "Both numbers needed", message: "Enter the top and the bottom number of your blood pressure.", type: "error" });
+      return;
+    }
     if (sys !== null && dia !== null) {
       if (sys <= dia) {
-        showToast({
-          title: "Check Your Numbers",
-          message: "The top number (systolic) should always be higher than the bottom number (diastolic).",
-          type: "error",
-        });
+        showToast({ title: "Check your numbers", message: "The top number should be higher than the bottom number.", type: "error" });
         return;
       }
       if (sys - dia < 15) {
-        showToast({
-          title: "Numbers Too Close",
-          message: "The top and bottom numbers are unusually close together. Please verify your blood pressure cuff placement.",
-          type: "error",
-        });
+        showToast({ title: "Numbers very close", message: "The two numbers are unusually close. Please check how the cuff is placed and measure again.", type: "error" });
         return;
       }
     }
 
-    const hasAnyContent =
-      (sys !== null && dia !== null) ||
-      hr !== null ||
-      w !== null ||
-      hasRealSymptoms ||
-      medicationTaken !== null;
-
-    if (!hasAnyContent) {
-      showToast({
-        title: "Ready to Log?",
-        message: "Please enter your vitals, select any symptoms, or check off your medications before saving.",
-        type: "info",
-      });
+    const hasAnything = (sys !== null && dia !== null) || hr !== null || w !== null || hasRealSymptoms || medicine !== null;
+    if (!hasAnything) {
+      showToast({ title: "Nothing to save yet", message: "Add your blood pressure, your medicines or how you feel.", type: "info" });
       return;
     }
 
-    const untouchedSymp = selectedSymptoms.find(s => s !== "None (Feeling fine)" && !touchedSeverities[s]);
-    if (untouchedSymp) {
-      showToast({ title: "Action Required", message: `Please set the severity for ${untouchedSymp}.`, type: "error" });
-      return;
-    }
-
-    const isBpComplete = sys !== null && dia !== null;
-    const isMedsComplete = medicationTaken !== null;
-    
-    if (bypassIncompleteCheck !== true && (!isBpComplete || !isMedsComplete)) {
+    // Soft warning for a check-in without blood pressure or the medicine answer (it can still be saved).
+    if (!bypassIncompleteCheck && (sys === null || medicine === null)) {
       setShowIncompleteWarning(true);
       return;
     }
@@ -553,442 +249,446 @@ export default function LogSymptomsScreen() {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setIsSubmitting(true);
 
-    const targetUrl = `${base_url}/api/health-logs/${userId}`;
-    const contextMap: Record<string, string> = {
-      "While resting": "resting",
-      "During physical activity": "after_exercise",
-      "After eating": "after_eating",
-    };
-    const mappedContext = contextMap[context] || "resting";
-    const effectiveHr = hr !== null && !isNaN(hr) ? hr : null;
     const payload = {
       systolic_bp: sys,
       diastolic_bp: dia,
-      heart_rate_bpm: effectiveHr,
+      heart_rate_bpm: hr,
       weight_kg: w,
-      medication_taken: medicationTaken || false,
-      symptoms: selectedSymptoms,
-      severity_map: severities,
-      context: mappedContext,
+      // The table has no "doesn't take any"; that answer is kept on the phone and saved as not taken.
+      medication_taken: medicine === "taken",
+      symptoms,
+      severity_map: hasRealSymptoms ? Object.fromEntries(symptoms.map((s) => [s, strength[s]])) : {},
+      context: hasRealSymptoms || fromExercise ? CONTEXTS.find((x) => x.id === context)?.stored ?? null : null,
       triggered_by_exercise_id: params.triggered_by_exercise_id || null,
       notes: "",
     };
 
-    let saveSucceeded = false;
-
+    let saved = false;
     try {
       const res = await apiFetch(`/api/health-logs/${userId}`, {
         method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token || ""}`,
-        },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token || ""}` },
         body: JSON.stringify(payload),
       });
-
       if (!res.ok) {
         if (res.status >= 400 && res.status < 500) {
-          console.error(`Health log rejected with client status ${res.status}. Not enqueuing invalid payload.`);
-          showToast({
-            title: "Couldn't Save Log",
-            message: "Oops, we couldn't save that. Please double-check your numbers and try again!",
-            type: "error",
-            duration: 6000,
-          });
+          showToast({ title: "Couldn't save", message: "Please check your numbers and try again.", type: "error", duration: 6000 });
           setIsSubmitting(false);
           return;
         }
-        throw new Error(`Server returned status ${res.status}`);
+        throw new Error(`Server returned ${res.status}`);
       }
-
-      saveSucceeded = true;
-
-      if (userId) {
-        try {
-          const allKeys = await AsyncStorage.getAllKeys();
-          const keysToRemove = allKeys.filter((k) => k.startsWith(`@trends_cache_${userId}`));
-          if (keysToRemove.length > 0) {
-            await AsyncStorage.multiRemove(keysToRemove);
-          }
-        } catch (e) {
-          console.warn("Failed to invalidate trends cache after log", e);
-        }
-      }
-    } catch (err: any) {
-      console.warn("Network error during submission. Queuing log for offline sync...", err);
-      await OfflineSyncService.queueRequest(targetUrl, "POST", payload, undefined, userId || undefined);
-      saveSucceeded = true;
+      saved = true;
+      queryClient.invalidateQueries({ queryKey: ["dashboard", userId] });
+      queryClient.invalidateQueries({ queryKey: ["trends", userId] });
+    } catch {
+      await OfflineSyncService.queueRequest(`${API_BASE_URL}/api/health-logs/${userId}`, "POST", payload, undefined, userId || undefined);
+      saved = true;
     } finally {
       setIsSubmitting(false);
     }
-
-    if (!saveSucceeded) return;
+    if (!saved) return;
 
     if (isEmergency) {
       if (isSevereHypotension) {
-        showToast({ 
-          title: "Critical Low Blood Pressure", 
-          message: "Blood pressure reading reflects acute hypotension (<90/60 mmHg). Please sit or lie down safely, hydrate, and seek medical attention.", 
-          type: "error",
-          duration: 8000 
-        });
+        showToast({ title: "Very low blood pressure", message: "Your reading is under 90/60 mmHg. Sit or lie down, drink some water, and get medical help if you feel faint.", type: "error", duration: 8000 });
       } else if (isHypertensiveCrisis) {
-        showToast({ 
-          title: "Hypertensive Crisis Detected", 
-          message: "Blood pressure reading reflects an acute Hypertensive Crisis (≥180/120 mmHg). Please seek emergency medical care.", 
-          type: "error",
-          duration: 8000 
-        });
+        showToast({ title: "Very high blood pressure", message: "Your reading is 180/120 mmHg or higher. Please get emergency medical care.", type: "error", duration: 8000 });
       } else {
-        showToast({ 
-          title: "Critical Clinical Indicators", 
-          message: "Your clinical indicators reflect acute cardiac risk. Emergency medical evaluation is recommended.", 
-          type: "error",
-          duration: 6000 
-        });
+        showToast({ title: "Please get checked now", message: "What you logged can be a sign of a heart problem. Emergency medical care is recommended.", type: "error", duration: 6000 });
       }
-      if (hasInterrupted) {
-        router.back();
-      } else {
-        setShowEmergencyGuidanceModal(true);
+      if (hasInterrupted) router.back();
+      else {
+        setShowEmergency(true);
         setHasInterrupted(true);
       }
-    } else {
-      let comparisonStr = undefined;
-      if (sys !== null && dia !== null) {
-        try {
-          const res = await apiFetch(`/api/health-logs/${userId}?page=1&page_size=1`, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          if (res.ok) {
-            const body = await res.json();
-            const logs = body.data ?? body;
-            if (logs && logs.length > 0 && logs[0].systolic_bp && logs[0].diastolic_bp) {
-              const prevSys = logs[0].systolic_bp;
-              const prevDia = logs[0].diastolic_bp;
-              const dirSys = sys < prevSys ? "down from" : (sys > prevSys ? "up from" : "steady with");
-              const prevDate = new Date(logs[0].logged_at);
-              const today = new Date();
-              const isYesterday = today.getDate() - prevDate.getDate() === 1 && today.getMonth() === prevDate.getMonth() && today.getFullYear() === prevDate.getFullYear();
-              const timeRef = isYesterday ? "yesterday's" : "your previous";
-              comparisonStr = `that's ${dirSys} ${timeRef} ${prevSys}/${prevDia}. Steady progress.`;
-            }
-          }
-        } catch (e) {
-          // ignore
-        }
-      }
-
-      if (sys !== null && dia !== null) {
-        showToast({ 
-          ...postLogAck("vitals", `${sys}/${dia} mmHg${effectiveHr ? ` • ${effectiveHr} BPM` : ""}`), 
-          type: "success" 
-        });
-      } else {
-        showToast({ 
-          title: "Health Log Saved",
-          message: "Your symptoms and daily check-in have been recorded.",
-          type: "success" 
-        });
-      }
-      router.back();
+      return;
     }
+
+    if (sys !== null && dia !== null) {
+      showToast({ ...postLogAck("vitals", `${sys}/${dia} mmHg${hr ? `, ${hr} bpm` : ""}`), type: "success" });
+    } else {
+      showToast({ title: "Check-in saved", message: "Your check-in for today is saved.", type: "success" });
+    }
+    router.back();
   };
 
-  const maxSeverity = hasRealSymptoms ? Math.max(...selectedSymptoms.map(s => severities[s] || 1)) : 1;
-  const sevColor = getSeverityColor(maxSeverity, c);
+  const bigInput = (danger: boolean) => ({
+    height: 72,
+    borderWidth: danger ? 1.5 : 1,
+    borderColor: danger ? c.danger : c.hairlineStrong,
+    borderRadius: 12,
+    fontSize: 34,
+    fontWeight: "600" as const,
+    color: c.ink,
+    textAlign: "center" as const,
+    backgroundColor: c.canvas,
+  });
+  const radioRow = (on: boolean) => ({
+    height: 52,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    borderWidth: on ? 2 : 1,
+    borderColor: on ? c.line : c.hairline,
+    backgroundColor: on ? c.tint : c.canvas,
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    justifyContent: "space-between" as const,
+  });
+  const radioDot = (on: boolean) => (
+    <View style={{ width: 20, height: 20, borderRadius: 10, borderWidth: on ? 6 : 2, borderColor: on ? c.line : c.hairlineStrong, backgroundColor: c.canvas }} />
+  );
+  const bpDanger = isHypertensiveCrisis || isSevereHypotension;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.canvas }} edges={["top"]}>
       <StatusBar style={isDark ? "light" : "dark"} />
 
-      {/* ── Top Bar ── */}
-      <View className="flex-row items-center px-5 pt-3 pb-1">
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 20, paddingTop: 12, paddingBottom: 4 }}>
         <SquareIconButton icon="arrow-left" label="Go back" onPress={() => router.back()} />
+        <Text style={{ fontSize: 14, color: c.slate }}>
+          {new Date().toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}
+        </Text>
       </View>
 
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        className="flex-1"
-      >
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
         <ScrollView
-          ref={scrollViewRef}
-          contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 24 }}
-          showsVerticalScrollIndicator={false}
+          ref={scrollRef}
           keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 24, gap: 28 }}
         >
-          {/* ── Heading ── */}
-          <Animated.View entering={FadeIn.duration(240)} style={{ marginBottom: 24 }}>
-            <View style={{ alignSelf: "flex-start", paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, backgroundColor: c.tint, marginBottom: 14 }}>
-              <Text style={{ fontSize: 13, fontWeight: "600", color: c.onTint }}>DAILY CHECK-IN</Text>
+          <View style={{ gap: 6 }}>
+            <Text accessibilityRole="header" style={{ fontSize: 26, lineHeight: 32, fontWeight: "600", color: c.ink }}>
+              {"Today's check-in"}
+            </Text>
+            <Text style={{ fontSize: 15, lineHeight: 22, color: c.slate }}>Your blood pressure, medicines and how you feel. Takes about a minute.</Text>
+          </View>
+
+          {/* ── Blood pressure ── */}
+          <View style={{ gap: 12 }}>
+            <View style={{ flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", gap: 8 }}>
+              <Text accessibilityRole="header" style={{ fontSize: 18, fontWeight: "600", color: c.ink }}>
+                Blood pressure
+              </Text>
+              {lastReading?.text ? <Text style={{ fontSize: 13, color: c.slate, flexShrink: 1, textAlign: "right" }}>{lastReading.text}</Text> : null}
             </View>
-            <Text accessibilityRole="header" style={{ fontSize: 26, lineHeight: 32, fontWeight: "600", letterSpacing: -0.5, color: c.ink }}>
-              Log Health Data
-            </Text>
-            <Text style={{ fontSize: 15, lineHeight: 23, color: c.slate, marginTop: 8 }}>
-              Record today&apos;s cardiovascular vitals, medication status, and any symptoms.
-            </Text>
-          </Animated.View>
-
-          <Animated.View entering={FadeInDown.duration(260)} className="gap-4">
-            {/* ── Section 1: Vitals & Measurements ── */}
-            <View className="gap-4">
-              {/* Core Vitals Card */}
-              <View style={[{ borderRadius: 12, borderWidth: 1, padding: 20, gap: 16 }, card]}>
-                <View className="flex-row items-center" style={{ gap: 10 }}>
-                  <IconBadge icon="pulse" tint="sky" size={36} />
-                  <Text style={{ fontSize: 17, fontWeight: "600", color: c.ink }}>Cardiovascular Metrics</Text>
-                </View>
-
-                {/* Blood Pressure Row */}
-                <View style={{ gap: 8 }}>
-                  <Text style={{ fontSize: 15, fontWeight: "600", color: c.ink }}>Blood Pressure</Text>
-                  <View className="flex-row gap-3">
-                    <View className="flex-1">
-                      <DsTextField
-                        label="Systolic (SYS)"
-                        unit="mmHg"
-                        value={systolic}
-                        onChangeText={(val) => {
-                          setSystolic(val);
-                          if (val.length === 3) diastolicRef.current?.focus();
-                        }}
-                        placeholder="120"
-                        keyboardType="numeric"
-                        maxLength={3}
-                        returnKeyType="next"
-                        onSubmitEditing={() => diastolicRef.current?.focus()}
-                      />
-                    </View>
-                    <View className="flex-1">
-                      <DsTextField
-                        inputRef={diastolicRef}
-                        label="Diastolic (DIA)"
-                        unit="mmHg"
-                        value={diastolic}
-                        onChangeText={setDiastolic}
-                        placeholder="80"
-                        keyboardType="numeric"
-                        maxLength={3}
-                      />
-                    </View>
-                  </View>
-                </View>
-
-                {/* Heart Rate & Weight Row */}
-                <View className="flex-row gap-3">
-                  <View className="flex-1">
-                    <DsTextField label="Heart Rate" unit="BPM" value={heartRate} onChangeText={setHeartRate} placeholder="72" keyboardType="numeric" maxLength={3} />
-                  </View>
-                  <View className="flex-1">
-                    <DsTextField label="Weight" unit="kg" value={weight} onChangeText={setWeight} placeholder="70" keyboardType="numeric" maxLength={5} />
-                  </View>
-                </View>
+            <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 10 }}>
+              <View style={{ flex: 1, gap: 6 }}>
+                <Text style={{ fontSize: 13, color: c.slate }}>Top number</Text>
+                <TextInput
+                  value={systolic}
+                  onChangeText={(v) => {
+                    const clean = v.replace(/[^0-9]/g, "");
+                    setSystolic(clean);
+                    if (clean.length === 3) diastolicRef.current?.focus();
+                  }}
+                  keyboardType="number-pad"
+                  maxLength={3}
+                  placeholder="120"
+                  placeholderTextColor={c.muted}
+                  returnKeyType="next"
+                  onSubmitEditing={() => diastolicRef.current?.focus()}
+                  accessibilityLabel="Top number, systolic, in mmHg"
+                  style={bigInput(bpDanger)}
+                />
               </View>
-
-              {/* Medication Status Card */}
-              <View style={[{ borderRadius: 12, borderWidth: 1, padding: 20, gap: 12 }, card]}>
-                <View className="flex-row items-center" style={{ gap: 10 }}>
-                  <IconBadge icon="check-circle-outline" tint="lavender" size={36} />
-                  <Text style={{ fontSize: 17, fontWeight: "600", color: c.ink }}>Medication Check</Text>
-                </View>
-                <Text style={{ fontSize: 14, lineHeight: 20, color: c.slate }}>
-                  Did you take your prescribed maintenance medications today?
-                </Text>
-                <View className="flex-row gap-3 mt-1">
-                  <TouchableOpacity
-                    activeOpacity={0.75}
-                    onPress={() => { Haptics.selectionAsync(); setMedicationTaken(false); }}
-                    accessibilityRole="radio"
-                    accessibilityState={{ checked: medicationTaken === false }}
-                    className="flex-1 flex-row items-center justify-center gap-2"
-                    style={[{ height: 56, borderRadius: 12, borderWidth: 1.5 }, pick(medicationTaken === false)]}
-                  >
-                    <Feather name="x-circle" size={16} color={medicationTaken === false ? c.onTint : c.slate} />
-                    <Text style={{ fontSize: 15, fontWeight: "500", color: medicationTaken === false ? c.onTint : c.ink }}>No, missed</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    activeOpacity={0.75}
-                    onPress={() => { Haptics.selectionAsync(); setMedicationTaken(true); }}
-                    accessibilityRole="radio"
-                    accessibilityState={{ checked: medicationTaken === true }}
-                    className="flex-1 flex-row items-center justify-center gap-2"
-                    style={[{ height: 56, borderRadius: 12, borderWidth: 1.5 }, pick(medicationTaken === true)]}
-                  >
-                    <Feather name="check-circle" size={16} color={medicationTaken === true ? c.onTint : c.slate} />
-                    <Text style={{ fontSize: 15, fontWeight: "500", color: medicationTaken === true ? c.onTint : c.ink }}>Yes, taken</Text>
-                  </TouchableOpacity>
-                </View>
+              <Text style={{ fontSize: 34, color: c.muted, paddingBottom: 14 }} accessibilityElementsHidden importantForAccessibility="no">
+                /
+              </Text>
+              <View style={{ flex: 1, gap: 6 }}>
+                <Text style={{ fontSize: 13, color: c.slate }}>Bottom number</Text>
+                <TextInput
+                  ref={diastolicRef}
+                  value={diastolic}
+                  onChangeText={(v) => setDiastolic(v.replace(/[^0-9]/g, ""))}
+                  keyboardType="number-pad"
+                  maxLength={3}
+                  placeholder="80"
+                  placeholderTextColor={c.muted}
+                  accessibilityLabel="Bottom number, diastolic, in mmHg"
+                  style={bigInput(bpDanger)}
+                />
               </View>
+              <Text style={{ fontSize: 13, color: c.slate, paddingBottom: 26 }}>mmHg</Text>
             </View>
 
-            {/* ── Section 2: Symptoms & Feelings ── */}
-            <View className="gap-4 mt-2" onLayout={(e) => setSymptomsY(e.nativeEvent.layout.y)}>
-              {/* Section Divider */}
-              <View className="flex-row items-center gap-3 px-1">
-                <View style={{ flex: 1, height: 1, backgroundColor: c.hairlineSoft }} />
-                <View className="flex-row items-center gap-2">
-                  <IconBadge icon="heart-outline" tint="rose" size={28} />
-                  <Text style={{ fontSize: 13, fontWeight: "600", color: c.slate }}>Symptoms & Feelings</Text>
-                </View>
-                <View style={{ flex: 1, height: 1, backgroundColor: c.hairlineSoft }} />
+            {bpDanger && reading ? (
+              <EmergencyCard
+                c={c}
+                title={isHypertensiveCrisis ? "This reading is very high" : "This reading is very low"}
+                body={
+                  isHypertensiveCrisis
+                    ? `${reading.sys}/${reading.dia} is at or above 180/120. Rest for 5 minutes and measure again. If it stays this high or you feel worse, call 911 now.`
+                    : `${reading.sys}/${reading.dia} is under 90/60. Sit or lie down and drink some water. Get medical help if you feel faint or unwell.`
+                }
+                onCall={call911}
+                onClinic={findClinic}
+              />
+            ) : null}
+
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", height: 52, paddingHorizontal: 14, borderWidth: 1, borderColor: c.hairlineStrong, borderRadius: 10 }}>
+              <Text style={{ fontSize: 15, color: c.charcoal }}>
+                Pulse <Text style={{ color: c.steel }}>(optional)</Text>
+              </Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                <TextInput
+                  value={pulse}
+                  onChangeText={(v) => setPulse(v.replace(/[^0-9]/g, ""))}
+                  keyboardType="number-pad"
+                  maxLength={3}
+                  placeholder="72"
+                  placeholderTextColor={c.muted}
+                  accessibilityLabel="Pulse in beats per minute"
+                  style={{ minWidth: 56, height: 44, fontSize: 17, fontWeight: "600", color: c.ink, textAlign: "right" }}
+                />
+                <Text style={{ fontSize: 13, color: c.slate }}>bpm</Text>
               </View>
+            </View>
+          </View>
 
-              {/* Status Overview Summary */}
-              <Animated.View layout={LinearTransition.duration(220)} className="flex-row gap-3 mt-2">
-                <View style={{ flex: 1, borderRadius: 12, padding: 14, alignItems: "center", backgroundColor: c.surface }}>
-                  <Text style={{ fontSize: 22, fontWeight: "600", color: c.ink }}>{hasRealSymptoms ? selectedSymptoms.length : 0}</Text>
-                  <Text style={{ fontSize: 12, fontWeight: "500", color: c.slate, marginTop: 4 }}>Symptoms</Text>
-                </View>
-                <View style={{ flex: 1, borderRadius: 12, padding: 14, alignItems: "center", justifyContent: "center", backgroundColor: hasRealSymptoms ? sevColor.bg : c.surface }}>
-                  <Text style={{ fontSize: 22, fontWeight: "600", color: hasRealSymptoms ? sevColor.text : c.steel }}>{hasRealSymptoms ? maxSeverity : "—"}</Text>
-                  <Text style={{ fontSize: 12, fontWeight: "500", color: hasRealSymptoms ? sevColor.text : c.slate, marginTop: 4 }}>{hasRealSymptoms ? getSeverityLabel(maxSeverity) : "Severity"}</Text>
-                </View>
-                <View style={{ flex: 1, borderRadius: 12, padding: 14, alignItems: "center", justifyContent: "center", backgroundColor: c.surface }}>
-                  <MaterialCommunityIcons name={CONTEXT_ICONS[context] as any} size={24} color={c.charcoal} style={{ marginBottom: 2 }} />
-                  <Text style={{ fontSize: 12, fontWeight: "500", color: c.slate, marginTop: 2, textAlign: "center" }} numberOfLines={1}>{context.replace("While ", "").replace("During ", "")}</Text>
-                </View>
-              </Animated.View>
+          {/* ── Medicines ── */}
+          <View style={{ gap: 12 }}>
+            <Text accessibilityRole="header" style={{ fontSize: 18, fontWeight: "600", color: c.ink }}>
+              Medicines today
+            </Text>
+            <View accessibilityRole="radiogroup" style={{ gap: 8 }}>
+              {MEDICINES.map((m) => {
+                const on = medicine === m.id;
+                return (
+                  <AnimatedButton
+                    key={m.id}
+                    onPress={() => pickMedicine(m.id)}
+                    accessibilityRole="radio"
+                    accessibilityState={{ checked: on }}
+                    accessibilityLabel={m.label}
+                    style={radioRow(on)}
+                  >
+                    <Text style={{ fontSize: 16, color: on ? c.onTint : c.ink }}>{m.label}</Text>
+                    {radioDot(on)}
+                  </AnimatedButton>
+                );
+              })}
+            </View>
+          </View>
 
-              {/* Symptom Selection Cards */}
-              <Animated.View layout={LinearTransition.duration(220)} className="gap-3 mt-2">
-                <Text style={{ fontSize: 17, fontWeight: "600", color: c.ink, marginTop: 4 }}>What are you feeling?</Text>
-                <View className="gap-2">
-                  {SYMPTOMS.map((symp) => {
-                    const isSelected = selectedSymptoms.includes(symp);
-                    const isNone = symp === "None (Feeling fine)";
-                    return (
-                      <View key={symp} style={[{ borderRadius: 12, borderWidth: 1.5 }, pick(isSelected)]}>
-                        <TouchableOpacity
-                          activeOpacity={0.75}
-                          onPress={() => toggleSymptom(symp)}
-                          accessibilityRole="checkbox"
-                          accessibilityState={{ checked: isSelected }}
-                          className="flex-row items-center px-4"
-                          style={{ minHeight: 56 }}
-                        >
-                          <MaterialCommunityIcons name={SYMPTOM_ICONS[symp] as any} size={20} color={isSelected ? c.onTint : c.slate} style={{ marginRight: 12 }} />
-                          <Text style={{ flex: 1, fontSize: 16, fontWeight: "500", color: isSelected ? c.onTint : c.ink }}>{symp}</Text>
-                          <TickBox on={isSelected} />
-                        </TouchableOpacity>
-                        
-                        {isSelected && !isNone && (
-                          <View style={{ marginHorizontal: 12, marginBottom: 12, padding: 12, borderRadius: 8, backgroundColor: c.canvas }}>
-                            <SeveritySlider 
-                              value={severities[symp] || 1} 
-                              onChange={(val) => {
-                                setSeverities((prev) => ({ ...prev, [symp]: val }));
-                                setTouchedSeverities((prev) => ({ ...prev, [symp]: true }));
-                              }} 
-                              isTouched={touchedSeverities[symp]}
-                            />
+          {/* ── How do you feel ── */}
+          <View style={{ gap: 12 }} onLayout={(e) => setSymptomsY(e.nativeEvent.layout.y)}>
+            <Text accessibilityRole="header" style={{ fontSize: 18, fontWeight: "600", color: c.ink }}>
+              How do you feel?
+            </Text>
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+              {SYMPTOMS.map((s) => {
+                const on = symptoms.includes(s.id);
+                return (
+                  <AnimatedButton
+                    key={s.id}
+                    onPress={() => toggleSymptom(s.id)}
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: on }}
+                    accessibilityLabel={s.label}
+                    style={{ height: 44, paddingHorizontal: 16, borderRadius: 999, borderWidth: 1, justifyContent: "center", borderColor: on ? c.ink : c.hairline, backgroundColor: on ? c.ink : c.canvas }}
+                  >
+                    <Text style={{ fontSize: 15, color: on ? c.canvas : c.charcoal }}>{s.label}</Text>
+                  </AnimatedButton>
+                );
+              })}
+            </View>
+
+            {hasRealSymptoms
+              ? symptoms.map((id) => {
+                  const label = SYMPTOMS.find((s) => s.id === id)?.label ?? id;
+                  const value = strength[id];
+                  const tag = value ? strengthTag(value, c) : null;
+                  return (
+                    <View key={id} style={{ borderWidth: 1, borderColor: c.hairline, borderRadius: 12, padding: 16, gap: 12 }}>
+                      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                        <Text style={{ flex: 1, fontSize: 16, fontWeight: "600", color: c.ink }}>{label}: how strong?</Text>
+                        {tag ? (
+                          <View style={{ paddingVertical: 3, paddingHorizontal: 10, borderRadius: 999, backgroundColor: tag.bg }}>
+                            <Text style={{ fontSize: 13, fontWeight: "500", color: tag.fg }}>{tag.text}</Text>
                           </View>
-                        )}
+                        ) : null}
                       </View>
+                      <View accessibilityRole="radiogroup" accessibilityLabel={`${label} strength from 1 to 10`} style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                        {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => {
+                          const on = value === n;
+                          return (
+                            <AnimatedButton
+                              key={n}
+                              onPress={() => {
+                                if (n >= 7 && (value ?? 0) < 7) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+                                else Haptics.selectionAsync();
+                                setStrength((prev) => ({ ...prev, [id]: n }));
+                              }}
+                              accessibilityRole="radio"
+                              accessibilityState={{ checked: on }}
+                              accessibilityLabel={`${n} out of 10`}
+                              style={{
+                                width: "18%",
+                                flexGrow: 1,
+                                height: 48,
+                                borderRadius: 8,
+                                alignItems: "center",
+                                justifyContent: "center",
+                                borderWidth: on ? 2 : 1,
+                                borderColor: on ? c.line : c.hairline,
+                                backgroundColor: on ? c.tint : c.canvas,
+                              }}
+                            >
+                              <Text style={{ fontSize: 16, fontWeight: on ? "600" : "400", color: on ? c.onTint : c.ink }}>{n}</Text>
+                            </AnimatedButton>
+                          );
+                        })}
+                      </View>
+                      <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                        <Text style={{ fontSize: 12, color: c.slate }}>1 barely there</Text>
+                        <Text style={{ fontSize: 12, color: c.slate }}>10 worst you can imagine</Text>
+                      </View>
+                    </View>
+                  );
+                })
+              : null}
+
+            {hasRealSymptoms ? (
+              <View style={{ gap: 10 }}>
+                <Text accessibilityRole="header" style={{ fontSize: 16, fontWeight: "600", color: c.ink }}>
+                  When did it happen?
+                </Text>
+                <View accessibilityRole="radiogroup" style={{ gap: 8 }}>
+                  {CONTEXTS.map((x) => {
+                    const on = context === x.id;
+                    return (
+                      <AnimatedButton
+                        key={x.id}
+                        onPress={() => {
+                          Haptics.selectionAsync();
+                          setContext(x.id);
+                        }}
+                        accessibilityRole="radio"
+                        accessibilityState={{ checked: on }}
+                        accessibilityLabel={x.label}
+                        style={radioRow(on)}
+                      >
+                        <Text style={{ fontSize: 16, color: on ? c.onTint : c.ink }}>{x.label}</Text>
+                        {radioDot(on)}
+                      </AnimatedButton>
                     );
                   })}
                 </View>
-              </Animated.View>
+                {!context ? (
+                  <Text style={{ fontSize: 13, lineHeight: 18, color: c.slate }}>
+                    Pick one. Nothing is chosen for you, because it changes what the symptom may mean.
+                  </Text>
+                ) : null}
+              </View>
+            ) : null}
 
-              {/* Context Selector */}
-              {hasRealSymptoms && (
-                <Animated.View layout={LinearTransition.duration(220)} className="gap-3 mt-2">
-                  <Text style={{ fontSize: 17, fontWeight: "600", color: c.ink }}>When did this happen?</Text>
-                  <View className="gap-2">
-                    {CONTEXTS.map((ctx) => {
-                      const isSelected = context === ctx;
-                      return (
-                        <TouchableOpacity 
-                          key={ctx} 
-                          activeOpacity={0.75} 
-                          onPress={() => { Haptics.selectionAsync(); setContext(ctx); }} 
-                          accessibilityRole="radio"
-                          accessibilityState={{ checked: isSelected }}
-                          className="flex-row items-center px-4"
-                          style={[{ minHeight: 56, borderRadius: 12, borderWidth: 1.5 }, pick(isSelected)]}
-                        >
-                          <MaterialCommunityIcons name={CONTEXT_ICONS[ctx] as any} size={20} color={isSelected ? c.onTint : c.slate} style={{ marginRight: 12 }} />
-                          <Text style={{ flex: 1, fontSize: 16, fontWeight: "500", color: isSelected ? c.onTint : c.ink }}>{ctx}</Text>
-                          <View style={{ width: 22, height: 22, borderRadius: 11, borderWidth: 2, alignItems: "center", justifyContent: "center", borderColor: isSelected ? c.line : c.hairlineStrong }}>
-                            {isSelected && <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: c.line }} />}
-                          </View>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
-                </Animated.View>
-              )}
+            {symptomEmergency ? (
+              <EmergencyCard
+                c={c}
+                title="Please get checked now"
+                body={
+                  symptoms.includes(CHEST) && (strength[CHEST] ?? 0) >= 7
+                    ? `Chest discomfort rated ${strength[CHEST]} out of 10 can be a sign of a heart attack. Call 911 if it doesn't ease.`
+                    : "Shortness of breath while resting can be a sign of a heart problem. Call 911 if it doesn't ease."
+                }
+                onCall={call911}
+                onClinic={findClinic}
+              />
+            ) : null}
+          </View>
+
+          {/* ── Weight (optional) ── */}
+          {showWeight ? (
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", height: 52, paddingHorizontal: 14, borderWidth: 1, borderColor: c.hairlineStrong, borderRadius: 10 }}>
+              <Text style={{ fontSize: 15, color: c.charcoal }}>Weight</Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                <TextInput
+                  value={weight}
+                  onChangeText={(v) => setWeight(v.replace(/[^0-9.]/g, ""))}
+                  keyboardType="decimal-pad"
+                  maxLength={5}
+                  autoFocus
+                  placeholder={lastReading?.weight ?? "70"}
+                  placeholderTextColor={c.muted}
+                  accessibilityLabel="Weight in kilograms"
+                  style={{ minWidth: 64, height: 44, fontSize: 17, fontWeight: "600", color: c.ink, textAlign: "right" }}
+                />
+                <Text style={{ fontSize: 13, color: c.slate }}>kg</Text>
+              </View>
             </View>
-          </Animated.View>
+          ) : (
+            <AnimatedButton
+              onPress={() => setShowWeight(true)}
+              accessibilityRole="button"
+              accessibilityLabel="Add your weight, optional"
+              style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", height: 52, paddingHorizontal: 14, borderWidth: 1, borderColor: c.hairline, borderRadius: 10 }}
+            >
+              <Text style={{ fontSize: 15, color: c.ink }}>
+                Add your weight <Text style={{ color: c.steel }}>(optional)</Text>
+              </Text>
+              <Text style={{ fontSize: 15, color: c.slate }}>{lastReading?.weight ? `Last ${lastReading.weight} kg` : ""}</Text>
+            </AnimatedButton>
+          )}
         </ScrollView>
 
-        {/* ── Bottom Action Bar ── */}
-        <Animated.View layout={LinearTransition.duration(220)} className="px-5 pt-3 gap-2.5" style={{ backgroundColor: c.canvas, borderTopWidth: 1, borderTopColor: c.hairline, paddingBottom: Math.max(insets.bottom, 16) + (Platform.OS === "android" ? 10 : 4) }}>
-          {/* Docked Emergency Warning — fixed-height container prevents jitter */}
-          <View style={{ minHeight: isEmergency ? undefined : 0, overflow: "hidden" }}>
-            {isEmergency && (
-              <Animated.View entering={FadeInDown.duration(250)} exiting={FadeOutUp.duration(160)} style={{ backgroundColor: c.rose, borderRadius: 12, padding: 14, gap: 8 }}>
-                <View className="flex-row items-center justify-between">
-                  <View className="flex-row items-center gap-1.5 flex-1 pr-2">
-                    <Feather name="alert-triangle" size={16} color={c.danger} />
-                    <Text style={{ flex: 1, flexShrink: 1, fontSize: 13, fontWeight: "600", color: c.ink }}>
-                      {isSevereHypotension ? "Severe Hypotension (<90/60)" : isHypertensiveCrisis ? "Hypertensive Crisis (≥180/120)" : "Elevated Risk Detected"}
-                    </Text>
-                  </View>
-                  <TouchableOpacity onPress={handleLocateCardiologist} activeOpacity={0.75} className="flex-row items-center gap-1" style={{ minHeight: 36, paddingHorizontal: 10, borderRadius: 8, borderWidth: 1, borderColor: c.hairlineStrong, backgroundColor: c.canvas }}>
-                    <MaterialCommunityIcons name="map-marker-radius" size={14} color={c.danger} />
-                    <Text style={{ fontSize: 13, fontWeight: "500", color: c.ink }}>Find Cardiologist</Text>
-                  </TouchableOpacity>
-                </View>
-                <Text style={{ fontSize: 13, lineHeight: 18, color: c.charcoal }}>
-                  {isSevereHypotension
-                    ? "Entered blood pressure indicates acute hypotension (<90/60 mmHg). Sit or lie down safely, hydrate, and seek medical attention if faint or symptomatic."
-                    : isHypertensiveCrisis
-                    ? `Entered blood pressure (${systolic || "--"}/${diastolic || "--"} mmHg) indicates an acute Hypertensive Crisis (≥180/120 mmHg). Rest for 5 mins and re-test. If sustained or symptoms worsen, call 911 immediately.`
-                    : "Clinical indicators suggest acute risk. Please seek medical evaluation immediately."}
-                </Text>
-              </Animated.View>
-            )}
-          </View>
-
-          <View className="mt-2 mb-4">
-            <Button label={isEmergency ? "Submit Critical Log" : "Submit Health Log"} icon={isEmergency ? "alert-triangle" : "check"} onPress={() => handleSubmit(false)} isLoading={isSubmitting} loadingText="Saving log..." variant={isEmergency ? "destructive" : "primary"} />
-          </View>
-        </Animated.View>
+        <View style={{ paddingHorizontal: 20, paddingTop: 12, gap: 8, backgroundColor: c.canvas, borderTopWidth: 1, borderTopColor: c.hairline, paddingBottom: Math.max(insets.bottom, 16) + 8 }}>
+          {blockedReason ? <Text style={{ fontSize: 13, color: c.slate, textAlign: "center" }}>{blockedReason}</Text> : null}
+          <DsButton label="Save check-in" onPress={() => handleSubmit(false)} loading={isSubmitting} disabled={!!blockedReason} style={{ height: 52 }} />
+        </View>
       </KeyboardAvoidingView>
 
-      {/* Emergency Guidance Modal (HL-ENG-17) */}
-      <Modal visible={showEmergencyGuidanceModal} transparent animationType="fade" onRequestClose={() => { setShowEmergencyGuidanceModal(false); }}>
-        <View className="flex-1 justify-center items-center px-5" style={{ backgroundColor: "rgba(15,15,15,0.6)" }}>
-          {/* Emergency: rose card, red icon, dark text (never red text on pink). */}
-          <View className="w-full max-w-sm" style={{ backgroundColor: c.rose, borderRadius: 16, padding: 24 }}>
+      {/* Emergency guidance: rose card, red icon, dark text (never red text on pink). */}
+      <Modal visible={showEmergency} transparent animationType="fade" onRequestClose={() => setShowEmergency(false)}>
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center", paddingHorizontal: 20, backgroundColor: "rgba(15,15,15,0.6)" }}>
+          <View style={{ width: "100%", maxWidth: 400, backgroundColor: c.rose, borderRadius: 16, padding: 24 }}>
             <View style={{ width: 56, height: 56, borderRadius: 12, backgroundColor: c.canvas, alignItems: "center", justifyContent: "center", alignSelf: "center", marginBottom: 16 }}>
               <Feather name="alert-triangle" size={28} color={c.danger} />
             </View>
-            <Text accessibilityRole="header" style={{ fontSize: 22, lineHeight: 28, fontWeight: "600", textAlign: "center", color: c.ink, marginBottom: 12 }}>This may be a medical{"\n"}emergency</Text>
-            <Text style={{ fontSize: 15, lineHeight: 22, textAlign: "center", color: c.charcoal, marginBottom: 24, paddingHorizontal: 8 }}>
-              {isSevereHypotension
-                ? "Your blood pressure reading reflects acute hypotension (<90/60 mmHg)."
-                : isHypertensiveCrisis
-                ? "Your blood pressure reading reflects an acute Hypertensive Crisis (≥180/120 mmHg)."
-                : `You reported severe chest discomfort (${severities["Chest Discomfort / Tightness"] || 10}/10) ${context.toLowerCase().replace("during ", "while ")}. This combination can be a sign of a heart attack.`}
+            <Text accessibilityRole="header" style={{ fontSize: 22, lineHeight: 28, fontWeight: "600", textAlign: "center", color: c.ink, marginBottom: 12 }}>
+              This may be a medical emergency
             </Text>
-
-            <TouchableOpacity activeOpacity={0.85} onPress={() => { Linking.openURL("tel:911").catch(() => {}); }} className="w-full items-center justify-center mb-2" style={{ height: 52, borderRadius: 8, backgroundColor: ds.light.danger }}>
-              <Text style={{ color: ds.light.onPrimary, fontSize: 16, fontWeight: "600" }}>Call Emergency Services</Text>
-            </TouchableOpacity>
-            <Text style={{ fontSize: 13, textAlign: "center", color: c.charcoal, marginBottom: 24 }}>This will dial your local emergency number</Text>
-
-            <View style={{ backgroundColor: c.canvas, borderRadius: 12, padding: 16, marginBottom: 24 }}>
-              <Text style={{ fontSize: 13, fontWeight: "600", color: c.ink, marginBottom: 6 }}>WHILE YOU WAIT</Text>
+            <Text style={{ fontSize: 15, lineHeight: 22, textAlign: "center", color: c.charcoal, marginBottom: 24 }}>
+              {isSevereHypotension
+                ? "Your blood pressure reading is very low (under 90/60 mmHg)."
+                : isHypertensiveCrisis
+                  ? "Your blood pressure reading is very high (180/120 mmHg or higher)."
+                  : symptoms.includes(CHEST) && (strength[CHEST] ?? 0) >= 7
+                    ? `You rated your chest discomfort ${strength[CHEST]} out of 10. This can be a sign of a heart attack.`
+                    : "You are short of breath while resting. This can be a sign of a heart problem."}
+            </Text>
+            <AnimatedButton
+              onPress={call911}
+              accessibilityRole="button"
+              accessibilityLabel="Call emergency services, 911"
+              style={{ height: 52, borderRadius: 8, backgroundColor: ds.light.danger, alignItems: "center", justifyContent: "center", marginBottom: 6 }}
+            >
+              <Text style={{ color: ds.light.onPrimary, fontSize: 16, fontWeight: "600" }}>Call 911</Text>
+            </AnimatedButton>
+            <DsButton
+              label="Find a clinic near me"
+              variant="secondary"
+              onPress={() => {
+                setShowEmergency(false);
+                findClinic();
+              }}
+              style={{ backgroundColor: c.canvas, marginBottom: 20 }}
+            />
+            <View style={{ backgroundColor: c.canvas, borderRadius: 12, padding: 16, marginBottom: 16, gap: 6 }}>
+              <Text style={{ fontSize: 14, fontWeight: "600", color: c.ink }}>While you wait</Text>
               <Text style={{ fontSize: 14, lineHeight: 20, color: c.charcoal }}>
                 Sit or lie down. Stay calm. If prescribed, take aspirin only if advised by a doctor to do so. Do not drive yourself.
               </Text>
             </View>
-
-            <TouchableOpacity activeOpacity={0.7} onPress={() => { setShowEmergencyGuidanceModal(false); }} className="w-full items-center justify-center" style={{ minHeight: 44 }}>
-              <Text style={{ fontSize: 14, fontWeight: "500", textDecorationLine: "underline", color: c.ink }}>I&apos;m safe — just logging this for later</Text>
-            </TouchableOpacity>
+            <AnimatedButton
+              onPress={() => setShowEmergency(false)}
+              accessibilityRole="button"
+              accessibilityLabel="I'm safe, just logging this for later"
+              style={{ minHeight: 44, alignItems: "center", justifyContent: "center" }}
+            >
+              <Text style={{ fontSize: 14, fontWeight: "500", textDecorationLine: "underline", color: c.ink }}>{"I'm safe — just logging this for later"}</Text>
+            </AnimatedButton>
           </View>
         </View>
       </Modal>
@@ -1000,12 +700,46 @@ export default function LogSymptomsScreen() {
           setShowIncompleteWarning(false);
           handleSubmit(true);
         }}
-        title="Incomplete Check-In"
-        message="You haven't logged your Blood Pressure or Medications today. Are you sure you want to save this partial check-in?"
-        confirmLabel="Save Anyway"
+        title="Save without everything?"
+        message={
+          reading === null && medicine === null
+            ? "You haven't added your blood pressure or answered about your medicines. Save what you have?"
+            : reading === null
+              ? "You haven't added your blood pressure. Save what you have?"
+              : "You haven't answered about your medicines. Save what you have?"
+        }
+        confirmLabel="Save anyway"
         variant="warning"
         icon="alert-circle"
       />
     </SafeAreaView>
+  );
+}
+
+/** Shown right where the worrying answer was given: rose card, red icon, dark text. */
+function EmergencyCard({ c, title, body, onCall, onClinic }: { c: DsColors; title: string; body: string; onCall: () => void; onClinic: () => void }) {
+  return (
+    <View accessibilityRole="alert" style={{ borderRadius: 12, padding: 16, backgroundColor: c.rose, gap: 12 }}>
+      <View style={{ flexDirection: "row", gap: 10, alignItems: "flex-start" }}>
+        <View style={{ width: 36, height: 36, borderRadius: 9, backgroundColor: c.canvas, alignItems: "center", justifyContent: "center" }}>
+          <Feather name="alert-triangle" size={18} color={c.danger} />
+        </View>
+        <View style={{ flex: 1, gap: 4 }}>
+          <Text style={{ fontSize: 16, fontWeight: "600", color: c.ink }}>{title}</Text>
+          <Text style={{ fontSize: 14, lineHeight: 20, color: c.charcoal }}>{body}</Text>
+        </View>
+      </View>
+      <View style={{ flexDirection: "row", gap: 8 }}>
+        <AnimatedButton
+          onPress={onCall}
+          accessibilityRole="button"
+          accessibilityLabel="Call 911"
+          style={{ flex: 1, height: 48, borderRadius: 8, backgroundColor: ds.light.danger, alignItems: "center", justifyContent: "center" }}
+        >
+          <Text style={{ fontSize: 15, fontWeight: "600", color: ds.light.onPrimary }}>Call 911</Text>
+        </AnimatedButton>
+        <DsButton label="Find a clinic" variant="secondary" block={false} onPress={onClinic} style={{ flex: 1, backgroundColor: c.canvas }} />
+      </View>
+    </View>
   );
 }
