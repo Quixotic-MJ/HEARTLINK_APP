@@ -25,6 +25,7 @@ import * as Haptics from "expo-haptics";
 import * as Location from "expo-location";
 import { getCompanionGreeting, getCompanionLine, CompanionGreetingResult } from "../../../services/companionService";
 import { voiceGreeting } from "../../../services/companionCopy";
+import { DEFAULT_SODIUM_LIMIT_MG } from "../../../services/foodLogging";
 import { useNetInfo } from "@react-native-community/netinfo";
 import { useToast } from "../../../contexts/ToastContext";
 
@@ -343,7 +344,7 @@ export default function DashboardScreen() {
 
   const sodiumTodayMg = data?.nutrition_budget?.sodium?.consumed_mg ?? data?.today_activity?.total_sodium_mg ?? 0;
   // The patient's own daily limit (Goals & thresholds), 2,000 mg when not set
-  const sodiumLimitMg = data?.nutrition_budget?.sodium?.limit_mg || 2000;
+  const sodiumLimitMg = data?.nutrition_budget?.sodium?.limit_mg || DEFAULT_SODIUM_LIMIT_MG;
   const movementMins = data?.today_activity?.total_exercise_minutes || 0;
   const movementGoal = (data as any)?.thresholds?.active_minutes_goal || 30;
   const streakDays = typeof data?.streak?.current_streak === "number" ? data.streak.current_streak : 0;
@@ -942,6 +943,7 @@ export default function DashboardScreen() {
             totalSod={sodiumTodayMg}
             sodiumLimit={sodiumLimitMg}
             satFat={data?.nutrition_budget?.sat_fat?.consumed_g ?? data?.today_activity?.total_saturated_fat_g ?? 0}
+            satFatLimit={Number(data?.nutrition_budget?.sat_fat?.limit_g) || 13}
             movementMins={movementMins}
             movementGoal={movementGoal}
             mealsLogged={mealsLogged}

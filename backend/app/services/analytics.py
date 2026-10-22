@@ -50,14 +50,18 @@ def get_analytics(user_id: str, days: int = 30) -> Dict[str, Any]:
     
     baseline_repo = get_baseline_repo()
     thresholds = baseline_repo.get_thresholds(user_id)
-    
+
+    from app.services.nutrition_targets import targets_for_user
+
     return {
         "history": history,
         "vitals": vitals,
         "sleep_logs": sleep_logs,
         "exercise_logs": exercise_logs,
         "meal_logs": meal_logs,
-        "thresholds": thresholds
+        "thresholds": thresholds,
+        # HL-016 / HL-017: daily food limits with their source, for Health Targets & Limits.
+        "targets": targets_for_user(user_id, thresholds),
     }
 
 def update_thresholds(user_id: str, data: Dict[str, Any]) -> Dict[str, Any]:

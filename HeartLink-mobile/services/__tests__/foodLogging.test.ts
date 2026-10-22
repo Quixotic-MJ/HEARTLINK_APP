@@ -78,10 +78,10 @@ describe("food logging rules (HL-032)", () => {
 });
 
 describe("sodium summary", () => {
-  it("uses the patient's own limit, or 2,000 mg when none is set", () => {
-    expect(sodiumSummary(460, 940, 1500).limit).toBe(1500);
-    expect(sodiumSummary(460, 940, null).limit).toBe(2000);
-    expect(sodiumSummary(460, 940, 0).limit).toBe(2000);
+  it("uses the patient's own limit, or 1,500 mg when none is set", () => {
+    expect(sodiumSummary(460, 940, 2000).limit).toBe(2000);
+    expect(sodiumSummary(460, 940, null).limit).toBe(1500);
+    expect(sodiumSummary(460, 940, 0).limit).toBe(1500);
   });
 
   it("says how much is left when under the limit", () => {

@@ -10,7 +10,7 @@ import { DEFAULT_SODIUM_LIMIT_MG } from "../services/foodLogging";type Dashboar
 /**
  * Today's sodium and the patient's own daily limit (set in Goals & thresholds), from the
  * dashboard data. Shares the dashboard's cache key, so it's usually already loaded.
- * Falls back to 2,000 mg when the patient hasn't set a limit.
+ * The backend always sends a limit (1,500 mg unless one was set); the fallback only covers the first load.
  */
 export function useSodiumBudget() {
   const { userId, token } = useUser();

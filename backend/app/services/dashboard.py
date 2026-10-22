@@ -3,9 +3,7 @@ from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
 from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
 from app.services.exercises import is_visible_to_patients, calories_burned
-
-# HL-028: daily cholesterol limit used when a patient has none set. To confirm with the cardiologist.
-DEFAULT_CHOLESTEROL_LIMIT_MG = 200
+from app.services.nutrition_targets import compute_targets
 from app.services.recipes import is_visible_to_patients as recipe_visible
 from app.services import review_feedback
 from app.db.repositories import (
@@ -452,10 +450,11 @@ def get_dashboard_data(user_id: str, recipe_limit: int = 2, exercise_limit: int 
     today_recipe_ids = {m.get("recipe_id") for m in today_activity.get("recent_meals", []) if m.get("recipe_id")}
     today_exercise_ids = {e.get("routine_id") for e in today_activity.get("recent_exercises", []) if e.get("routine_id")}
     threshold = baseline_repo.get_thresholds(canonical_id)
-    sodium_limit = threshold.get("sodium_limit_mg", None) if threshold else None
     calorie_limit = threshold.get("daily_calories", None) if threshold else None
-    # HL-028: 200 mg until the cardiologist confirms the limit and HL-016 sets it per patient.
-    cholesterol_limit = (threshold or {}).get("cholesterol_limit_mg") or DEFAULT_CHOLESTEROL_LIMIT_MG
+    # HL-016 / HL-017: guideline limits from height, weight, age, sex and activity; a saved limit wins.
+    targets = compute_targets(profile, dietary_entry, threshold)
+    sodium_limit = targets["sodium_mg"]["value"]
+    cholesterol_limit = targets["cholesterol_mg"]["value"]
 
     # ── Recommendations: filter by HSS tier AND dietary preference ─────────────
     content_repo = get_content_repo()
@@ -477,8 +476,7 @@ def get_dashboard_data(user_id: str, recipe_limit: int = 2, exercise_limit: int 
 
     # Dynamic budget prioritization (HL-ENG-21 / Pillar D):
     # If remaining sodium budget is < 500 mg, prioritize low-sodium expert-reviewed recipes
-    effective_sodium_limit = sodium_limit if sodium_limit is not None else 2000
-    remaining_sodium = effective_sodium_limit - today_activity["total_sodium_mg"]
+    remaining_sodium = sodium_limit - today_activity["total_sodium_mg"]
     if remaining_sodium < 500:
         reco_recipes.sort(key=lambda r: (not bool(r.get("expert_validated", False)), r.get("sodium_mg") or 0))
     else:
@@ -588,18 +586,29 @@ def get_dashboard_data(user_id: str, recipe_limit: int = 2, exercise_limit: int 
             "sodium": {
                 "consumed_mg": today_activity["total_sodium_mg"],
                 "limit_mg": sodium_limit,
+                "source": targets["sodium_mg"]["source"],
+            },
+            "sat_fat": {
+                "consumed_g": today_activity["total_saturated_fat_g"],
+                "limit_g": targets["sat_fat_g"]["value"],
+                "source": targets["sat_fat_g"]["source"],
             },
             "cholesterol": {
                 "consumed_mg": today_activity["total_cholesterol_mg"],
                 "limit_mg": cholesterol_limit,
                 "over": today_activity["total_cholesterol_mg"] > cholesterol_limit,
+                "source": targets["cholesterol_mg"]["source"],
             },
             "calories": {
                 "consumed": today_activity["total_calories"],
                 "burned": today_activity["total_calories_burned"],
                 "net": today_activity["net_calories"],
                 "limit": calorie_limit,
+                "target": targets["calories"]["value"],
+                "source": targets["calories"]["source"],
             },
+            "bmi": targets["bmi"],
+            "bmi_category": targets["bmi_category"],
         },
         "streak": today_activity["streak_data"],
         "has_recent_severe_symptom": has_recent_severe_symptom,

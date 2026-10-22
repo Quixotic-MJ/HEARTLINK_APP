@@ -16,6 +16,7 @@ export function RitualProgress({
   totalSod,
   sodiumLimit,
   satFat,
+  satFatLimit = 13,
   movementMins,
   movementGoal,
   mealsLogged,
@@ -30,6 +31,8 @@ export function RitualProgress({
   totalSod: number;
   sodiumLimit: number;
   satFat: number;
+  /** HL-016: 6% of the patient's calorie target, from the backend (13 g on 2,000 kcal). */
+  satFatLimit?: number;
   movementMins: number;
   movementGoal: number;
   mealsLogged: boolean;
@@ -37,7 +40,6 @@ export function RitualProgress({
   onLogMeal: () => void;
 }) {
   const { c } = useDs();
-  const satFatLimit = 20;
 
   return (
     <View style={{ gap: 12 }}>
