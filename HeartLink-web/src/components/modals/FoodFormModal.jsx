@@ -17,6 +17,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { InputField } from "../ui/InputField";
 import { apiUpload } from "../../api";
+import CardiologistGuidance from "../care/CardiologistGuidance";
 
 // HL-031: ingredient units are picked from a list instead of typed
 const UNIT_GROUPS = [
@@ -567,6 +568,8 @@ const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", isDietit
                 )}
               </section>
             </div>
+
+            {recipe && <CardiologistGuidance />}
 
             {isDietitian && recipe && (
               <section className="border border-ds-hairline rounded-xl px-4 py-3.5 space-y-2.5">

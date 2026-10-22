@@ -24,7 +24,8 @@ export default function Header({
     .split(/[-_]/)
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
-  const title = propTitle || defaultTitle;
+  // A patient page's last segment is the patient's id, which must not be shown (HL-039)
+  const title = propTitle || (location.pathname.startsWith("/patients/") ? "Patient" : defaultTitle);
 
   const navigate = useNavigate();
   const { user, userId } = useAuth();

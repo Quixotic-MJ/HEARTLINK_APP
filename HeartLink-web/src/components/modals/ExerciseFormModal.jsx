@@ -20,6 +20,7 @@ import * as z from "zod";
 import { InputField } from "../ui/InputField";
 import { BASE_URL, apiUpload } from "../../api";
 import { EquipmentPicker, PartsEditor, SetupEditor, TextListEditor } from "./ExercisePartsEditor";
+import CardiologistGuidance from "../care/CardiologistGuidance";
 import { NEW_PART, formatSeconds, partFromStep, partSeconds, stepFromPart } from "./exerciseParts";
 
 const resolveMediaUrl = (url) => {
@@ -572,6 +573,8 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", is
                 </div>
               </section>
             </div>
+
+            {exercise && <CardiologistGuidance />}
           </div>
         ) : (
           <form

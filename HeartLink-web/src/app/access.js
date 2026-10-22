@@ -7,6 +7,7 @@ export const ADMIN_ROLES = ["admin", "super_admin"];
 
 const ADMINS = { roles: ADMIN_ROLES };
 const ALL_STAFF = { roles: [...ADMIN_ROLES, "medical_expert"] };
+export const EXPERT_TYPES = ["Cardiologist", "Dietitian", "Physical Therapist"];
 
 /** Page rules by path. `expertTypes` lets medical experts of those types in as well. */
 export const PAGE_ACCESS = {
@@ -23,6 +24,8 @@ export const PAGE_ACCESS = {
   "/activity-log": ADMINS,
   "/cases": ALL_STAFF,
   "/calibration": ALL_STAFF,
+  // HL-039/040: the Cardiologist dashboard, and each patient's logs and care-team notes
+  "/patients": { roles: ADMIN_ROLES, expertTypes: EXPERT_TYPES },
 };
 
 /** The rule for a path, matching "/users/123" to "/users". */
@@ -41,5 +44,6 @@ export function canAccess(user, pathname) {
 
 /** Where someone lands after being turned away from a page. */
 export function homeFor(user) {
-  return ADMIN_ROLES.includes(user?.role) ? "/dashboard" : "/cases";
+  if (ADMIN_ROLES.includes(user?.role)) return "/dashboard";
+  return user?.expert_type === "Cardiologist" ? "/patients" : "/cases";
 }
