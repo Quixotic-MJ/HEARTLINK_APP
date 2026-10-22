@@ -194,7 +194,7 @@ export default function TrendsTabScreen() {
             style={{ height: 44, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 6, borderWidth: 1, borderColor: c.hairline, borderRadius: 8 }}
           >
             <Feather name="share" size={16} color={c.ink} />
-            <Text style={{ fontSize: 14, fontWeight: "500", color: c.ink }}>Report</Text>
+            <Text maxFontSizeMultiplier={1.3} style={{ fontSize: 14, fontWeight: "500", color: c.ink }}>Report</Text>
           </AnimatedButton>
         </View>
 
@@ -223,7 +223,7 @@ export default function TrendsTabScreen() {
                   backgroundColor: on ? c.canvas : "transparent",
                 }}
               >
-                <Text style={{ fontSize: 14, fontWeight: on ? "600" : "400", color: on ? c.ink : c.slate }}>{p} days</Text>
+                <Text maxFontSizeMultiplier={1.3} style={{ fontSize: 14, fontWeight: on ? "600" : "400", color: on ? c.ink : c.slate }}>{p} days</Text>
               </AnimatedButton>
             );
           })}
@@ -242,7 +242,7 @@ export default function TrendsTabScreen() {
                 accessibilityLabel={m.label}
                 style={{ height: 40, paddingHorizontal: 16, borderRadius: 9999, borderWidth: 1, justifyContent: "center", backgroundColor: on ? c.ink : c.canvas, borderColor: on ? c.ink : c.hairline }}
               >
-                <Text style={{ fontSize: 14, fontWeight: "500", color: on ? c.canvas : c.charcoal }}>{m.label}</Text>
+                <Text maxFontSizeMultiplier={1.3} style={{ fontSize: 14, fontWeight: "500", color: on ? c.canvas : c.charcoal }}>{m.label}</Text>
               </AnimatedButton>
             );
           })}
@@ -394,7 +394,7 @@ function MetricCard({
         <Text style={{ fontSize: 14, color: c.slate, flexShrink: 1 }}>{unit}</Text>
         {tag ? (
           <View style={{ marginLeft: "auto", alignSelf: "center", paddingVertical: 3, paddingHorizontal: 10, borderRadius: 999, backgroundColor: tag.bg }}>
-            <Text style={{ fontSize: 13, fontWeight: "500", color: tag.fg }}>{tag.text}</Text>
+            <Text maxFontSizeMultiplier={1.3} style={{ fontSize: 13, fontWeight: "500", color: tag.fg }}>{tag.text}</Text>
           </View>
         ) : null}
       </View>

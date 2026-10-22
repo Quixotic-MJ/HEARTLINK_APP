@@ -17,7 +17,7 @@ export function ApprovedBy({ who }: { who: "Dietitian" | "PT" }) {
   return (
     <View className="flex-row items-center" style={{ gap: 4 }}>
       <Feather name="check" size={13} color={c.success} />
-      <Text style={{ fontSize: 12, fontWeight: "600", color: c.charcoal }}>{who} approved</Text>
+      <Text maxFontSizeMultiplier={1.3} style={{ fontSize: 12, fontWeight: "600", color: c.charcoal }}>{who} approved</Text>
     </View>
   );
 }
@@ -57,10 +57,10 @@ export function PickCard({ pick, reason, onPress }: { pick: Pick; reason: string
       )}
       <View style={{ padding: 14, gap: 6 }}>
         <View style={{ alignSelf: "flex-start", paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, backgroundColor: tint }}>
-          <Text style={{ fontSize: 12, fontWeight: "600", color: c.charcoal }}>{isMeal ? "Meal" : "Exercise"}</Text>
+          <Text maxFontSizeMultiplier={1.3} style={{ fontSize: 12, fontWeight: "600", color: c.charcoal }}>{isMeal ? "Meal" : "Exercise"}</Text>
         </View>
-        <Text style={{ fontSize: 17, fontWeight: "600", lineHeight: 22, color: c.ink }} numberOfLines={2}>{title}</Text>
-        <Text style={{ fontSize: 14, lineHeight: 20, color: c.charcoal }} numberOfLines={3}>{reason}</Text>
+        <Text maxFontSizeMultiplier={1.3} style={{ fontSize: 17, fontWeight: "600", lineHeight: 22, color: c.ink }} numberOfLines={2}>{title}</Text>
+        <Text maxFontSizeMultiplier={1.3} style={{ fontSize: 14, lineHeight: 20, color: c.charcoal }} numberOfLines={3}>{reason}</Text>
         <View style={{ marginTop: 2 }}>
           <ApprovedBy who={isMeal ? "Dietitian" : "PT"} />
         </View>
@@ -93,8 +93,8 @@ export function RecipeRow({ recipe, onPress, right }: { recipe: ExploreRecipe; o
         </View>
         {right ? null : (
           <View style={{ alignItems: "flex-end" }}>
-            <Text style={{ fontSize: 18, fontWeight: "600", color: c.ink }}>{recipe.sodiumMg}</Text>
-            <Text style={{ fontSize: 12, color: c.slate }}>mg sodium</Text>
+            <Text maxFontSizeMultiplier={1.3} style={{ fontSize: 18, fontWeight: "600", color: c.ink }}>{recipe.sodiumMg}</Text>
+            <Text maxFontSizeMultiplier={1.3} style={{ fontSize: 12, color: c.slate }}>mg sodium</Text>
           </View>
         )}
       </AnimatedButton>

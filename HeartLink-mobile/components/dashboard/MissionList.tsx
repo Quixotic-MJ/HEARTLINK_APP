@@ -58,7 +58,7 @@ function MissionTile({
         {item.done ? (
           <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
             <Feather name="check" size={14} color={c.success} />
-            <Text style={{ fontSize: 13, fontWeight: "500", color: c.charcoal }}>Done</Text>
+            <Text maxFontSizeMultiplier={1.3} style={{ fontSize: 13, fontWeight: "500", color: c.charcoal }}>Done</Text>
           </View>
         ) : (
           <View
@@ -71,7 +71,7 @@ function MissionTile({
               borderColor: c.hairlineStrong,
             }}
           >
-            <Text style={{ fontSize: 13, fontWeight: "500", color: isNext ? c.onPrimary : c.ink }}>Log</Text>
+            <Text maxFontSizeMultiplier={1.3} style={{ fontSize: 13, fontWeight: "500", color: isNext ? c.onPrimary : c.ink }}>Log</Text>
           </View>
         )}
       </View>

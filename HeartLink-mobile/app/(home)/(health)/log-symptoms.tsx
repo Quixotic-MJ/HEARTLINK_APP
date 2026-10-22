@@ -451,7 +451,7 @@ export default function LogSymptomsScreen() {
                     accessibilityLabel={m.label}
                     style={radioRow(on)}
                   >
-                    <Text style={{ fontSize: 16, color: on ? c.onTint : c.ink }}>{m.label}</Text>
+                    <Text maxFontSizeMultiplier={1.3} style={{ fontSize: 16, color: on ? c.onTint : c.ink }}>{m.label}</Text>
                     {radioDot(on)}
                   </AnimatedButton>
                 );
@@ -476,7 +476,7 @@ export default function LogSymptomsScreen() {
                     accessibilityLabel={s.label}
                     style={{ height: 44, paddingHorizontal: 16, borderRadius: 999, borderWidth: 1, justifyContent: "center", borderColor: on ? c.ink : c.hairline, backgroundColor: on ? c.ink : c.canvas }}
                   >
-                    <Text style={{ fontSize: 15, color: on ? c.canvas : c.charcoal }}>{s.label}</Text>
+                    <Text maxFontSizeMultiplier={1.3} style={{ fontSize: 15, color: on ? c.canvas : c.charcoal }}>{s.label}</Text>
                   </AnimatedButton>
                 );
               })}
@@ -493,7 +493,7 @@ export default function LogSymptomsScreen() {
                         <Text style={{ flex: 1, fontSize: 16, fontWeight: "600", color: c.ink }}>{label}: how strong?</Text>
                         {tag ? (
                           <View style={{ paddingVertical: 3, paddingHorizontal: 10, borderRadius: 999, backgroundColor: tag.bg }}>
-                            <Text style={{ fontSize: 13, fontWeight: "500", color: tag.fg }}>{tag.text}</Text>
+                            <Text maxFontSizeMultiplier={1.3} style={{ fontSize: 13, fontWeight: "500", color: tag.fg }}>{tag.text}</Text>
                           </View>
                         ) : null}
                       </View>
@@ -523,7 +523,7 @@ export default function LogSymptomsScreen() {
                                 backgroundColor: on ? c.tint : c.canvas,
                               }}
                             >
-                              <Text style={{ fontSize: 16, fontWeight: on ? "600" : "400", color: on ? c.onTint : c.ink }}>{n}</Text>
+                              <Text maxFontSizeMultiplier={1.3} style={{ fontSize: 16, fontWeight: on ? "600" : "400", color: on ? c.onTint : c.ink }}>{n}</Text>
                             </AnimatedButton>
                           );
                         })}
@@ -557,7 +557,7 @@ export default function LogSymptomsScreen() {
                         accessibilityLabel={x.label}
                         style={radioRow(on)}
                       >
-                        <Text style={{ fontSize: 16, color: on ? c.onTint : c.ink }}>{x.label}</Text>
+                        <Text maxFontSizeMultiplier={1.3} style={{ fontSize: 16, color: on ? c.onTint : c.ink }}>{x.label}</Text>
                         {radioDot(on)}
                       </AnimatedButton>
                     );

@@ -255,7 +255,7 @@ export function LogMealSheet({
                         }}
                       >
                         {done ? <Feather name="check" size={14} color={c.success} /> : null}
-                        <Text style={{ fontSize: 14, fontWeight: "500", color: c.ink }}>{done ? "Logged" : "Log"}</Text>
+                        <Text maxFontSizeMultiplier={1.3} style={{ fontSize: 14, fontWeight: "500", color: c.ink }}>{done ? "Logged" : "Log"}</Text>
                       </AnimatedButton>
                     </View>
                   );

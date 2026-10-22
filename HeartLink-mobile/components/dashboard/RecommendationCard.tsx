@@ -59,13 +59,13 @@ export function RecommendationCard({ rec, reason, onPress }: { rec: DashboardRec
       </View>
       <View style={{ padding: 14, gap: 6 }}>
         <View style={{ alignSelf: "flex-start", paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, backgroundColor: tint }}>
-          <Text style={{ fontSize: 12, fontWeight: "600", color: c.charcoal }}>{isMeal ? "Meal" : "Exercise"}</Text>
+          <Text maxFontSizeMultiplier={1.3} style={{ fontSize: 12, fontWeight: "600", color: c.charcoal }}>{isMeal ? "Meal" : "Exercise"}</Text>
         </View>
-        <Text style={{ fontSize: 17, fontWeight: "600", lineHeight: 22, color: c.ink }} numberOfLines={2}>
+        <Text maxFontSizeMultiplier={1.3} style={{ fontSize: 17, fontWeight: "600", lineHeight: 22, color: c.ink }} numberOfLines={2}>
           {rec.title}
         </Text>
         {reason ? (
-          <Text style={{ fontSize: 14, lineHeight: 20, color: c.charcoal }} numberOfLines={3}>
+          <Text maxFontSizeMultiplier={1.3} style={{ fontSize: 14, lineHeight: 20, color: c.charcoal }} numberOfLines={3}>
             {reason}
           </Text>
         ) : null}

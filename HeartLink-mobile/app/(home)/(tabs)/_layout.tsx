@@ -84,7 +84,7 @@ function TabBarItem({
         }}
       >
         {children}
-        <Text
+        <Text maxFontSizeMultiplier={1.3}
           style={{
             fontSize: 11,
             fontWeight: focused ? "600" : "500",

@@ -80,7 +80,7 @@ export function ScoreCard({
             Heart health score
           </Text>
           <View style={{ paddingVertical: 3, paddingHorizontal: 10, borderRadius: 999, backgroundColor: tag.bg }}>
-            <Text style={{ fontSize: 13, fontWeight: "500", color: tag.fg }}>{tag.text}</Text>
+            <Text maxFontSizeMultiplier={1.3} style={{ fontSize: 13, fontWeight: "500", color: tag.fg }}>{tag.text}</Text>
           </View>
         </View>
         <AnimatedButton
@@ -114,8 +114,8 @@ export function ScoreCard({
                 borderLeftColor: c.hairlineSoft,
               }}
             >
-              <Text style={{ fontSize: 17, fontWeight: "600", color: c.ink, fontVariant: ["tabular-nums"] }}>{r.value}</Text>
-              <Text style={{ fontSize: 12, color: c.slate }}>{r.label}</Text>
+              <Text maxFontSizeMultiplier={1.3} style={{ fontSize: 17, fontWeight: "600", color: c.ink, fontVariant: ["tabular-nums"] }}>{r.value}</Text>
+              <Text maxFontSizeMultiplier={1.3} style={{ fontSize: 12, color: c.slate }}>{r.label}</Text>
             </View>
           ))}
         </View>
