@@ -1,635 +1,177 @@
-import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { apiFetch } from "../../../lib/api";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  ScrollView,
-  ActivityIndicator,
-  RefreshControl,
-  Animated,
-  Pressable,
-  BackHandler,
-} from "react-native";
-import Svg, { Path, Circle, Line as SvgLine } from "react-native-svg";
+import React, { useCallback, useMemo, useState } from "react";
+import { BackHandler, RefreshControl, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
-import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
-import { useRouter, useFocusEffect } from "expo-router";
-
-import { useDs } from "../../../components/onboarding/useDs";
-import { IconBadge } from "../../../components/onboarding/QuestionLayout";
-let isCurrentlySharing = false;
+import { Feather } from "@expo/vector-icons";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useQuery } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
+
+import { apiFetch } from "../../../lib/api";
 import { useUser } from "../../../contexts/UserContext";
 import { Header } from "../../../components/Header";
-import { ds } from "../../../constants/theme";
+import { ds, DsColors } from "../../../constants/theme";
+import { useDs } from "../../../components/onboarding/useDs";
+import DsButton from "../../../components/onboarding/DsButton";
+import AnimatedButton from "../../../components/ui/AnimatedButton";
+import { Skeleton } from "../../../components/ui/Skeleton";
+import { bandTag } from "../../../components/dashboard/ScoreCard";
+import { TrendChart } from "../../../components/trends/TrendChart";
+import {
+  ExerciseRow,
+  MealRow,
+  ScoreRow,
+  SleepRow,
+  VitalsRow,
+  dayName,
+  peak,
+  periodDays,
+  pressureByDay,
+  pulseByDay,
+  scoreByDay,
+  scoreChange,
+  sodiumByDay,
+  summarize,
+} from "../../../services/trends";
 
-function TactileCard({
-  onPress,
-  children,
-  className = "",
-  style,
-  activeScale = 0.975,
-  haptic = true,
-  disabled = false,
-}: any) {
-  const scale = useRef(new Animated.Value(1)).current;
+// Trends: one period (7, 14 or 30 days) and one measure at a time, drawn only from what was logged.
+// A day with nothing logged is left empty on the chart; nothing is filled in.
 
-  const handlePressIn = () => {
-    if (disabled) return;
-    if (haptic) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    Animated.spring(scale, { toValue: activeScale, useNativeDriver: true, speed: 45, bounciness: 4 }).start();
-  };
+type Metric = "score" | "bp" | "pulse" | "sodium";
+const METRICS: { id: Metric; label: string }[] = [
+  { id: "score", label: "Heart score" },
+  { id: "bp", label: "Blood pressure" },
+  { id: "pulse", label: "Pulse" },
+  { id: "sodium", label: "Sodium" },
+];
+const PERIODS = [7, 14, 30] as const;
+type Period = (typeof PERIODS)[number];
 
-  const handlePressOut = () => {
-    Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 35, bounciness: 6 }).start();
-  };
-
-  return (
-    <Pressable onPress={onPress} onPressIn={handlePressIn} onPressOut={handlePressOut} disabled={disabled}>
-      <Animated.View style={[{ transform: [{ scale }] }, style]} className={className}>
-        {children}
-      </Animated.View>
-    </Pressable>
-  );
-}
-
-
-const controlPoint = (current: any, previous: any, next: any, reverse: boolean) => {
-  const p = previous || current;
-  const n = next || current;
-  const smoothing = 0.2;
-  const lengthX = n.x - p.x;
-  const lengthY = n.y - p.y;
-  const length = Math.sqrt(Math.pow(lengthX, 2) + Math.pow(lengthY, 2));
-  const angle = Math.atan2(lengthY, lengthX);
-  const angleAdj = angle + (reverse ? Math.PI : 0);
-  const lengthAdj = length * smoothing;
-  const x = current.x + Math.cos(angleAdj) * lengthAdj;
-  const y = current.y + Math.sin(angleAdj) * lengthAdj;
-  return { x, y };
+type Analytics = {
+  history?: ScoreRow[];
+  vitals?: VitalsRow[];
+  meal_logs?: MealRow[];
+  exercise_logs?: ExerciseRow[];
+  sleep_logs?: SleepRow[];
+  thresholds?: { sodium_limit_mg?: number | null; active_minutes_goal?: number | null } | null;
 };
 
-function buildPath(points: { x: number; y: number }[]): string {
-  if (points.length === 0) return '';
-  let d = `M ${points[0].x} ${points[0].y}`;
-  for (let i = 1; i < points.length; i++) {
-    const cp1 = controlPoint(points[i - 1], points[i - 2], points[i], false);
-    const cp2 = controlPoint(points[i], points[i - 1], points[i + 1], true);
-    d += ` C ${cp1.x},${cp1.y} ${cp2.x},${cp2.y} ${points[i].x},${points[i].y}`;
-  }
-  return d;
-}
+let isCurrentlySharing = false;
 
-function buildAreaPath(points: { x: number; y: number }[], baseline: number): string {
-  if (points.length === 0) return '';
-  const line = buildPath(points);
-  const last = points[points.length - 1];
-  const first = points[0];
-  return `${line} L ${last.x} ${baseline} L ${first.x} ${baseline} Z`;
-}
+// Same cut-offs as the dashboard's score bands.
+const tierOf = (score: number) => (score >= 80 ? "Stable" : score >= 60 ? "Moderate" : score >= 50 ? "Elevated Risk" : "Critical");
+
+const lastOf = <T,>(xs: (T | null)[]): { value: T; index: number } | null => {
+  for (let i = xs.length - 1; i >= 0; i--) {
+    const v = xs[i];
+    if (v !== null) return { value: v, index: i };
+  }
+  return null;
+};
 
 export default function TrendsTabScreen() {
   const { c, isDark } = useDs();
   const router = useRouter();
-  const { userId, token, logout } = useUser();
+  const { userId, token } = useUser();
 
-  const [activeTab, setActiveTab] = useState<"score" | "bp" | "bpm" | "sodium">("score");
-  const [intervalDays, setIntervalDays] = useState<7 | 14 | 30>(7);
-  const [chartWidth, setChartWidth] = useState(0);
-
-  const [analytics, setAnalytics] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [metric, setMetric] = useState<Metric>("score");
+  const [period, setPeriod] = useState<Period>(7);
   const [refreshing, setRefreshing] = useState(false);
 
-  const fetchAnalytics = useCallback(async () => {
-    if (!userId || !token) return;
-    setIsLoading(true);
-    try {
-      const res = await apiFetch(`/api/analytics/${userId}?days=${intervalDays}`, {
-        headers: { "Authorization": `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setAnalytics(data);
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [userId, token, intervalDays]);
-
-  const chartData = useMemo(() => {
-    if (!analytics) {
-      // Return a flatline or minimal data if loading
-      return Array.from({ length: intervalDays }).map((_, i) => ({
-        label: `${i + 1}`,
-        value: 0
-      }));
-    }
-
-    const daysArray = Array.from({ length: intervalDays }).map((_, i) => {
-      const d = new Date();
-      d.setDate(d.getDate() - (intervalDays - 1 - i));
-      return {
-        dateStr: d.toISOString().split("T")[0],
-        label: d.toLocaleDateString("en-US", { month: 'short', day: 'numeric' }),
-        value: null as number | null
-      };
-    });
-
-    if (activeTab === "score") {
-      analytics.history?.forEach((h: any) => {
-        const dStr = (h.computed_at || "").split("T")[0];
-        const idx = daysArray.findIndex(d => d.dateStr === dStr);
-        if (idx !== -1) daysArray[idx].value = h.score;
-      });
-    } else if (activeTab === "bp") {
-      analytics.vitals?.filter((v:any) => v.type === "bp").forEach((v: any) => {
-        const dStr = (v.logged_at || "").split("T")[0];
-        const idx = daysArray.findIndex(d => d.dateStr === dStr);
-        if (idx !== -1) daysArray[idx].value = v.systolic; 
-      });
-    } else if (activeTab === "bpm") {
-      analytics.vitals?.filter((v:any) => v.type === "heart_rate" || v.type === "bpm").forEach((v: any) => {
-        const dStr = (v.logged_at || "").split("T")[0];
-        const idx = daysArray.findIndex(d => d.dateStr === dStr);
-        if (idx !== -1) daysArray[idx].value = v.value; 
-      });
-    } else if (activeTab === "sodium") {
-      analytics.vitals?.filter((v:any) => v.type === "meal").forEach((v: any) => {
-        const dStr = (v.logged_at || "").split("T")[0];
-        const idx = daysArray.findIndex(d => d.dateStr === dStr);
-        if (idx !== -1) {
-          daysArray[idx].value = (daysArray[idx].value || 0) + (v.sodium_mg || 0);
-        }
-      });
-    }
-
-    let lastVal = activeTab === "score" ? 75 : activeTab === "bp" ? 120 : activeTab === "bpm" ? 70 : 1500;
-    daysArray.forEach(d => {
-      if (d.value !== null) lastVal = d.value;
-      else d.value = lastVal;
-    });
-
-    return daysArray;
-  }, [analytics, activeTab, intervalDays]);
+  const query = useQuery({
+    queryKey: ["trends", userId, period],
+    enabled: !!userId,
+    queryFn: async (): Promise<Analytics> => {
+      const res = await apiFetch(`/api/analytics/${userId}?days=${period}`, { headers: { Authorization: `Bearer ${token ?? ""}` } });
+      if (!res.ok) throw new Error("Could not load trends");
+      return res.json();
+    },
+  });
 
   useFocusEffect(
     useCallback(() => {
-      fetchAnalytics();
-      const onBackPress = () => {
+      query.refetch();
+      const sub = BackHandler.addEventListener("hardwareBackPress", () => {
         router.replace("/(home)/(tabs)/dashboard");
         return true;
-      };
-      const sub = BackHandler.addEventListener("hardwareBackPress", onBackPress);
+      });
       return () => sub.remove();
-    }, [fetchAnalytics, router])
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [router, period])
   );
+
+  const data = query.data;
+  const sodiumLimit = Number(data?.thresholds?.sodium_limit_mg) || 2000;
+  const movementGoal = Number(data?.thresholds?.active_minutes_goal) || 30;
+
+  const t = useMemo(() => {
+    const days = periodDays(period);
+    const vitals = data?.vitals ?? [];
+    const scores = scoreByDay(days, data?.history ?? []);
+    const pressure = pressureByDay(days, vitals);
+    const pulse = pulseByDay(days, vitals);
+    const sodium = sodiumByDay(days, data?.meal_logs ?? []);
+    const summary = summarize(
+      days,
+      { meals: data?.meal_logs ?? [], exercises: data?.exercise_logs ?? [], sleep: data?.sleep_logs ?? [], vitals },
+      { sodiumMg: sodiumLimit, movementMin: movementGoal }
+    );
+    return { days, scores, pressure, pulse, sodium, summary };
+  }, [data, period, sodiumLimit, movementGoal]);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await fetchAnalytics();
+    await query.refetch();
     setRefreshing(false);
   };
 
-  const handleExportPDF = async () => {
+  const shareReport = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const latestScore = lastOf(t.scores)?.value;
+    const latestBp = lastOf(t.pressure)?.value;
+    const latestPulse = lastOf(t.pulse)?.value;
+    const s = t.summary;
+    const row = (label: string, value: string) => `<div class="stat">${label}: <span class="val">${value}</span></div>`;
+    const html = `
+      <html><head><style>
+        body { font-family: Helvetica, sans-serif; padding: 40px; color: ${ds.light.ink}; }
+        h1 { color: ${ds.light.primary}; }
+        h2 { font-size: 18px; margin-top: 20px; border-bottom: 1px solid ${ds.light.hairline}; padding-bottom: 5px; }
+        .stat { font-size: 14px; margin: 10px 0; } .val { font-weight: bold; } .note { font-size: 12px; color: ${ds.light.steel}; }
+      </style></head><body>
+        <h1>HeartLink trends report</h1>
+        <p>Last ${period} days, made on ${new Date().toLocaleDateString()}</p>
+        <h2>Latest</h2>
+        ${row("Heart score", latestScore ? `${latestScore} / 100` : "Not logged")}
+        ${row("Blood pressure", latestBp ? `${latestBp.sys}/${latestBp.dia} mmHg` : "Not logged")}
+        ${row("Pulse", latestPulse ? `${latestPulse} bpm` : "Not logged")}
+        <h2>Last ${period} days</h2>
+        ${row("Blood pressure", s.pressure.average ? `average ${s.pressure.average.sys}/${s.pressure.average.dia} mmHg over ${s.pressure.readings} readings` : "No readings")}
+        ${row("Sodium", s.sodium.daysLogged ? `${s.sodium.perDay.toLocaleString()} mg a day; over the ${sodiumLimit.toLocaleString()} mg limit on ${s.sodium.daysOver} of ${s.sodium.daysLogged} days` : "No meals logged")}
+        ${row("Movement", `${s.movement.perDay} min a day; goal of ${movementGoal} reached on ${s.movement.daysAtGoal} days`)}
+        ${row("Sleep", s.sleep.nightsLogged ? `${s.sleep.perNight} h a night over ${s.sleep.nightsLogged} nights` : "No sleep logged")}
+        <p class="note">From what the patient logged in HeartLink. It is not a diagnosis.</p>
+      </body></html>`;
     try {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      
-      const bpLog = analytics?.vitals?.filter((v:any)=>v.type==="bp").slice(-1)[0];
-      const bpmLog = analytics?.vitals?.filter((v:any)=>v.type==="heart_rate" || v.type==="bpm").slice(-1)[0];
-      
-      const htmlContent = `
-        <html>
-          <head>
-            <style>
-              body { font-family: Helvetica, sans-serif; padding: 40px; color: ${ds.light.ink}; }
-              h1 { color: ${ds.light.primary}; }
-              h2 { font-size: 18px; margin-top: 20px; border-bottom: 1px solid ${ds.light.hairline}; padding-bottom: 5px; }
-              .stat { font-size: 14px; margin: 10px 0; }
-              .val { font-weight: bold; }
-            </style>
-          </head>
-          <body>
-            <h1>HeartLink Trends Report</h1>
-            <p>Generated on ${new Date().toLocaleDateString()}</p>
-            
-            <h2>Latest Vitals Summary</h2>
-            <div class="stat">Heart Score: <span class="val">${latestHSS ?? "--"}/100</span></div>
-            <div class="stat">Blood Pressure: <span class="val">${bpLog ? bpLog.systolic + '/' + bpLog.diastolic : "--/--"} mmHg</span></div>
-            <div class="stat">Resting Heart Rate: <span class="val">${bpmLog ? bpmLog.value : "--"} bpm</span></div>
-            
-            <h2>Overview</h2>
-            <p>A detailed view of your heart score and vitals over the last ${intervalDays} days.</p>
-          </body>
-        </html>
-      `;
-      
-      const { uri } = await Print.printToFileAsync({ html: htmlContent });
-      if (await Sharing.isAvailableAsync()) {
-        if (isCurrentlySharing) return;
-        isCurrentlySharing = true;
-        try {
-          await Sharing.shareAsync(uri);
-        } finally {
-          setTimeout(() => { isCurrentlySharing = false; }, 1000);
-        }
+      const { uri } = await Print.printToFileAsync({ html });
+      if (!(await Sharing.isAvailableAsync()) || isCurrentlySharing) return;
+      isCurrentlySharing = true;
+      try {
+        await Sharing.shareAsync(uri);
+      } finally {
+        setTimeout(() => {
+          isCurrentlySharing = false;
+        }, 1000);
       }
     } catch (error) {
       console.error("Export failed:", error);
     }
   };
 
-  const latestHSS = analytics?.history?.[analytics.history.length - 1]?.score ?? null;
-  // Design-system card: white, thin warm-grey border, 12px corners, no shadow.
-  const card = { backgroundColor: c.canvas, borderColor: c.hairline, borderWidth: 1, borderRadius: 12 };
-  const microLabel = { fontSize: 11, fontWeight: "600" as const, letterSpacing: 1, textTransform: "uppercase" as const, color: c.steel };
-
-  // ─── Sub-components for Content ──────────────────────────────────────────
-  
-  const renderTabSelector = () => (
-    <ScrollView 
-      horizontal 
-      showsHorizontalScrollIndicator={false} 
-      className="mb-5 mt-2" 
-      contentContainerStyle={{ paddingHorizontal: 20, gap: 8 }}
-      style={{
-        // Hide scrollbar natively on web browsers if they ignore showsHorizontalScrollIndicator
-        scrollbarWidth: 'none', // Firefox
-        msOverflowStyle: 'none' // IE/Edge
-      } as any}
-    >
-      {[
-        { id: "score", label: "Heart Score" },
-        { id: "bp", label: "Blood Pressure" },
-        { id: "bpm", label: "Heart Rate" },
-        { id: "sodium", label: "Sodium" },
-      ].map((tab) => {
-        const isActive = activeTab === tab.id;
-        return (
-          <TouchableOpacity
-            key={tab.id}
-            onPress={() => setActiveTab(tab.id as any)}
-            accessibilityRole="tab"
-            accessibilityState={{ selected: isActive }}
-            className="justify-center"
-            style={{
-              height: 40,
-              paddingHorizontal: 16,
-              borderRadius: 9999,
-              borderWidth: 1,
-              backgroundColor: isActive ? c.ink : c.canvas,
-              borderColor: isActive ? c.ink : c.hairline,
-            }}
-          >
-            <Text
-              style={{ fontSize: 14, fontWeight: "500", color: isActive ? c.canvas : c.charcoal }}
-            >
-              {tab.label}
-            </Text>
-          </TouchableOpacity>
-        );
-      })}
-    </ScrollView>
-  );
-
-  const renderWeeklySummary = () => {
-    return (
-      <View className="p-5 mb-4" style={{ borderRadius: 12, backgroundColor: c.surface }}>
-        <Text style={[microLabel, { marginBottom: 14 }]}>
-          {intervalDays === 7 ? "THIS WEEK" : intervalDays === 14 ? "LAST 2 WEEKS" : "LAST 30 DAYS"}
-        </Text>
-        <View className="flex-row justify-between mb-6 gap-2">
-          {[
-            { key: "sleep", label: "Sleep", icon: "power-sleep", ratio: Number(summaryStats.sleepHours) / 8, value: summaryStats.sleepHours, unit: "/8hr" },
-            { key: "activity", label: "Activity", icon: "run", ratio: summaryStats.activityMins / 30, value: summaryStats.activityMins, unit: "/30m" },
-            { key: "sodium", label: "Sodium", icon: "shaker-outline", ratio: summaryStats.sodiumMg / 2000, value: summaryStats.sodiumMg, unit: "/2g" },
-          ].map((s) => (
-            <View key={s.key} className="flex-1 p-3" style={card}>
-              <View className="flex-row items-center gap-1.5 mb-2.5">
-                <MaterialCommunityIcons name={s.icon as any} size={15} color={c.charcoal} />
-                <Text style={{ fontSize: 13, fontWeight: "500", color: c.ink }}>{s.label}</Text>
-              </View>
-              <View className="w-full overflow-hidden mb-2.5" style={{ height: 4, borderRadius: 2, backgroundColor: c.hairlineSoft }}>
-                <View style={{ height: "100%", backgroundColor: c.line, width: `${Math.min(100, s.ratio * 100)}%` }} />
-              </View>
-              <Text style={{ fontSize: 15, fontWeight: "600", color: c.ink }}>{s.value}<Text style={{ fontSize: 12, fontWeight: "400", color: c.slate }}>{s.unit}</Text></Text>
-            </View>
-          ))}
-        </View>
-
-        <Text style={[microLabel, { marginBottom: 14 }]}>Highlights</Text>
-
-        <TouchableOpacity activeOpacity={0.7} className="flex-row items-center justify-between p-4 mb-2" style={card}>
-          <View className="flex-row items-center gap-3 flex-1">
-            <IconBadge icon="trophy-outline" tint="mint" size={40} />
-            <View className="flex-1">
-              <Text style={{ fontSize: 15, fontWeight: "500", color: c.ink, marginBottom: 2 }}>Best day</Text>
-              <Text style={{ fontSize: 13, color: c.slate }}>{highlights.bestDayText}</Text>
-            </View>
-          </View>
-          <Feather name="chevron-right" size={16} color={c.steel} />
-        </TouchableOpacity>
-
-        <TouchableOpacity activeOpacity={0.7} className="flex-row items-center justify-between p-4" style={card}>
-          <View className="flex-row items-center gap-3 flex-1">
-            <IconBadge icon="shaker-outline" tint="peach" size={40} />
-            <View className="flex-1">
-              <Text style={{ fontSize: 15, fontWeight: "500", color: c.ink, marginBottom: 2 }}>Highest sodium</Text>
-              <Text style={{ fontSize: 13, color: c.slate }}>{highlights.highestSodiumText}</Text>
-            </View>
-          </View>
-          <Feather name="chevron-right" size={16} color={c.steel} />
-        </TouchableOpacity>
-      </View>
-    );
-  };
-
-  const renderActiveChart = () => {
-    const CHART_HEIGHT = 160;
-    const CHART_PADDING = 12;
-    const color = c.line;
-    const areaFillColor = `${color}25`;
-
-    const values = chartData.map((d) => d.value!);
-
-    const minValue = Math.min(...values) * 0.9;
-    const maxValue = Math.max(...values) * 1.1;
-    const valueRange = maxValue - minValue || 1;
-
-    const usableWidth = chartWidth - CHART_PADDING * 2;
-    const usableHeight = CHART_HEIGHT - CHART_PADDING * 2;
-
-    const points = chartData.map((d, i) => {
-      const x = chartData.length > 1
-          ? CHART_PADDING + (usableWidth * i) / (chartData.length - 1)
-          : CHART_PADDING + usableWidth / 2;
-      const y = CHART_PADDING + usableHeight - ((d.value! - minValue) / valueRange) * usableHeight;
-      return { x, y };
-    });
-
-    const linePath = buildPath(points);
-    const areaPath = buildAreaPath(points, CHART_HEIGHT - CHART_PADDING);
-
-    return (
-      <View className="p-5 mb-4" style={card}>
-
-        {/* Metric Header */}
-        <View className="flex-row items-start justify-between mb-4">
-          <View>
-            <Text style={[microLabel, { marginBottom: 6 }]}>
-              {activeTab === "score" ? "Latest Heart Score" : activeTab === "bp" ? "Latest BP" : activeTab === "bpm" ? "Latest Resting HR" : "Total Sodium (Today)"}
-            </Text>
-            <View className="flex-row items-baseline">
-              <Text style={{ fontSize: 36, lineHeight: 40, fontWeight: "600", letterSpacing: -0.5, color: c.ink }}>
-                {activeTab === "score" 
-                  ? (latestHSS ?? "--") 
-                  : activeTab === "bp" 
-                    ? (analytics?.vitals?.filter((v:any)=>v.type==="bp").slice(-1)[0] ? `${analytics.vitals.filter((v:any)=>v.type==="bp").slice(-1)[0].systolic}/${analytics.vitals.filter((v:any)=>v.type==="bp").slice(-1)[0].diastolic}` : "--/--") 
-                    : activeTab === "bpm"
-                      ? (analytics?.vitals?.filter((v:any)=>v.type==="heart_rate" || v.type==="bpm").slice(-1)[0]?.value ?? "--")
-                      : (chartData[chartData.length - 1]?.value ?? "--")
-                }
-              </Text>
-              <Text style={{ fontSize: 14, fontWeight: "500", color: c.slate, marginLeft: 6 }}>
-                {activeTab === "score" ? "/ 100" : activeTab === "bp" ? "mmHg" : activeTab === "bpm" ? "bpm" : "mg"}
-              </Text>
-            </View>
-          </View>
-
-          <View className="items-end">
-            <Text style={[microLabel, { marginBottom: 6 }]}>
-              {intervalDays === 7 ? "THIS WEEK" : intervalDays === 14 ? "LAST 2 WEEKS" : "LAST 30 DAYS"}
-            </Text>
-            <View className="flex-row items-center" style={{ paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, backgroundColor: c.mint }}>
-              <Feather name={activeTab === "score" ? "trending-up" : "trending-down"} size={12} color={c.charcoal} />
-              <Text style={{ fontSize: 13, fontWeight: "600", marginLeft: 4, color: c.charcoal }}>
-                {activeTab === "score" ? "+5% vs last" : activeTab === "bp" ? "-2% vs last" : activeTab === "bpm" ? "-3% vs last" : "Under limit"}
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Time Interval Selector */}
-        <View className="flex-row p-1 mb-4" style={{ borderRadius: 8, backgroundColor: c.surface }}>
-          {([7, 14, 30] as const).map((days) => {
-            const isActive = intervalDays === days;
-            const label = `${days}D`;
-            return (
-              <TouchableOpacity
-                key={days}
-                onPress={() => { Haptics.selectionAsync(); setIntervalDays(days); }}
-                activeOpacity={0.7}
-                accessibilityRole="tab"
-                accessibilityState={{ selected: isActive }}
-                className="flex-1 items-center justify-center"
-                style={{
-                  height: 36,
-                  borderRadius: 6,
-                  borderWidth: 1,
-                  backgroundColor: isActive ? c.canvas : "transparent",
-                  borderColor: isActive ? c.hairline : "transparent",
-                }}
-              >
-                <Text style={{ fontSize: 13, fontWeight: "500", color: isActive ? c.ink : c.steel }}>
-                  {label}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-
-        {/* SVG CHART AREA / EMPTY STATE */}
-        {activeTab === "sodium" ? (
-          <View className="h-44 items-center justify-center mb-4 pb-4" style={{ borderBottomWidth: 1, borderBottomColor: c.hairlineSoft }}>
-            <View style={{ marginBottom: 12 }}>
-              <IconBadge icon="food-apple-outline" tint="peach" size={44} />
-            </View>
-            <Text style={{ fontSize: 15, fontWeight: "600", color: c.ink, marginBottom: 4 }}>No Sodium Data</Text>
-            <Text className="text-center mb-3 px-4" style={{ fontSize: 13, color: c.slate }}>You haven&apos;t logged any meals in this timeframe.</Text>
-            <TouchableOpacity onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)} className="justify-center" style={{ height: 40, paddingHorizontal: 16, borderRadius: 8, borderWidth: 1, borderColor: c.hairlineStrong }}>
-              <Text style={{ fontSize: 14, fontWeight: "500", color: c.ink }}>Log a Meal</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <View className="mb-4">
-            <View 
-              style={{ height: CHART_HEIGHT, width: '100%', marginBottom: 8 }}
-              onLayout={(e) => setChartWidth(e.nativeEvent.layout.width)}
-            >
-              {chartWidth > 0 && (
-                <Svg width={chartWidth} height={CHART_HEIGHT}>
-                  {/* Gridline */}
-                  <SvgLine
-                    x1={CHART_PADDING}
-                    x2={chartWidth - CHART_PADDING}
-                    y1={CHART_HEIGHT - CHART_PADDING}
-                    y2={CHART_HEIGHT - CHART_PADDING}
-                    stroke={c.hairline}
-                    strokeWidth={1}
-                  />
-                  <Path d={areaPath} fill={areaFillColor} stroke="none" />
-                  <Path
-                    d={linePath}
-                    fill="none"
-                    stroke={color}
-                    strokeWidth={3}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                  {points.map((p, i) => (
-                    <Circle
-                      key={i}
-                      cx={p.x}
-                      cy={p.y}
-                      r={4}
-                      fill={c.canvas}
-                      stroke={color}
-                      strokeWidth={2.5}
-                    />
-                  ))}
-                </Svg>
-              )}
-            </View>
-            {chartWidth > 0 && (
-              <View style={{ height: 20, width: chartWidth, position: 'relative' }}>
-                {chartData.map((d, i) => {
-                  let showLabel = false;
-                  if (intervalDays === 7) {
-                    showLabel = true;
-                  } else if (intervalDays === 14) {
-                    showLabel = i === 0 || i === 3 || i === 6 || i === 10 || i === 13;
-                  } else {
-                    showLabel = i === 0 || i === 6 || i === 12 || i === 18 || i === 24 || i === 29;
-                  }
-
-                  if (!showLabel) return null;
-
-                  const x = chartData.length > 1
-                      ? CHART_PADDING + (usableWidth * i) / (chartData.length - 1)
-                      : CHART_PADDING + usableWidth / 2;
-
-                  return (
-                    <Text 
-                      key={i} 
-                      className="text-center absolute"
-                      style={{ left: x - 25, width: 50, top: 0, fontSize: 11, fontWeight: "500", color: c.steel }}
-                    >
-                      {d.label}
-                    </Text>
-                  );
-                })}
-              </View>
-            )}
-          </View>
-        )}
-
-
-      </View>
-    );
-  };
-
-  const highlights = useMemo(() => {
-    let bestDayText = "No data yet";
-    let highestSodiumText = "No data yet";
-
-    if (analytics) {
-      // Best day by HSS score
-      const history = analytics.history || [];
-      if (history.length > 0) {
-        const best = history.reduce((max: any, h: any) => h.score > max.score ? h : max, history[0]);
-        if (best) {
-          const date = new Date(best.computed_at);
-          const weekday = date.toLocaleDateString('en-US', { weekday: 'long' });
-          
-          // Try to find BP for that day
-          const dateStr = (best.computed_at || "").split("T")[0];
-          const bps = (analytics.vitals || []).filter((v: any) => v.type === "bp" && (v.logged_at || "").startsWith(dateStr));
-          if (bps.length > 0) {
-            const latestBp = bps[bps.length - 1];
-            bestDayText = `${weekday}, ${latestBp.systolic}/${latestBp.diastolic} mmHg`;
-          } else {
-            bestDayText = `${weekday}, ${Math.round(best.score)} Score`;
-          }
-        }
-      }
-
-      // Highest sodium by day
-      const meals = (analytics.vitals || []).filter((v: any) => v.type === "meal");
-      if (meals.length > 0) {
-        const sodiumByDay: Record<string, number> = {};
-        meals.forEach((m: any) => {
-          const dateStr = (m.logged_at || "").split("T")[0];
-          if (!sodiumByDay[dateStr]) sodiumByDay[dateStr] = 0;
-          sodiumByDay[dateStr] += Number(m.sodium_mg || 0);
-        });
-        
-        let maxSodium = -1;
-        let maxSodiumDate = "";
-        Object.entries(sodiumByDay).forEach(([dateStr, sodium]) => {
-          if (sodium > maxSodium) {
-            maxSodium = sodium;
-            maxSodiumDate = dateStr;
-          }
-        });
-
-        if (maxSodium >= 0 && maxSodiumDate) {
-          const date = new Date(maxSodiumDate);
-          const weekday = date.toLocaleDateString('en-US', { weekday: 'long' });
-          highestSodiumText = `${weekday}, ${Math.round(maxSodium).toLocaleString()}mg`;
-        }
-      }
-    }
-
-    return { bestDayText, highestSodiumText };
-  }, [analytics]);
-
-  const summaryStats = useMemo(() => {
-    let sleepHours = 0;
-    let activityMins = 0;
-    let sodiumMg = 0;
-    
-    if (analytics) {
-      const sleepLogs = analytics.sleep_logs || [];
-      if (sleepLogs.length > 0) {
-        const totalSleep = sleepLogs.reduce((sum: number, s: any) => sum + (Number(s.duration_hours) || 0), 0);
-        sleepHours = totalSleep / sleepLogs.length;
-      }
-      
-      const exercises = analytics.exercise_logs || [];
-      if (exercises.length > 0) {
-        const totalExercise = exercises.reduce((sum: number, e: any) => sum + (Number(e.duration_minutes) || 0), 0);
-        activityMins = totalExercise / exercises.length;
-      }
-      
-      const meals = analytics.meal_logs || [];
-      if (meals.length > 0) {
-        const totalSodium = meals.reduce((sum: number, m: any) => sum + (Number(m.sodium_mg) || 0), 0);
-        const sodiumByDay: Record<string, number> = {};
-        meals.forEach((m: any) => {
-          const dateStr = (m.logged_at || "").split("T")[0];
-          if (!sodiumByDay[dateStr]) sodiumByDay[dateStr] = 0;
-          sodiumByDay[dateStr] += Number(m.sodium_mg || 0);
-        });
-        const daysLogged = Object.keys(sodiumByDay).length;
-        sodiumMg = daysLogged > 0 ? totalSodium / daysLogged : 0;
-      }
-    }
-    
-    return {
-      sleepHours: sleepHours.toFixed(1),
-      activityMins: Math.round(activityMins),
-      sodiumMg: Math.round(sodiumMg),
-    };
-  }, [analytics]);
-
-  // Highlights removed and combined into renderWeeklySummary
+  const best = peak(t.days, t.scores);
+  const saltiest = peak(t.days, t.sodium);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.canvas }}>
@@ -639,41 +181,408 @@ export default function TrendsTabScreen() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={c.line} />}
+        contentContainerStyle={{ paddingBottom: 120, gap: 22 }}
       >
-        {/* Screen Header */}
-        <View className="px-5 mb-5 mt-2 flex-row items-center justify-between">
-          <View className="flex-1 mr-4">
-            <Text accessibilityRole="header" style={{ fontSize: 28, lineHeight: 34, fontWeight: "600", letterSpacing: -0.5, color: c.ink, marginBottom: 4 }}>
-              Trends
-            </Text>
-            <Text className="flex-shrink" style={{ fontSize: 15, color: c.slate }} numberOfLines={2}>
-              Analyze your vitals & discover patterns.
-            </Text>
-          </View>
-          <TouchableOpacity
-            onPress={handleExportPDF}
+        <View style={{ paddingHorizontal: 20, paddingTop: 8, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+          <Text accessibilityRole="header" style={{ fontSize: 28, lineHeight: 34, fontWeight: "600", color: c.ink }}>
+            Trends
+          </Text>
+          <AnimatedButton
+            onPress={shareReport}
             accessibilityRole="button"
-            accessibilityLabel="Share trends report"
-            className="items-center justify-center"
-            style={{ width: 44, height: 44, borderRadius: 8, borderWidth: 1, borderColor: c.hairline, backgroundColor: c.canvas }}
+            accessibilityLabel="Share a report for your doctor"
+            style={{ height: 44, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 6, borderWidth: 1, borderColor: c.hairline, borderRadius: 8 }}
           >
-            <Feather name="share-2" size={18} color={c.ink} />
-          </TouchableOpacity>
+            <Feather name="share" size={16} color={c.ink} />
+            <Text style={{ fontSize: 14, fontWeight: "500", color: c.ink }}>Report</Text>
+          </AnimatedButton>
         </View>
 
-        {/* Tab Selector */}
-        {renderTabSelector()}
-
-        <View className="px-5">
-          {/* Main Chart Card */}
-          {renderActiveChart()}
-
-          {/* Weekly Summary (Combined Goals + Highlights) */}
-          {renderWeeklySummary()}
+        {/* Period */}
+        <View accessibilityRole="tablist" style={{ marginHorizontal: 20, flexDirection: "row", padding: 4, borderRadius: 10, backgroundColor: c.surface }}>
+          {PERIODS.map((p) => {
+            const on = p === period;
+            return (
+              <AnimatedButton
+                key={p}
+                onPress={() => {
+                  Haptics.selectionAsync();
+                  setPeriod(p);
+                }}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: on }}
+                accessibilityLabel={`${p} days`}
+                style={{
+                  flex: 1,
+                  height: 40,
+                  borderRadius: 8,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderWidth: on ? 1 : 0,
+                  borderColor: c.hairline,
+                  backgroundColor: on ? c.canvas : "transparent",
+                }}
+              >
+                <Text style={{ fontSize: 14, fontWeight: on ? "600" : "400", color: on ? c.ink : c.slate }}>{p} days</Text>
+              </AnimatedButton>
+            );
+          })}
         </View>
 
-        <View className="mb-20" />
+        {/* Measure */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} accessibilityRole="tablist" contentContainerStyle={{ gap: 8, paddingHorizontal: 20 }}>
+          {METRICS.map((m) => {
+            const on = m.id === metric;
+            return (
+              <AnimatedButton
+                key={m.id}
+                onPress={() => setMetric(m.id)}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: on }}
+                accessibilityLabel={m.label}
+                style={{ height: 40, paddingHorizontal: 16, borderRadius: 9999, borderWidth: 1, justifyContent: "center", backgroundColor: on ? c.ink : c.canvas, borderColor: on ? c.ink : c.hairline }}
+              >
+                <Text style={{ fontSize: 14, fontWeight: "500", color: on ? c.canvas : c.charcoal }}>{m.label}</Text>
+              </AnimatedButton>
+            );
+          })}
+        </ScrollView>
+
+        <View style={{ paddingHorizontal: 20, gap: 22 }}>
+          {query.isLoading ? (
+            <Skeleton style={{ height: 300, borderRadius: 12 }} />
+          ) : query.isError && !data ? (
+            <View style={{ padding: 20, borderRadius: 12, backgroundColor: c.surface, gap: 10 }}>
+              <Text style={{ fontSize: 16, fontWeight: "600", color: c.ink }}>{"Trends couldn't load"}</Text>
+              <Text style={{ fontSize: 14, lineHeight: 20, color: c.slate }}>Check your connection and try again.</Text>
+              <DsButton label="Try again" variant="secondary" block={false} onPress={() => query.refetch()} />
+            </View>
+          ) : (
+            <MetricCard
+              c={c}
+              metric={metric}
+              period={period}
+              t={t}
+              sodiumLimit={sodiumLimit}
+              onLog={(route) => router.push(route as never)}
+              onLonger={() => setPeriod(30)}
+            />
+          )}
+
+          {data ? (
+            <>
+              <View style={{ gap: 12 }}>
+                <Text accessibilityRole="header" style={{ fontSize: 20, fontWeight: "600", color: c.ink }}>
+                  Your last {period} days
+                </Text>
+                <View style={{ borderWidth: 1, borderColor: c.hairline, borderRadius: 12, overflow: "hidden" }}>
+                  <SummaryRow
+                    c={c}
+                    tint={c.peach}
+                    icon="droplet"
+                    label="Sodium"
+                    note={
+                      t.summary.sodium.daysLogged === 0
+                        ? "No meals logged"
+                        : t.summary.sodium.daysOver > 0
+                          ? `Over your limit on ${t.summary.sodium.daysOver} ${t.summary.sodium.daysOver === 1 ? "day" : "days"}`
+                          : "Under your limit every day logged"
+                    }
+                    warn={t.summary.sodium.daysOver > 0}
+                    value={t.summary.sodium.daysLogged ? `${t.summary.sodium.perDay.toLocaleString()} mg` : "--"}
+                    unit={`a day · limit ${sodiumLimit.toLocaleString()}`}
+                  />
+                  <SummaryRow
+                    c={c}
+                    tint={c.mint}
+                    icon="activity"
+                    label="Movement"
+                    note={`Goal reached on ${t.summary.movement.daysAtGoal} ${t.summary.movement.daysAtGoal === 1 ? "day" : "days"}`}
+                    value={`${t.summary.movement.perDay} min`}
+                    unit={`a day · goal ${movementGoal}`}
+                  />
+                  <SummaryRow
+                    c={c}
+                    tint={c.lavender}
+                    icon="moon"
+                    label="Sleep"
+                    note={`${t.summary.sleep.nightsLogged} ${t.summary.sleep.nightsLogged === 1 ? "night" : "nights"} logged`}
+                    value={t.summary.sleep.nightsLogged ? `${t.summary.sleep.perNight} h` : "--"}
+                    unit="a night · aim 7 to 9"
+                  />
+                  <SummaryRow
+                    c={c}
+                    tint={c.sky}
+                    icon="heart"
+                    label="Blood pressure"
+                    note={`${t.summary.pressure.readings} ${t.summary.pressure.readings === 1 ? "reading" : "readings"}`}
+                    value={t.summary.pressure.average ? `${t.summary.pressure.average.sys}/${t.summary.pressure.average.dia}` : "--"}
+                    unit="average mmHg"
+                    last
+                  />
+                </View>
+              </View>
+
+              {best || saltiest ? (
+                <View style={{ gap: 12 }}>
+                  <Text accessibilityRole="header" style={{ fontSize: 20, fontWeight: "600", color: c.ink }}>
+                    Worth noticing
+                  </Text>
+                  <View style={{ flexDirection: "row", gap: 12 }}>
+                    {best ? <NoticeTile bg={c.mint} fg={c.charcoal} c={c} label="Best score" value={String(best.value)} when={dayName(best.day)} /> : null}
+                    {saltiest ? (
+                      <NoticeTile bg={c.peach} fg={c.warmText} c={c} label="Saltiest day" value={`${saltiest.value.toLocaleString()} mg`} when={dayName(saltiest.day)} />
+                    ) : null}
+                  </View>
+                </View>
+              ) : null}
+            </>
+          ) : null}
+
+          <Text style={{ fontSize: 12, lineHeight: 17, color: c.steel }}>
+            {"Trends help you spot habits. They aren't a diagnosis; share the report with your doctor."}
+          </Text>
+        </View>
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+type TrendData = {
+  days: ReturnType<typeof periodDays>;
+  scores: (number | null)[];
+  pressure: ReturnType<typeof pressureByDay>;
+  pulse: (number | null)[];
+  sodium: (number | null)[];
+  summary: ReturnType<typeof summarize>;
+};
+
+/** The selected measure: its latest value, one line on how it went, and the chart (or an empty state). */
+function MetricCard({
+  c,
+  metric,
+  period,
+  t,
+  sodiumLimit,
+  onLog,
+  onLonger,
+}: {
+  c: DsColors;
+  metric: Metric;
+  period: Period;
+  t: TrendData;
+  sodiumLimit: number;
+  onLog: (route: string) => void;
+  onLonger: () => void;
+}) {
+  const card = { borderWidth: 1, borderColor: c.hairline, borderRadius: 12, padding: 16, gap: 14 } as const;
+  const logBp = "/(home)/(health)/log-symptoms";
+
+  const empty = (title: string, body: string, action: string, route: string) => (
+    <View style={{ ...card, alignItems: "center", paddingVertical: 24 }}>
+      <Text style={{ fontSize: 18, fontWeight: "600", color: c.ink, textAlign: "center" }}>{title}</Text>
+      <Text style={{ fontSize: 15, lineHeight: 22, color: c.charcoal, textAlign: "center" }}>{body}</Text>
+      <DsButton label={action} block={false} onPress={() => onLog(route)} />
+      {period < 30 ? <DsButton label="Show the last 30 days instead" variant="link" block={false} onPress={onLonger} /> : null}
+    </View>
+  );
+
+  const head = (value: string, unit: string, line: string | null, tag?: { text: string; bg: string; fg: string }) => (
+    <View style={{ gap: 4 }}>
+      <View style={{ flexDirection: "row", alignItems: "baseline", gap: 8 }}>
+        <Text style={{ fontSize: 40, lineHeight: 46, fontWeight: "700", color: c.ink, fontVariant: ["tabular-nums"] }}>{value}</Text>
+        <Text style={{ fontSize: 14, color: c.slate, flexShrink: 1 }}>{unit}</Text>
+        {tag ? (
+          <View style={{ marginLeft: "auto", alignSelf: "center", paddingVertical: 3, paddingHorizontal: 10, borderRadius: 999, backgroundColor: tag.bg }}>
+            <Text style={{ fontSize: 13, fontWeight: "500", color: tag.fg }}>{tag.text}</Text>
+          </View>
+        ) : null}
+      </View>
+      {line ? <Text style={{ fontSize: 15, color: c.charcoal }}>{line}</Text> : null}
+    </View>
+  );
+
+  const coverage = (logged: number, what: string) => (
+    <Text style={{ fontSize: 13, lineHeight: 18, color: c.slate, marginTop: -6 }}>
+      {logged === 1
+        ? `Only 1 day has ${what} so far. Log on another day to start seeing a trend.`
+        : `${logged} of ${t.days.length} days have ${what}. Days with nothing logged are left blank.`}
+    </Text>
+  );
+
+  if (metric === "score") {
+    const latest = lastOf(t.scores);
+    if (!latest) return empty(`No heart score in the last ${period} days`, "Log your blood pressure and your score will show here.", "Log blood pressure", logBp);
+    const values = t.scores.filter((s): s is number => s !== null);
+    const yMin = Math.max(0, Math.min(60, Math.floor((Math.min(...values) - 5) / 10) * 10));
+    const bands = [
+      { from: 80, to: 100, fill: c.sky, label: "Stable", labelColor: c.onTint },
+      { from: 60, to: 80, fill: c.yellow, label: "Moderate", labelColor: c.warmText },
+      { from: 50, to: 60, fill: c.peach, label: "Elevated risk", labelColor: c.warmText },
+      { from: 0, to: 50, fill: c.rose, label: "Critical", labelColor: c.charcoal },
+    ]
+      .filter((b) => b.to > yMin)
+      .map((b) => ({ ...b, from: Math.max(b.from, yMin) }));
+    return (
+      <View style={card}>
+        {head(String(latest.value), dayName(t.days[latest.index]), scoreChange(t.days, t.scores), bandTag(tierOf(latest.value), true, c))}
+        <TrendChart
+          kind="line"
+          days={t.days}
+          values={t.scores}
+          yMin={yMin}
+          yMax={100}
+          ticks={[yMin, 80, 100].filter((v, i, a) => a.indexOf(v) === i)}
+          bands={bands}
+          accessibilityLabel={`Heart score over the last ${period} days. Latest ${latest.value}.`}
+        />
+        {coverage(values.length, "a score")}
+      </View>
+    );
+  }
+
+  if (metric === "bp") {
+    const latest = lastOf(t.pressure);
+    if (!latest) return empty(`No blood pressure readings in the last ${period} days`, "Log a reading and your trend will show here.", "Log blood pressure", logBp);
+    const avg = t.summary.pressure.average;
+    return (
+      <View style={card}>
+        {head(
+          `${latest.value.sys}/${latest.value.dia}`,
+          `mmHg, ${dayName(t.days[latest.index])}`,
+          avg ? `${t.summary.pressure.readings} ${t.summary.pressure.readings === 1 ? "reading" : "readings"}, average ${avg.sys}/${avg.dia}` : null
+        )}
+        <TrendChart
+          kind="range"
+          days={t.days}
+          values={t.pressure}
+          yMin={40}
+          yMax={200}
+          ticks={[60, 100, 140]}
+          refLine={{ value: 180, label: "180: emergency level", color: c.danger }}
+          accessibilityLabel={`Blood pressure over the last ${period} days. Latest ${latest.value.sys} over ${latest.value.dia}.`}
+        />
+        <Text style={{ fontSize: 13, lineHeight: 18, color: c.slate, marginTop: -6 }}>
+          {t.summary.pressure.readings === 1
+            ? "Only 1 reading so far. Log on another day to start seeing a trend."
+            : "Each bar runs from the lower number (diastolic) to the upper number (systolic) of the day's last reading."}
+        </Text>
+      </View>
+    );
+  }
+
+  if (metric === "pulse") {
+    const latest = lastOf(t.pulse);
+    if (!latest) return empty(`No pulse readings in the last ${period} days`, "Add your pulse when you log your blood pressure, and your trend will show here.", "Log blood pressure", logBp);
+    const values = t.pulse.filter((p): p is number => p !== null);
+    const avg = Math.round(values.reduce((a, b) => a + b, 0) / values.length);
+    return (
+      <View style={card}>
+        {head(String(latest.value), `bpm, ${dayName(t.days[latest.index])}`, `Average ${avg} bpm`)}
+        <TrendChart
+          kind="line"
+          days={t.days}
+          values={t.pulse}
+          yMin={40}
+          yMax={Math.max(120, Math.ceil((Math.max(...values) + 10) / 20) * 20)}
+          ticks={[60, 100]}
+          accessibilityLabel={`Pulse over the last ${period} days. Latest ${latest.value} beats per minute.`}
+        />
+        {coverage(values.length, "a pulse reading")}
+      </View>
+    );
+  }
+
+  const latest = lastOf(t.sodium);
+  if (!latest) return empty(`No meals logged in the last ${period} days`, "Log what you eat and your daily sodium will show here.", "Log a meal", "/(home)/(meals)/search-meal");
+  const values = t.sodium.filter((s): s is number => s !== null);
+  const yMax = Math.ceil((Math.max(sodiumLimit * 1.25, ...values) * 1.05) / 500) * 500;
+  const over = t.summary.sodium.daysOver;
+  return (
+    <View style={card}>
+      {head(
+        latest.value.toLocaleString(),
+        `mg, ${dayName(t.days[latest.index])}`,
+        over > 0
+          ? `Over your ${sodiumLimit.toLocaleString()} mg limit on ${over} of ${values.length} days`
+          : `Under your ${sodiumLimit.toLocaleString()} mg limit every day logged`
+      )}
+      <TrendChart
+        kind="bars"
+        days={t.days}
+        values={t.sodium}
+        limit={sodiumLimit}
+        yMin={0}
+        yMax={yMax}
+        ticks={[0, yMax]}
+        refLine={{ value: sodiumLimit, label: `Your limit ${sodiumLimit.toLocaleString()}`, color: c.ink }}
+        accessibilityLabel={`Sodium each day over the last ${period} days, against your ${sodiumLimit} milligram limit. Over it on ${over} days.`}
+      />
+      <View style={{ flexDirection: "row", gap: 16, marginTop: -6 }}>
+        <Legend c={c} color={c.line} label="Under your limit" />
+        <Legend c={c} color={c.warmText} label="Over it" />
+      </View>
+    </View>
+  );
+}
+
+function SummaryRow({
+  c,
+  tint,
+  icon,
+  label,
+  note,
+  value,
+  unit,
+  warn = false,
+  last = false,
+}: {
+  c: DsColors;
+  tint: string;
+  icon: keyof typeof Feather.glyphMap;
+  label: string;
+  note: string;
+  value: string;
+  unit: string;
+  warn?: boolean;
+  last?: boolean;
+}) {
+  return (
+    <View
+      accessible
+      accessibilityLabel={`${label}: ${value} ${unit}. ${note}`}
+      style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 14, paddingHorizontal: 16, borderBottomWidth: last ? 0 : 1, borderBottomColor: c.hairlineSoft }}
+    >
+      <View style={{ width: 36, height: 36, borderRadius: 9, backgroundColor: tint, alignItems: "center", justifyContent: "center" }}>
+        <Feather name={icon} size={17} color={c.charcoal} />
+      </View>
+      <View style={{ flex: 1, gap: 2 }}>
+        <Text style={{ fontSize: 15, fontWeight: "500", color: c.ink }}>{label}</Text>
+        <Text style={{ fontSize: 13, color: warn ? c.warmText : c.slate }}>{note}</Text>
+      </View>
+      <View style={{ alignItems: "flex-end" }}>
+        <Text style={{ fontSize: 16, fontWeight: "600", color: c.ink, fontVariant: ["tabular-nums"] }}>{value}</Text>
+        <Text style={{ fontSize: 12, color: c.slate }}>{unit}</Text>
+      </View>
+    </View>
+  );
+}
+
+function NoticeTile({ c, bg, fg, label, value, when }: { c: DsColors; bg: string; fg: string; label: string; value: string; when: string }) {
+  return (
+    <View accessible accessibilityLabel={`${label}: ${value}, ${when}`} style={{ flex: 1, padding: 14, borderRadius: 12, backgroundColor: bg, gap: 4 }}>
+      <Text style={{ fontSize: 13, color: fg }}>{label}</Text>
+      <Text style={{ fontSize: 20, fontWeight: "600", color: c.ink }}>{value}</Text>
+      <Text style={{ fontSize: 13, color: fg }}>{when.charAt(0).toUpperCase() + when.slice(1)}</Text>
+    </View>
+  );
+}
+
+function Legend({ c, color, label }: { c: DsColors; color: string; label: string }) {
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+      <View style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: color }} />
+      <Text style={{ fontSize: 12, color: c.slate }}>{label}</Text>
+    </View>
   );
 }
