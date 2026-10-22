@@ -20,6 +20,7 @@ import * as z from "zod";
 import "../../global.css";
 import { Feather } from "@expo/vector-icons";
 import { InputField } from "../../components/ui/InputField";
+import AnimatedButton from "../../components/ui/AnimatedButton";
 import DsButton from "../../components/onboarding/DsButton";
 import SetupHeader from "../../components/onboarding/SetupHeader";
 import { DsScreen } from "../../components/onboarding/QuestionLayout";
@@ -53,7 +54,11 @@ const registerSchema = z.object({
     .regex(/(?=.*[A-Z])/, "Password must contain an uppercase letter.")
     .regex(/(?=.*\d)/, "Password must include at least one number.")
     .regex(/(?=.*[^A-Za-z0-9\s])/, "Password must include at least one special character."),
+  // Philippine Data Privacy Act: storing health information needs the person's explicit consent.
+  healthDataConsent: z.boolean().refine((val) => val, "Please agree to continue."),
 });
+
+const HEALTH_DATA_CONSENT = "I agree that HeartLink stores my health information to give me feedback.";
 
 type RegisterFormValues = z.infer<typeof registerSchema>;
 
@@ -99,6 +104,7 @@ export default function RegisterScreen() {
       email: "",
       phone: "",
       password: "",
+      healthDataConsent: false,
     },
     mode: "onSubmit",
     reValidateMode: "onSubmit",
@@ -118,14 +124,16 @@ export default function RegisterScreen() {
   const emailValue = watch("email") || "";
   const phoneValue = watch("phone") || "";
   const passwordValue = watch("password") || "";
+  const consented = watch("healthDataConsent");
   const rulesMet = PASSWORD_RULES.filter((rule) => rule.test(passwordValue)).length;
 
-  // Continue unlocks once every field is filled in; the email format is still
-  // checked on submit so a typo gets a specific message.
+  // Continue unlocks once every field is filled in and the consent box is ticked;
+  // the email format is still checked on submit so a typo gets a specific message.
   const canContinue =
     emailValue.trim().length > 0 &&
     nationalDigits(phoneValue).length === 10 &&
-    rulesMet === PASSWORD_RULES.length;
+    rulesMet === PASSWORD_RULES.length &&
+    consented;
 
   useEffect(() => {
     if (generalError) {
@@ -178,7 +186,7 @@ export default function RegisterScreen() {
       const resData = await response.json();
 
       if (response.ok) {
-        router.push({ pathname: "/(auth)/verify-otp", params: { phone: normalizedPhone } });
+        router.push({ pathname: "/(auth)/verify-otp", params: { phone: normalizedPhone, email: data.email.trim().toLowerCase() } });
       } else {
         let errorMsg = "Couldn't send the code. Check your details and try again.";
         if (Array.isArray(resData.detail)) {
@@ -216,6 +224,31 @@ export default function RegisterScreen() {
       }
       footer={
         <>
+          <AnimatedButton
+            onPress={() => setValue("healthDataConsent", !consented, { shouldDirty: true })}
+            disabled={isSubmitting}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: consented }}
+            accessibilityLabel={HEALTH_DATA_CONSENT}
+            accessibilityHint="Required to create an account"
+            style={{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 48, marginBottom: 4 }}
+          >
+            <View
+              style={{
+                width: 22,
+                height: 22,
+                borderRadius: 6,
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: consented ? c.line : "transparent",
+                borderWidth: consented ? 0 : 1.5,
+                borderColor: c.hairlineStrong,
+              }}
+            >
+              {consented ? <Feather name="check" size={14} color="#ffffff" /> : null}
+            </View>
+            <Text style={{ flex: 1, fontSize: 14, lineHeight: 21, color: c.ink }}>{HEALTH_DATA_CONSENT}</Text>
+          </AnimatedButton>
           <DsButton label="Continue" onPress={handleSubmit(onSubmit)} disabled={!canContinue} loading={isSubmitting} />
           <Text style={{ fontSize: 12, lineHeight: 18, color: c.steel, textAlign: "center", marginTop: 4 }}>
             By continuing you agree to our{" "}
@@ -241,7 +274,7 @@ export default function RegisterScreen() {
           Create your account
         </Text>
         <Text style={{ fontSize: 16, lineHeight: 24, color: c.slate, marginTop: 8 }}>
-          Takes about a minute. We&apos;ll text a code to confirm your number.
+          Takes about a minute. We&apos;ll email you a code to confirm it&apos;s you.
         </Text>
       </Animated.View>
 

@@ -73,16 +73,14 @@ def test_production_defaults_to_off(otp_env):
     assert get_dev_otp_code() is None
 
 
-def test_production_needs_a_private_code(otp_env):
+def test_production_never_uses_the_shared_code(otp_env):
+    """HL-052: production sign-up needs a real emailed code, even if the shared code is switched on."""
     otp_env.setenv("ENVIRONMENT", "production")
     otp_env.setenv("DEV_OTP_ENABLED", "true")
     assert get_dev_otp_code() is None
 
-    otp_env.setenv("DEV_OTP_CODE", "123456")
-    assert get_dev_otp_code() is None
-
     otp_env.setenv("DEV_OTP_CODE", "481920")
-    assert get_dev_otp_code() == "481920"
+    assert get_dev_otp_code() is None
 
 
 @pytest.mark.parametrize("bad_code", ["12345", "1234567", "abcdef", "12 456"])

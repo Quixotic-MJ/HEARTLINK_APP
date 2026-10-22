@@ -7,22 +7,54 @@ os.environ["DATABASE_MODE"] = "mock"
 os.environ["ALGORITHM"] = "HS256"
 
 
+SMTP_ENV_VARS = ("SMTP_HOST", "SMTP_PORT", "SMTP_USER", "SMTP_PASSWORD", "MAIL_FROM")
+
+
+@pytest.fixture(autouse=True)
+def no_real_email(monkeypatch):
+    """HL-052: a local .env may hold real SMTP settings; tests never send email unless they set it up."""
+    for name in SMTP_ENV_VARS:
+        monkeypatch.delenv(name, raising=False)
+
+
 class FakePendingRepo:
     """HL-046: in-memory stand-in for the pending_registrations table."""
 
     def __init__(self):
         self.rows = {}
 
-    def save(self, phone, email, password_hash, expires_at):
-        self.rows[phone] = {"phone": phone, "email": email, "password_hash": password_hash, "expires_at": expires_at}
+    def save(self, phone, email, password_hash, expires_at, code_hash):
+        self.rows[phone] = {
+            "phone": phone, "email": email, "password_hash": password_hash,
+            "code_hash": code_hash, "attempts": 0, "expires_at": expires_at,
+        }
 
     def get(self, phone):
         row = self.rows.get(phone)
         return dict(row) if row else None
 
-    def extend(self, phone, expires_at):
+    def replace_code(self, phone, code_hash, expires_at):
         if phone in self.rows:
-            self.rows[phone]["expires_at"] = expires_at
+            self.rows[phone].update(code_hash=code_hash, attempts=0, expires_at=expires_at)
+
+    def claim_attempt(self, phone, seen_attempts):
+        row = self.rows.get(phone)
+        if not row or row["attempts"] != seen_attempts:
+            return False
+        row["attempts"] = seen_attempts + 1
+        return True
+
+    def consume_code(self, phone, code_hash):
+        row = self.rows.get(phone)
+        if not row or row["code_hash"] != code_hash:
+            return False
+        row["code_hash"] = None
+        return True
+
+    def restore_code(self, phone, code_hash):
+        row = self.rows.get(phone)
+        if row and row["code_hash"] is None:
+            row["code_hash"] = code_hash
 
     def delete(self, phone):
         self.rows.pop(phone, None)

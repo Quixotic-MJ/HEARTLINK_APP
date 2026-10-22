@@ -36,8 +36,50 @@ Configure these variables in the **Environment** tab of the Render dashboard. Ne
 | `ALGORITHM` | Server-Only | Non-Sensitive | **Required** | Token cryptographic algorithm (default: `HS256`). |
 | `ACCESS_TOKEN_EXPIRE_HOURS` | Server-Only | Non-Sensitive | **Required** | Token lifetime in hours (default: `24`). |
 | `CORS_ALLOWED_ORIGINS` | Server-Only | Low | **Required** | Comma-separated allowed frontend origins (e.g. `https://your-admin-portal.onrender.com,https://your-web-portal.vercel.app,http://localhost:5173`). |
-| `DEV_OTP_ENABLED` | Server-Only | Non-Sensitive | Optional | `true` opens sign-up for any phone number using the shared `DEV_OTP_CODE` (no SMS gateway yet). Defaults to off in production. |
-| `DEV_OTP_CODE` | Server-Only | **SECRET** | Required if `DEV_OTP_ENABLED=true` in production | Private 6-digit sign-up code. Must not be `123456` in production. |
+| `SMTP_HOST` | Server-Only | Non-Sensitive | Needed for sign-up email | Mail server, e.g. `smtp.gmail.com`. See section 2.1. |
+| `SMTP_PORT` | Server-Only | Non-Sensitive | Optional | `587` (STARTTLS, default) or `465` (SSL). |
+| `SMTP_USER` | Server-Only | Low | Needed for sign-up email | Mail account login, e.g. the Gmail address. |
+| `SMTP_PASSWORD` | Server-Only | **SECRET** | Needed for sign-up email | For Gmail, a 16-letter app password (not the normal Gmail password). |
+| `MAIL_FROM` | Server-Only | Low | Needed for sign-up email | Sender address shown on the email; for Gmail, the same Gmail address. |
+| `DEV_OTP_ENABLED` | Server-Only | Non-Sensitive | Optional | Only used when the `SMTP_*` settings are missing: `true` (the default outside production) lets every sign-up use the shared `DEV_OTP_CODE`. Never works when `ENVIRONMENT=production`. |
+| `DEV_OTP_CODE` | Server-Only | Non-Sensitive | Optional | The shared 6-digit test code (default `123456`). |
+
+### 2.1 Sign-up code email (HL-052)
+
+Each sign-up gets its own 6-digit code by email, valid for 10 minutes, with 5 tries, usable once.
+
+**Before you start: Render's free plan blocks sending email this way** (outgoing SMTP ports 25, 465 and 587
+are closed on free web services since September 2025). On a free instance the email step fails and the app shows
+"We couldn't send the code to your email". You need a paid instance type, or an email service that sends over HTTPS
+instead (a code change). Railway likewise only allows SMTP on its Pro plan.
+
+**Step 1: create a Gmail app password** (Google only shows these when 2-Step Verification is on)
+1. Sign in to the Gmail account HeartLink will send from (a separate one, like `heartlink.app@gmail.com`, is best).
+2. Go to https://myaccount.google.com/security and turn on **2-Step Verification** if it's off.
+3. Go to https://myaccount.google.com/apppasswords.
+4. Type a name such as `HeartLink staging` and press **Create**.
+5. Google shows a 16-letter password in four groups. Copy it now; Google won't show it again.
+
+**Step 2: add the settings on Render**
+1. Open https://dashboard.render.com and click the HeartLink backend (staging) service.
+2. Click **Environment** on the left, then **Add Environment Variable** for each of these:
+
+   | Key | Value |
+   | :--- | :--- |
+   | `SMTP_HOST` | `smtp.gmail.com` |
+   | `SMTP_PORT` | `587` |
+   | `SMTP_USER` | the Gmail address |
+   | `SMTP_PASSWORD` | the 16-letter app password (spaces are fine) |
+   | `MAIL_FROM` | the same Gmail address |
+
+3. Click **Save Changes**. Render restarts the backend by itself.
+
+**Step 3: check it**
+Sign up in the app with an email you can open. A "Your HeartLink code" email should arrive within a minute
+(look in Spam the first time). If the app says it couldn't send the email, open the service's **Logs** on Render:
+`SMTPAuthenticationError` means the address or app password is wrong; `OSError` or a timeout means the plan blocks SMTP.
+
+Gmail limits how many emails one account sends a day (a few hundred), which is plenty for testing.
 | `SUPABASE_JWT_SECRET` | Server-Only | **CRITICAL SECRET**| Optional | Supabase direct JWT signing secret (if decoding Supabase Auth direct client tokens). |
 
 ---
@@ -85,7 +127,7 @@ curl -X GET "$RENDER_URL/api/clinics"
 
 ### 4.2 Authentication & User Security
 ```bash
-# 3. Request Registration Code (requires DEV_OTP_ENABLED=true)
+# 3. Request Registration Code (emails the code when SMTP is set up; otherwise needs DEV_OTP_ENABLED outside production)
 curl -X POST "$RENDER_URL/api/auth/request-code" \
   -H "Content-Type: application/json" \
   -d '{"phone": "+639171234567", "email": "tester@heartlink.ph", "password": "<TESTER_PASSWORD>"}'
@@ -94,7 +136,7 @@ curl -X POST "$RENDER_URL/api/auth/request-code" \
 # 4. Verify Registration Code
 curl -X POST "$RENDER_URL/api/auth/verify-code" \
   -H "Content-Type: application/json" \
-  -d '{"phone": "+639171234567", "code": "<DEV_OTP_CODE>"}'
+  -d '{"phone": "+639171234567", "code": "<CODE_FROM_EMAIL>"}'
 # Expected: 200 OK {"access_token": "...", "token_type": "bearer", "user": {...}}
 
 # 5. User Login
