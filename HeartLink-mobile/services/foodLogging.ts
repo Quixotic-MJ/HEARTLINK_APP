@@ -143,7 +143,9 @@ export function toMealPayload(item: FoodItem, base: Nutrition, amount: number, m
   };
 }
 
-export const DEFAULT_SODIUM_LIMIT_MG = 2000;
+// HL-017: AHA ideal limit, the same default the backend uses (backend/HEALTH_TARGETS.md). Only used until
+// the dashboard data with the patient's own limit has loaded.
+export const DEFAULT_SODIUM_LIMIT_MG = 1500;
 
 export type SodiumSummary = {
   earlier: number;

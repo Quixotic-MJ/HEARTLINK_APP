@@ -17,8 +17,71 @@ import { apiFetch } from "../../../lib/api";
 import { useDs } from "../../../components/onboarding/useDs";
 import { DsTextField } from "../../../components/onboarding/Controls";
 import DsButton from "../../../components/onboarding/DsButton";
-import { BadgeTint, IconBadge, McIcon } from "../../../components/onboarding/QuestionLayout";
+import { BadgeTint, IconBadge, McIcon, Tag } from "../../../components/onboarding/QuestionLayout";
 import { SquareIconButton } from "../../../components/exercise/ExerciseBits";
+
+/** HL-016 / HL-017: one daily limit worked out by the backend (services/nutrition_targets.py). */
+type DailyTarget = { value: number; source: string; why: string };
+type DailyTargets = {
+  bmi: number | null;
+  bmi_category: string | null;
+  calories: DailyTarget;
+  sat_fat_g: DailyTarget;
+  cholesterol_mg: DailyTarget;
+  sodium_mg: DailyTarget;
+};
+
+/** The guideline-based food limits, each with a short "Why this number" line and its source. */
+function DailyLimitsCard({ targets }: { targets: DailyTargets }) {
+  const { c } = useDs();
+  const rows: { label: string; unit: string; target: DailyTarget }[] = [
+    { label: "Calories", unit: "kcal", target: targets.calories },
+    { label: "Saturated fat", unit: "g", target: targets.sat_fat_g },
+    { label: "Cholesterol", unit: "mg", target: targets.cholesterol_mg },
+    { label: "Sodium", unit: "mg", target: targets.sodium_mg },
+  ];
+  return (
+    <View className="mb-4" style={{ borderRadius: 12, borderWidth: 1, borderColor: c.hairline, backgroundColor: c.canvas, padding: 20, gap: 14 }}>
+      <View className="flex-row items-center justify-between">
+        <View className="flex-1 pr-3">
+          <Text style={{ fontSize: 17, fontWeight: "600", color: c.ink }}>Your daily food limits</Text>
+          <Text style={{ fontSize: 13, color: c.slate, marginTop: 2 }}>From your height, weight, age and activity</Text>
+        </View>
+        <IconBadge icon="food-apple-outline" tint="peach" size={40} />
+      </View>
+      {targets.bmi != null && targets.bmi_category ? (
+        <View className="flex-row items-center" style={{ gap: 8 }} accessible accessibilityLabel={`BMI ${targets.bmi}, ${targets.bmi_category} on the Asia-Pacific scale`}>
+          <Tag label={`BMI ${targets.bmi} · ${targets.bmi_category}`} tone="neutral" />
+          <Text style={{ fontSize: 12, color: c.steel }}>Asia-Pacific scale</Text>
+        </View>
+      ) : null}
+      {rows.map(({ label, unit, target }, i) => (
+        <View
+          key={label}
+          style={{ gap: 4, paddingTop: i === 0 ? 0 : 14, borderTopWidth: i === 0 ? 0 : 1, borderTopColor: c.hairlineSoft }}
+          accessible
+          accessibilityLabel={`${label}: ${target.value.toLocaleString()} ${unit} a day. Why this number: ${target.why} Source: ${target.source}`}
+        >
+          <View className="flex-row items-baseline justify-between">
+            <Text style={{ fontSize: 15, fontWeight: "500", color: c.ink }}>{label}</Text>
+            <Text style={{ fontSize: 15, fontWeight: "600", color: c.ink, fontVariant: ["tabular-nums"] }}>
+              {target.value.toLocaleString()} {unit}
+            </Text>
+          </View>
+          <Text style={{ fontSize: 13, lineHeight: 19, color: c.slate }}>Why this number: {target.why}</Text>
+          <Text style={{ fontSize: 12, color: c.steel }}>Source: {target.source}</Text>
+        </View>
+      ))}
+      <View className="flex-row items-start pr-2">
+        <Feather name="info" size={14} color={c.steel} style={{ marginTop: 2, marginRight: 6 }} />
+        <Text style={{ flex: 1, fontSize: 13, lineHeight: 19, color: c.slate }}>
+          Based on published heart-health guidelines and still being reviewed by our cardiologist and dietitian. They
+          update when your weight changes. If your doctor gave you different numbers, follow your doctor.
+        </Text>
+      </View>
+    </View>
+  );
+}
 
 /** One target: title, short line, a topic badge, the field(s), then a grey note. */
 function TargetCard({ title, subtitle, icon, tint, note, children }: { title: string; subtitle: string; icon: McIcon; tint: BadgeTint; note: string; children: React.ReactNode }) {
@@ -55,6 +118,7 @@ export default function GoalsThresholdsScreen() {
   const [activeMins, setActiveMins] = useState("30");
   const [systolic, setSystolic] = useState("120");
   const [diastolic, setDiastolic] = useState("80");
+  const [targets, setTargets] = useState<DailyTargets | null>(null);
 
   useEffect(() => {
     const fetchThresholds = async () => {
@@ -77,6 +141,7 @@ export default function GoalsThresholdsScreen() {
           setSystolic(t.systolic_threshold.toString());
           setDiastolic(t.diastolic_threshold.toString());
         }
+        if (result.targets) setTargets(result.targets);
       } catch (e) {
         console.error("Failed to load targets & limits:", e);
       } finally {
@@ -164,14 +229,16 @@ export default function GoalsThresholdsScreen() {
           <Text style={{ fontSize: 15, lineHeight: 22, color: c.slate, marginBottom: 24 }}>
             Customize your daily lifestyle targets and clinical limits. These numbers help calibrate your daily stability analysis.
           </Text>
-          
+
+          {targets ? <DailyLimitsCard targets={targets} /> : null}
+
           {/* ── 1. Sodium Intake Limit ── */}
           <TargetCard
             title="Sodium Intake Limit"
             subtitle="Daily maximum sodium budget"
             icon="silverware-fork-knife"
             tint="peach"
-            note="The American Heart Association recommends staying under 1,500mg daily for optimal blood pressure management."
+            note="The American Heart Association's ideal limit is 1,500 mg a day for healthy blood pressure. Change it only if your doctor gave you a different number."
           >
             <DsTextField hideLabel label="Sodium Intake Limit" unit="mg / day" placeholder="1500" keyboardType="numeric" value={sodium} onChangeText={setSodium} />
           </TargetCard>

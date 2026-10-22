@@ -24,6 +24,8 @@ def test_cutoff_is_a_valid_utc_timestamp(monkeypatch):
     monkeypatch.setattr("app.services.health_logs.get_health_logs_repo", fake)
     for name in ("get_sleep_repo", "get_exercises_repo", "get_meals_repo"):
         monkeypatch.setattr(f"app.db.repositories.{name}", fake)
+    for name in ("get_profile_repo", "get_baseline_repo"):  # daily food limits (HL-016)
+        monkeypatch.setattr(f"app.services.nutrition_targets.{name}", fake)
 
     analytics.get_analytics("p1", days=7)
 
