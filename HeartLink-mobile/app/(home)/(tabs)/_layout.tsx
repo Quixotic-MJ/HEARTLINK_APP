@@ -7,7 +7,8 @@ import {
   Animated,
   Easing,
 } from "react-native";
-import { withLayoutContext, usePathname } from "expo-router";
+import { withLayoutContext, usePathname, useRouter } from "expo-router";
+import { useQueryClient } from "@tanstack/react-query";
 import { createMaterialTopTabNavigator } from "expo-router/js-top-tabs";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -17,6 +18,7 @@ import {
 } from "../../../components/tabs/SplitRecordActions";
 import { QuickLogModal } from "../../../components/exercise/QuickLogModal";
 import { MissionLogModal } from "../../../components/dashboard/MissionLogModal";
+import { LogMealSheet } from "../../../components/dashboard/LogMealSheet";
 import { useUser } from "../../../contexts/UserContext";
 
 // ─── Tab Config ───────────────────────────────────────────────────────────────
@@ -231,7 +233,16 @@ export default function TabsLayout() {
   const [showQuickLogModal, setShowQuickLogModal] = useState(false);
   const [showMissionModal, setShowMissionModal] = useState<null | "sleep" | "meals">(null);
   const pathname = usePathname();
+  const router = useRouter();
   const { userId, token } = useUser();
+  // The meal sheet's sodium line and meal count come from the dashboard's cached data.
+  const queryClient = useQueryClient();
+  const dashboard = queryClient.getQueryData<{
+    nutrition_budget?: { sodium?: { consumed_mg?: number; limit_mg?: number | null } };
+    today_activity?: { total_sodium_mg?: number; meals_count?: number };
+  }>(["dashboard", userId]);
+  const sodiumTodayMg = dashboard?.nutrition_budget?.sodium?.consumed_mg ?? dashboard?.today_activity?.total_sodium_mg ?? 0;
+  const sodiumLimitMg = dashboard?.nutrition_budget?.sodium?.limit_mg || 2000;
 
   // Bridge: the navigator owns tab state, but the bar renders OUTSIDE the
   // pop-animated container so only screen content zooms. We keep the tab
@@ -339,12 +350,24 @@ export default function TabsLayout() {
       />
 
       <MissionLogModal
-        mission={showMissionModal}
+        mission={showMissionModal === "meals" ? null : showMissionModal}
         userId={userId}
         token={token}
         onClose={() => setShowMissionModal(null)}
         onSaved={() => setShowMissionModal(null)}
-        onOpenDiary={() => {}}
+      />
+
+      <LogMealSheet
+        visible={showMissionModal === "meals"}
+        userId={userId}
+        token={token}
+        sodiumLeftMg={sodiumLimitMg - sodiumTodayMg}
+        mealsToday={dashboard?.today_activity?.meals_count || 0}
+        onClose={() => setShowMissionModal(null)}
+        onOpenDiary={() => {
+          setShowMissionModal(null);
+          router.push("/(home)/(meals)/food-diary");
+        }}
       />
     </View>
   );

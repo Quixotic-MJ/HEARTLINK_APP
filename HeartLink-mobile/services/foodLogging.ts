@@ -27,6 +27,8 @@ export type FoodItem = {
   image_url?: string | null;
   /** HeartLink recipe id, kept on the meal log. */
   recipe_id?: string;
+  /** Recent meals: when it was last logged. */
+  logged_at?: string;
   recommended?: boolean;
   base: Nutrition;
 };

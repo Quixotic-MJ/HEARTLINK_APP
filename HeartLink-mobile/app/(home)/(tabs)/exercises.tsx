@@ -9,7 +9,7 @@ import { Skeleton } from "../../../components/ui/Skeleton";
 import AnimatedButton from "../../../components/ui/AnimatedButton";
 import DsButton from "../../../components/onboarding/DsButton";
 import { useDs } from "../../../components/onboarding/useDs";
-import { IconBadge, SquareIconButton } from "../../../components/exercise/ExerciseBits";
+import { ExerciseHistoryLink, IconBadge, SquareIconButton } from "../../../components/exercise/ExerciseBits";
 import { apiFetch } from "../../../lib/api";
 import { Routine, exerciseKind, toRoutines } from "../../../services/exerciseSession";
 import { useRefetchOnFocus } from "../../../hooks/useRefetchOnFocus";
@@ -149,11 +149,14 @@ export default function ExercisesScreen({ isEmbedded = false }: { isEmbedded?: b
             />
           }
           ListHeaderComponent={
-            shown.length > 0 ? (
-              <Text style={{ fontSize: 13, color: c.steel, marginBottom: 12 }}>
-                {shown.length} {shown.length === 1 ? "exercise" : "exercises"}
-              </Text>
-            ) : null
+            <View style={{ gap: 16, marginBottom: shown.length > 0 ? 12 : 16 }}>
+              <ExerciseHistoryLink onPress={() => router.push("/(home)/(health)/exercise-diary")} />
+              {shown.length > 0 ? (
+                <Text style={{ fontSize: 13, color: c.steel }}>
+                  {shown.length} {shown.length === 1 ? "exercise" : "exercises"}
+                </Text>
+              ) : null}
+            </View>
           }
           ListEmptyComponent={
             <View style={{ padding: 20, borderRadius: 12, backgroundColor: c.surface, gap: 8 }}>

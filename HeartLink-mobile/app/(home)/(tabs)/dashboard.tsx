@@ -32,6 +32,7 @@ import { useToast } from "../../../contexts/ToastContext";
 import { ScoreRing } from "../../../components/dashboard/ScoreRing";
 import { MissionList, type MissionId, type MissionItem } from "../../../components/dashboard/MissionList";
 import { MissionLogModal } from "../../../components/dashboard/MissionLogModal";
+import { LogMealSheet } from "../../../components/dashboard/LogMealSheet";
 import { QuickLogModal } from "../../../components/exercise/QuickLogModal";
 import {
   RecommendationModal,
@@ -1097,12 +1098,21 @@ export default function DashboardScreen() {
             />
 
             <MissionLogModal
-              mission={logModal}
+              mission={logModal === "meals" ? null : logModal}
               userId={userId}
               token={token}
               initialSleepHours={data?.today_activity?.total_sleep_hours}
               onClose={() => setLogModal(null)}
               onSaved={handleMissionSaved}
+            />
+
+            <LogMealSheet
+              visible={logModal === "meals"}
+              userId={userId}
+              token={token}
+              sodiumLeftMg={sodiumLimitMg - sodiumTodayMg}
+              mealsToday={data?.today_activity?.meals_count || 0}
+              onClose={() => setLogModal(null)}
               onOpenDiary={() => {
                 setLogModal(null);
                 safeNavigate("/(home)/(meals)/food-diary");

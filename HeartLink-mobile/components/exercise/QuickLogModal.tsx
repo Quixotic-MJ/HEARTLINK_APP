@@ -8,6 +8,7 @@ import { useLogExercise } from "../../hooks/useLogExercise";
 import AnimatedButton from "../ui/AnimatedButton";
 import DsButton from "../onboarding/DsButton";
 import { useDs } from "../onboarding/useDs";
+import { ExerciseHistoryLink } from "./ExerciseBits";
 
 // Screen 7: log something done without the app (a walk, gardening). Pick a common activity
 // or type one, set the minutes, save. It shows up in Activity history like a guided exercise.
@@ -179,6 +180,12 @@ export function QuickLogModal({ visible, onClose }: QuickLogModalProps) {
                 onPress={() => {
                   close();
                   router.push("/(home)/(tabs)/exercises");
+                }}
+              />
+              <ExerciseHistoryLink
+                onPress={() => {
+                  close();
+                  router.push("/(home)/(health)/exercise-diary");
                 }}
               />
             </ScrollView>

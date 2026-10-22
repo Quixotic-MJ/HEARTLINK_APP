@@ -11,34 +11,9 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useColorScheme } from "nativewind";
-import { useRouter } from "expo-router";
 import type { MissionId } from "./MissionList";
 import { SleepQuickForm } from "./MissionDropdowns";
 import { theme } from "../../constants/theme";
-
-const FOOD_LOG_OPTIONS = [
-  {
-    icon: "camera" as const,
-    iconType: "feather" as const,
-    label: "Scan food barcode",
-    subtitle: "Use camera to scan product barcodes",
-    route: "/(home)/(meals)/barcode-scan",
-  },
-  {
-    icon: "search" as const,
-    iconType: "feather" as const,
-    label: "Search food database",
-    subtitle: "Search verified meals & nutritional facts",
-    route: "/(home)/(meals)/search-meal",
-  },
-  {
-    icon: "silverware-fork-knife" as const,
-    iconType: "material" as const,
-    label: "Log manually / Estimate",
-    subtitle: "Enter custom food details & nutrients",
-    route: "/(home)/(meals)/estimate-meal",
-  },
-];
 
 /**
  * MissionLogModal — centered pop-up input modal for the heart missions,
@@ -55,11 +30,10 @@ const FOOD_LOG_OPTIONS = [
  */
 
 const META: Record<
-  Exclude<MissionId, "exercise">,
+  Exclude<MissionId, "exercise" | "meals">,
   { title: string; icon: string; iconType: "feather" | "material"; tile: [string, string] }
 > = {
   vitals: { title: "Log Vitals", icon: "heart", iconType: "feather", tile: ["#E11D48", "#FB7185"] },
-  meals: { title: "Log Meal", icon: "silverware-fork-knife", iconType: "material", tile: ["#A9741B", "#E0A93E"] },
   sleep: { title: "Log Sleep", icon: "moon", iconType: "feather", tile: ["#6366F1", "#A5B4FC"] },
 };
 
@@ -70,19 +44,17 @@ export function MissionLogModal({
   initialSleepHours,
   onClose,
   onSaved,
-  onOpenDiary,
 }: {
-  mission: Exclude<MissionId, "exercise"> | null;
+  /** Meals have their own sheet (LogMealSheet); exercise has its own screen. */
+  mission: Exclude<MissionId, "exercise" | "meals"> | null;
   userId?: string | null;
   token?: string | null;
   initialSleepHours?: number;
   onClose: () => void;
   onSaved: () => void;
-  onOpenDiary: () => void;
 }) {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
-  const router = useRouter();
 
   const popScale = useRef(new Animated.Value(0.9)).current;
   const panelOpacity = useRef(new Animated.Value(0)).current;
@@ -248,71 +220,6 @@ export function MissionLogModal({
               transform: [{ translateY: contentShift }],
             }}
           >
-            {mission === "meals" && (
-              <View style={{ paddingTop: 8 }}>
-                {FOOD_LOG_OPTIONS.map((option, index) => (
-                  <TouchableOpacity
-                    key={option.label}
-                    activeOpacity={0.75}
-                    onPress={() => animateOut(() => { onClose(); router.push(option.route as any); })}
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      backgroundColor: isDark ? "#1e293b" : "#ffffff",
-                      borderRadius: 20,
-                      padding: 16,
-                      marginBottom: index < FOOD_LOG_OPTIONS.length - 1 ? 12 : 0,
-                      borderWidth: 1.5,
-                      borderColor: isDark ? "#334155" : "#f1f5f9",
-                      shadowColor: isDark ? "#000" : "#64748b",
-                      shadowOffset: { width: 0, height: 1 },
-                      shadowOpacity: isDark ? 0.3 : 0.05,
-                      shadowRadius: 3,
-                      elevation: 1,
-                    }}
-                  >
-                    <View
-                      style={{
-                        width: 46,
-                        height: 46,
-                        borderRadius: 16,
-                        backgroundColor: isDark ? "#0f172a" : "#f8fafc",
-                        borderWidth: 1,
-                        borderColor: isDark ? "#334155" : "#e2e8f0",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        marginRight: 16,
-                      }}
-                    >
-                      {option.iconType === "feather" ? (
-                        <Feather name={option.icon as any} size={20} color={isDark ? "#f8fafc" : "#0f172a"} />
-                      ) : (
-                        <MaterialCommunityIcons name={option.icon as any} size={20} color={isDark ? "#f8fafc" : "#0f172a"} />
-                      )}
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={{ fontSize: 15, fontWeight: "700", color: isDark ? "#f8fafc" : "#1e293b", marginBottom: 3 }}>
-                        {option.label}
-                      </Text>
-                      <Text style={{ fontSize: 12.5, fontWeight: "500", color: isDark ? "#94a3b8" : "#64748b", lineHeight: 18 }}>
-                        {option.subtitle}
-                      </Text>
-                    </View>
-                    <Feather name="chevron-right" size={18} color={isDark ? "#475569" : "#cbd5e1"} />
-                  </TouchableOpacity>
-                ))}
-                <TouchableOpacity
-                  activeOpacity={0.7}
-                  onPress={() => animateOut(onOpenDiary)}
-                  style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 14, marginTop: 4 }}
-                >
-                  <Text style={{ fontSize: 12.5, fontWeight: "700", color: theme.warningText }}>
-                    Open Food Diary
-                  </Text>
-                  <Feather name="arrow-right" size={13} color={theme.warningText} />
-                </TouchableOpacity>
-              </View>
-            )}
             {mission === "sleep" && (
               <SleepQuickForm
                 userId={userId}

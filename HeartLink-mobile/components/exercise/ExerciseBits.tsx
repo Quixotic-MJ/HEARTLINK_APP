@@ -495,3 +495,25 @@ export function SheetOption({ title, hint, tone = "outline", onPress }: { title:
     </AnimatedButton>
   );
 }
+
+/** The way into exercise history (every activity and guided exercise logged), from the Movement sheet and the Exercises tab. */
+export function ExerciseHistoryLink({ onPress }: { onPress: () => void }) {
+  const { c } = useDs();
+  return (
+    <AnimatedButton
+      onPress={onPress}
+      accessibilityRole="link"
+      accessibilityLabel="Your exercise history. Every activity and guided exercise you've logged"
+      style={{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 60, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 12, backgroundColor: c.mint }}
+    >
+      <View style={{ width: 36, height: 36, borderRadius: 9, backgroundColor: c.canvas, alignItems: "center", justifyContent: "center" }}>
+        <Feather name="clock" size={18} color={c.charcoal} />
+      </View>
+      <View style={{ flex: 1, gap: 2 }}>
+        <Text style={{ fontSize: 15, fontWeight: "600", color: c.ink }}>Your exercise history</Text>
+        <Text style={{ fontSize: 13, color: c.charcoal }}>{"Every activity and guided exercise you've logged"}</Text>
+      </View>
+      <Feather name="chevron-right" size={18} color={c.charcoal} />
+    </AnimatedButton>
+  );
+}

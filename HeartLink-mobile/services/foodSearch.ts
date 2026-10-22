@@ -27,6 +27,7 @@ type RawMealLog = {
   cholesterol_mg?: number | null;
   image_url?: string | null;
   recipe_id?: string | null;
+  logged_at?: string | null;
 };
 
 type RawOffProduct = {
@@ -65,6 +66,8 @@ export async function fetchRecentMeals(userId: string, token: string | null, sig
       source: "recent",
       name,
       image_url: log.image_url,
+      recipe_id: log.recipe_id ?? undefined,
+      logged_at: log.logged_at ?? undefined,
       base: {
         sodium_mg: n(log.sodium_mg) / portion,
         calories: n(log.calories) / portion,
