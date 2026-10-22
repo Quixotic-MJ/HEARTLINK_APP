@@ -37,12 +37,6 @@ const verifyOtpSchema = z.object({
 
 type VerifyOtpFormValues = z.infer<typeof verifyOtpSchema>;
 
-// "+639123456789" → "+63 912 345 6789"
-const formatPhoneForDisplay = (value: string) => {
-  const match = value.match(/^\+63(\d{3})(\d{3})(\d{4})$/);
-  return match ? `+63 ${match[1]} ${match[2]} ${match[3]}` : value;
-};
-
 // The server's expiry message names the old "Send verification code" button.
 const friendlyVerifyError = (detail: string) =>
   /expired/i.test(detail)
@@ -51,11 +45,11 @@ const friendlyVerifyError = (detail: string) =>
 
 export default function OTPVerificationScreen() {
   const router = useRouter();
-  const { phone } = useLocalSearchParams();
+  const { phone, email } = useLocalSearchParams();
   const { setUserId } = useUser();
   const { c } = useDs();
 
-  const phoneText = typeof phone === "string" ? phone : "";
+  const emailText = typeof email === "string" ? email : "";
 
   const {
     handleSubmit,
@@ -116,7 +110,7 @@ export default function OTPVerificationScreen() {
     setGeneralError(null);
     const digits = value.replace(/\D/g, "");
 
-    // A whole code pasted or filled in from the SMS: spread it across the boxes.
+    // A whole code pasted or filled in from the email: spread it across the boxes.
     if (digits.length >= CODE_LENGTH) {
       applyOtp(digits.slice(0, CODE_LENGTH).split(""));
       inputRefs.current[CODE_LENGTH - 1]?.focus();
@@ -201,7 +195,7 @@ export default function OTPVerificationScreen() {
           inputRefs.current[0]?.focus();
         } else {
           setGeneralError(
-            typeof data.detail === "string" ? data.detail : "Couldn't resend the code. Try again in a minute."
+            typeof data.detail === "string" ? friendlyVerifyError(data.detail) : "Couldn't resend the code. Try again in a minute."
           );
         }
       } catch (err) {
@@ -225,7 +219,7 @@ export default function OTPVerificationScreen() {
       header={
         <View>
           <SetupHeader title="Step 2 of 2" onBack={() => router.back()} />
-          <View className="flex-row px-6" style={{ gap: 4 }} accessible={true} accessibilityLabel="Step 2 of 2: confirm your number">
+          <View className="flex-row px-6" style={{ gap: 4 }} accessible={true} accessibilityLabel="Step 2 of 2: confirm your email">
             <View style={{ flex: 1, height: 4, borderRadius: 2, backgroundColor: c.line }} />
             <View style={{ flex: 1, height: 4, borderRadius: 2, backgroundColor: c.line }} />
           </View>
@@ -241,16 +235,17 @@ export default function OTPVerificationScreen() {
       {/* ── Heading ── */}
       <Animated.View entering={FadeIn.duration(400)} style={{ marginBottom: 20 }}>
         <View style={{ width: 44, height: 44, borderRadius: 8, backgroundColor: c.tint, alignItems: "center", justifyContent: "center", marginBottom: 20 }}>
-          <Feather name="smartphone" size={20} color={c.charcoal} />
+          <Feather name="mail" size={20} color={c.charcoal} />
         </View>
         <Text accessibilityRole="header" style={{ fontSize: 28, lineHeight: 35, fontWeight: "600", letterSpacing: -0.5, color: c.ink }}>
           Enter the code
         </Text>
         <Text style={{ fontSize: 16, lineHeight: 24, color: c.slate, marginTop: 8 }}>
-          We sent a 6-digit code to <Text style={{ fontWeight: "600", color: c.ink }}>{formatPhoneForDisplay(phoneText)}</Text>.
+          We emailed a 6-digit code to <Text style={{ fontWeight: "600", color: c.ink }}>{emailText || "your email"}</Text>.
+          Check your spam folder if you don&apos;t see it.
         </Text>
         <View style={{ alignItems: "flex-start" }}>
-          <DsButton label="Edit number" variant="link" block={false} onPress={() => router.back()} />
+          <DsButton label="Edit email" variant="link" block={false} onPress={() => router.back()} />
         </View>
       </Animated.View>
 

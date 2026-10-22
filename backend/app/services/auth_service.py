@@ -9,6 +9,7 @@ import re
 import hashlib
 import hmac
 import bcrypt
+import secrets
 import random
 import string
 from datetime import datetime, timedelta
@@ -23,6 +24,7 @@ from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
 from app.utils.security import create_access_token
 from app.utils.phone import normalize_e164
 from app.db.repositories import get_profile_repo, get_pending_registration_repo
+from app.services import email_service
 
 
 LOCAL_DEV_OTP_CODE = "123456"
@@ -30,30 +32,25 @@ LOCAL_DEV_OTP_CODE = "123456"
 
 def get_dev_otp_code() -> Optional[str]:
     """
-    HL-045: Returns the shared sign-up code while development OTP mode is on, else None.
+    HL-045 / HL-052: Returns the shared development sign-up code while it is switched on, else None.
 
-    There is no SMS gateway yet, so every sign-up is verified with one shared code.
-    - DEV_OTP_ENABLED: on/off switch. Defaults to on outside production, off in production.
-    - DEV_OTP_CODE: the 6-digit code. Outside production it defaults to 123456; in production
-      it must be set (and must not be 123456), otherwise sign-up stays closed.
+    It is only used when email isn't set up (see email_service), and never in production
+    (ENVIRONMENT=production), where every sign-up needs its own emailed code.
+    - DEV_OTP_ENABLED: on/off switch. Defaults to on outside production.
+    - DEV_OTP_CODE: the 6-digit code. Defaults to 123456.
     """
-    is_production = os.getenv("ENVIRONMENT", "").lower() == "production"
     enabled_raw = os.getenv("DEV_OTP_ENABLED", "").strip().lower()
-    enabled = enabled_raw in ("1", "true", "yes", "on") if enabled_raw else not is_production
+    enabled = enabled_raw in ("1", "true", "yes", "on") if enabled_raw else True
+    if os.getenv("ENVIRONMENT", "").lower() == "production":
+        if enabled_raw and enabled:
+            logger.error("DEV_OTP_ENABLED is ignored in production; set up SMTP to send sign-up codes.")
+        return None
     if not enabled:
         return None
 
-    code = os.getenv("DEV_OTP_CODE", "").strip()
-    if not code:
-        if is_production:
-            logger.error("DEV_OTP_ENABLED is on but DEV_OTP_CODE is not set; sign-up is closed.")
-            return None
-        return LOCAL_DEV_OTP_CODE
+    code = os.getenv("DEV_OTP_CODE", "").strip() or LOCAL_DEV_OTP_CODE
     if not re.fullmatch(r"\d{6}", code):
         logger.error("DEV_OTP_CODE must be exactly 6 digits; sign-up is closed.")
-        return None
-    if is_production and code == LOCAL_DEV_OTP_CODE:
-        logger.error("DEV_OTP_CODE must not be the public default in production; sign-up is closed.")
         return None
     return code
 
@@ -61,6 +58,33 @@ def get_dev_otp_code() -> Optional[str]:
 SIGNUP_CLOSED_DETAIL = "Sign-up is currently closed. Contact the system administrator for an account."
 ALREADY_REGISTERED_DETAIL = "This account is already registered. Please log in with your password."
 SIGNUP_RETRY_DETAIL = "We couldn't finish creating your account. Please try again."
+SIGNUP_EXPIRED_DETAIL = "Verification session expired. Please tap 'Send verification code' again to receive a fresh code."
+CODE_EMAIL_FAILED_DETAIL = "We couldn't send the code to your email. Check the address and try again in a minute."
+TOO_MANY_TRIES_DETAIL = "Too many wrong codes. Go back and tap Continue to get a new code."
+CODE_USED_DETAIL = "This code has already been used. Go back and tap Continue to get a new code."
+CODE_BUSY_DETAIL = "We're still checking your last try. Please wait a moment and try again."
+
+# HL-052: each sign-up gets its own random code, valid for PENDING_SIGNUP_TTL, with this many tries
+SIGNUP_CODE_MAX_ATTEMPTS = 5
+
+
+def _new_signup_code() -> str:
+    return f"{secrets.randbelow(1_000_000):06d}"
+
+
+def _hash_signup_code(phone: str, code: str) -> str:
+    """
+    A keyed hash, so a copy of the table alone can't be used to try all million codes. Including the
+    phone means a code only ever matches the sign-up it was made for.
+    """
+    key = os.getenv("SECRET_KEY", "")
+    if not key:
+        raise RuntimeError("SECRET_KEY is not set")
+    return hmac.new(key.encode("utf-8"), f"{phone}:{code}".encode("utf-8"), hashlib.sha256).hexdigest()
+
+
+def _wrong_code_detail(tries_left: int) -> str:
+    return f"That code isn't right. You have {tries_left} {'try' if tries_left == 1 else 'tries'} left."
 
 # HL-051: a login with no profile that is at most this old is the half-finished result of the same
 # sign-up (for example the first try timed out), so a retry may finish it instead of being blocked
@@ -327,9 +351,7 @@ class SupabaseAuthService(AuthService):
                     detail="This phone number is already registered in Auth. Please log in instead."
                 )
 
-            # HL-045: no SMS gateway yet, so sign-up is only open while dev OTP mode is on
-            if get_dev_otp_code() is None:
-                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=SIGNUP_CLOSED_DETAIL)
+            code, by_email = self._signup_code()
 
             self.pending.delete_expired()
             self.pending.save(
@@ -337,7 +359,12 @@ class SupabaseAuthService(AuthService):
                 clean_email,
                 _hash_password(password),
                 (utc_now() + PENDING_SIGNUP_TTL).isoformat(),
+                _hash_signup_code(e164_phone, code),
             )
+            if by_email and not self._email_code(clean_email, code):
+                # Nothing to verify against, so tapping Continue again starts cleanly
+                self.pending.delete(e164_phone)
+                raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=CODE_EMAIL_FAILED_DETAIL)
 
             logger.info("Pending registration created for a new phone number")
             return {"success": True, "message": "Verification code dispatched"}
@@ -346,6 +373,32 @@ class SupabaseAuthService(AuthService):
         except Exception as e:
             logger.error(f"Registration failed: {e}", exc_info=True)
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Registration failed")
+
+    def _signup_code(self) -> Tuple[str, bool]:
+        """
+        HL-052: the code for a new sign-up, and whether it must be emailed. With email set up, every
+        sign-up gets its own random code. Without it, the shared development code is used outside
+        production only; otherwise sign-up is closed.
+        """
+        if email_service.is_email_configured():
+            return _new_signup_code(), True
+        dev_code = get_dev_otp_code()
+        if dev_code is None:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=SIGNUP_CLOSED_DETAIL)
+        return dev_code, False
+
+    def _email_code(self, email: str, code: str) -> bool:
+        try:
+            email_service.send_signup_code(email, code, int(PENDING_SIGNUP_TTL.total_seconds() // 60))
+            return True
+        except email_service.EmailSendError:
+            return False
+
+    def _restore_code(self, phone: str, code_hash: str) -> None:
+        try:
+            self.pending.restore_code(phone, code_hash)
+        except Exception as restore_err:
+            logger.error("Could not make the sign-up code usable again (%s)", type(restore_err).__name__)
 
     def _dispatch_real_sms_otp(self, e164_phone: str) -> Dict[str, Any]:
         """
@@ -362,11 +415,30 @@ class SupabaseAuthService(AuthService):
                 detail="SMS delivery is not currently available. Registration is limited to invited testers during this phase."
             )
 
+    def _live_pending(self, e164_phone: str) -> Optional[Dict[str, Any]]:
+        pending = self.pending.get(e164_phone)
+        if pending and parse_utc(pending["expires_at"]) < utc_now():
+            self.pending.delete(e164_phone)
+            return None
+        return pending
+
     def resend_registration_otp(self, phone: str) -> Dict[str, Any]:
         try:
-            # HL-045: codes are not sent by SMS yet, so resending only extends the pending window
-            self.pending.extend(normalize_e164(phone), (utc_now() + PENDING_SIGNUP_TTL).isoformat())
+            e164_phone = normalize_e164(phone)
+            pending = self._live_pending(e164_phone)
+            if not pending:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=SIGNUP_EXPIRED_DETAIL)
+
+            # HL-052: a resend makes a new code; the old one stops working
+            code, by_email = self._signup_code()
+            self.pending.replace_code(
+                e164_phone, _hash_signup_code(e164_phone, code), (utc_now() + PENDING_SIGNUP_TTL).isoformat()
+            )
+            if by_email and not self._email_code(pending["email"], code):
+                raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=CODE_EMAIL_FAILED_DETAIL)
             return {"success": True, "message": "Code resent successfully"}
+        except HTTPException:
+            raise
         except Exception as e:
             logger.error(f"Resend failed: {e}", exc_info=True)
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Resend failed")
@@ -375,24 +447,35 @@ class SupabaseAuthService(AuthService):
         try:
             e164_phone = normalize_e164(phone)
 
-            dev_code = get_dev_otp_code()
-            if dev_code is None:
+            if not email_service.is_email_configured() and get_dev_otp_code() is None:
                 raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=SIGNUP_CLOSED_DETAIL)
 
             # HL-045: a code only ever completes the pending sign-up for this exact number. It never
             # logs in an existing account (that needs the password), and never matches another number.
-            pending = self.pending.get(e164_phone)
-            if pending and parse_utc(pending["expires_at"]) < utc_now():
-                self.pending.delete(e164_phone)
-                pending = None
-            if not pending:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Verification session expired. Please tap 'Send verification code' again to receive a fresh code."
-                )
+            pending = self._live_pending(e164_phone)
+            # No code_hash: a sign-up from before HL-052, or its code is being used right now
+            if not pending or not pending.get("code_hash"):
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=SIGNUP_EXPIRED_DETAIL)
 
-            if not hmac.compare_digest(str(code).strip(), dev_code):
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid Verification Code")
+            # HL-052: every try counts, and the code locks after SIGNUP_CODE_MAX_ATTEMPTS of them
+            attempts = int(pending.get("attempts") or 0)
+            if attempts >= SIGNUP_CODE_MAX_ATTEMPTS:
+                self.pending.delete(e164_phone)
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=TOO_MANY_TRIES_DETAIL)
+            if not self.pending.claim_attempt(e164_phone, attempts):
+                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=CODE_BUSY_DETAIL)
+
+            code_hash = pending["code_hash"]
+            if not hmac.compare_digest(_hash_signup_code(e164_phone, str(code).strip()), code_hash):
+                tries_left = SIGNUP_CODE_MAX_ATTEMPTS - (attempts + 1)
+                if tries_left <= 0:
+                    self.pending.delete(e164_phone)
+                    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=TOO_MANY_TRIES_DETAIL)
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=_wrong_code_detail(tries_left))
+
+            # Only one request can use the code
+            if not self.pending.consume_code(e164_phone, code_hash):
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=CODE_USED_DETAIL)
 
             email = pending["email"]
             password_hash = pending["password_hash"]
@@ -400,13 +483,18 @@ class SupabaseAuthService(AuthService):
 
             # HL-051: sign-up either finishes completely (real login + profile) or fails with nothing
             # left half-made, so the person can simply try again
-            profile_repo = get_profile_repo()
-            auth_user = self._create_login(e164_phone, email, password_hash, e164_val, profile_repo)
-            auth_user_id = str(auth_user.id)
-            user_email = getattr(auth_user, "email", None) or email
+            try:
+                profile_repo = get_profile_repo()
+                auth_user = self._create_login(e164_phone, email, password_hash, e164_val, profile_repo)
+                auth_user_id = str(auth_user.id)
+                user_email = getattr(auth_user, "email", None) or email
 
-            if not profile_repo.get_by_id(auth_user_id):
-                self._create_patient_profile(e164_phone, auth_user_id, e164_val, user_email, profile_repo)
+                if not profile_repo.get_by_id(auth_user_id):
+                    self._create_patient_profile(e164_phone, auth_user_id, e164_val, user_email, profile_repo)
+            except Exception:
+                # Where the pending sign-up is kept, the same code works for the retry
+                self._restore_code(e164_phone, code_hash)
+                raise
 
             # Clean up pending registration
             self.pending.delete(e164_phone)

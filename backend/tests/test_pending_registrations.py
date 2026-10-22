@@ -80,7 +80,7 @@ def test_login_is_created_from_the_hash_not_the_password(repo, pending_repo):
 
 
 def test_expired_sign_ups_are_cleaned_up(repo, pending_repo):
-    pending_repo.save("+639990000000", "old@example.com", "$2b$10$x", (utc_now() - timedelta(minutes=1)).isoformat())
+    pending_repo.save("+639990000000", "old@example.com", "$2b$10$x", (utc_now() - timedelta(minutes=1)).isoformat(), "old-hash")
 
     new_service(pending_repo).request_registration_otp(PHONE, EMAIL, PASSWORD)
     assert "+639990000000" not in pending_repo.rows
