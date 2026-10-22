@@ -1,0 +1,87 @@
+{
+  "version": "starting-score-2",
+  "trained_at": "2026-10-22T15:31:24Z",
+  "data": "NHANES 2017-2018, adults 20+",
+  "label": "Ever told heart failure, coronary heart disease, angina, heart attack or stroke (NHANES MCQ160B-F)",
+  "label_status": "pending cardiologist review",
+  "inputs": [
+    "age",
+    "male",
+    "bmi",
+    "current_smoker",
+    "former_smoker",
+    "active_min_week",
+    "sitting_hours",
+    "sleep_hours",
+    "drinks_week",
+    "binge_days_year"
+  ],
+  "medians": {
+    "age": 53.0,
+    "male": 0.0,
+    "bmi": 28.6,
+    "current_smoker": 0.0,
+    "former_smoker": 0.0,
+    "active_min_week": 60.0,
+    "sitting_hours": 5.0,
+    "sleep_hours": 7.5,
+    "drinks_week": 0.5192,
+    "binge_days_year": 0.0
+  },
+  "means": [
+    51.503681,
+    0.485186,
+    29.740636,
+    0.180643,
+    0.238642,
+    266.226971,
+    5.501571,
+    7.60334,
+    2.452574,
+    10.019573
+  ],
+  "scales": [
+    17.811256,
+    0.49978,
+    7.015499,
+    0.384722,
+    0.426254,
+    465.051231,
+    3.323433,
+    1.657312,
+    6.470407,
+    40.621249
+  ],
+  "weights": [
+    1.275824,
+    0.211298,
+    0.236424,
+    0.285797,
+    0.225397,
+    -0.160807,
+    0.181415,
+    0.019776,
+    -0.030532,
+    0.015826
+  ],
+  "intercept": -2.625151,
+  "metrics_cross_validated": {
+    "people": 5569,
+    "label_rate": 0.124,
+    "auc": 0.808,
+    "auc_age_only": 0.787,
+    "brier": 0.093,
+    "band_share": {
+      "Stable": 0.773,
+      "Moderate": 0.177,
+      "Elevated Risk": 0.033,
+      "Critical": 0.017
+    },
+    "label_rate_by_band": {
+      "Stable": 0.07,
+      "Moderate": 0.264,
+      "Elevated Risk": 0.411,
+      "Critical": 0.581
+    }
+  }
+}

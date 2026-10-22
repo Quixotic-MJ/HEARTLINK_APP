@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 import os
 import hashlib
+import json
 from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
 from app.db.repositories import (
     get_profile_repo,
@@ -12,31 +13,22 @@ from app.db.repositories import (
 from app.services.feature_transform import transform_to_model_features
 
 def get_model_metadata() -> dict:
-    """Helper to resolve the true metadata/hash of the currently loaded model."""
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    model_path = os.path.join(current_dir, "..", "ml", "heartlink_model.pkl")
-    
-    if not os.path.exists(model_path):
-        return {
-            "model_identifier": "unversioned-static-model",
-            "model_hash": None,
-            "feature_pipeline_version": "unversioned-pipeline"
-        }
-        
+    """Which starting-score model is in use: its version and a hash of the file, for review snapshots."""
+    from app.services.hss_service import MODEL_PATH
     try:
-        with open(model_path, "rb") as f:
+        with open(MODEL_PATH, "rb") as f:
             file_bytes = f.read()
-            model_hash = hashlib.sha256(file_bytes).hexdigest()
+        version = json.loads(file_bytes).get("version", "starting-score")
         return {
-            "model_identifier": "heartlink_model.pkl",
-            "model_hash": model_hash,
-            "feature_pipeline_version": "transform_to_model_features"
+            "model_identifier": version,
+            "model_hash": hashlib.sha256(file_bytes).hexdigest(),
+            "feature_pipeline_version": "transform_to_model_features v2",
         }
     except Exception:
         return {
             "model_identifier": "unversioned-static-model",
             "model_hash": None,
-            "feature_pipeline_version": "transform_to_model_features"
+            "feature_pipeline_version": "transform_to_model_features v2",
         }
 
 def get_clinical_baseline_data(user_id: str) -> dict:

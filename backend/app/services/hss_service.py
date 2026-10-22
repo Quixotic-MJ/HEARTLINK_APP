@@ -1,27 +1,45 @@
+import json
+import math
 import os
-import joblib
-import pandas as pd
+from functools import lru_cache
 from typing import Dict, Any, Tuple
-from app.services.feature_transform import transform_to_model_features
+
+import numpy as np
+import pandas as pd
+from app.services.feature_transform import INPUTS, transform_to_model_features
 from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
+
+MODEL_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "ml", "starting_score_model.json")
+
 
 class HSSModelError(Exception):
     """Raised when the ML model cannot be loaded or used."""
     pass
 
-def load_hss_model():
-    """Loads the NHANES-trained LogisticRegression pipeline."""
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    model_path = os.path.join(current_dir, "..", "ml", "heartlink_model.pkl")
-    
-    if not os.path.exists(model_path):
-        raise HSSModelError(f"Model file not found at {model_path}")
-        
+
+@lru_cache(maxsize=1)
+def load_hss_model() -> Dict[str, Any]:
+    """The starting-score model (scripts/train_starting_score.py): a logistic regression kept as plain numbers."""
+    if not os.path.exists(MODEL_PATH):
+        raise HSSModelError(f"Model file not found at {MODEL_PATH}")
     try:
-        model = joblib.load(model_path)
-        return model
+        with open(MODEL_PATH, encoding="utf-8") as fh:
+            model = json.load(fh)
     except Exception as e:
         raise HSSModelError(f"Failed to load model: {str(e)}")
+    if model.get("inputs") != INPUTS:
+        raise HSSModelError("Model inputs don't match the app's starting-score inputs")
+    return model
+
+
+def risk_probability(features: pd.DataFrame, model: Dict[str, Any]) -> float:
+    """Share of people with these answers who have heart disease, per the model. Missing answers use the median."""
+    row = features.iloc[0]
+    x = np.array([row[name] if pd.notna(row[name]) else model["medians"][name] for name in model["inputs"]], dtype=float)
+    z = (x - np.array(model["means"])) / np.array(model["scales"])
+    logit = float(np.dot(z, model["weights"]) + model["intercept"])
+    return 1 / (1 + math.exp(-logit))
+
 
 def determine_tier(hss: int) -> str:
     """Returns the qualitative tier for a given HSS (1-100)."""
@@ -36,7 +54,7 @@ def determine_tier(hss: int) -> str:
 
 def compute_initial_hss(onboarding_data: Dict[str, Any], user_profile: Dict[str, Any]) -> Tuple[int, str, float]:
     """
-    Computes the initial Health Stability Score (HSS) from onboarding data.
+    Computes the starting Health Stability Score (HSS) from setup answers (NHANES-trained, see app/ml/STARTING_SCORE.md).
     
     Returns:
         Tuple of (hss_score: int, hss_tier: str, risk_probability: float)
@@ -45,21 +63,20 @@ def compute_initial_hss(onboarding_data: Dict[str, Any], user_profile: Dict[str,
         HSSModelError: If model is missing or prediction fails.
     """
     model = load_hss_model()
-    
-    # 1. Transform raw answers into 37 NHANES features
+
+    # 1. Setup answers -> the model's inputs
     features_df = transform_to_model_features(onboarding_data, user_profile)
-    
-    # 2. Predict risk probability (class 1 = Higher Risk)
+
+    # 2. Chance of heart disease for people with these answers
     try:
-        probas = model.predict_proba(features_df)
-        risk_probability = float(probas[0][1])
+        probability = risk_probability(features_df, model)
     except Exception as e:
         raise HSSModelError(f"Model prediction failed: {str(e)}")
-        
+
     # 3. Calculate HSS: scale inverted probability to 1-100 range
     # P(risk)=0.0 -> HSS=100
     # P(risk)=1.0 -> HSS=1
-    hss = int(round((1 - risk_probability) * 99) + 1)
+    hss = int(round((1 - probability) * 99) + 1)
     
     # Ensure bounds
     hss = max(1, min(100, hss))
@@ -67,7 +84,7 @@ def compute_initial_hss(onboarding_data: Dict[str, Any], user_profile: Dict[str,
     # 4. Determine tier
     tier = determine_tier(hss)
     
-    return hss, tier, risk_probability
+    return hss, tier, probability
 
 def compute_vitals_hss(
     systolic: int,
