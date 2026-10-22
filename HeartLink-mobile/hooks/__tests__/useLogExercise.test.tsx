@@ -1,10 +1,10 @@
 import { renderHook, act, waitFor } from '@testing-library/react-native';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient } from '@tanstack/react-query';
 import { useLogExercise } from '../useLogExercise';
 import * as ToastContext from '../../contexts/ToastContext';
 import * as NetInfo from '@react-native-community/netinfo';
 import * as SyncService from '../../services/SyncService';
-import React from 'react';
+import { createTestQueryClient, queryClientWrapper } from '../../test-utils/reactQuery';
 
 // Mock dependencies
 jest.mock('../../contexts/ToastContext');
@@ -16,37 +16,17 @@ jest.mock('../../services/SyncService', () => ({
 const mockShowToast = jest.fn();
 (ToastContext.useToast as jest.Mock).mockReturnValue({ showToast: mockShowToast });
 
-// Setup QueryClient
-// gcTime: Infinity stops React Query's 5-minute cache cleanup timer from
-// keeping Jest running after the tests finish.
-const createTestQueryClient = () => new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: false,
-      gcTime: Infinity,
-    },
-    mutations: {
-      retry: false,
-      gcTime: Infinity,
-    },
-  },
-});
-
 describe('useLogExercise', () => {
   let queryClient: QueryClient;
-  
+  let wrapper: ReturnType<typeof queryClientWrapper>;
+
   beforeEach(() => {
     jest.clearAllMocks();
     queryClient = createTestQueryClient();
+    wrapper = queryClientWrapper(queryClient);
     (NetInfo.useNetInfo as jest.Mock).mockReturnValue({ isConnected: true, isInternetReachable: true });
     global.fetch = jest.fn();
   });
-
-  const wrapper = ({ children }: { children: React.ReactNode }) => (
-    <QueryClientProvider client={queryClient}>
-      {children}
-    </QueryClientProvider>
-  );
 
   it('calculates running total and formats data-aware success toast', async () => {
     // Seed initial dashboard data

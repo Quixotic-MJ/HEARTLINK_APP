@@ -4,12 +4,11 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import { StatusBar } from "expo-status-bar";
 import { Feather } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useUser } from "../../../contexts/UserContext";
 import { useToast } from "../../../contexts/ToastContext";
-import { OfflineSyncService } from "../../../utils/OfflineSyncService";
+import { useLogVitals, wasQueued, medicationTaken, Medicine, VitalsPayload } from "../../../hooks/useLogVitals";
 import { ConfirmDialog } from "../../../components/ui/ConfirmDialog";
 import AnimatedButton from "../../../components/ui/AnimatedButton";
 import DsButton from "../../../components/onboarding/DsButton";
@@ -24,7 +23,7 @@ import {
   isSevereHypotension as lowFor,
   isSymptomEmergency,
 } from "../../../services/vitalsCheck";
-import { API_BASE_URL, apiFetch } from "../../../lib/api";
+import { apiFetch } from "../../../lib/api";
 
 // The daily check-in: blood pressure (and pulse), medicines, how the patient feels, and weight if they like.
 // Safety: a complete blood pressure reading of 180/120 or more, or under 90/60, chest discomfort rated 7 or
@@ -46,7 +45,6 @@ const CONTEXTS: { id: string; label: string; stored: string }[] = [
   { id: "After eating", label: "After eating", stored: "after_eating" },
 ];
 
-type Medicine = "taken" | "not_yet" | "none";
 const MEDICINES: { id: Medicine; label: string }[] = [
   { id: "taken", label: "I took them" },
   { id: "not_yet", label: "Not yet" },
@@ -67,11 +65,11 @@ export default function LogSymptomsScreen() {
   const { c, isDark } = useDs();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const queryClient = useQueryClient();
   const params = useLocalSearchParams<{ triggered_by_exercise_id?: string }>();
   const fromExercise = !!params.triggered_by_exercise_id;
   const { userId, token } = useUser();
   const { showToast } = useToast();
+  const logVitals = useLogVitals(userId, token);
 
   const [systolic, setSystolic] = useState("");
   const [diastolic, setDiastolic] = useState("");
@@ -249,13 +247,12 @@ export default function LogSymptomsScreen() {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setIsSubmitting(true);
 
-    const payload = {
+    const payload: VitalsPayload = {
       systolic_bp: sys,
       diastolic_bp: dia,
       heart_rate_bpm: hr,
       weight_kg: w,
-      // The table has no "doesn't take any"; that answer is kept on the phone and saved as not taken.
-      medication_taken: medicine === "taken",
+      medication_taken: medicationTaken(medicine),
       symptoms,
       severity_map: hasRealSymptoms ? Object.fromEntries(symptoms.map((s) => [s, strength[s]])) : {},
       context: hasRealSymptoms || fromExercise ? CONTEXTS.find((x) => x.id === context)?.stored ?? null : null,
@@ -263,31 +260,19 @@ export default function LogSymptomsScreen() {
       notes: "",
     };
 
-    let saved = false;
+    // Saved online, or on the phone when there's no connection (useLogVitals uploads it later).
+    let savedOffline = false;
     try {
-      const res = await apiFetch(`/api/health-logs/${userId}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token || ""}` },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        if (res.status >= 400 && res.status < 500) {
-          showToast({ title: "Couldn't save", message: "Please check your numbers and try again.", type: "error", duration: 6000 });
-          setIsSubmitting(false);
-          return;
-        }
-        throw new Error(`Server returned ${res.status}`);
+      await logVitals.mutateAsync(payload);
+    } catch (err) {
+      if (!wasQueued(err)) {
+        showToast({ title: "Couldn't save", message: "Please check your numbers and try again.", type: "error", duration: 6000 });
+        return;
       }
-      saved = true;
-      queryClient.invalidateQueries({ queryKey: ["dashboard", userId] });
-      queryClient.invalidateQueries({ queryKey: ["trends", userId] });
-    } catch {
-      await OfflineSyncService.queueRequest(`${API_BASE_URL}/api/health-logs/${userId}`, "POST", payload, undefined, userId || undefined);
-      saved = true;
+      savedOffline = true;
     } finally {
       setIsSubmitting(false);
     }
-    if (!saved) return;
 
     if (isEmergency) {
       if (isSevereHypotension) {
@@ -305,7 +290,9 @@ export default function LogSymptomsScreen() {
       return;
     }
 
-    if (sys !== null && dia !== null) {
+    if (savedOffline) {
+      showToast({ title: "Saved on your phone", message: "Your check-in will upload when you're back online.", type: "info" });
+    } else if (sys !== null && dia !== null) {
       showToast({ ...postLogAck("vitals", `${sys}/${dia} mmHg${hr ? `, ${hr} bpm` : ""}`), type: "success" });
     } else {
       showToast({ title: "Check-in saved", message: "Your check-in for today is saved.", type: "success" });

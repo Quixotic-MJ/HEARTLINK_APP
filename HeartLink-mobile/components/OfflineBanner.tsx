@@ -4,7 +4,8 @@ import { useNetInfo } from '@react-native-community/netinfo';
 import { useColorScheme } from 'nativewind';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { OfflineSyncService } from '../utils/OfflineSyncService';
+import { syncOfflineAll } from '../services/SyncService';
+import { API_BASE_URL } from '../lib/api';
 import { theme } from "../constants/theme";
 
 export default function OfflineBanner() {
@@ -29,7 +30,7 @@ export default function OfflineBanner() {
     // Trigger queue sync when reconnecting
     if (prevOffline.current === true && isOffline === false) {
       console.log("[OfflineBanner] Reconnected to internet! Triggering queue process...");
-      OfflineSyncService.processQueue();
+      syncOfflineAll(API_BASE_URL).catch(e => console.log("[OfflineBanner] Sync error:", e));
     }
     prevOffline.current = isOffline;
   }, [isOffline]);

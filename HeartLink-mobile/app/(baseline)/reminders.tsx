@@ -12,6 +12,7 @@ import { DEFAULT_REMINDERS, Reminders, formatTime, saveReminders, scheduleRemind
 
 const ROWS: { key: keyof Reminders; when: string; title: string; icon: McIcon; tint: BadgeTint }[] = [
   { key: "morning", when: "Morning", title: "Check your blood pressure", icon: "white-balance-sunny", tint: "yellow" },
+  { key: "medicine", when: "Medicines", title: "Take your medicines", icon: "pill", tint: "peach" },
   { key: "activity", when: "Afternoon", title: "Time to move", icon: "walk", tint: "mint" },
   { key: "evening", when: "Evening", title: "Look back on your day", icon: "weather-night", tint: "lavender" },
 ];

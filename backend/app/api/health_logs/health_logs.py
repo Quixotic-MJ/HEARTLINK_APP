@@ -80,6 +80,11 @@ def add_health_log(user_id: str, data: Dict[str, Any], current_user: dict = Depe
         if weight < 20 or weight > 400:
             raise HTTPException(status_code=400, detail="Weight must be between 20 and 400 kg.")
 
+    # true = taken, false = not yet, null = takes no regular medicines (migration 033)
+    medication = data.get("medication_taken")
+    if medication is not None and not isinstance(medication, bool):
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Medication answer must be true, false or empty.")
+
     # Context normalization to satisfy database check constraint
     context_map = {
         "While resting": "resting",
