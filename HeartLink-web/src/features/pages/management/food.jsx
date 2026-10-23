@@ -2,14 +2,10 @@ import React, { useState } from "react";
 import {
   Search,
   Plus,
-  Filter,
-  X,
-  Utensils,
   CheckCircle2,
   ShieldCheck,
   ShieldAlert,
   Archive,
-  Save,
   Activity,
   Trash2,
   Edit2,
@@ -24,9 +20,10 @@ import { BulkApproveBar, SelectBox } from "../../../components/modals/BulkApprov
 import { Skeleton } from "../../../components/ui/Skeleton";
 import { apiFetch } from "../../../api";
 import RecipeImage from "../../../components/ui/RecipeImage";
-import { useAuth } from "../../../contexts/AuthContext";
+import { useAuth } from "../../../contexts/useAuth";
 import { toast } from "sonner";
-import { UI, FONTS, PageHeader, StatusBadge } from "../../../styles/designSystem";
+import { UI, FONTS } from "../../../styles/tokens";
+import { PageHeader } from "../../../styles/designSystem";
 
 // Database hss_tier -> the label the recipe form uses
 const HSS_TIER_LABELS = {

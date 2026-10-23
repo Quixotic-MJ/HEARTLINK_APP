@@ -51,7 +51,7 @@ export default function BarcodeScanScreen() {
   const [manualBarcode, setManualBarcode] = useState("");
   const [problem, setProblem] = useState<LookupProblem>(null);
 
-  const scanLineAnim = React.useRef(new Animated.Value(0)).current;
+  const [scanLineAnim] = React.useState(() => new Animated.Value(0));
   const scanLock = React.useRef(false);
 
   useFocusEffect(

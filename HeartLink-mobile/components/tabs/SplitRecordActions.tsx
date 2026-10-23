@@ -184,9 +184,10 @@ export function SplitRecordActions({
   const insets = useSafeAreaInsets();
   const backdropOpacity = useSharedValue(0);
 
+  if (open && !visible) setVisible(true);
+
   useEffect(() => {
     if (open) {
-      setVisible(true);
       backdropOpacity.value = withTiming(1, { duration: 200 });
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     } else {

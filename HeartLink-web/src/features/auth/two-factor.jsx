@@ -1,7 +1,7 @@
-import React, { useState, useRef } from "react";
+import { useState, useRef } from "react";
 import { Lock, ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
-import { COLORS } from "../../styles/designSystem";
+import { COLORS } from "../../styles/tokens";
 
 // ─── HeartLink Official Brand Emblem ──────────────────────────────────────────
 function HeartLogoIcon({ size = 22, className = "" }) {

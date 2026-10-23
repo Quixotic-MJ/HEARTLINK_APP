@@ -12,7 +12,8 @@ import { useNavigate } from "react-router-dom";
 import AdminLayout from "../../../components/layouts/adminLayout";
 import { Skeleton } from "../../../components/ui/Skeleton";
 import { apiFetch } from "../../../api";
-import { UI, FONTS, PageHeader, KpiCard } from "../../../styles/designSystem";
+import { UI, FONTS } from "../../../styles/tokens";
+import { PageHeader, KpiCard } from "../../../styles/designSystem";
 
 const Dashboard = () => {
   const [data, setData] = React.useState(null);

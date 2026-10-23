@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   Users,
   Activity,
   HeartPulse,
-  TrendingUp,
   Globe,
   Utensils,
   Dumbbell,
@@ -19,7 +18,8 @@ import {
 import AdminLayout from "../../../components/layouts/adminLayout";
 import { Skeleton } from "../../../components/ui/Skeleton";
 import { apiFetch } from "../../../api";
-import { UI, FONTS, PageHeader, COLORS } from "../../../styles/designSystem";
+import { UI, FONTS, COLORS } from "../../../styles/tokens";
+import { PageHeader } from "../../../styles/designSystem";
 
 // ─── Custom Light Tooltip for Recharts ────────────────────────────────────────
 const CustomLightTooltip = ({ active, payload, label }) => {

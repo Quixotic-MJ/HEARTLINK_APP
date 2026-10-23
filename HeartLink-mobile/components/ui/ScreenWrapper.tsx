@@ -1,5 +1,5 @@
 import React from "react";
-import { View, ViewProps, Platform, StyleProp, ViewStyle } from "react-native";
+import { View, ViewProps, Platform } from "react-native";
 import { SafeAreaView, Edge } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";

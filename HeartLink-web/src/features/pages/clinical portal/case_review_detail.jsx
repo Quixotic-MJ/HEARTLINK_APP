@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import AdminLayout from "../../../components/layouts/adminLayout";
 import { Skeleton } from "../../../components/ui/Skeleton";
 import { apiFetch } from "../../../api";
-import { UI, FONTS } from "../../../styles/designSystem";
+import { UI, FONTS } from "../../../styles/tokens";
 import {
   LANES, SECTION_LABELS, SECTION_EXPERT, DONE_CHIP, PROGRESS, TIERS, REASONS, CONFIDENCE, CHECKUP,
   SCORERS, AGREEMENT, labelOf, waitingText,

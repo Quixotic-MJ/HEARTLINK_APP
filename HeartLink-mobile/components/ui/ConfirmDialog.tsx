@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -106,13 +106,15 @@ export function ConfirmDialog({
   const slideY = useSharedValue(SCREEN_HEIGHT);
   const scale = useSharedValue(0.9);
 
-  // Reset state when dialog opens/closes
-  useEffect(() => {
+  // Reset state each time the dialog opens (noticed during render, not in an effect)
+  const [wasVisible, setWasVisible] = useState(visible);
+  if (visible !== wasVisible) {
+    setWasVisible(visible);
     if (visible) {
       setIsLoading(false);
       setTypedValue("");
     }
-  }, [visible]);
+  }
 
   const animateIn = useCallback(() => {
     // Haptic feedback on show
@@ -120,35 +122,35 @@ export function ConfirmDialog({
       Haptics.notificationAsync(config.haptic);
     }
 
-    backdropOpacity.value = withTiming(1, { duration: 250 });
+    backdropOpacity.set(withTiming(1, { duration: 250 }));
 
     if (mode === "bottom-sheet") {
-      slideY.value = withSpring(0, {
+      slideY.set(withSpring(0, {
         damping: 22,
         stiffness: 260,
         mass: 0.8,
-      });
+      }));
     } else {
-      scale.value = withSpring(1, {
+      scale.set(withSpring(1, {
         damping: 18,
         stiffness: 200,
         mass: 0.7,
-      });
+      }));
     }
   }, [mode, backdropOpacity, slideY, scale, config.haptic]);
 
   const animateOut = useCallback(
     (callback: () => void) => {
-      backdropOpacity.value = withTiming(0, { duration: 200 });
+      backdropOpacity.set(withTiming(0, { duration: 200 }));
       
       if (mode === "bottom-sheet") {
-        slideY.value = withTiming(SCREEN_HEIGHT, { duration: 220 }, (finished) => {
+        slideY.set(withTiming(SCREEN_HEIGHT, { duration: 220 }, (finished) => {
           if (finished) runOnJS(callback)();
-        });
+        }));
       } else {
-        scale.value = withTiming(0.9, { duration: 180 }, (finished) => {
+        scale.set(withTiming(0.9, { duration: 180 }, (finished) => {
           if (finished) runOnJS(callback)();
-        });
+        }));
       }
     },
     [mode, backdropOpacity, slideY, scale]

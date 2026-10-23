@@ -3,9 +3,7 @@ import {
   View,
   Text,
   TouchableOpacity,
-  ScrollView,
   FlatList,
-  TextInput,
   Linking,
   Platform,
 } from "react-native";
@@ -14,7 +12,7 @@ import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Location from 'expo-location';
-import MapView, { Marker, UrlTile } from "react-native-maps";
+import MapView, { Marker } from "react-native-maps";
 import { EmptyState } from "../components/ui/EmptyState";
 import { useDs } from "../components/onboarding/useDs";
 import { SquareIconButton } from "../components/exercise/ExerciseBits";

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState } from "react";
 import { Utensils } from "lucide-react";
 
 export const RecipeImage = ({
@@ -9,11 +9,8 @@ export const RecipeImage = ({
   containerClassName = "w-9 h-9 rounded-full flex items-center justify-center shrink-0 overflow-hidden bg-ds-peach",
   fallbackIconClassName = "text-ds-charcoal",
 }) => {
-  const [hasError, setHasError] = useState(false);
-
-  useEffect(() => {
-    setHasError(false);
-  }, [src]);
+  const [failedSrc, setFailedSrc] = useState(null);
+  const hasError = !!src && failedSrc === src;
 
   const showFallback = !src || hasError;
 
@@ -36,7 +33,7 @@ export const RecipeImage = ({
         src={src}
         alt={alt}
         className={className}
-        onError={() => setHasError(true)}
+        onError={() => setFailedSrc(src)}
       />
     </div>
   );

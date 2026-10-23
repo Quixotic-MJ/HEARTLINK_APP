@@ -1,9 +1,8 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Search,
   MessageSquare,
   Bug,
-  Save,
   CheckCircle2,
   Clock,
   AlertCircle,
@@ -19,7 +18,8 @@ import TicketModal from "../../../components/modals/TicketModal";
 import FeedbackCategoryBadge from "../../../components/ui/FeedbackCategoryBadge";
 import { apiFetch } from "../../../api";
 import { Skeleton } from "../../../components/ui/Skeleton";
-import { UI, FONTS, PageHeader, KpiCard } from "../../../styles/designSystem";
+import { UI, FONTS } from "../../../styles/tokens";
+import { PageHeader, KpiCard } from "../../../styles/designSystem";
 
 const Feedback = () => {
   const [tickets, setTickets] = useState([]);
@@ -81,13 +81,11 @@ const Feedback = () => {
 
   // Resolution Form State
   const [adminNotes, setAdminNotes] = useState("");
-  const [ticketStatus, setTicketStatus] = useState("");
 
   // Open Modal
   const openModal = (ticket) => {
     setActiveTicket(ticket);
     setAdminNotes(ticket.adminNotes || "");
-    setTicketStatus(ticket.status);
     setIsModalOpen(true);
   };
 
@@ -138,7 +136,7 @@ const Feedback = () => {
     const matchesCategory =
       filterCategory === "all" || t.category === filterCategory;
     
-    let matchesStatus = false;
+    let matchesStatus;
     if (filterStatus === "all") {
       matchesStatus = true;
     } else if (filterStatus === "active") {
@@ -172,10 +170,13 @@ const Feedback = () => {
   const resolvedTicketsCount = tickets.filter((t) => t.status === "Resolved").length;
   const bugReportsCount = tickets.filter((t) => t.category === "Bug Report").length;
 
-  // Reset page on filter change
-  React.useEffect(() => {
+  // Back to page 1 when the search, filters or sort change (noticed during render, not in an effect)
+  const filterKey = [searchQuery, filterCategory, filterStatus, sortOrder].join("|");
+  const [pageFilterKey, setPageFilterKey] = useState(filterKey);
+  if (filterKey !== pageFilterKey) {
+    setPageFilterKey(filterKey);
     setCurrentPage(1);
-  }, [searchQuery, filterCategory, filterStatus, sortOrder]);
+  }
 
   // UI Helpers
   const getStatusBadge = (status) => {

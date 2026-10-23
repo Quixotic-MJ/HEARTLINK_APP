@@ -109,7 +109,6 @@ export default function SplashScreen() {
     if (reduceMotion === null) return;
     if (reduceMotion) {
       fadeAnim.setValue(1);
-      setAnimationFinished(true);
       return;
     }
     Animated.timing(fadeAnim, {
@@ -136,11 +135,13 @@ export default function SplashScreen() {
     };
   }, []);
 
+  // With reduce motion on, the logo appears at once, so there is no fade to wait for
+  const introDone = animationFinished || reduceMotion === true;
   useEffect(() => {
-    if (animationFinished && (!isLoading || loadTimedOut)) {
+    if (introDone && (!isLoading || loadTimedOut)) {
       handleProceed();
     }
-  }, [animationFinished, isLoading, loadTimedOut, handleProceed]);
+  }, [introDone, isLoading, loadTimedOut, handleProceed]);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.paper }} edges={["top", "bottom"]}>

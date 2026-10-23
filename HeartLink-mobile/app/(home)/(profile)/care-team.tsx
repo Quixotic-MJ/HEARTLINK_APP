@@ -146,6 +146,7 @@ export default function CareTeamScreen() {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- loads the care team; its state changes come after the request returns
     if (userId) fetchCareTeam();
   }, [userId, token]);
 

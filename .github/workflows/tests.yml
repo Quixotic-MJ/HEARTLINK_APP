@@ -27,7 +27,7 @@ jobs:
       - run: python -m pytest -q
 
   mobile:
-    name: Phone app tests
+    name: Phone app tests, lint and types
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -41,9 +41,11 @@ jobs:
           cache-dependency-path: HeartLink-mobile/package-lock.json
       - run: npm ci
       - run: npx jest --ci
+      - run: npm run lint
+      - run: npx tsc --noEmit
 
   web:
-    name: Web portal build
+    name: Web portal lint and build
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -56,4 +58,5 @@ jobs:
           cache: npm
           cache-dependency-path: HeartLink-web/package-lock.json
       - run: npm ci
+      - run: npm run lint
       - run: npm run build

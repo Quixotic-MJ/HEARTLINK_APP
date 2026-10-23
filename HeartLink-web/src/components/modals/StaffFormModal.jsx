@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, UserPlus, Info } from "lucide-react";
 import { useForm } from "react-hook-form";
@@ -26,7 +26,7 @@ const staffSchema = z
     }
   });
 
-const StaffFormModal = ({ isOpen, onClose, staff, onSave }) => {
+const StaffFormModal = ({ isOpen, onClose, onSave }) => {
   const {
     register,
     handleSubmit,

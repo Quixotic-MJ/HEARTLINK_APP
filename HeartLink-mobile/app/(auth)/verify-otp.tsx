@@ -28,7 +28,8 @@ import DsButton from "../../components/onboarding/DsButton";
 import SetupHeader from "../../components/onboarding/SetupHeader";
 import { DsScreen } from "../../components/onboarding/QuestionLayout";
 import { apiFetch } from "../../lib/api";
-import { useDs } from "../../components/onboarding/useDs";const CODE_LENGTH = 6;
+import { useDs } from "../../components/onboarding/useDs";
+const CODE_LENGTH = 6;
 const RESEND_SECONDS = 60;
 
 const verifyOtpSchema = z.object({
@@ -68,20 +69,16 @@ export default function OTPVerificationScreen() {
   const [focusedIndex, setFocusedIndex] = useState<number | null>(0);
   const [isVerifying, setIsVerifying] = useState(false);
   const [timer, setTimer] = useState(RESEND_SECONDS);
-  const [canResend, setCanResend] = useState(false);
   const [isResending, setIsResending] = useState(false);
   const [generalError, setGeneralError] = useState<string | null>(null);
 
   // Micro-interactions
   const errorShake = useSharedValue(0);
 
+  const canResend = timer <= 0;
   useEffect(() => {
-    let interval: ReturnType<typeof setInterval>;
-    if (timer > 0) {
-      interval = setInterval(() => setTimer((p) => p - 1), 1000);
-    } else {
-      setCanResend(true);
-    }
+    if (timer <= 0) return;
+    const interval = setInterval(() => setTimer((p) => p - 1), 1000);
     return () => clearInterval(interval);
   }, [timer]);
 
@@ -190,7 +187,6 @@ export default function OTPVerificationScreen() {
 
         if (response.ok) {
           setTimer(RESEND_SECONDS);
-          setCanResend(false);
           applyOtp(Array(CODE_LENGTH).fill(""));
           inputRefs.current[0]?.focus();
         } else {

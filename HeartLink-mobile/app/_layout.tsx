@@ -49,8 +49,10 @@ function RootLayoutNav() {
   useEffect(() => {
     if (isLoading) return;
 
-    const firstSegment = segments[0] as string | undefined;
-    const secondSegment = segments[1] as string | undefined;
+    // Typed routes give segments a fixed length; at run time it holds every part of the current path
+    const path = segments as string[];
+    const firstSegment = path[0] as string | undefined;
+    const secondSegment = path[1] as string | undefined;
 
     // 1. Splash screen: let splash.tsx finish its animations and navigate
     const isSplash =

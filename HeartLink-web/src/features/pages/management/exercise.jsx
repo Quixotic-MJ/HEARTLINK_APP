@@ -2,15 +2,9 @@ import React, { useState } from "react";
 import {
   Search,
   Plus,
-  Filter,
-  X,
   Dumbbell,
   CheckCircle2,
-  ShieldCheck,
-  ShieldAlert,
   Archive,
-  Save,
-  Activity,
   Trash2,
   Clock,
   Edit2,
@@ -26,9 +20,10 @@ import ConfirmActionModal from "../../../components/modals/ConfirmActionModal";
 import { BulkApproveBar, SelectBox } from "../../../components/modals/BulkApprove";
 import { Skeleton } from "../../../components/ui/Skeleton";
 import { apiFetch, BASE_URL } from "../../../api";
-import { useAuth } from "../../../contexts/AuthContext";
+import { useAuth } from "../../../contexts/useAuth";
 import { toast } from "sonner";
-import { UI, FONTS, PageHeader } from "../../../styles/designSystem";
+import { UI, FONTS } from "../../../styles/tokens";
+import { PageHeader } from "../../../styles/designSystem";
 
 const resolveMediaUrl = (url) => {
   if (!url) return "";
@@ -101,11 +96,11 @@ const Exercises = () => {
     };
   }, []);
 
-  const fetchExercises = async () => {
-    setLoading(true);
-    setError(null);
+  // Loading on open: state only changes once the request returns (loading starts on). Refreshes use fetchExercises.
+  const loadExercises = async () => {
     try {
       const data = await apiFetch("/api/exercises/");
+      setError(null);
       const mapped = data.map((r) => {
         let hssLabel = "Stable (80-100)";
         if (r.hss_tier === "Moderate") hssLabel = "Moderate (60-79)";
@@ -153,8 +148,15 @@ const Exercises = () => {
     }
   };
 
+  const fetchExercises = () => {
+    setLoading(true);
+    setError(null);
+    return loadExercises();
+  };
+
   React.useEffect(() => {
-    fetchExercises();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- loads data; its state changes come after the request returns, which this rule can't see
+    loadExercises();
   }, []);
 
   // Modal & Form State
@@ -807,7 +809,9 @@ const Exercises = () => {
             {/* Empty State */}
             {!loading && filteredExercises.length === 0 && (
               <div className="p-12 text-center text-ds-slate text-[13px] flex flex-col items-center justify-center gap-2.5 border-t border-ds-hairline">
-                {exercises.length === 0 ? (
+                {error ? (
+                  <p className="font-medium text-ds-warm-text">Exercises couldn&apos;t load. Check your connection, then refresh the page.</p>
+                ) : exercises.length === 0 ? (
                   <p className="font-medium text-ds-slate">No exercises available in the library.</p>
                 ) : (
                   <>

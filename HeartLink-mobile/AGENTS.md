@@ -22,8 +22,8 @@ Run these from `HeartLink-mobile/`.
 | Install packages | `npm install` (no extra flags needed) |
 | Run on a phone | `npx expo start`, then scan the QR code with Expo Go |
 | Tests (full suite) | `npx jest` |
-| Lint | `npm run lint` |
-| Type check | `npx tsc --noEmit` (has older errors, see [Known issues](#known-issues)) |
+| Lint | `npm run lint` (no errors; GitHub runs it, so keep it that way) |
+| Type check | `npx tsc --noEmit` (no errors; GitHub runs it with the tests and lint) |
 
 Copy `.env.example` to `.env`. `EXPO_PUBLIC_API_URL` points at the backend. When testing a local
 backend on a phone, use the computer's local network IP (e.g. `192.168.x.x`), not `localhost`. Every
@@ -253,8 +253,6 @@ Every new piece of UI must look right in light and dark mode.
 
 Flag these if they get in your way; don't fix them as a side effect of another task.
 
-- `npx tsc --noEmit` shows older errors: test files can't see Jest's types under TypeScript 6, and
-  screens that import `global.css` have no type declaration for it.
 - `@testing-library/jest-native` is deprecated (Testing Library v14 has the same matchers built in)
   and can be removed along with `react-test-renderer`.
 - `useLogMeal.ts` and `useLogSleep.ts` load `SyncService` with a dynamic `import()`, which Jest can't

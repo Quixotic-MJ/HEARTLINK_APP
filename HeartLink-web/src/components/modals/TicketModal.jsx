@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   X,
   MessageSquare,
@@ -29,8 +29,12 @@ const TicketModal = ({ isOpen, onClose, ticket, onUpdate, onArchive }) => {
   const [conflictError, setConflictError] = useState(false);
   const [serverTicketData, setServerTicketData] = useState(null);
 
-  useEffect(() => {
-    if (isOpen && ticket) {
+  // Load the ticket into the form when the modal opens on it (noticed during render, not in an effect)
+  const openKey = isOpen && ticket ? ticket.id : null;
+  const [shownFor, setShownFor] = useState(null);
+  if (openKey !== shownFor) {
+    setShownFor(openKey);
+    if (openKey !== null) {
       setAdminNotes(ticket.adminNotes || "");
       setTicketStatus(ticket.status || "Open");
       setInitialNotes(ticket.adminNotes || "");
@@ -42,7 +46,7 @@ const TicketModal = ({ isOpen, onClose, ticket, onUpdate, onArchive }) => {
       setConflictError(false);
       setServerTicketData(null);
     }
-  }, [isOpen, ticket?.id]);
+  }
 
   if (!isOpen || !ticket) return null;
 

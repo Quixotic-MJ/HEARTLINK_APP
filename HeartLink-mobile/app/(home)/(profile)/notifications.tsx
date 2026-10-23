@@ -177,7 +177,7 @@ function FilterChip({
 
 function SkeletonCard() {
   const { c } = useDs();
-  const opacity = useRef(new RNAnimated.Value(0.35)).current;
+  const [opacity] = useState(() => new RNAnimated.Value(0.35));
 
   useEffect(() => {
     const anim = RNAnimated.loop(
@@ -1011,7 +1011,7 @@ export default function NotificationsScreen() {
               textAlign: "center",
             }}
           >
-            Couldn't load notifications
+            Couldn&apos;t load notifications
           </Text>
           <Text
             style={{

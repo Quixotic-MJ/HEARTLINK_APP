@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState } from "react";
 import { X, Send, Megaphone } from "lucide-react";
 
 const NewBroadcastModal = ({ isOpen, onClose, onPublish }) => {
@@ -8,14 +8,16 @@ const NewBroadcastModal = ({ isOpen, onClose, onPublish }) => {
   // Audience is fixed — backend delivers to all active users.
   const targetAudience = "All Registered Accounts";
 
-  // Reset form when modal opens/closes
-  useEffect(() => {
+  // Reset the form each time the modal opens (noticed during render, so there's no extra render pass)
+  const [wasOpen, setWasOpen] = useState(isOpen);
+  if (isOpen !== wasOpen) {
+    setWasOpen(isOpen);
     if (isOpen) {
       setTitle("");
       setMsg("");
       setType("Maintenance");
     }
-  }, [isOpen]);
+  }
 
   if (!isOpen) return null;
 

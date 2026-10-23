@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Eye, EyeOff, Loader2, Check, Circle } from "lucide-react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { useAuth } from "../../contexts/AuthContext";
+import { useAuth } from "../../contexts/useAuth";
 import { apiFetch } from "../../api";
 import { HeartLogoIcon, LoginBackdrop, ErrorBanner, FieldError } from "./login";
 import { inputBase, inputState, labelText, primaryButton, textLink, focusRing } from "./authStyles";

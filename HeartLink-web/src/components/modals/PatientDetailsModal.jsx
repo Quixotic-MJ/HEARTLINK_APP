@@ -1,15 +1,16 @@
-import React, { useState, useEffect } from "react";
+import { useState } from "react";
 import { X, Activity, AlertTriangle, Ban, CheckCircle2, Archive, Key, Copy } from "lucide-react";
 import { formatUserRef } from "../../utils/formatUserRef";
 
 const PatientDetailsModal = ({ isOpen, onClose, patient, onDeactivate, onEnable }) => {
   const [tempPassword, setTempPassword] = useState("");
 
-  useEffect(() => {
-    if (!isOpen) {
-      setTempPassword("");
-    }
-  }, [isOpen]);
+  // Forget the temporary password when the modal closes
+  const [wasOpen, setWasOpen] = useState(isOpen);
+  if (isOpen !== wasOpen) {
+    setWasOpen(isOpen);
+    if (!isOpen) setTempPassword("");
+  }
 
   if (!isOpen || !patient) return null;
 

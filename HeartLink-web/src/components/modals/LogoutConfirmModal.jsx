@@ -1,11 +1,11 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import {
   LogOut,
   X,
   Loader2,
   Lock,
 } from "lucide-react";
-import { useAuth } from "../../contexts/AuthContext";
+import { useAuth } from "../../contexts/useAuth";
 
 const LogoutConfirmModal = ({ isOpen, onClose }) => {
   const { user, logout } = useAuth();

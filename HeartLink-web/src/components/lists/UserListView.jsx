@@ -1,4 +1,3 @@
-import React from "react";
 import {
   Search,
   ShieldCheck,
@@ -44,7 +43,7 @@ const UserListView = ({
     );
   };
 
-  const getHssBadge = (score, tier) => {
+  const getHssBadge = (score) => {
     if (score === null || score === undefined) {
       return (
         <span className="bg-ds-surface text-ds-steel border border-ds-hairline px-2 py-0.5 rounded-[4px] text-[11px] font-semibold uppercase tracking-wider w-fit inline-block">
@@ -53,8 +52,8 @@ const UserListView = ({
       );
     }
 
-    let standardTier = "Stable";
-    let colorClasses = "bg-ds-mint text-ds-charcoal border-ds-mint";
+    let standardTier;
+    let colorClasses;
 
     if (score >= 80) {
       standardTier = "Stable";

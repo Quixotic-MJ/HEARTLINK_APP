@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { 
   ArrowLeft, Activity, User, HeartPulse, Stethoscope, 
@@ -6,9 +6,10 @@ import {
 } from "lucide-react";
 import AdminLayout from "../../../components/layouts/adminLayout";
 import { apiFetch } from "../../../api";
-import { useAuth } from "../../../contexts/AuthContext";
+import { useAuth } from "../../../contexts/useAuth";
 import { formatUserRef } from "../../../utils/formatUserRef";
-import { UI, FONTS, StatusBadge } from "../../../styles/designSystem";
+import { UI, FONTS } from "../../../styles/tokens";
+import { StatusBadge } from "../../../styles/designSystem";
 
 const normalizeHssTier = (score, tier) => {
   if (score !== undefined && score !== null) {

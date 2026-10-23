@@ -16,7 +16,7 @@ import {
   X,
   LogOut,
 } from "lucide-react";
-import { useAuth } from "../../contexts/AuthContext";
+import { useAuth } from "../../contexts/useAuth";
 import { canAccess } from "../../app/access";
 
 // ─── Brand Logo Emblem ────────────────────────────────────────────────────────

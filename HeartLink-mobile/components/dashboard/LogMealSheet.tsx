@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { Animated, Dimensions, Easing, Modal, PanResponder, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
@@ -63,8 +63,8 @@ export function LogMealSheet({
     queryFn: ({ signal }) => fetchRecentMeals(String(userId), token ?? null, signal),
   });
 
-  const slideAnim = useRef(new Animated.Value(Dimensions.get("window").height)).current;
-  const backdropAnim = useRef(new Animated.Value(0)).current;
+  const [slideAnim] = useState(() => new Animated.Value(Dimensions.get("window").height));
+  const [backdropAnim] = useState(() => new Animated.Value(0));
 
   const animateIn = useCallback(() => {
     setLoggedIds([]);

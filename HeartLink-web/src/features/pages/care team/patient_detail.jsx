@@ -5,9 +5,9 @@ import AdminLayout from "../../../components/layouts/adminLayout";
 import { Skeleton } from "../../../components/ui/Skeleton";
 import CareNotes from "../../../components/care/CareNotes";
 import { apiFetch } from "../../../api";
-import { useAuth } from "../../../contexts/AuthContext";
+import { useAuth } from "../../../contexts/useAuth";
 import { formatUserRef } from "../../../utils/formatUserRef";
-import { UI, FONTS } from "../../../styles/designSystem";
+import { UI, FONTS } from "../../../styles/tokens";
 import { TAG, bpBand, tierClass } from "../../../components/care/vitals";
 import { formatNoteTime } from "../../../components/care/noteTime";
 

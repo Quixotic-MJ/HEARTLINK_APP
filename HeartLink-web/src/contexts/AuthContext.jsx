@@ -1,7 +1,7 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { AuthContext } from './useAuth';
 import { apiFetch, clearApiCache } from '../api';
 
-const AuthContext = createContext();
 
 // Pre-HL-033 keys that held the JWT in Web Storage. Purged on boot so no token lingers.
 const LEGACY_STORAGE_KEYS = ['heartlink_admin_token', 'heartlink_admin_user', 'heartlink_admin_user_id'];
@@ -108,12 +108,4 @@ export const AuthProvider = ({ children }) => {
       {!loading && children}
     </AuthContext.Provider>
   );
-};
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
 };

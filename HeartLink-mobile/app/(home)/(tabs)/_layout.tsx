@@ -46,7 +46,7 @@ function TabBarItem({
   onPress: () => void;
   children: React.ReactNode;
 }) {
-  const spring = useRef(new Animated.Value(focused ? 1 : 0)).current;
+  const [spring] = useState(() => new Animated.Value(focused ? 1 : 0));
 
   useEffect(() => {
     Animated.spring(spring, {
@@ -106,7 +106,7 @@ function CustomTabBar({ state, navigation, splitOpen, onFabPress, onCloseSplit }
   const INACTIVE_COLOR = c.steel;
   const ACTIVE_COLOR = c.ink;
 
-  const fabSpin = useRef(new Animated.Value(0)).current;
+  const [fabSpin] = useState(() => new Animated.Value(0));
   useEffect(() => {
     Animated.timing(fabSpin, {
       toValue: splitOpen ? 1 : 0,
@@ -256,12 +256,14 @@ export default function TabsLayout() {
     const unsub = nav.addListener("state", () => setTick((t) => t + 1));
     return () => unsub();
   }, []);
+  // eslint-disable-next-line react-hooks/refs -- the bridge above: the bar reads the navigator's live state each render, re-run by setTick
   const tabState = tabNavRef.current?.getState?.();
+  // eslint-disable-next-line react-hooks/refs -- the bridge above: the bar reads the navigator's live state each render, re-run by setTick
   const tabNavigation = tabNavRef.current ?? null;
 
   // Content zoom-pop on every navigation (mirrors the zoom-in-95 tab content).
   // Style-only wrapper: never remounts the navigator, just plays scale+fade.
-  const popAnim = useRef(new Animated.Value(1)).current;
+  const [popAnim] = useState(() => new Animated.Value(1));
   const isFirstRender = useRef(true);
   useEffect(() => {
     if (isFirstRender.current) {

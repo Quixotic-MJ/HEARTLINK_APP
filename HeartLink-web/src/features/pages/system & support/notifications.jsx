@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Bell,
@@ -13,23 +13,21 @@ import {
   ChevronLeft,
   ChevronRight,
   ExternalLink,
-  Filter,
   Check,
   Clock,
   Activity,
   AlertCircle,
-  Eye,
-  EyeOff,
 } from "lucide-react";
 import AdminLayout from "../../../components/layouts/adminLayout";
-import { useAuth } from "../../../contexts/AuthContext";
+import { useAuth } from "../../../contexts/useAuth";
 import { apiFetch } from "../../../api";
 import { Skeleton } from "../../../components/ui/Skeleton";
-import { UI, FONTS, PageHeader, KpiCard } from "../../../styles/designSystem";
+import { UI, FONTS } from "../../../styles/tokens";
+import { PageHeader, KpiCard } from "../../../styles/designSystem";
 
 const Notifications = () => {
   const navigate = useNavigate();
-  const { user, userId } = useAuth();
+  const { userId } = useAuth();
 
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -47,12 +45,12 @@ const Notifications = () => {
   const pageSize = 12;
 
   // Fetch notifications
-  const fetchNotifications = useCallback(async () => {
-    setLoading(true);
-    setFetchError(false);
+  // Loading on open: state only changes once the request returns (loading starts on). Refreshes use fetchNotifications.
+  const loadNotifications = useCallback(async () => {
     try {
       // HL-019: archived ones (over 72 hours old) come too, but only show under "Archived".
       const data = await apiFetch("/api/admin/notifications?include_archived=true");
+      setFetchError(false);
       setNotifications(data.items || []);
       setUnreadCount(data.unread_count || 0);
     } catch (error) {
@@ -63,9 +61,16 @@ const Notifications = () => {
     }
   }, []);
 
+  const fetchNotifications = useCallback(() => {
+    setLoading(true);
+    setFetchError(false);
+    return loadNotifications();
+  }, [loadNotifications]);
+
   useEffect(() => {
-    fetchNotifications();
-  }, [fetchNotifications]);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- loads data; its state changes come after the request returns, which this rule can't see
+    loadNotifications();
+  }, [loadNotifications]);
 
   // Mark single item as read
   const markAsRead = async (id, e) => {
@@ -183,7 +188,7 @@ const Notifications = () => {
       if (diffDays === 1) return "Yesterday";
       if (diffDays < 7) return `${diffDays}d ago`;
       return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-    } catch (e) {
+    } catch {
       return "";
     }
   };
@@ -200,7 +205,7 @@ const Notifications = () => {
         minute: "2-digit",
         hour12: true,
       });
-    } catch (e) {
+    } catch {
       return isoString;
     }
   };

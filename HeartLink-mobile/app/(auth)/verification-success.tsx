@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import { View, Text, Animated } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -17,9 +17,9 @@ export default function VerificationSuccessScreen() {
   const router = useRouter();
   const { c } = useDs();
 
-  const scaleAnim = useRef(new Animated.Value(0)).current;
-  const opacityAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(16)).current;
+  const [scaleAnim] = useState(() => new Animated.Value(0));
+  const [opacityAnim] = useState(() => new Animated.Value(0));
+  const [slideAnim] = useState(() => new Animated.Value(16));
 
   useEffect(() => {
     Animated.parallel([

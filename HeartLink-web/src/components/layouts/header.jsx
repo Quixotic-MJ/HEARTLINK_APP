@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Menu,
   Search,
@@ -11,7 +11,7 @@ import {
   Clock,
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useAuth } from "../../contexts/AuthContext";
+import { useAuth } from "../../contexts/useAuth";
 import AdminNotificationDropdown from "./AdminNotificationDropdown";
 
 export default function Header({ 

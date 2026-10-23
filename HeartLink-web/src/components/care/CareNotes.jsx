@@ -3,7 +3,7 @@ import { HeartPulse, MessagesSquare, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { apiFetch } from "../../api";
 import ConfirmActionModal from "../modals/ConfirmActionModal";
-import { UI } from "../../styles/designSystem";
+import { UI } from "../../styles/tokens";
 import { TAG } from "./vitals";
 import { formatNoteTime } from "./noteTime";
 

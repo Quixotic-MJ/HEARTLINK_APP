@@ -2,7 +2,7 @@ import { useDs } from "../../../components/onboarding/useDs";
 import { SquareIconButton } from "../../../components/exercise/ExerciseBits";
 import DsButton from "../../../components/onboarding/DsButton";
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity, TextInput, Platform, Alert } from "react-native";
+import { View, Text, TouchableOpacity, TextInput, Platform } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";

@@ -6,7 +6,6 @@ import {
   FlatList,
   ScrollView,
   RefreshControl,
-  Platform,
 } from "react-native";
 import { Image } from "expo-image";
 import { ScreenWrapper } from "../../../components/ui/ScreenWrapper";

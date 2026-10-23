@@ -3,7 +3,6 @@ import {
   Animated,
   Easing,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
   AccessibilityInfo,
@@ -15,7 +14,6 @@ import Svg, {
   Ellipse,
   FeGaussianBlur,
   Filter,
-  LinearGradient,
   Path,
   RadialGradient,
   Stop,
@@ -113,7 +111,7 @@ function Particle({
   color,
   stageSize,
 }: (typeof PARTICLES)[0] & { color: string; stageSize: number }) {
-  const anim = useRef(new Animated.Value(0)).current;
+  const [anim] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
     let loop: Animated.CompositeAnimation | null = null;
@@ -161,7 +159,7 @@ function Particle({
 // ─── ping ring ────────────────────────────────────────────────────────────────
 
 function PingRing({ delay, color, stageSize }: { delay: number; color: string; stageSize: number }) {
-  const anim = useRef(new Animated.Value(0)).current;
+  const [anim] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
     let loop: Animated.CompositeAnimation | null = null;
@@ -257,24 +255,24 @@ export function ScoreRing({
   }, []);
 
   // stroke dash offsets (SVG attrs: JS driver by necessity)
-  const dashOffset = useRef(new Animated.Value(PATH_LEN)).current;
-  const glowOffset = useRef(new Animated.Value(PATH_LEN)).current;
+  const [dashOffset] = useState(() => new Animated.Value(PATH_LEN));
+  const [glowOffset] = useState(() => new Animated.Value(PATH_LEN));
 
   // heartbeat scale
-  const heartbeat = useRef(new Animated.Value(1)).current;
+  const [heartbeat] = useState(() => new Animated.Value(1));
   const heartbeatLoop = useRef<Animated.CompositeAnimation | null>(null);
 
   // shimmer position
-  const shimmer = useRef(new Animated.Value(0)).current;
+  const [shimmer] = useState(() => new Animated.Value(0));
   const shimmerLoop = useRef<Animated.CompositeAnimation | null>(null);
 
   // score label entrance
-  const scoreFade = useRef(new Animated.Value(0)).current;
-  const scoreSlide = useRef(new Animated.Value(8)).current;
-  const labelFade = useRef(new Animated.Value(0)).current;
+  const [scoreFade] = useState(() => new Animated.Value(0));
+  const [scoreSlide] = useState(() => new Animated.Value(8));
+  const [labelFade] = useState(() => new Animated.Value(0));
 
   // celebration ripple (mission saves)
-  const burstAnim = useRef(new Animated.Value(0)).current;
+  const [burstAnim] = useState(() => new Animated.Value(0));
   const prevCelebrate = useRef<number | undefined>(undefined);
   const burstMounted = useRef(false);
 
@@ -282,6 +280,7 @@ export function ScoreRing({
 
   // ── fill animation (replays on score change + pull-to-refresh) ──
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- restarting the fill animation resets what it has shown so far
     setDone(false);
     lastShown.current = -1;
     heartbeatLoop.current?.stop();

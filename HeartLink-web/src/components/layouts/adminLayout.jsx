@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import Sidebar from "./sidebar";
 import Header from "./header";
 import LogoutConfirmModal from "../modals/LogoutConfirmModal";
-import { useAuth } from "../../contexts/AuthContext";
+import { useAuth } from "../../contexts/useAuth";
 import { canAccess, homeFor } from "../../app/access";
 
 const AdminLayout = ({ children }) => {

@@ -1,9 +1,9 @@
-import React, { useState, useCallback, useRef, useEffect } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { apiFetch } from "../../../lib/api";
-import { View, Text, ScrollView, TouchableOpacity, Animated, RefreshControl, LayoutAnimation, Platform, UIManager } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, Animated, RefreshControl } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
-import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Feather } from "@expo/vector-icons";
 import { useRouter, useFocusEffect } from "expo-router";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
@@ -24,7 +24,7 @@ const P = ds.light;
 
 // ─── Skeletons ────────────────────────────────────────────────────────────────
 function SkeletonPulse({ style, className }: any) {
-  const anim = useRef(new Animated.Value(0.3)).current;
+  const [anim] = useState(() => new Animated.Value(0.3));
 
   useEffect(() => {
     Animated.loop(

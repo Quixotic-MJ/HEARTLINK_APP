@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { View, Text, Modal, TouchableOpacity, ScrollView, Animated, Easing, Dimensions, PanResponder } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -82,8 +82,8 @@ export function ScoreExplanationModal({
   const { c } = useDs();
   const insets = useSafeAreaInsets();
 
-  const slideAnim = useRef(new Animated.Value(Dimensions.get("window").height)).current;
-  const backdropAnim = useRef(new Animated.Value(0)).current;
+  const [slideAnim] = useState(() => new Animated.Value(Dimensions.get("window").height));
+  const [backdropAnim] = useState(() => new Animated.Value(0));
 
   const animateIn = useCallback(() => {
     slideAnim.setValue(Dimensions.get("window").height);

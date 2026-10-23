@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Bell, 
@@ -19,7 +19,7 @@ export default function AdminNotificationDropdown({ userId }) {
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [fetchError, setFetchError] = useState(null);
   const [actionError, setActionError] = useState(null);
 
@@ -50,13 +50,10 @@ export default function AdminNotificationDropdown({ userId }) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen]);
 
-  const fetchNotifications = useCallback(async (isExplicitUserAction = false) => {
+  // State only changes once the request returns; a retry turns the spinner on itself (isLoading starts on).
+  const fetchNotifications = useCallback(async () => {
     if (isFetchingRef.current) return;
     isFetchingRef.current = true;
-
-    if (isExplicitUserAction || notifications.length === 0) {
-      setIsLoading(true);
-    }
 
     try {
       const data = await apiFetch("/api/admin/notifications");
@@ -70,11 +67,12 @@ export default function AdminNotificationDropdown({ userId }) {
       setIsLoading(false);
       isFetchingRef.current = false;
     }
-  }, [notifications.length]);
+  }, []);
 
   // Polling with visibility awareness
   useEffect(() => {
-    fetchNotifications(true);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- loads data; its state changes come after the request returns, which this rule can't see
+    fetchNotifications();
 
     let intervalId = null;
 
@@ -82,7 +80,7 @@ export default function AdminNotificationDropdown({ userId }) {
       if (!intervalId) {
         intervalId = setInterval(() => {
           if (document.visibilityState === "visible") {
-            fetchNotifications(false);
+            fetchNotifications();
           }
         }, 60000);
       }
@@ -97,7 +95,7 @@ export default function AdminNotificationDropdown({ userId }) {
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
-        fetchNotifications(false);
+        fetchNotifications();
         startPolling();
       } else {
         stopPolling();
@@ -117,14 +115,15 @@ export default function AdminNotificationDropdown({ userId }) {
     const nextState = !isOpen;
     setIsOpen(nextState);
     if (nextState) {
-      fetchNotifications(false);
+      fetchNotifications();
     }
   };
 
   const handleRetry = (e) => {
     if (e) e.stopPropagation();
     setFetchError(null);
-    fetchNotifications(true);
+    setIsLoading(true);
+    fetchNotifications();
   };
 
   const markAsRead = async (id, route) => {

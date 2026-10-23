@@ -1,7 +1,7 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { X, CheckCircle2, Megaphone, Info, ShieldAlert, Wrench, AlertTriangle, Trash2 } from "lucide-react";
 
-export const getCategoryBadge = (category) => {
+export const CategoryBadge = ({ category }) => {
   switch (category) {
     case "Maintenance":
       return (
@@ -56,7 +56,7 @@ const ViewBroadcastModal = ({ isOpen, onClose, broadcast, onDelete }) => {
               >
                 Announcement Details
               </h3>
-              {getCategoryBadge(broadcast.type)}
+              <CategoryBadge category={broadcast.type} />
             </div>
             <button 
               onClick={onClose} 

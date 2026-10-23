@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TextInput, TouchableOpacity, Modal, Linking, Platform } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, Platform } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import Animated, {
   useSharedValue,
@@ -16,8 +16,8 @@ import * as Haptics from "expo-haptics";
 import { useToast } from "../../contexts/ToastContext";
 import { postLogAck } from "../../services/companionCopy";
 import { useLogSleep } from "../../hooks/useLogSleep";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { theme } from "../../constants/theme";/* ─── Collapsible body ───
+import { theme } from "../../constants/theme";
+/* ─── Collapsible body ───
    Uses Reanimated layout animations so the accordion expands and collapses
    naturally without requiring fragile onLayout height measurements. */
 

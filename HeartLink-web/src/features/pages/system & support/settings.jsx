@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   User,
   Mail,
@@ -7,27 +7,19 @@ import {
   Lock,
   Eye,
   EyeOff,
-  Settings2,
-  AlertTriangle,
-  Clock,
-  Database,
   CheckCircle2,
   XCircle,
   Loader2,
   BadgeCheck,
   Info,
   KeyRound,
-  Shield,
-  Server,
-  Activity,
-  Sparkles,
-  Sliders,
   Check,
 } from "lucide-react";
 import AdminLayout from "../../../components/layouts/adminLayout";
-import { useAuth } from "../../../contexts/AuthContext";
+import { useAuth } from "../../../contexts/useAuth";
 import { apiFetch } from "../../../api";
-import { UI, FONTS, PageHeader, KpiCard } from "../../../styles/designSystem";
+import { UI, FONTS } from "../../../styles/tokens";
+import { PageHeader, KpiCard } from "../../../styles/designSystem";
 
 // ─── Shared primitives ────────────────────────────────────────────────────────
 
@@ -60,41 +52,6 @@ function InfoRow({ icon: Icon, label, value, mono = false, pill = null }) {
             }`}
           >
             {value ?? "—"}
-          </p>
-        )}
-      </div>
-    </div>
-  );
-}
-
-/** A system-managed config row (read-only, with "managed by system" badge) */
-function SystemConfigRow({ icon: Icon, label, value, note, statusPill = null }) {
-  return (
-    <div className="flex items-start gap-3.5 py-4 border-b border-ds-hairline last:border-0">
-      <div className="flex-shrink-0 w-8 h-8 rounded-[8px] bg-ds-tint border border-ds-tint flex items-center justify-center mt-0.5 text-ds-on-tint">
-        <Icon size={14} />
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap mb-1">
-          <p className="text-[13px] font-bold text-ds-ink">{label}</p>
-          <span className="inline-flex items-center px-2 py-0.5 rounded-[4px] bg-ds-surface border border-ds-hairline text-[11px] font-semibold text-ds-slate uppercase tracking-wider">
-            System managed
-          </span>
-          {statusPill && (
-            <span
-              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-[4px] text-[11px] font-bold uppercase tracking-wider ${statusPill.cls}`}
-            >
-              {statusPill.dot && (
-                <span className="w-1.5 h-1.5 rounded-full bg-current opacity-80" />
-              )}
-              {statusPill.label}
-            </span>
-          )}
-        </div>
-        <p className="text-[12.5px] font-semibold text-ds-ink">{value}</p>
-        {note && (
-          <p className="text-[11.5px] text-ds-slate mt-1 leading-relaxed">
-            {note}
           </p>
         )}
       </div>
@@ -190,6 +147,21 @@ function getStatusPill(status) {
 
 // ─── Tab: My Account ─────────────────────────────────────────────────────────
 
+/** Show/hide button inside a password field. */
+function ToggleEye({ shown, onToggle }) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-ds-steel hover:text-ds-ink transition-colors cursor-pointer"
+      tabIndex={-1}
+      aria-label={shown ? "Hide password" : "Show password"}
+    >
+      {shown ? <EyeOff size={15} /> : <Eye size={15} />}
+    </button>
+  );
+}
+
 function AccountTab({ user, userId }) {
   const role = user?.role;
   const status = user?.account_status ?? "active";
@@ -267,17 +239,7 @@ function AccountTab({ user, userId }) {
 
   const handleCancelPw = () => clearPwForm();
 
-  const ToggleEye = ({ field }) => (
-    <button
-      type="button"
-      onClick={() => setShowPw((prev) => ({ ...prev, [field]: !prev[field] }))}
-      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-ds-steel hover:text-ds-ink transition-colors cursor-pointer"
-      tabIndex={-1}
-      aria-label={showPw[field] ? "Hide password" : "Show password"}
-    >
-      {showPw[field] ? <EyeOff size={15} /> : <Eye size={15} />}
-    </button>
-  );
+  const toggleShow = (field) => setShowPw((prev) => ({ ...prev, [field]: !prev[field] }));
 
   const getPasswordStrength = (pw) => {
     if (!pw) return { label: "", color: "", width: "0%" };
@@ -440,7 +402,7 @@ function AccountTab({ user, userId }) {
                     className="w-full pl-9 pr-9 py-2 text-[13px] bg-ds-surface border border-ds-hairline rounded-[8px] text-ds-ink placeholder:text-ds-steel focus:outline-none focus:border-ds-ink transition-colors disabled:opacity-50"
                     placeholder="Enter current password"
                   />
-                  <ToggleEye field="current" />
+                  <ToggleEye shown={showPw.current} onToggle={() => toggleShow("current")} />
                 </div>
               </div>
 
@@ -468,7 +430,7 @@ function AccountTab({ user, userId }) {
                     className="w-full pl-9 pr-9 py-2 text-[13px] bg-ds-surface border border-ds-hairline rounded-[8px] text-ds-ink placeholder:text-ds-steel focus:outline-none focus:border-ds-ink transition-colors disabled:opacity-50"
                     placeholder="Minimum 8 characters"
                   />
-                  <ToggleEye field="next" />
+                  <ToggleEye shown={showPw.next} onToggle={() => toggleShow("next")} />
                 </div>
                 {pwForm.next.length > 0 && (
                   <div className="mt-1.5 space-y-0.5">
@@ -515,7 +477,7 @@ function AccountTab({ user, userId }) {
                     }`}
                     placeholder="Re-enter new password"
                   />
-                  <ToggleEye field="confirm" />
+                  <ToggleEye shown={showPw.confirm} onToggle={() => toggleShow("confirm")} />
                 </div>
                 {pwForm.confirm && pwForm.next !== pwForm.confirm && (
                   <p className="text-[11px] text-ds-danger mt-1 font-medium flex items-center gap-1">

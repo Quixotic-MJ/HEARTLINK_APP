@@ -5,18 +5,15 @@ import {
   Text,
   TouchableOpacity,
   ScrollView,
-  Image,
-  Alert,
   Modal,
   TextInput,
   KeyboardAvoidingView,
   Platform,
-  Pressable,
 } from "react-native";
 import { ScreenWrapper } from "../../../components/ui/ScreenWrapper";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
-import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Feather } from "@expo/vector-icons";
 import { useDs } from "../../../components/onboarding/useDs";
 import DsButton from "../../../components/onboarding/DsButton";
 import { SquareIconButton } from "../../../components/exercise/ExerciseBits";
@@ -133,7 +130,10 @@ function EditProfileModal({
   const [weight, setWeight] = useState(currentData.weight);
   const [isSaving, setIsSaving] = useState(false);
 
-  React.useEffect(() => {
+  const openWith = visible ? currentData : null;
+  const [filledFrom, setFilledFrom] = useState<typeof openWith>(null);
+  if (openWith !== filledFrom) {
+    setFilledFrom(openWith);
     if (visible) {
       setName(currentData.name);
       setEmail(currentData.email);
@@ -144,7 +144,7 @@ function EditProfileModal({
       setWeight(currentData.weight);
       setIsSaving(false);
     }
-  }, [visible, currentData]);
+  }
 
   const handleSave = async () => {
     setIsSaving(true);

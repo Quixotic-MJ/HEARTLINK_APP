@@ -34,7 +34,7 @@ export function Button({
   });
 
   const handlePressIn = (e: any) => {
-    scale.value = withTiming(0.97, { duration: 100, easing: Easing.out(Easing.ease) });
+    scale.set(withTiming(0.97, { duration: 100, easing: Easing.out(Easing.ease) }));
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
@@ -42,7 +42,7 @@ export function Button({
   };
 
   const handlePressOut = (e: any) => {
-    scale.value = withTiming(1, { duration: 150, easing: Easing.out(Easing.ease) });
+    scale.set(withTiming(1, { duration: 150, easing: Easing.out(Easing.ease) }));
     if (props.onPressOut) props.onPressOut(e);
   };
 

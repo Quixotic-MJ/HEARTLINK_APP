@@ -1,6 +1,6 @@
 import React from 'react';
 import { Loader2 } from 'lucide-react';
-import { UI, FONTS } from '../../styles/designSystem';
+import { FONTS } from '../../styles/tokens';
 
 export const Button = React.forwardRef(({
   children,

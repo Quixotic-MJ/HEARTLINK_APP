@@ -112,8 +112,8 @@ export function RecommendationModal({
 
   const logMealMutation = useLogMeal(userId, token);
 
-  const slideAnim = useRef(new Animated.Value(Dimensions.get("window").height)).current;
-  const backdropAnim = useRef(new Animated.Value(0)).current;
+  const [slideAnim] = useState(() => new Animated.Value(Dimensions.get("window").height));
+  const [backdropAnim] = useState(() => new Animated.Value(0));
 
   const animateIn = useCallback(() => {
     slideAnim.setValue(Dimensions.get("window").height);
@@ -204,6 +204,7 @@ export function RecommendationModal({
       setServings(1);
       lastRecIdRef.current = rec.id;
     }
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- opening a card loads its details (the spinner turns on first)
     fetchDetail(rec);
   }, [visible, rec, fetchDetail]);
 

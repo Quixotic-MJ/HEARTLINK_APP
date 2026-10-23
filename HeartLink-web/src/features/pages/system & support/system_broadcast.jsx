@@ -13,8 +13,9 @@ import {
 import { apiFetch } from "../../../api";
 import AdminLayout from "../../../components/layouts/adminLayout";
 import NewBroadcastModal from "../../../components/modals/NewBroadcastModal";
-import ViewBroadcastModal, { getCategoryBadge } from "../../../components/modals/ViewBroadcastModal";
-import { UI, FONTS, PageHeader } from "../../../styles/designSystem";
+import ViewBroadcastModal, { CategoryBadge } from "../../../components/modals/ViewBroadcastModal";
+import { UI, FONTS } from "../../../styles/tokens";
+import { PageHeader } from "../../../styles/designSystem";
 
 const Broadcasts = () => {
   const [broadcasts, setBroadcasts] = useState([]);
@@ -39,12 +40,8 @@ const Broadcasts = () => {
   // Pending Broadcast State for Confirmation
   const [pendingBroadcast, setPendingBroadcast] = useState(null);
 
-  React.useEffect(() => {
-    fetchBroadcasts();
-  }, []);
-
-  const fetchBroadcasts = async () => {
-    setIsLoading(true);
+  // Loading on open: state only changes once the request returns (loading starts on).
+  const loadBroadcasts = async () => {
     try {
       const data = await apiFetch("/api/admin/broadcasts");
       setBroadcasts(data || []);
@@ -55,6 +52,11 @@ const Broadcasts = () => {
       setIsLoading(false);
     }
   };
+
+  React.useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- loads data; its state changes come after the request returns, which this rule can't see
+    loadBroadcasts();
+  }, []);
 
   const openModal = () => setIsModalOpen(true);
   const closeModal = () => { setIsModalOpen(false); setPendingBroadcast(null); };
@@ -191,7 +193,7 @@ const Broadcasts = () => {
                             <span className="text-ds-ink text-[13px] font-bold truncate group-hover:text-ds-primary transition-colors">
                               {b.title || "Announcement"}
                             </span>
-                            {getCategoryBadge(b.type)}
+                            <CategoryBadge category={b.type} />
                           </div>
                           <p className="text-ds-slate text-[12px] font-medium truncate">{b.message}</p>
                         </div>
@@ -255,7 +257,7 @@ const Broadcasts = () => {
               <div className="bg-ds-surface/60 p-3.5 rounded-[8px] border border-ds-hairline space-y-1.5">
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-[11px] font-semibold text-ds-steel uppercase tracking-wider">Title</span>
-                  {getCategoryBadge(pendingBroadcast?.type)}
+                  <CategoryBadge category={pendingBroadcast?.type} />
                 </div>
                 <p className="text-[13px] font-bold text-ds-ink">{pendingBroadcast?.title || "Untitled Announcement"}</p>
               </div>

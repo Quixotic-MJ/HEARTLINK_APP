@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from "react";
-import { AppState, AppStateStatus } from "react-native";
+import { AppState } from "react-native";
 import NetInfo from "@react-native-community/netinfo";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getToken, setToken, getRefreshToken, getUserId as getStoredUserId, setUserId as storeUserId, clearCredentials } from "../lib/secureTokenStore";

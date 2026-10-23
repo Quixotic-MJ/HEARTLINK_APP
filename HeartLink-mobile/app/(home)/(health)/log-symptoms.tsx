@@ -101,13 +101,14 @@ export default function LogSymptomsScreen() {
   const symptomEmergency = hasRealSymptoms && isSymptomEmergency(symptoms, strength, context);
   const isEmergency = isHypertensiveCrisis || isSevereHypotension || symptomEmergency;
 
+  // The emergency warning opens the moment the reading or symptoms call for it (once per check-in).
+  if (isEmergency && !hasInterrupted) {
+    setShowEmergency(true);
+    setHasInterrupted(true);
+  }
   useEffect(() => {
-    if (isEmergency && !hasInterrupted) {
-      setShowEmergency(true);
-      setHasInterrupted(true);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-    }
-  }, [isEmergency, hasInterrupted]);
+    if (hasInterrupted) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+  }, [hasInterrupted]);
 
   // Today's reading fills in again if the patient comes back; otherwise the last one is shown for comparison.
   useEffect(() => {

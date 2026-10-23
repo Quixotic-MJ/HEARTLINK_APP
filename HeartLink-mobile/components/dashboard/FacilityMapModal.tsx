@@ -51,7 +51,8 @@ export interface CebuFacility {
 // Cebu City center (matches the locator default) + scope guard.
 const CEBU_CENTER = { latitude: 10.3157, longitude: 123.8854 };
 const CEBU_RADIUS_KM = 50;
-const MAX_PINS = 8;function getDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number) {
+const MAX_PINS = 8;
+function getDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number) {
   const R = 6371;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
   const dLon = ((lon2 - lon1) * Math.PI) / 180;
@@ -98,8 +99,8 @@ export function FacilityMapModal({
 
   // Panel motion uses RN Animated (Reanimated entering swallows touches
   // inside RN Modals). Blueprint spring: stiffness 400, damping 30, mass 0.8.
-  const slideAnim = useRef(new Animated.Value(Dimensions.get("window").height)).current;
-  const backdropAnim = useRef(new Animated.Value(0)).current;
+  const [slideAnim] = useState(() => new Animated.Value(Dimensions.get("window").height));
+  const [backdropAnim] = useState(() => new Animated.Value(0));
 
   const animateIn = useCallback(() => {
     slideAnim.setValue(Dimensions.get("window").height);
@@ -143,6 +144,7 @@ export function FacilityMapModal({
   useEffect(() => {
     if (!visible) return;
     let cancelled = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- opening the map starts a fresh location and clinic load
     setMapReady(false);
     setSelectedId(null);
 

@@ -55,7 +55,7 @@ const TAB_FIELDS = {
 
 const parseIngredientString = (str) => {
   if (!str) return { name: "", amount: "", unit: "" };
-  const match = str.trim().match(/^([0-9\./]+)\s*([a-zA-Z]+)?\s+(.+)$/);
+  const match = str.trim().match(/^([0-9./]+)\s*([a-zA-Z]+)?\s+(.+)$/);
   if (match) {
     let amtStr = match[1];
     let amount = parseFloat(amtStr);
@@ -118,7 +118,7 @@ const foodSchema = z.object({
   }
 });
 
-const FoodFormModal = ({ isOpen, onClose, recipe, userRole = "medical", isDietitian = false, onSave, onDelete }) => {
+const FoodFormModal = ({ isOpen, onClose, recipe, isDietitian = false, onSave, onDelete }) => {
   // HL-037: a Dietitian's note when sending a recipe back for changes.
   const [reviewNote, setReviewNote] = useState("");
   // An existing recipe opens in the review view; a new one goes straight to editing.

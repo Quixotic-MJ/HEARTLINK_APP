@@ -126,7 +126,7 @@ const TAB_FIELDS = {
 const toValues = (list) => (Array.isArray(list) ? list.filter(Boolean).map((v) => ({ value: typeof v === "string" ? v : v.value || "" })) : []);
 const fromValues = (list) => (list || []).map((v) => (v.value || "").trim()).filter(Boolean);
 
-const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", isPT = false, onSave, onDelete }) => {
+const ExerciseFormModal = ({ isOpen, onClose, exercise, isPT = false, onSave, onDelete }) => {
   const {
     register,
     handleSubmit,

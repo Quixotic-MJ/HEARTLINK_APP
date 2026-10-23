@@ -35,10 +35,10 @@ export default function AnimatedButton({
   });
 
   const handlePressIn = (e: any) => {
-    scale.value = withTiming(0.97, {
+    scale.set(withTiming(0.97, {
       duration: 100,
       easing: Easing.out(Easing.ease),
-    });
+    }));
     if (Platform.OS !== 'web') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
@@ -48,10 +48,10 @@ export default function AnimatedButton({
   };
 
   const handlePressOut = (e: any) => {
-    scale.value = withTiming(1, {
+    scale.set(withTiming(1, {
       duration: 150,
       easing: Easing.out(Easing.ease),
-    });
+    }));
     if (onPressOut) {
       onPressOut(e);
     }

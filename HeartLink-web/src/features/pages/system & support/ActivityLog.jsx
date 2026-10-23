@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import AdminLayout from "../../../components/layouts/adminLayout";
 import { apiFetch } from "../../../api";
 import {
@@ -10,7 +10,6 @@ import {
   ChevronRight,
   Download,
   CheckCircle,
-  Clock,
   ChevronDown,
   Utensils,
   Dumbbell,
@@ -19,7 +18,8 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { Skeleton } from "../../../components/ui/Skeleton";
-import { UI, FONTS, PageHeader } from "../../../styles/designSystem";
+import { UI, FONTS } from "../../../styles/tokens";
+import { PageHeader } from "../../../styles/designSystem";
 
 const ActivityLog = () => {
   const [logs, setLogs] = useState([]);
@@ -182,7 +182,7 @@ const ActivityLog = () => {
         minute: "2-digit",
         hour12: true
       });
-    } catch (e) {
+    } catch {
       return isoString;
     }
   };

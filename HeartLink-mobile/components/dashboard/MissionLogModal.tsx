@@ -1,4 +1,4 @@
-import React, { useRef, useCallback } from "react";
+import React, { useCallback, useState } from "react";
 import {
   View,
   Text,
@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   ScrollView,
   Animated,
-  Platform,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
@@ -56,11 +55,11 @@ export function MissionLogModal({
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
 
-  const popScale = useRef(new Animated.Value(0.9)).current;
-  const panelOpacity = useRef(new Animated.Value(0)).current;
-  const backdropAnim = useRef(new Animated.Value(0)).current;
-  const contentShift = useRef(new Animated.Value(10)).current;
-  const contentOpacity = useRef(new Animated.Value(0)).current;
+  const [popScale] = useState(() => new Animated.Value(0.9));
+  const [panelOpacity] = useState(() => new Animated.Value(0));
+  const [backdropAnim] = useState(() => new Animated.Value(0));
+  const [contentShift] = useState(() => new Animated.Value(10));
+  const [contentOpacity] = useState(() => new Animated.Value(0));
 
   const animateIn = useCallback(() => {
     popScale.setValue(0.9);

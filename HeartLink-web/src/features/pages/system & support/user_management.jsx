@@ -12,7 +12,7 @@ import {
   Trash2,
   RefreshCw,
 } from "lucide-react";
-import { useAuth } from "../../../contexts/AuthContext";
+import { useAuth } from "../../../contexts/useAuth";
 import AdminLayout from "../../../components/layouts/adminLayout";
 import UserListView from "../../../components/lists/UserListView";
 import { apiFetch } from "../../../api";
@@ -22,7 +22,8 @@ import StaffFormModal from "../../../components/modals/StaffFormModal";
 import AccountActionModal from "../../../components/modals/AccountActionModal";
 import ConfirmActionModal from "../../../components/modals/ConfirmActionModal";
 import TempPasswordModal from "../../../components/modals/TempPasswordModal";
-import { UI, FONTS, PageHeader } from "../../../styles/designSystem";
+import { UI, FONTS } from "../../../styles/tokens";
+import { PageHeader } from "../../../styles/designSystem";
 
 const Users = () => {
   const { user, userId } = useAuth();
@@ -64,12 +65,11 @@ const Users = () => {
     setConfirmConfig((prev) => ({ ...prev, isOpen: false }));
   };
 
-  const fetchUsers = async () => {
+  // Loading on open: state only changes once the request returns (loading starts on). Refreshes use fetchUsers.
+  const loadUsers = async () => {
     try {
-      setLoading(true);
-      setFetchError(false);
-
       const patientsData = await apiFetch("/api/users/");
+      setFetchError(false);
       const mappedPatients = (patientsData || [])
         .filter((u) => u.role === "patient")
         .map((r) => {
@@ -114,16 +114,24 @@ const Users = () => {
     }
   };
 
-  React.useEffect(() => {
-    fetchUsers();
-  }, [currentUserRole]);
+  const fetchUsers = () => {
+    setLoading(true);
+    setFetchError(false);
+    return loadUsers();
+  };
 
   React.useEffect(() => {
-    const q = searchParams.get("search");
-    if (q !== null) {
-      setSearchQuery(q);
-    }
-  }, [searchParams]);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- loads data; its state changes come after the request returns, which this rule can't see
+    loadUsers();
+  }, [currentUserRole]);
+
+  // A ?search= link (e.g. from a notification) fills the search box; noticed during render, not in an effect
+  const searchParam = searchParams.get("search");
+  const [seenSearchParam, setSeenSearchParam] = useState(null);
+  if (searchParam !== null && searchParam !== seenSearchParam) {
+    setSeenSearchParam(searchParam);
+    setSearchQuery(searchParam);
+  }
 
   const handleOpenUser = (u) => {
     if (currentUserRole === "admin" || currentUserRole === "super_admin") {
@@ -304,7 +312,7 @@ const Users = () => {
   };
 
   // 4. Delete Patient Account (with confirmation)
-  const requestDeleteUser = (userId, userName, userObj) => {
+  const requestDeleteUser = (userId, userName) => {
     setConfirmConfig({
       isOpen: true,
       title: "Permanently Delete Patient Account",
@@ -341,7 +349,8 @@ const Users = () => {
   };
 
   // 5. Patient Account Status Toggle (Direct from AccountActionModal)
-  const handleToggleAppUserStatus = async (entityId, reason) => {
+  // The reason picked in AccountActionModal isn't sent or saved yet: the backend has nowhere to keep it (HL-073).
+  const handleToggleAppUserStatus = async (entityId) => {
     try {
       await apiFetch(`/api/admin/users/${entityId}/status`, { method: "PUT" });
       toast.success("Patient account status updated successfully.");

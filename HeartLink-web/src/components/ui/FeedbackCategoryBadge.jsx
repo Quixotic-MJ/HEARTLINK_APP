@@ -1,7 +1,6 @@
-import React from "react";
 import { Bug, Lightbulb, UserCircle, HelpCircle } from "lucide-react";
 
-export const getCategoryConfig = (category) => {
+const getCategoryConfig = (category) => {
   switch (category) {
     case "Bug Report":
       return {

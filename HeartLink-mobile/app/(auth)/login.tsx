@@ -36,7 +36,8 @@ const loginSchema = z.object({
   password: z.string().min(1, "Please enter your password."),
 });
 
-type LoginFormData = z.infer<typeof loginSchema>;// ─── Auth Screen ──────────────────────────────────────────────────────────────
+type LoginFormData = z.infer<typeof loginSchema>;
+// ─── Auth Screen ──────────────────────────────────────────────────────────────
 
 export default function AuthScreen() {
   const router = useRouter();
@@ -80,13 +81,13 @@ export default function AuthScreen() {
   // Trigger error shake animation when globalError updates
   useEffect(() => {
     if (globalError) {
-      errorShake.value = withSequence(
+      errorShake.set(withSequence(
         withTiming(8, { duration: 50 }),
         withTiming(-8, { duration: 50 }),
         withTiming(6, { duration: 50 }),
         withTiming(-6, { duration: 50 }),
         withTiming(0, { duration: 50 })
-      );
+      ));
     }
   }, [globalError]);
 
@@ -99,11 +100,11 @@ export default function AuthScreen() {
   }));
 
   const togglePasswordVisibility = () => {
-    eyeScale.value = withSequence(
+    eyeScale.set(withSequence(
       withTiming(0.7, { duration: 80 }),
       withTiming(1.15, { duration: 100 }),
       withTiming(1, { duration: 80 })
-    );
+    ));
     setShowPassword((prev) => !prev);
   };
 
