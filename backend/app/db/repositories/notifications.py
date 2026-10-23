@@ -12,6 +12,13 @@ from app.services.notification_archive import keep_active
 
 logger = logging.getLogger(__name__)
 
+
+def _push(user_ids, title, message) -> None:
+    """HL-018: a saved patient notification also goes to the patient's phones (in the background)."""
+    from app.services.push import send_push  # imported here: the push service itself uses the repositories
+    send_push(user_ids, title or "HeartLink", message or "", {"screen": "notifications"})
+
+
 class NotificationRepository:
     def list_user_notifications(self, user_id: str, include_archived: bool = False) -> List[Dict[str, Any]]:
         raise NotImplementedError
@@ -104,7 +111,9 @@ class SupabaseNotificationRepository(NotificationRepository):
                     payload["user_id"] = resolved
             payload = serialize_for_db(payload)
             res = self.client.table("patient_notifications").insert(payload).execute()
-            return res.data[0] if res.data else payload
+            created = res.data[0] if res.data else payload
+            _push([payload.get("user_id")], payload.get("title"), payload.get("message"))
+            return created
         except Exception as e:
             handle_db_error(e)
             return {}
@@ -155,6 +164,7 @@ class SupabaseNotificationRepository(NotificationRepository):
                         })
                 if fanout_rows:
                     self.client.table("patient_notifications").insert(fanout_rows).execute()
+                    _push([r["user_id"] for r in fanout_rows], created_b.get("title"), created_b.get("message"))
 
             return created_b
         except Exception as e:

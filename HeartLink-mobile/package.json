@@ -28,6 +28,8 @@
     "expo": "~57.0.21",
     "expo-camera": "~57.0.4",
     "expo-constants": "~57.0.17",
+    "expo-dev-client": "~57.0.20",
+    "expo-device": "~57.0.2",
     "expo-font": "~57.0.3",
     "expo-haptics": "~57.0.2",
     "expo-image": "~57.0.4",

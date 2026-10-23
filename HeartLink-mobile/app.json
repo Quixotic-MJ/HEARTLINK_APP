@@ -4,7 +4,7 @@
     "slug": "HeartLink-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/app-icon.svg",
+    "icon": "./assets/images/icon.png",
     "scheme": "heartlinkmobile",
     "userInterfaceStyle": "light",
     "ios": {
@@ -15,7 +15,9 @@
         "backgroundColor": "#ffffff",
         "foregroundImage": "./assets/images/android-icon-foreground.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.heartlink.app",
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "bundler": "metro",
@@ -38,6 +40,12 @@
         "expo-navigation-bar",
         {
           "enforceContrast": false
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#1478B8"
         }
       ]
     ],

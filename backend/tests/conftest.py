@@ -109,3 +109,10 @@ def refresh_repo(monkeypatch):
     fake = FakeRefreshRepo()
     monkeypatch.setattr("app.services.session_service.get_refresh_token_repo", lambda: fake)
     return fake
+
+
+@pytest.fixture(autouse=True)
+def no_real_push(monkeypatch):
+    """HL-018: saving a patient notification sends a push in the background; tests never reach Expo or the
+    push_tokens table. test_push.py checks the real sending code directly."""
+    monkeypatch.setattr("app.services.push.send_push", lambda *a, **k: None)

@@ -6,6 +6,7 @@ import { getToken, setToken, getRefreshToken, getUserId as getStoredUserId, setU
 import { syncOfflineAll } from "../services/SyncService";
 import { SessionTokens, storeSession, refreshSession, msUntilRefresh } from "../services/SessionService";
 import { API_BASE_URL, apiFetch, setSessionEndedHandler } from "../lib/api";
+import { registerForPush, unregisterPush } from "../services/pushNotifications";
 
 type UserContextType = {
   userId: string | null;
@@ -318,7 +319,15 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // HL-025: once someone is signed in and their profile has loaded, this phone gets their push notifications
+  const hasProfile = !!user;
+  useEffect(() => {
+    if (userId && hasProfile) registerForPush();
+  }, [userId, hasProfile]);
+
   const logout = async () => {
+    // While the session still works: this phone stops getting this account's pushes
+    await unregisterPush();
     try {
       const effectiveToken = token || (await getToken());
       const refreshToken = await getRefreshToken();

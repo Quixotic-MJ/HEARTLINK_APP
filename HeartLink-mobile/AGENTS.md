@@ -20,7 +20,8 @@ Run these from `HeartLink-mobile/`.
 | What | Command |
 | --- | --- |
 | Install packages | `npm install` (no extra flags needed) |
-| Run on a phone | `npx expo start`, then scan the QR code with Expo Go |
+| Run on a phone | `npx expo start --go`, then scan the QR code with Expo Go (`--go`: with `expo-dev-client` installed, plain `expo start` expects a development build) |
+| Test build for QA (Android) | `npx eas-cli build --profile preview --platform android` (installable APK that talks to the staging backend; see `eas.json`) |
 | Tests (full suite) | `npx jest` |
 | Lint | `npm run lint` (no errors; GitHub runs it, so keep it that way) |
 | Type check | `npx tsc --noEmit` (no errors; GitHub runs it with the tests and lint) |
@@ -45,6 +46,9 @@ backend on a phone, use the computer's local network IP (e.g. `192.168.x.x`), no
   `@react-native-community/netinfo` for online/offline status
 - `expo-speech` for spoken exercise instructions (`hooks/useVoiceGuide.ts`), `expo-keep-awake` to keep
   the screen on during an exercise
+- `expo-notifications` for daily reminders (`utils/notifications.ts`) and push notifications
+  (`services/pushNotifications.ts`, HL-025), with `expo-device` and `expo-dev-client` for EAS builds
+  (`eas.json`). Push needs an EAS build: Expo Go can't receive remote push, so it is skipped there.
 - Backend: Python FastAPI + Supabase (PostgreSQL), JWT bearer tokens. The app only talks to the
   FastAPI backend, never to Supabase directly.
 - Tests: Jest (`jest-expo` preset) + `@testing-library/react-native` v14, which needs
@@ -150,6 +154,13 @@ Reference: `showIncompleteWarning` in `log-symptoms.tsx`.
   `SyncService` moves anything still saved under its keys into the health log queue.
 - A new offline-capable action is a `useMutation` hook modelled on `useLogMeal.ts`. Don't add
   another queue.
+
+### Push notifications (HL-025)
+- After sign-in (`contexts/UserContext.tsx`), `registerForPush()` saves the phone's Expo push token with the backend;
+  `logout` calls `unregisterPush()` first. Failures never block sign-in or sign-out.
+- The backend sends a push whenever it saves a patient notification (announcements, checkup reminders), with
+  `data.screen = "notifications"`; `usePushNavigation()` in `app/_layout.tsx` opens that screen on tap. There is no
+  polling for announcements any more.
 
 ### Feedback after an action
 - Messages go through `showToast({ title, message, type, duration })` from `ToastContext`, where

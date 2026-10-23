@@ -19,6 +19,7 @@ from app.db.repositories.content import ContentRepository, SupabaseContentReposi
 from app.db.repositories.pending_registrations import PendingRegistrationRepository, SupabasePendingRegistrationRepository
 from app.db.repositories.refresh_tokens import RefreshTokenRepository, SupabaseRefreshTokenRepository
 from app.db.repositories.patient_notes import PatientNotesRepository, SupabasePatientNotesRepository
+from app.db.repositories.push_tokens import PushTokenRepository, SupabasePushTokenRepository
 
 _profile_repo = None
 _baseline_repo = None
@@ -34,6 +35,7 @@ _case_review_repo = None
 _content_repo = None
 _pending_registration_repo = None
 _refresh_token_repo = None
+_push_token_repo = None
 _patient_notes_repo = None
 
 def get_profile_repo() -> ProfileRepository:
@@ -119,6 +121,12 @@ def get_refresh_token_repo() -> RefreshTokenRepository:
     if _refresh_token_repo is None:
         _refresh_token_repo = SupabaseRefreshTokenRepository(get_supabase_client())
     return _refresh_token_repo
+
+def get_push_token_repo() -> PushTokenRepository:
+    global _push_token_repo
+    if _push_token_repo is None:
+        _push_token_repo = SupabasePushTokenRepository(get_supabase_client())
+    return _push_token_repo
 
 def get_patient_notes_repo() -> PatientNotesRepository:
     global _patient_notes_repo

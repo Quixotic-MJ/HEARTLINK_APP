@@ -15,7 +15,7 @@ import {
   configureReanimatedLogger,
   ReanimatedLogLevel,
 } from "react-native-reanimated";
-import { useBroadcastListener } from "../hooks/useBroadcastListener";
+import { usePushNavigation } from "../services/pushNotifications";
 import { AppErrorScreen } from "../components/ui/AppErrorScreen";
 import { installGlobalErrorLogging } from "../services/errorLog";
 
@@ -43,8 +43,8 @@ function RootLayoutNav() {
   const segments = useSegments();
   const router = useRouter();
 
-  // Listen for system broadcasts
-  useBroadcastListener();
+  // HL-025: announcements arrive as push notifications (no more polling); tapping one opens Notifications
+  usePushNavigation();
 
   useEffect(() => {
     if (isLoading) return;
