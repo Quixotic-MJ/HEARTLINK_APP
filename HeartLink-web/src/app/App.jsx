@@ -17,6 +17,8 @@ import Login from "../features/auth/login";
 import SetPassword from "../features/auth/set_password";
 import UserWellnessProfile from "../features/pages/system & support/UserWellnessProfile";
 import ActivityLog from "../features/pages/system & support/ActivityLog";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { queryClient } from "./queryClient";
 import { AuthProvider } from "../contexts/AuthContext";
 import { useAuth } from "../contexts/useAuth";
 import { Navigate, useLocation } from "react-router-dom";
@@ -51,6 +53,7 @@ const RoleRoute = ({ children }) => {
 
 export default function App() {
   return (
+    <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <Toaster position="top-right" expand={false} richColors />
       <BrowserRouter>
@@ -87,5 +90,6 @@ export default function App() {
         </Routes>
       </BrowserRouter>
     </AuthProvider>
+    </QueryClientProvider>
   );
 }

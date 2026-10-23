@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   Users,
   Activity,
@@ -17,7 +17,8 @@ import {
 } from "recharts";
 import AdminLayout from "../../../components/layouts/adminLayout";
 import { Skeleton } from "../../../components/ui/Skeleton";
-import { apiFetch } from "../../../api";
+import { useApiQuery } from "../../../hooks/useApiQuery";
+import LoadError from "../../../components/ui/LoadError";
 import { UI, FONTS, COLORS } from "../../../styles/tokens";
 import { PageHeader } from "../../../styles/designSystem";
 
@@ -51,31 +52,25 @@ const CustomLightTooltip = ({ active, payload, label }) => {
 
 const Analytics = () => {
   const [activeTab, setActiveTab] = useState("adoption");
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState("3months");
-
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const analyticsData = await apiFetch(`/api/admin/analytics?period=${period}`);
-        setData(analyticsData);
-      } catch (err) {
-        console.error("Failed to fetch analytics data", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, [period]);
+  const { data, isPending, isError, refetch } = useApiQuery(`/api/admin/analytics?period=${period}`);
 
   const formatNumber = (num) => {
     if (num === null || num === undefined) return "0";
     return Number(num).toLocaleString();
   };
 
-  if (loading || !data) {
+  if (isError) {
+    return (
+      <AdminLayout>
+        <div className={UI.page.container} style={{ fontFamily: FONTS.sans }}>
+          <LoadError what="analytics" onRetry={refetch} />
+        </div>
+      </AdminLayout>
+    );
+  }
+
+  if (isPending || !data) {
     return (
       <AdminLayout>
         <div className={UI.page.container} style={{ fontFamily: FONTS.sans }}>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import AdminLayout from "../../../components/layouts/adminLayout";
-import { apiFetch } from "../../../api";
+import { useApiQuery } from "../../../hooks/useApiQuery";
 import {
   Search,
   Activity,
@@ -22,11 +22,6 @@ import { UI, FONTS } from "../../../styles/tokens";
 import { PageHeader } from "../../../styles/designSystem";
 
 const ActivityLog = () => {
-  const [logs, setLogs] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [fetchError, setFetchError] = useState(false);
-  const [accessDenied, setAccessDenied] = useState(false);
-  const [retryCount, setRetryCount] = useState(0);
 
   // Filter States
   const [searchQuery, setSearchQuery] = useState("");
@@ -36,8 +31,6 @@ const ActivityLog = () => {
   // Pagination States
   const [page, setPage] = useState(1);
   const [pageSize] = useState(20);
-  const [total, setTotal] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
 
   // Debounce search query to reduce API hits
   useEffect(() => {
@@ -65,49 +58,20 @@ const ActivityLog = () => {
     setPage(1);
   };
 
-  // Fetch log events from API
-  useEffect(() => {
-    let active = true;
-    const fetchLogs = async () => {
-      setLoading(true);
-      try {
-        let url = `/api/admin/activity?page=${page}&page_size=${pageSize}`;
-        if (debouncedSearch && debouncedSearch.trim()) {
-          url += `&search=${encodeURIComponent(debouncedSearch.trim())}`;
-        }
-        if (eventTypeFilter && eventTypeFilter !== "all") {
-          url += `&target_type=${eventTypeFilter}`;
-        }
-
-        const data = await apiFetch(url);
-        if (active) {
-          setLogs(data.items || []);
-          setTotal(data.total || 0);
-          setTotalPages(data.total_pages || 0);
-          setFetchError(false);
-          setAccessDenied(false);
-        }
-      } catch (err) {
-        console.error("Failed to load activity logs:", err);
-        if (active) {
-          if (err.status === 403) {
-            setAccessDenied(true);
-          } else {
-            setFetchError(true);
-          }
-        }
-      } finally {
-        if (active) {
-          setLoading(false);
-        }
-      }
-    };
-
-    fetchLogs();
-    return () => {
-      active = false;
-    };
-  }, [page, pageSize, debouncedSearch, eventTypeFilter, retryCount]);
+  // Log events for this page, search and filter; the last page stays on screen while the next one loads
+  let activityUrl = `/api/admin/activity?page=${page}&page_size=${pageSize}`;
+  if (debouncedSearch && debouncedSearch.trim()) {
+    activityUrl += `&search=${encodeURIComponent(debouncedSearch.trim())}`;
+  }
+  if (eventTypeFilter && eventTypeFilter !== "all") {
+    activityUrl += `&target_type=${eventTypeFilter}`;
+  }
+  const { data, isFetching: loading, isError, error, refetch } = useApiQuery(activityUrl, { keepPrevious: true });
+  const logs = data?.items || [];
+  const total = data?.total || 0;
+  const totalPages = data?.total_pages || 0;
+  const accessDenied = isError && error?.status === 403;
+  const fetchError = isError && !accessDenied;
 
   const getEventBadge = (type) => {
     const formattedType = type ? type.toLowerCase() : "";
@@ -332,10 +296,7 @@ const ActivityLog = () => {
             <div className="p-3 mx-4 my-3 bg-ds-rose border border-ds-rose rounded-[8px] flex items-center justify-between text-ds-ink text-[12px] font-medium">
               <span>Unable to load activity history.</span>
               <button
-                onClick={() => {
-                  setFetchError(false);
-                  setRetryCount((prev) => prev + 1);
-                }}
+                onClick={() => refetch()}
                 className="px-3 py-1 bg-ds-danger hover:bg-ds-danger text-white rounded-[6px] transition-colors font-bold text-[11px] uppercase tracking-wider cursor-pointer"
               >
                 Retry

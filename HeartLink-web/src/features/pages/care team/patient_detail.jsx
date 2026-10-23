@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { AlertTriangle, ArrowLeft } from "lucide-react";
 import AdminLayout from "../../../components/layouts/adminLayout";
 import { Skeleton } from "../../../components/ui/Skeleton";
 import CareNotes from "../../../components/care/CareNotes";
-import { apiFetch } from "../../../api";
+import { useApiQuery } from "../../../hooks/useApiQuery";
 import { useAuth } from "../../../contexts/useAuth";
 import { formatUserRef } from "../../../utils/formatUserRef";
 import { UI, FONTS } from "../../../styles/tokens";
@@ -137,15 +137,15 @@ export default function PatientDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [data, setData] = useState(null);
-  const [error, setError] = useState(null);
   const [tab, setTab] = useState("health");
 
-  useEffect(() => {
-    apiFetch(`/api/admin/patients/${id}/logs`, { bypassCache: true })
-      .then(setData)
-      .catch((e) => setError(e?.status === 404 ? "This patient could not be found." : e?.data?.detail || "Couldn't load this patient."));
-  }, [id]);
+  const logs = useApiQuery(`/api/admin/patients/${id}/logs`);
+  const data = logs.data ?? null;
+  const error = !logs.isError
+    ? null
+    : logs.error?.status === 404
+      ? "This patient could not be found."
+      : logs.error?.data?.detail || "Couldn't load this patient.";
 
   const ref = formatUserRef(id);
   const sections = SECTIONS.filter(([key]) => data?.sections?.includes(key));

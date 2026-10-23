@@ -1,24 +1,16 @@
-import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { HeartPulse } from "lucide-react";
-import { apiFetch } from "../../api";
+import { useApiQuery } from "../../hooks/useApiQuery";
 import { formatUserRef } from "../../utils/formatUserRef";
 import { formatNoteTime } from "./noteTime";
 
 // HL-038/039: the newest Cardiologist guidance, shown beside the recipe and exercise approval panels so
 // Dietitians and PTs can check new items against it.
 export default function CardiologistGuidance({ limit = 3 }) {
-  const [notes, setNotes] = useState(null);
-
-  useEffect(() => {
-    let alive = true;
-    apiFetch(`/api/admin/patients/guidance/latest?limit=${limit}`, { bypassCache: true })
-      .then((data) => alive && setNotes(Array.isArray(data) ? data : []))
-      .catch(() => alive && setNotes([]));
-    return () => {
-      alive = false;
-    };
-  }, [limit]);
+  const guidance = useApiQuery(`/api/admin/patients/guidance/latest?limit=${limit}`, {
+    select: (d) => (Array.isArray(d) ? d : []),
+  });
+  const notes = guidance.data ?? null;
 
   return (
     <section className="border border-ds-hairline rounded-xl px-4 py-3.5">
@@ -30,7 +22,15 @@ export default function CardiologistGuidance({ limit = 3 }) {
       </div>
       <p className="text-[13px] text-ds-slate mb-3">Check this before approving. Open a patient to see all of their guidance.</p>
 
-      {notes === null ? (
+      {guidance.isError ? (
+        // Saying "no guidance" here when it simply didn't load could lead to approving against advice
+        <p className="text-[14px] text-ds-warm-text">
+          Couldn&apos;t load the latest guidance.{" "}
+          <button type="button" onClick={() => guidance.refetch()} className="font-semibold text-ds-link hover:underline cursor-pointer">
+            Try again
+          </button>
+        </p>
+      ) : notes === null ? (
         <p className="text-[14px] text-ds-steel">Loading…</p>
       ) : notes.length === 0 ? (
         <p className="text-[14px] text-ds-charcoal">No guidance from a cardiologist yet.</p>

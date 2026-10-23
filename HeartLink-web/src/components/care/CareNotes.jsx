@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { HeartPulse, MessagesSquare, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { apiFetch } from "../../api";
+import { useApiQuery } from "../../hooks/useApiQuery";
 import ConfirmActionModal from "../modals/ConfirmActionModal";
 import { UI } from "../../styles/tokens";
 import { TAG } from "./vitals";
@@ -80,30 +81,21 @@ function Composer({ id, label, placeholder, buttonText, onPost }) {
 }
 
 export default function CareNotes({ patientId, expertType }) {
-  const [notes, setNotes] = useState(null);
-  const [error, setError] = useState("");
   const [removing, setRemoving] = useState(null);
   const isCardiologist = expertType === "Cardiologist";
   const isThreadMember = expertType === "Dietitian" || expertType === "Physical Therapist";
 
-  const load = useCallback(() => {
-    return apiFetch(`/api/admin/patients/${patientId}/notes`, { bypassCache: true })
-      .then((data) => {
-        setNotes({ guidance: data.guidance || [], messages: data.messages || [] });
-        setError("");
-      })
-      .catch((e) => setError(e?.data?.detail || "Couldn't load the care-team notes."));
-  }, [patientId]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
+  // A post or delete through apiFetch refreshes this list by itself
+  const notesQuery = useApiQuery(`/api/admin/patients/${patientId}/notes`, {
+    select: (data) => ({ guidance: data.guidance || [], messages: data.messages || [] }),
+  });
+  const notes = notesQuery.data ?? null;
+  const error = notesQuery.isError ? notesQuery.error?.data?.detail || "Couldn't load the care-team notes." : "";
 
   const post = (kind) => async (body) => {
     try {
       await apiFetch(`/api/admin/patients/${patientId}/notes`, { method: "POST", body: JSON.stringify({ kind, body }) });
       toast.success(kind === "guidance" ? "Guidance posted." : "Message posted.");
-      await load();
       return true;
     } catch (e) {
       toast.error(e?.data?.detail || "Couldn't post that. Please try again.");
@@ -116,7 +108,6 @@ export default function CareNotes({ patientId, expertType }) {
       await apiFetch(`/api/admin/patients/${patientId}/notes/${removing.id}`, { method: "DELETE" });
       toast.success("Note removed.");
       setRemoving(null);
-      await load();
     } catch (e) {
       toast.error(e?.data?.detail || "Couldn't remove that note.");
     }

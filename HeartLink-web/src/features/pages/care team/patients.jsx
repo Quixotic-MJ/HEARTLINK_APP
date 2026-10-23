@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AlertTriangle, ChevronRight, HeartPulse, Search, Users } from "lucide-react";
 import AdminLayout from "../../../components/layouts/adminLayout";
 import { Skeleton } from "../../../components/ui/Skeleton";
-import { apiFetch } from "../../../api";
+import { useApiQuery } from "../../../hooks/useApiQuery";
 import { useAuth } from "../../../contexts/useAuth";
 import { formatUserRef } from "../../../utils/formatUserRef";
 import { UI, FONTS } from "../../../styles/tokens";
@@ -19,23 +19,20 @@ const FILTERS = [
   ["bp", "High or low blood pressure"],
 ];
 
+// One shared empty list, so a failed load doesn't make the screen recount on every render
+const NO_PATIENTS = [];
+
 export default function Patients() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const isCardiologist = user?.expert_type === "Cardiologist";
-  const [items, setItems] = useState(null);
-  const [error, setError] = useState("");
   const [filter, setFilter] = useState("all");
   const [query, setQuery] = useState("");
 
-  useEffect(() => {
-    apiFetch("/api/admin/patients", { bypassCache: true })
-      .then((data) => setItems(Array.isArray(data) ? data : []))
-      .catch((e) => {
-        setError(e?.data?.detail || "Couldn't load patients.");
-        setItems([]);
-      });
-  }, []);
+  // null while loading; an empty list (with the reason) if the load failed
+  const patients = useApiQuery("/api/admin/patients", { select: (d) => (Array.isArray(d) ? d : []) });
+  const items = patients.isError ? NO_PATIENTS : patients.data ?? null;
+  const error = patients.isError ? patients.error?.data?.detail || "Couldn't load patients." : "";
 
   const rows = useMemo(
     () =>

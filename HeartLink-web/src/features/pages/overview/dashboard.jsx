@@ -1,4 +1,3 @@
-import React from "react";
 import {
   User,
   AlertTriangle,
@@ -11,30 +10,27 @@ import {
 import { useNavigate } from "react-router-dom";
 import AdminLayout from "../../../components/layouts/adminLayout";
 import { Skeleton } from "../../../components/ui/Skeleton";
-import { apiFetch } from "../../../api";
+import { useApiQuery } from "../../../hooks/useApiQuery";
+import LoadError from "../../../components/ui/LoadError";
 import { UI, FONTS } from "../../../styles/tokens";
 import { PageHeader, KpiCard } from "../../../styles/designSystem";
 
 const Dashboard = () => {
-  const [data, setData] = React.useState(null);
-  const [loading, setLoading] = React.useState(true);
+  const { data, isPending, isError, refetch } = useApiQuery("/api/admin/dashboard");
   const navigate = useNavigate();
 
-  React.useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const dashboardData = await apiFetch("/api/admin/dashboard");
-        setData(dashboardData);
-      } catch (err) {
-        console.error("Failed to fetch dashboard data", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
+  // Used to stay on the loading skeleton for ever when the dashboard couldn't load
+  if (isError) {
+    return (
+      <AdminLayout>
+        <div className={UI.page.container} style={{ fontFamily: FONTS.sans }}>
+          <LoadError what="the dashboard" onRetry={refetch} />
+        </div>
+      </AdminLayout>
+    );
+  }
 
-  if (loading || !data) {
+  if (isPending || !data) {
     return (
       <AdminLayout>
         <div className={UI.page.container} style={{ fontFamily: FONTS.sans }}>

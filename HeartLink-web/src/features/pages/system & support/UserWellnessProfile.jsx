@@ -1,11 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { 
   ArrowLeft, Activity, User, HeartPulse, Stethoscope, 
   Apple, Flame, Moon, Clock, AlertTriangle, ShieldCheck 
 } from "lucide-react";
 import AdminLayout from "../../../components/layouts/adminLayout";
-import { apiFetch } from "../../../api";
+import { useApiQuery } from "../../../hooks/useApiQuery";
+import LoadError from "../../../components/ui/LoadError";
 import { useAuth } from "../../../contexts/useAuth";
 import { formatUserRef } from "../../../utils/formatUserRef";
 import { UI, FONTS } from "../../../styles/tokens";
@@ -32,30 +33,15 @@ const UserWellnessProfile = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const currentUserRole = user?.role || "admin";
-  const [data, setData] = useState(null);
-  const [timeline, setTimeline] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
 
-  useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const [profileRes, timelineRes] = await Promise.all([
-          apiFetch(`/api/users/${id}/profile`),
-          apiFetch(`/api/admin/users/${id}/timeline`).catch(() => [])
-        ]);
-        setData(profileRes);
-        setTimeline(timelineRes || []);
-      } catch (err) {
-        console.error("Failed to fetch user profile", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchProfile();
-  }, [id]);
+  const profileQuery = useApiQuery(`/api/users/${id}/profile`);
+  // The timeline is extra: if it can't load, the tab just shows no events
+  const timelineQuery = useApiQuery(`/api/admin/users/${id}/timeline`);
+  const data = profileQuery.data ?? null;
+  const timeline = timelineQuery.data || [];
 
-  if (loading) {
+  if (profileQuery.isPending) {
     return (
       <AdminLayout>
         <div className={UI.page.container} style={{ fontFamily: FONTS.sans }}>
@@ -63,6 +49,17 @@ const UserWellnessProfile = () => {
             <ArrowLeft size={16} />
             <span className="text-xs uppercase tracking-widest font-semibold">Loading Profile...</span>
           </div>
+        </div>
+      </AdminLayout>
+    );
+  }
+
+  // A real "not found" keeps its message; anything else (network, server) can be retried
+  if (profileQuery.isError && profileQuery.error?.status !== 404) {
+    return (
+      <AdminLayout>
+        <div className={UI.page.container} style={{ fontFamily: FONTS.sans }}>
+          <LoadError what="this profile" onRetry={profileQuery.refetch} />
         </div>
       </AdminLayout>
     );

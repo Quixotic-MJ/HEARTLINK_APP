@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { AuthContext } from './useAuth';
-import { apiFetch, clearApiCache } from '../api';
+import { apiFetch } from '../api';
+import { queryClient } from '../app/queryClient';
 
 
 // Pre-HL-033 keys that held the JWT in Web Storage. Purged on boot so no token lingers.
@@ -42,7 +43,7 @@ export const AuthProvider = ({ children }) => {
       // Clear the local session even if the server call fails.
     }
 
-    clearApiCache();
+    queryClient.clear();
     setUserId(null);
     setUser(null);
     setIsAuthenticated(false);
@@ -91,13 +92,13 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const markPasswordChanged = () => {
-    clearApiCache();
+    queryClient.clear();
     setUser((prev) => (prev ? { ...prev, mustChangePassword: false } : prev));
   };
 
   // The backend already set the session cookie on the login response; only mirror the profile in memory.
   const login = (userId, userData = null) => {
-    clearApiCache();
+    queryClient.clear();
     setUserId(userId);
     setIsAuthenticated(true);
     setUser(userData ? toUser({ id: userId, ...userData }) : { id: userId });
