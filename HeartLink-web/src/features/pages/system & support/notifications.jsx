@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import {
   Bell,
@@ -21,18 +22,27 @@ import {
 import AdminLayout from "../../../components/layouts/adminLayout";
 import { useAuth } from "../../../contexts/useAuth";
 import { apiFetch } from "../../../api";
+import { useApiQuery } from "../../../hooks/useApiQuery";
+import { markNotificationsRead } from "../../../utils/notificationCache";
 import { Skeleton } from "../../../components/ui/Skeleton";
 import { UI, FONTS } from "../../../styles/tokens";
 import { PageHeader, KpiCard } from "../../../styles/designSystem";
+
+const NOTIFICATIONS_PATH = "/api/admin/notifications?include_archived=true";
+const NOTIFICATIONS_KEY = ["api", NOTIFICATIONS_PATH];
+const NO_NOTIFICATIONS = [];
 
 const Notifications = () => {
   const navigate = useNavigate();
   const { userId } = useAuth();
 
-  const [notifications, setNotifications] = useState([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [fetchError, setFetchError] = useState(false);
+  const queryClient = useQueryClient();
+  // HL-019: archived ones (over 72 hours old) come too, but only show under "Archived".
+  const notificationsQuery = useApiQuery(NOTIFICATIONS_PATH);
+  const notifications = notificationsQuery.data?.items ?? NO_NOTIFICATIONS;
+  const loading = notificationsQuery.isPending;
+  const refreshing = notificationsQuery.isFetching;
+  const fetchError = notificationsQuery.isError;
   const [actionError, setActionError] = useState(null);
 
   // Filter & Search states
@@ -45,60 +55,21 @@ const Notifications = () => {
   const pageSize = 12;
 
   // Fetch notifications
-  // Loading on open: state only changes once the request returns (loading starts on). Refreshes use fetchNotifications.
-  const loadNotifications = useCallback(async () => {
-    try {
-      // HL-019: archived ones (over 72 hours old) come too, but only show under "Archived".
-      const data = await apiFetch("/api/admin/notifications?include_archived=true");
-      setFetchError(false);
-      setNotifications(data.items || []);
-      setUnreadCount(data.unread_count || 0);
-    } catch (error) {
-      console.error("Failed to fetch notifications:", error);
-      setFetchError(true);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const fetchNotifications = useCallback(() => {
-    setLoading(true);
-    setFetchError(false);
-    return loadNotifications();
-  }, [loadNotifications]);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- loads data; its state changes come after the request returns, which this rule can't see
-    loadNotifications();
-  }, [loadNotifications]);
+  const markReadOnScreen = (shouldMark, allRead = false) =>
+    markNotificationsRead(queryClient, NOTIFICATIONS_KEY, userId, shouldMark, allRead);
 
   // Mark single item as read
   const markAsRead = async (id, e) => {
     if (e) e.stopPropagation();
     setActionError(null);
 
-    const previousNotifications = [...notifications];
-    const previousUnreadCount = unreadCount;
-
-    setNotifications((prev) =>
-      prev.map((n) => {
-        if (n.id === id) {
-          const isRead = n.read_by?.includes(userId);
-          if (!isRead) {
-            setUnreadCount((c) => Math.max(0, c - 1));
-            return { ...n, read_by: [...(n.read_by || []), userId] };
-          }
-        }
-        return n;
-      })
-    );
+    const undo = markReadOnScreen((n) => n.id === id);
 
     try {
       await apiFetch(`/api/admin/notifications/${id}/read`, { method: "PUT" });
     } catch (error) {
       console.error("Failed to mark as read:", error);
-      setNotifications(previousNotifications);
-      setUnreadCount(previousUnreadCount);
+      undo();
       setActionError("Unable to update notification status.");
     }
   };
@@ -106,23 +77,13 @@ const Notifications = () => {
   // Mark all as read
   const markAllAsRead = async () => {
     setActionError(null);
-    const previousNotifications = [...notifications];
-    const previousUnreadCount = unreadCount;
-
-    setUnreadCount(0);
-    setNotifications((prev) =>
-      prev.map((n) => ({
-        ...n,
-        read_by: [...(n.read_by || []), userId],
-      }))
-    );
+    const undo = markReadOnScreen(() => true, true);
 
     try {
       await apiFetch("/api/admin/notifications/mark-all-read", { method: "PUT" });
     } catch (error) {
       console.error("Failed to mark all as read:", error);
-      setNotifications(previousNotifications);
-      setUnreadCount(previousUnreadCount);
+      undo();
       setActionError("Unable to mark all notifications as read.");
     }
   };
@@ -267,12 +228,12 @@ const Notifications = () => {
           actions={
             <div className="flex items-center gap-2.5">
               <button
-                onClick={() => fetchNotifications()}
-                disabled={loading}
+                onClick={() => notificationsQuery.refetch()}
+                disabled={refreshing}
                 className={UI.button.secondary}
                 title="Refresh notifications"
               >
-                <RotateCw size={13} className={loading ? "animate-spin" : ""} />
+                <RotateCw size={13} className={refreshing ? "animate-spin" : ""} />
                 <span>Refresh</span>
               </button>
               {unreadItemsCount > 0 && (
@@ -471,7 +432,7 @@ const Notifications = () => {
                   Please verify your network connection or try refreshing again.
                 </p>
                 <button
-                  onClick={() => fetchNotifications()}
+                  onClick={() => notificationsQuery.refetch()}
                   className="px-4 py-2 text-[12px] font-semibold text-white bg-ds-primary hover:bg-ds-primary-pressed rounded-[8px] transition-colors cursor-pointer"
                 >
                   Try Again

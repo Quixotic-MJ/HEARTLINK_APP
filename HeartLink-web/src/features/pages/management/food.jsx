@@ -19,6 +19,8 @@ import ConfirmActionModal from "../../../components/modals/ConfirmActionModal";
 import { BulkApproveBar, SelectBox } from "../../../components/modals/BulkApprove";
 import { Skeleton } from "../../../components/ui/Skeleton";
 import { apiFetch } from "../../../api";
+import { useApiQuery } from "../../../hooks/useApiQuery";
+import LoadError from "../../../components/ui/LoadError";
 import RecipeImage from "../../../components/ui/RecipeImage";
 import { useAuth } from "../../../contexts/useAuth";
 import { toast } from "sonner";
@@ -37,15 +39,56 @@ const HSS_TIER_LABELS = {
 const categoryLabel = (recipe) =>
   recipe.category === "Others" && recipe.categoryOther ? recipe.categoryOther : recipe.category;
 
+// The library as the screen shows it, from the API's rows (HL-035: loaded through React Query)
+const NO_RECIPES = [];
+const toRecipes = (res) => {
+  const list = Array.isArray(res) ? res : res.data || [];
+  const mapped = list.map((r) => {
+    // The API returns database column names (hss_tier, sodium_mg, ...). Reading the wrong
+    // names showed 0 here, and saving the recipe then wrote those 0s back.
+    const hssTier = HSS_TIER_LABELS[r.hss_tier] ? r.hss_tier : "Stable";
+
+    return {
+      id: r.id,
+      name: r.name,
+      category: r.category || "Breakfast",
+      categoryOther: r.category_other || "",
+      hssTarget: HSS_TIER_LABELS[hssTier],
+      hssTier: hssTier,
+      prepTimeMinutes: r.prep_time_minutes || 15,
+      servings: r.servings || 1,
+      difficulty: r.difficulty || "Easy",
+      sodium: r.sodium_mg || 0,
+      calories: r.calories || 0,
+      satFat: r.saturated_fat_g || 0,
+      cholesterol: r.cholesterol_mg || 0,
+      fiber: r.fiber_g || 0,
+      heartBenefit: r.heart_benefit || "",
+      status: r.status || "draft",
+      expertValidated: r.expert_validated || false,
+      reviewedAt: r.reviewed_at || null,
+      reviewNote: r.review_note || "",
+      mediaUrl: r.image_url || "",
+      ingredients: r.ingredients || [],
+      steps: r.steps || [],
+      foodSourceType: r.foodSourceType || "Home Recipe",
+      tags: r.tags || [],
+    };
+  });
+  return mapped;
+};
+
 const Foods = () => {
-  const [recipes, setRecipes] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterHss, setFilterHss] = useState("all");
   const [filterCategory, setFilterCategory] = useState("all");
   const [filterFoodSource, setFilterFoodSource] = useState("all");
   const [filterReview, setFilterReview] = useState("all");
-  const [loading, setLoading] = useState(true);
+  // A save through apiFetch refreshes this list by itself
+  const recipesQuery = useApiQuery("/api/recipes", { select: toRecipes });
+  const recipes = recipesQuery.data ?? NO_RECIPES;
+  const loading = recipesQuery.isPending;
 
   const [activeMenuRecipeId, setActiveMenuRecipeId] = useState(null);
 
@@ -124,7 +167,6 @@ const Foods = () => {
       toast.success(newStatus === "published" ? "Recipe Published" : "Recipe Restored to Draft", {
         description: `"${recipe.name}" status updated to ${newStatus}.`,
       });
-      fetchFoods();
     } catch (err) {
       console.error("Failed to update status", err);
       toast.error("Failed to Update Status", {
@@ -185,7 +227,6 @@ const Foods = () => {
           toast.success("Recipe Archived", {
             description: `"${recipe.name}" has been moved to archive.`,
           });
-          fetchFoods();
         } catch (err) {
           console.error("Failed to archive recipe", err);
           toast.error("Failed to Archive Recipe", {
@@ -226,7 +267,6 @@ const Foods = () => {
           if (editingRecipe?.id === recipe.id) {
             closeModal();
           }
-          fetchFoods();
         } catch (err) {
           console.error("Failed to delete recipe", err);
           toast.error("Failed to Delete Recipe", {
@@ -237,55 +277,6 @@ const Foods = () => {
     });
   };
 
-  const fetchFoods = async () => {
-    try {
-      setLoading(true);
-      const res = await apiFetch("/api/recipes");
-      const list = Array.isArray(res) ? res : res.data || [];
-      const mapped = list.map((r) => {
-        // The API returns database column names (hss_tier, sodium_mg, ...). Reading the wrong
-        // names showed 0 here, and saving the recipe then wrote those 0s back.
-        const hssTier = HSS_TIER_LABELS[r.hss_tier] ? r.hss_tier : "Stable";
-
-        return {
-          id: r.id,
-          name: r.name,
-          category: r.category || "Breakfast",
-          categoryOther: r.category_other || "",
-          hssTarget: HSS_TIER_LABELS[hssTier],
-          hssTier: hssTier,
-          prepTimeMinutes: r.prep_time_minutes || 15,
-          servings: r.servings || 1,
-          difficulty: r.difficulty || "Easy",
-          sodium: r.sodium_mg || 0,
-          calories: r.calories || 0,
-          satFat: r.saturated_fat_g || 0,
-          cholesterol: r.cholesterol_mg || 0,
-          fiber: r.fiber_g || 0,
-          heartBenefit: r.heart_benefit || "",
-          status: r.status || "draft",
-          expertValidated: r.expert_validated || false,
-          reviewedAt: r.reviewed_at || null,
-          reviewNote: r.review_note || "",
-          mediaUrl: r.image_url || "",
-          ingredients: r.ingredients || [],
-          steps: r.steps || [],
-          foodSourceType: r.foodSourceType || "Home Recipe",
-          tags: r.tags || [],
-        };
-      });
-      setRecipes(mapped);
-    } catch (err) {
-      console.error("Failed to fetch foods", err);
-      setRecipes([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  React.useEffect(() => {
-    fetchFoods();
-  }, []);
 
   // Modal & Form State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -763,7 +754,9 @@ const Foods = () => {
             {/* Empty State */}
             {!loading && filteredRecipes.length === 0 && (
               <div className="p-12 text-center text-ds-slate text-[13px] flex flex-col items-center justify-center gap-2.5 border-t border-ds-hairline">
-                {recipes.length === 0 ? (
+                {recipesQuery.isError ? (
+                  <LoadError what="the recipe library" onRetry={recipesQuery.refetch} className="py-2" />
+                ) : recipes.length === 0 ? (
                   <p className="font-medium text-ds-slate">No recipes available in the library.</p>
                 ) : (
                   <>
@@ -809,7 +802,6 @@ const Foods = () => {
                   description: `"${formData.name}" was added to the food library.`,
                 });
               }
-              fetchFoods();
             } catch (err) {
               console.error("Error saving recipe:", err);
               toast.error("Failed to Save Recipe", {
@@ -836,7 +828,6 @@ const Foods = () => {
             onClear={() => setSelectedIds(new Set())}
             onDone={(failed) => {
               setSelectedIds(new Set(failed.map((x) => x.id)));
-              fetchFoods();
             }}
           />
         )}

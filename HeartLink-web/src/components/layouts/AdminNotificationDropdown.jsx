@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { 
   Bell, 
@@ -13,18 +14,27 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { apiFetch } from '../../api';
+import { useApiQuery } from '../../hooks/useApiQuery';
+import { markNotificationsRead } from '../../utils/notificationCache';
+
+const BELL_PATH = "/api/admin/notifications";
+const BELL_KEY = ["api", BELL_PATH];
+const NO_NOTIFICATIONS = [];
 
 export default function AdminNotificationDropdown({ userId }) {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
-  const [notifications, setNotifications] = useState([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
-  const [fetchError, setFetchError] = useState(null);
   const [actionError, setActionError] = useState(null);
-
-  const isFetchingRef = useRef(false);
   const dropdownRef = useRef(null);
+
+  // Checks every 60 seconds while the tab is open (paused while it's hidden), when the tab gets focus, when the
+  // bell is opened, and after any save
+  const queryClient = useQueryClient();
+  const notificationsQuery = useApiQuery(BELL_PATH, { refetchInterval: 60 * 1000 });
+  const notifications = notificationsQuery.data?.items ?? NO_NOTIFICATIONS;
+  const unreadCount = notificationsQuery.data?.unread_count || 0;
+  const isLoading = notificationsQuery.isPending;
+  const fetchError = notificationsQuery.isError ? "Unable to load notifications." : null;
 
   // Close dropdown on click outside
   useEffect(() => {
@@ -50,98 +60,23 @@ export default function AdminNotificationDropdown({ userId }) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen]);
 
-  // State only changes once the request returns; a retry turns the spinner on itself (isLoading starts on).
-  const fetchNotifications = useCallback(async () => {
-    if (isFetchingRef.current) return;
-    isFetchingRef.current = true;
-
-    try {
-      const data = await apiFetch("/api/admin/notifications");
-      setNotifications(data.items || []);
-      setUnreadCount(data.unread_count || 0);
-      setFetchError(null);
-    } catch (error) {
-      console.error("Failed to fetch admin notifications:", error);
-      setFetchError("Unable to load notifications.");
-    } finally {
-      setIsLoading(false);
-      isFetchingRef.current = false;
-    }
-  }, []);
-
-  // Polling with visibility awareness
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- loads data; its state changes come after the request returns, which this rule can't see
-    fetchNotifications();
-
-    let intervalId = null;
-
-    const startPolling = () => {
-      if (!intervalId) {
-        intervalId = setInterval(() => {
-          if (document.visibilityState === "visible") {
-            fetchNotifications();
-          }
-        }, 60000);
-      }
-    };
-
-    const stopPolling = () => {
-      if (intervalId) {
-        clearInterval(intervalId);
-        intervalId = null;
-      }
-    };
-
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") {
-        fetchNotifications();
-        startPolling();
-      } else {
-        stopPolling();
-      }
-    };
-
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    startPolling();
-
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      stopPolling();
-    };
-  }, [fetchNotifications]);
 
   const handleToggle = () => {
     const nextState = !isOpen;
     setIsOpen(nextState);
     if (nextState) {
-      fetchNotifications();
+      notificationsQuery.refetch();
     }
   };
 
   const handleRetry = (e) => {
     if (e) e.stopPropagation();
-    setFetchError(null);
-    setIsLoading(true);
-    fetchNotifications();
+    notificationsQuery.refetch();
   };
 
   const markAsRead = async (id, route) => {
     setActionError(null);
-    const previousNotifications = [...notifications];
-    const previousUnreadCount = unreadCount;
-
-    // Optimistically update UI
-    setNotifications(prev => prev.map(n => {
-      if (n.id === id) {
-        const isRead = n.read_by?.includes(userId);
-        if (!isRead) {
-          setUnreadCount(Math.max(0, unreadCount - 1));
-          return { ...n, read_by: [...(n.read_by || []), userId] };
-        }
-      }
-      return n;
-    }));
+    const undo = markNotificationsRead(queryClient, BELL_KEY, userId, (n) => n.id === id);
 
     try {
       await apiFetch(`/api/admin/notifications/${id}/read`, { method: "PUT" });
@@ -152,29 +87,20 @@ export default function AdminNotificationDropdown({ userId }) {
       }
     } catch (error) {
       console.error("Failed to mark as read:", error);
-      setNotifications(previousNotifications);
-      setUnreadCount(previousUnreadCount);
+      undo();
       setActionError("Unable to mark notification as read.");
     }
   };
 
   const markAllAsRead = async () => {
     setActionError(null);
-    const previousNotifications = [...notifications];
-    const previousUnreadCount = unreadCount;
-
-    setUnreadCount(0);
-    setNotifications(prev => prev.map(n => ({
-      ...n, 
-      read_by: [...(n.read_by || []), userId]
-    })));
+    const undo = markNotificationsRead(queryClient, BELL_KEY, userId, () => true, true);
 
     try {
       await apiFetch("/api/admin/notifications/mark-all-read", { method: "PUT" });
     } catch (error) {
       console.error("Failed to mark all as read:", error);
-      setNotifications(previousNotifications);
-      setUnreadCount(previousUnreadCount);
+      undo();
       setActionError("Unable to mark notifications as read.");
     }
   };

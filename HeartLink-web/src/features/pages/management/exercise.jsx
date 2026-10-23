@@ -20,6 +20,8 @@ import ConfirmActionModal from "../../../components/modals/ConfirmActionModal";
 import { BulkApproveBar, SelectBox } from "../../../components/modals/BulkApprove";
 import { Skeleton } from "../../../components/ui/Skeleton";
 import { apiFetch, BASE_URL } from "../../../api";
+import { useApiQuery } from "../../../hooks/useApiQuery";
+import LoadError from "../../../components/ui/LoadError";
 import { useAuth } from "../../../contexts/useAuth";
 import { toast } from "sonner";
 import { UI, FONTS } from "../../../styles/tokens";
@@ -35,16 +37,60 @@ const resolveMediaUrl = (url) => {
   return `${cleanBase}${cleanPath}`;
 };
 
+// The library as the screen shows it, from the API's rows (HL-035: loaded through React Query)
+const NO_EXERCISES = [];
+const toExercises = (data) => {
+  const mapped = data.map((r) => {
+    let hssLabel = "Stable (80-100)";
+    if (r.hss_tier === "Moderate") hssLabel = "Moderate (60-79)";
+    if (r.hss_tier === "Elevated Risk") hssLabel = "Elevated Risk (50-59)";
+    if (r.hss_tier === "Critical") hssLabel = "Critical (<50)";
+    
+    return {
+      id: r.id,
+      name: r.name || "",
+      description: r.description || "",
+      duration: r.duration_minutes || 0,
+      hssTarget: hssLabel,
+      mediaUrl: r.media_url || "",
+      videoUrl: r.video_url || "",
+      guideImages: r.guide_images || [],
+      status: r.status || "draft",
+      expertValidated: r.expert_validated || false,
+      steps: r.steps || [],
+      type: r.type || "General",
+      intensity: r.intensity || "Low",
+      goal: r.goal || "",
+      calories: r.calories || 0,
+      requirements: r.requirements || [],
+      setupSteps: r.setup_steps || [],
+      rounds: r.rounds || 1,
+      restSeconds: r.rest_seconds || 0,
+      position: r.position || "",
+      setting: r.setting || "",
+      skipIf: r.skip_if || [],
+      stopIf: r.stop_if || [],
+      easierVersion: r.easier_version || "",
+      effortHint: r.effort_hint || "",
+      frequency: r.frequency || "",
+      reviewedAt: r.reviewed_at || null,
+      reviewNote: r.review_note || "",
+    };
+  });
+  return mapped;
+};
+
 const Exercises = () => {
-  const [exercises, setExercises] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterHss, setFilterHss] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterType, setFilterType] = useState("all");
   const [filterIntensity, setFilterIntensity] = useState("all");
   const [filterReview, setFilterReview] = useState("all");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  // A save through apiFetch refreshes this list by itself
+  const exercisesQuery = useApiQuery("/api/exercises/", { select: toExercises });
+  const exercises = exercisesQuery.data ?? NO_EXERCISES;
+  const loading = exercisesQuery.isPending;
 
   const [activeMenuId, setActiveMenuId] = useState(null);
 
@@ -96,68 +142,6 @@ const Exercises = () => {
     };
   }, []);
 
-  // Loading on open: state only changes once the request returns (loading starts on). Refreshes use fetchExercises.
-  const loadExercises = async () => {
-    try {
-      const data = await apiFetch("/api/exercises/");
-      setError(null);
-      const mapped = data.map((r) => {
-        let hssLabel = "Stable (80-100)";
-        if (r.hss_tier === "Moderate") hssLabel = "Moderate (60-79)";
-        if (r.hss_tier === "Elevated Risk") hssLabel = "Elevated Risk (50-59)";
-        if (r.hss_tier === "Critical") hssLabel = "Critical (<50)";
-        
-        return {
-          id: r.id,
-          name: r.name || "",
-          description: r.description || "",
-          duration: r.duration_minutes || 0,
-          hssTarget: hssLabel,
-          mediaUrl: r.media_url || "",
-          videoUrl: r.video_url || "",
-          guideImages: r.guide_images || [],
-          status: r.status || "draft",
-          expertValidated: r.expert_validated || false,
-          steps: r.steps || [],
-          type: r.type || "General",
-          intensity: r.intensity || "Low",
-          goal: r.goal || "",
-          calories: r.calories || 0,
-          requirements: r.requirements || [],
-          setupSteps: r.setup_steps || [],
-          rounds: r.rounds || 1,
-          restSeconds: r.rest_seconds || 0,
-          position: r.position || "",
-          setting: r.setting || "",
-          skipIf: r.skip_if || [],
-          stopIf: r.stop_if || [],
-          easierVersion: r.easier_version || "",
-          effortHint: r.effort_hint || "",
-          frequency: r.frequency || "",
-          reviewedAt: r.reviewed_at || null,
-          reviewNote: r.review_note || "",
-        };
-      });
-      setExercises(mapped);
-    } catch (err) {
-      console.error("Failed to fetch exercises", err);
-      setError("Unable to load exercises.");
-      setExercises([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchExercises = () => {
-    setLoading(true);
-    setError(null);
-    return loadExercises();
-  };
-
-  React.useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- loads data; its state changes come after the request returns, which this rule can't see
-    loadExercises();
-  }, []);
 
   // Modal & Form State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -215,7 +199,6 @@ const Exercises = () => {
       toast.success(newStatus === "published" ? "Routine Published" : "Routine Updated", {
         description: `"${exercise.name}" status updated to ${newStatus}.`,
       });
-      fetchExercises();
     } catch (err) {
       console.error("Failed to update status", err);
       toast.error("Failed to Update Status", {
@@ -288,7 +271,6 @@ const Exercises = () => {
           if (editingExercise?.id === exercise.id) {
             closeModal();
           }
-          fetchExercises();
         } catch (err) {
           console.error("Failed to delete exercise", err);
           toast.error("Failed to Delete Routine", {
@@ -809,8 +791,8 @@ const Exercises = () => {
             {/* Empty State */}
             {!loading && filteredExercises.length === 0 && (
               <div className="p-12 text-center text-ds-slate text-[13px] flex flex-col items-center justify-center gap-2.5 border-t border-ds-hairline">
-                {error ? (
-                  <p className="font-medium text-ds-warm-text">Exercises couldn&apos;t load. Check your connection, then refresh the page.</p>
+                {exercisesQuery.isError ? (
+                  <LoadError what="the exercise library" onRetry={exercisesQuery.refetch} className="py-2" />
                 ) : exercises.length === 0 ? (
                   <p className="font-medium text-ds-slate">No exercises available in the library.</p>
                 ) : (
@@ -858,7 +840,6 @@ const Exercises = () => {
                 });
               }
               closeModal();
-              fetchExercises();
             } catch (err) {
               console.error("Error saving exercise:", err);
               toast.error("Failed to Save Routine", {
@@ -885,7 +866,6 @@ const Exercises = () => {
             onClear={() => setSelectedIds(new Set())}
             onDone={(failed) => {
               setSelectedIds(new Set(failed.map((x) => x.id)));
-              fetchExercises();
             }}
           />
         )}

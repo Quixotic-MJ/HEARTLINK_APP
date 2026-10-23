@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import {
   Search,
   Plus,
@@ -11,15 +11,21 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { apiFetch } from "../../../api";
+import { useApiQuery } from "../../../hooks/useApiQuery";
+import LoadError from "../../../components/ui/LoadError";
 import AdminLayout from "../../../components/layouts/adminLayout";
 import NewBroadcastModal from "../../../components/modals/NewBroadcastModal";
 import ViewBroadcastModal, { CategoryBadge } from "../../../components/modals/ViewBroadcastModal";
 import { UI, FONTS } from "../../../styles/tokens";
 import { PageHeader } from "../../../styles/designSystem";
 
+const NO_BROADCASTS = [];
+
 const Broadcasts = () => {
-  const [broadcasts, setBroadcasts] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  // Publishing or deleting through apiFetch refreshes this list by itself
+  const broadcastsQuery = useApiQuery("/api/admin/broadcasts", { select: (d) => d || [] });
+  const broadcasts = broadcastsQuery.data ?? NO_BROADCASTS;
+  const isLoading = broadcastsQuery.isPending;
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -40,24 +46,6 @@ const Broadcasts = () => {
   // Pending Broadcast State for Confirmation
   const [pendingBroadcast, setPendingBroadcast] = useState(null);
 
-  // Loading on open: state only changes once the request returns (loading starts on).
-  const loadBroadcasts = async () => {
-    try {
-      const data = await apiFetch("/api/admin/broadcasts");
-      setBroadcasts(data || []);
-    } catch (err) {
-      console.error(err);
-      showToast("Failed to load announcements", "error");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  React.useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- loads data; its state changes come after the request returns, which this rule can't see
-    loadBroadcasts();
-  }, []);
-
   const openModal = () => setIsModalOpen(true);
   const closeModal = () => { setIsModalOpen(false); setPendingBroadcast(null); };
 
@@ -69,7 +57,7 @@ const Broadcasts = () => {
   const handleConfirmPublish = async () => {
     setIsSubmitting(true);
     try {
-      const res = await apiFetch("/api/admin/broadcasts", {
+      await apiFetch("/api/admin/broadcasts", {
         method: "POST",
         body: JSON.stringify({
           title: pendingBroadcast.title,
@@ -78,7 +66,6 @@ const Broadcasts = () => {
           targetAudience: pendingBroadcast.targetAudience
         })
       });
-      setBroadcasts([res.data, ...broadcasts]);
       showToast("Announcement published successfully");
       setIsConfirmModalOpen(false);
       closeModal();
@@ -95,7 +82,6 @@ const Broadcasts = () => {
       await apiFetch(`/api/admin/broadcasts/${broadcastId}`, {
         method: "DELETE"
       });
-      setBroadcasts(broadcasts.filter((b) => b.id !== broadcastId));
       showToast("Announcement deleted successfully");
       setViewModalOpen(false);
     } catch (err) {
@@ -162,6 +148,12 @@ const Broadcasts = () => {
                         <Loader2 size={16} className="animate-spin text-ds-primary" />
                         <span className="text-[13px] font-medium">Loading announcements…</span>
                       </div>
+                    </td>
+                  </tr>
+                ) : broadcastsQuery.isError ? (
+                  <tr>
+                    <td colSpan="4">
+                      <LoadError what="announcements" onRetry={broadcastsQuery.refetch} className="py-10" />
                     </td>
                   </tr>
                 ) : filteredBroadcasts.length === 0 ? (

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import {
   Search,
   MessageSquare,
@@ -17,56 +17,23 @@ import AdminLayout from "../../../components/layouts/adminLayout";
 import TicketModal from "../../../components/modals/TicketModal";
 import FeedbackCategoryBadge from "../../../components/ui/FeedbackCategoryBadge";
 import { apiFetch } from "../../../api";
+import { useApiQuery } from "../../../hooks/useApiQuery";
 import { Skeleton } from "../../../components/ui/Skeleton";
 import { UI, FONTS } from "../../../styles/tokens";
 import { PageHeader, KpiCard } from "../../../styles/designSystem";
 
+const NO_TICKETS = [];
+
 const Feedback = () => {
-  const [tickets, setTickets] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [fetchError, setFetchError] = useState(false);
-  const [retryCount, setRetryCount] = useState(0);
-  const isFetchingRef = useRef(false);
-  
-  useEffect(() => {
-    let intervalId;
-    const fetchTickets = () => {
-      if (isFetchingRef.current || document.visibilityState === "hidden") return;
-      isFetchingRef.current = true;
-      
-      apiFetch("/api/feedback/")
-        .then(data => {
-          if (Array.isArray(data)) {
-            setTickets(data);
-            setFetchError(false);
-          }
-        })
-        .catch(err => {
-          console.error("Error fetching tickets:", err);
-          setFetchError(true);
-        })
-        .finally(() => {
-          setLoading(false);
-          isFetchingRef.current = false;
-        });
-    };
-
-    fetchTickets(); // Fetch immediately on mount or manual retry
-
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") {
-        fetchTickets();
-      }
-    };
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-
-    intervalId = setInterval(fetchTickets, 30000); // Poll every 30 seconds
-
-    return () => {
-      clearInterval(intervalId);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-    };
-  }, [retryCount]);
+  // Checks for new tickets every 30 seconds while the tab is open (paused while it's hidden), and again when
+  // the tab gets focus; a save through apiFetch refreshes it too
+  const ticketsQuery = useApiQuery("/api/feedback/", {
+    select: (d) => (Array.isArray(d) ? d : NO_TICKETS),
+    refetchInterval: 30 * 1000,
+  });
+  const tickets = ticketsQuery.data ?? NO_TICKETS;
+  const loading = ticketsQuery.isPending;
+  const fetchError = ticketsQuery.isError;
 
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
@@ -96,11 +63,10 @@ const Feedback = () => {
 
   const handleUpdateTicket = async (id, newStatus, newNotes) => {
     try {
-      const updatedTicket = await apiFetch(`/api/feedback/${id}`, {
+      await apiFetch(`/api/feedback/${id}`, {
         method: "PUT",
         body: JSON.stringify({ status: newStatus, adminNotes: newNotes }),
       });
-      setTickets(tickets.map((t) => (t.id === id ? updatedTicket : t)));
     } catch (err) {
       console.error("Error updating ticket:", err);
     }
@@ -109,11 +75,10 @@ const Feedback = () => {
 
   const handleArchiveTicket = async (id, notes) => {
     try {
-      const updatedTicket = await apiFetch(`/api/feedback/${id}`, {
+      await apiFetch(`/api/feedback/${id}`, {
         method: "PUT",
         body: JSON.stringify({ status: "Archived", adminNotes: notes !== undefined ? notes : adminNotes }),
       });
-      setTickets(tickets.map((t) => (t.id === id ? updatedTicket : t)));
     } catch (err) {
       console.error("Error archiving ticket:", err);
     }
@@ -349,10 +314,7 @@ const Feedback = () => {
                 <AlertCircle size={14} /> Unable to refresh feedback tickets.
               </span>
               <button
-                onClick={() => {
-                  setFetchError(false);
-                  setRetryCount(prev => prev + 1);
-                }}
+                onClick={() => ticketsQuery.refetch()}
                 className="px-3 py-1 bg-ds-danger hover:bg-ds-danger text-white text-[11px] font-bold uppercase tracking-wider rounded-[6px] transition-colors cursor-pointer"
               >
                 Retry
