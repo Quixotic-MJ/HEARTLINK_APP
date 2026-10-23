@@ -2,6 +2,26 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
+      "has": [
+        {
+          "type": "host",
+          "value": ".*-quixotic-mjs-projects\\.vercel\\.app"
+        }
+      ],
+      "destination": "https://heartlink-staging.onrender.com/api/$1"
+    },
+    {
+      "source": "/static/(.*)",
+      "has": [
+        {
+          "type": "host",
+          "value": ".*-quixotic-mjs-projects\\.vercel\\.app"
+        }
+      ],
+      "destination": "https://heartlink-staging.onrender.com/static/$1"
+    },
+    {
+      "source": "/api/(.*)",
       "destination": "https://heartlink-app-b8ba.onrender.com/api/$1"
     },
     {
