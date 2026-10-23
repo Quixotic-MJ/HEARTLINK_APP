@@ -113,6 +113,25 @@ def test_only_a_pt_can_approve_and_other_saves_send_it_back_to_waiting(repo):
     assert repo.updated["reviewed_by"] is None and repo.updated["reviewed_at"] is None
 
 
+def test_a_pt_can_send_it_back_with_a_note(repo):
+    # HL-038: the reject side of the PT's review
+    update_routine("e1", {"expertValidated": False, "reviewNote": "  Too intense for Critical patients  "}, pt_id="pt-1")
+    assert repo.updated["expert_validated"] is False
+    assert repo.updated["review_note"] == "Too intense for Critical patients"
+    assert not is_visible_to_patients({"status": "published", **repo.updated})
+
+
+def test_approving_clears_the_note(repo):
+    update_routine("e1", {"expertValidated": True, "reviewNote": "old note"}, pt_id="pt-1")
+    assert repo.updated["expert_validated"] is True and repo.updated["review_note"] is None
+
+
+def test_only_a_pt_writes_the_note(repo):
+    update_routine("e1", {"name": "Brisk walk", "reviewNote": "admin can't change this"})
+    assert "review_note" not in repo.updated
+    assert repo.updated["expert_validated"] is False
+
+
 def test_a_pt_update_only_changes_what_was_sent(repo):
     update_routine("e1", {"status": "published"}, pt_id="pt-1")
     assert repo.updated == {"status": "published"}

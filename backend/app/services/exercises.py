@@ -219,31 +219,33 @@ def routine_payload(data: Dict[str, Any], partial: bool = False) -> Dict[str, An
     return out
 
 
-def _mark_review(payload: Dict[str, Any], pt_id: Optional[str]) -> None:
+def _mark_review(payload: Dict[str, Any], data: Dict[str, Any], pt_id: Optional[str]) -> None:
     """HL-026: only a Physical Therapist approves. A PT's save keeps the switch as sent and records
     who approved and when; anyone else's save sends the exercise back to waiting for a PT, so a PT
-    always checks the version patients see."""
+    always checks the version patients see. HL-038: a PT may leave a note when sending it back; the
+    note stays until a PT changes it, and approving clears it."""
     if not pt_id:
         payload.update(expert_validated=False, reviewed_by=None, reviewed_at=None)
         return
+    if "reviewNote" in data or "review_note" in data:
+        note = str(data.get("reviewNote", data.get("review_note")) or "").strip()[:500]
+        payload["review_note"] = note or None
     if "expert_validated" not in payload:
         return
     if payload["expert_validated"]:
-        payload["reviewed_by"] = pt_id
-        payload["reviewed_at"] = utc_now().isoformat()
+        payload.update(reviewed_by=pt_id, reviewed_at=utc_now().isoformat(), review_note=None)
     else:
-        payload["reviewed_by"] = None
-        payload["reviewed_at"] = None
+        payload.update(reviewed_by=None, reviewed_at=None)
 
 
 def create_routine(data: Dict[str, Any], pt_id: Optional[str] = None) -> Dict[str, Any]:
     payload = routine_payload(data)
-    _mark_review(payload, pt_id)
+    _mark_review(payload, data, pt_id)
     return get_content_repo().create_routine(payload)
 
 def update_routine(routine_id: str, data: Dict[str, Any], pt_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
     payload = routine_payload(data, partial=True)
-    _mark_review(payload, pt_id)
+    _mark_review(payload, data, pt_id)
     return get_content_repo().update_routine(routine_id, payload)
 
 def delete_routine(routine_id: str) -> bool:

@@ -162,6 +162,8 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", is
   const [mode, setMode] = useState("review");
   const [tab, setTab] = useState("basics");
   const [menuOpen, setMenuOpen] = useState(false);
+  // HL-038: a PT's note when sending an exercise back for changes.
+  const [reviewNote, setReviewNote] = useState("");
   // Normal or expanded size; remembered on this browser only.
   const [expanded, setExpanded] = useState(() => {
     try {
@@ -186,6 +188,7 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", is
     setMode(exercise ? "review" : "edit");
     setTab(exercise ? "steps" : "basics");
     setMenuOpen(false);
+    setReviewNote("");
   }
 
   // Gives the extra pictures to the steps in order: set-up, warm-up, main, cool-down. Only when
@@ -292,10 +295,11 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", is
     }, onInvalid)();
   };
 
-  // HL-026: a PT approves (or removes approval) straight from the review view.
+  // HL-026: a PT approves (or removes approval) straight from the review view. HL-038: or sends it
+  // back with a note, which stays unapproved so patients don't see it.
   const saveApproval = (value) => {
     setValue("expertValidated", value);
-    handleSubmit((data) => onSubmit({ ...data, expertValidated: value }), onInvalid)();
+    handleSubmit((data) => onSubmit({ ...data, expertValidated: value, reviewNote: value ? "" : reviewNote.trim() }), onInvalid)();
   };
 
   if (!isOpen) return null;
@@ -303,6 +307,7 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", is
   // The review view reads the form, so it always shows what would be saved.
   const v = watch();
   const approved = !!exercise?.expertValidated;
+  const sentBack = !approved && !!exercise?.reviewNote;
   const approvedOn = exercise?.reviewedAt
     ? new Date(exercise.reviewedAt).toLocaleDateString([], { year: "numeric", month: "short", day: "numeric" })
     : "";
@@ -361,7 +366,7 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", is
                       approved ? "bg-ds-mint text-ds-charcoal" : "bg-ds-yellow text-ds-warm-text border border-ds-yellow-bold"
                     }`}
                   >
-                    {approved ? "PT approved" : "Waiting for PT approval"}
+                    {approved ? "PT approved" : sentBack ? "Sent back by PT" : "Waiting for PT approval"}
                   </span>
                 </div>
               )}
@@ -461,6 +466,15 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", is
 
         {mode === "review" ? (
           <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
+            {sentBack && (
+              <div className="flex gap-2.5 px-3.5 py-3 rounded-xl bg-ds-yellow">
+                <AlertCircle size={18} className="shrink-0 mt-px text-ds-warm-text" aria-hidden="true" />
+                <p className="text-[14px] leading-normal text-ds-charcoal">
+                  <span className="font-semibold">Physical therapist's note:</span> {exercise.reviewNote}
+                </p>
+              </div>
+            )}
+
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-ds-hairline-soft border border-ds-hairline rounded-xl overflow-hidden">
               {[
                 ["Total time", isBreathing ? `${v.duration} min` : totalSeconds > 0 ? formatSeconds(totalSeconds) : "No steps yet"],
@@ -575,6 +589,27 @@ const ExerciseFormModal = ({ isOpen, onClose, exercise, userRole = "medical", is
             </div>
 
             {exercise && <CardiologistGuidance />}
+
+            {isPT && exercise && (
+              <section className="border border-ds-hairline rounded-xl px-4 py-3.5 space-y-2.5">
+                <label htmlFor="exercise-review-note" className="block text-[14px] font-semibold text-ds-ink">
+                  Send it back for changes <span className="font-normal text-ds-slate">(optional)</span>
+                </label>
+                <textarea
+                  id="exercise-review-note"
+                  rows="2"
+                  value={reviewNote}
+                  onChange={(e) => setReviewNote(e.target.value)}
+                  placeholder="e.g. Too intense for patients in the Critical band; add a seated version."
+                  className="w-full px-3 py-2 text-[14px] bg-ds-canvas border border-ds-hairline-strong focus:border-ds-line rounded-[8px] focus:outline-none text-ds-ink placeholder:text-ds-steel resize-none"
+                />
+                <div className="flex justify-end">
+                  <button type="button" disabled={!reviewNote.trim()} onClick={() => saveApproval(false)} className={secondaryBtn}>
+                    Send back with note
+                  </button>
+                </div>
+              </section>
+            )}
           </div>
         ) : (
           <form

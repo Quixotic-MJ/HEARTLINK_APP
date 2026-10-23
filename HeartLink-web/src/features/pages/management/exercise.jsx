@@ -140,6 +140,7 @@ const Exercises = () => {
           effortHint: r.effort_hint || "",
           frequency: r.frequency || "",
           reviewedAt: r.reviewed_at || null,
+          reviewNote: r.review_note || "",
         };
       });
       setExercises(mapped);
@@ -689,8 +690,11 @@ const Exercises = () => {
                                 ✓ PT approved
                               </span>
                             ) : (
-                              <span className="text-[11px] text-ds-warm-text font-semibold flex items-center gap-1">
-                                ⚠ Waiting for PT
+                              <span
+                                className="text-[11px] text-ds-warm-text font-semibold flex items-center gap-1"
+                                title={exercise.reviewNote ? `Physical therapist's note: ${exercise.reviewNote}` : undefined}
+                              >
+                                ⚠ {exercise.reviewNote ? "Sent back by PT" : "Waiting for PT"}
                               </span>
                             )}
                           </div>
