@@ -21,6 +21,9 @@ from app.services.users import (
     update_care_team_contact,
     delete_care_team_contact
 )
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
@@ -173,7 +176,7 @@ async def read_all_users(current_user: dict = Depends(get_current_user)):
             p_copy["review_status"] = review_status
             enriched_profiles.append(p_copy)
         except Exception as enrich_err:
-            print(f"[read_all_users] Enrichment logic failed for user {p.get('id')}: {enrich_err}")
+            logger.warning(f"[read_all_users] Enrichment logic failed for user {p.get('id')}: {enrich_err}")
             p_copy = {k: v for k, v in p.items() if k not in ["password", "password_hash", "token", "secret"]}
             p_copy["hss_score"] = None
             p_copy["hss_tier"] = "N/A"

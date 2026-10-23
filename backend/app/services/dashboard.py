@@ -17,6 +17,9 @@ from app.db.repositories import (
     get_content_repo,
     get_notification_repo,
 )
+import logging
+
+logger = logging.getLogger(__name__)
 
 def _safe_date(val: Any) -> datetime.date:
     dt = parse_utc(val)
@@ -241,7 +244,7 @@ def _generate_insight(
                 title = "" # Remove legacy rigid title so the AI coach speaks naturally
                 ai_written = True
         except Exception as e:
-            print(f"Groq API Error: {str(e)}")
+            logger.warning(f"Groq API Error: {str(e)}")
             # Silently fallback to the deterministic rule-based body if timeout or error
             pass
 

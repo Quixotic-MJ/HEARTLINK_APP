@@ -7,6 +7,9 @@ from app.utils.security import verify_token, get_optional_token
 from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
 from app.utils.activity_helper import record_admin_activity
 from app.db.repositories import get_feedback_repo, get_profile_repo
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/feedback", tags=["Feedback"])
 security = HTTPBearer(auto_error=False)
@@ -104,7 +107,7 @@ def create_feedback_ticket(
             target_id=str(new_ticket.get("id") or ticket_code),
         )
     except Exception as e:
-        print(f"Failed to create admin notification for feedback: {e}")
+        logger.warning(f"Failed to create admin notification for feedback: {e}")
 
     return new_ticket
 

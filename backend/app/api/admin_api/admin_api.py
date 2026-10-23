@@ -26,6 +26,9 @@ from app.db.repositories import (
 router = APIRouter(prefix="/api/admin", tags=["Admin"])
 
 from app.schemas.user import normalize_expert_type
+import logging
+
+logger = logging.getLogger(__name__)
 
 def _resolve_expert_type(target_role: str, raw: Any) -> Optional[str]:
     """
@@ -94,7 +97,7 @@ def get_admin_dashboard(current_user: dict = Depends(get_current_admin_only)):
     except Exception as e:
         if isinstance(e, HTTPException):
             raise
-        print(f"[Dashboard Error] {e}")
+        logger.error(f"[Dashboard Error] {e}")
         # The database's own error text stays in the server log, not in the response.
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
@@ -518,17 +521,17 @@ def create_system_staff(payload: dict, current_user: dict = Depends(get_current_
             u_email = (getattr(u, 'email', None) or "").lower()
             if u_email == email.lower():
                 auth_user_id = str(u.id)
-                print(f"[create_system_staff] User already exists in auth: {auth_user_id}")
+                logger.info(f"[create_system_staff] User already exists in auth: {auth_user_id}")
                 break
     except Exception as lookup_err:
-        print(f"[create_system_staff] Pre-lookup warning: {lookup_err}")
+        logger.warning(f"[create_system_staff] Pre-lookup warning: {lookup_err}")
 
     if auth_user_id:
         # The login exists without a profile; reset it to the new temporary password so the admin's copy works
         try:
             supabase_client.auth.admin.update_user_by_id(auth_user_id, {"password": temp_pass})
         except Exception as reset_err:
-            print(f"[create_system_staff] Temporary password reset failed: {reset_err}")
+            logger.error(f"[create_system_staff] Temporary password reset failed: {reset_err}")
             raise HTTPException(status_code=500, detail="Could not set a temporary password for the existing login.")
 
     # --- Step 2: Create Supabase Auth user via direct REST (bypasses gotrue-py restrictions) ---
@@ -558,7 +561,7 @@ def create_system_staff(payload: dict, current_user: dict = Depends(get_current_
                 try:
                     import uuid as _uuid
                     auth_user_id = str(_uuid.UUID(str(raw_id)))
-                    print(f"[create_system_staff] Auth user created: {auth_user_id}")
+                    logger.info(f"[create_system_staff] Auth user created: {auth_user_id}")
                 except (ValueError, TypeError):
                     raise HTTPException(
                         status_code=500,
@@ -577,7 +580,7 @@ def create_system_staff(payload: dict, current_user: dict = Depends(get_current_
                     or err_body.get("error")
                     or f"HTTP {resp.status_code}"
                 )
-                print(f"[create_system_staff] REST auth creation failed {resp.status_code}: {err_body}")
+                logger.error(f"[create_system_staff] REST auth creation failed {resp.status_code}: {err_body}")
 
                 # Last-chance check: maybe user was created despite the error code
                 try:
@@ -627,7 +630,7 @@ def create_system_staff(payload: dict, current_user: dict = Depends(get_current_
         # Profile insert failed — attempt to clean up the dangling auth user
         try:
             supabase_client.auth.admin.delete_user(auth_user_id)
-            print(f"[create_system_staff] Rolled back auth user {auth_user_id} after profile insert failure.")
+            logger.warning(f"[create_system_staff] Rolled back auth user {auth_user_id} after profile insert failure.")
         except Exception:
             pass
         raise
@@ -657,7 +660,7 @@ def create_system_staff(payload: dict, current_user: dict = Depends(get_current_
             read_by=[admin_id] if admin_id else []
         )
     except Exception as notif_err:
-        print(f"[create_system_staff] Notification skipped: {notif_err}")
+        logger.warning(f"[create_system_staff] Notification skipped: {notif_err}")
 
     # HL-044: the temporary password is returned once, here, and never stored or logged
     return {"status": "success", "id": str(staff_id), "temp_password": temp_pass}
@@ -725,7 +728,7 @@ def toggle_user_status(user_id: str, current_user: dict = Depends(get_current_ad
                 read_by=[admin_id] if admin_id else []
             )
         except Exception as e:
-            print(f"Failed to create admin notification for staff status change: {e}")
+            logger.warning(f"Failed to create admin notification for staff status change: {e}")
 
     return {"status": "success", "new_status": new_status}
 

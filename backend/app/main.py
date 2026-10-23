@@ -25,6 +25,10 @@ try:
 except ImportError:
     pass
 
+# HL-063: no email addresses or phone numbers in the server log
+from app.utils.log_redaction import install_log_redaction
+install_log_redaction()
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles

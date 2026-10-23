@@ -409,7 +409,7 @@ class SupabaseAuthService(AuthService):
             self.client.auth.sign_in_with_otp({"phone": e164_phone, "options": {"channel": "sms"}})
             return {"success": True, "message": "Verification code sent via SMS"}
         except Exception as sms_err:
-            print(f"[SupabaseAuthService] Real SMS dispatch failed for {e164_phone}: {sms_err}")
+            logger.error("Real SMS dispatch failed (%s)", type(sms_err).__name__)
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail="SMS delivery is not currently available. Registration is limited to invited testers during this phase."
@@ -580,12 +580,12 @@ class SupabaseAuthService(AuthService):
                             user_obj = data.get("user") or {}
                             if user_obj.get("id"):
                                 auth_user_id = str(user_obj["id"])
-                                print(f"[login] Direct REST login successful for {cred.get('email') or cred.get('phone')} (id={auth_user_id})")
+                                logger.info("[login] Signed in through the direct REST call (id=%s)", auth_user_id)
                                 break
                         else:
-                            print(f"[login] Direct REST attempt failed ({resp.status_code}): {resp.text[:120]}")
+                            logger.warning("[login] Direct REST attempt failed (%s)", resp.status_code)
                     except Exception as http_err:
-                        print(f"[login] httpx auth attempt error: {http_err}")
+                        logger.warning(f"[login] httpx auth attempt error: {http_err}")
 
             # --- Method 2: Fallback to client.auth.sign_in_with_password ---
             if not auth_user_id:
@@ -604,7 +604,7 @@ class SupabaseAuthService(AuthService):
                     if res and hasattr(res, "user") and res.user:
                         auth_user_id = str(res.user.id)
                 except Exception as client_err:
-                    print(f"[login] client.auth fallback error: {client_err}")
+                    logger.warning(f"[login] client.auth fallback error: {client_err}")
 
             if not auth_user_id:
                 raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Credentials")
@@ -619,7 +619,7 @@ class SupabaseAuthService(AuthService):
         except HTTPException:
             raise
         except Exception as ex:
-            print(f"[login] Unexpected error: {ex}")
+            logger.error(f"[login] Unexpected error: {ex}")
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Credentials")
 
     def web_login(self, identifier: str, password: str, remember: bool = False) -> Dict[str, Any]:
@@ -701,7 +701,7 @@ class SupabaseAuthService(AuthService):
                 logger.error(f"[change_password] Admin update_user_by_id failed: {admin_err}")
                 return False
         except Exception as e:
-            print(f"[change_password] Error: {e}")
+            logger.error(f"[change_password] Error: {e}")
             return False
 
     def forgot_password(self, identifier: str) -> Dict[str, Any]:

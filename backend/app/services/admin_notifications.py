@@ -7,6 +7,9 @@ from datetime import datetime, timedelta
 from typing import List, Optional, Dict, Any
 from app.db.repositories import get_admin_repo
 from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
+import logging
+
+logger = logging.getLogger(__name__)
 
 VALID_TYPES = {"feedback", "staff", "security", "system"}
 VALID_SEVERITIES = {"info", "warning"}
@@ -47,5 +50,5 @@ def create_admin_notification(
 
         return get_admin_repo().create_admin_notification(data)
     except Exception as e:
-        print(f"Error creating admin notification: {e}")
+        logger.error(f"Error creating admin notification: {e}")
         return None
