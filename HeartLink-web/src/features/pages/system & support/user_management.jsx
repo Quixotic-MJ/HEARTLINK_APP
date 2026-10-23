@@ -87,6 +87,7 @@ const Users = () => {
                 })
               : "N/A",
             status: r.account_status === "active" ? "Active" : "Disabled",
+            deactivationReason: r.deactivation_reason || "",
             onboardingStatus: r.onboarding_status,
             hssScore: r.hss_score,
             hssTier: r.hss_tier,
@@ -349,10 +350,13 @@ const Users = () => {
   };
 
   // 5. Patient Account Status Toggle (Direct from AccountActionModal)
-  // The reason picked in AccountActionModal isn't sent or saved yet: the backend has nowhere to keep it (HL-073).
-  const handleToggleAppUserStatus = async (entityId) => {
+  // HL-073: the reason picked when disabling is saved and shown on the account until it is enabled again
+  const handleToggleAppUserStatus = async (entityId, reason) => {
     try {
-      await apiFetch(`/api/admin/users/${entityId}/status`, { method: "PUT" });
+      await apiFetch(`/api/admin/users/${entityId}/status`, {
+        method: "PUT",
+        body: JSON.stringify(reason ? { reason } : {}),
+      });
       toast.success("Patient account status updated successfully.");
       await fetchUsers();
       closeModal();

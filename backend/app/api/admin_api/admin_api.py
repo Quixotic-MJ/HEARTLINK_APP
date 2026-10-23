@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Body, Depends, HTTPException
 from typing import Dict, Any, Optional, List
 from datetime import datetime, timedelta, timezone
 import os
@@ -667,8 +667,15 @@ def create_system_staff(payload: dict, current_user: dict = Depends(get_current_
 
 
 
+DEACTIVATION_REASON_MAX = 200
+
+
 @router.put("/users/{user_id}/status")
-def toggle_user_status(user_id: str, current_user: dict = Depends(get_current_admin_only)):
+def toggle_user_status(
+    user_id: str,
+    payload: Optional[Dict[str, Any]] = Body(default=None),
+    current_user: dict = Depends(get_current_admin_only),
+):
     profile_repo = get_profile_repo()
     user = profile_repo.get_by_id(user_id)
     if not user:
@@ -693,7 +700,11 @@ def toggle_user_status(user_id: str, current_user: dict = Depends(get_current_ad
             raise HTTPException(status_code=400, detail="Deactivating the last active Super Admin is not permitted")
             
     new_status = "disabled" if current_status == "active" else "active"
-    profile_repo.update_profile(user_id, {"account_status": new_status})
+    # HL-073: the reason the admin picked is kept while the account is disabled and cleared when it is enabled
+    reason = str((payload or {}).get("reason") or "").strip()[:DEACTIVATION_REASON_MAX] or None
+    if new_status == "active":
+        reason = None
+    profile_repo.update_profile(user_id, {"account_status": new_status, "deactivation_reason": reason})
     
     admin_id = current_user.get("user_id") if current_user else "admin"
     user_name = f"{user.get('first_name', '')} {user.get('last_name', '')}".strip() or user.get("email") or user_id
@@ -704,6 +715,8 @@ def toggle_user_status(user_id: str, current_user: dict = Depends(get_current_ad
     else:
         role_desc = "medical expert" if user_role == "medical_expert" else ("admin" if user_role == "admin" else "super_admin")
         action_desc = f"{'Disabled' if new_status == 'disabled' else 'Enabled'} {role_desc} account"
+    if reason:
+        action_desc += f" (reason: {reason})"
         
     record_admin_activity(
         admin_user_id=admin_id,
