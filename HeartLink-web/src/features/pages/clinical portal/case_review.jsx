@@ -1,52 +1,39 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Stethoscope, RefreshCw, Shuffle, AlertTriangle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import AdminLayout from "../../../components/layouts/adminLayout";
 import { Skeleton } from "../../../components/ui/Skeleton";
 import { apiFetch } from "../../../api";
+import { useApiQuery } from "../../../hooks/useApiQuery";
+import LoadError from "../../../components/ui/LoadError";
 import { useAuth } from "../../../contexts/useAuth";
 import { UI, FONTS } from "../../../styles/tokens";
 import { PageHeader } from "../../../styles/designSystem";
 import { LANES, SECTION_LABELS, SECTION_EXPERT, PROGRESS, waitingText, mySection } from "./reviewUi";
 
 // HL-054 / HL-055: the case review queue. Urgent first, then re-reviews, then the weekly sample.
+const NO_CASES = [];
+
 const Cases = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [items, setItems] = useState([]);
-  const [urgentHours, setUrgentHours] = useState(48);
-  const [loading, setLoading] = useState(true);
+  // Refreshing the queue or drawing the sample (saves through apiFetch) reloads it by itself
+  const queue = useApiQuery("/api/admin/review-queue");
+  const items = queue.data?.items ?? NO_CASES;
+  const urgentHours = queue.data?.urgent_review_hours || 48;
+  const loading = queue.isPending;
   const [lane, setLane] = useState("all");
   const [busy, setBusy] = useState(null);
 
   const isAdmin = user?.role === "admin" || user?.role === "super_admin";
   const section = mySection(user);
 
-  const fetchQueue = () => apiFetch("/api/admin/review-queue", { bypassCache: true });
-  const applyQueue = (data) => {
-    setItems(data?.items || []);
-    setUrgentHours(data?.urgent_review_hours || 48);
-  };
-  const load = () => fetchQueue().then(applyQueue).catch(() => toast.error("Couldn't load the review queue."));
-
-  useEffect(() => {
-    let alive = true;
-    fetchQueue()
-      .then((data) => alive && applyQueue(data))
-      .catch(() => toast.error("Couldn't load the review queue."))
-      .finally(() => alive && setLoading(false));
-    return () => {
-      alive = false;
-    };
-  }, []);
-
   const refresh = async () => {
     setBusy("refresh");
     try {
       const res = await apiFetch("/api/admin/review-queue/refresh", { method: "POST" });
       toast.success(res.opened || res.upgraded ? `Queue updated: ${res.opened} new, ${res.upgraded} moved to urgent.` : "Queue is up to date.");
-      await load();
     } catch {
       toast.error("Couldn't refresh the queue.");
     } finally {
@@ -59,7 +46,6 @@ const Cases = () => {
     try {
       const res = await apiFetch("/api/admin/review-queue/sample", { method: "POST" });
       toast.success(res.opened ? `Added ${res.opened} cases to the sample lane.` : "No patients are due for sampling right now.");
-      await load();
     } catch (e) {
       toast.error(e?.data?.detail || "Couldn't draw the sample.");
     } finally {
@@ -147,6 +133,12 @@ const Cases = () => {
                       <td colSpan={7} className={UI.table.td}><Skeleton className="h-8 w-full" /></td>
                     </tr>
                   ))
+                ) : queue.isError ? (
+                  <tr>
+                    <td colSpan={7}>
+                      <LoadError what="the review queue" onRetry={queue.refetch} className="py-10" />
+                    </td>
+                  </tr>
                 ) : shown.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="py-12 px-5 text-center text-[13px] text-ds-slate">

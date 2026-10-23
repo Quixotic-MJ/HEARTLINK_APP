@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import {
   User,
   Mail,
@@ -18,6 +18,7 @@ import {
 import AdminLayout from "../../../components/layouts/adminLayout";
 import { useAuth } from "../../../contexts/useAuth";
 import { apiFetch } from "../../../api";
+import { useApiQuery } from "../../../hooks/useApiQuery";
 import { UI, FONTS } from "../../../styles/tokens";
 import { PageHeader, KpiCard } from "../../../styles/designSystem";
 
@@ -536,19 +537,9 @@ const Settings = () => {
   // Derive role from context
   const role = user?.role || "admin";
 
-  // Enrich profile from the backend
-  const [profile, setProfile] = useState(user);
-
-  useEffect(() => {
-    if (!userId) return;
-    apiFetch(`/api/users/${userId}/profile`)
-      .then((data) => {
-        if (data?.profile) setProfile(data.profile);
-      })
-      .catch(() => {
-        setProfile(user);
-      });
-  }, [userId, user]);
+  // The fuller profile from the backend; the sign-in details show until it loads, or if it can't
+  const profileQuery = useApiQuery(userId ? `/api/users/${userId}/profile` : null);
+  const profile = profileQuery.data?.profile || user;
 
   return (
     <AdminLayout>

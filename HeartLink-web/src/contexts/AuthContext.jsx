@@ -59,7 +59,7 @@ export const AuthProvider = ({ children }) => {
     purgeLegacyStorage();
 
     // The session lives in an HttpOnly cookie, so ask the backend who we are.
-    apiFetch('/api/auth/me', { bypassCache: true })
+    apiFetch('/api/auth/me')
       .then((data) => {
         if (data && data.user_id) {
           const resolvedUser = toUser(data);

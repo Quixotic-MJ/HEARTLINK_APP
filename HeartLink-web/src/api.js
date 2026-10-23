@@ -71,7 +71,6 @@ export const apiFetch = async (endpoint, options = {}) => {
   // per attempt, because a refresh replaces the CSRF cookie.
   try {
     const fetchOptions = { ...options };
-    delete fetchOptions.bypassCache;
     const send = () => {
       const headers = withCsrf({
         "Content-Type": "application/json",

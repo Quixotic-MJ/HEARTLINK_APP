@@ -1,9 +1,11 @@
-import { useEffect, useState, Fragment } from "react";
+import { useState, Fragment } from "react";
 import { History, ChevronDown, ChevronRight, Info, Download } from "lucide-react";
 import { toast } from "sonner";
 import AdminLayout from "../../../components/layouts/adminLayout";
 import { Skeleton } from "../../../components/ui/Skeleton";
 import { apiFetch } from "../../../api";
+import { useApiQuery } from "../../../hooks/useApiQuery";
+import LoadError from "../../../components/ui/LoadError";
 import { useAuth } from "../../../contexts/useAuth";
 import { UI, FONTS } from "../../../styles/tokens";
 import { PageHeader } from "../../../styles/designSystem";
@@ -55,25 +57,12 @@ const ModelCheck = () => {
   const [exporting, setExporting] = useState(false);
   const [scorer, setScorer] = useState("all");
   const [rowFilter, setRowFilter] = useState("all");
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(null);
 
-  const load = (s) =>
-    apiFetch(`/api/admin/model-check?scorer=${s}`, { bypassCache: true })
-      .then(setData)
-      .catch(() => toast.error("Couldn't load Model Check."));
-
-  useEffect(() => {
-    let alive = true;
-    apiFetch(`/api/admin/model-check?scorer=${scorer}`, { bypassCache: true })
-      .then((d) => alive && setData(d))
-      .catch(() => toast.error("Couldn't load Model Check."))
-      .finally(() => alive && setLoading(false));
-    return () => {
-      alive = false;
-    };
-  }, [scorer]);
+  // The current results stay on screen while another scorer's load; archiving refreshes them by itself
+  const modelCheck = useApiQuery(`/api/admin/model-check?scorer=${scorer}`, { keepPrevious: true });
+  const data = modelCheck.data ?? null;
+  const loading = modelCheck.isPending;
 
   const archive = async (row) => {
     if (!window.confirm(`Archive ${row.case_code}? It will leave Model Check and the review queue.`)) return;
@@ -81,7 +70,6 @@ const ModelCheck = () => {
       await apiFetch(`/api/admin/model-check/${row.round_id}/archive`, { method: "PUT" });
       toast.success(`${row.case_code} archived.`);
       setOpen(null);
-      await load(scorer);
     } catch (e) {
       toast.error(e?.data?.detail || "Couldn't archive.");
     }
@@ -91,7 +79,7 @@ const ModelCheck = () => {
   const exportDataset = async () => {
     setExporting(true);
     try {
-      const file = await apiFetch("/api/admin/model-check/export", { bypassCache: true });
+      const file = await apiFetch("/api/admin/model-check/export");
       const blob = new Blob([JSON.stringify(file, null, 2)], { type: "application/json" });
       const link = document.createElement("a");
       link.href = URL.createObjectURL(blob);
@@ -133,7 +121,9 @@ const ModelCheck = () => {
           ))}
         </div>
 
-        {loading || !data ? (
+        {modelCheck.isError && !data ? (
+          <LoadError what="Model Check" onRetry={modelCheck.refetch} />
+        ) : loading || !data ? (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">{[0, 1, 2, 3].map((n) => <Skeleton key={n} className="h-24" />)}</div>
         ) : (
           <>

@@ -1,10 +1,13 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Stethoscope, AlertTriangle, Info } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import AdminLayout from "../../../components/layouts/adminLayout";
 import { Skeleton } from "../../../components/ui/Skeleton";
 import { apiFetch } from "../../../api";
+import { useApiQuery } from "../../../hooks/useApiQuery";
+import LoadError from "../../../components/ui/LoadError";
 import { UI, FONTS } from "../../../styles/tokens";
 import {
   LANES, SECTION_LABELS, SECTION_EXPERT, DONE_CHIP, PROGRESS, TIERS, REASONS, CONFIDENCE, CHECKUP,
@@ -345,23 +348,23 @@ function ItemsSection({ caseId, section, items, saved, canSubmit, onSaved }) {
 const CaseReviewDetail = () => {
   const { roundId } = useParams();
   const navigate = useNavigate();
-  const [data, setData] = useState(null);
-  const [error, setError] = useState(null);
-  const [tab, setTab] = useState(null);
+  const queryClient = useQueryClient();
+  const casePath = `/api/admin/review-queue/${roundId}`;
+  const caseQuery = useApiQuery(casePath);
+  const data = caseQuery.data ?? null;
+  const error = !caseQuery.isError
+    ? null
+    : caseQuery.error?.status === 404
+      ? "This case does not exist."
+      : "Couldn't load this case.";
+  const [pickedTab, setTab] = useState(null);
   const [editingCardio, setEditingCardio] = useState(false);
+  // Until the reviewer picks a tab, open on their own section (or cardiology)
+  const tab = pickedTab ?? (data ? Object.keys(SECTION_LABELS).find((s) => data.viewer?.can_submit?.[s]) || "cardiology" : null);
 
-  useEffect(() => {
-    apiFetch(`/api/admin/review-queue/${roundId}`, { bypassCache: true })
-      .then((d) => {
-        setData(d);
-        const mine = Object.keys(SECTION_LABELS).find((s) => d.viewer?.can_submit?.[s]);
-        setTab(mine || "cardiology");
-      })
-      .catch((e) => setError(e?.status === 404 ? "This case does not exist." : "Couldn't load this case."));
-  }, [roundId]);
-
+  // The save returns the updated case: show it at once (the save also refreshes it from the server)
   const onSaved = (fresh) => {
-    if (fresh) setData(fresh);
+    if (fresh) queryClient.setQueryData(["api", casePath], fresh);
     setEditingCardio(false);
   };
 
@@ -377,7 +380,9 @@ const CaseReviewDetail = () => {
           <ArrowLeft size={14} /> Back to queue
         </button>
 
-        {error ? (
+        {error && caseQuery.error?.status !== 404 ? (
+          <LoadError what="this case" onRetry={caseQuery.refetch} />
+        ) : error ? (
           <p className="text-[13px] text-ds-danger font-semibold">{error}</p>
         ) : !data ? (
           <div className="flex flex-col gap-3"><Skeleton className="h-10 w-64" /><Skeleton className="h-96 w-full" /></div>

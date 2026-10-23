@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
@@ -16,6 +16,7 @@ import { useAuth } from "../../../contexts/useAuth";
 import AdminLayout from "../../../components/layouts/adminLayout";
 import UserListView from "../../../components/lists/UserListView";
 import { apiFetch } from "../../../api";
+import { useApiQuery } from "../../../hooks/useApiQuery";
 import StaffListView from "../../../components/lists/StaffListView";
 import StaffDetailsModal from "../../../components/modals/StaffDetailsModal";
 import StaffFormModal from "../../../components/modals/StaffFormModal";
@@ -25,6 +26,37 @@ import TempPasswordModal from "../../../components/modals/TempPasswordModal";
 import { UI, FONTS } from "../../../styles/tokens";
 import { PageHeader } from "../../../styles/designSystem";
 
+// Patients as the directory shows them, from /api/users/ (HL-035: loaded through React Query)
+const NO_USERS = [];
+const toPatients = (patientsData) => {
+  const mappedPatients = (patientsData || [])
+    .filter((u) => u.role === "patient")
+    .map((r) => {
+      return {
+        id: r.id,
+        name:
+          `${r.first_name || ""} ${r.last_name || ""}`.trim() ||
+          "Anonymized Patient",
+        phone: r.phone || "",
+        regDate: r.created_at
+          ? new Date(r.created_at).toLocaleDateString("en-US", {
+              month: "short",
+              day: "2-digit",
+              year: "numeric",
+            })
+          : "N/A",
+        status: r.account_status === "active" ? "Active" : "Disabled",
+        deactivationReason: r.deactivation_reason || "",
+        onboardingStatus: r.onboarding_status,
+        hssScore: r.hss_score,
+        hssTier: r.hss_tier,
+        activityStatus: r.activity_status,
+        reviewStatus: r.review_status,
+      };
+    });
+  return mappedPatients;
+};
+
 const Users = () => {
   const { user, userId } = useAuth();
   const currentUserRole = user?.role || "admin";
@@ -33,8 +65,6 @@ const Users = () => {
   const [newStaffCredentials, setNewStaffCredentials] = useState(null);
   const [searchParams] = useSearchParams();
 
-  const [appUsers, setAppUsers] = useState([]);
-  const [systemStaff, setSystemStaff] = useState([]);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
@@ -42,8 +72,6 @@ const Users = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState("");
   const [activeEntity, setActiveEntity] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [fetchError, setFetchError] = useState(false);
   const [reassignExpertType, setReassignExpertType] = useState("");
 
   // Confirmation Modal State
@@ -65,66 +93,18 @@ const Users = () => {
     setConfirmConfig((prev) => ({ ...prev, isOpen: false }));
   };
 
-  // Loading on open: state only changes once the request returns (loading starts on). Refreshes use fetchUsers.
-  const loadUsers = async () => {
-    try {
-      const patientsData = await apiFetch("/api/users/");
-      setFetchError(false);
-      const mappedPatients = (patientsData || [])
-        .filter((u) => u.role === "patient")
-        .map((r) => {
-          return {
-            id: r.id,
-            name:
-              `${r.first_name || ""} ${r.last_name || ""}`.trim() ||
-              "Anonymized Patient",
-            phone: r.phone || "",
-            regDate: r.created_at
-              ? new Date(r.created_at).toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "2-digit",
-                  year: "numeric",
-                })
-              : "N/A",
-            status: r.account_status === "active" ? "Active" : "Disabled",
-            deactivationReason: r.deactivation_reason || "",
-            onboardingStatus: r.onboarding_status,
-            hssScore: r.hss_score,
-            hssTier: r.hss_tier,
-            activityStatus: r.activity_status,
-            reviewStatus: r.review_status,
-          };
-        });
-      setAppUsers(mappedPatients);
-
-      if (currentUserRole === "super_admin") {
-        try {
-          const staffData = await apiFetch("/api/admin/staff");
-          setSystemStaff(staffData || []);
-        } catch (e) {
-          console.error("Failed to fetch staff directory", e);
-          setFetchError(true);
-        }
-      }
-    } catch (err) {
-      console.error("Failed to fetch users", err);
-      setFetchError(true);
-      toast.error("Failed to load user directory");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchUsers = () => {
-    setLoading(true);
-    setFetchError(false);
-    return loadUsers();
-  };
-
-  React.useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- loads data; its state changes come after the request returns, which this rule can't see
-    loadUsers();
-  }, [currentUserRole]);
+  // Saves through apiFetch refresh both lists by themselves; staff only load for a Super Admin
+  const patientsQuery = useApiQuery("/api/users/", { select: toPatients });
+  const staffQuery = useApiQuery("/api/admin/staff", {
+    select: (d) => d || NO_USERS,
+    enabled: currentUserRole === "super_admin",
+  });
+  const appUsers = patientsQuery.data ?? NO_USERS;
+  const systemStaff = staffQuery.data ?? NO_USERS;
+  const loading = patientsQuery.isPending || (staffQuery.isEnabled && staffQuery.isPending);
+  const refreshing = patientsQuery.isFetching || staffQuery.isFetching;
+  const fetchError = patientsQuery.isError || staffQuery.isError;
+  const fetchUsers = () => Promise.all([patientsQuery.refetch(), staffQuery.isEnabled && staffQuery.refetch()]);
 
   // A ?search= link (e.g. from a notification) fills the search box; noticed during render, not in an effect
   const searchParam = searchParams.get("search");
@@ -201,7 +181,6 @@ const Users = () => {
           toast.success(
             `Staff account ${willDisable ? "disabled" : "activated"} successfully.`
           );
-          await fetchUsers();
           closeModal();
           closeConfirmModal();
         } catch (e) {
@@ -260,7 +239,6 @@ const Users = () => {
           toast.success(
             `Role updated to ${isTargetExpert ? `Expert Reviewer (${reassignExpertType})` : "System Admin"}.`
           );
-          await fetchUsers();
           closeModal();
           closeConfirmModal();
         } catch (e) {
@@ -301,7 +279,6 @@ const Users = () => {
             method: "DELETE",
           });
           toast.success(`Staff account for ${staffName} permanently deleted.`);
-          await fetchUsers();
           closeModal();
           closeConfirmModal();
         } catch (e) {
@@ -338,7 +315,6 @@ const Users = () => {
             method: "DELETE",
           });
           toast.success(`Patient record for ${userName} has been purged.`);
-          await fetchUsers();
           closeModal();
           closeConfirmModal();
         } catch (e) {
@@ -358,7 +334,6 @@ const Users = () => {
         body: JSON.stringify(reason ? { reason } : {}),
       });
       toast.success("Patient account status updated successfully.");
-      await fetchUsers();
       closeModal();
     } catch (e) {
       console.error("Failed to toggle user status", e);
@@ -378,7 +353,6 @@ const Users = () => {
       setActiveEntity((prev) => (prev && prev.id === staff.id
         ? { ...prev, is_verified_clinician: verified, clinician_verified_at: verified ? new Date().toISOString() : null }
         : prev));
-      await fetchUsers();
     } catch (e) {
       toast.error(e.data?.detail || "Couldn't update the clinician verification.");
     }
@@ -402,7 +376,6 @@ const Users = () => {
         email: staffData.email,
         password: created?.temp_password,
       });
-      await fetchUsers();
     } catch (e) {
       console.error("Failed to save staff", e);
       toast.error(e.data?.detail || "Failed to provision staff member.");
@@ -446,10 +419,10 @@ const Users = () => {
           actions={
             <button
               onClick={fetchUsers}
-              disabled={loading}
+              disabled={refreshing}
               className={UI.button.secondary}
             >
-              <RefreshCw size={13} className={loading ? "animate-spin text-ds-primary" : ""} />
+              <RefreshCw size={13} className={refreshing ? "animate-spin text-ds-primary" : ""} />
               <span>Refresh Directory</span>
             </button>
           }
