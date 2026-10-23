@@ -116,37 +116,6 @@ def submit_exercise_review(round_id: str, payload: dict, current_user: dict = De
     return {"status": "success", "section": saved, "case": review_sections.case_detail(round_id, current_user)}
 
 
-def is_evaluation_eligible(eval_item: dict) -> tuple[bool, str]:
-    if not eval_item:
-        return False, "Record is empty or null."
-    if eval_item.get("status") == "Archived":
-        return False, "Evaluation is archived."
-        
-    required_fields = [
-        "expert_hss_score",
-        "expert_hss_tier",
-        "ml_predicted_hss",
-        "ml_predicted_tier",
-        "absolute_error",
-        "input_snapshot",
-        "model_metadata",
-        "reviewer_id",
-        "created_at"
-    ]
-    for field in required_fields:
-        if eval_item.get(field) is None:
-            return False, f"Missing required field: {field}"
-            
-    snapshot = eval_item.get("input_snapshot")
-    if not isinstance(snapshot, dict):
-        return False, "input_snapshot is not a dictionary."
-        
-    features = snapshot.get("model_features")
-    if not features or not isinstance(features, dict) or len(features) == 0:
-        return False, "input_snapshot.model_features is empty or missing."
-        
-    return True, ""
-
 # --- HL-058: Model Check (replaces Calibration History) ---------------------------------------------
 from app.services import model_check as model_check_service
 
@@ -175,109 +144,33 @@ def archive_review_round(round_id: str, current_user: dict = Depends(_require_ad
     return {"status": "success"}
 
 
-@router.post("/datasets/generate")
-def generate_dataset(payload: dict = None, current_user: dict = Depends(get_current_admin_user)):
-    """Generate a versioned training dataset from eligible, anonymized expert evaluations."""
-    payload = payload or {}
-    model_hash_filter = payload.get("model_hash")
-    allow_mixed_models = payload.get("allow_mixed_models", False)
-    
-    eval_repo = get_case_review_repo()
-    all_evals = eval_repo.list_evaluations()
+# --- HL-059: clinical dataset export (retraining happens outside the app) ----------------------------
+from fastapi.responses import JSONResponse
+from app.services import clinical_dataset
+from app.utils.security import get_current_super_admin
 
-    eligible_evals = []
-    excluded_count = 0
-    excluded_reasons = []
-    
-    for ev in all_evals:
-        is_ok, reason = is_evaluation_eligible(ev)
-        if is_ok:
-            m_hash = ev.get("model_metadata", {}).get("model_hash")
-            if model_hash_filter and m_hash != model_hash_filter:
-                excluded_count += 1
-                excluded_reasons.append(f"Model hash does not match filter {model_hash_filter}")
-                continue
-            eligible_evals.append(ev)
-        else:
-            excluded_count += 1
-            excluded_reasons.append(reason)
-            
-    hashes = list(set(ev.get("model_metadata", {}).get("model_hash") for ev in eligible_evals if ev.get("model_metadata", {}).get("model_hash")))
-    if len(hashes) > 1 and not allow_mixed_models:
-        raise HTTPException(
-            status_code=400,
-            detail="Multiple model versions detected. Filter by specific model hash or allow mixed versions."
-        )
-        
-    today_str = utc_now().strftime("%Y-%m-%d")
-    existing_datasets = eval_repo.list_datasets()
-    version_idx = 1
-    for ds in existing_datasets:
-        if ds.get("dataset_id", "").startswith(f"dataset-{today_str}-"):
-            try:
-                idx = int(ds["dataset_id"].split("-")[-1])
-                if idx >= version_idx:
-                    version_idx = idx + 1
-            except ValueError:
-                pass
-    dataset_id = f"dataset-{today_str}-{version_idx:03d}"
-    
-    rows = []
-    for ev in eligible_evals:
-        rows.append({
-            "evaluation_id": ev.get("id"),
-            "case_id": ev.get("case_id"),
-            "model_hash": ev.get("model_metadata", {}).get("model_hash"),
-            "feature_pipeline_identifier": ev.get("model_metadata", {}).get("feature_pipeline_version"),
-            "expert_hss_score": ev.get("expert_hss_score"),
-            "expert_hss_tier": ev.get("expert_hss_tier"),
-            "ml_predicted_hss": ev.get("ml_predicted_hss"),
-            "ml_predicted_tier": ev.get("ml_predicted_tier"),
-            "absolute_error": ev.get("absolute_error"),
-            "tier_agreement": ev.get("tier_agreement"),
-            "reviewer_confidence": ev.get("reviewer_confidence"),
-            "adjustment_reasons": ev.get("adjustment_reasons", []),
-            "model_features": ev.get("input_snapshot", {}).get("model_features"),
-            "evaluation_timestamp": ev.get("created_at")
-        })
-        
-    dataset_meta = {
-        "dataset_id": dataset_id,
-        "created_at": utc_now().isoformat(),
-        "source_evaluation_ids": [ev.get("id") for ev in eligible_evals],
-        "record_count": len(rows),
-        "excluded_record_count": excluded_count,
-        "model_hashes_represented": hashes,
-        "feature_pipeline_versions_represented": list(set(ev.get("model_metadata", {}).get("feature_pipeline_version") for ev in eligible_evals if ev.get("model_metadata", {}).get("feature_pipeline_version"))),
-        "rows": rows
-    }
-    
-    created_dataset = eval_repo.create_dataset(dataset_meta)
-    
-    admin_id = current_user.get("user_id") if current_user else "admin"
+
+@router.get("/model-check/export")
+def export_clinical_dataset(current_user: dict = Depends(get_current_super_admin)):
+    """Clinical reviews only, with the starting score's inputs and a yes/no label. Super Admin only."""
+    try:
+        export = clinical_dataset.build_export(get_model_metadata().get("model_identifier"))
+    except clinical_dataset.NotEnoughReviews as e:
+        raise HTTPException(status_code=409, detail=str(e))
+    except ValueError as e:  # a mistyped label setting
+        raise HTTPException(status_code=500, detail=str(e))
+
     from app.utils.activity_helper import record_admin_activity
+    filename = f"heartlink-clinical-reviews-{export['generated_at'][:10]}.json"
     record_admin_activity(
-        admin_user_id=admin_id,
-        action="exported",
+        admin_user_id=current_user.get("user_id"),
+        action="exported the clinical dataset",
         target_type="dataset",
-        target_id=dataset_id,
-        target_name=dataset_id
+        target_id=filename,
+        target_name=f"{export['counts']['rows']} clinical reviews",
     )
-    
-    return {"status": "success", "dataset": created_dataset}
+    return JSONResponse(export, headers={"Content-Disposition": f'attachment; filename="{filename}"'})
 
-@router.get("/datasets", response_model=List[Dict[str, Any]])
-def list_datasets(current_user: dict = Depends(get_current_admin_user)):
-    """List all versioned datasets generated for offline calibration."""
-    return get_case_review_repo().list_datasets()
-
-@router.get("/datasets/{dataset_id}", response_model=Dict[str, Any])
-def get_dataset(dataset_id: str, current_user: dict = Depends(get_current_admin_user)):
-    """Retrieve details and rows of a specific dataset."""
-    dataset = get_case_review_repo().get_dataset(dataset_id)
-    if not dataset:
-        raise HTTPException(status_code=404, detail="Dataset not found")
-    return dataset
 
 @router.get("/models", response_model=List[Dict[str, Any]])
 def list_registered_models(current_user: dict = Depends(get_current_admin_user)):
@@ -327,8 +220,3 @@ def update_model_status(model_id: str, payload: dict, current_user: dict = Depen
         raise HTTPException(status_code=404, detail="Model not found.")
         
     return {"status": "success", "model": updated}
-
-@router.post("/retrain")
-def retrain_model(current_user: dict = Depends(get_current_admin_user)):
-    """Retrains the model using collected expert evaluations."""
-    raise HTTPException(status_code=501, detail="Model retraining is now handled offline for the static HSS model.")

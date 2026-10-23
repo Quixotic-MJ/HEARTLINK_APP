@@ -29,14 +29,15 @@ def _number(value: Any) -> Optional[float]:
     return n if n == n else None
 
 
-def _age(dob: Any) -> Optional[float]:
+def _age(dob: Any, on: Optional[date] = None) -> Optional[float]:
+    """Age in whole years on a day (default today), capped like NHANES records it."""
     if not dob:
         return None
     try:
         born = pd.to_datetime(dob).date() if not isinstance(dob, date) else dob
     except (ValueError, TypeError):
         return None
-    today = utc_now().date()
+    today = on or utc_now().date()
     years = today.year - born.year - ((today.month, today.day) < (born.month, born.day))
     return float(min(max(years, 0), NHANES_MAX_AGE))
 

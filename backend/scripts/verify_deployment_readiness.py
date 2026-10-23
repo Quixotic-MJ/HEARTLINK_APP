@@ -443,13 +443,13 @@ class DeploymentReadinessAuditTests(unittest.TestCase):
     # PHASE 5: Endpoint Smoke & 422 Error Sanitization Tests
     # =========================================================================
 
-    def test_phase5_expert_retrain_returns_501(self):
-        """Endpoint /api/admin/retrain returns HTTP 501 by design."""
+    def test_phase5_expert_retrain_is_gone(self):
+        """HL-059: there is no in-app retrain; models are retrained offline (scripts/train_starting_score.py)."""
         res = self.client.post(
             "/api/admin/retrain",
             headers={"Authorization": f"Bearer {self.token_admin}"}
         )
-        self.assertEqual(res.status_code, 501)
+        self.assertEqual(res.status_code, 404)
 
     def test_phase5_malformed_payload_returns_clean_422(self):
         """Malformed payloads return HTTP 422 without leaking SQL or stack traces."""

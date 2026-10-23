@@ -1,5 +1,5 @@
 import { useEffect, useState, Fragment } from "react";
-import { History, ChevronDown, ChevronRight, Info } from "lucide-react";
+import { History, ChevronDown, ChevronRight, Info, Download } from "lucide-react";
 import { toast } from "sonner";
 import AdminLayout from "../../../components/layouts/adminLayout";
 import { Skeleton } from "../../../components/ui/Skeleton";
@@ -50,6 +50,8 @@ function CheckSummary({ check }) {
 const ModelCheck = () => {
   const { user } = useAuth();
   const isAdmin = user?.role === "admin" || user?.role === "super_admin";
+  const isSuperAdmin = user?.role === "super_admin";
+  const [exporting, setExporting] = useState(false);
   const [scorer, setScorer] = useState("all");
   const [rowFilter, setRowFilter] = useState("all");
   const [data, setData] = useState(null);
@@ -84,6 +86,25 @@ const ModelCheck = () => {
     }
   };
 
+  // HL-059: clinical reviews only, for retraining outside the app (scripts/train_starting_score.py)
+  const exportDataset = async () => {
+    setExporting(true);
+    try {
+      const file = await apiFetch("/api/admin/model-check/export", { bypassCache: true });
+      const blob = new Blob([JSON.stringify(file, null, 2)], { type: "application/json" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `heartlink-clinical-reviews-${file.generated_at.slice(0, 10)}.json`;
+      link.click();
+      URL.revokeObjectURL(link.href);
+      toast.success(`Exported ${file.counts.rows} clinical reviews (${file.counts.excluded} left out, reasons in the file).`);
+    } catch (e) {
+      toast.error(e?.data?.detail || "Couldn't export the clinical reviews.");
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const clinical = data?.clinical;
   const rows = (data?.rows || []).filter((r) => rowFilter === "all" || (rowFilter === "clinical" ? r.is_clinical : !r.is_clinical));
   const matrix = clinical?.matrix?.rows_app_columns_cardiologist || [];
@@ -96,6 +117,13 @@ const ModelCheck = () => {
           eyebrowIcon={History}
           title="Model Check"
           description="How often the app's risk level matches a cardiologist's, and which way it misses. Measures use clinical reviews only."
+          actions={
+            isSuperAdmin && (
+              <button type="button" onClick={exportDataset} disabled={exporting} className={UI.button.secondary}>
+                <Download size={15} aria-hidden="true" /> {exporting ? "Exporting…" : "Export clinical reviews"}
+              </button>
+            )
+          }
         />
 
         <div role="group" aria-label="Scorer" className="flex flex-wrap gap-2 mb-4">
