@@ -65,6 +65,19 @@ app = FastAPI(
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+# Added before CORS so CORS stays the outermost layer and its headers reach every reply, a refused upload included.
+from app.utils.http_guards import SecurityHeaders, UploadSizeLimit
+from app.services.storage_service import BUCKET_CONFIGS
+
+# HL-070: refuse an upload bigger than the largest allowed file (plus room for the form around it) before reading it
+app.add_middleware(
+    UploadSizeLimit,
+    paths=["/api/upload"],
+    max_bytes=max(cfg["max_bytes"] for cfg in BUCKET_CONFIGS.values()) + 1024 * 1024,
+)
+# HL-068: nosniff, referrer policy, no framing; HTTPS-only (HSTS) in production
+app.add_middleware(SecurityHeaders, production=is_production)
+
 # CORS Configuration
 raw_cors = os.getenv("CORS_ALLOWED_ORIGINS", "").strip()
 if raw_cors:
@@ -92,7 +105,8 @@ app.add_middleware(
     allow_origins=allowed_origins,
     allow_credentials=allow_credentials,
     allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allow_headers=["*"],
+    # HL-069: only what the apps send (the phone app's token, JSON bodies, the portal's CSRF token)
+    allow_headers=["Authorization", "Content-Type", "X-CSRF-Token"],
 )
 
 app.include_router(auth.router, prefix="/api")
