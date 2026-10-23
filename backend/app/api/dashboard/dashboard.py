@@ -1,16 +1,18 @@
 import logging
 import traceback
-from fastapi import APIRouter, HTTPException, Depends, status
+from fastapi import APIRouter, HTTPException, Depends, Request, Response, status
 from typing import Any, Dict
 from app.services.dashboard import get_dashboard_data, get_7_day_wrap_up_data
 from app.utils.security import get_current_user
+from app.utils.rate_limiter import limiter, DASHBOARD_RATE_LIMIT, user_or_ip_key
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/dashboard", tags=["Dashboard"])
 
 @router.get("/me", response_model=Dict[str, Any])
-def get_dashboard(current_user: dict = Depends(get_current_user)):
+@limiter.limit(DASHBOARD_RATE_LIMIT, key_func=user_or_ip_key)
+def get_dashboard(request: Request, response: Response, current_user: dict = Depends(get_current_user)):
     user_id = current_user.get("user_id")
     if not user_id:
         raise HTTPException(

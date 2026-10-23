@@ -1,11 +1,16 @@
 import pytest
 from unittest.mock import patch
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
 from app.main import app
 
 client = TestClient(app)
 
-def test_login_rate_limit():
+@patch("app.api.auth.auth.get_auth_service")
+def test_login_rate_limit(mock_auth_service):
+    # A stand-in for sign-in, so the test never touches the shared database
+    mock_auth_service.return_value.login.side_effect = HTTPException(status_code=401, detail="Invalid credentials")
+    mock_auth_service.return_value.verify_registration_otp.side_effect = HTTPException(status_code=400, detail="Invalid code")
     endpoint = "/api/auth/login"
     payload = {"identifier": "testuser", "password": "wrongpassword"}
     
@@ -40,7 +45,11 @@ def test_request_code_rate_limit(mock_auth_service):
     assert response.status_code == 429
     assert "Retry-After" in response.headers
 
-def test_verify_code_rate_limit():
+@patch("app.api.auth.auth.get_auth_service")
+def test_verify_code_rate_limit(mock_auth_service):
+    # A stand-in for sign-in, so the test never touches the shared database
+    mock_auth_service.return_value.login.side_effect = HTTPException(status_code=401, detail="Invalid credentials")
+    mock_auth_service.return_value.verify_registration_otp.side_effect = HTTPException(status_code=400, detail="Invalid code")
     endpoint = "/api/auth/verify-code"
     payload = {"phone": "+1234567890", "code": "000000"}
     

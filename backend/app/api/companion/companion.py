@@ -24,10 +24,11 @@ from datetime import date
 from typing import Any, Dict, Tuple
 
 import httpx
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request, Response
 from pydantic import BaseModel, Field
 
 from app.utils.security import get_current_user
+from app.utils.rate_limiter import limiter, AI_RATE_LIMIT, user_or_ip_key
 from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
 
 logger = logging.getLogger("heartlink.companion")
@@ -150,7 +151,10 @@ def _call_llm(slot: str, template: str, facts: Dict[str, Any]) -> str:
 
 
 @router.post("/varnish", response_model=VarnishResponse)
-def varnish_companion_line(body: VarnishRequest, current_user: dict = Depends(get_current_user)):
+@limiter.limit(AI_RATE_LIMIT, key_func=user_or_ip_key)
+def varnish_companion_line(
+    body: VarnishRequest, request: Request, response: Response, current_user: dict = Depends(get_current_user)
+):
     """Rephrase a deterministic companion template. Always safe to call:
     any failure mode returns the template with source='template'."""
     template = body.template.strip()

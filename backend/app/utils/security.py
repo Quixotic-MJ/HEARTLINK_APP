@@ -261,6 +261,8 @@ def get_current_user(request: Request, credentials: Optional[HTTPAuthorizationCr
         )
 
     _enforce_password_change(request, user_id, user)
+    # Lets the rate limiter count this person's requests (user_or_ip_key)
+    request.state.user_id = user_id
     return payload
 
 def get_current_admin_user(request: Request, credentials: Optional[HTTPAuthorizationCredentials] = Security(security)):

@@ -122,7 +122,34 @@ def _get_trend_direction(user_hss: list) -> str:
     return str(diff)  # Already includes minus sign for negatives
 
 
-def _generate_insight(user_hss: list, latest_log: dict | None, first_name: str | None = None) -> dict:
+# Today's note (Groq): the same score story keeps the same AI line for the rest of the day, and each patient gets
+# at most AI_INSIGHT_DAILY_CAP new AI lines a day, so refreshing the dashboard doesn't call the AI every time.
+# Kept in memory (one server); a restart only means the next load asks again.
+AI_INSIGHT_DAILY_CAP = int(os.getenv("AI_INSIGHT_DAILY_CAP", "8"))
+_ai_insight_lines: Dict[tuple, str] = {}
+_ai_insight_calls: Dict[str, tuple] = {}
+
+
+def _ai_insight_allowed(user_id: str, today: str) -> bool:
+    day, count = _ai_insight_calls.get(user_id, (today, 0))
+    if day != today:
+        count = 0
+    if count >= AI_INSIGHT_DAILY_CAP:
+        return False
+    _ai_insight_calls[user_id] = (today, count + 1)
+    return True
+
+
+def _remember_ai_insight(key: tuple, line: str) -> None:
+    today = key[1]
+    for old in [k for k in _ai_insight_lines if k[1] != today]:
+        del _ai_insight_lines[old]
+    _ai_insight_lines[key] = line
+
+
+def _generate_insight(
+    user_hss: list, latest_log: dict | None, first_name: str | None = None, user_id: str | None = None
+) -> dict:
     """Generate a dynamic smart insight based on actual data.
 
     `action` names the one step the app offers under the note: "log_vitals", "review_meals" or None.
@@ -201,36 +228,14 @@ def _generate_insight(user_hss: list, latest_log: dict | None, first_name: str |
                 if factors.get("staleness_points"): points.append(f"{factors.get('staleness_points', 0):+} pts penalty for missing data")
                 if points:
                     context_str = "Today's score was affected by: " + ", ".join(points) + "."
-            
-            prompt = f"""
-            You are HeartLink's empathetic AI health coach. 
-            Write a warm, highly personalized, and encouraging 2-sentence insight for {first_name}.
-            Do NOT give specific medical or dietary advice. Do not use generic phrases. Be conversational and human.
-            
-            Context about their Heart Stability Score today:
-            - General trend: {body}
-            - Itemized changes today: {context_str or "No major activities logged yet."}
-            
-            Write the message directly to {first_name}.
-            """
-            
-            chat_completion = client.chat.completions.create(
-                messages=[
-                    {
-                        "role": "system",
-                        "content": "You are a warm, empathetic AI health coach. Output only the message, no quotation marks or preamble. Strictly 2 sentences maximum."
-                    },
-                    {
-                        "role": "user",
-                        "content": prompt,
-                    }
-                ],
-                model="qwen/qwen3.8-27b",
-                temperature=0.7,
-                max_tokens=60,
-            )
-            
-            ai_body = chat_completion.choices[0].message.content.strip().strip('"')
+
+            today = to_local_date(utc_now()).isoformat()
+            cache_key = (user_id or first_name, today, body, context_str)
+            ai_body = _ai_insight_lines.get(cache_key)
+            if ai_body is None and _ai_insight_allowed(user_id or first_name, today):
+                ai_body = _ask_ai_for_insight(client, first_name, body, context_str)
+                if ai_body:
+                    _remember_ai_insight(cache_key, ai_body)
             if ai_body:
                 body = ai_body
                 title = "" # Remove legacy rigid title so the AI coach speaks naturally
@@ -241,6 +246,40 @@ def _generate_insight(user_hss: list, latest_log: dict | None, first_name: str |
             pass
 
     return {"title": title, "body": body, "icon": icon, "action": action, "ai_written": ai_written}
+
+
+def _ask_ai_for_insight(client, first_name: str, body: str, context_str: str) -> str:
+    """One short AI-written note; the caller keeps it for the day."""
+    prompt = f"""
+    You are HeartLink's empathetic AI health coach. 
+    Write a warm, highly personalized, and encouraging 2-sentence insight for {first_name}.
+    Do NOT give specific medical or dietary advice. Do not use generic phrases. Be conversational and human.
+    
+    Context about their Heart Stability Score today:
+    - General trend: {body}
+    - Itemized changes today: {context_str or "No major activities logged yet."}
+    
+    Write the message directly to {first_name}.
+    """
+    
+    chat_completion = client.chat.completions.create(
+        messages=[
+            {
+                "role": "system",
+                "content": "You are a warm, empathetic AI health coach. Output only the message, no quotation marks or preamble. Strictly 2 sentences maximum."
+            },
+            {
+                "role": "user",
+                "content": prompt,
+            }
+        ],
+        model="qwen/qwen3.8-27b",
+        temperature=0.7,
+        max_tokens=60,
+    )
+    
+    return chat_completion.choices[0].message.content.strip().strip('"')
+
 
 def _calculate_streak_data(meal_logs, exercise_logs, daily_health_logs, sleep_logs) -> Dict[str, Any]:
     now_local = to_local_date(utc_now())
@@ -541,7 +580,7 @@ def get_dashboard_data(user_id: str, recipe_limit: int = 2, exercise_limit: int 
     trend = _get_trend_direction(user_hss)
 
     # ── Generate dynamic smart insight ─────────────────────────────────────────
-    insight = _generate_insight(user_hss, latest_log, profile.get("first_name"))
+    insight = _generate_insight(user_hss, latest_log, profile.get("first_name"), canonical_id)
 
 
 

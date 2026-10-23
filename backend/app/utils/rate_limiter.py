@@ -20,4 +20,15 @@ def client_ip_key(request: Request) -> str:
     return get_remote_address(request)
 
 
+def user_or_ip_key(request: Request) -> str:
+    """Signed-in requests count per person (get_current_user stores the id), so a class or panel sharing one
+    Wi-Fi doesn't share one limit. Requests that never got past sign-in count per address."""
+    user_id = getattr(request.state, "user_id", None)
+    return f"user:{user_id}" if user_id else client_ip_key(request)
+
+
 limiter = Limiter(key_func=client_ip_key, headers_enabled=True)
+
+# The AI-backed endpoints: enough for normal use, low enough that a stuck loop can't run up the AI bill.
+AI_RATE_LIMIT = os.getenv("AI_RATE_LIMIT", "20/minute")
+DASHBOARD_RATE_LIMIT = os.getenv("DASHBOARD_RATE_LIMIT", "30/minute")
