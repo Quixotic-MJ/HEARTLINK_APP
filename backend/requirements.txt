@@ -1,31 +1,34 @@
+# Exact versions, so Render and GitHub install what was tested (HL-062).
+# To upgrade: change a version, run `python -m pytest -q`, then commit.
+
 # Core Web Framework
-fastapi>=0.110.0
-uvicorn[standard]>=0.28.0
-python-multipart>=0.0.9
+fastapi==0.161.1
+uvicorn[standard]==0.54.0
+python-multipart==0.0.32
 
 # Database & Supabase Infrastructure
-supabase>=2.31.0
-python-dotenv>=1.0.0
-httpx>=0.27.0
-groq>=0.9.0
+supabase==2.33.0
+python-dotenv==1.2.4
+httpx==0.28.1
+groq==1.7.0
 
 # Authentication & Security
-PyJWT>=2.8.0
-cryptography>=42.0.0
-passlib[bcrypt]>=1.7.4
-bcrypt>=4.0.0
-slowapi>=0.1.10
-pytest>=8.0.0
-httpx>=0.27.0
+PyJWT==2.15.1
+cryptography==50.0.2
+passlib[bcrypt]==1.7.4
+bcrypt==5.0.0
+slowapi==0.1.10
+pytest==9.1.1
+httpx==0.28.1
 
 # Data Validation & Schemas
-pydantic>=2.7.0
-pydantic[email]>=2.7.0
-email-validator>=2.1.0
+pydantic==2.14.1
+pydantic[email]==2.14.1
+email-validator==2.3.0
 
 # Machine Learning & Clinical Scoring (HSS Engine)
-numpy>=1.26.0
-pandas>=2.2.0
-scikit-learn>=1.4.0
-joblib>=1.3.0
-tzdata
+numpy==2.4.6
+pandas==3.1.0
+scikit-learn==1.9.1
+joblib==1.6.0
+tzdata==2026.5
