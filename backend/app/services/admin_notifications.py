@@ -48,7 +48,11 @@ def create_admin_notification(
             "read_by": list(read_by) if read_by else []
         }
 
-        return get_admin_repo().create_admin_notification(data)
+        created = get_admin_repo().create_admin_notification(data)
+        # HL-041: open portal tabs refresh their bell straight away
+        from app.services import live_events
+        live_events.publish("notifications")
+        return created
     except Exception as e:
         logger.error(f"Error creating admin notification: {e}")
         return None

@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { apiFetch } from '../../api';
 import { useApiQuery } from '../../hooks/useApiQuery';
+import { useLiveNotifications } from '../../hooks/useLiveNotifications';
 import { markNotificationsRead } from '../../utils/notificationCache';
 
 const BELL_PATH = "/api/admin/notifications";
@@ -27,10 +28,11 @@ export default function AdminNotificationDropdown({ userId }) {
   const [actionError, setActionError] = useState(null);
   const dropdownRef = useRef(null);
 
-  // Checks every 60 seconds while the tab is open (paused while it's hidden), when the tab gets focus, when the
-  // bell is opened, and after any save
+  // HL-041: refreshes the moment notifications change (a live stream from the server), plus when the tab gets
+  // focus, when the bell is opened and after any save; no more checking every 60 seconds
   const queryClient = useQueryClient();
-  const notificationsQuery = useApiQuery(BELL_PATH, { refetchInterval: 60 * 1000 });
+  const notificationsQuery = useApiQuery(BELL_PATH);
+  useLiveNotifications();
   const notifications = notificationsQuery.data?.items ?? NO_NOTIFICATIONS;
   const unreadCount = notificationsQuery.data?.unread_count || 0;
   const isLoading = notificationsQuery.isPending;
