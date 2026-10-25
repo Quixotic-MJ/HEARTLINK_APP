@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "276338222114",
+    "project_id": "heartlink-69c41",
+    "storage_bucket": "heartlink-69c41.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:276338222114:android:a85ccac42693f4a90cd67b",
+        "android_client_info": {
+          "package_name": "com.heartlink.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCNX5CLrwNry1-Q1AZoeQB4rV9YOTgdUyQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

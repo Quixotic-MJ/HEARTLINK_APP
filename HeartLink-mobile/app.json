@@ -29,7 +29,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-logo-light.svg",
+          "image": "./assets/images/splash-logo-light.png",
           "imageWidth": 291,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
@@ -52,6 +52,16 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "expo-navigation-bar": {
+        "enforceContrast": false
+      },
+      "eas": {
+        "projectId": "30bd6b33-44ab-4da8-9d8f-0f41b7104a3b"
+      }
+    },
+    "owner": "404-klein"
   }
 }
