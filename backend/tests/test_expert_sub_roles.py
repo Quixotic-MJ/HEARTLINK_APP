@@ -32,12 +32,10 @@ def test_normalize_expert_type_invalid_and_empty():
     assert normalize_expert_type(None) is None
 
 
-def test_resolve_expert_type_for_admin_and_super_admin():
-    # Admin and Super Admin accounts do not have an expert_type
+def test_resolve_expert_type_for_admin():
+    # Admin accounts do not have an expert_type
     assert _resolve_expert_type("admin", None) is None
     assert _resolve_expert_type("admin", "Physical Therapist") is None
-    assert _resolve_expert_type("super_admin", "Dietitian") is None
-    assert _resolve_expert_type("super_admin", None) is None
 
 
 def test_resolve_expert_type_for_medical_expert_valid():
@@ -74,10 +72,10 @@ def test_create_system_staff_missing_expert_type_raises_400_before_db():
         "email": "missing.specialization@heartlink.ph",
         "role": "Authorized Medical Expert",
     }
-    super_admin_user = {"user_id": "test-super-admin-uuid", "role": "super_admin"}
+    admin_user = {"user_id": "test-admin-uuid", "role": "admin"}
     
     with pytest.raises(HTTPException) as exc_info:
-        create_system_staff(payload, current_user=super_admin_user)
+        create_system_staff(payload, current_user=admin_user)
     assert exc_info.value.status_code == 400
     assert "expert_type is required when role is medical_expert" in exc_info.value.detail
 
@@ -89,10 +87,10 @@ def test_create_system_staff_blank_expert_type_raises_400_before_db():
         "role": "Authorized Medical Expert",
         "expert_type": "   ",
     }
-    super_admin_user = {"user_id": "test-super-admin-uuid", "role": "super_admin"}
+    admin_user = {"user_id": "test-admin-uuid", "role": "admin"}
     
     with pytest.raises(HTTPException) as exc_info:
-        create_system_staff(payload, current_user=super_admin_user)
+        create_system_staff(payload, current_user=admin_user)
     assert exc_info.value.status_code == 400
     assert "expert_type is required when role is medical_expert" in exc_info.value.detail
 
@@ -104,9 +102,9 @@ def test_create_system_staff_invalid_expert_type_raises_400_before_db():
         "role": "Authorized Medical Expert",
         "expert_type": "Neurologist",
     }
-    super_admin_user = {"user_id": "test-super-admin-uuid", "role": "super_admin"}
+    admin_user = {"user_id": "test-admin-uuid", "role": "admin"}
     
     with pytest.raises(HTTPException) as exc_info:
-        create_system_staff(payload, current_user=super_admin_user)
+        create_system_staff(payload, current_user=admin_user)
     assert exc_info.value.status_code == 400
     assert "Invalid expert_type: 'Neurologist'" in exc_info.value.detail

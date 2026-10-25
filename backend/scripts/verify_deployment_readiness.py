@@ -46,7 +46,6 @@ class DeploymentReadinessAuditTests(unittest.TestCase):
         all_profiles = cls.profile_repo.list_all()
         patients = [p for p in all_profiles if p.get("role") == "patient" and p.get("account_status") == "active"]
         admins = [p for p in all_profiles if p.get("role") == "admin" and p.get("account_status") == "active"]
-        super_admins = [p for p in all_profiles if p.get("role") == "super_admin" and p.get("account_status") == "active"]
         experts = [p for p in all_profiles if p.get("role") == "medical_expert" and p.get("account_status") == "active"]
 
         if len(patients) >= 2:
@@ -58,15 +57,13 @@ class DeploymentReadinessAuditTests(unittest.TestCase):
         else:
             raise RuntimeError("At least 1 patient profile required in database.")
 
-        cls.admin_user = admins[0] if admins else (super_admins[0] if super_admins else cls.patient_a)
-        cls.super_admin_user = super_admins[0] if super_admins else cls.admin_user
+        cls.admin_user = admins[0] if admins else cls.patient_a
         cls.expert_user = experts[0] if experts else None
 
         # Generate tokens
         cls.token_patient_a = create_access_token({"user_id": cls.patient_a["id"], "role": "patient"})
         cls.token_patient_b = create_access_token({"user_id": cls.patient_b["id"], "role": "patient"})
         cls.token_admin = create_access_token({"user_id": cls.admin_user["id"], "role": cls.admin_user.get("role", "admin")})
-        cls.token_super_admin = create_access_token({"user_id": cls.super_admin_user["id"], "role": "super_admin"})
         cls.token_expert = create_access_token({"user_id": cls.expert_user["id"], "role": "medical_expert"}) if cls.expert_user else None
 
     # =========================================================================
@@ -395,8 +392,8 @@ class DeploymentReadinessAuditTests(unittest.TestCase):
         )
         self.assertEqual(res.status_code, 403)
 
-    def test_phase4_regular_admin_cannot_change_staff_role(self):
-        """Regular Admin attempting /api/admin/staff/{id}/role must return 403 (SuperAdmin required)."""
+    def test_phase4_admin_cannot_change_own_role(self):
+        """An admin changing their own role through /api/admin/staff/{id}/role is refused."""
         res = self.client.put(
             f"/api/admin/staff/{self.admin_user['id']}/role",
             headers={"Authorization": f"Bearer {self.token_admin}"},
@@ -404,20 +401,20 @@ class DeploymentReadinessAuditTests(unittest.TestCase):
         )
         self.assertIn(res.status_code, [400, 403])
 
-    def test_phase4_super_admin_self_protection_guardrails(self):
-        """Super Admin cannot self-deactivate, self-demote, or deactivate last active super admin."""
+    def test_phase4_admin_self_protection_guardrails(self):
+        """An admin cannot self-deactivate, self-demote, or deactivate the last active admin."""
         # 1. Self-deactivation attempt
         res = self.client.put(
-            f"/api/admin/users/{self.super_admin_user['id']}/status",
-            headers={"Authorization": f"Bearer {self.token_super_admin}"}
+            f"/api/admin/users/{self.admin_user['id']}/status",
+            headers={"Authorization": f"Bearer {self.token_admin}"}
         )
         self.assertEqual(res.status_code, 400)
         self.assertIn("Self-deactivation is not permitted", res.json().get("detail", ""))
 
         # 2. Self-demotion attempt
         res = self.client.put(
-            f"/api/admin/staff/{self.super_admin_user['id']}/role",
-            headers={"Authorization": f"Bearer {self.token_super_admin}"},
+            f"/api/admin/staff/{self.admin_user['id']}/role",
+            headers={"Authorization": f"Bearer {self.token_admin}"},
             json={"role": "Authorized Medical Expert"}
         )
         self.assertEqual(res.status_code, 400)

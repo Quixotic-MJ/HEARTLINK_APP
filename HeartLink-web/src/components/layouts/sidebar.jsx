@@ -126,7 +126,6 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed, onLogou
   const userInitials = userName ? userName.substring(0, 2).toUpperCase() : "HL";
 
   const getRoleLabel = (r) => {
-    if (r === "super_admin") return "Super admin";
     if (r === "admin") return "System admin";
     if (r === "medical_expert") return "Medical expert";
     return "Staff user";
@@ -233,7 +232,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed, onLogou
           <NavItem path="/cases" icon={ClipboardList} label="Case review" collapsed={collapsed} />
           <NavItem path="/calibration" icon={History} label="Model Check" collapsed={collapsed} />
 
-          {(role === "admin" || role === "super_admin") && (
+          {role === "admin" && (
             <>
               <SectionLabel label="Users & feedback" collapsed={collapsed} />
               <NavItem path="/users" icon={Users} label="Users" collapsed={collapsed} />

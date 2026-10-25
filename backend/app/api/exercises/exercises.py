@@ -19,7 +19,7 @@ def read_routines(request: Request, credentials: Optional[HTTPAuthorizationCrede
     if token:
         try:
             payload = verify_token(token)
-            if payload.get("role") in ["admin", "super_admin", "medical_expert"]:
+            if payload.get("role") in ["admin", "medical_expert"]:
                 is_admin = True
         except Exception:
             pass
@@ -29,7 +29,7 @@ def read_routines(request: Request, credentials: Optional[HTTPAuthorizationCrede
     return [r for r in routines if is_visible_to_patients(r)]
 
 def _own_account_only(current_user: dict, user_id: str) -> None:
-    if current_user.get("user_id") != user_id and current_user.get("role") != "super_admin":
+    if current_user.get("user_id") != user_id and current_user.get("role") != "admin":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You may only change saved exercises for your own account.")
 
 @router.get("/saved/{user_id}", response_model=List[Dict[str, Any]])
@@ -61,7 +61,7 @@ def read_routine(routine_id: str, request: Request, credentials: Optional[HTTPAu
     if token:
         try:
             payload = verify_token(token)
-            if payload.get("role") in ["admin", "super_admin", "medical_expert"]:
+            if payload.get("role") in ["admin", "medical_expert"]:
                 is_admin = True
         except Exception:
             pass

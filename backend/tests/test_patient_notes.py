@@ -18,7 +18,6 @@ PROFILES = {
     "cardio-1": {"id": "cardio-1", "role": "medical_expert", "expert_type": "Cardiologist", "account_status": "active",
                  "first_name": "Cora", "last_name": "Heart"},
     "admin-1": {"id": "admin-1", "role": "admin", "account_status": "active"},
-    "super-1": {"id": "super-1", "role": "super_admin", "account_status": "active"},
     PATIENT_ID: {"id": PATIENT_ID, "role": "patient", "account_status": "active", "created_at": "2026-10-01T00:00:00+00:00"},
     OTHER_PATIENT_ID: {"id": OTHER_PATIENT_ID, "role": "patient", "account_status": "active", "created_at": "2026-10-02T00:00:00+00:00"},
 }
@@ -156,7 +155,7 @@ def _post(user_id, kind, body="Keep sodium under 1,500 mg; walking is fine, no h
     ("pt-1", "message", 200),
     # Admins read everything but don't sign notes
     ("admin-1", "guidance", 403),
-    ("super-1", "message", 403),
+    ("admin-1", "message", 403),
 ])
 def test_who_can_post_each_kind(user_id, kind, expected):
     assert _post(user_id, kind).status_code == expected
@@ -193,7 +192,7 @@ def test_notes_on_someone_who_is_not_a_patient_are_refused():
 
 # --- Who may read --------------------------------------------------------------------------------
 
-@pytest.mark.parametrize("user_id", ["cardio-1", "diet-1", "pt-1", "admin-1", "super-1"])
+@pytest.mark.parametrize("user_id", ["cardio-1", "diet-1", "pt-1", "admin-1"])
 def test_every_expert_and_admin_reads_guidance_and_messages(user_id):
     _post("cardio-1", "guidance")
     _post("pt-1", "message", "Started her on the 10-minute walk.")

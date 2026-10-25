@@ -16,7 +16,6 @@ PROFILES = {
     "pt-1": {"id": "pt-1", "role": "medical_expert", "expert_type": "Physical Therapist", "account_status": "active"},
     "cardio-1": {"id": "cardio-1", "role": "medical_expert", "expert_type": "Cardiologist", "account_status": "active"},
     "admin-1": {"id": "admin-1", "role": "admin", "account_status": "active"},
-    "super-1": {"id": "super-1", "role": "super_admin", "account_status": "active"},
     PATIENT_ID: {"id": PATIENT_ID, "role": "patient", "account_status": "active"},
 }
 
@@ -106,8 +105,6 @@ FORBIDDEN = 403
     # Admins keep full access
     ("admin-1", ADD_RECIPE, ALLOWED),
     ("admin-1", ADD_EXERCISE, ALLOWED),
-    ("super-1", ADD_RECIPE, ALLOWED),
-    ("super-1", ADD_EXERCISE, ALLOWED),
 ])
 def test_permission_boundaries(user_id, call, expected):
     method, path, kwargs = call

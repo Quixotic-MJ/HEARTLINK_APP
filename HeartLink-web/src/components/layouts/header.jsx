@@ -151,7 +151,7 @@ export default function Header({
 
           {quickActionsOpen && (
             <div className="absolute right-0 top-[calc(100%+8px)] w-[210px] bg-ds-canvas border border-ds-hairline rounded-xl shadow-lg p-1.5 z-50">
-              {userRole === "admin" || userRole === "super_admin" ? (
+              {userRole === "admin" ? (
                 <>
                   <div className="text-[11px] font-semibold text-ds-steel px-2.5 pt-2 pb-1 uppercase tracking-wider">
                     System actions
@@ -163,15 +163,13 @@ export default function Header({
                     <Megaphone size={14} className="text-ds-primary shrink-0" />
                     <span>Send announcement</span>
                   </button>
-                  {userRole === "super_admin" && (
-                    <button
-                      onClick={() => { navigate('/users'); setQuickActionsOpen(false); }}
-                      className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-[7px] text-[12.5px] font-medium text-ds-ink hover:bg-ds-surface transition-colors text-left cursor-pointer"
-                    >
-                      <UserPlus size={14} className="text-ds-primary shrink-0" />
-                      <span>Provision staff account</span>
-                    </button>
-                  )}
+                  <button
+                    onClick={() => { navigate('/users'); setQuickActionsOpen(false); }}
+                    className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-[7px] text-[12.5px] font-medium text-ds-ink hover:bg-ds-surface transition-colors text-left cursor-pointer"
+                  >
+                    <UserPlus size={14} className="text-ds-primary shrink-0" />
+                    <span>Provision staff account</span>
+                  </button>
                 </>
               ) : (
                 <>
@@ -199,7 +197,7 @@ export default function Header({
         </div>
 
         {/* Notifications */}
-        {(userRole === "admin" || userRole === "super_admin") && (
+        {userRole === "admin" && (
           <AdminNotificationDropdown userId={userId || user?.id} />
         )}
       </div>

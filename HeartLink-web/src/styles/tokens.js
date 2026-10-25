@@ -166,8 +166,8 @@ export const getBadgeConfig = (type) => {
     };
   }
 
-  // Primary Brand / Super Admin / Broadcast
-  if (["super_admin", "super admin", "broadcast", "new", "unread"].includes(t)) {
+  // Primary Brand / Broadcast
+  if (["broadcast", "new", "unread"].includes(t)) {
     return {
       label: type,
       bg: "bg-ds-tint",

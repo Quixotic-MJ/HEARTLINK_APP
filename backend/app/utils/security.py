@@ -22,7 +22,7 @@ ALGORITHM = os.getenv("ALGORITHM", "HS256")
 
 # HL-047: short-lived access tokens; a refresh token (session_service) quietly gets a new one.
 # The *_MINUTES variables are for local testing only (e.g. 1 minute to watch a refresh happen).
-STAFF_ROLES = {"admin", "super_admin", "medical_expert"}
+STAFF_ROLES = {"admin", "medical_expert"}
 STAFF_ACCESS_TOKEN_MINUTES = 60
 PATIENT_ACCESS_TOKEN_MINUTES = 24 * 60
 
@@ -307,21 +307,12 @@ def get_current_admin_user(request: Request, credentials: Optional[HTTPAuthoriza
     _enforce_password_change(request, user_id, user)
     return payload
 
-def get_current_super_admin(current_user: dict = Depends(get_current_admin_user)):
-    role = current_user.get("role")
-    if role != "super_admin":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access Denied: Super Admin only",
-        )
-    return current_user
-
-# HL-012: what each expert type may do. Admins and Super Admin may do everything.
+# HL-012: what each expert type may do. Admins may do everything (HL-074: one Admin role, no Super Admin).
 # Recipes are the Dietitian's, exercises the PT's; the Cardiologist reads every patient log
 # and may record vitals, but does not edit recipes or exercises.
 # Patient notes (HL-039/013/040): every expert reads them; the Cardiologist writes guidance,
 # Dietitians and PTs write to their shared message thread.
-ADMIN_ROLES = {"admin", "super_admin"}
+ADMIN_ROLES = {"admin"}
 EXPERT_PERMISSIONS = {
     "Dietitian": {"recipes:edit", "meal_logs:read", "meal_logs:write", "vitals:read", "notes:read", "notes:message"},
     "Physical Therapist": {"exercises:edit", "exercise_logs:read", "vitals:read", "notes:read", "notes:message"},
@@ -371,7 +362,7 @@ def require_permission(permission: str):
 
 
 def get_current_admin_only(current_user: dict = Depends(get_current_admin_user)):
-    """Admin and Super Admin only; medical experts get 403."""
+    """Admins only; medical experts get 403."""
     if current_user.get("role") not in ADMIN_ROLES:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -383,8 +374,8 @@ def verify_user_access(current_user: dict, target_user_id: str) -> None:
     caller_id = current_user.get("user_id")
     caller_role = current_user.get("role")
     
-    # 1. Super admin and admin have system audit access
-    if caller_role in ["super_admin", "admin"]:
+    # 1. Admins have system audit access
+    if caller_role in ADMIN_ROLES:
         return
 
     # 2. Patient access: Strictly self only

@@ -136,7 +136,7 @@ def api(monkeypatch):
     from app.utils.security import create_access_token, revoked_token_hashes
 
     people = Profiles([
-        {"id": "boss", "role": "super_admin", "account_status": "active"},
+        {"id": "boss", "role": "admin", "account_status": "active"},
         {"id": "admin", "role": "admin", "account_status": "active"},
         {"id": "doc", "role": "medical_expert", "expert_type": "Cardiologist", "account_status": "active"},
     ])
@@ -152,21 +152,21 @@ def api(monkeypatch):
     app.dependency_overrides.update(saved)
 
 
-def test_super_admin_verifies_a_clinician(api):
+def test_an_admin_verifies_a_clinician(api):
     client, people, as_user = api
-    res = client.put("/api/admin/staff/doc/clinician-verification", json={"verified": True}, headers=as_user("boss", "super_admin"))
+    res = client.put("/api/admin/staff/doc/clinician-verification", json={"verified": True}, headers=as_user("boss", "admin"))
     assert res.status_code == 200
     assert people.people["doc"]["is_verified_clinician"] is True
     assert people.people["doc"]["clinician_verified_by"] == "boss"
 
-    res = client.put("/api/admin/staff/doc/clinician-verification", json={"verified": False}, headers=as_user("boss", "super_admin"))
+    res = client.put("/api/admin/staff/doc/clinician-verification", json={"verified": False}, headers=as_user("boss", "admin"))
     assert res.status_code == 200 and people.people["doc"]["clinician_verified_at"] is None
 
 
 @pytest.mark.parametrize("target, body, who, code", [
-    ("doc", {"verified": True}, ("admin", "admin"), 403),      # admins cannot verify
-    ("doc", {"verified": "yes"}, ("boss", "super_admin"), 400),
-    ("admin", {"verified": True}, ("boss", "super_admin"), 404),  # only medical experts
+    ("doc", {"verified": True}, ("doc", "medical_expert"), 403),  # experts cannot verify
+    ("doc", {"verified": "yes"}, ("boss", "admin"), 400),
+    ("admin", {"verified": True}, ("boss", "admin"), 404),  # only medical experts
 ])
 def test_verification_rules(api, target, body, who, code):
     client, _, as_user = api

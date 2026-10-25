@@ -65,8 +65,6 @@ const StaffListView = ({
       matchRole = s.role === "System Admin" || s.db_role === "admin";
     } else if (filterRole === "medical_expert") {
       matchRole = s.role === "Authorized Medical Expert" || s.db_role === "medical_expert";
-    } else if (filterRole === "super_admin") {
-      matchRole = s.role === "Super Admin" || s.db_role === "super_admin";
     }
 
     // Status Match
@@ -97,7 +95,7 @@ const StaffListView = ({
 
   const getRoleBadge = (role) => {
     const isExpert = role.includes("Expert") || role === "medical_expert";
-    const isSuper = role.includes("Super") || role === "super_admin";
+    const isAdmin = role === "System Admin" || role === "admin";
     
     let color = "bg-ds-surface text-ds-ink border-ds-hairline";
     let icon = <ShieldCheck size={11} />;
@@ -105,7 +103,7 @@ const StaffListView = ({
     if (isExpert) {
       color = "bg-ds-mint text-ds-charcoal border-ds-mint";
       icon = <Stethoscope size={11} />;
-    } else if (isSuper) {
+    } else if (isAdmin) {
       color = "bg-ds-tint text-ds-on-tint border-ds-tint";
       icon = <ShieldCheck size={11} />;
     }
@@ -188,7 +186,6 @@ const StaffListView = ({
                 <option value="all">All Roles</option>
                 <option value="admin">System Admin</option>
                 <option value="medical_expert">Expert Reviewer</option>
-                <option value="super_admin">Super Admin</option>
               </select>
               <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
                 <ChevronDown size={12} className="text-ds-steel" />

@@ -156,7 +156,6 @@ const StaffFormModal = ({ isOpen, onClose, onSave }) => {
                   >
                     <option value="Authorized Medical Expert">Expert Reviewer</option>
                     <option value="System Admin">System Admin</option>
-                    <option value="Super Admin">Super Admin</option>
                   </select>
                   {errors.role && <p className="text-[11px] text-ds-danger mt-1">{errors.role.message}</p>}
                 </div>

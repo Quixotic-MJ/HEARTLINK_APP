@@ -114,14 +114,14 @@ def signed_in(monkeypatch):
     app.dependency_overrides.pop(get_current_admin_user, None)
 
 
-def test_only_a_super_admin_can_export(repo, signed_in):
+def test_only_admins_can_export(repo, signed_in):
     repo.add(30)
     client = TestClient(app)
 
-    signed_in("admin")
+    signed_in("medical_expert")
     assert client.get("/api/admin/model-check/export").status_code == 403
 
-    signed_in("super_admin")
+    signed_in("admin")
     response = client.get("/api/admin/model-check/export")
     assert response.status_code == 200
     assert "attachment" in response.headers["content-disposition"]
@@ -130,14 +130,14 @@ def test_only_a_super_admin_can_export(repo, signed_in):
 
 def test_too_few_reviews_gives_a_clear_error(repo, signed_in):
     repo.add(3)
-    signed_in("super_admin")
+    signed_in("admin")
     response = TestClient(app).get("/api/admin/model-check/export")
     assert response.status_code == 409
     assert "at least 30" in response.json()["detail"]
 
 
 def test_there_is_no_in_app_retraining(signed_in):
-    signed_in("super_admin")
+    signed_in("admin")
     client = TestClient(app)
     assert client.post("/api/admin/retrain").status_code == 404
     assert client.post("/api/admin/datasets/generate").status_code == 404

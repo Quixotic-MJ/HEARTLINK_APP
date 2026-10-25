@@ -56,7 +56,7 @@ def mark_read(
 ):
     caller_id = current_user.get("user_id")
     caller_role = current_user.get("role")
-    user_filter = caller_id if caller_role != "super_admin" else None
+    user_filter = caller_id if caller_role != "admin" else None
     success = mark_notification_read(notification_id, user_id=user_filter)
     return {"success": True, "message": "Notification marked as read"}
 
@@ -67,7 +67,7 @@ def mark_all(
 ):
     caller_id = current_user.get("user_id")
     caller_role = current_user.get("role")
-    if caller_id != user_id and caller_role != "super_admin":
+    if caller_id != user_id and caller_role != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You may only modify your own notifications.",

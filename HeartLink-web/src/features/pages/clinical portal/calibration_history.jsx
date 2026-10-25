@@ -52,8 +52,7 @@ function CheckSummary({ check }) {
 
 const ModelCheck = () => {
   const { user } = useAuth();
-  const isAdmin = user?.role === "admin" || user?.role === "super_admin";
-  const isSuperAdmin = user?.role === "super_admin";
+  const isAdmin = user?.role === "admin";
   const [exporting, setExporting] = useState(false);
   const [scorer, setScorer] = useState("all");
   const [rowFilter, setRowFilter] = useState("all");
@@ -107,7 +106,7 @@ const ModelCheck = () => {
           title="Model Check"
           description="How often the app's risk level matches a cardiologist's, and which way it misses. Measures use clinical reviews only."
           actions={
-            isSuperAdmin && (
+            isAdmin && (
               <button type="button" onClick={exportDataset} disabled={exporting} className={UI.button.secondary}>
                 <Download size={15} aria-hidden="true" /> {exporting ? "Exporting…" : "Export clinical reviews"}
               </button>

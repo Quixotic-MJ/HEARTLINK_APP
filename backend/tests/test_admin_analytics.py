@@ -7,7 +7,7 @@ from app.utils.security import get_current_admin_user, get_current_user
 client = TestClient(app)
 
 def override_admin_user():
-    return {"id": "mock-admin-id", "role": "admin", "email": "super.admin@heartlink.ph"}
+    return {"id": "mock-admin-id", "role": "admin", "email": "admin@heartlink.ph"}
 
 def override_patient_user():
     # Signed-in users carry user_id (see get_current_user); id is kept for older readers.

@@ -21,14 +21,13 @@ const LogoutConfirmModal = ({ isOpen, onClose }) => {
   const userInitials = userName ? userName.substring(0, 2).toUpperCase() : "HL";
 
   const getRoleLabel = (r) => {
-    if (r === "super_admin") return "Super admin";
     if (r === "admin") return "System admin";
     if (r === "medical_expert") return "Medical expert";
     return r ? r.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) : "Staff user";
   };
 
   const getRolePillClass = (r) => {
-    if (r === "super_admin" || r === "admin") return "bg-ds-tint text-ds-primary-pressed border border-ds-tint";
+    if (r === "admin") return "bg-ds-tint text-ds-primary-pressed border border-ds-tint";
     if (r === "medical_expert") return "bg-ds-mint text-ds-charcoal border border-ds-mint";
     return "bg-ds-surface text-ds-slate border border-ds-hairline";
   };

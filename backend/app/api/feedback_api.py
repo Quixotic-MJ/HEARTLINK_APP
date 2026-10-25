@@ -45,13 +45,13 @@ def get_feedback_user(request: Request, credentials: Optional[HTTPAuthorizationC
         
     return user
 
-def require_admin_or_super_admin(current_user: dict = Depends(get_feedback_user)):
-    if current_user.get("role") not in ["admin", "super_admin"]:
-        raise HTTPException(status_code=403, detail="Access Denied: Admin or Super Admin only")
+def require_admin(current_user: dict = Depends(get_feedback_user)):
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Access Denied: Admins only")
     return current_user
 
 @router.get("/")
-def get_feedback_tickets(current_user: dict = Depends(require_admin_or_super_admin)):
+def get_feedback_tickets(current_user: dict = Depends(require_admin)):
     return get_feedback_repo().list_tickets()
 
 @router.post("/")
@@ -102,7 +102,7 @@ def create_feedback_ticket(
             title="New Feedback Received",
             message=safe_msg,
             severity=severity,
-            recipient_roles=["admin", "super_admin"],
+            recipient_roles=["admin"],
             route="/feedbacks",
             target_id=str(new_ticket.get("id") or ticket_code),
         )
@@ -115,7 +115,7 @@ def create_feedback_ticket(
 def update_feedback_ticket(
     ticket_id: str,
     ticket_update: TicketUpdate,
-    current_user: dict = Depends(require_admin_or_super_admin)
+    current_user: dict = Depends(require_admin)
 ):
     # Validate status if provided
     if ticket_update.status is not None:

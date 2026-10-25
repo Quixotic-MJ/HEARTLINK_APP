@@ -24,7 +24,7 @@ const AdminLayout = ({ children }) => {
     // HL-034: same page rules as the routes (app/access.js), including expert type
     if (!canAccess(user, pathname)) {
       navigate(homeFor(user), { replace: true });
-    } else if (role === "admin" || role === "super_admin") {
+    } else if (role === "admin") {
       // Admins should not access the individual user profile directly, they use the user detail drawer
       const isUserProfile = pathname.startsWith("/users/") && pathname.length > "/users/".length;
       if (isUserProfile) {

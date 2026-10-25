@@ -93,11 +93,11 @@ const Users = () => {
     setConfirmConfig((prev) => ({ ...prev, isOpen: false }));
   };
 
-  // Saves through apiFetch refresh both lists by themselves; staff only load for a Super Admin
+  // Saves through apiFetch refresh both lists by themselves; staff load for admins
   const patientsQuery = useApiQuery("/api/users/", { select: toPatients });
   const staffQuery = useApiQuery("/api/admin/staff", {
     select: (d) => d || NO_USERS,
-    enabled: currentUserRole === "super_admin",
+    enabled: currentUserRole === "admin",
   });
   const appUsers = patientsQuery.data ?? NO_USERS;
   const systemStaff = staffQuery.data ?? NO_USERS;
@@ -115,7 +115,7 @@ const Users = () => {
   }
 
   const handleOpenUser = (u) => {
-    if (currentUserRole === "admin" || currentUserRole === "super_admin") {
+    if (currentUserRole === "admin") {
       setActiveEntity(u);
       setModalMode("view_app_user");
       setIsModalOpen(true);
@@ -167,7 +167,7 @@ const Users = () => {
         ? [
             "Active session tokens will be invalidated.",
             "Account status set to inactive.",
-            "Can be re-enabled at any time by a Super Admin.",
+            "Can be re-enabled at any time by an admin.",
           ]
         : [
             "User credentials and login access will be immediately restored.",
@@ -341,7 +341,7 @@ const Users = () => {
     }
   };
 
-  // HL-058: Super Admin marks a medical expert as a verified clinician (their reviews then count in Model Check)
+  // HL-058: an admin marks a medical expert as a verified clinician (their reviews then count in Model Check)
   const handleToggleClinician = async (staff) => {
     const verified = !staff.is_verified_clinician;
     try {
@@ -389,8 +389,8 @@ const Users = () => {
   };
 
   const handleTabSwitch = (tab) => {
-    if (tab === "system_staff" && currentUserRole !== "super_admin") {
-      toast.error("Access Denied: Only a Super Admin can view or modify System Staff records.");
+    if (tab === "system_staff" && currentUserRole !== "admin") {
+      toast.error("Access Denied: Only admins can view or modify System Staff records.");
       return;
     }
     setActiveTab(tab);
@@ -442,7 +442,7 @@ const Users = () => {
             <span>User accounts ({appUsers.length})</span>
           </button>
 
-          {currentUserRole === "super_admin" && (
+          {currentUserRole === "admin" && (
             <button
               onClick={() => handleTabSwitch("system_staff")}
               className={`flex items-center gap-2 px-4 py-2 rounded-[7px] text-[12.5px] font-semibold transition-all cursor-pointer ${
@@ -479,7 +479,7 @@ const Users = () => {
             </motion.div>
           )}
 
-          {activeTab === "system_staff" && currentUserRole === "super_admin" && (
+          {activeTab === "system_staff" && currentUserRole === "admin" && (
             <motion.div
               key="tab_staff"
               initial={{ opacity: 0, y: 4 }}
@@ -505,7 +505,7 @@ const Users = () => {
           onClose={closeModal}
           user={activeEntity}
           onToggleStatus={handleToggleAppUserStatus}
-          canDelete={currentUserRole === "super_admin"}
+          canDelete={currentUserRole === "admin"}
           onDeleteUser={requestDeleteUser}
         />
 

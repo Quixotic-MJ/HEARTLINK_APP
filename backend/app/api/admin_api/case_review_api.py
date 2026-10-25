@@ -31,7 +31,7 @@ _last_queue_refresh = {"at": None}
 
 
 def _require_admin(current_user: dict = Depends(get_current_admin_user)) -> dict:
-    if current_user.get("role") not in ("admin", "super_admin"):
+    if current_user.get("role") != "admin":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access Denied: Admins only")
     return current_user
 
@@ -147,12 +147,12 @@ def archive_review_round(round_id: str, current_user: dict = Depends(_require_ad
 # --- HL-059: clinical dataset export (retraining happens outside the app) ----------------------------
 from fastapi.responses import JSONResponse
 from app.services import clinical_dataset
-from app.utils.security import get_current_super_admin
+from app.utils.security import get_current_admin_only
 
 
 @router.get("/model-check/export")
-def export_clinical_dataset(current_user: dict = Depends(get_current_super_admin)):
-    """Clinical reviews only, with the starting score's inputs and a yes/no label. Super Admin only."""
+def export_clinical_dataset(current_user: dict = Depends(get_current_admin_only)):
+    """Clinical reviews only, with the starting score's inputs and a yes/no label. Admins only."""
     try:
         export = clinical_dataset.build_export(get_model_metadata().get("model_identifier"))
     except clinical_dataset.NotEnoughReviews as e:

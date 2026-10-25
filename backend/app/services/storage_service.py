@@ -22,17 +22,17 @@ BUCKET_CONFIGS = {
     BUCKET_AVATARS: {
         "max_bytes": 2 * 1024 * 1024, # 2 MB
         "allowed_mimes": {"image/jpeg", "image/png", "image/webp"},
-        "allowed_roles": {"patient", "medical_expert", "admin", "super_admin"}
+        "allowed_roles": {"patient", "medical_expert", "admin"}
     },
     BUCKET_RECIPES: {
         "max_bytes": 5 * 1024 * 1024, # 5 MB
         "allowed_mimes": {"image/jpeg", "image/png", "image/webp"},
-        "allowed_roles": {"admin", "super_admin", "medical_expert"}  # experts: Dietitians only (HL-012, uploads_api)
+        "allowed_roles": {"admin", "medical_expert"}  # experts: Dietitians only (HL-012, uploads_api)
     },
     BUCKET_EXERCISES: {
         "max_bytes": 20 * 1024 * 1024, # 20 MB
         "allowed_mimes": {"image/jpeg", "image/png", "image/webp", "video/mp4"},
-        "allowed_roles": {"admin", "super_admin", "medical_expert"}
+        "allowed_roles": {"admin", "medical_expert"}
     }
 }
 
@@ -117,7 +117,7 @@ class SupabaseStorageService(StorageService):
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You do not have permission to upload to this storage bucket.")
 
         # 2. Ownership validation for avatars
-        if bucket == BUCKET_AVATARS and target_id != caller_id and caller_role not in ["admin", "super_admin"]:
+        if bucket == BUCKET_AVATARS and target_id != caller_id and caller_role != "admin":
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You can only upload your own avatar.")
 
         # 3. Size validation

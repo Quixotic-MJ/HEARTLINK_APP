@@ -94,23 +94,16 @@ function Card({ title, subtitle, icon: Icon, action, children, className = "" })
 // ─── Role display helpers ─────────────────────────────────────────────────────
 
 function getRoleLabel(role) {
-  if (role === "super_admin") return "Super Admin";
   if (role === "admin") return "System Admin";
   if (role === "medical_expert") return "Authorized Medical Expert";
   return role ? role.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) : "Unknown";
 }
 
 function getRolePill(role) {
-  if (role === "super_admin")
-    return {
-      label: "Super Admin",
-      cls: "bg-ds-tint text-ds-on-tint border border-ds-tint",
-      dot: true,
-    };
   if (role === "admin")
     return {
       label: "System Admin",
-      cls: "bg-ds-surface text-ds-ink border border-ds-hairline",
+      cls: "bg-ds-tint text-ds-on-tint border border-ds-tint",
       dot: true,
     };
   if (role === "medical_expert")
@@ -293,7 +286,7 @@ function AccountTab({ user, userId }) {
         <div className="mt-5 p-3 rounded-[8px] bg-ds-surface/60 border border-ds-hairline flex items-start gap-2.5 text-ds-slate">
           <Info size={14} className="mt-0.5 flex-shrink-0 text-ds-charcoal" />
           <p className="text-[11.5px] leading-relaxed">
-            Roles and account statuses are managed by Super Admins in the{" "}
+            Roles and account statuses are managed by admins in the{" "}
             <span className="text-ds-ink font-semibold">User & Staff Directory</span>.
           </p>
         </div>

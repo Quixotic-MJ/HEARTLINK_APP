@@ -19,11 +19,11 @@ HL-059, retraining with clinical reviews (outside the app, never from the portal
     python scripts/train_starting_score.py --data-dir "C:\\path\\to\\nhanes-2017-2018" \
         --clinical-export heartlink-clinical-reviews-YYYY-MM-DD.json
 
-The export comes from the portal (Model Check > Export clinical reviews, Super Admin). 30% of the clinical reviews
+The export comes from the portal (Model Check > Export clinical reviews, admins). 30% of the clinical reviews
 are held back; a candidate is trained on NHANES plus the rest, and both the current model and the candidate are
 checked on the held-back reviews. The candidate is written to starting_score_model.candidate.json, never over the
 live model. It may replace the live model only if its under-calling is not worse, its weighted kappa is higher,
-and the adviser approves (then a Super Admin marks it deployed in the model log).
+and the adviser approves (then an admin marks it deployed in the model log).
 """
 import argparse
 import json

@@ -28,7 +28,7 @@ def read_recipes(request: Request, credentials: Optional[HTTPAuthorizationCreden
     if token:
         try:
             payload = verify_token(token)
-            if payload.get("role") in ["admin", "medical_expert", "super_admin"]:
+            if payload.get("role") in ["admin", "medical_expert"]:
                 is_admin = True
         except Exception:
             pass
@@ -54,7 +54,7 @@ def read_recipe(recipe_id: str, request: Request, credentials: Optional[HTTPAuth
     if token:
         try:
             payload = verify_token(token)
-            if payload.get("role") in ["admin", "medical_expert", "super_admin"]:
+            if payload.get("role") in ["admin", "medical_expert"]:
                 is_admin = True
         except Exception:
             pass
@@ -142,7 +142,7 @@ def remove_recipe(recipe_id: str, current_user: dict = Depends(require_permissio
 def save_recipe(recipe_id: str, user_id: str, current_user: dict = Depends(get_current_user)):
     caller_id = current_user.get("user_id")
     caller_role = current_user.get("role")
-    if caller_id != user_id and caller_role != "super_admin":
+    if caller_id != user_id and caller_role != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You may only save recipes for your own account.",
@@ -154,7 +154,7 @@ def save_recipe(recipe_id: str, user_id: str, current_user: dict = Depends(get_c
 def unsave_recipe(recipe_id: str, user_id: str, current_user: dict = Depends(get_current_user)):
     caller_id = current_user.get("user_id")
     caller_role = current_user.get("role")
-    if caller_id != user_id and caller_role != "super_admin":
+    if caller_id != user_id and caller_role != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You may only remove saved recipes for your own account.",

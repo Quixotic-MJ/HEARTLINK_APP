@@ -14,10 +14,11 @@ const StaffDetailsModal = ({
 }) => {
   if (!isOpen || !staff) return null;
 
-  const isSuperAdminRole = staff.role === "Super Admin" || staff.db_role === "super_admin";
+  // HL-074: all admins are equal; another admin can be disabled but not deleted
+  const isAdminAccount = staff.role === "System Admin" || staff.db_role === "admin";
   const isSelf = staff.id === currentUserId;
-  const isProtected = isSuperAdminRole;
-  const canDelete = currentUserRole === "super_admin" && !isProtected && !isSelf;
+  const isProtected = isAdminAccount;
+  const canDelete = currentUserRole === "admin" && !isProtected && !isSelf;
 
   const handleDelete = () => {
     if (onDeleteStaff) {
@@ -43,7 +44,7 @@ const StaffDetailsModal = ({
   const getRoleBadge = (role) => {
     let classes = "bg-ds-surface text-ds-ink border-ds-hairline";
     let icon = <ShieldCheck size={11} />;
-    if (role === "Super Admin" || role === "super_admin") {
+    if (role === "System Admin" || role === "admin") {
       classes = "bg-ds-tint text-ds-on-tint border-ds-tint";
       icon = <ShieldCheck size={11} />;
     } else if (role === "Authorized Medical Expert" || role === "medical_expert" || role === "Expert Reviewer") {
@@ -60,7 +61,7 @@ const StaffDetailsModal = ({
 
   const isStatusActive = (staff.account_status || staff.status)?.toLowerCase() === "active";
   const isExpert = staff.role === "Authorized Medical Expert" || staff.db_role === "medical_expert";
-  const canVerify = currentUserRole === "super_admin" && isExpert && onToggleClinician;
+  const canVerify = currentUserRole === "admin" && isExpert && onToggleClinician;
   const targetRoleLabel = (staff.role === "System Admin" || staff.role === "admin") ? "Authorized Medical Expert" : "System Admin";
 
   return (
@@ -116,7 +117,7 @@ const StaffDetailsModal = ({
 
               {isProtected && (
                 <div className="bg-ds-tint border border-ds-tint text-ds-on-tint px-3 py-1.5 rounded-[6px] text-[11px] font-bold flex items-center gap-1.5 uppercase tracking-wider">
-                  <ShieldAlert size={13} className="text-ds-primary" /> Protected Super Admin Account
+                  <ShieldAlert size={13} className="text-ds-primary" /> Admin account: disable it instead of deleting
                 </div>
               )}
             </div>

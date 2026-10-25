@@ -369,7 +369,7 @@ const CaseReviewDetail = () => {
   };
 
   const viewer = data?.viewer || {};
-  const isAdmin = viewer.role === "admin" || viewer.role === "super_admin";
+  const isAdmin = viewer.role === "admin";
   const isExpert = viewer.role === "medical_expert";
   const cardio = data?.sections?.cardiology;
 

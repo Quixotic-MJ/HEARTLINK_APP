@@ -6,7 +6,7 @@ import random
 import hashlib
 import secrets
 import string
-from app.utils.security import get_current_admin_only, get_current_super_admin
+from app.utils.security import get_current_admin_only
 from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
 from app.utils.activity_helper import record_admin_activity
 from app.db.client import get_supabase_client
@@ -37,7 +37,7 @@ def _resolve_expert_type(target_role: str, raw: Any) -> Optional[str]:
         - missing/blank -> raises HTTPException 400 'expert_type is required when role is medical_expert'
         - unknown -> raises HTTPException 400 "Invalid expert_type: '<raw>'. Must be one of: 'Physical Therapist', 'Dietitian', 'Cardiologist'."
         - valid -> returns canonical string ('Physical Therapist', 'Dietitian', 'Cardiologist')
-    - Any other role (e.g. 'admin', 'super_admin') -> returns None
+    - Any other role (e.g. 'admin') -> returns None
     """
     if target_role == "medical_expert":
         if not raw or not str(raw).strip():
@@ -400,17 +400,14 @@ def get_admin_analytics(period: str = "6months", current_user: dict = Depends(ge
     }
 
 @router.get("/staff")
-def get_system_staff(current_user: dict = Depends(get_current_super_admin)):
+def get_system_staff(current_user: dict = Depends(get_current_admin_only)):
     all_profiles = get_profile_repo().list_all(exclude_archived=False)
-    staff = [p for p in all_profiles if p.get("role") in ["medical_expert", "admin", "super_admin"]]
+    staff = [p for p in all_profiles if p.get("role") in ["medical_expert", "admin"]]
     result = []
     for s in staff:
-        if s.get("role") == "super_admin":
-            role_label = "Super Admin"
-            perms = ["All Administrative Permissions"]
-        elif s.get("role") == "admin":
+        if s.get("role") == "admin":
             role_label = "System Admin"
-            perms = ["Manage Content", "Broadcast Alerts", "View Analytics", "Manage Users"]
+            perms = ["All Administrative Permissions"]
         else:
             role_label = "Authorized Medical Expert"
             perms = ["Validate Recipes", "Verify Exercises", "Evaluate Cases"]
@@ -446,9 +443,9 @@ def generate_temp_password(length: int = 20) -> str:
 
 
 @router.put("/staff/{staff_id}/clinician-verification")
-def set_clinician_verification(staff_id: str, payload: dict, current_user: dict = Depends(get_current_super_admin)):
+def set_clinician_verification(staff_id: str, payload: dict, current_user: dict = Depends(get_current_admin_only)):
     """
-    HL-058: a Super Admin marks a medical expert as a verified (license-checked) clinician. Only reviews
+    HL-058: an admin marks a medical expert as a verified (license-checked) clinician. Only reviews
     submitted while verified count in Model Check; earlier practice reviews stay practice.
     """
     verified = payload.get("verified")
@@ -477,7 +474,7 @@ def set_clinician_verification(staff_id: str, payload: dict, current_user: dict 
 
 
 @router.post("/staff")
-def create_system_staff(payload: dict, current_user: dict = Depends(get_current_super_admin)):
+def create_system_staff(payload: dict, current_user: dict = Depends(get_current_admin_only)):
     name = payload.get("name", "").strip()
     email = (payload.get("email") or "").strip()
     phone = (payload.get("phone") or "").strip()
@@ -489,9 +486,7 @@ def create_system_staff(payload: dict, current_user: dict = Depends(get_current_
     if not email or "@" not in email:
         raise HTTPException(status_code=400, detail="Invalid email address")
 
-    if role_label in ["Super Admin", "super_admin"]:
-        target_role = "super_admin"
-    elif role_label in ["Authorized Medical Expert", "medical_expert", "Expert Reviewer"]:
+    if role_label in ["Authorized Medical Expert", "medical_expert", "Expert Reviewer"]:
         target_role = "medical_expert"
     elif role_label in ["System Admin", "admin"]:
         target_role = "admin"
@@ -637,7 +632,7 @@ def create_system_staff(payload: dict, current_user: dict = Depends(get_current_
 
     # --- Step 4: Audit log ---
     admin_id = current_user.get("user_id") if current_user else "admin"
-    role_desc = f"medical expert ({canonical_expert_type})" if target_role == "medical_expert" else ("admin" if target_role == "admin" else "super_admin")
+    role_desc = f"medical expert ({canonical_expert_type})" if target_role == "medical_expert" else "admin"
     record_admin_activity(
         admin_user_id=admin_id,
         action=f"Created {role_desc} account",
@@ -654,7 +649,7 @@ def create_system_staff(payload: dict, current_user: dict = Depends(get_current_
             title="Staff Account Provisioned",
             message=f"A {role_desc} account was provisioned for {name}.",
             severity="info",
-            recipient_roles=["super_admin"],
+            recipient_roles=["admin"],
             route="/users",
             target_id=str(staff_id),
             read_by=[admin_id] if admin_id else []
@@ -684,20 +679,17 @@ def toggle_user_status(
     current_status = user.get("account_status", "active")
     user_role = user.get("role", "patient")
     
-    is_staff = user_role in ["admin", "medical_expert", "super_admin"]
-    current_admin_role = current_user.get("role")
-    
-    if is_staff and current_admin_role != "super_admin":
-        raise HTTPException(status_code=403, detail="Access Denied: Only Super Admin can manage staff status")
-        
+    is_staff = user_role in ["admin", "medical_expert"]
+
     if str(user_id) == str(current_user.get("user_id")):
         raise HTTPException(status_code=400, detail="Self-deactivation is not permitted")
         
-    if user_role == "super_admin" and current_status == "active":
+    # HL-074: every admin is equal, so the portal must always keep one active admin
+    if user_role == "admin" and current_status == "active":
         all_profiles = profile_repo.list_all(exclude_archived=False)
-        active_super_admins = [p for p in all_profiles if p.get("role") == "super_admin" and p.get("account_status") == "active"]
-        if len(active_super_admins) <= 1:
-            raise HTTPException(status_code=400, detail="Deactivating the last active Super Admin is not permitted")
+        active_admins = [p for p in all_profiles if p.get("role") == "admin" and p.get("account_status") == "active"]
+        if len(active_admins) <= 1:
+            raise HTTPException(status_code=400, detail="Deactivating the last active admin is not permitted")
             
     new_status = "disabled" if current_status == "active" else "active"
     # HL-073: the reason the admin picked is kept while the account is disabled and cleared when it is enabled
@@ -713,7 +705,7 @@ def toggle_user_status(
     if user_role == "patient":
         action_desc = f"{'disabled' if new_status == 'disabled' else 'activated'} user account"
     else:
-        role_desc = "medical expert" if user_role == "medical_expert" else ("admin" if user_role == "admin" else "super_admin")
+        role_desc = "medical expert" if user_role == "medical_expert" else "admin"
         action_desc = f"{'Disabled' if new_status == 'disabled' else 'Enabled'} {role_desc} account"
     if reason:
         action_desc += f" (reason: {reason})"
@@ -735,7 +727,7 @@ def toggle_user_status(
                 title="Staff Account Status Changed",
                 message=f"Staff account for {user_name} was {action_word}.",
                 severity="warning",
-                recipient_roles=["super_admin"],
+                recipient_roles=["admin"],
                 route="/users",
                 target_id=str(user_id),
                 read_by=[admin_id] if admin_id else []
@@ -746,7 +738,7 @@ def toggle_user_status(
     return {"status": "success", "new_status": new_status}
 
 @router.put("/staff/{staff_id}/role")
-def change_staff_role(staff_id: str, payload: dict, current_user: dict = Depends(get_current_super_admin)):
+def change_staff_role(staff_id: str, payload: dict, current_user: dict = Depends(get_current_admin_only)):
     profile_repo = get_profile_repo()
     target_user = profile_repo.get_by_id(staff_id)
     if not target_user:
@@ -785,7 +777,7 @@ def change_staff_role(staff_id: str, payload: dict, current_user: dict = Depends
 
 @router.delete("/users/{user_id}")
 @router.delete("/staff/{user_id}")
-def delete_user_or_staff(user_id: str, current_user: dict = Depends(get_current_super_admin)):
+def delete_user_or_staff(user_id: str, current_user: dict = Depends(get_current_admin_only)):
     if str(user_id) == str(current_user.get("user_id")):
         raise HTTPException(status_code=400, detail="Self-deletion is not permitted")
 
@@ -793,8 +785,9 @@ def delete_user_or_staff(user_id: str, current_user: dict = Depends(get_current_
     user = profile_repo.get_by_id(user_id)
     user_role = user.get("role", "patient") if user else None
     
-    if user_role == "super_admin":
-        raise HTTPException(status_code=400, detail="Deleting another Super Admin is not permitted")
+    # HL-074: another admin can be disabled, not deleted
+    if user_role == "admin":
+        raise HTTPException(status_code=400, detail="Deleting another admin is not permitted; disable the account instead")
 
     user_name = f"{user.get('first_name', '')} {user.get('last_name', '')}".strip() if user else user_id
     
@@ -986,13 +979,6 @@ def get_activity_log(
     search: Optional[str] = None,
     current_user: dict = Depends(get_current_admin_only)
 ):
-    role = current_user.get("role")
-    if role not in ["admin", "super_admin"]:
-        raise HTTPException(
-            status_code=403,
-            detail="Access Denied: Admin or Super Admin role required."
-        )
-
     if page < 1:
         raise HTTPException(status_code=400, detail="Page parameter must be 1 or greater.")
     if page_size < 1 or page_size > 100:

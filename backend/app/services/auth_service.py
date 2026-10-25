@@ -626,14 +626,14 @@ class SupabaseAuthService(AuthService):
         """
         Specialized web portal authentication endpoint for administrative and clinical staff.
         Executes credential verification via self.login(), resolves the authenticated profile,
-        and strictly verifies role membership in ['admin', 'medical_expert', 'super_admin'].
+        and strictly verifies role membership in ['admin', 'medical_expert'].
         Rejects patient accounts with HTTP 403 Forbidden.
         """
         login_res = self.login(identifier, password)
         profile = get_profile_repo().get_by_id(login_res["user_id"])
         if not profile:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Credentials")
-        if profile.get("role") not in ["admin", "medical_expert", "super_admin"]:
+        if profile.get("role") not in ["admin", "medical_expert"]:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access Denied. This portal is strictly for Admins and Medical Experts.")
 
         return {

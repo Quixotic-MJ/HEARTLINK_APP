@@ -204,12 +204,12 @@ curl -X POST "$RENDER_URL/api/upload/" \
 # 13. Admin Web Portal Login (Stateless REST GoTrue Authentication)
 curl -X POST "$RENDER_URL/api/auth/web-login" \
   -H "Content-Type: application/json" \
-  -d '{"identifier": "super.admin@heartlink.ph", "password": "<SUPER_ADMIN_PASSWORD>", "remember": false}'
-# Expected: 200 OK {"success": true, "user_id": "...", "role": "super_admin", "token": "..."}
+  -d '{"identifier": "admin@heartlink.ph", "password": "<ADMIN_PASSWORD>", "remember": false}'
+# Expected: 200 OK {"success": true, "user_id": "...", "role": "admin", "token": "..."}
 
-# 14. Provision New Staff Account (Super Admin only via Supabase Auth Admin REST API)
+# 14. Provision New Staff Account (admins only, via Supabase Auth Admin REST API)
 curl -X POST "$RENDER_URL/api/admin/staff" \
-  -H "Authorization: Bearer $SUPER_ADMIN_TOKEN" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"name": "Dr. Test Expert", "email": "dr.expert@hospital.ph", "phone": "09170001122", "role": "Authorized Medical Expert", "temporary_password": "TempPassword2026!"}'
 # Expected: 200 OK {"status": "success", "message": "...", "staff": {...}}

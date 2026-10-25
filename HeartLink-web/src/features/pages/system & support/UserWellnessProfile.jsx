@@ -125,7 +125,7 @@ const UserWellnessProfile = () => {
           </div>
 
           {/* Open Case Review (Authorized Roles Only) */}
-          {(currentUserRole === "super_admin" || currentUserRole === "admin" || currentUserRole === "medical_expert") && (
+          {(currentUserRole === "admin" || currentUserRole === "medical_expert") && (
             <button
               onClick={() => navigate(`/cases?patient_id=${profile.id}`)}
               className={UI.button.primary}

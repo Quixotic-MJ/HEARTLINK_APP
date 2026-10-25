@@ -20,7 +20,7 @@ from app.utils.security import (
 )
 
 STAFF_ID = str(uuid.uuid4())
-SUPER_ADMIN = {"user_id": "super-admin-id", "role": "super_admin"}
+ADMIN = {"user_id": "admin-id", "role": "admin"}
 
 
 class FakeProfileRepo:
@@ -199,8 +199,8 @@ def test_new_staff_gets_a_unique_temp_password_and_must_change_it(staff_creation
     repo, _ = staff_creation
     payload = {"name": "Dee Dietitian", "email": "dee2@example.com", "role": "medical_expert", "expert_type": "Dietitian"}
 
-    first = create_system_staff(dict(payload), current_user=SUPER_ADMIN)
-    second = create_system_staff(dict(payload, email="dee3@example.com"), current_user=SUPER_ADMIN)
+    first = create_system_staff(dict(payload), current_user=ADMIN)
+    second = create_system_staff(dict(payload, email="dee3@example.com"), current_user=ADMIN)
 
     assert first["temp_password"] != second["temp_password"]
     assert [c["password"] for c in FakeHttpxClient.calls] == [first["temp_password"], second["temp_password"]]
@@ -214,7 +214,7 @@ def test_existing_login_is_reset_to_the_new_temp_password(staff_creation):
     supabase.auth.admin.list_users.return_value = [SimpleNamespace(id=existing_id, email="dee4@example.com")]
 
     result = create_system_staff(
-        {"name": "Dee Four", "email": "dee4@example.com", "role": "admin"}, current_user=SUPER_ADMIN
+        {"name": "Dee Four", "email": "dee4@example.com", "role": "admin"}, current_user=ADMIN
     )
 
     supabase.auth.admin.update_user_by_id.assert_called_once_with(existing_id, {"password": result["temp_password"]})

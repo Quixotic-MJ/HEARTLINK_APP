@@ -68,7 +68,7 @@ def test_access_tokens_are_short(monkeypatch):
     assert access_token_lifetime("admin") == timedelta(hours=1)
     assert access_token_lifetime("medical_expert") == timedelta(hours=1)
     assert access_token_lifetime("patient") == timedelta(hours=24)
-    assert 3500 < token_life(create_access_token({"user_id": "a", "role": "super_admin"})) <= 3600
+    assert 3500 < token_life(create_access_token({"user_id": "a", "role": "admin"})) <= 3600
 
 
 def test_testing_override_can_only_shorten(monkeypatch):

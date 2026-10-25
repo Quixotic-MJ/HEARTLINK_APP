@@ -26,7 +26,7 @@ const Cases = () => {
   const [lane, setLane] = useState("all");
   const [busy, setBusy] = useState(null);
 
-  const isAdmin = user?.role === "admin" || user?.role === "super_admin";
+  const isAdmin = user?.role === "admin";
   const section = mySection(user);
 
   const refresh = async () => {

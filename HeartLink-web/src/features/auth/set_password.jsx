@@ -7,7 +7,7 @@ import { apiFetch } from "../../api";
 import { HeartLogoIcon, LoginBackdrop, ErrorBanner, FieldError } from "./login";
 import { inputBase, inputState, labelText, primaryButton, textLink, focusRing } from "./authStyles";
 
-// HL-044: staff created by a Super Admin start with a one-time temporary password and land here
+// HL-044: staff created by an admin start with a one-time temporary password and land here
 // on first login. The backend blocks every other request until the password is replaced.
 
 const homeFor = (role) => (role === "medical_expert" ? "/cases" : "/dashboard");

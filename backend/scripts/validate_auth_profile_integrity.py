@@ -3,7 +3,7 @@
 Auth & Profile Identity Reconciliation Validator.
 Verifies the authoritative 1:1 link between auth identities and public.profiles:
 - auth.users.id == public.profiles.id (UUID v5 / v4 format)
-- Application roles (patient, medical_expert, admin, super_admin)
+- Application roles (patient, medical_expert, admin)
 - Account status (active, disabled, archived)
 - Onboarding status (pending, complete)
 - Asserts 0 dangling or unlinked identities
@@ -16,7 +16,7 @@ from typing import Dict, Any, List
 from app.db.client import is_supabase_mode, get_supabase_client, get_database_mode
 from app.db.repositories import get_profile_repo
 
-VALID_ROLES = {"patient", "medical_expert", "admin", "super_admin"}
+VALID_ROLES = {"patient", "medical_expert", "admin"}
 VALID_ACCOUNT_STATUSES = {"active", "disabled", "archived"}
 VALID_ONBOARDING_STATUSES = {"pending", "complete"}
 PROHIBITED_PROFILE_FIELDS = {"password", "password_hash", "service_role_key", "secret"}

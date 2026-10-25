@@ -3,7 +3,8 @@
 // HL-012 rules (backend/app/utils/security.py EXPERT_PERMISSIONS): Dietitians edit recipes,
 // Physical Therapists edit exercises, Cardiologists edit neither.
 
-export const ADMIN_ROLES = ["admin", "super_admin"];
+// HL-074: one Admin role; Super Admin was merged into it.
+export const ADMIN_ROLES = ["admin"];
 
 const ADMINS = { roles: ADMIN_ROLES };
 const ALL_STAFF = { roles: [...ADMIN_ROLES, "medical_expert"] };
