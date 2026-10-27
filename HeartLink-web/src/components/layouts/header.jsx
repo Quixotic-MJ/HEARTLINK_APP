@@ -66,7 +66,9 @@ export default function Header({
       const trimmedQuery = searchQuery.trim();
       if (!trimmedQuery) return;
       if (userRole === "medical_expert") {
-        navigate(`/cases?search=${encodeURIComponent(trimmedQuery)}`);
+        // HL-081: experts see patients by reference only (names are hidden), and cases by their code
+        const target = /^case/i.test(trimmedQuery) ? "/cases" : "/patients";
+        navigate(`${target}?search=${encodeURIComponent(trimmedQuery)}`);
       } else {
         navigate(`/users?search=${encodeURIComponent(trimmedQuery)}`);
       }
@@ -75,7 +77,7 @@ export default function Header({
   };
 
   const searchPlaceholder = userRole === "medical_expert"
-    ? "Search user profiles..."
+    ? "Find a patient (USR-…) or case (CASE-…)"
     : "Search profiles or content...";
 
   return (

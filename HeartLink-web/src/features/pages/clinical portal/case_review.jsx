@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Stethoscope, RefreshCw, Shuffle, AlertTriangle } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import AdminLayout from "../../../components/layouts/adminLayout";
 import { Skeleton } from "../../../components/ui/Skeleton";
@@ -25,6 +25,9 @@ const Cases = () => {
   const loading = queue.isPending;
   const [lane, setLane] = useState("all");
   const [busy, setBusy] = useState(null);
+  // HL-081: the header's search box sends ?search=CASE-0042
+  const [searchParams, setSearchParams] = useSearchParams();
+  const search = (searchParams.get("search") || "").trim().toUpperCase();
 
   const isAdmin = user?.role === "admin";
   const section = mySection(user);
@@ -59,7 +62,9 @@ const Cases = () => {
     rereview: items.filter((i) => i.lane === "rereview").length,
     sample: items.filter((i) => i.lane === "sample").length,
   };
-  const shown = lane === "all" ? items : items.filter((i) => i.lane === lane);
+  const shown = (lane === "all" ? items : items.filter((i) => i.lane === lane)).filter(
+    (i) => !search || (i.case_code || "").toUpperCase().includes(search)
+  );
 
   const yourPart = section
     ? `Your part: the ${SECTION_LABELS[section]} section of each case.`
@@ -110,7 +115,16 @@ const Cases = () => {
                 </button>
               ))}
             </div>
-            <span className="text-[12px] text-ds-slate">Urgent cases should be reviewed within {urgentHours} hours.</span>
+            {search ? (
+              <span className="text-[12px] text-ds-slate flex items-center gap-2">
+                Showing cases matching <strong className="text-ds-ink">{search}</strong>
+                <button type="button" onClick={() => setSearchParams({})} className="text-ds-link font-semibold cursor-pointer">
+                  Clear
+                </button>
+              </span>
+            ) : (
+              <span className="text-[12px] text-ds-slate">Urgent cases should be reviewed within {urgentHours} hours.</span>
+            )}
           </div>
 
           <div className={UI.table.container}>
@@ -144,7 +158,9 @@ const Cases = () => {
                     <td colSpan={7} className="py-12 px-5 text-center text-[13px] text-ds-slate">
                       {items.length === 0
                         ? "No open cases. Urgent cases appear on their own; admins can draw the weekly sample."
-                        : "No cases in this lane."}
+                        : search
+                          ? `No open case matches ${search}.`
+                          : "No cases in this lane."}
                     </td>
                   </tr>
                 ) : (

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { AlertTriangle, ChevronRight, HeartPulse, Search, Users } from "lucide-react";
 import AdminLayout from "../../../components/layouts/adminLayout";
 import { Skeleton } from "../../../components/ui/Skeleton";
@@ -28,6 +28,14 @@ export default function Patients() {
   const isCardiologist = user?.expert_type === "Cardiologist";
   const [filter, setFilter] = useState("all");
   const [query, setQuery] = useState("");
+  // HL-081: a ?search= link (the header's search box) fills the box; noticed during render, not in an effect
+  const [searchParams] = useSearchParams();
+  const searchParam = searchParams.get("search");
+  const [seenSearchParam, setSeenSearchParam] = useState(null);
+  if (searchParam !== null && searchParam !== seenSearchParam) {
+    setSeenSearchParam(searchParam);
+    setQuery(searchParam);
+  }
 
   // null while loading; an empty list (with the reason) if the load failed
   const patients = useApiQuery("/api/admin/patients", { select: (d) => (Array.isArray(d) ? d : []) });
