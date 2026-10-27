@@ -4,7 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Feather } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
@@ -19,6 +19,9 @@ import AnimatedButton from "../../../components/ui/AnimatedButton";
 import { Skeleton } from "../../../components/ui/Skeleton";
 import { bandTag } from "../../../components/dashboard/ScoreCard";
 import { TrendChart } from "../../../components/trends/TrendChart";
+import { LongTermTrends } from "../../../components/trends/LongTermTrends";
+import { isPremiumProfile } from "../../../services/premium";
+import { isLongTerm, periodName } from "../../../services/longTermTrends";
 import {
   ExerciseRow,
   MealRow,
@@ -38,6 +41,8 @@ import {
 
 // Trends: one period (7, 14 or 30 days) and one measure at a time, drawn only from what was logged.
 // A day with nothing logged is left empty on the chart; nothing is filled in.
+// HL-086: 90 days and 1 year are Premium (components/trends/LongTermTrends.tsx); on a free account they open the
+// pricing screen.
 
 type Metric = "score" | "bp" | "pulse" | "sodium";
 const METRICS: { id: Metric; label: string }[] = [
@@ -46,7 +51,7 @@ const METRICS: { id: Metric; label: string }[] = [
   { id: "pulse", label: "Pulse" },
   { id: "sodium", label: "Sodium" },
 ];
-const PERIODS = [7, 14, 30] as const;
+const PERIODS = [7, 14, 30, 90, 365] as const;
 type Period = (typeof PERIODS)[number];
 
 type Analytics = {
@@ -74,15 +79,18 @@ const lastOf = <T,>(xs: (T | null)[]): { value: T; index: number } | null => {
 export default function TrendsTabScreen() {
   const { c, isDark } = useDs();
   const router = useRouter();
-  const { userId, token } = useUser();
+  const { userId, token, user } = useUser();
+  const queryClient = useQueryClient();
+  const isPremium = isPremiumProfile(user);
 
   const [metric, setMetric] = useState<Metric>("score");
   const [period, setPeriod] = useState<Period>(7);
   const [refreshing, setRefreshing] = useState(false);
+  const long = isLongTerm(period);
 
   const query = useQuery({
     queryKey: ["trends", userId, period],
-    enabled: !!userId,
+    enabled: !!userId && !long,
     queryFn: async (): Promise<Analytics> => {
       const res = await apiFetch(`/api/analytics/${userId}?days=${period}`, { headers: { Authorization: `Bearer ${token ?? ""}` } });
       if (!res.ok) throw new Error("Could not load trends");
@@ -90,9 +98,11 @@ export default function TrendsTabScreen() {
     },
   });
 
+  const reload = () => (long ? queryClient.refetchQueries({ queryKey: ["longTermTrends", userId, period] }) : query.refetch());
+
   useFocusEffect(
     useCallback(() => {
-      query.refetch();
+      reload();
       const sub = BackHandler.addEventListener("hardwareBackPress", () => {
         router.replace("/(home)/(tabs)/dashboard");
         return true;
@@ -123,7 +133,7 @@ export default function TrendsTabScreen() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await query.refetch();
+    await reload();
     setRefreshing(false);
   };
 
@@ -188,9 +198,9 @@ export default function TrendsTabScreen() {
             Trends
           </Text>
           <AnimatedButton
-            onPress={shareReport}
+            onPress={long ? () => router.push("/(home)/(profile)/health-report") : shareReport}
             accessibilityRole="button"
-            accessibilityLabel="Share a report for your doctor"
+            accessibilityLabel={long ? "Open your health report for your doctor" : "Share a report for your doctor"}
             style={{ height: 44, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 6, borderWidth: 1, borderColor: c.hairline, borderRadius: 8 }}
           >
             <Feather name="share" size={16} color={c.ink} />
@@ -202,16 +212,18 @@ export default function TrendsTabScreen() {
         <View accessibilityRole="tablist" style={{ marginHorizontal: 20, flexDirection: "row", padding: 4, borderRadius: 10, backgroundColor: c.surface }}>
           {PERIODS.map((p) => {
             const on = p === period;
+            const locked = isLongTerm(p) && !isPremium;
             return (
               <AnimatedButton
                 key={p}
                 onPress={() => {
                   Haptics.selectionAsync();
-                  setPeriod(p);
+                  if (locked) router.push("/(home)/(settings)/premium");
+                  else setPeriod(p);
                 }}
                 accessibilityRole="tab"
                 accessibilityState={{ selected: on }}
-                accessibilityLabel={`${p} days`}
+                accessibilityLabel={locked ? `${periodName(p)}, Premium` : periodName(p)}
                 style={{
                   flex: 1,
                   height: 40,
@@ -223,7 +235,17 @@ export default function TrendsTabScreen() {
                   backgroundColor: on ? c.canvas : "transparent",
                 }}
               >
-                <Text maxFontSizeMultiplier={1.3} style={{ fontSize: 14, fontWeight: on ? "600" : "400", color: on ? c.ink : c.slate }}>{p} days</Text>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 3, paddingHorizontal: 2 }}>
+                  {locked ? <Feather name="lock" size={11} color={c.slate} /> : null}
+                  <Text
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    maxFontSizeMultiplier={1.3}
+                    style={{ flexShrink: 1, fontSize: 13, fontWeight: on ? "600" : "400", color: on ? c.ink : c.slate }}
+                  >
+                    {periodName(p)}
+                  </Text>
+                </View>
               </AnimatedButton>
             );
           })}
@@ -249,7 +271,9 @@ export default function TrendsTabScreen() {
         </ScrollView>
 
         <View style={{ paddingHorizontal: 20, gap: 22 }}>
-          {query.isLoading ? (
+          {long ? (
+            <LongTermTrends days={period} metric={metric} />
+          ) : query.isLoading ? (
             <Skeleton style={{ height: 300, borderRadius: 12 }} />
           ) : query.isError && !data ? (
             <View style={{ padding: 20, borderRadius: 12, backgroundColor: c.surface, gap: 10 }}>
@@ -269,7 +293,7 @@ export default function TrendsTabScreen() {
             />
           )}
 
-          {data ? (
+          {data && !long ? (
             <>
               <View style={{ gap: 12 }}>
                 <Text accessibilityRole="header" style={{ fontSize: 20, fontWeight: "600", color: c.ink }}>
@@ -339,9 +363,11 @@ export default function TrendsTabScreen() {
             </>
           ) : null}
 
-          <Text style={{ fontSize: 12, lineHeight: 17, color: c.steel }}>
-            {"Trends help you spot habits. They aren't a diagnosis; share the report with your doctor."}
-          </Text>
+          {long ? null : (
+            <Text style={{ fontSize: 12, lineHeight: 17, color: c.steel }}>
+              {"Trends help you spot habits. They aren't a diagnosis; share the report with your doctor."}
+            </Text>
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>

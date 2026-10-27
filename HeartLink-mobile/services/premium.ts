@@ -42,7 +42,7 @@ export const PREMIUM_FEATURES: PremiumFeature[] = [
     tint: "mint",
     title: "Trends over months",
     text: "90-day and 1-year views, this month against last, and how your readings change through the day.",
-    ready: false,
+    ready: true,
   },
   {
     key: "family",

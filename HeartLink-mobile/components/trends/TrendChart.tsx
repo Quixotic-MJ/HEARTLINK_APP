@@ -21,6 +21,8 @@ type Props = {
   accessibilityLabel: string;
   bands?: Band[];
   refLine?: RefLine;
+  /** Axis labels to use instead of the dates, one per point (HL-086: "Oct" for a month). */
+  labels?: string[];
 } & (
   | { kind: "line"; values: (number | null)[] }
   | { kind: "range"; values: (Pressure | null)[] }
@@ -154,7 +156,7 @@ export function TrendChart(props: Props) {
                 fill={i === last ? c.ink : c.slate}
                 textAnchor="middle"
               >
-                {dayLabel(d, n)}
+                {props.labels?.[i] ?? dayLabel(d, n)}
               </SvgText>
             ) : null
           )}

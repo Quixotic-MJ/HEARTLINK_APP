@@ -59,14 +59,22 @@ class SupabaseHealthLogsRepository(HealthLogsRepository):
         if not uuid_val:
             return []
         try:
-            query = self.client.table("daily_health_logs").select("*").eq("user_id", uuid_val)
-            if cutoff:
-                query = query.gte("logged_at", cutoff)
-            query = query.order("logged_at", desc=True)
+            def query():
+                q = self.client.table("daily_health_logs").select("*").eq("user_id", uuid_val)
+                if cutoff:
+                    q = q.gte("logged_at", cutoff)
+                return q.order("logged_at", desc=True)
+
             if limit:
-                query = query.limit(limit)
-            res = query.execute()
-            return res.data or []
+                return query().limit(limit).execute().data or []
+            # HL-086: page through, so a year of check-ins isn't cut at Supabase's 1,000-row limit
+            rows, start, step = [], 0, 1000
+            while True:
+                batch = query().range(start, start + step - 1).execute().data or []
+                rows.extend(batch)
+                if len(batch) < step:
+                    return rows
+                start += step
         except Exception as e:
             handle_db_error(e)
             return []
