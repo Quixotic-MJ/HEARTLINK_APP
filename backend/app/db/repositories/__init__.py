@@ -20,6 +20,7 @@ from app.db.repositories.pending_registrations import PendingRegistrationReposit
 from app.db.repositories.refresh_tokens import RefreshTokenRepository, SupabaseRefreshTokenRepository
 from app.db.repositories.patient_notes import PatientNotesRepository, SupabasePatientNotesRepository
 from app.db.repositories.push_tokens import PushTokenRepository, SupabasePushTokenRepository
+from app.db.repositories.premium import PremiumRepository, SupabasePremiumRepository
 
 _profile_repo = None
 _baseline_repo = None
@@ -37,6 +38,7 @@ _pending_registration_repo = None
 _refresh_token_repo = None
 _push_token_repo = None
 _patient_notes_repo = None
+_premium_repo = None
 
 def get_profile_repo() -> ProfileRepository:
     global _profile_repo
@@ -135,3 +137,9 @@ def get_patient_notes_repo() -> PatientNotesRepository:
     return _patient_notes_repo
 
 get_sleep_logs_repo = get_sleep_repo
+
+def get_premium_repo() -> PremiumRepository:
+    global _premium_repo
+    if _premium_repo is None:
+        _premium_repo = SupabasePremiumRepository(get_supabase_client())
+    return _premium_repo

@@ -16,6 +16,7 @@ import {
   Radio,
   FileSpreadsheet,
   RotateCcw,
+  Crown,
 } from "lucide-react";
 import { Skeleton } from "../../../components/ui/Skeleton";
 import { UI, FONTS } from "../../../styles/tokens";
@@ -123,6 +124,12 @@ const ActivityLog = () => {
           bg: "bg-ds-mint text-ds-charcoal border-ds-mint",
           icon: <FileSpreadsheet size={10} />,
           label: "DATASET",
+        };
+      case "premium":
+        return {
+          bg: "bg-ds-yellow text-ds-warm-text border-ds-yellow-bold",
+          icon: <Crown size={10} />,
+          label: "PREMIUM",
         };
       default:
         return {
@@ -272,6 +279,7 @@ const ActivityLog = () => {
                     <option value="broadcast">Broadcasts</option>
                     <option value="user">Users</option>
                     <option value="dataset">Datasets</option>
+                    <option value="premium">Premium settings</option>
                   </select>
                   <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
                     <ChevronDown size={12} className="text-ds-steel" />

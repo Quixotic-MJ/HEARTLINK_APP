@@ -18,6 +18,8 @@ export const PAGE_ACCESS = {
   "/exercises": { roles: ADMIN_ROLES, expertTypes: ["Physical Therapist"] },
   "/users": ADMINS,
   "/feedbacks": ADMINS,
+  // HL-084: Premium settings and members
+  "/premium": ADMINS,
   "/broadcasts": ADMINS,
   // The notifications API is admin-only (HL-012), so experts would only see an error here.
   "/notifications": ADMINS,

@@ -8,6 +8,7 @@ import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useUser } from "../../../contexts/UserContext";
 import { ConfirmDialog } from "../../../components/ui/ConfirmDialog";
 import { SquareIconButton } from "../../../components/exercise/ExerciseBits";
+import { isPremiumProfile } from "../../../services/premium";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -106,7 +107,8 @@ function SettingsGroup({ children, className }: { children: React.ReactNode, cla
 export default function SettingsScreen() {
   const { c, isDark } = useDs();
   const router = useRouter();
-  const { logout } = useUser();
+  const { logout, user } = useUser();
+  const isPremium = isPremiumProfile(user);
 
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
 
@@ -149,6 +151,14 @@ export default function SettingsScreen() {
             iconBg={c.lavender}
             iconColor={c.charcoal}
             onPress={() => router.push("/(home)/(settings)/account-security")}
+          />
+          <SettingsRow
+            icon="star"
+            label="HeartLink Premium"
+            subtitle={isPremium ? "You're on Premium" : "Reports, long-term trends, family sharing"}
+            iconBg={c.yellow}
+            iconColor={c.warmText}
+            onPress={() => router.push("/(home)/(settings)/premium")}
             isLast
           />
         </SettingsGroup>

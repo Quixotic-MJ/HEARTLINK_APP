@@ -11,6 +11,7 @@ import {
   Users as UsersIcon,
   Trash2,
   RefreshCw,
+  Crown,
 } from "lucide-react";
 import { useAuth } from "../../../contexts/useAuth";
 import AdminLayout from "../../../components/layouts/adminLayout";
@@ -52,6 +53,10 @@ const toPatients = (patientsData) => {
         hssTier: r.hss_tier,
         activityStatus: r.activity_status,
         reviewStatus: r.review_status,
+        // HL-084: Premium counts only until its end date
+        isPremium: r.plan === "premium" && !!r.premium_until && new Date(r.premium_until) > new Date(),
+        premiumUntil: r.premium_until || null,
+        premiumSource: r.premium_source || null,
       };
     });
   return mappedPatients;
@@ -341,6 +346,37 @@ const Users = () => {
     }
   };
 
+  // HL-084: give a patient Premium for a number of days (testers, the panel), or remove it after a confirm
+  const savePlan = async (entityId, premium, days) => {
+    try {
+      await apiFetch(`/api/admin/users/${entityId}/plan`, {
+        method: "PUT",
+        body: JSON.stringify(premium ? { premium: true, days } : { premium: false }),
+      });
+      toast.success(premium ? `Premium given for ${days} days.` : "Premium removed.");
+      closeModal();
+      closeConfirmModal();
+    } catch (e) {
+      toast.error(e.data?.detail || "Couldn't change the plan.");
+    }
+  };
+
+  const handleChangePlan = (entity, premium, days) => {
+    if (premium) return savePlan(entity.id, true, days);
+    setConfirmConfig({
+      isOpen: true,
+      title: "Remove Premium",
+      subtitle: entity.name,
+      description: `${entity.name} goes back to the free plan straight away. Their logs and safety features aren't affected.`,
+      confirmText: "Remove Premium",
+      variant: "danger",
+      icon: Crown,
+      entityInfo: { name: entity.name, id: entity.id, badge: "Patient" },
+      impactDetails: ["Premium features stop working for this patient now.", "They can start Premium again from the app."],
+      onConfirm: () => savePlan(entity.id, false),
+    });
+  };
+
   // HL-058: an admin marks a medical expert as a verified clinician (their reviews then count in Model Check)
   const handleToggleClinician = async (staff) => {
     const verified = !staff.is_verified_clinician;
@@ -403,7 +439,8 @@ const Users = () => {
       (u.id || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
       (u.phone || "").toLowerCase().includes(searchQuery.toLowerCase());
     const matchStatus =
-      filterStatus === "all" || (u.status || "").toLowerCase() === filterStatus;
+      filterStatus === "all" ||
+      (filterStatus === "premium" ? u.isPremium : filterStatus === "free" ? !u.isPremium : (u.status || "").toLowerCase() === filterStatus);
     return matchSearch && matchStatus;
   });
 
@@ -505,6 +542,7 @@ const Users = () => {
           onClose={closeModal}
           user={activeEntity}
           onToggleStatus={handleToggleAppUserStatus}
+          onChangePlan={handleChangePlan}
           canDelete={currentUserRole === "admin"}
           onDeleteUser={requestDeleteUser}
         />

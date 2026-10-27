@@ -17,6 +17,7 @@ import Login from "../features/auth/login";
 import SetPassword from "../features/auth/set_password";
 import UserWellnessProfile from "../features/pages/system & support/UserWellnessProfile";
 import ActivityLog from "../features/pages/system & support/ActivityLog";
+import Premium from "../features/pages/system & support/premium";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./queryClient";
 import { AuthProvider } from "../contexts/AuthContext";
@@ -71,6 +72,7 @@ export default function App() {
           <Route path="/users" element={<RoleRoute><Users /></RoleRoute>} />
           <Route path="/users/:id" element={<RoleRoute><UserWellnessProfile /></RoleRoute>} />
           <Route path="/feedbacks" element={<RoleRoute><Feedbacks /></RoleRoute>} />
+          <Route path="/premium" element={<RoleRoute><Premium /></RoleRoute>} />
           <Route path="/broadcasts" element={<RoleRoute><Broadcasts /></RoleRoute>} />
           <Route path="/notifications" element={<RoleRoute><Notifications /></RoleRoute>} />
           <Route path="/settings" element={<RoleRoute><Settings /></RoleRoute>} />

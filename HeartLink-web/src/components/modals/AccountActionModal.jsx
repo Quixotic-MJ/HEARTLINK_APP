@@ -10,6 +10,7 @@ import {
   Loader2,
   ChevronDown,
   Trash2,
+  Crown,
 } from "lucide-react";
 import { formatUserRef } from "../../utils/formatUserRef";
 
@@ -20,11 +21,20 @@ const DISABLE_REASONS = [
   "Other",
 ];
 
-const AccountActionModal = ({ isOpen, onClose, user, onToggleStatus, canDelete, onDeleteUser }) => {
+// HL-084: how long an admin can give Premium for (testers, the panel)
+const PREMIUM_DAYS = [
+  { days: 30, label: "30 days" },
+  { days: 90, label: "90 days" },
+  { days: 365, label: "1 year" },
+];
+
+const AccountActionModal = ({ isOpen, onClose, user, onToggleStatus, onChangePlan, canDelete, onDeleteUser }) => {
   const [isConfirming, setIsConfirming] = useState(false);
   const [selectedReason, setSelectedReason] = useState("");
   const [customReason, setCustomReason] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [premiumDays, setPremiumDays] = useState(30);
+  const [isPlanSaving, setIsPlanSaving] = useState(false);
 
   if (!isOpen || !user) return null;
 
@@ -66,6 +76,19 @@ const AccountActionModal = ({ isOpen, onClose, user, onToggleStatus, canDelete, 
       setIsSubmitting(false);
     }
   };
+
+  const changePlan = async (premium) => {
+    setIsPlanSaving(true);
+    try {
+      await onChangePlan(user, premium, premiumDays);
+    } finally {
+      setIsPlanSaving(false);
+    }
+  };
+
+  const premiumUntilLabel = user.premiumUntil
+    ? new Date(user.premiumUntil).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+    : "";
 
   const handleClose = () => {
     setIsConfirming(false);
@@ -164,6 +187,57 @@ const AccountActionModal = ({ isOpen, onClose, user, onToggleStatus, canDelete, 
                 </p>
               </div>
             </div>
+
+            {/* HL-084: plan */}
+            {onChangePlan && (
+              <div className="mt-3.5 p-3.5 rounded-[8px] border border-ds-hairline">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-ds-steel mb-1">Plan</p>
+                    {user.isPremium ? (
+                      <p className="text-[13px] font-semibold text-ds-ink flex items-center gap-1.5 m-0">
+                        <Crown size={13} className="text-ds-warm-text" />
+                        {user.premiumSource === "trial" ? "Premium trial" : "Premium"} until {premiumUntilLabel}
+                      </p>
+                    ) : (
+                      <p className="text-[13px] font-semibold text-ds-ink m-0">Free</p>
+                    )}
+                  </div>
+                  {user.isPremium ? (
+                    <button
+                      type="button"
+                      onClick={() => changePlan(false)}
+                      disabled={isPlanSaving}
+                      className="px-3 py-2 text-[12px] font-semibold text-ds-ink bg-ds-canvas hover:bg-ds-surface border border-ds-hairline-strong rounded-[8px] transition-colors cursor-pointer disabled:opacity-50"
+                    >
+                      Remove Premium
+                    </button>
+                  ) : null}
+                </div>
+                <div className="mt-3 flex items-center gap-2">
+                  <label htmlFor="premium-days" className="sr-only">Premium length</label>
+                  <select
+                    id="premium-days"
+                    value={premiumDays}
+                    onChange={(e) => setPremiumDays(Number(e.target.value))}
+                    className="flex-1 px-3 py-2 text-[12px] font-semibold text-ds-ink bg-ds-canvas border border-ds-hairline-strong rounded-[8px] focus:outline-none focus:border-ds-line cursor-pointer"
+                  >
+                    {PREMIUM_DAYS.map((o) => (
+                      <option key={o.days} value={o.days}>{o.label}</option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => changePlan(true)}
+                    disabled={isPlanSaving}
+                    className="px-3.5 py-2 text-[12px] font-semibold text-ds-warm-text bg-ds-yellow hover:bg-ds-yellow-bold border border-ds-yellow-bold rounded-[8px] transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                  >
+                    {isPlanSaving ? <Loader2 size={13} className="animate-spin" /> : <Crown size={13} />}
+                    {user.isPremium ? "Add time" : "Give Premium"}
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Deactivation reason (if disabled) */}
             {!isActive && user.deactivationReason && (

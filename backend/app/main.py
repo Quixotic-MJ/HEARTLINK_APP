@@ -46,9 +46,10 @@ from app.api.exercises import exercises
 from app.api.recipes_api import recipes_api
 from app.api.notifications_api import notifications_api
 from app.api.analytics_api import analytics_api
-from app.api.admin_api import admin_api, case_review_api, admin_notifications_api, patient_care_api
+from app.api.admin_api import admin_api, case_review_api, admin_notifications_api, patient_care_api, admin_premium_api
 from app.api import uploads_api
 from app.api import feedback_api
+from app.api import premium_api
 from app.api.companion import companion
 
 is_production = os.getenv("ENVIRONMENT", "").lower() == "production"
@@ -126,6 +127,8 @@ app.include_router(admin_notifications_api.router)
 app.include_router(patient_care_api.router)
 app.include_router(uploads_api.router)
 app.include_router(feedback_api.router)
+app.include_router(premium_api.router)
+app.include_router(admin_premium_api.router)
 app.include_router(companion.router)
 
 # Mount static files for uploads

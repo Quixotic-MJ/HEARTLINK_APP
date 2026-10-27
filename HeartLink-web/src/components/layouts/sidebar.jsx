@@ -15,6 +15,7 @@ import {
   HeartPulse,
   X,
   LogOut,
+  Crown,
 } from "lucide-react";
 import { useAuth } from "../../contexts/useAuth";
 import { canAccess } from "../../app/access";
@@ -237,6 +238,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed, onLogou
               <SectionLabel label="Users & feedback" collapsed={collapsed} />
               <NavItem path="/users" icon={Users} label="Users" collapsed={collapsed} />
               <NavItem path="/feedbacks" icon={MessageSquare} label="Feedback" collapsed={collapsed} />
+              <NavItem path="/premium" icon={Crown} label="Premium" collapsed={collapsed} />
 
               <SectionLabel label="System" collapsed={collapsed} />
               <NavItem path="/activity-log" icon={Activity} label="Activity log" collapsed={collapsed} />

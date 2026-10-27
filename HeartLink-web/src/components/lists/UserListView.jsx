@@ -10,9 +10,23 @@ import {
   ChevronDown,
   Users,
   AlertCircle,
+  Crown,
 } from "lucide-react";
 import { formatUserRef } from "../../utils/formatUserRef";
 import { Skeleton } from "../ui/Skeleton";
+
+// HL-084: the patient's plan; Premium shows its end date on hover
+const getPlanBadge = (user) =>
+  user.isPremium ? (
+    <span
+      title={user.premiumUntil ? `Premium until ${new Date(user.premiumUntil).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}` : undefined}
+      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[4px] text-[11px] font-bold uppercase tracking-wider bg-ds-yellow text-ds-warm-text border border-ds-yellow"
+    >
+      <Crown size={10} /> {user.premiumSource === "trial" ? "Trial" : "Premium"}
+    </span>
+  ) : (
+    <span className="text-[12px] text-ds-steel">Free</span>
+  );
 
 const UserListView = ({
   users,
@@ -201,6 +215,8 @@ const UserListView = ({
               <option value="all">All Accounts</option>
               <option value="active">Active</option>
               <option value="disabled">Disabled</option>
+              <option value="premium">Premium</option>
+              <option value="free">Free plan</option>
             </select>
             <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
               <ChevronDown size={12} className="text-ds-steel" />
@@ -229,6 +245,9 @@ const UserListView = ({
                   Account
                 </th>
                 <th className="py-3 px-4 sm:px-5 text-[11px] font-semibold text-ds-steel uppercase tracking-[0.1em]">
+                  Plan
+                </th>
+                <th className="py-3 px-4 sm:px-5 text-[11px] font-semibold text-ds-steel uppercase tracking-[0.1em]">
                   Onboarding
                 </th>
                 <th className="py-3 px-4 sm:px-5 text-[11px] font-semibold text-ds-steel uppercase tracking-[0.1em]">
@@ -248,6 +267,7 @@ const UserListView = ({
                     <td className="py-3.5 px-5"><Skeleton className="w-20 h-4 bg-ds-hairline/70 rounded" /></td>
                     <td className="py-3.5 px-5"><Skeleton className="w-20 h-4 bg-ds-hairline/70 rounded" /></td>
                     <td className="py-3.5 px-5"><Skeleton className="w-16 h-4 bg-ds-hairline/70 rounded" /></td>
+                    <td className="py-3.5 px-5"><Skeleton className="w-12 h-4 bg-ds-hairline/70 rounded" /></td>
                     <td className="py-3.5 px-5"><Skeleton className="w-16 h-4 bg-ds-hairline/70 rounded" /></td>
                     <td className="py-3.5 px-5"><Skeleton className="w-16 h-4 bg-ds-hairline/70 rounded" /></td>
                     <td className="py-3.5 px-5 text-right"><Skeleton className="w-16 h-7 ml-auto bg-ds-hairline/70 rounded-[6px]" /></td>
@@ -255,7 +275,7 @@ const UserListView = ({
                 ))
               ) : users.length === 0 ? (
                 <tr>
-                  <td colSpan="8" className="py-12 px-5 text-center text-ds-slate text-[13px]">
+                  <td colSpan="9" className="py-12 px-5 text-center text-ds-slate text-[13px]">
                     No user accounts match the search or filter settings.
                   </td>
                 </tr>
@@ -289,6 +309,9 @@ const UserListView = ({
                     </td>
                     <td className="py-3.5 px-4 sm:px-5 align-middle">
                       {getStatusBadge(user.status)}
+                    </td>
+                    <td className="py-3.5 px-4 sm:px-5 align-middle">
+                      {getPlanBadge(user)}
                     </td>
                     <td className="py-3.5 px-4 sm:px-5 align-middle">
                       {getOnboardingBadge(user.onboardingStatus)}
