@@ -131,24 +131,4 @@ def bootstrap_supabase_content():
     except Exception as e:
         logger.warning(f"Failed to bootstrap recipes: {e}")
 
-    # 3. Seed Clinics
-    try:
-        res = sb.table("clinics").select("id").limit(1).execute()
-        if not res.data:
-            logger.info("Seeding clinics into Supabase...")
-            clinics_to_seed = []
-            for c in seed_data.get("clinics", []):
-                clinics_to_seed.append({
-                    "legacy_id": str(c.get("id")),
-                    "name": c.get("name") or "Cardiology Clinic",
-                    "doctor": c.get("doctor") or "Dr. Specialist",
-                    "latitude": float(c.get("latitude") or 10.3157),
-                    "longitude": float(c.get("longitude") or 123.8854),
-                    "phone": c.get("phone") or "0917-000-0000",
-                    "specialty": c.get("specialty") or "General Cardiology"
-                })
-            if clinics_to_seed:
-                sb.table("clinics").insert(clinics_to_seed).execute()
-                logger.info(f"Successfully seeded {len(clinics_to_seed)} clinics.")
-    except Exception as e:
-        logger.warning(f"Failed to bootstrap clinics: {e}")
+    # 3. Clinics are no longer seeded here: the checked Cebu City list comes from migration 040 (HL-088).

@@ -332,47 +332,11 @@ class SupabaseContentRepository(ContentRepository):
             return False
 
     def list_clinics(self) -> List[Dict[str, Any]]:
-        default_clinics = [
-            {
-                "id": "c1111111-1111-1111-1111-111111111111",
-                "legacy_id": "1",
-                "name": "Chong Hua Hospital Heart Institute",
-                "doctor": "Dr. Maria Santos, MD, FACC",
-                "latitude": 10.3129,
-                "longitude": 123.8925,
-                "phone": "+63322558000",
-                "specialty": "General Cardiology & Emergency Care",
-                "operating_hours": "24/7"
-            },
-            {
-                "id": "c2222222-2222-2222-2222-222222222222",
-                "legacy_id": "2",
-                "name": "Cebu Doctors' University Hospital",
-                "doctor": "Dr. Juan Dela Cruz, MD",
-                "latitude": 10.3152,
-                "longitude": 123.8897,
-                "phone": "+63322555555",
-                "specialty": "General Cardiology & Acute Care",
-                "operating_hours": "24/7"
-            },
-            {
-                "id": "c3333333-3333-3333-3333-333333333333",
-                "legacy_id": "3",
-                "name": "Perpetual Succour Hospital",
-                "doctor": "Dr. Anna Reyes, MD",
-                "latitude": 10.3188,
-                "longitude": 123.8966,
-                "phone": "+63322338620",
-                "specialty": "Cardiac Rehabilitation & Emergency",
-                "operating_hours": "24/7"
-            }
-        ]
+        # HL-088: only what's in the table. The old hard-coded fallback had invented doctors and phone numbers.
         try:
             res = self.client.table("clinics").select("*").execute()
-            if res.data and len(res.data) > 0:
-                return res.data
-            return default_clinics
+            return res.data or []
         except Exception as e:
             logger.warning(f"Error reading clinics from Supabase: {e}")
-            return default_clinics
+            return []
 

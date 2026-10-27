@@ -182,11 +182,11 @@ def root_health_check():
 def api_health_check():
     return {"status": "ok"}
 
-from app.db.repositories import get_content_repo
-
 @app.get("/api/clinics", tags=["Clinics"])
 def get_clinics():
-    return get_content_repo().list_clinics()
+    # HL-088: checked fields only (no doctor names; a phone number only once the team checked it)
+    from app.services.clinics import list_public_clinics
+    return list_public_clinics()
 
 from fastapi.responses import JSONResponse
 from fastapi import Request

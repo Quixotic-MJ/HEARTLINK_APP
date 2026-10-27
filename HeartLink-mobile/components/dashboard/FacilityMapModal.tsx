@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -10,73 +10,24 @@ import {
   Animated,
   Easing,
   Dimensions,
-  Linking,
 } from "react-native";
-import MapView, { Marker, type Region, UrlTile } from "react-native-maps";
 import { Feather } from "@expo/vector-icons";
 import { useColorScheme } from "nativewind";
 import * as Haptics from "expo-haptics";
-import * as Location from "expo-location";
 import { theme } from "../../constants/theme";
-import { apiFetch } from "../../lib/api";
+import { ClinicMap } from "../clinics/ClinicMap";
+import { useNearbyClinics } from "../../hooks/useNearbyClinics";
+import { Clinic, callClinic, clinicLabel, distanceLabel, hasEmergencyRoom, openDirections } from "../../services/clinics";
 
 /**
- * FacilityMapModal — pure React Native port of the ViewOnMap web blueprint
- * for the "Find a Healthcare Facility" card.
+ * FacilityMapModal: the dashboard's "Nearby clinics" pop-up (opened from Care tools).
  *
- * Blueprint mechanics preserved:
- * - Pill trigger -> expanded map (blueprint spring: stiffness 400,
- *   damping 30, mass 0.8; layoutId morph has no RN equivalent, so the panel
- *   springs up from a bottom sheet instead).
- * - Map loader until the map is ready, floating close button.
- * - iframe embed -> native MapView (react-native-maps) with tappable markers.
- *
- * Scope: Cebu area only — facilities beyond CEBU_RADIUS_KM of Cebu City
- * center are excluded, and the fallback region is Cebu City.
+ * HL-078: the map is OpenStreetMap (ClinicMap), not Google's map SDK, which crashed the test build without a key.
+ * HL-088: places come from the checked Cebu City directory, nearest emergency rooms first; labels come from real
+ * fields only, and Call shows only for a number the team checked. Directions opens the phone's maps app.
  */
 
-export interface CebuFacility {
-  id: string;
-  name: string;
-  specialty: string;
-  phone: string;
-  latitude: number;
-  longitude: number;
-  distanceKm: number;
-  distance: string;
-  isOpen: boolean;
-  status: string;
-}
-
-// Cebu City center (matches the locator default) + scope guard.
-const CEBU_CENTER = { latitude: 10.3157, longitude: 123.8854 };
-const CEBU_RADIUS_KM = 50;
 const MAX_PINS = 8;
-function getDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number) {
-  const R = 6371;
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLon = ((lon2 - lon1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
-
-function openDirections(lat: number, lng: number, name: string) {
-  const destination = `${lat},${lng}`;
-  const url = Platform.select({
-    ios: `http://maps.apple.com/?daddr=${destination}&dirflg=d`,
-    android: `google.navigation:q=${destination}`,
-  });
-  if (url) {
-    Linking.openURL(url).catch(() =>
-      Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${destination}`)
-    );
-  }
-}
 
 export function FacilityMapModal({
   visible,
@@ -90,12 +41,9 @@ export function FacilityMapModal({
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
 
-  const [facilities, setFacilities] = useState<CebuFacility[]>([]);
-  const [userCoords, setUserCoords] = useState(CEBU_CENTER);
-  const [isLoading, setIsLoading] = useState(false);
-  const [mapReady, setMapReady] = useState(false);
+  const { clinics, you, isPending: isLoading, isError } = useNearbyClinics(visible);
+  const facilities = clinics.slice(0, MAX_PINS);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const mapRef = useRef<MapView>(null);
 
   // Panel motion uses RN Animated (Reanimated entering swallows touches
   // inside RN Modals). Blueprint spring: stiffness 400, damping 30, mass 0.8.
@@ -140,99 +88,17 @@ export function FacilityMapModal({
     [slideAnim, backdropAnim]
   );
 
-  // Load user location + Cebu-scoped facilities when the modal opens.
+  // Each time it opens, start from the nearest emergency room
   useEffect(() => {
-    if (!visible) return;
-    let cancelled = false;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- opening the map starts a fresh location and clinic load
-    setMapReady(false);
-    setSelectedId(null);
-
-    (async () => {
-      setIsLoading(true);
-      try {
-        let userLat = CEBU_CENTER.latitude;
-        let userLon = CEBU_CENTER.longitude;
-        try {
-          const { status } = await Location.requestForegroundPermissionsAsync();
-          if (status === "granted") {
-            const loc = await Location.getCurrentPositionAsync({});
-            userLat = loc.coords.latitude;
-            userLon = loc.coords.longitude;
-          }
-        } catch {
-          // Fall back to Cebu City center.
-        }
-        if (cancelled) return;
-        setUserCoords({ latitude: userLat, longitude: userLon });
-
-        const res = await apiFetch(`/api/clinics`);
-        const data = await res.json();
-        if (cancelled) return;
-
-        const currentHour = new Date().getHours();
-        const processed: CebuFacility[] = (Array.isArray(data) ? data : [])
-          .filter((c: any) => {
-            const lat = Number(c.latitude);
-            const lon = Number(c.longitude);
-            if (isNaN(lat) || isNaN(lon)) return false;
-            // Cebu scope guard.
-            return getDistanceKm(CEBU_CENTER.latitude, CEBU_CENTER.longitude, lat, lon) <= CEBU_RADIUS_KM;
-          })
-          .map((c: any) => {
-            const dist = getDistanceKm(userLat, userLon, Number(c.latitude), Number(c.longitude));
-            const isHospital =
-              c.name?.toLowerCase().includes("hospital") ||
-              c.name?.toLowerCase().includes("institute") ||
-              c.specialty?.toLowerCase().includes("emergency") ||
-              c.operating_hours === "24/7";
-            const isOpen = isHospital || !!c.operating_hours || (currentHour >= 8 && currentHour < 17);
-            return {
-              id: String(c.id ?? c.name),
-              name: c.name || "Clinic",
-              specialty: c.specialty || "General",
-              phone: c.phone || "",
-              latitude: Number(c.latitude),
-              longitude: Number(c.longitude),
-              distanceKm: dist,
-              distance: `${dist.toFixed(1)} km`,
-              isOpen,
-              status: isHospital ? "24/7 Emergency" : isOpen ? "Open now" : "Closed",
-            };
-          })
-          .sort((a, b) => a.distanceKm - b.distanceKm)
-          .slice(0, MAX_PINS);
-
-        setFacilities(processed);
-        setSelectedId(processed[0]?.id ?? null);
-      } catch {
-        if (!cancelled) setFacilities([]);
-      } finally {
-        if (!cancelled) setIsLoading(false);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- opening the pop-up resets the highlighted clinic
+    if (visible) setSelectedId(null);
   }, [visible]);
 
   const selected = facilities.find((f) => f.id === selectedId) ?? facilities[0];
 
-  const focusFacility = (f: CebuFacility) => {
+  const focusFacility = (f: Clinic) => {
     Haptics.selectionAsync();
     setSelectedId(f.id);
-    mapRef.current?.animateToRegion(
-      { latitude: f.latitude, longitude: f.longitude, latitudeDelta: 0.05, longitudeDelta: 0.05 },
-      350
-    );
-  };
-
-  const initialRegion: Region = {
-    latitude: selected?.latitude ?? userCoords.latitude,
-    longitude: selected?.longitude ?? userCoords.longitude,
-    latitudeDelta: 0.09,
-    longitudeDelta: 0.09,
   };
 
   return (
@@ -268,34 +134,12 @@ export function FacilityMapModal({
         >
           {/* Map (blueprint expanded square) */}
           <View style={{ height: 300, backgroundColor: isDark ? "#0f172a" : "#E5E4EE", overflow: "hidden" }}>
-            <MapView
-              ref={mapRef}
-              style={{ width: "100%", height: "100%", position: "absolute", top: 0, left: 0, bottom: 0, right: 0 }}
-              mapType="none"
-              initialRegion={initialRegion}
-              showsUserLocation
-              showsMyLocationButton={false}
-              onMapReady={() => setMapReady(true)}
-            >
-              <UrlTile
-                urlTemplate="https://a.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                maximumZ={19}
-                flipY={false}
-              />
-              {facilities.map((f) => (
-                <Marker
-                  key={f.id}
-                  coordinate={{ latitude: f.latitude, longitude: f.longitude }}
-                  title={f.name}
-                  description={`${f.distance} • ${f.status}`}
-                  pinColor={f.id === selected?.id ? "#3b82f6" : "#475569"}
-                  onPress={() => setSelectedId(f.id)}
-                />
-              ))}
-            </MapView>
+            {facilities.length ? (
+              <ClinicMap clinics={facilities} you={you} selectedId={selected?.id ?? null} onSelect={setSelectedId} height={300} />
+            ) : null}
 
             {/* Loader until the map is ready (blueprint) */}
-            {(!mapReady || isLoading) && (
+            {isLoading && (
               <View
                 style={{
                   position: "absolute",
@@ -310,7 +154,7 @@ export function FacilityMapModal({
               >
                 <ActivityIndicator size="large" color={theme.dangerMid} />
                 <Text style={{ marginTop: 10, fontSize: 12, fontWeight: "600", color: isDark ? "#94A3B8" : "#64748b" }}>
-                  Finding nearby Cebu facilities…
+                  Finding nearby clinics…
                 </Text>
               </View>
             )}
@@ -369,7 +213,7 @@ export function FacilityMapModal({
 
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 16 }}>
             <Text style={{ fontSize: 11, fontWeight: "700", color: isDark ? "#94A3B8" : "#64748b", marginBottom: 12, letterSpacing: 0.5, textTransform: "uppercase" }}>
-              Closest to you
+              Nearest emergency rooms first
             </Text>
 
             {selected ? (
@@ -392,10 +236,15 @@ export function FacilityMapModal({
                       {selected.name}
                     </Text>
                     <Text style={{ fontSize: 13, color: isDark ? "#94A3B8" : "#64748b" }}>
-                      {selected.distance} • {selected.specialty}
+                      {distanceLabel(selected.distanceKm)} • {clinicLabel(selected)}
                     </Text>
+                    {selected.address ? (
+                      <Text numberOfLines={2} style={{ fontSize: 13, color: isDark ? "#94A3B8" : "#64748b", marginTop: 2 }}>
+                        {selected.address}
+                      </Text>
+                    ) : null}
                   </View>
-                  {selected.status.includes("24/7") && (
+                  {hasEmergencyRoom(selected) && (
                     <View
                       style={{
                         paddingHorizontal: 8,
@@ -404,7 +253,7 @@ export function FacilityMapModal({
                         backgroundColor: "rgba(34,197,94,0.15)",
                       }}
                     >
-                      <Text style={{ fontSize: 11, fontWeight: "600", color: theme.success }}>24/7</Text>
+                      <Text style={{ fontSize: 11, fontWeight: "600", color: theme.success }}>ER</Text>
                     </View>
                   )}
                 </View>
@@ -412,27 +261,32 @@ export function FacilityMapModal({
                 <View style={{ flexDirection: "row", gap: 10, marginTop: 16 }}>
                   <TouchableOpacity
                     activeOpacity={0.85}
-                    onPress={() => openDirections(selected.latitude, selected.longitude, selected.name)}
+                    onPress={() => openDirections(selected)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Directions to ${selected.name}`}
                     style={{ flex: 1, borderRadius: 10, paddingVertical: 11, backgroundColor: theme.primary, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 6 }}
                   >
                     <Feather name="navigation" size={15} color={theme.onPrimary} />
                     <Text style={{ fontSize: 14, fontWeight: "700", color: theme.surface }}>Directions</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity
-                    activeOpacity={0.85}
-                    disabled={!selected.phone}
-                    onPress={() => selected.phone && Linking.openURL(`tel:${selected.phone}`)}
-                    style={{ flex: 1, borderRadius: 10, paddingVertical: 11, backgroundColor: isDark ? "#0f172a" : "#1e293b", opacity: selected.phone ? 1 : 0.5, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 6 }}
-                  >
-                    <Feather name="phone-call" size={15} color={theme.onPrimary} />
-                    <Text style={{ fontSize: 14, fontWeight: "700", color: theme.surface }}>Call</Text>
-                  </TouchableOpacity>
+                  {selected.phone ? (
+                    <TouchableOpacity
+                      activeOpacity={0.85}
+                      onPress={() => callClinic(selected)}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Call ${selected.name}`}
+                      style={{ flex: 1, borderRadius: 10, paddingVertical: 11, backgroundColor: isDark ? "#0f172a" : "#1e293b", alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 6 }}
+                    >
+                      <Feather name="phone-call" size={15} color={theme.onPrimary} />
+                      <Text style={{ fontSize: 14, fontWeight: "700", color: theme.surface }}>Call</Text>
+                    </TouchableOpacity>
+                  ) : null}
                 </View>
               </View>
             ) : (
               !isLoading && (
                 <Text style={{ textAlign: "center", fontSize: 13, color: isDark ? "#94A3B8" : "#64748b", paddingVertical: 8 }}>
-                  No Cebu facilities found. Check your connection and try again.
+                  {isError ? "Couldn't load clinics. Check your connection and try again." : "No clinics to show."} In an emergency, call 911.
                 </Text>
               )
             )}
@@ -462,7 +316,7 @@ export function FacilityMapModal({
                         {f.name}
                       </Text>
                       <Text style={{ fontSize: 12, color: isDark ? "#94A3B8" : "#64748b" }}>
-                        {f.distance} • {f.status}
+                        {distanceLabel(f.distanceKm)} • {clinicLabel(f)}
                       </Text>
                     </View>
                     <Feather name="chevron-right" size={16} color={isDark ? "#94A3B8" : "#94a3b8"} />
