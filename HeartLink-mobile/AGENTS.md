@@ -93,8 +93,8 @@ logic out of screen files.
 5. **Git:** work on a feature branch. Feature branches merge into `staging` (testing); `main` is
    the live app. Never commit or push without the owner's OK. Commit messages use conventional
    style with the ticket id, e.g. `fix(mobile): show error screen on crash (HL-024)`. Tickets are
-   in `documentation/heartlink_remaining_work.md` at the repo root (the old `heartlink_update_plan.md` is archived
-   in `documentation/archive/`, history only). `documentation/` is git-ignored,
+   in `documentation/heartlink_tickets.md` at the repo root (older ticket files are archived in
+   `documentation/archive/`, history only). `documentation/` is git-ignored,
    so it exists only in the owner's main checkout, not in worktrees or on GitHub.
 
 ---
@@ -136,7 +136,9 @@ Reference: `showIncompleteWarning` in `log-symptoms.tsx`.
   `EXPO_PUBLIC_API_URL` (`lib/apiBase.ts`, no localhost fallback), adds the saved login token, and on
   a 401 renews the session once and retries; if the session can't be renewed, UserContext signs the
   patient out. Pass `auth: false` for login, sign-up and other calls that must not renew a session.
-  It returns a normal `Response`. Never build `${API_URL}/api/...` addresses or call `fetch()` for
+  It returns a normal `Response`. A text body is sent as `application/json` unless you set another
+  Content-Type (HL-077: React Native otherwise labels it text/plain and the server refuses it with 422).
+  Never build `${API_URL}/api/...` addresses or call `fetch()` for
   the backend yourself. Plain `fetch` is only for other sites (Open Food Facts) and the refresh call
   in `services/SessionService.ts`.
 - **Target:** new data fetching goes in `services/` or in a React Query hook in `hooks/`
@@ -159,7 +161,8 @@ Reference: `showIncompleteWarning` in `log-symptoms.tsx`.
 
 ### Push notifications (HL-025)
 - After sign-in (`contexts/UserContext.tsx`), `registerForPush()` saves the phone's Expo push token with the backend;
-  `logout` calls `unregisterPush()` first. Failures never block sign-in or sign-out.
+  `logout` calls `unregisterPush()` first. Failures never block sign-in or sign-out, but each one is logged and
+  remembered (`usePushStatus()`, HL-077), and Settings › "Notifications on this phone" says why push is off.
 - The backend sends a push whenever it saves a patient notification (announcements, checkup reminders), with
   `data.screen = "notifications"`; `usePushNavigation()` in `app/_layout.tsx` opens that screen on tap. There is no
   polling for announcements any more.

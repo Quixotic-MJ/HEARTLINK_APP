@@ -11,6 +11,8 @@ export { API_BASE_URL, apiUrl } from "./apiBase";
  * - When the server says the token has expired (401), the session is refreshed once and the
  *   request retried (HL-047). If the refresh token no longer works, the session-ended handler
  *   (set by UserContext) signs the patient out.
+ * - A text body is sent as JSON (HL-077): without the header React Native labels it text/plain and the server
+ *   refuses it (422). A caller's own Content-Type is kept.
  * It returns the normal fetch Response, so callers keep checking `response.ok` as before.
  */
 
@@ -43,6 +45,11 @@ function withToken(headers: HeadersInit | undefined, token: string | null, repla
   return out;
 }
 
+function withJsonType(headers: Record<string, string>, body: BodyInit | null | undefined): Record<string, string> {
+  if (typeof body !== "string" || Object.keys(headers).some((k) => k.toLowerCase() === "content-type")) return headers;
+  return { ...headers, "Content-Type": "application/json" };
+}
+
 function sentToken(headers: Record<string, string>): string | null {
   const key = Object.keys(headers).find((k) => k.toLowerCase() === "authorization");
   const value = key ? headers[key] : "";
@@ -53,7 +60,7 @@ function sentToken(headers: Record<string, string>): string | null {
 export async function apiFetch(path: string, options: ApiOptions = {}): Promise<Response> {
   const { auth = true, headers, ...init } = options;
   const token = auth ? await getToken() : null;
-  const firstHeaders = withToken(headers, token);
+  const firstHeaders = withJsonType(withToken(headers, token), init.body);
   const response = await fetch(apiUrl(path), { ...init, headers: firstHeaders });
 
   // Only a request that carried a token can be fixed by renewing it.
@@ -62,7 +69,7 @@ export async function apiFetch(path: string, options: ApiOptions = {}): Promise<
   // The access token expired or was revoked early: renew once and try again.
   const result = await refreshSession();
   if (result.status === "refreshed") {
-    return fetch(apiUrl(path), { ...init, headers: withToken(headers, result.token, true) });
+    return fetch(apiUrl(path), { ...init, headers: withJsonType(withToken(headers, result.token, true), init.body) });
   }
   if (result.status === "expired") onSessionEnded?.();
   return response;

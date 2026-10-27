@@ -1,6 +1,6 @@
 import { useDs } from "../../../components/onboarding/useDs";
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity, ScrollView } from "react-native";
+import { View, Text, TouchableOpacity, ScrollView, Linking } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
@@ -9,6 +9,7 @@ import { useUser } from "../../../contexts/UserContext";
 import { ConfirmDialog } from "../../../components/ui/ConfirmDialog";
 import { SquareIconButton } from "../../../components/exercise/ExerciseBits";
 import { isPremiumProfile } from "../../../services/premium";
+import { pushStatusText, registerForPush, usePushStatus } from "../../../services/pushNotifications";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -47,8 +48,9 @@ function SettingsRow({
     <TouchableOpacity
       activeOpacity={0.7}
       onPress={onPress}
+      disabled={!onPress}
       accessible={true}
-      accessibilityRole="button"
+      accessibilityRole={onPress ? "button" : "text"}
       accessibilityLabel={accessibilityLabel || label}
       className="flex-row items-center py-3.5"
       style={{ minHeight: 64, borderBottomWidth: isLast ? 0 : 1, borderBottomColor: c.hairlineSoft }}
@@ -77,7 +79,7 @@ function SettingsRow({
         )}
       </View>
 
-      <Feather name="chevron-right" size={18} color={danger ? (c.danger) : (c.steel)} />
+      {onPress ? <Feather name="chevron-right" size={18} color={danger ? (c.danger) : (c.steel)} /> : null}
     </TouchableOpacity>
   );
 }
@@ -109,6 +111,12 @@ export default function SettingsScreen() {
   const router = useRouter();
   const { logout, user } = useUser();
   const isPremium = isPremiumProfile(user);
+  // HL-077: whether this phone gets push notifications, and why not
+  const push = pushStatusText(usePushStatus());
+  const onPushRow = () => {
+    if (push.action === "open_settings") Linking.openSettings();
+    else if (push.action === "retry") registerForPush();
+  };
 
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
 
@@ -173,6 +181,14 @@ export default function SettingsScreen() {
             iconBg={c.yellow}
             iconColor={c.warmText}
             onPress={() => router.push("/(home)/(settings)/daily-reminders")}
+          />
+          <SettingsRow
+            icon="smartphone"
+            label="Notifications on this phone"
+            subtitle={push.subtitle}
+            iconBg={c.sky}
+            iconColor={c.charcoal}
+            onPress={push.action ? onPushRow : undefined}
           />
           <SettingsRow
             icon="target"

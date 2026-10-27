@@ -11,8 +11,10 @@ if (!isExpoGo) {
     Notifications = require('expo-notifications');
     // Configure how notifications behave when the app is in the foreground
     Notifications.setNotificationHandler({
+      // HL-077: shouldShowAlert alone no longer shows anything; these two show the banner and keep it in the list
       handleNotification: async () => ({
-        shouldShowAlert: true,
+        shouldShowBanner: true,
+        shouldShowList: true,
         shouldPlaySound: true,
         shouldSetBadge: false,
       }),

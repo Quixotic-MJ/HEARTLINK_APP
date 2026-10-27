@@ -95,4 +95,28 @@ describe("apiFetch (HL-023)", () => {
 
     expect(ended).not.toHaveBeenCalled();
   });
+
+  it("labels a text body as JSON, so the server can read it (HL-077)", async () => {
+    mockGetToken.mockResolvedValue("tok-1");
+    global.fetch = jest.fn().mockResolvedValue(reply(200));
+
+    await apiFetch("/api/notifications/push-token", { method: "POST", body: JSON.stringify({ token: "ExponentPushToken[x]" }) });
+
+    const init = (global.fetch as jest.Mock).mock.calls[0][1] as RequestInit;
+    expect((init.headers as Record<string, string>)["Content-Type"]).toBe("application/json");
+  });
+
+  it("keeps a caller's own content type and adds none without a text body", async () => {
+    mockGetToken.mockResolvedValue("tok-1");
+    global.fetch = jest.fn().mockResolvedValue(reply(200));
+
+    await apiFetch("/api/x", { method: "POST", headers: { "content-type": "text/csv" }, body: "a,b" });
+    await apiFetch("/api/y", { method: "GET" });
+
+    const first = (global.fetch as jest.Mock).mock.calls[0][1].headers as Record<string, string>;
+    const second = (global.fetch as jest.Mock).mock.calls[1][1].headers as Record<string, string>;
+    expect(first["content-type"]).toBe("text/csv");
+    expect(first["Content-Type"]).toBeUndefined();
+    expect(second["Content-Type"]).toBeUndefined();
+  });
 });

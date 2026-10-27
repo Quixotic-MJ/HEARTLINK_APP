@@ -95,3 +95,64 @@ describe('unregisterPush', () => {
     expect(apiFetch).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('push status for Settings (HL-077)', () => {
+  // The failures are logged on purpose (logAppError); keep the test output readable
+  beforeEach(() => jest.spyOn(console, 'error').mockImplementation(() => {}));
+  afterEach(() => (console.error as jest.Mock).mockRestore());
+
+  it('says push is on once the phone is saved on the server', async () => {
+    const { service } = load();
+    expect(service.getPushStatus()).toBeNull();
+    await service.registerForPush();
+    expect(service.getPushStatus()).toEqual({ on: true });
+    expect(service.pushStatusText(service.getPushStatus()).action).toBeNull();
+  });
+
+  it.each([
+    [{ expoGo: true }, 'expo_go', null],
+    [{ isDevice: false }, 'emulator', null],
+    [{ projectId: null }, 'not_set_up', null],
+    [{ permission: 'denied' }, 'permission', 'open_settings'],
+    [{ serverOk: false }, 'server', 'retry'],
+  ] as const)('remembers why push is off: %j', async (setup, reason, action) => {
+    const { service } = load(setup);
+    await service.registerForPush();
+    expect(service.getPushStatus()).toEqual({ on: false, reason });
+    expect(service.pushStatusText(service.getPushStatus()).action).toBe(action);
+  });
+
+  it('tells apart a failed Expo token from a failed save', async () => {
+    const { service, notifications } = load();
+    notifications.getExpoPushTokenAsync.mockRejectedValueOnce(new Error('FCM not set up'));
+    await service.registerForPush();
+    expect(service.getPushStatus()).toEqual({ on: false, reason: 'token' });
+    expect(console.error).toHaveBeenCalled();
+  });
+
+  it('every reason has a plain message', () => {
+    const { service } = load();
+    for (const reason of ['expo_go', 'emulator', 'not_set_up', 'permission', 'token', 'server'] as const) {
+      expect(service.pushStatusText({ on: false, reason }).subtitle).toMatch(/^Off/);
+    }
+    expect(service.pushStatusText(null).subtitle).toBe('Checking…');
+  });
+});
+
+describe('notifications while the app is open (HL-077)', () => {
+  it('shows a banner and keeps it in the list', async () => {
+    const setNotificationHandler = jest.fn();
+    jest.isolateModules(() => {
+      jest.doMock('expo-constants', () => ({
+        __esModule: true,
+        default: { executionEnvironment: 'standalone' },
+        ExecutionEnvironment: { StoreClient: 'storeClient', Standalone: 'standalone' },
+      }));
+      jest.doMock('expo-notifications', () => ({ setNotificationHandler }));
+      require('../../utils/notifications');
+    });
+    const behaviour = await setNotificationHandler.mock.calls[0][0].handleNotification();
+    expect(behaviour).toMatchObject({ shouldShowBanner: true, shouldShowList: true, shouldPlaySound: true });
+  });
+});
+
