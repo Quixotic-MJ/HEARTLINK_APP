@@ -538,6 +538,26 @@ function escapeHtml(unsafe: any): string {
             </View>
             <Feather name="chevron-right" size={20} color={c.steel} />
           </AnimatedButton>
+
+          {/* HL-085: the longer report (Premium); the weekly summary above stays free */}
+          <AnimatedButton
+            onPress={() => router.push("/(home)/(profile)/health-report")}
+            accessibilityRole="button"
+            accessibilityLabel="1- or 3-month health report, Premium"
+            className="p-4 flex-row items-center mt-3"
+            style={{ borderRadius: 12, borderWidth: 1, borderColor: c.hairline, backgroundColor: c.canvas }}
+          >
+            <View style={{ marginRight: 14 }}>
+              <IconBadge icon="file-chart-outline" tint="mint" size={40} />
+            </View>
+            <View className="flex-1">
+              <Text style={{ fontSize: 16, fontWeight: "500", color: c.ink, marginBottom: 2 }}>
+                1- or 3-month health report
+              </Text>
+              <Text style={{ fontSize: 13, fontWeight: "500", color: c.slate }}>HeartLink Premium</Text>
+            </View>
+            <Feather name="chevron-right" size={20} color={c.steel} />
+          </AnimatedButton>
         </View>
 
       </ScrollView>

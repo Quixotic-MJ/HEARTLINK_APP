@@ -518,6 +518,7 @@ export default function ProfileScreen({ isTab = false }: { isTab?: boolean } = {
           <MoreRow icon="bar-chart-2" label="Long-term analytics" onPress={() => router.push("/(home)/(profile)/analytics")} />
           <MoreRow icon="users" label="My care team" onPress={() => router.push("/(home)/(profile)/care-team")} />
           <MoreRow icon="file-text" label="Doctor consultation summary" onPress={() => router.push("/(home)/(tabs)/consultation-summary" as any)} />
+          <MoreRow icon="clipboard" label="Health report (1 or 3 months)" onPress={() => router.push("/(home)/(profile)/health-report")} />
           <MoreRow icon="download" label="Download biometrics PDF" onPress={exportPDF} isLast />
         </View>
 

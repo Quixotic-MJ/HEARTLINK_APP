@@ -34,7 +34,7 @@ export const PREMIUM_FEATURES: PremiumFeature[] = [
     tint: "sky",
     title: "Reports for your checkups",
     text: "A 1- or 3-month summary of your blood pressure, medicines and habits, as a PDF to show your doctor.",
-    ready: false,
+    ready: true,
   },
   {
     key: "trends",

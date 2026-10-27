@@ -50,6 +50,7 @@ from app.api.admin_api import admin_api, case_review_api, admin_notifications_ap
 from app.api import uploads_api
 from app.api import feedback_api
 from app.api import premium_api
+from app.api import reports_api
 from app.api.companion import companion
 
 is_production = os.getenv("ENVIRONMENT", "").lower() == "production"
@@ -128,6 +129,7 @@ app.include_router(patient_care_api.router)
 app.include_router(uploads_api.router)
 app.include_router(feedback_api.router)
 app.include_router(premium_api.router)
+app.include_router(reports_api.router)
 app.include_router(admin_premium_api.router)
 app.include_router(companion.router)
 

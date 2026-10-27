@@ -37,6 +37,7 @@ describe("Premium wording and prices (HL-084)", () => {
 
   it("doesn't promise features that aren't built yet", () => {
     expect(PREMIUM_FEATURES.map((f) => f.key)).toEqual(["reports", "trends", "family"]);
-    expect(PREMIUM_FEATURES.every((f) => !f.ready)).toBe(true);
+    // HL-085 shipped reports; long-term Trends and family sharing are still to come
+    expect(PREMIUM_FEATURES.filter((f) => f.ready).map((f) => f.key)).toEqual(["reports"]);
   });
 });
