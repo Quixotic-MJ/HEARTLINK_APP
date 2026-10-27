@@ -5,6 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
 import { useUser } from "../contexts/UserContext";
+import { isFamilyAccount } from "../services/family";
 import HeartLogo from "../components/ui/HeartLogo";
 import Svg, { Defs, RadialGradient, Rect, Stop } from "react-native-svg";
 import "../global.css";
@@ -73,7 +74,9 @@ export default function SplashScreen() {
       // If the profile hasn't loaded (slow network / timeout), go to the dashboard
       // rather than treating "not loaded yet" as "onboarding incomplete". The root
       // layout redirects to baseline once the profile arrives, if it's needed.
-      if (!user || user.onboarding_status === "complete") {
+      if (isFamilyAccount(user)) {
+        router.replace("/(family)");
+      } else if (!user || user.onboarding_status === "complete") {
         router.replace("/(home)/(tabs)/dashboard");
       } else {
         router.replace("/(baseline)/plan");

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends, status, Query
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Depends, status, Query
 from typing import List, Dict, Any
 from app.services.health_logs import get_health_logs, create_health_log, delete_health_log, get_paginated_health_logs
 from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
@@ -18,7 +18,9 @@ def read_health_logs(
     return get_paginated_health_logs(user_id, page, page_size)
 
 @router.post("/{user_id}", response_model=Dict[str, Any])
-def add_health_log(user_id: str, data: Dict[str, Any], current_user: dict = Depends(get_current_user)):
+def add_health_log(
+    user_id: str, data: Dict[str, Any], background_tasks: BackgroundTasks, current_user: dict = Depends(get_current_user)
+):
     verify_user_access(current_user, user_id)
     check_expert_permission(current_user, "vitals:write")
     
@@ -98,6 +100,12 @@ def add_health_log(user_id: str, data: Dict[str, Any], current_user: dict = Depe
         data["context"] = "other"
 
     log = create_health_log(user_id, data)
+
+    # HL-087: followers hear about an emergency-level reading. FastAPI runs this after the response is sent, and it
+    # never raises, so the patient's own save and emergency warning are never delayed or changed.
+    from app.services.family import is_emergency, notify_followers
+    if is_emergency(data):
+        background_tasks.add_task(notify_followers, user_id, {**data, "logged_at": log.get("logged_at")})
 
     # Dynamic HSS recording and clinical alert ingestion (TKT-CLN-04)
     if sys_bp is not None and dia_bp is not None:

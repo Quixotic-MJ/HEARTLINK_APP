@@ -148,7 +148,10 @@ export default function AuthScreen() {
           const profileData = await profileRes.json();
           const onboardingStatus = profileData?.profile?.onboarding_status;
 
-          if (onboardingStatus === "complete") {
+          if (profileData?.profile?.account_kind === "family") {
+            // HL-087: an account that only follows family members
+            router.replace("/(family)");
+          } else if (onboardingStatus === "complete") {
             router.replace("/(home)/(tabs)/dashboard");
           } else {
             // Unfinished set-up: the set-up map shows which parts are already done.

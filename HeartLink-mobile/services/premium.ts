@@ -50,7 +50,7 @@ export const PREMIUM_FEATURES: PremiumFeature[] = [
     tint: "peach",
     title: "Family sharing",
     text: "Let someone you trust see your readings and get a notification if a reading is at an emergency level.",
-    ready: false,
+    ready: true,
   },
 ];
 

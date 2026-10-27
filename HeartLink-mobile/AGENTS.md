@@ -63,7 +63,8 @@ system or another navigation library; the current stack is a deliberate choice f
 
 ```
 app/              Screens (Expo Router). Groups: (auth), (baseline) = first-run setup,
-                  (home)/(tabs|health|meals|profile|settings)
+                  (home)/(tabs|health|meals|profile|settings), (family) = following a family member (HL-087;
+                  the home of an account_kind "family" account, which skips (baseline); see familyCanOpen)
 components/ui/    Shared building blocks: Button, ConfirmDialog, Skeleton, InputField, ...
 components/...    Feature UI: dashboard/, exercise/, meals/, tabs/
 contexts/         UserContext, ToastContext, BaselineContext

@@ -7,6 +7,8 @@ import HeartLogo from "../../components/ui/HeartLogo";
 import DsButton from "../../components/onboarding/DsButton";
 import { DsScreen } from "../../components/onboarding/QuestionLayout";
 import { useDs } from "../../components/onboarding/useDs";
+import { useToast } from "../../contexts/ToastContext";
+import { useSetAccountKind } from "../../hooks/useFamily";
 
 const TRUST: { icon: keyof typeof Feather.glyphMap; text: string }[] = [
   { icon: "lock", text: "Your session is encrypted end to end" },
@@ -16,6 +18,14 @@ const TRUST: { icon: keyof typeof Feather.glyphMap; text: string }[] = [
 export default function VerificationSuccessScreen() {
   const router = useRouter();
   const { c } = useDs();
+  const { showToast } = useToast();
+  // HL-087: someone here only to follow a family member skips the health set-up
+  const setKind = useSetAccountKind();
+  const followFamily = () =>
+    setKind.mutate("family", {
+      onSuccess: () => router.replace("/(family)/follow"),
+      onError: (e) => showToast({ title: "Couldn't continue", message: e.message, type: "error" }),
+    });
 
   const [scaleAnim] = useState(() => new Animated.Value(0));
   const [opacityAnim] = useState(() => new Animated.Value(0));
@@ -38,7 +48,12 @@ export default function VerificationSuccessScreen() {
           <Text style={{ fontSize: 17, fontWeight: "600", letterSpacing: -0.2, color: c.ink }}>HeartLink</Text>
         </View>
       }
-      footer={<DsButton label="Set up my profile" onPress={() => router.replace("/(baseline)/start")} />}
+      footer={
+        <>
+          <DsButton label="Set up my profile" onPress={() => router.replace("/(baseline)/start")} />
+          <DsButton label="I'm here to follow a family member" variant="link" onPress={followFamily} loading={setKind.isPending} />
+        </>
+      }
     >
       <Animated.View
         style={{

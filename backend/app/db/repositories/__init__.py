@@ -21,6 +21,7 @@ from app.db.repositories.refresh_tokens import RefreshTokenRepository, SupabaseR
 from app.db.repositories.patient_notes import PatientNotesRepository, SupabasePatientNotesRepository
 from app.db.repositories.push_tokens import PushTokenRepository, SupabasePushTokenRepository
 from app.db.repositories.premium import PremiumRepository, SupabasePremiumRepository
+from app.db.repositories.family import FamilyRepository, SupabaseFamilyRepository
 
 _profile_repo = None
 _baseline_repo = None
@@ -39,6 +40,7 @@ _refresh_token_repo = None
 _push_token_repo = None
 _patient_notes_repo = None
 _premium_repo = None
+_family_repo = None
 
 def get_profile_repo() -> ProfileRepository:
     global _profile_repo
@@ -143,3 +145,9 @@ def get_premium_repo() -> PremiumRepository:
     if _premium_repo is None:
         _premium_repo = SupabasePremiumRepository(get_supabase_client())
     return _premium_repo
+
+def get_family_repo() -> FamilyRepository:
+    global _family_repo
+    if _family_repo is None:
+        _family_repo = SupabaseFamilyRepository(get_supabase_client())
+    return _family_repo

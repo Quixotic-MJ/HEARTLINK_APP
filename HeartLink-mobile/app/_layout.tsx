@@ -16,6 +16,7 @@ import {
   ReanimatedLogLevel,
 } from "react-native-reanimated";
 import { usePushNavigation } from "../services/pushNotifications";
+import { familyCanOpen, isFamilyAccount } from "../services/family";
 import { AppErrorScreen } from "../components/ui/AppErrorScreen";
 import { installGlobalErrorLogging } from "../services/errorLog";
 
@@ -79,6 +80,13 @@ function RootLayoutNav() {
       // If user profile hasn't loaded yet (offline/error), don't redirect
       if (!user) return;
 
+      // HL-087: an account made only to follow family members has no health set-up. It lives in (family), and can
+      // open Settings and Notifications; anything else (the dashboard, the set-up) goes back to its Family home.
+      if (isFamilyAccount(user)) {
+        if (!familyCanOpen(path)) router.replace("/(family)");
+        return;
+      }
+
       const isOnboardingComplete = user.onboarding_status === "complete";
 
       if (isOnboardingComplete) {
@@ -112,6 +120,7 @@ function RootLayoutNav() {
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         <Stack.Screen name="(baseline)" options={{ headerShown: false }} />
         <Stack.Screen name="(home)" options={{ headerShown: false }} />
+        <Stack.Screen name="(family)" options={{ headerShown: false }} />
       </Stack>
     </>
   );

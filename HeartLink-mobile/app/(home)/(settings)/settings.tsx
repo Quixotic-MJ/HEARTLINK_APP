@@ -9,6 +9,7 @@ import { useUser } from "../../../contexts/UserContext";
 import { ConfirmDialog } from "../../../components/ui/ConfirmDialog";
 import { SquareIconButton } from "../../../components/exercise/ExerciseBits";
 import { isPremiumProfile } from "../../../services/premium";
+import { isFamilyAccount } from "../../../services/family";
 import { pushStatusText, registerForPush, usePushStatus } from "../../../services/pushNotifications";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -111,6 +112,8 @@ export default function SettingsScreen() {
   const router = useRouter();
   const { logout, user } = useUser();
   const isPremium = isPremiumProfile(user);
+  // HL-087: an account made only to follow family members has no health set-up, so those rows are left out
+  const familyOnly = isFamilyAccount(user);
   // HL-077: whether this phone gets push notifications, and why not
   const push = pushStatusText(usePushStatus());
   const onPushRow = () => {
@@ -144,6 +147,7 @@ export default function SettingsScreen() {
         {/* ── 1. Account & Security ── */}
         <SectionLabel title="ACCOUNT AND SECURITY" />
         <SettingsGroup>
+          {familyOnly ? null : (
           <SettingsRow
             icon="user"
             label="Personal profile"
@@ -152,6 +156,7 @@ export default function SettingsScreen() {
             iconColor={c.charcoal}
             onPress={() => router.push("/(home)/(profile)/profile")}
           />
+          )}
           <SettingsRow
             icon="shield"
             label="Login and security"
@@ -159,7 +164,9 @@ export default function SettingsScreen() {
             iconBg={c.lavender}
             iconColor={c.charcoal}
             onPress={() => router.push("/(home)/(settings)/account-security")}
+            isLast={familyOnly}
           />
+          {familyOnly ? null : (
           <SettingsRow
             icon="star"
             label="HeartLink Premium"
@@ -169,11 +176,38 @@ export default function SettingsScreen() {
             onPress={() => router.push("/(home)/(settings)/premium")}
             isLast
           />
+          )}
+        </SettingsGroup>
+
+        {/* ── HL-087: Family ── */}
+        <SectionLabel title="FAMILY" />
+        <SettingsGroup>
+          {familyOnly ? null : (
+            <SettingsRow
+              icon="account-heart-outline"
+              iconType="material"
+              label="Family sharing"
+              subtitle={isPremium ? "Let family follow your readings" : "Premium: let family follow your readings"}
+              iconBg={c.peach}
+              iconColor={c.warmText}
+              onPress={() => router.push("/(home)/(settings)/family-sharing")}
+            />
+          )}
+          <SettingsRow
+            icon="users"
+            label={familyOnly ? "People you follow" : "Follow a family member"}
+            subtitle="See their readings and get their alerts"
+            iconBg={c.mint}
+            iconColor={c.charcoal}
+            onPress={() => router.push("/(family)")}
+            isLast
+          />
         </SettingsGroup>
 
         {/* ── 2. Health & Routine ── */}
-        <SectionLabel title="HEALTH AND ROUTINE" />
+        <SectionLabel title={familyOnly ? "NOTIFICATIONS" : "HEALTH AND ROUTINE"} />
         <SettingsGroup>
+          {familyOnly ? null : (
           <SettingsRow
             icon="bell"
             label="Daily reminders"
@@ -182,6 +216,7 @@ export default function SettingsScreen() {
             iconColor={c.warmText}
             onPress={() => router.push("/(home)/(settings)/daily-reminders")}
           />
+          )}
           <SettingsRow
             icon="smartphone"
             label="Notifications on this phone"
@@ -189,7 +224,10 @@ export default function SettingsScreen() {
             iconBg={c.sky}
             iconColor={c.charcoal}
             onPress={push.action ? onPushRow : undefined}
+            isLast={familyOnly}
           />
+          {familyOnly ? null : (
+          <>
           <SettingsRow
             icon="target"
             label="Health targets and limits"
@@ -207,6 +245,8 @@ export default function SettingsScreen() {
             onPress={() => router.push("/(home)/(profile)/care-team")}
             isLast
           />
+          </>
+          )}
         </SettingsGroup>
 
         {/* ── 3. App Preferences ── */}
