@@ -1,3 +1,4 @@
+import { useRef, useSyncExternalStore } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -19,6 +20,16 @@ import {
 } from "lucide-react";
 import { useAuth } from "../../contexts/useAuth";
 import { canAccess } from "../../app/access";
+import { useDialogFocus } from "../../hooks/useDialogFocus";
+
+// HL-083: the sidebar is a slide-in menu below the lg breakpoint (1024px) and always visible above it
+const DESKTOP = "(min-width: 1024px)";
+const subscribeToWidth = (onChange) => {
+  const query = window.matchMedia(DESKTOP);
+  query.addEventListener("change", onChange);
+  return () => query.removeEventListener("change", onChange);
+};
+const isDesktopWidth = () => window.matchMedia(DESKTOP).matches;
 
 // ─── Brand Logo Emblem ────────────────────────────────────────────────────────
 function HeartLogoIcon({ size = 24 }) {
@@ -118,6 +129,11 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed, onLogou
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const asideRef = useRef(null);
+  const isDesktop = useSyncExternalStore(subscribeToWidth, isDesktopWidth);
+  const isMobileMenu = !isDesktop;
+  // HL-083: as a slide-in menu, Escape closes it, Tab stays inside, and focus returns to the menu button
+  useDialogFocus(isMobileMenu && sidebarOpen, asideRef, () => setSidebarOpen(false));
   
   const role = user?.role || "admin";
   const canOpen = (path) => canAccess(user, path);
@@ -153,6 +169,12 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed, setCollapsed, onLogou
 
       {/* Sidebar container */}
       <aside
+        ref={asideRef}
+        aria-label="Main menu"
+        role={isMobileMenu && sidebarOpen ? "dialog" : undefined}
+        aria-modal={isMobileMenu && sidebarOpen ? "true" : undefined}
+        // Off screen on a phone-sized window: keep its links out of Tab and screen readers until it's opened
+        inert={isMobileMenu && !sidebarOpen}
         className={`fixed lg:sticky top-0 left-0 h-screen z-50 flex flex-col shrink-0 bg-ds-canvas border-r border-ds-hairline transition-all duration-200 select-none ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         }`}

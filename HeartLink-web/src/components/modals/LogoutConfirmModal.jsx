@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   LogOut,
   X,
@@ -6,10 +6,14 @@ import {
   Lock,
 } from "lucide-react";
 import { useAuth } from "../../contexts/useAuth";
+import { useDialogFocus } from "../../hooks/useDialogFocus";
 
 const LogoutConfirmModal = ({ isOpen, onClose }) => {
   const { user, logout } = useAuth();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const dialogRef = useRef(null);
+  // HL-083: Escape closes it (not while signing out), Tab stays inside, focus returns to the Sign out button
+  useDialogFocus(isOpen, dialogRef, isLoggingOut ? null : onClose);
 
   if (!isOpen) return null;
 
@@ -54,7 +58,12 @@ const LogoutConfirmModal = ({ isOpen, onClose }) => {
       />
 
       {/* Modal Dialog */}
-      <div 
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="logout-dialog-title"
+        tabIndex={-1}
         className="relative w-full max-w-md bg-ds-canvas rounded-2xl shadow-2xl border border-ds-hairline overflow-hidden text-ds-ink animate-in fade-in zoom-in-95 duration-200 z-10 p-6 sm:p-7 text-center"
         style={{ fontFamily: "'Inter', sans-serif" }}
       >
@@ -73,7 +82,7 @@ const LogoutConfirmModal = ({ isOpen, onClose }) => {
           <LogOut size={20} className="ml-0.5" />
         </div>
 
-        <h3 className="text-[17px] font-bold text-ds-ink tracking-tight">
+        <h3 id="logout-dialog-title" className="text-[17px] font-bold text-ds-ink tracking-tight">
           Sign Out of HeartLink
         </h3>
         <p className="text-xs text-ds-slate mt-1.5 leading-relaxed max-w-xs mx-auto">
