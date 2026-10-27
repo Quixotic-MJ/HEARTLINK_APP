@@ -14,7 +14,8 @@ import { Header } from "../../../components/Header";
 import { useUser } from "../../../contexts/UserContext";
 
 import { useDs } from "../../../components/onboarding/useDs";
-import { BadgeTint, IconBadge } from "../../../components/onboarding/QuestionLayout";
+import { BadgeTint, IconBadge, InfoNote } from "../../../components/onboarding/QuestionLayout";
+import DsButton from "../../../components/onboarding/DsButton";
 let isCurrentlySharing = false;
 import AnimatedButton from "../../../components/ui/AnimatedButton";
 import { ds } from "../../../constants/theme";
@@ -140,6 +141,8 @@ export default function WrapUpScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [data, setData] = useState<any>(null);
   const [isOfflineData, setIsOfflineData] = useState(false);
+  // HL-079: the summary couldn't load and nothing was saved on the phone to show instead
+  const [loadFailed, setLoadFailed] = useState(false);
 
   const wrapupCacheKey = userId ? `@wrapup_cache_${userId}` : null;
 
@@ -179,12 +182,16 @@ export default function WrapUpScreen() {
         const result = await response.json();
         setData(result);
         setIsOfflineData(false);
+        setLoadFailed(false);
         if (wrapupCacheKey) {
           await AsyncStorage.setItem(wrapupCacheKey, JSON.stringify(result));
         }
+      } else {
+        setLoadFailed(true);
       }
     } catch (error) {
       console.error("Wrap-up fetch error:", error);
+      setLoadFailed(true);
     } finally {
       setIsLoading(false);
       setRefreshing(false);
@@ -275,7 +282,7 @@ function escapeHtml(unsafe: any): string {
                 Heart Rate: <strong>${Number(r.bpm || 0)} BPM</strong>
                 ${r.weight_kg ? `<br>Weight: <strong>${Number(r.weight_kg).toFixed(1)} kg</strong>` : ''}
               </div>
-            `).join('') : '<p style="color:${P.steel};">Not recorded</p>'}
+            `).join('') : `<p style="color:${P.steel};">Not recorded</p>`}
 
             <h2>SLEEP TIMELINE</h2>
             ${data.sleep.records.length ? data.sleep.records.map((r: any) => `
@@ -284,7 +291,7 @@ function escapeHtml(unsafe: any): string {
                 Duration: <strong>${Number(r.hours || 0)}h</strong><br>
                 Quality: <strong>${escapeHtml(r.quality)}</strong>
               </div>
-            `).join('') : '<p style="color:${P.steel};">No sleep records were logged during this period.</p>'}
+            `).join('') : `<p style="color:${P.steel};">No sleep records were logged during this period.</p>`}
 
             <h2>SYMPTOM TIMELINE</h2>
             ${data.symptoms.records.length ? data.symptoms.records.map((r: any) => `
@@ -294,7 +301,7 @@ function escapeHtml(unsafe: any): string {
                 Severity: <strong>${Number(r.severity || 0)}/10</strong><br>
                 Context: <strong>${escapeHtml(r.context || 'Not specified')}</strong>
               </div>
-            `).join('') : '<p style="color:${P.steel};">Not recorded</p>'}
+            `).join('') : `<p style="color:${P.steel};">Not recorded</p>`}
 
             <h2>EXERCISE TIMELINE</h2>
             ${data.movement.records.length ? data.movement.records.map((r: any) => `
@@ -308,7 +315,7 @@ function escapeHtml(unsafe: any): string {
                 Status: ${escapeHtml(r.status)}<br>
                 ${r.instructions && r.instructions.length ? `<div style="margin-top: 4px; color: ${P.slate};"><em>How it was performed:</em><br> ${r.instructions.map((ins: string, i: number) => `${i+1}. ${escapeHtml(ins)}`).join('<br>')}</div>` : ''}
               </div>
-            `).join('') : '<p style="color:${P.steel};">Not recorded</p>'}
+            `).join('') : `<p style="color:${P.steel};">Not recorded</p>`}
 
             <h2>MEAL TIMELINE</h2>
             ${data.nutrition.records.length ? data.nutrition.records.map((r: any) => `
@@ -318,7 +325,7 @@ function escapeHtml(unsafe: any): string {
                 ${Number(r.calories || 0)} kcal<br>
                 ${Number(r.sodium_mg || 0)} mg sodium
               </div>
-            `).join('') : '<p style="color:${P.steel};">Not recorded</p>'}
+            `).join('') : `<p style="color:${P.steel};">Not recorded</p>`}
 
             <h2>HSS / STABILITY</h2>
             <p>Weekly Average: <strong>${escapeHtml(data.stability.average ?? 'Not recorded')}</strong></p>
@@ -347,6 +354,18 @@ function escapeHtml(unsafe: any): string {
       alert("Failed to generate report.");
     }
   };
+
+  if (!data && loadFailed && !isLoading) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: c.canvas }} edges={["top"]}>
+        <Header />
+        <View style={{ flex: 1, justifyContent: "center", paddingHorizontal: 24, gap: 14 }}>
+          <InfoNote icon="wifi-off" title="Your summary couldn't load" text="Check your connection, then try again. Your logs are safe." />
+          <DsButton label="Try again" variant="secondary" onPress={() => fetchData()} block />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   if (isLoading || !data) {
     return (

@@ -1,4 +1,5 @@
 import os
+import zoneinfo
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
 from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
@@ -30,6 +31,18 @@ def _safe_date(val: Any) -> datetime.date:
 def _safe_datetime(val: Any) -> datetime:
     dt = parse_utc(val)
     return dt if dt else UTC_MIN
+
+
+def _local_time(val: Any, tz_name: str = "Asia/Manila") -> str:
+    """HL-079: a log's time as the patient saw it ("07:40 AM"), not in UTC."""
+    dt = parse_utc(val)
+    if not dt:
+        return ""
+    try:
+        dt = dt.astimezone(zoneinfo.ZoneInfo(tz_name))
+    except zoneinfo.ZoneInfoNotFoundError:
+        pass
+    return dt.strftime("%I:%M %p")
 
 # ─── Dietary exclusion map ─────────────────────────────────────────────────────
 # Maps a dietary practice to ingredient keywords that should be excluded.
@@ -708,7 +721,7 @@ def get_7_day_wrap_up_data(user_id: str, local_date_str: str = None) -> Dict[str
     logged_meals_dates = {_safe_date(m["logged_at"]) for m in user_meals_current}
     logged_sleep_dates = {_safe_date(s["logged_at"]) for s in user_sleep_current}
     logged_exercise_dates = {_safe_date(e["logged_at"]) for e in user_exercises_current_all}
-    logged_symptoms_dates = {_safe_date(l["logged_at"]) for l in user_health_current if any(s != "None (Feeling fine)" for s in l.get("symptoms", []))}
+    logged_symptoms_dates = {_safe_date(l["logged_at"]) for l in user_health_current if any(s != "None (Feeling fine)" for s in (l.get("symptoms") or []))}
     
     # Calculate HSS
     def get_avg_hss(start_d, end_d):
@@ -722,8 +735,8 @@ def get_7_day_wrap_up_data(user_id: str, local_date_str: str = None) -> Dict[str
                 count += 1
         return round(total / count) if count > 0 else None
 
-    hss_current = get_avg_hss(seven_days_ago.date(), now.date())
-    hss_prev = get_avg_hss(fourteen_days_ago.date(), seven_days_ago.date() - timedelta(days=1))
+    hss_current = get_avg_hss(seven_days_ago, now_local)
+    hss_prev = get_avg_hss(fourteen_days_ago, seven_days_ago - timedelta(days=1))
 
     # Daily Records & Consistency
     daily_records = []
@@ -732,7 +745,7 @@ def get_7_day_wrap_up_data(user_id: str, local_date_str: str = None) -> Dict[str
     streak_data = _calculate_streak_data(meal_logs, exercise_logs, daily_health_logs, sleep_logs)
 
     for i in range(7):
-        target_date = seven_days_ago.date() + timedelta(days=i)
+        target_date = seven_days_ago + timedelta(days=i)
         activities = []
         if target_date in logged_exercise_dates: activities.append("Exercise")
         if target_date in logged_meals_dates: activities.append("Meals")
@@ -766,7 +779,7 @@ def get_7_day_wrap_up_data(user_id: str, local_date_str: str = None) -> Dict[str
             
         exercise_records.append({
             "date": _safe_date(e["logged_at"]).strftime("%b %d"),
-            "time": _safe_datetime(e["logged_at"]).strftime("%I:%M %p"),
+            "time": _local_time(e["logged_at"]),
             "name": e.get("routine_name", routine.get("name", "Exercise")),
             "duration": e.get("duration_minutes", 0),
             "status": status_label,
@@ -780,7 +793,7 @@ def get_7_day_wrap_up_data(user_id: str, local_date_str: str = None) -> Dict[str
     for m in sorted(user_meals_current, key=lambda x: _safe_datetime(x["logged_at"])):
         nutrition_records.append({
             "date": _safe_date(m["logged_at"]).strftime("%b %d"),
-            "time": _safe_datetime(m["logged_at"]).strftime("%I:%M %p"),
+            "time": _local_time(m["logged_at"]),
             "meal_name": m.get("meal_name"),
             "portion": m.get("portion"),
             "calories": m.get("calories"),
@@ -795,7 +808,7 @@ def get_7_day_wrap_up_data(user_id: str, local_date_str: str = None) -> Dict[str
         if l.get("systolic_bp") or l.get("weight_kg"):
             vital_records.append({
                 "date": _safe_date(l["logged_at"]).strftime("%b %d"),
-                "time": _safe_datetime(l["logged_at"]).strftime("%I:%M %p"),
+                "time": _local_time(l["logged_at"]),
                 "systolic": l.get("systolic_bp"),
                 "diastolic": l.get("diastolic_bp"),
                 "bpm": l.get("heart_rate_bpm"),
@@ -808,27 +821,27 @@ def get_7_day_wrap_up_data(user_id: str, local_date_str: str = None) -> Dict[str
         if s.get("duration_hours"):
             sleep_records.append({
                 "date": _safe_date(s["logged_at"]).strftime("%b %d"),
-                "time": _safe_datetime(s["logged_at"]).strftime("%I:%M %p"),
+                "time": _local_time(s["logged_at"]),
                 "hours": s.get("duration_hours"),
                 "quality": s.get("quality")
             })
 
     symptoms_records = []
     for l in sorted(user_health_current, key=lambda x: _safe_datetime(x["logged_at"])):
-        symps = [s for s in l.get("symptoms", []) if s != "None (Feeling fine)"]
+        symps = [s for s in (l.get("symptoms") or []) if s != "None (Feeling fine)"]
         if symps:
             for s in symps:
                 symptoms_records.append({
                     "date": _safe_date(l["logged_at"]).strftime("%b %d"),
-                    "time": _safe_datetime(l["logged_at"]).strftime("%I:%M %p"),
+                    "time": _local_time(l["logged_at"]),
                     "name": s,
-                    "severity": l.get("severity_map", {}).get(s, 0),
-                    "context": l.get("context", "")
+                    "severity": (l.get("severity_map") or {}).get(s, 0),
+                    "context": l.get("context") or ""
                 })
 
     hss_records = []
     for i in range(7):
-        target_date = seven_days_ago.date() + timedelta(days=i)
+        target_date = seven_days_ago + timedelta(days=i)
         day_scores = [c["score"] for c in user_hss if _safe_date(c["computed_at"]) <= target_date]
         if day_scores and day_scores[-1] > 0:
              hss_records.append({
@@ -839,7 +852,7 @@ def get_7_day_wrap_up_data(user_id: str, local_date_str: str = None) -> Dict[str
     # Group records by day for the daily timeline view
     daily_records_grouped = []
     for i in range(7):
-        target_date = seven_days_ago.date() + timedelta(days=i)
+        target_date = seven_days_ago + timedelta(days=i)
         date_str = target_date.strftime("%b %d")
         
         day_movement = [r for r in exercise_records if r["date"] == date_str]
@@ -878,8 +891,8 @@ def get_7_day_wrap_up_data(user_id: str, local_date_str: str = None) -> Dict[str
     return {
         "date_range": {
             "start": seven_days_ago.strftime("%b %d"),
-            "end": now.strftime("%b %d"),
-            "display": f"{seven_days_ago.strftime('%b %d')} – {now.strftime('%b %d')}"
+            "end": now_local.strftime("%b %d"),
+            "display": f"{seven_days_ago.strftime('%b %d')} – {now_local.strftime('%b %d')}"
         },
         "overview": {
             "hss_average": hss_current,
