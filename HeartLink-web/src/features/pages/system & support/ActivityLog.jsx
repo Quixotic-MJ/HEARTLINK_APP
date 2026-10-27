@@ -9,7 +9,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Download,
-  CheckCircle,
   ChevronDown,
   Utensils,
   Dumbbell,
@@ -18,7 +17,10 @@ import {
   RotateCcw,
   Crown,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Skeleton } from "../../../components/ui/Skeleton";
+import { apiFetch } from "../../../api";
+import { downloadCsv, toCsv } from "../../../utils/csv";
 import { UI, FONTS } from "../../../styles/tokens";
 import { PageHeader } from "../../../styles/designSystem";
 
@@ -29,6 +31,8 @@ const ActivityLog = () => {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [eventTypeFilter, setEventTypeFilter] = useState("all");
   
+  const [exporting, setExporting] = useState(false);
+
   // Pagination States
   const [page, setPage] = useState(1);
   const [pageSize] = useState(20);
@@ -73,6 +77,32 @@ const ActivityLog = () => {
   const totalPages = data?.total_pages || 0;
   const accessDenied = isError && error?.status === 403;
   const fetchError = isError && !accessDenied;
+
+  // HL-080: every entry matching the current search and type, as a spreadsheet file
+  const exportCsv = async () => {
+    setExporting(true);
+    try {
+      const params = new URLSearchParams();
+      if (debouncedSearch.trim()) params.set("search", debouncedSearch.trim());
+      if (eventTypeFilter !== "all") params.set("target_type", eventTypeFilter);
+      const query = params.toString();
+      const file = await apiFetch(`/api/admin/activity/export${query ? `?${query}` : ""}`);
+      const csv = toCsv(file.items || [], [
+        { label: "When", value: (r) => formatTimestamp(r.created_at) },
+        { label: "Admin", value: (r) => r.admin_name },
+        { label: "Action", value: (r) => r.action },
+        { label: "Type", value: (r) => r.target_type },
+        { label: "Target", value: (r) => r.target_name },
+        { label: "Target ID", value: (r) => r.target_id },
+      ]);
+      downloadCsv(`heartlink-activity-log-${file.generated_at.slice(0, 10)}.csv`, csv);
+      toast.success(`Exported ${file.count} log ${file.count === 1 ? "entry" : "entries"}.`);
+    } catch (e) {
+      toast.error(e?.data?.detail || "Couldn't export the activity log.");
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const getEventBadge = (type) => {
     const formattedType = type ? type.toLowerCase() : "";
@@ -234,14 +264,9 @@ const ActivityLog = () => {
           title="System activity audit log"
           description="Immutable clinical and administrative audit trail of all platform activities and modifications."
           actions={
-            <div className="flex items-center gap-2.5">
-              <button className={UI.button.secondary}>
-                <Download size={13} /> <span>Export audit CSV</span>
-              </button>
-              <button className={UI.button.primary}>
-                <CheckCircle size={13} /> <span>Mark all as read</span>
-              </button>
-            </div>
+            <button type="button" onClick={exportCsv} disabled={exporting} className={UI.button.secondary}>
+              <Download size={13} aria-hidden="true" /> <span>{exporting ? "Exporting…" : "Export audit CSV"}</span>
+            </button>
           }
         />
 

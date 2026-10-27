@@ -50,15 +50,26 @@ class SupabaseAdminRepository(AdminRepository):
 
     def list_activity(self, limit: Optional[int] = None, action: Optional[str] = None, target_type: Optional[str] = None, admin_user_id: Optional[str] = None, search: Optional[str] = None) -> List[Dict[str, Any]]:
         try:
-            query = self.client.table("admin_activity_logs").select("*")
-            if action:
-                query = query.eq("action", action)
-            if target_type:
-                query = query.eq("target_type", target_type)
-            if admin_user_id:
-                query = query.eq("admin_user_id", admin_user_id)
-            res = query.order("created_at", desc=True).execute()
-            items = [item for item in (res.data or []) if "[TEST FIXTURE" not in str(item)]
+            def page(start: int, end: int):
+                query = self.client.table("admin_activity_logs").select("*")
+                if action:
+                    query = query.eq("action", action)
+                if target_type:
+                    query = query.eq("target_type", target_type)
+                if admin_user_id:
+                    query = query.eq("admin_user_id", admin_user_id)
+                return query.order("created_at", desc=True).range(start, end).execute()
+
+            # HL-080: page through the table; one request stops at Supabase's 1,000-row limit
+            rows, start, step = [], 0, 1000
+            while True:
+                res = page(start, start + step - 1)
+                batch = res.data or []
+                rows.extend(batch)
+                if len(batch) < step or (limit and len(rows) >= limit):
+                    break
+                start += step
+            items = [item for item in rows if "[TEST FIXTURE" not in str(item)]
             if search:
                 s = search.lower()
                 items = [x for x in items if s in (x.get("target_name") or "").lower() or s in (x.get("admin_name") or "").lower()]

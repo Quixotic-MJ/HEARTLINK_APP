@@ -969,6 +969,28 @@ def delete_broadcast(broadcast_id: str, current_user: dict = Depends(get_current
     )
     return {"status": "success", "message": "Broadcast deleted"}
 
+EXPORT_FIELDS = ("created_at", "admin_name", "action", "target_type", "target_name", "target_id")
+
+
+@router.get("/activity/export")
+def export_activity_log(
+    target_type: Optional[str] = None,
+    search: Optional[str] = None,
+    current_user: dict = Depends(get_current_admin_only),
+):
+    """HL-080: every log entry matching the page's filters, for the portal's "Export audit CSV"."""
+    logs = get_admin_repo().list_activity(target_type=target_type, search=search)
+    items = [{field: entry.get(field) for field in EXPORT_FIELDS} for entry in logs]
+    filters = ", ".join(f for f in [f"type {target_type}" if target_type else "", f'search "{search}"' if search else ""] if f)
+    record_admin_activity(
+        admin_user_id=current_user.get("user_id"),
+        action=f"exported the activity log ({len(items)} entries{', ' + filters if filters else ''})",
+        target_type="system",
+        target_name="Activity log",
+    )
+    return {"generated_at": utc_now().isoformat(), "count": len(items), "items": items}
+
+
 @router.get("/activity")
 def get_activity_log(
     page: int = 1,
