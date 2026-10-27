@@ -59,7 +59,8 @@ def status_for(profile: Dict[str, Any], config: Optional[Dict[str, Any]] = None)
         "premium_until": until.isoformat() if active and until else None,
         "source": profile.get("premium_source") if active else None,
         "days_left": max(0, (until - now).days) if active and until else 0,
-        "trial_available": not profile.get("trial_used_at") and not active and cfg["trial_days"] > 0,
+        "trial_available": (not profile.get("trial_used_at") and not active and cfg["trial_days"] > 0
+                            and cfg["checkout_enabled"]),
         "trial_days": cfg["trial_days"],
         "monthly_price_php": cfg["monthly_price_php"],
         "yearly_price_php": cfg["yearly_price_php"],
@@ -79,6 +80,9 @@ def _save(user_id: str, fields: Dict[str, Any], event: Dict[str, Any]) -> Dict[s
 def start_trial(user_id: str) -> Dict[str, Any]:
     profile = _patient(user_id)
     cfg = _config()
+    # Paused sign-ups stop new trials too, not only payments (the app already hides both)
+    if not cfg["checkout_enabled"]:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Premium sign-ups are paused right now.")
     if profile.get("trial_used_at") or is_premium(profile) or cfg["trial_days"] <= 0:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="The free trial isn't available on this account.")
     now = utc_now()

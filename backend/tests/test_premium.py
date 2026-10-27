@@ -149,6 +149,21 @@ def test_checkout_can_be_paused_by_admins(client, repos):
     assert res.status_code == 409
 
 
+def test_paused_sign_ups_also_stop_the_trial(client, repos):
+    http, as_user = client
+    profiles, store = repos
+    store.config["checkout_enabled"] = False
+    assert http.get("/api/premium", headers=as_user("pat", "patient")).json()["trial_available"] is False
+    res = http.post("/api/premium/trial", headers=as_user("pat", "patient"))
+    assert res.status_code == 409 and "paused" in res.json()["detail"]
+    assert profiles.rows["pat"]["plan"] == "free" and not profiles.rows["pat"].get("trial_used_at")
+    assert store.events == []
+
+    # Opening sign-ups again offers the trial, which was never used
+    store.config["checkout_enabled"] = True
+    assert http.post("/api/premium/trial", headers=as_user("pat", "patient")).status_code == 200
+
+
 def test_staff_cannot_buy_premium(client):
     http, as_user = client
     res = http.post("/api/premium/checkout", json={"period": "monthly", "method": "card"}, headers=as_user("boss", "admin"))
