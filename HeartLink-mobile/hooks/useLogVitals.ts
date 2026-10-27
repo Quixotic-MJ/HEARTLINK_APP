@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { OFFLINE_SAVE } from './offlineSave';
 import { queueHealthLogForSync } from '../services/SyncService';
 import { apiFetch } from "../lib/api";
 
@@ -49,6 +50,7 @@ export function useLogVitals(userId: string | null | undefined, token: string | 
 
   return useMutation({
     mutationKey: ['logVitals', userId],
+    ...OFFLINE_SAVE,
     mutationFn: async (payload: VitalsPayload) => {
       if (!userId) throw new Error("No user ID");
 

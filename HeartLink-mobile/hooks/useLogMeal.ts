@@ -1,15 +1,18 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { OFFLINE_SAVE } from './offlineSave';
 import { MealPayload } from '../services/MealLoggingService';
 import { useToast } from '../contexts/ToastContext';
 import { postLogAck } from '../services/companionCopy';
 import { apiFetch } from "../lib/api";
-import { useNetInfo } from '@react-native-community/netinfo';export function useLogMeal(userId: string | null | undefined, token: string | null) {
+import { useNetInfo } from '@react-native-community/netinfo';
+export function useLogMeal(userId: string | null | undefined, token: string | null) {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
   const netInfo = useNetInfo();
 
   return useMutation({
     mutationKey: ['logMeal', userId],
+    ...OFFLINE_SAVE,
     mutationFn: async (payload: MealPayload) => {
       if (!userId) throw new Error("No user ID");
       

@@ -1,8 +1,10 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { OFFLINE_SAVE } from './offlineSave';
 import { useToast } from '../contexts/ToastContext';
 import { postLogAck } from '../services/companionCopy';
 import { apiFetch } from "../lib/api";
-import { useNetInfo } from '@react-native-community/netinfo';export interface SleepPayload {
+import { useNetInfo } from '@react-native-community/netinfo';
+export interface SleepPayload {
   duration_hours: number;
   quality: string;
   bedtime: string;
@@ -16,6 +18,7 @@ export function useLogSleep(userId: string | null | undefined, token: string | n
 
   return useMutation({
     mutationKey: ['logSleep', userId],
+    ...OFFLINE_SAVE,
     mutationFn: async (payload: SleepPayload) => {
       if (!userId) throw new Error("No user ID");
       

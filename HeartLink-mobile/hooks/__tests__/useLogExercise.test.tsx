@@ -1,5 +1,5 @@
 import { renderHook, act, waitFor } from '@testing-library/react-native';
-import { QueryClient } from '@tanstack/react-query';
+import { QueryClient, onlineManager } from '@tanstack/react-query';
 import { useLogExercise } from '../useLogExercise';
 import * as ToastContext from '../../contexts/ToastContext';
 import * as NetInfo from '@react-native-community/netinfo';
@@ -105,5 +105,26 @@ describe('useLogExercise', () => {
 
     // Verify it queued for offline sync
     expect(SyncService.queueExerciseForSync).toHaveBeenCalledWith('user-1', expect.any(Object));
+  });
+
+  it('finishes at once in airplane mode instead of waiting for the connection (HL-076)', async () => {
+    (NetInfo.useNetInfo as jest.Mock).mockReturnValue({ isConnected: false, isInternetReachable: false });
+    (global.fetch as jest.Mock).mockRejectedValue(new TypeError('Network request failed'));
+    // The app's own retry default (lib/react-query.ts), with React Query told the phone is offline
+    queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity }, mutations: { retry: 3, gcTime: Infinity } } });
+    onlineManager.setOnline(false);
+    try {
+      const { result } = await renderHook(() => useLogExercise('user-1', 'token-123'), { wrapper: queryClientWrapper(queryClient) });
+      await act(async () => {
+        result.current.mutate({ routine_name: 'Walking', duration_minutes: 10, duration_seconds: 600, status: 'completed' });
+      });
+
+      await waitFor(() => expect(result.current.isError).toBe(true));
+      expect(result.current.isPaused).toBe(false);
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+      expect(SyncService.queueExerciseForSync).toHaveBeenCalledTimes(1);
+    } finally {
+      onlineManager.setOnline(true);
+    }
   });
 });

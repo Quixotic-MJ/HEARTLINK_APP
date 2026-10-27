@@ -93,7 +93,8 @@ logic out of screen files.
 5. **Git:** work on a feature branch. Feature branches merge into `staging` (testing); `main` is
    the live app. Never commit or push without the owner's OK. Commit messages use conventional
    style with the ticket id, e.g. `fix(mobile): show error screen on crash (HL-024)`. Tickets are
-   in `documentation/heartlink_update_plan.md` at the repo root. `documentation/` is git-ignored,
+   in `documentation/heartlink_remaining_work.md` at the repo root (the old `heartlink_update_plan.md` is archived
+   in `documentation/archive/`, history only). `documentation/` is git-ignored,
    so it exists only in the owner's main checkout, not in worktrees or on GitHub.
 
 ---
@@ -153,7 +154,8 @@ Reference: `showIncompleteWarning` in `log-symptoms.tsx`.
 - The old second queue (`utils/OfflineSyncService.ts`) is gone; `migrateOldOfflineQueue` in
   `SyncService` moves anything still saved under its keys into the health log queue.
 - A new offline-capable action is a `useMutation` hook modelled on `useLogMeal.ts`. Don't add
-  another queue.
+  another queue. Spread `OFFLINE_SAVE` (`hooks/offlineSave.ts`) into it: without it React Query holds the save
+  while the phone is offline, so it never reaches the queue and Save keeps spinning (HL-076).
 
 ### Push notifications (HL-025)
 - After sign-in (`contexts/UserContext.tsx`), `registerForPush()` saves the phone's Expo push token with the backend;

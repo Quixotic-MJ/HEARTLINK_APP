@@ -1,9 +1,11 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { OFFLINE_SAVE } from './offlineSave';
 import { useToast } from '../contexts/ToastContext';
 import { postLogAck } from '../services/companionCopy';
 import { queueExerciseForSync } from '../services/SyncService';
 import { apiFetch } from "../lib/api";
-import { useNetInfo } from '@react-native-community/netinfo';export interface ExercisePayload {
+import { useNetInfo } from '@react-native-community/netinfo';
+export interface ExercisePayload {
   routine_name: string;
   duration_minutes: number;
   duration_seconds: number;
@@ -26,6 +28,7 @@ export function useLogExercise(userId: string | null | undefined, token: string 
 
   return useMutation({
     mutationKey: ['logExercise', userId],
+    ...OFFLINE_SAVE,
     mutationFn: async (payload: ExercisePayload) => {
       if (!userId) throw new Error("No user ID");
       

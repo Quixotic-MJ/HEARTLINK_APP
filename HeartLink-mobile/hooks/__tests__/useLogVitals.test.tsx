@@ -1,5 +1,5 @@
 import { renderHook, act, waitFor } from '@testing-library/react-native';
-import { QueryClient } from '@tanstack/react-query';
+import { QueryClient, onlineManager } from '@tanstack/react-query';
 import { useLogVitals, wasQueued, medicationTaken, VitalsPayload } from '../useLogVitals';
 import { queueHealthLogForSync } from '../../services/SyncService';
 import { createTestQueryClient, queryClientWrapper } from '../../test-utils/reactQuery';
@@ -76,6 +76,27 @@ describe('useLogVitals', () => {
     // The dashboard keeps showing it while it waits to upload.
     const dashboard = queryClient.getQueryData(['dashboard', 'user-1']) as typeof BEFORE;
     expect(dashboard.latest_vitals.bp).toBe('128/82');
+  });
+
+  it('saves on the phone at once in airplane mode, without waiting or retrying (HL-076)', async () => {
+    // Same mutation defaults as the app (lib/react-query.ts retries 3 times), while React Query thinks we're offline
+    queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity }, mutations: { retry: 3, gcTime: Infinity } } });
+    queryClient.setQueryData(['dashboard', 'user-1'], BEFORE);
+    wrapper = queryClientWrapper(queryClient);
+    (queueHealthLogForSync as jest.Mock).mockClear();
+    (global.fetch as jest.Mock).mockRejectedValue(new TypeError('Network request failed'));
+    onlineManager.setOnline(false);
+    try {
+      const result = await logCheckIn();
+      // Before HL-076 the save was paused here until the connection came back, so Save kept spinning
+      await waitFor(() => expect(result.current.isError).toBe(true));
+      expect(result.current.isPaused).toBe(false);
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+      expect(queueHealthLogForSync).toHaveBeenCalledTimes(1);
+      expect(queueHealthLogForSync).toHaveBeenCalledWith('user-1', CHECK_IN);
+    } finally {
+      onlineManager.setOnline(true);
+    }
   });
 
   it('also queues it when the server has a problem (5xx)', async () => {
