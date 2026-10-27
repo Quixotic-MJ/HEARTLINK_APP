@@ -11,7 +11,9 @@ import {
   Info,
   RotateCw,
   AlertCircle,
-  ExternalLink
+  ExternalLink,
+  ClipboardCheck,
+  StickyNote
 } from 'lucide-react';
 import { apiFetch } from '../../api';
 import { useApiQuery } from '../../hooks/useApiQuery';
@@ -113,6 +115,9 @@ export default function AdminNotificationDropdown({ userId }) {
       case 'staff': return <UserPlus size={14} className={severity === 'warning' ? "text-ds-primary" : "text-ds-charcoal"} />;
       case 'security': return <ShieldAlert size={14} className="text-ds-danger" />;
       case 'system': return <Settings size={14} className="text-ds-slate" />;
+      // HL-082: experts' notifications
+      case 'content': return <ClipboardCheck size={14} className="text-ds-primary" />;
+      case 'notes': return <StickyNote size={14} className="text-ds-charcoal" />;
       default: return <Info size={14} className="text-ds-steel" />;
     }
   };

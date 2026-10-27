@@ -199,7 +199,8 @@ export default function Header({
         </div>
 
         {/* Notifications */}
-        {userRole === "admin" && (
+        {/* HL-082: medical experts have their own bell */}
+        {(userRole === "admin" || userRole === "medical_expert") && (
           <AdminNotificationDropdown userId={userId || user?.id} />
         )}
       </div>

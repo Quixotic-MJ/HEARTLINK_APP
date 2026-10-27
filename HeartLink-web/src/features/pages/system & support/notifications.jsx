@@ -18,6 +18,8 @@ import {
   Clock,
   Activity,
   AlertCircle,
+  ClipboardCheck,
+  StickyNote,
 } from "lucide-react";
 import AdminLayout from "../../../components/layouts/adminLayout";
 import { useAuth } from "../../../contexts/useAuth";
@@ -34,7 +36,9 @@ const NO_NOTIFICATIONS = [];
 
 const Notifications = () => {
   const navigate = useNavigate();
-  const { userId } = useAuth();
+  const { userId, user } = useAuth();
+  // HL-082: medical experts get approvals waiting for them, guidance and patient-note replies
+  const isExpert = user?.role === "medical_expert";
 
   const queryClient = useQueryClient();
   // HL-019: archived ones (over 72 hours old) come too, but only show under "Archived".
@@ -109,6 +113,10 @@ const Notifications = () => {
         return <ShieldAlert size={15} className="text-ds-danger" />;
       case "system":
         return <Settings size={15} className="text-ds-slate" />;
+      case "content":
+        return <ClipboardCheck size={15} className="text-ds-primary" />;
+      case "notes":
+        return <StickyNote size={15} className="text-ds-charcoal" />;
       default:
         return <Info size={15} className="text-ds-steel" />;
     }
@@ -128,6 +136,10 @@ const Notifications = () => {
         return { label: "Security", cls: "bg-ds-rose text-ds-ink border-ds-rose" };
       case "system":
         return { label: "System", cls: "bg-ds-surface text-ds-slate border-ds-hairline" };
+      case "content":
+        return { label: "Approval", cls: "bg-ds-tint text-ds-ink border-ds-tint" };
+      case "notes":
+        return { label: "Patient notes", cls: "bg-ds-mint text-ds-charcoal border-ds-mint" };
       default:
         return { label: "General", cls: "bg-ds-surface text-ds-steel border-ds-hairline" };
     }
@@ -202,6 +214,8 @@ const Notifications = () => {
   const unreadItemsCount = activeNotifications.filter((n) => !n.read_by?.includes(userId)).length;
   const clinicalCasesCount = notifications.filter((n) => n.type === "case" || n.type === "clinical").length;
   const feedbackTicketsCount = notifications.filter((n) => n.type === "feedback").length;
+  const approvalsCount = notifications.filter((n) => n.type === "content").length;
+  const patientNotesCount = notifications.filter((n) => n.type === "notes").length;
 
   // Pagination logic
   const totalPages = Math.ceil(filteredNotifications.length / pageSize) || 1;
@@ -224,7 +238,11 @@ const Notifications = () => {
           eyebrow="System alerts"
           eyebrowIcon={Bell}
           title="Notifications & Alerts Inbox"
-          description="Real-time feed of clinical escalations, support inquiries, staff events, and system security alerts."
+          description={
+            isExpert
+              ? "Recipes or exercises waiting for your approval, new Cardiologist guidance, and replies in patient notes."
+              : "Real-time feed of clinical escalations, support inquiries, staff events, and system security alerts."
+          }
           actions={
             <div className="flex items-center gap-2.5">
               <button
@@ -265,23 +283,46 @@ const Notifications = () => {
             iconBorder="border-ds-tint"
             valueColor="text-ds-primary"
           />
-          <KpiCard
-            label="Clinical Cases"
-            value={loading ? "…" : clinicalCasesCount}
-            icon={Activity}
-            iconBg="bg-ds-rose"
-            iconColor="text-ds-danger"
-            iconBorder="border-ds-rose"
-            valueColor="text-ds-danger"
-          />
-          <KpiCard
-            label="Feedback & Support"
-            value={loading ? "…" : feedbackTicketsCount}
-            icon={MessageSquare}
-            iconBg="bg-ds-yellow"
-            iconColor="text-ds-warm-text"
-            iconBorder="border-ds-yellow-bold"
-          />
+          {isExpert ? (
+            <>
+              <KpiCard
+                label="Approvals"
+                value={loading ? "…" : approvalsCount}
+                icon={ClipboardCheck}
+                iconBg="bg-ds-tint"
+                iconColor="text-ds-primary"
+                iconBorder="border-ds-tint"
+              />
+              <KpiCard
+                label="Patient notes"
+                value={loading ? "…" : patientNotesCount}
+                icon={StickyNote}
+                iconBg="bg-ds-mint"
+                iconColor="text-ds-charcoal"
+                iconBorder="border-ds-mint"
+              />
+            </>
+          ) : (
+            <>
+              <KpiCard
+                label="Clinical Cases"
+                value={loading ? "…" : clinicalCasesCount}
+                icon={Activity}
+                iconBg="bg-ds-rose"
+                iconColor="text-ds-danger"
+                iconBorder="border-ds-rose"
+                valueColor="text-ds-danger"
+              />
+              <KpiCard
+                label="Feedback & Support"
+                value={loading ? "…" : feedbackTicketsCount}
+                icon={MessageSquare}
+                iconBg="bg-ds-yellow"
+                iconColor="text-ds-warm-text"
+                iconBorder="border-ds-yellow-bold"
+              />
+            </>
+          )}
         </div>
 
         {/* ── ACTION ERROR BANNER ── */}
@@ -387,12 +428,21 @@ const Notifications = () => {
                 className="px-3 py-1.5 text-[12px] font-semibold bg-ds-canvas border border-ds-hairline text-ds-ink rounded-[8px] focus:outline-none focus:border-ds-ink transition-colors cursor-pointer"
               >
                 <option value="all">All Types</option>
-                <option value="feedback">Feedback</option>
-                <option value="case">Clinical Cases</option>
-                <option value="staff">Staff Accounts</option>
-                <option value="user">User Accounts</option>
-                <option value="security">Security</option>
-                <option value="system">System</option>
+                {isExpert ? (
+                  <>
+                    <option value="content">Approvals</option>
+                    <option value="notes">Patient notes</option>
+                  </>
+                ) : (
+                  <>
+                    <option value="feedback">Feedback</option>
+                    <option value="case">Clinical Cases</option>
+                    <option value="staff">Staff Accounts</option>
+                    <option value="user">User Accounts</option>
+                    <option value="security">Security</option>
+                    <option value="system">System</option>
+                  </>
+                )}
               </select>
 
               {isFilterActive && (

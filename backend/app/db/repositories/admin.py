@@ -22,13 +22,15 @@ class AdminRepository:
     def create_admin_notification(self, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         raise NotImplementedError
 
-    def list_admin_notifications(self, caller_role: str, caller_id: str, include_archived: bool = False) -> Dict[str, Any]:
+    def list_admin_notifications(self, caller_role: str, caller_id: str, include_archived: bool = False,
+                                 expert_type: Optional[str] = None) -> Dict[str, Any]:
         raise NotImplementedError
 
-    def mark_admin_notification_read(self, notification_id: str, caller_role: str, caller_id: str) -> bool:
+    def mark_admin_notification_read(self, notification_id: str, caller_role: str, caller_id: str,
+                                     expert_type: Optional[str] = None) -> bool:
         raise NotImplementedError
 
-    def mark_all_admin_notifications_read(self, caller_role: str, caller_id: str) -> bool:
+    def mark_all_admin_notifications_read(self, caller_role: str, caller_id: str, expert_type: Optional[str] = None) -> bool:
         raise NotImplementedError
 
 
@@ -95,12 +97,19 @@ class SupabaseAdminRepository(AdminRepository):
             handle_db_error(e)
             return None
 
-    def list_admin_notifications(self, caller_role: str, caller_id: str, include_archived: bool = False) -> Dict[str, Any]:
+    def list_admin_notifications(self, caller_role: str, caller_id: str, include_archived: bool = False,
+                                 expert_type: Optional[str] = None) -> Dict[str, Any]:
         try:
+            from app.services.admin_notifications import recipient_keys
             admin_uuid = resolve_uuid(caller_id)
             res = self.client.table("admin_notifications").select("*").order("created_at", desc=True).execute()
             all_notifs = res.data or []
-            visible = [n for n in all_notifs if caller_role in n.get("recipient_roles", [])]
+            # HL-082: experts answer to "expert:<their type>"; nobody sees a notification they caused themselves
+            keys = recipient_keys(caller_role, expert_type)
+            visible = [
+                n for n in all_notifs
+                if keys & set(n.get("recipient_roles") or []) and not (admin_uuid and n.get("actor_id") == admin_uuid)
+            ]
             # HL-019: archived ones (over 72 hours old) only when asked for; they never count as unread.
             visible = keep_active(visible, include_archived)
             
@@ -130,10 +139,15 @@ class SupabaseAdminRepository(AdminRepository):
             handle_db_error(e)
             return {"items": [], "unread_count": 0, "total": 0}
 
-    def mark_admin_notification_read(self, notification_id: str, caller_role: str, caller_id: str) -> bool:
+    def mark_admin_notification_read(self, notification_id: str, caller_role: str, caller_id: str,
+                                     expert_type: Optional[str] = None) -> bool:
         try:
             admin_uuid = resolve_uuid(caller_id)
             if not admin_uuid:
+                return False
+            # HL-082: only a notification this person can see
+            visible = self.list_admin_notifications(caller_role, caller_id, True, expert_type).get("items", [])
+            if not any(n.get("id") == notification_id for n in visible):
                 return False
             payload = {
                 "notification_id": notification_id,
@@ -146,12 +160,12 @@ class SupabaseAdminRepository(AdminRepository):
             handle_db_error(e)
             return False
 
-    def mark_all_admin_notifications_read(self, caller_role: str, caller_id: str) -> bool:
+    def mark_all_admin_notifications_read(self, caller_role: str, caller_id: str, expert_type: Optional[str] = None) -> bool:
         try:
             admin_uuid = resolve_uuid(caller_id)
             if not admin_uuid:
                 return False
-            notifs = self.list_admin_notifications(caller_role, caller_id)
+            notifs = self.list_admin_notifications(caller_role, caller_id, expert_type=expert_type)
             items = notifs.get("items", [])
             unread_ids = [n["id"] for n in items if caller_id not in n.get("read_by", [])]
             if unread_ids:

@@ -14,6 +14,7 @@ from app.services.recipes import (
 )
 from app.utils.security import expert_id_if, require_permission, get_current_user, verify_token, get_optional_token
 from app.utils.activity_helper import record_admin_activity
+from app.services.admin_notifications import notify_waiting_content
 
 router = APIRouter(prefix="/api/recipes", tags=["Recipes"])
 
@@ -84,6 +85,8 @@ def add_recipe(data: Dict[str, Any] = Body(...), current_user: dict = Depends(re
         target_id=new_recipe.get("id"),
         target_name=new_recipe.get("name")
     )
+    # HL-082: tell the Dietitians when it now waits for their approval
+    notify_waiting_content("recipe", new_recipe, expert_id_if(current_user, "Dietitian"), admin_id)
     return new_recipe
 
 @router.put("/{recipe_id}", response_model=Dict[str, Any])
@@ -118,6 +121,7 @@ def edit_recipe(recipe_id: str, data: Dict[str, Any] = Body(...), current_user: 
         target_id=updated_recipe.get("id"),
         target_name=updated_recipe.get("name")
     )
+    notify_waiting_content("recipe", updated_recipe, expert_id_if(current_user, "Dietitian"), admin_id)
     return updated_recipe
 
 @router.delete("/{recipe_id}")

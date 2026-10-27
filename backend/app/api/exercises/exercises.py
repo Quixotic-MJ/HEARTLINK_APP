@@ -5,6 +5,7 @@ from app.services.exercises import get_routines, get_exercise_logs, create_exerc
 from app.services.hss_service import compute_lifestyle_composite_hss
 from app.utils.security import expert_id_if, require_permission, check_expert_permission, get_current_user, verify_token, get_optional_token, verify_user_access
 from app.utils.activity_helper import record_admin_activity
+from app.services.admin_notifications import notify_waiting_content
 
 router = APIRouter(prefix="/api/exercises", tags=["Exercises"])
 
@@ -82,6 +83,8 @@ def add_routine(data: Dict[str, Any], current_user: dict = Depends(require_permi
         target_id=new_routine.get("id"),
         target_name=new_routine.get("name")
     )
+    # HL-082: tell the Physical Therapists when it now waits for their approval
+    notify_waiting_content("exercise", new_routine, expert_id_if(current_user, "Physical Therapist"), admin_id)
     return new_routine
 
 @router.put("/{routine_id}", response_model=Dict[str, Any])
@@ -98,6 +101,7 @@ def edit_routine(routine_id: str, data: Dict[str, Any], current_user: dict = Dep
             target_id=updated_routine.get("id"),
             target_name=updated_routine.get("name")
         )
+        notify_waiting_content("exercise", updated_routine, expert_id_if(current_user, "Physical Therapist"), admin_id)
         return updated_routine
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))

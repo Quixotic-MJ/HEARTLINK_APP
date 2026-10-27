@@ -96,7 +96,22 @@ def add_note(patient_id: str, kind: Any, body: Any, current_user: dict) -> Dict[
     })
     if not created:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Could not save the note.")
+    _notify_care_team(patient_id, kind, current_user.get("user_id"))
     return _serialize([created], current_user.get("user_id"))[0]
+
+
+def _notify_care_team(patient_id: str, kind: str, author_id: Optional[str]) -> None:
+    """HL-082: guidance goes to the Dietitians and Physical Therapists who read it while approving; a thread reply
+    goes to every expert type. The writer never gets their own note, and the patient isn't named in the bell."""
+    from app.services.admin_notifications import notify_experts
+    if kind == "guidance":
+        notify_experts(["Dietitian", "Physical Therapist"], "notes", "New Cardiologist guidance",
+                       "A Cardiologist added guidance on a patient. Open the patient to read it before approving.",
+                       f"/patients/{patient_id}", actor_id=author_id, target_id=patient_id)
+    else:
+        notify_experts(["Cardiologist", "Dietitian", "Physical Therapist"], "notes", "New reply in a patient's notes",
+                       "Someone on the care team replied in a patient's notes. Open the patient to read it.",
+                       f"/patients/{patient_id}", actor_id=author_id, target_id=patient_id)
 
 
 def delete_note(patient_id: str, note_id: str, current_user: dict) -> None:

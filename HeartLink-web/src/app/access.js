@@ -21,8 +21,8 @@ export const PAGE_ACCESS = {
   // HL-084: Premium settings and members
   "/premium": ADMINS,
   "/broadcasts": ADMINS,
-  // The notifications API is admin-only (HL-012), so experts would only see an error here.
-  "/notifications": ADMINS,
+  // HL-082: experts have their own notifications (approvals waiting, guidance, patient-note replies)
+  "/notifications": ALL_STAFF,
   "/settings": ADMINS,
   "/activity-log": ADMINS,
   "/cases": ALL_STAFF,
