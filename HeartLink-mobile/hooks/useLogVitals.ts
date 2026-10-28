@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { OFFLINE_SAVE } from './offlineSave';
+import { OFFLINE_SAVE, isConnectionError } from './offlineSave';
 import { queueHealthLogForSync } from '../services/SyncService';
 import { apiFetch } from "../lib/api";
 
@@ -86,7 +86,7 @@ export function useLogVitals(userId: string | null | undefined, token: string | 
           error.isNetworkError = true;
           throw error;
         }
-        if (e.name === 'TypeError' || e.message?.includes('Network request failed')) {
+        if (isConnectionError(e)) {
           e.isNetworkError = true;
         }
         throw e;

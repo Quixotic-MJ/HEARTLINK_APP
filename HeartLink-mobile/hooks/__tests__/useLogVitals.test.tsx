@@ -78,6 +78,18 @@ describe('useLogVitals', () => {
     expect(dashboard.latest_vitals.bp).toBe('128/82');
   });
 
+  it("saves on the phone with Expo's own fetch error too (what a real phone gets offline)", async () => {
+    // Expo replaces fetch; offline it fails with "fetch failed: ...", not React Native's TypeError
+    (queueHealthLogForSync as jest.Mock).mockClear();
+    (global.fetch as jest.Mock).mockRejectedValueOnce(new Error('fetch failed: Unable to resolve host "heartlink-staging.onrender.com"'));
+
+    const result = await logCheckIn();
+    await waitFor(() => expect(result.current.isError).toBe(true));
+
+    expect(wasQueued(result.current.error)).toBe(true);
+    expect(queueHealthLogForSync).toHaveBeenCalledWith('user-1', CHECK_IN);
+  });
+
   it('saves on the phone at once in airplane mode, without waiting or retrying (HL-076)', async () => {
     // Same mutation defaults as the app (lib/react-query.ts retries 3 times), while React Query thinks we're offline
     queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity }, mutations: { retry: 3, gcTime: Infinity } } });

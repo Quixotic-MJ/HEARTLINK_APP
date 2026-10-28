@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { OFFLINE_SAVE } from './offlineSave';
+import { OFFLINE_SAVE, isConnectionError } from './offlineSave';
 import { useToast } from '../contexts/ToastContext';
 import { postLogAck } from '../services/companionCopy';
 import { apiFetch } from "../lib/api";
@@ -51,7 +51,7 @@ export function useLogSleep(userId: string | null | undefined, token: string | n
           error.isNetworkError = true;
           throw error;
         }
-        if (err.name === 'TypeError' || err.message?.includes('Network request failed')) {
+        if (isConnectionError(err)) {
           err.isNetworkError = true;
         }
         throw err;
