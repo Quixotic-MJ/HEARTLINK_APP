@@ -17,6 +17,8 @@ import { useDs } from "../../../components/onboarding/useDs";
 import DsButton from "../../../components/onboarding/DsButton";
 import AnimatedButton from "../../../components/ui/AnimatedButton";
 import { Skeleton } from "../../../components/ui/Skeleton";
+import { OfflineNote } from "../../../components/ui/OfflineNote";
+import { useNetInfo } from "@react-native-community/netinfo";
 import { bandTag } from "../../../components/dashboard/ScoreCard";
 import { TrendChart } from "../../../components/trends/TrendChart";
 import { LongTermTrends } from "../../../components/trends/LongTermTrends";
@@ -105,6 +107,10 @@ export default function TrendsTabScreen() {
     },
   });
 
+  const netInfo = useNetInfo();
+  // Offline, React Query pauses the request instead of failing it, so isError never came and nothing said so
+  const offline = netInfo.isConnected === false || netInfo.isInternetReachable === false || query.isPaused;
+
   const reload = () => (long ? queryClient.refetchQueries({ queryKey: ["longTermTrends", userId, period] }) : query.refetch());
 
   useFocusEffect(
@@ -141,6 +147,7 @@ export default function TrendsTabScreen() {
   }, [data, period, sodiumLimit, movementGoal]);
 
   const onRefresh = async () => {
+    if (offline) return;
     setRefreshing(true);
     await reload();
     setRefreshing(false);
@@ -287,13 +294,17 @@ export default function TrendsTabScreen() {
             <LongTermTrends days={period} metric={metric} />
           ) : query.isLoading ? (
             <Skeleton style={{ height: 300, borderRadius: 12 }} />
-          ) : query.isError && !data ? (
+          ) : (query.isError || offline) && !data ? (
             <View style={{ padding: 20, borderRadius: 12, backgroundColor: c.surface, gap: 10 }}>
               <Text style={{ fontSize: 16, fontWeight: "600", color: c.ink }}>{"Trends couldn't load"}</Text>
-              <Text style={{ fontSize: 14, lineHeight: 20, color: c.slate }}>Check your connection and try again.</Text>
+              <Text style={{ fontSize: 14, lineHeight: 20, color: c.slate }}>
+                {offline ? "You're offline. Connect to the internet, then try again." : "Check your connection and try again."}
+              </Text>
               <DsButton label="Try again" variant="secondary" block={false} onPress={() => query.refetch()} />
             </View>
           ) : (
+            <>
+            {offline ? <OfflineNote savedAt={query.dataUpdatedAt} onRetry={() => query.refetch()} /> : null}
             <MetricCard
               key={`${metric}-${period}`}
               c={c}
@@ -304,6 +315,7 @@ export default function TrendsTabScreen() {
               onLog={(route) => router.push(route as never)}
               onLonger={() => setPeriod(30)}
             />
+            </>
           )}
 
           {data && !long ? (

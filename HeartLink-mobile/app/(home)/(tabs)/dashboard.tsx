@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { OfflineNote } from "../../../components/ui/OfflineNote";
 import { useQuery } from '@tanstack/react-query';
 import {
   View,
@@ -298,10 +299,13 @@ export default function DashboardScreen() {
   }, [refetch, showToast]);
 
   const onRefresh = useCallback(async () => {
+    // Offline, React Query holds the refresh until the connection is back, so the spinner never stopped;
+    // the offline note already says the data is from earlier
+    if (isOffline) return;
     setRefreshing(true);
     await refetch();
     setRefreshing(false);
-  }, [refetch]);
+  }, [refetch, isOffline]);
 
   const hssScore = typeof data?.hss_score === "number" ? data.hss_score : 0;
   const hasHssScore = hssScore > 0;
@@ -705,6 +709,8 @@ export default function DashboardScreen() {
           />
         }
       >
+        {isOffline && data ? <OfflineNote savedAt={dataUpdatedAt} onRetry={() => refetch()} /> : null}
+
         {/* ── Background Refresh Error Banner ── */}
         {refreshError && !isOffline && (
           <View className="mx-5 mt-3 bg-danger-tint border border-danger/30 px-4 py-2.5 rounded-3xl flex-row items-center justify-between">
