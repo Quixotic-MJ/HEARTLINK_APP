@@ -24,6 +24,19 @@ if (!isExpoGo) {
   }
 }
 
+// Android shows a notification only through a channel; reminders and pushes share this one (push.py sends to it too)
+const ANDROID_CHANNEL = 'default';
+
+async function ensureAndroidChannel() {
+  if (Platform.OS !== 'android') return;
+  await Notifications.setNotificationChannelAsync(ANDROID_CHANNEL, {
+    name: 'default',
+    importance: Notifications.AndroidImportance.MAX,
+    vibrationPattern: [0, 250, 250, 250],
+    lightColor: '#FF231F7C',
+  });
+}
+
 /**
  * Request user permission for notifications
  */
@@ -35,14 +48,7 @@ export async function requestNotificationPermissions() {
     return true;
   }
 
-  if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync('default', {
-      name: 'default',
-      importance: Notifications.AndroidImportance.MAX,
-      vibrationPattern: [0, 250, 250, 250],
-      lightColor: '#FF231F7C',
-    });
-  }
+  await ensureAndroidChannel();
 
   const { status: existingStatus } = await Notifications.getPermissionsAsync();
   let finalStatus = existingStatus;
@@ -73,6 +79,7 @@ export async function scheduleDailyReminder(
   await cancelReminder(identifier);
 
   const [hours, minutes] = timeStr.split(':').map(Number);
+  await ensureAndroidChannel();
 
   await Notifications.scheduleNotificationAsync({
     identifier,
@@ -81,10 +88,13 @@ export async function scheduleDailyReminder(
       body,
       sound: true,
     },
+    // Since expo-notifications 0.28 a trigger must say its type; the old { hour, minute, repeats } shape is refused
+    // ("The `trigger` object you provided is invalid"), so no reminder was ever saved.
     trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.DAILY,
       hour: hours,
       minute: minutes,
-      repeats: true,
+      ...(Platform.OS === 'android' ? { channelId: ANDROID_CHANNEL } : {}),
     },
   });
 }
