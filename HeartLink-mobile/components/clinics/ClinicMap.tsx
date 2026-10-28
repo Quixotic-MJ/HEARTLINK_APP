@@ -51,6 +51,7 @@ export function ClinicMap({
   };
 
   return (
+    <View style={{ gap: 8 }}>
     <View
       style={{ height, borderRadius: 12, overflow: "hidden", borderWidth: 1, borderColor: c.hairline, backgroundColor: c.surface }}
       accessibilityLabel="Map of nearby clinics"
@@ -71,6 +72,8 @@ export function ClinicMap({
           onError={() => setState("failed")}
           onHttpError={() => setState("failed")}
           javaScriptEnabled
+          // Android: lets the map take drags and pinches even when it sits inside something that scrolls
+          nestedScrollEnabled
           setSupportMultipleWindows={false}
           style={{ flex: 1, backgroundColor: c.surface }}
         />
@@ -80,6 +83,24 @@ export function ClinicMap({
           <ActivityIndicator color={c.primary} />
         </View>
       ) : null}
+    </View>
+    {state === "failed" ? null : (
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 14 }} accessibilityLabel="Map key: red, emergency room; blue, clinic or hospital; light blue, you">
+        <Key color={c.danger} label="Emergency room" />
+        <Key color={c.primary} label="Clinic or hospital" />
+        {you ? <Key color={c.line} label="You" /> : null}
+      </View>
+    )}
+    </View>
+  );
+}
+
+function Key({ color, label }: { color: string; label: string }) {
+  const { c } = useDs();
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+      <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: color, borderWidth: 2, borderColor: c.canvas }} />
+      <Text style={{ fontSize: 13, color: c.slate }}>{label}</Text>
     </View>
   );
 }

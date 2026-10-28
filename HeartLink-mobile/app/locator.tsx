@@ -97,7 +97,6 @@ export default function LocatorScreen() {
           </Text>
         </View>
       ) : null}
-      {clinics.length ? <ClinicMap clinics={clinics} you={you} selectedId={selectedId} onSelect={selectFromMap} /> : null}
       <View className="pt-2 flex-row items-center justify-between">
         <Text className="text-[16px] font-semibold text-ds-ink">Nearby clinics</Text>
         {clinics.length ? <Text className="text-[13px] text-ds-steel">{clinics.length} in Cebu City</Text> : null}
@@ -131,6 +130,13 @@ export default function LocatorScreen() {
           <Skeleton style={{ height: 150, borderRadius: 12 }} />
         </View>
       ) : (
+        <>
+        {/* Above the list, not in it: inside the scrolling list, Android gave every drag to the list */}
+        {clinics.length ? (
+          <View style={{ paddingHorizontal: 20, paddingTop: 8 }}>
+            <ClinicMap clinics={clinics} you={you} selectedId={selectedId} onSelect={selectFromMap} height={200} />
+          </View>
+        ) : null}
         <FlatList
           ref={listRef}
           data={clinics}
@@ -158,6 +164,7 @@ export default function LocatorScreen() {
           }
           renderItem={({ item }) => <ClinicCard clinic={item} selected={item.id === selectedId} />}
         />
+        </>
       )}
     </SafeAreaView>
   );

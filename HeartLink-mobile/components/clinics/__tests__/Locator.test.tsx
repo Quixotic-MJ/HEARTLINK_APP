@@ -50,7 +50,9 @@ describe("Emergency locator", () => {
       "Pardo Health Center",
     ]);
     expect(screen.getByTestId("clinic-map")).toBeOnTheScreen();
-    expect(screen.getAllByText("Emergency room")).toHaveLength(2);
+    // two emergency rooms in the list, plus the map's key ("Emergency room", "Clinic or hospital", "You")
+    expect(screen.getAllByText("Emergency room")).toHaveLength(3);
+    expect(screen.getByText("Clinic or hospital")).toBeOnTheScreen();
     expect(screen.getByText("Health centre")).toBeOnTheScreen();
   });
 

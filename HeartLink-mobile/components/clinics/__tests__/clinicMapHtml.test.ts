@@ -29,4 +29,12 @@ describe("clinicMapHtml", () => {
     expect(html).toContain('"er":true');
     expect(html).toContain('"latitude":10.31');
   });
+
+  it("fits every pin once the map knows its size, and has zoom and Show all buttons", () => {
+    const html = clinicMapHtml([clinic({ id: "a" }), clinic({ id: "b", latitude: 10.25 })], null, colors);
+    expect(html).toContain("map.invalidateSize()");
+    expect(html).toContain('window.addEventListener("resize"');
+    expect(html).toContain("L.control.zoom(");
+    expect(html).toContain("Show all");
+  });
 });
