@@ -227,6 +227,9 @@ def test_existing_login_is_reset_to_the_new_temp_password(staff_creation):
 def test_change_password_leaves_the_shared_client_alone(monkeypatch):
     from app.services import auth_service
     from app.services.auth_service import SupabaseAuthService
+    # no keys: the direct REST check is skipped, so only the isolated SDK client is used (and nothing goes online)
+    monkeypatch.delenv("SUPABASE_SERVICE_ROLE_KEY", raising=False)
+    monkeypatch.delenv("SUPABASE_ANON_KEY", raising=False)
 
     monkeypatch.setattr(auth_service, "get_profile_repo", lambda: FakeProfileRepo([staff_profile()]))
     shared = MagicMock()

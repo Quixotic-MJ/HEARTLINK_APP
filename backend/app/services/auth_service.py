@@ -174,6 +174,87 @@ class SupabaseAuthService(AuthService):
         options = SyncClientOptions(auto_refresh_token=False, persist_session=False)
         return create_client(url, key, options=options).auth
 
+    def _password_matches(self, profile: Dict[str, Any], password: str, identifier: str = "") -> Optional[str]:
+        """
+        The Supabase Auth user id when the password is right for this profile, else None. Used by sign-in,
+        account deletion and password change, so all three accept a password the same way: the profile's email,
+        then the typed identifier, then the phone number in each Philippine format, with the service key and then
+        the anon key, and finally the SDK. (Deletion and password change used to try only the email with the SDK,
+        so an account that signs in by phone could never be deleted or change its password.)
+        """
+        auth_user_id = None
+
+        # --- Method 1: Stateless REST authentication via httpx ---
+        # Bypasses supabase-py gotrue client session state issues in multi-request server environments
+        import httpx
+        supabase_url = os.getenv("SUPABASE_URL", "").strip()
+        anon_key = os.getenv("SUPABASE_ANON_KEY", "").strip()
+        service_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "").strip()
+
+        auth_attempts = []
+        if profile.get("email"):
+            auth_attempts.append({"email": profile["email"].strip().lower()})
+        if "@" in identifier and {"email": identifier.strip().lower()} not in auth_attempts:
+            auth_attempts.append({"email": identifier.strip().lower()})
+        if profile.get("phone"):
+            p = profile["phone"].strip()
+            auth_attempts.append({"phone": p})
+            if p.startswith("63"):
+                auth_attempts.append({"phone": "+" + p})
+            elif p.startswith("+63"):
+                auth_attempts.append({"phone": p[1:]})
+            elif p.startswith("09"):
+                auth_attempts.append({"phone": "+63" + p[1:]})
+
+        valid_keys = [k for k in [service_key, anon_key] if k]
+        for key_to_use in valid_keys:
+            if auth_user_id:
+                break
+            for cred in auth_attempts:
+                try:
+                    headers = {
+                        "apikey": key_to_use,
+                        "Authorization": f"Bearer {key_to_use}",
+                        "Content-Type": "application/json"
+                    }
+                    with httpx.Client(timeout=10.0) as http:
+                        resp = http.post(
+                            f"{supabase_url}/auth/v1/token?grant_type=password",
+                            headers=headers,
+                            json={**cred, "password": password}
+                        )
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        user_obj = data.get("user") or {}
+                        if user_obj.get("id"):
+                            auth_user_id = str(user_obj["id"])
+                            logger.info("[password check] Signed in through the direct REST call (id=%s)", auth_user_id)
+                            break
+                    else:
+                        logger.warning("[password check] Direct REST attempt failed (%s)", resp.status_code)
+                except Exception as http_err:
+                    logger.warning(f"[password check] httpx auth attempt error: {http_err}")
+
+        # --- Method 2: Fallback to client.auth.sign_in_with_password ---
+        if not auth_user_id:
+            credentials = {"password": password}
+            if profile.get("email"):
+                credentials["email"] = profile["email"]
+            elif profile.get("phone"):
+                credentials["phone"] = profile["phone"]
+            elif "@" in identifier:
+                credentials["email"] = identifier
+            else:
+                credentials["phone"] = identifier
+
+            try:
+                res = self._isolated_auth().sign_in_with_password(credentials)
+                if res and hasattr(res, "user") and res.user:
+                    auth_user_id = str(res.user.id)
+            except Exception as client_err:
+                logger.warning(f"[password check] client.auth fallback error: {client_err}")
+        return auth_user_id
+
     def _find_auth_user(self, email: str, phone: str):
         """
         Returns the Supabase Auth login whose email or phone matches, or None. supabase-py has no
@@ -534,77 +615,7 @@ class SupabaseAuthService(AuthService):
             elif profile.get("account_status") != "active":
                 raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access Denied: Account is disabled or archived")
 
-            auth_user_id = None
-
-            # --- Method 1: Stateless REST authentication via httpx ---
-            # Bypasses supabase-py gotrue client session state issues in multi-request server environments
-            import httpx
-            supabase_url = os.getenv("SUPABASE_URL", "").strip()
-            anon_key = os.getenv("SUPABASE_ANON_KEY", "").strip()
-            service_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "").strip()
-
-            auth_attempts = []
-            if profile.get("email"):
-                auth_attempts.append({"email": profile["email"].strip().lower()})
-            if "@" in identifier and {"email": identifier.strip().lower()} not in auth_attempts:
-                auth_attempts.append({"email": identifier.strip().lower()})
-            if profile.get("phone"):
-                p = profile["phone"].strip()
-                auth_attempts.append({"phone": p})
-                if p.startswith("63"):
-                    auth_attempts.append({"phone": "+" + p})
-                elif p.startswith("+63"):
-                    auth_attempts.append({"phone": p[1:]})
-                elif p.startswith("09"):
-                    auth_attempts.append({"phone": "+63" + p[1:]})
-
-            valid_keys = [k for k in [service_key, anon_key] if k]
-            for key_to_use in valid_keys:
-                if auth_user_id:
-                    break
-                for cred in auth_attempts:
-                    try:
-                        headers = {
-                            "apikey": key_to_use,
-                            "Authorization": f"Bearer {key_to_use}",
-                            "Content-Type": "application/json"
-                        }
-                        with httpx.Client(timeout=10.0) as http:
-                            resp = http.post(
-                                f"{supabase_url}/auth/v1/token?grant_type=password",
-                                headers=headers,
-                                json={**cred, "password": password}
-                            )
-                        if resp.status_code == 200:
-                            data = resp.json()
-                            user_obj = data.get("user") or {}
-                            if user_obj.get("id"):
-                                auth_user_id = str(user_obj["id"])
-                                logger.info("[login] Signed in through the direct REST call (id=%s)", auth_user_id)
-                                break
-                        else:
-                            logger.warning("[login] Direct REST attempt failed (%s)", resp.status_code)
-                    except Exception as http_err:
-                        logger.warning(f"[login] httpx auth attempt error: {http_err}")
-
-            # --- Method 2: Fallback to client.auth.sign_in_with_password ---
-            if not auth_user_id:
-                credentials = {"password": password}
-                if profile.get("email"):
-                    credentials["email"] = profile["email"]
-                elif profile.get("phone"):
-                    credentials["phone"] = profile["phone"]
-                elif "@" in identifier:
-                    credentials["email"] = identifier
-                else:
-                    credentials["phone"] = identifier
-
-                try:
-                    res = self._isolated_auth().sign_in_with_password(credentials)
-                    if res and hasattr(res, "user") and res.user:
-                        auth_user_id = str(res.user.id)
-                except Exception as client_err:
-                    logger.warning(f"[login] client.auth fallback error: {client_err}")
+            auth_user_id = self._password_matches(profile, password, identifier)
 
             if not auth_user_id:
                 raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Credentials")
@@ -658,14 +669,7 @@ class SupabaseAuthService(AuthService):
             profile = get_profile_repo().get_by_id(user_id)
             if not profile:
                 return False
-            ident = profile.get("email") or profile.get("phone")
-            credentials = {"password": password}
-            if profile.get("email"):
-                credentials["email"] = profile["email"]
-            else:
-                credentials["phone"] = profile["phone"]
-            res = self._isolated_auth().sign_in_with_password(credentials)
-            return bool(res and hasattr(res, "user") and res.user)
+            return bool(self._password_matches(profile, password))
         except Exception:
             return False
 
@@ -675,27 +679,14 @@ class SupabaseAuthService(AuthService):
             if not profile:
                 return False
 
-            credentials = {"password": current_password}
-            if profile.get("email"):
-                credentials["email"] = profile["email"]
-            elif profile.get("phone"):
-                credentials["phone"] = profile["phone"]
-            else:
-                return False
-
-            auth_res = None
-            try:
-                auth_res = self._isolated_auth().sign_in_with_password(credentials)
-            except Exception as sign_err:
-                logger.info(f"[change_password] Current password check failed: {sign_err}")
-                return False
-
-            if not auth_res or not hasattr(auth_res, "user") or not auth_res.user:
+            auth_user_id = self._password_matches(profile, current_password)
+            if not auth_user_id:
+                logger.info("[change_password] Current password check failed")
                 return False
 
             # The admin API changes the password without touching any session on the shared client
             try:
-                self.client.auth.admin.update_user_by_id(str(auth_res.user.id), {"password": new_password})
+                self.client.auth.admin.update_user_by_id(auth_user_id, {"password": new_password})
                 return True
             except Exception as admin_err:
                 logger.error(f"[change_password] Admin update_user_by_id failed: {admin_err}")

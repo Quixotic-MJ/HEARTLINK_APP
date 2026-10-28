@@ -35,6 +35,7 @@ export default function AccountSecurityScreen() {
   // Deletion state
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deletePassword, setDeletePassword] = useState("");
+  const [showDeletePass, setShowDeletePass] = useState(false);
   const [deleteTypedText, setDeleteTypedText] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -340,6 +341,7 @@ export default function AccountSecurityScreen() {
             <TouchableOpacity
               onPress={() => {
                 setDeletePassword("");
+                setShowDeletePass(false);
                 setDeleteTypedText("");
                 setShowDeleteModal(true);
               }}
@@ -409,16 +411,29 @@ export default function AccountSecurityScreen() {
               <Text className="text-[14px] font-medium text-ds-ink mb-1.5">
                 Current Password
               </Text>
-              <TextInput
-                className="bg-ds-canvas border border-ds-hairline-strong rounded-lg px-4 text-[16px] text-ds-ink"
-                placeholder="Enter your current password"
-                style={{ height: 48 }}
-                placeholderTextColor={c.steel}
-                secureTextEntry
-                value={deletePassword}
-                onChangeText={setDeletePassword}
-                autoCapitalize="none"
-              />
+              <View className="flex-row items-center bg-ds-canvas border border-ds-hairline-strong rounded-lg pl-4 pr-1" style={{ height: 48 }}>
+                <TextInput
+                  className="flex-1 text-[16px] text-ds-ink"
+                  placeholder="Enter your current password"
+                  placeholderTextColor={c.steel}
+                  secureTextEntry={!showDeletePass}
+                  value={deletePassword}
+                  onChangeText={setDeletePassword}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  accessibilityLabel="Current password"
+                />
+                <TouchableOpacity
+                  onPress={() => setShowDeletePass(!showDeletePass)}
+                  accessible={true}
+                  accessibilityRole="button"
+                  accessibilityLabel={showDeletePass ? "Hide password" : "Show password"}
+                  className="items-center justify-center"
+                  style={{ width: 44, height: 44 }}
+                >
+                  <Feather name={showDeletePass ? "eye-off" : "eye"} size={18} color={c.slate} />
+                </TouchableOpacity>
+              </View>
             </View>
 
             <View className="mb-5">

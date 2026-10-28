@@ -1,6 +1,7 @@
 from fastapi import APIRouter, status, HTTPException, Depends, Request, Response
 from app.utils.security import get_current_user, set_auth_cookies, REFRESH_COOKIE_NAME, STAFF_ROLES
 from app.services.session_service import restart_after_password_change
+from app.utils.rate_limiter import limiter, user_or_ip_key
 from app.utils.time import utc_now, parse_utc, to_local_date, UTC_MIN
 from app.schemas.user import (
     ProfileUpdate,
@@ -228,6 +229,7 @@ async def update_user_profile(
 
 
 @router.put("/{user_id}/password", status_code=status.HTTP_200_OK)
+@limiter.limit("5/minute", key_func=user_or_ip_key)  # the current-password check must not be a way to guess passwords
 async def update_user_password(
     user_id: str,
     payload: ChangePasswordRequest,
@@ -308,9 +310,12 @@ async def update_user_password(
 
 
 @router.delete("/{user_id}", status_code=status.HTTP_200_OK)
+@limiter.limit("5/minute", key_func=user_or_ip_key)  # the password check must not be a way to guess passwords
 async def delete_user_account(
     user_id: str,
     payload: DeleteAccountRequest,
+    request: Request,
+    response: Response,
     current_user: dict = Depends(get_current_user),
 ):
     caller_id = current_user.get("user_id")
