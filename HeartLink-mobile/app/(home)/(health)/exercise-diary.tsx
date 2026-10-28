@@ -41,6 +41,14 @@ function formatTotal(seconds: number) {
   return m ? `${h} h ${m} min` : `${h} h`;
 }
 
+/** A row's date, time and length, e.g. "Oct 28, 8:39 AM, 30 min". */
+export function logDetail(log: ExerciseLog): string {
+  const at = new Date(log.logged_at);
+  const date = at.toLocaleDateString([], { month: "short", day: "numeric" });
+  const time = at.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  return `${date}, ${time}, ${formatDuration(logSeconds(log))}`;
+}
+
 function dayLabel(date: Date) {
   const today = new Date();
   const yesterday = new Date();
@@ -119,8 +127,6 @@ export default function ExerciseDiaryScreen() {
   const renderRow = ({ item }: { item: ExerciseLog }) => {
     const unwell = item.status === "incomplete_due_to_symptoms";
     const breathing = item.routine_name?.toLowerCase().includes("breath");
-    const time = new Date(item.logged_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-    const how = item.routine_id ? "guided" : "logged by you";
     return (
       <View
         style={{ minHeight: 72, borderRadius: 12, borderWidth: 1, borderColor: c.hairline, paddingLeft: 14, paddingRight: 4, paddingVertical: 12, flexDirection: "row", alignItems: "center", gap: 12 }}
@@ -130,10 +136,8 @@ export default function ExerciseDiaryScreen() {
           <Text style={{ fontSize: 16, fontWeight: "500", color: c.ink }} numberOfLines={2}>
             {item.routine_name || "Exercise"}
           </Text>
-          <Text style={{ fontSize: 13, color: c.slate }}>
-            {time}, {formatDuration(logSeconds(item))}, {how}
-          </Text>
-          {unwell ? <Tag label="Stopped, felt unwell" tone="rose" /> : null}
+          <Text style={{ fontSize: 13, color: c.slate }}>{logDetail(item)}</Text>
+          {unwell ? <Tag label="Stopped, felt unwell" tone="rose" /> : item.routine_id ? <Tag label="Guided" tone="sky" /> : null}
         </View>
         <AnimatedButton
           onPress={() => setToDelete(item)}
