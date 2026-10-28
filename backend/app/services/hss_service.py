@@ -172,6 +172,18 @@ def smoothed_base(previous_base: Optional[int], band_score: int, kind: str) -> i
     return int(round(previous_base + (band_score - previous_base) * READING_STEP))
 
 
+def _sodium_limit(user_id: str) -> float:
+    """The patient's daily sodium limit (their saved one, else the guideline for them); 1,500 mg if unknown."""
+    try:
+        from app.db.repositories import get_baseline_repo
+        from app.services.nutrition_targets import targets_for_user
+        targets = targets_for_user(user_id, get_baseline_repo().get_thresholds(user_id)) or {}
+        value = (targets.get("sodium_mg") or {}).get("value")
+        return float(value) if value else 1500.0
+    except Exception:
+        return 1500.0
+
+
 def compute_lifestyle_composite_hss(user_id: str, trigger: str = "lifestyle_event"):
     """
     Dynamically recalculates Cardiovascular Health Stability Score (1-100)
@@ -216,18 +228,26 @@ def compute_lifestyle_composite_hss(user_id: str, trigger: str = "lifestyle_even
     lifestyle_points = 0
     factors = {"source": "lifestyle_composite", "trigger": trigger}
 
-    # 2. Meal Points (Itemized)
+    # 2. Meal Points: sodium for the whole day against the patient's own limit (it was per meal, so five 700 mg meals,
+    # 3,500 mg in all, cost nothing); saturated fat and fibre per meal as before
     meal_pts = 0
+    sodium_total = sum((m.get("sodium_mg") or 0) for m in meals_today)
+    sodium_limit = _sodium_limit(user_id)
+    if meals_today:
+        if sodium_total > sodium_limit * 1.5:
+            meal_pts -= 5
+        elif sodium_total > sodium_limit:
+            meal_pts -= 3
+        else:
+            meal_pts += 2
+    factors["sodium_total_mg"] = round(sodium_total)
+    factors["sodium_limit_mg"] = round(sodium_limit)
     for m in meals_today:
-        sod = m.get("sodium_mg") or 0
         fat = m.get("saturated_fat_g") or 0
         fib = m.get("fiber_g") or 0
-        if sod > 800: meal_pts -= 3
-        elif sod < 140: meal_pts += 2
-        
         if fat > 5: meal_pts -= 2
         elif fat < 1: meal_pts += 1
-        
+
         if fib > 5: meal_pts += 2
     lifestyle_points += meal_pts
     factors["meal_points"] = meal_pts
@@ -248,8 +268,9 @@ def compute_lifestyle_composite_hss(user_id: str, trigger: str = "lifestyle_even
     sleep_pts = 0
     total_sleep_hours = sum((s.get("duration_hours") or 0) for s in sleeps_today)
     if total_sleep_hours > 0:
+        # Ranges, not exact hours: 6.5 h used to score nothing because only exactly 6 counted
         if 7 <= total_sleep_hours <= 9: sleep_pts = 3
-        elif total_sleep_hours == 6 or total_sleep_hours == 10: sleep_pts = 1
+        elif 6 <= total_sleep_hours < 7 or 9 < total_sleep_hours <= 10: sleep_pts = 1
         elif total_sleep_hours < 5 or total_sleep_hours > 11: sleep_pts = -2
     lifestyle_points += sleep_pts
     factors["sleep_points"] = sleep_pts

@@ -46,47 +46,57 @@ def _local_time(val: Any, tz_name: str = "Asia/Manila") -> str:
 
 # ─── Dietary exclusion map ─────────────────────────────────────────────────────
 # Maps a dietary practice to ingredient keywords that should be excluded.
+# Seafood names, Filipino ones included: "Grilled Bangus" must not pass as vegetarian because it never says "fish".
+_FISH = ["fish", "salmon", "tuna", "bangus", "milkfish", "tilapia", "galunggong", "sardine", "anchovy", "tinapa", "dilis", "bagoong", "patis"]
+_SHELLFISH = ["shrimp", "prawn", "hipon", "crab", "alimango", "lobster", "squid", "pusit", "clam", "tahong", "mussel", "oyster", "scallop", "shellfish"]
+
 DIETARY_EXCLUSIONS: Dict[str, List[str]] = {
-    "Halal": ["pork", "bacon", "ham", "lard", "gelatin_pork"],
-    "Vegetarian": [
-        "chicken",
-        "pork",
-        "beef",
-        "salmon",
-        "fish",
-        "shrimp",
-        "bacon",
-        "ham",
-        "lard",
-    ],
-    "Vegan": [
-        "chicken",
-        "pork",
-        "beef",
-        "salmon",
-        "fish",
-        "shrimp",
-        "bacon",
-        "ham",
-        "lard",
-        "egg",
-        "milk",
-        "cheese",
-        "butter",
-        "cream",
-        "honey",
-    ],
-    "Pescatarian": ["chicken", "pork", "beef", "bacon", "ham", "lard"],
+    "Halal": ["pork", "bacon", "ham", "lard", "gelatin_pork", "liempo", "chicharon", "wine", "rum", "beer"],
+    "Vegetarian": ["chicken", "pork", "beef", "bacon", "ham", "lard", "liempo", "chicharon"] + _FISH + _SHELLFISH,
+    "Vegan": ["chicken", "pork", "beef", "bacon", "ham", "lard", "liempo", "chicharon", "egg", "milk", "cheese", "butter",
+              "cream", "yogurt", "honey"] + _FISH + _SHELLFISH,
+    "Pescatarian": ["chicken", "pork", "beef", "bacon", "ham", "lard", "liempo", "chicharon"],
 }
+
+# The setup question's allergies, each as the ingredient words that contain it. Matching the allergy's own name
+# missed almost everything ("Eggs" never matched "egg", "Shellfish" never matched "shrimp").
+ALLERGY_KEYWORDS: Dict[str, List[str]] = {
+    "peanuts": ["peanut", "groundnut", "mani", "kare-kare"],
+    "shellfish": _SHELLFISH,
+    "dairy": ["milk", "cheese", "butter", "cream", "yogurt", "yoghurt", "ghee", "whey", "dairy", "evaporated", "condensed"],
+    "gluten": ["wheat", "flour", "bread", "noodle", "pasta", "pancit", "miki", "misua", "barley", "rye", "breadcrumb",
+               "soy sauce", "toyo", "gluten"],
+    "soy": ["soy", "tofu", "tokwa", "taho", "edamame", "tempeh", "miso", "toyo"],
+    "eggs": ["egg", "itlog", "mayonnaise"],
+}
+
+
+def allergy_words(allergies: List[str]) -> List[str]:
+    """Ingredient words to avoid for these allergies; an allergy not in the list matches by its own name."""
+    words: List[str] = []
+    for a in allergies or []:
+        key = str(a).strip().lower()
+        if not key or key == "none":
+            continue
+        words.extend(ALLERGY_KEYWORDS.get(key, [key.rstrip("s") or key]))
+    return words
+
+
+# How careful each band is: an exercise suits a patient when its band is theirs or more careful.
+TIER_LEVEL: Dict[str, int] = {"Stable": 0, "Moderate": 1, "Elevated Risk": 2, "Critical": 3}
+
+
+def exercise_suits(exercise: dict, patient_tier: str, resting: bool) -> bool:
+    """An exercise approved for the patient's band or a more careful one; only breathing during the 24-hour rest."""
+    if resting and exercise.get("type") != "Breathing":
+        return False
+    return TIER_LEVEL.get(exercise.get("hss_tier") or "Stable", 0) >= TIER_LEVEL.get(patient_tier, 0)
 
 
 def _recipe_is_safe(recipe: dict, dietary_practice: str, allergies: List[str]) -> bool:
     """Return True if the recipe does NOT contain excluded ingredients or allergies."""
     excluded = DIETARY_EXCLUSIONS.get(dietary_practice, []).copy()
-    
-    if allergies:
-        # Add allergies to the exclusion list, ignoring "None"
-        excluded.extend([a.lower() for a in allergies if a.lower() != "none"])
+    excluded.extend(allergy_words(allergies))
 
     if not excluded:
         return True  # No restrictions
@@ -579,10 +589,13 @@ def get_dashboard_data(user_id: str, recipe_limit: int = 2, exercise_limit: int 
     else:
         reco_recipes.sort(key=lambda r: not bool(r.get("expert_validated", False)))
 
+    # An exercise is tagged with the band it was approved for (Stable = the most active, Critical = the gentlest).
+    # A patient gets their own band's or gentler ones, never more active ones; during the 24-hour rest after a severe
+    # symptom, breathing exercises only (the exercise screen says the same).
     reco_exercises = [
         e
         for e in exercise_routines
-        if (e.get("hss_tier") == tier or e.get("hss_tier") == "Stable")
+        if exercise_suits(e, tier, has_recent_severe_symptom)
         and is_visible_to_patients(e)
         and e.get("id") not in today_exercise_ids
         and ("exercise", str(e.get("id"))) not in hidden

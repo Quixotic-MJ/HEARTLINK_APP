@@ -159,13 +159,13 @@ export const gradients = {
 } as const;
 
 // ---- Health Stability Score bands ----
-// TODO: replace the thresholds with the ones your backend (hss_service.py) uses.
+// The same cut-offs and names as the server (hss_service.determine_tier) and the dashboard: 80 / 60 / 50.
 export type ScoreBand = 'critical' | 'elevated' | 'moderate' | 'good';
 export function scoreBand(score: number, c: ThemeColors) {
-  if (score < 40) return { key: 'critical' as const, label: 'Critical', ring: c.dangerMid,  text: c.dangerText,  tint: c.dangerTint };
-  if (score < 60) return { key: 'elevated' as const, label: 'Elevated', ring: c.warningMid, text: c.warningText, tint: c.warningTint };
-  if (score < 80) return { key: 'moderate' as const, label: 'Moderate', ring: c.limeMid,    text: c.limeText,    tint: c.limeTint };
-  return              { key: 'good' as const,     label: 'Good',     ring: c.successMid, text: c.successText, tint: c.successTint };
+  if (score < 50) return { key: 'critical' as const, label: 'Critical',      ring: c.dangerMid,  text: c.dangerText,  tint: c.dangerTint };
+  if (score < 60) return { key: 'elevated' as const, label: 'Elevated risk', ring: c.warningMid, text: c.warningText, tint: c.warningTint };
+  if (score < 80) return { key: 'moderate' as const, label: 'Moderate',      ring: c.limeMid,    text: c.limeText,    tint: c.limeTint };
+  return              { key: 'good' as const,     label: 'Stable',        ring: c.successMid, text: c.successText, tint: c.successTint };
 }
 
 // ---- Limit bars (sodium, sat fat): green under 70%, orange to 100%, red over ----

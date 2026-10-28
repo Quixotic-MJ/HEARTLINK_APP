@@ -69,3 +69,26 @@ reading they can only lower the score, so good habits never lift it out of Criti
 
 Questions for the review: are the band scores right, is "a third of the way" the right speed, and should a healthy
 reading also raise a score that is already above 90?
+
+## The day's habit points (for the cardiologist's and dietitian's review, OT-10)
+
+On top of the base, `compute_lifestyle_composite_hss` adds the day's points, ±20 at most:
+
+| What | Points |
+|---|---|
+| Sodium, the day's total against the patient's own limit (since 2026-10-28; it was per meal) | within the limit +2, over it −3, over 1.5× the limit −5 |
+| Saturated fat, per meal | over 5 g −2, under 1 g +1 |
+| Fibre, per meal | over 5 g +2 |
+| Exercise | +1 per 10 minutes (×2 moderate, ×3 vigorous) |
+| Sleep (since 2026-10-28 by ranges) | 7–9 h +3; 6–7 h or 9–10 h +1; under 5 h or over 11 h −2 |
+| Medicines taken today | +2 |
+| Chest discomfort or shortness of breath logged today | −10 |
+| Blood sugar under 70 or over 180 | −3, else +2 |
+| Weight up 1.5 kg or more since the last weighing | −15 |
+| Logging streak | +1 a day, up to +5 |
+| Nothing logged for 2 days | −5 |
+
+These values are the developers' first guess and need an expert's yes or changes.
+
+**Open question: weight gain.** Two rules disagree today: the alert (`api/health_logs`) fires at +1.36 kg (3 lb) within
+3 days, the score drops 15 at +1.5 kg since the last weighing. Which threshold and time window should both use?
