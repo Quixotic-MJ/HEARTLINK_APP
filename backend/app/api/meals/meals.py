@@ -1,13 +1,18 @@
-from fastapi import APIRouter, Query, HTTPException, Depends, status
-from typing import List, Dict, Any
+from fastapi import APIRouter, Query, HTTPException, Depends, Request, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from typing import List, Dict, Any, Optional
 from app.services.meals import get_meal_logs, create_meal_log, search_meals, delete_meal_log, get_paginated_meal_logs
-from app.utils.security import get_current_user, verify_user_access, check_expert_permission
+from app.utils.security import get_current_user, verify_user_access, check_expert_permission, get_optional_token
+from app.services.food_warnings import patient_id, with_warnings
 
 router = APIRouter(prefix="/api/meals", tags=["Meals"])
 
 @router.get("/search", response_model=List[Dict[str, Any]])
-def search(q: str = Query("")):
-    return search_meals(q)
+def search(request: Request, q: str = Query(""), credentials: Optional[HTTPAuthorizationCredentials] = Depends(HTTPBearer(auto_error=False))):
+    results = search_meals(q)
+    # Still open without signing in; a signed-in patient also gets what clashes with their allergies or diet
+    pid = patient_id(get_optional_token(request, credentials))
+    return with_warnings(results, pid) if pid else results
 
 @router.get("/recommendations/me", response_model=List[Dict[str, Any]])
 def get_meal_recos(current_user: dict = Depends(get_current_user)):

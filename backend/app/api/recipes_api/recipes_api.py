@@ -15,6 +15,7 @@ from app.services.recipes import (
 from app.utils.security import expert_id_if, require_permission, get_current_user, verify_token, get_optional_token
 from app.utils.activity_helper import record_admin_activity
 from app.services.admin_notifications import notify_waiting_content
+from app.services.food_warnings import patient_id, with_warnings
 
 router = APIRouter(prefix="/api/recipes", tags=["Recipes"])
 
@@ -36,13 +37,17 @@ def read_recipes(request: Request, credentials: Optional[HTTPAuthorizationCreden
             
     if is_admin:
         return recipes
-    return [r for r in recipes if is_visible_to_patients(r)]
+    visible = [r for r in recipes if is_visible_to_patients(r)]
+    # A signed-in patient sees every recipe, each with what clashes with their allergies or diet
+    pid = patient_id(token)
+    return with_warnings(visible, pid) if pid else visible
 
 @router.get("/saved/{user_id}", response_model=List[Dict[str, Any]])
 def read_saved_recipes(user_id: str, current_user: dict = Depends(get_current_user)):
     from app.utils.security import verify_user_access
     verify_user_access(current_user, user_id)
-    return get_saved_recipes(user_id)
+    saved = get_saved_recipes(user_id)
+    return with_warnings(saved, user_id) if current_user.get("role") == "patient" else saved
 
 @router.get("/{recipe_id}", response_model=Dict[str, Any])
 def read_recipe(recipe_id: str, request: Request, credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)):
@@ -63,7 +68,8 @@ def read_recipe(recipe_id: str, request: Request, credentials: Optional[HTTPAuth
     if not is_admin and not is_visible_to_patients(recipe):
         raise HTTPException(status_code=404, detail="Recipe not found")
 
-    return recipe
+    pid = patient_id(token)
+    return with_warnings([recipe], pid)[0] if pid else recipe
 
 @router.post("", response_model=Dict[str, Any])
 @router.post("/", response_model=Dict[str, Any])

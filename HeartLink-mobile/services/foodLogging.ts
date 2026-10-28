@@ -30,6 +30,8 @@ export type FoodItem = {
   /** Recent meals: when it was last logged. */
   logged_at?: string;
   recommended?: boolean;
+  /** HeartLink recipes: what clashes with the patient's allergies or diet (from the server). */
+  warnings?: string[];
   base: Nutrition;
 };
 

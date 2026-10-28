@@ -83,3 +83,18 @@ describe("picksForScore with hidden items (HL-057)", () => {
     expect(fromDashboard.recipes.map((r) => r.id)).toEqual(["r2"]);
   });
 });
+
+describe("allergy and diet warnings", () => {
+  it("reads the server's warnings and ignores anything else", () => {
+    expect(toExploreRecipe({ id: "a", warnings: ["Contains pork (not Halal)", 3, " "] }).warnings).toEqual(["Contains pork (not Halal)"]);
+    expect(toExploreRecipe({ id: "b" }).warnings).toEqual([]);
+  });
+
+  it("never falls back to a meal that clashes with the patient's allergies or diet", () => {
+    const recipes = [
+      toExploreRecipe({ id: "shrimp", sodium_mg: 50, hss_tier: "Stable", warnings: ["Contains shrimp (you're allergic to shellfish)"] }),
+      toExploreRecipe({ id: "tinola", sodium_mg: 120, hss_tier: "Stable" }),
+    ];
+    expect(picksForScore(undefined, recipes, [], "Stable").recipes.map((r) => r.id)).toEqual(["tinola"]);
+  });
+});

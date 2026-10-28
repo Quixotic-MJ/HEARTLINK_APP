@@ -16,8 +16,11 @@ import AnimatedButton from "../../../components/ui/AnimatedButton";
 import DsButton from "../../../components/onboarding/DsButton";
 import { useDs } from "../../../components/onboarding/useDs";
 import { AmountStepper } from "../../../components/food/FoodBits";
+import { FoodWarning } from "../../../components/explore/ExploreBits";
+import { foodWarnings } from "../../../services/explore";
 import { apiFetch } from "../../../lib/api";
-import { formatMg } from "../../../services/foodLogging";type Tab = "Ingredients" | "Instructions";
+import { formatMg } from "../../../services/foodLogging";
+type Tab = "Ingredients" | "Instructions";
 
 export default function RecipeDetailsScreen() {
   const { c, isDark } = useDs();
@@ -64,6 +67,7 @@ export default function RecipeDetailsScreen() {
           tags: data.tags || [],
           heartBenefit: data.heart_benefit || "",
           expertValidated: !!data.expert_validated,
+          warnings: foodWarnings(data.warnings),
           nutrition: {
             sodium: data.sodium_mg || 0,
             fiber: data.fiber_g || 0,
@@ -343,6 +347,9 @@ export default function RecipeDetailsScreen() {
               ))}
             </View>
           </View>
+
+          {/* What clashes with the patient's allergies or diet */}
+          <FoodWarning warnings={foodWarnings(recipe.warnings)} />
 
           {/* Why it's good */}
           {recipe.heartBenefit ? (

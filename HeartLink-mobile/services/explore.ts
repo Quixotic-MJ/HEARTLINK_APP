@@ -12,6 +12,8 @@ export type ExploreRecipe = {
   prepMinutes: number;
   image: string;
   tier: string;
+  /** What clashes with the patient's allergies or diet, e.g. "Contains shrimp (you're allergic to shellfish)". */
+  warnings: string[];
 };
 
 export type ExploreExercise = {
@@ -38,7 +40,13 @@ export function toExploreRecipe(r: RawRow): ExploreRecipe {
     prepMinutes: num(r.prep_time_minutes),
     image: text(r.image_url),
     tier: text(r.hss_tier, "Stable"),
+    warnings: foodWarnings(r.warnings),
   };
+}
+
+/** The server's allergy and diet warnings for a recipe (none from an older server or for a signed-out user). */
+export function foodWarnings(v: unknown): string[] {
+  return Array.isArray(v) ? v.filter((w): w is string => typeof w === "string" && !!w.trim()) : [];
 }
 
 export function toExploreExercise(r: RawRow): ExploreExercise {
@@ -144,7 +152,8 @@ export function picksForScore(
     };
   }
   return {
-    recipes: recipesForNeed("low-sodium", recipes, tier).slice(0, count),
+    // Never pick a meal that clashes with the patient's allergies or diet
+    recipes: recipesForNeed("low-sodium", recipes, tier).filter((r) => !r.warnings.length).slice(0, count),
     exercises: exercises.filter((e) => suitsTier(e.tier, tier)).slice(0, count),
   };
 }

@@ -19,7 +19,8 @@ import { apiFetch } from "../../../lib/api";
 import { useDs } from "../../../components/onboarding/useDs";
 import { useRefetchOnFocus } from "../../../hooks/useRefetchOnFocus";
 import { useExploreScore } from "../../../hooks/useExploreData";
-import { suitsTier } from "../../../services/explore";
+import { foodWarnings, suitsTier } from "../../../services/explore";
+import { FoodWarning } from "../../../components/explore/ExploreBits";
 import { SquareIconButton } from "../../../components/exercise/ExerciseBits";
 
 export interface Recipe {
@@ -42,6 +43,8 @@ export interface Recipe {
   steps: string[];
   /** Which score level it's for (HL-037 Explore: marks the ones that suit the patient). */
   tier?: string;
+  /** What clashes with the patient's allergies or diet (from the server). */
+  warnings?: string[];
 }
 
 function RecipeCard({
@@ -58,11 +61,14 @@ function RecipeCard({
   suits?: boolean;
 }) {
   const { c } = useDs();
+  const warnings = recipe.warnings ?? [];
 
   return (
     <TouchableOpacity
       activeOpacity={0.8}
       onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`${recipe.title}${warnings.length ? `. Warning: ${warnings.join(". ")}` : ""}`}
       className="overflow-hidden mb-4 relative"
       style={{ borderRadius: 12, borderWidth: 1, borderColor: c.hairline, backgroundColor: c.canvas }}
     >
@@ -88,7 +94,11 @@ function RecipeCard({
       <View className="p-3 pb-4">
         <Text style={{ fontSize: 15, fontWeight: "500", color: c.ink, marginBottom: 2 }} numberOfLines={1}>{recipe.title}</Text>
         <Text style={{ fontSize: 13, color: c.slate }}>{recipe.nutrition?.calories || 0} cal - {recipe.prepTime || 0} min</Text>
-        {suits ? (
+        {warnings.length ? (
+          <View style={{ marginTop: 6 }}>
+            <FoodWarning warnings={warnings} compact />
+          </View>
+        ) : suits ? (
           <View style={{ alignSelf: "flex-start", marginTop: 6, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, backgroundColor: c.mint }}>
             <Text style={{ fontSize: 12, fontWeight: "600", color: c.charcoal }}>Suits your score</Text>
           </View>
@@ -137,6 +147,7 @@ export default function RecipesScreen({
         tags: r.tags || [],
         heartBenefit: r.heart_benefit || "",
         tier: r.hss_tier || "",
+        warnings: foodWarnings(r.warnings),
         nutrition: {
           sodium: r.sodium_mg || 0,
           fiber: r.fiber_g || 0,
@@ -273,7 +284,7 @@ export default function RecipesScreen({
           <View className="mb-4">
             <Text style={{ fontSize: 13, color: c.steel }}>
               {filteredRecipes.length} recipes
-              {knowsTier ? `, ${filteredRecipes.filter((r) => r.tier && suitsTier(r.tier, patientTier)).length} suit your score` : ""}
+              {knowsTier ? `, ${filteredRecipes.filter((r) => r.tier && suitsTier(r.tier, patientTier) && !r.warnings?.length).length} suit your score` : ""}
             </Text>
           </View>
         }
@@ -284,7 +295,7 @@ export default function RecipesScreen({
               isSaved={savedRecipes.includes(recipe.id)}
               onSave={() => toggleSave(recipe.id)}
               onPress={() => router.push(`/(home)/(meals)/recipe-details?id=${recipe.id}` as any)}
-              suits={knowsTier && !!recipe.tier && suitsTier(recipe.tier, patientTier)}
+              suits={knowsTier && !!recipe.tier && suitsTier(recipe.tier, patientTier) && !recipe.warnings?.length}
             />
           </View>
         )}

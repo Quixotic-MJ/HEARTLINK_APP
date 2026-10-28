@@ -93,30 +93,34 @@ def exercise_suits(exercise: dict, patient_tier: str, resting: bool) -> bool:
     return TIER_LEVEL.get(exercise.get("hss_tier") or "Stable", 0) >= TIER_LEVEL.get(patient_tier, 0)
 
 
+def recipe_warnings(recipe: dict, dietary_practice: str, allergies: List[str]) -> List[str]:
+    """Why this recipe doesn't suit the patient, one line per allergy or diet it clashes with; empty when it suits.
+    Looks in the ingredient names, the tags and the recipe's own name, e.g. "Contains shrimp (you're allergic to shellfish)"."""
+    ingredients = recipe.get("ingredients") or []
+    texts = [str(item.get("name", "")).lower() for item in ingredients if isinstance(item, dict)]
+    texts += [str(t).lower() for t in recipe.get("tags") or []]
+    texts.append(str(recipe.get("name", "")).lower())
+
+    def found(words: List[str]) -> Optional[str]:
+        return next((w for w in words if any(w in t for t in texts)), None)
+
+    warnings: List[str] = []
+    for a in allergies or []:
+        key = str(a).strip().lower()
+        if not key or key == "none":
+            continue
+        word = found(allergy_words([key]))
+        if word:
+            warnings.append(f"Contains {word} (you're allergic to {key})")
+    word = found(DIETARY_EXCLUSIONS.get(dietary_practice, []))
+    if word:
+        warnings.append(f"Contains {word.replace('_', ' ')} (not {dietary_practice})")
+    return warnings
+
+
 def _recipe_is_safe(recipe: dict, dietary_practice: str, allergies: List[str]) -> bool:
     """Return True if the recipe does NOT contain excluded ingredients or allergies."""
-    excluded = DIETARY_EXCLUSIONS.get(dietary_practice, []).copy()
-    excluded.extend(allergy_words(allergies))
-
-    if not excluded:
-        return True  # No restrictions
-    ingredients = recipe.get("ingredients", [])
-    ingredient_keys = [str(item.get("name", "")).lower() for item in ingredients if isinstance(item, dict)]
-    recipe_tags = [str(t).lower() for t in recipe.get("tags", [])]
-    recipe_name_lower = str(recipe.get("name", "")).lower()
-    for word in excluded:
-        # Check ingredient keys
-        for key in ingredient_keys:
-            if word in key:
-                return False
-        # Check tags
-        for tag in recipe_tags:
-            if word in tag:
-                return False
-        # Check recipe name
-        if word in recipe_name_lower:
-            return False
-    return True
+    return not recipe_warnings(recipe, dietary_practice, allergies)
 
 
 def _get_comparison_score(user_hss: list) -> int:

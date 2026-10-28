@@ -10,6 +10,7 @@ import AnimatedButton from "../../../components/ui/AnimatedButton";
 import DsButton from "../../../components/onboarding/DsButton";
 import { useDs } from "../../../components/onboarding/useDs";
 import { FoodHeader, OutlineButton, TickBox } from "../../../components/food/FoodBits";
+import { FoodWarning } from "../../../components/explore/ExploreBits";
 import { FoodItem, FoodSource, SOURCE_ORDER, SOURCE_RULES, formatMg } from "../../../services/foodLogging";
 import { fetchRecentMeals, fetchRecipes, searchPackagedFoods } from "../../../services/foodSearch";
 
@@ -23,12 +24,13 @@ function FoodRow({ item, on, onToggle, onViewRecipe }: { item: FoodItem; on: boo
   const { c } = useDs();
   const rule = SOURCE_RULES[item.source];
   const meta = `${formatMg(item.base.sodium_mg)} mg sodium, ${Math.round(item.base.calories)} kcal ${rule.per}`;
+  const warnings = item.warnings ?? [];
   return (
     <AnimatedButton
       onPress={onToggle}
       accessibilityRole="checkbox"
       accessibilityState={{ checked: on }}
-      accessibilityLabel={`${item.name}. ${meta}`}
+      accessibilityLabel={`${item.name}. ${meta}${warnings.length ? `. Warning: ${warnings.join(". ")}` : ""}`}
       style={{
         minHeight: 64,
         paddingHorizontal: 14,
@@ -50,6 +52,7 @@ function FoodRow({ item, on, onToggle, onViewRecipe }: { item: FoodItem; on: boo
           {item.recommended ? <Feather name="star" size={13} color={c.warmText} accessibilityLabel="Recommended for you" /> : null}
         </View>
         <Text style={{ fontSize: 13, color: c.slate }}>{meta}</Text>
+        <FoodWarning warnings={warnings} compact />
         {onViewRecipe ? (
           <AnimatedButton
             onPress={onViewRecipe}

@@ -1,5 +1,6 @@
 import { apiFetch } from "../lib/api";
 import type { FoodItem } from "./foodLogging";
+import { foodWarnings } from "./explore";
 /**
  * HL-032: the three places food search looks, each returning FoodItems with their
  * source, so the screens can show where a food came from and treat it the right way.
@@ -14,6 +15,7 @@ type RawRecipe = {
   saturated_fat_g?: number | null;
   fiber_g?: number | null;
   cholesterol_mg?: number | null;
+  warnings?: unknown;
 };
 
 type RawMealLog = {
@@ -111,6 +113,7 @@ export async function fetchRecipes(query: string, token: string | null, signal?:
       image_url: r.image_url,
       recipe_id: String(r.id),
       recommended: recommended.has(String(r.id)),
+      warnings: foodWarnings(r.warnings),
       base: {
         sodium_mg: n(r.sodium_mg),
         calories: n(r.calories),

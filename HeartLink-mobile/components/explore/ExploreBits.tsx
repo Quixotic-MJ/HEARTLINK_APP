@@ -22,6 +22,48 @@ export function ApprovedBy({ who }: { who: "Dietitian" | "PT" }) {
   );
 }
 
+/**
+ * What in a recipe clashes with the patient's allergies or diet, in red. `compact` is a small tag with the first
+ * warning (lists); otherwise a full-width banner with every warning (a recipe's page).
+ */
+export function FoodWarning({ warnings, compact }: { warnings: string[]; compact?: boolean }) {
+  const { c } = useDs();
+  if (!warnings.length) return null;
+  if (!compact) {
+    return (
+      <View
+        accessibilityRole="alert"
+        accessibilityLabel={`Check before you eat this. ${warnings.join(". ")}`}
+        style={{ flexDirection: "row", gap: 10, padding: 14, borderRadius: 12, borderWidth: 1, borderColor: c.danger, backgroundColor: c.rose }}
+      >
+        <Feather name="alert-triangle" size={18} color={c.danger} style={{ marginTop: 1 }} />
+        <View style={{ flex: 1, gap: 4 }}>
+          <Text style={{ fontSize: 15, fontWeight: "600", color: c.ink }}>Check before you eat this</Text>
+          {warnings.map((w) => (
+            <Text key={w} style={{ fontSize: 14, lineHeight: 20, color: c.charcoal }}>{w}</Text>
+          ))}
+        </View>
+      </View>
+    );
+  }
+  const shown = warnings.slice(0, 1);
+  return (
+    <View
+      accessibilityLabel={`Warning: ${warnings.join(". ")}`}
+      style={{ flexDirection: "row", alignItems: "flex-start", gap: 6, alignSelf: "flex-start", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: c.rose }}
+    >
+      <Feather name="alert-triangle" size={13} color={c.danger} style={{ marginTop: 2 }} />
+      <View style={{ flexShrink: 1, gap: 2 }}>
+        {shown.map((w) => (
+          <Text key={w} maxFontSizeMultiplier={1.3} numberOfLines={2} style={{ fontSize: 12, lineHeight: 17, fontWeight: "600", color: c.ink }}>
+            {w}
+          </Text>
+        ))}
+      </View>
+    </View>
+  );
+}
+
 /** A meal's picture, or a plain tile while it loads or when it has none. */
 export function RecipeThumb({ recipe, size, height }: { recipe: ExploreRecipe; size?: number; height?: number }) {
   const { c } = useDs();
@@ -45,7 +87,7 @@ export function PickCard({ pick, reason, onPress }: { pick: Pick; reason: string
     <AnimatedButton
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={`${isMeal ? "Meal" : "Exercise"}: ${title}. ${reason} ${isMeal ? "Dietitian" : "PT"} approved`}
+      accessibilityLabel={`${isMeal ? "Meal" : "Exercise"}: ${title}. ${reason} ${isMeal ? "Dietitian" : "PT"} approved${isMeal && pick.recipe.warnings.length ? `. Warning: ${pick.recipe.warnings.join(". ")}` : ""}`}
       style={{ width: PICK_CARD_WIDTH, borderWidth: 1, borderColor: c.hairline, borderRadius: 14, overflow: "hidden", backgroundColor: c.canvas }}
     >
       {isMeal ? (
@@ -62,7 +104,7 @@ export function PickCard({ pick, reason, onPress }: { pick: Pick; reason: string
         <Text maxFontSizeMultiplier={1.3} style={{ fontSize: 17, fontWeight: "600", lineHeight: 22, color: c.ink }} numberOfLines={2}>{title}</Text>
         <Text maxFontSizeMultiplier={1.3} style={{ fontSize: 14, lineHeight: 20, color: c.charcoal }} numberOfLines={3}>{reason}</Text>
         <View style={{ marginTop: 2 }}>
-          <ApprovedBy who={isMeal ? "Dietitian" : "PT"} />
+          {isMeal && pick.recipe.warnings.length ? <FoodWarning warnings={pick.recipe.warnings} compact /> : <ApprovedBy who={isMeal ? "Dietitian" : "PT"} />}
         </View>
       </View>
     </AnimatedButton>
@@ -79,7 +121,7 @@ export function RecipeRow({ recipe, onPress, right }: { recipe: ExploreRecipe; o
       <AnimatedButton
         onPress={onPress}
         accessibilityRole="button"
-        accessibilityLabel={`${recipe.title}. ${recipe.category}, ${recipe.prepMinutes} minutes, ${recipe.sodiumMg} milligrams of sodium`}
+        accessibilityLabel={`${recipe.title}. ${recipe.category}, ${recipe.prepMinutes} minutes, ${recipe.sodiumMg} milligrams of sodium${recipe.warnings.length ? `. Warning: ${recipe.warnings.join(". ")}` : ""}`}
         className="flex-row items-center"
         style={{ flex: 1, gap: 12 }}
       >
@@ -89,7 +131,7 @@ export function RecipeRow({ recipe, onPress, right }: { recipe: ExploreRecipe; o
           <Text style={{ fontSize: 13, color: c.slate }}>
             {recipe.category}, {recipe.prepMinutes} min, {recipe.calories} kcal
           </Text>
-          <ApprovedBy who="Dietitian" />
+          {recipe.warnings.length ? <FoodWarning warnings={recipe.warnings} compact /> : <ApprovedBy who="Dietitian" />}
         </View>
         {right ? null : (
           <View style={{ alignItems: "flex-end" }}>
