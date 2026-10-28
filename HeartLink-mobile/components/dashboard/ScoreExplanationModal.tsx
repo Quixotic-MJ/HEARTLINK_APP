@@ -290,7 +290,7 @@ export function ScoreExplanationModal({
                 ) : null}
 
                 <Text style={{ fontSize: 13, lineHeight: 19, color: c.slate }}>
-                  {"Your starting point comes from your latest blood pressure reading. Today's habits move it up to 20 points either way. It isn't a diagnosis."}
+                  {"Your starting point comes from your setup answers and your blood pressure readings: a healthy reading never lowers it, and an emergency-level one drops it at once. Today's habits move it up to 20 points either way. It isn't a diagnosis."}
                 </Text>
               </View>
             </>

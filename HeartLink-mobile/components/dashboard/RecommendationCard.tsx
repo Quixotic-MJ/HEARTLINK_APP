@@ -4,7 +4,7 @@ import { Image } from "expo-image";
 import { Feather } from "@expo/vector-icons";
 import AnimatedButton from "../ui/AnimatedButton";
 import { useDs } from "../onboarding/useDs";
-import { ApprovedBy, PICK_CARD_WIDTH } from "../explore/ExploreBits";
+import { PICK_CARD_WIDTH } from "../explore/ExploreBits";
 
 /** A dashboard recommendation as the backend sends it (only the fields the card uses). */
 export type DashboardRec = {
@@ -20,23 +20,18 @@ export type DashboardRec = {
   exercise_type?: string;
 };
 
-/** One line on why this pick suits today, from what is left of the patient's limits and goal. */
+/** One short fact about the pick: its sodium (flagged when it's more than what's left today) or its minutes. */
 export function recommendationReason(rec: DashboardRec, today: { sodiumLeftMg: number; movementLeftMins: number }): string {
   if (rec.type === "recipe") {
     if (rec.sodium_mg === undefined) return rec.subtitle ?? "";
-    const sodium = `${Math.round(rec.sodium_mg).toLocaleString()} mg sodium a serving`;
-    if (today.sodiumLeftMg <= 0) return sodium;
-    return rec.sodium_mg <= today.sodiumLeftMg
-      ? `${sodium}, within the ${Math.round(today.sodiumLeftMg).toLocaleString()} mg you have left`
-      : `${sodium}, more than the ${Math.round(today.sodiumLeftMg).toLocaleString()} mg you have left`;
+    const sodium = `${Math.round(rec.sodium_mg).toLocaleString()} mg sodium`;
+    return today.sodiumLeftMg > 0 && rec.sodium_mg > today.sodiumLeftMg ? `${sodium}, over what's left today` : sodium;
   }
   if (!rec.duration_minutes) return rec.subtitle ?? "";
-  const effort = rec.intensity && rec.intensity !== "None" ? `, ${rec.intensity.toLowerCase()} effort` : "";
-  const goal = today.movementLeftMins > 0 ? `. You have ${today.movementLeftMins} min left of your goal` : "";
-  return `${rec.duration_minutes} minutes${effort}${goal}`;
+  return `${rec.duration_minutes} min`;
 }
 
-/** A card in the dashboard's "Picked for your score" row; same look as Explore's picks. */
+/** A card in the dashboard's "Picked for you" row: picture, name and one fact. Only approved picks are offered. */
 export function RecommendationCard({ rec, reason, onPress }: { rec: DashboardRec; reason: string; onPress: () => void }) {
   const { c } = useDs();
   const isMeal = rec.type === "recipe";
@@ -51,27 +46,21 @@ export function RecommendationCard({ rec, reason, onPress }: { rec: DashboardRec
       accessibilityLabel={`${isMeal ? "Meal" : "Exercise"}: ${rec.title}. ${reason}. ${rec.tag}`}
       style={{ width: PICK_CARD_WIDTH, borderWidth: 1, borderColor: c.hairline, borderRadius: 14, overflow: "hidden", backgroundColor: c.canvas }}
     >
-      <View style={{ height: 128, backgroundColor: tint, alignItems: "center", justifyContent: "center" }}>
+      <View style={{ height: 104, backgroundColor: tint, alignItems: "center", justifyContent: "center" }}>
         <Feather name={icon} size={isMeal ? 26 : 34} color={c.charcoal} style={{ position: "absolute" }} />
         {isMeal && rec.image_url ? (
           <Image source={{ uri: rec.image_url }} style={{ width: "100%", height: "100%" }} contentFit="cover" transition={200} />
         ) : null}
       </View>
-      <View style={{ padding: 14, gap: 6 }}>
-        <View style={{ alignSelf: "flex-start", paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, backgroundColor: tint }}>
-          <Text maxFontSizeMultiplier={1.3} style={{ fontSize: 12, fontWeight: "600", color: c.charcoal }}>{isMeal ? "Meal" : "Exercise"}</Text>
-        </View>
-        <Text maxFontSizeMultiplier={1.3} style={{ fontSize: 17, fontWeight: "600", lineHeight: 22, color: c.ink }} numberOfLines={2}>
+      <View style={{ padding: 12, gap: 4 }}>
+        <Text maxFontSizeMultiplier={1.3} style={{ fontSize: 16, fontWeight: "600", lineHeight: 21, color: c.ink }} numberOfLines={2}>
           {rec.title}
         </Text>
         {reason ? (
-          <Text maxFontSizeMultiplier={1.3} style={{ fontSize: 14, lineHeight: 20, color: c.charcoal }} numberOfLines={3}>
+          <Text maxFontSizeMultiplier={1.3} style={{ fontSize: 13, lineHeight: 18, color: c.slate }} numberOfLines={2}>
             {reason}
           </Text>
         ) : null}
-        <View style={{ marginTop: 2 }}>
-          <ApprovedBy who={isMeal ? "Dietitian" : "PT"} />
-        </View>
       </View>
     </AnimatedButton>
   );

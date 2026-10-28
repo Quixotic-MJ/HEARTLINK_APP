@@ -25,7 +25,7 @@ export function bandTag(label: string, hasScore: boolean, c: DsColors): { text: 
 
 /**
  * The dashboard's score card: a header with the band tag, the heart ring (passed in as children,
- * unchanged), the latest readings, and a line saying the score isn't a diagnosis. With no score yet
+ * unchanged) and the latest readings. "It isn't a diagnosis" lives in the "i" explanation. With no score yet
  * it asks for a first blood pressure reading instead of showing readings.
  */
 export function ScoreCard({
@@ -56,8 +56,8 @@ export function ScoreCard({
   const tag = bandTag(label, hasScore, c);
   const readings = [
     { value: systolic && diastolic ? `${systolic}/${diastolic}` : "--", label: "Blood pressure" },
-    { value: bpm ? `${bpm} bpm` : "--", label: "Pulse" },
-    { value: `${streakDays} day${streakDays === 1 ? "" : "s"}`, label: "Logging streak" },
+    { value: bpm ? `${bpm}` : "--", label: "Pulse, bpm" },
+    { value: `${streakDays} day${streakDays === 1 ? "" : "s"}`, label: "Streak" },
   ];
 
   return (
@@ -77,7 +77,7 @@ export function ScoreCard({
       <View style={{ alignSelf: "stretch", flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
           <Text accessibilityRole="header" style={{ fontSize: 15, fontWeight: "600", color: c.ink }}>
-            Heart health score
+            Heart score
           </Text>
           <View style={{ paddingVertical: 3, paddingHorizontal: 10, borderRadius: 999, backgroundColor: tag.bg }}>
             <Text maxFontSizeMultiplier={1.3} style={{ fontSize: 13, fontWeight: "500", color: tag.fg }}>{tag.text}</Text>
@@ -128,9 +128,6 @@ export function ScoreCard({
         </View>
       )}
 
-      <Text style={{ fontSize: 12, lineHeight: 17, color: c.steel, textAlign: "center" }}>
-        {"Built from your readings and habits to help you keep healthy routines. It isn't a diagnosis."}
-      </Text>
     </View>
   );
 }

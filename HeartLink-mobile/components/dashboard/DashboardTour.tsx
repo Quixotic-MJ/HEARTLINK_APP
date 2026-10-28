@@ -21,27 +21,27 @@ export type TourStep = { target: TourTarget; title: string; body: string };
 export const TOUR_STEPS: TourStep[] = [
   {
     target: "score",
-    title: "Your heart health score",
-    body: "A daily snapshot built from your readings and habits, with your latest blood pressure, pulse and logging streak underneath. Tap the i to see how it's worked out. It isn't a diagnosis.",
+    title: "Your heart score",
+    body: "Built from your readings and habits, with your latest blood pressure, pulse and streak underneath. Its colour shows the band. Tap the i to see how it's worked out. It isn't a diagnosis.",
   },
   {
     target: "note",
     title: "Today's note",
-    body: "A short note on what changed in your score, with one step you can take. Tap Hide to fold it away.",
+    body: "One line on what just changed your score, with a step to take when there is one. After an emergency-level reading it turns red with Call 911. Tap Hide to fold it away.",
   },
   {
     target: "missions",
-    title: "Today's missions",
-    body: "Four small tasks each day: blood pressure, meals, movement and sleep. The blue Log button marks the one to do next; tap any tile to log it.",
+    title: "Today",
+    body: "Four small tasks each day: blood pressure, meals, movement and sleep. The blue tile is the one to do next; tap any tile to log it.",
   },
   {
     target: "vitals",
-    title: "Today so far",
-    body: "How much sodium, saturated fat and cholesterol you have left under your daily limits, plus net calories (eaten minus burned) and minutes moved.",
+    title: "Daily limits",
+    body: "Sodium, saturated fat and cholesterol so far against your daily limits, and net calories (eaten minus burned).",
   },
   {
     target: "summary",
-    title: "Picked for your score",
+    title: "Picked for you",
     body: "Dietitian-approved meals and PT-approved exercises that suit your score and what's left of today. Tap one to log it or start it.",
   },
   {

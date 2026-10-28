@@ -125,14 +125,6 @@ function getScoreTheme(score: number, isDark: boolean): ScoreTheme {
   };
 }
 
-function getGreeting(name?: string): string {
-  const hour = new Date().getHours();
-  let timeStr = "Good Morning";
-  if (hour >= 12 && hour < 17) timeStr = "Good Afternoon";
-  else if (hour >= 17) timeStr = "Good Evening";
-  return name ? `${timeStr}, ${name}` : timeStr;
-}
-
 // ─── Dashboard Screen ─────────────────────────────────────────────────────────
 export default function DashboardScreen() {
   const { colorScheme } = useColorScheme();
@@ -203,7 +195,7 @@ export default function DashboardScreen() {
     return () => { cancelled = true; };
   }, []);
   const router = useRouter();
-  const { userId, token, user, logout } = useUser();
+  const { userId, token, logout } = useUser();
   const { showToast } = useToast();
 
   const [refreshing, setRefreshing] = useState(false);
@@ -386,42 +378,30 @@ export default function DashboardScreen() {
     [safeNavigate]
   );
 
-  const mealsCount = data?.today_activity?.meals_count || 0;
   const sleepHours = data?.today_activity?.total_sleep_hours;
   const missionItems: MissionItem[] = [
     {
       id: "vitals",
       title: "Blood pressure",
-      subtitle: vitalsLogged
-        ? data?.latest_vitals?.bp
-          ? `${data.latest_vitals.bp} mmHg${data?.latest_vitals?.bpm ? `, ${data.latest_vitals.bpm} bpm` : ""}`
-          : "Checked in today"
-        : "Morning check due today",
+      subtitle: vitalsLogged ? (data?.latest_vitals?.bp ? `${data.latest_vitals.bp}` : "Done") : "Not yet",
       done: vitalsLogged,
     },
     {
       id: "meals",
       title: "Meals",
-      subtitle: mealsLogged
-        ? `${mealsCount} logged, ${Number(sodiumTodayMg).toLocaleString()} of ${sodiumLimitMg.toLocaleString()} mg sodium`
-        : "Nothing logged yet today",
+      subtitle: mealsLogged ? `${Number(sodiumTodayMg).toLocaleString()} mg sodium` : "Not yet",
       done: mealsLogged,
     },
     {
       id: "exercise",
       title: "Movement",
-      subtitle: `${movementMins} of ${movementGoal} minutes`,
+      subtitle: `${movementMins}/${movementGoal} min`,
       done: exerciseLogged,
-      progress: movementGoal ? (movementMins / movementGoal) * 100 : 0,
     },
     {
       id: "sleep",
       title: "Sleep",
-      subtitle: sleepLogged
-        ? typeof sleepHours === "number"
-          ? `${sleepHours} hours logged`
-          : "Logged today"
-        : "Aim for 7 to 9 hours",
+      subtitle: sleepLogged ? (typeof sleepHours === "number" ? `${sleepHours} h` : "Done") : "Not yet",
       done: sleepLogged,
     },
   ];
@@ -470,7 +450,7 @@ export default function DashboardScreen() {
       missions: true,
       vitals: true,
       summary: !isCritical && (data?.recommendations?.length ?? 0) > 0,
-      care: !isCritical,
+      care: true,
     },
     onShown: scrollTourSpotIntoView,
     onFinish: () => {
@@ -792,13 +772,6 @@ export default function DashboardScreen() {
           />
         ) : null}
 
-        {/* ── Clean Greeting ── */}
-        <Reanimated.View entering={FadeInDown.duration(280)} className="pt-3 pb-1">
-          <Text className="text-2xl sm:text-3xl font-bold text-text tracking-tight">
-            {getGreeting(data?.user?.first_name || user?.first_name)}
-          </Text>
-        </Reanimated.View>
-
         {/* ============================================================== */}
         {/* 1. TIER 1 - STATUS */}
         {/* ============================================================== */}
@@ -903,76 +876,15 @@ export default function DashboardScreen() {
 
 
 
-        {isCritical ? (
-          <View
-            className="mt-5 mb-4 bg-surface rounded-3xl p-5 border-0 shadow-sm shadow-slate-200/50 dark:shadow-none"
-          >
-            <View className="flex-row items-center gap-2 mb-2 pb-2 border-b border-border dark:border-borderStrong">
-              <Feather name="shield" size={16} color={colors.danger} />
-              <Text className="text-[13px] font-bold text-danger-text uppercase tracking-wider">
-                Calm Clinical Guidance • Take a Breather
-              </Text>
-            </View>
-            <Text className="text-[14px] font-bold text-text mb-1">
-              Elevated indicators detected. Please don&apos;t worry.
-            </Text>
-            <Text className="text-[12px] text-text-soft leading-relaxed font-medium mb-3">
-              A single high reading can be caused by temporary stress, exertion, or caffeine. Follow these steps:
-            </Text>
-            <View className="bg-surface-alt dark:bg-surface-alt/50 rounded-3xl p-3.5 mb-3.5 gap-2.5 border border-border dark:border-border">
-              <View className="flex-row items-center gap-2.5">
-                <View className="w-5 h-5 rounded-full bg-danger-tint/10 items-center justify-center">
-                  <Text className="text-[10px] font-bold text-danger-text">1</Text>
-                </View>
-                <Text className="text-[12px] text-text font-medium flex-1">
-                  Sit comfortably with your back supported and feet flat.
-                </Text>
-              </View>
-              <View className="flex-row items-center gap-2.5">
-                <View className="w-5 h-5 rounded-full bg-danger-tint/10 items-center justify-center">
-                  <Text className="text-[10px] font-bold text-danger-text">2</Text>
-                </View>
-                <Text className="text-[12px] text-text font-medium flex-1">
-                  Rest quietly for 5 minutes without talking or using screens.
-                </Text>
-              </View>
-              <View className="flex-row items-center gap-2.5">
-                <View className="w-5 h-5 rounded-full bg-danger-tint/10 items-center justify-center">
-                  <Text className="text-[10px] font-bold text-danger-text">3</Text>
-                </View>
-                <Text className="text-[12px] text-text font-medium flex-1">
-                  Take a second blood pressure measurement.
-                </Text>
-              </View>
-            </View>
-            <View className="flex-row gap-2.5">
-              <TouchableOpacity activeOpacity={0.8}
-                onPress={() => {
-                  safeNavigate("/(home)/(health)/log-symptoms");
-                }}
-                className="flex-1 bg-slate-800 dark:bg-surface py-3 px-3 rounded-xl items-center justify-center shadow-sm"
-              >
-                <Text className="text-onPrimary text-[12.5px] font-bold">Re-test Vitals</Text>
-              </TouchableOpacity>
-              <TouchableOpacity activeOpacity={0.8}
-                onPress={() => {
-                  safeNavigate("/locator");
-                }}
-                className="flex-1 bg-danger-tint py-3 px-3 rounded-xl items-center justify-center flex-row gap-1.5 shadow-sm"
-              >
-                <Feather name="map-pin" size={13} color={colors.onPrimary} />
-                <Text className="text-onPrimary text-[12.5px] font-bold">Find Clinic</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        ) : (
-          <>
+        {/* The Critical state keeps the whole dashboard (its pop-ups included); Today's note carries the emergency
+            step, so only the picks are left out while the score is Critical. */}
+        <>
             {/* ── Recommendations (hidden when empty) ── */}
-            {data?.recommendations && data.recommendations.length > 0 && (
+            {!isCritical && data?.recommendations && data.recommendations.length > 0 && (
               <TourSpot target="summary" tour={tour}>
                 <Reanimated.View entering={FadeInDown.delay(340).duration(300)} className="flex-row items-center justify-between mb-3">
                   <Text accessibilityRole="header" style={{ fontSize: 20, fontWeight: "600", color: c.ink }}>
-                    Picked for your score
+                    Picked for you
                   </Text>
                   <TouchableOpacity
                     onPress={() => safeNavigate("/(home)/(tabs)/explore")}
@@ -1096,8 +1008,7 @@ export default function DashboardScreen() {
                 />
               </TourSpot>
             </Reanimated.View>
-          </>
-        )}
+        </>
       </ScrollView>
     </ScreenWrapper>
   );

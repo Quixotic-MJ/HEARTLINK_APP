@@ -4,7 +4,7 @@ import { Feather } from "@expo/vector-icons";
 import AnimatedButton from "../ui/AnimatedButton";
 import { useDs } from "../onboarding/useDs";
 
-/** The dashboard's last section: the visit summary and the nearest clinics. */
+/** The dashboard's last section: the visit summary and the nearest clinics, one row each. */
 export function CareTools({
   nearestClinic,
   onOpenSummary,
@@ -22,7 +22,9 @@ export function CareTools({
     title: string,
     detail: string,
     onPress: () => void,
-    divider: boolean
+    divider: boolean,
+    /** Shown at the right, e.g. the nearest clinic's distance. */
+    aside?: string
   ) => (
     <AnimatedButton
       onPress={onPress}
@@ -31,43 +33,37 @@ export function CareTools({
       style={{
         flexDirection: "row",
         alignItems: "center",
-        gap: 14,
-        paddingVertical: 14,
+        gap: 12,
+        minHeight: 56,
         paddingHorizontal: 16,
         borderBottomWidth: divider ? 1 : 0,
         borderBottomColor: c.hairlineSoft,
       }}
     >
-      <View style={{ width: 40, height: 40, borderRadius: 10, backgroundColor: tint, alignItems: "center", justifyContent: "center" }}>
-        <Feather name={icon} size={18} color={c.charcoal} />
+      <View style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: tint, alignItems: "center", justifyContent: "center" }}>
+        <Feather name={icon} size={16} color={c.charcoal} />
       </View>
-      <View style={{ flex: 1, gap: 2 }}>
-        <Text style={{ fontSize: 16, fontWeight: "500", color: c.ink }}>{title}</Text>
-        <Text style={{ fontSize: 14, color: c.slate }}>{detail}</Text>
-      </View>
+      <Text style={{ flex: 1, fontSize: 16, color: c.ink }}>{title}</Text>
+      {aside ? <Text style={{ fontSize: 14, color: c.slate }}>{aside}</Text> : null}
       <Feather name="chevron-right" size={18} color={c.steel} />
     </AnimatedButton>
   );
 
   return (
-    <View style={{ gap: 12 }}>
-      <Text accessibilityRole="header" style={{ fontSize: 20, fontWeight: "600", color: c.ink }}>
-        Care tools
-      </Text>
-      <View style={{ borderWidth: 1, borderColor: c.hairline, borderRadius: 12, overflow: "hidden", backgroundColor: c.canvas }}>
-        {row("clipboard", c.sky, "Visit summary", "Your readings and logs, ready to show your doctor", onOpenSummary, true)}
-        {row(
-          "map-pin",
-          c.peach,
-          "Nearby clinics",
-          nearestClinic ? `Closest: ${nearestClinic.name}, ${nearestClinic.distance}` : "Finding clinics near you…",
-          onOpenClinics,
-          false
-        )}
-      </View>
-      <Text style={{ fontSize: 12, lineHeight: 17, color: c.steel }}>
-        {"Clinics come from a public directory. HeartLink isn't partnered with any of them."}
-      </Text>
+    <View
+      accessibilityLabel="Care tools"
+      style={{ borderWidth: 1, borderColor: c.hairline, borderRadius: 12, overflow: "hidden", backgroundColor: c.canvas }}
+    >
+      {row("clipboard", c.sky, "Visit summary", "Your readings and logs, ready to show your doctor", onOpenSummary, true)}
+      {row(
+        "map-pin",
+        c.peach,
+        "Nearby clinics",
+        nearestClinic ? `Closest: ${nearestClinic.name}, ${nearestClinic.distance}` : "Finding clinics near you",
+        onOpenClinics,
+        false,
+        nearestClinic?.distance
+      )}
     </View>
   );
 }

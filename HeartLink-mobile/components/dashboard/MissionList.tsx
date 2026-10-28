@@ -4,17 +4,15 @@ import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import AnimatedButton from "../ui/AnimatedButton";
 import { useDs } from "../onboarding/useDs";
-import { DsColors } from "../../constants/theme";
 
 export type MissionId = "vitals" | "meals" | "exercise" | "sleep";
 
 export interface MissionItem {
   id: MissionId;
   title: string;
+  /** One short value: "118/76", "280 mg sodium", "0/30 min", "Not yet". */
   subtitle: string;
   done: boolean;
-  /** 0–100, for a mission with a goal (movement minutes). */
-  progress?: number;
 }
 
 const ICONS: Record<MissionId, keyof typeof Feather.glyphMap> = {
@@ -23,11 +21,6 @@ const ICONS: Record<MissionId, keyof typeof Feather.glyphMap> = {
   exercise: "activity",
   sleep: "moon",
 };
-
-// Pastel badges by topic, as in HEARTLINK.md: readings sky, food peach, movement mint, habits lavender.
-function tintFor(id: MissionId, c: DsColors) {
-  return id === "vitals" ? c.sky : id === "meals" ? c.peach : id === "exercise" ? c.mint : c.lavender;
-}
 
 function MissionTile({
   item,
@@ -49,18 +42,25 @@ function MissionTile({
       }}
       accessibilityRole="button"
       accessibilityLabel={`${item.title}. ${item.subtitle}. ${item.done ? "Done. Tap to log more." : "Tap to log."}`}
-      style={{ flex: 1, borderWidth: 1, borderColor: c.hairline, borderRadius: 12, padding: 14, gap: 10, backgroundColor: c.canvas }}
+      style={{
+        flex: 1,
+        borderWidth: 1,
+        borderColor: isNext ? c.line : c.hairline,
+        borderRadius: 12,
+        padding: 14,
+        gap: 8,
+        backgroundColor: isNext ? c.sky : c.canvas,
+      }}
     >
-      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
-        <View style={{ width: 36, height: 36, borderRadius: 9, backgroundColor: tintFor(item.id, c), alignItems: "center", justifyContent: "center" }}>
-          <Feather name={ICONS[item.id]} size={18} color={c.charcoal} />
-        </View>
-        {item.done ? (
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-            <Feather name="check" size={14} color={c.success} />
-            <Text maxFontSizeMultiplier={1.3} style={{ fontSize: 13, fontWeight: "500", color: c.charcoal }}>Done</Text>
-          </View>
-        ) : (
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+        <Feather name={item.done ? "check" : ICONS[item.id]} size={15} color={item.done ? c.success : c.slate} />
+        <Text maxFontSizeMultiplier={1.3} style={{ fontSize: 14, color: c.slate }}>{item.title}</Text>
+      </View>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+        <Text style={{ flex: 1, fontSize: 17, fontWeight: "600", color: c.ink, fontVariant: ["tabular-nums"] }} numberOfLines={1}>
+          {item.subtitle}
+        </Text>
+        {item.done ? null : (
           <View
             style={{
               paddingVertical: 4,
@@ -75,18 +75,11 @@ function MissionTile({
           </View>
         )}
       </View>
-      <Text style={{ fontSize: 16, fontWeight: "600", color: c.ink }}>{item.title}</Text>
-      <Text style={{ fontSize: 13, lineHeight: 18, color: c.slate }}>{item.subtitle}</Text>
-      {item.progress !== undefined ? (
-        <View style={{ height: 4, borderRadius: 2, backgroundColor: c.hairlineSoft, overflow: "hidden" }}>
-          <View style={{ height: "100%", width: `${Math.min(Math.max(item.progress, 0), 100)}%`, backgroundColor: c.success }} />
-        </View>
-      ) : null}
     </AnimatedButton>
   );
 }
 
-/** Today's four missions: a header with how many are done, a four-part bar, and a 2×2 grid of tiles. */
+/** Today's four missions: a header with how many are done and a 2×2 grid of tiles. */
 export function MissionList({
   missions,
   onPress,
@@ -104,7 +97,7 @@ export function MissionList({
     <View style={{ gap: 12 }}>
       <View style={{ flexDirection: "row", alignItems: "baseline", justifyContent: "space-between" }}>
         <Text accessibilityRole="header" style={{ fontSize: 20, fontWeight: "600", color: c.ink }}>
-          {"Today's missions"}
+          Today
         </Text>
         {allDone ? (
           <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
@@ -117,19 +110,6 @@ export function MissionList({
           </Text>
         )}
       </View>
-      <View
-        style={{ flexDirection: "row", gap: 4 }}
-        accessible
-        accessibilityRole="progressbar"
-        accessibilityLabel={`${doneCount} of ${missions.length} missions done`}
-      >
-        {missions.map((m, i) => (
-          <View key={m.id} style={{ flex: 1, height: 4, borderRadius: 2, backgroundColor: i < doneCount ? c.line : c.hairlineSoft }} />
-        ))}
-      </View>
-      {allDone ? (
-        <Text style={{ fontSize: 14, lineHeight: 20, color: c.slate }}>Nice work. You can still tap a mission to log more.</Text>
-      ) : null}
       {rows.map((row, r) => (
         <View key={r} style={{ flexDirection: "row", gap: 12 }}>
           {row.map((item) => (
