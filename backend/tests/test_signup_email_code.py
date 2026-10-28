@@ -329,11 +329,11 @@ def test_gmail_is_sent_over_starttls_with_the_app_password(fake_smtp):
     assert smtp.calls[1] == ("login", "heartlink.app@gmail.com", "abcdefghijklmnop")
 
     msg = smtp.calls[2][1]
-    body = msg.get_content()
+    body = msg.get_body(preferencelist=("plain",)).get_content()  # the plain-text copy beside the designed one
     assert msg["To"] == EMAIL and "heartlink.app@gmail.com" in msg["From"]
     assert "482913" in body
     assert "expires in 10 minutes" in body
-    assert "didn't sign up" in body
+    assert "didn't try to sign up" in body
 
 
 def test_smtp_failure_raises_a_send_error(fake_smtp):
