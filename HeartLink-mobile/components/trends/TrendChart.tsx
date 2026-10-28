@@ -24,7 +24,15 @@ type Props = {
   /** Axis labels to use instead of the dates, one per point (HL-086: "Oct" for a month). */
   labels?: string[];
 } & (
-  | { kind: "line"; values: (number | null)[] }
+  | {
+      kind: "line";
+      values: (number | null)[];
+      /** Each day's lowest and highest, drawn as a light bar behind its point (heart score). */
+      ranges?: ({ low: number; high: number } | null)[];
+      /** The day picked by tapping (emphasised instead of the last one), and what a tap does. */
+      selected?: number;
+      onSelect?: (index: number) => void;
+    }
   | { kind: "range"; values: (Pressure | null)[] }
   | { kind: "bars"; values: (number | null)[]; limit: number }
 );
@@ -71,14 +79,21 @@ export function TrendChart(props: Props) {
       });
       if (current) segments.push(current);
       const r = n > 14 ? 3 : 4;
+      const picked = props.selected ?? last;
+      const barW = Math.min(8, Math.max(4, step * 0.5));
       return (
         <>
+          {props.ranges?.map((g, i) =>
+            g ? (
+              <Rect key={`r${i}`} x={x(i) - barW / 2} y={y(g.high)} width={barW} height={Math.max(barW, y(g.low) - y(g.high))} rx={barW / 2} fill={c.line} opacity={0.28} />
+            ) : null
+          )}
           {segments.map((d, i) => (
             <Path key={i} d={d} fill="none" stroke={c.primary} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
           ))}
           {props.values.map((v, i) =>
             v === null ? null : (
-              <Circle key={i} cx={x(i)} cy={y(v)} r={i === last ? r + 1 : r} fill={i === last ? c.primary : c.canvas} stroke={c.primary} strokeWidth={2.5} />
+              <Circle key={i} cx={x(i)} cy={y(v)} r={i === picked ? r + 2 : r} fill={i === picked ? c.primary : c.canvas} stroke={i === picked && props.onSelect ? c.canvas : c.primary} strokeWidth={2.5} />
             )
           )}
         </>
@@ -111,12 +126,15 @@ export function TrendChart(props: Props) {
     >
       {width > 0 ? (
         <Svg width={width} height={HEIGHT}>
+          {/* Score bands: a dashed line where each band starts and its name in the middle, not a filled block */}
           {bands?.map((b) => (
             <React.Fragment key={b.label}>
-              <Rect x={LEFT} y={y(b.to)} width={plotW} height={y(b.from) - y(b.to)} fill={b.fill} opacity={0.7} />
-              <SvgText x={width - RIGHT - 2} y={y(b.to) + 13} fontSize={10} fill={b.labelColor} textAnchor="end">
-                {b.label}
-              </SvgText>
+              {b.from > yMin ? <Line x1={LEFT} x2={width - RIGHT} y1={y(b.from)} y2={y(b.from)} stroke={c.hairlineStrong} strokeWidth={1} strokeDasharray="3 3" /> : null}
+              {y(b.from) - y(b.to) >= 12 ? (
+                <SvgText x={width - RIGHT - 2} y={(y(b.from) + y(b.to)) / 2 + 4} fontSize={10} fill={c.steel} textAnchor="end">
+                  {b.label}
+                </SvgText>
+              ) : null}
             </React.Fragment>
           ))}
           {ticks.map((t) => (
@@ -129,6 +147,11 @@ export function TrendChart(props: Props) {
           ))}
           <Line x1={LEFT} x2={width - RIGHT} y1={BOTTOM} y2={BOTTOM} stroke={c.hairline} strokeWidth={1} />
           {body()}
+          {props.kind === "line" && props.onSelect
+            ? days.map((d, i) => (
+                <Rect key={`t${d.key}`} x={LEFT + i * step} y={TOP - 10} width={step} height={BOTTOM - TOP + 10} fill="transparent" onPress={() => props.onSelect?.(i)} />
+              ))
+            : null}
           {refLine ? (
             <>
               <Line

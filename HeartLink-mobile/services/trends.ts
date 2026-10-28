@@ -7,7 +7,7 @@ export type TrendDay = { key: string; date: Date };
 export type Pressure = { sys: number; dia: number };
 
 type Dated = { logged_at?: string | null; computed_at?: string | null };
-export type ScoreRow = Dated & { score?: number | null };
+export type ScoreRow = Dated & { score?: number | null; source?: string | null; contributing_factors?: Record<string, unknown> | null };
 export type VitalsRow = Dated & { systolic_bp?: number | null; diastolic_bp?: number | null; heart_rate_bpm?: number | null };
 export type MealRow = Dated & { sodium_mg?: number | null };
 export type ExerciseRow = Dated & { duration_minutes?: number | null };
@@ -91,8 +91,9 @@ const mean = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.l
 export type TrendSummary = {
   sodium: { perDay: number; daysLogged: number; daysOver: number };
   movement: { perDay: number; daysAtGoal: number };
-  sleep: { perNight: number; nightsLogged: number };
-  pressure: { average: Pressure | null; readings: number };
+  sleep: { perNight: number; nightsLogged: number; nightsInRange: number };
+  /** daysUnder: days whose last reading was under 130/80. */
+  pressure: { average: Pressure | null; readings: number; daysLogged: number; daysUnder: number };
 };
 
 /**
@@ -115,6 +116,7 @@ export function summarize(
   const minutes = sumByDay(days, data.exercises, (e) => num(e.duration_minutes)).map((m) => m ?? 0);
   const sleep = present(sumByDay(days, data.sleep, (s) => num(s.duration_hours)));
   const readings = inPeriod(data.vitals).filter((v) => num(v.systolic_bp) > 0 && num(v.diastolic_bp) > 0);
+  const dailyPressure = present(pressureByDay(days, data.vitals));
 
   return {
     sodium: {
@@ -126,15 +128,76 @@ export function summarize(
       perDay: Math.round(mean(minutes)),
       daysAtGoal: limits.movementMin > 0 ? minutes.filter((m) => m >= limits.movementMin).length : 0,
     },
-    sleep: { perNight: Math.round(mean(sleep) * 10) / 10, nightsLogged: sleep.length },
+    sleep: { perNight: Math.round(mean(sleep) * 10) / 10, nightsLogged: sleep.length, nightsInRange: sleep.filter((h) => h >= 7 && h <= 9).length },
     pressure: {
       average: readings.length
         ? { sys: Math.round(mean(readings.map((r) => num(r.systolic_bp)))), dia: Math.round(mean(readings.map((r) => num(r.diastolic_bp)))) }
         : null,
       readings: readings.length,
+      daysLogged: dailyPressure.length,
+      daysUnder: dailyPressure.filter((p) => p.sys < 130 && p.dia < 80).length,
     },
   };
 }
+
+/** Each day's lowest and highest score (a day can have several: setup, readings, meals, exercise). */
+export function scoreRangeByDay(days: TrendDay[], history: ScoreRow[]): ({ low: number; high: number } | null)[] {
+  const ranges: Record<string, { low: number; high: number }> = {};
+  for (const h of history) {
+    const key = keyOf(h);
+    const score = num(h.score);
+    if (!key || score <= 0) continue;
+    const r = ranges[key];
+    ranges[key] = r ? { low: Math.min(r.low, score), high: Math.max(r.high, score) } : { low: score, high: score };
+  }
+  return days.map((d) => (ranges[d.key] ? { low: Math.round(ranges[d.key].low), high: Math.round(ranges[d.key].high) } : null));
+}
+
+export type DayScore = { at: Date; score: number; why: string; after: string | null };
+
+/**
+ * One day's scores in order, each with what set it: "Reading 185/95, emergency level", "Meal logged". `after` is
+ * the same cause as a phrase for "Down from 95 after your 185/95 reading".
+ */
+export function scoresOfDay(history: ScoreRow[], day: TrendDay): DayScore[] {
+  return history
+    .filter((h) => keyOf(h) === day.key && num(h.score) > 0)
+    .map((h) => {
+      const f = h.contributing_factors ?? {};
+      const trigger = String(f.trigger ?? "");
+      const sys = num(f.systolic);
+      const dia = num(f.diastolic);
+      let why = "Score updated";
+      let after: string | null = null;
+      if (h.source === "baseline") {
+        why = "Starting score from setup";
+      } else if (f.source === "lifestyle_composite") {
+        const what = trigger === "meal_log" ? "meal" : trigger === "exercise_log" ? "exercise" : trigger === "sleep_log" ? "sleep" : null;
+        why = what ? `${what.charAt(0).toUpperCase()}${what.slice(1)} logged` : "Habits updated";
+        after = what === "exercise" ? "exercise" : what ? `logging ${what === "meal" ? "a meal" : "sleep"}` : null;
+      } else if (sys > 0 && dia > 0) {
+        const emergency = sys >= 180 || dia >= 120 || sys < 90 || dia < 60;
+        why = `Reading ${sys}/${dia}${emergency ? ", emergency level" : ""}`;
+        after = `your ${sys}/${dia} reading`;
+      }
+      return { at: new Date(h.computed_at || h.logged_at || 0), score: Math.round(num(h.score)), why, after };
+    })
+    .sort((a, b) => a.at.getTime() - b.at.getTime());
+}
+
+/** The most days in a row that have a value. */
+export function longestStreak(values: (unknown | null)[]): number {
+  let best = 0;
+  let run = 0;
+  for (const v of values) {
+    run = v === null ? 0 : run + 1;
+    best = Math.max(best, run);
+  }
+  return best;
+}
+
+/** Highlights (best day, saltiest day, streak) need this many days with a score to mean anything. */
+export const HIGHLIGHT_DAYS = 7;
 
 /** The highest value and its day, or null when there is none. */
 export function peak(days: TrendDay[], values: (number | null)[]): { value: number; day: TrendDay } | null {

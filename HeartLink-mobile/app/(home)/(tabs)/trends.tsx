@@ -24,17 +24,21 @@ import { isPremiumProfile } from "../../../services/premium";
 import { isLongTerm, periodName } from "../../../services/longTermTrends";
 import {
   ExerciseRow,
+  HIGHLIGHT_DAYS,
   MealRow,
   ScoreRow,
   SleepRow,
   VitalsRow,
   dayName,
+  longestStreak,
   peak,
   periodDays,
   pressureByDay,
   pulseByDay,
   scoreByDay,
   scoreChange,
+  scoreRangeByDay,
+  scoresOfDay,
   sodiumByDay,
   summarize,
 } from "../../../services/trends";
@@ -67,6 +71,9 @@ let isCurrentlySharing = false;
 
 // Same cut-offs as the dashboard's score bands.
 const tierOf = (score: number) => (score >= 80 ? "Stable" : score >= 60 ? "Moderate" : score >= 50 ? "Elevated Risk" : "Critical");
+
+const cap = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
 const lastOf = <T,>(xs: (T | null)[]): { value: T; index: number } | null => {
   for (let i = xs.length - 1; i >= 0; i--) {
@@ -119,7 +126,9 @@ export default function TrendsTabScreen() {
   const t = useMemo(() => {
     const days = periodDays(period);
     const vitals = data?.vitals ?? [];
-    const scores = scoreByDay(days, data?.history ?? []);
+    const history = data?.history ?? [];
+    const scores = scoreByDay(days, history);
+    const ranges = scoreRangeByDay(days, history);
     const pressure = pressureByDay(days, vitals);
     const pulse = pulseByDay(days, vitals);
     const sodium = sodiumByDay(days, data?.meal_logs ?? []);
@@ -128,7 +137,7 @@ export default function TrendsTabScreen() {
       { meals: data?.meal_logs ?? [], exercises: data?.exercise_logs ?? [], sleep: data?.sleep_logs ?? [], vitals },
       { sodiumMg: sodiumLimit, movementMin: movementGoal }
     );
-    return { days, scores, pressure, pulse, sodium, summary };
+    return { days, history, scores, ranges, pressure, pulse, sodium, summary };
   }, [data, period, sodiumLimit, movementGoal]);
 
   const onRefresh = async () => {
@@ -182,6 +191,9 @@ export default function TrendsTabScreen() {
 
   const best = peak(t.days, t.scores);
   const saltiest = peak(t.days, t.sodium);
+  const scoredDays = t.scores.filter((v) => v !== null).length;
+  const streak = longestStreak(t.scores);
+  const s = t.summary;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.canvas }}>
@@ -283,6 +295,7 @@ export default function TrendsTabScreen() {
             </View>
           ) : (
             <MetricCard
+              key={`${metric}-${period}`}
               c={c}
               metric={metric}
               period={period}
@@ -297,7 +310,7 @@ export default function TrendsTabScreen() {
             <>
               <View style={{ gap: 12 }}>
                 <Text accessibilityRole="header" style={{ fontSize: 20, fontWeight: "600", color: c.ink }}>
-                  Your last {period} days
+                  Day by day
                 </Text>
                 <View style={{ borderWidth: 1, borderColor: c.hairline, borderRadius: 12, overflow: "hidden" }}>
                   <SummaryRow
@@ -305,61 +318,80 @@ export default function TrendsTabScreen() {
                     tint={c.peach}
                     icon="droplet"
                     label="Sodium"
-                    note={
-                      t.summary.sodium.daysLogged === 0
-                        ? "No meals logged"
-                        : t.summary.sodium.daysOver > 0
-                          ? `Over your limit on ${t.summary.sodium.daysOver} ${t.summary.sodium.daysOver === 1 ? "day" : "days"}`
-                          : "Under your limit every day logged"
-                    }
-                    warn={t.summary.sodium.daysOver > 0}
-                    value={t.summary.sodium.daysLogged ? `${t.summary.sodium.perDay.toLocaleString()} mg` : "--"}
-                    unit={`a day · limit ${sodiumLimit.toLocaleString()}`}
+                    note={s.sodium.daysLogged === 0 ? "No meals logged" : `Under your limit on ${s.sodium.daysLogged - s.sodium.daysOver} of ${plural(s.sodium.daysLogged, "day")}`}
+                    value={s.sodium.daysLogged ? `${s.sodium.perDay.toLocaleString()} mg` : "--"}
+                    unit={`a day, limit ${sodiumLimit.toLocaleString()}`}
+                    progress={{ good: s.sodium.daysLogged - s.sodium.daysOver, of: s.sodium.daysLogged }}
                   />
                   <SummaryRow
                     c={c}
                     tint={c.mint}
                     icon="activity"
                     label="Movement"
-                    note={`Goal reached on ${t.summary.movement.daysAtGoal} ${t.summary.movement.daysAtGoal === 1 ? "day" : "days"}`}
-                    value={`${t.summary.movement.perDay} min`}
-                    unit={`a day · goal ${movementGoal}`}
+                    note={`Goal reached on ${s.movement.daysAtGoal} of ${plural(t.days.length, "day")}`}
+                    value={`${s.movement.perDay} min`}
+                    unit={`a day, goal ${movementGoal}`}
+                    progress={{ good: s.movement.daysAtGoal, of: t.days.length }}
                   />
                   <SummaryRow
                     c={c}
                     tint={c.lavender}
                     icon="moon"
                     label="Sleep"
-                    note={`${t.summary.sleep.nightsLogged} ${t.summary.sleep.nightsLogged === 1 ? "night" : "nights"} logged`}
-                    value={t.summary.sleep.nightsLogged ? `${t.summary.sleep.perNight} h` : "--"}
-                    unit="a night · aim 7 to 9"
+                    note={s.sleep.nightsLogged === 0 ? "No sleep logged" : `7 to 9 hours on ${s.sleep.nightsInRange} of ${plural(s.sleep.nightsLogged, "night")}`}
+                    value={s.sleep.nightsLogged ? `${s.sleep.perNight} h` : "--"}
+                    unit="a night, aim 7 to 9"
+                    progress={{ good: s.sleep.nightsInRange, of: s.sleep.nightsLogged }}
                   />
                   <SummaryRow
                     c={c}
                     tint={c.sky}
                     icon="heart"
                     label="Blood pressure"
-                    note={`${t.summary.pressure.readings} ${t.summary.pressure.readings === 1 ? "reading" : "readings"}`}
-                    value={t.summary.pressure.average ? `${t.summary.pressure.average.sys}/${t.summary.pressure.average.dia}` : "--"}
+                    note={s.pressure.daysLogged === 0 ? "No readings" : `Under 130/80 on ${s.pressure.daysUnder} of ${plural(s.pressure.daysLogged, "day")}`}
+                    value={s.pressure.average ? `${s.pressure.average.sys}/${s.pressure.average.dia}` : "--"}
                     unit="average mmHg"
+                    progress={{ good: s.pressure.daysUnder, of: s.pressure.daysLogged }}
                     last
                   />
                 </View>
               </View>
 
-              {best || saltiest ? (
-                <View style={{ gap: 12 }}>
-                  <Text accessibilityRole="header" style={{ fontSize: 20, fontWeight: "600", color: c.ink }}>
-                    Worth noticing
-                  </Text>
-                  <View style={{ flexDirection: "row", gap: 12 }}>
-                    {best ? <NoticeTile bg={c.mint} fg={c.charcoal} c={c} label="Best score" value={String(best.value)} when={dayName(best.day)} /> : null}
-                    {saltiest ? (
-                      <NoticeTile bg={c.peach} fg={c.warmText} c={c} label="Saltiest day" value={`${saltiest.value.toLocaleString()} mg`} when={dayName(saltiest.day)} />
-                    ) : null}
+              <View style={{ gap: 12 }}>
+                <Text accessibilityRole="header" style={{ fontSize: 20, fontWeight: "600", color: c.ink }}>
+                  Highlights
+                </Text>
+                {scoredDays >= HIGHLIGHT_DAYS ? (
+                  <>
+                    <View style={{ flexDirection: "row", gap: 12 }}>
+                      {best ? <NoticeTile bg={c.mint} fg={c.charcoal} c={c} label="Best day" value={String(best.value)} when={`${dayName(best.day)}, end of day`} /> : null}
+                      {saltiest ? (
+                        <NoticeTile bg={c.peach} fg={c.warmText} c={c} label="Saltiest day" value={`${saltiest.value.toLocaleString()} mg`} when={dayName(saltiest.day)} />
+                      ) : null}
+                    </View>
+                    <View
+                      accessible
+                      accessibilityLabel={`Longest streak: ${plural(streak, "day")} in a row with a heart score`}
+                      style={{ flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderRadius: 12, backgroundColor: c.lavender }}
+                    >
+                      <Text style={{ fontSize: 20, fontWeight: "600", color: c.ink }}>{plural(streak, "day")}</Text>
+                      <Text style={{ flex: 1, fontSize: 13, lineHeight: 18, color: c.charcoal }}>Your longest run of days in a row with a heart score</Text>
+                    </View>
+                  </>
+                ) : (
+                  <View style={{ gap: 10, padding: 16, borderRadius: 12, borderWidth: 1, borderStyle: "dashed", borderColor: c.hairlineStrong }}>
+                    <Text style={{ fontSize: 15, lineHeight: 22, color: c.charcoal }}>
+                      {`Your best day, saltiest day and longest streak show here after ${HIGHLIGHT_DAYS} days with a heart score.`}
+                    </Text>
+                    <View accessible accessibilityLabel={`${scoredDays} of ${HIGHLIGHT_DAYS} days`} style={{ flexDirection: "row", gap: 4 }}>
+                      {Array.from({ length: HIGHLIGHT_DAYS }, (_, i) => (
+                        <View key={i} style={{ flex: 1, height: 6, borderRadius: 3, backgroundColor: i < scoredDays ? c.line : c.hairlineSoft }} />
+                      ))}
+                    </View>
+                    <Text style={{ fontSize: 13, color: c.slate }}>{`${scoredDays} of ${HIGHLIGHT_DAYS} days`}</Text>
                   </View>
-                </View>
-              ) : null}
+                )}
+              </View>
             </>
           ) : null}
 
@@ -376,7 +408,9 @@ export default function TrendsTabScreen() {
 
 type TrendData = {
   days: ReturnType<typeof periodDays>;
+  history: ScoreRow[];
   scores: (number | null)[];
+  ranges: ReturnType<typeof scoreRangeByDay>;
   pressure: ReturnType<typeof pressureByDay>;
   pulse: (number | null)[];
   sodium: (number | null)[];
@@ -401,6 +435,8 @@ function MetricCard({
   onLog: (route: string) => void;
   onLonger: () => void;
 }) {
+  // The day picked on the heart score chart (null: the latest day with a score)
+  const [picked, setPicked] = useState<number | null>(null);
   const card = { borderWidth: 1, borderColor: c.hairline, borderRadius: 12, padding: 16, gap: 14 } as const;
   const logBp = "/(home)/(health)/log-symptoms";
 
@@ -439,8 +475,60 @@ function MetricCard({
   if (metric === "score") {
     const latest = lastOf(t.scores);
     if (!latest) return empty(`No heart score in the last ${period} days`, "Log your blood pressure and your score will show here.", "Log blood pressure", logBp);
-    const values = t.scores.filter((s): s is number => s !== null);
-    const yMin = Math.max(0, Math.min(60, Math.floor((Math.min(...values) - 5) / 10) * 10));
+    const values = t.scores.filter((v): v is number => v !== null);
+    const tag = bandTag(tierOf(latest.value), true, c);
+
+    if (values.length === 1) {
+      // One day so far: that day's scores in order, so the number makes sense before there is a trend
+      const day = t.days[latest.index];
+      const isToday = dayName(day) === "today";
+      const list = scoresOfDay(t.history, day);
+      const last = list[list.length - 1];
+      const prev = list[list.length - 2];
+      const line =
+        last && prev && last.score !== prev.score
+          ? `${last.score < prev.score ? "Down" : "Up"} from ${prev.score}${last.after ? ` after ${last.after}` : ""}`
+          : null;
+      return (
+        <View style={card}>
+          {head(String(latest.value), isToday ? "now" : dayName(day), line, tag)}
+          {list.length ? (
+            <View>
+              <Text style={{ fontSize: 13, fontWeight: "600", color: c.slate, paddingBottom: 6 }}>{isToday ? "Today so far" : cap(dayName(day))}</Text>
+              {list.map((row, i) => {
+                const time = row.at.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+                const urgent = row.why.endsWith("emergency level");
+                return (
+                  <View
+                    key={`${row.at.getTime()}-${i}`}
+                    accessible
+                    accessibilityLabel={`${time}: ${row.why}. Score ${row.score}`}
+                    style={{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 44, borderBottomWidth: i === list.length - 1 ? 0 : 1, borderBottomColor: c.hairlineSoft }}
+                  >
+                    <Text style={{ width: 70, fontSize: 13, color: c.slate, fontVariant: ["tabular-nums"] }}>{time}</Text>
+                    <Text style={{ flex: 1, fontSize: 14, color: c.ink }}>{row.why}</Text>
+                    {urgent ? <Feather name="alert-triangle" size={14} color={c.danger} /> : null}
+                    <Text style={{ fontSize: 16, fontWeight: "600", color: c.ink, fontVariant: ["tabular-nums"] }}>{row.score}</Text>
+                  </View>
+                );
+              })}
+            </View>
+          ) : null}
+          <View style={{ flexDirection: "row", gap: 10, padding: 12, borderRadius: 8, backgroundColor: c.surface }}>
+            <Feather name="trending-up" size={18} color={c.charcoal} style={{ marginTop: 1 }} />
+            <Text style={{ flex: 1, fontSize: 14, lineHeight: 20, color: c.charcoal }}>
+              {`Each day goes on your trend as the score it ends on, with its lowest and highest. Log again ${isToday ? "tomorrow" : "on another day"} and your line starts.`}
+            </Text>
+          </View>
+        </View>
+      );
+    }
+
+    const pick = picked ?? latest.index;
+    const pickedScore = t.scores[pick];
+    const range = t.ranges[pick];
+    const lows = t.ranges.filter((g): g is { low: number; high: number } => g !== null).map((g) => g.low);
+    const yMin = Math.max(0, Math.min(60, Math.floor((Math.min(...values, ...lows) - 5) / 10) * 10));
     const bands = [
       { from: 80, to: 100, fill: c.sky, label: "Stable", labelColor: c.onTint },
       { from: 60, to: 80, fill: c.yellow, label: "Moderate", labelColor: c.warmText },
@@ -451,18 +539,46 @@ function MetricCard({
       .map((b) => ({ ...b, from: Math.max(b.from, yMin) }));
     return (
       <View style={card}>
-        {head(String(latest.value), dayName(t.days[latest.index]), scoreChange(t.days, t.scores), bandTag(tierOf(latest.value), true, c))}
+        {head(String(latest.value), dayName(t.days[latest.index]), scoreChange(t.days, t.scores), tag)}
+        <View accessibilityLiveRegion="polite" style={{ paddingVertical: 10, paddingHorizontal: 12, borderRadius: 8, backgroundColor: c.surface }}>
+          {pickedScore === null ? (
+            <Text style={{ fontSize: 14, lineHeight: 20, color: c.ink }}>{`${cap(dayName(t.days[pick]))}: no readings, so no score.`}</Text>
+          ) : (
+            <Text style={{ fontSize: 14, lineHeight: 20, color: c.ink }}>
+              <Text style={{ fontWeight: "600" }}>{`${cap(dayName(t.days[pick]))} ended at ${pickedScore}.`}</Text>
+              {range && range.low !== range.high ? ` Lowest ${range.low}, highest ${range.high}.` : ""}
+            </Text>
+          )}
+        </View>
         <TrendChart
           kind="line"
           days={t.days}
           values={t.scores}
+          ranges={t.ranges}
+          selected={pick}
+          onSelect={(i) => {
+            Haptics.selectionAsync();
+            setPicked(i);
+          }}
           yMin={yMin}
           yMax={100}
-          ticks={[yMin, 80, 100].filter((v, i, a) => a.indexOf(v) === i)}
+          ticks={[yMin, 100].filter((v, i, a) => a.indexOf(v) === i)}
           bands={bands}
           accessibilityLabel={`Heart score over the last ${period} days. Latest ${latest.value}.`}
         />
-        {coverage(values.length, "a score")}
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 16, marginTop: -6 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+            <View style={{ width: 9, height: 9, borderRadius: 5, backgroundColor: c.primary }} />
+            <Text style={{ fontSize: 12, color: c.slate }}>Where the day ended</Text>
+          </View>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+            <View style={{ width: 6, height: 14, borderRadius: 3, backgroundColor: c.line, opacity: 0.28 }} />
+            <Text style={{ fontSize: 12, color: c.slate }}>{"The day's lowest to highest"}</Text>
+          </View>
+        </View>
+        <Text style={{ fontSize: 13, lineHeight: 18, color: c.slate, marginTop: -6 }}>
+          {`${values.length} of ${t.days.length} days have a score; blank days had no readings. Tap a day to see it.`}
+        </Text>
       </View>
     );
   }
@@ -562,6 +678,7 @@ function SummaryRow({
   unit,
   warn = false,
   last = false,
+  progress,
 }: {
   c: DsColors;
   tint: string;
@@ -572,24 +689,34 @@ function SummaryRow({
   unit: string;
   warn?: boolean;
   last?: boolean;
+  /** Days on target out of days counted; drawn as a bar once there are two or more. */
+  progress?: { good: number; of: number };
 }) {
+  const share = progress && progress.of >= 2 ? Math.max(0, Math.min(1, progress.good / progress.of)) : null;
   return (
     <View
       accessible
       accessibilityLabel={`${label}: ${value} ${unit}. ${note}`}
-      style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 14, paddingHorizontal: 16, borderBottomWidth: last ? 0 : 1, borderBottomColor: c.hairlineSoft }}
+      style={{ gap: 10, paddingVertical: 14, paddingHorizontal: 16, borderBottomWidth: last ? 0 : 1, borderBottomColor: c.hairlineSoft }}
     >
-      <View style={{ width: 36, height: 36, borderRadius: 9, backgroundColor: tint, alignItems: "center", justifyContent: "center" }}>
-        <Feather name={icon} size={17} color={c.charcoal} />
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+        <View style={{ width: 36, height: 36, borderRadius: 9, backgroundColor: tint, alignItems: "center", justifyContent: "center" }}>
+          <Feather name={icon} size={17} color={c.charcoal} />
+        </View>
+        <View style={{ flex: 1, gap: 2 }}>
+          <Text style={{ fontSize: 15, fontWeight: "500", color: c.ink }}>{label}</Text>
+          <Text style={{ fontSize: 13, color: warn ? c.warmText : c.slate }}>{note}</Text>
+        </View>
+        <View style={{ alignItems: "flex-end" }}>
+          <Text style={{ fontSize: 16, fontWeight: "600", color: c.ink, fontVariant: ["tabular-nums"] }}>{value}</Text>
+          <Text style={{ fontSize: 12, color: c.slate }}>{unit}</Text>
+        </View>
       </View>
-      <View style={{ flex: 1, gap: 2 }}>
-        <Text style={{ fontSize: 15, fontWeight: "500", color: c.ink }}>{label}</Text>
-        <Text style={{ fontSize: 13, color: warn ? c.warmText : c.slate }}>{note}</Text>
-      </View>
-      <View style={{ alignItems: "flex-end" }}>
-        <Text style={{ fontSize: 16, fontWeight: "600", color: c.ink, fontVariant: ["tabular-nums"] }}>{value}</Text>
-        <Text style={{ fontSize: 12, color: c.slate }}>{unit}</Text>
-      </View>
+      {share !== null ? (
+        <View style={{ height: 6, borderRadius: 3, backgroundColor: c.hairlineSoft, overflow: "hidden" }}>
+          <View style={{ height: 6, borderRadius: 3, width: `${Math.round(share * 100)}%`, backgroundColor: c.line }} />
+        </View>
+      ) : null}
     </View>
   );
 }
