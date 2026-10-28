@@ -163,12 +163,93 @@ def _remember_ai_insight(key: tuple, line: str) -> None:
     _ai_insight_lines[key] = line
 
 
+def _event_records(user_hss: list) -> tuple:
+    """(latest record, score just before the latest log, the reading record of that log or None).
+
+    Logging a reading saves two records: the reading's new base, then the day's total on top of it (trigger
+    "health_log"). Both belong to one event, so the note compares with the score before that pair."""
+    latest = user_hss[0]
+    factors = latest.get("contributing_factors") or {}
+    rest = user_hss[1:]
+    reading = None
+    if factors.get("trigger") == "health_log" and factors.get("source") == "lifestyle_composite":
+        if rest and (rest[0].get("contributing_factors") or {}).get("trigger") == "health_log":
+            reading, rest = rest[0], rest[1:]
+    elif factors.get("trigger") == "health_log":
+        reading = latest
+    previous = rest[0].get("score") if rest else None
+    return latest, previous, reading
+
+
+def _note_for_latest_event(user_hss: list, latest_log: dict | None) -> tuple:
+    """Today's note: what the latest log did to the score, and the one step that fits it."""
+    from app.services.family import is_emergency
+
+    latest, previous, reading = _event_records(user_hss)
+    score = latest.get("score", 0)
+    diff = (score - previous) if previous is not None else 0
+    factors = latest.get("contributing_factors") or {}
+    trigger = factors.get("trigger") or ""
+    moved = f"Up {diff}" if diff > 0 else f"Down {abs(diff)}"
+
+    # Emergency-level reading or symptoms (the app's own rules) logged today: the note says so, whatever the score did
+    logged_today = bool(latest_log) and not latest_log.get("deleted_at") and         _safe_date(latest_log.get("logged_at")) == to_local_date(utc_now())
+    if logged_today and is_emergency(latest_log):
+        sys_bp, dia_bp = latest_log.get("systolic_bp"), latest_log.get("diastolic_bp")
+        from app.services.hss_service import is_emergency_reading
+        if sys_bp and dia_bp and is_emergency_reading(sys_bp, dia_bp):
+            title = f"Your reading {round(sys_bp)}/{round(dia_bp)} is at an emergency level."
+        else:
+            title = "You logged symptoms at an emergency level."
+        body = "If you feel unwell, call 911 now. HeartLink can't diagnose; please get checked in person."
+        return title, body, "alert-triangle", "see_what_to_do"
+
+    if reading is not None:
+        rf = reading.get("contributing_factors") or {}
+        sys_bp, dia_bp = rf.get("systolic"), rf.get("diastolic")
+        what = f"{round(sys_bp)}/{round(dia_bp)}" if sys_bp and dia_bp else "latest"
+        if rf.get("reading_kind") == "healthy":
+            title = f"Your {what} reading is in the healthy range."
+            body = f"Your score went up {diff}." if diff > 0 else f"Your score stays at {score}."
+            return title, body, "check-circle", None
+        if diff:
+            title = f"{moved} after your {what} reading."
+        else:
+            title = f"Your {what} reading is above the healthy range."
+        body = "One reading moves your score only a little. Log another one later to see the trend."
+        return title, body, ("trending-down" if diff <= 0 else "trending-up"), "log_later"
+
+    if factors.get("staleness_points", 0) < 0 and diff < 0:
+        return ("Your score dropped because nothing was logged recently.",
+                "Log your vitals and meals to keep your score up to date.", "trending-down", "log_vitals")
+
+    source = "meal" if trigger.startswith("meal") else "exercise" if trigger.startswith("exercise") else ""
+    removed = trigger.endswith("_delete")
+    if diff > 0:
+        title = f"{moved} from your {source}." if source and not removed else f"Your score went up {diff}."
+        return title, "Keep it up.", "trending-up", None
+    if diff < 0:
+        if source == "meal" and not removed:
+            return (f"{moved} after your meal.", "It was high in sodium or saturated fat. Review today's meals to see which.",
+                    "trending-down", "review_meals")
+        if removed:
+            return (f"{moved} after removing your {source or 'log'}.", "Your score counts only what's logged today.",
+                    "trending-down", None)
+        return (f"Your score went down {abs(diff)}.", "Log your vitals and meals so the score reflects your day.",
+                "trending-down", "log_vitals")
+    if score < 50:
+        return ("Your score is in the critical range.", "Keep logging your readings, and see your care team in person.",
+                "alert-circle", "log_vitals")
+    return ("Your score is holding steady.", f"It stays at {score}.", "check-circle", None)
+
+
 def _generate_insight(
     user_hss: list, latest_log: dict | None, first_name: str | None = None, user_id: str | None = None
 ) -> dict:
     """Generate a dynamic smart insight based on actual data.
 
-    `action` names the one step the app offers under the note: "log_vitals", "review_meals" or None.
+    `action` names the one step the app offers under the note: "log_vitals", "review_meals", "see_what_to_do"
+    (an emergency-level reading or symptom: Call 911 and nearby clinics), "log_later" or None.
     `ai_written` is True when the body came from the AI coach rather than the rules below."""
     if len(user_hss) < 2:
         return {
@@ -179,52 +260,13 @@ def _generate_insight(
             "ai_written": False,
         }
 
-    latest_score = user_hss[0].get("score", 0)
-    previous_score = _get_comparison_score(user_hss)
-    diff = latest_score - previous_score
-
-    if diff > 0:
-        title = f"Your stability score improved by {diff} points."
-        body = "Consistent tracking is paying off. Keep logging your vitals and meals."
-        icon = "trending-up"
-        action = None
-    elif diff < 0:
-        title = f"Your stability score dropped by {abs(diff)} points."
-        factors = user_hss[0].get("contributing_factors", {})
-        
-        if latest_log and latest_log.get("symptoms") and [s for s in latest_log["symptoms"] if s != "None (Feeling fine)"]:
-            real_symptoms = [s for s in latest_log["symptoms"] if s != "None (Feeling fine)"]
-            symptom_count = len(real_symptoms)
-            body = f"You logged {symptom_count} symptom(s) recently. Consider reviewing your diet and consulting your care team."
-            action = "review_meals"
-        elif factors.get("staleness_points", 0) < 0:
-            body = "Your score dropped due to missing data. Log your vitals and meals to keep your score accurate."
-            action = "log_vitals"
-        else:
-            body = "Consider reviewing your recent meals and activity levels."
-            action = "review_meals"
-        icon = "trending-down"
-    else:
-        if latest_score >= 80:
-            title = "Your stability score is holding steady."
-            body = "You're doing great! Keep maintaining your healthy routine."
-            icon = "check-circle"
-            action = None
-        elif latest_score < 50:
-            title = "Your stability score remains critically low."
-            body = "Please consult your care team and strictly monitor your vitals and diet."
-            icon = "alert-circle"
-            action = "log_vitals"
-        else:
-            title = "Your stability score is holding steady."
-            body = "Your score hasn't changed, but there's still room for improvement."
-            icon = "minus"
-            action = None
+    title, body, icon, action = _note_for_latest_event(user_hss, latest_log)
 
     ai_written = False
     # Try to enhance the body with Groq AI if available
     groq_api_key = os.environ.get("GROQ_API_KEY")
-    if groq_api_key and first_name:
+    # An emergency note is never rewritten: it must keep its exact words and its Call 911 step
+    if groq_api_key and first_name and action != "see_what_to_do":
         try:
             import groq
             # Increased timeout to 4.0s to accommodate the larger 120b model

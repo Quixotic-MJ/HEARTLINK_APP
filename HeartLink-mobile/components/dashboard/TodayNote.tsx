@@ -5,7 +5,7 @@ import AnimatedButton from "../ui/AnimatedButton";
 import DsButton from "../onboarding/DsButton";
 import { useDs } from "../onboarding/useDs";
 
-export type NoteAction = "log_vitals" | "review_meals";
+export type NoteAction = "log_vitals" | "review_meals" | "see_what_to_do" | "log_later";
 
 export type Insight = {
   title?: string;
@@ -20,6 +20,8 @@ export type Insight = {
 const ACTION_LABEL: Record<NoteAction, string> = {
   log_vitals: "Log today's vitals",
   review_meals: "Review today's meals",
+  see_what_to_do: "See what to do",
+  log_later: "Log a reading",
 };
 
 // Older dashboards sent no action, so it is guessed from the icon the rules chose.
@@ -125,7 +127,7 @@ export function TodayNote({
       ) : null}
 
       {action ? (
-        <DsButton label={ACTION_LABEL[action]} variant="secondary" block={false} onPress={() => onAction(action)} style={{ alignSelf: "flex-start", height: 44 }} />
+        <DsButton label={ACTION_LABEL[action]} variant={action === "see_what_to_do" ? "primary" : "secondary"} block={false} onPress={() => onAction(action)} style={{ alignSelf: "flex-start", height: 44 }} />
       ) : null}
     </View>
   );

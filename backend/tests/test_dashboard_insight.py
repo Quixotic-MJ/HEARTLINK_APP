@@ -14,12 +14,15 @@ def test_new_patients_are_asked_to_log_vitals(monkeypatch):
     assert note["ai_written"] is False
 
 
-def test_a_drop_from_missing_data_asks_for_vitals_and_other_drops_point_to_meals(monkeypatch):
+def test_a_drop_from_missing_data_asks_for_vitals_and_only_a_meal_drop_points_to_meals(monkeypatch):
     monkeypatch.delenv("GROQ_API_KEY", raising=False)
     stale = scores(60, 70)
     stale[0]["contributing_factors"] = {"staleness_points": -5}
     assert _generate_insight(stale, None)["action"] == "log_vitals"
-    assert _generate_insight(scores(60, 70), None)["action"] == "review_meals"
+    assert _generate_insight(scores(60, 70), None)["action"] == "log_vitals"  # no known cause
+    meal = scores(60, 70)
+    meal[0]["contributing_factors"] = {"source": "lifestyle_composite", "trigger": "meal_log"}
+    assert _generate_insight(meal, None)["action"] == "review_meals"
 
 
 def test_a_rise_or_a_steady_good_score_offers_no_step(monkeypatch):

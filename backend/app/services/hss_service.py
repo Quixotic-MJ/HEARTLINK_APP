@@ -2,7 +2,7 @@ import json
 import math
 import os
 from functools import lru_cache
-from typing import Dict, Any, Tuple
+from typing import Dict, Any, Tuple, Optional
 
 import numpy as np
 import pandas as pd
@@ -132,6 +132,46 @@ def compute_vitals_hss(
     return score, tier, risk_prob
 
 
+# How a reading moves the score's base (see app/ml/STARTING_SCORE.md, "How readings move the score"). The band
+# numbers above are unchanged; one reading no longer replaces the base on its own.
+HEALTHY_BAND = 90  # compute_vitals_hss's best result: under 120/80 with no pulse or pulse-pressure adjustment
+READING_STEP = 1 / 3  # an ordinary reading moves the base a third of the way to its band
+
+
+def is_emergency_reading(systolic: float, diastolic: float) -> bool:
+    """The app's emergency thresholds (log-symptoms.tsx, companionService.ts), unchanged."""
+    return systolic >= 180 or diastolic >= 120 or systolic < 90 or diastolic < 60
+
+
+def reading_kind(systolic: float, diastolic: float, band_score: int) -> str:
+    if is_emergency_reading(systolic, diastolic):
+        return "emergency"
+    return "healthy" if band_score >= HEALTHY_BAND else "other"
+
+
+def latest_base_score(history: list) -> Optional[int]:
+    """The newest score that isn't a day's lifestyle total: the last reading's base, or the starting score."""
+    for h in history:
+        if (h.get("contributing_factors") or {}).get("source") != "lifestyle_composite" and h.get("score") is not None:
+            return int(h["score"])
+    return None
+
+
+def smoothed_base(previous_base: Optional[int], band_score: int, kind: str) -> int:
+    """
+    - Emergency reading: straight down to its band (never smoothed, never raises the score).
+    - Healthy reading: never lowers the score; below the healthy band it moves up a third of the way.
+    - Any other reading: moves a third of the way toward its band, so one reading doesn't swing the score.
+    """
+    if previous_base is None:
+        return band_score
+    if kind == "emergency":
+        return min(previous_base, band_score)
+    if kind == "healthy" and previous_base >= band_score:
+        return previous_base
+    return int(round(previous_base + (band_score - previous_base) * READING_STEP))
+
+
 def compute_lifestyle_composite_hss(user_id: str, trigger: str = "lifestyle_event"):
     """
     Dynamically recalculates Cardiovascular Health Stability Score (1-100)
@@ -147,10 +187,12 @@ def compute_lifestyle_composite_hss(user_id: str, trigger: str = "lifestyle_even
     
     # 1. Base score from most recent vitals telemetry or baseline onboarding
     base_score = 75
+    base_factors: Dict[str, Any] = {}
     last_vital_date = None
     if history and len(history) > 0:
         base_record = next((h for h in history if h.get("contributing_factors", {}).get("source") != "lifestyle_composite"), None)
         base_score = int(base_record.get("score") or 75) if base_record else 75
+        base_factors = (base_record or {}).get("contributing_factors") or {}
         if base_record:
             try:
                 last_vital_date = datetime.fromisoformat(base_record.get("computed_at")).date()
@@ -270,6 +312,9 @@ def compute_lifestyle_composite_hss(user_id: str, trigger: str = "lifestyle_even
 
     # 7. Apply Daily Variance Cap
     lifestyle_points = max(-20, min(20, lifestyle_points))
+    # After an emergency reading the score stays at its emergency level: good habits can't lift it out of Critical
+    if base_factors.get("reading_kind") == "emergency":
+        lifestyle_points = min(0, lifestyle_points)
     factors["total_lifestyle_adjustment"] = lifestyle_points
 
     # 8. Composite Score

@@ -25,7 +25,7 @@ it("shows and hides the password in the close-account dialog", async () => {
   await user.press(screen.getByRole("button", { name: "Close my account" }));
 
   const box = await screen.findByLabelText("Current password");
-  await user.type(box, "Correct-horse-battery-9!");
+  await user.type(box, "Pass-9!");
   expect(box).toHaveProp("secureTextEntry", true);
 
   await user.press(screen.getByRole("button", { name: "Show password" }));
@@ -37,4 +37,5 @@ it("shows and hides the password in the close-account dialog", async () => {
   expect(screen.getByText("Close your account?")).toBeOnTheScreen();
   expect(screen.getByText(/health records are kept securely and aren't shared/)).toBeOnTheScreen();
   expect(screen.queryByText(/permanent/i)).toBeNull();
-});
+  // A big screen and key-by-key typing: under a full parallel run this took longer than Jest's 5 s default
+}, 20000);

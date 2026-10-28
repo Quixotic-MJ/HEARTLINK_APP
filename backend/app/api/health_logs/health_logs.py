@@ -111,23 +111,35 @@ def add_health_log(
     if sys_bp is not None and dia_bp is not None:
         try:
             from datetime import datetime
-            from app.services.hss_service import compute_vitals_hss
+            from app.services.hss_service import (
+                compute_lifestyle_composite_hss, compute_vitals_hss, determine_tier, latest_base_score,
+                reading_kind, smoothed_base,
+            )
             from app.db.repositories import get_hss_repo, get_health_logs_repo
 
-            score, tier, risk_prob = compute_vitals_hss(int(sys_bp), int(dia_bp), int(hr) if hr else None, data.get("context"))
+            band_score, _, _ = compute_vitals_hss(int(sys_bp), int(dia_bp), int(hr) if hr else None, data.get("context"))
+            # The reading moves the score's base (it no longer replaces it): see hss_service.smoothed_base
+            kind = reading_kind(sys_bp, dia_bp, band_score)
+            previous_base = latest_base_score(get_hss_repo().list_hss_history(user_id, limit=20))
+            score = smoothed_base(previous_base, band_score, kind)
             get_hss_repo().create_hss_record(user_id, {
                 "score": score,
-                "tier": tier,
-                "risk_probability": risk_prob,
+                "tier": determine_tier(score),
+                "risk_probability": round((100 - score) / 100.0, 3),
                 "source": "telemetry",
                 "contributing_factors": {
                     "systolic": sys_bp,
                     "diastolic": dia_bp,
                     "heart_rate": hr,
-                    "trigger": "health_log"
+                    "trigger": "health_log",
+                    "band_score": band_score,
+                    "previous_base": previous_base,
+                    "reading_kind": kind,
                 },
                 "computed_at": log.get("logged_at") or utc_now().isoformat()
             })
+            # The day's meal, exercise, sleep and medicine points stay on top of the new base
+            compute_lifestyle_composite_hss(user_id, trigger="health_log")
 
             # Create clinical alert if acute emergency boundaries are breached
             if (sys_bp >= 180 or dia_bp >= 120) or (sys_bp < 90 or dia_bp < 60):

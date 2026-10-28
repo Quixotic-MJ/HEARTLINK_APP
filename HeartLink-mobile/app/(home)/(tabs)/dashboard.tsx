@@ -50,7 +50,7 @@ import { TourSpot, useDashboardTour } from "../../../components/dashboard/Dashbo
 import { ScoreExplanationModal } from "../../../components/dashboard/ScoreExplanationModal";
 import { RitualProgress } from "../../../components/dashboard/RitualProgress";
 import { apiFetch } from "../../../lib/api";
-import { theme as colors } from "../../../constants/theme";
+import { theme as colors, light as lightColors, dark as darkColors, ds } from "../../../constants/theme";
 // ─── Score theme ──────────────────────────────────────────────────────────────
 type ScoreTheme = {
   label: string;
@@ -60,6 +60,21 @@ type ScoreTheme = {
   badgeText: string;
   dotColor: string;
 };
+
+// The heart ring takes its band's colour (it was sky blue for every band): blue, amber, red-orange, dark red.
+function ringColor(label: string, isDark: boolean): string {
+  const c = isDark ? darkColors : lightColors;
+  switch (label) {
+    case "Stable":
+      return (isDark ? ds.dark : ds.light).line;
+    case "Moderate":
+      return c.warning;
+    case "Elevated Risk":
+      return c.dangerMid;
+    default:
+      return c.dangerSolid;
+  }
+}
 
 function getScoreTheme(score: number, isDark: boolean): ScoreTheme {
   const slateTheme = {
@@ -76,7 +91,7 @@ function getScoreTheme(score: number, isDark: boolean): ScoreTheme {
   if (score >= 80)
     return {
       label: "Stable",
-      barColor: "#38bdf8", // Sky 400
+      barColor: ringColor("Stable", isDark),
       badgeBg: isDark ? "rgba(56, 189, 248, 0.15)" : "#e0f2fe",
       badgeBorder: isDark ? "rgba(56, 189, 248, 0.3)" : "#bae6fd",
       badgeText: isDark ? "#38bdf8" : "#0284c7",
@@ -85,7 +100,7 @@ function getScoreTheme(score: number, isDark: boolean): ScoreTheme {
   if (score >= 60)
     return {
       label: "Moderate",
-      barColor: "#38bdf8", // Sky 400
+      barColor: ringColor("Moderate", isDark),
       badgeBg: isDark ? "rgba(56, 189, 248, 0.15)" : "#e0f2fe",
       badgeBorder: isDark ? "rgba(56, 189, 248, 0.3)" : "#bae6fd",
       badgeText: isDark ? "#38bdf8" : "#0284c7",
@@ -94,7 +109,7 @@ function getScoreTheme(score: number, isDark: boolean): ScoreTheme {
   if (score >= 50)
     return {
       label: "Elevated Risk",
-      barColor: "#38bdf8", // Sky 400
+      barColor: ringColor("Elevated Risk", isDark),
       badgeBg: isDark ? "rgba(56, 189, 248, 0.15)" : "#e0f2fe",
       badgeBorder: isDark ? "rgba(56, 189, 248, 0.3)" : "#bae6fd",
       badgeText: isDark ? "#38bdf8" : "#0284c7",
@@ -102,7 +117,7 @@ function getScoreTheme(score: number, isDark: boolean): ScoreTheme {
     };
   return {
     label: "Critical",
-    barColor: "#38bdf8", // Sky 400
+    barColor: ringColor("Critical", isDark),
     badgeBg: isDark ? "rgba(56, 189, 248, 0.15)" : "#e0f2fe",
     badgeBorder: isDark ? "rgba(56, 189, 248, 0.3)" : "#bae6fd",
     badgeText: isDark ? "#38bdf8" : "#0284c7",
@@ -846,9 +861,12 @@ export default function DashboardScreen() {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                     setShowInsight(true);
                   }}
-                  onAction={(action) =>
-                    action === "log_vitals" ? handleMissionPress("vitals") : safeNavigate("/(home)/(meals)/food-diary")
-                  }
+                  onAction={(action) => {
+                    // An emergency-level reading or symptom: Call 911 and the nearest clinics
+                    if (action === "see_what_to_do") safeNavigate("/locator");
+                    else if (action === "log_vitals" || action === "log_later") handleMissionPress("vitals");
+                    else safeNavigate("/(home)/(meals)/food-diary");
+                  }}
                 />
               </TourSpot>
             </View>
