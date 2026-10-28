@@ -342,7 +342,7 @@ async def delete_user_account(
     if not result:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Incorrect password. Account deletion aborted.",
+            detail="Incorrect password. Your account is still open.",
         )
         
     # Record exactly one audit log on successful deletion
@@ -358,7 +358,8 @@ async def delete_user_account(
     except Exception:
         pass
         
-    return {"success": True, "message": "Account permanently deleted"}
+    # The account is archived (closed): signing in stops and the records are kept, so say "closed", not "deleted"
+    return {"success": True, "message": "Account closed"}
 
 
 @router.get("/{user_id}/reminders", status_code=status.HTTP_200_OK)

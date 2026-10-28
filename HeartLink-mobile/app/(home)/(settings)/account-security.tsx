@@ -14,6 +14,9 @@ import DsButton from "../../../components/onboarding/DsButton";
 import { SquareIconButton } from "../../../components/exercise/ExerciseBits";
 import { ds } from "../../../constants/theme";
 
+// Closing an account archives it on the server: signing in stops, and the health records are kept.
+const CONFIRM_WORD = "CLOSE";
+
 export default function AccountSecurityScreen() {
   const { c, isDark } = useDs();
   const router = useRouter();
@@ -121,8 +124,8 @@ export default function AccountSecurityScreen() {
       showToast({ title: "Password Required", message: "Please enter your password to confirm deletion.", type: "error" });
       return;
     }
-    if (deleteTypedText !== "DELETE") {
-      showToast({ title: "Confirmation Required", message: "Please type DELETE in capital letters to confirm.", type: "error" });
+    if (deleteTypedText !== CONFIRM_WORD) {
+      showToast({ title: "Confirmation Required", message: `Please type ${CONFIRM_WORD} in capital letters to confirm.`, type: "error" });
       return;
     }
 
@@ -140,14 +143,14 @@ export default function AccountSecurityScreen() {
       const data = await res.json();
       if (res.ok) {
         setShowDeleteModal(false);
-        showToast({ title: "Account Deleted", message: "Your account and health records have been permanently removed.", type: "success" });
+        showToast({ title: "Account closed", message: "You've been signed out. Your health records are kept securely.", type: "success" });
         await logout();
         router.replace("/(auth)/login");
       } else {
-        showToast({ title: "Deletion Failed", message: data.detail || "Failed to delete account.", type: "error" });
+        showToast({ title: "Couldn't close your account", message: data.detail || "Please try again.", type: "error" });
       }
     } catch (err) {
-      showToast({ title: "Error", message: "An unexpected error occurred during account deletion.", type: "error" });
+      showToast({ title: "Couldn't close your account", message: "Check your connection and try again.", type: "error" });
     } finally {
       setIsDeleting(false);
     }
@@ -330,12 +333,13 @@ export default function AccountSecurityScreen() {
                 <Feather name="alert-triangle" size={16} color={c.danger} />
               </View>
               <Text className="text-[16px] font-semibold text-ds-ink">
-                Delete Account
+                Close Account
               </Text>
             </View>
 
             <Text className="text-[14px] text-ds-charcoal mb-4 leading-relaxed">
-              Permanently remove your patient account, biometrics, health logs, care team contacts, and scheduled reminders. This cannot be undone.
+              Close your HeartLink account and sign out. Your health records are kept securely, not shared, and not
+              shown to anyone. To have them erased completely, send a request in Settings › Send feedback.
             </Text>
 
             <TouchableOpacity
@@ -348,12 +352,12 @@ export default function AccountSecurityScreen() {
               activeOpacity={0.8}
               accessible={true}
               accessibilityRole="button"
-              accessibilityLabel="Delete my account"
+              accessibilityLabel="Close my account"
               className="bg-ds-canvas rounded-lg items-center justify-center border border-ds-hairline-strong"
               style={{ height: 48 }}
             >
               <Text style={{ fontSize: 15, fontWeight: "500", color: c.danger }}>
-                Delete My Account
+                Close My Account
               </Text>
             </TouchableOpacity>
           </View>
@@ -377,7 +381,7 @@ export default function AccountSecurityScreen() {
         icon="alert-circle"
       />
 
-      {/* Secure Delete Account Modal */}
+      {/* Close account: the server archives it (signing in stops; the records are kept) */}
       <Modal
         visible={showDeleteModal}
         transparent
@@ -391,20 +395,18 @@ export default function AccountSecurityScreen() {
             </View>
 
             <Text accessibilityRole="header" className="text-[20px] font-semibold text-ds-ink text-center mb-1.5">
-              Permanent Account Deletion
+              Close your account?
             </Text>
 
             <Text className="text-[14px] text-ds-slate text-center mb-4 leading-relaxed">
-              This action is permanent and irreversible. All associated data will be completely deleted:
+              Here&apos;s what happens:
             </Text>
 
-            {/* Itemized Deletion Disclosures */}
             <View className="bg-ds-surface rounded-xl p-3.5 mb-4 border border-ds-hairline gap-1.5">
-              <Text className="text-[13px] text-ds-slate">• Personal profile & login credentials</Text>
-              <Text className="text-[13px] text-ds-slate">• Blood pressure, heart rate, & symptom logs</Text>
-              <Text className="text-[13px] text-ds-slate">• Meal diary & nutritional history</Text>
-              <Text className="text-[13px] text-ds-slate">• Exercise & rehab routine history</Text>
-              <Text className="text-[13px] text-ds-slate">• Care team contacts & scheduled reminders</Text>
+              <Text className="text-[13px] text-ds-slate">• You&apos;re signed out and can&apos;t sign in to this account again.</Text>
+              <Text className="text-[13px] text-ds-slate">• Your health records are kept securely and aren&apos;t shared or shown to anyone.</Text>
+              <Text className="text-[13px] text-ds-slate">• Your email and phone number stay with the closed account, so they can&apos;t be used to sign up again.</Text>
+              <Text className="text-[13px] text-ds-slate">• To have your records erased completely, send a request in Settings › Send feedback.</Text>
             </View>
 
             <View className="mb-3">
@@ -438,11 +440,11 @@ export default function AccountSecurityScreen() {
 
             <View className="mb-5">
               <Text className="text-[14px] font-medium text-ds-ink mb-1.5">
-                Type <Text className="font-semibold text-ds-danger">DELETE</Text> to confirm
+                Type <Text className="font-semibold text-ds-danger">{CONFIRM_WORD}</Text> to confirm
               </Text>
               <TextInput
                 className="bg-ds-canvas border border-ds-hairline-strong rounded-lg px-4 text-[16px] text-ds-ink text-center font-semibold tracking-widest"
-                placeholder="DELETE"
+                placeholder={CONFIRM_WORD}
                 style={{ height: 48 }}
                 placeholderTextColor={c.steel}
                 autoCapitalize="characters"
@@ -465,18 +467,18 @@ export default function AccountSecurityScreen() {
 
               <TouchableOpacity
                 onPress={handleDeleteAccount}
-                disabled={isDeleting || !deletePassword || deleteTypedText !== "DELETE"}
+                disabled={isDeleting || !deletePassword || deleteTypedText !== CONFIRM_WORD}
                 style={{
                   height: 48,
                   // Red keeps its light-mode shade so the white text stays readable.
                   backgroundColor: ds.light.danger,
-                  opacity: (!isDeleting && deletePassword && deleteTypedText === "DELETE") ? 1 : 0.5,
+                  opacity: (!isDeleting && deletePassword && deleteTypedText === CONFIRM_WORD) ? 1 : 0.5,
                 }}
                 className="w-full rounded-lg items-center flex-row justify-center gap-2"
               >
                 {isDeleting ? <ActivityIndicator size="small" color={ds.light.onPrimary} /> : null}
                 <Text className="text-[15px] font-medium" style={{ color: ds.light.onPrimary }}>
-                  Permanently Delete Account
+                  Close My Account
                 </Text>
               </TouchableOpacity>
             </View>
