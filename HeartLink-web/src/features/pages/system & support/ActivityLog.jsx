@@ -1,39 +1,225 @@
-import { useState, useEffect } from "react";
-import AdminLayout from "../../../components/layouts/adminLayout";
-import { useApiQuery } from "../../../hooks/useApiQuery";
+import { useEffect, useMemo, useState } from "react";
 import {
-  Search,
   Activity,
-  Shield,
-  Headset,
+  CheckCircle2,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
-  Download,
-  ChevronDown,
-  Utensils,
-  Dumbbell,
-  Radio,
-  FileSpreadsheet,
-  RotateCcw,
+  Clock,
   Crown,
+  Download,
+  Dumbbell,
+  FileSpreadsheet,
+  Headset,
+  Loader2,
+  Megaphone,
+  RefreshCw,
+  RotateCcw,
+  Search,
+  Shield,
+  Users,
+  Utensils,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
+import AdminLayout from "../../../components/layouts/adminLayout";
+import LoadError from "../../../components/ui/LoadError";
 import { Skeleton } from "../../../components/ui/Skeleton";
 import { apiFetch } from "../../../api";
+import { useApiQuery } from "../../../hooks/useApiQuery";
 import { downloadCsv, toCsv } from "../../../utils/csv";
-import { UI, FONTS } from "../../../styles/tokens";
-import { PageHeader } from "../../../styles/designSystem";
+
+const PILL =
+  "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11.5px] font-semibold leading-none whitespace-nowrap";
+
+const CATEGORY_OPTIONS = [
+  { value: "all", label: "All categories" },
+  { value: "case", label: "Case reviews" },
+  { value: "user", label: "Users" },
+  { value: "staff", label: "Staff" },
+  { value: "recipe", label: "Recipes" },
+  { value: "exercise", label: "Exercises" },
+  { value: "broadcast", label: "Announcements" },
+  { value: "feedback", label: "Feedback" },
+  { value: "premium", label: "Premium settings" },
+  { value: "dataset", label: "Datasets" },
+];
+
+const CATEGORY_LABELS = Object.fromEntries(
+  CATEGORY_OPTIONS.map((opt) => [opt.value, opt.label])
+);
+
+function EventTypeBadge({ type }) {
+  const key = type ? type.toLowerCase() : "";
+
+  switch (key) {
+    case "case":
+      return (
+        <span
+          className={`${PILL} border-cal-error/25 bg-cal-error/10 text-cal-ink`}
+        >
+          <Activity size={11} className="text-cal-error" aria-hidden="true" />
+          <span>Case review</span>
+        </span>
+      );
+    case "staff":
+      return (
+        <span
+          className={`${PILL} border-cal-badge-violet/30 bg-cal-badge-violet/15 text-cal-ink`}
+        >
+          <Shield
+            size={11}
+            className="text-cal-badge-violet"
+            aria-hidden="true"
+          />
+          <span>Staff</span>
+        </span>
+      );
+    case "user":
+      return (
+        <span
+          className={`${PILL} border-cal-brand-accent/25 bg-cal-brand-accent/10 text-cal-ink`}
+        >
+          <Users
+            size={11}
+            className="text-cal-brand-accent"
+            aria-hidden="true"
+          />
+          <span>User</span>
+        </span>
+      );
+    case "recipe":
+      return (
+        <span
+          className={`${PILL} border-cal-badge-emerald/35 bg-cal-badge-emerald/15 text-cal-ink`}
+        >
+          <Utensils size={11} className="text-cal-success" aria-hidden="true" />
+          <span>Recipe</span>
+        </span>
+      );
+    case "exercise":
+      return (
+        <span
+          className={`${PILL} border-cal-badge-orange/35 bg-cal-badge-orange/15 text-cal-ink`}
+        >
+          <Dumbbell
+            size={11}
+            className="text-cal-badge-orange"
+            aria-hidden="true"
+          />
+          <span>Exercise</span>
+        </span>
+      );
+    case "feedback":
+      return (
+        <span
+          className={`${PILL} border-cal-badge-pink/30 bg-cal-badge-pink/15 text-cal-ink`}
+        >
+          <Headset
+            size={11}
+            className="text-cal-badge-pink"
+            aria-hidden="true"
+          />
+          <span>Feedback</span>
+        </span>
+      );
+    case "broadcast":
+      return (
+        <span
+          className={`${PILL} border-cal-warning/35 bg-cal-warning/15 text-cal-ink`}
+        >
+          <Megaphone
+            size={11}
+            className="text-cal-warning"
+            aria-hidden="true"
+          />
+          <span>Announcement</span>
+        </span>
+      );
+    case "premium":
+      return (
+        <span
+          className={`${PILL} border-cal-warning/35 bg-cal-warning/15 text-cal-ink`}
+        >
+          <Crown size={11} className="text-cal-warning" aria-hidden="true" />
+          <span>Premium</span>
+        </span>
+      );
+    case "dataset":
+      return (
+        <span
+          className={`${PILL} border-cal-hairline bg-cal-surface-soft text-cal-ink`}
+        >
+          <FileSpreadsheet
+            size={11}
+            className="text-cal-muted"
+            aria-hidden="true"
+          />
+          <span>Dataset</span>
+        </span>
+      );
+    default:
+      return (
+        <span
+          className={`${PILL} border-cal-hairline bg-cal-surface-soft text-cal-ink`}
+        >
+          <Activity size={11} className="text-cal-muted" aria-hidden="true" />
+          <span>General</span>
+        </span>
+      );
+  }
+}
+
+function formatTimestamp(isoString) {
+  if (!isoString) return "—";
+  try {
+    const d = new Date(isoString);
+    if (Number.isNaN(d.getTime())) return isoString;
+    return d.toLocaleString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
+  } catch {
+    return isoString;
+  }
+}
+
+function formatShortDate(isoString) {
+  if (!isoString) return "—";
+  try {
+    const d = new Date(isoString);
+    if (Number.isNaN(d.getTime())) return "—";
+    return d.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+    });
+  } catch {
+    return "—";
+  }
+}
+
+function formatDetails(log) {
+  const actionStr = log.action
+    ? log.action.charAt(0).toUpperCase() + log.action.slice(1)
+    : "";
+  const typeStr = log.target_type || "";
+  const nameStr = log.target_name || log.target_id || "";
+  if (nameStr) {
+    return `${actionStr} ${typeStr}: ${nameStr}`.trim();
+  }
+  return `${actionStr} ${typeStr}`.trim() || "Recorded administrative event";
+}
 
 const ActivityLog = () => {
-
-  // Filter States
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [eventTypeFilter, setEventTypeFilter] = useState("all");
-  
   const [exporting, setExporting] = useState(false);
 
-  // Pagination States
   const [page, setPage] = useState(1);
   const [pageSize] = useState(20);
 
@@ -45,9 +231,14 @@ const ActivityLog = () => {
     return () => clearTimeout(handler);
   }, [searchQuery]);
 
-  // Reset page when search or filter changes
   const handleSearchChange = (e) => {
     setSearchQuery(e.target.value);
+    setPage(1);
+  };
+
+  const handleClearSearch = () => {
+    setSearchQuery("");
+    setDebouncedSearch("");
     setPage(1);
   };
 
@@ -71,8 +262,17 @@ const ActivityLog = () => {
   if (eventTypeFilter && eventTypeFilter !== "all") {
     activityUrl += `&target_type=${eventTypeFilter}`;
   }
-  const { data, isFetching: loading, isError, error, refetch } = useApiQuery(activityUrl, { keepPrevious: true });
-  const logs = data?.items || [];
+
+  const {
+    data,
+    isFetching: loading,
+    isPending,
+    isError,
+    error,
+    refetch,
+  } = useApiQuery(activityUrl, { keepPrevious: true });
+
+  const logs = useMemo(() => data?.items ?? [], [data]);
   const total = data?.total || 0;
   const totalPages = data?.total_pages || 0;
   const accessDenied = isError && error?.status === 403;
@@ -86,7 +286,9 @@ const ActivityLog = () => {
       if (debouncedSearch.trim()) params.set("search", debouncedSearch.trim());
       if (eventTypeFilter !== "all") params.set("target_type", eventTypeFilter);
       const query = params.toString();
-      const file = await apiFetch(`/api/admin/activity/export${query ? `?${query}` : ""}`);
+      const file = await apiFetch(
+        `/api/admin/activity/export${query ? `?${query}` : ""}`
+      );
       const csv = toCsv(file.items || [], [
         { label: "When", value: (r) => formatTimestamp(r.created_at) },
         { label: "Admin", value: (r) => r.admin_name },
@@ -95,8 +297,13 @@ const ActivityLog = () => {
         { label: "Target", value: (r) => r.target_name },
         { label: "Target ID", value: (r) => r.target_id },
       ]);
-      downloadCsv(`heartlink-activity-log-${file.generated_at.slice(0, 10)}.csv`, csv);
-      toast.success(`Exported ${file.count} log ${file.count === 1 ? "entry" : "entries"}.`);
+      downloadCsv(
+        `heartlink-activity-log-${file.generated_at.slice(0, 10)}.csv`,
+        csv
+      );
+      toast.success(
+        `Exported ${file.count} log ${file.count === 1 ? "entry" : "entries"}.`
+      );
     } catch (e) {
       toast.error(e?.data?.detail || "Couldn't export the activity log.");
     } finally {
@@ -104,347 +311,463 @@ const ActivityLog = () => {
     }
   };
 
-  const getEventBadge = (type) => {
-    const formattedType = type ? type.toLowerCase() : "";
-    switch (formattedType) {
-      case "case":
-        return {
-          bg: "bg-ds-rose text-ds-ink border-ds-rose",
-          icon: <Activity size={10} />,
-          label: "CASE REVIEW",
-        };
-      case "staff":
-        return {
-          bg: "bg-ds-surface text-ds-ink border-ds-hairline",
-          icon: <Shield size={10} />,
-          label: "STAFF",
-        };
-      case "recipe":
-        return {
-          bg: "bg-ds-mint text-ds-charcoal border-ds-mint",
-          icon: <Utensils size={10} />,
-          label: "RECIPE",
-        };
-      case "exercise":
-        return {
-          bg: "bg-ds-surface text-ds-ink border-ds-hairline",
-          icon: <Dumbbell size={10} />,
-          label: "EXERCISE",
-        };
-      case "feedback":
-        return {
-          bg: "bg-ds-yellow text-ds-warm-text border-ds-yellow-bold",
-          icon: <Headset size={10} />,
-          label: "FEEDBACK",
-        };
-      case "broadcast":
-        return {
-          bg: "bg-ds-tint text-ds-on-tint border-ds-tint",
-          icon: <Radio size={10} />,
-          label: "BROADCAST",
-        };
-      case "user":
-        return {
-          bg: "bg-ds-surface text-ds-ink border-ds-hairline",
-          icon: <Shield size={10} />,
-          label: "USER",
-        };
-      case "dataset":
-        return {
-          bg: "bg-ds-mint text-ds-charcoal border-ds-mint",
-          icon: <FileSpreadsheet size={10} />,
-          label: "DATASET",
-        };
-      case "premium":
-        return {
-          bg: "bg-ds-yellow text-ds-warm-text border-ds-yellow-bold",
-          icon: <Crown size={10} />,
-          label: "PREMIUM",
-        };
-      default:
-        return {
-          bg: "bg-ds-surface text-ds-slate border-ds-hairline",
-          icon: <Activity size={10} />,
-          label: "GENERAL",
-        };
-    }
-  };
-
-  const formatTimestamp = (isoString) => {
-    if (!isoString) return "N/A";
-    try {
-      const d = new Date(isoString);
-      if (isNaN(d.getTime())) return isoString;
-      return d.toLocaleString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: true
-      });
-    } catch {
-      return isoString;
-    }
-  };
-
-  const formatDetails = (log) => {
-    const actionStr = log.action ? log.action.charAt(0).toUpperCase() + log.action.slice(1) : "";
-    const typeStr = log.target_type ? log.target_type : "";
-    const nameStr = log.target_name || log.target_id || "";
-    if (nameStr) {
-      return `${actionStr} ${typeStr}: ${nameStr}`;
-    }
-    return `${actionStr} ${typeStr}`;
-  };
-
-  const renderSkeletons = () => {
-    return Array.from({ length: 6 }).map((_, idx) => (
-      <tr key={`sk-${idx}`}>
-        <td className="py-3.5 px-5 align-middle">
-          <Skeleton className="h-4 bg-ds-hairline/70 rounded w-28" />
-        </td>
-        <td className="py-3.5 px-5 align-middle">
-          <Skeleton className="h-5 bg-ds-hairline/70 rounded-full w-24" />
-        </td>
-        <td className="py-3.5 px-5 align-middle">
-          <Skeleton className="h-4 bg-ds-hairline/70 rounded w-64" />
-        </td>
-        <td className="py-3.5 px-5 align-middle">
-          <Skeleton className="h-6 bg-ds-hairline/70 rounded-[6px] w-28" />
-        </td>
-        <td className="py-3.5 px-5 align-middle text-right">
-          <Skeleton className="h-4 bg-ds-hairline/70 rounded w-16 ml-auto" />
-        </td>
-      </tr>
-    ));
-  };
-
-  const getPaginationText = () => {
-    if (total === 0) return "Showing 0 of 0 events";
-    const start = (page - 1) * pageSize + 1;
-    const end = Math.min(page * pageSize, total);
-    return (
-      <>
-        Showing <span className="text-ds-ink font-bold">{start}–{end}</span> of{" "}
-        <span className="text-ds-ink font-bold">{total}</span> events
-      </>
-    );
-  };
-
   if (accessDenied) {
     return (
       <AdminLayout>
-        <div className="flex flex-col items-center justify-center py-20 text-center" style={{ fontFamily: "'Inter', sans-serif" }}>
-          <div className="w-14 h-14 bg-ds-rose text-ds-ink rounded-2xl flex items-center justify-center mb-3 border border-ds-rose">
-            <Shield size={28} />
+        <div className="mx-auto flex w-full max-w-[1440px] items-center justify-center py-16 font-cal-sans text-cal-ink">
+          <div className="flex max-w-md flex-col items-center rounded-[12px] border border-cal-hairline bg-cal-canvas px-8 py-12 text-center shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full border border-cal-error/25 bg-cal-error/10 text-cal-error">
+              <Shield size={22} aria-hidden="true" />
+            </div>
+            <h2 className="font-cal-display text-[22px] font-semibold tracking-[-0.5px] text-cal-ink">
+              Access restricted
+            </h2>
+            <p className="mt-2 text-[13.5px] leading-relaxed text-cal-muted">
+              You do not have permission to view the system activity audit log.
+              Only authorized system administrators can inspect audit records.
+            </p>
           </div>
-          <h3 className="text-[20px] font-bold text-ds-ink mb-1">
-            Access Denied
-          </h3>
-          <p className="text-ds-slate text-[13px] max-w-sm mb-6">
-            You do not have the required permissions to view the system audit activity logs. Only authorized administrators are allowed.
-          </p>
         </div>
       </AdminLayout>
     );
   }
 
-  const showSkeleton = loading && logs.length === 0;
+  const showSkeleton = (isPending || loading) && logs.length === 0 && !fetchError;
   const isEmpty = !loading && !fetchError && logs.length === 0;
-  const isSearchOrFilterApplied = debouncedSearch.trim() !== "" || eventTypeFilter !== "all";
+  const isSearchOrFilterApplied =
+    debouncedSearch.trim() !== "" || eventTypeFilter !== "all";
+
+  const rangeStart = total === 0 ? 0 : (page - 1) * pageSize + 1;
+  const rangeEnd = Math.min(page * pageSize, total);
+  const latestEntry = logs[0] || null;
 
   return (
     <AdminLayout>
-      <div className={UI.page.container} style={{ fontFamily: FONTS.sans }}>
-        {/* ── PAGE HEAD ── */}
-        <PageHeader
-          eyebrow="Audit trail"
-          eyebrowIcon={Activity}
-          title="System activity audit log"
-          description="Immutable clinical and administrative audit trail of all platform activities and modifications."
-          actions={
-            <button type="button" onClick={exportCsv} disabled={exporting} className={UI.button.secondary}>
-              <Download size={13} aria-hidden="true" /> <span>{exporting ? "Exporting…" : "Export audit CSV"}</span>
+      <div className="mx-auto w-full max-w-[1440px] space-y-6 font-cal-sans text-cal-ink">
+        {/* ─── 1. EDITORIAL PAGE HEADER ─────────────────────────────────────── */}
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <div className="mb-2.5 inline-flex items-center gap-2 rounded-full border border-cal-hairline bg-cal-canvas px-3 py-1 text-[12px] font-medium text-cal-muted">
+              <Activity size={13.5} className="text-cal-ink" />
+              <span>System &amp; compliance · Immutable audit trail</span>
+            </div>
+            <h2 className="font-cal-display text-[28px] sm:text-[32px] font-semibold tracking-[-0.8px] leading-[1.15] text-cal-ink">
+              System activity audit log
+            </h2>
+            <p className="mt-1.5 max-w-[64ch] text-[14px] leading-[1.5] text-cal-muted">
+              Immutable clinical and administrative audit trail of platform
+              actions, content approvals, and account changes.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => refetch()}
+              disabled={loading}
+              className="inline-flex h-10 items-center gap-2 rounded-[8px] border border-cal-hairline bg-cal-canvas px-4 text-[13.5px] font-semibold text-cal-ink hover:bg-cal-surface-soft transition-colors cursor-pointer disabled:opacity-50"
+            >
+              <RefreshCw
+                size={14.5}
+                className={loading ? "animate-spin text-cal-muted" : "text-cal-muted"}
+                aria-hidden="true"
+              />
+              <span>Refresh</span>
             </button>
-          }
-        />
 
-        {/* ── MAIN CARD: AUDIT LOG TABLE ── */}
-        <div className="bg-ds-canvas rounded-xl border border-ds-hairline flex flex-col overflow-hidden ">
-          {/* Search & Filter Bar */}
-          <div className="p-4 border-b border-ds-hairline bg-ds-canvas">
-            <div className="flex flex-col md:flex-row gap-3">
-              <div className="relative flex-1">
-                <Search
-                  size={14}
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ds-steel pointer-events-none"
-                />
-                <input
-                  type="text"
-                  placeholder="Search by User ID, keyword, or action…"
-                  value={searchQuery}
-                  onChange={handleSearchChange}
-                  className="w-full pl-9 pr-4 py-2 text-[13px] border border-ds-hairline rounded-[8px] focus:outline-none focus:border-ds-ink transition-colors bg-ds-surface text-ds-ink placeholder:text-ds-steel"
-                />
-              </div>
-              <div className="flex gap-2.5 items-center">
-                <div className="relative">
-                  <select
-                    value={eventTypeFilter}
-                    onChange={handleFilterChange}
-                    className="pl-3 pr-7 py-2 text-[12px] font-semibold text-ds-ink bg-ds-canvas border border-ds-hairline rounded-[8px] focus:outline-none focus:border-ds-ink appearance-none cursor-pointer hover:border-ds-steel transition-colors"
-                  >
-                    <option value="all">All Categories</option>
-                    <option value="recipe">Recipes</option>
-                    <option value="exercise">Exercises</option>
-                    <option value="case">Case Reviews</option>
-                    <option value="staff">Staff</option>
-                    <option value="feedback">Feedback</option>
-                    <option value="broadcast">Broadcasts</option>
-                    <option value="user">Users</option>
-                    <option value="dataset">Datasets</option>
-                    <option value="premium">Premium settings</option>
-                  </select>
-                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
-                    <ChevronDown size={12} className="text-ds-steel" />
-                  </div>
-                </div>
+            <button
+              type="button"
+              onClick={exportCsv}
+              disabled={exporting || total === 0}
+              className="inline-flex h-10 items-center gap-2 rounded-[8px] bg-cal-primary active:bg-cal-primary-active px-5 text-[13.5px] font-semibold text-cal-on-primary transition-colors cursor-pointer disabled:bg-cal-primary-disabled disabled:text-cal-muted disabled:cursor-not-allowed"
+            >
+              {exporting ? (
+                <Loader2 size={15} className="animate-spin" aria-hidden="true" />
+              ) : (
+                <Download size={15} aria-hidden="true" />
+              )}
+              <span>{exporting ? "Exporting…" : "Export audit CSV"}</span>
+            </button>
+          </div>
+        </div>
 
-                {isSearchOrFilterApplied && (
-                  <button
-                    onClick={handleClearFilters}
-                    className="text-[11px] text-ds-ink font-semibold px-3 py-2 rounded-[8px] border border-ds-rose bg-ds-rose hover:bg-ds-rose transition-colors shrink-0 flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <RotateCcw size={12} />
-                    <span>Clear</span>
-                  </button>
-                )}
-              </div>
+        {/* ─── 2. KPI SUMMARY STRIP ─────────────────────────────────────────── */}
+        <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+          <div className="rounded-[12px] border border-cal-hairline bg-cal-canvas p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[12.5px] font-medium text-cal-muted">
+                {isSearchOrFilterApplied ? "Matching events" : "Total audit events"}
+              </span>
+              <span className="flex h-8 w-8 items-center justify-center rounded-full border border-cal-hairline bg-cal-surface-soft text-cal-ink">
+                <Activity size={14.5} aria-hidden="true" />
+              </span>
+            </div>
+            <div className="mt-2 font-cal-display text-[28px] font-semibold tracking-[-0.6px] leading-none tabular-nums text-cal-ink">
+              {showSkeleton ? "—" : total.toLocaleString()}
+            </div>
+            <div className="mt-2 text-[12px] text-cal-muted">
+              {isSearchOrFilterApplied
+                ? "Filtered clinical & admin entries"
+                : "Recorded across all modules"}
             </div>
           </div>
 
-          {/* Retry Banner on Error */}
-          {fetchError && (
-            <div className="p-3 mx-4 my-3 bg-ds-rose border border-ds-rose rounded-[8px] flex items-center justify-between text-ds-ink text-[12px] font-medium">
-              <span>Unable to load activity history.</span>
-              <button
-                onClick={() => refetch()}
-                className="px-3 py-1 bg-ds-danger hover:bg-ds-danger text-white rounded-[6px] transition-colors font-bold text-[11px] uppercase tracking-wider cursor-pointer"
-              >
-                Retry
-              </button>
+          <div className="rounded-[12px] border border-cal-hairline bg-cal-canvas p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[12.5px] font-medium text-cal-muted">
+                Viewing window
+              </span>
+              <span className="flex h-8 w-8 items-center justify-center rounded-full border border-cal-hairline bg-cal-surface-soft text-cal-ink">
+                <FileSpreadsheet size={14.5} aria-hidden="true" />
+              </span>
             </div>
-          )}
+            <div className="mt-2 font-cal-display text-[28px] font-semibold tracking-[-0.6px] leading-none tabular-nums text-cal-ink">
+              {showSkeleton
+                ? "—"
+                : total === 0
+                ? "0"
+                : `${rangeStart}–${rangeEnd}`}
+            </div>
+            <div className="mt-2 text-[12px] text-cal-muted">
+              {totalPages > 0
+                ? `Page ${page} of ${totalPages} (${pageSize} per page)`
+                : `${pageSize} entries per page`}
+            </div>
+          </div>
+
+          <div className="rounded-[12px] border border-cal-hairline bg-cal-canvas p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[12.5px] font-medium text-cal-muted">
+                Category scope
+              </span>
+              <span className="flex h-8 w-8 items-center justify-center rounded-full border border-cal-badge-violet/30 bg-cal-badge-violet/15 text-cal-ink">
+                <Shield size={14.5} aria-hidden="true" />
+              </span>
+            </div>
+            <div className="mt-2 truncate font-cal-display text-[24px] sm:text-[26px] font-semibold tracking-[-0.5px] leading-none text-cal-ink">
+              {CATEGORY_LABELS[eventTypeFilter] || "All categories"}
+            </div>
+            <div className="mt-2 truncate text-[12px] text-cal-muted">
+              {debouncedSearch.trim()
+                ? `Keyword: "${debouncedSearch.trim()}"`
+                : "All keywords included"}
+            </div>
+          </div>
+
+          <div className="rounded-[12px] border border-cal-hairline bg-cal-canvas p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[12.5px] font-medium text-cal-muted">
+                Latest visible entry
+              </span>
+              <span className="flex h-8 w-8 items-center justify-center rounded-full border border-cal-success/25 bg-cal-success/10 text-cal-success">
+                <Clock size={14.5} aria-hidden="true" />
+              </span>
+            </div>
+            <div className="mt-2 font-cal-display text-[28px] font-semibold tracking-[-0.6px] leading-none tabular-nums text-cal-ink">
+              {showSkeleton
+                ? "—"
+                : latestEntry
+                ? formatShortDate(latestEntry.created_at)
+                : "—"}
+            </div>
+            <div className="mt-2 truncate text-[12px] text-cal-muted">
+              {latestEntry
+                ? `By ${latestEntry.admin_name || latestEntry.admin_user_id || "System"}`
+                : "Immutable append-only log"}
+            </div>
+          </div>
+        </div>
+
+        {/* ─── 3. MAIN AUDIT LOG CARD ───────────────────────────────────────── */}
+        <section className="overflow-hidden rounded-[12px] border border-cal-hairline bg-cal-canvas shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+          {/* Search & Category Filter Toolbar */}
+          <div className="flex flex-col gap-3 border-b border-cal-hairline bg-cal-canvas px-4 py-3.5 sm:px-5 md:flex-row md:items-center md:justify-between">
+            <div className="relative flex-1 md:max-w-md">
+              <Search
+                size={15}
+                className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-cal-muted-soft"
+              />
+              <input
+                type="text"
+                aria-label="Search audit log"
+                placeholder="Search by admin name or target…"
+                value={searchQuery}
+                onChange={handleSearchChange}
+                className="h-9 w-full rounded-[8px] border border-cal-hairline bg-cal-canvas pl-9 pr-8 text-[13.5px] text-cal-ink placeholder:text-cal-muted-soft focus:border-cal-ink focus:outline-none transition-colors"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  aria-label="Clear search"
+                  onClick={handleClearSearch}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-cal-muted hover:text-cal-ink cursor-pointer"
+                >
+                  <X size={13.5} />
+                </button>
+              )}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2.5">
+              <div className="relative">
+                <select
+                  aria-label="Filter by event category"
+                  value={eventTypeFilter}
+                  onChange={handleFilterChange}
+                  className="h-9 appearance-none rounded-[8px] border border-cal-hairline bg-cal-canvas pl-3.5 pr-9 text-[13px] font-medium text-cal-ink hover:bg-cal-surface-soft focus:border-cal-ink focus:outline-none transition-colors cursor-pointer"
+                >
+                  {CATEGORY_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown
+                  size={14}
+                  className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-cal-muted"
+                />
+              </div>
+
+              {isSearchOrFilterApplied && (
+                <button
+                  type="button"
+                  onClick={handleClearFilters}
+                  className="inline-flex h-9 items-center gap-1.5 rounded-[8px] border border-cal-hairline bg-cal-surface-soft px-3 text-[12.5px] font-semibold text-cal-ink hover:bg-cal-surface-card transition-colors cursor-pointer"
+                >
+                  <RotateCcw size={13} className="text-cal-muted" />
+                  <span>Reset</span>
+                </button>
+              )}
+            </div>
+          </div>
 
           {/* Table */}
           <div className="w-full overflow-x-auto">
-            <table className="w-full text-left border-collapse min-w-[900px]">
+            <table className="w-full min-w-[860px] border-collapse text-left">
               <thead>
-                <tr className="border-b border-ds-hairline bg-ds-surface/40">
-                  <th className="py-3 px-4 sm:px-5 text-[11px] font-semibold text-ds-steel uppercase tracking-[0.1em]">
+                <tr className="border-b border-cal-hairline bg-cal-surface-soft/70">
+                  <th className="px-4 py-3 sm:px-5 text-[11.5px] font-semibold uppercase tracking-[0.06em] text-cal-muted">
                     Timestamp
                   </th>
-                  <th className="py-3 px-4 sm:px-5 text-[11px] font-semibold text-ds-steel uppercase tracking-[0.1em]">
-                    Event Type
+                  <th className="px-4 py-3 sm:px-5 text-[11.5px] font-semibold uppercase tracking-[0.06em] text-cal-muted">
+                    Category
                   </th>
-                  <th className="py-3 px-4 sm:px-5 text-[11px] font-semibold text-ds-steel uppercase tracking-[0.1em] w-2/5">
-                    Activity Details
+                  <th className="w-[42%] px-4 py-3 sm:px-5 text-[11.5px] font-semibold uppercase tracking-[0.06em] text-cal-muted">
+                    Activity details
                   </th>
-                  <th className="py-3 px-4 sm:px-5 text-[11px] font-semibold text-ds-steel uppercase tracking-[0.1em]">
-                    Associated Admin
+                  <th className="px-4 py-3 sm:px-5 text-[11.5px] font-semibold uppercase tracking-[0.06em] text-cal-muted">
+                    Actor
                   </th>
-                  <th className="py-3 px-4 sm:px-5 text-[11px] font-semibold text-ds-steel uppercase tracking-[0.1em] text-right">
+                  <th className="px-4 py-3 sm:px-5 text-right text-[11.5px] font-semibold uppercase tracking-[0.06em] text-cal-muted">
                     Status
                   </th>
                 </tr>
               </thead>
-              <tbody className={`divide-y divide-ds-hairline ${loading && !showSkeleton ? "opacity-60" : "opacity-100"}`}>
-                {showSkeleton && renderSkeletons()}
 
-                {isEmpty && (
-                  <tr>
-                    <td colSpan={5} className="py-12 text-center text-[13px] text-ds-slate font-medium">
-                      {isSearchOrFilterApplied
-                        ? "No activity matches your filters."
-                        : "No administrative activity recorded."}
-                    </td>
-                  </tr>
-                )}
-
-                {!showSkeleton && logs.map((log) => {
-                  const badge = getEventBadge(log.target_type);
-                  return (
-                    <tr
-                      key={log.id}
-                      className="hover:bg-ds-surface/60 transition-colors group cursor-default"
-                    >
-                      <td className="py-3.5 px-4 sm:px-5 align-middle">
-                        <span className="text-[12px] font-medium text-ds-slate">
-                          {formatTimestamp(log.created_at)}
-                        </span>
+              {showSkeleton ? (
+                <tbody className="divide-y divide-cal-hairline">
+                  {[1, 2, 3, 4, 5, 6].map((idx) => (
+                    <tr key={idx}>
+                      <td className="px-4 py-3.5 sm:px-5 align-middle">
+                        <Skeleton className="h-4 w-36 rounded bg-cal-surface-card" />
                       </td>
-                      <td className="py-3.5 px-4 sm:px-5 align-middle">
-                        <span
-                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-[4px] text-[11px] font-bold tracking-wider uppercase border ${badge.bg}`}
-                        >
-                          {badge.icon} {badge.label}
-                        </span>
+                      <td className="px-4 py-3.5 sm:px-5 align-middle">
+                        <Skeleton className="h-5 w-24 rounded-full bg-cal-surface-card" />
                       </td>
-                      <td className="py-3.5 px-4 sm:px-5 align-middle">
-                        <p className="text-[13px] text-ds-ink leading-relaxed font-semibold">
-                          {formatDetails(log)}
-                        </p>
+                      <td className="px-4 py-3.5 sm:px-5 align-middle">
+                        <Skeleton className="mb-1.5 h-4 w-64 rounded bg-cal-surface-card" />
+                        <Skeleton className="h-3 w-36 rounded bg-cal-surface-card" />
                       </td>
-                      <td className="py-3.5 px-4 sm:px-5 align-middle">
-                        <span className="inline-flex items-center gap-1.5 text-[11.5px] font-bold text-ds-ink bg-ds-surface border border-ds-hairline px-2 py-0.5 rounded-[5px]">
-                          <Shield size={11} className="text-ds-primary" />
-                          {log.admin_name || log.admin_user_id || "System"}
-                        </span>
+                      <td className="px-4 py-3.5 sm:px-5 align-middle">
+                        <Skeleton className="h-6 w-28 rounded-full bg-cal-surface-card" />
                       </td>
-                      <td className="py-3.5 px-4 sm:px-5 align-middle text-right">
-                        <span className="text-[11px] font-bold text-ds-charcoal bg-ds-mint border border-ds-mint px-2 py-0.5 rounded-[4px] uppercase tracking-wider">
-                          Logged
-                        </span>
+                      <td className="px-4 py-3.5 sm:px-5 text-right align-middle">
+                        <Skeleton className="ml-auto h-5 w-20 rounded-full bg-cal-surface-card" />
                       </td>
                     </tr>
-                  );
-                })}
-              </tbody>
+                  ))}
+                </tbody>
+              ) : logs.length > 0 ? (
+                <tbody
+                  className={`divide-y divide-cal-hairline transition-opacity ${
+                    loading ? "opacity-60" : "opacity-100"
+                  }`}
+                >
+                  {logs.map((log) => {
+                    const showTargetId =
+                      Boolean(log.target_id) &&
+                      log.target_id !== log.target_name;
+
+                    return (
+                      <tr
+                        key={log.id}
+                        className="transition-colors hover:bg-cal-surface-soft/70"
+                      >
+                        <td className="px-4 py-3.5 sm:px-5 align-middle whitespace-nowrap">
+                          <span className="inline-flex items-center gap-1.5 font-cal-mono text-[12.5px] tabular-nums text-cal-muted">
+                            <Clock size={12.5} aria-hidden="true" />
+                            <span>{formatTimestamp(log.created_at)}</span>
+                          </span>
+                        </td>
+
+                        <td className="px-4 py-3.5 sm:px-5 align-middle">
+                          <EventTypeBadge type={log.target_type} />
+                        </td>
+
+                        <td className="px-4 py-3.5 sm:px-5 align-middle">
+                          <div className="max-w-[460px]">
+                            <p className="text-[13.5px] font-semibold leading-snug text-cal-ink">
+                              {formatDetails(log)}
+                            </p>
+                            {showTargetId && (
+                              <p className="mt-0.5 truncate font-cal-mono text-[11.5px] tabular-nums text-cal-muted">
+                                Ref: {log.target_id}
+                              </p>
+                            )}
+                          </div>
+                        </td>
+
+                        <td className="px-4 py-3.5 sm:px-5 align-middle">
+                          <span className="inline-flex items-center gap-1.5 rounded-full border border-cal-hairline bg-cal-surface-soft px-2.5 py-1 text-[12px] font-semibold text-cal-ink">
+                            <Shield
+                              size={11.5}
+                              className="text-cal-muted"
+                              aria-hidden="true"
+                            />
+                            <span className="max-w-[180px] truncate">
+                              {log.admin_name || log.admin_user_id || "System"}
+                            </span>
+                          </span>
+                        </td>
+
+                        <td className="px-4 py-3.5 sm:px-5 text-right align-middle">
+                          <span
+                            className={`${PILL} border-cal-success/25 bg-cal-success/10 text-cal-ink`}
+                          >
+                            <CheckCircle2
+                              size={11}
+                              className="text-cal-success"
+                              aria-hidden="true"
+                            />
+                            <span>Logged</span>
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              ) : null}
             </table>
+
+            {/* Error & Empty States */}
+            {fetchError && logs.length === 0 && (
+              <div className="border-t border-cal-hairline px-6 py-10">
+                <LoadError
+                  what="activity logs"
+                  onRetry={refetch}
+                  className="py-2"
+                />
+              </div>
+            )}
+
+            {fetchError && logs.length > 0 && (
+              <div className="border-t border-cal-hairline bg-cal-error/5 px-5 py-3">
+                <LoadError
+                  what="the latest activity page"
+                  onRetry={refetch}
+                  className="py-1"
+                />
+              </div>
+            )}
+
+            {isEmpty && (
+              <div className="flex flex-col items-center justify-center gap-2.5 border-t border-cal-hairline px-6 py-14 text-center">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full border border-cal-hairline bg-cal-surface-soft text-cal-muted">
+                  <Activity size={18} aria-hidden="true" />
+                </div>
+                {isSearchOrFilterApplied ? (
+                  <>
+                    <p className="text-[14px] font-semibold text-cal-ink">
+                      No audit events match your filters
+                    </p>
+                    <p className="max-w-sm text-[13px] text-cal-muted">
+                      Try clearing your search keyword or switching back to all
+                      categories.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleClearFilters}
+                      className="mt-1 inline-flex h-9 items-center gap-1.5 rounded-[8px] bg-cal-primary active:bg-cal-primary-active px-4 text-[13px] font-semibold text-cal-on-primary transition-colors cursor-pointer"
+                    >
+                      <RotateCcw size={13.5} />
+                      <span>Reset filters</span>
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-[14px] font-semibold text-cal-ink">
+                      No administrative activity recorded yet
+                    </p>
+                    <p className="max-w-sm text-[13px] text-cal-muted">
+                      Clinical reviews, library updates, and account changes
+                      will appear here automatically.
+                    </p>
+                  </>
+                )}
+              </div>
+            )}
           </div>
 
-          {/* Pagination */}
-          <div className="p-3.5 border-t border-ds-hairline bg-ds-canvas flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <p className="text-[12px] text-ds-slate font-medium">
-              {getPaginationText()}
+          {/* Pagination Footer */}
+          <div className="flex flex-col justify-between gap-3 border-t border-cal-hairline bg-cal-canvas px-4 py-3.5 sm:flex-row sm:items-center sm:px-5">
+            <p className="text-[12.5px] text-cal-muted">
+              {total === 0 ? (
+                "Showing 0 of 0 events"
+              ) : (
+                <>
+                  Showing{" "}
+                  <span className="font-cal-mono font-semibold tabular-nums text-cal-ink">
+                    {rangeStart}–{rangeEnd}
+                  </span>{" "}
+                  of{" "}
+                  <span className="font-cal-mono font-semibold tabular-nums text-cal-ink">
+                    {total.toLocaleString()}
+                  </span>{" "}
+                  events
+                </>
+              )}
             </p>
+
             <div className="flex items-center gap-2">
+              {totalPages > 0 && (
+                <span className="mr-1 font-cal-mono text-[12px] tabular-nums text-cal-muted">
+                  Page {page} / {totalPages}
+                </span>
+              )}
+
               <button
+                type="button"
                 onClick={() => setPage((prev) => Math.max(1, prev - 1))}
                 disabled={page <= 1 || loading}
-                className={`flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold rounded-[6px] border border-ds-hairline bg-ds-surface transition-colors cursor-pointer ${
-                  page <= 1 || loading
-                    ? "text-ds-steel cursor-not-allowed opacity-40"
-                    : "text-ds-ink hover:bg-ds-hairline"
-                }`}
+                className="inline-flex h-8 items-center gap-1 rounded-[8px] border border-cal-hairline bg-cal-canvas px-3 text-[12.5px] font-semibold text-cal-ink hover:bg-cal-surface-soft transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-40"
               >
-                <ChevronLeft size={13} /> Previous
+                <ChevronLeft size={14} aria-hidden="true" />
+                <span>Previous</span>
               </button>
+
               <button
-                onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+                type="button"
+                onClick={() =>
+                  setPage((prev) => Math.min(totalPages, prev + 1))
+                }
                 disabled={page >= totalPages || loading}
-                className={`flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold rounded-[6px] border border-ds-hairline bg-ds-surface transition-colors cursor-pointer ${
-                  page >= totalPages || loading
-                    ? "text-ds-steel cursor-not-allowed opacity-40"
-                    : "text-ds-ink hover:bg-ds-hairline"
-                }`}
+                className="inline-flex h-8 items-center gap-1 rounded-[8px] border border-cal-hairline bg-cal-canvas px-3 text-[12.5px] font-semibold text-cal-ink hover:bg-cal-surface-soft transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-40"
               >
-                Next <ChevronRight size={13} />
+                <span>Next</span>
+                <ChevronRight size={14} aria-hidden="true" />
               </button>
             </div>
           </div>
-        </div>
+        </section>
       </div>
     </AdminLayout>
   );

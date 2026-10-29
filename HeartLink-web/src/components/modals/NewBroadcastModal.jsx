@@ -1,12 +1,22 @@
-import { useState } from "react";
-import { X, Send, Megaphone } from "lucide-react";
+import { useRef, useState } from "react";
+import { ChevronDown, Megaphone, Send, Users, X } from "lucide-react";
+import { CategoryBadge } from "./ViewBroadcastModal";
+import { useDialogFocus } from "../../hooks/useDialogFocus";
 
-const NewBroadcastModal = ({ isOpen, onClose, onPublish }) => {
+const NewBroadcastModal = ({
+  isOpen,
+  isCovered = false,
+  onClose,
+  onPublish,
+}) => {
+  const dialogRef = useRef(null);
   const [title, setTitle] = useState("");
   const [msg, setMsg] = useState("");
   const [type, setType] = useState("Maintenance");
   // Audience is fixed — backend delivers to all active users.
   const targetAudience = "All Registered Accounts";
+
+  useDialogFocus(isOpen && !isCovered, dialogRef, onClose);
 
   // Reset the form each time the modal opens (noticed during render, so there's no extra render pass)
   const [wasOpen, setWasOpen] = useState(isOpen);
@@ -21,132 +31,189 @@ const NewBroadcastModal = ({ isOpen, onClose, onPublish }) => {
 
   if (!isOpen) return null;
 
-  const isTitleValid = title.trim().length > 0 && title.trim().length <= 80;
+  const trimmedTitle = title.trim();
+  const isTitleValid = trimmedTitle.length > 0 && trimmedTitle.length <= 80;
   const isMsgValid = msg.trim().length > 0;
   const canSubmit = isTitleValid && isMsgValid;
 
-  const handlePublish = () => {
+  const handlePublish = (e) => {
+    e.preventDefault();
     if (canSubmit) {
-      onPublish(type, msg, targetAudience, title.trim());
+      onPublish(type, msg, targetAudience, trimmedTitle);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 font-cal-sans">
       <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-xs transition-opacity cursor-pointer"
+        className="fixed inset-0 bg-cal-ink/40 transition-opacity cursor-pointer"
         onClick={onClose}
       />
-      <div className="relative w-full max-w-md bg-ds-canvas max-h-full rounded-2xl shadow-2xl border border-ds-hairline flex flex-col animate-in fade-in zoom-in-95 duration-200 overflow-hidden text-ds-ink">
+
+      <form
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="create-broadcast-title"
+        tabIndex={-1}
+        onSubmit={handlePublish}
+        className="relative z-10 flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-[12px] border border-cal-hairline bg-cal-canvas text-cal-ink shadow-[0_12px_36px_rgba(0,0,0,0.12)]"
+      >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4.5 border-b border-ds-hairline bg-ds-canvas z-10">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-[8px] bg-ds-tint flex items-center justify-center text-ds-on-tint border border-ds-tint shrink-0">
-              <Megaphone size={16} />
-            </div>
+        <div className="flex items-start justify-between gap-3 border-b border-cal-hairline bg-cal-canvas px-6 pt-5 pb-4">
+          <div className="flex items-start gap-3">
+            <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-cal-hairline bg-cal-surface-soft text-cal-ink">
+              <Megaphone size={16} aria-hidden="true" />
+            </span>
             <div>
-              <h3 
-                className="text-[17px] font-medium text-ds-ink leading-tight"
+              <h3
+                id="create-broadcast-title"
+                className="font-cal-display text-[21px] sm:text-[23px] font-semibold tracking-[-0.5px] leading-[1.2] text-cal-ink"
               >
-                Create Announcement
+                Create announcement
               </h3>
-              <p className="text-[11px] text-ds-steel font-medium mt-0.5">Configure and publish a system-wide announcement</p>
+              <p className="mt-0.5 text-[12.5px] text-cal-muted">
+                Configure and publish a platform-wide announcement.
+              </p>
             </div>
           </div>
+
           <button
+            type="button"
             onClick={onClose}
-            className="text-ds-slate hover:text-ds-ink p-1.5 rounded-lg hover:bg-ds-surface transition-colors cursor-pointer"
+            aria-label="Close"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-cal-hairline bg-cal-canvas text-cal-muted hover:bg-cal-surface-soft hover:text-cal-ink transition-colors cursor-pointer"
           >
             <X size={16} />
           </button>
         </div>
 
         {/* Form Content */}
-        <div className="p-6 flex-1 space-y-4 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex-1 space-y-4 overflow-y-auto px-6 py-5">
           {/* Title field */}
           <div>
-            <label className="block text-[13px] font-medium text-ds-ink mb-1">
-              Announcement Title <span className="text-ds-danger">*</span>
-            </label>
+            <div className="mb-1.5 flex items-center justify-between gap-2">
+              <label
+                htmlFor="broadcast-title"
+                className="text-[13px] font-medium text-cal-ink"
+              >
+                Announcement title <span className="text-cal-error">*</span>
+              </label>
+              <span
+                className={`font-cal-mono text-[11.5px] tabular-nums ${
+                  trimmedTitle.length >= 80
+                    ? "font-semibold text-cal-error"
+                    : "text-cal-muted"
+                }`}
+              >
+                {trimmedTitle.length} / 80
+              </span>
+            </div>
             <input
+              id="broadcast-title"
               type="text"
               maxLength={80}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full px-3.5 py-2 text-[13px] bg-ds-canvas border border-ds-hairline-strong text-ds-ink rounded-[8px] focus:outline-none focus:border-ds-line transition-colors placeholder:text-ds-steel"
+              className="h-10 w-full rounded-[8px] border border-cal-hairline bg-cal-canvas px-3.5 text-[14px] text-cal-ink placeholder:text-cal-muted-soft focus:border-cal-ink focus:outline-none transition-colors"
               placeholder="e.g. Scheduled Maintenance — August 20"
             />
-            <div className="flex justify-between mt-1 text-[11px]">
-              {title.trim().length > 80 && (
-                <p className="font-semibold text-ds-danger">Title must be 80 characters or fewer.</p>
-              )}
-              <p className={`font-medium ml-auto ${title.trim().length >= 80 ? "text-ds-danger" : "text-ds-steel"}`}>
-                {title.trim().length} / 80
+            {trimmedTitle.length > 80 && (
+              <p className="mt-1 text-[12px] font-medium text-cal-error">
+                Title must be 80 characters or fewer.
               </p>
-            </div>
+            )}
           </div>
 
           {/* Category */}
           <div>
-            <label className="block text-[13px] font-medium text-ds-ink mb-1">
-              Category
-            </label>
-            <select
-              value={type}
-              onChange={(e) => setType(e.target.value)}
-              className="w-full px-3 py-2 text-[12.5px] font-semibold bg-ds-canvas border border-ds-hairline-strong text-ds-ink rounded-[8px] focus:outline-none focus:border-ds-line transition-colors cursor-pointer"
-            >
-              <option value="Maintenance">Maintenance</option>
-              <option value="App Update">App Update</option>
-              <option value="Safety Reminder">Safety Reminder</option>
-              <option value="General">General</option>
-            </select>
+            <div className="mb-1.5 flex items-center justify-between gap-2">
+              <label
+                htmlFor="broadcast-category"
+                className="text-[13px] font-medium text-cal-ink"
+              >
+                Category
+              </label>
+              <CategoryBadge category={type} />
+            </div>
+            <div className="relative">
+              <select
+                id="broadcast-category"
+                value={type}
+                onChange={(e) => setType(e.target.value)}
+                className="h-10 w-full appearance-none rounded-[8px] border border-cal-hairline bg-cal-canvas pl-3.5 pr-9 text-[14px] font-medium text-cal-ink focus:border-cal-ink focus:outline-none transition-colors cursor-pointer"
+              >
+                <option value="Maintenance">Maintenance</option>
+                <option value="App Update">App Update</option>
+                <option value="Safety Reminder">Safety Reminder</option>
+                <option value="General">General</option>
+              </select>
+              <ChevronDown
+                size={15}
+                className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-cal-muted"
+              />
+            </div>
           </div>
 
           {/* Message */}
           <div>
-            <label className="block text-[13px] font-medium text-ds-ink mb-1">
-              Announcement Message <span className="text-ds-danger">*</span>
-            </label>
+            <div className="mb-1.5 flex items-center justify-between gap-2">
+              <label
+                htmlFor="broadcast-message"
+                className="text-[13px] font-medium text-cal-ink"
+              >
+                Announcement message <span className="text-cal-error">*</span>
+              </label>
+              <span
+                className={`font-cal-mono text-[11.5px] tabular-nums ${
+                  msg.length >= 255
+                    ? "font-semibold text-cal-error"
+                    : "text-cal-muted"
+                }`}
+              >
+                {msg.length} / 255
+              </span>
+            </div>
             <textarea
+              id="broadcast-message"
               rows="4"
               maxLength={255}
               value={msg}
               onChange={(e) => setMsg(e.target.value)}
-              className="w-full px-3.5 py-2 text-[12.5px] bg-ds-canvas border border-ds-hairline-strong text-ds-ink rounded-[8px] focus:outline-none focus:border-ds-line transition-colors resize-none leading-relaxed placeholder:text-ds-steel"
-              placeholder="Draft your announcement body (max 255 chars)…"
+              className="w-full resize-none rounded-[8px] border border-cal-hairline bg-cal-canvas px-3.5 py-2.5 text-[14px] leading-relaxed text-cal-ink placeholder:text-cal-muted-soft focus:border-cal-ink focus:outline-none transition-colors"
+              placeholder="Draft your announcement body (max 255 characters)…"
             />
-            <div className="flex justify-end mt-1">
-              <p className={`text-[11px] font-medium ${msg.length >= 255 ? "text-ds-danger" : "text-ds-steel"}`}>
-                {msg.length} / 255 characters
-              </p>
-            </div>
           </div>
 
           {/* Audience — read-only informational */}
-          <div className="bg-ds-surface/60 border border-ds-hairline rounded-[8px] px-3.5 py-2.5 flex items-center justify-between text-[12px]">
-            <span className="text-[11px] font-semibold text-ds-steel uppercase tracking-wider">Audience</span>
-            <span className="font-bold text-ds-ink">All Registered Accounts</span>
+          <div className="flex items-center justify-between gap-3 rounded-[10px] border border-cal-hairline bg-cal-surface-soft px-4 py-3 text-[13px]">
+            <span className="inline-flex items-center gap-2 font-medium text-cal-muted">
+              <Users size={14.5} className="text-cal-muted" aria-hidden="true" />
+              <span>Target audience</span>
+            </span>
+            <span className="font-semibold text-cal-ink">{targetAudience}</span>
           </div>
         </div>
 
         {/* Footer Action */}
-        <div className="px-6 py-4 border-t border-ds-hairline bg-ds-canvas flex shrink-0 gap-2">
+        <div className="flex shrink-0 items-center justify-end gap-2.5 border-t border-cal-hairline bg-cal-canvas px-6 py-4">
           <button
+            type="button"
             onClick={onClose}
-            className="flex-1 px-4 py-2 text-[12px] font-semibold text-ds-ink bg-ds-surface hover:bg-ds-hairline border border-ds-hairline rounded-[8px] transition-colors cursor-pointer"
+            className="inline-flex h-10 items-center justify-center rounded-[8px] border border-cal-hairline bg-cal-canvas px-4 text-[13.5px] font-semibold text-cal-ink hover:bg-cal-surface-soft transition-colors cursor-pointer"
           >
             Cancel
           </button>
           <button
-            onClick={handlePublish}
+            type="submit"
             disabled={!canSubmit}
-            className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2 text-[12px] font-semibold text-white rounded-[8px] transition-colors bg-ds-primary hover:bg-ds-primary-pressed disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+            className="inline-flex h-10 items-center justify-center gap-1.5 rounded-[8px] bg-cal-primary active:bg-cal-primary-active px-5 text-[13.5px] font-semibold text-cal-on-primary transition-colors cursor-pointer disabled:bg-cal-primary-disabled disabled:text-cal-muted disabled:cursor-not-allowed"
           >
-            <Send size={13} /> <span>Publish announcement</span>
+            <Send size={14} />
+            <span>Review &amp; publish</span>
           </button>
         </div>
-      </div>
+      </form>
     </div>
   );
 };

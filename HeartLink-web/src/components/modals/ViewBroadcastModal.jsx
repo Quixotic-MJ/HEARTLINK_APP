@@ -1,142 +1,204 @@
-import { useState } from "react";
-import { X, CheckCircle2, Megaphone, Info, ShieldAlert, Wrench, AlertTriangle, Trash2 } from "lucide-react";
+import { useRef, useState } from "react";
+import {
+  CheckCircle2,
+  Info,
+  Megaphone,
+  ShieldAlert,
+  Trash2,
+  Wrench,
+  X,
+} from "lucide-react";
+import ConfirmActionModal from "./ConfirmActionModal";
+import { useDialogFocus } from "../../hooks/useDialogFocus";
+
+const PILL =
+  "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11.5px] font-semibold leading-none whitespace-nowrap";
 
 export const CategoryBadge = ({ category }) => {
   switch (category) {
     case "Maintenance":
       return (
-        <span className="inline-flex items-center gap-1 bg-ds-yellow text-ds-warm-text border border-ds-yellow-bold px-2 py-0.5 rounded-[4px] text-[11px] font-bold uppercase tracking-wider whitespace-nowrap">
-          <Wrench size={10} /> Maintenance
+        <span
+          className={`${PILL} border-cal-warning/35 bg-cal-warning/15 text-cal-ink`}
+        >
+          <Wrench size={11} className="text-cal-warning" aria-hidden="true" />
+          <span>Maintenance</span>
         </span>
       );
     case "App Update":
       return (
-        <span className="inline-flex items-center gap-1 bg-ds-surface text-ds-ink border border-ds-hairline px-2 py-0.5 rounded-[4px] text-[11px] font-bold uppercase tracking-wider whitespace-nowrap">
-          <Info size={10} /> Update
+        <span
+          className={`${PILL} border-cal-badge-violet/30 bg-cal-badge-violet/15 text-cal-ink`}
+        >
+          <Info
+            size={11}
+            className="text-cal-badge-violet"
+            aria-hidden="true"
+          />
+          <span>App update</span>
         </span>
       );
     case "Safety Reminder":
       return (
-        <span className="inline-flex items-center gap-1 bg-ds-rose text-ds-ink border border-ds-rose px-2 py-0.5 rounded-[4px] text-[11px] font-bold uppercase tracking-wider whitespace-nowrap">
-          <ShieldAlert size={10} /> Safety
+        <span
+          className={`${PILL} border-cal-error/25 bg-cal-error/10 text-cal-ink`}
+        >
+          <ShieldAlert
+            size={11}
+            className="text-cal-error"
+            aria-hidden="true"
+          />
+          <span>Safety reminder</span>
         </span>
       );
     default:
       return (
-        <span className="inline-flex items-center gap-1 bg-ds-mint text-ds-charcoal border border-ds-mint px-2 py-0.5 rounded-[4px] text-[11px] font-bold uppercase tracking-wider whitespace-nowrap">
-          <Megaphone size={10} /> General
+        <span
+          className={`${PILL} border-cal-success/25 bg-cal-success/10 text-cal-ink`}
+        >
+          <Megaphone
+            size={11}
+            className="text-cal-success"
+            aria-hidden="true"
+          />
+          <span>General</span>
         </span>
       );
   }
 };
 
 const ViewBroadcastModal = ({ isOpen, onClose, broadcast, onDelete }) => {
+  const dialogRef = useRef(null);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+
+  useDialogFocus(isOpen && !isDeleteConfirmOpen, dialogRef, onClose);
 
   if (!isOpen || !broadcast) return null;
 
-  const handleConfirmDelete = () => {
+  const publisherName =
+    broadcast.display_publisher ||
+    (broadcast.publisher
+      ? broadcast.publisher.replace(/^[^(]+\((.+)\)$/, "$1")
+      : "System Admin");
+
+  const handleConfirmDelete = async () => {
     setIsDeleteConfirmOpen(false);
-    onDelete(broadcast.id);
+    await onDelete(broadcast.id);
   };
 
   return (
     <>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6" style={{ fontFamily: "'Inter', sans-serif" }}>
-        <div 
-          className="absolute inset-0 bg-black/60 backdrop-blur-xs transition-opacity cursor-pointer" 
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 font-cal-sans">
+        <div
+          className="fixed inset-0 bg-cal-ink/40 transition-opacity cursor-pointer"
           onClick={onClose}
         />
-        <div className="relative w-full max-w-md bg-ds-canvas max-h-full rounded-2xl shadow-2xl border border-ds-hairline flex flex-col animate-in fade-in zoom-in-95 duration-200 overflow-hidden text-ds-ink">
+
+        <div
+          ref={dialogRef}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="view-broadcast-title"
+          tabIndex={-1}
+          className="relative z-10 flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-[12px] border border-cal-hairline bg-cal-canvas text-cal-ink shadow-[0_12px_36px_rgba(0,0,0,0.12)]"
+        >
           {/* Header */}
-          <div className="flex items-center justify-between px-6 py-4.5 border-b border-ds-hairline bg-ds-canvas z-10">
-            <div className="flex items-center gap-2.5">
-              <h3 
-                className="text-[17px] font-medium text-ds-ink leading-tight"
+          <div className="flex items-start justify-between gap-3 border-b border-cal-hairline bg-cal-canvas px-6 pt-5 pb-4">
+            <div className="min-w-0 flex-1">
+              <div className="mb-2 flex flex-wrap items-center gap-2">
+                <span className="text-[12px] font-medium text-cal-muted">
+                  Announcement details
+                </span>
+                <CategoryBadge category={broadcast.type} />
+              </div>
+              <h3
+                id="view-broadcast-title"
+                className="font-cal-display text-[21px] sm:text-[23px] font-semibold tracking-[-0.5px] leading-[1.2] text-cal-ink"
               >
-                Announcement Details
+                {broadcast.title || broadcast.type || "Announcement"}
               </h3>
-              <CategoryBadge category={broadcast.type} />
             </div>
-            <button 
-              onClick={onClose} 
-              className="text-ds-slate hover:text-ds-ink p-1.5 rounded-lg hover:bg-ds-surface transition-colors cursor-pointer"
+
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-cal-hairline bg-cal-canvas text-cal-muted hover:bg-cal-surface-soft hover:text-cal-ink transition-colors cursor-pointer"
             >
               <X size={16} />
             </button>
           </div>
 
           {/* Content */}
-          <div className="p-6 flex-1 space-y-4.5 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-            {/* Title */}
-            {(broadcast.title || broadcast.type) && (
-              <div>
-                <h4 className="text-[11px] font-semibold text-ds-steel uppercase tracking-wider border-b border-ds-hairline pb-1 mb-2">
-                  Announcement Title
-                </h4>
-                <p 
-                  className="text-[16px] font-medium text-ds-ink"
-                >
-                  {broadcast.title || broadcast.type}
+          <div className="flex-1 space-y-5 overflow-y-auto px-6 py-5">
+            {/* Metadata Grid */}
+            <div className="grid grid-cols-2 gap-px overflow-hidden rounded-[10px] border border-cal-hairline bg-cal-hairline">
+              <div className="bg-cal-canvas px-4 py-3">
+                <p className="text-[11.5px] font-medium text-cal-muted">
+                  Published on
+                </p>
+                <p className="mt-1 font-cal-mono text-[13.5px] font-semibold tabular-nums text-cal-ink">
+                  {broadcast.date || "—"}
                 </p>
               </div>
-            )}
-
-            {/* Meta Info Card */}
-            <div className="bg-ds-surface/60 p-3.5 rounded-[8px] border border-ds-hairline flex flex-col gap-2 text-[12px]">
-              <div className="flex justify-between items-center">
-                <span className="text-[11px] font-semibold text-ds-steel uppercase tracking-wider">Published On</span>
-                <span className="font-mono font-semibold text-ds-ink">{broadcast.date}</span>
-              </div>
-              <div className="h-px w-full bg-ds-hairline"></div>
-              <div className="flex justify-between items-center">
-                <span className="text-[11px] font-semibold text-ds-steel uppercase tracking-wider">Published By</span>
-                <span className="font-semibold text-ds-ink">
-                  {broadcast.display_publisher ||
-                    (broadcast.publisher
-                      ? broadcast.publisher.replace(/^[^(]+\((.+)\)$/, "$1")
-                      : "System Admin")}
-                </span>
+              <div className="bg-cal-canvas px-4 py-3">
+                <p className="text-[11.5px] font-medium text-cal-muted">
+                  Published by
+                </p>
+                <p className="mt-1 truncate text-[13.5px] font-semibold text-cal-ink">
+                  {publisherName}
+                </p>
               </div>
             </div>
 
             {/* Message Body */}
             <div>
-              <h4 className="text-[11px] font-semibold text-ds-steel uppercase tracking-wider border-b border-ds-hairline pb-1 mb-2">
-                Announcement Message
-              </h4>
-              <div className="bg-ds-surface/40 rounded-[8px] border border-ds-hairline p-3.5">
-                <p className="text-[12.5px] text-ds-ink leading-relaxed whitespace-pre-wrap font-medium">
+              <p className="mb-1.5 text-[12.5px] font-semibold text-cal-ink">
+                Message content
+              </p>
+              <div className="rounded-[10px] border border-cal-hairline bg-cal-surface-soft p-4">
+                <p className="whitespace-pre-wrap text-[14px] leading-[1.6] text-cal-ink">
                   {broadcast.message}
                 </p>
               </div>
             </div>
 
-            {/* Recipient count (if returned by API) */}
-            {typeof broadcast.recipients_count === "number" ? (
-              <div className="bg-ds-mint p-3 rounded-[8px] border border-ds-mint flex items-center justify-between">
-                <div className="flex items-center gap-1.5">
-                  <CheckCircle2 size={15} className="text-ds-charcoal" />
-                  <span className="text-[12px] font-bold text-ds-charcoal">Delivered</span>
-                </div>
-                <span className="text-[11px] font-bold text-ds-charcoal bg-ds-mint/60 px-2 py-0.5 rounded-[4px] uppercase tracking-wider">
-                  {broadcast.recipients_count} recipient{broadcast.recipients_count !== 1 ? "s" : ""}
+            {/* Delivery Receipt (when provided by API) */}
+            {typeof broadcast.recipients_count === "number" && (
+              <div className="flex items-center justify-between gap-3 rounded-[10px] border border-cal-success/25 bg-cal-success/10 px-4 py-3">
+                <span className="inline-flex items-center gap-2 text-[13px] font-semibold text-cal-ink">
+                  <CheckCircle2
+                    size={15.5}
+                    className="text-cal-success"
+                    aria-hidden="true"
+                  />
+                  <span>Delivered to active accounts</span>
+                </span>
+                <span className="rounded-full border border-cal-success/25 bg-cal-canvas px-2.5 py-0.5 font-cal-mono text-[12px] font-semibold tabular-nums text-cal-ink">
+                  {broadcast.recipients_count}{" "}
+                  {broadcast.recipients_count === 1
+                    ? "recipient"
+                    : "recipients"}
                 </span>
               </div>
-            ) : null}
+            )}
           </div>
 
           {/* Footer */}
-          <div className="px-6 py-4 border-t border-ds-hairline bg-ds-canvas flex justify-between shrink-0 items-center">
-            <button 
+          <div className="flex shrink-0 items-center justify-between gap-3 border-t border-cal-hairline bg-cal-canvas px-6 py-4">
+            <button
+              type="button"
               onClick={() => setIsDeleteConfirmOpen(true)}
-              className="px-3.5 py-1.5 text-[12px] font-semibold text-ds-ink bg-ds-rose hover:bg-ds-rose rounded-[6px] transition-colors border border-ds-rose flex items-center gap-1.5 cursor-pointer"
+              className="inline-flex h-10 items-center gap-1.5 rounded-[8px] border border-cal-error/30 bg-cal-canvas px-3.5 text-[13.5px] font-semibold text-cal-error hover:bg-cal-error/10 transition-colors cursor-pointer"
             >
-              <Trash2 size={13} /> <span>Delete</span>
+              <Trash2 size={14.5} />
+              <span>Delete</span>
             </button>
-            <button 
-              onClick={onClose} 
-              className="px-4 py-2 text-[12px] font-semibold text-ds-ink bg-ds-surface hover:bg-ds-hairline border border-ds-hairline rounded-[8px] transition-colors cursor-pointer"
+
+            <button
+              type="button"
+              onClick={onClose}
+              className="inline-flex h-10 items-center justify-center rounded-[8px] bg-cal-primary active:bg-cal-primary-active px-5 text-[13.5px] font-semibold text-cal-on-primary transition-colors cursor-pointer"
             >
               Close
             </button>
@@ -144,42 +206,30 @@ const ViewBroadcastModal = ({ isOpen, onClose, broadcast, onDelete }) => {
         </div>
       </div>
 
-      {/* In-App Delete Confirmation Modal */}
-      {isDeleteConfirmOpen && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4" style={{ fontFamily: "'Inter', sans-serif" }}>
-          <div 
-            className="absolute inset-0 bg-black/60 backdrop-blur-xs cursor-pointer" 
-            onClick={() => setIsDeleteConfirmOpen(false)}
-          />
-          <div className="bg-ds-canvas p-5 rounded-2xl shadow-2xl max-w-sm w-full relative animate-in fade-in zoom-in-95 duration-200 border border-ds-hairline text-ds-ink">
-            <div className="w-10 h-10 rounded-[8px] bg-ds-rose flex items-center justify-center mb-3 border border-ds-rose text-ds-ink">
-              <AlertTriangle size={18} />
-            </div>
-            <h4 
-              className="text-[17px] font-medium text-ds-ink mb-1 leading-tight"
-            >
-              Delete Announcement?
-            </h4>
-            <p className="text-[12px] text-ds-slate leading-relaxed mb-5">
-              Are you sure you want to delete this broadcast? It will be removed from user announcement feeds immediately.
-            </p>
-            <div className="flex gap-2">
-              <button 
-                onClick={() => setIsDeleteConfirmOpen(false)} 
-                className="flex-1 px-3.5 py-2 text-[12px] font-semibold text-ds-ink bg-ds-surface hover:bg-ds-hairline rounded-[8px] transition-colors border border-ds-hairline cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button 
-                onClick={handleConfirmDelete} 
-                className="flex-1 px-3.5 py-2 text-[12px] font-semibold text-white bg-ds-danger hover:bg-ds-danger rounded-[8px] transition-colors cursor-pointer"
-              >
-                Yes, Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmActionModal
+        isOpen={isDeleteConfirmOpen}
+        onClose={() => setIsDeleteConfirmOpen(false)}
+        onConfirm={handleConfirmDelete}
+        title="Delete announcement?"
+        subtitle="Remove from user feeds"
+        description={`Delete "${
+          broadcast.title || "this announcement"
+        }"? It will be removed from user announcement feeds immediately.`}
+        confirmText="Delete announcement"
+        cancelText="Cancel"
+        variant="danger"
+        icon={Trash2}
+        entityInfo={{
+          name: broadcast.title || "Announcement",
+          badge: broadcast.type || "General",
+          email: `Published ${broadcast.date || "recently"} by ${publisherName}`,
+          id: broadcast.id,
+        }}
+        impactDetails={[
+          "Removed immediately from mobile and web announcement feeds.",
+          "This action cannot be undone.",
+        ]}
+      />
     </>
   );
 };
