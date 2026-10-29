@@ -157,6 +157,34 @@ def test_marking_read_only_works_on_your_own():
     assert repo.mark_admin_notification_read("2", "medical_expert", DIET, "Dietitian") is True
 
 
+def test_marking_read_twice_is_not_an_error():
+    repo = repo_with(ROWS, reads=["2"])
+    writes = []
+    repo._save_reads = lambda ids_, admins: writes.append(ids_)
+    # Already read: nothing to save, and no duplicate row for the database to refuse
+    assert repo.mark_admin_notification_read("2", "medical_expert", DIET, "Dietitian") is True
+    assert writes == []
+
+
+def test_reads_are_saved_without_failing_on_duplicates():
+    calls = []
+
+    class Table:
+        def upsert(self, rows, **kw):
+            calls.append((rows, kw))
+            return self
+
+        def execute(self):
+            return type("R", (), {"data": []})()
+
+    repo = SupabaseAdminRepository.__new__(SupabaseAdminRepository)
+    repo.client = type("C", (), {"table": lambda self, name: Table()})()
+    repo._save_reads(["n1", "n2"], ["a1"])
+    rows, kw = calls[0]
+    assert [(r["notification_id"], r["admin_user_id"]) for r in rows] == [("n1", "a1"), ("n2", "a1")]
+    assert kw == {"on_conflict": "notification_id,admin_user_id", "ignore_duplicates": True}
+
+
 # --- the endpoints ------------------------------------------------------------------------------------------
 
 @pytest.fixture

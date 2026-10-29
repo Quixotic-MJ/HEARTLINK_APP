@@ -90,8 +90,7 @@ class SupabaseAdminRepository(AdminRepository):
             res = self.client.table("admin_notifications").insert(clean_payload).execute()
             created = res.data[0] if res.data else clean_payload
             if data.get("read_by") and created.get("id"):
-                reads = [{"notification_id": created["id"], "admin_user_id": uid, "read_at": utc_now().isoformat()} for uid in data["read_by"]]
-                self.client.table("admin_notification_reads").insert(reads).execute()
+                self._save_reads([created["id"]], data["read_by"])
             return created
         except Exception as e:
             handle_db_error(e)
@@ -139,6 +138,14 @@ class SupabaseAdminRepository(AdminRepository):
             handle_db_error(e)
             return {"items": [], "unread_count": 0, "total": 0}
 
+    def _save_reads(self, notification_ids: List[str], admin_ids: List[str]) -> None:
+        # A notification already marked read (a double click, a second tab) is left as it is, not an error
+        now = utc_now().isoformat()
+        reads = [{"notification_id": nid, "admin_user_id": uid, "read_at": now} for nid in notification_ids for uid in admin_ids]
+        self.client.table("admin_notification_reads").upsert(
+            reads, on_conflict="notification_id,admin_user_id", ignore_duplicates=True
+        ).execute()
+
     def mark_admin_notification_read(self, notification_id: str, caller_role: str, caller_id: str,
                                      expert_type: Optional[str] = None) -> bool:
         try:
@@ -147,14 +154,11 @@ class SupabaseAdminRepository(AdminRepository):
                 return False
             # HL-082: only a notification this person can see
             visible = self.list_admin_notifications(caller_role, caller_id, True, expert_type).get("items", [])
-            if not any(n.get("id") == notification_id for n in visible):
+            notif = next((n for n in visible if n.get("id") == notification_id), None)
+            if notif is None:
                 return False
-            payload = {
-                "notification_id": notification_id,
-                "admin_user_id": admin_uuid,
-                "read_at": utc_now().isoformat()
-            }
-            self.client.table("admin_notification_reads").insert(payload).execute()
+            if caller_id not in notif.get("read_by", []):
+                self._save_reads([notification_id], [admin_uuid])
             return True
         except Exception as e:
             handle_db_error(e)
@@ -169,8 +173,7 @@ class SupabaseAdminRepository(AdminRepository):
             items = notifs.get("items", [])
             unread_ids = [n["id"] for n in items if caller_id not in n.get("read_by", [])]
             if unread_ids:
-                reads = [{"notification_id": nid, "admin_user_id": admin_uuid, "read_at": utc_now().isoformat()} for nid in unread_ids]
-                self.client.table("admin_notification_reads").insert(reads).execute()
+                self._save_reads(unread_ids, [admin_uuid])
             return True
         except Exception as e:
             handle_db_error(e)
